@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1440"/>
+<title>byup — Onboarding Ristoratore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #FAFBFC;             /* off-white canvas, mai #fff puro */
+    color: #1A1D24;
+    -webkit-font-smoothing: antialiased;
+  }
+  .frame {
+    width: 1440px;
+    margin: 24px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15,17,21,0.04);
+    overflow: hidden;
+    position: relative;
+  }
+  /* Stage controls: aiuto-demo per navigare tra step. Posizione bottom-right,
+     molto neutro, sotto la soglia di attenzione. */
+  .stage-controls {
+    position: fixed; bottom: 16px; right: 16px;
+    background: rgba(15, 17, 21, 0.92);
+    color: #fff; padding: 6px 10px; border-radius: 8px;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 100; box-shadow: 0 8px 24px rgba(15, 17, 21, 0.08);
+  }
+  .stage-controls button {
+    background: rgba(255,255,255,0.10); color: #fff;
+    border: none; width: 22px; height: 22px;
+    border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit;
+    transition: background 150ms ease-out;
+  }
+  .stage-controls button:hover:not(:disabled) {
+    background: rgba(255,255,255,0.18);
+  }
+  .stage-controls button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Step-stage entrance: dissoluzione + scale-up leggero del contenuto
+     sottostante quando l'overlay processing si chiude. Riavvia ad ogni
+     cambio step grazie al key={step} in OnboardingApp.
+     Vive nel CSS dell'HTML (non dentro un componente che potrebbe
+     smontarsi) per non legare la sua disponibilità alla presenza del banner. */
+  @keyframes step-stage-enter {
+    from { opacity: 0; transform: scale(0.985); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .step-stage {
+    animation: step-stage-enter 320ms ease-out;
+    transform-origin: center top;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!--
+  Ordine di caricamento intenzionale:
+  1. icons (token + icone — usato da tutti)
+  2. step1 (definisce primitive comuni: PrimaryCta/SecondaryCta/OnbField/OnbCard/OnbSectionHeader)
+  3. step2/3/4 (consumano le primitive)
+  4. app (orchestratore — montato per ultimo)
+-->
+<script type="text/babel" src="onboarding-icons.jsx"></script>
+<script type="text/babel" src="onboarding-step1-upload.jsx"></script>
+<script type="text/babel" src="onboarding-step2-locale.jsx"></script>
+<script type="text/babel" src="onboarding-step3-sale-tavoli.jsx"></script>
+<script type="text/babel" src="onboarding-step4-verifica.jsx"></script>
+<script type="text/babel" src="onboarding-app.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code locale
+.claude/
+
+# Backups e working files
+*.bak
+*~
+
+# Audit / review folder con asset di lavoro pesanti
+_audit/
+_review/
+uploads/
+screenshots/
+memory/
+
+# Screenshot di lavoro non rilevanti per il deploy
+_check_*.png
+_unsplash_*.json
+_unsplash_*.html
+01-_check_*.png
+02-_check_*.png
+03-_check_*.png
+01-_v.png
+02-_v.png
+03-_v.png
+
+# Logo legacy non più referenziato
+byup-logo.png
+fresh logo.png
+Fresh.png
