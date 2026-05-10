@@ -23,7 +23,7 @@ uploads/
 screenshots/
 memory/
 
-# Screenshot di lavoro non rilevanti per il deploy
+# Screenshot di lavoro / dump pesanti non referenziati nei JSX
 _check_*.png
 _unsplash_*.json
 _unsplash_*.html
@@ -34,7 +34,6 @@ _unsplash_*.html
 02-_v.png
 03-_v.png
 
-# Logo legacy non più referenziato
-byup-logo.png
-fresh logo.png
-Fresh.png
+# NOTA: fresh.png (logo attivo) è VOLUTAMENTE incluso nel repo.
+# byup-logo.png e "fresh logo.png" sono asset legacy ma non escludo:
+# essere safe in caso una qualunque pagina deprecata li referenzi ancora.
