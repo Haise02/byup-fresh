@@ -85,10 +85,10 @@ const ONB = {
 
 const OnbIcon = {
   Logo: (p) => (
-    // Asset corrente del prodotto: fresh.png (lowercase).
+    // Asset corrente del prodotto: Fresh.png (capitalized, case-sensitive).
     // height = fontSize × 2 → l'API parametrica permette sizing per contesto
     // (header onboarding = 18 → 36px; login = 22 → 44px).
-    <img src="fresh.png" alt="Byup Fresh" style={{
+    <img src="Fresh.png" alt="Byup Fresh" style={{
       height: (p.fontSize || 24) * 2, width:'auto', display:'block',
     }}/>
   ),

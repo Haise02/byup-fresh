@@ -2,8 +2,8 @@
 
 const PnI = {
   Logo: (p) => (
-    // Asset corrente del prodotto — fresh.png (lowercase, server-safe).
-    <img src="fresh.png" alt="Byup Fresh" style={{
+    // Asset corrente del prodotto — Fresh.png (capitalized, case-sensitive su Linux/Vercel).
+    <img src="Fresh.png" alt="Byup Fresh" style={{
       height: p.size ? p.size * 1.5 : 64, width:'auto', display:'block',
     }}/>
   ),
