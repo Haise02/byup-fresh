@@ -15,7 +15,7 @@ function WMetric({ label, value, sub, trend, trendColor, big }) {
             fontSize: 14, fontWeight: 700,
             color: trendColor || PN.GREEN,
           }}>
-            {trend.startsWith('+') ? <PnI.TrendUp size={14}/> : trend.startsWith('-') ? <PnI.TrendDown size={14}/> : null}
+            {trend.startsWith('+') ? <Icon name="arrow-up-right" size={14}/> : trend.startsWith('-') ? <Icon name="arrow-down-right" size={14}/> : null}
             {trend}
           </div>
         )}
@@ -60,37 +60,58 @@ function WSparkline({ data, color = PN.PINK, animated }) {
       <svg
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="none"
-        style={{width: '100%', height: '100%', display: 'block'}}
+        // overflow:hidden sul tag SVG impedisce a circle/path di sbordare:
+        // `preserveAspectRatio="none"` stira la geometria, ma elementi con
+        // raggio fisso (circle r=2.4) potevano "uscire" dai margini visuali.
+        // Combinato col wrapper overflow:hidden taglia in modo netto.
+        style={{width: '100%', height: '100%', display: 'block', overflow: 'hidden'}}
       >
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor={color} stopOpacity="0.28"/>
             <stop offset="100%" stopColor={color} stopOpacity="0"/>
           </linearGradient>
+          {/* clipPath per garantire che TUTTO (linea + pallino) sia clippato
+              dentro l'area utile, anche durante l'animazione di drawing. */}
+          <clipPath id={`spark-clip-${gradId}`}>
+            <rect x="0" y="0" width={VB_W} height={VB_H}/>
+          </clipPath>
         </defs>
-        <path d={fillPath} fill={`url(#${gradId})`}/>
-        <path
-          d={path} fill="none"
-          stroke={color} strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round"
-          pathLength="1"
-          style={animated ? {
-            strokeDasharray: 1,
-            strokeDashoffset: 1,
-            animation: 'spark-draw 1.4s ease-out forwards',
-          } : undefined}
-          vectorEffect="non-scaling-stroke"
-        />
-        {animated && (
-          <circle
-            cx={last[0].toFixed(2)} cy={last[1].toFixed(2)}
-            r="2.4" fill={color}
-            style={{animation: 'spark-pulse 1.6s ease-in-out infinite'}}
+        <g clipPath={`url(#spark-clip-${gradId})`}>
+          <path d={fillPath} fill={`url(#${gradId})`}/>
+          <path
+            d={path} fill="none"
+            stroke={color} strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round"
+            pathLength="1"
+            style={animated ? {
+              strokeDasharray: 1,
+              strokeDashoffset: 1,
+              animation: 'spark-draw 1.4s ease-out forwards',
+            } : undefined}
+            vectorEffect="non-scaling-stroke"
           />
-        )}
+          {animated && (
+            // Il pallino appare SOLO dopo che il draw del path è completato
+            // (delay 1.4s = durata di spark-draw). Senza, il punto sembrava
+            // "scollegato" alla fine della linea — la linea ancora si
+            // disegnava ma il pallino era già a destinazione → effetto
+            // "linea rotta con dot orfano".
+            <circle
+              cx={last[0].toFixed(2)} cy={last[1].toFixed(2)}
+              r="2.4" fill={color}
+              style={{
+                opacity: 0,
+                transformOrigin: `${last[0]}px ${last[1]}px`,
+                animation: 'spark-pulse 1.6s ease-in-out 1.4s infinite, spark-dot-in 240ms ease-out 1.30s forwards',
+              }}
+            />
+          )}
+        </g>
         <style>{`
-          @keyframes spark-draw  { to { stroke-dashoffset: 0; } }
-          @keyframes spark-pulse { 0%,100% { opacity: 1; r: 2.4; } 50% { opacity: 0.55; r: 3.4; } }
+          @keyframes spark-draw   { to { stroke-dashoffset: 0; } }
+          @keyframes spark-dot-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes spark-pulse  { 0%,100% { opacity: 1; r: 2.4; } 50% { opacity: 0.55; r: 3.4; } }
         `}</style>
       </svg>
     </div>
@@ -260,7 +281,7 @@ function KpiBars({ data }) {
 
 // ─── Riempimento (% grande + grafico per fascia) ───────────────────────────
 
-function WidgetRiempimento() {
+function WidgetRiempimento({ size }) {
   const [period, setPeriod] = React.useState('mese');
   const data = {
     oggi: {
@@ -279,22 +300,50 @@ function WidgetRiempimento() {
   const d = data[period];
   const isPos = !d.delta.startsWith('-');
 
-  return (
-    <div style={{display:'flex', flexDirection:'column', height:'100%', gap: 14}}>
-      <PnPeriodToggle period={period} setPeriod={setPeriod}/>
+  // Layout adattivo: in WIDE (w>=2, h=1) → % grande a sinistra + grafico a
+  // destra, side-by-side. In tutti gli altri casi (tall, square, full) →
+  // stacked verticale come prima.
+  const wW = (size && size.w) || 1;
+  const wH = (size && size.h) || 1;
+  const sideBySide = wW >= 2 && wH === 1;
 
-      {/* % grande */}
-      <div>
-        <div style={{fontSize:11, color: PN.MUTED, fontWeight:600, marginBottom: 4, textTransform:'uppercase', letterSpacing: 0.5}}>Riempimento {period}</div>
-        <div style={{display:'flex', alignItems:'baseline', gap: 14}}>
-          <div style={{fontSize: 56, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.5, lineHeight: 1}}>{d.pct}%</div>
-          <div style={{fontSize: 14, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700}}>{d.delta}</div>
-          <div style={{fontSize: 12, color: PN.MUTED, marginLeft:'auto'}}>{d.sub}</div>
+  return (
+    <div style={{
+      display:'flex',
+      flexDirection: sideBySide ? 'row' : 'column',
+      height:'100%', minHeight: 0,
+      gap: sideBySide ? 18 : 14,
+      alignItems: sideBySide ? 'stretch' : 'stretch',
+    }}>
+      {/* Block A: PnPeriodToggle + % grande */}
+      <div style={{
+        display:'flex', flexDirection:'column',
+        gap: 10,
+        flexShrink: 0,
+        flexBasis: sideBySide ? '38%' : 'auto',
+        minWidth: 0,
+        justifyContent: sideBySide ? 'center' : 'flex-start',
+      }}>
+        <PnPeriodToggle period={period} setPeriod={setPeriod}/>
+        <div>
+          <div style={{fontSize:11, color: PN.MUTED, fontWeight:600, marginBottom: 4, textTransform:'uppercase', letterSpacing: 0.5}}>Riempimento {period}</div>
+          <div style={{display:'flex', alignItems:'baseline', gap: sideBySide ? 8 : 14, flexWrap: 'wrap'}}>
+            <div style={{fontSize: sideBySide ? 44 : 56, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.2, lineHeight: 1}}>{d.pct}%</div>
+            <div style={{fontSize: 14, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700}}>{d.delta}</div>
+          </div>
+          <div style={{fontSize: 12, color: PN.MUTED, marginTop: 4}}>{d.sub}</div>
         </div>
       </div>
 
-      {/* Grafico fasce */}
-      <div style={{flex:1, display:'flex', flexDirection:'column', borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 10}}>
+      {/* Grafico fasce — flex:1 prende tutta l'altezza/larghezza residua */}
+      <div style={{
+        flex: 1, minWidth: 0, minHeight: 0,
+        display:'flex', flexDirection:'column',
+        borderTop: sideBySide ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+        borderLeft: sideBySide ? `1px solid ${PN.BORDER_SOFT}` : 'none',
+        paddingTop: sideBySide ? 0 : 10,
+        paddingLeft: sideBySide ? 18 : 0,
+      }}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 10}}>
           <div style={{fontSize:10.5, color: PN.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing: 0.5}}>Occupazione per fascia oraria</div>
           <div style={{fontSize:10, color: PN.MUTED}}>0–100%</div>
@@ -356,31 +405,61 @@ function WidgetPrenotazioniOggi() {
   };
 
   const [interacting, setInteracting] = React.useState(false);
+  const scrollRef = React.useRef(null);
+
+  // Auto-scroll via scrollTop con accumulatore float: el.scrollTop accetta
+  // solo integer, quindi il delta sub-pixel (22px/s × 16ms ≈ 0.37px) verrebbe
+  // arrotondato a 0 ogni frame e l'animazione non scorrerebbe. Accumulo in
+  // posFloat e applico el.scrollTop = Math.round(posFloat).
+  // Su mouseenter/hover: rAF pausato, overflow:auto consente scroll manuale.
+  // Su mouseleave: riprende dal punto corrente (sync da el.scrollTop).
+  React.useEffect(() => {
+    if (interacting) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    let raf;
+    let last = performance.now();
+    let posFloat = el.scrollTop;
+    const SPEED = 28; // px/s — abbastanza percepibile, ~16s per scrollare metà
+    const tick = (now) => {
+      const dt = Math.min((now - last) / 1000, 0.1); // clamp first-frame jump
+      last = now;
+      const halfH = el.scrollHeight / 2;
+      if (halfH > 0) {
+        posFloat += SPEED * dt;
+        if (posFloat >= halfH) posFloat -= halfH;
+        el.scrollTop = Math.round(posFloat);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [interacting]);
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12}}>
+    <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}>
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12, flexShrink: 0}}>
         <div style={{fontSize: 22, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>23 prenotazioni</div>
         <div style={{fontSize: 12, color: PN.MUTED}}>· 67 coperti · 84% riempimento</div>
       </div>
 
-      {/* Auto-scroll wrapper — la lista è duplicata 2x per loop seamless.
-          translateY 0 → -50% in 18s lineare. Pause-on-hover.
-          Scrollbar invisibile di default; visibile solo quando l'utente fa scroll
-          manuale (interacting=true) — pattern macOS overlay scrollbars. */}
+      {/* Auto-scroll wrapper — overflow:auto sempre attivo. Lista duplicata
+          2x per loop seamless. Pause-on-hover via interacting flag.
+          Scrollbar overlay-style (vedi .prenot-list in panoramica-grid.jsx). */}
       <div
+        ref={scrollRef}
         className="prenot-list"
         onMouseEnter={() => setInteracting(true)}
         onMouseLeave={() => setInteracting(false)}
         style={{
-          flex: 1, overflow: 'hidden', position: 'relative',
+          flex: 1, minHeight: 0,
+          overflowY: 'auto', overflowX: 'hidden',
+          position: 'relative',
           margin: '0 -4px', padding: '0 4px',
         }}
       >
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 6,
-          animation: interacting ? 'none' : 'prenot-scroll 18s linear infinite',
-          willChange: 'transform',
         }}>
           {/* render duplicato per loop seamless */}
           {[...items, ...items].map((it, i) => {
@@ -417,7 +496,7 @@ function WidgetPrenotazioniOggi() {
                   {it.note && <div style={{fontSize: 11.5, color: PN.MUTED, marginTop: 2}}>{it.note}</div>}
                 </div>
                 <div style={{display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: PN.MUTED, fontWeight: 600}}>
-                  <PnI.Person size={12} color={PN.MUTED}/> {it.covers} · {it.table}
+                  <Icon name="people-customer" size={12} color={PN.MUTED}/> {it.covers} · {it.table}
                 </div>
               </div>
             );
@@ -463,37 +542,48 @@ function WidgetTavoliStato() {
   const occupati = tables.filter(t => t.s === 'occupato').length;
 
   return (
-    <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
-      <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 14}}>
+    <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0}}>
+      <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 10, flexShrink: 0}}>
         <div style={{fontSize: 22, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4}}>{occupati}/{tables.length} occupati</div>
         <div style={{fontSize: 12, color: PN.MUTED}}>Sala principale</div>
       </div>
 
+      {/* Grid auto-fill: in 660px ~10 col, in 330px ~5 col. Tile più
+          piccoli per stare anche in 1×1. flex:1 + minHeight:0 + overflow-y
+          auto consentono scroll quando l'altezza non basta a mostrare
+          tutti i 12 tavoli (wide 2×1 → solo 1-2 righe visibili). */}
       <div style={{
+        flex: 1, minHeight: 0, overflowY: 'auto',
         display:'grid',
-        gridTemplateColumns:'repeat(4, 1fr)',
-        gap: 8, marginBottom: 14,
+        gridTemplateColumns:'repeat(auto-fill, minmax(54px, 1fr))',
+        gridAutoRows: 'min-content',
+        gap: 6, marginBottom: 10,
       }}>
         {tables.map(t => {
           const c = colors[t.s];
           return (
             <div key={t.id} style={{
-              padding: '10px 8px',
+              padding: '8px 6px',
               background: c.bg,
-              borderRadius: 8,
+              borderRadius: 7,
               textAlign:'center',
-              minHeight: 56,
+              minHeight: 42,
+              display:'flex', flexDirection:'column', justifyContent:'center',
             }}>
-              <div style={{fontSize: 13, fontWeight: 700, color: c.fg, marginBottom: 2}}>{t.id}</div>
-              {t.t && <div style={{fontSize: 10.5, color: c.fg, fontWeight: 500, opacity: 0.85}}>{t.t}</div>}
+              <div style={{fontSize: 12, fontWeight: 700, color: c.fg, lineHeight: 1.2}}>{t.id}</div>
+              {t.t && <div style={{fontSize: 10, color: c.fg, fontWeight: 500, opacity: 0.85, lineHeight: 1.2, marginTop: 1}}>{t.t}</div>}
             </div>
           );
         })}
       </div>
 
-      <div style={{display:'flex', flexWrap:'wrap', gap: 10, marginTop:'auto', paddingTop: 12, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
+      <div style={{
+        display:'flex', flexWrap:'wrap', gap: 8,
+        flexShrink: 0,
+        paddingTop: 8, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+      }}>
         {Object.entries(colors).map(([k, c]) => (
-          <div key={k} style={{display:'flex', alignItems:'center', gap: 5, fontSize: 11, color: PN.MUTED}}>
+          <div key={k} style={{display:'flex', alignItems:'center', gap: 5, fontSize: 11, color: PN.MUTED, whiteSpace: 'nowrap'}}>
             <span style={{width: 8, height: 8, borderRadius: 2, background: c.fg}}/>
             {c.label}
           </div>
@@ -515,38 +605,58 @@ function WidgetTopPiatti() {
   ];
   const max = Math.max(...dishes.map(d => d.sales));
 
+  // Sunset-theme ranking (D3): leaderboard premium dark warm. Posizione #1 in
+  // coral, altre in grigio neutro. La sunset palette accende il pattern "top X"
+  // con la stessa gravitas del night ma allineato al sistema 80/15/10.
   return (
-    <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
+    <GlassDarkBox
+      theme="sunset"
+      style={{
+        margin: '-18px -18px -16px -18px',
+        height: 'calc(100% + 34px)',
+        display:'flex', flexDirection:'column',
+      }}>
       <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 14}}>
-        <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Top piatti questa settimana</div>
+        <div style={{fontSize: 15, fontWeight: 700, color: '#F5F5F7'}}>Top piatti questa settimana</div>
       </div>
-      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 12}}>
+      {/* Lista responsive: ogni dish ha flex:1 0 auto + minHeight → gli item
+          crescono uniformemente quando il widget è alto (h≥2), restano compatti
+          quando il widget è 1×1 con scroll se servono.
+          gap proporzionale: più aria tra dish in widget grande. */}
+      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, minHeight: 0, overflowY: 'auto'}}>
         {dishes.map((d, i) => (
-          <div key={i}>
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom: 5}}>
-              <div style={{display:'flex', alignItems:'center', gap: 8, fontSize:13, color: PN.TEXT, fontWeight: 600}}>
+          <div key={i} style={{
+            flex: '1 0 auto',
+            minHeight: 38,
+            display:'flex', flexDirection:'column', justifyContent:'center',
+            gap: 5,
+          }}>
+            <div style={{display:'flex', justifyContent:'space-between'}}>
+              <div style={{display:'flex', alignItems:'center', gap: 8, fontSize:13, color: '#F5F5F7', fontWeight: 600}}>
                 <span style={{
                   width: 18, height: 18, borderRadius: 5,
-                  background: i === 0 ? PN.PINK : '#F4F5F7',
-                  color: i === 0 ? PN.WHITE : PN.MUTED,
+                  background: i === 0 ? '#FF6066' : 'rgba(255,255,255,0.08)',
+                  color: i === 0 ? '#fff' : 'rgba(255,255,255,0.70)',
                   display:'grid', placeItems:'center',
                   fontSize: 10.5, fontWeight: 700,
+                  boxShadow: i === 0 ? '0 0 10px rgba(255, 96, 102, 0.50)' : 'inset 0 0 0 1px rgba(255,255,255,0.10)',
+                  flexShrink: 0,
                 }}>{i+1}</span>
                 {d.name}
               </div>
               <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 12}}>
-                <span style={{color: PN.MUTED}}>{d.sales}× · </span>
-                <span style={{color: PN.TEXT, fontWeight: 600}}>€{d.rev.toLocaleString('it')}</span>
-                <span style={{color: d.up ? PN.GREEN : PN.RED, fontWeight: 600, minWidth: 36, textAlign:'right'}}>{d.trend}</span>
+                <span style={{color: 'rgba(255,255,255,0.55)'}}>{d.sales}× · </span>
+                <span style={{color: '#F5F5F7', fontWeight: 600}}>€{d.rev.toLocaleString('it')}</span>
+                <span style={{color: d.up ? '#86EFAC' : '#FCA5A5', fontWeight: 600, minWidth: 36, textAlign:'right'}}>{d.trend}</span>
               </div>
             </div>
-            <div style={{height: 4, background:'#F4F5F7', borderRadius: 99, overflow:'hidden'}}>
-              <div style={{height:'100%', width: `${(d.sales/max)*100}%`, background: i === 0 ? PN.PINK : '#D4D6DB', borderRadius: 99}}/>
+            <div style={{height: 4, background:'rgba(255,255,255,0.08)', borderRadius: 99, overflow:'hidden'}}>
+              <div style={{height:'100%', width: `${(d.sales/max)*100}%`, background: i === 0 ? '#FF6066' : 'rgba(255,255,255,0.30)', borderRadius: 99, boxShadow: i === 0 ? '0 0 8px rgba(255, 96, 102, 0.40)' : 'none'}}/>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </GlassDarkBox>
   );
 }
 
@@ -567,7 +677,7 @@ function WidgetRecensioni() {
           <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4}}>
             <div style={{display:'flex', gap: 2}}>
               {[1,2,3,4,5].map(i => (
-                <PnI.Star key={i} size={13} color="#F59E0B" fill={i <= 4 ? '#F59E0B' : 'none'}/>
+                <Icon name="star" key={i} size={13} color={i <= 4 ? '#F59E0B' : '#E5E7EB'}/>
               ))}
             </div>
             <span style={{fontSize: 13, fontWeight: 700, color: PN.TEXT}}>4,7</span>
@@ -580,16 +690,31 @@ function WidgetRecensioni() {
         }}>+8 questa settimana</div>
       </div>
 
-      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, overflow:'auto'}}>
+      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, minHeight: 0, overflow:'auto'}}>
         {reviews.map((r,i) => (
-          <div key={i} style={{
-            padding: 12, background: '#FAFAFB', borderRadius: 10,
+          // Soft-glass tile per ogni recensione: warm tint + specular highlight
+          // + lift on hover. Pattern tipo B. flex:1 0 auto + minHeight per
+          // distribuire l'altezza uniformemente quando widget è alto.
+          <div key={i} className="glass-lift-hover" style={{
+            flex: '1 0 auto',
+            minHeight: 64,
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            padding: 12, borderRadius: 10,
+            background: 'rgba(255, 245, 248, 0.55)',
+            backgroundImage:
+              'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.10) 45%, rgba(255,255,255,0) 100%)',
+            backdropFilter: 'blur(12px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+            boxShadow:
+              'inset 0 1px 0 rgba(255,255,255,0.70), ' +
+              'inset 0 0 0 1px rgba(242, 107, 122, 0.08), ' +
+              '0 1px 2px rgba(15, 17, 21, 0.03)',
           }}>
             <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 5}}>
               <div style={{fontSize: 12.5, fontWeight: 600, color: PN.TEXT}}>{r.name}</div>
               <div style={{display:'flex', gap: 1}}>
                 {[1,2,3,4,5].map(i => (
-                  <PnI.Star key={i} size={10} color="#F59E0B" fill={i <= r.stars ? '#F59E0B' : 'none'}/>
+                  <Icon name="star" key={i} size={10} color={i <= r.stars ? '#F59E0B' : '#E5E7EB'}/>
                 ))}
               </div>
               <div style={{fontSize: 11, color: PN.MUTED, marginLeft:'auto'}}>{r.when} · {r.source}</div>
@@ -604,51 +729,116 @@ function WidgetRecensioni() {
 
 // ─── 6. Azioni rapide ───────────────────────────────────────────────────────
 
-function WidgetAzioni() {
+function WidgetAzioni({ size }) {
+  // 8 shortcut "app launcher" desktop. Layout adattivo in 2 modalità:
+  //  • FULL banner (w=4, h=2): grid fissa 4×2 con icona + LABEL — il
+  //    pattern "homepage premium". 4 sopra + 4 sotto, come Launchpad.
+  //  • Tutto il resto (w=1/2, qualunque h, o w=4 con h=1): grid auto-fit
+  //    SOLO icone, niente label. Le shortcut diventano una toolbar compatta
+  //    quando il widget è ridotto.
   const actions = [
-    { label: 'Nuova prenotazione', sub: 'Aggiungi al calendario', icon: 'Calendar', color: PN.PINK },
-    { label: 'Aggiungi piatto', sub: 'Vai al menu', icon: 'Receipt', color: PN.WINE },
-    { label: 'Apri cassa serale', sub: 'Inizia turno', icon: 'Money', color: PN.GREEN },
-    { label: 'Stampa QR tavolo', sub: 'Genera codici', icon: 'Table', color: PN.BLUE },
+    { label: 'Nuova prenotazione', icon: 'time-calendar',       color: '#FB7185' },
+    { label: 'Aggiungi piatto',    icon: 'food-meal',           color: '#F472B6' },
+    { label: 'Apri cassa',         icon: 'commerce-wallet',     color: '#34D399' },
+    { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA' },
+    { label: 'Invita staff',       icon: 'people-staff-group',  color: '#A78BFA' },
+    { label: 'Fine turno',         icon: 'time-history',        color: '#FBBF24' },
+    { label: 'Esporta giornaliero',icon: 'download',            color: '#22D3EE' },
+    { label: 'Promo flash',        icon: 'sparkles',            color: '#FF6066' },
   ];
+
+  const w = (size && size.w) || 1;
+  const h = (size && size.h) || 1;
+  const isFullBanner = w === 4 && h === 2;
+  const showLabels = isFullBanner;
+
   return (
-    <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
-      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 12}}>Azioni rapide</div>
-      <div style={{display:'flex', flexDirection:'column', gap: 6, flex:1}}>
-        {actions.map((a, i) => {
-          const Icon = PnI[a.icon];
-          return (
-            <button key={i} style={{
-              display:'flex', alignItems:'center', gap: 12,
-              padding: '10px 12px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: 8,
-              cursor:'pointer',
-              fontFamily:'inherit',
-              textAlign:'left',
-              color: PN.TEXT,
-              transition:'background 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = '#F4F5F7'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: a.color + '22',
-                display:'grid', placeItems:'center',
-                flexShrink: 0,
-              }}><Icon size={17} color={a.color}/></span>
-              <span style={{flex:1, minWidth:0, lineHeight: 1.2}}>
-                <span style={{display:'block', fontSize: 13, fontWeight: 600}}>{a.label}</span>
-                <span style={{display:'block', fontSize: 11, color: PN.MUTED, marginTop: 1}}>{a.sub}</span>
-              </span>
-              <span style={{color: PN.MUTED_LIGHT, fontSize: 14, fontWeight: 600}}>›</span>
-            </button>
-          );
-        })}
+    <GlassDarkBox
+      theme="night"
+      nightAccent
+      style={{
+        margin: '-18px -18px -16px -18px',
+        height: 'calc(100% + 34px)',
+        display:'flex', flexDirection:'column',
+        minHeight: 0,
+      }}>
+      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 12, flexShrink: 0}}>
+        <div style={{fontSize: 15, fontWeight: 700, color: '#F5F5F7', letterSpacing:'-0.01em'}}>
+          Azioni rapide
+        </div>
+        <div style={{fontSize: 11.5, color: 'rgba(255,255,255,0.50)'}}>
+          {actions.length} shortcut
+        </div>
       </div>
-    </div>
+
+      <div style={{
+        flex: 1, minHeight: 0, overflowY: 'auto',
+        display: 'grid',
+        gridTemplateColumns: isFullBanner
+          ? 'repeat(4, 1fr)'
+          : 'repeat(auto-fit, minmax(54px, 1fr))',
+        gridTemplateRows: isFullBanner ? 'repeat(2, 1fr)' : 'none',
+        gridAutoRows: isFullBanner ? undefined : 'minmax(54px, 1fr)',
+        gap: isFullBanner ? 10 : 6,
+        alignContent: 'start',
+      }}>
+        {actions.map((a, i) => (
+          <button key={i}
+            className="glass-lift-hover"
+            title={a.label}
+            style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              gap: showLabels ? 6 : 0,
+              background: 'rgba(255,255,255,0.04)',
+              border: 'none',
+              borderRadius: showLabels ? 14 : 10,
+              padding: showLabels ? '8px 6px' : '6px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              color: '#F5F5F7',
+              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+              transition: 'background 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease',
+              minHeight: 0,
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = `${a.color}1A`;
+              e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${a.color}40, 0 8px 20px -6px ${a.color}55`;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              e.currentTarget.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.06)';
+            }}
+          >
+            <span style={{
+              width: showLabels ? 42 : 36,
+              height: showLabels ? 42 : 36,
+              borderRadius: showLabels ? 12 : 10,
+              background: `linear-gradient(135deg, ${a.color}DD 0%, ${a.color}88 100%)`,
+              color: '#fff',
+              display: 'grid', placeItems: 'center',
+              flexShrink: 0,
+              boxShadow:
+                `inset 0 1px 0 rgba(255,255,255,0.30), ` +
+                `0 4px 12px -2px ${a.color}77`,
+            }}>
+              <Icon name={a.icon} size={showLabels ? 20 : 18} color="#fff"/>
+            </span>
+            {showLabels && (
+              <span style={{
+                fontSize: 10.5, fontWeight: 600, textAlign: 'center', lineHeight: 1.2,
+                color: 'rgba(255,255,255,0.92)',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}>{a.label}</span>
+            )}
+          </button>
+        ))}
+      </div>
+    </GlassDarkBox>
   );
 }
 
@@ -690,47 +880,96 @@ function WidgetCopertiSettimana() {
 // ─── 10. Cucina live ────────────────────────────────────────────────────────
 
 function WidgetCucinaLive() {
+  // Dati + struttura allineati al kitchen-box della variant D3 in
+  // byup Login Themes.html (preview reference). Status derivato dal minutaggio:
+  //   < 5'  → green (pronto / quasi pronto)
+  //   5-10' → amber (in prep)
+  //   > 10' → red   (ritardo)
+  // Il NUMERO MINUTI viene colorato come il pill status, così l'occhio capisce
+  // urgenza scansionando la colonna centrale senza dover leggere la pill.
   const orders = [
-    { table:'T3', items: 3, time:'4 min', status:'cooking' },
-    { table:'T7', items: 6, time:'2 min', status:'cooking' },
-    { table:'T12', items: 2, time:'8 min', status:'late' },
-    { table:'T5', items: 4, time:'pronto', status:'ready' },
+    { table: '7',  items: 3, time: "8' 20\"",  status: 'amber', label: 'In prep' },
+    { table: '12', items: 2, time: "2' 10\"",  status: 'green', label: 'Pronto' },
+    { table: '3',  items: 5, time: "12' 40\"", status: 'red',   label: 'Ritardo' },
+    { table: '9',  items: 4, time: "6' 45\"",  status: 'amber', label: 'In prep' },
+    { table: '14', items: 1, time: "1' 30\"",  status: 'green', label: 'Pronto' },
+    { table: '5',  items: 3, time: "4' 10\"",  status: 'green', label: 'Pronto' },
+    { table: '11', items: 6, time: "10' 15\"", status: 'red',   label: 'Ritardo' },
   ];
-  const ss = {
-    cooking:{ c: PN.AMBER, bg: PN.AMBER_SOFT, label:'In cottura'},
-    late:   { c: PN.RED, bg: PN.RED_SOFT, label:'In ritardo'},
-    ready:  { c: PN.GREEN, bg: PN.GREEN_SOFT, label:'Pronto'},
+  const statusStyles = {
+    amber: { bg: 'rgba(251, 146, 60, 0.18)', fg: '#FDBA74' },
+    green: { bg: 'rgba(52, 211, 153, 0.18)', fg: '#86EFAC' },
+    red:   { bg: 'rgba(248, 113, 113, 0.18)', fg: '#FCA5A5' },
   };
+
   return (
-    <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
-      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 12}}>
-        <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Cucina · live</div>
-        <div style={{fontSize: 11.5, fontWeight: 600, color: PN.MUTED}}>4 in coda</div>
+    <GlassDarkBox
+      theme="sunset"
+      style={{
+        margin: '-18px -18px -16px -18px',
+        height: 'calc(100% + 34px)',
+        padding: '14px 16px',
+        display: 'flex', flexDirection: 'column',
+      }}>
+      {/* Header — kitchen-head del preview */}
+      <div style={{
+        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+        marginBottom: 4,
+      }}>
+        <span style={{
+          fontSize: 13, fontWeight: 600, color: '#F3F4F6',
+          letterSpacing: '-0.01em',
+        }}>Cucina · live</span>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontSize: 11, fontWeight: 500, color: '#9CA3AF',
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: 999, background: '#F87171',
+          }}/>
+          {orders.length} in coda
+        </span>
       </div>
-      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 8}}>
-        {orders.map((o,i) => {
-          const s = ss[o.status];
+
+      {/* Rows — kitchen-row del preview, padding 8/10, radius 9, gap 6 tra righe */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 6,
+        flex: 1, minHeight: 0, overflowY: 'auto', marginTop: 4,
+      }}>
+        {orders.map((o, i) => {
+          const s = statusStyles[o.status];
           return (
             <div key={i} style={{
-              display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
-              padding: '10px 12px', borderRadius: 10, background: '#FAFAFB',
-              border: `1px solid ${PN.BORDER_SOFT}`,
+              display: 'grid', gridTemplateColumns: 'auto 1fr auto',
+              gap: 10, alignItems: 'center',
+              padding: '8px 10px', borderRadius: 9,
+              background: 'rgba(255, 255, 255, 0.06)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255, 255, 255, 0.10), ' +
+                'inset 0 0 0 1px rgba(255, 255, 255, 0.06)',
             }}>
-              <div style={{
-                fontSize: 13, fontWeight: 700, color: PN.TEXT,
-                background: PN.WHITE, padding: '3px 8px', borderRadius: 6,
-                border: `1px solid ${PN.BORDER}`,
-              }}>{o.table}</div>
-              <div style={{fontSize: 12.5, color: PN.MUTED}}>{o.items} portate · <span style={{color: s.c, fontWeight:600}}>{o.time}</span></div>
-              <div style={{
-                fontSize: 10.5, fontWeight: 700, color: s.c, background: s.bg,
-                padding: '3px 8px', borderRadius: 5,
-              }}>{s.label}</div>
+              <span style={{
+                fontSize: 12, fontWeight: 700,
+                fontVariantNumeric: 'tabular-nums',
+                color: '#F3F4F6',
+                background: 'rgba(255, 255, 255, 0.10)',
+                padding: '2px 7px', borderRadius: 6,
+                minWidth: 22, textAlign: 'center',
+              }}>{o.table}</span>
+              <span style={{fontSize: 11.5, color: '#9CA3AF'}}>
+                {o.items} portate · <span style={{color: s.fg, fontWeight: 600, fontVariantNumeric: 'tabular-nums'}}>{o.time}</span>
+              </span>
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                padding: '2px 7px', borderRadius: 5,
+                letterSpacing: '0.02em',
+                background: s.bg, color: s.fg,
+              }}>{o.label}</span>
             </div>
           );
         })}
       </div>
-    </div>
+    </GlassDarkBox>
   );
 }
 

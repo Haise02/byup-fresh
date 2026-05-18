@@ -212,7 +212,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard title="Categoria del locale" sub="Scegli la categoria che descrive meglio il tuo locale">
+      <ImpCard aurora title="Categoria del locale" sub="Scegli la categoria che descrive meglio il tuo locale">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
           {cats.map(c => (
             <button key={c} onClick={() => setCategoria(c)} style={{
@@ -329,7 +329,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
 function VetrinaAspetto({ onChange }) {
   return (
     <div>
-      <ImpCard title="Logo del ristorante" sub="PNG o JPG, formato quadrato consigliato, max 5MB">
+      <ImpCard aurora title="Logo del ristorante" sub="PNG o JPG, formato quadrato consigliato, max 5MB">
         <div style={{
           padding: 32, border:`2px dashed ${PN.BORDER}`, borderRadius: 12,
           textAlign:'center', background:'#FAFBFC',
@@ -372,7 +372,7 @@ function VetrinaAspetto({ onChange }) {
         ))}
       </ImpCard>
 
-      <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti — consigliate min. 5 foto">
+      <ImpCard aurora title="Galleria fotografica" sub="Foto del locale e dei piatti — consigliate min. 5 foto">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
           {[1,2,3].map(i => (
             <div key={i} style={{

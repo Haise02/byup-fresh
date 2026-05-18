@@ -1,7 +1,11 @@
 // Shared page header for top-level operative pages (Sala, Cucina, Account)
 // Design system 2.0: WHITE_OFF bg, hairline border, weight 600, letter-spacing tighter.
 
-function PnPageHeader({ title, subtitle, actions }) {
+// `icon` accetta il nome di un'icona Content del registry SfIcons (es.
+// 'food-meal', 'place-restaurant'). Quando passato, viene resa in un cerchio
+// soft come ancora di sezione, accanto al titolo. Vedi `dashboard-icon-mapping.md`
+// per il vincolo "1 sola Content icon per header".
+function PnPageHeader({ title, subtitle, actions, icon }) {
   return (
     <header style={{
       display: 'flex', alignItems: 'center', gap: 16,
@@ -9,6 +13,15 @@ function PnPageHeader({ title, subtitle, actions }) {
       borderBottom: `1px solid ${PN.BORDER_HAIR}`,
       background: PN.WHITE_OFF,
     }}>
+      {icon && (
+        <span style={{
+          width: 40, height: 40, borderRadius: 11,
+          background: PN.PINK_SOFT, color: PN.PINK_DARK,
+          display: 'grid', placeItems: 'center', flexShrink: 0,
+        }}>
+          <Icon name={icon} size={22}/>
+        </span>
+      )}
       <div style={{flex: 1, minWidth: 0}}>
         <h1 style={{margin: 0, fontSize: 22, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
           {title}
@@ -25,6 +38,9 @@ function PnPageHeader({ title, subtitle, actions }) {
 
 // Underline tab bar — pillola attiva con gradient sottile + inset highlight (Apple).
 // Sostituisce il border-bottom 2px solid con un'underline più morbida + tonalità.
+// Ogni tab può opzionalmente avere `icon` (nome registry SfIcons). Quando
+// definita, viene resa a sinistra del label a 14px. Coerente con la regola
+// "1 icona per tab nelle filter chips di categoria" (vedi dashboard-icon-mapping).
 function PnUnderlineTabs({ tabs, active, onChange }) {
   return (
     <div style={{
@@ -37,6 +53,7 @@ function PnUnderlineTabs({ tabs, active, onChange }) {
         const on = active === t.id;
         return (
           <button key={t.id} onClick={() => onChange(t.id)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '14px 0',
             background: 'transparent', border: 'none',
             borderBottom: `2px solid ${on ? PN.TEXT : 'transparent'}`,
@@ -46,7 +63,10 @@ function PnUnderlineTabs({ tabs, active, onChange }) {
             cursor: 'pointer', fontFamily: 'inherit',
             marginBottom: -1,
             transition: 'color 150ms ease-out, border-color 150ms ease-out',
-          }}>{t.label}</button>
+          }}>
+            {t.icon && <Icon name={t.icon} size={14}/>}
+            {t.label}
+          </button>
         );
       })}
     </div>
@@ -93,9 +113,7 @@ function PnSearchInput({ placeholder = 'Cerca…', value, onChange, style }) {
         }}
       />
       <span style={{position:'absolute', right: 14, top:'50%', transform:'translateY(-50%)', color: PN.MUTED}}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/>
-        </svg>
+        <Icon name="magnifying-glass" size={16}/>
       </span>
     </div>
   );

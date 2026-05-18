@@ -13,10 +13,10 @@
 //   la sub-progress è un secondario sottile, non gerarchico col main stepper.
 
 const STEPS = [
-  { id: 1, label: 'Carica menu' },
+  { id: 1, label: 'Carica menù' },
   { id: 2, label: 'Il tuo locale' },
   { id: 3, label: 'Sale e tavoli' },
-  { id: 4, label: 'Verifica menu' },
+  { id: 4, label: 'Verifica menù' },
 ];
 
 const LOCALE_SUBSTEPS = [
@@ -70,6 +70,7 @@ function OnboardingApp() {
   return (
     <>
       <div className="frame" data-screen-label={`Step ${step}${step === 2 ? ' · ' + subStep : ''}`}>
+        <GlassMeshSubstrate/>
         <OnbHeader step={step} subStep={subStep}/>
 
         {/* Banner floating "menù in elaborazione" — visibile solo in step 2 e 3.
@@ -274,6 +275,14 @@ function ProcessingOverlay({onComplete}) {
   const progress = (doneCount / PROCESSING_TASKS.length) * 100;
   const currentTask = doneCount < PROCESSING_TASKS.length ? PROCESSING_TASKS[doneCount] : '';
 
+  // Stima dei secondi rimanenti: task residui × 380ms (durata fissa per tick) + 800ms
+  // di hold pre-close. Il valore decrementa visibilmente a ogni task completato — è il
+  // sostituto della vecchia rassicurazione statica "circa 30 secondi, prenditi un caffè".
+  const remainingMs = finished
+    ? 800
+    : (PROCESSING_TASKS.length - doneCount) * 380 + 800;
+  const secondsLeft = Math.max(1, Math.ceil(remainingMs / 1000));
+
   return (
     <div role="dialog" aria-label="Analisi del menù in corso" style={{
       position: 'absolute', inset: 0, zIndex: 50,
@@ -313,11 +322,24 @@ function ProcessingOverlay({onComplete}) {
         }
       `}</style>
 
+      {/* D3 Sunset Glass — peak AI moment. Variant assegnata dal sistema 80/10/10:
+          il processing è uno dei due picchi drammatici (insieme al login).
+          Card warm-dark con doppio inset ring caldo + ombra burnt orange.
+          Tutto il contenuto interno passa a colorazione chiara. */}
       <div style={{
-        width: 460, background: '#fff', borderRadius: 12,
-        boxShadow: '0 8px 24px rgba(15, 17, 21, 0.08)',
+        width: 460,
+        background: 'linear-gradient(180deg, rgba(58, 28, 22, 0.88) 0%, rgba(30, 12, 10, 0.92) 100%)',
+        backdropFilter: 'blur(22px) saturate(170%)',
+        WebkitBackdropFilter: 'blur(22px) saturate(170%)',
+        borderRadius: 14,
+        boxShadow:
+          'inset 0 1px 0 rgba(255, 200, 170, 0.22), ' +
+          'inset 0 0 0 1px rgba(255, 150, 110, 0.16), ' +
+          '0 18px 48px -12px rgba(120, 50, 15, 0.55), ' +
+          '0 4px 14px -4px rgba(120, 50, 15, 0.30)',
         padding: 32,
         textAlign: 'center',
+        color: '#F3F4F6',
       }}>
         {/* Hero icon — composer che disegna il menù riga per riga.
             88×88 container BRAND_TINT con glow soft, dentro un SVG che simula
@@ -328,26 +350,40 @@ function ProcessingOverlay({onComplete}) {
         {/* Header — loader (o check finale) + title con typewriter dots */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 10, marginBottom: 18,
+          gap: 10, marginBottom: 6,
         }}>
           {finished ? <DoneCheck/> : <AILoader/>}
           <h2 style={{
-            margin: 0, fontSize: 17, fontWeight: 600, color: ONB.TEXT,
+            margin: 0, fontSize: 17, fontWeight: 600, color: '#F3F4F6',
             letterSpacing: '-0.01em',
           }}>
             {finished
               ? 'Ci siamo quasi'
-              : <>Stiamo analizzando il tuo menù<DotsTrail count={dots}/></>}
+              : <>Stiamo ricreando il tuo menù<DotsTrail count={dots}/></>}
           </h2>
+        </div>
+
+        {/* Countdown: conferma viva del tempo residuo. tabular-nums per non far
+            "saltare" il layout quando la cifra cambia (1→2 digit). */}
+        <div style={{
+          fontSize: 13, fontWeight: 400, color: 'rgba(255, 255, 255, 0.65)',
+          marginBottom: 18, lineHeight: 1.4,
+        }}>
+          {finished
+            ? 'Apertura anteprima…'
+            : <>Pronto in: <span style={{
+                fontWeight: 600, color: '#F3F4F6', fontVariantNumeric: 'tabular-nums',
+              }}>{secondsLeft}s</span></>}
         </div>
 
         {/* Progress bar 2px BRAND fill + shimmer.
             Il fill cresce in step 380ms; lo shimmer scorre indipendentemente
             sopra il fill — comunica "elaborazione viva". BRAND in fill (non TEXT)
-            per dare colore alla card senza renderla pesante. */}
+            per dare colore alla card senza renderla pesante.
+            Track più chiaro per stagliare su sunset glass. */}
         <div style={{
           position: 'relative',
-          height: 3, width: '100%', background: 'rgba(255, 90, 95, 0.10)',
+          height: 3, width: '100%', background: 'rgba(255, 255, 255, 0.16)',
           borderRadius: 999, overflow: 'hidden', marginBottom: 22,
         }}>
           <div style={{
@@ -372,7 +408,7 @@ function ProcessingOverlay({onComplete}) {
           {PROCESSING_TASKS.slice(0, doneCount).map((label, i) => (
             <li key={i} style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              padding: '6px 0', fontSize: 13, color: ONB.MUTED, fontWeight: 400,
+              padding: '6px 0', fontSize: 13, color: 'rgba(255, 255, 255, 0.62)', fontWeight: 400,
               animation: 'proc-task-rise 220ms ease-out',
             }}>
               <span style={{
@@ -388,11 +424,11 @@ function ProcessingOverlay({onComplete}) {
           {!finished && (
             <li style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              padding: '6px 0', fontSize: 13, color: ONB.TEXT, fontWeight: 500,
+              padding: '6px 0', fontSize: 13, color: '#F3F4F6', fontWeight: 500,
             }}>
               <span style={{
                 width: 14, height: 14, borderRadius: 999,
-                border: '1px dashed rgba(15, 17, 21, 0.24)',
+                border: '1px dashed rgba(255, 255, 255, 0.40)',
                 flexShrink: 0,
               }}/>
               {currentTask}
@@ -601,7 +637,7 @@ function ProcessingBanner({step}) {
           fontSize: 12, fontWeight: 400, color: ONB.BRAND_DARK,
           opacity: 0.72, lineHeight: 1.4, marginTop: 2,
         }}>
-          Completa la configurazione per riceverlo
+          Completa la configurazione per visualizzarlo
         </div>
       </div>
 

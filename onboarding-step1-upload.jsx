@@ -44,7 +44,7 @@ function Step1Upload({onAnalyze}) {
           fontSize: 32, fontWeight: 600, lineHeight: 1.2,
           letterSpacing: '-0.02em', margin: '0 0 12px', color: ONB.TEXT,
         }}>
-          Carica il menù del tuo locale.
+          Carica il menù del tuo locale. Al resto ci pensiamo noi.
         </h1>
         <p style={{
           fontSize: 16, fontWeight: 400, lineHeight: 1.4,
@@ -55,22 +55,28 @@ function Step1Upload({onAnalyze}) {
           potrai sempre modificare tutto prima di pubblicare.
         </p>
 
-        {/* Dropzone — singolo file slot. Lift on hover (translateY -2 + shadow soft)
-            quando vuota: il drop diventa una zona "viva", non un riquadro inerte.
-            Border passa a BRAND su dragOver per chiudere il loop visivo col CTA. */}
+        {/* Dropzone — singolo file slot. Stato "vuoto" usa un'animazione continua
+            in loop (glass-shimmer = sweep di luce orizzontale ogni 5.2s) per
+            comunicare che la zona è "viva e in attesa". L'icona dentro respira
+            (scale +1.2% ogni 4.8s) ed è circondata da un pulse-glow espansivo
+            che invita visivamente al click senza essere intrusivo.
+            Lift on hover preservato per feedback diretto. */}
         <div
+          className={!file ? 'glass-shimmer' : ''}
           onDragOver={(e) => {e.preventDefault(); setDragOver(true);}}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => {e.preventDefault(); setDragOver(false); pickMockFile();}}
           onClick={!file ? pickMockFile : undefined}
           onMouseEnter={(e) => {
             if (file) return;
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(15, 17, 21, 0.05)';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = '0 16px 32px -8px rgba(15, 17, 21, 0.10), 0 4px 12px -4px rgba(190, 24, 93, 0.08)';
+            e.currentTarget.style.borderColor = ONB.BRAND;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
             e.currentTarget.style.boxShadow = '0 1px 0 rgba(15, 17, 21, 0.04)';
+            e.currentTarget.style.borderColor = dragOver ? ONB.BRAND : 'rgba(15, 17, 21, 0.16)';
           }}
           style={{
             background: '#fff',
@@ -79,29 +85,42 @@ function Step1Upload({onAnalyze}) {
             padding: file ? 20 : 44,
             cursor: file ? 'default' : 'pointer',
             boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04)',
-            transition: 'border-color 150ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out',
+            transition: 'border-color 200ms ease-out, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease-out',
           }}
         >
           {!file ? (
-            <div style={{textAlign: 'center'}}>
+            <div style={{textAlign: 'center', position: 'relative', zIndex: 3}}>
               {/* Icon container BRAND_TINT 64×64 — più presente del 48 grigio di prima.
-                  Il colore BRAND comunica "questo è il punto di azione" senza essere CTA. */}
-              <div style={{
-                width: 64, height: 64, borderRadius: 12,
-                background: ONB.BRAND_TINT, color: ONB.BRAND,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 18px',
-              }}>
+                  Il colore BRAND comunica "questo è il punto di azione" senza essere CTA.
+                  glass-breathe + glass-float-soft (sfasate) creano un movimento
+                  vivo ma calmo; il pulse-glow nello pseudo-elemento è il "richiamo". */}
+              <div
+                className="glass-breathe glass-float-soft"
+                style={{
+                  width: 64, height: 64, borderRadius: 12,
+                  background: ONB.BRAND_TINT, color: ONB.BRAND,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 18px',
+                  position: 'relative',
+                  zIndex: 1,
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 20px -6px rgba(242, 107, 122, 0.35)',
+                }}>
+                {/* Ring espansivo dietro l'icona, animato con glass-pulse-glow.
+                    Posizionato come absolute con z-index 0 così non altera il layout. */}
+                <span aria-hidden="true" className="glass-pulse-glow" style={{
+                  position:'absolute', inset: -6, borderRadius: 16,
+                  pointerEvents: 'none', zIndex: -1,
+                }}/>
                 <OnbIcon.Upload size={26} color={ONB.BRAND}/>
               </div>
               <div style={{
                 fontSize: 17, fontWeight: 600, color: ONB.TEXT,
                 marginBottom: 4, lineHeight: 1.4, letterSpacing: '-0.01em',
               }}>
-                Trascina qui PDF o foto del menù
+                Trascina o carica qui PDF / foto del menù
               </div>
               <div style={{fontSize: 14, color: ONB.MUTED, lineHeight: 1.4}}>
-                Oppure clicca per scegliere un file
+                Oppure clicca e carica il file
               </div>
 
               {/* Format tags — sotto, sobri, no pill colorati */}
@@ -186,7 +205,7 @@ function Step1Upload({onAnalyze}) {
             onClick={canSubmit ? onAnalyze : undefined}
             disabled={!canSubmit}
           >
-            Analizza il menù
+            Continua
             <OnbIcon.ArrowRight size={14} color="#fff"/>
           </PrimaryCta>
         </div>
@@ -416,14 +435,60 @@ function OnbTextarea({label, value, onChange, placeholder, rows = 3, wide, optio
 // Card section reusabile — pattern Byup: radius 12, shadow doppia (resting + lift
 // soft 4px), border tenue 0.06. Più "moderna" del 10/0.08 precedente: la card
 // staccata dal canvas, ma senza la pesantezza della shadow elevated del modal.
-function OnbCard({children, padding}) {
-  return (
-    <div style={{
+//
+// variant="glass" → soft glass tipo B (vedi byup-glass.jsx): tint warm
+// semitrasparente + specular highlight + ring sottile + lift on hover.
+// Usare per card "hero" di sezione, non per ogni card della pagina —
+// rompe la pace tipografica se applicato ovunque.
+// OnbCard — 3 varianti del sistema 80/10/10:
+//   • default / "classic" → W1 White Classic (workhorse, ~80% delle card)
+//   • "aurora"            → L2 Aurora glass warm-pink (~10%, momenti caldi/celebrativi)
+//   • "sunset"            → D3 Sunset glass dark warm (~10%, momenti drammatici/AI)
+//
+// "glass" è mantenuto come alias di "aurora" per le card esistenti che lo usano.
+function OnbCard({children, padding, variant}) {
+  const isAurora = variant === 'aurora' || variant === 'glass';
+  const isSunset = variant === 'sunset';
+
+  let surface;
+  if (isSunset) {
+    surface = {
+      background: 'linear-gradient(180deg, rgba(58, 28, 22, 0.62) 0%, rgba(30, 12, 10, 0.70) 100%)',
+      backdropFilter: 'blur(22px) saturate(170%)',
+      WebkitBackdropFilter: 'blur(22px) saturate(170%)',
+      boxShadow:
+        'inset 0 1px 0 rgba(255, 200, 170, 0.22), ' +
+        'inset 0 0 0 1px rgba(255, 150, 110, 0.16), ' +
+        '0 14px 36px -10px rgba(120, 50, 15, 0.55), ' +
+        '0 4px 10px -4px rgba(120, 50, 15, 0.30)',
+      border: 'none',
+      color: '#F3F4F6',
+    };
+  } else if (isAurora) {
+    // L2 Aurora soft wash multi-color — pink + lavender + cream mesh su base
+    // sfumata pink→lavender. Stesso DNA della variant L2 nella preview themes.
+    surface = {
+      background:
+        'radial-gradient(circle at 20% 18%, rgba(255, 217, 231, 0.55) 0%, transparent 60%), ' +
+        'radial-gradient(circle at 85% 25%, rgba(226, 217, 255, 0.50) 0%, transparent 60%), ' +
+        'radial-gradient(circle at 60% 95%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
+        'linear-gradient(135deg, #FFF6F4 0%, #FCF8FF 100%)',
+      border: '1px solid rgba(190, 175, 220, 0.14)',
+      boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 16px rgba(15, 17, 21, 0.03)',
+    };
+  } else {
+    surface = {
       background: '#fff',
       border: '1px solid rgba(15, 17, 21, 0.06)',
+      boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 16px rgba(15, 17, 21, 0.03)',
+    };
+  }
+
+  return (
+    <div className="glass-lift-hover" style={{
+      ...surface,
       borderRadius: 12,
       padding: padding ?? 24,
-      boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 16px rgba(15, 17, 21, 0.03)',
     }}>
       {children}
     </div>

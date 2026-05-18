@@ -35,7 +35,7 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
           fontWeight: 600, fontSize: 12.5, fontFamily:'inherit',
           cursor:'pointer',
         }}>
-          <PnI.Plus size={13}/> Aggiungi widget
+          <Icon name="plus" size={13}/> Aggiungi widget
         </button>
       )}
       <button onClick={onToggleEdit} style={{
@@ -48,7 +48,7 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
         fontWeight: 600, fontSize: 12.5, fontFamily:'inherit',
         cursor:'pointer',
       }}>
-        {editMode ? <><PnI.Check size={13}/> Fine</> : <><PnI.Edit size={13}/> Personalizza</>}
+        {editMode ? <><Icon name="check" size={13}/> Fine</> : <><Icon name="pencil" size={13}/> Personalizza</>}
       </button>
     </div>
   );

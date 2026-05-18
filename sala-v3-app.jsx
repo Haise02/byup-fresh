@@ -54,9 +54,9 @@ function SalaV3App() {
   }, [tweaks.noOrderWarn, tweaks.noOrderAlert, tweaks.overstay, tweaks.oldBillHours]);
 
   const tabs = [
-    { id: 'tavoli', label: 'Tavoli' },
-    { id: 'vendita', label: 'Vendita diretta' },
-    { id: 'calendar', label: 'Calendario prenotazioni' },
+    { id: 'tavoli', label: 'Tavoli', icon: 'place-table' },
+    { id: 'vendita', label: 'Vendita diretta', icon: 'commerce-cart' },
+    { id: 'calendar', label: 'Calendario prenotazioni', icon: 'time-calendar' },
   ];
 
   const showContiPanel = tweaks.showContiPanel && tab === 'tavoli' && !focus;
@@ -73,6 +73,13 @@ function SalaV3App() {
             borderBottom: `1px solid ${PN.BORDER_HAIR}`,
             background: PN.WHITE_OFF,
           }}>
+            <span style={{
+              width: 40, height: 40, borderRadius: 11,
+              background: PN.PINK_SOFT, color: PN.PINK_DARK,
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+            }}>
+              <Icon name="time-calendar" size={22}/>
+            </span>
             <div style={{flex: 1, minWidth: 0}}>
               <h1 style={{margin: 0, fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
                 Sala e prenotazioni
@@ -240,6 +247,7 @@ function DatePickerPopover({ onClose }) {
 const salaV3Root = ReactDOM.createRoot(document.getElementById('root'));
 salaV3Root.render(
   <div className="frame" data-screen-label="Sala v3">
+    <GlassMeshSubstrate/>
     <SalaV3App/>
   </div>
 );

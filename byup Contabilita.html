@@ -43,6 +43,7 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <script type="text/babel" src="panoramica-tokens.jsx"></script>
+<script type="text/babel" src="byup-glass.jsx"></script>
 <script type="text/babel" src="panoramica-icons.jsx"></script>
 <script type="text/babel" src="byup-tokens.jsx"></script>
 <script type="text/babel" src="byup-icons.jsx"></script>
@@ -53,6 +54,13 @@
 <script type="text/babel" src="contabilita-data.jsx"></script>
 <script type="text/babel" src="contabilita-v2-tokens.jsx"></script>
 <script type="text/babel" src="contabilita-v2-icons.jsx"></script>
+<!-- panoramica-sf-icons DEVE caricarsi DOPO contabilita-v2-icons.jsx: entrambi
+     definiscono un `Icon` globale, ma con API diverse (v2-icons usa {d, size}
+     path-based, sf-icons usa {name, size} name-based). contabilita-v2-app.jsx
+     usa <Icon name="..."/>, quindi vince l'ultimo. L'oggetto `Ic` di v2-icons
+     non viene toccato e i suoi consumer (v2-cassa, v2-costi, v2-iva-export)
+     continuano a funzionare. -->
+<script type="text/babel" src="panoramica-sf-icons.jsx"></script>
 <script type="text/babel" src="contabilita-v2-cassa.jsx"></script>
 <script type="text/babel" src="contabilita-v2-costi.jsx"></script>
 <script type="text/babel" src="contabilita-v2-iva-export.jsx"></script>

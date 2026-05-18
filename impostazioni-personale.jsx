@@ -359,7 +359,7 @@ function InviteModal({ onClose }) {
                         width: 26, height: 26, borderRadius: 6,
                         background: deviceType.bg, color: deviceType.color,
                         display:'grid', placeItems:'center',
-                      }}>{(BuIcons.monitor||BuIcons.phone)({size: 13, color:'currentColor'})}</span>
+                      }}>{(BuIcons[deviceType.icon]||BuIcons.monitor||BuIcons.phone)({size: 13, color:'currentColor'})}</span>
                       <span>Tablet/iPad/Schermo ({deviceType.label})</span>
                     </span>
                     <PnI.ChevronDown size={14}/>
@@ -382,7 +382,7 @@ function InviteModal({ onClose }) {
                             width: 24, height: 24, borderRadius: 6,
                             background: t.bg, color: t.color,
                             display:'grid', placeItems:'center',
-                          }}>{(BuIcons.monitor||BuIcons.phone)({size: 12, color:'currentColor'})}</span>
+                          }}>{(BuIcons[t.icon]||BuIcons.monitor||BuIcons.phone)({size: 12, color:'currentColor'})}</span>
                           {t.label}
                         </button>
                       ))}
@@ -569,7 +569,7 @@ function DeviceRow({ d, idx, openMenu, setOpenMenu }) {
           width: 42, height: 42, borderRadius: 10,
           background: t.bg, color: t.color,
           display:'grid', placeItems:'center',
-        }}>{(BuIcons.monitor||BuIcons.phone||BuIcons.chef)({size: 20, color:'currentColor'})}</div>
+        }}>{(BuIcons[t.icon]||BuIcons.monitor||BuIcons.phone)({size: 20, color:'currentColor'})}</div>
         {d.online && (
           <span style={{
             position:'absolute', bottom: -1, right: -1,
@@ -587,7 +587,7 @@ function DeviceRow({ d, idx, openMenu, setOpenMenu }) {
             background: t.bg, color: t.color,
             display:'inline-flex', alignItems:'center', gap: 4,
           }}>
-            {(BuIcons.monitor||BuIcons.phone)({size: 11, color:'currentColor'})} {t.label}
+            {(BuIcons[t.icon]||BuIcons.monitor||BuIcons.phone)({size: 11, color:'currentColor'})} {t.label}
           </span>
         </div>
         <div style={{fontSize: 12, color: PN.MUTED, fontFamily:'ui-monospace, Menlo, monospace'}}>{d.username}</div>

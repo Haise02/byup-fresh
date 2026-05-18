@@ -12,16 +12,24 @@ function SupportoApp() {
 
   return (
     <div className="frame" style={{position:'relative'}}>
+      <GlassMeshSubstrate/>
       <PnSidebar active="supporto"/>
 
       <main style={{flex: 1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
         {/* Header */}
         <header style={{
-          display:'flex', alignItems:'center', gap: 16,
+          display:'flex', alignItems:'center', gap: 14,
           padding: '18px 28px 16px',
           borderBottom: `1px solid ${PN.BORDER_SOFT}`,
           background: PN.WHITE,
         }}>
+          <span style={{
+            width: 38, height: 38, borderRadius: 10,
+            background: PN.PINK_SOFT, color: PN.PINK_DARK,
+            display: 'grid', placeItems: 'center', flexShrink: 0,
+          }}>
+            <Icon name="headphones" size={20}/>
+          </span>
           <div style={{flex:1}}>
             <h1 style={{margin:0, fontSize: 20, fontWeight: 600, color: PN.TEXT, letterSpacing:'-0.02em'}}>Supporto</h1>
             <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>Trova rapidamente l'assistenza giusta per le tue necessità</div>

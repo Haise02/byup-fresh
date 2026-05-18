@@ -51,7 +51,55 @@ function StatSpark({ data, color = PN.PINK, height = 28, width = 90 }) {
 
 // ─── KPI base — varianti tipologiche ───────────────────────────
 // variant: 'default' | 'currency' | 'percent' | 'count'
-function StatKpi({ label, value, sub, delta, suffix, spark, sparkColor, variant = 'default', target }) {
+function StatKpi({ label, value, sub, delta, suffix, spark, sparkColor, variant = 'default', target, glass = false }) {
+  // Variante "glass": solo per la card hero scelta (1 sola in Statistiche).
+  // Light-coral gradient + testo wine-dark per leggibilità.
+  if (glass) {
+    return (
+      <GlassDarkBox
+        borderRadius={14}
+        padding={16}
+        liftHover
+        style={{
+          flex: 1, minWidth: 0,
+          display:'flex', flexDirection:'column', gap: 10,
+        }}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8, minHeight: 18}}>
+          <div style={{fontSize: 12, color: 'rgba(58, 10, 14, 0.65)', fontWeight: 500, letterSpacing: 0.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</div>
+          <StatDelta value={delta}/>
+        </div>
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
+          <div style={{
+            fontSize: 26, fontWeight: 700, color: '#3A0A0E',
+            letterSpacing: -0.6, fontVariantNumeric:'tabular-nums',
+            lineHeight: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+          }}>
+            {value}{suffix && <span style={{fontSize: 14, color: '#7C2D3C', marginLeft: 4, fontWeight: 600}}>{suffix}</span>}
+          </div>
+          {spark && spark.length > 1 && (
+            <StatSpark data={spark} color={sparkColor || (delta >= 0 ? PN.GREEN : PN.RED)}/>
+          )}
+        </div>
+        {variant === 'percent' && typeof value === 'string' && (
+          <div style={{height: 4, background: 'rgba(124, 45, 60, 0.18)', borderRadius: 999, overflow:'hidden'}}>
+            <div style={{
+              height:'100%', width: value.replace(/[^0-9.]/g,'') + '%',
+              background: '#7C2D3C', borderRadius: 999,
+            }}/>
+          </div>
+        )}
+        {target && (
+          <div style={{fontSize: 11, color: 'rgba(58, 10, 14, 0.55)', display:'flex', justifyContent:'space-between'}}>
+            <span>obiettivo</span>
+            <strong style={{color: '#3A0A0E', fontWeight: 700}}>{target}</strong>
+          </div>
+        )}
+        {sub && <div style={{fontSize: 11.5, color: 'rgba(58, 10, 14, 0.62)', lineHeight: 1.4}}>{sub}</div>}
+      </GlassDarkBox>
+    );
+  }
+
+  // Default: card bianca originale.
   return (
     <div style={{
       flex: 1, minWidth: 0,
@@ -77,7 +125,6 @@ function StatKpi({ label, value, sub, delta, suffix, spark, sparkColor, variant 
         )}
       </div>
 
-      {/* variant-specific extra */}
       {variant === 'percent' && typeof value === 'string' && (
         <div style={{height: 4, background:'#F1F2F4', borderRadius: 999, overflow:'hidden'}}>
           <div style={{
@@ -106,35 +153,42 @@ function StatInsight({ items = [] }) {
       marginBottom: 16,
     }}>
       {items.map((it, i) => (
-        <div key={i} style={{
-          background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
-          borderRadius: 12, padding: '12px 14px',
-          display:'flex', gap: 11, alignItems:'flex-start',
-          borderLeft: `3px solid ${it.tone === 'positive' ? PN.GREEN : it.tone === 'negative' ? PN.RED : PN.TEXT}`,
-        }}>
+        // Sunset-theme insight tile (D3): warm-dark, identità Byup. Border-left
+        // colorato dà segnale di tonalità (positive/negative/neutral).
+        <GlassDarkBox
+          key={i}
+          theme="sunset"
+          padding="12px 14px"
+          borderRadius={12}
+          style={{
+            display:'flex', gap: 11, alignItems:'flex-start',
+            borderLeft: `3px solid ${it.tone === 'positive' ? '#34D399' : it.tone === 'negative' ? '#F87171' : '#FF8B90'}`,
+          }}>
           <div style={{
             width: 28, height: 28, borderRadius: 8, flexShrink: 0,
             display:'grid', placeItems:'center',
-            background: it.tone === 'positive' ? PN.GREEN_SOFT : it.tone === 'negative' ? PN.RED_SOFT : '#F1F2F4',
-            color: it.tone === 'positive' ? PN.GREEN : it.tone === 'negative' ? PN.RED : PN.TEXT,
+            background: it.tone === 'positive' ? 'rgba(52, 211, 153, 0.18)' : it.tone === 'negative' ? 'rgba(248, 113, 113, 0.18)' : 'rgba(255, 255, 255, 0.08)',
+            color: it.tone === 'positive' ? '#34D399' : it.tone === 'negative' ? '#FCA5A5' : '#FFFFFF',
+            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.10)',
           }}>
             {it.tone === 'positive' && <BuIcons.trendUp size={15}/>}
             {it.tone === 'negative' && <BuIcons.trendDown size={15}/>}
             {(!it.tone || it.tone === 'neutral') && <BuIcons.info size={15}/>}
           </div>
           <div style={{flex: 1, minWidth: 0}}>
-            <div style={{fontSize: 12, fontWeight: 700, color: PN.TEXT, marginBottom: 2}}>{it.title}</div>
-            <div style={{fontSize: 11.5, color: PN.MUTED, lineHeight: 1.45}}>{it.desc}</div>
+            <div style={{fontSize: 12, fontWeight: 700, color: '#F5F5F7', marginBottom: 2}}>{it.title}</div>
+            <div style={{fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45}}>{it.desc}</div>
             {it.cta && (
               <button style={{
                 marginTop: 6, padding:'4px 10px',
-                background:'transparent', border:`1px solid ${PN.BORDER}`,
+                background:'rgba(255,255,255,0.08)',
+                border:'1px solid rgba(255,255,255,0.18)',
                 borderRadius: 6, fontSize: 11, fontWeight: 600,
-                color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
+                color: '#F5F5F7', cursor:'pointer', fontFamily:'inherit',
               }}>{it.cta} →</button>
             )}
           </div>
-        </div>
+        </GlassDarkBox>
       ))}
     </div>
   );
@@ -216,28 +270,44 @@ function StatPeriodPicker({ period, setPeriod }) {
 }
 
 // ─── Macro tab — segmented control single-line ─────────────────
-function StatTab({ id, active, onClick, label, hint }) {
+function StatTab({ id, active, onClick, label, hint, icon }) {
+  const [hover, setHover] = React.useState(false);
+  // glass-shimmer sull'attivo: il pulsante "selezionato" emette uno sweep
+  // di luce ogni ~5s, segnale calmo che il tab è vivo senza distrarre.
+  // Lift hover (+ subtle scale) sui non-attivi per feedback diretto.
   return (
-    <button onClick={() => onClick(id)} style={{
-      padding:'9px 18px',
-      background: active ? PN.TEXT : PN.WHITE,
-      border: `1px solid ${active ? PN.TEXT : PN.BORDER}`,
-      color: active ? '#fff' : PN.TEXT,
-      borderRadius: 10, fontSize: 13, fontWeight: 700,
-      cursor:'pointer', fontFamily:'inherit',
-      display:'inline-flex', alignItems:'center', gap: 8,
-      whiteSpace:'nowrap',
-    }}>
-      {label}
-      {hint && <span style={{fontSize: 11, fontWeight: 500, opacity: 0.6}}>{hint}</span>}
+    <button onClick={() => onClick(id)}
+      className={active ? 'glass-shimmer glass-shimmer-dark' : ''}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        padding:'9px 18px',
+        background: active ? PN.TEXT : PN.WHITE,
+        border: `1px solid ${active ? PN.TEXT : (hover ? PN.MUTED_LIGHT : PN.BORDER)}`,
+        color: active ? '#fff' : PN.TEXT,
+        borderRadius: 10, fontSize: 13, fontWeight: 700,
+        cursor:'pointer', fontFamily:'inherit',
+        display:'inline-flex', alignItems:'center', gap: 8,
+        whiteSpace:'nowrap',
+        position: 'relative',
+        transform: (!active && hover) ? 'translateY(-1px)' : 'translateY(0)',
+        boxShadow: active
+          ? '0 4px 10px -2px rgba(15, 17, 21, 0.25), inset 0 1px 0 rgba(255,255,255,0.10)'
+          : (hover ? '0 4px 12px -4px rgba(15, 17, 21, 0.10)' : '0 1px 2px rgba(15, 17, 21, 0.04)'),
+        transition: 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease',
+      }}>
+      {icon && <span style={{position:'relative', zIndex: 3}}><Icon name={icon} size={14}/></span>}
+      <span style={{position:'relative', zIndex: 3}}>{label}</span>
+      {hint && <span style={{fontSize: 11, fontWeight: 500, opacity: 0.6, position:'relative', zIndex: 3}}>{hint}</span>}
     </button>
   );
 }
 
 // ─── Sub-tab — underline neutro ────────────────────────────────
-function StatSubTab({ active, onClick, label }) {
+function StatSubTab({ active, onClick, label, icon }) {
   return (
     <button onClick={onClick} style={{
+      display:'inline-flex', alignItems:'center', gap: 7,
       padding:'10px 4px',
       background: 'transparent',
       border:'none', borderBottom: `2px solid ${active ? PN.TEXT : 'transparent'}`,
@@ -246,7 +316,10 @@ function StatSubTab({ active, onClick, label }) {
       cursor:'pointer', fontFamily:'inherit',
       transition:'all 0.15s',
       whiteSpace:'nowrap',
-    }}>{label}</button>
+    }}>
+      {icon && <Icon name={icon} size={14}/>}
+      {label}
+    </button>
   );
 }
 

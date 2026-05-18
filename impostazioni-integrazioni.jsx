@@ -127,7 +127,7 @@ function ImpIntegrazioni() {
 
       {/* Suggested */}
       {filter === 'all' && suggested.length > 0 && (
-        <ImpCard title="✨ Suggeriti per te" sub="Integrazioni popolari per ristoranti come il tuo">
+        <ImpCard aurora title="✨ Suggeriti per te" sub="Integrazioni popolari per ristoranti come il tuo">
           <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 10}}>
             {suggested.map(i => <IntegrationCard key={i.id} item={i} suggested onMobileQr={() => setQrApp(true)}/>)}
           </div>

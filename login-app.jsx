@@ -20,6 +20,25 @@ function LoginApp() {
   const [authError, setAuthError] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
 
+  // Placeholder color sui input invertiti (D3 sunset glass card).
+  // Non posso fare ::placeholder inline → un'unica injection a mount.
+  React.useEffect(() => {
+    if (document.getElementById('login-inverted-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'login-inverted-styles';
+    s.textContent = `
+      .login-inverted-field::placeholder { color: rgba(255, 255, 255, 0.40); }
+      .login-inverted-field::-webkit-input-placeholder { color: rgba(255, 255, 255, 0.40); }
+      .login-inverted-field { caret-color: #FF8A85; }
+      .login-inverted-field:-webkit-autofill {
+        -webkit-text-fill-color: #F3F4F6;
+        -webkit-box-shadow: 0 0 0 1000px rgba(58, 28, 22, 0.95) inset;
+        caret-color: #FF8A85;
+      }
+    `;
+    document.head.appendChild(s);
+  }, []);
+
   // Email regex applicata solo se l'utente digita "@" — il demo "admin" senza @ deve passare.
   const emailLooksLikeMail = email.includes('@');
   const emailValid = email.length >= 3 && (!emailLooksLikeMail || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
@@ -47,7 +66,7 @@ function LoginApp() {
 
   return (
     <>
-      <FoodMotionBackdrop/>
+      <VideoBackdrop/>
 
       <div style={{
         position: 'relative', zIndex: 1,
@@ -56,40 +75,53 @@ function LoginApp() {
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
       }}>
-        {/* Logo Fresh sopra la card — height 44px (più presente del precedente 32) */}
-        <div style={{marginBottom: 28}}>
+        {/* Logo Fresh sopra la card. Drop-shadow scura sotto il PNG: contro il video
+            di raso rosso il logo coral rischia di sciogliersi col background — la shadow
+            gli ricostruisce un proprio "piano" senza dover invertire il colore brand. */}
+        <div style={{
+          marginBottom: 28,
+          filter: 'drop-shadow(0 4px 24px rgba(15, 17, 21, 0.45))',
+        }}>
           <OnbIcon.Logo fontSize={22}/>
         </div>
 
-        {/* Card login — profondità reale via shadow elevated + border sottile */}
+        {/* Card login — variante D3 "Sunset Glass" (gradient coral→fanta→salmon su
+            base wood-burnt). Dark warm glass scelta dalla preview themes. Tutto il
+            form interno passa attraverso il flag `inverted` per virare a chiaro. */}
         <div style={{
           width: '100%', maxWidth: 440,
-          background: '#fff',
-          border: '1px solid rgba(15, 17, 21, 0.06)',
-          borderRadius: 12,
+          background: 'linear-gradient(180deg, rgba(58, 28, 22, 0.62) 0%, rgba(30, 12, 10, 0.70) 100%)',
+          backdropFilter: 'blur(22px) saturate(170%)',
+          WebkitBackdropFilter: 'blur(22px) saturate(170%)',
+          borderRadius: 14,
           padding: 32,
-          boxShadow: '0 8px 24px rgba(15, 17, 21, 0.08)',
+          boxShadow:
+            'inset 0 1px 0 rgba(255, 200, 170, 0.22), ' +
+            'inset 0 0 0 1px rgba(255, 150, 110, 0.16), ' +
+            '0 18px 48px -12px rgba(120, 50, 15, 0.55), ' +
+            '0 4px 14px -4px rgba(120, 50, 15, 0.30)',
         }}>
           <h1 style={{
             fontSize: 24, fontWeight: 600, lineHeight: 1.2,
-            letterSpacing: '-0.02em', margin: '0 0 6px', color: ONB.TEXT,
+            letterSpacing: '-0.02em', margin: '0 0 6px', color: '#F3F4F6',
           }}>
             Accedi al tuo account
           </h1>
           <p style={{
             fontSize: 14, fontWeight: 400, lineHeight: 1.4,
-            margin: '0 0 24px', color: ONB.MUTED,
+            margin: '0 0 24px', color: 'rgba(255, 255, 255, 0.65)',
           }}>
             Continua a gestire il tuo locale da dove l'hai lasciato.
           </p>
 
           {/* Social — solo Google */}
-          <SocialButton provider="google" label="Continua con Google"/>
+          <SocialButton provider="google" label="Continua con Google" inverted/>
 
-          <Divider label="oppure"/>
+          <Divider label="oppure" inverted/>
 
           <form onSubmit={handleSubmit} style={{marginTop: 20}}>
             <FormField
+              inverted
               label="Email o nome utente"
               id="email"
               type="text"
@@ -102,6 +134,7 @@ function LoginApp() {
               errorText="Inserisci un'email valida o il tuo nome utente."
             />
             <FormField
+              inverted
               label="Password"
               id="password"
               type={showPwd ? 'text' : 'password'}
@@ -121,19 +154,21 @@ function LoginApp() {
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     padding: 8, display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
-                    color: ONB.MUTED,
+                    color: 'rgba(255, 255, 255, 0.60)',
                   }}
                 >
-                  {showPwd ? <OnbIcon.EyeOff size={16} color={ONB.MUTED}/> : <OnbIcon.Eye size={16} color={ONB.MUTED}/>}
+                  {showPwd
+                    ? <OnbIcon.EyeOff size={16} color="rgba(255, 255, 255, 0.75)"/>
+                    : <OnbIcon.Eye    size={16} color="rgba(255, 255, 255, 0.75)"/>}
                 </button>
               }
             />
 
             <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: -8, marginBottom: 20}}>
               <a href="#" style={{
-                fontSize: 13, color: ONB.TEXT, fontWeight: 500,
+                fontSize: 13, color: '#F3F4F6', fontWeight: 500,
                 textDecoration: 'none',
-                borderBottom: '1px solid rgba(15, 17, 21, 0.12)', paddingBottom: 1,
+                borderBottom: '1px solid rgba(255, 255, 255, 0.22)', paddingBottom: 1,
               }}>
                 Password dimenticata?
               </a>
@@ -141,10 +176,11 @@ function LoginApp() {
 
             {authError && (
               <div role="alert" style={{
-                padding: '10px 12px', background: '#FEF2F2',
-                border: '1px solid rgba(220, 38, 38, 0.16)',
+                padding: '10px 12px',
+                background: 'rgba(220, 38, 38, 0.18)',
+                border: '1px solid rgba(252, 165, 165, 0.32)',
                 borderRadius: 8, marginBottom: 16,
-                fontSize: 13, color: ONB.RED, fontWeight: 500,
+                fontSize: 13, color: '#FCA5A5', fontWeight: 500,
               }}>
                 {authError}
               </div>
@@ -155,12 +191,13 @@ function LoginApp() {
               disabled={submitting}
               style={{
                 width: '100%', height: 44, padding: '0 20px',
-                background: submitting ? ONB.MUTED_LIGHT : ONB.ACTION_PRIMARY,
+                background: submitting ? 'rgba(255, 255, 255, 0.20)' : ONB.ACTION_PRIMARY,
                 color: '#fff', border: 'none', borderRadius: 8,
                 fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
                 cursor: submitting ? 'wait' : 'pointer',
                 transition: 'background 150ms ease-out',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: submitting ? 'none' : '0 4px 14px -4px rgba(255, 90, 95, 0.45)',
               }}
               onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = ONB.ACTION_PRIMARY_HOVER; }}
               onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = ONB.ACTION_PRIMARY; }}
@@ -171,13 +208,13 @@ function LoginApp() {
           </form>
 
           <p style={{
-            marginTop: 20, fontSize: 13, color: ONB.MUTED,
+            marginTop: 20, fontSize: 13, color: 'rgba(255, 255, 255, 0.65)',
             textAlign: 'center', lineHeight: 1.4,
           }}>
             Non hai un account?{' '}
             <a href="#" style={{
-              color: ONB.TEXT, fontWeight: 600, textDecoration: 'none',
-              borderBottom: '1px solid rgba(15, 17, 21, 0.12)', paddingBottom: 1,
+              color: '#F3F4F6', fontWeight: 600, textDecoration: 'none',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.22)', paddingBottom: 1,
             }}>
               Registra il tuo locale
             </a>
@@ -189,92 +226,79 @@ function LoginApp() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Backdrop F&B — shape solo lungo i bordi del viewport, lasciando il centro
-// (dove sta la card) pulito. Stroke neutro su canvas chiaro, opacità 0.06–0.10.
-// Animazioni di pura traslazione su 80–110s — percepibili solo dopo lunga
-// permanenza, mai distrattivi.
+// VideoBackdrop — raso rosso full-viewport, muto + loop + autoplay.
+//
+// PERCHÉ
+// La schermata pubblica del login è l'unico touchpoint marketing del prodotto:
+// qui ci si concede un'apertura più "premium" del resto dell'app (che resta
+// neutra/funzionale). Il video è puro mood: muto, loop, no audio.
+//
+// READABILITY
+// Sopra il video viaggia un overlay scuro a gradiente radiale: scurisce il centro
+// dove vive la card così logo+form leggono nitidi anche su fotogrammi rosso saturo.
+//
+// ACCESSIBILITÀ / PERF
+// • muted + playsInline + autoplay → autoplay regolare anche su iOS
+// • aria-hidden: lo screen reader ignora la decorazione
+// • prefers-reduced-motion: il video viene messo in pausa, il fermo-immagine resta
+// • poster opzionale (omesso: il primo frame del webm copre il caso "non ancora caricato")
 // ─────────────────────────────────────────────────────────────────────────
 
-function FoodMotionBackdrop() {
+// Background video servito da GitHub raw (commit eb37d25). Push esplicito per
+// avere un URL stabile linkabile in preview e demo senza commitare il binario
+// in ogni iterazione locale.
+const LOGIN_BG_VIDEO = 'https://raw.githubusercontent.com/Haise02/byup-fresh/main/login-bg-0518.mp4';
+
+function VideoBackdrop() {
+  const videoRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => {
+      if (mq.matches) {
+        v.pause();
+      } else {
+        // play() può rifiutarsi (es. policy autoplay) → ignoriamo silenziosamente
+        const p = v.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+    };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
   return (
     <>
-      <style>{`
-        @keyframes lg-drift-a { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(28px, -22px); } }
-        @keyframes lg-drift-b { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-32px, 18px); } }
-        @keyframes lg-drift-c { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(20px, 30px); } }
-        @keyframes lg-drift-d { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, -28px); } }
-        @keyframes lg-drift-e { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(36px, 14px); } }
-        @keyframes lg-drift-f { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-22px, -12px); } }
-        .lg-drift-a { animation: lg-drift-a 80s ease-in-out infinite; transform-origin: center; }
-        .lg-drift-b { animation: lg-drift-b 110s ease-in-out infinite; transform-origin: center; }
-        .lg-drift-c { animation: lg-drift-c 95s ease-in-out infinite; transform-origin: center; }
-        .lg-drift-d { animation: lg-drift-d 88s ease-in-out infinite; transform-origin: center; }
-        .lg-drift-e { animation: lg-drift-e 105s ease-in-out infinite; transform-origin: center; }
-        .lg-drift-f { animation: lg-drift-f 92s ease-in-out infinite; transform-origin: center; }
-      `}</style>
-
-      {/* Wrapper full-viewport. preserveAspectRatio="xMidYMid slice" tiene le proporzioni
-          riempiendo lo schermo; le shape sono posizionate in viewBox 1440×900 ma scalano
-          col viewport mantenendole sempre verso i bordi. */}
-      <svg
-        viewBox="0 0 1440 900"
-        preserveAspectRatio="xMidYMid slice"
+      <video
+        ref={videoRef}
+        autoPlay loop muted playsInline
+        preload="auto"
+        aria-hidden="true"
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
+          objectFit: 'cover',
           zIndex: 0, pointerEvents: 'none',
         }}
-        aria-hidden="true"
       >
-        {/* Top-left — piatto grande (cerchio doppio, rim). La parte destra del piatto
-            sborda fuori dal viewport: aiuta a non leggerlo come "elemento decorativo
-            posato lì" ma come pattern continuo. */}
-        <g className="lg-drift-a" stroke="rgba(15, 17, 21, 0.07)" fill="none" strokeWidth="1">
-          <circle cx="80"  cy="120" r="180"/>
-          <circle cx="80"  cy="120" r="140"/>
-        </g>
+        <source src={LOGIN_BG_VIDEO} type="video/mp4"/>
+      </video>
 
-        {/* Top-right — vapore astratto (3 linee curve verticali) */}
-        <g className="lg-drift-c" stroke="rgba(15, 17, 21, 0.10)" fill="none" strokeWidth="1" strokeLinecap="round">
-          <path d="M 1280 120 Q 1270 100, 1280 80 Q 1290 60, 1280 40"/>
-          <path d="M 1300 130 Q 1290 110, 1300 90 Q 1310 70, 1300 50"/>
-          <path d="M 1320 120 Q 1310 100, 1320 80 Q 1330 60, 1320 40"/>
-        </g>
-
-        {/* Top-right secondario — posata astratta (linea + ellisse cucchiaio) */}
-        <g className="lg-drift-d" stroke="rgba(15, 17, 21, 0.06)" fill="none" strokeWidth="1">
-          <line x1="1180" y1="200" x2="1280" y2="140"/>
-          <ellipse cx="1178" cy="203" rx="18" ry="14" transform="rotate(-30 1178 203)"/>
-        </g>
-
-        {/* Bottom-left — oliva astratta, unico accento brand. Una sola "macchia di colore"
-            decorativa in tutta la pagina — la regola "una sola pennellata brand" è applicata
-            anche allo sfondo. */}
-        <g className="lg-drift-e" stroke={ONB.BRAND} fill="none" strokeWidth="1.2" opacity="0.22">
-          <ellipse cx="120" cy="780" rx="14" ry="22" transform="rotate(-20 120 780)"/>
-        </g>
-
-        {/* Bottom-right — scodella (semicerchio aperto verso l'alto + linea base) */}
-        <g className="lg-drift-b" stroke="rgba(15, 17, 21, 0.08)" fill="none" strokeWidth="1">
-          <path d="M 1200 780 Q 1290 880, 1380 780"/>
-          <path d="M 1185 780 L 1395 780"/>
-        </g>
-
-        {/* Linea sottile diagonale a tutta larghezza — tagli grandi che organizzano il pattern */}
-        <g className="lg-drift-f" stroke="rgba(15, 17, 21, 0.05)" fill="none" strokeWidth="1">
-          <line x1="0" y1="650" x2="1440" y2="600"/>
-        </g>
-
-        {/* Punti pepe/sale — micro dots sparsi, fissi (non animati per non vibrare) */}
-        <g fill="rgba(15, 17, 21, 0.10)">
-          <circle cx="240" cy="400" r="1.5"/>
-          <circle cx="280" cy="420" r="1"/>
-          <circle cx="220" cy="450" r="1"/>
-          <circle cx="1180" cy="500" r="1.2"/>
-          <circle cx="1220" cy="530" r="1"/>
-          <circle cx="1160" cy="560" r="1"/>
-        </g>
-      </svg>
+      {/* Overlay scuro a gradiente radiale — più denso al centro per dare base solida
+          al gruppo logo+card, più trasparente ai bordi per non "spegnere" il raso.
+          Mix-blend-mode no: con un raso rosso porterebbe a viraggi imprevedibili. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute', inset: 0,
+          background:
+            'radial-gradient(ellipse at center, rgba(15, 17, 21, 0.55) 0%, rgba(15, 17, 21, 0.40) 45%, rgba(15, 17, 21, 0.25) 100%)',
+          zIndex: 0, pointerEvents: 'none',
+        }}
+      />
     </>
   );
 }
@@ -283,14 +307,31 @@ function FoodMotionBackdrop() {
 // Sotto-componenti del form
 // ─────────────────────────────────────────────────────────────────────────
 
-function FormField({label, id, type, value, onChange, onBlur, placeholder, autoComplete, invalid, errorText, adornment}) {
+function FormField({label, id, type, value, onChange, onBlur, placeholder, autoComplete, invalid, errorText, adornment, inverted}) {
   const [focused, setFocused] = React.useState(false);
-  const borderColor = invalid ? ONB.RED : focused ? ONB.BRAND : 'rgba(15, 17, 21, 0.12)';
+
+  // Theme tokens — light (default) vs inverted (D3 sunset glass card on dark)
+  const T = inverted ? {
+    label: 'rgba(255, 255, 255, 0.85)',
+    wrapBg: 'rgba(255, 255, 255, 0.06)',
+    wrapBorder: invalid ? '#FCA5A5' : focused ? '#FF8A85' : 'rgba(255, 255, 255, 0.14)',
+    inputColor: '#F3F4F6',
+    errColor: '#FCA5A5',
+    placeholder: 'rgba(255, 255, 255, 0.40)',
+  } : {
+    label: ONB.TEXT,
+    wrapBg: '#fff',
+    wrapBorder: invalid ? ONB.RED : focused ? ONB.BRAND : 'rgba(15, 17, 21, 0.12)',
+    inputColor: ONB.TEXT,
+    errColor: ONB.RED,
+    placeholder: undefined,
+  };
   const borderWidth = focused || invalid ? 1.5 : 1;
+
   return (
     <div style={{marginBottom: 16}}>
       <label htmlFor={id} style={{
-        display: 'block', fontSize: 13, fontWeight: 500, color: ONB.TEXT,
+        display: 'block', fontSize: 13, fontWeight: 500, color: T.label,
         marginBottom: 6, lineHeight: 1.4,
       }}>
         {label}
@@ -298,11 +339,13 @@ function FormField({label, id, type, value, onChange, onBlur, placeholder, autoC
       <div style={{
         position: 'relative',
         display: 'flex', alignItems: 'center',
-        height: 44, background: '#fff',
-        border: `${borderWidth}px solid ${borderColor}`,
+        height: 44, background: T.wrapBg,
+        border: `${borderWidth}px solid ${T.wrapBorder}`,
         borderRadius: 8,
         transition: 'border-color 150ms ease-out',
         padding: focused || invalid ? '0 14px' : '0 14.5px',
+        backdropFilter: inverted ? 'blur(8px)' : 'none',
+        WebkitBackdropFilter: inverted ? 'blur(8px)' : 'none',
       }}>
         <input
           id={id} type={type} value={value}
@@ -311,17 +354,18 @@ function FormField({label, id, type, value, onChange, onBlur, placeholder, autoC
           onBlur={(e) => { setFocused(false); onBlur && onBlur(e); }}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          className={inverted ? 'login-inverted-field' : undefined}
           style={{
             flex: 1, height: '100%', border: 'none', outline: 'none',
             background: 'transparent', fontSize: 16, fontWeight: 400,
-            fontFamily: 'inherit', color: ONB.TEXT,
+            fontFamily: 'inherit', color: T.inputColor,
             paddingRight: adornment ? 4 : 0,
           }}
         />
         {adornment}
       </div>
       {invalid && errorText && (
-        <div style={{fontSize: 12, color: ONB.RED, marginTop: 6, lineHeight: 1.4, fontWeight: 500}}>
+        <div style={{fontSize: 12, color: T.errColor, marginTop: 6, lineHeight: 1.4, fontWeight: 500}}>
           {errorText}
         </div>
       )}
@@ -329,8 +373,17 @@ function FormField({label, id, type, value, onChange, onBlur, placeholder, autoC
   );
 }
 
-function SocialButton({provider, label}) {
+function SocialButton({provider, label, inverted}) {
   const [hover, setHover] = React.useState(false);
+  const T = inverted ? {
+    bg: hover ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255, 255, 255, 0.06)',
+    border: hover ? 'rgba(255, 255, 255, 0.28)' : 'rgba(255, 255, 255, 0.16)',
+    color: '#F3F4F6',
+  } : {
+    bg: '#fff',
+    border: hover ? 'rgba(15, 17, 21, 0.18)' : 'rgba(15, 17, 21, 0.10)',
+    color: ONB.TEXT,
+  };
   return (
     <button
       type="button"
@@ -339,11 +392,13 @@ function SocialButton({provider, label}) {
       style={{
         width: '100%', height: 44, padding: '0 20px',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-        background: '#fff',
-        border: `1px solid ${hover ? 'rgba(15, 17, 21, 0.18)' : 'rgba(15, 17, 21, 0.10)'}`,
+        background: T.bg,
+        border: `1px solid ${T.border}`,
         borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
-        fontSize: 14, fontWeight: 500, color: ONB.TEXT,
-        transition: 'border-color 150ms ease-out',
+        fontSize: 14, fontWeight: 500, color: T.color,
+        transition: 'border-color 150ms ease-out, background 150ms ease-out',
+        backdropFilter: inverted ? 'blur(8px)' : 'none',
+        WebkitBackdropFilter: inverted ? 'blur(8px)' : 'none',
       }}
     >
       <SocialGlyph provider={provider}/>
@@ -366,14 +421,26 @@ function SocialGlyph({provider}) {
   return null;
 }
 
-function Divider({label}) {
+function Divider({label, inverted}) {
+  const line  = inverted ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.08)';
+  const text  = inverted ? 'rgba(255, 255, 255, 0.55)' : ONB.MUTED;
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0 0'}}>
-      <div style={{flex: 1, height: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
-      <span style={{fontSize: 12, color: ONB.MUTED, fontWeight: 500}}>{label}</span>
-      <div style={{flex: 1, height: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
+      <div style={{flex: 1, height: 1, background: line}}/>
+      <span style={{fontSize: 12, color: text, fontWeight: 500}}>{label}</span>
+      <div style={{flex: 1, height: 1, background: line}}/>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<LoginApp/>);
+// Substrato mesh montato come SIBLING del LoginApp dentro un fragment.
+// Il root container (#root) ha già position:relative + overflow:hidden
+// dall'HTML, quindi il substrate absolute inset:0 lo riempie correttamente
+// e clippa entro i bordi viewport. Tono warm per la pagina di accesso —
+// l'unica pagina pubblica del prodotto, deve avere il "premium first impression".
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <>
+    <GlassMeshSubstrate/>
+    <LoginApp/>
+  </>
+);

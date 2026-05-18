@@ -12,17 +12,17 @@ const PN_PAGES = {
 
 function PnSidebar({ active = 'panoramica', onNav }) {
   const items = [
-    { id: 'panoramica', label: 'Panoramica', icon: 'Panoramica' },
-    { id: 'prenotazioni', label: 'Sala & Prenotazioni', icon: 'Calendar', badge: 3 },
-    { id: 'cucina', label: 'Cucina', icon: 'Kitchen' },
-    { id: 'statistiche', label: 'Statistiche', icon: 'Stats' },
-    { id: 'contabilita', label: 'Contabilità', icon: 'Money' },
+    { id: 'panoramica', label: 'Panoramica', icon: 'grid' },
+    { id: 'prenotazioni', label: 'Sala & Prenotazioni', icon: 'time-calendar', badge: 3 },
+    { id: 'cucina', label: 'Cucina', icon: 'food-flame' },
+    { id: 'statistiche', label: 'Statistiche', icon: 'chart-bar' },
+    { id: 'contabilita', label: 'Contabilità', icon: 'commerce-wallet' },
   ];
 
   // System actions: piccole, in footer sopra il profilo
   const sys = [
-    { id: 'supporto', label: 'Supporto', icon: 'Headset' },
-    { id: 'impostazioni', label: 'Impostazioni', icon: 'Settings' },
+    { id: 'supporto', label: 'Supporto', icon: 'headphones' },
+    { id: 'impostazioni', label: 'Impostazioni', icon: 'gear' },
   ];
 
   const navTo = (id) => {
@@ -36,18 +36,22 @@ function PnSidebar({ active = 'panoramica', onNav }) {
     // Se l'altezza del frame è ridotta (laptop 13"), solo la lista nav interna
     // diventa scrollabile (overflow-y auto + min-height 0 sul wrapper flex);
     // logo, plan card, sys, profilo restano sempre visibili.
+    //
+    // position:relative qui serve a contenere il GlassMeshSubstrate
+    // (absolute inset:0) che adesso aggiunge un tessuto caldo dietro al
+    // gradient bianco di GLASS_VIBRANT, rendendo i pulsanti glass dell'active
+    // state finalmente "leggibili" come vetro su materia colorata.
     <aside style={{
       width: 232,
       flexShrink: 0,
-      // Vibrancy macOS-style: gradient verticale sottile dal canvas off-white
-      // a un grigio molto chiaro. Crea separazione visiva dal main bianco senza
-      // un border solido pesante. Pattern preso dalla sidebar di Sonoma.
       ...PN.GLASS_VIBRANT,
       display: 'flex', flexDirection: 'column',
       padding: '20px 14px',
       height: '100%',
+      position: 'relative',
     }}>
-      <div style={{padding: '2px 6px 24px', flexShrink: 0}}>
+      <GlassMeshSubstrate/>
+      <div style={{padding: '2px 6px 24px', flexShrink: 0, position:'relative'}}>
         <PnI.Logo />
       </div>
 
@@ -99,14 +103,31 @@ function PnSidebar({ active = 'panoramica', onNav }) {
 }
 
 function PnNavItem({ label, icon, badge, active, onClick }) {
-  const Icon = PnI[icon];
+  // Active state: glass-subtle pink. NON un colore solido — è una superficie
+  // a 4 layer (tint rgba + specular gradient + ring inset + drop shadow soft)
+  // che ora ha materia su cui lavorare grazie al GlassMeshSubstrate
+  // della sidebar. Un sottile shimmer-sweep continuo lo rende "vivo" senza
+  // distogliere l'attenzione dal main content.
+  const activeStyle = active ? {
+    background: 'rgba(255, 224, 221, 0.65)',
+    backgroundImage:
+      'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%)',
+    backdropFilter: 'blur(10px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(10px) saturate(160%)',
+    boxShadow:
+      'inset 0 1px 0 rgba(255,255,255,0.75), ' +
+      'inset 0 0 0 1px rgba(242, 107, 122, 0.20), ' +
+      '0 2px 6px -2px rgba(190, 24, 93, 0.10)',
+  } : {};
+
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick}
+      className={active ? 'glass-shimmer' : ''}
+      style={{
       display:'flex', alignItems:'center', gap:12,
       padding: '9px 10px',
-      borderRadius: 8,
+      borderRadius: 10,
       border: 'none',
-      background: active ? PN.SIDE_ACTIVE_BG : 'transparent',
       color: active ? PN.PINK_DARK : PN.TEXT,
       fontWeight: active ? 600 : 500,
       fontSize: 13.5,
@@ -114,49 +135,71 @@ function PnNavItem({ label, icon, badge, active, onClick }) {
       textAlign:'left',
       fontFamily:'inherit',
       width: '100%',
-      transition: 'background 0.12s',
+      position: 'relative',
+      transition: 'background 160ms ease, transform 160ms ease',
+      ...activeStyle,
     }}
-      onMouseEnter={e => { if(!active) e.currentTarget.style.background = '#f0f1f3'; }}
-      onMouseLeave={e => { if(!active) e.currentTarget.style.background = 'transparent'; }}
+      onMouseEnter={e => {
+        if(!active) e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)';
+        else e.currentTarget.style.transform = 'translateX(1px)';
+      }}
+      onMouseLeave={e => {
+        if(!active) e.currentTarget.style.background = 'transparent';
+        else e.currentTarget.style.transform = 'translateX(0)';
+      }}
     >
-      <span style={{display:'inline-flex', color: active ? PN.PINK : PN.MUTED}}>
-        <Icon size={18}/>
+      <span style={{display:'inline-flex', color: active ? PN.PINK : PN.MUTED, position:'relative', zIndex: 3}}>
+        <Icon name={icon} size={18}/>
       </span>
-      <span style={{flex:1}}>{label}</span>
+      <span style={{flex:1, position:'relative', zIndex: 3}}>{label}</span>
       {badge != null && (
-        <span style={{
+        <span className={active ? 'glass-pulse-glow' : ''} style={{
           fontSize: 10.5, fontWeight: 700,
           color: PN.WHITE, background: PN.PINK,
           padding: '2px 7px', borderRadius: 999,
           minWidth: 18, textAlign:'center',
+          position: 'relative', zIndex: 3,
         }}>{badge}</span>
       )}
     </button>
   );
 }
 
-// Compact pill button for system actions (Settings/Support) in footer
+// Compact pill button for system actions (Settings/Support) in footer.
+// Stesso pattern glass dell'active state di PnNavItem, ma più piccolo.
 function PnSysItem({ label, icon, active, onClick }) {
-  const Icon = PnI[icon];
+  const activeStyle = active ? {
+    background: 'rgba(255, 224, 221, 0.60)',
+    backgroundImage:
+      'linear-gradient(to bottom, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.06) 55%, rgba(255,255,255,0) 100%)',
+    backdropFilter: 'blur(8px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(8px) saturate(160%)',
+    boxShadow:
+      'inset 0 1px 0 rgba(255,255,255,0.70), ' +
+      'inset 0 0 0 1px rgba(242, 107, 122, 0.18)',
+  } : {};
+
   return (
-    <button onClick={onClick} title={label} style={{
+    <button onClick={onClick} title={label}
+      style={{
       flex: 1,
       display:'flex', alignItems:'center', justifyContent:'center', gap: 6,
       padding: '8px 6px',
-      borderRadius: 8,
+      borderRadius: 10,
       border: 'none',
-      background: active ? PN.SIDE_ACTIVE_BG : 'transparent',
       color: active ? PN.PINK_DARK : PN.MUTED,
       fontWeight: active ? 600 : 500,
       fontSize: 11.5,
       cursor: 'pointer',
       fontFamily:'inherit',
-      transition: 'background 0.12s, color 0.12s',
+      position: 'relative',
+      transition: 'background 160ms ease, color 160ms ease',
+      ...activeStyle,
     }}
-      onMouseEnter={e => { if(!active){ e.currentTarget.style.background = '#f0f1f3'; e.currentTarget.style.color = PN.TEXT; } }}
+      onMouseEnter={e => { if(!active){ e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; e.currentTarget.style.color = PN.TEXT; } }}
       onMouseLeave={e => { if(!active){ e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
     >
-      <Icon size={14}/>
+      <Icon name={icon} size={14}/>
       <span>{label}</span>
     </button>
   );

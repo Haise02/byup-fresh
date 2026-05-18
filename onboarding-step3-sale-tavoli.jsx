@@ -44,14 +44,14 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
               fontSize: 32, fontWeight: 600, lineHeight: 1.2,
               letterSpacing: '-0.02em', margin: '0 0 8px', color: ONB.TEXT,
             }}>
-              Disegna le tue sale.
+              Crea sale, tavoli e QR Code.
             </h1>
             <p style={{
               fontSize: 16, fontWeight: 400, lineHeight: 1.4,
               color: ONB.MUTED, margin: 0, maxWidth: 540,
             }}>
-              Aggiungi le sale del locale e quanti tavoli ospita ciascuna.
-              Generiamo un QR univoco per ogni tavolo — stampalo e attaccalo.
+              Aggiungi le sale del locale e quanti tavoli ospitano: ogni tavolo avrà 4 coperti, potrai modificarli in seguito.
+              Verrà generato un QR Code per ogni tavolo, stampali e applicali!
             </p>
           </div>
         </div>
@@ -212,7 +212,6 @@ function SummaryStat({label, value}) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function RoomCard({room, index, accent, onUpdate, onRemove}) {
-  const seats = room.tables * 4;       // default 4 posti per tavolo
   const isEmpty = room.tables === 0;
 
   return (
@@ -295,20 +294,18 @@ function RoomCard({room, index, accent, onUpdate, onRemove}) {
           min={0}
           accent={accent}
         />
-        {/* Micro-copy: "Tavoli configurati" sostituito da "Perfetto per una sala da X posti".
-            Più caldo + comunica una conseguenza utile (capacità). Ammesso il calcolo
-            "× 4" come default standard del settore (ristoranti italiani 4 coperti/tavolo). */}
-        <div style={{
-          marginTop: 8,
-          fontSize: 12, fontWeight: 400, color: ONB.MUTED,
-          lineHeight: 1.4,
-        }}>
-          {isEmpty
-            ? 'Aggiungi almeno un tavolo'
-            : <>Perfetto per una sala da <span style={{
-                fontWeight: 600, color: ONB.TEXT, fontVariantNumeric: 'tabular-nums',
-              }}>{seats} posti</span></>}
-        </div>
+        {/* Micro-copy: solo empty state. La capacità totale è già comunicata dal
+            sub-head ("4 coperti per tavolo, modificabili dopo"); non serve ripeterla
+            sotto ogni counter. */}
+        {isEmpty && (
+          <div style={{
+            marginTop: 8,
+            fontSize: 12, fontWeight: 400, color: ONB.MUTED,
+            lineHeight: 1.4,
+          }}>
+            Aggiungi almeno un tavolo
+          </div>
+        )}
       </div>
 
       {/* Remove */}
@@ -453,13 +450,13 @@ function EmptyTablesState({accent, onAdd}) {
         <div style={{
           fontSize: 14, fontWeight: 600, color: ONB.TEXT, lineHeight: 1.4,
         }}>
-          Nessun tavolo ancora
+          Ancora nessun tavolo
         </div>
         <div style={{
           fontSize: 13, fontWeight: 400, color: ONB.MUTED, lineHeight: 1.4,
           marginTop: 2,
         }}>
-          Aggiungi i tavoli di questa sala — ci vogliono 30 secondi.
+          Aggiungi i tavoli di questa sala.
         </div>
       </div>
       <button onClick={onAdd} style={{

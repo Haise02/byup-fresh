@@ -78,62 +78,78 @@ const PN = {
   // Saturate 220-240% per il classico vibe iOS/macOS Sonoma "frosted glass".
   // Inset highlight bianco di 1px in cima (light catch della superficie).
 
+  // 2.4 update: aggiunta specular highlight gradient verticale
+  // (linear-gradient top→bottom white 45%→10%→0) come backgroundImage,
+  // sovrapposta al fill rgba. Senza, il glass era "una superficie con
+  // blur" ma senza volume — adesso ha la lente convessa che cattura luce
+  // dall'alto. Costo: 0, è solo un layer in più sullo stesso elemento.
+  // Il GlassMeshSubstrate di byup-glass.jsx fornisce la materia dietro.
+
   // Card statica floating (anteprime sticky, banner)
   GLASS_LIGHT: {
     background: 'rgba(255, 255, 255, 0.62)',
+    backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.10) 35%, rgba(255,255,255,0) 100%)',
     backdropFilter: 'blur(40px) saturate(220%)',
     WebkitBackdropFilter: 'blur(40px) saturate(220%)',
     border: '1px solid rgba(255, 255, 255, 0.40)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 16px 36px rgba(15, 17, 21, 0.10), 0 1px 2px rgba(15, 17, 21, 0.04)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.70), 0 16px 36px rgba(15, 17, 21, 0.10), 0 1px 2px rgba(15, 17, 21, 0.04)',
   },
   // Modal e popover — Apple Sonoma "ice" max
   GLASS_STRONG: {
     background: 'rgba(255, 255, 255, 0.68)',
+    backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0) 100%)',
     backdropFilter: 'blur(48px) saturate(240%)',
     WebkitBackdropFilter: 'blur(48px) saturate(240%)',
     border: '1px solid rgba(255, 255, 255, 0.40)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 32px 80px rgba(15, 17, 21, 0.24), 0 2px 6px rgba(15, 17, 21, 0.08)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.80), 0 32px 80px rgba(15, 17, 21, 0.24), 0 2px 6px rgba(15, 17, 21, 0.08)',
   },
   // Sidebar — gradient + blur leggero (bg sotto è il body off-white)
   GLASS_VIBRANT: {
+    // La sidebar HA GIÀ il proprio gradient verticale come bg, quindi
+    // qui non sommiamo un secondo gradient — sarebbe ridondante.
     background: 'linear-gradient(180deg, rgba(250, 251, 252, 0.85) 0%, rgba(245, 245, 247, 0.85) 100%)',
     backdropFilter: 'blur(24px) saturate(180%)',
     WebkitBackdropFilter: 'blur(24px) saturate(180%)',
     borderRight: '1px solid rgba(15, 17, 21, 0.06)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.65)',
   },
   // Top header sticky — blur sopra main scrollabile
   GLASS_BAR: {
     background: 'rgba(255, 255, 255, 0.62)',
+    backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0) 100%)',
     backdropFilter: 'blur(40px) saturate(220%)',
     WebkitBackdropFilter: 'blur(40px) saturate(220%)',
     borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.70)',
   },
   // Dropdown menu — Sonoma "frosted ice"
   GLASS_MENU: {
     background: 'rgba(255, 255, 255, 0.66)',
+    backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.12) 35%, rgba(255,255,255,0) 100%)',
     backdropFilter: 'blur(48px) saturate(240%)',
     WebkitBackdropFilter: 'blur(48px) saturate(240%)',
     border: '1px solid rgba(255, 255, 255, 0.40)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 24px 48px rgba(15, 17, 21, 0.22), 0 2px 6px rgba(15, 17, 21, 0.06)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 24px 48px rgba(15, 17, 21, 0.22), 0 2px 6px rgba(15, 17, 21, 0.06)',
     borderRadius: 16,
   },
   // Hover panel
   GLASS_HOVER: {
     background: 'rgba(255, 255, 255, 0.70)',
+    backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.12) 35%, rgba(255,255,255,0) 100%)',
     backdropFilter: 'blur(40px) saturate(220%)',
     WebkitBackdropFilter: 'blur(40px) saturate(220%)',
     border: '1px solid rgba(255, 255, 255, 0.40)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 16px 36px rgba(15, 17, 21, 0.18), 0 1px 2px rgba(15, 17, 21, 0.04)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 16px 36px rgba(15, 17, 21, 0.18), 0 1px 2px rgba(15, 17, 21, 0.04)',
     borderRadius: 14,
   },
   // Drag preview — molto trasparente per "ghost"
   GLASS_DRAG: {
     background: 'rgba(255, 255, 255, 0.50)',
+    backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 35%, rgba(255,255,255,0) 100%)',
     backdropFilter: 'blur(32px) saturate(200%)',
     WebkitBackdropFilter: 'blur(32px) saturate(200%)',
     border: '1px solid rgba(255, 255, 255, 0.50)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 36px 64px rgba(15, 17, 21, 0.28), 0 4px 12px rgba(15, 17, 21, 0.10)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.80), 0 36px 64px rgba(15, 17, 21, 0.28), 0 4px 12px rgba(15, 17, 21, 0.10)',
   },
 };
 

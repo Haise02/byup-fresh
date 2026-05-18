@@ -65,6 +65,74 @@ const DISH_LIBRARY = [
 
 const CAT_EMOJI = { 'Antipasti':'🥗', 'Primi':'🍝', 'Secondi':'🥩', 'Contorni':'🥦', 'Dolci':'🍰', 'Bevande':'🥤' };
 
+// Mapping categoria → icona SF Regular Filled (registry SfIcons).
+// Usata in header categoria + chip selector. Fallback `food-meal` per categorie
+// custom create dall'utente (es. "Burger" → meal generico).
+const CAT_ICON = {
+  'Antipasti': 'food-salad',
+  'Primi':     'food-pasta',
+  'Secondi':   'food-steak',
+  'Contorni':  'food-vegetables',
+  'Dolci':     'food-dessert',
+  'Bevande':   'drink-juice',
+  'Pizze':     'food-pizza',
+  'Pizza':     'food-pizza',
+  'Hamburger': 'food-hamburger',
+  'Burger':    'food-hamburger',
+  'Sushi':     'food-sushi',
+  'Insalate':  'food-salad',
+  'Zuppe':     'food-soup',
+  'Frutta':    'food-vegetables',
+  'Gelati':    'food-ice-cream',
+  'Caffetteria':'drink-coffee',
+  'Caffè':     'drink-coffee',
+  'Tè':        'drink-tea',
+  'Cocktail':  'drink-cocktail',
+  'Vini':      'drink-wine',
+  'Birre':     'drink-beer',
+  'Champagne': 'drink-champagne',
+  'Acqua':     'drink-water-bottle',
+};
+const catIcon = (name) => CAT_ICON[name] || 'food-meal';
+
+// Euristica: deriva l'icona food/drink dal NOME del piatto (case-insensitive).
+// Se non matcha nessun pattern, fallback alla icona della sua categoria.
+// Non perfetta — pensata per dare ritmo visivo alla lista, non per essere semantica.
+function dishIcon(dish) {
+  if (!dish) return 'food-meal';
+  if (dish.icon) return dish.icon;
+  const n = (dish.name || '').toLowerCase();
+
+  // ── Drinks (controllo prima per evitare match generici come "tè") ──
+  if (/cocktail|spritz|negroni|mojito|margarita|martini|gin\b|tonic|aperol|campari|whisk|rum\b|vodka|tequila|bellini|kir/.test(n)) return 'drink-cocktail';
+  if (/prosecco|champagne|spumant/.test(n)) return 'drink-champagne';
+  if (/vino|barolo|chianti|brunello|merlot|cabernet|sangiovese|nebbiolo|primitivo|montepulciano|valpolicella|barbera/.test(n)) return 'drink-wine';
+  if (/birra|beer|lager|ipa\b|pils|stout|weiss|weizen|porter|ale\b/.test(n)) return 'drink-beer';
+  if (/caff[èe]|cappuccino|espresso|moka|americano|caffelatte|macchiato|ristretto/.test(n)) return 'drink-coffee';
+  if (/^t[èe]\b|thè|chai|matcha|tisana|infuso/.test(n)) return 'drink-tea';
+  if (/acqua|naturale|frizzante|gassat/.test(n)) return 'drink-water-bottle';
+  if (/milkshake|frapp|smoothie|frullato/.test(n)) return 'drink-milkshake';
+  if (/coca|cola|fanta|sprite|chinotto|cedrata|aranciat|gazos|spuma|succo|spremut|limonata/.test(n)) return 'drink-juice';
+
+  // ── Food (specifico → generico) ──
+  if (/pizza|margherita|capricciosa|diavola|quattro stagioni|marinara|napoletana/.test(n)) return 'food-pizza';
+  if (/hamburger|cheeseburger|burger\b/.test(n)) return 'food-hamburger';
+  if (/panino|sandwich|toast|club\b|tramezzino|piadina/.test(n)) return 'food-sandwich';
+  if (/taco|burrito|fajita|quesadilla|nachos/.test(n)) return 'food-taco';
+  if (/sushi|nigiri|sashimi|maki|temaki|uramaki|ramen|udon|yakisoba/.test(n)) return 'food-sushi';
+  if (/zuppa|minestra|brodo|crema |vellutata|passat/.test(n)) return 'food-soup';
+  if (/gelato|sorbetto|granita|semifredd|stracciatella/.test(n)) return 'food-ice-cream';
+  if (/tiramis|panna cotta|torta|cheesecake|crostata|mousse|tartufo|profiterol|crepe|cr[êe]p|brul[ée]|cannol|babà|sfogliat/.test(n)) return 'food-dessert';
+  if (/carbonara|amatriciana|cacio e pepe|pasta|spaghett|lasagn|gnocch|tagliatell|tonnarell|bucatin|risott|paella|raviol|tortellin|fettuccin|penne|fusilli|orecchiett|cannellon/.test(n)) return 'food-pasta';
+  if (/bistecca|tagliata|filetto|controfiletto|costata|fiorentin|hamburger|scaloppin|cotolett|arrost|maial|vitell|pollo|guancia|brasato|stinco|salsiccia|tartare di carne/.test(n)) return 'food-steak';
+  if (/salmone|tonno|orata|branzino|merluzz|gambero|seppia|polpo|calamar|vongol|cozz|sgombr|pesc[eo]|tartare di tonno|tartare di sal/.test(n)) return 'food-seafood';
+  if (/insalata|bruschetta|caprese|carpaccio|tartare(?! di)|burrata|tagliere|caprino/.test(n)) return 'food-salad';
+  if (/verdur|patat|spinac|broccol|melanzan|zucchin|carota|fungh|grigliat|asparagi|carciof|peperon/.test(n)) return 'food-vegetables';
+
+  // Fallback per categoria
+  return catIcon(dish.cat);
+}
+
 // Ogni MENÙ ha le proprie categorie, e in ogni categoria i piatti hanno PREZZO e ATTIVO/DISATTIVATO per quel menù.
 const MENUS_INIT = [
   { id:'pranzo', name:'Menù pranzo', active:true, schedule:'Lun–Ven · 12:00–15:00', categories: [
@@ -189,7 +257,7 @@ function MCMenuComposer() {
 
         {view === 'compose' && (
           <>
-            <ImpCard title="I tuoi menù" sub="Crea menù differenti per pranzo, cena, eventi" action={
+            <ImpCard aurora title="I tuoi menù" sub="Crea menù differenti per pranzo, cena, eventi" action={
               <button onClick={() => setCreatingMenu(c => !c)} title="Nuovo menù" style={{
                 width:30, height:30, borderRadius:8, border:'none',
                 background: creatingMenu ? PN.PINK : PN.TEXT, color: PN.WHITE, cursor:'pointer',
@@ -508,6 +576,13 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
                   background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap: 12, flex: 1, padding: 0, fontFamily:'inherit', textAlign:'left',
                 }}>
                   <span style={{fontSize: 12, color: PN.MUTED, transition:'transform .2s', transform: isCollapsed ? 'rotate(-90deg)' : 'none', display:'inline-block'}}>▼</span>
+                  <span style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    display: 'grid', placeItems: 'center', flexShrink: 0,
+                  }}>
+                    <Icon name={catIcon(cat.name)} size={16}/>
+                  </span>
                   <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{cat.name}</span>
                   <span style={{fontSize: 12, color: PN.MUTED, fontWeight: 500}}>{visible.length} di {cat.rows.length}</span>
                 </button>
@@ -573,7 +648,9 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
             background:'#FAFBFC', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 12,
             color: PN.MUTED,
           }}>
-            <div style={{fontSize: 36, marginBottom: 10}}>🍽</div>
+            <div style={{display:'flex', justifyContent:'center', marginBottom: 10, color: PN.MUTED_LIGHT}}>
+              <Icon name="food-meal" size={48}/>
+            </div>
             <div style={{fontSize: 14, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Questo menù è vuoto</div>
             <div style={{fontSize: 12.5, marginBottom: 14}}>Crea una categoria per iniziare ad aggiungere piatti</div>
           </div>
@@ -809,6 +886,13 @@ function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemov
             }}>
               <div>
                 <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 2}}>
+                  <span style={{
+                    width: 22, height: 22, borderRadius: 6,
+                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    display: 'inline-grid', placeItems: 'center', flexShrink: 0,
+                  }}>
+                    <Icon name={dishIcon(d)} size={13}/>
+                  </span>
                   <span style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>{d.name}</span>
                   <span style={{fontSize: 11, color: PN.MUTED}}>· {d.cat}</span>
                 </div>
@@ -885,6 +969,13 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
       {/* Nome + descrizione + allergeni */}
       <div style={{minWidth: 0}}>
         <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 3, flexWrap:'wrap'}}>
+          <span style={{
+            width: 22, height: 22, borderRadius: 6,
+            background: PN.PINK_SOFT, color: PN.PINK_DARK,
+            display: 'inline-grid', placeItems: 'center', flexShrink: 0,
+          }}>
+            <Icon name={dishIcon(dish)} size={13}/>
+          </span>
           <span style={{fontSize: 14, fontWeight: 700, color: PN.TEXT}}>{dish.name}</span>
           {item.highlight && (
             <span style={{

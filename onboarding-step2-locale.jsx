@@ -20,9 +20,9 @@ function Step2Locale({
 
   const SUBSTEP_TITLES = {
     info:      {title: 'Le informazioni del tuo locale.',
-                sub: 'Quello che vedono i clienti sulla tua vetrina pubblica.'},
+                sub: 'Queste informazioni verranno pubblicate e visualizzate dagli utenti dell’applicazione Byup.'},
     pagamenti: {title: 'Pagamenti.',
-                sub: 'Connetti Stripe e scegli quali metodi alternativi accettare.'},
+                sub: 'Connetti Stripe e scegli quali metodi di pagamento accettare.'},
   };
   const t = SUBSTEP_TITLES[subStep];
 
@@ -84,6 +84,8 @@ function Step2Locale({
 function SubStepInfo({venue, v}) {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+      {/* Anagrafica del locale: W1 white classic standard. Era marcata "glass"
+          (alias di aurora L2) in passato — riportata a default per richiesta. */}
       <OnbCard>
         <OnbSectionHeader
           title="Anagrafica del locale"
@@ -202,7 +204,7 @@ function SubStepPagamenti({payments, p}) {
         <OnbSectionHeader
           number="1"
           title="Piattaforma POS"
-          subtitle="Stripe gestisce carte, Apple Pay, Google Pay e antifrode in un solo collegamento. Commissione: 1,5% + 0,25 € per transazione (Europa)."
+          subtitle="Per accettare pagamenti dai clienti al tavolo e dall’app. Commissioni standard Stripe: 1,5% + 0,25 € per transazione (Europa)."
         />
         <StripeConnectRow
           status={payments.stripeStatus}
@@ -230,7 +232,7 @@ function SubStepPagamenti({payments, p}) {
           />
           <MethodRow
             provider="satispay" label="Satispay"
-            desc="App italiana di pagamento · commissione 0%"
+            desc="App di pagamento senza commissioni"
             checked={methods.satispay} onToggle={() => toggle('satispay')}
           />
         </div>
@@ -374,7 +376,7 @@ function StripeConnectRow({status, onConnect, onDisconnect}) {
         <div style={{fontSize: 13, fontWeight: 400, color: ONB.MUTED, lineHeight: 1.4, marginTop: 2}}>
           {connected
             ? 'Connesso — acct_••••dE3v'
-            : 'Setup in 2 minuti, gestione automatica via dashboard Stripe.'}
+            : 'Collega per accettare da subito carte e pagamenti digitali.'}
         </div>
       </div>
       {connected ? (

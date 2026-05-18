@@ -19,6 +19,7 @@ function ContabilitaApp() {
 
   return (
     <div className="frame" style={{position:'relative'}}>
+      <GlassMeshSubstrate tone="neutral"/>
       <PnSidebar active="contabilita"/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
         {/* Header */}

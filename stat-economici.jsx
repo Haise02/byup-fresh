@@ -49,7 +49,9 @@ function RicaviCosti({ d, months }) {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-        <StatKpi label="Ricavi" value={`€ ${d.ricavi.val.toLocaleString('it-IT')}`} delta={d.ricavi.delta} sub="Entrate del periodo"/>
+        {/* Ricavi è la UNICA card Statistiche con il light-coral gradient
+            (hero del sub-tab Economici). Le altre 21 restano white. */}
+        <StatKpi label="Ricavi" value={`€ ${d.ricavi.val.toLocaleString('it-IT')}`} delta={d.ricavi.delta} sub="Entrate del periodo" glass/>
         <StatKpi label="Costi" value={`€ ${d.costi.val.toLocaleString('it-IT')}`} delta={d.costi.delta} sub="Uscite del periodo"/>
         <StatKpi label="Utile" value={`€ ${d.utile.val.toLocaleString('it-IT')}`} delta={d.utile.delta} sub={`Margine ${((d.utile.val/d.ricavi.val)*100).toFixed(1)}% sui ricavi`}/>
       </div>

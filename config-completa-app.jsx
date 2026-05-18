@@ -219,6 +219,7 @@ function ApBtn({variant = 'neutral', onClick, children}) {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <div className="frame" data-screen-label="Configurazione completa">
+    <GlassMeshSubstrate/>
     <ConfigCompletaApp/>
   </div>
 );

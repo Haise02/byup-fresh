@@ -1,16 +1,24 @@
 // Widget catalog — definitions + add drawer
 
+// Regola defaults: max 2 in una direzione (w O h, mai entrambi). Eccezione:
+// `azioni` è il launcher full-row e ha fixedSize:true (non resizable, sempre 4×2).
+//
+// theme (per shell):
+//   undefined → W1 white classic (default, ~75% dei widget)
+//   'aurora'  → L2 aurora glass pink (warm celebrativo)
+//   sunset    → applicato dal widget internamente con GlassDarkBox (Top piatti,
+//                Cucina live) → non serve sullo shell
 const PN_WIDGET_CATALOG = [
-  { id: 'financials', name: 'Andamento incassi', desc: 'Incassi + scontrino medio + coperti, switch automatico', component: 'WidgetFinancials', defaultSize: { w: 2, h: 2 }, category: 'Incassi' },
-  { id: 'incassi', name: 'Solo incassi', desc: 'Oggi/Settimana/Mese con sparkline', component: 'WidgetIncassi', defaultSize: { w: 2, h: 2 }, category: 'Incassi' },
+  { id: 'financials', name: 'Andamento incassi', desc: 'Incassi + scontrino medio + coperti, switch automatico', component: 'WidgetFinancials', defaultSize: { w: 2, h: 1 }, category: 'Incassi' },
+  { id: 'incassi', name: 'Solo incassi', desc: 'Oggi/Settimana/Mese con sparkline', component: 'WidgetIncassi', defaultSize: { w: 2, h: 1 }, category: 'Incassi' },
   { id: 'kpi-vendita', name: 'KPI di vendita', desc: 'Scontrino medio e coperti per periodo', component: 'WidgetKpiVendita', defaultSize: { w: 1, h: 2 }, category: 'Statistiche' },
-  { id: 'riempimento', name: 'Riempimento', desc: 'Tasso di occupazione + fasce orarie', component: 'WidgetRiempimento', defaultSize: { w: 2, h: 2 }, category: 'Statistiche' },
-  { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Lista live coperti del giorno', component: 'WidgetPrenotazioniOggi', defaultSize: { w: 2, h: 2 }, category: 'Sala' },
+  { id: 'riempimento', name: 'Riempimento', desc: 'Tasso di occupazione + fasce orarie', component: 'WidgetRiempimento', defaultSize: { w: 2, h: 1 }, category: 'Statistiche' },
+  { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Lista live coperti del giorno', component: 'WidgetPrenotazioniOggi', defaultSize: { w: 1, h: 2 }, category: 'Sala' },
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Mappa visiva sala in tempo reale', component: 'WidgetTavoliStato', defaultSize: { w: 1, h: 2 }, category: 'Sala' },
-  { id: 'top-piatti', name: 'Top piatti', desc: 'Classifica settimanale per ricavo', component: 'WidgetTopPiatti', defaultSize: { w: 2, h: 2 }, category: 'Menu' },
-  { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni e media stelle', component: 'WidgetRecensioni', defaultSize: { w: 2, h: 2 }, category: 'Reputazione' },
-  { id: 'azioni', name: 'Azioni rapide', desc: 'Lista shortcut alle attività comuni', component: 'WidgetAzioni', defaultSize: { w: 2, h: 2 }, category: 'Utilità' },
-  { id: 'coperti-sett', name: 'Coperti settimana', desc: 'Bar chart 7 giorni', component: 'WidgetCopertiSettimana', defaultSize: { w: 1, h: 2 }, category: 'Statistiche' },
+  { id: 'top-piatti', name: 'Top piatti', desc: 'Classifica settimanale per ricavo', component: 'WidgetTopPiatti', defaultSize: { w: 1, h: 2 }, category: 'Menu' },
+  { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni e media stelle', component: 'WidgetRecensioni', defaultSize: { w: 1, h: 2 }, category: 'Reputazione', theme: 'aurora' },
+  { id: 'azioni', name: 'Azioni rapide', desc: '8 shortcut launcher (full row, ridimensionabile)', component: 'WidgetAzioni', defaultSize: { w: 4, h: 2 }, category: 'Utilità' },
+  { id: 'coperti-sett', name: 'Coperti settimana', desc: 'Bar chart 7 giorni', component: 'WidgetCopertiSettimana', defaultSize: { w: 2, h: 1 }, category: 'Statistiche' },
   { id: 'cucina-live', name: 'Cucina live', desc: 'Ordini in cottura e pronti', component: 'WidgetCucinaLive', defaultSize: { w: 1, h: 2 }, category: 'Cucina' },
 ];
 
@@ -51,7 +59,7 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
               width: 30, height: 30, borderRadius: 8,
               border:'none', background:'#F4F5F7', color: PN.TEXT,
               cursor:'pointer', display:'grid', placeItems:'center',
-            }}><PnI.X size={14}/></button>
+            }}><Icon name="xmark" size={14}/></button>
           </div>
           <div style={{fontSize: 13, color: PN.MUTED, marginBottom: 14}}>
             Trascina un widget sulla griglia o clicca per aggiungerlo
@@ -60,7 +68,7 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
             display:'flex', alignItems:'center', gap: 8,
             padding:'8px 12px', background:'#F4F5F7', borderRadius: 9,
           }}>
-            <PnI.Search size={14} color={PN.MUTED}/>
+            <Icon name="magnifying-glass" size={14} color={PN.MUTED}/>
             <input value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Cerca widget…"
               style={{flex:1, border:'none', background:'transparent', outline:'none', fontFamily:'inherit', fontSize:13}}

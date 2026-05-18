@@ -11,10 +11,10 @@ function AccountApp() {
   })();
   const [tab, setTab] = React.useState(initialTab);
   const tabs = [
-    { id: 'dati', label: 'Dati generali' },
-    { id: 'password', label: 'Password e sicurezza' },
-    { id: 'piani', label: 'Piani e abbonamenti' },
-    { id: 'fatturazione', label: 'Account e fatturazione' },
+    { id: 'dati', label: 'Dati generali', icon: 'people-customer' },
+    { id: 'password', label: 'Password e sicurezza', icon: 'gear' },
+    { id: 'piani', label: 'Piani e abbonamenti', icon: 'commerce-coins' },
+    { id: 'fatturazione', label: 'Account e fatturazione', icon: 'commerce-bank-cards' },
   ];
 
   return (
@@ -22,7 +22,7 @@ function AccountApp() {
       <PnSidebar active="account"/>
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
-        <PnPageHeader title="Profilo" subtitle="Gestisci il tuo profilo personale e l'abbonamento."/>
+        <PnPageHeader title="Profilo" subtitle="Gestisci il tuo profilo personale e l'abbonamento." icon="people-user-circle"/>
         <PnUnderlineTabs tabs={tabs} active={tab} onChange={setTab}/>
 
         <div className="pn-scroll" style={{
@@ -43,6 +43,7 @@ function AccountApp() {
 const accRoot = ReactDOM.createRoot(document.getElementById('root'));
 accRoot.render(
   <div className="frame" data-screen-label="Profilo">
+    <GlassMeshSubstrate/>
     <AccountApp/>
   </div>
 );

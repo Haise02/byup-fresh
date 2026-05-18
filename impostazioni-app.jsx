@@ -32,6 +32,7 @@ function ImpApp() {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <div className="frame" data-screen-label="Impostazioni">
+    <GlassMeshSubstrate tone="neutral"/>
     <ImpApp/>
   </div>
 );

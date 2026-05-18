@@ -162,11 +162,19 @@ function AccDatiGenerali() {
   );
 }
 
-function AcCard({ title, subtitle, children, danger }) {
+function AcCard({ title, subtitle, children, danger, aurora }) {
+  // L2 Aurora soft wash multi-color (pink + lavender + cream mesh).
+  // Sistema 75/15/10.
+  const auroraBg =
+    'radial-gradient(circle at 20% 18%, rgba(255, 217, 231, 0.55) 0%, transparent 60%), ' +
+    'radial-gradient(circle at 85% 25%, rgba(226, 217, 255, 0.50) 0%, transparent 60%), ' +
+    'radial-gradient(circle at 60% 95%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
+    'linear-gradient(135deg, #FFF6F4 0%, #FCF8FF 100%)';
   return (
     <div style={{
-      background: PN.WHITE, borderRadius: 14,
-      border: `1px solid ${danger ? '#FECACA' : PN.BORDER_SOFT}`,
+      background: aurora ? auroraBg : PN.WHITE,
+      borderRadius: 14,
+      border: `1px solid ${danger ? '#FECACA' : aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
       padding: 22,
     }}>
       <div style={{marginBottom: 18}}>

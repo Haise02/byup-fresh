@@ -18,6 +18,13 @@ function ImpHeader({ active }) {
       borderBottom: `1px solid ${PN.BORDER_SOFT}`,
       background: PN.WHITE,
     }}>
+      <span style={{
+        width: 40, height: 40, borderRadius: 11,
+        background: PN.PINK_SOFT, color: PN.PINK_DARK,
+        display: 'grid', placeItems: 'center', flexShrink: 0,
+      }}>
+        <Icon name="gear" size={22}/>
+      </span>
       <div style={{flex:1}}>
         <h1 style={{margin:0, fontSize: 22, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4}}>
           Impostazioni
@@ -34,13 +41,13 @@ function ImpHeader({ active }) {
 
 function ImpTabs({ active, onChange }) {
   const tabs = [
-    { id: 'vetrina', label: 'Vetrina' },
-    { id: 'menu-cucina', label: 'Menù' },
-    { id: 'sala', label: 'Sala e tavoli' },
-    { id: 'personale', label: 'Personale' },
-    { id: 'flussi', label: 'Operazioni' },
-    { id: 'fiscali', label: 'Dati fiscali locale' },
-    { id: 'integrazioni', label: 'POS e integrazioni' },
+    { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant' },
+    { id: 'menu-cucina', label: 'Menù', icon: 'food-meal' },
+    { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
+    { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
+    { id: 'flussi', label: 'Operazioni', icon: 'chart-workflow' },
+    { id: 'fiscali', label: 'Dati fiscali locale', icon: 'commerce-receipt' },
+    { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
   ];
 
   return (
@@ -53,6 +60,7 @@ function ImpTabs({ active, onChange }) {
         const isActive = active === t.id;
         return (
           <button key={t.id} onClick={() => onChange(t.id)} style={{
+            display:'inline-flex', alignItems:'center', gap: 7,
             padding: '8px 16px',
             borderRadius: 999,
             border: `1px solid ${isActive ? PN.PINK : PN.BORDER}`,
@@ -60,7 +68,10 @@ function ImpTabs({ active, onChange }) {
             color: isActive ? PN.PINK_DARK : PN.TEXT,
             fontSize: 13.5, fontWeight: 600,
             cursor:'pointer', fontFamily:'inherit',
-          }}>{t.label}</button>
+          }}>
+            <Icon name={t.icon} size={14}/>
+            {t.label}
+          </button>
         );
       })}
     </div>
@@ -92,11 +103,19 @@ function ImpSubTabs({ tabs, active, onChange }) {
   );
 }
 
-function ImpCard({ title, sub, children, action }) {
+function ImpCard({ title, sub, children, action, aurora }) {
+  // L2 Aurora soft wash multi-color — pink + lavender + cream mesh su base
+  // sfumata pink→lavender. Stesso DNA della variant L2 nella preview themes.
+  // Sistema 75/15/10.
+  const auroraBg =
+    'radial-gradient(circle at 20% 18%, rgba(255, 217, 231, 0.55) 0%, transparent 60%), ' +
+    'radial-gradient(circle at 85% 25%, rgba(226, 217, 255, 0.50) 0%, transparent 60%), ' +
+    'radial-gradient(circle at 60% 95%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
+    'linear-gradient(135deg, #FFF6F4 0%, #FCF8FF 100%)';
   return (
     <section style={{
-      background: PN.WHITE,
-      border: `1px solid ${PN.BORDER_SOFT}`,
+      background: aurora ? auroraBg : PN.WHITE,
+      border: `1px solid ${aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
       borderRadius: 14,
       marginBottom: 16,
     }}>
@@ -104,7 +123,7 @@ function ImpCard({ title, sub, children, action }) {
         <div style={{
           display:'flex', alignItems:'flex-start', gap: 16,
           padding: '18px 22px',
-          borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+          borderBottom: `1px solid ${aurora ? 'rgba(190, 175, 220, 0.12)' : PN.BORDER_SOFT}`,
         }}>
           <div style={{flex:1, minWidth: 0}}>
             {title && <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.2}}>{title}</div>}

@@ -212,7 +212,7 @@ function ImpSalaTavoli() {
   return (
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr', gap: 16}}>
       <aside>
-        <ImpCard title="Le tue sale" sub="Crea sale separate per gestire spazi diversi" action={
+        <ImpCard aurora title="Le tue sale" sub="Crea sale separate per gestire spazi diversi" action={
           <button
             onClick={() => setEditSala({ name: '', active: true })}
             title="Nuova sala"

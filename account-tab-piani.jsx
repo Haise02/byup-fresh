@@ -106,46 +106,63 @@ function AccPianiAbbonamenti() {
 // ─────────────────────────────────────────────────────────────────────────
 
 function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
+  // Card "Risparmio": ripristinato fondo verde chiaro (era stato passato a coral
+  // photo-glass nella vecchia tipizzazione, ma semanticamente il risparmio appartiene
+  // alla famiglia emerald — non al coral brand). Glass tinted emerald con inset ring
+  // verde e ombra emerald soft. Fuori dal sistema W1/L2/D3 perché è un'eccezione
+  // semantica (verde = soldi risparmiati), documentata qui.
   return (
-    <div style={{
-      position: 'relative', overflow: 'hidden',
-      borderRadius: 14,
-      background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
-      border: '1px solid rgba(16, 185, 129, 0.32)',
+    <div className="glass-lift-hover" style={{
+      position: 'relative',
+      overflow: 'hidden',
       padding: '20px 22px',
-      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      borderRadius: 14,
       minHeight: 200,
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+      backgroundImage:
+        'linear-gradient(to bottom, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.10) 45%, rgba(255,255,255,0) 100%), ' +
+        'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+      border: 'none',
+      boxShadow:
+        'inset 0 1px 0 rgba(255, 255, 255, 0.85), ' +
+        'inset 0 0 0 1px rgba(16, 185, 129, 0.20), ' +
+        '0 8px 24px -8px rgba(16, 185, 129, 0.22), ' +
+        '0 2px 6px -2px rgba(15, 17, 21, 0.04)',
+      color: '#064E3B',
     }}>
       <div style={{
         position: 'absolute', right: -40, top: -40,
         width: 160, height: 160, borderRadius: '50%',
-        background: 'rgba(16, 185, 129, 0.10)',
+        background: 'rgba(16, 185, 129, 0.18)',
+        zIndex: 0,
       }}/>
-      <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: 14}}>
+      <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: 14, zIndex: 1}}>
         <div style={{
           width: 48, height: 48, borderRadius: 12,
-          background: '#10B981', color: PN.WHITE,
+          background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
+          color: '#fff',
           display: 'grid', placeItems: 'center', flexShrink: 0,
-          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(255,255,255,0.30)',
         }}>
           <PnI.Money size={22} color="#fff"/>
         </div>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 11, color: '#065F46', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5}}>
+          <div style={{fontSize: 11, color: 'rgba(6, 78, 59, 0.65)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5}}>
             Risparmiato questo mese
           </div>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4}}>
-            <span style={{fontSize: 30, fontWeight: 600, color: '#065F46', lineHeight: 1, letterSpacing: '-0.02em'}}>
+            <span style={{fontSize: 30, fontWeight: 600, color: '#047857', lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums'}}>
               {fmtPrice(euroRisparmiati)} €
             </span>
           </div>
-          <div style={{fontSize: 12.5, color: '#047857', marginTop: 2, fontWeight: 500}}>
+          <div style={{fontSize: 12.5, color: '#065F46', marginTop: 2, fontWeight: 500}}>
             {ordiniRisparmiati.toLocaleString('it-IT')} ordini non conteggiati
           </div>
         </div>
       </div>
-      <div style={{position: 'relative', fontSize: 12.5, color: '#047857', marginTop: 14, lineHeight: 1.45}}>
-        Gli ordini effettuati direttamente dai clienti tramite app pesano <strong>0,5 invece di 1</strong>: più adotti il self-ordering, più risparmi.
+      <div style={{position: 'relative', fontSize: 12.5, color: 'rgba(6, 78, 59, 0.85)', marginTop: 14, lineHeight: 1.45, zIndex: 1}}>
+        Gli ordini effettuati direttamente dai clienti tramite app pesano <strong style={{color: '#047857'}}>0,5 invece di 1</strong>: più adotti il self-ordering, più risparmi.
       </div>
     </div>
   );
@@ -156,86 +173,92 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice}) {
+  // Sunset-theme (D3): pannello "ordini usati". Sostituito night+coralAccent con
+  // sunset puro per allinearsi al sistema 80/10/10 — i due upgrade/utilizzo card
+  // del prodotto (sidebar plan card + questo) sono le superfici D3 di riferimento.
   return (
-    <div style={{
-      borderRadius: 14, padding: 22,
-      background: PN.WHITE,
-      border: `1px solid ${PN.BORDER_HAIR}`,
-      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.03)',
-      display: 'flex', flexDirection: 'column',
-      minHeight: 200,
-    }}>
+    <GlassDarkBox
+      theme="sunset"
+      padding={22}
+      borderRadius={14}
+      style={{
+        display: 'flex', flexDirection: 'column',
+        minHeight: 200,
+      }}>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10}}>
         <div>
-          <div style={{fontSize: 11, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5}}>
+          <div style={{fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5}}>
             Utilizzo ordini
           </div>
-          <div style={{fontSize: 12, color: PN.MUTED, marginTop: 4}}>
+          <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4}}>
             Piano {current.nome} · €{fmtPrice(current.prezzo)}{current.periodo}
           </div>
         </div>
         <div style={{textAlign: 'right'}}>
-          <div style={{fontSize: 10, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Extra/ordine</div>
-          <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT}}>+{fmtPrice(current.ordineExtra)} €</div>
+          <div style={{fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Extra/ordine</div>
+          <div style={{fontSize: 13, fontWeight: 600, color: '#F5F5F7'}}>+{fmtPrice(current.ordineExtra)} €</div>
         </div>
       </div>
 
       <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, marginBottom: 8}}>
-        <span style={{fontSize: 26, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em'}}>
+        <span style={{fontSize: 26, fontWeight: 600, color: '#F5F5F7', lineHeight: 1, letterSpacing: '-0.02em'}}>
           {ordiniUsati.toLocaleString('it-IT')}
         </span>
-        <span style={{fontSize: 13, color: PN.MUTED, fontWeight: 500}}>
+        <span style={{fontSize: 13, color: 'rgba(255,255,255,0.60)', fontWeight: 500}}>
           / {current.ordiniInclusi.toLocaleString('it-IT')} inclusi
         </span>
       </div>
 
-      <div style={{height: 8, background: PN.WHITE_FROST, borderRadius: 99, overflow: 'hidden'}}>
+      <div style={{height: 8, background: 'rgba(255,255,255,0.10)', borderRadius: 99, overflow: 'hidden'}}>
         <div style={{
           width: `${pct}%`, height: '100%',
-          background: pct >= 90 ? PN.AMBER : PN.PINK,
+          background: pct >= 90 ? '#FBBF24' : '#FF6066',
           borderRadius: 99,
           transition: 'width 400ms',
+          boxShadow: pct >= 90 ? '0 0 8px rgba(251, 191, 36, 0.5)' : '0 0 8px rgba(255, 96, 102, 0.5)',
         }}/>
       </div>
-      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: PN.MUTED}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.60)'}}>
         <span>{pct}% utilizzato</span>
         <span>{(current.ordiniInclusi - ordiniUsati).toLocaleString('it-IT')} residui</span>
       </div>
 
-      {/* Breakdown POS vs App — versione compatta inline */}
+      {/* Breakdown POS vs App — versione compatta inline (su dark) */}
       <div style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-        marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${PN.BORDER_HAIR}`,
+        marginTop: 14, paddingTop: 12, borderTop: '1px dashed rgba(255,255,255,0.12)',
       }}>
-        <div style={{padding: '8px 10px', background: PN.WHITE_HUSH, borderRadius: 8}}>
-          <div style={{fontSize: 10, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Cassa</div>
+        <div style={{padding: '8px 10px', background: 'rgba(255,255,255,0.06)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)'}}>
+          <div style={{fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Cassa</div>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
-            <span style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>{ordiniPos.toLocaleString('it-IT')}</span>
+            <span style={{fontSize: 15, fontWeight: 600, color: '#F5F5F7'}}>{ordiniPos.toLocaleString('it-IT')}</span>
             <span style={{
               marginLeft: 'auto', fontSize: 9, fontWeight: 600,
               padding: '1px 6px', borderRadius: 4,
-              background: PN.WHITE_FROST, color: PN.MUTED,
+              background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.65)',
             }}>×1</span>
           </div>
         </div>
-        <div style={{padding: '8px 10px', background: PN.PINK_SOFT, borderRadius: 8}}>
-          <div style={{fontSize: 10, color: PN.PINK_DARK, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da app</div>
+        <div style={{padding: '8px 10px', background: 'rgba(255, 96, 102, 0.18)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255, 96, 102, 0.30)'}}>
+          <div style={{fontSize: 10, color: '#FF8B90', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da app</div>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
-            <span style={{fontSize: 15, fontWeight: 600, color: PN.PINK_DARK}}>{ordiniApp.toLocaleString('it-IT')}</span>
+            <span style={{fontSize: 15, fontWeight: 600, color: '#FFC8B0'}}>{ordiniApp.toLocaleString('it-IT')}</span>
             <span style={{
               marginLeft: 'auto', fontSize: 9, fontWeight: 600,
               padding: '1px 6px', borderRadius: 4,
-              background: PN.PINK, color: PN.WHITE,
+              background: '#FF6066', color: '#fff',
             }}>×0,5</span>
           </div>
         </div>
       </div>
-    </div>
+    </GlassDarkBox>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // PianoCard — card di un piano (Free/Starter/Plus/Business). Highlight = filled BRAND.
+// PianoEmoji è definito in panoramica-plan-card.jsx → window.PianoEmoji
+// (caricato in ogni pagina dashboard, condiviso col sidebar plan card).
 // ─────────────────────────────────────────────────────────────────────────
 
 function PianoCard({p, fmtPrice}) {
@@ -285,7 +308,10 @@ function PianoCard({p, fmtPrice}) {
       {isCurrent && <PianoBadge bg={PN.PINK} fg={PN.WHITE} label="ATTUALE"/>}
       {isHighlight && <PianoBadge bg={PN.WHITE} fg={PN.PINK_DARK} label="CONSIGLIATO"/>}
 
-      <div style={{fontSize: 14, fontWeight: 600, color: styles.textColor, marginBottom: 4}}>{p.nome}</div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4}}>
+        <PianoEmoji planId={p.id} size={22} monochrome={isHighlight ? '#FFFFFF' : undefined}/>
+        <div style={{fontSize: 14, fontWeight: 600, color: styles.textColor}}>{p.nome}</div>
+      </div>
       <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 12, flexWrap: 'wrap'}}>
         <span style={{fontSize: 26, fontWeight: 600, color: styles.priceColor, lineHeight: 1, letterSpacing: '-0.02em'}}>€{fmtPrice(p.prezzo)}</span>
         <span style={{fontSize: 11, color: styles.mutedColor}}>{p.periodo}</span>

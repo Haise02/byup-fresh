@@ -3,7 +3,7 @@
 function AccFatturazione() {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
-      <AcCard title="Metodo di pagamento" subtitle="Carta usata per gli addebiti mensili.">
+      <AcCard aurora title="Metodo di pagamento" subtitle="Carta usata per gli addebiti mensili.">
         <div style={{
           display:'flex', alignItems:'center', gap: 14,
           padding: 16, borderRadius: 12,

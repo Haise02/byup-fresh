@@ -73,7 +73,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
               letterSpacing: '-0.02em', margin: '0 0 12px', color: ONB.TEXT,
               position: 'relative', zIndex: 1,
             }}>
-              Sei Live.
+              Il tuo locale è online.
             </h1>
             <p style={{
               fontSize: 16, fontWeight: 400, lineHeight: 1.4,
@@ -145,13 +145,23 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
             Indietro
           </SecondaryCta>
-          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-            <SecondaryCta onClick={() => onComplete && onComplete('panoramica')}>
-              Vai alla Panoramica
-            </SecondaryCta>
-            <PrimaryCtaArrow onClick={() => onComplete && onComplete('config')}>
-              Completa la configurazione
+          <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+            {/* Inversione gerarchia: l'azione consigliata è ora entrare subito nel
+                prodotto ("Inizia a gestire il locale" → Panoramica). La configurazione
+                avanzata resta accessibile come alternativa, separata da un "oppure"
+                discreto per chiarire che è un bivio, non una sequenza. */}
+            <PrimaryCtaArrow onClick={() => onComplete && onComplete('panoramica')}>
+              Inizia a gestire il locale
             </PrimaryCtaArrow>
+            <span style={{
+              fontSize: 12, fontWeight: 500, color: ONB.MUTED_LIGHT,
+              letterSpacing: '0.04em',
+            }}>
+              oppure
+            </span>
+            <SecondaryCta onClick={() => onComplete && onComplete('config')}>
+              Completa la configurazione
+            </SecondaryCta>
           </div>
         </div>
       </div>
@@ -311,32 +321,37 @@ function CompletionChecklist({venue, rooms, totalDishes, totalTables}) {
     {label: 'Pagamenti', value: 'Stripe connesso'},
     {label: 'Sale',      value: `${rooms.length} ${rooms.length === 1 ? 'sala' : 'sale'} · ${totalTables} tavoli`},
   ];
+  // L2 Aurora soft wash multi-color — pink + lavender + cream mesh su base
+  // sfumata pink→lavender. La checklist celebrativa vive sullo stesso wash
+  // dell'Anagrafica in Step 2: aurora L2 = momento warm celebrativo del flow.
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid rgba(15, 17, 21, 0.08)',
-      borderRadius: 10,
-      padding: 4,
-      boxShadow: '0 1px 2px rgba(15, 17, 21, 0.04)',
+    <div className="glass-lift-hover" style={{
       position: 'relative', zIndex: 1,
+      background:
+        'radial-gradient(circle at 20% 18%, rgba(255, 217, 231, 0.55) 0%, transparent 60%), ' +
+        'radial-gradient(circle at 85% 25%, rgba(226, 217, 255, 0.50) 0%, transparent 60%), ' +
+        'radial-gradient(circle at 60% 95%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
+        'linear-gradient(135deg, #FFF6F4 0%, #FCF8FF 100%)',
+      border: '1px solid rgba(190, 175, 220, 0.14)',
+      borderRadius: 12,
+      padding: 4,
+      boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 16px rgba(15, 17, 21, 0.03)',
     }}>
       {items.map((it, i) => (
         <div key={i} style={{
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '14px 16px',
           borderBottom: i < items.length - 1
-            ? '1px solid rgba(15, 17, 21, 0.04)'
+            ? '1px solid rgba(15, 17, 21, 0.06)'
             : 'none',
-          // Riga in fade-up sequenziale, allineata al bounce del check
           animation: `row-rise 320ms ease-out ${i * 150}ms both`,
         }}>
           <span style={{
             width: 20, height: 20, borderRadius: 999,
-            background: ONB.GREEN,
+            background: '#10B981',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
-            // Bounce sequenziale 0→1.2→1, delay 150ms per item.
-            // L'ease-out fa atterrare il pop senza overshoot finale.
+            boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.18)',
             animation: `check-bounce 380ms ease-out ${i * 150}ms both`,
           }}>
             <OnbIcon.Check size={12}/>

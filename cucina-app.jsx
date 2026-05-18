@@ -5,8 +5,8 @@ function CucinaApp() {
   const [tab, setTab] = React.useState('ordini');
   const [focus, setFocus] = React.useState(false);
   const tabs = [
-    { id: 'ordini', label: 'Ordini' },
-    { id: 'storico', label: 'Storico ordini' },
+    { id: 'ordini', label: 'Ordini', icon: 'commerce-cart' },
+    { id: 'storico', label: 'Storico ordini', icon: 'time-history' },
   ];
 
   // Esc per uscire da focus
@@ -26,6 +26,7 @@ function CucinaApp() {
             <PnPageHeader
               title="Cucina"
               subtitle="Martedì 9 Dicembre 2025"
+              icon="food-meal"
             />
             <PnUnderlineTabs tabs={tabs} active={tab} onChange={setTab}/>
           </React.Fragment>
@@ -47,6 +48,7 @@ function CucinaApp() {
 const cucRoot = ReactDOM.createRoot(document.getElementById('root'));
 cucRoot.render(
   <div className="frame" data-screen-label="Cucina">
+    <GlassMeshSubstrate tone="cool"/>
     <CucinaApp/>
   </div>
 );

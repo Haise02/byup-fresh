@@ -4,7 +4,7 @@ const PN_NOTIFICATIONS = [
   {
     id: 'n1',
     type: 'update',
-    icon: 'sparkle',
+    icon: 'sparkles',
     title: 'Nuova versione di byup disponibile',
     body: 'Abbiamo migliorato la gestione del calendario prenotazioni e aggiunto i grafici predittivi.',
     time: '2 ore fa',
@@ -13,7 +13,7 @@ const PN_NOTIFICATIONS = [
   {
     id: 'n2',
     type: 'payment',
-    icon: 'card',
+    icon: 'commerce-bank-cards',
     title: 'Pagamento ricevuto',
     body: 'Hai ricevuto €1.247,80 sul tuo conto Stripe. Disponibile entro 2 giorni lavorativi.',
     time: 'Ieri',
@@ -22,7 +22,7 @@ const PN_NOTIFICATIONS = [
   {
     id: 'n3',
     type: 'system',
-    icon: 'stats',
+    icon: 'chart-bar',
     title: 'Report mensile pronto',
     body: 'Il riepilogo di aprile 2026 è disponibile in Statistiche. +12% vs marzo.',
     time: '2 giorni fa',
@@ -31,7 +31,7 @@ const PN_NOTIFICATIONS = [
   {
     id: 'n4',
     type: 'tip',
-    icon: 'bulb',
+    icon: 'status-tip',
     title: 'Suggerimento da byup',
     body: 'Hai 3 piatti senza foto nel menù. Aggiungile per aumentare gli ordini fino al 30%.',
     time: '4 giorni fa',
@@ -40,7 +40,7 @@ const PN_NOTIFICATIONS = [
   {
     id: 'n5',
     type: 'billing',
-    icon: 'receipt',
+    icon: 'commerce-receipt',
     title: 'Fattura del piano Premium',
     body: 'La fattura di aprile (€49,00) è disponibile in Contabilità → Fatture.',
     time: '1 settimana fa',
@@ -49,7 +49,7 @@ const PN_NOTIFICATIONS = [
   {
     id: 'n6',
     type: 'feature',
-    icon: 'party',
+    icon: 'status-feature',
     title: 'Promozioni: nuova feature',
     body: 'Ora puoi creare promo a tempo che appaiono in vetrina. Provala in Statistiche.',
     time: '2 settimane fa',
@@ -84,7 +84,7 @@ function PnNotifBell() {
         cursor:'pointer',
         display:'grid', placeItems:'center',
       }}>
-        <PnI.Bell size={17} color={PN.TEXT}/>
+        <Icon name="bell" size={17} color={PN.TEXT}/>
         {unreadCount > 0 && (
           <span style={{
             position:'absolute', top: 5, right: 5,
@@ -150,7 +150,7 @@ function PnNotifBell() {
                   width: 36, height: 36, borderRadius: 10,
                   background: '#f4f4f6', flexShrink: 0,
                   display:'grid', placeItems:'center'
-                }}>{(BuIcons[n.icon]||BuIcons.bell)({size: 16, color: '#6B7280'})}</div>
+                }}><Icon name={SfIcons[n.icon] ? n.icon : 'bell'} size={16} color="#6B7280"/></div>
                 <div style={{flex: 1, minWidth: 0}}>
                   <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, marginBottom: 2, lineHeight: 1.35}}>{n.title}</div>
                   <div style={{fontSize: 12, color: PN.MUTED, lineHeight: 1.45, marginBottom: 4}}>{n.body}</div>

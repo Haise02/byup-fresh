@@ -79,7 +79,7 @@ function ImpDatiFiscali() {
       {/* 2-column layout: form a sx, anteprima scontrino a dx */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 320px', gap: 18, alignItems:'flex-start'}}>
         <div>
-          <ImpCard title="Dati anagrafici" sub="Informazioni fiscali del titolare dell'attività">
+          <ImpCard aurora title="Dati anagrafici" sub="Informazioni fiscali del titolare dell'attività">
             <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
               <ImpField label="Ragione sociale" hint="Come risulta a registro imprese">
                 <ImpInput value={data.ragione} onChange={e => set('ragione', e.target.value)}/>
