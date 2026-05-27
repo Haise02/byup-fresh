@@ -1,0 +1,84 @@
+// Sala — data
+
+const SALA_CONTI_APERTI = Array.from({length: 5}, (_, i) => ({
+  tavolo: 1,
+  liberato: '14:30',
+  cliente: 'Mario Rossi',
+  totTavolo: 85.00,
+  daSaldare: 45.00,
+}));
+
+// Vendita diretta — menu reale con immagini, varianti, ingredienti, extras
+const SALA_VENDITA_PIATTI = [
+  { id: 1, name: 'Espresso', price: 1.50, cat: 'Bar', emoji: '☕',
+    img: 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=400&auto=format&fit=crop' },
+  { id: 2, name: 'Cappuccino', price: 1.80, cat: 'Bar', emoji: '☕',
+    img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Latte', required: true, options: [{name:'Intero'},{name:'Scremato'},{name:'Soia',extra:0.50},{name:'Avena',extra:0.50}] }] },
+  { id: 3, name: 'Cornetto', price: 2.00, cat: 'Bar', emoji: '🥐',
+    img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Tipo', required: true, options: [{name:'Vuoto'},{name:'Crema'},{name:'Cioccolato'},{name:'Marmellata'},{name:'Vegano',extra:0.30}] }] },
+  { id: 4, name: 'Spritz', price: 6.50, cat: 'Bar', emoji: '🍹',
+    img: 'https://images.unsplash.com/photo-1605270012917-bf357a1fae9e?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Aperitivo', required: true, options: [{name:'Aperol'},{name:'Campari'},{name:'Hugo'},{name:'Cynar'}] }],
+    extras: [{name:'Stuzzichini',price:2.00}] },
+  { id: 5, name: 'Tagliere misto', price: 14.00, cat: 'Antipasti', emoji: '🧀',
+    img: 'https://images.unsplash.com/photo-1626804475297-41608ea09aeb?w=400&auto=format&fit=crop',
+    extras: [{name:'Burrata',price:3.00},{name:'Bresaola',price:2.50}] },
+  { id: 6, name: 'Bruschetta al pomodoro', price: 7.50, cat: 'Antipasti', emoji: '🍞',
+    img: 'https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=400&auto=format&fit=crop',
+    ingredients: [{name:'Aglio',removable:true},{name:'Basilico',removable:true},{name:'Origano',removable:true}] },
+  { id: 7, name: 'Pasta carbonara', price: 12.00, cat: 'Primi piatti', emoji: '🍝',
+    img: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Cottura', required: true, options: [{name:'Al dente'},{name:'Cottura media'},{name:'Ben cotta'}] }],
+    ingredients: [{name:'Pepe',removable:true},{name:'Guanciale',removable:true,allergen:true}],
+    extras: [{name:'Pecorino extra',price:1.50}] },
+  { id: 8, name: 'Lasagna', price: 13.50, cat: 'Primi piatti', emoji: '🍝',
+    img: 'https://images.unsplash.com/photo-1619895092538-128341789043?w=400&auto=format&fit=crop',
+    ingredients: [{name:'Besciamella',removable:true},{name:'Parmigiano',removable:true,allergen:true},{name:'Noce moscata',removable:true}] },
+  { id: 13, name: 'Tagliata di manzo', price: 18.00, cat: 'Secondi piatti', emoji: '🥩',
+    img: 'https://images.unsplash.com/photo-1558030006-450675393462?w=400&auto=format&fit=crop',
+    variants: [
+      { group: 'Cottura', required: true, options: [{name:'Al sangue'},{name:'Media'},{name:'Ben cotta'}] },
+      { group: 'Condimento', required: false, options: [{name:'Rucola e grana'},{name:'Salsa pepe verde'},{name:'Aceto balsamico'}] },
+    ],
+    ingredients: [{name:'Rosmarino',removable:true},{name:'Sale grosso',removable:true}],
+    extras: [{name:'Patate al forno',price:3.50}] },
+  { id: 14, name: 'Bistecca fiorentina', price: 32.00, cat: 'Secondi piatti', emoji: '🥩',
+    img: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400&auto=format&fit=crop',
+    variants: [
+      { group: 'Cottura', required: true, options: [{name:'Al sangue'},{name:'Media'}] },
+      { group: 'Taglio', required: true, options: [{name:'Costata'},{name:'Filetto'}] },
+    ],
+    extras: [{name:'Contorno verdure',price:4.00}] },
+  { id: 15, name: 'Branzino al forno', price: 22.00, cat: 'Secondi piatti', emoji: '🐟',
+    img: 'https://images.unsplash.com/photo-1485921325833-c519f76c4927?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Preparazione', required: true, options: [{name:'In crosta di sale'},{name:'Al limone'},{name:'Mediterranea'}] }],
+    ingredients: [{name:'Olive',removable:true},{name:'Capperi',removable:true},{name:'Pomodorini',removable:true}] },
+  { id: 9, name: 'Margherita', price: 9.00, cat: 'Pizze', emoji: '🍕',
+    img: 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Impasto', required: true, options: [{name:'Classico'},{name:'Integrale',extra:1.00},{name:'Senza glutine',extra:2.00}] }],
+    extras: [{name:'Mozzarella di bufala',price:2.00},{name:'Basilico fresco',price:0.50},{name:'Olio piccante',price:0.50}] },
+  { id: 10, name: 'Diavola', price: 11.00, cat: 'Pizze', emoji: '🍕',
+    img: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Impasto', required: true, options: [{name:'Classico'},{name:'Integrale',extra:1.00},{name:'Senza glutine',extra:2.00}] }],
+    ingredients: [{name:'Salame piccante',removable:true},{name:'Origano',removable:true}] },
+  { id: 11, name: 'Tiramisù', price: 6.00, cat: 'Dolci', emoji: '🍰',
+    img: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&auto=format&fit=crop' },
+  { id: 12, name: 'Panna cotta', price: 5.50, cat: 'Dolci', emoji: '🍮',
+    img: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&auto=format&fit=crop',
+    variants: [{ group: 'Topping', required: false, options: [{name:'Frutti di bosco'},{name:'Caramello'},{name:'Cioccolato'}] }] },
+];
+
+const SALA_VENDITA_CATS = {
+  'Bar': { color: '#92400E', bg: '#FEF3C7', icon: 'coffee' },
+  'Antipasti': { color: '#9A3412', bg: '#FFEDD5', icon: 'leaf' },
+  'Primi piatti': { color: '#9D174D', bg: '#FCE7F3', icon: 'pasta' },
+  'Pizze': { color: '#7C2D12', bg: '#FED7AA', icon: 'pizza' },
+  'Secondi piatti': { color: '#7F1D1D', bg: '#FECACA', icon: 'meat' },
+  'Dolci': { color: '#831843', bg: '#FBCFE8', icon: 'cake' },
+};
+
+window.SALA_CONTI_APERTI = SALA_CONTI_APERTI;
+window.SALA_VENDITA_PIATTI = SALA_VENDITA_PIATTI;
+window.SALA_VENDITA_CATS = SALA_VENDITA_CATS;

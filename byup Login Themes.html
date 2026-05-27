@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>byup — Login Themes Preview</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   BASE
+   Stessa "login box" replicata 12 volte: 3 temi (White Classic / Light
+   Gradient / Dark) × 4 varianti ciascuno. La box NON cambia struttura tra
+   varianti — solo i token visuali (background, bordi, ombre, colori testo,
+   CTA). Lo scopo è confrontare a colpo d'occhio quale fitta meglio.
+   ───────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: #0F1115;
+  color: #E5E7EB;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  padding: 48px 32px 96px;
+}
+
+/* ─── Page head ──────────────────────────────────────────────────── */
+.page-head {
+  max-width: 1640px;
+  margin: 0 auto 56px;
+  padding: 0 8px;
+}
+.page-head h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: #fff;
+}
+.page-head p {
+  font-size: 15px;
+  font-weight: 400;
+  color: #9CA3AF;
+  margin: 0;
+  max-width: 720px;
+  line-height: 1.5;
+}
+.page-head .legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  font-size: 12px;
+  color: #C7CAD1;
+  font-weight: 500;
+}
+.page-head .legend .dot {
+  width: 6px; height: 6px; border-radius: 999px; background: #FF5A5F;
+}
+
+/* ─── Theme section ──────────────────────────────────────────────── */
+.theme-section {
+  max-width: 1640px;
+  margin: 0 auto 64px;
+  padding: 32px 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.theme-section.section-white {
+  background: #FAFBFC;
+  color: #1A1D24;
+  border-color: rgba(15, 17, 21, 0.08);
+}
+.theme-section.section-lightgrad {
+  background:
+    radial-gradient(1200px 600px at 100% -10%, #FFE4DC 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #FFD7CB 0%, transparent 55%),
+    linear-gradient(180deg, #FFF8F5 0%, #FFFFFF 100%);
+  color: #1A1D24;
+  border-color: rgba(220, 70, 60, 0.10);
+}
+.theme-section.section-dark {
+  background: #0A0B0E;
+  color: #E5E7EB;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.theme-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid currentColor;
+  border-bottom-color: rgba(15, 17, 21, 0.08);
+}
+.theme-section.section-dark .theme-head {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.theme-head h2 {
+  font-size: 22px; font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.theme-head .desc {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(15, 17, 21, 0.55);
+  max-width: 540px;
+  margin: 0;
+}
+.theme-section.section-dark .theme-head .desc { color: rgba(255, 255, 255, 0.55); }
+
+/* ─── Grid varianti ──────────────────────────────────────────────── */
+.variants {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 1400px) {
+  .variants { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.variant {
+  display: flex;
+  flex-direction: column;
+}
+.variant .frame {
+  /* Il "frame" è la pagina dove vive la box: mostra anche lo SFONDO che il
+     tema applicherebbe sotto. Ogni variant è un mini-ambiente con TRE box
+     stackate: login (target), Plan Card "conta ordini", Cucina · live.
+     Serve per validare il tema su più tipologie di contenuto. */
+  position: relative;
+  min-height: 980px;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 22px 14px;
+}
+.variant .label {
+  margin-top: 14px;
+  padding: 0 4px;
+}
+.variant .label b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.variant .label span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: rgba(15, 17, 21, 0.55);
+}
+.theme-section.section-dark .variant .label span { color: rgba(255, 255, 255, 0.55); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LOGIN BOX — struttura base condivisa.
+   Il colore vivo (background, bordi, ombre, testo) arriva via CSS custom
+   properties impostate dalla variant. La box è SEMPRE 320px × auto.
+   ───────────────────────────────────────────────────────────────────── */
+
+.box {
+  width: 320px;
+  padding: 22px 22px 20px;
+  border-radius: var(--box-radius, 14px);
+  background: var(--box-bg, #fff);
+  border: var(--box-border, 1px solid rgba(15, 17, 21, 0.08));
+  box-shadow: var(--box-shadow, none);
+  backdrop-filter: var(--box-backdrop, none);
+  -webkit-backdrop-filter: var(--box-backdrop, none);
+  color: var(--text, #1A1D24);
+  position: relative;
+  z-index: 1;
+}
+
+.box .logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+  filter: var(--logo-filter, none);
+}
+.box .logo-wrap img { height: 36px; width: auto; display: block; }
+
+.box h3 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  text-align: center;
+  color: var(--text, #1A1D24);
+}
+.box p.sub {
+  font-size: 12.5px;
+  font-weight: 400;
+  text-align: center;
+  margin: 0 0 18px;
+  color: var(--muted, #6b6b6b);
+  line-height: 1.45;
+}
+
+.box .field {
+  margin-bottom: 10px;
+}
+.box .field label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: var(--text, #1A1D24);
+}
+.box .field input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--input-bg, #fff);
+  color: var(--text, #1A1D24);
+  border: 1px solid var(--input-border, rgba(15, 17, 21, 0.12));
+  border-radius: 8px;
+  outline: none;
+}
+.box .field input::placeholder { color: var(--muted, #9a9a9a); opacity: 0.7; }
+
+.box .forgot {
+  display: block;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text, #1A1D24);
+  text-decoration: none;
+  margin: -2px 0 14px;
+}
+.box .forgot:hover { text-decoration: underline; }
+
+.box .cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cta-bg, #FF5A5F);
+  color: var(--cta-text, #fff);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: filter 150ms ease-out;
+}
+.box .cta:hover { filter: brightness(0.96); }
+
+.box .divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 12px;
+}
+.box .divider span {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #9a9a9a);
+}
+.box .divider hr {
+  flex: 1; height: 1px; border: 0;
+  background: var(--divider, rgba(15, 17, 21, 0.10));
+  margin: 0;
+}
+
+.box .google {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; height: 38px;
+  background: var(--google-bg, #fff);
+  color: var(--text, #1A1D24);
+  border: 1px solid var(--google-border, rgba(15, 17, 21, 0.12));
+  border-radius: 8px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+.box .google svg { width: 14px; height: 14px; }
+
+.box .footer-link {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--muted, #6b6b6b);
+  margin: 0;
+}
+.box .footer-link a {
+  color: var(--text, #1A1D24);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid var(--divider, rgba(15, 17, 21, 0.15));
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BOX VARIANT B — PLAN CARD "conta ordini"
+   Stessa anatomia visual della .box principale (background/bordo/ombra
+   ereditati via CSS vars); cambia solo il layout interno: eyebrow + numerone
+   percentuale + barra + CTA upgrade. Identico al pattern PnSidebarPlanCard.
+   ───────────────────────────────────────────────────────────────────── */
+.box.plan-box {
+  width: 260px;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.box.plan-box .plan-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.85;
+}
+.box.plan-box .plan-pct {
+  display: flex; align-items: baseline; gap: 6px;
+}
+.box.plan-box .plan-pct-num {
+  font-size: 22px; font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.box.plan-box .plan-pct-label {
+  font-size: 11px; color: var(--muted);
+}
+.box.plan-box .plan-bar {
+  height: 6px; border-radius: 999px;
+  background: var(--bar-track, rgba(15, 17, 21, 0.10));
+  overflow: hidden;
+  position: relative;
+}
+.box.plan-box .plan-bar-fill {
+  width: 71%; height: 100%;
+  background: var(--bar-fill, #16A34A);
+  border-radius: 999px;
+}
+.box.plan-box .plan-cta {
+  margin-top: 2px;
+  padding: 9px 12px;
+  font-size: 12px; font-weight: 700;
+  background: var(--plan-cta-bg, var(--cta-bg, #FF5A5F));
+  color: var(--plan-cta-text, var(--cta-text, #fff));
+  border: var(--plan-cta-border, none);
+  border-radius: 9px; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: var(--plan-cta-shadow, none);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BOX VARIANT C — KITCHEN "Cucina · live"
+   Layout list: header + righe ordine (tavolo / portate-tempo / status pill).
+   Le righe sono "tile" sulla superficie della box — bg semitrasparente +
+   inset ring. Identico al WidgetCucinaLive della panoramica.
+   ───────────────────────────────────────────────────────────────────── */
+.box.kitchen-box {
+  width: 320px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.box.kitchen-box .kitchen-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.box.kitchen-box .kitchen-title {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  letter-spacing: -0.01em;
+}
+.box.kitchen-box .kitchen-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500; color: var(--muted);
+}
+.box.kitchen-box .kitchen-dot {
+  width: 6px; height: 6px; border-radius: 999px; background: #F87171;
+}
+.box.kitchen-box .kitchen-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--tile-bg, rgba(15, 17, 21, 0.04));
+  box-shadow: var(--tile-ring, none);
+}
+.box.kitchen-box .k-num {
+  font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--num-bg, rgba(15, 17, 21, 0.08));
+  padding: 2px 7px; border-radius: 6px;
+  min-width: 22px; text-align: center;
+}
+.box.kitchen-box .k-desc {
+  font-size: 11.5px; color: var(--muted);
+}
+.box.kitchen-box .k-status {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 5px;
+  letter-spacing: 0.02em;
+}
+.box.kitchen-box .k-status.green { background: rgba(22, 163, 74, 0.15); color: #15803D; }
+.box.kitchen-box .k-status.amber { background: rgba(217, 119, 6, 0.16); color: #B45309; }
+.box.kitchen-box .k-status.red   { background: rgba(220, 38, 38, 0.15); color: #B91C1C; }
+
+/* Dark-theme overrides per plan e kitchen (token tile/bar/CTA-plan) */
+.theme-section.section-dark .box.plan-box { --bar-track: rgba(255, 255, 255, 0.18); }
+.theme-section.section-dark .box.kitchen-box {
+  --tile-bg: rgba(255, 255, 255, 0.06);
+  --tile-ring: inset 0 1px 0 rgba(255, 255, 255, 0.10), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --num-bg: rgba(255, 255, 255, 0.10);
+}
+.theme-section.section-dark .box.kitchen-box .k-status.green {
+  background: rgba(52, 211, 153, 0.18); color: #86EFAC;
+}
+.theme-section.section-dark .box.kitchen-box .k-status.amber {
+  background: rgba(251, 146, 60, 0.18); color: #FDBA74;
+}
+.theme-section.section-dark .box.kitchen-box .k-status.red {
+  background: rgba(248, 113, 113, 0.18); color: #FCA5A5;
+}
+/* Plan CTA su dark: pulsante bianco hard-contrast con testo wine — esattamente
+   come nel PnSidebarPlanCard reale */
+.theme-section.section-dark .box.plan-box .plan-cta {
+  --plan-cta-bg: #FFFFFF;
+  --plan-cta-text: #7C2D3C;
+  --plan-cta-border: 1px solid rgba(255, 255, 255, 0.85);
+  --plan-cta-shadow: inset 0 1px 0 rgba(255,255,255,0.90), 0 4px 10px -4px rgba(20, 6, 12, 0.40);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   THEME 1 — WHITE CLASSIC
+   Workhorse neutro. Page background dichiaratamente piatto/off-white;
+   tutta la differenziazione tra varianti vive sulla box.
+   ───────────────────────────────────────────────────────────────────── */
+
+.theme-section.section-white .frame { background: #FAFBFC; }
+
+.v-w-clean .box {
+  --box-bg: #fff;
+  --box-border: 1px solid #E5E7EB;
+  --box-shadow: 0 1px 0 rgba(15, 17, 21, 0.04);
+}
+
+.section-white .v-w-elevated .frame { background: #FFFFFF; }
+.v-w-elevated .box {
+  --box-bg: #fff;
+  --box-border: 1px solid rgba(15, 17, 21, 0.04);
+  --box-shadow:
+    0 1px 2px rgba(15, 17, 21, 0.05),
+    0 16px 40px rgba(15, 17, 21, 0.08);
+}
+
+.v-w-coral-border .box {
+  --box-bg: #fff;
+  --box-border: 1.5px solid rgba(255, 90, 95, 0.30);
+  --box-shadow: none;
+  --box-radius: 12px;
+}
+
+.v-w-mono .box {
+  --box-bg: #fff;
+  --box-border: 1px solid rgba(15, 17, 21, 0.08);
+  --box-shadow: 0 1px 2px rgba(15, 17, 21, 0.04), 0 8px 24px rgba(15, 17, 21, 0.06);
+  --cta-bg: #1F2229;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   THEME 2 — LIGHT GRADIENT
+   Tono premium-warm. Lo sfondo della pagina porta il colore (peach / aurora
+   / brand-wash); la box resta leggera per non saturare. Varianti = diverse
+   gradient + diversa relazione box ↔ sfondo (shadow, glass, border…).
+   ───────────────────────────────────────────────────────────────────── */
+
+/* V1 — Peach Mesh: blobs caldi sul lato + cream wash */
+.v-lg-peach .frame {
+  background:
+    radial-gradient(420px 360px at 85% 10%, #FFD6CB 0%, transparent 60%),
+    radial-gradient(340px 280px at 10% 95%, #FFE6DC 0%, transparent 60%),
+    linear-gradient(180deg, #FFF8F4 0%, #FFFFFF 100%);
+}
+.v-lg-peach .box {
+  --box-bg: #fff;
+  --box-border: 1px solid rgba(255, 255, 255, 0.6);
+  --box-shadow:
+    0 1px 2px rgba(212, 80, 70, 0.05),
+    0 18px 50px rgba(212, 80, 70, 0.12);
+}
+
+/* V2 — Aurora Soft: pastel mesh multi-color, card glass */
+.v-lg-aurora .frame {
+  background:
+    radial-gradient(360px 320px at 20% 20%, #FFD9E7 0%, transparent 60%),
+    radial-gradient(320px 320px at 85% 25%, #E2D9FF 0%, transparent 60%),
+    radial-gradient(420px 380px at 60% 100%, #FFEDD8 0%, transparent 65%),
+    linear-gradient(180deg, #FFF6F4 0%, #FCF8FF 100%);
+}
+.v-lg-aurora .box {
+  --box-bg: rgba(255, 255, 255, 0.72);
+  --box-border: 1px solid rgba(255, 255, 255, 0.8);
+  --box-shadow: 0 12px 36px rgba(80, 40, 80, 0.10);
+  --box-backdrop: blur(20px) saturate(140%);
+}
+
+/* V3 — Photo Glass (riferimento: glass-photo-bg dei widget panoramica
+   "warm Byup": coral/peach/salmon radial mesh). Card bianca con specular
+   highlight + warm-tinted inset ring → coerente con i widget light-glass
+   della dashboard. Stesso "vocabolario" di ombre, scala diversa. */
+.v-lg-photo .frame {
+  background:
+    radial-gradient(circle at 15% 18%, #FFC8B0 0%, transparent 50%),
+    radial-gradient(circle at 80% 25%, #FFB4A8 0%, transparent 48%),
+    radial-gradient(circle at 78% 78%, #FF8A95 0%, transparent 50%),
+    radial-gradient(circle at 28% 88%, #FF6066 0%, transparent 52%),
+    linear-gradient(135deg, #FFE8DD 0%, #FFD7CC 100%);
+}
+.v-lg-photo .box {
+  --box-bg: #fff;
+  --box-radius: 14px;
+  --box-border: none;
+  --box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(255, 130, 130, 0.18),
+    0 12px 32px -10px rgba(190, 50, 60, 0.20),
+    0 4px 10px -4px rgba(190, 50, 60, 0.12);
+}
+
+/* V4 — Photo Glass Tile (riferimento: tile glass dentro WidgetRecensioni
+   su sfondo "deeper" Byup). La card NON è più bianca opaca: è un vero vetro
+   semi-traslucido sopra la mesh deeper, con blur 20px e doppio inset ring.
+   La differenza con L3 è ontologica: lì la card è un solido, qui è una lente. */
+.v-lg-tile .frame {
+  background:
+    radial-gradient(circle at 15% 18%, #FFB4A8 0%, transparent 50%),
+    radial-gradient(circle at 80% 25%, #FF8A95 0%, transparent 48%),
+    radial-gradient(circle at 78% 78%, #FF6066 0%, transparent 52%),
+    radial-gradient(circle at 30% 90%, #FF8068 0%, transparent 55%),
+    linear-gradient(135deg, #FFD7CC 0%, #FFC1B0 100%);
+}
+.v-lg-tile .box {
+  --box-bg: rgba(255, 245, 248, 0.62);
+  --box-radius: 14px;
+  --box-border: none;
+  --box-backdrop: blur(20px) saturate(160%);
+  --box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.70),
+    inset 0 0 0 1px rgba(242, 107, 122, 0.16),
+    0 14px 36px -10px rgba(190, 50, 60, 0.22),
+    0 4px 10px -4px rgba(190, 50, 60, 0.12);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   THEME 3 — DARK
+   Premium / drammatico. Stesso impianto: 4 modi diversi di trattare la
+   card su fondo scuro (piatto / brand-glow / wine-gradient / glass).
+   I token testo/muted/divider passano a inverted.
+   ───────────────────────────────────────────────────────────────────── */
+
+.theme-section.section-dark .box,
+.theme-section.section-dark .v-d-inky .box,
+.theme-section.section-dark .v-d-glow .box,
+.theme-section.section-dark .v-d-wine .box,
+.theme-section.section-dark .v-d-glass .box {
+  --text: #F3F4F6;
+  --muted: #9CA3AF;
+  --input-bg: rgba(255, 255, 255, 0.04);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --google-bg: rgba(255, 255, 255, 0.04);
+  --google-border: rgba(255, 255, 255, 0.14);
+  --divider: rgba(255, 255, 255, 0.10);
+}
+
+/* V1 — Inky: fondo nerissimo, card un gradino più chiara */
+.v-d-inky .frame { background: #0A0B0E; }
+.v-d-inky .box {
+  --box-bg: #14161B;
+  --box-border: 1px solid rgba(255, 255, 255, 0.06);
+  --box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* V2 — Wine Glass (rifatta: stesso impianto della Sidebar Plan Card ma con
+   palette red-wine/magenta invece di slate-blu). Mesh wine deep + magenta
+   pulse + coral accent in alto; card glass su substrato wine, doppio inset
+   ring caldo. Stessa "lingua" del plan-card, hue diverso. */
+.v-d-night-coral .frame {
+  background:
+    radial-gradient(circle at 85% 16%, rgba(255, 96, 102, 0.32) 0%, transparent 40%),
+    radial-gradient(circle at 20% 28%, #5A1530 0%, transparent 52%),
+    radial-gradient(circle at 78% 76%, #3E0E22 0%, transparent 54%),
+    radial-gradient(circle at 50% 95%, #220714 0%, transparent 62%),
+    linear-gradient(135deg, #361020 0%, #150611 100%);
+}
+.v-d-night-coral .box {
+  --box-bg: linear-gradient(180deg, rgba(58, 18, 36, 0.55) 0%, rgba(28, 8, 20, 0.62) 100%);
+  --box-radius: 14px;
+  --box-border: none;
+  --box-backdrop: blur(22px) saturate(170%);
+  --box-shadow:
+    inset 0 1px 0 rgba(255, 200, 210, 0.18),
+    inset 0 0 0 1px rgba(255, 130, 150, 0.12),
+    0 14px 36px -10px rgba(80, 10, 30, 0.55),
+    0 4px 10px -4px rgba(80, 10, 30, 0.30);
+}
+
+/* V3 — Sunset Glass (gemello strutturale di D2 Wine Glass, palette diversa).
+   Stesso impianto: mesh + card glass + white CTA su plan. Hue però shifta da
+   wine/magenta a coral #FF6066 → arancio Fanta → rosa salmone. Lettura più
+   calda/giocosa, mantiene il dark mood. Base wood-burnt molto scura per far
+   "bruciare" i radial caldi sopra. */
+.v-d-sunset .frame {
+  background:
+    radial-gradient(circle at 80% 18%, rgba(255, 96, 102, 0.66) 0%, transparent 52%),
+    radial-gradient(circle at 22% 28%, rgba(251, 122, 70, 0.30) 0%, transparent 50%),
+    radial-gradient(circle at 72% 78%, rgba(255, 120, 130, 0.42) 0%, transparent 56%),
+    radial-gradient(circle at 38% 95%, rgba(255, 96, 102, 0.20) 0%, transparent 58%),
+    linear-gradient(135deg, #2C0C10 0%, #160508 100%);
+}
+.v-d-sunset .box {
+  --box-bg: linear-gradient(180deg, rgba(58, 28, 22, 0.55) 0%, rgba(30, 12, 10, 0.62) 100%);
+  --box-radius: 14px;
+  --box-border: none;
+  --box-backdrop: blur(22px) saturate(170%);
+  --box-shadow:
+    inset 0 1px 0 rgba(255, 200, 170, 0.22),
+    inset 0 0 0 1px rgba(255, 150, 110, 0.16),
+    0 14px 36px -10px rgba(120, 50, 15, 0.55),
+    0 4px 10px -4px rgba(120, 50, 15, 0.30);
+}
+/* Plan CTA su sunset: pulsante bianco con testo burnt-orange invece del wine
+   di D2 — coordina il caldo della palette senza spegnerlo col bordeaux. */
+.v-d-sunset .box.plan-box .plan-cta {
+  --plan-cta-text: #8C2A1A;
+}
+
+/* V4 — Glass Dark: fondo con mesh rosso animato (statico SVG), card glass */
+.v-d-glass .frame {
+  background:
+    radial-gradient(420px 360px at 85% 15%, rgba(255, 90, 95, 0.40) 0%, transparent 60%),
+    radial-gradient(380px 320px at 10% 90%, rgba(124, 58, 237, 0.30) 0%, transparent 65%),
+    #0A0B0E;
+}
+.v-d-glass .box {
+  --box-bg: rgba(20, 22, 27, 0.55);
+  --box-border: 1px solid rgba(255, 255, 255, 0.12);
+  --box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  --box-backdrop: blur(22px) saturate(140%);
+}
+
+/* Logo: su tutte le varianti DARK il logo brand-coral su scuro convive bene
+   ma una light drop-shadow lo separa dal fondo nei casi di glass/glow. */
+.theme-section.section-dark .box .logo-wrap {
+  --logo-filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.5));
+}
+
+/* ─── Variant header chip ────────────────────────────────────────── */
+.variant .label .chip {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: rgba(15, 17, 21, 0.06);
+  color: rgba(15, 17, 21, 0.65);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.theme-section.section-dark .variant .label .chip {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Login — Themes & Variants</h1>
+  <p>
+    Ogni "ambiente" mostra <b>3 box</b> sotto lo stesso tema: la <b>login</b> (target),
+    la <b>Plan Card "conta ordini"</b> con barra percentuale e il monitor <b>Cucina · live</b>
+    — così si valuta come il tema regge su tipologie di contenuto diverse, non solo sulla card
+    isolata. <b>3 temi × 4 varianti = 12 ambienti</b>. La struttura delle box non cambia mai:
+    cambiano solo i token visuali (background, bordi, ombre, CTA).
+  </p>
+  <span class="legend"><span class="dot"></span> 12 ambienti · 3 box per ambiente · stessa anatomia</span>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     WHITE CLASSIC
+     ═══════════════════════════════════════════════════════════ -->
+<section class="theme-section section-white">
+  <div class="theme-head">
+    <h2>1 · White Classic</h2>
+    <p class="desc">Workhorse neutro. Fondo piatto off-white, differenziazione tutta sulla box: bordo, ombra, CTA. Default safe per audience nuova e device modesti.</p>
+  </div>
+  <div class="variants">
+
+    <!-- V1 Clean -->
+    <div class="variant v-w-clean">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">W1</span>Clean</b><span>Bordo neutro 1px, ombra minima. Letture super calme.</span></div>
+    </div>
+
+    <!-- V2 Elevated -->
+    <div class="variant v-w-elevated">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">W2</span>Elevated</b><span>Niente bordo, ombra elevated a due strati. Stacco netto dal canvas.</span></div>
+    </div>
+
+    <!-- V3 Coral Border -->
+    <div class="variant v-w-coral-border">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">W3</span>Coral Border</b><span>Bordo 1.5px brand-tinted. Identità prima dell'ombra.</span></div>
+    </div>
+
+    <!-- V4 Mono Action -->
+    <div class="variant v-w-mono">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">W4</span>Mono Action</b><span>CTA dark neutral. Il brand resta solo sul logo.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     LIGHT GRADIENT
+     ═══════════════════════════════════════════════════════════ -->
+<section class="theme-section section-lightgrad">
+  <div class="theme-head">
+    <h2>2 · Light Gradient</h2>
+    <p class="desc">Premium-warm. Il colore vive sullo sfondo (peach/mesh/wash); la box resta leggera per non saturare. Quattro modi di costruire l'ambiente attorno alla stessa card.</p>
+  </div>
+  <div class="variants">
+
+    <!-- V1 Peach Mesh -->
+    <div class="variant v-lg-peach">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">L1</span>Peach Mesh</b><span>Blob caldi negli angoli, ombra brand-tinted sotto la box.</span></div>
+    </div>
+
+    <!-- V2 Aurora Soft -->
+    <div class="variant v-lg-aurora">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">L2</span>Aurora Soft</b><span>Mesh pastel multi-color, card frosted-glass semi-traslucida.</span></div>
+    </div>
+
+    <!-- V3 Photo Glass — riferimento: warm Byup mesh dei widget panoramica -->
+    <div class="variant v-lg-photo">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">L3</span>Photo Glass</b><span>Mesh coral/peach Byup come sui widget panoramica. Card bianca con specular highlight + warm inset ring.</span></div>
+    </div>
+
+    <!-- V4 Photo Glass Tile — riferimento: glass tile delle recensioni su deeper mesh -->
+    <div class="variant v-lg-tile">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">L4</span>Photo Glass Tile</b><span>Stessa mesh ma più satura, card è una lente glass semi-traslucida invece di un solido bianco.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     DARK
+     ═══════════════════════════════════════════════════════════ -->
+<section class="theme-section section-dark">
+  <div class="theme-head">
+    <h2>3 · Dark</h2>
+    <p class="desc">Drammatico/premium. Quattro trattamenti diversi della card su fondo scuro: inchiostro piatto, alone brand, gradient bordeaux, vetro su mesh rosso.</p>
+  </div>
+  <div class="variants">
+
+    <!-- V1 Inky -->
+    <div class="variant v-d-inky">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">D1</span>Inky</b><span>Inchiostro. Card un gradino più chiara, niente effetti.</span></div>
+    </div>
+
+    <!-- V2 Night Coral — riferimento DIRETTO: Sidebar Plan Card "conta ordini" -->
+    <div class="variant v-d-night-coral">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">D2</span>Wine Glass</b><span>Stesso impianto del plan-card sidebar, ma mesh red-wine/magenta invece di slate. Hue brand, mood premium.</span></div>
+    </div>
+
+    <!-- V3 Sunset Glass — gemello di D2 Wine Glass con palette coral→fanta→salmon -->
+    <div class="variant v-d-sunset">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">D3</span>Sunset Glass</b><span>Gemello strutturale di D2 con palette spostata su coral <code>#FF6066</code> → arancio Fanta → rosa salmone. Stesso glass, hue più caldo/giocoso.</span></div>
+    </div>
+
+    <!-- V4 Glass Dark -->
+    <div class="variant v-d-glass">
+      <div class="frame">
+        <article class="box">
+          <div class="logo-wrap"><img src="Fresh.png" alt="byup Fresh"/></div>
+          <h3>Accedi al tuo account</h3>
+          <p class="sub">Continua a gestire il tuo locale.</p>
+          <button class="google">
+            <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continua con Google
+          </button>
+          <div class="divider"><hr/><span>oppure</span><hr/></div>
+          <div class="field"><label>Email</label><input placeholder="nome@locale.it"/></div>
+          <div class="field"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+          <a href="#" class="forgot">Password dimenticata?</a>
+          <button class="cta">Accedi</button>
+          <p class="footer-link">Non hai un account? <a href="#">Registra il tuo locale</a></p>
+        </article>
+      </div>
+      <div class="label"><b><span class="chip">D4</span>Glass Dark</b><span>Mesh rosso + viola dietro, vetro semi-trasparente con blur.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+/* Inietta Plan Card "conta ordini" + Cucina · live dopo la login-box di ogni
+   variant. Vivono nello STESSO frame della login → ereditano le CSS custom
+   properties della variant (--box-bg, --box-shadow, --text, --muted, ecc.).
+   Così vediamo lo stesso theme applicato a tre tipi di contenuto diversi. */
+(function injectReferenceBoxes() {
+  const PLAN_BOX = `
+    <article class="box plan-box">
+      <div class="plan-eyebrow">Piano Starter</div>
+      <div class="plan-pct">
+        <span class="plan-pct-num">71%</span>
+        <span class="plan-pct-label">ordini usati</span>
+      </div>
+      <div class="plan-bar"><div class="plan-bar-fill"></div></div>
+      <button class="plan-cta">Passa a Plus <span>→</span></button>
+    </article>
+  `;
+
+  const KITCHEN_BOX = `
+    <article class="box kitchen-box">
+      <div class="kitchen-head">
+        <span class="kitchen-title">Cucina · live</span>
+        <span class="kitchen-pill"><span class="kitchen-dot"></span>4 in coda</span>
+      </div>
+      <div class="kitchen-row">
+        <span class="k-num">7</span>
+        <span class="k-desc">3 portate · 8&prime; 20&Prime;</span>
+        <span class="k-status amber">In prep</span>
+      </div>
+      <div class="kitchen-row">
+        <span class="k-num">12</span>
+        <span class="k-desc">2 portate · 2&prime; 10&Prime;</span>
+        <span class="k-status green">Pronto</span>
+      </div>
+      <div class="kitchen-row">
+        <span class="k-num">3</span>
+        <span class="k-desc">5 portate · 12&prime; 40&Prime;</span>
+        <span class="k-status red">Ritardo</span>
+      </div>
+    </article>
+  `;
+
+  document.querySelectorAll('.variant .frame').forEach(frame => {
+    frame.insertAdjacentHTML('beforeend', PLAN_BOX + KITCHEN_BOX);
+  });
+})();
+</script>
+
+</body>
+</html>
