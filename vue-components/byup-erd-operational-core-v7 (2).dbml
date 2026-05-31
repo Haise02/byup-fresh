@@ -1,0 +1,517 @@
+// Byup Fresh — ERD Nucleo Operativo
+// Versione 0.7 — Maggio 2026
+
+// ─── ENTITA DI CONTESTO ────────────────────────────────────
+
+Table restaurants {
+  id uuid [pk]
+  name varchar [not null]
+  vat_number varchar [unique, not null]
+  stripe_connect_account_id varchar
+  stripe_connect_status varchar [note: 'pending, active, restricted, disabled']
+  platform_status varchar [not null, default: 'onboarding', note: 'onboarding, active, churned']
+  last_activity_at timestamp [note: 'Aggiornato ad ogni login staff']
+  created_at timestamp [not null, default: `now()`]
+
+  note: 'Da aggregato Tenant.'
+}
+
+Table venues {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  name varchar [not null]
+
+  note: 'Da aggregato Tenant.'
+}
+
+Ref: venues.restaurant_id > restaurants.id
+
+Table rooms {
+  id uuid [pk]
+  venue_id uuid [not null]
+  name varchar [not null]
+  furniture_layout json [note: 'Mappa arredi: muri, colonne, cucina, bagno']
+
+  note: 'Da aggregato Tenant.'
+}
+
+Ref: rooms.venue_id > venues.id
+
+Table tables {
+  id uuid [pk]
+  room_id uuid [not null]
+  label varchar [not null, note: 'Es. T1, Bancone 2']
+  capacity int
+  status varchar [not null, default: 'free', note: 'free, occupied, reserved, to_clean']
+  position_x decimal [note: 'Coordinata X per editor visuale']
+  position_y decimal [note: 'Coordinata Y per editor visuale']
+  qr_token varchar [unique, note: 'Token QR per webapp guest e Byup App']
+  assigned_waiter_id uuid [note: 'FK users, cameriere assegnato']
+  updated_at timestamp
+
+  note: 'Da aggregato Tenant.'
+}
+
+Ref: tables.room_id > rooms.id
+
+Table menu_items {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  name varchar [not null]
+  price decimal [not null]
+  food_cost decimal [note: 'Costo piatto per calcolo margini']
+  vat_category varchar [not null, note: 'prepared_on_site o packaged_product']
+
+  note: 'Da aggregato Catalogo.'
+}
+
+Ref: menu_items.restaurant_id > restaurants.id
+
+Table users {
+  id uuid [pk]
+  email varchar [unique, not null]
+  type varchar [not null, note: 'staff, consumer, admin']
+  codice_fiscale varchar [note: 'Codice fiscale del titolare']
+  pec varchar [note: 'PEC del titolare']
+  deleted_at timestamp [note: 'Soft delete GDPR']
+
+  note: 'Da aggregato Identita.'
+}
+
+Table devices {
+  id uuid [pk]
+  venue_id uuid [not null]
+  type varchar [not null, note: 'tablet, kds, pos_terminal']
+  name varchar [not null, note: 'Es. Monitor Pizza, POS Cassa 1']
+
+  note: 'Da aggregato Identita.'
+}
+
+Ref: devices.venue_id > venues.id
+
+Table option_values {
+  id uuid [pk]
+  option_group_id uuid [not null]
+  name varchar [not null]
+  price_modifier decimal [not null, default: 0]
+
+  note: 'Da aggregato Catalogo.'
+}
+
+// ─── ORDINI ────────────────────────────────────────────────
+
+Table orders {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  venue_id uuid [not null]
+  table_id uuid [note: 'NULL per vendita diretta e asporto']
+
+  channel varchar [not null, note: 'sala, vendita_diretta, asporto_app']
+  source_surface varchar [not null, note: 'staff_web, webapp_guest, byup_app']
+  delivery_mode varchar [note: 'Solo per vendita_diretta: bancone o asporto']
+
+  weight decimal [not null, note: '1.0 per staff/guest/vendita_diretta, 0.5 per byup_app']
+
+  status varchar [not null, default: 'created', note: 'created, pending_validation, confirmed, sent_to_kitchen, in_preparation, ready, served, bill_open, paid, fiscally_closed, fiscally_failed, canceled']
+  requires_validation boolean [not null, default: false]
+
+  covers int [note: 'Numero coperti al tavolo']
+  party_name varchar [note: 'Nome gruppo, es. Famiglia Rossi']
+  service_notes text [note: 'Note operative per il servizio']
+  note_type varchar [note: 'compleanno, allergia, bambini, aziendale, custom']
+
+  consumer_id uuid [note: 'FK users, NULL per ordini staff e webapp guest']
+  created_by uuid [note: 'FK users, staff che ha creato ordine']
+
+  pickup_code varchar [note: 'Codice ritiro per asporto via app']
+
+  created_at timestamp [not null, default: `now()`]
+  confirmed_at timestamp
+  ready_at timestamp
+  served_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (restaurant_id, status) [name: 'idx_orders_tenant_status']
+    (restaurant_id, created_at) [name: 'idx_orders_tenant_date']
+    (table_id, status) [name: 'idx_orders_table_status']
+  }
+
+  note: 'Ordine operativo. Diventa transazione quando genera conto chiuso con pagamento e chiusura fiscale.'
+}
+
+Ref: orders.restaurant_id > restaurants.id
+Ref: orders.venue_id > venues.id
+Ref: orders.table_id > tables.id
+Ref: orders.consumer_id > users.id
+Ref: orders.created_by > users.id
+
+Table order_items {
+  id uuid [pk]
+  order_id uuid [not null]
+  menu_item_id uuid [not null]
+
+  item_name varchar [not null, note: 'Snapshot dal catalogo']
+  unit_price decimal [not null, note: 'Snapshot dal catalogo']
+  quantity int [not null, default: 1]
+
+  vat_category varchar [not null, note: 'prepared_on_site o packaged_product']
+  effective_vat_rate decimal [not null, note: '10 o 22 calcolata in base a canale']
+
+  preparation_status varchar [not null, default: 'pending', note: 'pending, sent_to_kitchen, in_preparation, ready, served']
+
+  created_at timestamp [not null, default: `now()`]
+  ready_at timestamp
+
+  indexes {
+    order_id [name: 'idx_order_items_order']
+    (order_id, preparation_status) [name: 'idx_order_items_status']
+  }
+
+  note: 'Riga ordine. Snapshot dei dati catalogo al momento dell ordine.'
+}
+
+Ref: order_items.order_id > orders.id
+Ref: order_items.menu_item_id > menu_items.id
+
+Table order_item_options {
+  id uuid [pk]
+  order_item_id uuid [not null]
+  option_value_id uuid [not null]
+
+  option_group_name varchar [not null, note: 'Snapshot: es. Cottura, Impasto']
+  option_value_name varchar [not null, note: 'Snapshot: es. Media, Integrale']
+  price_modifier decimal [not null, note: 'Snapshot del sovrapprezzo']
+
+  indexes {
+    order_item_id [name: 'idx_order_item_options_item']
+  }
+
+  note: 'Snapshot strutturato delle opzioni scelte per ogni riga ordine.'
+}
+
+Ref: order_item_options.order_item_id > order_items.id
+Ref: order_item_options.option_value_id > option_values.id
+
+Table order_item_assignments {
+  id uuid [pk]
+  order_item_id uuid [not null]
+  guest_id uuid [note: 'FK table_guests, NULL per assignment_type = table']
+
+  assignment_type varchar [not null, note: 'self, guest, table']
+  share_amount decimal [not null, note: 'Quota prezzo assegnata a questo commensale']
+  status varchar [not null, default: 'assigned', note: 'assigned, rejected, paid']
+
+  assigned_by uuid [not null, note: 'FK table_guests, chi ha fatto l assegnazione']
+
+  rejected_at timestamp
+  paid_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    order_item_id [name: 'idx_assignments_item']
+    guest_id [name: 'idx_assignments_guest']
+  }
+
+  note: 'Assegnazione piatti ai commensali per split bill consumer. Un piatto da 12 euro assegnato a 3 commensali genera 3 record con share_amount = 4 euro.'
+}
+
+Ref: order_item_assignments.order_item_id > order_items.id
+Ref: order_item_assignments.guest_id > table_guests.id
+
+// ─── COMANDE CUCINA ────────────────────────────────────────
+
+Table kitchen_tickets {
+  id uuid [pk]
+  order_id uuid [not null]
+  destination_device_id uuid [not null, note: 'FK devices, KDS o stampante di destinazione']
+
+  destination_label varchar [not null, note: 'Tavolo 5 o Asporto A12']
+
+  status varchar [not null, default: 'queued', note: 'queued, in_preparation, ready, canceled — calcolato dal backend, persistito']
+
+  send_batch int [not null, note: 'Identificativo ondata di invio per idempotenza']
+
+  printed boolean [not null, default: false]
+  displayed_on_kds boolean [not null, default: false]
+
+  created_at timestamp [not null, default: `now()`]
+  started_at timestamp
+  ready_at timestamp
+
+  indexes {
+    (destination_device_id, status) [name: 'idx_tickets_device_status']
+    order_id [name: 'idx_tickets_order']
+  }
+
+  note: 'Comanda cucina. Un ordine con piatti per due dispositivi diversi genera due kitchen_tickets distinti.'
+}
+
+Ref: kitchen_tickets.order_id > orders.id
+Ref: kitchen_tickets.destination_device_id > devices.id
+
+Table kitchen_ticket_items {
+  id uuid [pk]
+  kitchen_ticket_id uuid [not null]
+  order_item_id uuid [not null]
+
+  status varchar [not null, default: 'queued', note: 'queued, in_preparation, ready, canceled']
+  course_number int [note: '1=antipasto, 2=primo, 3=secondo, 4=dessert, NULL=non sequenziato']
+
+  started_at timestamp
+  ready_at timestamp
+
+  indexes {
+    kitchen_ticket_id [name: 'idx_ticket_items_ticket']
+  }
+
+  note: 'Singolo piatto nella comanda. Lo stato del kitchen_ticket si aggiorna quando tutti i suoi item sono ready.'
+}
+
+Ref: kitchen_ticket_items.kitchen_ticket_id > kitchen_tickets.id
+Ref: kitchen_ticket_items.order_item_id > order_items.id
+
+// ─── CONTI ─────────────────────────────────────────────────
+
+Table bills {
+  id uuid [pk]
+  order_id uuid [not null]
+  restaurant_id uuid [not null]
+  venue_id uuid [not null]
+
+  bill_type varchar [not null, default: 'full', note: 'full o split']
+
+  subtotal decimal [not null]
+  adjustment_type varchar [note: 'discount_pct, discount_eur, round_down']
+  adjustment_value decimal [note: 'Valore dello sconto: 10 per 10%, 5 per 5 euro']
+  adjustment_delta decimal [note: 'Differenza calcolata rispetto al subtotale']
+  total decimal [not null]
+
+  vat_summary json [not null, note: 'Riepilogo IVA per aliquota']
+
+  invoice_requested boolean [not null, default: false]
+  invoice_data json [note: 'Ragione sociale, P.IVA, codice SDI']
+
+  status varchar [not null, default: 'open', note: 'open, payment_in_progress, paid, fiscally_pending, fiscally_closed, fiscally_failed']
+
+  discount_applied_by uuid [note: 'FK users, operatore che ha applicato lo sconto']
+  closed_by uuid [note: 'FK users, staff che ha chiuso il conto']
+
+  pre_bill_printed_at timestamp
+
+  created_at timestamp [not null, default: `now()`]
+  paid_at timestamp
+  closed_at timestamp
+
+  indexes {
+    order_id [name: 'idx_bills_order']
+    (restaurant_id, status) [name: 'idx_bills_tenant_status']
+    (restaurant_id, created_at) [name: 'idx_bills_tenant_date']
+  }
+
+  note: 'Conto. Puo coprire un ordine intero (full) o una porzione (split). Piu bills possono riferirsi allo stesso ordine. Ogni bill genera un proprio documento fiscale.'
+}
+
+Ref: bills.order_id > orders.id
+Ref: bills.restaurant_id > restaurants.id
+Ref: bills.venue_id > venues.id
+Ref: bills.discount_applied_by > users.id
+Ref: bills.closed_by > users.id
+
+Table bill_items {
+  id uuid [pk]
+  bill_id uuid [not null]
+  order_item_id uuid [not null]
+
+  quantity int [not null]
+  line_total decimal [not null, note: 'unit_price x quantity']
+
+  vat_rate decimal [not null]
+  vat_amount decimal [not null]
+
+  indexes {
+    bill_id [name: 'idx_bill_items_bill']
+    order_item_id [name: 'idx_bill_items_order_item']
+  }
+
+  note: 'Riga del conto. Collega order_items a bills per lo split bill.'
+}
+
+Ref: bill_items.bill_id > bills.id
+Ref: bill_items.order_item_id > order_items.id
+
+// ─── PAGAMENTI ─────────────────────────────────────────────
+
+Table payments {
+  id uuid [pk]
+  bill_id uuid [not null]
+  restaurant_id uuid [not null]
+
+  method varchar [not null, note: 'card_terminal, in_app, cash']
+  amount decimal [not null]
+
+  cash_received decimal [note: 'Importo ricevuto per calcolo resto']
+  cash_change decimal [note: 'Resto']
+
+  stripe_payment_intent_id varchar
+  stripe_charge_id varchar
+  stripe_connect_account_id varchar [note: 'Connected account del ristorante']
+
+  device_id uuid [note: 'FK devices, smartphone POS']
+
+  status varchar [not null, default: 'pending', note: 'pending, processing, confirmed, failed, refunded, partially_refunded']
+
+  processed_by uuid [note: 'FK users, operatore']
+
+  created_at timestamp [not null, default: `now()`]
+  confirmed_at timestamp
+  failed_at timestamp
+  failure_reason varchar
+
+  indexes {
+    bill_id [name: 'idx_payments_bill']
+    (restaurant_id, created_at) [name: 'idx_payments_tenant_date']
+    stripe_payment_intent_id [unique, name: 'idx_payments_stripe_pi']
+  }
+
+  note: 'Pagamento contro un conto. Un bill puo avere piu payments (misto contanti + carta).'
+}
+
+Ref: payments.bill_id > bills.id
+Ref: payments.restaurant_id > restaurants.id
+Ref: payments.device_id > devices.id
+Ref: payments.processed_by > users.id
+
+Table payment_locks {
+  id uuid [pk]
+  order_item_id uuid [not null, unique]
+  bill_id uuid [not null]
+
+  locked_by_type varchar [not null, note: 'consumer o staff']
+  locked_by_id uuid [not null]
+
+  locked_at timestamp [not null, default: `now()`]
+  expires_at timestamp [not null]
+
+  indexes {
+    bill_id [name: 'idx_payment_locks_bill']
+    expires_at [name: 'idx_payment_locks_expiry']
+  }
+
+  note: 'Lock di concorrenza per prevenire double spending. Anche in Redis per velocita, PostgreSQL e source of truth.'
+}
+
+Ref: payment_locks.order_item_id > order_items.id
+Ref: payment_locks.bill_id > bills.id
+
+// ─── DOCUMENTI FISCALI ─────────────────────────────────────
+
+Table fiscal_documents {
+  id uuid [pk]
+  bill_id uuid [not null]
+  restaurant_id uuid [not null]
+  venue_id uuid [not null]
+
+  doc_type varchar [not null, note: 'corrispettivo o fattura_elettronica']
+
+  total decimal [not null]
+  vat_summary json [not null]
+
+  invoice_recipient json [note: 'Ragione sociale, P.IVA, codice SDI']
+
+  openapi_request_id varchar
+  openapi_document_id varchar
+
+  transmission_status varchar [not null, default: 'pending', note: 'pending, sent, accepted, rejected, error']
+  rejection_reason text
+
+  retry_count int [not null, default: 0]
+  next_retry_at timestamp
+  max_retries int [not null, default: 10]
+
+  created_at timestamp [not null, default: `now()`]
+  sent_at timestamp
+  accepted_at timestamp
+  rejected_at timestamp
+
+  indexes {
+    bill_id [name: 'idx_fiscal_bill']
+    (restaurant_id, transmission_status) [name: 'idx_fiscal_tenant_status']
+    (transmission_status, next_retry_at) [name: 'idx_fiscal_retry_queue']
+    openapi_document_id [name: 'idx_fiscal_openapi_doc']
+  }
+
+  note: 'Documento fiscale. Ogni bill genera un proprio documento. Trasmissione tramite OpenAPI con retry su SQS. Conservazione decennale in capo al ristoratore.'
+}
+
+Ref: fiscal_documents.bill_id > bills.id
+Ref: fiscal_documents.restaurant_id > restaurants.id
+Ref: fiscal_documents.venue_id > venues.id
+
+// ─── RIMBORSI ──────────────────────────────────────────────
+
+Table refunds {
+  id uuid [pk]
+  payment_id uuid [not null]
+  bill_id uuid [not null]
+  restaurant_id uuid [not null]
+
+  refund_type varchar [not null, note: 'full o partial']
+  amount decimal [not null]
+  reason text
+
+  method varchar [not null, note: 'stripe_refund o cash_refund']
+  stripe_refund_id varchar
+
+  fiscal_correction_id uuid [note: 'FK fiscal_documents, nota di variazione o nota di credito']
+
+  status varchar [not null, default: 'pending', note: 'pending, processed, failed']
+
+  initiated_by uuid [not null, note: 'FK users']
+  initiated_from varchar [not null, note: 'gestionale o backoffice']
+
+  created_at timestamp [not null, default: `now()`]
+  processed_at timestamp
+
+  indexes {
+    payment_id [name: 'idx_refunds_payment']
+    bill_id [name: 'idx_refunds_bill']
+    (restaurant_id, created_at) [name: 'idx_refunds_tenant_date']
+  }
+
+  note: 'Rimborso totale o parziale. Genera sempre una rettifica fiscale.'
+}
+
+Ref: refunds.payment_id > payments.id
+Ref: refunds.bill_id > bills.id
+Ref: refunds.restaurant_id > restaurants.id
+Ref: refunds.fiscal_correction_id > fiscal_documents.id
+Ref: refunds.initiated_by > users.id
+
+// ─── OSPITI AL TAVOLO ──────────────────────────────────────
+
+Table table_guests {
+  id uuid [pk]
+  order_id uuid [not null]
+  table_id uuid [not null]
+  user_id uuid [note: 'FK users, consumer loggato, NULL per ospiti non registrati']
+
+  display_name varchar [not null]
+
+  status varchar [not null, default: 'active', note: 'active, left, paid']
+  deleted_at timestamp [note: 'Soft delete GDPR']
+
+  joined_at timestamp [not null, default: `now()`]
+  left_at timestamp
+
+  indexes {
+    (order_id, user_id) [unique, name: 'idx_guests_order_user']
+    table_id [name: 'idx_guests_table']
+  }
+
+  note: 'Commensale al tavolo per lo split bill consumer. Collegato a order_item_assignments.'
+}
+
+Ref: table_guests.order_id > orders.id
+Ref: table_guests.table_id > tables.id
+Ref: table_guests.user_id > users.id

@@ -1,0 +1,146 @@
+> **Leggi `PROGRESS.md` per lo stato attuale dello sviluppo.**
+
+# Byup — Panoramica di Progetto
+
+## Cos'è Byup
+
+Byup è un ecosistema digitale B2B2C pensato per semplificare l'esperienza al tavolo e la gestione operativa dei locali nel settore Food & Beverage italiano. Al centro c'è la Byup App, un'applicazione che consente ai clienti di consultare il menù, ordinare e pagare direttamente dal tavolo, e Byup Fresh, il gestionale cloud rivolto ai ristoratori. Il modello è circolare: il valore per il ristoratore cresce con l'adozione dell'app da parte dei clienti, e il valore per il consumatore cresce con il numero di locali aderenti alla piattaforma.
+
+La ristorazione italiana conta oltre 324.000 imprese attive. La maggior parte opera con strumenti frammentati, obsoleti o sovradimensionati. I gestionali disponibili impongono costi fissi elevati indipendentemente dalle dimensioni del locale, richiedono lunghi tempi di implementazione e non offrono alcun collegamento diretto con il cliente finale. Byup nasce per risolvere esattamente questo problema.
+
+## Byup Fresh — Il Gestionale
+
+Byup Fresh è il primo prodotto a essere lanciato sul mercato. Si rivolge a locali con un modello operativo snello e ad alta rotazione: pub, cocktail bar, pizzerie d'asporto, hamburgerie, bistrot, gelaterie, food truck, locali serali e attività post cena. Può essere configurato anche per chi non offre servizio al tavolo, ma è principalmente pensato per chi lo fa.
+
+### Funzionalità principali
+
+Fresh integra un sistema di cassa completo per gestire ordini e incassi dal bancone, l'ordinazione e il pagamento tramite Byup App direttamente dal tavolo, un'applicazione completa per il personale di sala (presa comanda, gestione tavoli, prenotazioni, pagamenti, coordinamento con la cucina), il monitoraggio in tempo reale dello stato dei tavoli, la creazione e gestione di menu digitali con categorie, prodotti, prezzi e descrizioni, un kitchen monitor per gli ordini da asporto con storico, una vetrina pubblica del locale, una dashboard analytics con KPI di performance, e una contabilità base con apertura cassa e movimenti IVA.
+
+Come add-on è possibile integrare Fresh con applicazioni di terze parti per il delivery (10€ + IVA) oppure collegare le API con servizi terzi come Zapier, Google, Claude e ChatGPT (22,90€ + IVA).
+
+### Piani e prezzi
+
+Il modello di pricing si basa sul volume di ordini effettuati. Per ciascun piano è previsto un numero di ordini inclusi; superata la soglia, viene applicato un costo extra per ordine aggiuntivo. Gli ordini sono pesati diversamente a seconda del canale: quelli da cassa o cameriere valgono 1, quelli tramite app valgono 0,5, incentivando così l'adozione dell'app da parte dei clienti.
+
+| Piano    | Ordini inclusi | Prezzo mensile  | Costo ordine extra |
+|----------|----------------|-----------------|---------------------|
+| Free     | 550            | 0 €             | 0,45 € + IVA        |
+| Starter  | 1.850          | 46,99 € + IVA   | 0,34 € + IVA        |
+| Plus     | 7.500          | 134,99 € + IVA  | 0,23 € + IVA        |
+| Business | 15.000         | 250 € + IVA     | 0,12 € + IVA        |
+
+Il piano Free funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus e Business aggiungono supporto telefonico con callback entro 30 minuti, 24/7. Il numero di menu creabili varia da 1 (Free) a 3 (Starter) a illimitati (Plus e Business). I collegamenti tra kitchen monitor e camerieri partono da 1 (Free), 3 (Starter), illimitati per i piani superiori.
+
+Sono previsti anche pacchetti di transazioni acquistabili singolarmente per gestire picchi di attività senza dover passare al piano superiore.
+
+## Byup App — L'interfaccia consumer
+
+Byup App è l'interfaccia rivolta al consumatore finale: consente di ordinare, pagare dal tavolo, ricevere notifiche in tempo reale, accedere a promozioni personalizzate, cercare e prenotare locali, consultare menu in anteprima e gestire storico ordini e pagamenti.
+
+Il pagamento dal tavolo è una funzionalità esclusiva dell'app nativa e richiede il download e la registrazione. Ogni utente che scarica l'app entra nell'ecosistema con carta di pagamento salvata, storico completo e possibilità di interazione con tutti i locali partner. Per il locale, ogni pagamento via app riduce il conteggio delle transazioni (peso 0,5 anziché 1), creando un vantaggio economico diretto.
+
+Per chi non ha l'app, è disponibile una webapp guest accessibile via QR code che permette di ordinare dal tavolo senza registrazione, ma non consente il pagamento, incentivando il download dell'app.
+
+La sezione Discovery funziona come motore di scoperta dei locali aderenti, con filtri per stato (aperto/chiuso), distanza, promozioni attive, rating, tipo di cucina, fascia di prezzo, e tag alimentari (senza glutine, vegano, vegetariano). La discovery si attiva solo sopra la soglia di 125 locali nella città dell'utente o 150 nella regione.
+
+In una fase successiva (post 4 anni), l'app sarà disponibile anche in versione Pro a 2,99 € + IVA al mese, con funzionalità avanzate basate su intelligenza artificiale per ricerche e prenotazioni più rapide, sconti dedicati e contenuti personalizzati.
+
+## Architettura Tecnica
+
+### Principi guida
+
+L'architettura è interamente full-cloud su AWS (regione eu-central-1, Francoforte), senza alcun componente locale da installare presso il ristorante — né oggi, né in futuro. Per i locali con connettività instabile, la strategia prevede partnership con fornitori di connettività dedicata (hotspot 4G/5G) piuttosto che l'introduzione di infrastruttura locale.
+
+Le scelte privilegiano servizi gestiti per ridurre il carico operativo del team: Fargate al posto di EC2, RDS al posto di PostgreSQL self-managed, SQS al posto di un broker auto-gestito. Il tradeoff è un costo unitario leggermente superiore in cambio di zero gestione infrastrutturale, coerente con un team in fase iniziale.
+
+### Superfici applicative (MVP)
+
+La piattaforma si compone di cinque superfici: il gestionale staff web (Vue 3 + Composition API) per gli operatori del locale, inclusa un'interfaccia cameriere responsive da browser mobile; l'App Staff POS (React Native) dedicata all'incasso in presenza tramite Stripe Terminal e Tap to Pay; la webapp guest (Vue 3 lightweight) accessibile via QR code per l'ordinazione al tavolo senza registrazione; la Byup App consumer (Flutter, singola codebase iOS/Android) per ordinare, pagare e scoprire locali; e un backoffice Byup (Vue 3) riservato al team interno per gestione tenant, supporto tecnico e amministrazione.
+
+### Stack tecnologico
+
+Il backend è un modular monolith in NestJS (Node.js, TypeScript). La scelta è stata preferita ai microservizi perché il dominio è ancora in consolidamento, l'MVP deve essere veloce da realizzare e semplice da osservare, e il team è contenuto. La struttura interna segue un pattern a moduli con confini espliciti — ogni modulo ha use case, interfacce, adapter e confini di accesso ai dati propri. Quando un modulo raggiunge stabilità e necessità di scaling indipendente, potrà essere estratto a microservizio senza riscrittura del core.
+
+Il database primario è PostgreSQL su RDS (Single-AZ, db.t4g.medium), scelto per le garanzie transazionali ACID e il modello relazionale coerente con il dominio (ordini, conti, pagamenti, documenti fiscali). L'infrastruttura è gestita con Terraform come codice (state remoto su S3 cifrato, lock su DynamoDB). La pipeline CI/CD usa GitHub Actions, con branch protection attiva e check automatici anti-leak di segreti.
+
+### Servizi AWS adottati
+
+ECS Fargate per il compute applicativo, ALB per il load balancing e la terminazione SSL, RDS PostgreSQL come database primario, SQS per le code asincrone (retry, sync differita, notifiche, billing), S3 + CloudFront per frontend, asset e media, Redis (ECS) per cache, rate limiting e supporto realtime (non source of truth), SES per le email transazionali, ECR come container registry privato, CloudWatch per osservabilità base, Secrets Manager e SSM per segreti e configurazioni, NAT Gateway per la connettività in uscita verso provider esterni.
+
+### Provider esterni integrati
+
+Stripe gestisce l'intero ciclo dei pagamenti: Stripe Connect per i connected account dei ristoranti, Stripe Terminal SDK per l'incasso in presenza via Tap to Pay, e Stripe Billing per la gestione degli abbonamenti alla piattaforma. Byup non gestisce direttamente dati carta — il perimetro PCI resta interamente delegato a Stripe.
+
+OpenAPI è il provider per la trasmissione fiscale (corrispettivi e fatture) e la validazione dei dati aziendali, operando come velocizzatore che utilizza le credenziali AdE del ristoratore.
+
+Claude API è utilizzato durante l'onboarding per il processing AI dei menu (estrazione piatti, categorie, prezzi, descrizioni da foto, documenti o URL).
+
+Google Maps Platform supporta la discovery dei locali nella Byup App. FCM e APNs gestiscono le notifiche push rispettivamente su Android e iOS.
+
+### Sicurezza
+
+L'autenticazione segue flussi distinti per tipologia di utente: lo staff accede con email e password (2FA disponibile), i dispositivi cucina con username locale e password generata, i consumer con email/password o social login (Google, Apple), e il team admin con 2FA obbligatorio.
+
+I container girano in subnet private, non esposti a Internet. Tutto il traffico in ingresso passa dall'ALB. Il codice sorgente è su GitHub con branch protection attiva e nessun push diretto su main. I container girano con utente non-root e senza privilegi elevati. I log di audit sono conservati per cinque anni e non sono modificabili né cancellabili.
+
+La compliance GDPR è assicurata dalla minimizzazione dei dati raccolti, consenso esplicito per dati opzionali, retention proporzionata allo scopo e cancellazione irreversibile su richiesta.
+
+### Scaling
+
+Con un volume MVP (fino a 75 locali, ~90.000 transazioni al mese), le query aggregate su PostgreSQL sono sostenibili. Il primo collo di bottiglia in crescita è il database, mitigabile con upgrade della classe istanza RDS e, oltre una certa scala, read replica per le query analitiche. Il secondo è Redis in configurazione single-instance, migrabile a ElastiCache con clustering quando necessario. Fargate scala orizzontalmente con autoscaling automatico.
+
+## Modello di Business e Revenue
+
+Byup basa i propri ricavi sul volume di ordini effettuati nei locali affiliati, con abbonamenti a livelli differenziati per funzionalità, ordini inclusi, dimensione dello staff e livello di assistenza. Un modello freemium favorisce l'adozione: il piano Free consente di sperimentare il prodotto in condizioni reali senza impegno economico, e la conversione ai piani a pagamento è affidata all'esperienza d'uso effettiva.
+
+La ponderazione degli ordini (peso 1 per cassa/cameriere, peso 0,5 per app) è il meccanismo chiave del flywheel B2B2C: incentiva il locale a promuovere l'uso dell'app, che a sua volta rafforza l'ecosistema consumer.
+
+## Mercato di Riferimento
+
+Il TAM globale dei software gestionali per la ristorazione è stimato in circa 5,79 miliardi di dollari nel 2024, con una crescita prevista fino a 14,7 miliardi di dollari entro il 2030 (CAGR 17,4%). Il mercato europeo vale circa 1,67 miliardi di dollari con previsione a 4,12 miliardi entro il 2030.
+
+Il SAM è il mercato italiano, stimato in circa 219,6 milioni di dollari nel 2024 (circa 189,4 milioni di euro), con proiezioni a 561,6 milioni di dollari entro il 2030 e CAGR del 17,5%. Le imprese italiane con codice Ateco 56.1 (ristoranti e ristorazione mobile, esclusi bar senza cucina e catering) ammontano a circa 195.471 nel 2023.
+
+## Go-to-Market
+
+La distribuzione di Fresh è interamente online, con un modello self-service: i ristoratori accedono al piano Free dal sito, completando l'attivazione in pochi minuti. Gli upgrade avvengono in autonomia dal pannello di controllo. L'onboarding è assistito da tutorial video, guide interattive e — sul piano tecnico — dal processing AI di Claude per l'importazione del menu.
+
+L'espansione geografica segue una strategia a cluster con saturazione progressiva. Il lancio iniziale avviene a Roma e in Puglia nei primi 6-12 mesi, regioni scelte per la presenza di contatti diretti e familiarità del team con il tessuto ristorativo locale. L'espansione procede regione per regione, concentrandosi su ciascuna fino a raggiungere una densità critica di locali prima di passare alla successiva. Regioni prioritarie: Lombardia, Lazio, Campania, Sicilia, Veneto, Toscana, Emilia-Romagna.
+
+La comunicazione B2C non viene spinta finché non si raggiunge un numero sufficiente di locali. La strategia è prima consolidare il B2B, poi attivare il flywheel consumer.
+
+## Validazione
+
+Sono state condotte 42 interviste qualitative su tre segmenti (clienti 25-40 anni, staff di sala, gestori) per identificare i friction point critici. I clienti mostrano apertura condizionale al digitale, lo staff privilegia strumenti immediati, i gestori adottano solo soluzioni con ROI dimostrabile. Sono stati condotti anche smoke test sugli utenti finali, riscontrando interesse concreto — in particolare nella facilità di coinvolgimento di un pubblico giovane e digitalmente competente.
+
+Nel giugno 2025 è stata rifiutata una prima offerta di investimento seed da 55.000€ per consolidare la value proposition prima di raccogliere capitali. La raccolta è stata avviata ufficialmente a ottobre 2025.
+
+## Team
+
+Il team è composto da cinque fondatori che si conoscono da oltre dieci anni e hanno già lavorato insieme in altri progetti e startup:
+
+Fabio Mancinelli (CEO) — Responsabile della direzione strategica, coordinamento tra le aree funzionali, gestione delle relazioni con stakeholder, investitori e partner. Supervisiona l'implementazione della strategia go-to-market, le decisioni su pricing, posizionamento competitivo ed espansione geografica.
+
+Marco Di Meo (CFO) — Responsabile della pianificazione finanziaria, controllo di gestione e sostenibilità economica dell'azienda.
+
+Il team include inoltre un CMO, un CBO (Brand Manager) e un CPO (Head of Product). Il CTO è incluso nel pool ESOP. Nel primo anno il team opera con compensazione ridotta (rimborsi spese e compenso minimo), con un costo del personale di 165.000€, coerente con la fase bootstrap e i fondi pre-seed.
+
+## Piano Finanziario e Raccolta
+
+La struttura societaria prevede un 63% al team interno, 22% come pool ESOP (incluso CTO), e 15% come riserva non assegnata per partnership strategiche, PR e brand ambassador. La diluizione segue una progressione definita: 12% al Pre-Seed, 15% al Seed, 16% al Round A, 17% al Round B, 17% al Round C. L'equity del CEO è dotato di diritti di voto rinforzati (x5 o x10) per garantire continuità strategica.
+
+Per i round Pre-Seed e Seed è previsto l'uso di strumenti snelli come il SAFE, rinviando la definizione della valutazione al primo round priced (Round A).
+
+Il personale cresce da 6 persone (Anno 1, 165.000€) a ~30 risorse entro il sesto anno (2.100.000€), con la prima espansione strutturale dell'organico al quarto anno. Il break-even operativo è previsto nella seconda metà del terzo anno. La cassa non presenta mai saldi negativi a condizione che i round seguano la tempistica prevista, con il margine di sicurezza più contenuto a fine primo anno (~24.000€).
+
+## Rischi principali
+
+I rischi più critici (Grado A) sono quattro: il mancato raggiungimento della massa critica di locali, un costo di acquisizione cliente superiore al lifetime value, problemi organizzativi, e l'esaurimento del budget prima della raccolta successiva. A mitigazione, il team si dedica personalmente all'acquisizione nei primi due anni (CAC stimato 264-380€, budget 114.000€, obiettivo 195 ristoranti attivi), il progetto è dotato di milestone progressive, e il piano di raccolta è strutturato in fasi con budget calibrati.
+
+I rischi di grado B includono la connettività di scarsa qualità dei locali (mitigata dall'evoluzione delle infrastrutture di rete italiane e da partnership con fornitori di connettività), la concorrenza sleale, e la compliance normativa (gestita delegando i pagamenti a Stripe e la trasmissione fiscale a OpenAPI).
+
+## Stampa e Hardware
+
+La stampa cucina è gestita esclusivamente via browser su tablet o schermi KDS — nessuna stampante termica tradizionale nell'MVP. L'unica stampa prevista è quella per gli scontrini di cortesia, tramite Wi-Fi, browser o Bluetooth.
+
+Non è prevista alcuna infrastruttura hardware presso il ristorante. Lo smartphone del personale opera come terminale di pagamento tramite l'App Staff POS con Stripe Terminal SDK e Tap to Pay, con registrazione automatica del dispositivo al primo login.

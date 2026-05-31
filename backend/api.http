@@ -1,0 +1,556 @@
+### Byup Fresh — API Collection
+### Compatibile con REST Client (VS Code) e JetBrains HTTP Client.
+###
+### COME USARLA:
+### 1. Installa estensione "REST Client" (Huachao Mao) in VS Code.
+### 2. Esegui le request in ordine: ogni `# @name` salva la response e
+###    abilita le request successive a referenziare i campi (token, id…).
+### 3. Le variabili dinamiche sotto sono globali a tutto il file.
+
+@host = http://localhost:3000
+@prefix = /api/v1
+@baseUrl = {{host}}{{prefix}}
+
+### Email e password di test — modifica liberamente prima di iniziare
+@ownerEmail = mario.rossi@example.com
+@ownerPassword = SuperSecret123!
+@inviteeEmail = luca.bianchi@example.com
+@inviteePassword = SuperSecret456!
+
+###############################################################################
+# AUTH — STAFF FLOW
+###############################################################################
+
+### Register: crea titolare + ristorante + 3 ruoli system + onboarding_progress
+# @name register
+POST {{baseUrl}}/auth/staff/register
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}",
+  "firstName": "Mario",
+  "lastName": "Rossi",
+  "restaurantName": "Cacio e Pepe",
+  "vatNumber": "12345678901"
+}
+
+###
+
+@accessToken = {{register.response.body.data.accessToken}}
+@refreshToken = {{register.response.body.data.refreshToken}}
+@restaurantId = {{register.response.body.data.restaurant.id}}
+
+### Login (senza 2FA)
+# @name login
+POST {{baseUrl}}/auth/staff/login
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}"
+}
+
+### Me — profilo + restaurant + role + permessi
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Refresh — rotazione token
+# @name refresh
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout — revoca sessione corrente
+DELETE {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+### Logout all — revoca tutte le sessioni
+DELETE {{baseUrl}}/auth/logout/all
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# 2FA
+###############################################################################
+
+### Setup 2FA — genera secret + QR. Scansiona con Authenticator.
+# @name setup2fa
+POST {{baseUrl}}/auth/2fa/setup
+Authorization: Bearer {{accessToken}}
+
+### Enable 2FA — passa il codice 6 cifre dell'app autenticatrice
+POST {{baseUrl}}/auth/2fa/enable
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "code": "123456"
+}
+
+### Login con 2FA attiva — restituisce twoFactorToken invece dei token
+# @name loginRequires2fa
+POST {{baseUrl}}/auth/staff/login
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}"
+}
+
+### Completa login con codice 2FA
+POST {{baseUrl}}/auth/staff/login/2fa
+Content-Type: application/json
+
+{
+  "twoFactorToken": "{{loginRequires2fa.response.body.data.twoFactorToken}}",
+  "code": "123456"
+}
+
+### Disable 2FA — richiede password corrente
+DELETE {{baseUrl}}/auth/2fa/disable
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "password": "{{ownerPassword}}"
+}
+
+###############################################################################
+# ONBOARDING — 4 STEP COMPLETI
+###############################################################################
+
+### Status — snapshot completo dei 6 step
+GET {{baseUrl}}/onboarding/status
+Authorization: Bearer {{accessToken}}
+
+### Step 1 — Set menu source (avvia AI mock, 5s)
+POST {{baseUrl}}/onboarding/menu
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "sourceType": "url",
+  "sourceUrl": "https://example.com/menu-cacio-e-pepe"
+}
+
+### Step 1 — Polling AI result (riprova dopo 5s)
+GET {{baseUrl}}/onboarding/menu/ai-result
+Authorization: Bearer {{accessToken}}
+
+### Step 1 — Conferma menu revisionato
+POST {{baseUrl}}/onboarding/menu/ai-review
+Authorization: Bearer {{accessToken}}
+
+### Step 2a — Update locale (anagrafica + regime fiscale)
+PUT {{baseUrl}}/onboarding/locale
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Cacio e Pepe",
+  "vatNumber": "12345678901",
+  "addressStreet": "Via dei Giubbonari 27",
+  "addressCity": "Roma",
+  "addressProvince": "RM",
+  "addressZip": "00186",
+  "phone": "06 1234 5678",
+  "regimeFiscale": "ordinario"
+}
+
+### Step 2b — Inizia OAuth Stripe Connect (URL placeholder per ora)
+POST {{baseUrl}}/onboarding/stripe-connect
+Authorization: Bearer {{accessToken}}
+
+### Step 3 — Crea sale e tavoli (replace completo)
+POST {{baseUrl}}/onboarding/rooms
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "rooms": [
+    { "name": "Sala interna", "tables": 12, "isDefault": true },
+    { "name": "Dehors",       "tables": 6 }
+  ]
+}
+
+### Step 4 — Go live (richiede menu + rooms completati)
+POST {{baseUrl}}/onboarding/go-live
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# CATALOG — LOOKUP GLOBALI
+###############################################################################
+
+### Lista 14 allergeni UE
+# @name allergens
+GET {{baseUrl}}/catalog/allergens
+Authorization: Bearer {{accessToken}}
+
+@firstAllergenId = {{allergens.response.body.data.0.id}}
+
+### Lista 6 tag piattaforma
+# @name tags
+GET {{baseUrl}}/catalog/tags
+Authorization: Bearer {{accessToken}}
+
+@firstTagId = {{tags.response.body.data.0.id}}
+
+###############################################################################
+# CATALOG — MENUS
+###############################################################################
+
+### Lista menu del ristorante (1 default creato dall'AI hook)
+# @name menus
+GET {{baseUrl}}/catalog/menus
+Authorization: Bearer {{accessToken}}
+
+@menuId = {{menus.response.body.data.0.id}}
+
+### Tree completo: menu → categorie → piatti
+# @name menuTree
+GET {{baseUrl}}/catalog/menus/{{menuId}}
+Authorization: Bearer {{accessToken}}
+
+@firstCategoryId = {{menuTree.response.body.data.categories.0.id}}
+@firstItemId = {{menuTree.response.body.data.categories.0.items.0.id}}
+
+### Crea menu aggiuntivo
+# @name createMenu
+POST {{baseUrl}}/catalog/menus
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Menu Pranzo",
+  "isDefault": false,
+  "displayOrder": 1
+}
+
+@extraMenuId = {{createMenu.response.body.data.id}}
+
+### Update menu
+PUT {{baseUrl}}/catalog/menus/{{extraMenuId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Menu Pranzo (lunedì-venerdì)",
+  "isActive": true
+}
+
+### Delete menu (solo non-default)
+DELETE {{baseUrl}}/catalog/menus/{{extraMenuId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# CATALOG — CATEGORIES
+###############################################################################
+
+### Crea categoria
+# @name createCategory
+POST {{baseUrl}}/catalog/menus/{{menuId}}/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Pizze",
+  "description": "Impasto a lievitazione lunga",
+  "displayOrder": 3
+}
+
+@newCategoryId = {{createCategory.response.body.data.id}}
+
+### Update categoria
+PUT {{baseUrl}}/catalog/categories/{{newCategoryId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Pizze classiche",
+  "description": "Margherita, Marinara, Romana"
+}
+
+### Delete categoria (cascade su items)
+DELETE {{baseUrl}}/catalog/categories/{{newCategoryId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# CATALOG — ITEMS
+###############################################################################
+
+### Lista piatti di una categoria (con allergeni e tag)
+GET {{baseUrl}}/catalog/categories/{{firstCategoryId}}/items
+Authorization: Bearer {{accessToken}}
+
+### Crea piatto
+# @name createItem
+POST {{baseUrl}}/catalog/categories/{{firstCategoryId}}/items
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Tagliolini al tartufo",
+  "description": "Pasta fresca con tartufo nero",
+  "price": 22.00,
+  "foodCost": 8.50,
+  "vatCategory": "prepared_on_site",
+  "prepTimeMinutes": 12,
+  "recipe": "Tagliolini, burro, tartufo nero grattugiato.",
+  "displayOrder": 10
+}
+
+@newItemId = {{createItem.response.body.data.id}}
+
+### Update piatto
+PUT {{baseUrl}}/catalog/items/{{newItemId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "price": 24.00,
+  "isAvailable": true
+}
+
+### Set allergeni del piatto (replace)
+PUT {{baseUrl}}/catalog/items/{{newItemId}}/allergens
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "allergenIds": ["{{firstAllergenId}}"]
+}
+
+### Set tag del piatto (replace)
+PUT {{baseUrl}}/catalog/items/{{newItemId}}/tags
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "tagIds": ["{{firstTagId}}"]
+}
+
+### Delete piatto
+DELETE {{baseUrl}}/catalog/items/{{newItemId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# VENUE — INFO + ORARI + IMPOSTAZIONI
+###############################################################################
+
+### Venue di default
+GET {{baseUrl}}/venue
+Authorization: Bearer {{accessToken}}
+
+### Orari attuali (vuoto inizialmente)
+GET {{baseUrl}}/venue/hours
+Authorization: Bearer {{accessToken}}
+
+### Set orari settimanali — 0=lunedì, 6=domenica (replace completo)
+PUT {{baseUrl}}/venue/hours
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "hours": [
+    { "dayOfWeek": 0, "openTime": "12:00", "closeTime": "23:00", "isClosed": false },
+    { "dayOfWeek": 1, "openTime": "12:00", "closeTime": "23:00", "isClosed": false },
+    { "dayOfWeek": 2, "openTime": "12:00", "closeTime": "23:00", "isClosed": false },
+    { "dayOfWeek": 3, "openTime": "12:00", "closeTime": "23:00", "isClosed": false },
+    { "dayOfWeek": 4, "openTime": "12:00", "closeTime": "00:30", "isClosed": false },
+    { "dayOfWeek": 5, "openTime": "12:00", "closeTime": "00:30", "isClosed": false },
+    { "dayOfWeek": 6, "openTime": "12:00", "closeTime": "23:00", "isClosed": false }
+  ]
+}
+
+### Settings (lazy-create al primo GET con default ERD)
+GET {{baseUrl}}/venue/settings
+Authorization: Bearer {{accessToken}}
+
+### Patch settings — solo i campi che cambi
+PATCH {{baseUrl}}/venue/settings
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "kitchenMode": "both",
+  "serviceChargeEnabled": true,
+  "serviceChargePercentage": 10,
+  "overstayMin": 120,
+  "paymentMethodsEnabled": ["card_terminal", "in_app", "cash"]
+}
+
+###############################################################################
+# STAFF — ROLES (lista a tutti, CRUD solo titolare)
+###############################################################################
+
+### Lista ruoli del ristorante (3 system + custom). Tutti i membri possono leggerli.
+# @name roles
+GET {{baseUrl}}/staff/roles
+Authorization: Bearer {{accessToken}}
+
+@cameriereRoleId = {{roles.response.body.data.1.id}}
+
+### Crea ruolo custom (solo titolare)
+# @name createRole
+POST {{baseUrl}}/staff/roles
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "barista",
+  "permissions": {
+    "panoramica": false,
+    "sala": true,
+    "cucina": false,
+    "app": true,
+    "statistiche": false,
+    "contabilita": false,
+    "supporto": true,
+    "impostazioni": false
+  }
+}
+
+@customRoleId = {{createRole.response.body.data.id}}
+
+### Update ruolo custom
+PUT {{baseUrl}}/staff/roles/{{customRoleId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "bartender",
+  "permissions": {
+    "sala": true,
+    "app": true,
+    "supporto": true
+  }
+}
+
+### Delete ruolo custom (fallisce se assegnato a membership)
+DELETE {{baseUrl}}/staff/roles/{{customRoleId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# STAFF — INVITATIONS
+###############################################################################
+
+### Crea invito (response include token — in dev/MVP)
+# @name createInvitation
+POST {{baseUrl}}/staff/invitations
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "{{inviteeEmail}}",
+  "roleId": "{{cameriereRoleId}}"
+}
+
+@invitationId = {{createInvitation.response.body.data.id}}
+@invitationToken = {{createInvitation.response.body.data.token}}
+
+### Lista inviti del ristorante (solo titolare)
+GET {{baseUrl}}/staff/invitations
+Authorization: Bearer {{accessToken}}
+
+### Verifica invito (PUBBLICO — usato dalla pagina di accept)
+GET {{baseUrl}}/staff/invitations/verify?token={{invitationToken}}
+
+### Accept invito (PUBBLICO — crea User + Membership)
+# @name acceptInvitation
+POST {{baseUrl}}/staff/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "firstName": "Luca",
+  "lastName": "Bianchi",
+  "password": "{{inviteePassword}}"
+}
+
+### Login del nuovo cameriere
+# @name loginInvitee
+POST {{baseUrl}}/auth/staff/login
+Content-Type: application/json
+
+{
+  "email": "{{inviteeEmail}}",
+  "password": "{{inviteePassword}}"
+}
+
+@inviteeAccessToken = {{loginInvitee.response.body.data.accessToken}}
+
+### Me del nuovo cameriere (deve vedere ristorante + role=cameriere)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{inviteeAccessToken}}
+
+### Cameriere tenta di listare gli inviti → 403 OwnerGuard
+GET {{baseUrl}}/staff/invitations
+Authorization: Bearer {{inviteeAccessToken}}
+
+### Revoca un invito ancora pending (per inviti diversi da quello accettato)
+DELETE {{baseUrl}}/staff/invitations/{{invitationId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# STAFF — MEMBERSHIPS
+###############################################################################
+
+### Lista membri del ristorante (titolare + cameriere accettato)
+# @name members
+GET {{baseUrl}}/staff/members
+Authorization: Bearer {{accessToken}}
+
+@inviteeMembershipId = {{members.response.body.data.1.id}}
+
+### Cambia ruolo a un membro (es. cameriere → cassa)
+# Prima: prendi il roleId della cassa
+PUT {{baseUrl}}/staff/members/{{inviteeMembershipId}}/role
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "roleId": "{{roles.response.body.data.2.id}}"
+}
+
+### Disattiva un membro (soft)
+DELETE {{baseUrl}}/staff/members/{{inviteeMembershipId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# EDGE CASES & PROTEZIONI
+###############################################################################
+
+### Tenta di auto-disattivarti → 400
+# Devi prendere prima il tuo membershipId via GET /staff/members
+# (è il primo elemento, indice 0)
+DELETE {{baseUrl}}/staff/members/{{members.response.body.data.0.id}}
+Authorization: Bearer {{accessToken}}
+
+### Tenta di accettare un invito già accettato → 400
+POST {{baseUrl}}/staff/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "firstName": "Luca",
+  "lastName": "Bianchi",
+  "password": "Pwd123456!"
+}
+
+### Tenta di registrare con email duplicata → 409
+POST {{baseUrl}}/auth/staff/register
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "Different123!",
+  "firstName": "Altro",
+  "lastName": "Utente",
+  "restaurantName": "Altro Locale"
+}
+
+### Tenta di leggere senza token → 401
+GET {{baseUrl}}/catalog/menus

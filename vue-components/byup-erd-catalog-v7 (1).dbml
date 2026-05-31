@@ -1,0 +1,304 @@
+// Byup Fresh — ERD Catalogo
+// Versione 0.7 — Maggio 2026
+
+// ─── ENTITA DI CONTESTO ────────────────────────────────────
+
+Table restaurants {
+  id uuid [pk]
+  name varchar [not null]
+  note: 'Da aggregato Tenant.'
+}
+
+Table venues {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  note: 'Da aggregato Tenant.'
+}
+
+Ref: venues.restaurant_id > restaurants.id
+
+Table devices {
+  id uuid [pk]
+  venue_id uuid [not null]
+  type varchar [not null]
+  name varchar [not null]
+  note: 'Da aggregato Identita.'
+}
+
+Ref: devices.venue_id > venues.id
+
+// ─── MENU ──────────────────────────────────────────────────
+
+Table menus {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  name varchar [not null, note: 'Es. Menu Principale, Menu Pranzo']
+  is_default boolean [not null, default: false]
+  is_active boolean [not null, default: true]
+  display_order int [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    restaurant_id [name: 'idx_menus_restaurant']
+  }
+
+  note: 'Contenitore di categorie. Piu menu possibili, uno solo attivo come default.'
+}
+
+Ref: menus.restaurant_id > restaurants.id
+
+Table menu_categories {
+  id uuid [pk]
+  menu_id uuid [not null]
+  name varchar [not null, note: 'Es. Pizze, Primi, Cocktail, Birre']
+  description text
+  image_url varchar
+  display_order int [not null, default: 0]
+  is_active boolean [not null, default: true]
+
+  printer_device_id uuid [note: 'FK devices, stampante per routing comande']
+  kds_device_id uuid [note: 'FK devices, display KDS per routing comande']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    menu_id [name: 'idx_categories_menu']
+    (menu_id, display_order) [name: 'idx_categories_order']
+  }
+
+  note: 'Categoria nel menu con associazione opzionale a stampante e/o display KDS per il routing delle comande.'
+}
+
+Ref: menu_categories.menu_id > menus.id
+Ref: menu_categories.printer_device_id > devices.id
+Ref: menu_categories.kds_device_id > devices.id
+
+// ─── VOCI MENU ─────────────────────────────────────────────
+
+Table menu_items {
+  id uuid [pk]
+  category_id uuid [not null]
+  restaurant_id uuid [not null]
+
+  name varchar [not null]
+  description text
+  image_url varchar
+
+  price decimal [not null]
+  food_cost decimal [note: 'Costo piatto per calcolo margini']
+  display_order int [not null, default: 0]
+
+  vat_category varchar [not null, default: 'prepared_on_site', note: 'prepared_on_site o packaged_product']
+
+  is_available boolean [not null, default: true]
+  is_active boolean [not null, default: true]
+
+  recipe text [note: 'Testo libero per la ricetta']
+  prep_time_minutes int [note: 'Tempo stimato di preparazione']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    category_id [name: 'idx_items_category']
+    restaurant_id [name: 'idx_items_restaurant']
+    (category_id, display_order) [name: 'idx_items_order']
+    (restaurant_id, is_active, is_available) [name: 'idx_items_active']
+  }
+}
+
+Ref: menu_items.category_id > menu_categories.id
+Ref: menu_items.restaurant_id > restaurants.id
+
+// ─── VARIANTI E OPZIONI ────────────────────────────────────
+
+Table option_groups {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  name varchar [not null, note: 'Es. Cottura, Dimensione, Extra, Impasto']
+  selection_type varchar [not null, default: 'single', note: 'single o multiple']
+  is_required boolean [not null, default: false]
+  min_selections int [not null, default: 0]
+  max_selections int
+  display_order int [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    restaurant_id [name: 'idx_option_groups_restaurant']
+  }
+}
+
+Ref: option_groups.restaurant_id > restaurants.id
+
+Table option_values {
+  id uuid [pk]
+  option_group_id uuid [not null]
+  name varchar [not null]
+  price_modifier decimal [not null, default: 0]
+  is_default boolean [not null, default: false]
+  display_order int [not null, default: 0]
+  is_active boolean [not null, default: true]
+
+  indexes {
+    option_group_id [name: 'idx_option_values_group']
+  }
+}
+
+Ref: option_values.option_group_id > option_groups.id
+
+Table menu_item_option_groups {
+  id uuid [pk]
+  menu_item_id uuid [not null]
+  option_group_id uuid [not null]
+  display_order int [not null, default: 0]
+
+  indexes {
+    menu_item_id [name: 'idx_item_options_item']
+    (menu_item_id, option_group_id) [unique, name: 'idx_item_options_unique']
+  }
+}
+
+Ref: menu_item_option_groups.menu_item_id > menu_items.id
+Ref: menu_item_option_groups.option_group_id > option_groups.id
+
+// ─── INGREDIENTI ───────────────────────────────────────────
+
+Table ingredients {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  name varchar [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    restaurant_id [name: 'idx_ingredients_restaurant']
+  }
+
+  note: 'Libreria ingredienti condivisa del ristorante. Riutilizzabili su piu piatti.'
+}
+
+Ref: ingredients.restaurant_id > restaurants.id
+
+Table ingredient_allergens {
+  id uuid [pk]
+  ingredient_id uuid [not null]
+  allergen_id uuid [not null]
+
+  indexes {
+    (ingredient_id, allergen_id) [unique, name: 'idx_ingredient_allergens_unique']
+  }
+
+  note: 'Allergeni associati all ingrediente. Quando l ingrediente viene aggiunto a un piatto, gli allergeni si propagano su menu_item_allergens.'
+}
+
+Ref: ingredient_allergens.ingredient_id > ingredients.id
+Ref: ingredient_allergens.allergen_id > allergens.id
+
+Table menu_item_ingredients {
+  id uuid [pk]
+  menu_item_id uuid [not null]
+  ingredient_id uuid [not null]
+  display_order int [not null, default: 0]
+
+  indexes {
+    menu_item_id [name: 'idx_item_ingredients_item']
+  }
+}
+
+Ref: menu_item_ingredients.menu_item_id > menu_items.id
+Ref: menu_item_ingredients.ingredient_id > ingredients.id
+
+// ─── ALLERGENI ─────────────────────────────────────────────
+
+Table allergens {
+  id uuid [pk]
+  code varchar [unique, not null, note: '14 allergeni UE']
+  name_it varchar [not null]
+  icon_url varchar
+
+  note: 'Lista fissa dei 14 allergeni UE. Non modificabile dal ristoratore.'
+}
+
+Table menu_item_allergens {
+  id uuid [pk]
+  menu_item_id uuid [not null]
+  allergen_id uuid [not null]
+  is_ai_suggested boolean [not null, default: false]
+  is_confirmed boolean [not null, default: false]
+
+  indexes {
+    menu_item_id [name: 'idx_item_allergens_item']
+    (menu_item_id, allergen_id) [unique, name: 'idx_item_allergens_unique']
+  }
+
+  note: 'Associazione piatto-allergene. Si compila automaticamente dagli ingredienti oppure manualmente dal ristoratore.'
+}
+
+Ref: menu_item_allergens.menu_item_id > menu_items.id
+Ref: menu_item_allergens.allergen_id > allergens.id
+
+// ─── INFORMAZIONI NUTRIZIONALI ─────────────────────────────
+
+Table menu_item_nutrition {
+  id uuid [pk]
+  menu_item_id uuid [unique, not null]
+  calories int
+  proteins decimal
+  carbohydrates decimal
+  fats decimal
+  is_ai_generated boolean [not null, default: false]
+  is_confirmed boolean [not null, default: false]
+  updated_at timestamp
+}
+
+Ref: menu_item_nutrition.menu_item_id > menu_items.id
+
+// ─── TAG ───────────────────────────────────────────────────
+
+Table tags {
+  id uuid [pk]
+  name varchar [unique, not null, note: 'Predefiniti da Byup: senza_glutine, vegano, vegetariano, bio, piccante, senza_lattosio']
+  icon_url varchar
+  display_order int [not null, default: 0]
+
+  note: 'Tag alimentari di piattaforma. Non creabili dal ristoratore. Usati per filtro discovery e ordinamento menu.'
+}
+
+Table menu_item_tags {
+  id uuid [pk]
+  menu_item_id uuid [not null]
+  tag_id uuid [not null]
+  price_modifier decimal [note: 'Sovrapprezzo opzionale per la versione con quel tag']
+
+  indexes {
+    (menu_item_id, tag_id) [unique, name: 'idx_item_tags_unique']
+  }
+}
+
+Ref: menu_item_tags.menu_item_id > menu_items.id
+Ref: menu_item_tags.tag_id > tags.id
+
+// ─── MEDIA ─────────────────────────────────────────────────
+
+Table media {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  entity_type varchar [not null, note: 'menu_item, category, venue, restaurant']
+  entity_id uuid [not null]
+  url varchar [not null]
+  mime_type varchar [not null]
+  file_size int
+  width int
+  height int
+  alt_text varchar
+  display_order int [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (entity_type, entity_id) [name: 'idx_media_entity']
+    restaurant_id [name: 'idx_media_restaurant']
+  }
+}
+
+Ref: media.restaurant_id > restaurants.id

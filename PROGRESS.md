@@ -1,0 +1,792 @@
+# Byup Fresh — Stato dello Sviluppo
+
+> **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` e `vue-components/WORK_IN_PROGRESS.md`.
+
+**Ultimo aggiornamento:** 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
+
+---
+
+## 1. Stato attuale — Fase 1 MVP **completata e testata**
+
+✅ **55 / 55 sub-test passati** sulla checklist di validazione Fase 1.
+✅ **Build TypeScript verde**, `npm test` verde (9/9 unit), `npm run test:e2e` verde (41 passati + 2 skip documentati su 4 suite: auth critico + hardening A/B/C — vedi §5.6).
+✅ **Docker Compose** funzionante (Postgres 16 + Redis 7 + app).
+✅ **23 tabelle DB** create da TypeORM sync, allineate all'ERD v0.7.
+✅ **Checklist funzionale rieseguita via HTTP** contro il server reale (container Docker) il 30 mag 2026: **74/74 flussi verdi** — script ri-eseguibile in `backend/scripts/phase1-functional-check.sh` (vedi §5.7 e §8).
+
+### Cosa significa "Fase 1 MVP" nel contesto Byup
+
+La Fase 1 copre **l'identità e la collaborazione**: chiunque possa registrarsi, configurare il proprio locale, gestire un team con ruoli e permessi, configurare dispositivi cucina/cassa, gestire sessioni multi-dispositivo, e fare reset password senza email leak. **Niente operatività**: la presa ordini, la comanda in cucina, il conto e il pagamento sono **Fase 2**.
+
+Frase di sintesi: "un ristorante può registrarsi e creare il proprio team con piena sicurezza, ma non può ancora servire un cliente."
+
+### Cosa NON è in Fase 1 (rimandato)
+
+- **Email reale** (SES) — il `devToken` di reset/invito è esposto nella response come comodità dev. Da togliere in produzione.
+- **Stripe Connect reale** — l'endpoint `POST /onboarding/stripe-connect` ritorna un URL placeholder.
+- **Claude API reale** — l'AI processing del menu è simulato con `setTimeout(5s)` + dati mock.
+- **S3 upload** — il file menu arriva al backend come `fileKey` già caricato dal client.
+
+Tutti documentati come TODO espliciti in `backend/BACKEND.md` e ripresi sotto.
+
+---
+
+## 2. Moduli costruiti
+
+Tutti i moduli vivono in `backend/src/modules/`. Architettura: **modular monolith** in NestJS, ogni modulo isolato con entities/service/controller propri, comunicazione cross-module via `exports`.
+
+### 2.1 `identity/`
+
+Tenant + auth staff + collaborazione (inviti, ruoli custom, sessioni, 2FA, password reset, switch tenant).
+
+**Sotto-moduli:**
+- `identity/auth/` — autenticazione (login/register/refresh/me/sessions/2FA/password reset/switch-tenant)
+- `identity/users/` — `UsersService` lookup-only
+- `identity/staff/` — gestione team del titolare (inviti, membership, ruoli custom)
+
+**Entities:** `User`, `Session`, `UserTwoFa`, `Restaurant`, `Role`, `Membership`, `Invitation`, `PasswordReset`.
+
+**Endpoint pubblici:**
+```
+POST   /auth/staff/register
+POST   /auth/staff/login
+POST   /auth/staff/login/2fa
+POST   /auth/refresh
+POST   /auth/password/forgot
+POST   /auth/password/reset
+GET    /staff/invitations/verify?token=...
+POST   /staff/invitations/accept
+```
+
+**Endpoint con JWT:**
+```
+GET    /auth/me
+GET    /auth/memberships
+POST   /auth/switch-tenant
+GET    /auth/sessions
+DELETE /auth/sessions/:id
+DELETE /auth/logout
+DELETE /auth/logout/all
+POST   /auth/2fa/setup | enable
+DELETE /auth/2fa/disable
+GET    /staff/roles
+```
+
+**Endpoint solo titolare (`JwtAuthGuard` + `OwnerGuard`):**
+```
+POST   /staff/invitations
+GET    /staff/invitations
+DELETE /staff/invitations/:id
+GET    /staff/members
+PUT    /staff/members/:id/role
+DELETE /staff/members/:id
+POST   /staff/roles
+PUT    /staff/roles/:id
+DELETE /staff/roles/:id
+```
+
+### 2.2 `venue/`
+
+Sedi, sale, tavoli, orari, impostazioni operative del locale.
+
+**Entities:** `Venue`, `Room`, `Table`, `VenueHours`, `VenueSettings`.
+
+**Endpoint:**
+```
+GET    /venue
+GET    /venue/hours
+PUT    /venue/hours              ← replace completo (7 giorni)
+GET    /venue/settings           ← lazy-create con default ERD
+PATCH  /venue/settings           ← partial update
+```
+
+### 2.3 `onboarding/`
+
+Orchestrazione del journey post-registrazione, mappato 1:1 sui 4 step del prototipo JSX.
+
+**Entities:** `OnboardingProgress`, `RestaurantFiscalData`.
+
+**Endpoint:**
+```
+GET    /onboarding/status
+POST   /onboarding/menu          ← step 1: avvia AI mock 5s
+GET    /onboarding/menu/ai-result
+POST   /onboarding/menu/ai-review
+PUT    /onboarding/locale        ← step 2a
+POST   /onboarding/stripe-connect ← step 2b (placeholder)
+POST   /onboarding/rooms          ← step 3 (replace idempotente)
+POST   /onboarding/go-live        ← step 4
+```
+
+**Hook critico:** quando il mock AI termina, `OnboardingService.simulateAiProcessing` chiama `CatalogService.createFromAiResult` che popola **menu reale + categorie + piatti**. End-to-end completo: dal `POST /onboarding/menu` puoi subito chiamare `GET /catalog/menus/:id` dopo 5 secondi.
+
+### 2.4 `catalog/`
+
+Menu, categorie, piatti, allergeni e tag.
+
+**Entities:** `Menu`, `MenuCategory`, `MenuItem`, `Allergen`, `Tag`, `MenuItemAllergen`, `MenuItemTag`.
+
+**Seed automatico al boot** (`CatalogSeedService.onApplicationBootstrap`):
+- 14 allergeni UE (gluten, crustaceans, eggs, fish, peanuts, soybeans, milk, nuts, celery, mustard, sesame, sulphites, lupin, molluscs)
+- 6 tag piattaforma (senza_glutine, vegano, vegetariano, bio, piccante, senza_lattosio)
+
+Idempotente via `upsert(['code'])` / `upsert(['name'])`.
+
+**Endpoint (17 totali):**
+```
+GET    /catalog/allergens
+GET    /catalog/tags
+GET    /catalog/menus
+POST   /catalog/menus
+GET    /catalog/menus/:menuId           ← tree menu→categorie→piatti
+PUT    /catalog/menus/:menuId
+DELETE /catalog/menus/:menuId
+POST   /catalog/menus/:menuId/categories
+PUT    /catalog/categories/:id
+DELETE /catalog/categories/:id
+GET    /catalog/categories/:id/items
+POST   /catalog/categories/:id/items
+PUT    /catalog/items/:id
+DELETE /catalog/items/:id
+PUT    /catalog/items/:id/allergens     ← replace set
+PUT    /catalog/items/:id/tags          ← replace set
+```
+
+### 2.5 `devices/`
+
+Tablet, KDS (kitchen monitor), POS terminal. Login dispositivo con scope ridotto.
+
+**Entities:** `Device`.
+
+**Strategie auth:** oltre a `JwtAccessStrategy` (staff) esiste `JwtDeviceStrategy` con payload `{ sub, type:'device', deviceType, venueId, restaurantId, scope[] }`. I due tipi di token non sono interoperabili: un JWT device su un endpoint staff → 401.
+
+**Scope per tipo:**
+- `kds` → `kitchen:read, kitchen:update`
+- `pos_terminal` → `orders:read, payments:create, payments:read`
+- `tablet` → `orders:read, orders:create`
+
+**Endpoint pubblici:**
+```
+POST   /devices/login            ← username/password locale, ritorna deviceToken (TTL 365gg)
+```
+
+**Endpoint solo titolare:**
+```
+GET    /devices
+POST   /devices                  ← genera username + password per type='kds'
+PUT    /devices/:id
+DELETE /devices/:id
+POST   /devices/:id/regenerate-password
+```
+
+---
+
+## 3. Struttura cartelle
+
+```
+byup-fresh-main 3/
+├── CLAUDE.md                    ← project overview (riferimento globale)
+├── PROGRESS.md                  ← QUESTO FILE: stato sviluppo tra sessioni
+├── DESIGN_DECISIONS.md          ← design system frontend
+├── README.md
+├── *.jsx, *.html                ← prototipi React/HTML del gestionale
+│
+├── backend/                     ← NestJS modular monolith ──────────────────
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── nest-cli.json
+│   ├── docker-compose.yml       ← Postgres + Redis + app
+│   ├── Dockerfile               ← multi-stage dev/builder/prod
+│   ├── .env                     ← (gitignored)
+│   ├── .env.example
+│   ├── api.http                 ← collection REST Client VS Code
+│   ├── jest-e2e.json
+│   ├── BACKEND.md               ← reference dettagliato decisioni backend
+│   ├── src/
+│   │   ├── main.ts              ← bootstrap: helmet, ValidationPipe, ExceptionFilter
+│   │   ├── app.module.ts        ← root + ThrottlerModule globale
+│   │   ├── config/
+│   │   │   └── configuration.ts ← Joi schema + typed config
+│   │   ├── database/
+│   │   │   └── database.module.ts ← TypeORM async factory
+│   │   ├── common/
+│   │   │   ├── decorators/current-user.decorator.ts
+│   │   │   └── filters/http-exception.filter.ts
+│   │   └── modules/
+│   │       ├── identity/
+│   │       │   ├── identity.module.ts
+│   │       │   ├── entities/    (User, Session, UserTwoFa, Restaurant, Role, Membership, Invitation, PasswordReset)
+│   │       │   ├── auth/
+│   │       │   │   ├── auth.controller.ts
+│   │       │   │   ├── auth.service.ts
+│   │       │   │   ├── auth.module.ts
+│   │       │   │   ├── sessions.service.ts
+│   │       │   │   ├── sessions.service.spec.ts
+│   │       │   │   ├── dto/
+│   │       │   │   ├── guards/  (JwtAuthGuard, OwnerGuard)
+│   │       │   │   └── strategies/jwt-access.strategy.ts
+│   │       │   ├── users/
+│   │       │   └── staff/       (invitations + memberships + roles custom)
+│   │       ├── venue/
+│   │       │   ├── venue.module.ts
+│   │       │   ├── venue.controller.ts
+│   │       │   ├── venue.service.ts
+│   │       │   ├── entities/    (Venue, Room, Table, VenueHours, VenueSettings)
+│   │       │   └── dto/
+│   │       ├── onboarding/
+│   │       │   ├── onboarding.module.ts
+│   │       │   ├── onboarding.controller.ts
+│   │       │   ├── onboarding.service.ts
+│   │       │   ├── entities/    (OnboardingProgress, RestaurantFiscalData)
+│   │       │   └── dto/
+│   │       ├── catalog/
+│   │       │   ├── catalog.module.ts
+│   │       │   ├── catalog.controller.ts
+│   │       │   ├── catalog.service.ts
+│   │       │   ├── entities/    (Menu, MenuCategory, MenuItem, Allergen, Tag, +N:M)
+│   │       │   ├── seeds/catalog.seed.ts
+│   │       │   └── dto/
+│   │       └── devices/
+│   │           ├── devices.module.ts
+│   │           ├── devices.controller.ts
+│   │           ├── devices.service.ts
+│   │           ├── entities/device.entity.ts
+│   │           ├── strategies/jwt-device.strategy.ts
+│   │           ├── guards/jwt-device.guard.ts
+│   │           └── dto/
+│   └── test/
+│       └── auth.e2e-spec.ts     ← e2e Jest+supertest: register/login/me/duplicate/protected
+│
+├── vue-components/              ← Vue 3 + Vite frontend (in migrazione da JSX) ─
+│   ├── package.json
+│   ├── WORK_IN_PROGRESS.md      ← stato migrazione frontend
+│   ├── *.dbml                   ← 4 file ERD v0.7 (sorgente di verità DB)
+│   ├── byup-database-enums-reference-v7.md
+│   ├── *.pdf                    ← documenti di progettazione tecnica e flussi
+│   └── src/
+│       ├── App.vue
+│       ├── components/...
+│       └── ...
+│
+└── ...
+```
+
+---
+
+## 4. Decisioni architetturali
+
+### 4.1 Modular monolith, NON microservizi
+Dominio ancora in consolidamento, MVP veloce, team contenuto. Quando un modulo raggiunge stabilità + necessità di scaling indipendente, può essere estratto senza riscrittura del core.
+
+### 4.2 Stack
+- **NestJS 10** + TypeScript (decoratori IoC, DX eccellente).
+- **TypeORM 0.3** (integrazione nativa NestJS, entity-as-truth).
+- **PostgreSQL 16** (ACID, schema relazionale coerente con ERD).
+- **Redis 7** (predisposto: cache + rate limit + supporto realtime futuro).
+- **bcrypt rounds=12** (cost factor solido nel 2026).
+- **otplib** per TOTP 2FA.
+- **@nestjs/throttler** per rate limiting.
+- **passport-jwt** per JWT validation.
+
+### 4.3 Auth strategy: JWT stateless + sessions DB
+
+**Access token (JWT 15min):**
+```json
+{ "sub": userId, "type": "access", "sessionId", "restaurantId", "role" }
+```
+
+**Refresh token (opaco 30gg):**
+- 48 random bytes hex (96 char)
+- Hash SHA-256 salvato in `sessions.token_hash`
+- **Rotazione ad ogni `/auth/refresh`**: la vecchia sessione viene revocata e ne nasce una nuova
+- Verifica server-side abilita revoca immediata (altrimenti JWT puro non sarebbe revocabile prima dell'`exp`)
+
+**2FA pending token (JWT 5min, secret separato):**
+- Emesso quando il login riconosce 2FA attiva
+- Tipo `'2fa_pending'`, non utilizzabile sugli endpoint protetti
+- Speso su `POST /auth/staff/login/2fa` con il codice TOTP
+
+**Device token (JWT 365gg, scope ridotto):**
+- Tipo `'device'`, payload include `scope[]`
+- `JwtAuthGuard` (staff) e `JwtDeviceGuard` sono passport strategies separate → un device token su `/staff/members` viene rifiutato come 401
+
+### 4.4 Tenant scoping: service-level esplicito invece di middleware globale
+
+**Decisione presa in Fase 1.** Non c'è un middleware globale che fa `WHERE tenant_id = ?` ovunque. Ogni service ha helper privati come `requireMenu(restaurantId, menuId)`, `requireCategory()`, `requireMembership()` ecc. che:
+1. Caricano la risorsa via id
+2. Confrontano `resource.restaurantId` con `restaurantId` dal JWT
+3. Lanciano `ForbiddenException` se non combaciano
+
+**Perché:** un middleware globale che fa magic injection è elegante ma rischia bug silenti ("ho dimenticato di filtrare questa query"). Lo scoping esplicito è 1 riga in più per metodo ma impossibile dimenticarlo senza errore di compilazione. Trade-off accettato deliberatamente.
+
+**Conta totale:** 27 chiamate `require[Resource]` nei service. Vedi `BACKEND.md` per il riferimento.
+
+### 4.5 PUT replace vs PATCH partial — semantica deliberata
+
+- Endpoint che gestiscono **set completi** sono PUT replace, idempotenti:
+  - `PUT /venue/hours` (i 7 giorni vivono insieme)
+  - `PUT /catalog/items/:id/allergens` (il set di allergeni del piatto)
+  - `PUT /catalog/items/:id/tags`
+  - `POST /onboarding/rooms` (è POST per convenzione onboarding, ma è replace)
+- Endpoint che gestiscono **stato granulare** sono PATCH partial:
+  - `PATCH /venue/settings` (13 campi, cambi uno alla volta)
+
+**Vantaggio del replace:** il client può fare "salva e riprendi" senza preoccuparsi dello stato precedente.
+
+### 4.6 Lookup table seedate al boot
+
+`Allergen` e `Tag` sono **lookup globali**, non per-tenant. Vengono seedate da `CatalogSeedService.onApplicationBootstrap` con `upsert` per `code` / `name` → idempotente, sicuro a riavvii multipli. Mai modificabili da tenant.
+
+### 4.7 Lazy-create con default per `VenueSettings`
+
+La prima `GET /venue/settings` materializza il record con tutti i default ERD (15/25/90 min warning/alert/overstay, `kitchen_mode='kds'`, `payment_methods=['card_terminal','cash']`). Nessuna migration one-shot da scrivere.
+
+### 4.8 Risposta API standard
+
+```json
+{ "success": true, "data": {...} }
+{ "success": false, "error": { "code": "Forbidden", "message": "..." } }
+```
+
+Implementato da `GlobalExceptionFilter` ovunque, anche sui test e2e. Validation Pipe in modalità whitelist + forbidNonWhitelisted: campi sconosciuti → 400.
+
+### 4.9 Protezioni anti-lockout (RBAC)
+
+In `StaffService`:
+- Non si può rimuovere il ruolo "titolare" all'**ultimo titolare attivo** (`ensureNotLastOwner`)
+- Non si può disattivare l'ultimo titolare
+- Non si può **auto-disattivarsi**
+- Non si può **auto-degradarsi** da titolare
+
+Tutte e 4 le check sono testate ed entrano in 400 con messaggi specifici.
+
+### 4.10 Password reset: SHA-256 hash, monouso, 30min
+
+- Token = 32 random bytes hex (64 char) consegnato al client
+- Hash SHA-256 salvato in `password_resets.token_hash`
+- TTL 30 minuti
+- All'utilizzo: marca `used_at`, **revoca tutte le sessioni attive** dell'utente (chi conosceva la vecchia password non deve più stare loggato)
+- Endpoint `POST /auth/password/forgot` ritorna sempre `success: true` (no email enumeration)
+- In dev espone `devToken` nella response (da rimuovere quando SES è attivo)
+
+### 4.11 DB_SYNC=true in dev, migrazioni in prod
+
+- In dev: `synchronize: true` in TypeORM → schema aggiornato automaticamente al boot
+- In prod: deve essere `false`, con migration files versionati. **TODO esplicito**, vedi sezione 6.
+
+### 4.12 Hot-reload via `nest start --watch`
+
+Modifiche al codice → restart automatico del processo (PID cambia). Non richiede stop/start manuale durante lo sviluppo.
+
+### 4.13 `strictNullChecks: true` — entità TypeORM "oneste"
+
+**Decisione presa il 30 mag 2026.** Attivato `strictNullChecks` in `tsconfig.json` (prima era `false`). La compilazione strict ha fatto emergere 36 errori, risolti tutti (build `tsc --noEmit` verde).
+
+**Causa radice del grosso degli errori:** molte entità dichiaravano colonne `@Column({ nullable: true })` ma le tipizzavano come non-null (es. `vatNumber: string`, `enabledAt: Date`, `recoveryCodes: string[]`). Il tipo mentiva rispetto allo schema DB. **Regola adottata:** una colonna `nullable: true` si tipizza sempre `T | null`. Entità corrette: `Restaurant.vatNumber`, `Venue.phone`, `UserTwoFa.enabledAt/recoveryCodes`, `Device.deviceModel/username/passwordHash`, `OnboardingProgress.menuSourceUrl/websiteUrl`, `RestaurantFiscalData.regimeFiscale`, `MenuCategory.description`, `MenuItem.description/foodCost/recipe/prepTimeMinutes`.
+
+**Bug runtime veri intercettati:** 6 `findOne()` il cui risultato (`T | null` in TypeORM 0.3) veniva dereferenziato senza guardia → potenziale `TypeError`/500 invece di un errore pulito. Aggiunte guardie esplicite in `setup2fa`, `disable2fa`, `me` (auth) e `getStatus` (onboarding), più la guardia su `titolareRole` nel register. Config garantita da Joi → `getOrThrow` in `main.ts`, `totpIssuer`, `refreshTokenTtlDays`.
+
+**Convenzione:** d'ora in poi le nuove entità e i nuovi service nascono già null-safe. Vedi memoria persistente per il dettaglio del perché.
+
+### 4.14 `JwtAccessPayload.restaurantId/role` restano `string` (non-null)
+
+**Decisione collegata alla 4.13.** Sui sign-site del token, `restaurantId`/`role` erano valorizzati con `?? null` (difensivo). Tipizzare il payload come `string | null` sarebbe stato *letteralmente* più onesto, ma avrebbe fatto esplodere ~40 controller che estraggono `user.restaurantId` e lo passano a service tenant-scoped che lo richiedono `string`.
+
+**Scelta:** il payload resta `restaurantId: string` / `role: string`, perché su quelle rotte (tutte sotto `JwtAuthGuard`, tutte su risorse di un tenant) **un token staff porta sempre** un ristorante attivo. L'invariante è reso esplicito da due guardie ai sign-site `refresh` e `issueFullSession`: se manca la membership attiva → `UnauthorizedException`. È uno stato impossibile in pratica (chi si registra possiede ≥1 ristorante e l'anti-lockout — vedi 4.9 — impedisce di perderne l'ultimo), ma ora è impossibile *anche per il compilatore* invece che gestito con `?? null` silenzioso. `register` e `switchTenant` già firmavano valori non-null e non sono stati toccati.
+
+### 4.15 Esecuzione test/app: solo nel terminale utente (nota ambientale)
+
+L'ambiente di esecuzione Claude Code (harness) **non può eseguire la suite jest né bootare l'app**: macOS vieta il caricamento di addon nativi `.node` nel processo dell'harness (`library load disallowed by system policy`). Questo colpisce il resolver nativo di jest 30 (`unrs-resolver`) e `bcrypt`. Gate di verifica usabile dentro l'harness = `node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`. **I test runtime (unit + e2e) vanno lanciati nel terminale dell'utente.** La cartella di progetto è stata rinominata `Byup Fresh` → `Byup-Fresh` (rimosso lo spazio) — utile per tooling locale, ma non è la causa del limite sopra.
+
+### 4.16 Access token revocabile: la JwtAccessStrategy valida la sessione
+
+**Decisione presa il 30 mag 2026 (revisione di 4.3).** La `JwtAccessStrategy.validate` non si limita più a controllare `payload.type`: fa anche una lookup della sessione (`payload.sessionId`) e verifica che sia **attiva e non scaduta**, altrimenti `401`.
+
+**Perché:** la specifica di hardening (test C.5 e C.12) richiede che **logout, revoca da un altro dispositivo, rotazione del refresh e cambio password** invalidino l'access token *immediatamente*, non solo alla scadenza naturale (15 min). Prima il token restava valido fino all'`exp` anche dopo il logout.
+
+**Trade-off:** una query DB indicizzata (PK sessione) per ogni richiesta autenticata, in cambio della revocabilità immediata. Accettabile a scala MVP; quando il volume cresce, la sessione è cachabile su Redis (già previsto in architettura). I **device token** (strategy separata `JwtDeviceStrategy`) NON sono toccati: restano persistenti 365g e non dipendono dalle sessioni staff (coerente col test C.11).
+
+---
+
+## 5. Bug intercettati e risolti
+
+Memoria di tre bug "non ovvi" emersi durante i test, salvati anche come `feedback-*.md` nella memoria persistente.
+
+### 5.1 FK violation su `sessions.user_id` al register
+
+**Sintomo:** la prima `POST /auth/staff/register` falliva con `insert or update on table "sessions" violates foreign key constraint`.
+
+**Causa:** `SessionsService.create()` usa il suo repository iniettato → connessione separata dal callback `dataSource.transaction(em => …)`. L'INSERT su sessions partiva prima del commit di users → FK fallita.
+
+**Fix:** la transazione di register ora include solo user/restaurant/roles/membership/onboarding_progress. La creazione di session + token avviene **dopo** il commit. Regola generale: un repository iniettato fuori dall'EntityManager della transazione non è transactional.
+
+### 5.2 `EntityMetadataNotFoundError` su `RestaurantFiscalData`
+
+**Sintomo:** `PUT /onboarding/locale` → 500 con `No metadata for "RestaurantFiscalData" was found`.
+
+**Causa:** l'entity era usata solo via `em.findOne(RestaurantFiscalData, ...)` dentro la transazione, e nessun `TypeOrmModule.forFeature` la registrava. `autoLoadEntities: true` da solo NON basta per registrare un'entity nel metadata registry.
+
+**Fix:** aggiunta a `OnboardingModule.forFeature([…])`. **Regola di stile**: registra sempre tutte le entity nel modulo dove vivono, anche quelle "ausiliarie" usate solo via `em`.
+
+### 5.3 Rate limit "fratricida" durante test E2E
+
+**Sintomo:** durante un test E2E con molti `POST /auth/staff/login` consecutivi, alcuni assert fallivano per `401 Unauthorized` invece di rispondere normalmente.
+
+**Causa:** il throttler globale (5 login/min/IP, per design) bloccava lo script di test, non il sistema sotto test.
+
+**Fix lato test:** riusare i token già acquisiti invece di rilogarsi, oppure aspettare 60s tra burst. Nessuna modifica al server (il rate limit È desiderato).
+
+### 5.4 `DataTypeNotSupportedError: Data type "Object"` dopo l'attivazione di `strictNullChecks`
+
+**Sintomo:** dopo la modifica 4.13, `npm test` (unit) restava verde ma `npm run test:e2e` falliva *tutti* i test con `DataTypeNotSupportedError: Data type "Object" in "<Entity>.<col>" is not supported by "postgres"` alla `DataSource.initialize`. L'errore appariva su un'entity diversa a ogni fix (prima `UserTwoFa.enabledAt`, poi `Restaurant.vatNumber`) perché il validator TypeORM si ferma alla prima colonna invalida.
+
+**Causa:** tipizzando i campi nullable come union `T | null`, `emitDecoratorMetadata` serializza il `design:type` come `Object` per **qualsiasi** union — incluso `string | null` (non solo Date/number). TypeORM non sa mappare `Object` a un tipo Postgres. Le colonne nullable tipizzate come tipo *puro* (es. `legalName: string`) non crashano perché la reflection emette `String`. **Bug invisibile a compile-time**: `tsc --noEmit` resta verde e gli unit test (che non aprono il DataSource reale) passano — emerge solo negli e2e o avviando l'app.
+
+**Fix:** aggiunto `type` esplicito al `@Column` di tutte e 10 le colonne tipizzate `T | null` senza type: `UserTwoFa.enabledAt` (timestamp), `MenuItem.prepTimeMinutes` (int), `Restaurant.vatNumber`, `Venue.phone`, `OnboardingProgress.menuSourceUrl/websiteUrl`, `RestaurantFiscalData.regimeFiscale`, `Device.deviceModel/username/passwordHash` (varchar). **Regola generale:** ogni colonna la cui proprietà è `T | null` deve avere `type:` esplicito. Verifica: `grep -rn "| null;" src/modules --include="*.entity.ts"` e controlla che la riga `@Column` precedente contenga `type:`.
+
+### 5.5 Deprecation warning pg: "client is already executing a query"
+
+**Sintomo:** durante gli e2e (flusso register) compariva `DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0`.
+
+**Causa:** in `AuthService.registerStaff` i ruoli di sistema venivano salvati con `Promise.all(roles.map(r => em.save(r)))` **dentro** la transazione → più `INSERT` concorrenti sullo stesso client `pg` transazionale.
+
+**Fix:** sostituito con un singolo `em.save(roles[])` batch, che persiste in sequenza sullo stesso client. Nessun cambiamento semantico (sempre dentro la transazione di register). **Regola:** mai `Promise.all` di query sullo stesso `EntityManager`/client — usare save batch o `await` sequenziali.
+
+### 5.6 Suite di hardening A/B/C — bug intercettati e corretti (30 mag 2026)
+
+Aggiunta una suite e2e su tre aree (input malformati, concorrenza, edge temporali token). I test vivono in `test/section-a-malformed-input.e2e-spec.ts`, `test/section-b-concurrency.e2e-spec.ts`, `test/section-c-token-temporal.e2e-spec.ts` + helper `test/helpers.ts`. Bug reali emersi e corretti:
+
+- **A.1 / A.14 — body-parser → 500 invece di 400/413.** Il `GlobalExceptionFilter` con `@Catch()` mappava a 500 ogni errore non-`HttpException`. Gli errori di body-parser (JSON malformato → 400, payload troppo grande → 413) portano uno `status` numerico ma non sono `HttpException`. **Fix:** ramo `isHttpishError` che rispetta `err.status/statusCode`.
+- **A.6 — `restaurantName` di soli spazi accettato.** Mancavano trim + not-empty. **Fix:** `@Transform(trim)` + `@IsNotEmpty()` su `restaurantName/firstName/lastName` nel `RegisterStaffDto`.
+- **A.15 — interi enormi → overflow int4 → 500.** I campi minuti di `VenueSettings` non avevano `@Max`: `999999999999` superava `int4` e arrivava al DB. **Fix:** `@Max` (1440 / 720) sui campi int del DTO.
+- **B.1 — register concorrente stessa email → 500.** Il vincolo UNIQUE su `users.email` reggeva (mai due utenti), ma il perdente prendeva un `QueryFailedError` grezzo. **Fix:** catch SQLSTATE `23505` → `ConflictException` (409).
+- **B.3 — replay del refresh token.** `findActiveByToken → revoke → create` non atomico: due refresh simultanei creavano due sessioni. **Fix:** `SessionsService.revokeIfActive` (UPDATE condizionale `WHERE is_active=true`, controllo `affected`) — un solo vincitore.
+- **B.4 — doppio uso del token di reset.** Check-then-act non atomico. **Fix:** claim atomico `UPDATE ... WHERE used_at IS NULL` dentro la transazione.
+- **B.2 — accept invito concorrente.** Nessun lock sulla riga invito → il perdente falliva con errore DB grezzo. **Fix:** `pessimistic_write` sulla riga `Invitation` (ruolo caricato a parte per non rompere il `FOR UPDATE` con l'outer join).
+- **B.8 — anti-lockout aggirabile sotto concorrenza.** Due titolari che si declassano a vicenda passavano entrambi il check `ensureNotLastOwner` → zero titolari. **Fix:** `ensureNotLastOwner(em, ...)` con lock `pessimistic_write` su tutte le righe titolare attive, dentro la transazione di `updateMemberRole`/`deactivateMember`.
+
+**Regola generale (concorrenza):** ogni invariante "una sola operazione vince" va imposta a DB con un claim atomico condizionato (`UPDATE ... WHERE <stato> ...` + check `affected`) oppure con un lock pessimistico sulla riga critica dentro una transazione — mai con un check-then-act applicativo.
+
+**Note (documentate, non bug):**
+- **B.7 / C.11** richiedono un device KDS provisionato (onboarding/venue completo) → `it.skip` con spiegazione, fuori scope della suite auth-only.
+- **C.10** (replay TOTP nella stessa finestra) — comportamento attuale: accettato (nessun tracciamento del counter). Meno sicuro ma comune; il test lo documenta con assert tollerante `[200,401]`.
+
+### 5.7 `PUT /onboarding/locale` → 500 su P.IVA duplicata
+
+**Sintomo:** durante la riesecuzione via HTTP della checklist funzionale Fase 1 (74 flussi con curl contro il container, 30 mag 2026), `PUT /onboarding/locale` ritornava 500 quando la P.IVA era già usata da un altro ristorante.
+
+**Causa:** `restaurants.vat_number` è UNIQUE; `updateLocale` faceva `em.update(Restaurant, …, { vatNumber })` senza catturare la violazione → `QueryFailedError` (SQLSTATE 23505) risaliva come 500. Stessa classe del bug B.1.
+
+**Fix:** transazione di `updateLocale` avvolta in try/catch che converte 23505 → `ConflictException` ("Partita IVA già registrata da un altro ristorante.", 409). Verificato: con P.IVA libera la pratica passa (200), con P.IVA già presa → 409 pulito.
+
+**Esito checklist:** 74/74 flussi verdi contro il server reale (auth, 2FA, onboarding end-to-end, catalog, venue, staff/ruoli/inviti/membri, RBAC, devices). La verifica gira via curl con throttler reale attivo (richieste spaziate ~1.1s) e calcolo TOTP lato client; non passa per jest (l'harness non carica gli addon nativi, ma il container Docker sì).
+
+---
+
+## 6. TODO rimasti
+
+### 6.1 Critici per produzione
+
+- [ ] **Migrazioni TypeORM** — disabilitare `DB_SYNC=true`, generare migration files versionati. Script `migration:generate` / `migration:run` / `migration:revert` già configurati in `package.json`. File `src/database/typeorm.config.ts` da creare.
+- [ ] **Integrazione SES** per invio email reale di:
+  - Reset password (rimuovere `devToken` dalla response di `/auth/password/forgot`)
+  - Invito staff (rimuovere `token` dalla response di `POST /staff/invitations`)
+  - Email verification (`email_verified` esiste in DB ma il flusso non è cablato)
+- [ ] **Stripe Connect** flusso OAuth reale + callback per popolare `restaurants.stripe_connect_account_id` e `stripe_connect_status`.
+- [ ] **Claude API** integrazione vera per il processing del menu — al posto del `setTimeout(5s)` in `OnboardingService.simulateAiProcessing`.
+- [ ] **S3 upload presigned URL** per il file menu allegato in onboarding step 1 (attualmente il client passa `fileKey` come stringa libera).
+- [ ] **CI/CD** — GitHub Actions per build + test + lint (TODO documento di progettazione tecnica).
+- [ ] **Audit log** con retention 5 anni (TODO documento di progettazione tecnica).
+- [ ] **Health check endpoint** (es. `GET /health`) per ECS/ALB liveness/readiness.
+
+### 6.2 Funzionali non bloccanti
+
+- [ ] **Accept invito come utente già loggato** — oggi se l'email dell'invitato esiste già in `users`, l'accept ritorna 409 con "accedi e accetta dal pannello". Manca l'endpoint `POST /staff/invitations/accept-as-user` (autenticato).
+- [ ] **Resend invitation** se l'invitato non riceve la mail.
+- [ ] **Soft delete** dell'account user (oggi la colonna `deleted_at` esiste ma non c'è endpoint per cancellazione utente).
+- [ ] **GDPR data export** (download dati utente).
+
+### 6.3 Test coverage
+
+- [x] Test unit `SessionsService` (9 test, build pulita)
+- [x] Test e2e flusso auth critico (5 test: register/duplicate/login-wrong/login-me/no-token)
+- [x] Suite di hardening e2e A/B/C (`test/section-a|b|c-*.e2e-spec.ts` + `test/helpers.ts`): input malformati, concorrenza, edge temporali token/sessioni. Scritta + typecheck verde; **da eseguire nel terminale utente** (vedi §5.6). `jest-e2e.json` ora gira `maxWorkers: 1` (più app che bootano in parallelo con `DB_SYNC=true` racevano sullo schema sync).
+- [ ] **Estendere test unit** ad almeno: `AuthService.registerStaff`, `AuthService.resetPassword`, `StaffService.ensureNotLastOwner`, `CatalogService.requireMenu`, `OnboardingService.createRooms`. Coverage attuale ~5%, target Fase 2: ≥40%.
+- [ ] **Estendere test e2e** ai flussi: onboarding completo, staff invite/accept, RBAC OwnerGuard, multi-tenant switch.
+- [ ] **Test E2E in CI** con Docker Compose della pipeline.
+
+### 6.4 Polish
+
+- [ ] **Swagger/OpenAPI** auto-generato da DTOs.
+- [ ] **Logging strutturato** (Pino/Winston) al posto di `console.log` e `Logger` di NestJS default.
+- [ ] **OWASP cleanup**: CORS configurato esplicitamente (oggi default), Content-Security-Policy custom, helmet review.
+- [ ] **Refactor `auth.controller.ts`**: è cresciuto a ~200 righe con molte responsabilità (auth + 2FA + sessions + password reset + switch-tenant). Considera split in `auth.controller`, `mfa.controller`, `sessions.controller`.
+
+---
+
+## 7. Convenzioni di codice
+
+### 7.1 Nomi file
+
+- `kebab-case.ts` per tutto (es. `restaurant-fiscal-data.entity.ts`)
+- Suffissi: `.entity.ts`, `.dto.ts`, `.service.ts`, `.controller.ts`, `.module.ts`, `.guard.ts`, `.strategy.ts`, `.spec.ts`, `.e2e-spec.ts`
+
+### 7.2 DB vs TypeScript
+
+- **DB**: `snake_case` (es. `password_hash`, `restaurant_id`)
+- **TS**: `camelCase` (es. `passwordHash`, `restaurantId`)
+- Mapping esplicito via `@Column({ name: 'password_hash' })`
+
+### 7.3 Endpoint
+
+- Sempre sotto `/api/v1/` (set da `setGlobalPrefix`)
+- Set replace → `PUT`, partial update → `PATCH`
+- Response sempre `{ success, data | error }`
+- `ParseUUIDPipe` su ogni `:id` per validare prima del service
+
+### 7.4 Lingua
+
+- **Italiano** nei messaggi rivolti all'utente finale (`throw new ConflictException('Email già registrata.')`)
+- **Inglese** in nomi tecnici (variabili, funzioni, file, commenti tecnici, log)
+- File di documentazione (`BACKEND.md`, `PROGRESS.md`) in italiano
+
+### 7.5 Tenant scoping
+
+- **Sempre** via metodi privati `require[Resource](restaurantId, id)` nel service
+- **Mai** controllo `if` inline nei controller
+
+### 7.6 Validazione DTO
+
+- Sempre con `class-validator` (`@IsString`, `@IsEmail`, `@IsInt`, `@Min`, ecc.)
+- `Transform` per normalizzazione (es. `email.toLowerCase().trim()`)
+- DTO `Create*` e `Update*` separati (il secondo ha tutto opzionale)
+
+### 7.7 Errori
+
+- `BadRequestException` 400 — validazione fallita / pre-condizione operativa
+- `UnauthorizedException` 401 — credenziali / token
+- `ForbiddenException` 403 — autenticato ma non autorizzato (tenant, role)
+- `NotFoundException` 404 — risorsa inesistente
+- `ConflictException` 409 — duplicato / stato incompatibile
+
+### 7.8 Transazioni
+
+- Sempre via `dataSource.transaction(async (em) => …)` per operazioni multi-tabella
+- **Non** chiamare service esterni dentro la transazione se questi usano repository iniettati (vedi bug 5.1) — committi prima
+
+### 7.9 Niente file inutili
+
+Non si creano file `.md` di documentazione, file di "appunti" o di "decisioni" senza richiesta esplicita. La doc ufficiale è: `CLAUDE.md`, `PROGRESS.md` (questo), `BACKEND.md`, `WORK_IN_PROGRESS.md`.
+
+---
+
+## 8. Comandi utili
+
+### Infrastruttura
+
+```bash
+# Dalla cartella backend/
+docker compose up postgres redis -d         # solo DB e Redis
+docker compose up -d app                     # avvia ANCHE l'app (build dev + hot-reload, porta 3000)
+docker compose stop app                      # ferma solo l'app (lascia su DB/Redis)
+docker compose down                          # ferma tutto
+docker compose down -v                       # ferma + cancella volumi (reset totale DB)
+docker exec byup_postgres psql -U byup -d byup_fresh   # shell SQL
+docker exec byup_redis redis-cli              # shell Redis
+docker logs --tail 30 byup_app                # log dell'app (stack trace dei 500, ecc.)
+```
+
+> **Verifica funzionale via HTTP (utile dentro l'harness Claude Code).** L'app
+> in Docker espone :3000 e gira con `nest start --watch` (volume montato →
+> hot-reload: un edit al sorgente ricompila senza rebuild). jest non è
+> eseguibile nell'harness (addon nativi), ma `curl` sì → si può validare ogni
+> flusso a server attivo. Lo script `backend/scripts/phase1-functional-check.sh`
+> automatizza la checklist Fase 1 (74 flussi, PASS/FAIL + conteggio), spaziando
+> le richieste per rispettare il throttler reale e calcolando i TOTP del 2FA in
+> python. Prerequisito: `docker compose up -d app`.
+
+### Server
+
+```bash
+cd backend
+cp .env.example .env                          # solo la prima volta
+npm install                                   # solo la prima volta
+npm run start:dev                             # dev con hot-reload (porta 3000)
+npm run build                                 # compila a dist/
+npm start                                     # esegue dist/main (production)
+```
+
+### Test
+
+```bash
+cd backend
+npm test                                      # unit (Jest, rootDir=src)
+npm run test:watch                            # unit in watch mode
+PORT=3100 npm run test:e2e                    # e2e su porta separata (Jest + supertest + DB reale)
+```
+
+### REST Client
+
+Apri `backend/api.http` in VS Code con l'estensione "REST Client" e clicca **Send Request** su ogni blocco. Le variabili dinamiche (token, id) si concatenano tra request.
+
+### Memoria persistente Claude
+
+Salvata in `~/.claude/projects/-Users-fabiomancinelli-Desktop-byup-fresh-main-3-vue-components/memory/`:
+- `MEMORY.md` — indice
+- `user-fabio.md` — profilo utente
+- `project-byup.md` — contesto progetto
+- `feedback-transactions.md` — lezione bug 5.1
+- `feedback-entity-metadata.md` — lezione bug 5.2
+
+---
+
+## 9. Prossimo passo — **Fase 2: Operatività ristorante**
+
+Quando il ristorante può servire un cliente. È il blocco grosso del prodotto.
+
+### Filosofia Fase 2
+
+Tutto il Fase 1 era "configurazione". Il Fase 2 è "azione reale": un ordine viene preso, mandato in cucina, servito, pagato, chiuso fiscalmente. Deve girare **in tempo reale** (WebSocket per stato tavoli + comande), deve gestire **conflitti** (due camerieri che modificano lo stesso conto), deve essere **idempotente** (chi paga vince, non si paga due volte), deve **calcolare correttamente l'IVA** (10% somministrazione vs 22% asporto packaged).
+
+### 9.1 Modulo `orders/` — Ordini
+
+**Entities (da ERD operational core v0.7):**
+- `Order` (id, restaurant_id, venue_id, table_id, channel, source_surface, weight, status, note_type, ...)
+- `OrderItem` (order_id, menu_item_id, qty, vat_category, preparation_status, ...)
+- `OrderItemAssignment` (order_item_id, table_guest_id, assignment_type, status) — per split bill
+
+**Concetti chiave:**
+- **Canali** (`orders.channel`): `sala`, `vendita_diretta`, `asporto_app`
+- **Surface** (`orders.source_surface`): `staff_web`, `webapp_guest`, `byup_app`
+- **Peso** (`orders.weight`): calcolato da `source_surface` — 1.0 per staff_web/webapp_guest/vendita_diretta, **0.5 per byup_app** (è il meccanismo chiave del flywheel B2B2C)
+- **Stati** (12 stati possibili): `created → pending_validation → confirmed → sent_to_kitchen → in_preparation → ready → served → bill_open → paid → fiscally_closed | fiscally_failed | canceled`
+- **VAT effettiva**: calcolata da `vat_category` + `delivery_mode`: 10% per somministrazione/asporto prepared_on_site, 22% per asporto packaged_product
+- **Validazione esterna** (`venue_settings.validate_external_orders`): se true, gli ordini da app/webapp restano in `pending_validation` finché lo staff non conferma
+
+### 9.2 Modulo `kitchen/` — Comande cucina + KDS
+
+**Entities:**
+- `KitchenTicket` (id, order_id, kds_device_id?, printer_device_id?, status, course_number)
+- `KitchenTicketItem` (ticket_id, order_item_id, status)
+
+**Concetti chiave:**
+- **Routing per categoria**: ogni `MenuCategory` ha `printer_device_id` e/o `kds_device_id` opzionali → quando un OrderItem viene "sent_to_kitchen", si crea un KitchenTicket sul device giusto
+- **Portate sequenziate** (`kitchen_ticket_items.course_number`): 1=antipasto, 2=primo, 3=secondo, 4=dessert, NULL=portata unica
+- **Real-time push**: i KDS sono **WebSocket subscribers** sul `venueId`, ricevono nuove comande live
+- **Operations**: marca singolo item ready, marca ticket intero ready, cancel
+- **Auth**: KDS usa `JwtDeviceGuard` con scope `kitchen:read, kitchen:update`
+
+### 9.3 Modulo `bills/` — Conti + split
+
+**Entities:**
+- `Bill` (id, order_id, bill_type, adjustment_type, status, ...)
+- (la singola riga di un bill viene da `order_item_assignments`)
+
+**Concetti chiave:**
+- **Tipi conto** (`bills.bill_type`): `full` (tutto in un conto) | `split` (più conti dallo stesso ordine, uno per `table_guest`)
+- **Adjustment** (`bills.adjustment_type`): `discount_pct` | `discount_eur` | `round_down` | null
+- **Stati**: `open → payment_in_progress → paid → fiscally_pending → fiscally_closed | fiscally_failed`
+- **Split per coperto**: gli `OrderItemAssignment` collegano un order_item a un table_guest specifico, permettendo split granulari (Mario paga la sua pasta, Luca paga la sua)
+
+### 9.4 Modulo `payments/` — Pagamenti
+
+**Entities:**
+- `Payment` (id, bill_id, method, amount, status, stripe_payment_intent_id, ...)
+- `PaymentLock` (bill_id, locked_by_type, locked_until) — protegge dalla doppia incassazione (consumer app + cassa contemporaneamente)
+- `Refund` (id, payment_id, refund_type, method, status, initiated_from)
+- `FiscalDocument` (id, bill_id, doc_type, transmission_status, openapi_receipt_id, ...)
+
+**Concetti chiave:**
+- **Metodi** (`payments.method`): `card_terminal` (Stripe Terminal + Tap to Pay) | `in_app` (Byup App) | `cash`
+- **Stripe Connect**: ogni pagamento card_terminal/in_app passa via il connected account del ristorante → Byup non maneggia mai dati carta
+- **OpenAPI** per trasmissione fiscale: `corrispettivo` (default) o `fattura_elettronica` (su richiesta del cliente)
+- **Lock pattern**: chi inizia il pagamento prende il lock (TTL ~5min), l'altro fronte vede "in pagamento" e non può procedere
+
+### 9.5 Modulo `tables/` — Sala con WebSocket
+
+**Stato già esistente:** `Table` entity in `venue/` ha `status` (free/occupied/reserved/to_clean), `position_x/y`, `qr_token`, `assigned_waiter_id`.
+
+**Da aggiungere:**
+- `TableGuest` (table_id, status, joined_at, left_at) — chi è seduto al tavolo
+- **WebSocket gateway** `/ws/sala?venueId=…` con eventi:
+  - `table.status_changed` (free → occupied → to_clean)
+  - `table.guest_joined / table.guest_left`
+  - `order.created / order.confirmed`
+  - `kitchen.ticket_ready`
+- **Alert configurabili** (da `venue_settings`):
+  - `no_order_warn_min` (default 15) → highlight giallo
+  - `no_order_alert_min` (default 25) → highlight rosso
+  - `overstay_min` (default 90) → notifica al personale
+- **Auth gateway**: estende `JwtAuthGuard` per WS, scope per role
+
+### 9.6 Modulo `reservations/` — Prenotazioni
+
+**Entity:** `Reservation` (id, venue_id, table_id?, guest_name, party_size, scheduled_at, duration_min, status, ...)
+
+**Concetti:**
+- **Stati**: `confirmed → arrived → completed | no_show | canceled`
+- **Source** (`reservations.source`): nell'MVP solo `staff` (no booking da app)
+- **Auto-assign tavolo** (`venue_settings.auto_assign_table`): se true, propone automaticamente un tavolo compatibile
+- **No-show timeout** (`venue_settings.no_show_timeout_min`, default 15): dopo X minuti di ritardo, lo stato passa a `no_show`
+
+### 9.7 Modulo `vendita-diretta/` — Bancone e asporto
+
+**Non è un modulo separato**, è un **canale** dentro `orders/` con `channel='vendita_diretta'` e `delivery_mode`:
+- `bancone` → consumo immediato, somministrazione (10% IVA)
+- `asporto` → take-away, IVA per `vat_category` (10% prepared_on_site, 22% packaged_product)
+
+UI dedicata (no tavolo), ma backend riusa orders/bills/payments standard.
+
+### 9.8 Modulo `accounting/` — Contabilità base
+
+**Entities:**
+- `CashRegisterSession` (id, venue_id, opened_at, closed_at, opening_amount, closing_amount, status)
+- `CostEntry` (id, restaurant_id, category, recurrence_type, status, amount, due_date, ...)
+
+**Concetti:**
+- **Apertura cassa**: ogni giorno il primo addetto apre la cassa dichiarando il contante iniziale, alla chiusura quadra
+- **Categorie costo**: `affitti | personale | materie | servizi | altro`
+- **Ricorrenze**: `one_off | weekly | biweekly | monthly | bimonthly | quarterly | annual`
+- **Stati costo**: `paid | due | overdue`
+- **Export IVA**: report per regime fiscale (ordinario/forfettario/semplificato)
+
+### 9.9 Strategia di rollout Fase 2
+
+Suggerita per **non avere un blocco gigante non navigabile**:
+
+1. **Sub-fase 2a (settimana 1-2)**: `orders` end-to-end *senza* split né WebSocket. Un ordine viene creato, confermato, mandato in cucina, marcato servito. Stato salvato in DB, polling per refresh client. **Esce funzionante a sé**.
+2. **Sub-fase 2b (settimana 2-3)**: `kitchen` con KDS reali. Routing per categoria, course_number, marcatura ready. Sempre con polling.
+3. **Sub-fase 2c (settimana 3-4)**: `bills + payments` (cash + card_terminal placeholder). Pagamento marca order paid + bill closed. **Stripe Terminal reale come step a sé.**
+4. **Sub-fase 2d (settimana 4-5)**: **WebSocket reale** per `tables` + `kitchen`. Sostituisce il polling. È un upgrade trasparente al client.
+5. **Sub-fase 2e (settimana 5-6)**: split bill + payment_locks. È la parte più delicata, va affrontata dopo che la base funziona.
+6. **Sub-fase 2f (settimana 6)**: reservations + cash_register_sessions + cost_entries. Sono "appoggi", non sul critical path operativo.
+
+### 9.10 Cose da decidere prima di iniziare Fase 2
+
+- **Strumento WebSocket**: `@nestjs/websockets` (gateway nativo con socket.io adapter) vs Pusher gestito vs MQTT. Default suggerito: socket.io via gateway NestJS per zero-vendor lock.
+- **Stato realtime**: Redis pub/sub per multi-istanza, oppure single-instance per MVP? Default: single-instance ECS task fino a ~75 locali (vedi sezione "Scaling" del CLAUDE.md), poi Redis ElastiCache.
+- **Stripe Terminal**: SDK lato React Native (app POS) vs lato server (collect payment intent). Default: SDK su app + webhook server-side per confirmation.
+- **Idempotency keys** sui POST critici di `/orders` e `/payments`: per evitare doppie scritture in caso di retry. Pattern standard via header `Idempotency-Key`.
+- **Modello concorrenza per tavolo**: optimistic (version column) o pessimistic (advisory lock SQL)? Probabilmente optimistic + `WHERE updated_at = :prev` per i conflitti rari, fallback UI a "ricarica e riprova".
+
+---
+
+## 10. Note di sessione
+
+### Riferimenti tecnici dettagliati
+- `backend/BACKEND.md` — dettagli decisioni backend modulo per modulo
+- `vue-components/WORK_IN_PROGRESS.md` — stato migrazione frontend Vue 3
+- `vue-components/*.dbml` — ERD v0.7 (sorgente di verità DB)
+- `vue-components/byup-database-enums-reference-v7.md` — valori e stati DB
+- `CLAUDE.md` — overview di prodotto (cosa è Byup, GTM, validation, team)
+- `DESIGN_DECISIONS.md` — design system frontend
+
+### Memoria conversazionale Claude
+La memoria persistente fra sessioni vive sotto `~/.claude/projects/.../memory/` ed è automaticamente caricata. Contiene:
+- Profilo Fabio (CEO co-founder, lavora sia su prodotto che backend)
+- Stato progetto Byup
+- Due "lezioni operative" da bug intercettati (transazioni service-level, entity metadata)
+
+### Frequenza aggiornamento di questo file
+
+**Ad ogni fine sessione che chiude una fase o sub-fase**. Non per micro-modifiche. Quando si finisce un modulo nuovo, si aggiunge alla sezione 2 + si aggiorna sezione 6 (TODO completati).

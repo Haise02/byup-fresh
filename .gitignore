@@ -1,0 +1,54 @@
+# Dipendenze e build
+node_modules/
+**/node_modules/
+dist/
+build/
+**/dist/
+**/build/
+
+# Secrets / env — mai committare i .env reali (i .env.example sì)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code locale
+.claude/
+
+# Backups e working files
+*.bak
+*~
+
+# Audit / review folder con asset di lavoro pesanti
+_audit/
+_review/
+uploads/
+screenshots/
+memory/
+
+# Screenshot di lavoro / dump pesanti non referenziati nei JSX
+_check_*.png
+_unsplash_*.json
+_unsplash_*.html
+01-_check_*.png
+02-_check_*.png
+03-_check_*.png
+01-_v.png
+02-_v.png
+03-_v.png
+
+# NOTA: fresh.png (logo attivo) è VOLUTAMENTE incluso nel repo.
+# byup-logo.png e "fresh logo.png" sono asset legacy ma non escludo:
+# essere safe in caso una qualunque pagina deprecata li referenzi ancora.

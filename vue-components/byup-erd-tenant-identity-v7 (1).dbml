@@ -1,0 +1,386 @@
+// Byup Fresh — ERD Tenant e Identita
+// Versione 0.7 — Maggio 2026
+
+// ─── TENANT ────────────────────────────────────────────────
+
+Table restaurants {
+  id uuid [pk]
+  name varchar [not null]
+  slug varchar [unique, not null]
+
+  vat_number varchar [unique, not null]
+  legal_name varchar [not null]
+
+  platform_status varchar [not null, default: 'onboarding', note: 'onboarding, active, churned']
+
+  stripe_connect_account_id varchar
+  stripe_connect_status varchar [note: 'pending, active, restricted, disabled']
+
+  logo_url varchar
+  email varchar [not null]
+  phone varchar
+
+  last_activity_at timestamp [note: 'Aggiornato ad ogni login staff']
+
+  created_at timestamp [not null, default: `now()`]
+  activated_at timestamp
+  updated_at timestamp
+}
+
+Table venues {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  name varchar [not null]
+
+  is_default boolean [not null, default: true]
+
+  address_street varchar [not null]
+  address_city varchar [not null]
+  address_province varchar [not null]
+  address_zip varchar [not null]
+  address_country varchar [not null, default: 'IT']
+  latitude decimal
+  longitude decimal
+
+  phone varchar
+  email varchar
+
+  timezone varchar [not null, default: 'Europe/Rome']
+  currency varchar [not null, default: 'EUR']
+
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    restaurant_id [name: 'idx_venues_restaurant']
+    (latitude, longitude) [name: 'idx_venues_geo']
+  }
+}
+
+Ref: venues.restaurant_id > restaurants.id
+
+Table rooms {
+  id uuid [pk]
+  venue_id uuid [not null]
+  name varchar [not null, note: 'Es. Sala interna, Dehors, Piano superiore']
+  display_order int [not null, default: 0]
+  is_active boolean [not null, default: true]
+  furniture_layout json [note: 'Mappa arredi: muri, colonne, cucina, bagno con posizioni']
+  created_at timestamp [not null, default: `now()`]
+}
+
+Ref: rooms.venue_id > venues.id
+
+Table venue_hours {
+  id uuid [pk]
+  venue_id uuid [not null]
+  day_of_week int [not null, note: '0=lunedi, 6=domenica']
+  open_time time [not null]
+  close_time time [not null]
+  is_closed boolean [not null, default: false]
+
+  indexes {
+    (venue_id, day_of_week) [name: 'idx_venue_hours_day']
+  }
+}
+
+Ref: venue_hours.venue_id > venues.id
+
+Table venue_settings {
+  id uuid [pk]
+  venue_id uuid [unique, not null]
+
+  validate_external_orders boolean [not null, default: false]
+  kitchen_mode varchar [not null, default: 'kds', note: 'kds, printer, both']
+  payment_methods_enabled json [not null, default: '["card_terminal","cash"]']
+
+  service_charge_enabled boolean [not null, default: false]
+  service_charge_percentage decimal
+
+  auto_print_receipt boolean [not null, default: false]
+
+  no_order_warn_min int [not null, default: 15]
+  no_order_alert_min int [not null, default: 25]
+  overstay_min int [not null, default: 90]
+  old_bill_hours int [not null, default: 3]
+
+  default_reservation_duration_min int [not null, default: 90]
+  auto_assign_table boolean [not null, default: false]
+  no_show_timeout_min int [not null, default: 15]
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+}
+
+Ref: venue_settings.venue_id > venues.id
+
+// ─── UTENTI ────────────────────────────────────────────────
+
+Table users {
+  id uuid [pk]
+  email varchar [unique, not null]
+  password_hash varchar [not null]
+  type varchar [not null, note: 'staff, consumer, admin']
+
+  first_name varchar [not null]
+  last_name varchar [not null]
+
+  phone varchar
+  avatar_url varchar
+  codice_fiscale varchar [note: 'Codice fiscale del titolare']
+  pec varchar [note: 'PEC del titolare']
+
+  email_verified boolean [not null, default: false]
+  email_verified_at timestamp
+
+  is_active boolean [not null, default: true]
+  last_login_at timestamp
+  deleted_at timestamp [note: 'Soft delete GDPR']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    email [unique, name: 'idx_users_email']
+    type [name: 'idx_users_type']
+  }
+}
+
+Table user_social_logins {
+  id uuid [pk]
+  user_id uuid [not null]
+  provider varchar [not null, note: 'google, apple']
+  provider_user_id varchar [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (provider, provider_user_id) [unique, name: 'idx_social_provider_user']
+    user_id [name: 'idx_social_user']
+  }
+}
+
+Ref: user_social_logins.user_id > users.id
+
+Table user_2fa {
+  id uuid [pk]
+  user_id uuid [unique, not null]
+  secret varchar [not null]
+  is_enabled boolean [not null, default: false]
+  recovery_codes json
+  enabled_at timestamp
+}
+
+Ref: user_2fa.user_id > users.id
+
+// ─── SESSIONI ──────────────────────────────────────────────
+
+Table sessions {
+  id uuid [pk]
+  user_id uuid [not null]
+  device_id uuid [note: 'FK devices, se sessione da dispositivo registrato']
+
+  token_hash varchar [not null]
+  device_info json
+  ip_address varchar
+
+  is_active boolean [not null, default: true]
+  expires_at timestamp [not null]
+  last_activity_at timestamp [not null]
+
+  created_at timestamp [not null, default: `now()`]
+  revoked_at timestamp
+
+  indexes {
+    user_id [name: 'idx_sessions_user']
+    token_hash [name: 'idx_sessions_token']
+    (user_id, is_active) [name: 'idx_sessions_active']
+  }
+}
+
+Ref: sessions.user_id > users.id
+Ref: sessions.device_id > devices.id
+
+// ─── MEMBERSHIP E RUOLI ────────────────────────────────────
+
+Table roles {
+  id uuid [pk]
+  restaurant_id uuid [note: 'NULL per ruoli di default di sistema']
+  name varchar [not null, note: 'titolare, cameriere, cassa, o custom']
+  is_system boolean [not null, default: false]
+  permissions json [not null, note: 'Permessi per area: panoramica, sala, cucina, app, statistiche, contabilita, supporto, impostazioni']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (restaurant_id, name) [unique, name: 'idx_roles_restaurant_name']
+  }
+}
+
+Ref: roles.restaurant_id > restaurants.id
+
+Table memberships {
+  id uuid [pk]
+  user_id uuid [not null]
+  restaurant_id uuid [not null]
+  venue_id uuid [note: 'NULL = accesso a tutte le sedi']
+  role_id uuid [not null]
+
+  is_active boolean [not null, default: true]
+  invited_by uuid
+  dashboard_config json [note: 'Layout widget dashboard personalizzato']
+
+  invited_at timestamp
+  accepted_at timestamp
+  deactivated_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, restaurant_id) [unique, name: 'idx_memberships_user_restaurant']
+    restaurant_id [name: 'idx_memberships_restaurant']
+    user_id [name: 'idx_memberships_user']
+  }
+}
+
+Ref: memberships.user_id > users.id
+Ref: memberships.restaurant_id > restaurants.id
+Ref: memberships.venue_id > venues.id
+Ref: memberships.role_id > roles.id
+Ref: memberships.invited_by > users.id
+
+Table invitations {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  role_id uuid [not null]
+  email varchar [not null]
+  token varchar [unique, not null]
+  status varchar [not null, default: 'pending', note: 'pending, accepted, expired, revoked']
+  invited_by uuid [not null]
+  expires_at timestamp [not null]
+  accepted_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    token [unique, name: 'idx_invitations_token']
+    (restaurant_id, email) [name: 'idx_invitations_restaurant_email']
+  }
+}
+
+Ref: invitations.restaurant_id > restaurants.id
+Ref: invitations.role_id > roles.id
+Ref: invitations.invited_by > users.id
+
+// ─── DISPOSITIVI ───────────────────────────────────────────
+
+Table devices {
+  id uuid [pk]
+  venue_id uuid [not null]
+
+  type varchar [not null, note: 'tablet, kds, pos_terminal']
+  name varchar [not null]
+  device_model varchar
+  device_identifier varchar
+
+  username varchar [unique, note: 'Solo per KDS, es. PG1-cucina. NULL per POS']
+  password_hash varchar [note: 'Solo per KDS']
+
+  assigned_operator uuid [note: 'FK users, per POS registrati automaticamente']
+
+  is_active boolean [not null, default: true]
+  last_seen_at timestamp
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    venue_id [name: 'idx_devices_venue']
+    (venue_id, type) [name: 'idx_devices_venue_type']
+  }
+}
+
+Ref: devices.venue_id > venues.id
+Ref: devices.assigned_operator > users.id
+
+// ─── ADMIN PIATTAFORMA ────────────────────────────────────
+
+Table admin_roles {
+  id uuid [pk]
+  name varchar [unique, not null, note: 'superadmin, support, commercial, marketing']
+  permissions json [not null]
+}
+
+Table admin_memberships {
+  id uuid [pk]
+  user_id uuid [unique, not null]
+  admin_role_id uuid [not null]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+}
+
+Ref: admin_memberships.user_id > users.id
+Ref: admin_memberships.admin_role_id > admin_roles.id
+
+// ─── ONBOARDING ────────────────────────────────────────────
+
+Table onboarding_progress {
+  id uuid [pk]
+  restaurant_id uuid [unique, not null]
+
+  step_menu_upload varchar [not null, default: 'pending']
+  step_ai_processing varchar [not null, default: 'pending']
+  step_fiscal_setup varchar [not null, default: 'pending']
+  step_stripe_connect varchar [not null, default: 'pending']
+  step_rooms_tables varchar [not null, default: 'pending']
+  step_go_live varchar [not null, default: 'pending']
+
+  menu_source_type varchar [note: 'photo, document, pdf, url']
+  menu_source_url varchar
+  website_url varchar
+
+  ai_extraction_result json
+  ai_extraction_reviewed boolean [not null, default: false]
+
+  fiscal_credentials_provided boolean [not null, default: false]
+  fiscal_validation_status varchar
+
+  started_at timestamp [not null, default: `now()`]
+  completed_at timestamp
+}
+
+Ref: onboarding_progress.restaurant_id > restaurants.id
+
+// ─── DATI FISCALI TENANT ──────────────────────────────────
+
+Table restaurant_fiscal_data {
+  id uuid [pk]
+  restaurant_id uuid [unique, not null]
+
+  vat_number varchar [not null]
+  legal_name varchar [not null]
+  insegna varchar [note: 'Nome stampato sullo scontrino']
+
+  regime_fiscale varchar [note: 'ordinario, forfettario, semplificato']
+  codice_ateco varchar
+  rea_number varchar
+  cciaa varchar
+  capitale_sociale decimal
+  socio_unico boolean
+  in_liquidazione boolean
+
+  fiscal_address varchar [not null]
+  fiscal_city varchar [not null]
+  fiscal_province varchar [not null]
+  fiscal_zip varchar [not null]
+
+  codice_sdi varchar
+  pec varchar
+  iban varchar
+  bic_swift varchar
+  bank_name varchar
+
+  openapi_channel_configured boolean [not null, default: false]
+  openapi_channel_status varchar [note: 'active, suspended, error']
+  openapi_validation_date timestamp
+}
+
+Ref: restaurant_fiscal_data.restaurant_id > restaurants.id

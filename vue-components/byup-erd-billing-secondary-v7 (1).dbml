@@ -1,0 +1,567 @@
+// Byup Fresh — ERD Billing e Entita Secondarie
+// Versione 0.7 — Maggio 2026
+
+// ─── ENTITA DI CONTESTO ────────────────────────────────────
+
+Table restaurants {
+  id uuid [pk]
+  name varchar [not null]
+  note: 'Da aggregato Tenant.'
+}
+
+Table venues {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  note: 'Da aggregato Tenant.'
+}
+
+Ref: venues.restaurant_id > restaurants.id
+
+Table users {
+  id uuid [pk]
+  email varchar [unique]
+  type varchar [not null]
+  note: 'Da aggregato Identita.'
+}
+
+Table tables {
+  id uuid [pk]
+  room_id uuid [not null]
+  note: 'Da aggregato Tenant.'
+}
+
+// ─── PIANI TARIFFARI ───────────────────────────────────────
+
+Table plans {
+  id uuid [pk]
+  name varchar [unique, not null, note: 'free, starter, plus, business']
+  display_name varchar [not null]
+
+  monthly_price decimal [not null, note: 'EUR + IVA, 0 per Free']
+  included_transactions int [not null, note: '550, 1850, 7500, 15000']
+  extra_transaction_price decimal [not null, note: 'EUR + IVA: 0.45, 0.34, 0.23, 0.12']
+
+  max_menus int [note: 'NULL = illimitato. Free=1, Starter=3']
+  max_staff_members int [note: 'NULL = illimitato. Conteggio combinato con devices nell MVP']
+  max_devices int [note: 'NULL = illimitato. Conteggio combinato con staff nell MVP']
+  support_tier varchar [not null, note: 'basic, phone_24h, priority']
+
+  is_active boolean [not null, default: true]
+  display_order int [not null, default: 0]
+  stripe_price_id varchar
+  created_at timestamp [not null, default: `now()`]
+}
+
+// ─── ADD-ON (predisposti, non attivi nell MVP) ─────────────
+
+Table add_ons {
+  id uuid [pk]
+  name varchar [unique, not null, note: 'delivery_integration, api_third_party']
+  description text
+  monthly_price decimal [not null]
+  stripe_price_id varchar
+  is_active boolean [not null, default: false, note: 'false nell MVP']
+  created_at timestamp [not null, default: `now()`]
+
+  note: 'Predisposti nel database ma non esposti nell interfaccia nell MVP.'
+}
+
+// ─── ABBONAMENTI ───────────────────────────────────────────
+
+Table subscriptions {
+  id uuid [pk]
+  restaurant_id uuid [unique, not null]
+  plan_id uuid [not null]
+
+  activation_mode varchar [not null, note: 'stripe_billing o manual_backoffice']
+  status varchar [not null, default: 'active', note: 'active, past_due, canceled, suspended']
+
+  stripe_subscription_id varchar
+  stripe_customer_id varchar
+
+  current_period_start timestamp [not null]
+  current_period_end timestamp [not null]
+  trial_end timestamp
+
+  canceled_at timestamp
+  cancel_reason text
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    restaurant_id [unique, name: 'idx_subscriptions_restaurant']
+    status [name: 'idx_subscriptions_status']
+  }
+}
+
+Ref: subscriptions.restaurant_id > restaurants.id
+Ref: subscriptions.plan_id > plans.id
+
+Table subscription_add_ons {
+  id uuid [pk]
+  subscription_id uuid [not null]
+  add_on_id uuid [not null]
+  status varchar [not null, default: 'active', note: 'active, canceled']
+  activated_at timestamp [not null, default: `now()`]
+  canceled_at timestamp
+
+  note: 'Predisposta, non utilizzata nell MVP.'
+}
+
+Ref: subscription_add_ons.subscription_id > subscriptions.id
+Ref: subscription_add_ons.add_on_id > add_ons.id
+
+// ─── CONTEGGIO TRANSAZIONI ─────────────────────────────────
+
+Table subscription_usage {
+  id uuid [pk]
+  subscription_id uuid [not null]
+  restaurant_id uuid [not null]
+
+  period_start timestamp [not null]
+  period_end timestamp [not null]
+
+  weighted_count decimal [not null, default: 0]
+  raw_count int [not null, default: 0]
+  included_limit int [not null]
+  extra_count decimal [not null, default: 0]
+  extra_unit_price decimal [not null]
+  pack_credits decimal [not null, default: 0, note: 'Crediti da pacchetti prepagati']
+
+  extra_billed boolean [not null, default: false]
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (subscription_id, period_start) [unique, name: 'idx_usage_subscription_period']
+    restaurant_id [name: 'idx_usage_restaurant']
+  }
+}
+
+Ref: subscription_usage.subscription_id > subscriptions.id
+Ref: subscription_usage.restaurant_id > restaurants.id
+
+Table subscription_usage_log {
+  id uuid [pk]
+  usage_id uuid [not null]
+  order_id uuid [unique, not null]
+  source_surface varchar [not null]
+  weight decimal [not null]
+  recorded_at timestamp [not null, default: `now()`]
+
+  indexes {
+    usage_id [name: 'idx_usage_log_usage']
+  }
+
+  note: 'Singola transazione nel conteggio. Append-only.'
+}
+
+Ref: subscription_usage_log.usage_id > subscription_usage.id
+
+Table subscription_changes {
+  id uuid [pk]
+  subscription_id uuid [not null]
+  old_plan_id uuid [not null]
+  new_plan_id uuid [not null]
+  change_type varchar [not null, note: 'upgrade, downgrade, cancel']
+  effective_at timestamp [not null]
+  initiated_by uuid
+  created_at timestamp [not null, default: `now()`]
+}
+
+Ref: subscription_changes.subscription_id > subscriptions.id
+
+// ─── PACCHETTI ORDINI EXTRA ────────────────────────────────
+
+Table order_packs {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  pack_name varchar [not null]
+  credits_total int [not null]
+  credits_remaining decimal [not null]
+  price_paid decimal [not null, note: '0 per pacchetti gratuiti da admin']
+  stripe_payment_intent_id varchar
+  status varchar [not null, default: 'active', note: 'active, exhausted, expired']
+  purchased_at timestamp [not null, default: `now()`]
+  expires_at timestamp
+}
+
+Ref: order_packs.restaurant_id > restaurants.id
+
+// ─── FATTURE PIATTAFORMA ───────────────────────────────────
+
+Table platform_invoices {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  subscription_id uuid [not null]
+
+  invoice_type varchar [not null, note: 'subscription_recurring o extra_transactions']
+  amount decimal [not null]
+  vat_amount decimal [not null]
+  total decimal [not null]
+
+  stripe_invoice_id varchar
+  status varchar [not null, default: 'pending', note: 'pending, paid, failed, voided']
+
+  period_start timestamp
+  period_end timestamp
+  issued_at timestamp [not null, default: `now()`]
+  paid_at timestamp
+
+  indexes {
+    restaurant_id [name: 'idx_platform_invoices_restaurant']
+    subscription_id [name: 'idx_platform_invoices_subscription']
+  }
+}
+
+Ref: platform_invoices.restaurant_id > restaurants.id
+Ref: platform_invoices.subscription_id > subscriptions.id
+
+// ─── CONTABILITA ───────────────────────────────────────────
+
+Table cost_entries {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  venue_id uuid [not null]
+
+  name varchar [not null]
+  category varchar [not null, note: 'affitti, personale, materie, servizi, altro']
+  amount decimal [not null]
+  supplier varchar
+  recurrence_type varchar [not null, note: 'one_off, weekly, biweekly, monthly, bimonthly, quarterly, annual']
+  due_date date
+  status varchar [not null, default: 'due', note: 'paid, due, overdue']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    restaurant_id [name: 'idx_cost_entries_restaurant']
+  }
+}
+
+Ref: cost_entries.restaurant_id > restaurants.id
+Ref: cost_entries.venue_id > venues.id
+
+Table cash_register_sessions {
+  id uuid [pk]
+  venue_id uuid [not null]
+  opened_by uuid [not null]
+  closed_by uuid
+
+  opening_balance decimal [not null]
+  closing_balance decimal
+  status varchar [not null, default: 'open', note: 'open, closed']
+
+  opened_at timestamp [not null, default: `now()`]
+  closed_at timestamp
+
+  indexes {
+    venue_id [name: 'idx_cash_register_venue']
+  }
+}
+
+Ref: cash_register_sessions.venue_id > venues.id
+
+// ─── PRENOTAZIONI ──────────────────────────────────────────
+
+Table reservations {
+  id uuid [pk]
+  venue_id uuid [not null]
+  restaurant_id uuid [not null]
+
+  guest_name varchar [not null]
+  guest_phone varchar
+  guest_email varchar
+  party_size int [not null]
+  notes text
+
+  table_id uuid
+  source varchar [not null, default: 'staff', note: 'staff (solo nell MVP)']
+
+  reservation_date date [not null]
+  reservation_time time [not null]
+
+  status varchar [not null, default: 'confirmed', note: 'confirmed, arrived, completed, no_show, canceled']
+
+  created_by uuid
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (venue_id, reservation_date) [name: 'idx_reservations_venue_date']
+    status [name: 'idx_reservations_status']
+  }
+}
+
+Ref: reservations.venue_id > venues.id
+Ref: reservations.restaurant_id > restaurants.id
+Ref: reservations.table_id > tables.id
+
+// ─── NOTIFICHE ─────────────────────────────────────────────
+
+Table notifications {
+  id uuid [pk]
+  recipient_id uuid [not null]
+  recipient_type varchar [not null, note: 'staff, consumer, admin']
+
+  channel varchar [not null, note: 'push, email, in_app, websocket']
+  category varchar [not null, note: 'order_update, payment_result, kitchen_ready, onboarding, system']
+
+  title varchar [not null]
+  body text [not null]
+  data json
+
+  is_read boolean [not null, default: false]
+  read_at timestamp
+
+  delivery_status varchar [not null, default: 'pending', note: 'pending, sent, delivered, failed']
+  sent_at timestamp
+  failure_reason varchar
+
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (recipient_id, is_read) [name: 'idx_notifications_recipient_read']
+    (recipient_id, created_at) [name: 'idx_notifications_recipient_date']
+  }
+}
+
+Ref: notifications.recipient_id > users.id
+
+Table push_device_tokens {
+  id uuid [pk]
+  user_id uuid [not null]
+  platform varchar [not null, note: 'ios, android']
+  token varchar [unique, not null]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    user_id [name: 'idx_push_tokens_user']
+  }
+}
+
+Ref: push_device_tokens.user_id > users.id
+
+// ─── FEED POSTA ────────────────────────────────────────────
+
+Table feed_posts {
+  id uuid [pk]
+  restaurant_id uuid [note: 'NULL per post Byup generici, valorizzato per promo di un locale']
+
+  title varchar [not null]
+  body text [not null]
+  post_type varchar [not null, note: 'news, promotion']
+  image_url varchar
+
+  is_published boolean [not null, default: false]
+  published_at timestamp [note: 'Se nel futuro, il post non e visibile fino a quella data']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  note: 'Tutti i post sono creati dal team Byup dal backoffice. I ristoratori non pubblicano direttamente nell MVP.'
+}
+
+Ref: feed_posts.restaurant_id > restaurants.id
+
+// ─── RECENSIONI ────────────────────────────────────────────
+
+Table reviews {
+  id uuid [pk]
+  user_id uuid [not null]
+  restaurant_id uuid [not null]
+  venue_id uuid [not null]
+
+  rating int [not null, note: '1-5']
+  comment text
+  order_id uuid [note: 'Ordine che ha generato la possibilita di recensire']
+
+  is_visible boolean [not null, default: true]
+  deleted_at timestamp [note: 'Soft delete GDPR']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (user_id, order_id) [unique, name: 'idx_reviews_user_order']
+    restaurant_id [name: 'idx_reviews_restaurant']
+  }
+
+  note: 'Il consumer puo recensire dopo fiscally_closed. Modifica entro 48 ore. avg_rating cachato su venue_profiles.'
+}
+
+Ref: reviews.user_id > users.id
+Ref: reviews.restaurant_id > restaurants.id
+Ref: reviews.venue_id > venues.id
+
+// ─── AUDIT ─────────────────────────────────────────────────
+
+Table audit_events {
+  id uuid [pk]
+  restaurant_id uuid [note: 'NULL per eventi piattaforma']
+
+  actor_type varchar [not null, note: 'user, device, system']
+  actor_id uuid [not null]
+
+  action varchar [not null]
+  entity_type varchar
+  entity_id uuid
+
+  old_value json
+  new_value json
+  context json
+
+  ip_address varchar
+  device_info varchar
+
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (restaurant_id, created_at) [name: 'idx_audit_tenant_date']
+    (actor_type, actor_id) [name: 'idx_audit_actor']
+    action [name: 'idx_audit_action']
+  }
+
+  note: 'Log immutabile. Conservato 5 anni. Non modificabile ne cancellabile.'
+}
+
+// ─── SUPPORTO ──────────────────────────────────────────────
+
+Table support_tickets {
+  id uuid [pk]
+  restaurant_id uuid [not null]
+  created_by uuid [not null]
+
+  subject varchar [not null]
+  category varchar [not null, note: 'bug, assistance, feedback, feature_request']
+  priority varchar [not null, default: 'normal', note: 'low, normal, high, urgent']
+
+  status varchar [not null, default: 'open', note: 'open, in_progress, resolved, closed']
+
+  assigned_to uuid
+  resolved_at timestamp
+  closed_at timestamp
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    restaurant_id [name: 'idx_tickets_restaurant']
+    status [name: 'idx_tickets_status']
+  }
+}
+
+Ref: support_tickets.restaurant_id > restaurants.id
+Ref: support_tickets.created_by > users.id
+
+Table support_ticket_messages {
+  id uuid [pk]
+  ticket_id uuid [not null]
+  sender_id uuid [not null]
+  sender_type varchar [not null, note: 'restaurant_staff, byup_admin']
+  body text [not null]
+  attachments json
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    ticket_id [name: 'idx_ticket_messages_ticket']
+  }
+}
+
+Ref: support_ticket_messages.ticket_id > support_tickets.id
+Ref: support_ticket_messages.sender_id > users.id
+
+// ─── CONSUMER ──────────────────────────────────────────────
+
+Table consumer_profiles {
+  id uuid [pk]
+  user_id uuid [unique, not null]
+
+  date_of_birth date
+  gender varchar
+
+  dietary_preferences json [note: 'Tag da promuovere: ["vegano", "senza_lattosio"]']
+  allergen_alerts json [note: 'Codici allergeni da escludere: ["gluten", "milk"]']
+
+  notification_preferences json
+  consent_data json [note: 'GDPR: {"marketing": {"granted": true, "at": "..."}, "profiling": {...}}']
+
+  deleted_at timestamp [note: 'Soft delete GDPR']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+}
+
+Ref: consumer_profiles.user_id > users.id
+
+Table consumer_favorites {
+  id uuid [pk]
+  user_id uuid [not null]
+  restaurant_id uuid [not null]
+  deleted_at timestamp [note: 'Soft delete GDPR']
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, restaurant_id) [unique, name: 'idx_favorites_user_restaurant']
+  }
+}
+
+Ref: consumer_favorites.user_id > users.id
+Ref: consumer_favorites.restaurant_id > restaurants.id
+
+Table consumer_payment_methods {
+  id uuid [pk]
+  user_id uuid [not null]
+
+  stripe_payment_method_id varchar [not null]
+  card_brand varchar
+  card_last4 varchar
+  is_default boolean [not null, default: false]
+  deleted_at timestamp [note: 'Soft delete GDPR']
+
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    user_id [name: 'idx_consumer_pm_user']
+  }
+
+  note: 'Solo token Stripe. Nessun dato carta transita per Byup.'
+}
+
+Ref: consumer_payment_methods.user_id > users.id
+
+// ─── VETRINA ───────────────────────────────────────────────
+
+Table venue_profiles {
+  id uuid [pk]
+  venue_id uuid [unique, not null]
+
+  description text
+  short_description varchar
+  cuisine_types json [note: 'pizza, cocktail, burger, sushi']
+  venue_category varchar [note: 'ristorante, pizzeria, cocktail_bar, pub, hamburgeria, bistrot, gelateria, gastronomia, food_truck, pasticceria']
+  tags json [note: 'Tag atmosfera: Elegante, Tradizionale, Forno a legna']
+  price_range varchar [note: 'budget, moderate, premium']
+
+  avg_rating decimal [note: 'Media cachata dai reviews']
+  reviews_count int [not null, default: 0]
+
+  social_instagram varchar
+  social_facebook varchar
+  social_tiktok varchar
+  website_url varchar
+
+  cover_image_url varchar
+  gallery_urls json
+
+  is_visible_in_discovery boolean [not null, default: true]
+
+  updated_at timestamp
+}
+
+Ref: venue_profiles.venue_id > venues.id
