@@ -87,7 +87,8 @@ function SalaVenditaDiretta() {
       {/* === GRID PIATTI === */}
       <section style={{
         background: PN.WHITE, borderRadius: 14,
-        border: `1px solid ${PN.BORDER_SOFT}`,
+        border: `1px solid ${PN.BORDER_HAIR}`,
+        boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
         display:'flex', flexDirection:'column', minHeight: 0, overflow:'hidden',
       }}>
         {/* Sticky header */}
@@ -105,9 +106,10 @@ function SalaVenditaDiretta() {
               placeholder="Cerca un piatto…"
               style={{
                 width:'100%', padding: '10px 14px 10px 36px',
-                borderRadius: 10, border: `1px solid ${PN.BORDER}`,
+                borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
                 fontSize: 14, fontFamily:'inherit', outline:'none',
                 background: '#FAFBFC',
+                boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
               }}/>
           </div>
           <div style={{display:'flex', gap: 6, paddingBottom: 12, overflowX:'auto'}}>
@@ -116,11 +118,15 @@ function SalaVenditaDiretta() {
               return (
                 <button key={c} onClick={() => setCat(c)} style={{
                   padding: '7px 14px', borderRadius: 999,
-                  border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
-                  background: on ? PN.TEXT : PN.WHITE,
+                  border: `1px solid ${on ? 'rgba(0,0,0,0.32)' : PN.BORDER_LIGHT}`,
+                  background: on ? PN.BTN_DARK : PN.BTN_NEUTRAL,
                   color: on ? PN.WHITE : PN.TEXT,
                   fontSize: 12.5, fontWeight: 600, cursor:'pointer',
                   fontFamily:'inherit', whiteSpace:'nowrap',
+                  boxShadow: on
+                    ? `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.14)`
+                    : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+                  transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out',
                 }}>
                   {c}
                 </button>
@@ -139,7 +145,13 @@ function SalaVenditaDiretta() {
         }}>
           {piatti.length === 0 && (
             <div style={{gridColumn:'1/-1', padding: 60, textAlign:'center', color: PN.MUTED, fontSize: 13.5}}>
-              <div style={{fontSize: 32, marginBottom: 8, opacity: 0.5}}>🔍</div>
+              <div style={{
+                width: 44, height: 44, borderRadius: '50%', margin: '0 auto 10px',
+                background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </div>
               Nessun piatto trovato
             </div>
           )}
@@ -207,16 +219,19 @@ function SaPiattoCard({ p, qtyInCart, customizable, onCardClick, onQuickAdd }) {
       onClick={onCardClick}
       style={{
         background: PN.WHITE, borderRadius: 12,
-        border: `1px solid ${inCart ? PN.PINK : PN.BORDER_SOFT}`,
+        border: `1px solid ${inCart ? PN.PINK : PN.BORDER_SOFT_A}`,
         cursor:'pointer',
-        transition:'transform .12s, border-color .12s, box-shadow .12s',
+        transition:'transform 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out',
         position:'relative',
         display:'block',
         overflow:'hidden',
         alignSelf:'start',
+        boxShadow: inCart
+          ? '0 4px 14px rgba(255,90,95,0.14), 0 1px 2px rgba(15,17,21,0.04)'
+          : '0 1px 2px rgba(15,17,21,0.05)',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(15,17,21,0.09), 0 1px 2px rgba(15,17,21,0.04)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = inCart ? '0 4px 14px rgba(255,90,95,0.14), 0 1px 2px rgba(15,17,21,0.04)' : '0 1px 2px rgba(15,17,21,0.05)'; }}
     >
       {/* Image */}
       <div style={{
@@ -235,7 +250,7 @@ function SaPiattoCard({ p, qtyInCart, customizable, onCardClick, onQuickAdd }) {
           <div style={{
             width:'100%', height:'100%',
             display:'grid', placeItems:'center',
-            color: cat.color, fontSize: 30, fontWeight: 800,
+            color: cat.color, fontSize: 30, fontWeight: 700,
             background: cat.bg,
           }}>{p.name.charAt(0)}</div>
         )}
@@ -246,7 +261,7 @@ function SaPiattoCard({ p, qtyInCart, customizable, onCardClick, onQuickAdd }) {
             position:'absolute', top: 8, left: 8,
             background: PN.PINK_DARK, color: PN.WHITE,
             padding:'3px 9px', borderRadius: 999,
-            fontSize: 11, fontWeight: 800,
+            fontSize: 11, fontWeight: 700,
             boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
           }}>×{qtyInCart}</div>
         )}
@@ -278,16 +293,18 @@ function SaPiattoCard({ p, qtyInCart, customizable, onCardClick, onQuickAdd }) {
           display:'flex', alignItems:'center', justifyContent:'space-between',
           marginTop: 6, gap: 8,
         }}>
-          <span style={{fontSize: 14, fontWeight: 800, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
+          <span style={{fontSize: 14, fontWeight: 700, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
           <button
             onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
             aria-label="Aggiungi al conto"
             style={{
               width: 30, height: 30, borderRadius: 8,
-              background: PN.TEXT, color: PN.WHITE, border:'none',
+              background: PN.BTN_DARK, color: PN.WHITE,
+              border:'1px solid rgba(0,0,0,0.32)',
               fontSize: 16, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit', display:'grid', placeItems:'center', lineHeight: 1,
               flexShrink: 0,
+              boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.14)`,
             }}>+</button>
         </div>
       </div>
@@ -350,6 +367,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
         background: PN.WHITE, borderRadius: 16,
         width: 480, maxWidth:'100%', maxHeight:'88vh',
         display:'flex', flexDirection:'column', overflow:'hidden',
+        boxShadow: '0 32px 80px rgba(15,17,21,0.24), 0 2px 6px rgba(15,17,21,0.08)',
       }}>
         {/* Header con immagine */}
         <div style={{position:'relative', height: 140, background: '#F4F5F7'}}>
@@ -369,7 +387,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
         <div style={{padding: '14px 20px 0'}}>
           <div style={{fontSize: 10, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform:'uppercase'}}>{piatto.cat}</div>
           <div style={{display:'flex', alignItems:'baseline', gap: 10, marginTop: 2}}>
-            <span style={{fontSize: 19, fontWeight: 800, color: PN.TEXT}}>{piatto.name}</span>
+            <span style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>{piatto.name}</span>
             <span style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, marginLeft:'auto'}}>€{piatto.price.toFixed(2)}</span>
           </div>
         </div>
@@ -485,7 +503,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
               border: `1px solid ${PN.BORDER}`, fontSize: 15, fontWeight: 700,
               cursor:'pointer', fontFamily:'inherit',
             }}>−</button>
-            <span style={{minWidth: 22, textAlign:'center', fontSize: 15, fontWeight: 800}}>{qty}</span>
+            <span style={{minWidth: 22, textAlign:'center', fontSize: 15, fontWeight: 700}}>{qty}</span>
             <button onClick={() => setQty(qty + 1)} style={{
               width: 34, height: 34, borderRadius:'50%',
               background: PN.WHITE, color: PN.TEXT,
@@ -499,12 +517,15 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
             style={{
               flex: 1,
               padding: '12px 18px', borderRadius: 999,
-              background: requiredOk ? PN.TEXT : '#D1D5DB',
-              color: PN.WHITE, border:'none',
+              background: requiredOk ? PN.BTN_DARK : PN.WHITE_FROST,
+              color: requiredOk ? PN.WHITE : PN.MUTED_SOFT,
+              border: requiredOk ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
               fontSize: 13.5, fontWeight: 700,
               cursor: requiredOk ? 'pointer' : 'not-allowed',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
+              boxShadow: requiredOk ? `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)` : 'none',
+              transition: 'background 150ms ease-out',
             }}>
             <span>{initialMods != null || initialQty ? 'Aggiorna' : 'Aggiungi'}</span>
             <span style={{fontSize: 13.5, fontWeight: 700}}>€{(lineTotal * qty).toFixed(2)}</span>
@@ -523,7 +544,8 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
   return (
     <aside style={{
       background: PN.WHITE, borderRadius: 14,
-      border: `1px solid ${PN.BORDER_SOFT}`,
+      border: `1px solid ${PN.BORDER_HAIR}`,
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
       display:'flex', flexDirection:'column', minHeight: 0, overflow:'hidden',
     }}>
       {/* Header */}
@@ -578,7 +600,13 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             textAlign:'center', padding: '40px 20px',
             color: PN.MUTED,
           }}>
-            <div style={{fontSize: 36, marginBottom: 10, opacity: 0.4}}>🛒</div>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%', margin: '0 auto 12px',
+              background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
+              display:'grid', placeItems:'center',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+            </div>
             <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Conto vuoto</div>
             <div style={{fontSize: 11.5, color: PN.MUTED, lineHeight: 1.5}}>Tocca un piatto per aggiungerlo<br/>o l'icona <strong>+</strong> per aggiungere veloce</div>
           </div>
@@ -599,7 +627,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
       }}>
         <div style={{
           display:'flex', justifyContent:'space-between',
-          fontSize: 16, fontWeight: 800, color: PN.TEXT,
+          fontSize: 16, fontWeight: 700, color: PN.TEXT,
           paddingBottom: 12,
         }}>
           <span>Totale</span><span>€{total.toFixed(2)}</span>
@@ -612,13 +640,18 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             style={{
               flex: 1,
               padding: '11px 16px', borderRadius: 999,
-              background: lines.length === 0 ? '#D1D5DB' : PN.TEXT,
-              color: PN.WHITE, border:'none',
+              background: lines.length === 0 ? PN.WHITE_FROST : PN.BTN_DARK,
+              color: lines.length === 0 ? PN.MUTED_SOFT : PN.WHITE,
+              border: lines.length === 0 ? `1px solid ${PN.BORDER_SOFT_A}` : '1px solid rgba(0,0,0,0.32)',
               fontSize: 13.5, fontWeight: 700,
               cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
-            }}>
+              boxShadow: lines.length === 0 ? 'none' : `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)`,
+              transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
+            }}
+            onMouseEnter={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+            onMouseLeave={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK; }}>
             <span>Procedi al pagamento</span>
             <span>€{total.toFixed(2)}</span>
           </button>
@@ -646,7 +679,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit }) {
       }}>
         {piatto.img
           ? <img src={piatto.img} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
-          : <span style={{fontSize: 18}}>{piatto.emoji || '🍽'}</span>}
+          : <span style={{fontSize: 16, fontWeight: 700, color: cat.color}}>{piatto.name.charAt(0)}</span>}
       </div>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
@@ -808,10 +841,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 <path d="M5 13 L9 17 L19 7"/>
               </svg>
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#0F1115', marginBottom: 4 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#0F1115', marginBottom: 4 }}>
               Pagamento incassato
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#0F1115', marginBottom: 6, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#0F1115', marginBottom: 6, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }}>
               €{confirmedTotal.toFixed(2)}
             </div>
             <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 24 }}>
@@ -832,7 +865,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
             }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10.5, color: '#6B7280', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 10.5, color: '#6B7280', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>
                   Pagamento
                 </div>
               </div>
@@ -861,11 +894,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   paddingBottom: 6, borderBottom: '1px solid #E5E7EB',
                 }}>
                   <span style={{
-                    fontSize: 11, fontWeight: 800, color: '#6B7280',
+                    fontSize: 11, fontWeight: 700, color: '#6B7280',
                     letterSpacing: 0.6, textTransform: 'uppercase', flex: 1,
                   }}>Totale</span>
                   <span style={{
-                    fontSize: 36, fontWeight: 800, color: '#0F1115',
+                    fontSize: 36, fontWeight: 700, color: '#0F1115',
                     letterSpacing: -1, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
                   }}>€{finalTotal.toFixed(2)}</span>
                 </div>
@@ -898,7 +931,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               {/* PAGAMENTO */}
               <div>
                 <div style={{
-                  fontSize: 10.5, fontWeight: 800, color: '#6B7280',
+                  fontSize: 10.5, fontWeight: 700, color: '#6B7280',
                   letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10,
                 }}>Come paga il cliente?</div>
 
@@ -937,13 +970,18 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 disabled={!canConfirm}
                 style={{
                   width: '100%', padding: '15px 16px', borderRadius: 10,
-                  background: canConfirm ? '#0F1115' : '#E5E7EB',
+                  background: canConfirm ? PN.BTN_DARK : PN.WHITE_FROST,
                   color: canConfirm ? '#fff' : '#9CA3AF',
-                  border: 'none', fontSize: 15, fontWeight: 800,
+                  border: canConfirm ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
+                  fontSize: 15, fontWeight: 700,
                   cursor: canConfirm ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit', letterSpacing: -0.2,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
+                  boxShadow: canConfirm ? `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)` : 'none',
+                  transition: 'background 150ms ease-out',
+                }}
+                onMouseEnter={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+                onMouseLeave={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK; }}>
                 {!canConfirm
                   ? (finalTotal === 0 ? 'Nessun articolo' : `Manca €${(finalTotal - paid).toFixed(2)}`)
                   : <>Conferma incasso <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>}

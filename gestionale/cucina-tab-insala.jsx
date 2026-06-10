@@ -290,11 +290,15 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
             {lateCount > 0 && (
               <button onClick={() => setOnlyLate(v => !v)} title="Filtra in ritardo" style={{
                 height: 36, minWidth: 36, padding: '0 10px', borderRadius: 8, flexShrink: 0,
-                background: onlyLate ? PN.RED : PN.WHITE,
-                border: `1px solid ${onlyLate ? PN.RED : 'rgba(0,0,0,0.18)'}`,
+                background: onlyLate ? 'linear-gradient(180deg, #E94343 0%, #DC2626 100%)' : PN.BTN_NEUTRAL,
+                border: `1px solid ${onlyLate ? 'rgba(124,14,14,0.40)' : 'rgba(220,38,38,0.35)'}`,
                 color: onlyLate ? PN.WHITE : PN.RED,
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
                 fontFamily: 'inherit',
+                boxShadow: onlyLate
+                  ? 'inset 0 1px 0 rgba(255,255,255,0.30), 0 1px 2px rgba(220,38,38,0.18)'
+                  : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+                transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
               }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13" stroke="white" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
                 <span style={{fontSize: 15, fontWeight: 700, lineHeight: 1}}>{lateCount}</span>
@@ -303,10 +307,12 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
           </div>
           <button onClick={onToggleFocus} title={focus ? 'Esci (Esc)' : 'Schermo intero'} style={{
             width: 36, height: 36, borderRadius: 8,
-            background: focus ? PN.TEXT : PN.WHITE,
-            border: `1px solid ${focus ? PN.TEXT : PN.BORDER}`,
+            background: focus ? PN.BTN_DARK : PN.BTN_NEUTRAL,
+            border: `1px solid ${focus ? 'rgba(0,0,0,0.32)' : PN.BORDER_LIGHT}`,
             color: focus ? PN.WHITE : PN.TEXT,
             cursor:'pointer', display:'grid', placeItems:'center', fontFamily:'inherit',
+            boxShadow: focus ? PN.INSET_HIGHLIGHT_DARK : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+            transition: 'background 150ms ease-out',
           }}>{focus ? <ExitFullIcon/> : <EnterFullIcon/>}</button>
         </div>
 
@@ -393,18 +399,21 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 <path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/>
               </svg>
             </div>
-            <div style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, marginBottom: 6}}>Annullare il ticket?</div>
+            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Annullare il ticket?</div>
             <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5, marginBottom: 18}}>
               Stai per annullare <strong style={{color: PN.TEXT}}>{confirmCancel.label}</strong> ({confirmCancel.count} piatti). L'azione non è reversibile dalla cucina.
             </div>
             <div style={{display:'flex', gap: 10, justifyContent:'flex-end'}}>
               <button onClick={() => setConfirmCancel(null)} style={{
-                padding:'9px 16px', borderRadius: 999, background: PN.WHITE, color: PN.TEXT,
-                border: `1px solid ${PN.BORDER}`, fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                padding:'9px 16px', borderRadius: 999, background: PN.BTN_NEUTRAL, color: PN.TEXT,
+                border: `1px solid ${PN.BORDER_LIGHT}`, fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                boxShadow: PN.INSET_HIGHLIGHT,
               }}>Mantieni ticket</button>
               <button onClick={confirmCancelDo} style={{
-                padding:'9px 16px', borderRadius: 999, background: PN.RED, color: PN.WHITE,
-                border:'none', fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                padding:'9px 16px', borderRadius: 999,
+                background: 'linear-gradient(180deg, #E94343 0%, #DC2626 100%)', color: PN.WHITE,
+                border:'1px solid rgba(124, 14, 14, 0.40)', fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), 0 1px 2px rgba(220,38,38,0.18)',
               }}>Sì, annulla</button>
             </div>
           </div>
@@ -429,12 +438,12 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
       }}>
         <span style={{
           writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-          fontSize: 13, fontWeight: 800, color: PN.TEXT,
+          fontSize: 13, fontWeight: 700, color: PN.TEXT,
           letterSpacing: 0.6, textTransform: 'uppercase', whiteSpace: 'nowrap',
         }}>Pronti</span>
         <span style={{
           background: '#E5E7EB', color: '#374151',
-          fontSize: 14, fontWeight: 800,
+          fontSize: 14, fontWeight: 700,
           padding: '2px 8px', borderRadius: 999,
         }}>{tickets.length}</span>
       </div>
@@ -496,10 +505,11 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
       onDrop={e => { e.preventDefault(); onDrop && onDrop(); }}
       style={{
         background: PN.WHITE, borderRadius: 12,
-        border: `1.5px solid ${dragOver ? '#3B82F6' : 'rgba(0,0,0,0.10)'}`,
+        border: `1.5px solid ${dragOver ? '#3B82F6' : PN.BORDER_SOFT_A}`,
         overflow: 'hidden',
         opacity: dragging ? 0.4 : 1,
         cursor: 'grab',
+        boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.05)',
         transition: 'opacity 0.15s, border-color 0.15s',
       }}>
       <div style={{
@@ -556,18 +566,25 @@ function KdsColumn({ title, tone, toneSoft, count, empty, children, bg }) {
   return (
     <div style={{
       background: bg || PN.WHITE,
-      borderRadius: 12, padding: 14,
-      border: `3px solid ${tone}`,
-      boxShadow: '0 1px 0 rgba(15,17,21,0.04)',
+      borderRadius: 14, padding: 14,
+      border: `1px solid ${tone}40`,
+      borderTop: `3px solid ${tone}`,
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         marginBottom: 14, padding: '4px 4px',
       }}>
+        <span style={{
+          width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+          background: tone, boxShadow: `0 0 0 3px ${tone}24`,
+        }}/>
         <span style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em'}}>{title}</span>
         <span style={{
-          fontSize: 16, fontWeight: 700, color: tone,
+          fontSize: 15, fontWeight: 700, color: tone,
+          background: toneSoft, padding: '1px 9px', borderRadius: 999,
           fontVariantNumeric: 'tabular-nums',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
         }}>{count}</span>
       </div>
       {count === 0 ? (
@@ -683,11 +700,13 @@ const lateGlow = u.tone === 'late';
       onDrop={e => { e.preventDefault(); onDrop && onDrop(); }}
       style={{
         background: PN.WHITE, borderRadius: 14,
-        border: `2px solid ${dragOver ? '#3B82F6' : lateGlow ? PN.RED : 'rgba(0,0,0,0.32)'}`,
+        border: `2px solid ${dragOver ? '#3B82F6' : lateGlow ? PN.RED : 'transparent'}`,
+        outline: dragOver || lateGlow ? 'none' : `1px solid ${PN.BORDER_MED}`,
+        outlineOffset: -1,
         overflow: 'hidden',
         boxShadow: lateGlow
           ? `0 0 0 3px ${PN.RED}22, 0 8px 20px rgba(220, 38, 38, 0.10), 0 1px 2px rgba(15,17,21,0.04)`
-          : '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
+          : '0 1px 0 rgba(15,17,21,0.04), 0 8px 22px rgba(15,17,21,0.07)',
         animation: lateGlow ? 'kdsLatePulse 2s ease-in-out infinite' : 'none',
         opacity: dragging ? 0.4 : 1,
         cursor: 'grab',
@@ -706,12 +725,12 @@ const lateGlow = u.tone === 'late';
             <React.Fragment>
               <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 2}}>
                 <span style={{
-                  fontSize: 11.5, fontWeight: 800, padding:'2px 6px', borderRadius: 4,
+                  fontSize: 11.5, fontWeight: 700, padding:'2px 6px', borderRadius: 4,
                   background: kindBadge.bg, color: kindBadge.fg,
                   letterSpacing: 0.5, display:'inline-flex', alignItems:'center', gap: 3,
                 }}>{kindBadge.icon} {kindBadge.label}</span>
               </div>
-              <div style={{fontSize: 18, fontWeight: 800, color: PN.TEXT, lineHeight: 1.1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                 {ticket.customer}
               </div>
             </React.Fragment>
@@ -724,13 +743,14 @@ const lateGlow = u.tone === 'late';
         {hasTodo && (
           <button onClick={onPrimary} style={{
             padding: '7px 11px', borderRadius: 7, flexShrink: 0,
-            background: 'transparent', color: PN.MUTED,
-            border: '1px solid rgba(0,0,0,0.18)',
+            background: PN.BTN_NEUTRAL, color: PN.MUTED,
+            border: `1px solid ${PN.BORDER_LIGHT}`,
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            whiteSpace: 'nowrap', transition: 'color 0.12s, border-color 0.12s',
+            whiteSpace: 'nowrap', transition: 'color 0.12s, border-color 0.12s, background 150ms ease-out',
+            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.borderColor = PN.TEXT; }}
-          onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.18)'; }}
+          onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; e.currentTarget.style.borderColor = PN.BORDER_MED; }}
+          onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.background = PN.BTN_NEUTRAL; e.currentTarget.style.borderColor = PN.BORDER_LIGHT; }}
           >Inizia tutti</button>
         )}
         <div style={{
@@ -927,7 +947,7 @@ function KdsItemRow({ item, onBump, onRevert, disabled = false, selected = false
         {item.allergen && item.note && (
           <div style={{
             display:'inline-flex', alignItems:'center', gap: 4, marginBottom: 3,
-            fontSize: 13, fontWeight: 800, color: PN.WHITE,
+            fontSize: 13, fontWeight: 700, color: PN.WHITE,
             background: /glutin/i.test(item.note) ? '#EA580C' : PN.RED,
             padding:'2px 7px', borderRadius: 4, textTransform:'uppercase', letterSpacing: 0.4,
           }}>
@@ -1009,11 +1029,15 @@ function KdsFilterChip({ label, selected, defaultLabel, options, onChange }) {
       <button onClick={() => setOpen(o => !o)} style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: '7px 11px', borderRadius: 8, height: 36,
-        background: isActive ? PN.TEXT : PN.WHITE,
-        border: `1px solid ${isActive ? PN.TEXT : 'rgba(0,0,0,0.18)'}`,
+        background: isActive ? PN.BTN_DARK : PN.BTN_NEUTRAL,
+        border: `1px solid ${isActive ? 'rgba(0,0,0,0.32)' : PN.BORDER_LIGHT}`,
         color: isActive ? PN.WHITE : PN.TEXT,
         fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
         whiteSpace: 'nowrap',
+        boxShadow: isActive
+          ? `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.14)`
+          : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+        transition: 'background 150ms ease-out, color 150ms ease-out',
       }}>
         <span style={{fontSize: 13, fontWeight: 500, opacity: isActive ? 0.65 : 0.5}}>{label}:</span>
         <span>{displayValue}</span>

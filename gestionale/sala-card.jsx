@@ -208,7 +208,7 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               fontFamily:'inherit',
             }}>−</button>
-            <div style={{flex: 1, textAlign:'center', fontSize: 24, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{val}</div>
+            <div style={{flex: 1, textAlign:'center', fontSize: 24, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{val}</div>
             <button onClick={() => setVal(v => Math.min(max, v + 1))} disabled={val >= max} style={{
               width: 32, height: 32, borderRadius: 8,
               border:'1px solid #E5E7EB', background: val >= max ? '#FAFBFC' : '#FFFFFF',
@@ -220,8 +220,10 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
           </div>
           <button onClick={commit} style={{
             width:'100%', padding:'8px 12px', borderRadius: 8,
-            background:'#0F1115', color:'#fff', border:'none',
+            background: PN.BTN_DARK, color:'#fff',
+            border:'1px solid rgba(0,0,0,0.32)',
             fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            boxShadow: PN.INSET_HIGHLIGHT_DARK,
           }}>Salva</button>
         </div>
       )}
@@ -294,7 +296,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
                 background: '#6B7280', border: '2px solid #FFFFFF',
                 marginLeft: -overlap,
                 display:'inline-flex', alignItems:'center', justifyContent:'center',
-                color: '#FFFFFF', fontSize: expanded ? 11.5 : 10, fontWeight: 800,
+                color: '#FFFFFF', fontSize: expanded ? 11.5 : 10, fontWeight: 700,
                 cursor:'help',
               }}>+{overflow}</div>
             </Tip>
@@ -357,7 +359,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
               fontFamily:'inherit',
             }}>−</button>
             <div style={{flex: 1, textAlign:'center'}}>
-              <span style={{fontSize: 24, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>
+              <span style={{fontSize: 24, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>
                 {posti}
               </span>
               <span style={{fontSize: 15, color:'#6B7280', fontWeight: 600, marginLeft: 4}}>
@@ -486,9 +488,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       {/* Top accent bar — color accent dello stato (mai rosso su contabili, ok rosso pulire critical) */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
-        height: 2,
-        background: `linear-gradient(90deg, ${accent} 0%, ${accent}66 100%)`,
-        opacity: hover || expanded ? 1 : 0.5,
+        height: 3,
+        background: `linear-gradient(90deg, ${accent} 0%, ${accent}59 100%)`,
+        opacity: hover || expanded ? 1 : 0.85,
         transition: 'opacity 200ms ease-out',
       }}/>
 
@@ -538,7 +540,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       {note && noteIsCritical && (
         <div style={{
           display:'flex', alignItems:'center', gap: 5,
-          fontSize: 13, fontWeight: 800, color: '#DC2626',
+          fontSize: 13, fontWeight: 700, color: '#DC2626',
           padding: '2px 0', lineHeight: 1.25, textTransform: 'uppercase', letterSpacing: 0.4,
         }}>
           <span style={{whiteSpace: expanded ? 'normal' : 'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
@@ -591,7 +593,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
           {label}
         </div>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
-          <span style={{fontSize: 16, fontWeight: 800, color: '#0F1115', flexShrink: 0}}>
+          <span style={{fontSize: 16, fontWeight: 700, color: '#0F1115', flexShrink: 0}}>
             {t.nextReservation.time}
           </span>
           <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: '#0F1115', fontWeight: 600,
@@ -751,7 +753,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             }}>
               <div style={{display:'flex', alignItems:'baseline', gap: 8}}>
                 <span style={{
-                  fontSize: 30, fontWeight: 800, lineHeight: 1,
+                  fontSize: 30, fontWeight: 700, lineHeight: 1,
                   letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums',
                   color: occupatoSaldato ? '#065F46' : '#0F1115',
                 }}>
@@ -808,11 +810,17 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
   const primaryBtn = (
     <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
       flex: 1, padding:'11px 14px',
-      background:'#0F1115', color:'#fff', border:'none',
+      background: PN.BTN_DARK, color:'#fff',
+      border:'1px solid rgba(0,0,0,0.32)',
       borderRadius: 10, fontSize: 14.5, fontWeight: 700,
       cursor:'pointer', fontFamily:'inherit', minHeight: 42,
       letterSpacing: 0.1, whiteSpace: 'nowrap',
-    }}>{cta.label}</button>
+      boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
+      transition:'background 150ms ease-out',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+      onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
+    >{cta.label}</button>
   );
   if (showArticolo) {
     return (
@@ -821,13 +829,17 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
         <div style={{display:'flex', gap: 8, alignItems:'center'}}>
           <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}} style={{
             flex: 1, padding:'11px 14px',
-            background:'#fff', color:'#0F1115',
-            border:'1px solid #E5E7EB', borderRadius: 10,
+            background: PN.BTN_NEUTRAL, color:'#0F1115',
+            border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10,
             fontSize: 14.5, fontWeight: 700,
             cursor:'pointer', fontFamily:'inherit',
             minHeight: 42, whiteSpace:'nowrap',
             display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 5,
-          }}>
+            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+            transition:'background 150ms ease-out',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
             Articolo
@@ -858,10 +870,14 @@ function DotMenu({ items }) {
     <div ref={ref} style={{position:'relative', display:'inline-flex'}} onClick={(e)=>e.stopPropagation()}>
       <button onClick={() => setOpen(v => !v)} aria-label="Altre azioni" style={{
         width: 42, height: 42, borderRadius: 10,
-        background:'#fff', color:'#6B7280',
-        border:'1px solid #E5E7EB', cursor:'pointer', fontFamily:'inherit',
+        background: PN.BTN_NEUTRAL, color:'#6B7280',
+        border:`1px solid ${PN.BORDER_LIGHT}`, cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', justifyContent:'center',
-      }}>
+        boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+        transition:'background 150ms ease-out',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>
         </svg>
@@ -869,8 +885,8 @@ function DotMenu({ items }) {
       {open && (
         <div style={{
           position:'absolute', bottom:'calc(100% + 6px)', right: 0, zIndex: 30,
-          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 10,
-          boxShadow:'0 12px 28px rgba(15,17,21,0.12), 0 2px 6px rgba(15,17,21,0.06)',
+          background:'#fff', border:`1px solid ${PN.BORDER_SOFT_A}`, borderRadius: 12,
+          boxShadow:'inset 0 1px 0 rgba(255,255,255,0.75), 0 16px 36px rgba(15,17,21,0.14), 0 2px 6px rgba(15,17,21,0.06)',
           minWidth: 160, padding: 4, fontFamily:'inherit',
         }}>
           {items.map(it => (
@@ -917,7 +933,7 @@ function OrdiniList({ ordini }) {
       border: '1px solid #F0F2F5',
     }}>
       <div style={{
-        fontSize: 11.5, fontWeight: 800, color:'#6B7280',
+        fontSize: 11.5, fontWeight: 700, color:'#6B7280',
         letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 2,
       }}>Ordini</div>
       {sorted.map((o, idx) => {
@@ -1007,12 +1023,12 @@ function ContiApertiPanel({ collapsed, onToggle, onSalda }) {
       }}>
         <span style={{
           writingMode:'vertical-rl', transform:'rotate(180deg)',
-          fontSize: 13, fontWeight: 800, color:'#0F1115',
+          fontSize: 13, fontWeight: 700, color:'#0F1115',
           letterSpacing: 0.6, textTransform:'uppercase', whiteSpace:'nowrap',
         }}>Conti aperti</span>
         <span style={{
           background:'#E5E7EB', color:'#374151',
-          fontSize: 14, fontWeight: 800,
+          fontSize: 14, fontWeight: 700,
           padding:'2px 8px', borderRadius: 999,
         }}>{conti.length}</span>
       </div>

@@ -169,14 +169,16 @@ function SalaV3Tavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCart
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '5px 11px 5px 9px', borderRadius: 8, height: 32,
-                  background: isActive ? kpi.soft : '#F9FAFB',
-                  border: `1.5px solid ${isActive ? kpi.accent + '55' : '#E5E7EB'}`,
+                  background: isActive ? kpi.soft : PN.BTN_NEUTRAL,
+                  border: `1.5px solid ${isActive ? kpi.accent + '55' : PN.BORDER_SOFT_A}`,
                   cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                   transition: 'background 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out',
-                  boxShadow: isActive ? `0 1px 4px ${kpi.accent}18` : 'none',
+                  boxShadow: isActive
+                    ? `inset 0 1px 0 rgba(255,255,255,0.45), 0 1px 4px ${kpi.accent}1F`
+                    : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
                 }}
-                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.borderColor = '#D1D5DB'; }}}
-                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.borderColor = '#E5E7EB'; }}}
+                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; e.currentTarget.style.borderColor = PN.BORDER_LIGHT; }}}
+                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = PN.BTN_NEUTRAL; e.currentTarget.style.borderColor = PN.BORDER_SOFT_A; }}}
               >
                 {/* Dot */}
                 <span style={{
@@ -227,7 +229,7 @@ function SalaV3Tavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCart
               <path d="M12 9 V14 M12 17 h0.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
             </svg>
             <span style={{
-              fontSize: 12.5, fontWeight: 800,
+              fontSize: 12.5, fontWeight: 700,
               color: alertCount === 0 ? '#9CA3AF' : '#DC2626',
               fontVariantNumeric:'tabular-nums', lineHeight: 1,
             }}>{alertCount}</span>
@@ -258,7 +260,8 @@ function SalaV3Tavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCart
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
             padding: '4px 10px', borderRadius: 8,
-            background: '#F9FAFB', border: `1px solid ${PN.BORDER_HAIR}`,
+            background: PN.WHITE_HUSH, border: `1px solid ${PN.BORDER_HAIR}`,
+            boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
           }}>
             <span style={{
               fontSize: 12.5, fontWeight: 700, color: PN.TEXT,
@@ -703,7 +706,7 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
               }}>
                 <span style={{
                   color: 'rgba(255,255,255,0.65)', fontSize: 10.5,
-                  fontWeight: 800, letterSpacing: 1.4, textTransform: 'uppercase',
+                  fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase',
                   fontFamily: 'inherit',
                 }}>Bancone</span>
               </div>
@@ -716,7 +719,7 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
               }}>
                 <span style={{
                   color: 'rgba(255,255,255,0.5)', fontSize: 10.5,
-                  fontWeight: 800, letterSpacing: 1.4, textTransform: 'uppercase',
+                  fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase',
                   fontFamily: 'inherit',
                 }}>Cucina</span>
               </div>
@@ -730,7 +733,7 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
                 flexDirection: 'column', gap: 4,
               }}>
                 <span style={{
-                  fontSize: 10, fontWeight: 800, color: '#6B7280',
+                  fontSize: 10, fontWeight: 700, color: '#6B7280',
                   letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: 'inherit',
                 }}>Bagno</span>
               </div>
@@ -869,6 +872,7 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
                   position:'absolute',
                   left, top, width: w, height: h,
                   background: dim ? '#F4F5F7' : (meta.mapBg || meta.bg),
+                  backgroundImage: dim ? 'none' : 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
                   border: `2px solid ${dim ? '#E5E7EB' : (isInMergeProposal ? '#FF5A5F' : ringColor)}`,
                   borderRadius: 8,
                   cursor: isDragging ? 'grabbing' : 'grab',
@@ -879,7 +883,9 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
                       ? '0 0 0 3px rgba(255,90,95,0.22), 0 6px 16px rgba(255,90,95,0.18)'
                       : (isDragging
                         ? '0 10px 24px rgba(0,0,0,0.18)'
-                        : (isHovered && !dim ? '0 4px 12px rgba(0,0,0,0.12)' : 'none'))),
+                        : (isHovered && !dim
+                          ? '0 4px 12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.5)'
+                          : (dim ? 'none' : '0 1px 2px rgba(15,17,21,0.07), inset 0 1px 0 rgba(255,255,255,0.5)')))),
                   outline: isSelected ? '2px solid #0F1115' : 'none',
                   outlineOffset: isSelected ? 2 : 0,
                   transform: isHovered && !isDragging ? 'scale(1.04)' : 'scale(1)',
@@ -891,7 +897,7 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
                   touchAction: 'none',
                 }}>
                 <div style={{
-                  fontSize: 14, fontWeight: 800,
+                  fontSize: 14, fontWeight: 700,
                   color: dim ? '#9CA3AF' : '#0F1115',
                   fontVariantNumeric:'tabular-nums',
                 }}>{t.id}</div>
@@ -918,7 +924,7 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
                     background: '#DC2626', color: '#fff',
                     padding: '2px 6px 2px 4px', borderRadius: 999,
                     border: '1.5px solid #fff',
-                    fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
+                    fontSize: 9, fontWeight: 700, letterSpacing: 0.3,
                     display:'inline-flex', alignItems:'center', gap: 3,
                     boxShadow: '0 1px 3px rgba(220,38,38,0.35)',
                     whiteSpace:'nowrap', zIndex: 6,
@@ -935,7 +941,7 @@ function SalaV3FloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle
                     color: NOTE_TYPE_META[noteTipo].color,
                     border: '1.5px solid #fff',
                     width: 16, height: 16, borderRadius: '50%',
-                    fontSize: 9, fontWeight: 800,
+                    fontSize: 9, fontWeight: 700,
                     display:'grid', placeItems:'center', zIndex: 6,
                   }}>·</div>
                 )}
@@ -1351,8 +1357,9 @@ function SearchExpandable({ value, onChange, placeholder, expandedWidth = 240 })
         height: 38,
         width: expanded ? '100%' : 38,
         background: PN.WHITE,
-        border: `1px solid ${PN.BORDER}`,
+        border: `1px solid ${PN.BORDER_LIGHT}`,
         borderRadius: 10,
+        boxShadow: '0 1px 2px rgba(15,17,21,0.04)',
         transition: 'width 200ms ease',
         overflow: 'hidden',
       }}>

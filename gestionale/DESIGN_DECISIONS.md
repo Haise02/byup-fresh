@@ -568,9 +568,26 @@ GLASS_DRAG  → blur(16px) saturate(160%) bg 0.72  — card draggata in dashboar
 ## Prossimi passi naturali
 
 - Riscrittura widget grafici con SVG path animato lentamente (3–6s loop) → `panoramica-widgets.jsx`
-- Toolbar Sala v3 con `WHITE_OFF` + `BORDER_HAIR`
-- Restyle Stato tavoli con accent colors per stato (libero/occupato/prenotato) coordinati a `ROOM_ACCENTS`
 - Glass su statistiche chart container (sticky filter bar quando si scrolla la dashboard)
+
+---
+
+# Design System 2.2 — Rollout operativo (Sala · Cucina · Prenotazioni · Vendita diretta)
+
+Applicazione del sistema 2.0/2.1 alle quattro superfici operative, **solo livello visivo** (nessun cambio di layout, wireframe, copy o flussi). Coperte entrambe le pagine Sala: `byup Sala v3.html` (canonica) e `byup Sala.html` (raggiunta dalla sidebar per tavoli/vendita/calendar).
+
+## Cosa è cambiato
+
+1. **CTA mai più piatte.** Ogni bottone primario scuro (`#0F1115` flat) è ora `BTN_DARK` gradient + inset highlight + border alpha + hover `BTN_DARK_HOVER`. I secondari bianchi (`#fff` + border `#E5E7EB`) sono `BTN_NEUTRAL` + `INSET_HIGHLIGHT` + `BORDER_LIGHT`. I danger (no-show, annulla ticket) usano il gradient rosso coordinato a `PnButton danger`. File: `sala-v3-card`, `sala-card`, `sala-v3-app`, `sala-app`, `sala-v3-tab-calendario`, `sala-tab-calendario`, `sala-tab-vendita`, `sala-vendita-diretta`, `cucina-tab-insala`.
+2. **Tile mappa tavoli con volume.** Le tile flat hanno ora specular highlight verticale (`linear-gradient` bianco 55%→0) + ombra resting `0 1px 2px` + inset top — leggono come oggetti fisici sulla planimetria. La barra accent in cima alle card tavolo passa da 2px/op.0.5 a 3px/op.0.85: lo stato si riconosce a colpo d'occhio anche a riposo.
+3. **Hairline al posto dei solidi.** Tutti i contenitori di sezione (toolbar, timeline, lista prenotazioni, grid POS, carrello) passano da `#E5E7EB`/`BORDER_SOFT` solid a `BORDER_HAIR` + shadow standard `0 1px 0 … , 0 6px 18px …`, radius allineato a 14.
+4. **KDS Cucina.** Le colonne perdono il bordo pieno 3px su 4 lati (crudo) in favore di: top accent 3px nel tone + bordo perimetrale `tone40` 1px + dot identificativo nel titolo + counter a pill tonale. I ticket passano da bordo `rgba(0,0,0,0.32)` 2px a hairline `BORDER_MED` + ombra elevata; il ring rosso "late" con pulse resta invariato (è segnale operativo).
+5. **Peso massimo 700.** Tutti i `fontWeight: 800` delle quattro sezioni normalizzati a 700 (la regola "mai 800" era già nel sistema; il logo `ByupB` resta 900 perché brand-mark).
+6. **Emoji → SVG.** `🔍` e `🛒` negli empty state POS sostituiti con icone SVG in cerchio `WHITE_FROST`; fallback `🍽` della riga carrello sostituito con iniziale del piatto nel colore categoria.
+
+## Fix di caricamento (non-UI, necessario)
+
+`byup Sala v3.html` non caricava `sala-shared-select.jsx` (definisce `SaSelect`) né `sala-vendita-data.jsx` (definisce `SALA_VENDITA_PIATTI`): la pagina crashava al mount con entrambe le tab Tavoli e Vendita. Aggiunti i due `<script>` mancanti dopo `sala-data.jsx`. Il commento nell'HTML attribuiva erroneamente SaSelect a `sala-tab-tavoli.jsx`.
 
 ---
 

@@ -613,7 +613,7 @@ function SalaV3AperiModal({ tavolo, onConfirm, onClose }) {
           </svg>
           {badgeLabel}
         </div>
-        <div style={{fontSize: 18, fontWeight: 800, color:'#0F1115', marginBottom: 6, letterSpacing:'-0.02em'}}>
+        <div style={{fontSize: 18, fontWeight: 700, color:'#0F1115', marginBottom: 6, letterSpacing:'-0.02em'}}>
           Vuoi aprire il tavolo lo stesso?
         </div>
         {res && (
@@ -624,13 +624,17 @@ function SalaV3AperiModal({ tavolo, onConfirm, onClose }) {
         <div style={{display:'flex', gap: 8}}>
           <button onClick={onClose} style={{
             flex:1, padding:'11px 14px',
-            background:'#F4F5F7', color:'#0F1115', border:'none',
+            background: PN.BTN_NEUTRAL, color:'#0F1115',
+            border:`1px solid ${PN.BORDER_LIGHT}`,
             borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            boxShadow: PN.INSET_HIGHLIGHT,
           }}>Annulla</button>
           <button onClick={onConfirm} style={{
             flex:1, padding:'11px 14px',
-            background:'#0F1115', color:'#fff', border:'none',
+            background: PN.BTN_DARK, color:'#fff',
+            border:'1px solid rgba(0,0,0,0.32)',
             borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            boxShadow: PN.INSET_HIGHLIGHT_DARK,
           }}>Apri tavolo</button>
         </div>
       </div>

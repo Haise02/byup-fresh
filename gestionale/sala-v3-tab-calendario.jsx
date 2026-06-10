@@ -116,7 +116,9 @@ function Toolbar({ dayView, setDayView, onNuova }) {
         <div style={{
           padding:'7px 14px', borderRadius: 7, minWidth: 128, textAlign:'center',
           fontSize: 12.5, fontWeight: 700, color:'#0F1115',
-          background:'#F1F2F5', whiteSpace:'nowrap',
+          background: PN.WHITE_HUSH, whiteSpace:'nowrap',
+          border: `1px solid ${PN.BORDER_HAIR}`,
+          boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
           opacity: fading ? 0 : 1, transition:'opacity 0.1s',
         }}>
           {isToday ? 'Oggi · ' : ''}{TOOLBAR_DATES[idx]} dic
@@ -126,10 +128,15 @@ function Toolbar({ dayView, setDayView, onNuova }) {
 
       <button onClick={onNuova} style={{
         padding:'9px 14px', borderRadius: 8,
-        background:'#0F1115', color:'#fff', border:'none',
+        background: PN.BTN_DARK, color:'#fff',
+        border:'1px solid rgba(0,0,0,0.32)',
         fontSize: 12.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
-      }}>
+        boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
+        transition:'background 150ms ease-out',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 5v14 M5 12h14"/>
         </svg>
@@ -142,16 +149,17 @@ function Toolbar({ dayView, setDayView, onNuova }) {
 function Segmented({ value, onChange, options, small }) {
   return (
     <div style={{
-      display:'inline-flex', background:'#F1F2F5', borderRadius: 8, padding: 3,
+      display:'inline-flex', background: PN.WHITE_FROST, borderRadius: 9, padding: 3,
+      boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
     }}>
       {options.map(o => (
         <button key={o.id} onClick={()=>onChange(o.id)} style={{
-          padding: small ? '6px 11px' : '7px 13px', borderRadius: 6,
+          padding: small ? '6px 11px' : '7px 13px', borderRadius: 7,
           background: value === o.id ? '#fff' : 'transparent',
           border:'none', cursor:'pointer', fontFamily:'inherit',
           fontSize: small ? 12 : 12.5, fontWeight: value === o.id ? 700 : 600,
           color: value === o.id ? '#0F1115' : '#6B7280',
-          boxShadow: value === o.id ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+          boxShadow: value === o.id ? '0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(15,17,21,0.08)' : 'none',
           whiteSpace:'nowrap', transition:'all 0.12s',
         }}>{o.label}</button>
       ))}
@@ -162,11 +170,13 @@ function Segmented({ value, onChange, options, small }) {
 function NavBtn({ children, onClick, disabled }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      width: 28, height: 28, borderRadius: 6,
-      background:'#fff', border:'1px solid #E5E7EB',
+      width: 28, height: 28, borderRadius: 7,
+      background: disabled ? PN.WHITE_HUSH : PN.BTN_NEUTRAL,
+      border: `1px solid ${disabled ? PN.BORDER_HAIR : PN.BORDER_LIGHT}`,
       cursor: disabled ? 'default' : 'pointer',
       fontFamily:'inherit', fontSize: 13,
       color: disabled ? '#D1D5DB' : '#6B7280',
+      boxShadow: disabled ? 'none' : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
     }}>{children}</button>
   );
 }
@@ -224,7 +234,7 @@ function Kpi({ label, value, big, hint, accent }) {
     <div style={{whiteSpace:'nowrap'}}>
       <div style={{fontSize: 10, color:'#6B7280', fontWeight: 700, letterSpacing: 0.4, textTransform:'uppercase'}}>{label}</div>
       <div style={{
-        fontSize: big ? 24 : 18, fontWeight: 800,
+        fontSize: big ? 24 : 18, fontWeight: 700,
         color: accent || '#0F1115', letterSpacing:-0.4, lineHeight: 1.1, marginTop: 2,
       }}>{value}{hint && <span style={{fontSize: 10, fontWeight: 600, color:'#9CA3AF', marginLeft: 6}}>{hint}</span>}</div>
     </div>
@@ -246,7 +256,7 @@ function HistBar({ f, N_TAVOLI }) {
       {f.occ > 0 && (
         <span style={{
           position:'absolute', bottom:'100%', left:'50%', transform:'translateX(-50%)',
-          fontSize:8.5, fontWeight:800, color: hov?'#0F1115':'#94A3B8',
+          fontSize:8.5, fontWeight:700, color: hov?'#0F1115':'#94A3B8',
           lineHeight:1, marginBottom:1, pointerEvents:'none', whiteSpace:'nowrap',
         }}>{f.occ}</span>
       )}
@@ -332,7 +342,8 @@ function DayTimeline({ onNuova, onModifica }) {
 
   return (
     <div style={{
-      background:'#fff', borderRadius: 12, border:'1px solid #E5E7EB',
+      background:'#fff', borderRadius: 14, border:`1px solid ${PN.BORDER_HAIR}`,
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
       overflow:'hidden',
     }}>
       {/* Header con istogramma fasce — collassabile */}
@@ -383,7 +394,7 @@ function DayTimeline({ onNuova, onModifica }) {
             return (
               <span key={h} style={{
                 position:'absolute', left: `${pct}%`, top: 2,
-                fontSize: 12, fontWeight: 800, color:'#6B7280',
+                fontSize: 12, fontWeight: 700, color:'#6B7280',
                 transform:'translateX(-50%)', whiteSpace:'nowrap',
               }}>{h}:00</span>
             );
@@ -413,7 +424,7 @@ function DayTimeline({ onNuova, onModifica }) {
               background: ti % 2 === 1 ? '#FAFBFC' : 'transparent',
             }}>
               <div style={{display:'flex', flexDirection:'column', gap: 1, paddingRight: 8, borderRight:'1px solid #EDEEF2'}}>
-                <span style={{fontSize: 16, fontWeight: 800, color:'#0F1115', lineHeight:1}}>Tav. {t.id}</span>
+                <span style={{fontSize: 16, fontWeight: 700, color:'#0F1115', lineHeight:1}}>Tav. {t.id}</span>
                 <span style={{fontSize: 11, fontWeight: 500, color:'#9CA3AF', lineHeight:1}}>{t.p} posti</span>
               </div>
               <div
@@ -483,6 +494,7 @@ function DayTimeline({ onNuova, onModifica }) {
                       position:'absolute', left: `${left}%`, width: `${width}%`,
                       top: 5, bottom: 5,
                       background: r.status === 'arrivata' ? '#DBEAFE' : '#FAF8FF',
+                      backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 60%)',
                       color: r.status === 'arrivata' ? '#1E3A5F' : '#6D28D9',
                       border: r.status === 'arrivata' ? '1.5px solid #93C5FD' : '1.5px solid #C4B5FD',
                       borderRadius: 7,
@@ -493,7 +505,11 @@ function DayTimeline({ onNuova, onModifica }) {
                       opacity: past ? 0.5 : 1,
                       cursor: isOccupato ? 'default' : 'pointer',
                       zIndex: 2,
-                    }}>
+                      boxShadow: past ? 'none' : '0 1px 2px rgba(15,17,21,0.06)',
+                      transition: 'box-shadow 150ms ease-out, transform 150ms ease-out',
+                    }}
+                      onMouseEnter={e => { if (!isOccupato) { e.currentTarget.style.boxShadow = '0 3px 8px rgba(15,17,21,0.12)'; } }}
+                      onMouseLeave={e => { e.currentTarget.style.boxShadow = past ? 'none' : '0 1px 2px rgba(15,17,21,0.06)'; }}>
                       {showLabel && (
                         <span style={{overflow:'hidden', textOverflow:'ellipsis', flex:1, minWidth:0}}>
                           {isOccupato ? 'Occupato' : r.name || r.time}
@@ -555,7 +571,8 @@ function DayList({ onModifica }) {
 
   return (
     <div style={{
-      background:'#fff', borderRadius:12, border:'1px solid #E5E7EB',
+      background:'#fff', borderRadius:14, border:`1px solid ${PN.BORDER_HAIR}`,
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
       overflow:'hidden',
     }}>
       {past.length > 0 && <PastSection items={past} nowMin={nowMin} onModifica={onModifica} onNoShow={id => setDismissed(s => new Set([...s, id]))}/>}
@@ -567,7 +584,7 @@ function DayList({ onModifica }) {
         borderTop:'2px solid #DC2626', borderBottom:'2px solid #DC2626',
       }}>
         <div style={{width:7, height:7, borderRadius:'50%', background:'#DC2626', flexShrink:0}}/>
-        <span style={{fontSize:13, fontWeight:800, color:'#DC2626', letterSpacing:0.5, textTransform:'uppercase'}}>
+        <span style={{fontSize:13, fontWeight:700, color:'#DC2626', letterSpacing:0.5, textTransform:'uppercase'}}>
           Ora
         </span>
         <span style={{marginLeft:'auto', fontSize:13, fontWeight:600, color:'#DC2626', opacity:0.75}}>
@@ -608,7 +625,7 @@ function SlotHeader({ slot, count }) {
       padding:'7px 18px',
       background:'#FAFBFC', borderBottom:'1px solid #F0F2F5',
     }}>
-      <span style={{fontSize:12, fontWeight:800, color:'#0F1115', letterSpacing:-0.2}}>{hh}:{mm}</span>
+      <span style={{fontSize:12, fontWeight:700, color:'#0F1115', letterSpacing:-0.2}}>{hh}:{mm}</span>
       <span style={{width:3, height:3, borderRadius:'50%', background:'#D1D5DB'}}/>
       <span style={{fontSize:11, color:'#9CA3AF', fontWeight:600}}>
         {count} {count === 1 ? 'prenotazione' : 'prenotazioni'}
@@ -647,7 +664,7 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
     >
       {/* Ora */}
       <div style={{minWidth:44, flexShrink:0}}>
-        <div style={{fontSize: isImminente ? 16 : 14, fontWeight:800, color: isImminente ? '#DC2626' : '#0F1115', letterSpacing:-0.3, lineHeight:1}}>
+        <div style={{fontSize: isImminente ? 16 : 14, fontWeight:700, color: isImminente ? '#DC2626' : '#0F1115', letterSpacing:-0.3, lineHeight:1}}>
           {r.time}
         </div>
       </div>
@@ -660,7 +677,7 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
           textDecoration: isCancelled ? 'line-through' : 'none',
         }}>{r.name}</span>
         <span style={{
-          fontSize:13, fontWeight:800, color:'#6B7280',
+          fontSize:13, fontWeight:700, color:'#6B7280',
           padding:'2px 7px', borderRadius:5,
           background:'#F1F2F5',
           whiteSpace:'nowrap', flexShrink:0,
@@ -699,7 +716,7 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
             width:320, boxShadow:'0 20px 60px rgba(0,0,0,0.22)',
             display:'flex', flexDirection:'column', gap:16,
           }}>
-            <div style={{fontSize:16, fontWeight:800, color:'#0F1115', letterSpacing:-0.3}}>
+            <div style={{fontSize:16, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
               Segnare come no-show?
             </div>
             <div style={{fontSize:13, color:'#6B7280', lineHeight:1.5}}>
@@ -709,13 +726,17 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
             <div style={{display:'flex', gap:8}}>
               <button onClick={() => setNoShowConfirm(false)} style={{
                 flex:1, padding:'10px 14px', borderRadius:8,
-                background:'#F4F5F7', color:'#0F1115', border:'none',
+                background: PN.BTN_NEUTRAL, color:'#0F1115',
+                border:`1px solid ${PN.BORDER_LIGHT}`,
                 fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                boxShadow: PN.INSET_HIGHLIGHT,
               }}>Annulla</button>
               <button onClick={() => { setNoShowConfirm(false); onNoShow && onNoShow(r.id); }} style={{
                 flex:1, padding:'10px 14px', borderRadius:8,
-                background:'#DC2626', color:'#fff', border:'none',
+                background:'linear-gradient(180deg, #E94343 0%, #DC2626 100%)',
+                color:'#fff', border:'1px solid rgba(124, 14, 14, 0.40)',
                 fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                boxShadow:'inset 0 1px 0 rgba(255,255,255,0.30), 0 1px 2px rgba(220,38,38,0.18)',
               }}>Sì, no-show</button>
             </div>
           </div>
@@ -757,10 +778,13 @@ function NotePill({ note }) {
 function QuickBtn({ children, color, bg, border, bold }) {
   return (
     <button style={{
-      padding: bold ? '6px 12px' : '5px 10px', borderRadius:6,
-      background:bg, border:`1px solid ${border}`,
+      padding: bold ? '6px 12px' : '5px 10px', borderRadius:7,
+      background:bg,
+      backgroundImage:'linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 100%)',
+      border:`1px solid ${border}`,
       color, fontSize: bold ? 13.5 : 13, fontWeight:700,
       cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), 0 1px 2px rgba(15,17,21,0.10)',
     }}>{children}</button>
   );
 }
@@ -777,7 +801,7 @@ function PastSection({ items, nowMin, onModifica, onNoShow }) {
         background:'#FAFBFC', border:'none', borderBottom:'1px solid #F0F2F5',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
-        <span style={{fontSize:11, fontWeight:800, color:'#9CA3AF', letterSpacing:0.4, textTransform:'uppercase'}}>Passati</span>
+        <span style={{fontSize:11, fontWeight:700, color:'#9CA3AF', letterSpacing:0.4, textTransform:'uppercase'}}>Passati</span>
         <span style={{fontSize:11, color:'#C4C9D4', fontWeight:600}}>
           · {arrivati} serviti{noshow > 0 ? ` · ${noshow} no-show` : ''}
         </span>
@@ -875,7 +899,7 @@ function FasciaBlock({ title, accent, accentBg, days, todayIdx, fasce, matrix, a
         <span style={{
           width: 8, height: 8, borderRadius: 2, background: accent,
         }}/>
-        <h4 style={{margin:0, fontSize: 13, fontWeight: 800, color:'#0F1115', letterSpacing:-0.2}}>{title}</h4>
+        <h4 style={{margin:0, fontSize: 13, fontWeight: 700, color:'#0F1115', letterSpacing:-0.2}}>{title}</h4>
         <span style={{fontSize: 11, color:'#6B7280', fontWeight: 600}}>· tavoli occupati per fascia · su {cap} tavoli</span>
       </div>
 
@@ -908,7 +932,7 @@ function FasciaBlock({ title, accent, accentBg, days, todayIdx, fasce, matrix, a
                   background: colorFor(v),
                   border: isToday ? `1.5px solid ${accent}` : '1px solid transparent',
                   borderRadius: 5,
-                  fontSize: 11.5, fontWeight: 800,
+                  fontSize: 11.5, fontWeight: 700,
                   color: v / cap >= 0.55 ? '#7F1D1D' : v > 0 ? '#0F1115' : '#D1D5DB',
                   cursor:'pointer', fontFamily:'inherit',
                   transition:'transform 0.1s',
@@ -923,7 +947,7 @@ function FasciaBlock({ title, accent, accentBg, days, todayIdx, fasce, matrix, a
 
         {/* riga aggregati — picco tavoli per turno */}
         <div style={{
-          padding:'8px 8px 0', fontSize: 10.5, fontWeight: 800,
+          padding:'8px 8px 0', fontSize: 10.5, fontWeight: 700,
           color:'#6B7280', textTransform:'uppercase', letterSpacing: 0.4,
           display:'flex', alignItems:'flex-end',
         }}>Picco</div>
@@ -934,7 +958,7 @@ function FasciaBlock({ title, accent, accentBg, days, todayIdx, fasce, matrix, a
             borderTop:'1px dashed #E5E7EB',
             marginTop: 6,
           }}>
-            <div style={{fontSize: 14, fontWeight: 800, color: accent, letterSpacing:-0.3}}>{a.peak}</div>
+            <div style={{fontSize: 14, fontWeight: 700, color: accent, letterSpacing:-0.3}}>{a.peak}</div>
             <div style={{fontSize: 10, color:'#9CA3AF', fontWeight: 600}}>/ {cap} tav.</div>
           </div>
         ))}
@@ -972,7 +996,7 @@ function CercaSlotPopover({ onClose }) {
         display:'flex', flexDirection:'column', gap: 16,
       }}>
         <div style={{display:'flex', alignItems:'center', gap: 10}}>
-          <h3 style={{margin:0, fontSize: 16, fontWeight: 800, color:'#0F1115', letterSpacing:-0.3}}>Cerca slot</h3>
+          <h3 style={{margin:0, fontSize: 16, fontWeight: 700, color:'#0F1115', letterSpacing:-0.3}}>Cerca slot</h3>
           <span style={{flex:1}}/>
           <button onClick={onClose} style={{
             width: 28, height: 28, borderRadius: 6,
@@ -1018,7 +1042,7 @@ function CercaSlotPopover({ onClose }) {
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><path d="M5 5 L19 19 M19 5 L5 19"/></svg>
               )}
             </span>
-            <span style={{fontSize: 13.5, fontWeight: 800, color: disponibile ? '#15803D' : '#991B1B'}}>
+            <span style={{fontSize: 13.5, fontWeight: 700, color: disponibile ? '#15803D' : '#991B1B'}}>
               {disponibile ? `${liberi.length} ${liberi.length===1?'tavolo libero':'tavoli liberi'}` : 'Nessuna disponibilità'}
             </span>
           </div>
@@ -1049,7 +1073,7 @@ function CercaSlotPopover({ onClose }) {
           background: disponibile ? '#0F1115' : '#E5E7EB',
           color: disponibile ? '#fff' : '#9CA3AF',
           border:'none',
-          fontSize: 13, fontWeight: 800, cursor: disponibile ? 'pointer' : 'not-allowed',
+          fontSize: 13, fontWeight: 700, cursor: disponibile ? 'pointer' : 'not-allowed',
           fontFamily:'inherit',
         }}>+ Crea prenotazione</button>
       </div>

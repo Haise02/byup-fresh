@@ -264,7 +264,7 @@ function NpDateStrip({ value, onChange, label }) {
                 textTransform:'uppercase', letterSpacing: 0.4,
                 color: isSel ? 'rgba(255,255,255,0.85)' : NP_T.textSubtle,
               }}>{wd}</span>
-              <span style={{fontSize: 18, fontWeight: 800, lineHeight: 1.1}}>{d.getDate()}</span>
+              <span style={{fontSize: 18, fontWeight: 700, lineHeight: 1.1}}>{d.getDate()}</span>
               {isToday && (
                 <span style={{
                   position:'absolute', bottom: 4, left:'50%', transform:'translateX(-50%)',
@@ -660,7 +660,7 @@ function SalaModalNuova({ open, onClose, initData }) {
             </div>
             <div style={{display:'flex', alignItems:'baseline', gap: 6, marginTop: 4}}>
               <span style={{
-                fontSize: NP_FS.xl, fontWeight: 800, color: NP_T.text, letterSpacing:'-0.02em', lineHeight: 1,
+                fontSize: NP_FS.xl, fontWeight: 700, color: NP_T.text, letterSpacing:'-0.02em', lineHeight: 1,
               }}>{slotInfo.freeTables.length}</span>
               <span style={{fontSize: NP_FS.md, fontWeight: 600, color: NP_T.textMuted}}>/ {totalTav} liberi</span>
             </div>
@@ -710,7 +710,7 @@ function SalaModalNuova({ open, onClose, initData }) {
                   display:'flex', flexDirection:'column', alignItems:'center', gap: 1,
                   transition:'border-color 140ms ease, box-shadow 140ms ease',
                 }}>
-                <span style={{fontSize: 20, fontWeight: 800, color: c.num, lineHeight: 1}}>
+                <span style={{fontSize: 20, fontWeight: 700, color: c.num, lineHeight: 1}}>
                   {isFull ? '—' : free}
                 </span>
                 <span style={{fontSize: 10, fontWeight: 700, color: c.num, opacity: 0.85, lineHeight: 1,
@@ -817,7 +817,7 @@ function SalaModalNuova({ open, onClose, initData }) {
                     <div style={{fontSize: NP_FS.xs, fontWeight: 700, color: NP_T.textSubtle, textTransform:'uppercase', letterSpacing: 0.3}}>
                       {p.key}
                     </div>
-                    <div style={{fontSize: NP_FS.lg, fontWeight: 800, color: NP_T.text, lineHeight: 1.1, marginTop: 1}}>
+                    <div style={{fontSize: NP_FS.lg, fontWeight: 700, color: NP_T.text, lineHeight: 1.1, marginTop: 1}}>
                       {p.alt.time}
                     </div>
                   </div>
