@@ -247,7 +247,7 @@ function LoginApp() {
 // Background video servito da GitHub raw (commit eb37d25). Push esplicito per
 // avere un URL stabile linkabile in preview e demo senza commitare il binario
 // in ogni iterazione locale.
-const LOGIN_BG_VIDEO = 'https://raw.githubusercontent.com/Haise02/byup-fresh/main/login-bg-0518.mp4';
+const LOGIN_BG_VIDEO = 'login-bg-0518.mp4';
 
 function VideoBackdrop() {
   const videoRef = React.useRef(null);
