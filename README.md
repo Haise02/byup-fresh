@@ -1,36 +1,32 @@
-# Byup Fresh — Prototipo gestionale
+# byup — Monorepo applicazioni
 
-Prototipo HTML + React (via Babel-standalone, no build) del gestionale Byup Fresh
-per la ristorazione.
+Hub unico che raccoglie tutte le applicazioni dell'ecosistema **byup**, servite come
+sito statico (HTML + React via Babel-standalone, **no build step**) su Vercel.
 
-## Demo
+La **homepage** (`index.html`) è una console che linka a ogni applicazione; da ogni app
+si torna alla home con il pulsante fluttuante in alto a sinistra.
 
-- Entry: `index.html` → redirect a `byup Login.html`
-- Login demo: **`admin / admin`**
-- Flow: Login → Onboarding ristoratore → Panoramica / Configurazione completa
+## Struttura
 
-## Stack
+| Cartella       | Applicazione      | Entry                       | Per chi        |
+|----------------|-------------------|-----------------------------|----------------|
+| `gestionale/`  | byup Gestionale   | `byup Login.html`           | Ristoratore    |
+| `app/`         | byup App          | `byup Home.html`            | Consumer       |
+| `web/`         | byup Web          | `index.html`                | Consumer       |
+| `staff/`       | byup Staff        | `index.html`                | Staff (incassi)|
+| `cameriere/`   | byup Cameriere    | `cameriereweb.html`         | Staff (sala)   |
+| `spot/`        | byup Spot         | `byup-spot.html`            | Admin          |
+| `backend/`     | API (NestJS)      | servizio Node separato      | —              |
 
-- HTML + JSX (Babel standalone, compilato nel browser, no build step)
-- React 18 UMD via unpkg
-- CSS-in-JS inline (no Tailwind, no styled-components)
-- Token + design system in `panoramica-tokens.jsx`, `onboarding-icons.jsx`
+## Deploy
 
-## Pagine
+- Hosting statico su **Vercel**, collegato a questo repo (push su `main` = deploy).
+- `vercel.json` serve i file `.jsx` come `text/babel` (necessario per Babel-standalone)
+  su tutte le cartelle.
+- Nessuna build: i file vengono serviti così come sono.
 
-- `byup Login.html` — pagina login
-- `byup Restaurant Onboarding.html` — onboarding ristoratore (4 step)
-- `byup Panoramica.html` — dashboard widget (drag/drop + edit mode)
-- `byup Configurazione Completa.html` — vetrina + personale post-onboarding
-- `byup Sala v3.html` — sala & prenotazioni (mappa + lista)
-- `byup Cucina.html` — kitchen monitor (KDS)
-- `byup Statistiche.html`, `byup Contabilita.html`, `byup Impostazioni.html`,
-  `byup Profilo.html`, `byup Account.html`, `byup Supporto.html`
+## Note
 
-## Deploy Vercel
-
-Push del repo → Vercel deploy automatico (static, no build). `vercel.json`
-configura content-type `text/babel` per i `.jsx` così Babel-standalone li compila
-correttamente al fetch. `index.html` redirige a Login.
-
-Vedi `DESIGN_DECISIONS.md` per palette, token, regole UX.
+- Ogni app è autonoma: HTML di entry + file `.jsx` caricati via `<script type="text/babel">`.
+- La navigazione interna di ogni app usa percorsi **relativi**, quindi ognuna vive
+  indipendentemente nella propria cartella.

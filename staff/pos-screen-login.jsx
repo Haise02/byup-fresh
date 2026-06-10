@@ -1,0 +1,276 @@
+// Byup Staff — Login esercente + recupero password (prime schermate)
+
+const { useState: useStateL, useEffect: useEffectL } = React;
+
+// ─── Stili condivisi (tema scuro) ─────────────────────────────
+const LOGIN_BG = `
+  radial-gradient(110% 55% at 50% -8%, rgba(190,24,93,0.32), transparent 60%),
+  radial-gradient(130% 80% at 50% 112%, rgba(124,45,60,0.55), transparent 62%),
+  linear-gradient(180deg, #1e1216 0%, #150d10 100%)`;
+
+const dkLabel = { display: 'block', fontSize: 13.5, fontWeight: 700, color: '#fff', marginBottom: 8 };
+const dkField = {
+  display: 'flex', alignItems: 'center', gap: 10,
+  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
+  borderRadius: ST.R_LG, padding: '0 14px', height: 54,
+};
+const dkInput = {
+  flex: 1, border: 'none', outline: 'none', background: 'transparent',
+  color: '#fff', fontSize: 15.5, fontFamily: 'inherit', height: '100%',
+};
+const dkPlaceholder = <style>{`.login-input::placeholder { color: rgba(255,255,255,0.38); }`}</style>;
+
+const eyeIcon = (off) => off
+  ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 11s3.5 7 10 7a9.7 9.7 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>;
+
+// CTA piena (pink) riusabile
+const PinkBtn = ({ children, onClick, style }) => (
+  <button onClick={onClick} style={{
+    height: 56, width: '100%', borderRadius: ST.R_LG, border: 'none',
+    background: ST.PINK, color: '#fff', fontSize: 16.5, fontWeight: 700, fontFamily: 'inherit',
+    cursor: 'pointer', boxShadow: '0 10px 30px rgba(242,107,122,0.35)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, ...style,
+  }}>{children}</button>
+);
+
+// ═══════════════════════════════════════════════════════════
+// FACE ID GATE — sblocco al rientro (il 1° tentativo fallisce sempre)
+// ═══════════════════════════════════════════════════════════
+function FaceIdGate({ onSuccess, onCancel }) {
+  const [phase, setPhase] = useStateL('scan');   // 'scan' | 'fail' | 'ok'
+  const [tries, setTries] = useStateL(0);
+
+  useEffectL(() => {
+    if (phase === 'scan') {
+      // Primo tentativo: fallisce sempre. Dal secondo in poi: sblocca.
+      const t = setTimeout(() => setPhase(tries === 0 ? 'fail' : 'ok'), tries === 0 ? 1600 : 1300);
+      return () => clearTimeout(t);
+    }
+    if (phase === 'ok') {
+      const t = setTimeout(onSuccess, 650);
+      return () => clearTimeout(t);
+    }
+  }, [phase, tries]);
+
+  const retry = () => { setTries(t => t + 1); setPhase('scan'); };
+
+  const accent = phase === 'ok' ? ST.OK : phase === 'fail' ? '#F87171' : ST.PINK;
+  const titolo = phase === 'ok' ? 'Sbloccato'
+               : phase === 'fail' ? 'Volto non riconosciuto'
+               : 'Guarda lo schermo';
+  const sotto  = phase === 'ok' ? ''
+               : phase === 'fail' ? 'Non siamo riusciti a verificare il tuo volto. Riprova o usa la password.'
+               : `Sblocco di Byup Staff · ${MERCHANT.nome}`;
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 120, background: LOGIN_BG,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '0 32px', textAlign: 'center', animation: 'fidFade 200ms ease',
+    }}>
+      <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 32, border: `2px solid ${accent}`,
+          boxShadow: `0 0 40px ${accent}55`,
+          animation: phase === 'scan' ? 'fidPulse 1.4s ease-in-out infinite'
+                   : phase === 'fail' ? 'fidShake 0.45s ease' : 'none',
+        }}/>
+        {phase === 'ok' ? <I.Check s={56} c={accent}/> : <I.FaceID s={64} c={accent}/>}
+      </div>
+
+      <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{titolo}</div>
+      {sotto && <div style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, maxWidth: 300 }}>{sotto}</div>}
+
+      {phase === 'fail' && (
+        <div style={{ marginTop: 32, width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <PinkBtn onClick={retry}><I.FaceID s={20} c="#fff"/> Riprova con Face ID</PinkBtn>
+          <button onClick={onCancel} style={{
+            height: 50, borderRadius: ST.R_LG, background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.18)', color: '#fff',
+            fontSize: 15, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+          }}>Usa la password</button>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fidFade { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes fidPulse { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.06); opacity: 0.6 } }
+        @keyframes fidShake { 0%,100% { transform: translateX(0) } 20% { transform: translateX(-8px) } 40% { transform: translateX(8px) } 60% { transform: translateX(-5px) } 80% { transform: translateX(5px) } }
+      `}</style>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
+function ScreenLogin({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {}, faceIdAsked = false, setFaceIdAsked = () => {} }) {
+  const [email, setEmail] = useStateL('');
+  const [pw, setPw] = useStateL('');
+  const [showPw, setShowPw] = useStateL(false);
+  // Se il Face ID è attivo, al rientro parti dalla schermata di sblocco.
+  const [gate, setGate] = useStateL(!!faceIdOn);
+
+  const goIn = () => nav.reset({ s: 'incassa' });
+
+  // Ingresso con password: entra e — solo se il Face ID non è attivo —
+  // mostra i permessi di primo accesso (che includono l'attivazione del Face ID).
+  const entra = () => {
+    goIn();
+    if (!faceIdOn) openModal({
+      kind: 'permessi',
+      askFaceId: !faceIdAsked,
+      enableFaceId: () => setFaceIdOn(true),
+      markAsked: () => setFaceIdAsked(true),
+    });
+  };
+
+  if (gate) return <FaceIdGate onSuccess={goIn} onCancel={() => setGate(false)}/>;
+
+  return (
+    <div style={{ minHeight: '100%', background: LOGIN_BG, padding: '64px 24px 32px', display: 'flex', flexDirection: 'column' }}>
+      <Logo size={46} radius={ST.R_MD}/>
+
+      <h1 style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: -0.6, margin: '24px 0 8px', lineHeight: 1.1 }}>
+        Accedi al tuo account
+      </h1>
+      <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', lineHeight: 1.45, margin: 0 }}>
+        Continua a gestire il tuo locale da dove l'hai lasciato.
+      </p>
+
+      {/* Continua con Google */}
+      <button onClick={entra} style={{
+        marginTop: 28, height: 54, width: '100%', borderRadius: ST.R_LG, cursor: 'pointer',
+        background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.16)',
+        color: '#fff', fontSize: 15.5, fontWeight: 700, fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+      }}>
+        <svg width="20" height="20" viewBox="0 0 48 48">
+          <path fill="#FFC107" d="M43.6 20.08H42V20H24v8h11.3c-1.65 4.66-6.08 8-11.3 8-6.63 0-12-5.37-12-12s5.37-12 12-12c3.06 0 5.84 1.15 7.96 3.04l5.66-5.66C34.05 6.05 29.27 4 24 4 12.96 4 4 12.96 4 24s8.96 20 20 20 20-8.96 20-20c0-1.34-.14-2.65-.4-3.92z"/>
+          <path fill="#FF3D00" d="M6.31 14.69l6.57 4.82C14.66 15.11 18.96 12 24 12c3.06 0 5.84 1.15 7.96 3.04l5.66-5.66C34.05 6.05 29.27 4 24 4 16.32 4 9.66 8.34 6.31 14.69z"/>
+          <path fill="#4CAF50" d="M24 44c5.17 0 9.86-1.98 13.41-5.19l-6.19-5.24C29.21 35.09 26.72 36 24 36c-5.2 0-9.62-3.32-11.28-7.95l-6.52 5.03C9.5 39.56 16.23 44 24 44z"/>
+          <path fill="#1976D2" d="M43.6 20.08H42V20H24v8h11.3c-.79 2.24-2.23 4.17-4.09 5.57l6.19 5.24C36.97 39.2 44 34 44 24c0-1.34-.14-2.65-.4-3.92z"/>
+        </svg>
+        Continua con Google
+      </button>
+
+      {/* Divider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '24px 0' }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.14)' }}/>
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>oppure</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.14)' }}/>
+      </div>
+
+      {/* Email */}
+      <label style={dkLabel}>Email o nome utente</label>
+      <div style={dkField}>
+        <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)}
+          placeholder="nome@locale.it" style={dkInput}/>
+      </div>
+
+      {/* Password */}
+      <label style={{ ...dkLabel, marginTop: 18 }}>Password</label>
+      <div style={dkField}>
+        <input className="login-input" type={showPw ? 'text' : 'password'} value={pw} onChange={e => setPw(e.target.value)}
+          placeholder="Inserisci la password" onKeyDown={e => { if (e.key === 'Enter') entra(); }} style={dkInput}/>
+        <button onClick={() => setShowPw(s => !s)} style={{
+          background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center',
+        }}>{eyeIcon(showPw)}</button>
+      </div>
+
+      {/* Password dimenticata */}
+      <button onClick={() => nav.push({ s: 'recupero' })} style={{
+        alignSelf: 'flex-end', marginTop: 12, background: 'transparent', border: 'none',
+        color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+        textDecoration: 'underline', textUnderlineOffset: 3,
+      }}>Password dimenticata?</button>
+
+      <PinkBtn onClick={entra} style={{ marginTop: 22 }}>Accedi →</PinkBtn>
+
+      <div style={{ textAlign: 'center', marginTop: 22, fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+        Non hai un account?<br/>
+        Crealo tramite Byup Fresh sul sito{' '}
+        <a href="https://byup.it" target="_blank" rel="noopener noreferrer" style={{
+          color: '#fff', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3,
+        }}>byup.it</a>
+      </div>
+
+      {dkPlaceholder}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// RECUPERO PASSWORD — email → conferma invio
+// ═══════════════════════════════════════════════════════════
+function ScreenRecupero({ nav }) {
+  const [email, setEmail] = useStateL('');
+  const [sent, setSent] = useStateL(false);
+
+  const invia = () => { if (email.trim()) setSent(true); };
+
+  return (
+    <div style={{ minHeight: '100%', background: LOGIN_BG, padding: '64px 24px 32px', display: 'flex', flexDirection: 'column' }}>
+      {/* Back */}
+      <button onClick={() => nav.pop()} style={{
+        width: 44, height: 44, borderRadius: ST.R_PILL, border: '1px solid rgba(255,255,255,0.16)',
+        background: 'rgba(255,255,255,0.07)', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+      }}><I.Back s={20} c="#fff"/></button>
+
+      {!sent ? (
+        <>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: -0.5, margin: '0 0 8px', lineHeight: 1.15 }}>
+            Recupera password
+          </h1>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', lineHeight: 1.45, margin: '0 0 28px' }}>
+            Inserisci l'email del tuo account: ti invieremo un link per reimpostare la password.
+          </p>
+
+          <label style={dkLabel}>Email</label>
+          <div style={dkField}>
+            <I.Mail s={18} c="rgba(255,255,255,0.6)"/>
+            <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="nome@locale.it" onKeyDown={e => { if (e.key === 'Enter') invia(); }} style={dkInput}/>
+          </div>
+
+          <PinkBtn onClick={invia} style={{ marginTop: 24, opacity: email.trim() ? 1 : 0.5 }}>
+            Invia link di recupero
+          </PinkBtn>
+
+          <button onClick={() => nav.pop()} style={{
+            marginTop: 18, alignSelf: 'center', background: 'transparent', border: 'none',
+            color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Torna al login</button>
+        </>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingBottom: 60 }}>
+          <div style={{
+            width: 76, height: 76, borderRadius: ST.R_PILL,
+            background: 'rgba(242,107,122,0.18)', border: '1px solid rgba(242,107,122,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22,
+          }}><I.Mail s={34} c={ST.PINK}/></div>
+
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: -0.4, margin: '0 0 10px' }}>
+            Controlla la tua email
+          </h1>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, margin: '0 0 30px', maxWidth: 300 }}>
+            Abbiamo inviato un link per reimpostare la password a <b style={{ color: '#fff' }}>{email}</b>. Controlla anche lo spam.
+          </p>
+
+          <PinkBtn onClick={() => nav.reset({ s: 'login' })} style={{ maxWidth: 300 }}>Torna al login</PinkBtn>
+
+          <button onClick={() => setSent(false)} style={{
+            marginTop: 18, background: 'transparent', border: 'none',
+            color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Non hai ricevuto nulla? Reinvia</button>
+        </div>
+      )}
+
+      {dkPlaceholder}
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenLogin, ScreenRecupero });

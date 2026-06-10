@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>byup — Simulatore dispositivi</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; background: #1c1c1e; color: #fff; }
+  body { display: flex; flex-direction: column; }
+
+  header { padding: 16px 22px 14px; border-bottom: 1px solid #2c2c2e; }
+  header h1 { margin: 0 0 12px; font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+
+  .devices { display: flex; flex-wrap: wrap; gap: 8px; }
+  .devices button {
+    font-family: inherit; cursor: pointer; border: 1px solid #3a3a3c; background: #2c2c2e; color: #fff;
+    padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; transition: all .15s;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1px; line-height: 1.1;
+  }
+  .devices button .dim { font-size: 10.5px; font-weight: 500; color: #9a9aa0; }
+  .devices button:hover { border-color: #5a5a5e; }
+  .devices button.active { background: #ff5a5f; border-color: #ff5a5f; }
+  .devices button.active .dim { color: rgba(255,255,255,0.85); }
+
+  .toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+  .seg { display: flex; align-items: center; gap: 6px; }
+  .seg .lab { font-size: 9.5px; font-weight: 800; letter-spacing: 1px; color: #6f6f76; }
+  .seg .pills { display: flex; gap: 4px; background: #2c2c2e; border: 1px solid #3a3a3c; padding: 4px; border-radius: 999px; }
+  .seg .pills button {
+    font-family: inherit; cursor: pointer; border: none; background: transparent; color: #c7c7cc;
+    padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; transition: all .15s;
+  }
+  .seg .pills button.active { background: #fff; color: #111; }
+
+  /* overflow:auto + margin:auto sul figlio → centrato quando ci sta, ma
+     completamente scrollabile (top incluso) quando il device sfora la finestra.
+     NB: con justify/align-content:center la parte alta verrebbe tagliata e
+     non raggiungibile dallo scroll → device grandi sembrano non 1:1. */
+  .stage { flex: 1; display: flex; overflow: auto; padding: 30px; }
+  .frame-wrap { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+  /* ── Corpo del dispositivo (bezel sottile) ──
+     L'iframe ha le dimensioni REALI del device (1:1), così il gate reagisce alla
+     width vera. Se più grande della finestra, lo stage scrolla. */
+  .frame {
+    position: relative; background: #0c0c0e;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55), inset 0 0 0 2px #2a2a2e;
+  }
+  /* finestra dello schermo: ritaglia l'iframe scalato */
+  .screenport { position: relative; overflow: hidden; background: #000; }
+  iframe { border: 0; background: #fff; display: block; transform-origin: top left; }
+
+  .caption { font-size: 12.5px; color: #9a9aa0; font-weight: 500; }
+  .caption b { color: #fff; font-weight: 700; }
+  .hint { font-size: 12px; color: #6f6f76; max-width: 560px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📐 Simulatore dispositivi — byup</h1>
+  <div class="devices" id="devices"></div>
+  <div class="toolbar">
+    <div class="seg">
+      <span class="lab">DEV</span>
+      <div class="pills" id="modes">
+        <button data-mode="table">🍽️ Tavolo</button>
+        <button data-mode="asporto">🥡 Asporto</button>
+      </div>
+    </div>
+    <div class="seg">
+      <span class="lab">ORIENTAMENTO</span>
+      <div class="pills" id="orient">
+        <button data-orient="portrait">📱 Verticale</button>
+        <button data-orient="landscape">📱↔ Orizzontale</button>
+      </div>
+    </div>
+    <div class="seg">
+      <span class="lab">PIATTAFORMA</span>
+      <div class="pills" id="os">
+        <button data-os="ios">🍏 iOS</button>
+        <button data-os="android">🤖 Android</button>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="stage">
+  <div class="frame-wrap">
+    <div class="frame" id="frame">
+      <div class="screenport" id="screenport">
+        <iframe id="preview" src="index.html"></iframe>
+      </div>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div class="hint">Il gate desktop scatta quando <b>entrambi</b> i lati del viewport sono ≥ <b>600px</b> (tablet e desktop). I telefoni, anche in orizzontale, hanno il lato corto &lt; 600px → restano sotto soglia e mostrano l'app.</div>
+  </div>
+</div>
+
+<script>
+  // Larghezza del riquadro app = larghezza viewport simulata: le media query
+  // dell'app reagiscono alla width dell'iframe, quindi il gate scatta davvero.
+  var DEVICES = [
+    { name: 'iPhone SE',         w: 375,  h: 667,  type: 'phone'   },
+    { name: 'iPhone 14',         w: 390,  h: 844,  type: 'phone'   },
+    { name: 'iPhone 15 Pro',     w: 393,  h: 852,  type: 'phone'   },
+    { name: 'iPhone 14 Pro Max', w: 430,  h: 932,  type: 'phone'   },
+    { name: 'iPad Mini',         w: 768,  h: 1024, type: 'tablet'  },
+    { name: 'iPad Pro 11"',      w: 834,  h: 1100, type: 'tablet'  },
+    { name: 'Desktop 1280',      w: 1280, h: 800,  type: 'desktop' },
+    { name: 'Desktop 1440',      w: 1440, h: 850,  type: 'desktop' },
+  ];
+
+  // Geometria del bezel per tipo di dispositivo (px nello spazio VISIBILE/scalato).
+  var CHROME = {
+    phone:   { bezel: 12, bodyR: 46, screenR: 34 },
+    tablet:  { bezel: 16, bodyR: 26, screenR: 14 },
+    desktop: { bezel: 8,  bodyR: 12, screenR: 6  },
+  };
+
+  var frame = document.getElementById('frame');
+  var screenport = document.getElementById('screenport');
+  var iframe = document.getElementById('preview');
+  var caption = document.getElementById('caption');
+  var devicesEl = document.getElementById('devices');
+  var modesEl = document.getElementById('modes');
+  var orientEl = document.getElementById('orient');
+  var osEl = document.getElementById('os');
+
+  var mode = 'table';        // 'table' | 'asporto'
+  var orient = 'portrait';   // 'portrait' | 'landscape'
+  var os = 'ios';            // 'ios' | 'android' → forza la piattaforma vista dalla webapp (?os=)
+  // L'app legge l'asporto da ?takeaway=1 (mostra "scarica l'app") e la piattaforma
+  // da ?os=… (cambia la schermata di recupero ordine: codice vs install referrer).
+  function srcFor() {
+    var params = [];
+    if (mode === 'asporto') params.push('takeaway=1');
+    if (os) params.push('os=' + os);
+    return 'index.html' + (params.length ? '?' + params.join('&') : '');
+  }
+
+  function px(n) { return Math.round(n) + 'px'; }
+
+  function select(d, btn) {
+    if (btn) {
+      Array.prototype.forEach.call(devicesEl.children, function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    }
+
+    var c = CHROME[d.type];
+    // Orizzontale: scambio larghezza/altezza (solo per telefoni e tablet).
+    var rot = orient === 'landscape' && d.type !== 'desktop';
+    var w = rot ? d.h : d.w;
+    var h = rot ? d.w : d.h;
+
+    // Dimensione REALE 1:1: nessun ridimensionamento. Se il device è più grande
+    // della finestra, lo stage scrolla (overflow:auto).
+    iframe.style.width = w + 'px';
+    iframe.style.height = h + 'px';
+    iframe.style.transform = 'none';
+
+    // Finestra schermo = dimensioni reali; raggi adattati al device.
+    screenport.style.width = px(w);
+    screenport.style.height = px(h);
+    screenport.style.borderRadius = px(c.screenR);
+
+    // Corpo dispositivo = schermo + bezel.
+    frame.style.padding = px(c.bezel);
+    frame.style.borderRadius = px(c.bodyR);
+
+    // Allineo il sessionStorage dell'iframe (fonte di verità della modalità per
+    // l'app) così "Tavolo" resetta davvero l'asporto memorizzato in sessione.
+    try {
+      var ss = iframe.contentWindow && iframe.contentWindow.sessionStorage;
+      if (ss) {
+        if (mode === 'asporto') ss.setItem('byup_menu_mode', 'asporto');
+        else ss.removeItem('byup_menu_mode');
+        ss.removeItem('byup_menu_from');
+      }
+    } catch (e) {}
+    // Ricarico l'iframe così le media query ri-valutano alla nuova width.
+    iframe.src = srcFor();
+
+    // Gate se ENTRAMBE le dimensioni ≥ 600 (allineato al CSS di index.html).
+    var gated = w >= 600 && h >= 600;
+    var gate = gated ? '🚫 gate desktop attivo' : '✅ esperienza mobile';
+    caption.innerHTML = '<b>' + d.name + '</b> · ' + w + '×' + h + (rot ? ' ↔' : '') + ' · 100% (reale) · ' + gate;
+  }
+
+  function reapply() { var active = devicesEl.querySelector('.active'); if (active) active.click(); }
+
+  // ── Segmented controls ──
+  function wireSeg(container, getter, setter) {
+    Array.prototype.forEach.call(container.children, function (b) {
+      b.onclick = function () { setter(b); syncSeg(container, getter); reapply(); };
+    });
+    syncSeg(container, getter);
+  }
+  function syncSeg(container, getter) {
+    var val = getter();
+    Array.prototype.forEach.call(container.children, function (b) {
+      b.classList.toggle('active', b.getAttribute(container.dataset.attr) === val);
+    });
+  }
+  modesEl.dataset.attr = 'data-mode';
+  orientEl.dataset.attr = 'data-orient';
+  osEl.dataset.attr = 'data-os';
+  wireSeg(modesEl,  function () { return mode; },   function (b) { mode = b.getAttribute('data-mode'); });
+  wireSeg(orientEl, function () { return orient; }, function (b) { orient = b.getAttribute('data-orient'); });
+  wireSeg(osEl,     function () { return os; },     function (b) { os = b.getAttribute('data-os'); });
+
+  // ── Device list ──
+  DEVICES.forEach(function (d, i) {
+    var btn = document.createElement('button');
+    btn.innerHTML = d.name + '<span class="dim">' + d.w + ' × ' + d.h + '</span>';
+    btn.onclick = function () { select(d, btn); };
+    devicesEl.appendChild(btn);
+    if (i === 1) setTimeout(function () { select(d, btn); }, 0); // default: iPhone 14
+  });
+
+  window.addEventListener('resize', reapply);
+</script>
+</body>
+</html>
