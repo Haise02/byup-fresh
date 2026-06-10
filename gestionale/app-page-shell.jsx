@@ -5,30 +5,29 @@
 // 'food-meal', 'place-restaurant'). Quando passato, viene resa in un cerchio
 // soft come ancora di sezione, accanto al titolo. Vedi `dashboard-icon-mapping.md`
 // per il vincolo "1 sola Content icon per header".
-function PnPageHeader({ title, subtitle, actions, icon, dark }) {
+function PnPageHeader({ title, subtitle, actions, icon }) {
   return (
     <header style={{
       display: 'flex', alignItems: 'center', gap: 16,
       padding: '20px 32px 18px',
-      borderBottom: dark ? 'none' : `1px solid ${PN.BORDER_HAIR}`,
-      background: dark ? '#0F1115' : PN.WHITE_OFF,
+      borderBottom: `1px solid ${PN.BORDER_HAIR}`,
+      background: PN.WHITE_OFF,
     }}>
       {icon && (
         <span style={{
           width: 40, height: 40, borderRadius: 11,
-          background: dark ? PN.PINK : PN.PINK_SOFT,
-          color: dark ? '#fff' : PN.PINK_DARK,
+          background: PN.PINK_SOFT, color: PN.PINK_DARK,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
           <Icon name={icon} size={22}/>
         </span>
       )}
       <div style={{flex: 1, minWidth: 0}}>
-        <h1 style={{margin: 0, fontSize: 24, fontWeight: 600, color: dark ? '#fff' : PN.TEXT, letterSpacing: '-0.02em'}}>
+        <h1 style={{margin: 0, fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
           {title}
         </h1>
         {subtitle && (
-          <div style={{fontSize: 15, color: dark ? 'rgba(255,255,255,0.65)' : PN.MUTED, marginTop: 4}}>{subtitle}</div>
+          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 4}}>{subtitle}</div>
         )}
       </div>
       {actions}
@@ -43,13 +42,13 @@ function PnPageHeader({ title, subtitle, actions, icon, dark }) {
 // Ogni tab può opzionalmente avere `icon` (nome registry SfIcons). Quando
 // definita, viene resa a sinistra del label a 14px. Coerente con la regola
 // "1 icona per tab nelle filter chips di categoria" (vedi dashboard-icon-mapping).
-function PnUnderlineTabs({ tabs, active, onChange, dark }) {
+function PnUnderlineTabs({ tabs, active, onChange }) {
   return (
     <div style={{
       display: 'flex', gap: 28,
       padding: '0 32px',
-      borderBottom: dark ? 'none' : `1px solid ${PN.BORDER_HAIR}`,
-      background: dark ? '#0F1115' : PN.WHITE_OFF,
+      borderBottom: `1px solid ${PN.BORDER_HAIR}`,
+      background: PN.WHITE_OFF,
     }}>
       {tabs.map(t => {
         const on = active === t.id;
@@ -58,10 +57,8 @@ function PnUnderlineTabs({ tabs, active, onChange, dark }) {
             display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '14px 0',
             background: 'transparent', border: 'none',
-            borderBottom: `3px solid ${on ? (dark ? PN.PINK : PN.TEXT) : 'transparent'}`,
-            color: dark
-              ? (on ? '#fff' : 'rgba(255,255,255,0.55)')
-              : (on ? PN.TEXT : PN.MUTED),
+            borderBottom: `2px solid ${on ? PN.TEXT : 'transparent'}`,
+            color: on ? PN.TEXT : PN.MUTED,
             fontSize: 15.5, fontWeight: on ? 600 : 500,
             letterSpacing: on ? '-0.01em' : 0,
             cursor: 'pointer', fontFamily: 'inherit',

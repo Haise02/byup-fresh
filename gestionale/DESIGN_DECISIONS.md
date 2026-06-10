@@ -591,35 +591,6 @@ Applicazione del sistema 2.0/2.1 alle quattro superfici operative, **solo livell
 
 ---
 
-# Design System 2.3 — "Light bold a stati pieni" (superfici operative)
-
-Il rollout 2.2 era rifinitura invisibile a colpo d'occhio. La 2.3 cambia la pelle delle quattro superfici operative su richiesta esplicita: **lo stato è il colore della superficie**, non un'etichetta sopra. Layout, wireframe, flussi e copy invariati.
-
-## Il principio: tabellone, non documento
-
-Una sala in servizio si legge da 2 metri. La card/tile del tavolo viene RIEMPITA del colore di stato con testo bianco; il libero resta bianco con bordo netto. Stessi colori ovunque (card, mappa, timeline prenotazioni, chip filtri):
-
-| Stato | Fill | Border |
-|---|---|---|
-| Occupato | `#1E40AF` (blu profondo) | `#1E3A8A` |
-| Prenotato | `#6D28D9` (viola) | `#5B21B6` |
-| Da pulire | `#B45309` (ambra bruciata) | `#92400E` |
-| Libero | `#FFFFFF` | `#D6DAE0` |
-
-Su superficie piena: testo `#FFF`, muted `rgba(255,255,255,0.78)`, divider `rgba(255,255,255,0.22)` (`SALA_FILL_INK`). I chip semantici (allergia, alert ambra, note) diventano pill bianche piene per staccare dal fill.
-
-## Le altre decisioni della 2.3
-
-1. **Banda header inchiostro** (`#0F1115`) su tutte e 4 le pagine: titolo bianco, tabs su fondo ink con underline coral 3px (prop opt-in `dark` su `PnPageHeader`/`PnUnderlineTabs` — le altre pagine non cambiano). Anche il righello ore della timeline e l'hero "Da incassare" dei conti aperti sono bande ink con cifre bianche grandi.
-2. **CTA coral**: la primaria su superfici bianche è `BTN_BRAND` (Apri tavolo, Prenota, Procedi al pagamento, chip categoria attiva del POS). Su card piena la primaria è **bianca solida** (massimo contrasto sul colore) e le secondarie sono translucent white `rgba(255,255,255,0.16)`. Deroga consapevole alla regola "una sola CTA brand per schermata": qui il coral è gerarchia d'azione, non decorazione.
-3. **KDS a bande**: colonna "In coda" banda ink `#15171C`, "In preparazione" banda blu `#1E40AF`, "Pronti" banda verde `#15803D`; testata dei ticket ink con Tav. bianco 26px e timer a blocco pieno (neutro translucent / ambra / rosso). Rimosso il dot decorativo introdotto nella 2.2.
-4. **Numeri da tabellone**: conto card 34px, hero conti 36px, totale POS 26px, timer KDS 24px — tutti `tabular-nums` 700.
-5. **Timeline prenotazioni**: blocchi pieni (occupato blu / prenotato viola, testo bianco) su entrambe le pagine; legenda allineata.
-
-Vietati e attivamente evitati: dot decorativi, stroke casuali, gradienti bicolore, glow tinted. Gli unici gradienti restano i `BTN_*` monocromatici del sistema 2.0.
-
----
-
 ## Anti-AI-slop check (Maggio 2026)
 
 Pattern AI comuni evitati attivamente in questa iterazione:

@@ -372,10 +372,11 @@ function SalaV3App() {
           <header style={{
             display: 'flex', alignItems: 'center', gap: 16,
             padding: '20px 32px 18px',
-            background: '#0F1115',
+            borderBottom: `1px solid ${PN.BORDER_HAIR}`,
+            background: PN.WHITE_OFF,
           }}>
             <div style={{flex: 1, minWidth: 0}}>
-              <h1 style={{margin: 0, fontSize: 24, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em'}}>
+              <h1 style={{margin: 0, fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
                 Sala e prenotazioni
               </h1>
             </div>
@@ -383,7 +384,7 @@ function SalaV3App() {
             <PnNotifBell/>
           </header>
         )}
-        {!focus && <PnUnderlineTabs tabs={tabs} active={tab} onChange={setTab} dark/>}
+        {!focus && <PnUnderlineTabs tabs={tabs} active={tab} onChange={setTab}/>}
 
         <div style={{flex:1, display:'flex', minHeight:0, minWidth:0, overflow:'hidden'}}>
           <div className="pn-scroll" style={{

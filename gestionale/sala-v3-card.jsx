@@ -1,26 +1,11 @@
 // Sala v3 — Card con SVG icone (no emoji), byup chip, lista articoli realistica
 // Inoltre: ContiApertiPanel laterale + flow "+ Articolo" inline
 
-// Stati pieni — il colore di stato È la card/tile (leggibile da lontano, stile tabellone).
-// `fill: true` → superficie colorata piena con testo bianco. Libero resta bianco con bordo netto.
 const SALA_V3_STATE_META = {
-  libero:    { dot: '#9CA3AF', label: 'Libero',    plural: 'Liberi',    bg: '#FFFFFF', mapBg: '#FFFFFF', border: '#D6DAE0', mapBorder: '#C2C8D1', accent: '#6B7280', fill: false },
-  prenotato: { dot: '#6D28D9', label: 'Prenotato', plural: 'Prenotati', bg: '#6D28D9', mapBg: '#6D28D9', border: '#5B21B6', mapBorder: '#4C1D95', accent: '#6D28D9', fill: true },
-  occupato:  { dot: '#1E40AF', label: 'Occupato',  plural: 'Occupati',  bg: '#1E40AF', mapBg: '#1E40AF', border: '#1E3A8A', mapBorder: '#172E75', accent: '#1E40AF', fill: true },
-  dapulire:  { dot: '#B45309', label: 'Da pulire', plural: 'Da pulire', bg: '#B45309', mapBg: '#B45309', border: '#92400E', mapBorder: '#7C3608', accent: '#B45309', fill: true },
-};
-// Palette testo per superfici piene vs bianche
-const SALA_FILL_INK = {
-  text:    '#FFFFFF',
-  muted:   'rgba(255,255,255,0.78)',
-  faint:   'rgba(255,255,255,0.58)',
-  divider: 'rgba(255,255,255,0.22)',
-};
-const SALA_FLAT_INK = {
-  text:    '#0F1115',
-  muted:   '#6B7280',
-  faint:   '#9CA3AF',
-  divider: 'rgba(15,17,21,0.08)',
+  libero:    { dot: '#9CA3AF', label: 'Libero',    plural: 'Liberi',    bg: '#F3F4F6', mapBg: '#F3F4F6', border: '#D1D5DB', mapBorder: '#D1D5DB', accent: '#6B7280' },
+  prenotato: { dot: '#7C3AED', label: 'Prenotato', plural: 'Prenotati', bg: '#FAF8FF', mapBg: '#FAF8FF', border: '#EDE9FE', mapBorder: '#DDD6FE', accent: '#7C3AED' },
+  occupato:  { dot: '#172554', label: 'Occupato',  plural: 'Occupati',  bg: '#DBEAFE', mapBg: '#DBEAFE', border: '#BFDBFE', mapBorder: '#93C5FD', accent: '#172554' },
+  dapulire:  { dot: '#D97706', label: 'Da pulire', plural: 'Da pulire', bg: '#FFFBEB', mapBg: '#FEF3C7', border: '#FDE68A', mapBorder: '#FCD34D', accent: '#D97706' },
 };
 
 // Triangolo rosso accanto al dot: prenotato in ritardo >20' OR da pulire da >20'
@@ -179,7 +164,7 @@ function ChairIcon({ size = 13, color = 'currentColor' }) {
 
 // Pencil inline che apre un popover stepper per modificare un numero di posti.
 // Usato per editare la party size della prenotazione su libero/prenotato espansi.
-function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = false, onFillSurface = false }) {
+function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = false }) {
   const [open, setOpen] = React.useState(false);
   const [val, setVal] = React.useState(currentPosti || 1);
   const ref = React.useRef(null);
@@ -198,14 +183,13 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
         justifyContent:'center',
         height: 18, marginLeft: withLabel ? 0 : 2, padding: withLabel ? '0 2px' : 0,
         background:'transparent', border:'none', cursor:'pointer',
-        color: onFillSurface ? 'rgba(255,255,255,0.78)' : '#6B7280',
-        borderRadius: 4, fontFamily:'inherit',
+        color:'#6B7280', borderRadius: 4, fontFamily:'inherit',
         fontSize: withLabel ? 12.5 : 'inherit',
         fontWeight: withLabel ? 500 : 'inherit',
         transition:'color 120ms, background 120ms',
       }}
-        onMouseEnter={e => { e.currentTarget.style.color = onFillSurface ? '#fff' : '#0F1115'; e.currentTarget.style.background = onFillSurface ? 'rgba(255,255,255,0.14)' : '#F4F5F7'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = onFillSurface ? 'rgba(255,255,255,0.78)' : '#6B7280'; e.currentTarget.style.background = 'transparent'; }}>
+        onMouseEnter={e => { e.currentTarget.style.color = '#0F1115'; e.currentTarget.style.background = '#F4F5F7'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = withLabel ? '#6B7280' : '#9CA3AF'; e.currentTarget.style.background = 'transparent'; }}>
         {withLabel && <span>{currentPosti} posti</span>}
         <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
           <path d="M8.5 2.5l1 1-5.5 5.5H3v-1L8.5 2.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -306,7 +290,7 @@ function PhaseIndicator({ phase, phaseTone, ordini }) {
 // Avatar group — un colpo d'occhio sui coperti seduti e su chi è collegato a byup
 // Rosso brand con "b" = utente byup (ordina dall'app). Grigio chiaro = ospite tradizionale.
 // Format "X/Y" = seduti / capacità massima del tavolo.
-function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust, onFillSurface }) {
+function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust }) {
   const [editing, setEditing] = React.useState(false);
   const ref = React.useRef(null);
   React.useEffect(() => {
@@ -336,7 +320,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust, o
           {avatars.map((isByup, i) => (
             <div key={i} style={{
               width: sz, height: sz, borderRadius: '50%',
-              background: isByup ? (onFillSurface ? '#0F1115' : '#475569') : '#E5E7EB',
+              background: isByup ? '#475569' : '#E5E7EB',
               border: '2px solid #FFFFFF',
               marginLeft: i === 0 ? 0 : -overlap,
               display:'inline-flex', alignItems:'center', justifyContent:'center',
@@ -363,13 +347,13 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust, o
           )}
         </div>
         <span style={{
-          fontSize: expanded ? 13.5 : 12.5,
-          color: onFillSurface ? '#FFFFFF' : '#0F1115', fontWeight: 700,
+          fontSize: expanded ? 12.5 : 11.5,
+          color: '#0F1115', fontWeight: 700,
           whiteSpace:'nowrap',
           fontVariantNumeric: 'tabular-nums',
           letterSpacing: -0.2,
         }}>
-          {coperti}<span style={{color: onFillSurface ? 'rgba(255,255,255,0.6)' : '#9CA3AF', fontWeight: 600, margin:'0 1px'}}>/</span>{posti}
+          {coperti}<span style={{color:'#9CA3AF', fontWeight: 600, margin:'0 1px'}}>/</span>{posti}
         </span>
         {editable && (
           <span style={{
@@ -390,11 +374,11 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust, o
   return (
     <div ref={ref} style={{position:'relative', display:'inline-flex'}}>
       <button onClick={(e) => { e.stopPropagation(); setEditing(v => !v); }} style={{
-        background: editing ? (onFillSurface ? 'rgba(255,255,255,0.16)' : '#F4F5F7') : 'transparent',
+        background: editing ? '#F4F5F7' : 'transparent',
         border:'none', padding: '2px 6px 2px 2px', margin:'-2px -6px -2px -2px',
         borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
         transition:'background .12s',
-      }} onMouseEnter={(e)=>{ if(!editing) e.currentTarget.style.background = onFillSurface ? 'rgba(255,255,255,0.12)' : '#FAFBFC'; }}
+      }} onMouseEnter={(e)=>{ if(!editing) e.currentTarget.style.background='#FAFBFC'; }}
          onMouseLeave={(e)=>{ if(!editing) e.currentTarget.style.background='transparent'; }}>
         {Inner}
       </button>
@@ -505,12 +489,21 @@ function SalaV3Card({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfi
 
   // Severity "Da pulire" progressiva
   const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire) : 'normal';
-  const isFill = !!meta.fill;
-  const C = isFill ? SALA_FILL_INK : SALA_FLAT_INK;
+  const stateBg = {
+    libero:    'linear-gradient(160deg, #F3F4F6 0%, #EAECEF 75%)',
+    prenotato: 'linear-gradient(160deg, #F5F3FF 0%, #FFFFFF 75%)',
+    occupato:  'linear-gradient(160deg, #DBEAFE 0%, #FFFFFF 75%)',
+    dapulire:  'linear-gradient(160deg, #FFFBEB 0%, #FFFFFF 75%)',
+  }[t.state];
   const [hover, setHover] = React.useState(false);
-  const accent = meta.accent;
-  // Dot stato (header): bianco su superficie piena, colore di stato su bianco.
-  const dotColor = isFill ? '#FFFFFF' : meta.dot;
+  // Accent (border + top bar) per stato. Da pulire: resta sempre grigio, anche in critical.
+  let accent = meta.dot;
+  if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
+  // Dot stato (header). Da pulire: resta grigio (#64748B) per qualsiasi severity.
+  let dotColor = meta.dot;
+  if (t.state === 'prenotato') {
+    dotColor = '#7C3AED'; // sempre viola — lo stato è prenotazione, l'urgenza è nel triangolo
+  }
   const showAlertTriangle = hasAlertTriangle(t);
 
   return (
@@ -519,37 +512,43 @@ function SalaV3Card({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfi
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        background: meta.bg,
+        background: stateBg,
         borderRadius: 14,
-        border: `1.5px solid ${isFill ? meta.border : (hover ? '#AEB6C2' : meta.border)}`,
+        border: `1px solid ${hover ? accent + '40' : 'rgba(15, 17, 21, 0.06)'}`,
         padding: expanded ? '16px 18px' : '12px 14px',
         cursor: 'pointer',
         transition: 'transform 220ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 220ms ease-out, border-color 200ms ease-out',
         display: 'flex', flexDirection: 'column', gap: expanded ? 14 : 6,
         boxShadow: expanded
-          ? `0 14px 32px ${accent}40, 0 2px 4px rgba(15, 17, 21, 0.08)`
+          ? `0 12px 28px ${accent}26, 0 1px 2px rgba(15, 17, 21, 0.04)`
           : (hover
-              ? `0 10px 24px ${accent}33, 0 1px 2px rgba(15, 17, 21, 0.06)`
-              : (isFill
-                ? `0 2px 6px ${accent}30, 0 1px 2px rgba(15, 17, 21, 0.08)`
-                : '0 1px 2px rgba(15, 17, 21, 0.05)')),
+              ? `0 8px 20px ${accent}1F, 0 1px 2px rgba(15, 17, 21, 0.04)`
+              : '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 12px rgba(15, 17, 21, 0.04)'),
         transform: (expanded || hover) ? 'translateY(-2px)' : 'translateY(0)',
         position: 'relative',
         overflow: 'hidden',
         minHeight: expanded ? 'auto' : 88,
       }}>
+      {/* Top accent bar — color accent dello stato (mai rosso su contabili, ok rosso pulire critical) */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0,
+        height: 3,
+        background: `linear-gradient(90deg, ${accent} 0%, ${accent}59 100%)`,
+        opacity: hover || expanded ? 1 : 0.85,
+        transition: 'opacity 200ms ease-out',
+      }}/>
 
       {/* === HEADER — Tav.X numero, posti, dot stato a dx (tooltip on hover) === */}
       <div style={{display: 'flex', alignItems: 'center', gap: 8, marginTop: 2}}>
         <span style={{
-          fontSize: 17, fontWeight: 700, color: C.text,
+          fontSize: 16, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tav.{[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
         {t.state === 'occupato' && (
           <Tip text={`Seduti da ${formatOpenDuration(t.sittingMin)}`}>
             <span style={{
               display:'inline-flex', alignItems:'center', gap: 3,
-              fontSize: 11.5, color: C.muted, fontWeight: 600, cursor:'help',
+              fontSize: 11, color:'#6B7280', fontWeight: 600, cursor:'help',
               lineHeight: 1,
             }}>
               <ChairIcon size={12}/>
@@ -558,32 +557,24 @@ function SalaV3Card({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfi
           </Tip>
         )}
         {t.state !== 'occupato' && (
-          <span style={{fontSize: 11, color: C.muted, fontWeight: 500}}>· {t.posti}p</span>
+          <span style={{fontSize: 11, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
         )}
 
         <span style={{flex:1}}/>
         {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
         {showAlertTriangle && (
           <Tip text={t.state === 'dapulire' ? 'Tavolo da pulire da oltre 20\'' : 'Prenotazione in ritardo di oltre 20\''}>
-            <span style={{
-              display:'grid', placeItems:'center', cursor:'help',
-              width: isFill ? 20 : 'auto', height: isFill ? 20 : 'auto',
-              borderRadius: '50%', background: isFill ? '#fff' : 'transparent',
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="#DC2626" stroke="none" style={{display:'block'}}>
-                <path d="M12 2 L22 20 H2 Z" fill="#DC2626"/>
-                <path d="M12 9 V14 M12 17 h0.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
-              </svg>
-            </span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#DC2626" stroke="none" style={{display:'block', cursor:'help'}}>
+              <path d="M12 2 L22 20 H2 Z" fill="#DC2626"/>
+              <path d="M12 9 V14 M12 17 h0.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+            </svg>
           </Tip>
         )}
         <Tip text={meta.label}>
           <span style={{
             width: 9, height: 9, borderRadius:'50%',
             background: dotColor,
-            boxShadow: (urgent || isLate || isAlerting)
-              ? `0 0 0 3px ${isFill ? 'rgba(255,255,255,0.30)' : dotColor + '33'}`
-              : 'none',
+            boxShadow: (urgent || isLate || isAlerting) ? `0 0 0 3px ${dotColor}33` : 'none',
             cursor:'help',
           }}/>
         </Tip>
@@ -592,12 +583,9 @@ function SalaV3Card({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfi
       {/* Allergia: SEMPRE visibile. Compatta = solo "Allergia". Espansa = "Allergia [testo] · [ospite]". */}
       {note && noteIsCritical && (
         <div style={{
-          display:'inline-flex', alignItems:'center', gap: 5, alignSelf:'flex-start',
+          display:'flex', alignItems:'center', gap: 5,
           fontSize: 11, fontWeight: 700, color: '#DC2626',
-          background: isFill ? '#FFFFFF' : '#FEE2E2',
-          padding: '3px 8px', borderRadius: 6,
-          lineHeight: 1.25, textTransform: 'uppercase', letterSpacing: 0.4,
-          maxWidth: '100%',
+          padding: '2px 0', lineHeight: 1.25, textTransform: 'uppercase', letterSpacing: 0.4,
         }}>
           <span style={{whiteSpace: expanded ? 'normal' : 'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
             {expanded
@@ -607,7 +595,7 @@ function SalaV3Card({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfi
         </div>
       )}
 
-      {!expanded && <SalaV3CardCompact t={t} alert={alert} urgent={urgent} isLate={isLate} lateMin={lateMin} cta={cta} pulireSev={pulireSev} isFill={isFill} C={C}/>}
+      {!expanded && <SalaV3CardCompact t={t} alert={alert} urgent={urgent} isLate={isLate} lateMin={lateMin} cta={cta} pulireSev={pulireSev}/>}
       {expanded && <SalaV3CardExpanded t={t} alert={alert} cta={cta} note={note} noteMeta={noteMeta}
         extraNote={extraNote} extraNoteMeta={extraNoteMeta}
         onAddArticle={onAddArticle} onConfirmCart={onConfirmCart} cart={cart} onCartChange={onCartChange}
@@ -615,20 +603,20 @@ function SalaV3Card({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfi
         onAdjustReservationPosti={onAdjustReservationPosti}
         menuItems={menuItems} occupatoSaldato={occupatoSaldato}
         isLate={isLate} lateMin={lateMin} isNoShow={isNoShow}
-        onAssignOther={onAssignOther} onNoShow={onNoShow} pulireSev={pulireSev} isFill={isFill} C={C}/>}
+        onAssignOther={onAssignOther} onNoShow={onNoShow} pulireSev={pulireSev}/>}
     </div>
   );
 }
 
-function SalaV3CardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev, isFill, C = SALA_FLAT_INK }) {
+function SalaV3CardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) {
   if (t.state === 'libero') {
     if (!t.nextReservation) {
       return null;
     }
     return (
-      <div style={{display:'flex', alignItems:'baseline', gap: 6, fontSize: 11.5, color: C.muted}}>
-        <span style={{color: C.faint, flexShrink: 0}}>→</span>
-        <span style={{fontWeight: 700, color: C.text, flexShrink: 0}}>{t.nextReservation.time}</span>
+      <div style={{display:'flex', alignItems:'baseline', gap: 6, fontSize: 11.5, color:'#6B7280'}}>
+        <span style={{color:'#9CA3AF', flexShrink: 0}}>→</span>
+        <span style={{fontWeight: 700, color:'#0F1115', flexShrink: 0}}>{t.nextReservation.time}</span>
         <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
           {t.nextReservation.name}
         </span>
@@ -638,23 +626,21 @@ function SalaV3CardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev, 
   if (t.state === 'prenotato') {
     if (!t.nextReservation) {
       return (
-        <div style={{fontSize: 11, fontWeight: 600, color: C.muted}}>Prenotato</div>
+        <div style={{fontSize: 11, fontWeight: 600, color: '#7C3AED'}}>Prenotato</div>
       );
     }
     const label = isLate ? `In ritardo di ${lateMin}'` : `In arrivo fra ${t.minutiAllaPrenotazione ?? t.nextReservation?.inMin}'`;
-    const accentCol = isFill
-      ? (isLate ? '#FFE08A' : C.muted)
-      : (isLate ? '#A16207' : (urgent ? '#7C3AED' : '#16A34A'));
+    const accentCol = isLate ? '#A16207' : (urgent ? '#7C3AED' : '#16A34A');
     return (
       <div style={{display:'flex', flexDirection:'column', gap: 2}}>
         <div style={{fontSize: 10.5, fontWeight: 700, color: accentCol, letterSpacing: 0.3, textTransform:'uppercase'}}>
           {label}
         </div>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
-          <span style={{fontSize: 16, fontWeight: 700, color: C.text, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>
+          <span style={{fontSize: 14, fontWeight: 700, color: '#0F1115', flexShrink: 0}}>
             {t.nextReservation.time}
           </span>
-          <span style={{flex: 1, minWidth: 0, fontSize: 11.5, color: C.text, fontWeight: 600,
+          <span style={{flex: 1, minWidth: 0, fontSize: 11.5, color: '#0F1115', fontWeight: 600,
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
             {t.nextReservation.name}
           </span>
@@ -665,12 +651,12 @@ function SalaV3CardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev, 
   if (t.state === 'occupato') {
     return (
       <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
-        <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti} onFillSurface={isFill}/>
+        <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti}/>
         {alert && (
           <div style={{
             fontSize: 11, fontWeight: 700,
-            color: alert.tone === 'warn' ? '#92400E' : '#374151',
-            background: alert.tone === 'warn' ? '#FEF3C7' : (isFill ? '#FFFFFF' : '#F3F4F6'),
+            color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
+            background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
             padding: '3px 7px', borderRadius: 6,
             whiteSpace:'nowrap',
           }}>{alert.label}</div>
@@ -679,7 +665,7 @@ function SalaV3CardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev, 
     );
   }
   if (t.state === 'dapulire') {
-    const pulireColor = isFill ? C.text : (pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#475569'));
+    const pulireColor = pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#475569');
     const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
     return (
       <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
@@ -687,7 +673,7 @@ function SalaV3CardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev, 
           {pulireSev === 'normal' ? `Liberato ${min}' fa` : `Da pulire da ${min}'`}
         </span>
         {t.nextReservation && (
-          <span style={{color: C.muted, fontSize: 10.5, fontWeight: 500}}>
+          <span style={{color:'#9CA3AF', fontSize: 10.5, fontWeight: 500}}>
             → {t.nextReservation.time}
           </span>
         )}
@@ -697,19 +683,19 @@ function SalaV3CardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev, 
   return null;
 }
 
-function SalaV3CardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, menuItems, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev, isFill, C = SALA_FLAT_INK }) {
+function SalaV3CardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, menuItems, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev }) {
   return (
     <>
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
         {t.state === 'libero' && t.nextReservation && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-            <div style={{fontSize: 10.5, fontWeight: 700, color: C.muted, letterSpacing: 0.4, textTransform:'uppercase'}}>
+            <div style={{fontSize: 10.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
               Prossima prenotazione
             </div>
-            <div style={{fontSize: 17, fontWeight: 700, color: C.text, letterSpacing:'-0.01em', lineHeight: 1.2}}>
+            <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2}}>
               {t.nextReservation.time} · {t.nextReservation.name}
             </div>
-            <div style={{display:'flex', alignItems:'baseline', gap: 8, fontSize: 12.5, color: C.muted}}>
+            <div style={{display:'flex', alignItems:'baseline', gap: 8, fontSize: 12.5, color:'#6B7280'}}>
               <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
             </div>
           </div>
@@ -721,21 +707,20 @@ function SalaV3CardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNot
               {(() => {
                 const minAlla = t.minutiAllaPrenotazione ?? t.nextReservation.inMin;
                 const tag = isLate ? `In ritardo di ${lateMin}'` : `In arrivo fra ${minAlla}'`;
-                const tagColor = isFill
-                  ? (isLate ? '#FFE08A' : C.muted)
-                  : (isLate ? '#A16207' : (minAlla < PRENOTAZIONE_BLOCCO_MIN ? '#7C3AED' : '#16A34A'));
+                // In ritardo: SOLO il testo è giallo
+                const tagColor = isLate ? '#A16207' : (minAlla < PRENOTAZIONE_BLOCCO_MIN ? '#7C3AED' : '#16A34A');
                 return (
                   <div style={{fontSize: 10.5, fontWeight: 700, color: tagColor, letterSpacing: 0.4, textTransform:'uppercase'}}>
                     {tag}
                   </div>
                 );
               })()}
-              <div style={{fontSize: 20, fontWeight: 700, color: C.text, letterSpacing:'-0.01em', lineHeight: 1.2,
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
+              <div style={{fontSize: 18, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                 {t.nextReservation.time} · {t.nextReservation.name}
               </div>
-              <div style={{fontSize: 12.5, color: C.muted, display:'flex', alignItems:'baseline', gap: 6}}>
-                <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel onFillSurface={isFill}/>
+              <div style={{fontSize: 12.5, color:'#6B7280', display:'flex', alignItems:'baseline', gap: 6}}>
+                <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
               </div>
             </div>
             {note && !noteMeta?.critical && (
@@ -765,19 +750,19 @@ function SalaV3CardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNot
           <>
             <div style={{display:'flex', flexDirection:'column', gap: 8}}>
               {t.party && (
-                <div style={{fontSize: 16, fontWeight: 700, color: C.text, letterSpacing:'-0.01em', lineHeight: 1.2,
+                <div style={{fontSize: 15, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                   {t.party}
                 </div>
               )}
-              <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti} expanded onAdjust={onAdjustCoperti} onFillSurface={isFill}/>
+              <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti} expanded onAdjust={onAdjustCoperti}/>
             </div>
 
             {alert && (
               <div style={{
                 fontSize: 11.5, fontWeight: 700,
-                color: alert.tone === 'warn' ? '#92400E' : '#374151',
-                background: alert.tone === 'warn' ? '#FEF3C7' : (isFill ? '#FFFFFF' : '#F3F4F6'),
+                color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
+                background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
                 padding:'6px 10px', borderRadius: 8, alignSelf:'flex-start',
               }}>{alert.label}</div>
             )}
@@ -808,25 +793,25 @@ function SalaV3CardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNot
             <div style={{
               display:'flex', flexDirection:'column', alignItems:'flex-start',
               paddingTop: 12, marginTop: 2, gap: 2,
-              borderTop: `1px solid ${C.divider}`,
+              borderTop:'1px solid rgba(15, 17, 21, 0.08)',
             }}>
               <div style={{display:'flex', alignItems:'baseline', gap: 8}}>
                 <span style={{
-                  fontSize: 32, fontWeight: 700, lineHeight: 1,
+                  fontSize: 28, fontWeight: 700, lineHeight: 1,
                   letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums',
-                  color: occupatoSaldato ? (isFill ? '#8CF5BC' : '#065F46') : C.text,
+                  color: occupatoSaldato ? '#065F46' : '#0F1115',
                 }}>
                   €{occupatoSaldato ? t.conto.toFixed(2) : (t.daIncassare != null ? t.daIncassare : t.conto).toFixed(2)}
                 </span>
                 <span style={{
                   fontSize: 12, fontWeight: 700,
-                  color: occupatoSaldato ? (isFill ? '#8CF5BC' : '#16A34A') : C.muted,
+                  color: occupatoSaldato ? '#16A34A' : '#6B7280',
                 }}>
                   {occupatoSaldato ? 'saldato' : 'da incassare'}
                 </span>
               </div>
               {!occupatoSaldato && (
-                <div style={{fontSize: 11, color: C.faint, fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
+                <div style={{fontSize: 11, color:'#9CA3AF', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
                   Totale conto €{t.conto.toFixed(2)}
                 </div>
               )}
@@ -836,16 +821,16 @@ function SalaV3CardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNot
 
         {t.state === 'dapulire' && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-            <div style={{fontSize: 15, fontWeight: 700,
-              color: isFill ? C.text : (pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#0F1115')),
+            <div style={{fontSize: 14, fontWeight: 700,
+              color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#0F1115'),
               letterSpacing:'-0.01em'}}>
               {pulireSev === 'normal'
                 ? `Tavolo liberato ${t.minutiDaPulire ?? t.freedMinAgo} min fa`
                 : `Da pulire da ${t.minutiDaPulire ?? t.freedMinAgo} min`}
             </div>
             {t.nextReservation && (
-              <div style={{fontSize: 12.5, color: C.muted}}>
-                Prossima prenotazione: <b style={{color: C.text}}>{t.nextReservation.time}</b>
+              <div style={{fontSize: 12.5, color:'#6B7280'}}>
+                Prossima prenotazione: <b style={{color:'#0F1115'}}>{t.nextReservation.time}</b>
                 {t.nextReservation.posti && <span> · {t.nextReservation.posti} posti</span>}
               </div>
             )}
@@ -853,59 +838,34 @@ function SalaV3CardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNot
         )}
       </div>
 
-      {/* CTA contestuali — su card piena: bianca solida; su card bianca: coral brand */}
+      {/* CTA contestuali — primaria nera + Articolo + secondaria + menu 3-puntini */}
       <ExpandedCTARow
         t={t} cta={cta} occupatoSaldato={occupatoSaldato} isLate={isLate}
         onAddArticle={onAddArticle} onAssignOther={onAssignOther} onNoShow={onNoShow}
-        menuItems={menuItems} isFill={isFill}/>
+        menuItems={menuItems}/>
     </>
   );
 }
 
-function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssignOther, onNoShow, menuItems, isFill }) {
+function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssignOther, onNoShow, menuItems }) {
   // Occupato non-saldato: prima riga CTA piena, seconda riga [+ Articolo][⋯]
   // Tutti gli altri stati: [CTA][⋯] su una riga
   const showArticolo = t.state === 'occupato';
-  // Su card piena: bottone bianco solido (massimo contrasto sul colore di stato).
-  // Su card bianca (libero): coral brand.
-  const primaryBtn = isFill ? (
+  const primaryBtn = (
     <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
       flex: 1, padding:'11px 14px',
-      background:'#FFFFFF', color:'#0F1115',
-      border:'none',
-      borderRadius: 10, fontSize: 13.5, fontWeight: 700,
-      cursor:'pointer', fontFamily:'inherit', minHeight: 44,
+      background: PN.BTN_DARK, color:'#fff',
+      border:'1px solid rgba(0,0,0,0.32)',
+      borderRadius: 10, fontSize: 12.5, fontWeight: 700,
+      cursor:'pointer', fontFamily:'inherit', minHeight: 42,
       letterSpacing: 0.1, whiteSpace: 'nowrap',
-      boxShadow:'0 1px 3px rgba(0,0,0,0.22)',
-      transition:'transform 120ms ease-out',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
-    >{cta.label}</button>
-  ) : (
-    <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
-      flex: 1, padding:'11px 14px',
-      background: PN.BTN_BRAND, color:'#fff',
-      border:'1px solid rgba(180, 30, 35, 0.40)',
-      borderRadius: 10, fontSize: 13.5, fontWeight: 700,
-      cursor:'pointer', fontFamily:'inherit', minHeight: 44,
-      letterSpacing: 0.1, whiteSpace: 'nowrap',
-      boxShadow: `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 3px rgba(255,90,95,0.28)`,
+      boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
       transition:'background 150ms ease-out',
     }}
-      onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_BRAND_HOVER; }}
-      onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_BRAND; }}
+      onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+      onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
     >{cta.label}</button>
   );
-  const secondaryStyle = isFill ? {
-    background:'rgba(255,255,255,0.16)', color:'#fff',
-    border:'1px solid rgba(255,255,255,0.40)',
-    hoverBg:'rgba(255,255,255,0.26)',
-  } : {
-    background: PN.BTN_NEUTRAL, color:'#0F1115',
-    border:`1px solid ${PN.BORDER_LIGHT}`,
-    hoverBg: PN.BTN_NEUTRAL_HOVER,
-  };
   if (showArticolo) {
     return (
       <div style={{display:'flex', flexDirection:'column', gap: 8}}>
@@ -913,21 +873,22 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
         <div style={{display:'flex', gap: 8, alignItems:'center'}}>
           <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}} style={{
             flex: 1, padding:'11px 14px',
-            background: secondaryStyle.background, color: secondaryStyle.color,
-            border: secondaryStyle.border, borderRadius: 10,
-            fontSize: 13, fontWeight: 700,
+            background: PN.BTN_NEUTRAL, color:'#0F1115',
+            border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10,
+            fontSize: 12.5, fontWeight: 700,
             cursor:'pointer', fontFamily:'inherit',
             minHeight: 42, whiteSpace:'nowrap',
             display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 5,
+            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
             transition:'background 150ms ease-out',
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = secondaryStyle.hoverBg; }}
-            onMouseLeave={e => { e.currentTarget.style.background = secondaryStyle.background; }}>
+            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
             Articolo
           </button>
-          {menuItems && menuItems.length > 0 && <DotMenu items={menuItems} isFill={isFill}/>}
+          {menuItems && menuItems.length > 0 && <DotMenu items={menuItems}/>}
         </div>
       </div>
     );
@@ -935,12 +896,12 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
   return (
     <div style={{display:'flex', gap: 8, alignItems:'center'}}>
       {primaryBtn}
-      {menuItems && menuItems.length > 0 && <DotMenu items={menuItems} isFill={isFill}/>}
+      {menuItems && menuItems.length > 0 && <DotMenu items={menuItems}/>}
     </div>
   );
 }
 
-function DotMenu({ items, isFill }) {
+function DotMenu({ items }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
   React.useEffect(() => {
@@ -953,15 +914,14 @@ function DotMenu({ items, isFill }) {
     <div ref={ref} style={{position:'relative', display:'inline-flex'}} onClick={(e)=>e.stopPropagation()}>
       <button onClick={() => setOpen(v => !v)} aria-label="Altre azioni" style={{
         width: 42, height: 42, borderRadius: 10,
-        background: isFill ? 'rgba(255,255,255,0.16)' : PN.BTN_NEUTRAL,
-        color: isFill ? '#fff' : '#6B7280',
-        border: isFill ? '1px solid rgba(255,255,255,0.40)' : `1px solid ${PN.BORDER_LIGHT}`,
-        cursor:'pointer', fontFamily:'inherit',
+        background: PN.BTN_NEUTRAL, color:'#6B7280',
+        border:`1px solid ${PN.BORDER_LIGHT}`, cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', justifyContent:'center',
+        boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
         transition:'background 150ms ease-out',
       }}
-        onMouseEnter={e => { e.currentTarget.style.background = isFill ? 'rgba(255,255,255,0.26)' : PN.BTN_NEUTRAL_HOVER; }}
-        onMouseLeave={e => { e.currentTarget.style.background = isFill ? 'rgba(255,255,255,0.16)' : PN.BTN_NEUTRAL; }}>
+        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>
         </svg>
@@ -1208,27 +1168,27 @@ function ContiApertiPanel({ collapsed, onToggle, onSalda }) {
         }}>›</button>
       </div>
 
-      {/* Hero "Da incassare" — banda inchiostro, cifra bianca grande (tabellone) */}
+      {/* MOD 1: Hero "Da incassare" — sfondo neutro #F9FAFB + progress bar brand color, pill 6-8px */}
       <div style={{
         padding: 16,
-        background: '#0F1115',
+        background: '#F9FAFB',
         position: 'relative',
         overflow: 'hidden',
       }}>
-        <div style={{position: 'relative', fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.62)', letterSpacing: 0.6, textTransform: 'uppercase'}}>
+        <div style={{position: 'relative', fontSize: 10.5, fontWeight: 600, color: '#6B7280', letterSpacing: 0.4, textTransform: 'uppercase'}}>
           Da incassare
         </div>
         <div style={{
           position: 'relative',
-          fontSize: 34, fontWeight: 700, color: '#FFFFFF',
+          fontSize: 32, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 4,
           fontVariantNumeric: 'tabular-nums',
         }}>
           €{totDaSaldare.toFixed(2)}
         </div>
         <div style={{position: 'relative', textAlign: 'right', marginTop: 4}}>
-          <span style={{fontSize: 10.5, color: 'rgba(255,255,255,0.48)', fontWeight: 500}}>
-            Saldati oggi <span style={{fontWeight: 700, color: 'rgba(255,255,255,0.85)', fontVariantNumeric: 'tabular-nums'}}>12 / 21</span>
+          <span style={{fontSize: 10.5, color: '#9CA3AF', fontWeight: 500}}>
+            Saldati oggi <span style={{fontWeight: 700, color: '#6B7280', fontVariantNumeric: 'tabular-nums'}}>12 / 21</span>
           </span>
         </div>
       </div>

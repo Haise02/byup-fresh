@@ -103,13 +103,13 @@ function SalaVenditaDiretta() {
               return (
                 <button key={c} onClick={() => setCat(c)} style={{
                   padding: '7px 14px', borderRadius: 999,
-                  border: `1px solid ${on ? 'rgba(180,30,35,0.40)' : PN.BORDER_LIGHT}`,
-                  background: on ? PN.BTN_BRAND : PN.BTN_NEUTRAL,
+                  border: `1px solid ${on ? 'rgba(0,0,0,0.32)' : PN.BORDER_LIGHT}`,
+                  background: on ? PN.BTN_DARK : PN.BTN_NEUTRAL,
                   color: on ? PN.WHITE : PN.TEXT,
-                  fontSize: 14.5, fontWeight: 700, cursor:'pointer',
+                  fontSize: 14.5, fontWeight: 600, cursor:'pointer',
                   fontFamily:'inherit', whiteSpace:'nowrap',
                   boxShadow: on
-                    ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 3px rgba(255,90,95,0.28)`
+                    ? `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.14)`
                     : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
                   transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out',
                 }}>
@@ -270,7 +270,7 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
           display:'flex', alignItems:'center', justifyContent:'space-between',
           marginTop: 6, gap: 8,
         }}>
-          <span style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{p.price.toFixed(2)}</span>
+          <span style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
           {customizable && (
             <button
               onClick={(e) => { e.stopPropagation(); onPersonalizza(); }}
@@ -496,9 +496,9 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
             style={{
               flex: 1,
               padding: '12px 18px', borderRadius: 999,
-              background: requiredOk ? PN.BTN_BRAND : PN.WHITE_FROST,
+              background: requiredOk ? PN.BTN_DARK : PN.WHITE_FROST,
               color: requiredOk ? PN.WHITE : PN.MUTED_SOFT,
-              border: requiredOk ? '1px solid rgba(180,30,35,0.40)' : `1px solid ${PN.BORDER_SOFT_A}`,
+              border: requiredOk ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
               fontSize: 15.5, fontWeight: 700,
               cursor: requiredOk ? 'pointer' : 'not-allowed',
               fontFamily:'inherit',
@@ -619,18 +619,18 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             style={{
               flex: 1,
               padding: '11px 16px', borderRadius: 999,
-              background: lines.length === 0 ? PN.WHITE_FROST : PN.BTN_BRAND,
+              background: lines.length === 0 ? PN.WHITE_FROST : PN.BTN_DARK,
               color: lines.length === 0 ? PN.MUTED_SOFT : PN.WHITE,
-              border: lines.length === 0 ? `1px solid ${PN.BORDER_SOFT_A}` : '1px solid rgba(180,30,35,0.40)',
+              border: lines.length === 0 ? `1px solid ${PN.BORDER_SOFT_A}` : '1px solid rgba(0,0,0,0.32)',
               fontSize: 15.5, fontWeight: 700,
               cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
-              boxShadow: lines.length === 0 ? 'none' : `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 8px rgba(255,90,95,0.30)`,
+              boxShadow: lines.length === 0 ? 'none' : `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)`,
               transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
             }}
-            onMouseEnter={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_BRAND_HOVER; }}
-            onMouseLeave={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_BRAND; }}>
+            onMouseEnter={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+            onMouseLeave={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK; }}>
             <span>Procedi al pagamento</span>
             <span>€{total.toFixed(2)}</span>
           </button>
@@ -949,9 +949,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 disabled={!canConfirm}
                 style={{
                   width: '100%', padding: '15px 16px', borderRadius: 10,
-                  background: canConfirm ? PN.BTN_BRAND : PN.WHITE_FROST,
+                  background: canConfirm ? PN.BTN_DARK : PN.WHITE_FROST,
                   color: canConfirm ? '#fff' : '#9CA3AF',
-                  border: canConfirm ? '1px solid rgba(180,30,35,0.40)' : `1px solid ${PN.BORDER_SOFT_A}`,
+                  border: canConfirm ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
                   fontSize: 17, fontWeight: 700,
                   cursor: canConfirm ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit', letterSpacing: -0.2,
@@ -959,8 +959,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   boxShadow: canConfirm ? `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)` : 'none',
                   transition: 'background 150ms ease-out',
                 }}
-                onMouseEnter={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_BRAND_HOVER; }}
-                onMouseLeave={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_BRAND; }}>
+                onMouseEnter={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+                onMouseLeave={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK; }}>
                 {!canConfirm
                   ? (finalTotal === 0 ? 'Nessun articolo' : `Manca €${(finalTotal - paid).toFixed(2)}`)
                   : <>Conferma incasso <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>}

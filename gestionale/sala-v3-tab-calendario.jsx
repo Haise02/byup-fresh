@@ -128,15 +128,15 @@ function Toolbar({ dayView, setDayView, onNuova }) {
 
       <button onClick={onNuova} style={{
         padding:'9px 14px', borderRadius: 8,
-        background: PN.BTN_BRAND, color:'#fff',
-        border:'1px solid rgba(180,30,35,0.40)',
-        fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        background: PN.BTN_DARK, color:'#fff',
+        border:'1px solid rgba(0,0,0,0.32)',
+        fontSize: 12.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
-        boxShadow: `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 3px rgba(255,90,95,0.28)`,
+        boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
         transition:'background 150ms ease-out',
       }}
-        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_BRAND_HOVER; }}
-        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_BRAND; }}>
+        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 5v14 M5 12h14"/>
         </svg>
@@ -383,18 +383,18 @@ function DayTimeline({ onNuova, onModifica }) {
       {/* Hour ruler */}
       <div style={{
         display:'grid', gridTemplateColumns:'90px 1fr', gap: 8,
-        padding:'8px 18px 6px',
-        position:'sticky', top: 0, background:'#0F1115', zIndex: 2,
+        padding:'6px 18px 4px', borderBottom:'1px solid #E9EBF0',
+        position:'sticky', top: 0, background:'#fff', zIndex: 2,
+        boxShadow:'0 2px 8px rgba(0,0,0,0.05)',
       }}>
-        <div/>
+        <div style={{borderRight:'1px solid #EDEEF2'}}/>
         <div ref={trackRef} style={{position:'relative', height: 24}}>
           {hours.map(h => {
             const pct = ((h*60 - startMin) / totalMin) * 100;
             return (
               <span key={h} style={{
                 position:'absolute', left: `${pct}%`, top: 2,
-                fontSize: 12, fontWeight: 700, color:'rgba(255,255,255,0.75)',
-                fontVariantNumeric:'tabular-nums',
+                fontSize: 12, fontWeight: 700, color:'#6B7280',
                 transform:'translateX(-50%)', whiteSpace:'nowrap',
               }}>{h}:00</span>
             );
@@ -493,10 +493,10 @@ function DayTimeline({ onNuova, onModifica }) {
                       style={{
                       position:'absolute', left: `${left}%`, width: `${width}%`,
                       top: 5, bottom: 5,
-                      background: r.status === 'arrivata' ? '#1E40AF' : '#6D28D9',
-                      backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 60%)',
-                      color: '#FFFFFF',
-                      border: r.status === 'arrivata' ? '1px solid #172E75' : '1px solid #4C1D95',
+                      background: r.status === 'arrivata' ? '#DBEAFE' : '#FAF8FF',
+                      backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 60%)',
+                      color: r.status === 'arrivata' ? '#1E3A5F' : '#6D28D9',
+                      border: r.status === 'arrivata' ? '1.5px solid #93C5FD' : '1.5px solid #C4B5FD',
                       borderRadius: 7,
                       padding: showLabel ? '0 7px' : '0',
                       fontSize: 11, fontWeight: 700,
@@ -530,8 +530,8 @@ function DayTimeline({ onNuova, onModifica }) {
         display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap',
         fontSize: 11, color:'#6B7280',
       }}>
-        <Legend dot="#6D28D9" label="Prenotato" bg="#6D28D9" border="#4C1D95"/>
-        <Legend dot="#1E40AF" label="Occupato" bg="#1E40AF" border="#172E75"/>
+        <Legend dot="#6D28D9" label="Prenotato" bg="#FAF8FF" border="#C4B5FD"/>
+        <Legend dot="#1E3A5F" label="Occupato" bg="#DBEAFE" border="#93C5FD"/>
         <span style={{flex:1}}/>
         <span style={{fontSize:10.5, color:'#C4C9D4', fontWeight:600}}>Trascina per creare · Clicca per modificare</span>
       </div>

@@ -21,7 +21,6 @@ function CucinaApp() {
             title="Cucina"
             subtitle="Martedì 9 Dicembre 2025"
             icon="food-meal"
-            dark
           />
         )}
 

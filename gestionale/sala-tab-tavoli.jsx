@@ -62,9 +62,9 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   // KPI cards = filtri multi-select della pagina. Click su una card aggiunge/toglie
   // il suo stato dal filtro attivo; più card insieme = unione (OR) degli stati.
   const kpiCards = [
-    {key: 'Occupati',  label: 'Occupati',  value: counts.Occupati,     accent: '#1E40AF', soft: '#E3EAFB', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75'},
-    {key: 'Prenotati', label: 'Prenotati', value: counts.Prenotati,    accent: '#6D28D9', soft: '#EDE7FB', icon: 'M3 4h18v18H3z M3 10h18 M8 2v4 M16 2v4'},
-    {key: 'Da pulire', label: 'Da pulire', value: counts['Da pulire'], accent: '#B45309', soft: '#F8ECDD', icon: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'},
+    {key: 'Occupati',  label: 'Occupati',  value: counts.Occupati,     accent: '#172554', soft: '#DBEAFE', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75'},
+    {key: 'Prenotati', label: 'Prenotati', value: counts.Prenotati,    accent: '#7C3AED', soft: '#EDE9FE', icon: 'M3 4h18v18H3z M3 10h18 M8 2v4 M16 2v4'},
+    {key: 'Da pulire', label: 'Da pulire', value: counts['Da pulire'], accent: '#D97706', soft: '#FFFBEB', icon: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'},
     {key: 'Liberi',    label: 'Liberi',    value: counts.Liberi,       accent: '#6B7280', soft: '#F3F4F6', icon: 'M5 13l4 4L19 7'},
   ];
   const totale = counts.Tutti;
@@ -845,8 +845,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             const showTriangle = window.hasAlertTriangle && window.hasAlertTriangle(tDisplay);
             const alert = tDisplay.state === 'occupato' ? getOccupiedAlert(tDisplay) : null;
             const isAlerting = alert?.tone === 'warn';
-            const isFillTile = !!meta.fill;
-            const ringColor = showTriangle ? '#DC2626' : (isAlerting ? '#F59E0B' : (meta.mapBorder || meta.dot));
+            const ringColor = showTriangle ? '#DC2626' : (isAlerting ? '#A16207' : meta.dot);
 
             const dim = isDimmed(t.id) || (sourceForMerged && isDimmed(sourceForMerged.id));
             const isHovered = hovered === t.id;
@@ -877,7 +876,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                   position:'absolute',
                   left, top, width: w, height: h,
                   background: dim ? '#F4F5F7' : (meta.mapBg || meta.bg),
-                  backgroundImage: (dim || !isFillTile) ? 'none' : 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 60%)',
+                  backgroundImage: dim ? 'none' : 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
                   border: `2px solid ${dim ? '#E5E7EB' : (isInMergeProposal ? '#FF5A5F' : ringColor)}`,
                   borderRadius: 8,
                   cursor: isDragging ? 'grabbing' : 'grab',
@@ -903,7 +902,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                 }}>
                 <div style={{
                   fontSize: 16, fontWeight: 700,
-                  color: dim ? '#9CA3AF' : (isFillTile ? '#FFFFFF' : '#0F1115'),
+                  color: dim ? '#9CA3AF' : '#0F1115',
                   fontVariantNumeric:'tabular-nums',
                 }}>{t.id}</div>
 

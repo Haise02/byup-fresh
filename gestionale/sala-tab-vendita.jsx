@@ -118,13 +118,13 @@ function SalaVenditaDiretta() {
               return (
                 <button key={c} onClick={() => setCat(c)} style={{
                   padding: '7px 14px', borderRadius: 999,
-                  border: `1px solid ${on ? 'rgba(180,30,35,0.40)' : PN.BORDER_LIGHT}`,
-                  background: on ? PN.BTN_BRAND : PN.BTN_NEUTRAL,
+                  border: `1px solid ${on ? 'rgba(0,0,0,0.32)' : PN.BORDER_LIGHT}`,
+                  background: on ? PN.BTN_DARK : PN.BTN_NEUTRAL,
                   color: on ? PN.WHITE : PN.TEXT,
-                  fontSize: 13, fontWeight: 700, cursor:'pointer',
+                  fontSize: 12.5, fontWeight: 600, cursor:'pointer',
                   fontFamily:'inherit', whiteSpace:'nowrap',
                   boxShadow: on
-                    ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 3px rgba(255,90,95,0.28)`
+                    ? `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.14)`
                     : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
                   transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out',
                 }}>
@@ -293,18 +293,18 @@ function SaPiattoCard({ p, qtyInCart, customizable, onCardClick, onQuickAdd }) {
           display:'flex', alignItems:'center', justifyContent:'space-between',
           marginTop: 6, gap: 8,
         }}>
-          <span style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{p.price.toFixed(2)}</span>
+          <span style={{fontSize: 14, fontWeight: 700, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
           <button
             onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
             aria-label="Aggiungi al conto"
             style={{
-              width: 32, height: 32, borderRadius: 9,
-              background: PN.BTN_BRAND, color: PN.WHITE,
-              border:'1px solid rgba(180,30,35,0.40)',
-              fontSize: 17, fontWeight: 700, cursor:'pointer',
+              width: 30, height: 30, borderRadius: 8,
+              background: PN.BTN_DARK, color: PN.WHITE,
+              border:'1px solid rgba(0,0,0,0.32)',
+              fontSize: 16, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit', display:'grid', placeItems:'center', lineHeight: 1,
               flexShrink: 0,
-              boxShadow: `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 3px rgba(255,90,95,0.28)`,
+              boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.14)`,
             }}>+</button>
         </div>
       </div>
@@ -517,9 +517,9 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
             style={{
               flex: 1,
               padding: '12px 18px', borderRadius: 999,
-              background: requiredOk ? PN.BTN_BRAND : PN.WHITE_FROST,
+              background: requiredOk ? PN.BTN_DARK : PN.WHITE_FROST,
               color: requiredOk ? PN.WHITE : PN.MUTED_SOFT,
-              border: requiredOk ? '1px solid rgba(180,30,35,0.40)' : `1px solid ${PN.BORDER_SOFT_A}`,
+              border: requiredOk ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
               fontSize: 13.5, fontWeight: 700,
               cursor: requiredOk ? 'pointer' : 'not-allowed',
               fontFamily:'inherit',
@@ -626,11 +626,11 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         background: PN.WHITE,
       }}>
         <div style={{
-          display:'flex', justifyContent:'space-between', alignItems:'baseline',
+          display:'flex', justifyContent:'space-between',
+          fontSize: 16, fontWeight: 700, color: PN.TEXT,
           paddingBottom: 12,
         }}>
-          <span style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Totale</span>
-          <span style={{fontSize: 26, fontWeight: 700, color: PN.TEXT, letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</span>
+          <span>Totale</span><span>€{total.toFixed(2)}</span>
         </div>
 
         <div style={{display:'flex', gap: 8, marginTop: 12}}>
@@ -640,18 +640,18 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             style={{
               flex: 1,
               padding: '11px 16px', borderRadius: 999,
-              background: lines.length === 0 ? PN.WHITE_FROST : PN.BTN_BRAND,
+              background: lines.length === 0 ? PN.WHITE_FROST : PN.BTN_DARK,
               color: lines.length === 0 ? PN.MUTED_SOFT : PN.WHITE,
-              border: lines.length === 0 ? `1px solid ${PN.BORDER_SOFT_A}` : '1px solid rgba(180,30,35,0.40)',
-              fontSize: 14.5, fontWeight: 700,
+              border: lines.length === 0 ? `1px solid ${PN.BORDER_SOFT_A}` : '1px solid rgba(0,0,0,0.32)',
+              fontSize: 13.5, fontWeight: 700,
               cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
-              boxShadow: lines.length === 0 ? 'none' : `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 8px rgba(255,90,95,0.30)`,
+              boxShadow: lines.length === 0 ? 'none' : `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)`,
               transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
             }}
-            onMouseEnter={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_BRAND_HOVER; }}
-            onMouseLeave={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_BRAND; }}>
+            onMouseEnter={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+            onMouseLeave={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK; }}>
             <span>Procedi al pagamento</span>
             <span>€{total.toFixed(2)}</span>
           </button>
@@ -970,9 +970,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 disabled={!canConfirm}
                 style={{
                   width: '100%', padding: '15px 16px', borderRadius: 10,
-                  background: canConfirm ? PN.BTN_BRAND : PN.WHITE_FROST,
+                  background: canConfirm ? PN.BTN_DARK : PN.WHITE_FROST,
                   color: canConfirm ? '#fff' : '#9CA3AF',
-                  border: canConfirm ? '1px solid rgba(180,30,35,0.40)' : `1px solid ${PN.BORDER_SOFT_A}`,
+                  border: canConfirm ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
                   fontSize: 15, fontWeight: 700,
                   cursor: canConfirm ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit', letterSpacing: -0.2,
@@ -980,8 +980,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   boxShadow: canConfirm ? `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)` : 'none',
                   transition: 'background 150ms ease-out',
                 }}
-                onMouseEnter={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_BRAND_HOVER; }}
-                onMouseLeave={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_BRAND; }}>
+                onMouseEnter={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+                onMouseLeave={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK; }}>
                 {!canConfirm
                   ? (finalTotal === 0 ? 'Nessun articolo' : `Manca €${(finalTotal - paid).toFixed(2)}`)
                   : <>Conferma incasso <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>}
