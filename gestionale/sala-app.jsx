@@ -385,14 +385,13 @@ function SalaApp() {
           <header style={{
             display: 'flex', alignItems: 'center', gap: 16,
             padding: '20px 32px 18px',
-            borderBottom: `1px solid ${PN.BORDER_HAIR}`,
-            background: PN.WHITE_OFF,
+            background: '#0F1115',
           }}>
             <div style={{flex: 1, minWidth: 0}}>
-              <h1 style={{margin: 0, fontSize: 26, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
+              <h1 style={{margin: 0, fontSize: 26, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em'}}>
                 {headerTitle}
               </h1>
-              <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, textTransform: 'capitalize'}}>{dateStr}</div>
+              <div style={{fontSize: 14.5, color: 'rgba(255,255,255,0.65)', marginTop: 2, textTransform: 'capitalize'}}>{dateStr}</div>
             </div>
 
             <PnConnectionStatus/>

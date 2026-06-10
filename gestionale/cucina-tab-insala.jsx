@@ -11,15 +11,15 @@ function _ageMin(t) {
 
 // Tono urgenza generico (per sala, basato su età)
 function _urgencyAge(ageMin) {
-  if (ageMin <= 8)  return { tone: 'ok',   bg: PN.BG,         dot: PN.MUTED,   text: PN.MUTED   };
-  if (ageMin <= 15) return { tone: 'warn', bg: PN.AMBER_SOFT, dot: PN.AMBER,   text: PN.AMBER   };
-  return                   { tone: 'late', bg: PN.RED,        dot: PN.RED,     text: PN.WHITE   };
+  if (ageMin <= 8)  return { tone: 'ok',   bg: 'rgba(255,255,255,0.12)', dot: PN.MUTED, text: '#FFFFFF' };
+  if (ageMin <= 15) return { tone: 'warn', bg: '#D97706',                dot: PN.AMBER, text: '#FFFFFF' };
+  return                   { tone: 'late', bg: '#DC2626',                dot: PN.RED,   text: '#FFFFFF' };
 }
 // Tono urgenza pickup (asporto/delivery): minuti al ritiro
 function _urgencyPickup(minToPickup) {
-  if (minToPickup > 15) return { tone: 'ok',   bg: PN.BG,         dot: PN.MUTED,   text: PN.MUTED   };
-  if (minToPickup > 5)  return { tone: 'warn', bg: PN.AMBER_SOFT, dot: PN.AMBER,   text: PN.AMBER   };
-  return                       { tone: 'late', bg: PN.RED_SOFT,   dot: PN.RED,     text: PN.RED     };
+  if (minToPickup > 15) return { tone: 'ok',   bg: 'rgba(255,255,255,0.12)', dot: PN.MUTED, text: '#FFFFFF' };
+  if (minToPickup > 5)  return { tone: 'warn', bg: '#D97706',                dot: PN.AMBER, text: '#FFFFFF' };
+  return                       { tone: 'late', bg: '#DC2626',                dot: PN.RED,   text: '#FFFFFF' };
 }
 
 const COURSE_LABEL = { 1: 'Antipasti', 2: 'Primi', 3: 'Secondi', 4: 'Dessert' };
@@ -322,7 +322,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
           flex: focus ? 1 : 'none', minHeight: focus ? 0 : 'auto',
           overflow: focus ? 'auto' : 'visible',
         }}>
-          <KdsColumn title="In coda" tone={PN.MUTED} toneSoft={PN.BG} count={filteredLeft.length} empty="Nessun ticket in attesa" bg="#FBFBFC">
+          <KdsColumn title="In coda" tone={PN.MUTED} toneSoft={PN.BG} count={filteredLeft.length} empty="Nessun ticket in attesa" bg="#FBFBFC" band="#15171C">
             {filteredLeft.map(t => (
               <KdsTicket
                 key={t.id} ticket={t}
@@ -342,7 +342,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
             ))}
           </KdsColumn>
 
-          <KdsColumn title="In preparazione" tone={'#3B82F6'} toneSoft={'#DBEAFE'} count={filteredRight.length} empty="Nessun ticket in cottura" bg="#EFF6FF">
+          <KdsColumn title="In preparazione" tone={'#3B82F6'} toneSoft={'#DBEAFE'} count={filteredRight.length} empty="Nessun ticket in cottura" bg="#EFF6FF" band="#1E40AF">
             {filteredRight.map(t => (
               <KdsTicket
                 key={t.id} ticket={t}
@@ -461,16 +461,16 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
       overflow: 'hidden',
     }}>
       <div style={{
-        padding: '12px 14px', borderBottom: `1px solid ${PN.BORDER_HAIR}`,
+        padding: '12px 14px',
         display: 'flex', alignItems: 'center', gap: 8,
-        background: '#FAFBFC', flexShrink: 0,
+        background: '#15803D', flexShrink: 0,
       }}>
-        <span style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em'}}>Pronti</span>
-        <span style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, fontVariantNumeric: 'tabular-nums'}}>{tickets.length}</span>
+        <span style={{fontSize: 17, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em'}}>Pronti</span>
+        <span style={{fontSize: 14, fontWeight: 700, color: '#FFFFFF', background:'rgba(255,255,255,0.18)', padding:'1px 10px', borderRadius: 999, fontVariantNumeric: 'tabular-nums'}}>{tickets.length}</span>
         <span style={{flex: 1}}/>
         <button onClick={onToggle} title="Comprimi" style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          color: PN.MUTED, fontFamily: 'inherit', fontSize: 22, padding: 4,
+          color: 'rgba(255,255,255,0.8)', fontFamily: 'inherit', fontSize: 22, padding: 4,
           lineHeight: 1, width: 32, height: 32, display: 'grid', placeItems: 'center',
         }}>›</button>
       </div>
@@ -562,40 +562,40 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
 // ─── Column ────────────────────────────────────────────────
 // Bg colorato leggero coerente con il tono (Attivi pink soft, Prep amber soft).
 // Border tonalizzato 1px alpha per dare identità a ogni colonna.
-function KdsColumn({ title, tone, toneSoft, count, empty, children, bg }) {
+function KdsColumn({ title, tone, toneSoft, count, empty, children, bg, band }) {
+  const bandBg = band || tone;
   return (
     <div style={{
       background: bg || PN.WHITE,
-      borderRadius: 14, padding: 14,
-      border: `1px solid ${tone}40`,
-      borderTop: `3px solid ${tone}`,
+      borderRadius: 14,
+      border: `1px solid ${PN.BORDER_SOFT_A}`,
       boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
+      overflow: 'hidden',
     }}>
+      {/* Banda di colonna — identità a colore pieno, leggibile da lontano */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        marginBottom: 14, padding: '4px 4px',
+        padding: '12px 16px',
+        background: bandBg,
       }}>
+        <span style={{fontSize: 17, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em'}}>{title}</span>
         <span style={{
-          width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
-          background: tone, boxShadow: `0 0 0 3px ${tone}24`,
-        }}/>
-        <span style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em'}}>{title}</span>
-        <span style={{
-          fontSize: 15, fontWeight: 700, color: tone,
-          background: toneSoft, padding: '1px 9px', borderRadius: 999,
+          fontSize: 14, fontWeight: 700, color: '#FFFFFF',
+          background: 'rgba(255,255,255,0.18)', padding: '1px 10px', borderRadius: 999,
           fontVariantNumeric: 'tabular-nums',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
         }}>{count}</span>
       </div>
-      {count === 0 ? (
-        <div style={{
-          padding: '36px 16px', textAlign: 'center', borderRadius: 10,
-          border: `1px dashed ${PN.BORDER_LIGHT}`, color: PN.MUTED_SOFT, fontSize: 15,
-          background: PN.WHITE,
-        }}>{empty}</div>
-      ) : (
-        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>{children}</div>
-      )}
+      <div style={{padding: 14}}>
+        {count === 0 ? (
+          <div style={{
+            padding: '36px 16px', textAlign: 'center', borderRadius: 10,
+            border: `1px dashed ${PN.BORDER_LIGHT}`, color: PN.MUTED_SOFT, fontSize: 15,
+            background: PN.WHITE,
+          }}>{empty}</div>
+        ) : (
+          <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>{children}</div>
+        )}
+      </div>
     </div>
   );
 }
@@ -685,8 +685,8 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
 
 const lateGlow = u.tone === 'late';
   const kindBadge = (() => {
-    if (ticket.kind === 'asporto') return { bg: PN.BLUE_SOFT, fg: PN.BLUE, label: 'ASPORTO', icon: <BagIcon/> };
-    if (ticket.kind === 'delivery') return { bg: '#EDE9FE', fg: '#7C3AED', label: 'DELIVERY', icon: <ScooterIcon/> };
+    if (ticket.kind === 'asporto') return { bg: '#1E40AF', fg: '#FFFFFF', label: 'ASPORTO', icon: <BagIcon/> };
+    if (ticket.kind === 'delivery') return { bg: '#6D28D9', fg: '#FFFFFF', label: 'DELIVERY', icon: <ScooterIcon/> };
     return null;
   })();
 
@@ -714,11 +714,10 @@ const lateGlow = u.tone === 'late';
       }}>
       <style>{`@keyframes kdsLatePulse { 0%,100% { box-shadow: 0 0 0 3px ${PN.RED}22, 0 8px 20px rgba(220,38,38,0.10); } 50% { box-shadow: 0 0 0 6px ${PN.RED}33, 0 12px 28px rgba(220,38,38,0.16); } }`}</style>
 
-      {/* Header */}
+      {/* Header — testata inchiostro: numero tavolo e timer leggibili da lontano */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
-        borderBottom: `1px solid ${lateGlow ? PN.RED + '22' : PN.BORDER_HAIR}`,
-        background: PN.WHITE_OFF,
+        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+        background: '#15171C',
       }}>
         <div style={{flex: 1, minWidth: 0}}>
           {kindBadge ? (
@@ -730,36 +729,33 @@ const lateGlow = u.tone === 'late';
                   letterSpacing: 0.5, display:'inline-flex', alignItems:'center', gap: 3,
                 }}>{kindBadge.icon} {kindBadge.label}</span>
               </div>
-              <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              <div style={{fontSize: 18, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                 {ticket.customer}
               </div>
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <div style={{fontSize: 24, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em'}}>Tav.{ticket.table}</div>
+              <div style={{fontSize: 26, fontWeight: 700, color: '#FFFFFF', lineHeight: 1, letterSpacing: '-0.02em'}}>Tav.{ticket.table}</div>
             </React.Fragment>
           )}
         </div>
         {hasTodo && (
           <button onClick={onPrimary} style={{
             padding: '7px 11px', borderRadius: 7, flexShrink: 0,
-            background: PN.BTN_NEUTRAL, color: PN.MUTED,
-            border: `1px solid ${PN.BORDER_LIGHT}`,
+            background: 'rgba(255,255,255,0.12)', color: '#FFFFFF',
+            border: '1px solid rgba(255,255,255,0.30)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            whiteSpace: 'nowrap', transition: 'color 0.12s, border-color 0.12s, background 150ms ease-out',
-            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+            whiteSpace: 'nowrap', transition: 'background 150ms ease-out',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; e.currentTarget.style.borderColor = PN.BORDER_MED; }}
-          onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.background = PN.BTN_NEUTRAL; e.currentTarget.style.borderColor = PN.BORDER_LIGHT; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
           >Inizia tutti</button>
         )}
         <div style={{
           textAlign: 'center', padding: '8px 14px', borderRadius: 10,
-          background: u.bg, color: u.text, minWidth: 64, flexShrink: 0,
-          border: `1px solid ${u.dot}1F`,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)',
+          background: u.bg, color: u.text, minWidth: 68, flexShrink: 0,
         }}>
-          <div style={{fontSize: 21, fontWeight: 600, lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em'}}>
+          <div style={{fontSize: 24, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em'}}>
             {(ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup ? minToPickup : age}m
           </div>
           <div style={{fontSize: 11, fontWeight: 600, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.4, opacity: 0.85}}>

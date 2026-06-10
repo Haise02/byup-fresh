@@ -68,12 +68,13 @@ const RES_STATUS_META = {
 //  futura   → prenotazione su tavolo non ancora attivo (in arrivo): viola pianificato
 // Tavoli già attivi (occupato / attivata / byup) → grigio neutro: arretrano.
 // Solo le prenotazioni in arrivo (tavolo non ancora attivo) sono colorate.
-const SLOT_GREY = { bg:'#EDF0F4', border:'#D2D9E2', text:'#6B7685' };
+// Stati pieni — coerenti con la Sala: occupato blu pieno, prenotazione futura viola pieno.
+const SLOT_OCCUPATO = { bg:'#1E40AF', border:'#172E75', text:'#FFFFFF' };
 const SLOT_STYLE = {
-  occupato: SLOT_GREY,
-  attivata: SLOT_GREY,
-  byup:     SLOT_GREY,
-  futura:   { bg:'#F0EBFD', border:'#B49BEF', text:'#4A1D96' },
+  occupato: SLOT_OCCUPATO,
+  attivata: SLOT_OCCUPATO,
+  byup:     SLOT_OCCUPATO,
+  futura:   { bg:'#6D28D9', border:'#4C1D95', text:'#FFFFFF' },
 };
 function slotCategory(r) {
   if (r.status !== 'arrivata') return 'futura';
@@ -161,15 +162,15 @@ function Toolbar({ dayView, setDayView, onNuova }) {
 
       <button onClick={onNuova} style={{
         padding:'9px 14px', borderRadius: 8,
-        background: PN.BTN_DARK, color:'#fff',
-        border:'1px solid rgba(0,0,0,0.32)',
+        background: PN.BTN_BRAND, color:'#fff',
+        border:'1px solid rgba(180,30,35,0.40)',
         fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
-        boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
+        boxShadow: `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 3px rgba(255,90,95,0.28)`,
         transition:'background 150ms ease-out',
       }}
-        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
-        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}>
+        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_BRAND_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_BRAND; }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 5v14 M5 12h14"/>
         </svg>
