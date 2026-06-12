@@ -82,7 +82,7 @@ function getOpenDurationColor(totalMinutes) {
 
 // ─────────────────────────────────────────────────────────
 // Tooltip leggero — appare al hover, dark, non clippato grazie a position:fixed
-function Tip({ text, children, position = 'top', delay = 250, disabled }) {
+function Tip({ text, children, position = 'top', delay = 250, disabled, style }) {
   const [show, setShow] = React.useState(false);
   const [coords, setCoords] = React.useState(null);
   const wrapRef = React.useRef(null);
@@ -102,7 +102,7 @@ function Tip({ text, children, position = 'top', delay = 250, disabled }) {
   };
   return (
     <span ref={wrapRef} onMouseEnter={onEnter} onMouseLeave={onLeave}
-      style={{display:'inline-flex', alignItems:'center'}}>
+      style={{display:'inline-flex', alignItems:'center', ...style}}>
       {children}
       {show && coords && ReactDOM.createPortal(
         <div style={{
@@ -907,6 +907,64 @@ function DotMenu({ items }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────
+// Badge stato + riga ordine — componenti CONDIVISI.
+// Contratto anti-overflow (vale per ogni card conto/ordini):
+//   riga = flex con wrap: [qty] [nome → ellissi] [badge];
+//   il badge non supera MAI il padding della card (maxWidth:100%
+//   + ellissi interna) e se non c'è spazio sulla riga va a capo
+//   sotto il piatto invece di sforare dal bordo.
+// ─────────────────────────────────────────────────────────
+function StatoPill({ color, bg, label, tip }) {
+  return (
+    <Tip text={tip} style={{maxWidth: '100%', minWidth: 0}}>
+      <span style={{
+        fontSize: 13, fontWeight: 700,
+        color, background: bg,
+        padding: '2px 7px', borderRadius: 4,
+        display: 'inline-block',
+        maxWidth: '100%', boxSizing: 'border-box',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        cursor: tip ? 'help' : 'default',
+      }}>{label}</span>
+    </Tip>
+  );
+}
+
+function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+      columnGap: 8, rowGap: 3,
+      padding: '5px 8px', borderRadius: 6,
+      background: '#fff',
+      border: alert ? '1.5px solid #DC2626' : '1px solid #F0F2F5',
+      ...style,
+    }}>
+      <span style={{
+        fontSize: 13, fontWeight: 700, color: '#0F1115',
+        minWidth: 28, textAlign: 'center', flexShrink: 0,
+      }}>{qty}×</span>
+      {/* Il nome cede spazio fino al 45% della riga (ellissi); oltre,
+          è il badge a passare alla riga sotto, mai a sforare. */}
+      <span style={{
+        flex: '1 1 0%', minWidth: '45%',
+        fontSize: 13.5, color: '#0F1115', fontWeight: alert ? 700 : 500,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {nome}{nomeExtra}
+      </span>
+      <span style={{
+        flex: '0 0 auto', marginLeft: 'auto',
+        maxWidth: '100%', minWidth: 0,
+        display: 'inline-flex',
+      }}>
+        {pill}
+      </span>
+    </div>
+  );
+}
+
 // Lista articoli realistica con stato cucina
 function OrdiniList({ ordini }) {
   // Raggruppa per nome + status, somma qty, prende max dei due timer
@@ -956,34 +1014,17 @@ function OrdiniList({ ordini }) {
           tipText = `In coda da ${o.minutiInCoda || 0} minuti`;
         }
         return (
-          <div key={idx} style={{
-            display:'flex', alignItems:'center', gap: 8,
-            padding:'5px 8px', borderRadius: 6,
-            background: '#fff',
-            border: isAlert ? '1.5px solid #DC2626' : '1px solid #F0F2F5',
-          }}>
-            <span style={{
-              fontSize: 13, fontWeight: 700, color:'#0F1115',
-              minWidth: 28, textAlign:'center',
-            }}>{o.qty}×</span>
-            <span style={{flex:1, fontSize: 13.5, color:'#0F1115', fontWeight: isAlert ? 700 : 500}}>
-              {o.nome}
-              {isAlert && (
-                <span style={{color: '#DC2626', marginLeft: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 3}}>
-                  <NoteIcon type="allergia" size={10}/> ALLERGIA
-                </span>
-              )}
-            </span>
-            <Tip text={tipText}>
-              <span style={{
-                fontSize: 13, fontWeight: 700,
-                color: pillColor, background: pillBg,
-                padding:'2px 7px', borderRadius: 4,
-                display:'inline-flex', alignItems:'center', gap: 3,
-                whiteSpace:'nowrap', cursor:'help',
-              }}>{pillLabel}</span>
-            </Tip>
-          </div>
+          <OrdineRow key={idx}
+            qty={o.qty}
+            nome={o.nome}
+            alert={isAlert}
+            nomeExtra={isAlert && (
+              <span style={{color: '#DC2626', marginLeft: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 3}}>
+                <NoteIcon type="allergia" size={10}/> ALLERGIA
+              </span>
+            )}
+            pill={<StatoPill color={pillColor} bg={pillBg} label={pillLabel} tip={tipText}/>}
+          />
         );
       })}
     </div>
@@ -1139,7 +1180,9 @@ function ContoApertoCard({conto, isOld, onSalda, innerRef, isHighlighted}) {
         transform: hover ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'transform 200ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 200ms ease-out, background 150ms ease-out, border-color 150ms ease-out',
       }}>
-      <div style={{display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6}}>
+      {/* Stesso contratto anti-overflow di OrdineRow: il badge durata va
+          a capo (wrap) o tronca, mai fuori dal padding della card. */}
+      <div style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 6, rowGap: 2, marginBottom: 6}}>
         {/* Dot urgenza con halo se old */}
         <span style={{
           width: 7, height: 7, borderRadius: '50%',
@@ -1147,9 +1190,9 @@ function ContoApertoCard({conto, isOld, onSalda, innerRef, isHighlighted}) {
           boxShadow: isOld ? `0 0 0 3px ${accent}26` : 'none',
           flexShrink: 0,
         }}/>
-        <span style={{fontSize: 14.5, fontWeight: 600, color: '#0F1115', letterSpacing: '-0.01em'}}>{conto.tavolo}</span>
+        <span style={{fontSize: 14.5, fontWeight: 600, color: '#0F1115', letterSpacing: '-0.01em', flexShrink: 0}}>{conto.tavolo}</span>
         <span style={{
-          fontSize: 13, color: '#6B7280', flex: 1,
+          fontSize: 13, color: '#6B7280', flex: '1 1 0%', minWidth: '30%',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           fontWeight: 500,
         }}>
@@ -1159,7 +1202,8 @@ function ContoApertoCard({conto, isOld, onSalda, innerRef, isHighlighted}) {
           fontSize: 12.5, fontWeight: 600,
           color: getOpenDurationColor(Math.round(conto.oreFa * 60)),
           fontVariantNumeric: 'tabular-nums',
-          whiteSpace: 'nowrap',
+          whiteSpace: 'nowrap', marginLeft: 'auto',
+          maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>Aperto da {formatOpenDuration(Math.round(conto.oreFa * 60))}</span>
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 2}}>
@@ -1191,6 +1235,8 @@ function ContoApertoCard({conto, isOld, onSalda, innerRef, isHighlighted}) {
 }
 
 window.SalaCard = SalaCard;
+window.StatoPill = StatoPill;
+window.OrdineRow = OrdineRow;
 window.SALA_STATE_META = SALA_STATE_META;
 window.NOTE_TYPE_META = NOTE_TYPE_META;
 window.NoteIcon = NoteIcon;
