@@ -35,9 +35,11 @@ const TT_ACCENTS = {
 };
 const TT_LABELS = { libero: 'Libero', prenotato: 'Prenotato', occupato: 'Occupato', dapulire: 'Da pulire' };
 
-// Forma derivata dai posti: 2-3 round · 4-5 square · 6+ rect
+// Forma derivata dai posti: 2-5 square · 6+ rect.
+// (La shape 'round' è stata ritirata: sotto il 120% di zoom la label di
+// stato sforava dal cerchio; il quadrato usa tutta la cella.)
 function ttSeatShape(seats) {
-  return seats <= 3 ? 'round' : seats <= 5 ? 'square' : 'rect';
+  return seats <= 5 ? 'square' : 'rect';
 }
 
 // Corpo tavolo in px da seats/shape/orientation (solo corpo, sedie escluse).

@@ -9,6 +9,21 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   const [alertOnly, setAlertOnly] = React.useState(false);
   const [view, setView] = React.useState(tweaks.defaultView || 'mappa');
   const [expandedId, setExpandedId] = React.useState(null);
+  // Modalità "Unisci tavoli": selezione multipla sulla mappa → conferma.
+  const [mergeMode, setMergeMode] = React.useState(false);
+  const [mergeSel, setMergeSel] = React.useState(() => new Set());
+  const toggleMergeMode = () => {
+    setMergeMode(m => !m);
+    setMergeSel(new Set());
+    setExpandedId(null);
+  };
+  const toggleMergeSel = (pid) => setMergeSel(prev => {
+    const n = new Set(prev);
+    if (n.has(pid)) n.delete(pid); else n.add(pid);
+    return n;
+  });
+  const exitMergeMode = () => { setMergeMode(false); setMergeSel(new Set()); };
+  React.useEffect(() => { if (view !== 'mappa' && mergeMode) exitMergeMode(); }, [view]);
 
   // Esclude i tavoli "uniti" (mergedWith): non sono entità autonome, fanno parte del source.
   const tavoliBase = (window.SALA_TAVOLI || SALA_TAVOLI).filter(t => !t.mergedWith);
@@ -130,6 +145,29 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
           <div style={{width: 1, height: 20, background: PN.BORDER_HAIR, flexShrink: 0, margin: '0 2px'}}/>
 
           <SearchExpandable value={search} onChange={setSearch} placeholder="Cerca tavolo o cliente" expandedWidth={220}/>
+
+          {/* Unisci tavoli — attiva la selezione multipla sulla mappa */}
+          {view === 'mappa' && (
+            <button onClick={toggleMergeMode} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              height: 30, padding: '0 12px', borderRadius: 8,
+              background: mergeMode ? '#FFF1EF' : 'transparent',
+              color: mergeMode ? '#E32459' : PN.MUTED,
+              border: `1px solid ${mergeMode ? 'rgba(227,36,89,0.45)' : PN.BORDER_HAIR}`,
+              fontSize: 12.5, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+              transition: 'background 150ms, color 150ms, border-color 150ms',
+            }}
+              onMouseEnter={e => { if (!mergeMode) { e.currentTarget.style.background = PN.WHITE_FROST; e.currentTarget.style.color = PN.TEXT; } }}
+              onMouseLeave={e => { if (!mergeMode) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              Unisci tavoli
+            </button>
+          )}
 
           <span style={{flex: 1}}/>
 
@@ -277,7 +315,10 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 
       {/* Vista */}
       {view === 'mappa'
-        ? <SalaFloorPlan tavoli={SALA_TAVOLI} dimmedIds={dimmedIds} onOpenAdd={onOpenAdd} onOpenPay={onOpenPay}
+        ? <SalaFloorPlan tavoli={SALA_TAVOLI} dimmedIds={dimmedIds}
+            mergeMode={mergeMode} mergeSel={mergeSel}
+            onToggleMergeSel={toggleMergeSel} onExitMerge={exitMergeMode}
+            onOpenAdd={onOpenAdd} onOpenPay={onOpenPay}
             onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
             expandedId={expandedId} setExpandedId={setExpandedId} onAdjustCoperti={onAdjustCoperti}
             onAdjustReservationPosti={onAdjustReservationPosti}
@@ -414,7 +455,13 @@ function rectsGap(a, b) {
   return Math.sqrt(gx * gx + gy * gy);
 }
 
-function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
+function rectsIntersectArea(a, b) {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSel, onExitMerge, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
   const isDimmed = (id) => dimmedIds && dimmedIds.has(id);
   const COLS = SALA_GRID_COLS, ROWS = SALA_GRID_ROWS;
   // SCHERMATA UNICA: la griglia entra tutta (fit su larghezza E altezza,
@@ -474,6 +521,10 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
   const canvasRef = React.useRef(null);
   const justDraggedRef = React.useRef(false);
   const [mergeProposal, setMergeProposal] = React.useState(null);
+  // Tavolo su cui si è MOLLATO il drag (max sovrapposizione): è lui il
+  // target della proposta di unione, non il vicino dove il gruppo viene
+  // ricollocato dopo la risoluzione delle collisioni.
+  const dropTargetRef = React.useRef(null);
   const [splitMenu, setSplitMenu] = React.useState(null);
   const justDroppedIdRef = React.useRef(null);
 
@@ -499,7 +550,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
-  const detailedTable = expandedId ? tavoli.find(t=>t.id===expandedId) : (hovered ? tavoli.find(t=>t.id===hovered) : null);
+  // In modalità unione niente card hover/dettaglio: il click serve a selezionare.
+  const detailedTable = mergeMode ? null
+    : (expandedId ? tavoli.find(t=>t.id===expandedId) : (hovered ? tavoli.find(t=>t.id===hovered) : null));
 
   // Helpers: bounding box e gruppi
   const tableRect = React.useCallback((id, customPos) => {
@@ -671,6 +724,15 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
           ];
           const myRects = Array.from(mates).map(id => tableRect(id, next[id])).filter(Boolean);
           if (myRects.length === 0) return next;
+          // Registra il tavolo su cui si è mollato PRIMA della ricollocazione
+          let bestArea = 0, bestDropId = null;
+          otherIds.forEach(id => {
+            const r = tableRect(id, next[id]);
+            if (!r) return;
+            const area = myRects.reduce((s, mr) => s + rectsIntersectArea(mr, r), 0);
+            if (area > bestArea) { bestArea = area; bestDropId = id; }
+          });
+          dropTargetRef.current = bestDropId;
           const overlapping = myRects.some(mr => otherRects.some(o => rectsOverlap(mr, o)));
           if (!overlapping) return next;
           // Bounds del gruppo
@@ -734,8 +796,24 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
     const srcMates = new Set(groupMatesOf(source.id));
     const srcRects = Array.from(srcMates).map(id => tableRect(id)).filter(Boolean);
     if (srcRects.length === 0) return;
-    // Cerca il gruppo/tavolo più vicino (non il primo trovato) per evitare proposte sbagliate
-    // quando più tavoli sono in prossimità. Soglia 0.1: solo tile che si toccano.
+    // 1) Se si è mollato SOPRA un tavolo, la proposta è con QUEL tavolo.
+    const dropTgt = dropTargetRef.current;
+    dropTargetRef.current = null;
+    if (dropTgt != null) {
+      const td = all.find(x => x.id === dropTgt);
+      const primary = td?.mergedWith ? all.find(x => x.id === td.mergedWith) : td;
+      if (primary && !srcMates.has(primary.id)) {
+        setMergeProposal({
+          sourceId: source.id,
+          sourceGroupIds: Array.from(srcMates),
+          targetPrimaryId: primary.id,
+          targetGroupIds: [primary.id, ...(primary.mergedTables || [])],
+        });
+        return;
+      }
+    }
+    // 2) Fallback: il gruppo/tavolo più vicino tra quelli che si toccano
+    //    (soglia 0.1) — per i drop adiacenti senza sovrapposizione.
     const checkedPrimaries = new Set();
     let bestTarget = null;
     let bestGap = Infinity;
@@ -761,12 +839,18 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
     if (bestTarget) setMergeProposal(bestTarget);
   }, [positions]);
 
-  // UX: Esc chiude la card laterale.
+  // UX: Esc chiude card laterale / modalità unione.
   React.useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') { setExpandedId(null); setSplitMenu(null); } };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setExpandedId(null);
+        setSplitMenu(null);
+        if (mergeMode && onExitMerge) onExitMerge();
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [expandedId, setExpandedId]);
+  }, [expandedId, setExpandedId, mergeMode, onExitMerge]);
 
   return (
     <div style={{
@@ -1041,7 +1125,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
               t.id === selectedTableId || t.mergedWith === selectedTableId ||
               (sourceForMerged && sourceForMerged.id === selectedTableId)
             );
-            const isInMergeProposal = !!mergeProposal && (mergeProposal.sourceGroupIds.includes(t.id) || mergeProposal.targetGroupIds.includes(t.id));
+            const isInMergeProposal = (!!mergeProposal && (mergeProposal.sourceGroupIds.includes(t.id) || mergeProposal.targetGroupIds.includes(t.id)))
+              || (mergeMode && mergeSel && mergeSel.has(t.mergedWith || t.id));
             // Per i merged secondari, badge allergia e triangolo li mostriamo solo sulla tile del source
             const showOwnBadges = !t.mergedWith;
 
@@ -1060,6 +1145,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                 onClick={(e) => {
                   e.stopPropagation();
                   if (justDraggedRef.current) { justDraggedRef.current = false; return; }
+                  // In modalità unione il click seleziona/deseleziona il gruppo
+                  if (mergeMode) { onToggleMergeSel && onToggleMergeSel(t.mergedWith || t.id); return; }
                   // Click su merged secondario → apre il source
                   setExpandedId(t.mergedWith || t.id);
                 }}>
@@ -1097,7 +1184,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
 
 
           {/* Chip di proposta unione — appare dopo un drop adiacente su un gruppo/tavolo libero */}
-          {mergeProposal && (() => {
+          {!mergeMode && mergeProposal && (() => {
             const srcRects = mergeProposal.sourceGroupIds.map(id => tableRect(id)).filter(Boolean);
             const tgtRects = mergeProposal.targetGroupIds.map(id => tableRect(id)).filter(Boolean);
             if (srcRects.length === 0 || tgtRects.length === 0) return null;
@@ -1342,10 +1429,109 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             );
           })()}
 
+          {/* Barra modalità "Unisci tavoli" — selezione multipla + conferma */}
+          {mergeMode && (() => {
+            const all = window.SALA_TAVOLI || tavoli;
+            const prims = [...(mergeSel || [])].map(id => all.find(t => t.id === id)).filter(Boolean);
+            const nOcc = prims.filter(t => t.state === 'occupato').length;
+            const nPren = prims.filter(t => t.state === 'prenotato').length;
+            const blockMsg = nOcc > 1 ? 'Non si possono unire due tavoli occupati'
+              : nPren > 1 ? 'Non si possono unire due tavoli prenotati' : null;
+            const canConfirm = prims.length >= 2 && !blockMsg;
+
+            const confirmMerge = () => {
+              if (!canConfirm) return;
+              let host = prims.find(t => t.mergedTables && t.mergedTables.length > 0) || prims[0];
+              const guests = prims.filter(t => t.id !== host.id);
+              const guestIds = guests.flatMap(t => [t.id, ...(t.mergedTables || [])]);
+              guests.forEach(t => { if (t.mergedTables) delete t.mergedTables; });
+              if (window.SALA_DO_MERGE) window.SALA_DO_MERGE(host, guestIds);
+              // Riposiziona i tavoli uniti accanto all'host (spirale, niente overlap)
+              updatePositions(prev => {
+                const next = { ...prev };
+                const hostPos = next[host.id];
+                if (!hostPos) return next;
+                guestIds.forEach(gid => {
+                  const tg = all.find(x => x.id === gid);
+                  if (!tg || !next[gid]) return;
+                  const d = getTableDims(null, tg.posti, next[gid].orientation);
+                  const others = Object.keys(next).map(k => parseInt(k, 10))
+                    .filter(k => k !== gid)
+                    .map(k => {
+                      const tk = all.find(x => x.id === k);
+                      const pk = next[k];
+                      if (!tk || !pk) return null;
+                      const dk = getTableDims(null, tk.posti, pk.orientation);
+                      return { x: pk.x, y: pk.y, w: dk.w, h: dk.h };
+                    }).filter(Boolean)
+                    .concat(SALA_FIXTURES);
+                  outer:
+                  for (let r = 0.5; r <= 14; r += 0.5) {
+                    for (let dx = -r; dx <= r; dx += 0.5) {
+                      for (let dy = -r; dy <= r; dy += 0.5) {
+                        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+                        const nx = Math.max(0, Math.min(COLS - d.w, snap(hostPos.x + dx)));
+                        const ny = Math.max(0, Math.min(ROWS - d.h, snap(hostPos.y + dy)));
+                        const rect = { x: nx, y: ny, w: d.w, h: d.h };
+                        if (!others.some(o => rectsOverlap(rect, o))) {
+                          next[gid] = { ...next[gid], x: nx, y: ny };
+                          break outer;
+                        }
+                      }
+                    }
+                  }
+                });
+                return next;
+              });
+              onExitMerge && onExitMerge();
+            };
+
+            return (
+              <div
+                onClick={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
+                style={{
+                  position: 'absolute', left: '50%', top: 10,
+                  transform: 'translateX(-50%)',
+                  zIndex: 27,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 8px 7px 14px', borderRadius: 13,
+                  backgroundColor: 'rgba(255,255,255,0.78)',
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)',
+                  backdropFilter: 'blur(20px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                  border: '1px solid rgba(255,255,255,0.8)',
+                  boxShadow: '0 12px 36px rgba(80,40,80,0.16), 0 2px 8px rgba(80,40,80,0.08)',
+                  animation: 'mergeChipIn 200ms cubic-bezier(0.32,0.72,0,1)',
+                  whiteSpace: 'nowrap',
+                }}>
+                <span style={{fontSize: 12.5, fontWeight: 700, color: blockMsg ? '#DC2626' : '#0F1115'}}>
+                  {blockMsg || (prims.length === 0
+                    ? 'Tocca i tavoli da unire'
+                    : `${prims.length} tavol${prims.length === 1 ? 'o' : 'i'} selezionat${prims.length === 1 ? 'o' : 'i'}`)}
+                </span>
+                <button onClick={confirmMerge} disabled={!canConfirm} style={{
+                  height: 28, padding: '0 12px', borderRadius: 8,
+                  background: canConfirm ? '#0F1115' : 'rgba(15,17,21,0.08)',
+                  color: canConfirm ? '#fff' : '#9CA3AF',
+                  border: 'none', cursor: canConfirm ? 'pointer' : 'default',
+                  fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                  transition: 'background 150ms, color 150ms',
+                }}>Unisci</button>
+                <button onClick={() => onExitMerge && onExitMerge()} style={{
+                  height: 28, padding: '0 10px', borderRadius: 8,
+                  background: 'transparent', color: '#6B7280',
+                  border: '1px solid rgba(15,17,21,0.10)',
+                  cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                }}>Annulla</button>
+              </div>
+            );
+          })()}
+
           {/* Barra ridimensionamento — [−] posti [+] e ruota, sul tavolo selezionato.
               Scala posti: 2(round) → 4(square) → 6(rect 2u) → 8(rect 2u denso) → 10(rect 3u).
               Nascosta per i tavoli uniti (il footprint del gruppo si gestisce col drag). */}
-          {expandedId != null && positions[expandedId] && (() => {
+          {!mergeMode && expandedId != null && positions[expandedId] && (() => {
             const all = window.SALA_TAVOLI || tavoli;
             const t = all.find(x => x.id === expandedId);
             const p = positions[expandedId];
