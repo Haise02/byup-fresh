@@ -923,7 +923,7 @@ function SalaModalNuova({ open, onClose, initData }) {
 
   return (
     <PnModal open={open} onClose={onClose}
-      surface="solid"
+      sheet
       title={initData?.editMode ? 'Modifica prenotazione' : 'Nuova prenotazione'}
       width={720}
       footer={

@@ -159,17 +159,22 @@ function Toolbar({ dayView, setDayView, onNuova }) {
         )}
       </div>
 
+      {/* Prenota — dark sunset glass (D3): base wine-burnt + inset ring caldo */}
       <button onClick={onNuova} style={{
-        padding:'9px 14px', borderRadius: 8,
-        background: PN.BTN_DARK, color:'#fff',
-        border:'1px solid rgba(0,0,0,0.32)',
-        fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        padding:'9px 15px 9px 12px', borderRadius: 9,
+        background: `
+          radial-gradient(circle at 82% 18%, rgba(255, 96, 102, 0.32), transparent 62%),
+          linear-gradient(180deg, rgba(58, 28, 22, 0.96) 0%, rgba(30, 12, 10, 0.98) 100%)
+        `,
+        color:'#FFE9E6', border:'none',
+        fontSize: 14, fontWeight: 700, letterSpacing:'0.01em',
+        cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
-        boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
-        transition:'background 150ms ease-out',
+        boxShadow: 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)',
+        transition:'filter 150ms ease-out, transform 150ms ease-out',
       }}
-        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
-        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}>
+        onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+        onMouseLeave={e => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 5v14 M5 12h14"/>
         </svg>
@@ -910,65 +915,222 @@ function Legend({ dot, label, bg, border }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// DAY · LISTA (cronologica densa)
+// DAY · LISTA — timeline verticale a fasce orarie, righe-card in vetro
+// (PrenotazioneRow, sala-prenotazione-row.jsx). L'ora corrente è una
+// linea coral sottile inserita nel flusso cronologico.
 // ─────────────────────────────────────────────────────────
 function DayList({ onModifica }) {
   const nowMin = timeToMin(NOW_HHMM);
   const [dismissed, setDismissed] = React.useState(new Set());
   const sorted = [...SALA_RES_DATA]
-    .filter(r => r.status !== 'cancellata' && r.status !== 'noshow' && r.status !== 'arrivata' && !dismissed.has(r.id))
+    .filter(r => !dismissed.has(r.id))
     .sort((a,b) => timeToMin(a.time) - timeToMin(b.time));
 
-  const past       = sorted.filter(r => timeToMin(r.time) + (r.dur || 90) <= nowMin);
-  const upcoming   = sorted.filter(r => timeToMin(r.time) + (r.dur || 90) > nowMin);
-  const imminenti  = upcoming.filter(r => timeToMin(r.time) - nowMin <= 30);
-  const dopo       = upcoming.filter(r => timeToMin(r.time) - nowMin > 30);
+  const isPastRes = (r) => timeToMin(r.time) + (r.dur || 90) <= nowMin;
+  const past = sorted.filter(isPastRes);
+  const rest = sorted.filter(r => !isPastRes(r));
+  const onDismiss = (id) => setDismissed(s => new Set([...s, id]));
 
-  const firstSlot  = upcoming.length > 0 ? Math.floor(timeToMin(upcoming[0].time) / 30) * 30 : null;
+  // Fasce orarie: una banda per ora piena, in ordine cronologico
+  const bands = [];
+  rest.forEach(r => {
+    const h = Math.floor(timeToMin(r.time) / 60);
+    let b = bands[bands.length - 1];
+    if (!b || b.hour !== h) { b = { hour: h, items: [] }; bands.push(b); }
+    b.items.push(r);
+  });
+
+  // Flusso: header di fascia + righe; la linea ORA si inserisce prima del
+  // primo elemento futuro rispetto a NOW.
+  const flow = [];
+  let nowInserted = nowMin < (bands[0] ? bands[0].hour * 60 : Infinity) && past.length === 0;
+  if (nowInserted) flow.push(<CalNowLine key="now-top" hhmm={NOW_HHMM}/>);
+  bands.forEach(b => {
+    if (!nowInserted && b.hour * 60 > nowMin) {
+      nowInserted = true;
+      flow.push(<CalNowLine key={`now-b${b.hour}`} hhmm={NOW_HHMM}/>);
+    }
+    flow.push(<CalBandHeader key={`h${b.hour}`} hh={`${String(b.hour).padStart(2,'0')}:00`}/>);
+    b.items.forEach(r => {
+      if (!nowInserted && timeToMin(r.time) > nowMin) {
+        nowInserted = true;
+        flow.push(<CalNowLine key={`now-${r.id}`} hhmm={NOW_HHMM}/>);
+      }
+      flow.push(<CalResRow key={r.id} r={r} nowMin={nowMin} onModifica={onModifica} onDismiss={onDismiss}/>);
+    });
+  });
+  if (!nowInserted) flow.push(<CalNowLine key="now-end" hhmm={NOW_HHMM}/>);
 
   return (
     <div style={{
-      background:'#fff', borderRadius:14, border:`1px solid ${PN.BORDER_HAIR}`,
-      boxShadow:'0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
-      overflow:'hidden',
+      position: 'relative', isolation: 'isolate',
+      borderRadius: 20,
+      padding: '16px 18px 20px',
+      border: `1px solid ${PN.BORDER_HAIR}`,
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 20px rgba(15,17,21,0.04)',
+      // Mesh atmosferica: il substrato che le righe di vetro rifrangono
+      background: `
+        radial-gradient(circle at 10% 10%, rgba(242, 107, 122, 0.16), transparent 40%),
+        radial-gradient(circle at 85% 6%, rgba(167, 139, 250, 0.13), transparent 36%),
+        radial-gradient(circle at 70% 92%, rgba(37, 99, 235, 0.08), transparent 46%),
+        radial-gradient(circle at 18% 80%, rgba(251, 146, 60, 0.09), transparent 40%),
+        linear-gradient(180deg, #FAF6F4 0%, #F4EFEF 100%)
+      `,
+      overflow: 'hidden',
     }}>
-      {past.length > 0 && <PastSection items={past} nowMin={nowMin} onModifica={onModifica} onNoShow={id => setDismissed(s => new Set([...s, id]))}/>}
+      {/* Dorsale della timeline */}
+      <div style={{position:'absolute', top: 20, bottom: 20, left: 30, width: 1, background:'rgba(15,17,21,0.07)'}}/>
 
-      {/* ORA marker */}
-      <div style={{
-        display:'flex', alignItems:'center', gap:8,
-        padding:'6px 18px', background:'#FEF2F2',
-        borderTop:'2px solid #DC2626', borderBottom:'2px solid #DC2626',
-      }}>
-        <div style={{width:7, height:7, borderRadius:'50%', background:'#DC2626', flexShrink:0}}/>
-        <span style={{fontSize:15, fontWeight:700, color:'#DC2626', letterSpacing:0.5, textTransform:'uppercase'}}>
-          Ora
-        </span>
-        <span style={{marginLeft:'auto', fontSize:15, fontWeight:600, color:'#DC2626', opacity:0.75}}>
-          {imminenti.length} prenotazioni imminenti su {sorted.length} totali
-        </span>
-      </div>
+      {past.length > 0 && <CalPastSection items={past} onModifica={onModifica} onDismiss={onDismiss}/>}
 
-      {upcoming.length === 0 && (
-        <div style={{padding:'36px 18px', textAlign:'center', fontSize:15, color:'#9CA3AF', fontWeight:600}}>
+      {rest.length === 0 && (
+        <div style={{padding:'36px 18px', textAlign:'center', fontSize:14, color:'#9CA3AF', fontWeight:600}}>
           Nessuna prenotazione in programma
         </div>
       )}
 
-      {/* Imminenti — entro 30 min */}
-      {imminenti.length > 0 && (
-        <div>
-          {imminenti.map(r => <ResRow key={r.id} r={r} nowMin={nowMin} onModifica={onModifica} onNoShow={id => setDismissed(s => new Set([...s, id]))}/>)}
+      <div style={{display:'flex', flexDirection:'column', gap: 8, position:'relative'}}>
+        {flow}
+      </div>
+    </div>
+  );
+}
+
+// Header di fascia oraria — dot sulla dorsale + ora + hairline
+function CalBandHeader({ hh }) {
+  return (
+    <div style={{display:'flex', alignItems:'center', gap: 10, padding:'10px 0 2px'}}>
+      <span style={{
+        width: 9, height: 9, borderRadius:'50%', flexShrink: 0,
+        background:'#fff', marginLeft: 8,
+        boxShadow:'inset 0 0 0 2px rgba(15,17,21,0.22)',
+      }}/>
+      <span style={{fontSize: 12, fontWeight: 800, color:'#6B7280', fontVariantNumeric:'tabular-nums', letterSpacing:'0.02em'}}>{hh}</span>
+      <span style={{flex: 1, height: 1, background:'rgba(15,17,21,0.06)'}}/>
+    </div>
+  );
+}
+
+// Linea ORA — coral, sottile
+function CalNowLine({ hhmm }) {
+  return (
+    <div style={{display:'flex', alignItems:'center', gap: 8, padding:'2px 0'}}>
+      <span style={{
+        display:'inline-flex', alignItems:'center', gap: 5,
+        padding:'2px 9px', borderRadius: 999, flexShrink: 0,
+        background:'rgba(255, 90, 95, 0.12)',
+        boxShadow:'inset 0 0 0 1px rgba(255, 90, 95, 0.45)',
+        color:'#E32459', fontSize: 10.5, fontWeight: 800, letterSpacing:'0.06em',
+      }}>
+        <span style={{width: 5, height: 5, borderRadius:'50%', background:'#FF5A5F'}}/>
+        ORA · {hhmm}
+      </span>
+      <span style={{flex: 1, height: 1.5, borderRadius: 1, background:'linear-gradient(90deg, rgba(255,90,95,0.65), rgba(255,90,95,0.10))'}}/>
+    </div>
+  );
+}
+
+// Riga prenotazione nel flusso — PrenotazioneRow glass + azione cancella
+function CalResRow({ r, nowMin, dim, onModifica, onDismiss }) {
+  const [cancelConfirm, setCancelConfirm] = React.useState(false);
+  const ghost = r.status === 'noshow' || r.status === 'cancellata';
+  const minTo = timeToMin(r.time) - (nowMin != null ? nowMin : 0);
+  const urgent = !dim && !ghost && minTo >= 0 && minTo <= 30 && (r.status === 'inattesa' || r.status === 'confermata');
+  return (
+    <div style={{marginLeft: 28, position:'relative'}}>
+      <PrenotazioneRow r={r} urgent={urgent}
+        onClick={!dim && !ghost && onModifica ? () => onModifica(r) : undefined}
+        style={dim ? {opacity: 0.55} : undefined}
+      >
+        {!dim && !ghost && (
+          <button title="Cancella prenotazione"
+            onClick={e => { e.stopPropagation(); setCancelConfirm(true); }}
+            style={{
+              width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+              background:'transparent', border:'1px solid rgba(15,17,21,0.08)',
+              color:'#B6BCC6', cursor:'pointer', fontFamily:'inherit',
+              display:'grid', placeItems:'center',
+              transition:'color 150ms, border-color 150ms, background 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background='rgba(220,38,38,0.08)'; e.currentTarget.style.borderColor='rgba(220,38,38,0.35)'; e.currentTarget.style.color='#DC2626'; }}
+            onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='rgba(15,17,21,0.08)'; e.currentTarget.style.color='#B6BCC6'; }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>
+            </svg>
+          </button>
+        )}
+      </PrenotazioneRow>
+
+      {cancelConfirm && (
+        <div onClick={() => setCancelConfirm(false)} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:100,
+          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+          display:'grid', placeItems:'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG,
+            borderRadius: 20, padding:'24px 24px 20px',
+            width: 330,
+            display:'flex', flexDirection:'column', gap: 16,
+          }}>
+            <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', letterSpacing:-0.3}}>
+              Cancellare la prenotazione?
+            </div>
+            <div style={{fontSize: 14, color:'#6B7280', lineHeight: 1.5}}>
+              <strong style={{color:'#0F1115'}}>{r.name}</strong> · {r.time} · T{r.table}<br/>
+              L'operazione non può essere annullata.
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button onClick={() => setCancelConfirm(false)} style={{
+                flex: 1, padding:'10px 14px', borderRadius: 10,
+                background:'rgba(255,255,255,0.75)', color:'#0F1115',
+                border:'1px solid rgba(15,17,21,0.10)',
+                fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+              }}>Indietro</button>
+              <button onClick={() => { setCancelConfirm(false); onDismiss && onDismiss(r.id); }} style={{
+                flex: 1, padding:'10px 14px', borderRadius: 10,
+                background:'linear-gradient(180deg, #DC2626 0%, #B91C1C 100%)', color:'#fff',
+                border:'1px solid rgba(124,14,14,0.40)',
+                boxShadow:'inset 0 1px 0 rgba(255,255,255,0.30)',
+                fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+              }}>Cancella</button>
+            </div>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Separatore visivo */}
-      {imminenti.length > 0 && dopo.length > 0 && (
-        <div style={{height:8, background:'#F4F5F7', borderTop:'1px solid #EDEEF2', borderBottom:'1px solid #EDEEF2'}}/>
+// Sezione "Passate" — collassabile, righe ghost
+function CalPastSection({ items, onModifica, onDismiss }) {
+  const [open, setOpen] = React.useState(false);
+  const servite = items.filter(r => r.status === 'arrivata').length;
+  const noshow  = items.filter(r => r.status === 'noshow').length;
+  return (
+    <div style={{marginBottom: 10, marginLeft: 28}}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width:'100%', display:'flex', alignItems:'center', gap: 8,
+        padding:'8px 12px', borderRadius: 12,
+        backgroundColor:'rgba(255,255,255,0.42)',
+        backdropFilter:'blur(12px) saturate(140%)',
+        WebkitBackdropFilter:'blur(12px) saturate(140%)',
+        border:'1px solid rgba(255,255,255,0.65)',
+        cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+      }}>
+        <span style={{fontSize: 11, fontWeight: 700, color:'#9CA3AF', letterSpacing: 0.5, textTransform:'uppercase'}}>Passate</span>
+        <span style={{fontSize: 12, color:'#B6BCC6', fontWeight: 600}}>
+          · {servite} servite{noshow > 0 ? ` · ${noshow} no-show` : ''}
+        </span>
+        <span style={{flex: 1}}/>
+        <span style={{fontSize: 13, color:'#B6BCC6', transform: open ? 'rotate(90deg)' : 'none', transition:'transform 0.15s'}}>›</span>
+      </button>
+      {open && (
+        <div style={{display:'flex', flexDirection:'column', gap: 8, marginTop: 8, marginLeft: -28}}>
+          {items.map(r => <CalResRow key={r.id} r={r} dim onModifica={onModifica} onDismiss={onDismiss}/>)}
+        </div>
       )}
-
-      {/* Resto della giornata — lista piatta */}
-      {dopo.map(r => <ResRow key={r.id} r={r} nowMin={nowMin} onModifica={onModifica} onNoShow={id => setDismissed(s => new Set([...s, id]))}/>)}
     </div>
   );
 }

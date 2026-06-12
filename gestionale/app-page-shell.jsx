@@ -102,8 +102,10 @@ function PnSearchInput({ placeholder = 'Cerca…', value, onChange, style }) {
   );
 }
 
-// Modal shell — backdrop con blur + container glass strong (Apple Sonoma)
-function PnModal({ open, onClose, title, subtitle, width = 720, children, footer, surface }) {
+// Modal shell — backdrop con blur + container glass strong (Apple Sonoma).
+// sheet=true: FOGLIO che sale dal fondo (ancorato in basso, angoli 22px in
+// alto, slide-up spring) — per i flussi di creazione, niente modal opaco.
+function PnModal({ open, onClose, title, subtitle, width = 720, children, footer, surface, sheet }) {
   if (!open) return null;
   const solid = surface === 'solid';
   const surfaceStyle = solid
@@ -119,15 +121,22 @@ function PnModal({ open, onClose, title, subtitle, width = 720, children, footer
       background: 'rgba(15, 17, 21, 0.42)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      display: 'grid', placeItems: 'center',
+      display: 'flex',
+      alignItems: sheet ? 'flex-end' : 'center',
+      justifyContent: 'center',
       zIndex: 50,
     }}>
+      {sheet && <style>{`@keyframes pnSheetUp {
+        from { opacity: 0.4; transform: translateY(36px); }
+        to   { opacity: 1;   transform: translateY(0); }
+      }`}</style>}
       <div onClick={e => e.stopPropagation()} style={{
-        width, maxWidth: '92%', maxHeight: '88%',
+        width, maxWidth: '92%', maxHeight: sheet ? '90%' : '88%',
         ...surfaceStyle,
-        borderRadius: 14,
+        borderRadius: sheet ? '22px 22px 0 0' : 14,
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
+        animation: sheet ? 'pnSheetUp 320ms cubic-bezier(0.32, 0.72, 0, 1)' : undefined,
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
