@@ -355,12 +355,54 @@ const SALA_INITIAL_POSITIONS = {
   18:{x:6, y:6.5, shape:'rect'},
 };
 
-// Dimensione tavolo (in unità di cella): tutti uguali, sempre quadrati.
-// `shape` e `posti` sono ignorati per il sizing.
-const TABLE_TILE_SCALE = 1.0;
-function getTableDims() {
-  return { w: TABLE_TILE_SCALE, h: TABLE_TILE_SCALE };
+// Footprint del tavolo in unità di cella — derivato da posti+orientation.
+// Forma da ttSeatShape (sala-table-tile.jsx): 2-3 round, 4-5 square,
+// 6-8 rect 2u, >8 rect 3u. Il primo arg (shape legacy) è ignorato.
+function getTableDims(shape, posti, orientation) {
+  return ttFootprintUnits(posti || 4, ttSeatShape(posti || 4), orientation || 'h');
 }
+
+const SALA_GRID_COLS = 12, SALA_GRID_ROWS = 8;
+
+// Posizioni iniziali senza sovrapposizioni: parte da SALA_INITIAL_POSITIONS
+// e sposta a spirale i tavoli il cui footprint (ora variabile) collide
+// con tavoli già piazzati o fixture.
+function salaInitPositions() {
+  const all = window.SALA_TAVOLI || [];
+  const placed = [...SALA_FIXTURES];
+  const init = {};
+  Object.entries(SALA_INITIAL_POSITIONS).forEach(([key, p]) => {
+    const id = parseInt(key, 10);
+    const t = all.find(x => x.id === id);
+    const fp = getTableDims(null, t?.posti, 'h');
+    let pos = null;
+    outer:
+    for (let r = 0; r <= 14; r += 0.5) {
+      for (let dx = -r; dx <= r; dx += 0.5) {
+        for (let dy = -r; dy <= r; dy += 0.5) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const nx = Math.max(0, Math.min(SALA_GRID_COLS - fp.w, Math.round((p.x + dx) * 2) / 2));
+          const ny = Math.max(0, Math.min(SALA_GRID_ROWS - fp.h, Math.round((p.y + dy) * 2) / 2));
+          const rect = { x: nx, y: ny, w: fp.w, h: fp.h };
+          if (!placed.some(o => rectsOverlap(rect, o))) { pos = rect; break outer; }
+        }
+      }
+    }
+    if (!pos) pos = { x: p.x, y: p.y, w: fp.w, h: fp.h };
+    placed.push(pos);
+    init[id] = { x: pos.x, y: pos.y, shape: p.shape, orientation: 'h' };
+  });
+  return init;
+}
+
+// Accenti traslucidi per stato — usati dalla cornice di unione tavoli.
+// (Il disegno del tavolo vive in sala-table-tile.jsx → <TableTile/>.)
+const SALA_TILE_GLASS = {
+  libero:    { tint: 'rgba(22, 163, 74, 0.10)',  ring: 'rgba(22, 163, 74, 0.40)',  ink: '#15803D' },
+  prenotato: { tint: 'rgba(124, 58, 237, 0.12)', ring: 'rgba(124, 58, 237, 0.38)', ink: '#6D28D9' },
+  occupato:  { tint: 'rgba(255, 90, 95, 0.18)',  ring: 'rgba(227, 36, 89, 0.42)',  ink: '#E32459' },
+  dapulire:  { tint: 'rgba(217, 119, 6, 0.14)',  ring: 'rgba(217, 119, 6, 0.42)',  ink: '#B45309' },
+};
 
 function rectsOverlap(a, b) {
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
@@ -375,15 +417,18 @@ function rectsGap(a, b) {
 function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
   const isDimmed = (id) => dimmedIds && dimmedIds.has(id);
   const BASE_CELL = 60;
-  const COLS = 12, ROWS = 8;
+  const COLS = SALA_GRID_COLS, ROWS = SALA_GRID_ROWS;
   const [canvasWidth, setCanvasWidth] = React.useState(COLS * BASE_CELL);
   const CELL = canvasWidth / COLS;
 
   // Posizioni stateful — persistenti tra render via window per sopravvivere a remount
   const [positions, setPositions] = React.useState(() => {
-    if (window.SALA_POSITIONS) return window.SALA_POSITIONS;
-    const init = {};
-    Object.entries(SALA_INITIAL_POSITIONS).forEach(([id, p]) => { init[id] = { x: p.x, y: p.y, shape: p.shape }; });
+    if (window.SALA_POSITIONS) {
+      // Backfill per posizioni salvate prima del modello orientation
+      Object.values(window.SALA_POSITIONS).forEach(p => { if (!p.orientation) p.orientation = 'h'; });
+      return window.SALA_POSITIONS;
+    }
+    const init = salaInitPositions();
     window.SALA_POSITIONS = init;
     return init;
   });
@@ -430,7 +475,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
     if (!p) return null;
     const t = (tavoli.find(x => x.id === id) || (window.SALA_TAVOLI||[]).find(x => x.id === id));
     if (!t) return null;
-    const d = getTableDims(p.shape, t.posti);
+    const d = getTableDims(p.shape, t.posti, p.orientation);
     return { x: p.x, y: p.y, w: d.w, h: d.h };
   }, [positions, tavoli]);
 
@@ -474,6 +519,48 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
     }
     return { x: tx, y: ty };
   }, [tableRect]);
+
+  // Dopo un cambio posti/orientamento: se il nuovo footprint collide con
+  // vicini o fixture (o sfora la griglia), sposta il tavolo nella posizione
+  // libera più vicina (ricerca a spirale). I vicini non si muovono.
+  const resolveFootprint = (id) => {
+    updatePositions(prev => {
+      const next = { ...prev };
+      const p = next[id];
+      if (!p) return prev;
+      const all = window.SALA_TAVOLI || tavoli;
+      const t = all.find(x => x.id === id);
+      if (!t) return prev;
+      const fp = getTableDims(null, t.posti, p.orientation);
+      const obstacles = [
+        ...Object.keys(next).map(k => parseInt(k, 10))
+          .filter(k => k !== id)
+          .map(k => {
+            const tk = all.find(x => x.id === k);
+            const pk = next[k];
+            if (!tk || !pk) return null;
+            const d = getTableDims(null, tk.posti, pk.orientation);
+            return { x: pk.x, y: pk.y, w: d.w, h: d.h };
+          }).filter(Boolean),
+        ...SALA_FIXTURES,
+      ];
+      for (let r = 0; r <= 14; r += 0.5) {
+        for (let dx = -r; dx <= r; dx += 0.5) {
+          for (let dy = -r; dy <= r; dy += 0.5) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            const nx = Math.max(0, Math.min(COLS - fp.w, snap(p.x + dx)));
+            const ny = Math.max(0, Math.min(ROWS - fp.h, snap(p.y + dy)));
+            const rect = { x: nx, y: ny, w: fp.w, h: fp.h };
+            if (!obstacles.some(o => rectsOverlap(rect, o))) {
+              next[id] = { ...p, x: nx, y: ny };
+              return next;
+            }
+          }
+        }
+      }
+      return next;
+    });
+  };
 
   // Drag handlers
   const handleTableMouseDown = (e, id) => {
@@ -522,9 +609,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
         mates.forEach(mid => {
           const base = drag.basePositions[mid];
           if (!base) return;
+          const tm = (window.SALA_TAVOLI || tavoli).find(x => x.id === mid);
+          const d = getTableDims(null, tm?.posti, next[mid]?.orientation);
           next[mid] = { ...next[mid],
-            x: Math.max(0, Math.min(COLS - 1, base.x + dx)),
-            y: Math.max(0, Math.min(ROWS - 1, base.y + dy)),
+            x: Math.max(0, Math.min(COLS - d.w, base.x + dx)),
+            y: Math.max(0, Math.min(ROWS - d.h, base.y + dy)),
           };
         });
         return next;
@@ -677,11 +766,17 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
           style={{
             position: 'relative',
             width: '100%', height: ROWS * CELL,
-            // Floor: griglia leggera (mostra lo snap)
+            // Floor: griglia snap + mesh atmosferica warm — è il substrato che
+            // le tessere di vetro rifrangono (senza, il glass non si legge).
             background: `
-              linear-gradient(rgba(15,17,21,0.05) 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
-              linear-gradient(90deg, rgba(15,17,21,0.05) 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
-              linear-gradient(180deg, #FAFAF8 0%, #F5F5F2 100%)
+              linear-gradient(rgba(15,17,21,0.06) 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
+              linear-gradient(90deg, rgba(15,17,21,0.06) 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
+              radial-gradient(circle at 10% 15%, rgba(242, 107, 122, 0.22), transparent 38%),
+              radial-gradient(circle at 78% 12%, rgba(167, 139, 250, 0.18), transparent 35%),
+              radial-gradient(circle at 90% 82%, rgba(124, 45, 60, 0.14), transparent 42%),
+              radial-gradient(circle at 45% 60%, rgba(37, 99, 235, 0.10), transparent 45%),
+              radial-gradient(circle at 22% 88%, rgba(251, 146, 60, 0.12), transparent 38%),
+              linear-gradient(180deg, #FAF6F4 0%, #F3EEEF 100%)
             `,
             borderRadius: 12,
             border: `1px solid ${PN.BORDER_HAIR}`,
@@ -760,7 +855,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                 const pp = positions[id];
                 if (!pp) continue;
                 const tt = tavoli.find(x => x.id === id) || (window.SALA_TAVOLI||[]).find(x => x.id === id);
-                const dims = getTableDims(pp.shape, tt?.posti);
+                const dims = getTableDims(pp.shape, tt?.posti, pp.orientation);
                 for (let cx = pp.x; cx < pp.x + dims.w; cx++)
                   for (let cy = pp.y; cy < pp.y + dims.h; cy++)
                     occupied.add(`${cx},${cy}`);
@@ -799,13 +894,13 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                 if (pts.length > 2) polygons.push(pts);
               }
 
-              const meta = SALA_STATE_META[t.state] || SALA_STATE_META.libero;
+              const acc = SALA_TILE_GLASS[t.state] || SALA_TILE_GLASS.libero;
               return polygons.map((pts, pi) => (
                 <path
                   key={`union-${t.id}-${pi}`}
                   d={'M ' + pts.map(([x, y]) => `${x} ${y}`).join(' L ') + ' Z'}
-                  fill={meta.mapBg}
-                  stroke={meta.mapBorder}
+                  fill="rgba(255, 255, 255, 0.45)"
+                  stroke={acc.ring}
                   strokeWidth="8"
                   strokeLinejoin="round"
                   style={{ pointerEvents: 'none' }}
@@ -833,19 +928,23 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
               ? (tavoli.find(x => x.id === t.mergedWith) || (window.SALA_TAVOLI||[]).find(x => x.id === t.mergedWith))
               : null;
             const tDisplay = sourceForMerged || t;
-            const meta = SALA_STATE_META[tDisplay.state];
-            // Dimensione basata sulla capienza fisica del tavolo (posti) — non cambia con merge/coperti.
-            const dims = getTableDims(p.shape, t.posti);
-            const w = dims.w * CELL;
-            const h = dims.h * CELL;
-            const left = p.x * CELL;
-            const top = p.y * CELL;
+            // Footprint in celle da posti+orientation; il disegno (corpo+sedie)
+            // è in px naturali e viene scalato a CELL/TT_UNIT_OUTER, centrato
+            // nel rettangolo di footprint.
+            const seats = t.posti || 4;
+            const shape = ttSeatShape(seats);
+            const orient = p.orientation || 'h';
+            const dims = getTableDims(p.shape, seats, orient);
+            const sc = CELL / TT_UNIT_OUTER;
+            const outer = ttOuterSize(seats, shape, orient);
+            const left = p.x * CELL + (dims.w * CELL - outer.w * sc) / 2;
+            const top  = p.y * CELL + (dims.h * CELL - outer.h * sc) / 2;
             const noteTipo = tDisplay.note?.tipo || tDisplay.note?.type;
             const isAllergia = noteTipo === 'allergia';
             const showTriangle = window.hasAlertTriangle && window.hasAlertTriangle(tDisplay);
             const alert = tDisplay.state === 'occupato' ? getOccupiedAlert(tDisplay) : null;
             const isAlerting = alert?.tone === 'warn';
-            const ringColor = showTriangle ? '#DC2626' : (isAlerting ? '#A16207' : meta.dot);
+            const alertTone = showTriangle ? 'alert' : (isAlerting ? 'warn' : null);
 
             const dim = isDimmed(t.id) || (sourceForMerged && isDimmed(sourceForMerged.id));
             const isHovered = hovered === t.id;
@@ -862,85 +961,43 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             const showOwnBadges = !t.mergedWith;
 
             return (
-              <div key={t.id}
-                onMouseEnter={()=>setHovered(t.id)}
-                onMouseLeave={()=>setHovered(null)}
+              <TableTile key={t.id}
+                numero={t.id} status={tDisplay.state}
+                seats={seats} shape={shape} orientation={orient}
+                badge={isAllergia && !dim && showOwnBadges ? ['ALLERGIA'] : []}
+                scale={sc}
+                dim={dim} hovered={isHovered} selected={isSelected}
+                dragging={isDragging} mergeHint={isInMergeProposal} alertTone={alertTone}
+                left={left} top={top}
+                onEnter={()=>setHovered(t.id)}
+                onLeave={()=>setHovered(null)}
                 onPointerDown={(e) => handleTableMouseDown(e, t.id)}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (justDraggedRef.current) { justDraggedRef.current = false; return; }
                   // Click su merged secondario → apre il source
                   setExpandedId(t.mergedWith || t.id);
-                }}
-                style={{
-                  position:'absolute',
-                  left, top, width: w, height: h,
-                  background: dim ? '#F4F5F7' : (meta.mapBg || meta.bg),
-                  backgroundImage: dim ? 'none' : 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
-                  border: `2px solid ${dim ? '#E5E7EB' : (isInMergeProposal ? '#FF5A5F' : ringColor)}`,
-                  borderRadius: 8,
-                  cursor: isDragging ? 'grabbing' : 'grab',
-                  display:'grid', placeItems:'center',
-                  boxShadow: isSelected
-                    ? `0 0 0 3px rgba(15,17,21,0.12), 0 10px 24px rgba(15,17,21,0.18)`
-                    : (isInMergeProposal
-                      ? '0 0 0 3px rgba(255,90,95,0.22), 0 6px 16px rgba(255,90,95,0.18)'
-                      : (isDragging
-                        ? '0 10px 24px rgba(0,0,0,0.18)'
-                        : (isHovered && !dim
-                          ? '0 4px 12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.5)'
-                          : (dim ? 'none' : '0 1px 2px rgba(15,17,21,0.07), inset 0 1px 0 rgba(255,255,255,0.5)')))),
-                  outline: isSelected ? '2px solid #0F1115' : 'none',
-                  outlineOffset: isSelected ? 2 : 0,
-                  transform: isHovered && !isDragging ? 'scale(1.04)' : 'scale(1)',
-                  transition: isDragging ? 'none' : 'box-shadow 0.18s, transform 0.18s, outline 0.18s',
-                  zIndex: isSelected ? 6 : (isDragging ? 10 : (isHovered ? 5 : 1)),
-                  opacity: dim ? (isHovered ? 0.65 : 0.35) : 1,
-                  filter: dim ? 'grayscale(1)' : 'none',
-                  userSelect: 'none',
-                  touchAction: 'none',
                 }}>
-                <div style={{
-                  fontSize: 16, fontWeight: 700,
-                  color: dim ? '#9CA3AF' : '#0F1115',
-                  fontVariantNumeric:'tabular-nums',
-                }}>{t.id}</div>
-
-                {/* Top-right: solo alert triangolo (ritardo prenotazione, da pulire da troppo) */}
+                {/* Top-right (angolo corpo): alert triangolo (ritardo prenotazione, da pulire da troppo) */}
                 {showTriangle && !dim && showOwnBadges && (
                   <div title="Attenzione" style={{
-                    position: 'absolute', top: -8, right: -8,
+                    position: 'absolute', top: 9, right: 9,
                     background: '#DC2626', color: '#fff',
                     width: 18, height: 18, borderRadius: '50%',
                     border: '2px solid #fff',
                     animation: 'pulse 1.5s ease-in-out infinite',
                     display: 'grid', placeItems: 'center',
                     boxShadow: '0 1px 3px rgba(220,38,38,0.4)',
+                    zIndex: 6,
                   }}>
                     <PnI.Alert size={10} color="#fff"/>
                   </div>
                 )}
 
-                {/* Bottom-left: tag allergia (chip stile, come tag aziendale) */}
-                {isAllergia && !dim && showOwnBadges && (
-                  <div title={t.note.testo || t.note.text} style={{
-                    position: 'absolute', bottom: -8, left: -6,
-                    background: '#DC2626', color: '#fff',
-                    padding: '2px 6px 2px 4px', borderRadius: 999,
-                    border: '1.5px solid #fff',
-                    fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
-                    display:'inline-flex', alignItems:'center', gap: 3,
-                    boxShadow: '0 1px 3px rgba(220,38,38,0.35)',
-                    whiteSpace:'nowrap', zIndex: 6,
-                  }}>
-                    ALLERGIA
-                  </div>
-                )}
-
-                {/* Bottom-left (sotto): chip nota non-critica */}
+                {/* Bottom-left (angolo corpo): chip nota non-critica */}
                 {!dim && !isAllergia && noteTipo && NOTE_TYPE_META[noteTipo] && showOwnBadges && (
                   <div title={t.note.testo || t.note.text} style={{
-                    position: 'absolute', bottom: -7, left: -5,
+                    position: 'absolute', bottom: 9, left: 9,
                     background: NOTE_TYPE_META[noteTipo].bg,
                     color: NOTE_TYPE_META[noteTipo].color,
                     border: '1.5px solid #fff',
@@ -949,7 +1006,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                     display:'grid', placeItems:'center', zIndex: 6,
                   }}>·</div>
                 )}
-              </div>
+              </TableTile>
             );
           })}
 
@@ -1196,6 +1253,86 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                       fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
                     }}>Dividi tutto</button>
                 </div>
+              </div>
+            );
+          })()}
+
+          {/* Barra ridimensionamento — [−] posti [+] e ruota, sul tavolo selezionato.
+              Scala posti: 2(round) → 4(square) → 6(rect 2u) → 8(rect 2u denso) → 10(rect 3u).
+              Nascosta per i tavoli uniti (il footprint del gruppo si gestisce col drag). */}
+          {expandedId != null && positions[expandedId] && (() => {
+            const all = window.SALA_TAVOLI || tavoli;
+            const t = all.find(x => x.id === expandedId);
+            const p = positions[expandedId];
+            if (!t || !p || t.mergedWith || (t.mergedTables && t.mergedTables.length > 0)) return null;
+            const seats = t.posti || 4;
+            const fp = getTableDims(null, seats, p.orientation);
+            const LADDER = [2, 4, 6, 8, 10];
+            const plusTarget  = LADDER.find(v => v > seats);
+            const minusTarget = [...LADDER].reverse().find(v => v < seats);
+            const isRect = ttSeatShape(seats) === 'rect';
+            const cx = (p.x + fp.w / 2) * CELL;
+            const aboveTop = p.y * CELL - 48;
+            const barTop = aboveTop >= 2 ? aboveTop : (p.y + fp.h) * CELL + 10;
+
+            const applySeats = (n) => {
+              if (n == null) return;
+              if (onAdjustCoperti) onAdjustCoperti(t.id, n); else t.posti = n;
+              resolveFootprint(t.id);
+            };
+            const doRotate = () => {
+              updatePositions(prev => ({
+                ...prev,
+                [t.id]: { ...prev[t.id], orientation: prev[t.id].orientation === 'v' ? 'h' : 'v' },
+              }));
+              resolveFootprint(t.id);
+            };
+            const btnStyle = (enabled) => ({
+              width: 26, height: 26, borderRadius: 8,
+              background: enabled ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.40)',
+              border: '1px solid rgba(15,17,21,0.08)',
+              color: enabled ? '#0F1115' : '#C5C8CE',
+              cursor: enabled ? 'pointer' : 'default',
+              display: 'grid', placeItems: 'center',
+              fontFamily: 'inherit', fontSize: 15, fontWeight: 700, lineHeight: 1,
+              padding: 0, transition: 'background 150ms ease-out',
+            });
+
+            return (
+              <div
+                onClick={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
+                style={{
+                  position: 'absolute', left: cx, top: barTop,
+                  transform: 'translateX(-50%)',
+                  zIndex: 26,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '5px 7px', borderRadius: 13,
+                  backgroundColor: 'rgba(255,255,255,0.72)',
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)',
+                  backdropFilter: 'blur(20px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                  border: '1px solid rgba(255,255,255,0.8)',
+                  boxShadow: '0 12px 36px rgba(80,40,80,0.14), 0 2px 8px rgba(80,40,80,0.08)',
+                  animation: 'mergeChipIn 200ms cubic-bezier(0.32,0.72,0,1)',
+                }}>
+                <button style={btnStyle(!!minusTarget)} disabled={!minusTarget} onClick={() => applySeats(minusTarget)}>−</button>
+                <span style={{
+                  fontSize: 12, fontWeight: 700, color: '#0F1115',
+                  minWidth: 46, textAlign: 'center',
+                  fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+                }}>{seats} posti</span>
+                <button style={btnStyle(!!plusTarget)} disabled={!plusTarget} onClick={() => applySeats(plusTarget)}>+</button>
+                {isRect && (
+                  <React.Fragment>
+                    <div style={{width: 1, height: 16, background: 'rgba(15,17,21,0.08)'}}/>
+                    <button title="Ruota 90°" style={btnStyle(true)} onClick={doRotate}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/>
+                      </svg>
+                    </button>
+                  </React.Fragment>
+                )}
               </div>
             );
           })()}

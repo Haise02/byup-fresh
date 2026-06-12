@@ -22,7 +22,7 @@ per la ristorazione.
 - `byup Restaurant Onboarding.html` — onboarding ristoratore (4 step)
 - `byup Panoramica.html` — dashboard widget (drag/drop + edit mode)
 - `byup Configurazione Completa.html` — vetrina + personale post-onboarding
-- `byup Sala v3.html` — sala & prenotazioni (mappa + lista)
+- `byup Sala.html` — sala & prenotazioni (mappa + lista; `?tab=tavoli|vendita|calendar`)
 - `byup Cucina.html` — kitchen monitor (KDS)
 - `byup Statistiche.html`, `byup Contabilita.html`, `byup Impostazioni.html`,
   `byup Profilo.html`, `byup Account.html`, `byup Supporto.html`
