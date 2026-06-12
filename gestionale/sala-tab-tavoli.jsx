@@ -144,30 +144,36 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
           {/* Divider */}
           <div style={{width: 1, height: 20, background: PN.BORDER_HAIR, flexShrink: 0, margin: '0 2px'}}/>
 
-          <SearchExpandable value={search} onChange={setSearch} placeholder="Cerca tavolo o cliente" expandedWidth={220}/>
-
-          {/* Unisci tavoli — attiva la selezione multipla sulla mappa */}
+          {/* Unisci tavoli — dark sunset glass (D3): base wine-burnt + inset
+              ring caldo, mai nero piatto. Attiva la selezione multipla. */}
           {view === 'mappa' && (
             <button onClick={toggleMergeMode} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              height: 30, padding: '0 12px', borderRadius: 8,
-              background: mergeMode ? '#FFF1EF' : 'transparent',
-              color: mergeMode ? '#E32459' : PN.MUTED,
-              border: `1px solid ${mergeMode ? 'rgba(227,36,89,0.45)' : PN.BORDER_HAIR}`,
-              fontSize: 12.5, fontWeight: 600,
+              height: 30, padding: '0 13px 0 10px', borderRadius: 9,
+              background: `
+                radial-gradient(circle at 82% 18%, rgba(255, 96, 102, ${mergeMode ? 0.45 : 0.32}), transparent 62%),
+                linear-gradient(180deg, rgba(58, 28, 22, 0.96) 0%, rgba(30, 12, 10, 0.98) 100%)
+              `,
+              color: '#FFE9E6',
+              border: 'none',
+              boxShadow: mergeMode
+                ? 'inset 0 1px 0 rgba(255,200,210,0.26), inset 0 0 0 1px rgba(255,130,150,0.30), 0 0 0 3px rgba(255,90,95,0.22), 0 8px 22px -8px rgba(80,10,30,0.60)'
+                : 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)',
+              fontSize: 12.5, fontWeight: 700, letterSpacing: '0.01em',
               cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-              transition: 'background 150ms, color 150ms, border-color 150ms',
+              transition: 'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms ease-out',
             }}
-              onMouseEnter={e => { if (!mergeMode) { e.currentTarget.style.background = PN.WHITE_FROST; e.currentTarget.style.color = PN.TEXT; } }}
-              onMouseLeave={e => { if (!mergeMode) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
+              onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M12 5v14 M5 12h14"/>
               </svg>
               Unisci tavoli
             </button>
           )}
+
+          <SearchExpandable value={search} onChange={setSearch} placeholder="Cerca tavolo o cliente" expandedWidth={220}/>
 
           <span style={{flex: 1}}/>
 
