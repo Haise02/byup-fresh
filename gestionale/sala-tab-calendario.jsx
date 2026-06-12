@@ -63,17 +63,17 @@ const RES_STATUS_META = {
 // Colori dei segmenti in timeline — gerarchia per priorità visiva, niente tinte da alert
 // (rosso/ambra/verde-successo restano riservati a now-line e stati di sistema).
 //  occupato → walk-in senza nome: priorità minima, neutro che arretra
-//  attivata → prenotazione con nome già seduta (in servizio): blu attivo
-//  byup     → tavolo aperto dalla Byup App: rosa brand, distintivo
-//  futura   → prenotazione su tavolo non ancora attivo (in arrivo): viola pianificato
+//  attivata → prenotazione con nome già seduta (in servizio): neutro
+//  byup     → tavolo aperto dalla Byup App: neutro
+//  futura   → prenotazione in arrivo (tavolo non ancora attivo): CORAL brand
 // Tavoli già attivi (occupato / attivata / byup) → grigio neutro: arretrano.
-// Solo le prenotazioni in arrivo (tavolo non ancora attivo) sono colorate.
+// Solo le prenotazioni in arrivo sono colorate, col coral del logo byup Fresh.
 const SLOT_GREY = { bg:'#EDF0F4', border:'#D2D9E2', text:'#6B7685' };
 const SLOT_STYLE = {
   occupato: SLOT_GREY,
   attivata: SLOT_GREY,
   byup:     SLOT_GREY,
-  futura:   { bg:'#F0EBFD', border:'#B49BEF', text:'#4A1D96' },
+  futura:   { bg:'#FFECEA', border:'#FFA3A6', text:'#B4232F' },
 };
 function slotCategory(r) {
   if (r.status !== 'arrivata') return 'futura';
@@ -625,9 +625,9 @@ function DayTimeline({ onNuova, onModifica }) {
           return (
             <div key="dg" style={{position:'absolute', left:`${ghostLeft}%`, width:`${ghostWidth}%`,
               top:5, bottom:5, pointerEvents:'none', zIndex:10,
-              background:'rgba(124,58,237,0.09)', border:'2px dashed #7C3AED', borderRadius:7,
+              background:'rgba(255,90,95,0.09)', border:'2px dashed #FF5A5F', borderRadius:7,
               display:'flex', alignItems:'center', padding:'0 6px',
-              fontSize:12.5, fontWeight:700, color:'#7C3AED',
+              fontSize:12.5, fontWeight:700, color:'#E32459',
               overflow:'hidden', whiteSpace:'nowrap'}}>{hh}:{mm} · {dLbl}</div>
           );
         })()}
@@ -855,7 +855,7 @@ function DayTimeline({ onNuova, onModifica }) {
       <div style={{padding:'10px 18px', borderTop:'1px solid #EDEEF2',
         display:'flex', alignItems:'center', gap:16, flexWrap:'wrap',
         fontSize:13, color:'#6B7280'}}>
-        <Legend label="In arrivo" bg="#F0EBFD" border="#B49BEF"/>
+        <Legend label="In arrivo" bg="#FFECEA" border="#FFA3A6"/>
         <Legend label="Tavolo attivo" bg="#EDF0F4" border="#D2D9E2"/>
         <span style={{flex:1}}/>
         <span style={{fontSize:12.5, color:'#C4C9D4', fontWeight:600}}>Trascina per creare · Clicca per modificare</span>
