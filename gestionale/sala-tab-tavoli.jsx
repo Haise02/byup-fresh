@@ -417,22 +417,26 @@ function rectsGap(a, b) {
 function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
   const isDimmed = (id) => dimmedIds && dimmedIds.has(id);
   const COLS = SALA_GRID_COLS, ROWS = SALA_GRID_ROWS;
-  // Geometria a pitch FISSO: il corpo riempie la cella (TT_UNIT 96px), le
-  // sedie vivono nel gutter (TT_GUTTER). La mappa NON rimpicciolisce i tavoli
-  // sotto soglia di leggibilità: a scala 1 si scrolla (pan); "Adatta" è un
-  // fit-zoom opzionale di overview.
-  const PITCH = TT_UNIT + TT_GUTTER;                    // 138 — passo cella+gutter
-  const PAD = 24;                                       // bordo canvas: ospita le sedie perimetrali
-  const HG = TT_GUTTER / 2;
-  const CANVAS_W = COLS * PITCH - TT_GUTTER + 2 * PAD;
-  const CANVAS_H = ROWS * PITCH - TT_GUTTER + 2 * PAD;
-  const gpx = (v) => PAD + v * PITCH;                   // cella → px (origine corpo)
+  // SCHERMATA UNICA: la griglia entra tutta (fit su larghezza E altezza,
+  // celle anche rettangolari), niente scroll. Sono i TAVOLI a crescere
+  // dentro le celle — zoom 70–130% a passi del 10% — e la tipografia di
+  // TableTile non scala con la griglia, così "T3" resta leggibile.
+  const PAD = 20;
   const [wrapW, setWrapW] = React.useState(0);
-  const [zoom, setZoom] = React.useState('full');       // 'full' (pan/scroll) | 'fit' (overview)
+  const [availH, setAvailH] = React.useState(540);
+  const [zoom, setZoom] = React.useState(() => window.SALA_MAP_ZOOM || 100); // % dimensione tavoli
+  React.useEffect(() => { window.SALA_MAP_ZOOM = zoom; }, [zoom]);
+  const ZOOM_MIN = 70, ZOOM_MAX = 130, ZOOM_STEP = 10;
   const wrapRef = React.useRef(null);
-  const fitScale = zoom === 'fit' && wrapW > 0
-    ? Math.min(1, wrapW / CANVAS_W, 600 / CANVAS_H)
-    : 1;
+  const PX = wrapW > 0 ? (wrapW - 2 * PAD) / COLS : 88; // pitch orizzontale
+  const PY = Math.max(54, (availH - 2 * PAD) / ROWS);   // pitch verticale
+  const CANVAS_H = ROWS * PY + 2 * PAD;
+  const gx = (v) => PAD + v * PX;
+  const gy = (v) => PAD + v * PY;
+  // Corpo per 1 cella: al 100% lascia spazio alle sedie nel gutter corto;
+  // il tetto (pitch corto + 8) evita che i corpi invadano davvero i vicini.
+  const bodyUnit = Math.min(Math.min(PX, PY) + 8, Math.max(34, (Math.min(PX, PY) - 21) * zoom / 100));
+  const chairOut = ttChairMetrics(bodyUnit).out;
 
   // Posizioni stateful — persistenti tra render via window per sopravvivere a remount
   const [positions, setPositions] = React.useState(() => {
@@ -472,13 +476,26 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
   const justDroppedIdRef = React.useRef(null);
 
   React.useEffect(() => {
-    if (!wrapRef.current) return;
-    const ro = new ResizeObserver(entries => {
-      const w = entries[0]?.contentRect.width;
-      if (w && w > 0) setWrapW(w);
-    });
-    ro.observe(wrapRef.current);
-    return () => ro.disconnect();
+    const measure = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      if (el.clientWidth > 0) setWrapW(el.clientWidth);
+      // Altezza disponibile fino al fondo del frame (corretta per lo zoom CSS
+      // del frame: rapporto tra px visuali e px CSS).
+      const frame = el.closest('.frame');
+      if (frame) {
+        const fr = frame.getBoundingClientRect();
+        const wr = el.getBoundingClientRect();
+        const cssPerVisual = frame.clientHeight / fr.height;
+        const h = (fr.bottom - wr.top) * cssPerVisual - 40;
+        if (h > 0) setAvailH(Math.max(380, h));
+      }
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (wrapRef.current) ro.observe(wrapRef.current);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
   const detailedTable = expandedId ? tavoli.find(t=>t.id===expandedId) : (hovered ? tavoli.find(t=>t.id===hovered) : null);
 
@@ -509,8 +526,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
   const snap = (v) => Math.round(v * 2) / 2;
   const toGrid = (clientX, clientY) => {
     const r = canvasRef.current.getBoundingClientRect();
-    const s = r.width / CANVAS_W;  // scala live (1 o fitScale)
-    return { x: ((clientX - r.left) / s - PAD) / PITCH, y: ((clientY - r.top) / s - PAD) / PITCH };
+    const s = r.height / CANVAS_H;  // compensazione zoom CSS del frame
+    return { x: ((clientX - r.left) / s - PAD) / PX, y: ((clientY - r.top) / s - PAD) / PY };
   };
 
   // Cerca prima posizione libera vicino a (tx, ty) per il tavolo "id" senza overlap con "occupied".
@@ -614,10 +631,10 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
         }));
         return;
       }
-      // Delta in celle dal punto di attivazione del drag (corretto per fit-zoom).
-      const sLive = canvasRef.current ? canvasRef.current.getBoundingClientRect().width / CANVAS_W : 1;
-      const dx = (e.clientX - drag.refX) / (PITCH * sLive);
-      const dy = (e.clientY - drag.refY) / (PITCH * sLive);
+      // Delta in celle dal punto di attivazione del drag (corretto per lo zoom CSS del frame).
+      const sLive = canvasRef.current ? canvasRef.current.getBoundingClientRect().height / CANVAS_H : 1;
+      const dx = (e.clientX - drag.refX) / (PX * sLive);
+      const dy = (e.clientY - drag.refY) / (PY * sLive);
       const mates = groupMatesOf(drag.id);
       updatePositions(prev => {
         const next = {...prev};
@@ -771,34 +788,46 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
         padding: 12, minWidth: 0,
         position: 'relative',
       }}>
-        {/* Toggle fit/zoom — la mappa a scala 1 si scrolla, "Adatta" dà l'overview */}
+        {/* Zoom tavoli — [−] % [+] a passi del 10%, solo i tavoli, non la griglia */}
         <div style={{
           position: 'absolute', top: 22, right: 22, zIndex: 15,
-          display: 'flex', gap: 2, padding: 3, borderRadius: 10,
+          display: 'flex', alignItems: 'center', gap: 2, padding: 3, borderRadius: 10,
           backgroundColor: 'rgba(255,255,255,0.72)',
           backdropFilter: 'blur(20px) saturate(140%)',
           WebkitBackdropFilter: 'blur(20px) saturate(140%)',
           border: '1px solid rgba(255,255,255,0.8)',
           boxShadow: '0 8px 24px rgba(80,40,80,0.12)',
         }}>
-          {[{id: 'fit', label: 'Adatta'}, {id: 'full', label: '100%'}].map(z => (
-            <button key={z.id} onClick={() => setZoom(z.id)} style={{
-              padding: '4px 10px', borderRadius: 8,
-              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 11.5, fontWeight: 700,
-              background: zoom === z.id ? '#0F1115' : 'transparent',
-              color: zoom === z.id ? '#fff' : '#6B7280',
-              transition: 'background 150ms ease-out, color 150ms ease-out',
-            }}>{z.label}</button>
-          ))}
+          {(() => {
+            const zoomBtn = (enabled) => ({
+              width: 24, height: 24, borderRadius: 7,
+              border: 'none', cursor: enabled ? 'pointer' : 'default',
+              fontFamily: 'inherit', fontSize: 14, fontWeight: 700, lineHeight: 1,
+              background: 'transparent',
+              color: enabled ? '#0F1115' : '#C5C8CE',
+              display: 'grid', placeItems: 'center', padding: 0,
+              transition: 'color 150ms ease-out',
+            });
+            return (
+              <React.Fragment>
+                <button title="Tavoli più piccoli" disabled={zoom <= ZOOM_MIN}
+                  onClick={() => setZoom(z => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+                  style={zoomBtn(zoom > ZOOM_MIN)}>−</button>
+                <button title="Riporta al 100%" onClick={() => setZoom(100)} style={{
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
+                  color: '#0F1115', minWidth: 40, textAlign: 'center',
+                  fontVariantNumeric: 'tabular-nums', padding: 0,
+                }}>{zoom}%</button>
+                <button title="Tavoli più grandi" disabled={zoom >= ZOOM_MAX}
+                  onClick={() => setZoom(z => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+                  style={zoomBtn(zoom < ZOOM_MAX)}>+</button>
+              </React.Fragment>
+            );
+          })()}
         </div>
-        {/* Viewport scrollabile (pan) della piantina */}
-        <div ref={wrapRef} className="pn-scroll" style={{
-          overflow: 'auto', maxHeight: 600,
-          borderRadius: 12, minWidth: 0,
-        }}>
-        {/* Sizer: dà al viewport l'ingombro del canvas scalato */}
-        <div style={{width: CANVAS_W * fitScale, height: CANVAS_H * fitScale}}>
+        {/* Viewport: nessuno scroll — la griglia entra tutta */}
+        <div ref={wrapRef} style={{minWidth: 0}}>
         <div
           ref={canvasRef}
           onClick={(e) => {
@@ -809,14 +838,12 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
           }}
           style={{
             position: 'relative',
-            width: CANVAS_W, height: CANVAS_H,
-            transform: fitScale !== 1 ? `scale(${fitScale})` : undefined,
-            transformOrigin: 'top left',
-            // Floor: griglia (passo = cella+gutter, linee al centro dei gutter)
-            // + mesh atmosferica warm — è il substrato che il vetro rifrange.
+            width: '100%', height: CANVAS_H,
+            // Floor: griglia ai confini di cella + mesh atmosferica warm —
+            // è il substrato che il vetro rifrange.
             background: `
-              linear-gradient(rgba(15,17,21,0.06) 1px, transparent 1px) ${PAD - HG}px ${PAD - HG}px/${PITCH}px ${PITCH}px,
-              linear-gradient(90deg, rgba(15,17,21,0.06) 1px, transparent 1px) ${PAD - HG}px ${PAD - HG}px/${PITCH}px ${PITCH}px,
+              linear-gradient(rgba(15,17,21,0.06) 1px, transparent 1px) 0 ${PAD}px/100% ${PY}px,
+              linear-gradient(90deg, rgba(15,17,21,0.06) 1px, transparent 1px) ${PAD}px 0/${PX}px 100%,
               radial-gradient(circle at 10% 15%, rgba(242, 107, 122, 0.22), transparent 38%),
               radial-gradient(circle at 78% 12%, rgba(167, 139, 250, 0.18), transparent 35%),
               radial-gradient(circle at 90% 82%, rgba(124, 45, 60, 0.14), transparent 42%),
@@ -836,9 +863,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
 
           {/* Fixture fissi — bancone, cucina, bagno */}
           {SALA_FIXTURES.map(f => {
-            // I fixture si allineano ai corpi: occupano le celle, lasciano il gutter
-            const fx = gpx(f.x), fy = gpx(f.y);
-            const fw = f.w * PITCH - TT_GUTTER, fh = f.h * PITCH - TT_GUTTER;
+            // I fixture occupano le loro celle con un inset minimo
+            const fx = gx(f.x) + 3, fy = gy(f.y) + 3;
+            const fw = f.w * PX - 6, fh = f.h * PY - 6;
             const base = {
               position: 'absolute', left: fx, top: fy, width: fw, height: fh,
               zIndex: 2, pointerEvents: 'none', overflow: 'hidden',
@@ -914,13 +941,13 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
               const edges = [];
               for (const key of occupied) {
                 const [cx, cy] = key.split(',').map(Number);
-                // Quadrato di cella centrato sui gutter: la cornice abbraccia i
-                // corpi del gruppo e resta continua tra celle adiacenti.
-                const px = gpx(cx) - HG, py = gpx(cy) - HG;
-                if (!occupied.has(`${cx},${cy - 1}`)) edges.push([px, py, px + PITCH, py]);
-                if (!occupied.has(`${cx + 1},${cy}`)) edges.push([px + PITCH, py, px + PITCH, py + PITCH]);
-                if (!occupied.has(`${cx},${cy + 1}`)) edges.push([px + PITCH, py + PITCH, px, py + PITCH]);
-                if (!occupied.has(`${cx - 1},${cy}`)) edges.push([px, py + PITCH, px, py]);
+                // Quadrato di cella: la cornice abbraccia i corpi (centrati in
+                // cella) e resta continua tra celle adiacenti.
+                const px = gx(cx), py = gy(cy);
+                if (!occupied.has(`${cx},${cy - 1}`)) edges.push([px, py, px + PX, py]);
+                if (!occupied.has(`${cx + 1},${cy}`)) edges.push([px + PX, py, px + PX, py + PY]);
+                if (!occupied.has(`${cx},${cy + 1}`)) edges.push([px + PX, py + PY, px, py + PY]);
+                if (!occupied.has(`${cx - 1},${cy}`)) edges.push([px, py + PY, px, py]);
               }
 
               // Mappa punto-inizio → indice spigolo
@@ -978,13 +1005,16 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
               ? (tavoli.find(x => x.id === t.mergedWith) || (window.SALA_TAVOLI||[]).find(x => x.id === t.mergedWith))
               : null;
             const tDisplay = sourceForMerged || t;
-            // Footprint in celle da posti+orientation; il corpo riempie le sue
-            // celle a scala 1 (le sedie sporgono nel gutter riservato dal pitch).
+            // Footprint in celle da posti+orientation; il corpo (bodyUnit,
+            // funzione dello zoom tavoli) è centrato nel suo footprint.
             const seats = t.posti || 4;
             const shape = ttSeatShape(seats);
             const orient = p.orientation || 'h';
-            const left = gpx(p.x);
-            const top  = gpx(p.y);
+            const dims = getTableDims(p.shape, seats, orient);
+            const longPitch = orient === 'v' ? PY : PX;
+            const bw = ttBodySize(seats, shape, orient, bodyUnit, longPitch);
+            const left = gx(p.x) + (dims.w * PX - bw.w) / 2;
+            const top  = gy(p.y) + (dims.h * PY - bw.h) / 2;
             const noteTipo = tDisplay.note?.tipo || tDisplay.note?.type;
             const isAllergia = noteTipo === 'allergia';
             const showTriangle = window.hasAlertTriangle && window.hasAlertTriangle(tDisplay);
@@ -1011,6 +1041,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
                 numero={t.id} status={tDisplay.state}
                 seats={seats} shape={shape} orientation={orient}
                 badge={isAllergia && !dim && showOwnBadges ? ['ALLERGIA'] : []}
+                unit={bodyUnit} pitch={longPitch}
                 dim={dim} hovered={isHovered} selected={isSelected}
                 dragging={isDragging} mergeHint={isInMergeProposal} alertTone={alertTone}
                 left={left} top={top}
@@ -1100,8 +1131,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             }
 
             const avg = (rects, axis) => rects.reduce((s, r) => s + r[axis] + r[axis === 'x' ? 'w' : 'h'] / 2, 0) / rects.length;
-            const cx = gpx((avg(srcRects, 'x') + avg(tgtRects, 'x')) / 2) - HG;
-            const cy = gpx((avg(srcRects, 'y') + avg(tgtRects, 'y')) / 2) - HG;
+            const cx = gx((avg(srcRects, 'x') + avg(tgtRects, 'x')) / 2);
+            const cy = gy((avg(srcRects, 'y') + avg(tgtRects, 'y')) / 2);
             const srcIds = [...mergeProposal.sourceGroupIds].sort((a, b) => a - b);
             const tgtIds = [...mergeProposal.targetGroupIds].sort((a, b) => a - b);
             const srcLabel = srcIds.length > 1 ? `Tav.${srcIds.join('-')}` : `Tav.${srcIds[0]}`;
@@ -1237,7 +1268,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             const allIds = [src.id, ...src.mergedTables];
             const rects = allIds.map(id => {
               const p = positions[id]; if (!p) return null;
-              return { x: gpx(p.x), y: gpx(p.y) };
+              return { x: gx(p.x), y: gy(p.y) };
             }).filter(Boolean);
             if (rects.length === 0) return null;
             const pad = 6;
@@ -1316,11 +1347,13 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             const plusTarget  = LADDER.find(v => v > seats);
             const minusTarget = [...LADDER].reverse().find(v => v < seats);
             const isRect = ttSeatShape(seats) === 'rect';
-            const bodyW = fp.w * PITCH - TT_GUTTER;
-            const bodyH = fp.h * PITCH - TT_GUTTER;
-            const cx = gpx(p.x) + bodyW / 2;
-            const aboveTop = gpx(p.y) - TT_CHAIR_OUT - 44;
-            const barTop = aboveTop >= 2 ? aboveTop : gpx(p.y) + bodyH + TT_CHAIR_OUT + 8;
+            const bodyW = (fp.w - 1) * PX + bodyUnit;
+            const bodyH = (fp.h - 1) * PY + bodyUnit;
+            const bodyLeft = gx(p.x) + (fp.w * PX - bodyW) / 2;
+            const bodyTop  = gy(p.y) + (fp.h * PY - bodyH) / 2;
+            const cx = bodyLeft + bodyW / 2;
+            const aboveTop = bodyTop - chairOut - 44;
+            const barTop = aboveTop >= 2 ? aboveTop : bodyTop + bodyH + chairOut + 8;
 
             const applySeats = (n) => {
               if (n == null) return;
@@ -1384,8 +1417,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             );
           })()}
         </div>{/* /canvas */}
-        </div>{/* /sizer */}
-        </div>{/* /viewport scroll */}
+        </div>{/* /viewport */}
       </div>
 
       {/* Card di dettaglio — overlay flottante FUORI dal contenitore bianco della mappa.

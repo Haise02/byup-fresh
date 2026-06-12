@@ -41,13 +41,29 @@ function ttSeatShape(seats) {
 }
 
 // Corpo tavolo in px da seats/shape/orientation (solo corpo, sedie escluse).
-// I rect multi-cella sono un pezzo unico: coprono anche il gutter interno.
-function ttBodySize(seats, shape, orientation) {
-  if (shape === 'round')  return { w: TT_UNIT - 4, h: TT_UNIT - 4 }; // Ø92, inset minimo
-  if (shape === 'square') return { w: TT_UNIT, h: TT_UNIT };
+// `unit` = lato del corpo per 1 cella; `pitch` = passo cella della griglia
+// (serve ai rect multi-cella, che sono un pezzo unico e coprono anche i
+// gutter interni). Senza argomenti usa la geometria naturale (demo).
+function ttBodySize(seats, shape, orientation, unit = TT_UNIT, pitch = null) {
+  const p = pitch != null ? pitch : unit + TT_GUTTER * (unit / TT_UNIT);
+  if (shape === 'round')  { const d = unit - 4 * (unit / TT_UNIT); return { w: d, h: d }; }
+  if (shape === 'square') return { w: unit, h: unit };
   const units = seats > 8 ? 3 : 2;
-  const long = units * TT_UNIT + (units - 1) * TT_GUTTER; // 230 | 364
-  return orientation === 'v' ? { w: TT_UNIT, h: long } : { w: long, h: TT_UNIT };
+  const long = (units - 1) * p + unit;
+  return orientation === 'v' ? { w: unit, h: long } : { w: long, h: unit };
+}
+
+// Metriche sedie: scalano dolcemente col corpo ma con un pavimento (0.55)
+// così restano leggibili anche su celle piccole.
+function ttChairMetrics(unit = TT_UNIT) {
+  const k = Math.max(0.55, Math.min(1, unit / TT_UNIT));
+  return {
+    cw: TT_CHAIR_W * k,                 // larghezza sedile
+    cd: TT_CHAIR_D * k,                 // profondità sedile
+    gap: TT_CHAIR_GAP * k,              // distanza dal corpo
+    out: TT_CHAIR_OUT * k,              // sporgenza totale oltre il corpo
+    r: TT_CHAIR_R * k,
+  };
 }
 
 // Footprint in unità di cella della piantina (per il layout, step 3)
@@ -90,7 +106,7 @@ function ttChairs(seats, shape, orientation) {
 }
 
 // Sedile visto dall'alto: rounded-rect flat, lineetta schienale sul lato esterno
-function TTChair({ side, x, y, acc, dim }) {
+function TTChair({ side, x, y, acc, dim, m }) {
   const horiz = side === 'top' || side === 'bottom';
   const back = dim ? 'rgba(15,17,21,0.14)' : acc.back;
   const backrest = {
@@ -102,9 +118,9 @@ function TTChair({ side, x, y, acc, dim }) {
   return (
     <div style={{
       position: 'absolute', left: x, top: y,
-      width:  horiz ? TT_CHAIR_W : TT_CHAIR_D,
-      height: horiz ? TT_CHAIR_D : TT_CHAIR_W,
-      borderRadius: TT_CHAIR_R,
+      width:  horiz ? m.cw : m.cd,
+      height: horiz ? m.cd : m.cw,
+      borderRadius: m.r,
       backgroundColor: 'rgba(255, 255, 255, 0.55)',
       backgroundImage: dim ? 'none' : `linear-gradient(0deg, ${acc.seat}, ${acc.seat})`,
       transition: 'left 230ms cubic-bezier(0.34, 1.45, 0.64, 1), top 230ms cubic-bezier(0.34, 1.45, 0.64, 1)',
@@ -120,12 +136,20 @@ function TableTile({
   density = (window.SALA_TILE_DENSITY || 'comfort'),
   dim, hovered, selected, dragging, mergeHint, alertTone,
   left, top,                  // posizione assoluta opzionale (piantina)
-  scale = 1,                  // la piantina scala il disegno a CELL/TT_UNIT_OUTER
+  unit = TT_UNIT,             // lato corpo per 1 cella (la piantina lo deriva dal pitch+zoom)
+  pitch = null,               // passo cella della griglia (per i rect multi-cella)
+  scale = 1,                  // scala via transform (solo usi standalone)
   onEnter, onLeave, onPointerDown, onClick,
   style, children,
 }) {
   const acc = TT_ACCENTS[status] || TT_ACCENTS.libero;
-  const body = ttBodySize(seats, shape, orientation);
+  const body = ttBodySize(seats, shape, orientation, unit, pitch);
+  const m = ttChairMetrics(unit);
+  // Tipografia a dimensione QUASI fissa: non scala con la griglia — è ciò
+  // che tiene "T3" leggibile anche quando la mappa si adatta allo schermo.
+  const numSize = Math.round(Math.min(25, Math.max(15, unit * 0.34)));
+  const tSize = Math.round(numSize * 0.56);
+  const labelSize = Math.min(10, Math.max(8, unit * 0.165));
   // Il wrapper coincide col CORPO: le sedie sporgono fuori (overflow visibile)
   // e vivono nel gutter riservato dalla griglia.
   const W = body.w;
@@ -158,11 +182,11 @@ function TableTile({
     const along = horiz ? body.w : body.h;
     const center = c.frac * along;
     let x, y;
-    if (c.side === 'top')    { x = center - TT_CHAIR_W / 2; y = -TT_CHAIR_OUT; }
-    if (c.side === 'bottom') { x = center - TT_CHAIR_W / 2; y = H + TT_CHAIR_GAP; }
-    if (c.side === 'left')   { x = -TT_CHAIR_OUT;           y = center - TT_CHAIR_W / 2; }
-    if (c.side === 'right')  { x = W + TT_CHAIR_GAP;        y = center - TT_CHAIR_W / 2; }
-    return <TTChair key={`${c.side}-${i}`} side={c.side} x={x} y={y} acc={acc} dim={dim}/>;
+    if (c.side === 'top')    { x = center - m.cw / 2; y = -m.out; }
+    if (c.side === 'bottom') { x = center - m.cw / 2; y = H + m.gap; }
+    if (c.side === 'left')   { x = -m.out;            y = center - m.cw / 2; }
+    if (c.side === 'right')  { x = W + m.gap;         y = center - m.cw / 2; }
+    return <TTChair key={`${c.side}-${i}`} side={c.side} x={x} y={y} acc={acc} dim={dim} m={m}/>;
   });
 
   return (
@@ -214,19 +238,19 @@ function TableTile({
         {/* "T3": prefisso più piccolo e muted, numero grande in bold */}
         <div style={{display: 'flex', alignItems: 'baseline', gap: 1.5, lineHeight: 1}}>
           <span style={{
-            fontSize: 14, fontWeight: 700,
+            fontSize: tSize, fontWeight: 700,
             color: dim ? '#C5C8CE' : '#9CA3AF',
             letterSpacing: '0.02em',
           }}>T</span>
           <span style={{
-            fontSize: 25, fontWeight: 800,
+            fontSize: numSize, fontWeight: 800,
             color: dim ? '#9CA3AF' : '#0F1115',
             fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
           }}>{numero}</span>
         </div>
         {density === 'comfort' && !dim && (
           <div style={{
-            fontSize: 10, fontWeight: 700, lineHeight: 1,
+            fontSize: labelSize, fontWeight: 700, lineHeight: 1,
             letterSpacing: 0.5, textTransform: 'uppercase',
             color: acc.ink, opacity: 0.85, marginTop: 4,
             whiteSpace: 'nowrap',
@@ -253,6 +277,7 @@ function TableTile({
 window.TableTile = TableTile;
 window.ttFootprintUnits = ttFootprintUnits;
 window.ttBodySize = ttBodySize;
+window.ttChairMetrics = ttChairMetrics;
 window.ttOuterSize = ttOuterSize;
 window.ttSeatShape = ttSeatShape;
 window.TT_UNIT = TT_UNIT;
