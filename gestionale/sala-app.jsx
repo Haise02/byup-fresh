@@ -377,7 +377,7 @@ function SalaApp() {
   const headerTitle = tab === 'vendita' ? 'Vendita diretta' : tab === 'calendar' ? 'Prenotazioni' : 'Sala';
 
   return (
-    <div style={{display:'flex', flex:1, minHeight:0}}>
+    <div style={{display:'flex', flex:1, minHeight:0, minWidth:0}}>
       {!focus && <PnSidebar active={sidebarActive}/>}
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
