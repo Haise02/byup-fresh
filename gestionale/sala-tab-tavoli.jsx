@@ -865,9 +865,14 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
 
           {/* Fixture fissi — bancone, cucina, bagno */}
           {SALA_FIXTURES.map(f => {
-            // I fixture occupano le loro celle con un inset minimo
-            const fx = gx(f.x) + 3, fy = gy(f.y) + 3;
-            const fw = f.w * PX - 6, fh = f.h * PY - 6;
+            // I fixture arretrano dal lato della sala di (sporgenza sedia + 8):
+            // le sedie che escono dalle celle non li toccano mai, a nessuno zoom.
+            const fm = chairOut + 8;
+            const isBath = f.type === 'bathroom';
+            const fx = gx(f.x) + (isBath ? fm : 3);
+            const fy = gy(f.y) + (isBath ? fm : 3);
+            const fw = f.w * PX - (isBath ? fm + 4 : 6);
+            const fh = f.h * PY - (isBath ? fm + 4 : 6 + fm);
             const base = {
               position: 'absolute', left: fx, top: fy, width: fw, height: fh,
               // z 1 ma PRIMA dei tavoli nel DOM: le sedie che sporgono dalla
@@ -1430,19 +1435,23 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
       {detailedTable && (
         <div style={{
           position:'absolute',
-          top: 0, right: 0,
+          top: 0, right: 0, bottom: 0,
           width: 288, maxWidth: '95%',
           zIndex: 20,
           animation: 'salaPanelIn 240ms cubic-bezier(0.32,0.72,0,1)',
-          pointerEvents: 'auto',
+          // Il wrapper copre tutta l'altezza della mappa ma non blocca i click
+          // fuori dalla card; la card NON può sporgere sotto la mappa (creava
+          // la scrollbar di pagina → la griglia si restringeva a caso in hover).
+          pointerEvents: 'none',
         }}>
-          <div style={{
+          <div className="pn-scroll" style={{
             position:'relative',
             background:'#fff',
             borderRadius: 14,
             border: '1px solid rgba(15,17,21,0.08)',
             boxShadow: '0 10px 30px rgba(15,17,21,0.18), 0 2px 6px rgba(15,17,21,0.10)',
-            overflow:'hidden',
+            maxHeight: '100%', overflowY: 'auto',
+            pointerEvents: 'auto',
           }}>
             {/* Pulsante chiusura — chiaro affordance per dismissere la card */}
             <button

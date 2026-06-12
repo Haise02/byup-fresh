@@ -406,6 +406,9 @@ function SalaApp() {
             padding: focus ? '16px 24px 24px' : '16px 10px 24px 18px',
             background: PN.BG,
             minWidth: 0,
+            // Gutter scrollbar sempre riservato: se compare/scompare lo scroll
+            // la larghezza non cambia e la mappa non rifluisce.
+            scrollbarGutter: 'stable',
           }}>
             {tab === 'tavoli' && (
               <SalaTavoli
