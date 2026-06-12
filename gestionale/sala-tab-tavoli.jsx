@@ -433,9 +433,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
   const CANVAS_H = ROWS * PY + 2 * PAD;
   const gx = (v) => PAD + v * PX;
   const gy = (v) => PAD + v * PY;
-  // Corpo per 1 cella: al 100% lascia spazio alle sedie nel gutter corto;
-  // il tetto (pitch corto + 8) evita che i corpi invadano davvero i vicini.
-  const bodyUnit = Math.min(Math.min(PX, PY) + 8, Math.max(34, (Math.min(PX, PY) - 21) * zoom / 100));
+  // Corpo per 1 cella: al 100% riempie ESATTAMENTE il box della griglia;
+  // le sedie sporgono fuori dalla cella (sopra le linee), come un disegno
+  // attaccato al tavolo. Il tetto (+14px) limita l'invasione dei vicini.
+  const minPitch = Math.min(PX, PY);
+  const bodyUnit = Math.max(34, Math.min(minPitch + 14, minPitch * zoom / 100));
   const chairOut = ttChairMetrics(bodyUnit).out;
 
   // Posizioni stateful — persistenti tra render via window per sopravvivere a remount
@@ -868,7 +870,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, onOpenAdd, onOpenPay, onAddArticle, 
             const fw = f.w * PX - 6, fh = f.h * PY - 6;
             const base = {
               position: 'absolute', left: fx, top: fy, width: fw, height: fh,
-              zIndex: 2, pointerEvents: 'none', overflow: 'hidden',
+              // z 1 ma PRIMA dei tavoli nel DOM: le sedie che sporgono dalla
+              // cella restano visibili sopra i fixture adiacenti.
+              zIndex: 1, pointerEvents: 'none', overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: 8,
             };
