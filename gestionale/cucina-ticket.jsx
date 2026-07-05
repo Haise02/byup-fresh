@@ -17,6 +17,14 @@ const KDS_C = {
   hair: 'rgba(255, 255, 255, 0.08)',
 };
 
+// Palette LIGHT — board chiara, il dark resta solo sulle card in ritardo
+const KDS_CL = {
+  text: '#0F1115',
+  sub:  'rgba(15, 17, 21, 0.62)',
+  mut:  'rgba(15, 17, 21, 0.40)',
+  hair: 'rgba(15, 17, 21, 0.07)',
+};
+
 // Toni traslucidi — l'urgenza è un accento, non un fondo
 const KDS_TONE = {
   ok:    { tint: 'rgba(255, 255, 255, 0.07)', ring: 'rgba(255, 255, 255, 0.14)', ink: 'rgba(245,245,247,0.72)', dot: 'rgba(245,245,247,0.45)' },
@@ -24,6 +32,15 @@ const KDS_TONE = {
   late:  { tint: 'rgba(255, 90, 95, 0.18)',   ring: 'rgba(255, 90, 95, 0.48)',   ink: '#FF9A9E', dot: '#FF5A5F' },
   doing: { tint: 'rgba(245, 158, 11, 0.14)',  ring: 'rgba(245, 158, 11, 0.36)',  ink: '#FFC964', dot: '#F59E0B' },
   done:  { tint: 'rgba(52, 211, 153, 0.14)',  ring: 'rgba(52, 211, 153, 0.40)',  ink: '#6EE7B7', dot: '#34D399' },
+};
+
+// Toni per tema light — stessi ruoli, ink scuri leggibili su bianco
+const KDS_TONE_L = {
+  ok:    { tint: 'rgba(15, 17, 21, 0.05)',   ring: 'rgba(15, 17, 21, 0.10)',   ink: 'rgba(15,17,21,0.60)', dot: 'rgba(15,17,21,0.30)' },
+  warn:  { tint: 'rgba(245, 158, 11, 0.12)', ring: 'rgba(245, 158, 11, 0.38)', ink: '#B45309', dot: '#F59E0B' },
+  late:  { tint: 'rgba(220, 38, 38, 0.10)',  ring: 'rgba(220, 38, 38, 0.38)',  ink: '#DC2626', dot: '#DC2626' },
+  doing: { tint: 'rgba(245, 158, 11, 0.10)', ring: 'rgba(245, 158, 11, 0.32)', ink: '#B45309', dot: '#F59E0B' },
+  done:  { tint: 'rgba(16, 185, 129, 0.10)', ring: 'rgba(16, 185, 129, 0.35)', ink: '#059669', dot: '#10B981' },
 };
 
 const KDS_ITEM_PILL = {
@@ -34,9 +51,9 @@ const KDS_ITEM_PILL = {
 
 const KDS_COURSE_LABEL = { 1: 'Antipasti', 2: 'Primi', 3: 'Secondi', 4: 'Dessert' };
 
-// Pill di vetro scuro — tinta traslucida + hairline ring
-function KdsPill({ tone = 'ok', children, style }) {
-  const m = KDS_TONE[tone] || KDS_TONE.ok;
+// Pill di vetro — tinta traslucida + hairline ring (light per la board chiara)
+function KdsPill({ tone = 'ok', light = false, children, style }) {
+  const m = (light ? KDS_TONE_L : KDS_TONE)[tone] || (light ? KDS_TONE_L.ok : KDS_TONE.ok);
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -251,4 +268,6 @@ function KdsTicket({ t, now, onItemTap, selected, style, children }) {
 window.KdsTicket = KdsTicket;
 window.KdsPill = KdsPill;
 window.KDS_TONE = KDS_TONE;
+window.KDS_TONE_L = KDS_TONE_L;
 window.KDS_C = KDS_C;
+window.KDS_CL = KDS_CL;
