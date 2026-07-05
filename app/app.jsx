@@ -1,33 +1,35 @@
 // byup — Home screen prototype v2
-const { useState, useRef, useEffect, useLayoutEffect } = React;
+const { useState, useRef, useEffect, useLayoutEffect, useMemo } = React;
 
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
-const TEXT = '#1a1a1a';
-const MUTED = '#6b6b6b';
-const BORDER = '#e5e5e5';
-const BG_GRAY = '#f5f5f5';
-const BG_CHIP = '#f2f2f2';
+const TEXT = '#1c0f15';
+const MUTED = '#6d5a61';
+const BORDER = '#eddfda';
+const BG_GRAY = '#f7ece8';
+const BG_CHIP = '#f6e9e4';
+
+// Design system condiviso — byup-app-kit.jsx DEVE essere caricato prima di questo file.
+const BK = window.ByupKit;
 
 // ─── Icons (coherent line set, stroke=1.7) ─────────────────
 const Icon = {
   Map: (p) => (
-    <svg width={p.size||22} height={p.size||22} viewBox="0 0 24 24" fill="none" stroke={p.color||TEXT} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="3 6 9 4 15 6 21 4 21 18 15 20 9 18 3 20 3 6"/>
-      <line x1="9" y1="4" x2="9" y2="18"/>
-      <line x1="15" y1="6" x2="15" y2="20"/>
+    <svg width={p.size||22} height={p.size||22} viewBox="0 0 24 24" fill="none" stroke={p.color||TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.3 4.3 5.5 5.6A2.1 2.1 0 0 0 4 7.6v9.5c0 1 1 1.7 1.9 1.3l3-1.1c.5-.2 1.1-.2 1.6 0l3 1.1c.5.2 1.1.2 1.6 0l3.4-1.2a2.1 2.1 0 0 0 1.5-2V5.7c0-1-1-1.7-1.9-1.3l-3 1.1c-.5.2-1.1.2-1.6 0l-3-1.1a2.1 2.1 0 0 0-1.2-.1z"/>
+      <path d="M9.6 4.6v12.9M14.4 6.5v12.9" opacity=".5"/>
     </svg>
   ),
   Bell: (p) => (
-    <svg width={p.size||22} height={p.size||22} viewBox="0 0 24 24" fill="none" stroke={p.color||TEXT} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9z"/>
-      <path d="M10.3 21a1.94 1.94 0 003.4 0"/>
+    <svg width={p.size||22} height={p.size||22} viewBox="0 0 24 24" fill="none" stroke={p.color||TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.2a5.9 5.9 0 0 0-5.9 5.9c0 3.2-.75 4.5-1.55 5.5-.5.62-.06 1.6.74 1.6h13.42c.8 0 1.24-.98.74-1.6-.8-1-1.55-2.3-1.55-5.5A5.9 5.9 0 0 0 12 3.2z"/>
+      <path d="M10.2 20.3a2 2 0 0 0 3.6 0"/>
     </svg>
   ),
   Search: (p) => (
-    <svg width={p.size||20} height={p.size||20} viewBox="0 0 24 24" fill="none" stroke={p.color||MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="7"/>
-      <line x1="21" y1="21" x2="16.5" y2="16.5"/>
+    <svg width={p.size||20} height={p.size||20} viewBox="0 0 24 24" fill="none" stroke={p.color||MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="6.4"/>
+      <path d="M20.3 20.3l-4-4"/>
     </svg>
   ),
   Sliders: (p) => (
@@ -46,15 +48,15 @@ const Icon = {
     </svg>
   ),
   Pin: (p) => (
-    <svg width={p.size||14} height={p.size||14} viewBox="0 0 24 24" fill="none" stroke={p.color||MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 21s-7-7-7-12a7 7 0 0114 0c0 5-7 12-7 12z"/>
-      <circle cx="12" cy="9" r="2.5"/>
+    <svg width={p.size||14} height={p.size||14} viewBox="0 0 24 24" fill="none" stroke={p.color||MUTED} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21.2c4.1-3.9 6.6-7.4 6.6-10.5a6.6 6.6 0 1 0-13.2 0c0 3.1 2.5 6.6 6.6 10.5z"/>
+      <circle cx="12" cy="10.5" r="2.3"/>
     </svg>
   ),
   Clock: (p) => (
-    <svg width={p.size||14} height={p.size||14} viewBox="0 0 24 24" fill="none" stroke={p.color||MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9"/>
-      <polyline points="12 7 12 12 15 14"/>
+    <svg width={p.size||14} height={p.size||14} viewBox="0 0 24 24" fill="none" stroke={p.color||MUTED} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.6"/>
+      <path d="M12 7.7V12l2.7 1.8"/>
     </svg>
   ),
   Star: (p) => (
@@ -154,28 +156,29 @@ const Icon = {
     </svg>
   ),
   Home: (p) => (
-    <svg width={p.size||24} height={p.size||24} viewBox="0 0 24 24" fill={p.fill||'none'} stroke={p.color||TEXT} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 11 L12 4 L20 11 L20 20 L14 20 L14 14 L10 14 L10 20 L4 20 Z"/>
+    <svg width={p.size||24} height={p.size||24} viewBox="0 0 24 24" fill={p.fill||'none'} stroke={p.color||TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 10.9c0-.95.45-1.85 1.21-2.42l4.5-3.38a3 3 0 0 1 3.58 0l4.5 3.38a3.03 3.03 0 0 1 1.21 2.42v5.6a3.5 3.5 0 0 1-3.5 3.5H8a3.5 3.5 0 0 1-3.5-3.5z"/>
+      <path d="M12 15.1v2" stroke={p.fill && p.fill !== 'none' ? '#fff' : (p.color||TEXT)}/>
     </svg>
   ),
   User: (p) => (
-    <svg width={p.size||24} height={p.size||24} viewBox="0 0 24 24" fill={p.fill||'none'} stroke={p.color||TEXT} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4"/>
-      <path d="M4 21 C4 16.5 7.5 14 12 14 C16.5 14 20 16.5 20 21" fill={p.fill||'none'}/>
+    <svg width={p.size||24} height={p.size||24} viewBox="0 0 24 24" fill={p.fill||'none'} stroke={p.color||TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8.2" r="3.6"/>
+      <path d="M5.3 20.2a6.9 6.9 0 0 1 13.4 0" fill="none"/>
     </svg>
   ),
   QR: (p) => (
-    <svg width={p.size||30} height={p.size||30} viewBox="0 0 32 32" fill="none" stroke={p.color||'#fff'} strokeWidth="2" strokeLinecap="square">
-      <rect x="4" y="4" width="9" height="9"/>
-      <rect x="19" y="4" width="9" height="9"/>
-      <rect x="4" y="19" width="9" height="9"/>
-      <rect x="7" y="7" width="3" height="3" fill={p.color||'#fff'}/>
-      <rect x="22" y="7" width="3" height="3" fill={p.color||'#fff'}/>
-      <rect x="7" y="22" width="3" height="3" fill={p.color||'#fff'}/>
-      <rect x="19" y="19" width="3" height="3" fill={p.color||'#fff'}/>
-      <rect x="25" y="25" width="3" height="3" fill={p.color||'#fff'}/>
-      <rect x="19" y="25" width="3" height="3" fill={p.color||'#fff'}/>
-      <rect x="25" y="19" width="3" height="3" fill={p.color||'#fff'}/>
+    <svg width={p.size||30} height={p.size||30} viewBox="0 0 32 32" fill="none" stroke={p.color||'#fff'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4.5" y="4.5" width="8.6" height="8.6" rx="2.8"/>
+      <rect x="18.9" y="4.5" width="8.6" height="8.6" rx="2.8"/>
+      <rect x="4.5" y="18.9" width="8.6" height="8.6" rx="2.8"/>
+      <rect x="7.6" y="7.6" width="2.4" height="2.4" rx="1.1" fill={p.color||'#fff'} stroke="none"/>
+      <rect x="22" y="7.6" width="2.4" height="2.4" rx="1.1" fill={p.color||'#fff'} stroke="none"/>
+      <rect x="7.6" y="22" width="2.4" height="2.4" rx="1.1" fill={p.color||'#fff'} stroke="none"/>
+      <rect x="18.9" y="18.9" width="3.4" height="3.4" rx="1.4" fill={p.color||'#fff'} stroke="none"/>
+      <rect x="24.1" y="18.9" width="3.4" height="3.4" rx="1.4" fill={p.color||'#fff'} stroke="none"/>
+      <rect x="18.9" y="24.1" width="3.4" height="3.4" rx="1.4" fill={p.color||'#fff'} stroke="none"/>
+      <rect x="24.1" y="24.1" width="3.4" height="3.4" rx="1.4" fill={p.color||'#fff'} stroke="none"/>
     </svg>
   ),
   Close: (p) => (
@@ -199,16 +202,23 @@ const PHOTO_BY_TONE = {
   d: 'photo-1546069901-ba9599a7e63c', // food
   e: 'photo-1414235077428-338989a2e8c0',
 };
-function Photo({ src, label, tone = 'a' }) {
+// Foto originali + leggero overlay fade brand (wine) in basso: la foto resta protagonista.
+function Photo({ src, label, tone = 'a', duotone = true }) {
   const fallback = PHOTO_BY_TONE[tone] || PHOTO_BY_TONE.a;
   const url = src || `https://images.unsplash.com/${fallback}?w=600&q=70&auto=format&fit=crop`;
   return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      backgroundImage: `url("${url}")`,
-      backgroundSize: 'cover', backgroundPosition: 'center',
-      backgroundColor: '#e8d9c9',
-    }} aria-label={label}/>
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }} aria-label={label}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `url("${url}")`,
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        backgroundColor: '#e8d9c9',
+      }}/>
+      {duotone && <div aria-hidden style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(77,18,46,0) 55%, rgba(77,18,46,.34) 100%)',
+      }}/>}
+    </div>
   );
 }
 const PhotoPlaceholder = Photo; // alias for back-compat
@@ -227,33 +237,33 @@ const CAT_GRADIENTS = {
   healthy: 'linear-gradient(135deg,#A8E063 0%,#56AB2F 100%)',
 };
 
+// Rail categorie: icone kawaii brand (mai emoji). `id` deve matchare BK.ASSETS.cat.
 function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
-  const bg = CAT_GRADIENTS[id] || 'linear-gradient(135deg,#e0e0e0 0%,#c8c8c8 100%)';
+  const [T] = BK.useByupTheme();
+  const src = BK.ASSETS.cat[id];
   return (
-    <button onClick={onClick} style={{
+    <button className="bk-press" onClick={() => { BK.haptic.selection(); onClick?.(); }} style={{
       background: 'none', border: 'none', padding: 0, cursor: 'pointer',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
       flex: '0 0 auto', width: 72, fontFamily: 'inherit',
     }}>
       <div style={{
-        width: 64, height: 64, borderRadius: 20,
+        width: 64, height: 64, borderRadius: 21,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: bg,
-        transition: 'all 0.2s ease',
-        boxShadow: active
-          ? `0 0 0 3px ${PINK}, 0 6px 16px rgba(0,0,0,0.2)`
-          : '0 4px 12px rgba(0,0,0,0.14)',
-        transform: active ? 'scale(1.08)' : 'scale(1)',
+        background: active ? T.accentSoft : T.surface,
+        border: `1.5px solid ${active ? T.primary : T.line}`,
+        transition: `all 0.25s ${BK.SPRING}`,
+        boxShadow: active ? T.shadow : T.shadowSoft,
+        transform: active ? 'scale(1.07)' : 'scale(1)',
       }}>
-        {emoji ? (
-          <span style={{ fontSize: 32, lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}>
-            {emoji}
-          </span>
-        ) : Art ? <Art size={56}/> : <I size={28} color="#fff"/>}
+        {src
+          ? <img src={src} width="44" height="44" alt="" loading="lazy" draggable={false}/>
+          : emoji ? <span style={{ fontSize: 30, lineHeight: 1 }}>{emoji}</span>
+          : Art ? <Art size={56}/> : I ? <I size={28} color={T.primary}/> : null}
       </div>
       <span style={{
-        fontSize: 12, fontWeight: active ? 700 : 500,
-        color: active ? PINK : TEXT, whiteSpace: 'nowrap',
+        fontFamily: BK.TYPE.sans, fontSize: 12, fontWeight: active ? 700 : 600,
+        color: active ? T.primary : T.textDim, whiteSpace: 'nowrap',
       }}>{label}</span>
     </button>
   );
@@ -261,16 +271,18 @@ function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
 
 // ─── Quick filter chip ──────────────────────────────────────
 function FilterChip({ label, active, onClick, leading }) {
+  const [T] = BK.useByupTheme();
   return (
-    <button onClick={onClick} style={{
-      flex: '0 0 auto', height: 34, padding: '0 14px',
-      borderRadius: 999, border: `1.5px solid ${active ? PINK : '#e0e0e0'}`,
-      background: active ? '#FCE9EE' : '#fff',
-      color: active ? PINK : TEXT,
-      fontSize: 13.5, fontWeight: active ? 600 : 500,
-      fontFamily: 'inherit', cursor: 'pointer',
+    <button className="bk-press" onClick={() => { BK.haptic.selection(); onClick?.(); }} style={{
+      flex: '0 0 auto', height: 36, padding: '0 15px',
+      borderRadius: 999, border: `1.5px solid ${active ? T.primary : T.line}`,
+      background: active ? T.accentSoft : T.surface,
+      color: active ? T.primary : T.text,
+      fontSize: 13.5, fontWeight: active ? 700 : 600,
+      fontFamily: BK.TYPE.sans, cursor: 'pointer',
       display: 'flex', alignItems: 'center', gap: 6,
-      transition: 'all 0.15s',
+      transition: `all 0.2s ${BK.SPRING}`,
+      boxShadow: active ? T.shadowSoft : 'none',
     }}>
       {leading}
       {label}
@@ -284,39 +296,44 @@ function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, clos
   const [oh, ch] = (hours && hours.includes('–'))
     ? hours.split('–').map(s => s.trim())
     : [openHour || '–', closeHour || hours || '–'];
+  const [T] = BK.useByupTheme();
   return (
-    <button onClick={onClick} style={{
-      flex: '0 0 auto', width: 150, borderRadius: 16, overflow: 'hidden',
-      position: 'relative', border: 'none', padding: 0, cursor: 'pointer',
-      background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-      fontFamily: 'inherit', textAlign: 'left',
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      flex: '0 0 auto', width: 150, borderRadius: 20, overflow: 'hidden',
+      position: 'relative', border: `1px solid ${T.line}`, padding: 0, cursor: 'pointer',
+      background: T.surface, boxShadow: T.shadowSoft,
+      fontFamily: BK.TYPE.sans, textAlign: 'left',
     }}>
       <div style={{ height: 100, position: 'relative' }}>
         <Photo src={photo} label={name} tone={tone}/>
         <span role="button" tabIndex={0}
           onClick={(e) => { e.stopPropagation(); onUnfav?.(); }} style={{
           position: 'absolute', top: 8, right: 8, width: 28, height: 28,
-          borderRadius: 999, background: 'rgba(0,0,0,0.45)',
+          borderRadius: 999, background: 'rgba(227,36,89,0.78)',
+          border: '1px solid rgba(255,255,255,0.35)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', backdropFilter: 'blur(8px)',
+          cursor: 'pointer',
+          backdropFilter: 'blur(8px) saturate(160%)', WebkitBackdropFilter: 'blur(8px) saturate(160%)',
+          boxShadow: '0 4px 10px -2px rgba(227,36,89,.5)',
         }}>
-          <Icon.Heart size={15} fill="#fff" color="#fff"/>
+          <Icon.Heart size={15} fill="rgba(255,255,255,0.92)" color="rgba(255,255,255,0.92)"/>
         </span>
       </div>
       <div style={{ padding: '10px 12px 12px' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, lineHeight: 1.2,
+        <div style={{ fontFamily: BK.TYPE.display, fontSize: 14.5, fontWeight: 600, color: T.text, lineHeight: 1.2,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-        <div style={{ fontSize: 11.5, color: MUTED, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
           <span>{type}</span>
           <span>·</span>
           <Icon.Pin size={10}/>
           <span>{distance}</span>
         </div>
         <div style={{ fontSize: 11, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 6, height: 6, borderRadius: 999, background: open ? '#0a8a3a' : '#c44' }}/>
-          <span style={{ color: open ? '#0a8a3a' : '#c44', fontWeight: 700 }}>{open ? 'Aperto' : 'Chiuso'}</span>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: open ? '#0a8a3a' : T.primary,
+            boxShadow: open ? '0 0 6px rgba(10,138,58,.5)' : 'none' }}/>
+          <span style={{ color: open ? '#0a8a3a' : T.primary, fontWeight: 700 }}>{open ? 'Aperto' : 'Chiuso'}</span>
         </div>
-        <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>
+        <div style={{ fontSize: 11, color: T.textDim, marginTop: 4 }}>
           <span>{oh} – {ch}</span>
         </div>
       </div>
@@ -327,22 +344,22 @@ function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, clos
 // ─── Event card (large with date badge) ─────────────────────
 function EventCard({ title, place, tone, photo, date, time, onClick }) {
   return (
-    <button onClick={onClick} style={{
-      flex: '0 0 auto', width: 210, height: 175, borderRadius: 14, overflow: 'hidden',
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      flex: '0 0 auto', width: 210, height: 175, borderRadius: 22, overflow: 'hidden',
       position: 'relative', border: 'none', padding: 0, cursor: 'pointer',
-      boxShadow: '0 6px 18px rgba(0,0,0,0.14)',
-      fontFamily: 'inherit', textAlign: 'left',
+      boxShadow: '0 14px 32px -18px rgba(227,36,89,.38)',
+      fontFamily: BK.TYPE.sans, textAlign: 'left',
     }}>
       <Photo src={photo} label={title} tone={tone}/>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.72) 100%)',
+        background: 'linear-gradient(180deg, rgba(28,6,16,0.08) 0%, rgba(28,6,16,0.78) 100%)',
       }}/>
       {/* EVENTO label top-right */}
       <div style={{
         position: 'absolute', top: 11, right: 11,
-        background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.3)',
+        background: 'rgba(250,227,222,0.2)', backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(250,227,222,0.35)',
         color: '#fff', fontSize: 9.5, fontWeight: 800, letterSpacing: 1,
         padding: '3px 8px', borderRadius: 999, textTransform: 'uppercase',
       }}>Evento</div>
@@ -350,15 +367,15 @@ function EventCard({ title, place, tone, photo, date, time, onClick }) {
       {date && (
         <div style={{
           position: 'absolute', top: 11, left: 11,
-          background: '#fff', borderRadius: 10,
+          background: '#fff', borderRadius: 12,
           padding: '4px 9px', textAlign: 'center', minWidth: 38,
         }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: PINK, letterSpacing: 0.6, lineHeight: 1.1 }}>{date.month}</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, lineHeight: 1, marginTop: 1 }}>{date.day}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, color: '#1c0f15', lineHeight: 1, marginTop: 1 }}>{date.day}</div>
         </div>
       )}
       <div style={{ position: 'absolute', left: 13, right: 13, bottom: 12, color: '#fff' }}>
-        <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.2, letterSpacing: -0.2 }}>{title}</div>
+        <div style={{ fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, lineHeight: 1.2 }}>{title}</div>
         <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 2 }}>{place}</div>
         {time && <div style={{ fontSize: 11.5, fontWeight: 500, opacity: 0.85, marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
           <Icon.Clock size={11} color="#fff"/> {time}
@@ -371,29 +388,30 @@ function EventCard({ title, place, tone, photo, date, time, onClick }) {
 // ─── Promo card ──────────────────────────────────────────────
 function PromoCard({ title, place, tone, photo, discount, hours, onClick }) {
   return (
-    <button onClick={onClick} style={{
-      flex: '0 0 auto', width: 175, height: 210, borderRadius: 20, overflow: 'hidden',
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      flex: '0 0 auto', width: 175, height: 210, borderRadius: 22, overflow: 'hidden',
       position: 'relative', border: 'none', padding: 0, cursor: 'pointer',
-      boxShadow: '0 6px 18px rgba(0,0,0,0.14)',
-      fontFamily: 'inherit', textAlign: 'left',
+      boxShadow: '0 14px 32px -18px rgba(227,36,89,.38)',
+      fontFamily: BK.TYPE.sans, textAlign: 'left',
     }}>
       <Photo src={photo} label={place} tone={tone}/>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.75) 100%)',
+        background: 'linear-gradient(180deg, rgba(28,6,16,0) 30%, rgba(28,6,16,0.8) 100%)',
       }}/>
       {discount && (
         <div style={{
           position: 'absolute', top: 12, left: 12,
           background: PINK, color: '#fff',
-          padding: '7px 12px', borderRadius: 12,
-          boxShadow: '0 4px 12px rgba(227,36,89,0.45)',
+          padding: '7px 12px', borderRadius: 14,
+          boxShadow: '0 8px 20px -6px rgba(227,36,89,0.6)',
+          transform: 'rotate(-3deg)',
         }}>
-          <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, letterSpacing: -0.5 }}>{discount}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 22, fontWeight: 600, lineHeight: 1 }}>{discount}</div>
         </div>
       )}
       <div style={{ position: 'absolute', left: 13, right: 13, bottom: 13, color: '#fff' }}>
-        <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.2, letterSpacing: -0.2 }}>{title}</div>
+        <div style={{ fontFamily: BK.TYPE.display, fontSize: 16, fontWeight: 600, lineHeight: 1.2 }}>{title}</div>
         <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>{place}</div>
         {hours && <div style={{ fontSize: 11, fontWeight: 500, opacity: 0.85, marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
           <Icon.Clock size={10} color="#fff"/> {hours}
@@ -426,7 +444,7 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 51,
-        background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        background: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
         padding: '12px 20px 24px', animation: 'slideUp 0.3s cubic-bezier(.2,.8,.2,1)',
         maxHeight: '82%', overflow: 'hidden',
       }}>
@@ -453,7 +471,7 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: TEXT }}>{item.title || item.name}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 22, fontWeight: 600, color: TEXT }}>{item.title || item.name}</div>
           <button onClick={(e) => e.stopPropagation()} style={{
             width: 40, height: 40, borderRadius: 999, border: `1.5px solid ${BORDER}`,
             background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -477,15 +495,16 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
             : 'Tap sulla foto o sul pulsante per aprire la vetrina del locale.'}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onBook} style={{
-            flex: 1, height: 50, borderRadius: 14, border: `1.5px solid ${BORDER}`,
-            background: '#fff', color: TEXT, fontSize: 15, fontWeight: 600,
+          <button onClick={onBook} className="bk-press" style={{
+            flex: 1, height: 50, borderRadius: 999, border: '1.5px solid rgba(227,36,89,.25)',
+            background: 'rgba(227,36,89,.08)', color: PINK, fontSize: 15, fontWeight: 700,
             fontFamily: 'inherit', cursor: 'pointer',
           }}>Prenota</button>
-          <button onClick={onMenu} style={{
-            flex: 1.2, height: 50, borderRadius: 14, border: 'none',
-            background: PINK, color: '#fff', fontSize: 15, fontWeight: 600,
+          <button onClick={onMenu} className="bk-press" style={{
+            flex: 1.2, height: 50, borderRadius: 999, border: 'none',
+            background: PINK, color: '#fff', fontSize: 15, fontWeight: 700,
             fontFamily: 'inherit', cursor: 'pointer',
+            boxShadow: '0 12px 26px -10px rgba(227,36,89,.55)',
           }}>Menù</button>
         </div>
       </div>
@@ -520,7 +539,7 @@ function FilterSheet({ open, onClose, filters, setFilters }) {
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 71,
-        background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        background: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
         padding: '12px 22px 24px', animation: 'slideUp 0.3s cubic-bezier(.2,.8,.2,1)',
         maxHeight: '88%', overflowY: 'auto',
       }}>
@@ -530,7 +549,7 @@ function FilterSheet({ open, onClose, filters, setFilters }) {
             background: 'none', border: 'none', color: MUTED,
             fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
           }}>Reset</button>
-          <div style={{ fontSize: 15, fontWeight: 600, color: TEXT }}>Filtra per tipologia</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT }}>Filtra per tipologia</div>
           <button onClick={onClose} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontFamily: 'inherit',
             fontSize: 18, fontWeight: 700, color: TEXT,
@@ -619,10 +638,10 @@ function SelectChip({ label, active, onClick }) {
 function NotifSheet({ open, onClose }) {
   if (!open) return null;
   const items = [
-    { icon: '🎉', title: 'Al Settembrini', text: 'Ha pubblicato un nuovo menu di stagione', time: '2h' },
-    { icon: '🔥', title: 'Promo lampo', text: '-30% da Mario fino alle 22', time: '5h' },
-    { icon: '⭐', title: 'Nuova recensione', text: 'Hai ricevuto una risposta', time: '1g' },
-    { icon: '📅', title: 'Promemoria', text: 'Cena prenotata domani alle 20:30', time: '1g' },
+    { icon: BK.ASSETS.cat.pizza,    title: 'Al Settembrini', text: 'Ha pubblicato un nuovo menu di stagione', time: '2h' },
+    { icon: BK.ASSETS.hero.spritz,  title: 'Promo lampo', text: '-30% da Mario fino alle 22', time: '5h' },
+    { icon: BK.ASSETS.hero.froyo,   title: 'Nuova recensione', text: 'Hai ricevuto una risposta', time: '1g' },
+    { icon: BK.ASSETS.cat.brunch,   title: 'Promemoria', text: 'Cena prenotata domani alle 20:30', time: '1g' },
   ];
   return (
     <>
@@ -637,17 +656,17 @@ function NotifSheet({ open, onClose }) {
         maxHeight: '70%', overflowY: 'auto',
       }}>
         <div style={{ width: 40, height: 4, background: '#d0d0d0', borderRadius: 2, margin: '4px auto 14px' }}/>
-        <div style={{ padding: '0 20px 12px', fontSize: 20, fontWeight: 700, color: TEXT }}>Notifiche</div>
+        <div style={{ padding: '0 20px 12px', fontFamily: BK.TYPE.display, fontSize: 20, fontWeight: 600, color: TEXT }}>Notifiche</div>
         {items.map((n, i) => (
           <div key={i} style={{
             display: 'flex', gap: 12, alignItems: 'flex-start',
             padding: '12px 20px', borderTop: `1px solid ${BORDER}`,
           }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 999, background: BG_GRAY,
+              width: 40, height: 40, borderRadius: 14, background: BG_GRAY,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, flexShrink: 0,
-            }}>{n.icon}</div>
+              flexShrink: 0,
+            }}><img src={n.icon} width="26" height="26" alt=""/></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 600, color: TEXT }}>{n.title}</div>
@@ -692,7 +711,7 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
   const submit = (term) => onSubmit(term);
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#fff', position: 'relative',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       color: TEXT,
@@ -743,7 +762,7 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
 
         {q.trim().length === 0 && (
           <>
-            <div style={{ padding: '24px 22px 6px', fontSize: 15, fontWeight: 700, color: TEXT }}>
+            <div style={{ padding: '24px 22px 6px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT }}>
               Ricerche recenti
             </div>
             {SEARCH_RECENTS.map((r, i) => (
@@ -758,7 +777,7 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
               </button>
             ))}
 
-            <div style={{ padding: '24px 22px 6px', fontSize: 15, fontWeight: 700, color: TEXT }}>
+            <div style={{ padding: '24px 22px 6px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT }}>
               Più cercati questa settimana
             </div>
             {SEARCH_POPULAR.map((r, i) => (
@@ -838,7 +857,7 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
   const [sortOpen, setSortOpen] = useState(false);
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#fff', position: 'relative',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       color: TEXT,
@@ -857,7 +876,7 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
         </div>
 
         <div style={{ padding: '14px 22px 0' }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: PINK, letterSpacing: -0.4 }}>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 26, fontWeight: 600, color: PINK, letterSpacing: '-0.015em' }}>
             Cosa fare oggi?
           </div>
           <div style={{ fontSize: 14, color: MUTED, marginTop: 2 }}>
@@ -934,9 +953,10 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
 
 function ResultCard({ name, cuisine, city, distance, rating, open, hours, topOffer, photo, onClick, onMenu }) {
   return (
-    <div onClick={onClick} style={{
-      background: '#fff', borderRadius: 18, overflow: 'hidden',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.08)', cursor: 'pointer',
+    <div onClick={onClick} className="bk-press" style={{
+      background: '#fff', borderRadius: 22, overflow: 'hidden',
+      boxShadow: '0 10px 28px -18px rgba(227,36,89,.25)', cursor: 'pointer',
+      border: '1px solid rgba(77,18,46,.08)',
     }}>
       <div style={{ height: 150, position: 'relative' }}>
         <Photo src={photo} label={name}/>
@@ -951,7 +971,7 @@ function ResultCard({ name, cuisine, city, distance, rating, open, hours, topOff
       </div>
       <div style={{ padding: '12px 16px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: TEXT, flex: 1, lineHeight: 1.2 }}>{name}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT, flex: 1, lineHeight: 1.2 }}>{name}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
             <Icon.Star size={14}/>
             <span style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>{rating.toFixed(1)}</span>
@@ -973,7 +993,7 @@ function ResultCard({ name, cuisine, city, distance, rating, open, hours, topOff
         </div>
         <button onClick={(e) => { e.stopPropagation(); onMenu?.(); }} style={{
           marginTop: 12, width: '100%', height: 42, borderRadius: 999, border: 'none',
-          background: '#3a0d1a', color: '#fff', fontSize: 14, fontWeight: 700,
+          background: '#4d122e', color: '#fff', fontSize: 14, fontWeight: 700,
           fontFamily: 'inherit', cursor: 'pointer',
         }}>Visualizza menù</button>
       </div>
@@ -995,10 +1015,10 @@ function BookingHomeCard({ booking, onModify, onScanQr }) {
   const [expanded, setExpanded] = React.useState(true);
 
   // Tone palette — warm sand / clay, pleasant on a busy home
-  const SAND_BG = '#f6efe5';      // card bg
-  const SAND_ACCENT = '#7a4a2a';  // dark warm for eyebrow / icon
-  const SAND_PILL_BG = '#ecdfca';
-  const SAND_BORDER = '#e8dac1';
+  const SAND_BG = '#fae3de';      // cream brand
+  const SAND_ACCENT = '#4d122e';  // wine brand
+  const SAND_PILL_BG = '#f3cdc4';
+  const SAND_BORDER = '#eebfb4';
 
   return (
     <div style={{
@@ -1059,7 +1079,7 @@ function BookingHomeCard({ booking, onModify, onScanQr }) {
             </svg>
             {booking.time}{booking.note ? ` · "${booking.note}"` : ''}
           </div>
-          <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2, letterSpacing: -0.3, color: '#3a2410' }}>{booking.venue}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 19, fontWeight: 600, marginTop: 2, color: '#4d122e' }}>{booking.venue}</div>
         </div>
 
         {expanded && (
@@ -1067,7 +1087,7 @@ function BookingHomeCard({ booking, onModify, onScanQr }) {
             <div style={{
               marginTop: 12, padding: '10px 12px', borderRadius: 14,
               background: 'rgba(255,255,255,0.55)',
-              fontSize: 12.5, color: '#3a2410', lineHeight: 1.45,
+              fontSize: 12.5, color: '#4d122e', lineHeight: 1.45,
             }}>
               <span style={{ fontWeight: 700 }}>Quando arrivi al locale</span>, scansiona il QR sul tavolo per associarti e ordinare dall'app insieme ai tuoi coperti.
             </div>
@@ -1211,116 +1231,162 @@ const MOMENT_DATA = {
 };
 
 // Segmented control that drives the entire home — the "spine".
+// Icone byup (mai emoji) accanto alla label attiva.
+const MOMENT_ICON = {
+  ora:    () => BK.ASSETS.hero.coffee,
+  pranzo: () => BK.ASSETS.cat.panini,
+  cena:   () => BK.ASSETS.cat.pizza,
+  notte:  () => BK.ASSETS.cat.cocktail,
+};
 function MomentBar({ moment, setMoment }) {
+  const [T] = BK.useByupTheme();
   const items = [
     { id: 'ora',    label: 'Ora' },
     { id: 'pranzo', label: 'Pranzo' },
     { id: 'cena',   label: 'Cena' },
     { id: 'notte',  label: 'Notte' },
   ];
+  const idx = Math.max(0, items.findIndex(it => it.id === (moment || 'ora')));
   return (
-    <div style={{
-      display: 'flex', gap: 6, padding: '0 22px 14px',
-      background: '#fff',
-    }}>
-      {items.map(it => {
-        const active = (moment || 'ora') === it.id;
-        return (
-          <button key={it.id} onClick={() => setMoment(it.id)} style={{
-            flex: 1, height: 36, borderRadius: 999,
-            border: 'none',
-            background: active ? PINK : '#f3f3f3',
-            color: active ? '#fff' : TEXT,
-            fontSize: 13, fontWeight: active ? 700 : 600,
-            fontFamily: 'inherit', cursor: 'pointer',
-            transition: 'background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease',
-            boxShadow: active ? '0 4px 12px rgba(227,36,89,0.28)' : 'none',
-          }}>{it.label}</button>
-        );
-      })}
+    <div style={{ padding: '0 22px 14px' }}>
+      <div style={{
+        position: 'relative', display: 'flex',
+        background: T.surface, border: `1px solid ${T.line}`,
+        borderRadius: 999, padding: 4, boxShadow: T.shadowSoft,
+      }}>
+        {/* bolla che scivola — smooth & spring */}
+        <div aria-hidden style={{
+          position: 'absolute', top: 4, bottom: 4, left: 4,
+          width: 'calc((100% - 8px) / 4)',
+          transform: `translateX(${idx * 100}%)`,
+          background: T.primary, borderRadius: 999,
+          transition: `transform 460ms ${BK.SPRING}`,
+          boxShadow: '0 8px 18px -6px rgba(227,36,89,.5)',
+        }}/>
+        {items.map(it => {
+          const active = (moment || 'ora') === it.id;
+          return (
+            <button key={it.id}
+              onClick={() => { BK.haptic.selection(); setMoment(it.id); }} style={{
+              flex: 1, height: 36, borderRadius: 999, border: 'none',
+              background: 'transparent', position: 'relative', zIndex: 1,
+              color: active ? T.onPrimary : T.textDim,
+              fontSize: 13, fontWeight: 700, fontFamily: BK.TYPE.sans, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              transition: 'color 260ms ease', whiteSpace: 'nowrap',
+            }}>
+              {active && <img src={MOMENT_ICON[it.id]?.()} width="18" height="18" alt="" draggable={false}
+                style={{ animation: `bkPopIn 380ms ${BK.SPRING} backwards` }}/>}
+              {it.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// Contextual hero card — answers "what should I do right now?"
-function HeroIntentCard({ data, photo, onCta }) {
+// Mini banner momento — icona · targhetta · copy · countdown · CTA "Scopri".
+const HERO_COPY = { ora: 'Tavolo subito', pranzo: 'Pausa pranzo', cena: 'Stasera fuori?', notte: 'Dopo cena' };
+const HERO_SUB = { ora: '8 locali liberi vicino a te', pranzo: 'Menu del giorno attivi', cena: 'I tavoli migliori volano', notte: 'Cocktail e live in corso' };
+const HERO_END_HOUR = { ora: null, pranzo: 15, cena: 23, notte: 5 };
+function useMomentCountdown(moment) {
+  const target = useMemo(() => {
+    const now = new Date();
+    const endH = HERO_END_HOUR[moment];
+    const t = new Date(now);
+    if (endH == null) { t.setMinutes(now.getMinutes() + 45); }
+    else { t.setHours(endH, 0, 0, 0); if (t <= now) t.setDate(t.getDate() + 1); }
+    return t.getTime();
+  }, [moment]);
+  const [left, setLeft] = useState(target - Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setLeft(target - Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  const tot = Math.max(0, Math.floor(left / 1000));
+  const h = Math.floor(tot / 3600), m = Math.floor((tot % 3600) / 60), sec = tot % 60;
+  const pad = (x) => String(x).padStart(2, '0');
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+}
+function HeroIntentCard({ data, photo, moment, onCta }) {
+  const [T] = BK.useByupTheme();
+  const countdown = useMomentCountdown(moment);
+  const icon = MOMENT_ICON[moment] ? MOMENT_ICON[moment]() : BK.ASSETS.hero.coffee;
   return (
-    <div onClick={onCta} style={{
-      margin: '4px 18px 0', borderRadius: 22, overflow: 'hidden',
-      height: 188, position: 'relative', cursor: 'pointer',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
-      animation: 'fade 0.28s ease',
+    <div className="bk-press" onClick={() => { BK.haptic.light(); onCta?.(); }} style={{
+      margin: '4px 18px 0', borderRadius: 20, cursor: 'pointer',
+      background: T.surface, border: `1px solid ${T.line}`, boxShadow: T.shadowSoft,
+      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+      animation: `bkFadeUp 420ms ${BK.EASE_OUT}`,
     }}>
       <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `url("${photo}")`,
-        backgroundSize: 'cover', backgroundPosition: 'center',
-        backgroundColor: '#2a2622',
-      }}/>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.78) 100%)',
-      }}/>
-      <div style={{
-        position: 'absolute', top: 14, left: 14,
-        background: 'rgba(255,255,255,0.18)',
-        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-        color: '#fff', fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8,
-        padding: '5px 10px', borderRadius: 999, textTransform: 'uppercase',
-        border: '1px solid rgba(255,255,255,0.25)',
-      }}>{data.eyebrow}</div>
-      <div style={{
-        position: 'absolute', left: 18, right: 18, bottom: 16, color: '#fff',
+        width: 46, height: 46, borderRadius: 15, background: T.accentSoft,
+        display: 'grid', placeItems: 'center', flexShrink: 0,
       }}>
-        <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15, letterSpacing: -0.4 }}>
-          {data.heroTitle}
-        </div>
-        <div style={{ fontSize: 13.5, opacity: 0.94, marginTop: 4, lineHeight: 1.35 }}>
-          {data.heroSubtitle}
-        </div>
+        <img src={icon} width="32" height="32" alt="" draggable={false}/>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          display: 'inline-block', fontSize: 10, fontWeight: 800, letterSpacing: .8,
+          textTransform: 'uppercase', color: T.primary, background: T.accentSoft,
+          border: `1px solid ${T.accentBorder}`, padding: '3px 8px', borderRadius: 999,
+          fontFamily: BK.TYPE.sans,
+        }}>{data.eyebrow}</span>
         <div style={{
-          marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: '#fff', color: TEXT, fontSize: 12.5, fontWeight: 700,
-          padding: '8px 14px', borderRadius: 999,
-        }}>
-          {data.heroCta}
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke={TEXT} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: T.text,
+          marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{HERO_COPY[moment] || data.heroTitle}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3, minWidth: 0 }}>
+          <span style={{ fontSize: 11.5, color: T.textDim, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{HERO_SUB[moment]}</span>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
+            background: '#ceff00', color: '#141414', fontSize: 10.5, fontWeight: 800,
+            padding: '2px 8px', borderRadius: 999, fontVariantNumeric: 'tabular-nums',
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l2.8 1.8"/></svg>
+            {countdown}
+          </span>
         </div>
       </div>
+      <div style={{
+        background: T.primary, color: '#fff', fontFamily: BK.TYPE.sans,
+        fontSize: 13, fontWeight: 700, padding: '9px 16px', borderRadius: 999,
+        boxShadow: T.shadow, flexShrink: 0,
+      }}>Scopri</div>
     </div>
   );
 }
 
 // Dominant venue card — big photo, name, price, cuisine, inline bookable slots.
 function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slots, badge, onClick, onSlotClick }) {
+  const [T] = BK.useByupTheme();
   return (
-    <button onClick={onClick} style={{
-      display: 'block', width: '100%', borderRadius: 20, overflow: 'hidden',
-      border: 'none', padding: 0, background: '#fff',
-      boxShadow: '0 4px 14px rgba(0,0,0,0.07)',
-      fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      display: 'block', width: '100%', borderRadius: BK.RADII.card, overflow: 'hidden',
+      border: `1px solid ${T.line}`, padding: 0, background: T.surface,
+      boxShadow: T.shadowSoft,
+      fontFamily: BK.TYPE.sans, textAlign: 'left', cursor: 'pointer',
     }}>
       <div style={{ height: 178, position: 'relative' }}>
         <Photo src={photo} label={name}/>
         {badge && (
           <div style={{
             position: 'absolute', top: 12, left: 12,
-            background: 'rgba(255,255,255,0.95)', color: TEXT,
+            background: 'rgba(250,227,222,0.92)', color: '#4d122e',
             fontSize: 11, fontWeight: 700, padding: '5px 10px', borderRadius: 999,
             backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
           }}>{badge}</div>
         )}
         <div style={{
           position: 'absolute', top: 12, right: 12,
-          background: 'rgba(0,0,0,0.55)',
+          background: 'rgba(28,6,16,0.55)',
           backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
           color: '#fff', fontSize: 12, fontWeight: 700,
           padding: '5px 9px', borderRadius: 999,
           display: 'flex', alignItems: 'center', gap: 4,
         }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill={PINK}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffb3c4">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
           </svg>
           {rating.toFixed(1)}
@@ -1328,34 +1394,35 @@ function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slot
       </div>
       <div style={{ padding: '14px 16px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.3, lineHeight: 1.15 }}>{name}</div>
-          <div style={{ fontSize: 12.5, color: MUTED, fontWeight: 700, flexShrink: 0 }}>{price}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 19, fontWeight: 600, color: T.text, letterSpacing: '-0.01em', lineHeight: 1.15 }}>{name}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 13.5, color: T.primary, fontWeight: 600, flexShrink: 0 }}>{price}</div>
         </div>
-        <div style={{ fontSize: 13, color: MUTED, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ fontSize: 13, color: T.textDim, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>{cuisine}</span>
-          <span style={{ width: 3, height: 3, borderRadius: 999, background: '#cfcfcf' }}/>
+          <span style={{ width: 3, height: 3, borderRadius: 999, background: T.textFaint }}/>
           <Icon.Pin size={11}/>
           <span>{distance}</span>
         </div>
         {slots === false || slots?.length === 0 ? (
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <span style={{ fontSize: 12.5, color: MUTED, fontStyle: 'italic' }}>Solo walk-in, prenotazione non disponibile</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textFaint} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            <span style={{ fontSize: 12.5, color: T.textDim, fontStyle: 'italic' }}>Solo walk-in, prenotazione non disponibile</span>
           </div>
         ) : slots && slots.length > 0 ? (
           <>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: MUTED, letterSpacing: 0.5, textTransform: 'uppercase', margin: '12px 0 8px' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: T.textFaint, letterSpacing: 0.5, textTransform: 'uppercase', margin: '12px 0 8px' }}>
               Prenotabile
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {slots.map((s, i) => (
-                <span key={i} onClick={(e) => { e.stopPropagation(); onSlotClick?.(s); }} style={{
-                  height: 32, padding: '0 12px', borderRadius: 999,
-                  border: '1.5px solid #ececec',
-                  background: '#fff', color: TEXT,
+                <span key={i} className="bk-press"
+                  onClick={(e) => { e.stopPropagation(); BK.haptic.selection(); onSlotClick?.(s); }} style={{
+                  height: 34, padding: '0 13px', borderRadius: 999,
+                  border: `1.5px solid ${T.accentBorder}`,
+                  background: T.accentSoft, color: T.primary,
                   fontSize: 13, fontWeight: 700,
                   display: 'inline-flex', alignItems: 'center', cursor: 'pointer',
-                }}>{s.time}</span>
+                }}>{s.time}{s.last && <span style={{ marginLeft: 5, fontSize: 10, opacity: .75 }}>ultimo</span>}</span>
               ))}
             </div>
           </>
@@ -1373,7 +1440,7 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
   const venues = md.venues;
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#fff',
+      width: '100%', height: '100%', background: '#FBF4F1',
       position: 'relative', display: 'flex', flexDirection: 'column',
       fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       color: TEXT, overflow: 'hidden',
@@ -1435,7 +1502,7 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
               padding: '5px 10px', borderRadius: 999, textTransform: 'uppercase',
               border: '1px solid rgba(255,255,255,0.25)', marginBottom: 10,
             }}>{md.eyebrow}</div>
-            <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.1, letterSpacing: -0.5 }}>
+            <div style={{ fontFamily: BK.TYPE.display, fontSize: 28, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.015em' }}>
               {md.sectionTitle}
             </div>
             <div style={{ fontSize: 13.5, opacity: 0.94, marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1452,8 +1519,9 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
         {/* Sticky chips bar */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 5,
-          background: '#fff', padding: '14px 0 12px',
-          boxShadow: '0 1px 0 #f0f0f0',
+          background: 'rgba(251,244,241,.88)', padding: '14px 0 12px',
+          backdropFilter: 'blur(18px) saturate(160%)', WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+          boxShadow: '0 1px 0 rgba(77,18,46,.08)',
         }}>
           <div className="hscroll" style={{
             display: 'flex', gap: 8, padding: '0 22px',
@@ -1491,6 +1559,416 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
   );
 }
 
+// ─── Offerte in evidenza — slideshow auto + swipe manuale ───
+const OFFER_SLIDES = [5, 1, 2, 4, 6].map(n => `assets/offerte/offer-${n}.webp`);
+function OfferCarousel({ onTap }) {
+  const [T] = BK.useByupTheme();
+  const ref = useRef(null);
+  const [idx, setIdx] = useState(0);
+  const pauseRef = useRef(0);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const t = setInterval(() => {
+      if (Date.now() < pauseRef.current) return;
+      const slides = Array.from(el.children);
+      if (!slides.length) return;
+      const w = el.scrollWidth / slides.length;
+      const cur = Math.round(el.scrollLeft / w);
+      const next = slides[(cur + 1) % slides.length];
+      // offset reale della slide: immune da arrotondamenti con zoom/DPR
+      el.scrollTo({ left: next.offsetLeft - slides[0].offsetLeft, behavior: 'smooth' });
+    }, 3800);
+    return () => clearInterval(t);
+  }, []);
+  const onScroll = () => {
+    const el = ref.current; if (!el) return;
+    const w = el.scrollWidth / Math.max(1, el.children.length);
+    setIdx(Math.max(0, Math.min(OFFER_SLIDES.length - 1, Math.round(el.scrollLeft / w))));
+  };
+  const pause = () => { pauseRef.current = Date.now() + 5000; };
+  return (
+    <div style={{ padding: '14px 18px 0', animation: `bkFadeUp 420ms ${BK.EASE_OUT} backwards` }}>
+      {/* box a proporzione fissa: niente tagli qualunque sia zoom/scaling */}
+      <div ref={ref} className="hscroll" onScroll={onScroll}
+        onPointerDown={pause} onTouchStart={pause} onWheel={pause}
+        style={{
+          display: 'flex', width: '100%', aspectRatio: '16 / 9',
+          overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory',
+          borderRadius: 14, boxShadow: T.shadowSoft, background: T.surfaceAlt,
+          WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
+        }}>
+        {OFFER_SLIDES.map((src, i) => (
+          <div key={i} onClick={() => onTap?.()} style={{
+            flex: '0 0 100%', width: '100%', minWidth: '100%', height: '100%',
+            scrollSnapAlign: 'start', scrollSnapStop: 'always', position: 'relative', cursor: 'pointer',
+          }}>
+            <img src={src} alt={`Offerta ${i + 1}`} loading="eager" draggable={false}
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: 'cover', display: 'block',
+              }}/>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 8 }}>
+        {OFFER_SLIDES.map((_, i) => (
+          <span key={i} style={{
+            width: i === idx ? 16 : 6, height: 6, borderRadius: 999,
+            background: i === idx ? T.primary : T.textFaint,
+            transition: `all .3s ${BK.SPRING}`,
+          }}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Rail in loop automatico lento — si ferma al tocco, scorrimento manuale ───
+function AutoLoopScroll({ children, speed = 26, gap = 12 }) {
+  // speed in px/secondo. Accumulatore float: scrollLeft arrotonda, pos no.
+  const ref = useRef(null);
+  const pausedUntil = useRef(0);
+  const pos = useRef(0);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    let raf; let last = performance.now();
+    const step = (now) => {
+      const dt = Math.min(64, now - last); last = now;
+      const paused = Date.now() < pausedUntil.current;
+      if (!paused && el.scrollWidth > el.clientWidth + 40) {
+        pos.current += speed * dt / 1000;
+        const half = el.scrollWidth / 2;
+        if (pos.current >= half) pos.current -= half;
+        el.scrollLeft = pos.current;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    const pause = () => { pausedUntil.current = Date.now() + 3500; };
+    // durante la pausa l'utente scorre: risincronizza l'accumulatore
+    const onScroll = () => { if (Date.now() < pausedUntil.current) pos.current = el.scrollLeft; };
+    el.addEventListener('pointerdown', pause);
+    el.addEventListener('wheel', pause, { passive: true });
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener('pointerdown', pause);
+      el.removeEventListener('wheel', pause);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('scroll', onScroll);
+    };
+  }, [speed]);
+  const kids = React.Children.toArray(children);
+  return (
+    <div ref={ref} className="hscroll" style={{
+      display: 'flex', gap, padding: '8px 22px 14px', overflowX: 'auto',
+      scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+    }}>
+      {kids}
+      {kids.map((k, i) => React.cloneElement(k, { key: 'dup-' + i }))}
+    </div>
+  );
+}
+
+// ─── In evidenza — card promo con reveal allo scroll ───
+function FeaturedCard({ onClick }) {
+  const [T] = BK.useByupTheme();
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return; }
+    const io = new IntersectionObserver((es) => {
+      if (es[0].isIntersecting) { setInView(true); io.disconnect(); }
+    }, { threshold: 0.35 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      margin: '0 18px', height: 190, borderRadius: BK.RADII.card, overflow: 'hidden',
+      position: 'relative', cursor: 'pointer', boxShadow: T.shadow,
+    }}>
+      {/* foto ristorante di sfondo */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: 'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=900&q=75&auto=format&fit=crop")',
+        backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#2a1520',
+      }}/>
+      {/* mini overlay brand: pieno a sinistra, si dissolve per far vedere la foto */}
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(95deg, rgba(227,36,89,.82) 0%, rgba(227,36,89,.42) 42%, rgba(227,36,89,0) 72%)',
+      }}/>
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(28,6,16,0) 60%, rgba(28,6,16,.35) 100%)',
+      }}/>
+      {/* targhetta */}
+      <div style={{
+        position: 'absolute', top: 14, left: 14,
+        background: '#ceff00', color: '#141414',
+        fontFamily: BK.TYPE.sans, fontSize: 10.5, fontWeight: 800, letterSpacing: 1,
+        padding: '5px 11px', borderRadius: 999, textTransform: 'uppercase',
+        boxShadow: '0 6px 14px -4px rgba(20,20,20,.4)', transform: 'rotate(-2deg)',
+      }}>Promo</div>
+      <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14, color: '#fff' }}>
+        {/* titolo: entra quando la card arriva in viewport */}
+        <div style={{
+          fontFamily: BK.TYPE.display, fontSize: 22, fontWeight: 600, lineHeight: 1.12,
+          maxWidth: '72%', textShadow: '0 2px 12px rgba(28,6,16,.35)',
+          animation: inView ? `bkTitleIn 650ms ${BK.SPRING} both` : 'none',
+          opacity: inView ? undefined : 0,
+        }}>
+          Giovedì −30% sul menù
+        </div>
+        {/* body: semplice fade-in */}
+        <div style={{
+          fontFamily: BK.TYPE.sans, fontSize: 12.5, marginTop: 4, maxWidth: '60%', lineHeight: 1.35,
+          opacity: inView ? .94 : 0, transition: 'opacity 700ms ease 320ms',
+        }}>
+          Da Trattoria Lucia, solo questa settimana.
+        </div>
+      </div>
+      {/* CTA con animazione continua: pulse + shine */}
+      <div style={{
+        position: 'absolute', right: 14, bottom: 14,
+        background: T.primary, color: '#fff',
+        fontFamily: BK.TYPE.sans, fontSize: 13, fontWeight: 700,
+        padding: '10px 18px', borderRadius: 999, overflow: 'hidden',
+        animation: 'bkCtaPulse 2.2s ease-in-out infinite',
+      }}>
+        <span aria-hidden style={{
+          position: 'absolute', top: 0, bottom: 0, left: 0, width: '45%',
+          background: 'linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.5) 50%, rgba(255,255,255,0) 100%)',
+          animation: 'bkShine 2.8s ease-in-out infinite',
+        }}/>
+        Approfittane
+      </div>
+    </div>
+  );
+}
+
+// ─── Da scoprire — stack orizzontale stile Twitch ───
+// Card centrale in primo piano, laterali dietro; auto-advance + drag manuale.
+function StackCard({ item, dim }) {
+  const [T] = BK.useByupTheme();
+  return (
+    <div style={{
+      position: 'relative', width: '100%', height: '100%', borderRadius: 22, overflow: 'hidden',
+      boxShadow: dim ? '0 10px 24px -16px rgba(77,18,46,.4)' : '0 18px 40px -16px rgba(227,36,89,.42)',
+      transition: 'box-shadow 400ms ease',
+    }}>
+      <Photo src={item.photo} label={item.title}/>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(28,6,16,.05) 0%, rgba(28,6,16,.8) 100%)' }}/>
+      {item.kind === 'event' ? (
+        <>
+          {item.date && (
+            <div style={{ position: 'absolute', top: 11, left: 11, background: '#fff', borderRadius: 12, padding: '4px 9px', textAlign: 'center', minWidth: 38 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: PINK, letterSpacing: .6, lineHeight: 1.1 }}>{item.date.month}</div>
+              <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, color: '#1c0f15', lineHeight: 1, marginTop: 1 }}>{item.date.day}</div>
+            </div>
+          )}
+          <div style={{ position: 'absolute', top: 11, right: 11, background: 'rgba(250,227,222,.22)', backdropFilter: 'blur(8px)', border: '1px solid rgba(250,227,222,.35)', color: '#fff', fontSize: 9.5, fontWeight: 800, letterSpacing: 1, padding: '3px 9px', borderRadius: 999, textTransform: 'uppercase' }}>Evento</div>
+        </>
+      ) : (
+        <div style={{ position: 'absolute', top: 11, left: 11, background: PINK, color: '#fff', padding: '6px 11px', borderRadius: 13, transform: 'rotate(-3deg)', boxShadow: '0 8px 18px -6px rgba(227,36,89,.6)' }}>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 19, fontWeight: 600, lineHeight: 1 }}>{item.discount}</div>
+        </div>
+      )}
+      <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, color: '#fff' }}>
+        <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, lineHeight: 1.15 }}>{item.title}</div>
+        <div style={{ fontFamily: BK.TYPE.sans, fontSize: 12.5, opacity: .9, marginTop: 2 }}>{item.place}</div>
+        {(item.time || item.hours) && (
+          <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Icon.Clock size={11} color="#fff"/> {item.time || item.hours}
+          </div>
+        )}
+      </div>
+      {dim && <div style={{ position: 'absolute', inset: 0, background: 'rgba(251,244,241,.16)' }}/>}
+    </div>
+  );
+}
+
+function StackCarousel({ items, onCardClick }) {
+  const n = items.length;
+  const [cur, setCur] = useState(0);
+  const [dx, setDx] = useState(0);
+  const pauseRef = useRef(0);
+  const dragRef = useRef(null);
+  const movedRef = useRef(false);
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (Date.now() < pauseRef.current || dragRef.current) return;
+      setCur(c => (c + 1) % n);
+    }, 4200);
+    return () => clearInterval(t);
+  }, [n]);
+  const pause = () => { pauseRef.current = Date.now() + 5200; };
+  const getX = (e) => e.clientX ?? (e.touches && e.touches[0] && e.touches[0].clientX) ?? 0;
+  const onDown = (e) => { pause(); movedRef.current = false; dragRef.current = { x: getX(e) }; };
+  const onMove = (e) => {
+    if (!dragRef.current) return;
+    const d = getX(e) - dragRef.current.x;
+    if (Math.abs(d) > 6) movedRef.current = true;
+    setDx(d);
+  };
+  const onUp = () => {
+    if (!dragRef.current) return;
+    const d = dx;
+    dragRef.current = null;
+    setDx(0);
+    pause();
+    if (d < -48) setCur(c => (c + 1) % n);
+    else if (d > 48) setCur(c => (c - 1 + n) % n);
+  };
+  const rel = (i) => { let r = (i - cur) % n; if (r > n / 2) r -= n; if (r < -n / 2) r += n; return r; };
+  return (
+    <div
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
+      onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
+      style={{ position: 'relative', height: 244, marginBottom: 0, touchAction: 'pan-y', overflow: 'hidden' }}>
+      {items.map((it, i) => {
+        const r = rel(i);
+        if (Math.abs(r) > 2) return null;
+        const dragging = dx !== 0;
+        return (
+          <div key={i}
+            onClick={() => {
+              if (movedRef.current) return;
+              if (r === 0) onCardClick?.(it);
+              else { pause(); setCur(i); BK.haptic.selection(); }
+            }}
+            style={{
+              position: 'absolute', left: '50%', top: 4, width: '70%', height: 196,
+              transform: `translateX(calc(-50% + ${r * 56}% + ${dx * .55}px)) scale(${r === 0 ? 1 : .85})`,
+              zIndex: 10 - Math.abs(r),
+              opacity: Math.abs(r) === 2 ? 0 : (r === 0 ? 1 : .62),
+              transition: dragging ? 'none' : `transform 560ms ${BK.EASE_OUT}, opacity 480ms ease`,
+              cursor: 'pointer', willChange: 'transform',
+            }}>
+            <StackCard item={it} dim={r !== 0}/>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── byup pay — carta di pagamento con CTA ───
+function PaymentCard({ onClick }) {
+  const [T] = BK.useByupTheme();
+  return (
+    <div style={{ padding: '0 18px' }}>
+      <div className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+        position: 'relative', borderRadius: 22, overflow: 'hidden', cursor: 'pointer',
+        background: 'linear-gradient(115deg, #4d122e 0%, #ae3152 52%, #e32459 100%)',
+        boxShadow: '0 22px 44px -18px rgba(77,18,46,.55)',
+        color: '#fff', padding: '18px 18px 16px',
+      }}>
+        {/* glow decorativo */}
+        <div aria-hidden style={{ position: 'absolute', right: '-15%', top: '-40%', width: '70%', aspectRatio: '1', background: 'radial-gradient(circle, rgba(250,227,222,.22) 0%, transparent 65%)', pointerEvents: 'none' }}/>
+        {/* riga alta: brand + contactless */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600 }}>byup <span style={{ color: '#ceff00' }}>pay</span></div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M6.5 8.5a8 8 0 0 1 0 7"/>
+            <path d="M9.8 7a11 11 0 0 1 0 10"/>
+            <path d="M13.1 5.5a14 14 0 0 1 0 13"/>
+          </svg>
+        </div>
+        {/* chip + numero */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '16px 0 14px' }}>
+          <svg width="34" height="26" viewBox="0 0 34 26">
+            <rect x="1" y="1" width="32" height="24" rx="6" fill="rgba(250,227,222,.9)"/>
+            <path d="M1 10h10M1 16h10M23 10h10M23 16h10M11 1v24M23 1v24" stroke="rgba(77,18,46,.4)" strokeWidth="1.4" fill="none"/>
+          </svg>
+          <div style={{ fontFamily: BK.TYPE.sans, fontSize: 16, fontWeight: 700, letterSpacing: 3, opacity: .95 }}>
+            ••••  ••••  ••••  <span style={{ letterSpacing: 1 }}>byup</span>
+          </div>
+        </div>
+        {/* copy + CTA */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: BK.TYPE.display, fontSize: 15.5, fontWeight: 600, lineHeight: 1.2 }}>La tua carta si sente sola.</div>
+            <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 3 }}>Apple Pay · Google Pay · Carte — 30 secondi e paghi in un tap.</div>
+          </div>
+          <div style={{
+            background: '#ceff00', color: '#141414', flexShrink: 0,
+            fontFamily: BK.TYPE.sans, fontSize: 12.5, fontWeight: 800,
+            padding: '10px 16px', borderRadius: 999,
+            boxShadow: '0 8px 18px -6px rgba(20,20,20,.4)',
+            animation: 'bkCtaPulse 2.4s ease-in-out infinite',
+          }}>Configura</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Anteprima mappa — scorri fino in fondo e si apre la mappa completa ───
+function MapPreviewCard({ onOpen }) {
+  const [T] = BK.useByupTheme();
+  const mapRef = useRef(null);
+  const sentinelRef = useRef(null);
+  const firedRef = useRef(false);
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el || !window.L) return;
+    const map = window.L.map(el, {
+      center: [41.9028, 12.4964], zoom: 13,
+      zoomControl: false, attributionControl: false,
+      dragging: false, scrollWheelZoom: false, touchZoom: false,
+      doubleClickZoom: false, keyboard: false,
+    });
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+    const mk = (lat, lng) => window.L.marker([lat, lng], {
+      icon: window.L.divIcon({ className: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:#E32459;border:3px solid #fff;box-shadow:0 2px 8px rgba(227,36,89,.55)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+    }).addTo(map);
+    mk(41.9065, 12.4642); mk(41.8986, 12.4768); mk(41.9109, 12.5);
+    setTimeout(() => map.invalidateSize(), 80);
+    return () => map.remove();
+  }, []);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((es) => {
+      if (es[0].isIntersecting && !firedRef.current) {
+        firedRef.current = true;
+        io.disconnect();
+        setTimeout(() => onOpen?.(), 250);
+      }
+    }, { threshold: 0.95 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div style={{ padding: '0 18px' }}>
+      <div className="bk-press" onClick={() => onOpen?.()} style={{
+        position: 'relative', height: 190, borderRadius: BK.RADII.card, overflow: 'hidden',
+        cursor: 'pointer', boxShadow: T.shadow, border: `1px solid ${T.line}`,
+        background: '#e9e4dd',
+      }}>
+        <div ref={mapRef} style={{ position: 'absolute', inset: 0 }}/>
+        <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(28,6,16,0) 45%, rgba(28,6,16,.5) 100%)', pointerEvents: 'none', zIndex: 500 }}/>
+        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 12, zIndex: 501, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, pointerEvents: 'none' }}>
+          <div>
+            <div style={{ fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600 }}>70 locali qui intorno</div>
+            <div style={{ fontSize: 11.5, opacity: .9, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+              Continua a scorrere per aprire la mappa
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'bkBob 1.6s ease-in-out infinite' }}><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,.92)', color: '#1c0f15', fontSize: 12, fontWeight: 800, padding: '8px 14px', borderRadius: 999 }}>Apri</div>
+        </div>
+      </div>
+      {/* sentinella: quando è tutta visibile, apre la mappa */}
+      <div ref={sentinelRef} style={{ height: 24 }}/>
+    </div>
+  );
+}
+
 // Pure presentational — every action is a callback prop.
 // `topBar`: rendered ABOVE the sticky header — for banners that should sit at
 // the very top of the home (booking, alerts).
@@ -1520,17 +1998,20 @@ function HomeSections({
   const md = MOMENT_DATA[moment] || MOMENT_DATA.ora;
   const heroPhoto = HERO_PHOTO[moment] || HERO_PHOTO.ora;
 
+  // Le 12 categorie brand — id allineati a BK.ASSETS.cat (icone kawaii, mai emoji).
   const cats = [
-    { id: 'pizza',   label: 'Pizza',         emoji: '🍕' },
-    { id: 'sushi',   label: 'Sushi',         emoji: '🍣' },
-    { id: 'burger',  label: 'Burger',        emoji: '🍔' },
-    { id: 'gelato',  label: 'Gelato',        emoji: '🍦' },
-    { id: 'panini',  label: 'Panini',        emoji: '🥪' },
-    { id: 'brunch',  label: 'Brunch',        emoji: '🥐' },
-    { id: 'cock',    label: 'Cocktail',      emoji: '🍹' },
-    { id: 'vegan',   label: 'Vegano',        emoji: '🥗' },
-    { id: 'gf',      label: 'Senza glutine', emoji: '🌾' },
-    { id: 'healthy', label: 'Healthy',       emoji: '🥑' },
+    { id: 'pizza',     label: 'Pizza' },
+    { id: 'burger',    label: 'Burger' },
+    { id: 'aperitivo', label: 'Aperitivo' },
+    { id: 'poke',      label: 'Poke' },
+    { id: 'panini',    label: 'Panini' },
+    { id: 'birra',     label: 'Birra' },
+    { id: 'dolce',     label: 'Dolce' },
+    { id: 'vino',      label: 'Vino' },
+    { id: 'taco',      label: 'Taco' },
+    { id: 'brunch',    label: 'Brunch' },
+    { id: 'cocktail',  label: 'Cocktail' },
+    { id: 'torta',     label: 'Torta' },
   ];
   const favorites = [
     { name: 'Al Settembrini', type: 'Ristorante', distance: '0.4 km', hours: '12:30 – 23:00', open: true,
@@ -1555,46 +2036,61 @@ function HomeSections({
   ];
   const click = (item) => onCardClick?.(item);
   const slotClick = (item) => onSlotClick?.(item);
+  const [T] = BK.useByupTheme();
 
   return (
     <>
       {topBar}
-      {/* === STICKY TOP === header + search + moment bar */}
+      {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 5,
-        background: '#fff',
+        position: 'relative', zIndex: 5,
+        background: T.dark ? 'rgba(22,9,16,0.72)' : 'rgba(251,244,241,0.74)',
+        backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)',
         paddingTop: topBar ? 12 : 24,
         marginTop: topBar ? 0 : -24,
         paddingBottom: noVenues ? 18 : 0,
-        boxShadow: noVenues ? 'none' : '0 1px 0 #f0f0f0',
+        boxShadow: noVenues ? 'none' : `0 1px 0 ${T.line}`,
       }}>
-        {/* Header — location + actions */}
-        <div style={{ padding: '8px 22px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        {/* Header — saluto umano in Fredoka + città */}
+        <div style={{ padding: '8px 22px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', animation: `bkFadeUp 420ms ${BK.EASE_OUT} backwards` }}>
           <div>
-            <div style={{ fontSize: 13, color: MUTED, fontWeight: 500 }}>
-              {(() => { const h = new Date().getHours(); return h < 12 ? 'Buongiorno, Mario 👋' : h < 17 ? 'Buon pomeriggio, Mario 👋' : h < 22 ? 'Buonasera, Mario 👋' : 'Buonanotte, Mario 👋'; })()}
-            </div>
             {!noVenues && (
               <button onClick={onMap} style={{
                 background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: 26, fontWeight: 800, color: PINK, lineHeight: 1.1, letterSpacing: -0.5, marginTop: 2,
-                display: 'flex', alignItems: 'center', gap: 6,
+                fontFamily: BK.TYPE.sans,
+                fontSize: 13, fontWeight: 700, color: T.textDim, lineHeight: 1.1,
+                display: 'flex', alignItems: 'center', gap: 5,
               }}>
+                <Icon.Pin size={12}/>
                 Roma centro
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.textFaint} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
               </button>
             )}
+            <div style={{
+              fontFamily: BK.TYPE.display, fontSize: 27, fontWeight: 600,
+              color: T.text, letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: noVenues ? 0 : 5,
+            }}>
+              {(() => {
+                const h = new Date().getHours();
+                if (h < 12) return <>Oggi, <span style={{ color: T.primary }}>Mario</span>?</>;
+                if (h < 15) return <>Pranzo, <span style={{ color: T.primary }}>Mario</span>?</>;
+                if (h < 23) return <>Stasera, <span style={{ color: T.primary }}>Mario</span>?</>;
+                return <>Notte fonda, <span style={{ color: T.primary }}>Mario</span>?</>;
+              })()}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, paddingTop: 6 }}>
-            <button onClick={onPosta} style={{ ...iconBtn, position: 'relative' }} title="Posta">
+            <button onClick={onPosta} className="bk-press" style={{
+              ...iconBtn, position: 'relative',
+              background: T.surface, border: `1px solid ${T.line}`, boxShadow: T.shadowSoft,
+            }} title="Posta">
               <Icon.Bell/>
               <span style={{
                 position: 'absolute', top: 4, right: 4,
-                width: 8, height: 8, borderRadius: 999, background: PINK,
-                border: '2px solid #fff',
+                width: 8, height: 8, borderRadius: 999, background: T.primary,
+                border: `2px solid ${T.surface}`,
               }}/>
             </button>
           </div>
@@ -1605,13 +2101,14 @@ function HomeSections({
           <div style={{ padding: '14px 22px 14px' }}>
             <div onClick={onSearch} style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              height: 48, borderRadius: 999,
-              border: 'none',
-              padding: '0 16px', background: '#f2f2f2', cursor: 'pointer',
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
+              height: 50, borderRadius: 999,
+              border: `1px solid ${T.glassBorder}`,
+              padding: '0 16px', background: T.glass, cursor: 'pointer',
+              backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+              boxShadow: T.shadowSoft,
             }}>
               <Icon.Search/>
-              <span style={{ flex: 1, fontSize: 14.5, color: MUTED }}>
+              <span style={{ flex: 1, fontSize: 14.5, color: T.textDim, fontFamily: BK.TYPE.sans }}>
                 Cerca un locale, un piatto...
               </span>
               <button onClick={(e) => { e.stopPropagation(); onFilters?.(); }} style={{
@@ -1638,63 +2135,31 @@ function HomeSections({
       </div>
       {/* === END STICKY === */}
 
+      {/* Offerte in evidenza — subito sotto la ricerca */}
+      {!noVenues && <OfferCarousel onTap={() => (onDisponibili || onSearch)?.()}/>}
+
       {/* Hero contextual card + quick filter chips — nascosti quando non ci sono locali */}
       {!noVenues && (
         <>
           <div key={moment} style={{ paddingTop: 18 }}>
-            <HeroIntentCard data={md} photo={heroPhoto} onCta={() => (onDisponibili || onSearch)?.()}/>
-          </div>
-          <div style={{
-            display: 'flex', gap: 8, padding: '18px 22px 4px',
-            overflowX: 'auto', scrollbarWidth: 'none', background: '#fff',
-          }} className="hscroll">
-            {md.quickChips.map(c => (
-              <FilterChip key={`${moment}-${c.id}`} label={c.label} active={!!quickFilters?.[c.id]}
-                onClick={() => setQuickFilters?.(f => ({ ...f, [c.id]: !f?.[c.id] }))}/>
-            ))}
+            <HeroIntentCard data={md} photo={heroPhoto} moment={moment} onCta={() => (onDisponibili || onSearch)?.()}/>
           </div>
         </>
       )}
 
-      {/* Dominant section header — nascosto quando non ci sono locali */}
-      {!noVenues && (
-        <div style={{ padding: '18px 22px 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: TEXT, letterSpacing: -0.3 }}>
-              {md.sectionTitle}
-            </div>
-            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{md.sectionSubtitle}</div>
-          </div>
-          <button onClick={() => (onDisponibili || onSearch)?.()} style={{
-            background: 'none', border: 'none', color: PINK,
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>Vedi tutti</button>
-        </div>
-      )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: noVenues ? '64px 18px 0' : '14px 18px 0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: noVenues ? '64px 18px 0' : '0 18px' }}>
         {noVenues ? (
           <div style={{
-            background: '#fff', border: `1px dashed ${BORDER}`,
-            borderRadius: 18, padding: '26px 20px',
+            background: T.surface, border: `1px dashed ${T.accentBorder}`,
+            borderRadius: BK.RADII.card, padding: '26px 20px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10,
           }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: 999,
-              background: '#f6f1ea', color: PINK,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 21l-4.35-4.35"/>
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="11" y1="8" x2="11" y2="14"/>
-                <line x1="8" y1="11" x2="14" y2="11"/>
-              </svg>
+            <BK.Mascot T={T} pose="sleep" size={130} style={{ padding: 0 }}/>
+            <div style={{ fontFamily: BK.TYPE.display, fontSize: 19, fontWeight: 600, color: T.text }}>
+              Qui ancora niente…
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, letterSpacing: -0.2 }}>
-              Presto arriveranno i primi locali
-            </div>
-            <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.45, maxWidth: 280 }}>
-              Stiamo aggiungendo nuovi posti nella tua zona. Ti avvisiamo appena potrai cercare e prenotare.
+            <div style={{ fontSize: 13, color: T.textDim, lineHeight: 1.45, maxWidth: 280 }}>
+              Stiamo aggiungendo i primi locali nella tua zona — ci sto lavorando 👀 Ti avvisiamo appena potrai cercare e prenotare.
             </div>
             <button
               onClick={() => {
@@ -1731,88 +2196,8 @@ function HomeSections({
               )}
             </button>
           </div>
-        ) : (
-          md.venues.map((v, i) => (
-            <RestaurantBigCard key={`${moment}-${i}`} {...v}
-              onClick={() => click({ ...v, title: v.name })}
-              onSlotClick={(s) => slotClick({ ...v, title: v.name, slot: s.time })}/>
-          ))
-        )}
+        ) : null}
       </div>
-
-      {/* Illustrazione decorativa — variante senza locali */}
-      {noVenues && (
-        <div style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
-          paddingTop: 28, paddingBottom: 12, pointerEvents: 'none',
-        }}>
-          <svg viewBox="0 0 320 240" width="100%" style={{ maxWidth: 320, height: 'auto' }} aria-hidden="true">
-            {/* Sfondo soffuso */}
-            <ellipse cx="160" cy="208" rx="150" ry="20" fill="#f6f1ea"/>
-
-            {/* Sparkle */}
-            <g fill={PINK} opacity="0.45">
-              <circle cx="40" cy="50" r="2.5"/>
-              <circle cx="290" cy="40" r="3"/>
-              <circle cx="100" cy="28" r="1.8"/>
-              <circle cx="245" cy="70" r="2"/>
-              <circle cx="60" cy="100" r="1.6"/>
-              <circle cx="280" cy="130" r="1.8"/>
-            </g>
-
-            {/* Sedia sinistra */}
-            <g>
-              {/* schienale */}
-              <rect x="56" y="92" width="16" height="84" rx="6" fill="#d6cdb8"/>
-              <rect x="48" y="86" width="32" height="14" rx="6" fill="#c4b89f"/>
-              {/* seduta */}
-              <rect x="44" y="158" width="40" height="11" rx="4" fill="#c4b89f"/>
-              {/* gambe */}
-              <rect x="49" y="169" width="4" height="32" rx="1.5" fill="#a89373"/>
-              <rect x="75" y="169" width="4" height="32" rx="1.5" fill="#a89373"/>
-            </g>
-
-            {/* Sedia destra */}
-            <g>
-              <rect x="248" y="92" width="16" height="84" rx="6" fill="#d6cdb8"/>
-              <rect x="240" y="86" width="32" height="14" rx="6" fill="#c4b89f"/>
-              <rect x="236" y="158" width="40" height="11" rx="4" fill="#c4b89f"/>
-              <rect x="241" y="169" width="4" height="32" rx="1.5" fill="#a89373"/>
-              <rect x="267" y="169" width="4" height="32" rx="1.5" fill="#a89373"/>
-            </g>
-
-            {/* Vapore */}
-            <g stroke={PINK} fill="none" strokeLinecap="round" strokeWidth="3">
-              <path d="M148 124 Q152 110 148 96 Q144 84 150 72" opacity="0.55"/>
-              <path d="M160 122 Q165 106 160 90 Q155 76 162 64" opacity="0.75"/>
-              <path d="M172 124 Q176 110 172 96 Q168 84 174 72" opacity="0.55"/>
-            </g>
-
-            {/* Tavolo (gamba + base) */}
-            <rect x="156" y="178" width="8" height="34" rx="2" fill={PINK_DARK}/>
-            <ellipse cx="160" cy="214" rx="34" ry="6" fill={PINK_DARK}/>
-            {/* Top tavolo */}
-            <ellipse cx="160" cy="178" rx="78" ry="11" fill={PINK_DARK}/>
-            <ellipse cx="160" cy="174" rx="78" ry="10" fill={PINK}/>
-
-            {/* Piatto */}
-            <ellipse cx="160" cy="158" rx="34" ry="6.5" fill="#fff" stroke="#e2d8c4" strokeWidth="1.4"/>
-            <ellipse cx="160" cy="156" rx="24" ry="3.5" fill="#fef8ee"/>
-
-            {/* Forchetta sx */}
-            <g stroke="#a89373" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="106" y1="150" x2="106" y2="172"/>
-              <line x1="103" y1="148" x2="103" y2="156"/>
-              <line x1="109" y1="148" x2="109" y2="156"/>
-            </g>
-            {/* Coltello dx */}
-            <g stroke="#a89373" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="214" y1="148" x2="214" y2="172"/>
-              <path d="M211 150 Q214 152 217 150 L217 158 Q214 159 211 158 Z" fill="#a89373" stroke="none"/>
-            </g>
-          </svg>
-        </div>
-      )}
 
       {before}
 
@@ -1820,34 +2205,38 @@ function HomeSections({
         <>
           {/* Categories — secondary discovery (smaller, scrollable) */}
           <SectionHeader title="Esplora per categoria"/>
-          <div className="hscroll" style={{
-            display: 'flex', padding: '0 22px 4px', gap: 12,
-            overflowX: 'auto', scrollbarWidth: 'none',
-          }}>
+          <AutoLoopScroll speed={24}>
             {cats.map(c => (
               <Category key={c.id} id={c.id} emoji={c.emoji} label={c.label}
                 active={activeCat === c.id}
                 onClick={() => setActiveCat?.(activeCat === c.id ? null : c.id)}/>
             ))}
-          </div>
+          </AutoLoopScroll>
+
+          {/* In evidenza — promo del momento */}
+          <SectionHeader title="In evidenza"/>
+          <FeaturedCard onClick={() => click({ title: 'Trattoria Lucia', name: 'Trattoria Lucia' })}/>
+
+          {/* Da scoprire — stack orizzontale stile Twitch */}
+          <SectionHeader title="Da scoprire" action="Vedi tutto" onAction={() => (onDisponibili || onSearch)?.()}/>
+          <StackCarousel items={explore} onCardClick={(e) => click(e)}/>
 
           {/* Preferiti — user's own list */}
-          <SectionHeader title="I tuoi preferiti" action="Vedi tutti"/>
-          <HScroll>
+          <SectionHeader title="I tuoi preferiti" action="Vedi tutti" onAction={() => onSearch?.()}/>
+          <AutoLoopScroll speed={28}>
             {favorites.map((f, i) => (
               <FavoriteCard key={i} {...f}
                 onClick={() => click({ ...f, title: f.name, place: [f.type, f.distance].filter(Boolean).join(' · ') })}/>
             ))}
-          </HScroll>
+          </AutoLoopScroll>
 
-          {/* Da scoprire — merged events + promos (one carousel instead of three) */}
-          <SectionHeader title="Da scoprire" action="Vedi tutto"/>
-          <HScroll>
-            {explore.map((e, i) => e.kind === 'event'
-              ? <EventCard key={i} {...e} onClick={() => click(e)}/>
-              : <PromoCard key={i} {...e} onClick={() => click(e)}/>
-            )}
-          </HScroll>
+          {/* byup pay — metodo di pagamento */}
+          <SectionHeader title="Paga in un tap"/>
+          <PaymentCard onClick={() => { window.location.href = 'byup Menu.html#paymethod'; }}/>
+
+          {/* Anteprima mappa — scorri per aprire */}
+          <SectionHeader title="Qui intorno"/>
+          <MapPreviewCard onOpen={() => onMap?.()}/>
         </>
       )}
 
@@ -1983,13 +2372,8 @@ function RecoveryLoadingOverlay() {
       background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(2px)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
     }}>
-      <svg width="46" height="46" viewBox="0 0 50 50">
-        <circle cx="25" cy="25" r="20" fill="none" stroke="#eee" strokeWidth="5"/>
-        <circle cx="25" cy="25" r="20" fill="none" stroke={PINK} strokeWidth="5" strokeLinecap="round" strokeDasharray="90 150">
-          <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite"/>
-        </circle>
-      </svg>
-      <div style={{ fontWeight: 700, color: TEXT, fontSize: 15 }}>Cerco il tuo ordine…</div>
+      <img src={BK.ASSETS.mascot.phone} width="110" alt="" style={{ animation: 'bkBob 1.4s ease-in-out infinite', filter: 'drop-shadow(0 14px 22px rgba(77,18,46,.28))' }}/>
+      <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, color: TEXT, fontSize: 17 }}>Cerco il tuo ordine…</div>
     </div>
   );
 }
@@ -2028,6 +2412,7 @@ function RecoveryOrderBanner({ onOpen, onClose }) {
 }
 
 function App({ recoveryArmed = false }) {
+  const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [search, setSearch] = useState('');
@@ -2259,17 +2644,35 @@ function App({ recoveryArmed = false }) {
 
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#fff', position: 'relative',
-      fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
-      color: TEXT, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      width: '100%', height: '100%', background: T.bg, position: 'relative',
+      fontFamily: BK.TYPE.sans,
+      color: T.text, overflow: 'hidden', display: 'flex', flexDirection: 'column',
     }}>
+      {/* Atmosfera — glow coral d'ambiente + grana (mai fondo piatto) */}
+      <div aria-hidden style={{
+        position: 'absolute', left: '50%', top: '-14%', width: '85%', aspectRatio: '1',
+        transform: 'translateX(-50%)', pointerEvents: 'none',
+        background: `radial-gradient(circle, ${T.glow} 0%, transparent 65%)`,
+      }}/>
+      <div aria-hidden style={{
+        position: 'absolute', right: '-20%', bottom: '-8%', width: '60%', aspectRatio: '1',
+        pointerEvents: 'none',
+        background: `radial-gradient(circle, ${T.glow} 0%, transparent 68%)`, opacity: .7,
+      }}/>
+      <div aria-hidden style={{
+        position: 'absolute', inset: '-2%', pointerEvents: 'none',
+        backgroundImage: BK.GRAIN_URI, backgroundSize: 140,
+        opacity: T.dark ? .05 : .035, mixBlendMode: T.dark ? 'screen' : 'multiply',
+      }}/>
+
       {/* Sticky header (over status bar background) */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 15,
-        height: 60, background: scrolled ? 'rgba(255,255,255,0.85)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(14px)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(14px)' : 'none',
-        borderBottom: scrolled ? `1px solid ${BORDER}` : '1px solid transparent',
+        height: 60,
+        background: scrolled ? (T.dark ? 'rgba(22,9,16,0.78)' : 'rgba(251,244,241,0.82)') : 'transparent',
+        backdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
+        borderBottom: scrolled ? `1px solid ${T.line}` : '1px solid transparent',
         transition: 'background 0.2s, border-color 0.2s',
         pointerEvents: 'none',
       }}/>
@@ -2321,6 +2724,12 @@ function App({ recoveryArmed = false }) {
         onProfile={() => setPage('profile')}
         onQR={() => setQrOpen(true)}/>
 
+      {/* Mascotte — prima visita della Home */}
+      {page === 'home' && (
+        <BK.MascotMoment T={T} absolute pose="wink" pageKey="home"
+          message="Stasera che si fa?" bottom={116} size={124}/>
+      )}
+
       {/* Detail sheet */}
       <DetailSheet item={detail} onClose={() => setDetail(null)}
         onOpenVenue={() => {
@@ -2365,7 +2774,7 @@ function App({ recoveryArmed = false }) {
           <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, letterSpacing: 1.5, marginBottom: 8, opacity: 0.7 }}>
             BYUP · MENU SCANNER
           </div>
-          <div style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginBottom: 28 }}>
+          <div style={{ fontFamily: BK.TYPE.display, color: '#fff', fontSize: 23, fontWeight: 600, marginBottom: 28 }}>
             Inquadra il menu del locale
           </div>
           <div style={{
@@ -2412,17 +2821,18 @@ const iconBtn = {
   cursor: 'pointer', padding: 0,
 };
 
-function SectionHeader({ title, action }) {
+function SectionHeader({ title, action, onAction }) {
+  const [T] = BK.useByupTheme();
   return (
     <div style={{
       padding: '24px 22px 12px', display: 'flex',
       justifyContent: 'space-between', alignItems: 'baseline',
     }}>
-      <div style={{ fontSize: 19, fontWeight: 700, color: TEXT, letterSpacing: -0.2 }}>{title}</div>
+      <div style={{ fontFamily: BK.TYPE.display, fontSize: 20, fontWeight: 600, color: T.text, letterSpacing: '-0.01em' }}>{title}</div>
       {action && (
-        <button style={{
-          background: 'none', border: 'none', color: PINK,
-          fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+        <button onClick={onAction} style={{
+          background: 'none', border: 'none', color: T.primary,
+          fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: BK.TYPE.sans,
         }}>{action}</button>
       )}
     </div>
@@ -2439,18 +2849,22 @@ const TABBAR_PATH = 'M0 24C0 10.745 10.745 0 24 0H135C141.667 0 148.496 1.74568 
 const TABBAR_NOTCH_DEPTH_PCT = (28 / 88) * 100; // 31.818…% — deepest point of the notch
 
 function BottomTabBar({ active = 'home', onHome, onProfile, onQR, showQR = true }) {
+  const [T] = BK.useByupTheme();
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
       aspectRatio: '390 / 88',
       zIndex: 20,
-      filter: 'drop-shadow(0 -3px 14px rgba(0,0,0,0.08)) drop-shadow(0 12px 30px rgba(0,0,0,0.14))',
+      filter: T.dark
+        ? 'drop-shadow(0 -3px 14px rgba(0,0,0,0.4)) drop-shadow(0 12px 30px rgba(0,0,0,0.5))'
+        : 'drop-shadow(0 -3px 14px rgba(227,36,89,0.07)) drop-shadow(0 12px 30px rgba(77,18,46,0.16))',
     }}>
       {/* Always the same shape — notch visible whether QR is shown or not */}
       <svg width="100%" height="100%" viewBox="0 0 390 88" preserveAspectRatio="none" style={{
         position: 'absolute', inset: 0, display: 'block',
       }}>
-        <path d={TABBAR_PATH} fill="#fff"/>
+        <path d={TABBAR_PATH} fill={T.dark ? '#241019' : 'rgba(255,255,255,0.96)'}/>
+        <path d={TABBAR_PATH} fill="none" stroke={T.dark ? 'rgba(251,234,230,0.10)' : 'rgba(255,255,255,0.9)'} strokeWidth="1"/>
       </svg>
 
       {/* Tab buttons — same positioning and spacer on every page */}
@@ -2464,19 +2878,21 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onQR, showQR = true 
         <TabBtn label="Profilo" icon={Icon.User} active={active === 'profile'} onClick={onProfile}/>
       </div>
 
-      {/* QR button — only on pages that need it */}
+      {/* QR button — FAB coral rialzato, micro-bounce */}
       {showQR && (
-        <button onClick={onQR} style={{
+        <button className="bk-press" onClick={() => { BK.haptic.light(); onQR?.(); }} style={{
           position: 'absolute', left: '50%',
           top: `calc(${TABBAR_NOTCH_DEPTH_PCT}% - 70px)`,
           transform: 'translateX(-50%)',
           width: 60, height: 60, borderRadius: 999, border: 'none',
-          background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%)`,
-          boxShadow: '0 12px 28px rgba(227,36,89,0.55), 0 4px 10px rgba(0,0,0,0.22)',
+          background: `linear-gradient(135deg, ${T.primary} 0%, ${PINK_DARK} 100%)`,
+          boxShadow: '0 14px 30px -6px rgba(227,36,89,0.6), 0 4px 10px rgba(28,6,16,0.22)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', zIndex: 2,
         }}>
-          <Icon.QR size={28}/>
+          <span style={{ display: 'flex', animation: 'bkBob 3.2s ease-in-out infinite' }}>
+            <Icon.QR size={28}/>
+          </span>
         </button>
       )}
     </div>
@@ -2485,14 +2901,16 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onQR, showQR = true 
 window.BottomTabBar = BottomTabBar;
 
 function TabBtn({ label, icon: I, active, onClick }) {
+  const [T] = BK.useByupTheme();
+  const c = active ? T.primary : T.textFaint;
   return (
-    <button onClick={onClick} style={{
+    <button onClick={() => { BK.haptic.selection(); onClick?.(); }} style={{
       flex: 1, background: 'none', border: 'none', padding: '4px 0',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-      cursor: 'pointer', fontFamily: 'inherit',
+      cursor: 'pointer', fontFamily: BK.TYPE.sans,
     }}>
-      <I color={active ? PINK : '#999'} fill={active ? PINK : 'none'}/>
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: active ? PINK : '#999' }}>{label}</span>
+      <I color={c} fill={active ? T.primary : 'none'}/>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: c }}>{label}</span>
     </button>
   );
 }
@@ -2636,5 +3054,6 @@ function Root() {
 
 Object.assign(window, { HomeSections, Icon, PINK, PINK_DARK, TEXT, MUTED, BORDER, BG_GRAY });
 
+/* sync */
 const __byupRoot = document.getElementById('root');
 if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(<Root/>);

@@ -5,11 +5,11 @@ const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
 const WINE = '#8B1A3A';     // for menu screen accent
 const WINE_DARK = '#5a1a2e';
-const TEXT = '#1a1a1a';
-const MUTED = '#6b6b6b';
-const BORDER = '#e5e5e5';
-const BG_GRAY = '#f5f5f5';
-const BG_PAGE = '#f7f5f3';
+const TEXT = '#1c0f15';
+const MUTED = '#6d5a61';
+const BORDER = '#eddfda';
+const BG_GRAY = '#f7ece8';
+const BG_PAGE = '#FBF4F1';
 
 // ─── Icons ─────────────────────────────────────────────────
 const I = {
@@ -690,6 +690,7 @@ function MenuScreen({ state, setState, goTo }) {
       width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
+      {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="chef" pageKey="menu" message="Fame? Inizia da qui 👨‍🍳" bottom={128} size={122}/> : null; })()}
       {/* Floating back button — sempre visibile */}
       <button onClick={() => {
         try { sessionStorage.removeItem('byup_menu_from'); } catch {}
@@ -1155,7 +1156,7 @@ function MenuScreen({ state, setState, goTo }) {
             }}>
               <I.Check size={32} color="#fff"/>
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: TEXT, marginTop: 4 }}>Ordine inviato!</div>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 19, fontWeight: 600, color: TEXT, marginTop: 4 }}>Ordine inviato!</div>
             <div style={{ fontSize: 13, color: MUTED, textAlign: 'center', maxWidth: 200 }}>
               Lo trovi sulla home pronto per essere ritirato
             </div>
@@ -1357,7 +1358,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
-      background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      background: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
       boxShadow: '0 -6px 24px rgba(0,0,0,0.1)',
       maxHeight: expanded ? '78%' : 'auto',
       transition: 'max-height 0.3s ease',
@@ -1588,6 +1589,7 @@ function SplitScreen({ state, setState, ctx, goBack }) {
       width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
+      {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="happy" pageKey="split" message="Dividi con un tap. Restate amici." bottom={110} size={118}/> : null; })()}
       {/* Header */}
       <div style={{
         padding: '60px 22px 14px', display: 'flex', alignItems: 'center', gap: 12,
@@ -1610,11 +1612,11 @@ function SplitScreen({ state, setState, ctx, goBack }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
           <ModeCard active={kind === 'me'} onClick={() => setKind('me')}
-            title="Per me" desc="Pago io tutto il piatto" emoji="🙋"/>
+            title="Per me" desc="Pago io tutto il piatto" emoji={<img src="assets/mascot-confident.png" width="30" alt=""/>}/>
           <ModeCard active={kind === 'diviso'} onClick={() => setKind('diviso')}
-            title="Diviso" desc="Scegli con chi dividere il piatto" emoji="👥"/>
+            title="Diviso" desc="Scegli con chi dividere il piatto" emoji={<img src="assets/mascot-happy.png" width="30" alt=""/>}/>
           <ModeCard active={kind === 'tavolo'} onClick={() => setKind('tavolo')}
-            title="Tavolo intero" desc={`Diviso tra tutti i ${participants.length} commensali`} emoji="🍽️"/>
+            title="Tavolo intero" desc={`Diviso tra tutti i ${participants.length} commensali`} emoji={<img src="assets/mascot-waiter.png" width="30" alt=""/>}/>
         </div>
 
         {/* Participants picker (only for 'diviso') */}
@@ -2465,7 +2467,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
 
   return (
     <div data-screen-label="Dettaglio piatto" style={{
-      width: '100%', height: '100%', background: '#fafaf7', position: 'relative',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Back button — fisso sopra tutto */}
@@ -3098,12 +3100,12 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
   return (
     <div data-screen-label="Pagamento" style={{
-      width: '100%', height: '100%', background: '#fafaf7', position: 'relative',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Header fisso: back + titolo + avatar, sempre visibile anche scrollando */}
       <div style={{
-        flexShrink: 0, paddingTop: 60, background: '#fafaf7',
+        flexShrink: 0, paddingTop: 60, background: '#FBF4F1',
         position: 'relative', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
       }}>
         {/* Header con back + titolo */}
@@ -3132,7 +3134,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                   width: 30, height: 30, borderRadius: 999,
                   background: (g.isApp || g.isWebApp) ? '#1a1a1a' : '#ebe3d6',
                   color: (g.isApp || g.isWebApp) ? '#fff' : MUTED,
-                  border: '2.5px solid #fafaf7', marginLeft: -10,
+                  border: '2.5px solid #FBF4F1', marginLeft: -10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11.5, fontWeight: 700,
                 }}>{g.initial || '?'}</div>
@@ -3140,7 +3142,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               {(order.guests?.length || 0) > 4 && (
                 <div style={{
                   width: 30, height: 30, borderRadius: 999, background: '#ebe3d6',
-                  border: '2.5px solid #fafaf7', marginLeft: -10,
+                  border: '2.5px solid #FBF4F1', marginLeft: -10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11, fontWeight: 700, color: MUTED,
                 }}>+{order.guests.length - 4}</div>
@@ -4020,7 +4022,7 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
 
   return (
     <div data-screen-label="Metodo pagamento" style={{
-      width: '100%', height: '100%', background: '#fafaf7', position: 'relative',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 60, paddingBottom: 130 }}>
@@ -4223,11 +4225,11 @@ function BalanceScreen({ state, setState, goTo }) {
 
   return (
     <div data-screen-label="Saldo del tavolo" style={{
-      width: '100%', height: '100%', background: '#fafaf7', position: 'relative',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Header fisso */}
-      <div style={{ flexShrink: 0, paddingTop: 60, background: '#fafaf7', position: 'relative', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
+      <div style={{ flexShrink: 0, paddingTop: 60, background: '#FBF4F1', position: 'relative', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
         <div style={{ padding: '8px 22px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => goTo('home')} style={{
             width: 40, height: 40, borderRadius: 999, background: '#fff',
@@ -4483,7 +4485,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
   if (isTakeaway) {
     return (
       <div data-screen-label="Pagamento riuscito" style={{
-        width: '100%', height: '100%', background: '#fafaf7', position: 'relative',
+        width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: '52px 22px 180px' }}>
@@ -4529,26 +4531,25 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
 
   return (
     <div data-screen-label="Pagamento riuscito" style={{
-      width: '100%', height: '100%', background: '#fafaf7', position: 'relative',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: '84px 22px 176px' }}>
 
         {/* Hero: success + importo come momento */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 999, background: '#e8f5ec',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18,
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a7a3a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
+          <div style={{ position: 'relative', marginBottom: 14 }}>
+            {(() => { const K = window.ByupKit; return K ? <K.Confetti count={30}/> : null; })()}
+            <img src="assets/mascot-wink.png" width="132" alt="" style={{
+              animation: 'bkMascotIn 700ms cubic-bezier(.34,1.45,.64,1) backwards, bkBob 2.6s .8s ease-in-out infinite',
+              filter: 'drop-shadow(0 16px 26px rgba(77,18,46,.3))',
+            }}/>
           </div>
 
           {/* Peak-end: la "fine" si chiude sulla gratitudine, non sul conto.
               L'importo (fonte di "pain of paying") resta visibile ma sobrio. */}
-          <div style={{ fontSize: 30, fontWeight: 800, color: TEXT, letterSpacing: -0.6, lineHeight: 1.15 }}>
-            Grazie!
+          <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, color: TEXT, lineHeight: 1.15 }}>
+            Fatto. Goditi la serata.
           </div>
           <div style={{ fontSize: 14.5, color: MUTED, marginTop: 10, lineHeight: 1.45, maxWidth: 290 }}>
             Hai pagato <b style={{ color: TEXT }}>{paidAmount.toFixed(2)}€</b> a <b style={{ color: TEXT }}>{venue}</b>
@@ -4573,7 +4574,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                     width: 34, height: 34, borderRadius: 999,
                     background: (g.isApp || g.isWebApp) ? '#1a1a1a' : '#c4b89f',
                     color: '#fff',
-                    border: '2.5px solid #fafaf7', marginLeft: -10,
+                    border: '2.5px solid #FBF4F1', marginLeft: -10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 12.5, fontWeight: 700,
                   }}>{g.initial || '?'}</div>
@@ -4581,7 +4582,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                 {commensali.length > 5 && (
                   <div style={{
                     width: 34, height: 34, borderRadius: 999, background: '#ebe3d6',
-                    color: MUTED, border: '2.5px solid #fafaf7', marginLeft: -10,
+                    color: MUTED, border: '2.5px solid #FBF4F1', marginLeft: -10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 700,
                   }}>+{commensali.length - 5}</div>

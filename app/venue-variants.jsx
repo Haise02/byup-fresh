@@ -18,10 +18,10 @@
 const { useState: useStateV, useEffect: useEffectV, useRef: useRefV } = React;
 
 const PINK_V = '#E32459';
-const TEXT_V = '#1F1A1B';
-const MUTED_V = '#7A7176';
-const BG_V = '#F5F5F5';
-const BORDER_V = '#EAE6E7';
+const TEXT_V = '#1c0f15';
+const MUTED_V = '#6d5a61';
+const BG_V = '#FBF4F1';
+const BORDER_V = '#eddfda';
 const CREAM_V = '#F4EFE6';
 const FOREST_V = '#2C4A3E';
 

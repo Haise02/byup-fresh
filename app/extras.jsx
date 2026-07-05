@@ -4,10 +4,10 @@ const { useState, useEffect, useRef } = React;
 
 // ─── Tokens (mirror app.jsx) ────────────────────────────────
 const PINK_X = '#E32459';
-const TEXT_X = '#1F1A1B';
-const MUTED_X = '#7A7176';
-const BG_X = '#F5F5F5';
-const BORDER_X = '#EAE6E7';
+const TEXT_X = '#1c0f15';
+const MUTED_X = '#6d5a61';
+const BG_X = '#FBF4F1';
+const BORDER_X = '#eddfda';
 
 // ─── Profile screen ─────────────────────────────────────────
 const PROFILE_ALLERGENS = [
@@ -821,6 +821,13 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     window.location.href = 'byup Home.html?auth=login';
   };
   const [lang, setLang] = useState('it');
+  const themeMode = (() => { try { return localStorage.getItem('byup.themeMode') || 'light'; } catch { return 'light'; } })();
+  const cycleTheme = () => {
+    const order = ['light', 'dark', 'auto'];
+    const next = order[(order.indexOf(themeMode) + 1) % 3];
+    try { localStorage.setItem('byup.themeMode', next); } catch {}
+    window.location.reload();
+  };
   const LANGS = [
     { code: 'it', flag: '🇮🇹', label: 'Italiano' },
     { code: 'en', flag: '🇬🇧', label: 'English' },
@@ -844,9 +851,9 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
     }}>
       {iconSvg && (
-        <div style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke={iconColor || MUTED_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div style={{ width: 32, height: 32, borderRadius: 11, flexShrink: 0, background: iconBg || '#FCE9EE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke={iconColor || PINK_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {iconSvg}
           </svg>
         </div>
@@ -858,7 +865,12 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   const RowGroup = ({ children }) => {
     const items = React.Children.toArray(children).filter(Boolean);
     return (
-      <div style={{ background: '#F8F5F6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{
+        background: 'rgba(255,255,255,.75)', borderRadius: 20, overflow: 'hidden',
+        border: '1px solid rgba(77,18,46,.07)',
+        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        boxShadow: '0 12px 26px -22px rgba(77,18,46,.45)',
+      }}>
         {items.map((child, i) => (
           <React.Fragment key={i}>
             {i > 0 && <div style={{ height: 1, background: '#f3eef0', marginLeft: 58 }}/>}
@@ -868,27 +880,25 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       </div>
     );
   };
-  const QuickCard = ({ label, iconSvg, iconColor, onClick, large, badge }) => (
-    <button onClick={onClick} style={{
-      background: '#FCE9EE', borderRadius: 18,
-      padding: large ? '22px 14px 18px' : '16px 8px 14px',
-      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0,
-      position: 'relative',
+  const QuickCard = ({ label, sub, img, iconSvg, iconColor, tint, onClick, delay = 0 }) => (
+    <button className="bk-press" onClick={() => { try { window.ByupKit && window.ByupKit.haptic.selection(); } catch {} onClick && onClick(); }} style={{
+      background: tint || '#FCE9EE', borderRadius: 22,
+      padding: '15px 14px 13px',
+      border: '1px solid rgba(77,18,46,.06)', cursor: 'pointer', fontFamily: 'inherit',
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+      position: 'relative', overflow: 'hidden', minHeight: 116, textAlign: 'left',
+      boxShadow: '0 14px 28px -20px rgba(227,36,89,.4)',
+      animation: `bkFadeUp 480ms ${160 + delay}ms cubic-bezier(.22,.9,.35,1) backwards`,
     }}>
-      {badge && (
-        <div style={{
-          position: 'absolute', top: 12, right: 12,
-          fontSize: 11, fontWeight: 700, color: PINK_X,
-          background: 'rgba(255,255,255,0.8)', padding: '2px 7px', borderRadius: 999,
-        }}>{badge}</div>
-      )}
-      <svg width={large ? 26 : 22} height={large ? 26 : 22} viewBox="0 0 24 24" fill="none"
-        stroke={iconColor || PINK_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        style={{ marginBottom: large ? 28 : 6 }}>
-        {iconSvg}
-      </svg>
-      <span style={{ fontSize: large ? 15 : 15, color: TEXT_X, fontWeight: 600, textAlign: 'left' }}>{label}</span>
+      <div aria-hidden style={{ position: 'absolute', right: -18, bottom: -18, width: 84, height: 84, borderRadius: 999, background: 'rgba(255,255,255,.5)' }}/>
+      {img
+        ? <img src={img} width="40" height="40" alt="" draggable={false} style={{ marginBottom: 9, filter: 'drop-shadow(0 6px 10px rgba(77,18,46,.18))', position: 'relative' }}/>
+        : <div style={{ width: 40, height: 40, borderRadius: 14, background: 'rgba(255,255,255,.8)', display: 'grid', placeItems: 'center', marginBottom: 9, position: 'relative' }}>
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={iconColor || PINK_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{iconSvg}</svg>
+          </div>}
+      <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 15.5, color: TEXT_X, fontWeight: 600, position: 'relative' }}>{label}</span>
+      {sub && <span style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, fontWeight: 700, position: 'relative' }}>{sub}</span>}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', top: 13, right: 11, opacity: .45 }}><polyline points="9 18 15 12 9 6"/></svg>
     </button>
   );
 
@@ -898,65 +908,128 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#fff', position: 'relative',
-      fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X, overflow: 'hidden', display: 'flex', flexDirection: 'column',
     }}>
+      <div aria-hidden style={{ position: 'absolute', left: '50%', top: '-12%', width: '90%', aspectRatio: '1', transform: 'translateX(-50%)', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(227,36,89,.12) 0%, transparent 65%)' }}/>
+      <div aria-hidden style={{ position: 'absolute', right: '-20%', bottom: '-10%', width: '60%', aspectRatio: '1', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(227,36,89,.1) 0%, transparent 68%)' }}/>
       <style>{`@keyframes profileSlideIn { from { transform: translateX(18px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '60px 18px 120px' }}>
         {view === 'main' && (
           <div style={{ animation: 'fade 0.2s ease' }}>
 
-            <button onClick={onBack} style={{
-              width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
-              border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', marginBottom: 8,
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
 
-            {/* Avatar centrato */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4, paddingBottom: 28 }}>
-              {/* Anello rosa byup */}
-              <div style={{ background: PINK_X, borderRadius: 999, padding: 3, marginBottom: 14, boxShadow: '0 4px 20px rgba(227,36,89,0.25)' }}>
-                <div style={{ width: 90, height: 90, borderRadius: 999, overflow: 'hidden', border: '2.5px solid #fff' }}>
-                  <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5"
-                    alt=""
-                    style={{ display: 'block', width: 90, height: 90, objectFit: 'cover', objectPosition: 'center top' }}
-                  />
-                </div>
-              </div>
-              {/* Nome + rotellina */}
-              <button onClick={() => setView('account')} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0',
-                fontFamily: 'inherit',
+            {/* Cover brand — magenta FISSO, non segue il tema */}
+            <div style={{
+              margin: '-60px -18px 0', position: 'relative', overflow: 'hidden',
+              background: 'linear-gradient(165deg, #e32459 0%, #d21e50 100%)',
+              borderRadius: '0 0 36px 36px',
+              padding: '72px 18px 52px',
+            }}>
+              <div aria-hidden style={{ position: 'absolute', left: '-12%', top: '-30%', width: '65%', aspectRatio: '1', background: 'radial-gradient(circle, rgba(250,227,222,.26) 0%, transparent 65%)', pointerEvents: 'none' }}/>
+              <div aria-hidden style={{ position: 'absolute', right: '-15%', bottom: '-35%', width: '70%', aspectRatio: '1', background: 'radial-gradient(circle, rgba(77,18,46,.32) 0%, transparent 65%)', pointerEvents: 'none' }}/>
+              <button className="bk-press" onClick={onBack} style={{
+                position: 'absolute', top: 64, left: 16,
+                width: 36, height: 36, borderRadius: 999, background: 'rgba(255,255,255,.18)',
+                border: '1px solid rgba(255,255,255,.35)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               }}>
-                <span style={{ fontSize: 22, fontWeight: 700, color: TEXT_X }}>Mario Rossi</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <div style={{ fontSize: 13, color: MUTED_X, marginTop: 4 }}>mario.rossi@email.it</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ position: 'relative', width: 106, height: 106 }}>
+                  <div aria-hidden style={{
+                    position: 'absolute', inset: 0, borderRadius: 999,
+                    background: 'conic-gradient(from 0deg, #fae3de, #ceff00, #ffffff, #ed9b9b, #fae3de)',
+                    animation: 'bkSpinRing 7s linear infinite',
+                    boxShadow: '0 16px 34px -12px rgba(77,18,46,.55)',
+                  }}/>
+                  <div style={{ position: 'absolute', inset: 4, borderRadius: 999, overflow: 'hidden', border: '3px solid #e32459', background: '#fff' }}>
+                    <img
+                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5"
+                      alt=""
+                      style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
+                    />
+                  </div>
+                  <img src="assets/mascot-wink.png" width="46" alt="" style={{
+                    position: 'absolute', right: -20, bottom: -8, transform: 'rotate(8deg)',
+                    filter: 'drop-shadow(0 6px 12px rgba(77,18,46,.45))',
+                    animation: 'bkBob 3s ease-in-out infinite', pointerEvents: 'none',
+                  }}/>
+                </div>
+                <button onClick={() => setView('account')} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '12px 0 2px',
+                  fontFamily: 'inherit',
+                }}>
+                  <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 24, fontWeight: 600, color: '#fff' }}>Mario Rossi</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                  </svg>
+                </button>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', fontWeight: 600 }}>@mariorossi · Roma</div>
+              </div>
+            </div>
+
+            {/* Stats che si sovrappongono alla cover */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{
+                display: 'flex', alignItems: 'stretch', width: '100%', maxWidth: 320,
+                marginTop: -28, position: 'relative', zIndex: 2,
+                background: 'rgba(255,255,255,.94)', border: '1px solid rgba(77,18,46,.08)',
+                borderRadius: 20, padding: '11px 4px',
+                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
+                animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards',
+              }}>
+                {[['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')], ['3', 'Gruppi', null]].map(([n, l, fn], i) => (
+                  <React.Fragment key={l}>
+                    {i > 0 && <div style={{ width: 1, background: 'rgba(77,18,46,.1)', margin: '4px 0' }}/>}
+                    <button onClick={fn || undefined} style={{ flex: 1, background: 'none', border: 'none', cursor: fn ? 'pointer' : 'default', fontFamily: 'inherit', padding: '2px 0' }}>
+                      <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 600, color: PINK_X, lineHeight: 1.1 }}>{n}</div>
+                      <div style={{ fontSize: 11, color: MUTED_X, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginTop: 2 }}>{l}</div>
+                    </button>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            {/* Badge giocosi */}
+            <div style={{ display: 'flex', gap: 7, margin: '12px 0 20px', flexWrap: 'wrap', justifyContent: 'center', animation: 'bkFadeUp 480ms 140ms cubic-bezier(.22,.9,.35,1) backwards' }}>
+              {[
+                { img: 'assets/cat-pizza.png', label: 'Pizza lover', bg: '#FCE9EE', c: PINK_X },
+                { img: 'assets/hero-spritz.png', label: 'Re dello spritz', bg: '#fae3de', c: '#4d122e' },
+                { label: 'LIV. 3', bg: '#ceff00', c: '#141414' },
+              ].map((b) => (
+                <span key={b.label} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: b.bg, color: b.c, fontSize: 11.5, fontWeight: 800,
+                  padding: '5px 11px', borderRadius: 999, letterSpacing: .3,
+                  border: '1px solid rgba(77,18,46,.06)',
+                }}>
+                  {b.img && <img src={b.img} width="16" height="16" alt=""/>}
+                  {b.label}
+                </span>
+              ))}
             </div>
 
             {/* Quick actions 2x2 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 28 }}>
-              <QuickCard label="Storico ordini" onClick={() => setView('orders')}
-                bg="#FCE9EE" iconColor="#E32459" large
-                iconSvg={<><polyline points="12 8 12 12 14 14"/><circle cx="12" cy="12" r="9"/></>}/>
-              <QuickCard label="Dieta & allergeni" onClick={() => setView('allergens')}
-                bg="#FEF0E3" iconColor="#C85C1A" large
-                iconSvg={<><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>}/>
-              <QuickCard label="Preferiti" onClick={() => setView('preferiti')}
-                bg="#F9E3EE" iconColor="#B01E46" large
-                iconSvg={<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>}/>
-              <QuickCard label="Pagamenti" onClick={() => setView('pagamenti')}
-                bg="#FEF7E3" iconColor="#A07010" large
-                iconSvg={<><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></>}/>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
+              <QuickCard label="Storico ordini" sub="24 ordini" tint="#FCE9EE" iconColor="#E32459" delay={0}
+                iconSvg={<><path d="M5.5 3.2h10l3 3v14.6l-2.6-1.7-2.6 1.7-2.6-1.7-2.6 1.7-2.6-1.7-2.6 1.7V5.2a2 2 0 0 1 2-2z" transform="translate(1.5 0)"/><path d="M9.5 9h6M9.5 13h6" transform="translate(0 0)"/></>}
+                onClick={() => setView('orders')}/>
+              <QuickCard label="Dieta & allergeni" sub={activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'} tint="#FEF0E3" iconColor="#C85C1A" delay={60}
+                iconSvg={<><path d="M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"/><path d="M5 19.5c3.5-4 7-7.5 10-9.5"/></>}
+                onClick={() => setView('allergens')}/>
+              <QuickCard label="Preferiti" sub="12 locali" tint="#F9E3EE" iconColor="#E32459" delay={120}
+                iconSvg={<path d="M12 20.6s-6.8-4.3-8.7-9.1C1.9 7.9 4.3 4.6 7.7 4.6c1.9 0 3.3.9 4.3 2.3 1-1.4 2.4-2.3 4.3-2.3 3.4 0 5.8 3.3 4.4 6.9-1.9 4.8-8.7 9.1-8.7 9.1z"/>}
+                onClick={() => setView('preferiti')}/>
+              <QuickCard label="Pagamenti" sub="byup pay" tint="#f4f7d4" iconColor="#5f7000" delay={180}
+                iconSvg={<><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M2.5 10.2h19"/><path d="M6.5 15h4.5"/></>}
+                onClick={() => setView('pagamenti')}/>
             </div>
 
             <div style={{ height: 14 }}/>
@@ -978,6 +1051,10 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <Row label="Privacy policy" onClick={() => setView('privacy')}
                 iconBg="#FCE9EE" iconColor={PINK_X}
                 iconSvg={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>}/>
+              <Row label="Tema (prototipo)" onClick={cycleTheme}
+                iconBg="#f4f7d4" iconColor="#5f7000"
+                right={<span style={{ fontSize: 12, fontWeight: 800, color: PINK_X, background: '#FCE9EE', padding: '4px 12px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: .5 }}>{themeMode}</span>}
+                iconSvg={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></>}/>
             </RowGroup>
 
             <div style={{ height: 14 }}/>
@@ -989,11 +1066,11 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             </RowGroup>
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
-              <button onClick={() => setConfirmLogout(true)} style={{
-                padding: '8px 28px', background: '#EBEBEB',
-                border: '1px solid #000', borderRadius: 999,
+              <button className="bk-press" onClick={() => setConfirmLogout(true)} style={{
+                padding: '10px 32px', background: 'rgba(227,36,89,.08)',
+                border: '1.5px solid rgba(227,36,89,.3)', borderRadius: 999,
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13.5, fontWeight: 500, color: '#000',
+                fontSize: 13.5, fontWeight: 700, color: PINK_X,
               }}>Esci</button>
             </div>
 
@@ -1192,6 +1269,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
       {/* Shared bottom tab bar (no QR) */}
       {(() => { const B = window.BottomTabBar; return B ? <B active="profile" onHome={onTabHome} onProfile={() => {}} showQR={false}/> : null; })()}
+      {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="confident" pageKey="profile" message="Qui comandi tu." bottom={112} size={116}/> : null; })()}
 
       {/* Dialog centrati (alert), a livello schermo — non bottom-sheet */}
       {(confirmLogout || confirmDeleteAccount) && (
@@ -1503,6 +1581,79 @@ function VenueMapThumbnail({ lat, lng }) {
   return <div ref={divRef} style={{ width: '100%', height: '100%' }}/>;
 }
 
+// Stack 9:16 stile "Da scoprire": auto ogni 1.5s finché non si clicca, poi manuale.
+function ReelStack({ items }) {
+  const n = items.length;
+  const [cur, setCur] = useState(0);
+  const [dx, setDx] = useState(0);
+  const stoppedRef = useRef(false);
+  const dragRef = useRef(null);
+  const movedRef = useRef(false);
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (stoppedRef.current || dragRef.current) return;
+      setCur(c => (c + 1) % n);
+    }, 1500);
+    return () => clearInterval(t);
+  }, [n]);
+  const getX = (e) => e.clientX ?? (e.touches && e.touches[0] && e.touches[0].clientX) ?? 0;
+  const onDown = (e) => { stoppedRef.current = true; movedRef.current = false; dragRef.current = { x: getX(e) }; };
+  const onMove = (e) => {
+    if (!dragRef.current) return;
+    const d = getX(e) - dragRef.current.x;
+    if (Math.abs(d) > 6) movedRef.current = true;
+    setDx(d);
+  };
+  const onUp = () => {
+    if (!dragRef.current) return;
+    const d = dx; dragRef.current = null; setDx(0);
+    if (d < -40) setCur(c => (c + 1) % n);
+    else if (d > 40) setCur(c => (c - 1 + n) % n);
+  };
+  const rel = (i) => { let r = (i - cur) % n; if (r > n / 2) r -= n; if (r < -n / 2) r += n; return r; };
+  return (
+    <div
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
+      onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
+      style={{ position: 'relative', height: 330, touchAction: 'pan-y', overflow: 'hidden', margin: '0 -16px' }}>
+      {items.map((src, i) => {
+        const r = rel(i);
+        if (Math.abs(r) > 2) return null;
+        const dragging = dx !== 0;
+        return (
+          <div key={i}
+            onClick={() => { if (movedRef.current) return; if (r !== 0) setCur(i); }}
+            style={{
+              position: 'absolute', left: '50%', top: 8, width: 172, height: 306,
+              transform: `translateX(calc(-50% + ${r * 118}px + ${dx * .55}px)) scale(${r === 0 ? 1 : .84})`,
+              zIndex: 10 - Math.abs(r),
+              opacity: Math.abs(r) === 2 ? 0 : (r === 0 ? 1 : .55),
+              transition: dragging ? 'none' : 'transform 520ms cubic-bezier(.22,.9,.35,1), opacity 420ms ease',
+              cursor: 'pointer', willChange: 'transform',
+            }}>
+            <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 20, overflow: 'hidden', boxShadow: r === 0 ? '0 18px 36px -14px rgba(227,36,89,.45)' : '0 10px 22px -14px rgba(77,18,46,.4)' }}>
+              <img src={src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+              {r === 0 && (
+                <div style={{
+                  position: 'absolute', left: '50%', top: '42%', transform: 'translate(-50%,-50%)',
+                  width: 52, height: 52, borderRadius: 999,
+                  background: 'rgba(255,255,255,.24)', border: '1.5px solid rgba(255,255,255,.55)',
+                  backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: 'bkPulse 2s ease-in-out infinite',
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><polygon points="8 5 19 12 8 19"/></svg>
+                </div>
+              )}
+              <div style={{ position: 'absolute', left: 10, bottom: 10, right: 10, color: '#fff', fontSize: 10.5, fontWeight: 800, letterSpacing: .8, textTransform: 'uppercase', opacity: .9 }}>Reel</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap }) {
   const v = venue || {};
   const photos = v.photos || [
@@ -1581,6 +1732,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
     }
   };
   const [reportOpen, setReportOpen] = useState(false);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
   const [reportReason, setReportReason] = useState(null);
   const [reportSent, setReportSent] = useState(false);
   const faqs = [
@@ -1604,8 +1756,8 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
 
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#fff', position: 'relative',
-      fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
+      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X, overflow: 'hidden', display: 'flex', flexDirection: 'column',
     }}>
       {/* Floating top buttons (sticky over scroll) */}
@@ -1675,6 +1827,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
               <img key={i} src={p} alt="" style={{
                 width: '100%', height: '100%', objectFit: 'cover', flexShrink: 0,
                 pointerEvents: 'none',
+                animation: i === photoIdx ? 'bkKenBurns 11s ease-in-out infinite alternate' : 'none',
               }}/>
             ))}
           </div>
@@ -1690,7 +1843,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, opacity: 0.85, textTransform: 'uppercase', marginBottom: 5 }}>
               Cucina Romana
             </div>
-            <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
               {v.name || 'Ristorante Cacio e Pepe'}
             </div>
           </div>
@@ -1800,9 +1953,9 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           {/* Premi */}
           <Section title="Premi e riconoscimenti">
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <AwardTag>Top 10 Roma 2025</AwardTag>
-              <AwardTag>Gambero Rosso</AwardTag>
-              <AwardTag>Tripadvisor Excellence</AwardTag>
+              <AwardTag tier="gold">Top 10 Roma 2025</AwardTag>
+              <AwardTag tier="silver">Gambero Rosso</AwardTag>
+              <AwardTag tier="bronze">Tripadvisor Excellence</AwardTag>
             </div>
           </Section>
 
@@ -1818,19 +1971,20 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
 
           {/* Piatti in evidenza */}
           <Section title="Chef consiglia">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {dishes.map((p, i) => {
-                const names = ['Cacio e Pepe', 'Carbonara', 'Amatriciana', 'Tonnarello', 'Supplì', 'Tiramisù'];
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              {dishes.slice(0, 3).map((p, i) => {
+                const names = ['Cacio e Pepe', 'Carbonara', 'Amatriciana'];
                 return (
-                  <div key={i} style={{
+                  <div key={i} className="bk-press" style={{
                     borderRadius: 16, overflow: 'hidden',
-                    background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.09)',
+                    background: '#fff', boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
+                    border: '1px solid rgba(77,18,46,.06)',
                   }}>
-                    <div style={{ height: 140, overflow: 'hidden' }}>
+                    <div style={{ height: 88, overflow: 'hidden' }}>
                       <img src={p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                     </div>
-                    <div style={{ padding: '10px 12px 12px' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_X }}>{names[i]}</div>
+                    <div style={{ padding: '8px 10px 10px' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: TEXT_X, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{names[i]}</div>
                     </div>
                   </div>
                 );
@@ -1838,10 +1992,16 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             </div>
           </Section>
 
+          {/* Reel dalla cucina — stack 9:16 con play */}
+          <Section title="Dalla cucina">
+            <ReelStack items={[1, 2, 3, 4].map(n => 'assets/reels/reel-' + n + '.webp')}/>
+          </Section>
+
           {/* Recensioni */}
           <Section title="Cosa dicono di noi">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {reviews.map((r, i) => (
+            <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 238, overflow: 'hidden' }}>
+              {reviews.slice(0, 2).map((r, i) => (
                 <div key={i} style={{
                   padding: '13px 14px', borderRadius: 14,
                   background: BG_X,
@@ -1868,6 +2028,19 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
                   <div style={{ fontSize: 13, lineHeight: 1.55, color: TEXT_X }}>{r.text}</div>
                 </div>
               ))}
+            </div>
+            {/* fade blur sulla seconda recensione + CTA solo testo */}
+            <div style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0, height: 120,
+              background: 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,.92) 70%, #FBF4F1 100%)',
+              backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)',
+              display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 2,
+            }}>
+              <button onClick={() => setReviewsOpen(true)} style={{
+                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                color: PINK_X, fontSize: 14, fontWeight: 700, padding: '10px 16px',
+              }}>Leggi tutte le recensioni ↓</button>
+            </div>
             </div>
           </Section>
 
@@ -1972,6 +2145,44 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
       )}
 
       {/* Report sheet */}
+      {reviewsOpen && (
+        <>
+          <div onClick={() => setReviewsOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(28,6,16,0.5)', zIndex: 80, animation: 'fade .2s ease' }}/>
+          <div style={{
+            position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 81,
+            background: '#FBF4F1', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+            maxHeight: '82%', display: 'flex', flexDirection: 'column',
+            animation: 'slideUp .32s cubic-bezier(.2,.8,.2,1)',
+          }}>
+            <div style={{ width: 40, height: 4, background: 'rgba(77,18,46,.2)', borderRadius: 2, margin: '10px auto 6px', flexShrink: 0 }}/>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 20px 10px', flexShrink: 0 }}>
+              <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 19, fontWeight: 600, color: TEXT_X }}>Tutte le recensioni</div>
+              <button onClick={() => setReviewsOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, fontWeight: 700, color: TEXT_X, cursor: 'pointer', fontFamily: 'inherit', padding: 4 }}>×</button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '0 18px 26px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[...reviews, ...reviews].map((r, i) => (
+                <div key={i} style={{ padding: '13px 14px', borderRadius: 16, background: '#fff', border: '1px solid rgba(77,18,46,.07)', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 999, background: PINK_X, flexShrink: 0, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13 }}>{r.initial}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: TEXT_X }}>{r.name}</span>
+                        <span style={{ fontSize: 11, color: MUTED_X }}>{r.when}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 2, marginTop: 3 }}>
+                        {[1,2,3,4,5].map(st => (
+                          <svg key={st} width="11" height="11" viewBox="0 0 24 24" fill={st <= r.rating ? PINK_X : '#e0d8db'}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13, lineHeight: 1.55, color: TEXT_X }}>{r.text}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
       {reportOpen && (
         <div onClick={() => setReportOpen(false)} style={{
           position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1100,
@@ -2117,16 +2328,24 @@ function PromoTag({ children, info }) {
   );
 }
 // Premi: outline minimal con icona alloro
-function AwardTag({ children }) {
+function AwardTag({ children, tier = 'gold' }) {
+  const TIERS = {
+    gold:   { c: '#c9930a', bg: '#fdf6e0', bd: '#efd98a' },
+    silver: { c: '#7b8494', bg: '#f3f5f8', bd: '#ccd3dd' },
+    bronze: { c: '#a3652f', bg: '#f9ede1', bd: '#e2c3a2' },
+  };
+  const t = TIERS[tier] || TIERS.gold;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      background: '#fff', color: TEXT_X, padding: '6px 12px 6px 10px', borderRadius: 999,
+      background: t.bg, color: TEXT_X, padding: '6px 12px 6px 10px', borderRadius: 999,
       fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap',
-      border: `1px solid ${BORDER_X}`,
+      border: `1px solid ${t.bd}`,
     }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 9 a 6 6 0 0 0 12 0 V3 H6 z M12 15 v 6 M8 21 h 8"/>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill={t.c} stroke={t.c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 9 a 6 6 0 0 0 12 0 V3 H6 z" />
+        <path d="M12 15 v 4 M8.5 21 h 7" fill="none"/>
+        <path d="M6 5H3.5a4.5 4.5 0 0 0 4 4.4M18 5h2.5a4.5 4.5 0 0 1-4 4.4" fill="none"/>
       </svg>
       {children}
     </span>
@@ -2144,9 +2363,19 @@ function InfoRow({ icon, label }) {
 }
 function SedeRow({ city, addr }) {
   return (
-    <div style={{ background: BG_X, borderRadius: 12, padding: '12px 14px' }}>
-      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{city}</div>
-      <div style={{ fontSize: 12.5, color: MUTED_X }}>{addr}</div>
+    <div style={{ background: BG_X, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ width: 38, height: 38, borderRadius: 13, background: '#FCE9EE', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={PINK_X} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 10.4 5 5.2A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.2l1 5.2"/>
+          <path d="M4 10.4a2.6 2.6 0 0 0 5.2 0 2.6 2.6 0 0 0 5.3 0 2.6 2.6 0 0 0 5.3 0"/>
+          <path d="M5.3 12.8V19a1.5 1.5 0 0 0 1.5 1.5h10.4A1.5 1.5 0 0 0 18.7 19v-6.2"/>
+          <path d="M9.8 20.3v-4.6a1.3 1.3 0 0 1 1.3-1.3h1.8a1.3 1.3 0 0 1 1.3 1.3v4.6"/>
+        </svg>
+      </div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{city}</div>
+        <div style={{ fontSize: 12.5, color: MUTED_X }}>{addr}</div>
+      </div>
     </div>
   );
 }

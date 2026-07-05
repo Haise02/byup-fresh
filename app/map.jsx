@@ -5,8 +5,8 @@ const PINK_DARK = '#B81C47';
 const PINK_LIGHT = '#FBD8DE';
 const ORANGE = '#FF8C2B';
 const PLUM = '#3a1d2c';
-const TEXT = '#1a1a1a';
-const MUTED = '#7d7d7d';
+const TEXT = '#1c0f15';
+const MUTED = '#6d5a61';
 
 const CATEGORIES = [
   { id: 'all',      label: 'Tutti' },
@@ -554,7 +554,8 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   );
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#f5f0e8', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'absolute', inset: 0, background: '#FBF4F1', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="phone" pageKey="map" message="Tocca un locale per sbirciare il menu." bottom={118} size={116}/> : null; })()}
 
       {/* ── Header ── */}
       <div style={{
@@ -569,7 +570,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={onBack} style={{
             width: 36, height: 36, borderRadius: 999, border: 'none',
-            background: '#1a1a1a', cursor: 'pointer', flexShrink: 0,
+            background: '#1c0f15', cursor: 'pointer', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

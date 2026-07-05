@@ -10,9 +10,9 @@ const { useState: useStateA, useRef: useRefA, useEffect: useEffectA } = React;
 // ─── Tokens (mirror app.jsx / extras.jsx) ───────────────────
 const A_PINK = '#E32459';
 const A_PINK_DARK = '#B81C47';
-const A_TEXT = '#1F1A1B';
-const A_MUTED = '#7A7176';
-const A_FIELD = '#F8F5F6';
+const A_TEXT = '#1c0f15';
+const A_MUTED = '#6d5a61';
+const A_FIELD = '#f9efeb';
 const A_LINK = '#7FB4FF';        // azzurro dei link ("recupera qui")
 const A_CREAM = '#F7E2E6';       // panna/rosa chiaro del logo + bottone
 
@@ -675,8 +675,8 @@ function AuthSuccess({ name, onStart }) {
     <div style={{ position: 'absolute', inset: 0, color: '#fff' }}>
       <AuthBackground />
       <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px', textAlign: 'center' }}>
-        <div style={{ width: 96, height: 96, borderRadius: 999, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28, animation: 'fade .4s ease' }}><CheckBig /></div>
-        <div style={{ fontSize: 28, fontWeight: 800 }}>Benvenuto{name ? `, ${name}` : ''}!</div>
+        <img src="assets/mascot-wave.png" width="150" alt="" style={{ marginBottom: 20, animation: 'bkMascotIn 700ms cubic-bezier(.34,1.45,.64,1) backwards, bkBob 2.6s .8s ease-in-out infinite', filter: 'drop-shadow(0 16px 26px rgba(0,0,0,.3))' }}/>
+        <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 28, fontWeight: 600 }}>Benvenuto{name ? `, ${name}` : ''}!</div>
         <div style={{ fontSize: 15, color: '#F2D7DD', marginTop: 12, lineHeight: 1.55 }}>
           Il tuo account è pronto. Scopri i migliori locali vicino a te e prenota in pochi tap.
         </div>
