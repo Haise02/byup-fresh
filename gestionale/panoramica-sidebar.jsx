@@ -192,21 +192,14 @@ function PnSidebar({ active = 'panoramica', onNav }) {
 }
 
 function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
+  // Attivo = tinta brand piatta. Niente gloss verticale, bevel o shimmer:
+  // il 2.5D sui bottoni è fuori dal design system.
   const activeStyle = active ? {
-    background: 'rgba(255, 224, 221, 0.65)',
-    backgroundImage:
-      'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%)',
-    backdropFilter: 'blur(10px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(10px) saturate(160%)',
-    boxShadow:
-      'inset 0 1px 0 rgba(255,255,255,0.75), ' +
-      'inset 0 0 0 1px rgba(242, 107, 122, 0.20), ' +
-      '0 2px 6px -2px rgba(190, 24, 93, 0.10)',
+    background: PN.SIDE_ACTIVE_BG,
   } : {};
 
   return (
     <button onClick={onClick}
-      className={active ? 'glass-shimmer' : ''}
       title={collapsed ? label : undefined}
       style={{
         display: 'flex', alignItems: 'center',
@@ -261,15 +254,9 @@ function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
 }
 
 function PnSysItem({ label, icon, active, onClick, collapsed }) {
+  // Flat come i nav item principali.
   const activeStyle = active ? {
-    background: 'rgba(255, 224, 221, 0.60)',
-    backgroundImage:
-      'linear-gradient(to bottom, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.06) 55%, rgba(255,255,255,0) 100%)',
-    backdropFilter: 'blur(8px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(8px) saturate(160%)',
-    boxShadow:
-      'inset 0 1px 0 rgba(255,255,255,0.70), ' +
-      'inset 0 0 0 1px rgba(242, 107, 122, 0.18)',
+    background: PN.SIDE_ACTIVE_BG,
   } : {};
 
   return (

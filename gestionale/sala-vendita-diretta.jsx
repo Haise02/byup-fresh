@@ -1,6 +1,17 @@
-// Sala — Tab Vendita diretta (POS) — redesigned
+// Sala — Tab Vendita diretta (POS) — liquid glass
 // Pattern: search/filter sticky, food cards con immagine, click → personalizza,
 // carrello con coperti stepper, mods inline, sconto, salva conto.
+
+// Dark sunset glass (D3) — stessa ricetta del bottone "Unisci tavoli":
+// base wine-burnt + highlight coral + inset ring caldo, mai nero piatto.
+const SV_SUNSET_BG = `
+  radial-gradient(circle at 82% 18%, rgba(255, 96, 102, 0.32), transparent 62%),
+  linear-gradient(180deg, rgba(58, 28, 22, 0.96) 0%, rgba(30, 12, 10, 0.98) 100%)
+`;
+const SV_SUNSET_SHADOW = 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)';
+const SV_SUNSET_TEXT = '#FFE9E6';
+const svSunsetHoverIn  = e => { e.currentTarget.style.filter = 'brightness(1.15)'; };
+const svSunsetHoverOut = e => { e.currentTarget.style.filter = 'none'; };
 
 function SalaVenditaDiretta() {
   const [search, setSearch] = React.useState('');
@@ -103,13 +114,13 @@ function SalaVenditaDiretta() {
               return (
                 <button key={c} onClick={() => setCat(c)} style={{
                   padding: '7px 14px', borderRadius: 999,
-                  border: `1px solid ${on ? 'rgba(0,0,0,0.32)' : PN.BORDER_LIGHT}`,
-                  background: on ? PN.BTN_DARK : PN.BTN_NEUTRAL,
-                  color: on ? PN.WHITE : PN.TEXT,
+                  border: `1px solid ${on ? 'transparent' : PN.BORDER_LIGHT}`,
+                  background: on ? SV_SUNSET_BG : PN.BTN_NEUTRAL,
+                  color: on ? SV_SUNSET_TEXT : PN.TEXT,
                   fontSize: 14.5, fontWeight: 600, cursor:'pointer',
                   fontFamily:'inherit', whiteSpace:'nowrap',
                   boxShadow: on
-                    ? `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.14)`
+                    ? SV_SUNSET_SHADOW
                     : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
                   transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out',
                 }}>
@@ -339,14 +350,15 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(0,0,0,0.45)',
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
       display:'grid', placeItems:'center', zIndex: 200, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16,
+        ...PN.GLASS_STRONG,
+        borderRadius: 20,
         width: 480, maxWidth:'100%', maxHeight:'88vh',
         display:'flex', flexDirection:'column', overflow:'hidden',
-        boxShadow: '0 32px 80px rgba(15,17,21,0.24), 0 2px 6px rgba(15,17,21,0.08)',
       }}>
         {/* Header con immagine */}
         <div style={{position:'relative', height: 140, background: '#F4F5F7'}}>
@@ -471,22 +483,22 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
         {/* Footer: qty + add */}
         <div style={{
           padding: '14px 20px',
-          borderTop: `1px solid ${PN.BORDER_SOFT}`,
-          background: '#FAFBFC',
+          borderTop: '1px solid rgba(15,17,21,0.08)',
+          background: 'rgba(255,255,255,0.35)',
           display:'flex', alignItems:'center', gap: 12,
         }}>
           <div style={{display:'flex', alignItems:'center', gap: 8}}>
             <button onClick={() => setQty(Math.max(1, qty - 1))} style={{
               width: 34, height: 34, borderRadius:'50%',
-              background: PN.WHITE, color: PN.TEXT,
-              border: `1px solid ${PN.BORDER}`, fontSize: 17, fontWeight: 700,
+              background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+              border: '1px solid rgba(15,17,21,0.10)', fontSize: 17, fontWeight: 700,
               cursor:'pointer', fontFamily:'inherit',
             }}>−</button>
             <span style={{minWidth: 22, textAlign:'center', fontSize: 17, fontWeight: 700}}>{qty}</span>
             <button onClick={() => setQty(qty + 1)} style={{
               width: 34, height: 34, borderRadius:'50%',
-              background: PN.WHITE, color: PN.TEXT,
-              border: `1px solid ${PN.BORDER}`, fontSize: 17, fontWeight: 700,
+              background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+              border: '1px solid rgba(15,17,21,0.10)', fontSize: 17, fontWeight: 700,
               cursor:'pointer', fontFamily:'inherit',
             }}>+</button>
           </div>
@@ -496,16 +508,18 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
             style={{
               flex: 1,
               padding: '12px 18px', borderRadius: 999,
-              background: requiredOk ? PN.BTN_DARK : PN.WHITE_FROST,
-              color: requiredOk ? PN.WHITE : PN.MUTED_SOFT,
-              border: requiredOk ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
+              background: requiredOk ? SV_SUNSET_BG : PN.WHITE_FROST,
+              color: requiredOk ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
+              border: `1px solid ${requiredOk ? 'transparent' : PN.BORDER_SOFT_A}`,
               fontSize: 15.5, fontWeight: 700,
               cursor: requiredOk ? 'pointer' : 'not-allowed',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
-              boxShadow: requiredOk ? `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)` : 'none',
-              transition: 'background 150ms ease-out',
-            }}>
+              boxShadow: requiredOk ? SV_SUNSET_SHADOW : 'none',
+              transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
+            }}
+            onMouseEnter={e => { if (requiredOk) svSunsetHoverIn(e); }}
+            onMouseLeave={svSunsetHoverOut}>
             <span>{initialMods != null || initialQty ? 'Aggiorna' : 'Aggiungi'}</span>
             <span style={{fontSize: 15.5, fontWeight: 700}}>€{(lineTotal * qty).toFixed(2)}</span>
           </button>
@@ -619,18 +633,18 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             style={{
               flex: 1,
               padding: '11px 16px', borderRadius: 999,
-              background: lines.length === 0 ? PN.WHITE_FROST : PN.BTN_DARK,
-              color: lines.length === 0 ? PN.MUTED_SOFT : PN.WHITE,
-              border: lines.length === 0 ? `1px solid ${PN.BORDER_SOFT_A}` : '1px solid rgba(0,0,0,0.32)',
+              background: lines.length === 0 ? PN.WHITE_FROST : SV_SUNSET_BG,
+              color: lines.length === 0 ? PN.MUTED_SOFT : SV_SUNSET_TEXT,
+              border: `1px solid ${lines.length === 0 ? PN.BORDER_SOFT_A : 'transparent'}`,
               fontSize: 15.5, fontWeight: 700,
               cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
-              boxShadow: lines.length === 0 ? 'none' : `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)`,
-              transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
+              boxShadow: lines.length === 0 ? 'none' : SV_SUNSET_SHADOW,
+              transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
             }}
-            onMouseEnter={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
-            onMouseLeave={e => { if (lines.length > 0) e.currentTarget.style.background = PN.BTN_DARK; }}>
+            onMouseEnter={e => { if (lines.length > 0) svSunsetHoverIn(e); }}
+            onMouseLeave={svSunsetHoverOut}>
             <span>Procedi al pagamento</span>
             <span>€{total.toFixed(2)}</span>
           </button>
@@ -797,14 +811,15 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.55)',
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
       display: 'grid', placeItems: 'center', zIndex: 200, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: 16,
+        ...PN.GLASS_STRONG,
+        borderRadius: 20,
         width: 420, maxWidth: '100%',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        boxShadow: '0 24px 70px rgba(0,0,0,0.28)',
       }}>
         {done ? (
           <div style={{
@@ -832,10 +847,12 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 : confirmedPay.contanti > 0 ? 'Contanti' : 'Carta'}
             </div>
             <button onClick={onClose} style={{
-              padding: '10px 24px', background: '#0F1115', color: '#fff',
-              border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700,
+              padding: '10px 24px', background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
+              border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700,
+              boxShadow: SV_SUNSET_SHADOW,
               cursor: 'pointer', fontFamily: 'inherit',
-            }}>Chiudi</button>
+            }}
+            onMouseEnter={svSunsetHoverIn} onMouseLeave={svSunsetHoverOut}>Chiudi</button>
           </div>
         ) : (
           <>
@@ -850,7 +867,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               </div>
               <button onClick={onClose} style={{
                 width: 32, height: 32, borderRadius: 8,
-                background: '#F1F2F5', border: 'none', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.65)', border: '1px solid rgba(15,17,21,0.08)',
+                cursor: 'pointer',
                 fontSize: 20, fontFamily: 'inherit', color: '#6B7280',
               }}>×</button>
             </div>
@@ -905,7 +923,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 )}
               </div>
 
-              <div style={{ height: 1, background: '#E5E7EB', margin: '0 -22px 20px' }}/>
+              <div style={{ height: 1, background: 'rgba(15,17,21,0.08)', margin: '0 -22px 20px' }}/>
 
               {/* PAGAMENTO */}
               <div>
@@ -936,8 +954,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             </div>
 
             <div style={{
-              padding: '14px 22px', borderTop: '1px solid #F0F2F5',
-              background: '#fff', flexShrink: 0,
+              padding: '14px 22px', borderTop: '1px solid rgba(15,17,21,0.08)',
+              background: 'rgba(255,255,255,0.35)', flexShrink: 0,
             }}>
               <button
                 onClick={() => {
@@ -949,18 +967,18 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 disabled={!canConfirm}
                 style={{
                   width: '100%', padding: '15px 16px', borderRadius: 10,
-                  background: canConfirm ? PN.BTN_DARK : PN.WHITE_FROST,
-                  color: canConfirm ? '#fff' : '#9CA3AF',
-                  border: canConfirm ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER_SOFT_A}`,
+                  background: canConfirm ? SV_SUNSET_BG : PN.WHITE_FROST,
+                  color: canConfirm ? SV_SUNSET_TEXT : '#9CA3AF',
+                  border: `1px solid ${canConfirm ? 'transparent' : PN.BORDER_SOFT_A}`,
                   fontSize: 17, fontWeight: 700,
                   cursor: canConfirm ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit', letterSpacing: -0.2,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: canConfirm ? `${PN.INSET_HIGHLIGHT_DARK}, 0 2px 6px rgba(15,17,21,0.16)` : 'none',
-                  transition: 'background 150ms ease-out',
+                  boxShadow: canConfirm ? SV_SUNSET_SHADOW : 'none',
+                  transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
                 }}
-                onMouseEnter={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
-                onMouseLeave={e => { if (canConfirm) e.currentTarget.style.background = PN.BTN_DARK; }}>
+                onMouseEnter={e => { if (canConfirm) svSunsetHoverIn(e); }}
+                onMouseLeave={svSunsetHoverOut}>
                 {!canConfirm
                   ? (finalTotal === 0 ? 'Nessun articolo' : `Manca €${(finalTotal - paid).toFixed(2)}`)
                   : <>Conferma incasso <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>}

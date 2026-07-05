@@ -266,16 +266,11 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
       <div style={{
         flex: 1, minWidth: 0,
         position: 'relative', isolation: 'isolate',
-        // Qui domina il DARK: mesh sunset (D3) come substrato dei ticket di vetro
-        background: `
-          radial-gradient(circle at 80% 8%, rgba(255, 96, 102, 0.22), transparent 45%),
-          radial-gradient(circle at 12% 30%, rgba(251, 122, 70, 0.10), transparent 45%),
-          radial-gradient(circle at 70% 92%, rgba(255, 120, 130, 0.13), transparent 50%),
-          linear-gradient(135deg, #2C0C10 0%, #160508 100%)
-        `,
+        // Board LIGHT (W1): il dark resta solo sulle card in ritardo
+        background: PN.WHITE,
         borderRadius: focus ? 0 : 20,
-        border: 'none',
-        boxShadow: focus ? 'none' : '0 14px 36px -10px rgba(80, 10, 30, 0.45), 0 4px 10px -4px rgba(80, 10, 30, 0.25)',
+        border: focus ? 'none' : `1px solid ${PN.BORDER_HAIR}`,
+        boxShadow: focus ? 'none' : '0 1px 0 rgba(15,17,21,0.04), 0 6px 20px rgba(15,17,21,0.04)',
         padding: focus ? '20px 28px' : 22,
         display: focus ? 'flex' : 'block',
         flexDirection: focus ? 'column' : 'unset',
@@ -297,30 +292,30 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
             {lateCount > 0 && (
               <button onClick={() => setOnlyLate(v => !v)} title="Filtra in ritardo" style={{
                 height: 36, minWidth: 36, padding: '0 11px', borderRadius: 10, flexShrink: 0,
-                background: onlyLate ? 'rgba(255, 90, 95, 0.26)' : 'rgba(255, 90, 95, 0.14)',
+                background: onlyLate ? 'rgba(220, 38, 38, 0.16)' : 'rgba(220, 38, 38, 0.08)',
                 border: 'none',
-                boxShadow: `inset 0 0 0 1px rgba(255, 90, 95, ${onlyLate ? 0.65 : 0.40})`,
-                color: '#FF9A9E',
+                boxShadow: `inset 0 0 0 1px rgba(220, 38, 38, ${onlyLate ? 0.55 : 0.35})`,
+                color: '#DC2626',
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
                 fontFamily: 'inherit',
                 transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
               }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13" stroke="#2C0C10" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="#2C0C10" strokeWidth="2" strokeLinecap="round"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13" stroke="#FFF" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="#FFF" strokeWidth="2" strokeLinecap="round"/></svg>
                 <span style={{fontSize: 15, fontWeight: 700, lineHeight: 1}}>{lateCount}</span>
               </button>
             )}
           </div>
           <button onClick={onToggleFocus} title={focus ? 'Esci (Esc)' : 'Schermo intero'} style={{
             width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(255, 255, 255, 0.07)',
+            background: 'rgba(15, 17, 21, 0.04)',
             border: 'none',
-            boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.14)',
-            color: '#F5F5F7',
+            boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
+            color: PN.TEXT,
             cursor:'pointer', display:'grid', placeItems:'center', fontFamily:'inherit',
             transition: 'background 150ms ease-out',
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.04)'; }}
           >{focus ? <ExitFullIcon/> : <EnterFullIcon/>}</button>
         </div>
 
@@ -436,13 +431,14 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
 // ─── Pronti panel ────────────────────────────────────────────
 function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard,
   draggingId, dragOverId, onDragStart, onDragEnd, onDragEnterCard, onDropCard }) {
-  // Pannello Pronti — vetro scuro come le colonne, accento verde menta
+  // Pannello Pronti — light come la board, accento verde menta
   const darkPanel = {
     background: `
-      radial-gradient(circle at 80% 6%, rgba(52, 211, 153, 0.10), transparent 50%),
-      linear-gradient(135deg, #21100F 0%, #130607 100%)
+      radial-gradient(circle at 80% 6%, rgba(52, 211, 153, 0.08), transparent 50%),
+      linear-gradient(${PN.WHITE}, ${PN.WHITE})
     `,
-    boxShadow: 'inset 0 1px 0 rgba(255, 200, 210, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 14px 36px -10px rgba(80, 10, 30, 0.45)',
+    border: `1px solid ${PN.BORDER_HAIR}`,
+    boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 20px rgba(15,17,21,0.04)',
   };
   if (collapsed) {
     return (
@@ -455,10 +451,10 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
       }}>
         <span style={{
           writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-          fontSize: 13, fontWeight: 700, color: KDS_C.text,
+          fontSize: 13, fontWeight: 700, color: KDS_CL.text,
           letterSpacing: 0.6, textTransform: 'uppercase', whiteSpace: 'nowrap',
         }}>Pronti</span>
-        <KdsPill tone="done" style={{fontSize: 12}}>{tickets.length}</KdsPill>
+        <KdsPill light tone="done" style={{fontSize: 12}}>{tickets.length}</KdsPill>
       </div>
     );
   }
@@ -472,16 +468,16 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
       overflow: 'hidden',
     }}>
       <div style={{
-        padding: '12px 14px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        padding: '12px 14px', borderBottom: '1px solid rgba(15, 17, 21, 0.07)',
         display: 'flex', alignItems: 'center', gap: 8,
         flexShrink: 0,
       }}>
-        <span style={{fontSize: 17, fontWeight: 700, color: KDS_C.text, letterSpacing: '-0.01em'}}>Pronti</span>
-        <KdsPill tone="done" style={{fontSize: 12.5, fontVariantNumeric: 'tabular-nums'}}>{tickets.length}</KdsPill>
+        <span style={{fontSize: 17, fontWeight: 700, color: KDS_CL.text, letterSpacing: '-0.01em'}}>Pronti</span>
+        <KdsPill light tone="done" style={{fontSize: 12.5, fontVariantNumeric: 'tabular-nums'}}>{tickets.length}</KdsPill>
         <span style={{flex: 1}}/>
         <button onClick={onToggle} title="Comprimi" style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          color: KDS_C.mut, fontFamily: 'inherit', fontSize: 22, padding: 4,
+          color: KDS_CL.mut, fontFamily: 'inherit', fontSize: 22, padding: 4,
           lineHeight: 1, width: 32, height: 32, display: 'grid', placeItems: 'center',
         }}>›</button>
       </div>
@@ -515,42 +511,39 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
       onDragOver={e => e.preventDefault()}
       onDrop={e => { e.preventDefault(); onDrop && onDrop(); }}
       style={{
-        background: 'rgba(20, 22, 27, 0.55)',
-        backdropFilter: 'blur(22px) saturate(170%)',
-        WebkitBackdropFilter: 'blur(22px) saturate(170%)',
+        background: PN.WHITE,
         borderRadius: 16,
         border: 'none',
         overflow: 'hidden',
         opacity: dragging ? 0.4 : 1,
         cursor: 'grab',
         boxShadow: [
-          'inset 0 1px 0 rgba(255, 200, 210, 0.14)',
-          dragOver ? 'inset 0 0 0 1px rgba(255, 90, 95, 0.55)' : 'inset 0 0 0 1px rgba(52, 211, 153, 0.22)',
-          '0 8px 22px -8px rgba(80, 10, 30, 0.45)',
+          dragOver ? 'inset 0 0 0 1px rgba(220, 38, 38, 0.45)' : 'inset 0 0 0 1px rgba(16, 185, 129, 0.28)',
+          '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
         ].join(', '),
         transition: 'opacity 0.15s, box-shadow 0.15s',
       }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
+        borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
       }}>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 17, fontWeight: 800, color: KDS_C.text, letterSpacing: '-0.01em'}}>
+          <div style={{fontSize: 17, fontWeight: 800, color: KDS_CL.text, letterSpacing: '-0.01em'}}>
             {ticket.kind === 'sala'
-              ? <React.Fragment><span style={{fontSize: 11.5, fontWeight: 700, color: KDS_C.mut}}>T</span>{ticket.table}</React.Fragment>
+              ? <React.Fragment><span style={{fontSize: 11.5, fontWeight: 700, color: KDS_CL.mut}}>T</span>{ticket.table}</React.Fragment>
               : ticket.customer}
           </div>
           {(ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup && (
-            <div style={{fontSize: 12, color: KDS_C.mut, marginTop: 1}}>
+            <div style={{fontSize: 12, color: KDS_CL.mut, marginTop: 1}}>
               {ticket.kind === 'delivery' ? 'consegna' : 'ritiro'} {ticket.pickup}
             </div>
           )}
         </div>
         <button onClick={onRevertCard} style={{
           padding: '6px 10px', borderRadius: 999, flexShrink: 0,
-          background: 'rgba(255, 255, 255, 0.06)',
-          border: 'none', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.12)',
-          color: KDS_C.sub, cursor: 'pointer', fontFamily: 'inherit',
+          background: 'rgba(15, 17, 21, 0.04)',
+          border: 'none', boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
+          color: KDS_CL.sub, cursor: 'pointer', fontFamily: 'inherit',
           fontSize: 12, fontWeight: 700,
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}>
@@ -560,19 +553,19 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
       {ticket.items.map((it, i) => (
         <div key={i} style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-          borderTop: i > 0 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+          borderTop: i > 0 ? '1px solid rgba(15, 17, 21, 0.05)' : 'none',
         }}>
           <button onClick={() => onRevertItem(i)} style={{
             width: 34, height: 34, borderRadius: 9, flexShrink: 0,
             background: 'transparent',
-            border: 'none', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.12)',
-            color: KDS_C.mut, cursor: 'pointer',
+            border: 'none', boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.12)',
+            color: KDS_CL.mut, cursor: 'pointer',
             display: 'grid', placeItems: 'center',
           }}>
             <RevertArrowIcon/>
           </button>
-          <span style={{flex: 1, fontSize: 15, fontWeight: 500, color: KDS_C.mut, textDecoration: 'line-through'}}>{it.name}</span>
-          {it.qty > 1 && <span style={{fontSize: 13, fontWeight: 700, color: KDS_C.mut}}>×{it.qty}</span>}
+          <span style={{flex: 1, fontSize: 15, fontWeight: 500, color: KDS_CL.mut, textDecoration: 'line-through'}}>{it.name}</span>
+          {it.qty > 1 && <span style={{fontSize: 13, fontWeight: 700, color: KDS_CL.mut}}>×{it.qty}</span>}
         </div>
       ))}
     </div>
@@ -583,13 +576,13 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
 // Pannello in vetro scuro leggerissimo: la colonna è un contenitore calmo,
 // l'identità di stato sta nella pill del conteggio (toneKey di KDS_TONE).
 function KdsColumn({ title, toneKey = 'ok', count, empty, children }) {
-  const tm = KDS_TONE[toneKey] || KDS_TONE.ok;
+  const tm = KDS_TONE_L[toneKey] || KDS_TONE_L.ok;
   return (
     <div style={{
       flex: '1 0 340px', minWidth: 340,
-      background: 'rgba(255, 255, 255, 0.04)',
+      background: 'rgba(15, 17, 21, 0.025)',
       borderRadius: 18, padding: 14,
-      boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.08)',
+      boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.06)',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
@@ -599,14 +592,14 @@ function KdsColumn({ title, toneKey = 'ok', count, empty, children }) {
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
           background: tm.dot, boxShadow: `0 0 0 3px ${tm.tint}`,
         }}/>
-        <span style={{fontSize: 19, fontWeight: 700, color: KDS_C.text, letterSpacing: '-0.01em'}}>{title}</span>
-        <KdsPill tone={toneKey} style={{fontSize: 13, fontVariantNumeric: 'tabular-nums'}}>{count}</KdsPill>
+        <span style={{fontSize: 19, fontWeight: 700, color: KDS_CL.text, letterSpacing: '-0.01em'}}>{title}</span>
+        <KdsPill light tone={toneKey} style={{fontSize: 13, fontVariantNumeric: 'tabular-nums'}}>{count}</KdsPill>
       </div>
       {count === 0 ? (
         <div style={{
           padding: '36px 16px', textAlign: 'center', borderRadius: 14,
-          border: '1px dashed rgba(255, 255, 255, 0.16)',
-          color: KDS_C.mut, fontSize: 14.5,
+          border: '1px dashed rgba(15, 17, 21, 0.15)',
+          color: KDS_CL.mut, fontSize: 14.5,
         }}>{empty}</div>
       ) : (
         <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>{children}</div>
@@ -700,7 +693,11 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
 
 const lateGlow = u.tone === 'late';
   const toneKey = u.tone === 'late' ? 'late' : u.tone === 'warn' ? 'warn' : 'ok';
-  const tm = KDS_TONE[toneKey];
+  // La card in RITARDO resta in vetro scuro sunset: è il segnale d'urgenza.
+  // Tutte le altre sono light.
+  const dark = lateGlow;
+  const C = dark ? KDS_C : KDS_CL;
+  const tm = (dark ? KDS_TONE : KDS_TONE_L)[toneKey];
   const isPickupKind = (ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup;
   const kindBadge = ticket.kind === 'asporto' ? { label: 'ASPORTO', icon: <BagIcon/> }
     : ticket.kind === 'delivery' ? { label: 'DELIVERY', icon: <ScooterIcon/> }
@@ -709,10 +706,10 @@ const lateGlow = u.tone === 'late';
   const doneQty = ticket.items.reduce((s, i) => s + (i.state === 'done' ? i.qty : 0), 0);
   const progressPct = totQty > 0 ? (doneQty / totQty) * 100 : 0;
 
-  // Ring interno: specular caldo di base; si scalda (ambra/coral traslucido)
-  // con l'urgenza — mai fondi rossi pieni.
+  // Ring interno: specular caldo (dark) o hairline neutra (light); si scalda
+  // (ambra/coral traslucido) con l'urgenza — mai fondi rossi pieni.
   const innerRing = toneKey === 'ok'
-    ? 'inset 0 0 0 1px rgba(255, 130, 150, 0.12)'
+    ? (dark ? 'inset 0 0 0 1px rgba(255, 130, 150, 0.12)' : 'inset 0 0 0 1px rgba(15, 17, 21, 0.08)')
     : `inset 0 0 0 1px ${tm.ring}`;
 
   return (
@@ -726,24 +723,30 @@ const lateGlow = u.tone === 'late';
       style={{
         position: 'relative',
         borderRadius: 20,
-        // Ticket di vetro scuro (ricetta D3) + inset specular caldo
-        background: 'rgba(20, 22, 27, 0.55)',
-        backdropFilter: 'blur(22px) saturate(170%)',
-        WebkitBackdropFilter: 'blur(22px) saturate(170%)',
+        // In ritardo: vetro scuro D3 + inset specular caldo. Altrimenti: carta light W1.
+        background: dark
+          ? `radial-gradient(circle at 82% 12%, rgba(255, 96, 102, 0.20), transparent 60%),
+             linear-gradient(180deg, #2C0C10 0%, #1A0708 100%)`
+          : PN.WHITE,
         border: 'none',
         overflow: 'hidden',
-        boxShadow: [
+        boxShadow: dark ? [
           'inset 0 1px 0 rgba(255, 200, 210, 0.18)',
           innerRing,
           dragOver ? '0 0 0 3px rgba(255, 90, 95, 0.40)' : null,
-          lateGlow ? '0 0 0 3px rgba(255, 90, 95, 0.18)' : null,
+          '0 0 0 3px rgba(255, 90, 95, 0.18)',
           '0 14px 36px -10px rgba(80, 10, 30, 0.55)',
           '0 4px 10px -4px rgba(80, 10, 30, 0.30)',
+        ].filter(Boolean).join(', ') : [
+          innerRing,
+          dragOver ? '0 0 0 3px rgba(220, 38, 38, 0.30)' : null,
+          '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
+          '0 1px 2px rgba(15, 17, 21, 0.04)',
         ].filter(Boolean).join(', '),
         animation: lateGlow ? 'kdsLatePulse 2.4s ease-in-out infinite' : 'none',
         opacity: dragging ? 0.4 : 1,
         cursor: 'grab',
-        color: KDS_C.text,
+        color: C.text,
         transition: 'opacity 0.15s, box-shadow 0.2s',
       }}>
       <style>{`@keyframes kdsLatePulse {
@@ -754,7 +757,7 @@ const lateGlow = u.tone === 'late';
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        borderBottom: `1px solid ${C.hair}`,
       }}>
         <div style={{flex: 1, minWidth: 0}}>
           {kindBadge ? (
@@ -762,33 +765,33 @@ const lateGlow = u.tone === 'late';
               <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 4}}>
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding:'2px 8px', borderRadius: 999,
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.10)',
-                  color: KDS_C.sub,
+                  background: dark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 17, 21, 0.04)',
+                  boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(15, 17, 21, 0.10)'}`,
+                  color: C.sub,
                   letterSpacing: '0.07em', display:'inline-flex', alignItems:'center', gap: 4,
                 }}>{kindBadge.icon} {kindBadge.label}</span>
               </div>
-              <div style={{fontSize: 19, fontWeight: 800, color: KDS_C.text, lineHeight: 1.1, letterSpacing: '-0.01em', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              <div style={{fontSize: 19, fontWeight: 800, color: C.text, lineHeight: 1.1, letterSpacing: '-0.01em', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                 {ticket.customer}
               </div>
             </React.Fragment>
           ) : (
-            <div style={{fontSize: 24, fontWeight: 800, color: KDS_C.text, lineHeight: 1, letterSpacing: '-0.02em'}}>
-              <span style={{fontSize: 14, fontWeight: 700, color: KDS_C.mut, letterSpacing: '0.02em'}}>T</span>{ticket.table}
+            <div style={{fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1, letterSpacing: '-0.02em'}}>
+              <span style={{fontSize: 14, fontWeight: 700, color: C.mut, letterSpacing: '0.02em'}}>T</span>{ticket.table}
             </div>
           )}
         </div>
         {hasTodo && (
           <button onClick={onPrimary} style={{
             padding: '7px 12px', borderRadius: 999, flexShrink: 0,
-            background: 'rgba(255, 255, 255, 0.08)',
-            boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.14)',
-            border: 'none', color: KDS_C.sub,
+            background: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 17, 21, 0.04)',
+            boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.10)'}`,
+            border: 'none', color: C.sub,
             fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             whiteSpace: 'nowrap', transition: 'background 150ms ease-out, color 150ms ease-out',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = KDS_C.text; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = KDS_C.sub; }}
+          onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.14)' : 'rgba(15,17,21,0.08)'; e.currentTarget.style.color = C.text; }}
+          onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,17,21,0.04)'; e.currentTarget.style.color = C.sub; }}
           >Inizia tutti</button>
         )}
         {/* Tempo — accento traslucido, il segnale d'urgenza */}
@@ -809,39 +812,39 @@ const lateGlow = u.tone === 'late';
 
       {/* FASCIA 1 — Serviti (done): priorità minima, collassata di default */}
       {doneItems.length > 0 && (
-        <div style={{borderBottom: '1px solid rgba(255, 255, 255, 0.06)'}}>
-          <style>{`@keyframes servedFade { 0% { background: rgba(52,211,153,0.16); } 100% { background: rgba(255,255,255,0.04); } }`}</style>
+        <div style={{borderBottom: `1px solid ${C.hair}`}}>
+          <style>{`@keyframes servedFade { 0% { background: rgba(52,211,153,0.16); } 100% { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,17,21,0.03)'}; } }`}</style>
           <div onClick={() => setDoneCollapsed(c => !c)} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '11px 14px', cursor: 'pointer',
-            background: 'rgba(255, 255, 255, 0.04)',
+            background: dark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(15, 17, 21, 0.03)',
             animation: servedFlash ? 'servedFade 1.8s ease-out forwards' : 'none',
           }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12.5, fontWeight: 700, color: '#6EE7B7',
+              fontSize: 12.5, fontWeight: 700, color: dark ? '#6EE7B7' : '#059669',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               Serviti · {doneItems.length}
             </span>
-            <span style={{fontSize: 12, color: KDS_C.mut}}>{doneCollapsed ? '▾' : '▴'}</span>
+            <span style={{fontSize: 12, color: C.mut}}>{doneCollapsed ? '▾' : '▴'}</span>
           </div>
           {!doneCollapsed && doneItems.map(it => (
             <div key={it.idx} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+              borderTop: `1px solid ${C.hair}`,
             }}>
               <button onClick={() => onRevertItems([it.idx])} style={{
                 width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                 background: 'transparent',
-                border: 'none', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.12)',
-                color: KDS_C.mut, cursor: 'pointer',
+                border: 'none', boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 17, 21, 0.12)'}`,
+                color: C.mut, cursor: 'pointer',
                 display: 'grid', placeItems: 'center', marginLeft: -4,
               }}>
                 <RevertArrowIcon/>
               </button>
-              <span style={{flex:1, fontSize: 16, fontWeight: 500, color: KDS_C.mut, textDecoration: 'line-through'}}>{it.name}</span>
+              <span style={{flex:1, fontSize: 16, fontWeight: 500, color: C.mut, textDecoration: 'line-through'}}>{it.name}</span>
             </div>
           ))}
         </div>
@@ -849,10 +852,10 @@ const lateGlow = u.tone === 'late';
 
       {/* FASCIA 2 — In preparazione (doing): tap → selezione → CTA "Servi" */}
       {doingItems.length > 0 && (
-        <div style={{borderBottom: todoItems.length > 0 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none'}}>
+        <div style={{borderBottom: todoItems.length > 0 ? `1px solid ${C.hair}` : 'none'}}>
           {doingItems.map(it => (
             <KdsItemRow
-              key={it.idx} item={it}
+              key={it.idx} item={it} dark={dark}
               onBump={() => onBumpItem(it.idx)}
               onRevert={() => onRevertItems([it.idx])}
               selected={false}
@@ -870,26 +873,26 @@ const lateGlow = u.tone === 'late';
               <div onClick={() => setTodoCollapsed(c => !c)} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '11px 14px',
-                borderBottom: !todoCollapsed ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                borderBottom: !todoCollapsed ? `1px solid ${C.hair}` : 'none',
                 cursor: 'pointer',
               }}>
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
-                  fontSize: 12.5, fontWeight: 700, color: KDS_C.sub,
+                  fontSize: 12.5, fontWeight: 700, color: C.sub,
                   textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
                   In coda · {todoItems.length}
                 </span>
-                <span style={{fontSize: 12, color: KDS_C.mut}}>{todoCollapsed ? '▾' : '▴'}</span>
+                <span style={{fontSize: 12, color: C.mut}}>{todoCollapsed ? '▾' : '▴'}</span>
               </div>
               {!todoCollapsed && todoItems.map(it => (
-                <KdsItemRow key={it.idx} item={it} onBump={() => handleTodoTap(it.idx)} selected={pendingTodo.has(it.idx)}/>
+                <KdsItemRow key={it.idx} item={it} dark={dark} onBump={() => handleTodoTap(it.idx)} selected={pendingTodo.has(it.idx)}/>
               ))}
             </React.Fragment>
           ) : (
             todoItems.map(it => (
-              <KdsItemRow key={it.idx} item={it} onBump={() => handleTodoTap(it.idx)} selected={pendingTodo.has(it.idx)}/>
+              <KdsItemRow key={it.idx} item={it} dark={dark} onBump={() => handleTodoTap(it.idx)} selected={pendingTodo.has(it.idx)}/>
             ))
           )}
         </div>
@@ -899,10 +902,10 @@ const lateGlow = u.tone === 'late';
       {pendingTodo.size > 0 && pendingCountdown > 0 && (
         <div style={{
           padding: '9px 14px',
-          background: 'rgba(245, 158, 11, 0.12)',
-          borderTop: '1px solid rgba(245, 158, 11, 0.30)',
+          background: dark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.10)',
+          borderTop: `1px solid rgba(245, 158, 11, ${dark ? 0.30 : 0.35})`,
         }}>
-          <span style={{fontSize: 13, fontWeight: 700, color: '#FFC964'}}>
+          <span style={{fontSize: 13, fontWeight: 700, color: dark ? '#FFC964' : '#B45309'}}>
             Invio in {pendingCountdown}s · {pendingTodo.size} piatt{pendingTodo.size === 1 ? 'o' : 'i'}
           </span>
         </div>
@@ -912,9 +915,9 @@ const lateGlow = u.tone === 'late';
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '10px 16px 12px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+        borderTop: `1px solid ${C.hair}`,
       }}>
-        <div style={{flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden'}}>
+        <div style={{flex: 1, height: 3, borderRadius: 2, background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,17,21,0.08)', overflow: 'hidden'}}>
           <div style={{
             width: `${progressPct}%`, height: '100%', borderRadius: 2,
             background: doneQty === totQty && totQty > 0
@@ -923,7 +926,7 @@ const lateGlow = u.tone === 'late';
             transition: 'width 320ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}/>
         </div>
-        <span style={{fontSize: 11.5, fontWeight: 700, color: KDS_C.mut, fontVariantNumeric: 'tabular-nums', flexShrink: 0}}>
+        <span style={{fontSize: 11.5, fontWeight: 700, color: C.mut, fontVariantNumeric: 'tabular-nums', flexShrink: 0}}>
           {doneQty}/{totQty}
         </span>
       </div>
@@ -932,9 +935,10 @@ const lateGlow = u.tone === 'late';
 }
 
 // ─── Item row ───────────────────────────────────────────────
-function KdsItemRow({ item, onBump, onRevert, disabled = false, selected = false, inSelectionMode = false }) {
+function KdsItemRow({ item, onBump, onRevert, dark = false, disabled = false, selected = false, inSelectionMode = false }) {
   const [hover, setHover] = React.useState(false);
   const [hoverRevert, setHoverRevert] = React.useState(false);
+  const C = dark ? KDS_C : KDS_CL;
   const noteLower = (item.note || '').toLowerCase();
   const isRemove = !item.allergen && noteLower.startsWith('senza ');
   const isAdd    = !item.allergen && (noteLower.startsWith('aggiungi ') || noteLower.startsWith('extra '));
@@ -952,11 +956,11 @@ function KdsItemRow({ item, onBump, onRevert, disabled = false, selected = false
         padding: '12px 16px',
         cursor: disabled ? 'not-allowed' : 'pointer',
         background: selected
-          ? 'rgba(52, 211, 153, 0.10)'
-          : (hover && !hoverRevert && !disabled ? 'rgba(255, 255, 255, 0.05)' : 'transparent'),
-        boxShadow: selected ? 'inset 0 0 0 1px rgba(52, 211, 153, 0.35)' : 'none',
+          ? 'rgba(16, 185, 129, 0.10)'
+          : (hover && !hoverRevert && !disabled ? (dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 17, 21, 0.03)') : 'transparent'),
+        boxShadow: selected ? `inset 0 0 0 1px rgba(16, 185, 129, ${dark ? 0.35 : 0.32})` : 'none',
         opacity: disabled ? 0.4 : 1,
-        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+        borderTop: `1px solid ${C.hair}`,
         transition: 'background 0.12s',
       }}
     >
@@ -970,9 +974,9 @@ function KdsItemRow({ item, onBump, onRevert, disabled = false, selected = false
           onTouchEnd={() => setHoverRevert(false)}
           style={{
             width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: hoverRevert ? 'rgba(255,255,255,0.12)' : 'transparent',
-            border: 'none', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.14)',
-            color: hover || hoverRevert ? KDS_C.text : KDS_C.mut,
+            background: hoverRevert ? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,17,21,0.06)') : 'transparent',
+            border: 'none', boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.12)'}`,
+            color: hover || hoverRevert ? C.text : C.mut,
             cursor: 'pointer',
             display: 'grid', placeItems: 'center', marginLeft: -4,
             transition: 'background 0.12s',
@@ -986,7 +990,7 @@ function KdsItemRow({ item, onBump, onRevert, disabled = false, selected = false
         <div style={{
           width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
           background: selected ? '#34D399' : 'transparent',
-          border: `2px solid ${selected ? '#34D399' : 'rgba(255,255,255,0.25)'}`,
+          border: `2px solid ${selected ? '#34D399' : (dark ? 'rgba(255,255,255,0.25)' : 'rgba(15,17,21,0.20)')}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 0.12s',
         }}>
@@ -1003,26 +1007,29 @@ function KdsItemRow({ item, onBump, onRevert, disabled = false, selected = false
           <div style={{
             display:'inline-flex', alignItems:'center', gap: 4, marginBottom: 4,
             fontSize: 11.5, fontWeight: 800,
-            color: /glutin/i.test(item.note) ? '#FDBA74' : '#FF9A9E',
-            background: /glutin/i.test(item.note) ? 'rgba(234, 88, 12, 0.16)' : 'rgba(255, 90, 95, 0.16)',
-            boxShadow: `inset 0 0 0 1px ${/glutin/i.test(item.note) ? 'rgba(234, 88, 12, 0.45)' : 'rgba(255, 90, 95, 0.45)'}`,
+            color: /glutin/i.test(item.note) ? (dark ? '#FDBA74' : '#C2410C') : (dark ? '#FF9A9E' : '#DC2626'),
+            background: /glutin/i.test(item.note) ? (dark ? 'rgba(234, 88, 12, 0.16)' : 'rgba(234, 88, 12, 0.10)') : (dark ? 'rgba(255, 90, 95, 0.16)' : 'rgba(220, 38, 38, 0.08)'),
+            boxShadow: `inset 0 0 0 1px ${/glutin/i.test(item.note) ? 'rgba(234, 88, 12, 0.45)' : (dark ? 'rgba(255, 90, 95, 0.45)' : 'rgba(220, 38, 38, 0.40)')}`,
             padding:'2px 8px', borderRadius: 999, textTransform:'uppercase', letterSpacing: '0.05em',
           }}>
             {item.note}
           </div>
         )}
         <div style={{
-          fontSize: 21, fontWeight: 700, color: KDS_C.text, lineHeight: 1.25, letterSpacing: '-0.01em',
+          fontSize: 21, fontWeight: 700, color: C.text, lineHeight: 1.25, letterSpacing: '-0.01em',
         }}>
-          {item.qty > 1 && <span style={{fontWeight: 800, color: '#FF9A9E', fontVariantNumeric: 'tabular-nums', marginRight: 7}}>{item.qty}×</span>}
+          {item.qty > 1 && <span style={{fontWeight: 800, color: dark ? '#FF9A9E' : '#E32459', fontVariantNumeric: 'tabular-nums', marginRight: 7}}>{item.qty}×</span>}
           {item.name}
         </div>
         {!item.allergen && item.note && (() => {
           const style = isRemove
-            ? { bg: 'rgba(255, 90, 95, 0.12)',   ring: 'rgba(255, 90, 95, 0.30)',   color: '#FF9A9E' }   // togli ingrediente
+            ? (dark ? { bg: 'rgba(255, 90, 95, 0.12)',   ring: 'rgba(255, 90, 95, 0.30)',   color: '#FF9A9E' }
+                    : { bg: 'rgba(220, 38, 38, 0.07)',   ring: 'rgba(220, 38, 38, 0.28)',   color: '#DC2626' })   // togli ingrediente
             : isAdd
-            ? { bg: 'rgba(129, 140, 248, 0.14)', ring: 'rgba(129, 140, 248, 0.32)', color: '#B9BCF9' }   // aggiungi ingrediente
-            : { bg: 'rgba(255, 255, 255, 0.07)', ring: 'rgba(255, 255, 255, 0.12)', color: KDS_C.sub };  // nota generica
+            ? (dark ? { bg: 'rgba(129, 140, 248, 0.14)', ring: 'rgba(129, 140, 248, 0.32)', color: '#B9BCF9' }
+                    : { bg: 'rgba(99, 102, 241, 0.08)',  ring: 'rgba(99, 102, 241, 0.30)',  color: '#4F46E5' })   // aggiungi ingrediente
+            : (dark ? { bg: 'rgba(255, 255, 255, 0.07)', ring: 'rgba(255, 255, 255, 0.12)', color: KDS_C.sub }
+                    : { bg: 'rgba(15, 17, 21, 0.04)',    ring: 'rgba(15, 17, 21, 0.10)',    color: KDS_CL.sub }); // nota generica
           return (
             <div style={{
               display:'inline-flex', alignItems:'center', gap: 4, marginTop: 4,
@@ -1042,7 +1049,7 @@ function KdsItemRow({ item, onBump, onRevert, disabled = false, selected = false
       {/* Chevron avanzamento */}
       {!inSelectionMode && !onRevert && (
         <span style={{
-          fontSize: 20, color: KDS_C.sub, fontWeight: 700, flexShrink: 0,
+          fontSize: 20, color: C.sub, fontWeight: 700, flexShrink: 0,
           opacity: hover && !disabled ? 1 : 0,
           transform: hover && !disabled ? 'translateX(2px)' : 'translateX(-4px)',
           transition: 'opacity 0.15s, transform 0.15s',
@@ -1091,12 +1098,15 @@ function KdsFilterChip({ label, selected, defaultLabel, options, onChange }) {
       <button onClick={() => setOpen(o => !o)} style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: '7px 12px', borderRadius: 10, height: 36,
-        background: isActive ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.07)',
+        background: isActive ? `
+          radial-gradient(circle at 82% 18%, rgba(255, 96, 102, 0.32), transparent 62%),
+          linear-gradient(180deg, rgba(58, 28, 22, 0.96) 0%, rgba(30, 12, 10, 0.98) 100%)
+        ` : 'rgba(15, 17, 21, 0.04)',
         border: 'none',
         boxShadow: isActive
-          ? '0 4px 14px rgba(0, 0, 0, 0.35)'
-          : 'inset 0 0 0 1px rgba(255, 255, 255, 0.14)',
-        color: isActive ? '#1A0B0D' : '#F5F5F7',
+          ? 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55)'
+          : 'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
+        color: isActive ? '#FFE9E6' : PN.TEXT,
         fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
         whiteSpace: 'nowrap',
         transition: 'background 150ms ease-out, color 150ms ease-out',
