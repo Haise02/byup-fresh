@@ -112,18 +112,20 @@ function PnSidebarPlanCard({ onOpenPlans }) {
     window.location.href = 'byup Profilo.html?tab=piani';
   };
 
-  const fillColor = pct >= 90 ? PN.PINK : pct >= 75 ? PN.AMBER : PN.GREEN;
+  // Su fondo coral la semantica verde/ambra si perde: la barra è bianca,
+  // il segnale d'allarme resta nel numero grande.
+  const fillColor = 'rgba(255, 255, 255, 0.95)';
 
-  // Night-theme plan card. Visible in every dashboard sidebar (~13 pages).
-  // Gray/nero vero per dare al "promo upgrade" un look premium sobrio
-  // (non gridato come il coral). Coral accent discreto per mantenere brand.
+  // Plan card in coral brand — stesso gradiente del logo byup Fresh.
+  // Visibile in ogni sidebar dashboard (~13 pagine).
   return (
-    <GlassDarkBox
-      theme="sunset"
-      padding="14px 14px 12px"
-      borderRadius={12}
+    <div
       style={{
         margin: '14px 0 10px',
+        padding: '14px 14px 12px',
+        borderRadius: 12,
+        background: 'linear-gradient(135deg, #FF5A5F 0%, #E04347 55%, #B53338 100%)',
+        boxShadow: '0 8px 22px -10px rgba(181, 51, 56, 0.55), 0 2px 6px -2px rgba(181, 51, 56, 0.25)',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
       {/* Piano label — niente più "Xg al rinnovo" come da richiesta.
@@ -156,7 +158,7 @@ function PnSidebarPlanCard({ onOpenPlans }) {
           style={{position: 'relative', cursor: 'help'}}
         >
           <div style={{
-            height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.18)',
+            height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.28)',
             overflow: 'hidden', position: 'relative',
           }}>
             <div style={{
@@ -216,24 +218,20 @@ function PnSidebarPlanCard({ onOpenPlans }) {
       </div>
 
       {/* CTA "Passa a Plus" → "Ottienilo ora" on hover.
-          Su dark-glass: pulsante bianco hard-contrast con testo wine-dark.
-          glass-shimmer in loop sull'idle per "vivere" leggermente. */}
+          Bianco pieno su coral, testo brand scuro. Niente bevel né shimmer. */}
       <button
         onClick={handleOpen}
         onMouseEnter={() => setCtaHover(true)}
         onMouseLeave={() => setCtaHover(false)}
-        className="glass-shimmer"
         style={{
           padding: '9px 12px',
-          background: ctaHover ? '#FFF5F8' : '#FFFFFF',
-          color: '#7C2D3C',
-          border: '1px solid rgba(255,255,255,0.85)',
+          background: ctaHover ? '#FFF1EF' : '#FFFFFF',
+          color: '#B53338',
+          border: 'none',
           borderRadius: 9,
           fontWeight: 700, fontSize: 14, fontFamily: 'inherit', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.90), ' +
-            '0 4px 10px -4px rgba(20, 6, 12, 0.40)',
+          boxShadow: '0 2px 8px -2px rgba(90, 15, 20, 0.30)',
           transition: 'background 180ms ease-out',
           position: 'relative',
         }}
@@ -246,7 +244,7 @@ function PnSidebarPlanCard({ onOpenPlans }) {
           position: 'relative', zIndex: 3,
         }}>→</span>
       </button>
-    </GlassDarkBox>
+    </div>
   );
 }
 
