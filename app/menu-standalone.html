@@ -98,22 +98,23 @@
     },
     dark: {
       dark: true,
-      bg: '#160910',
-      surface: '#241019',
-      surfaceAlt: '#2c1520',
-      text: '#fbeae6',
-      textDim: 'rgba(251,234,230,.60)',
-      textFaint: 'rgba(251,234,230,.36)',
+      // Base = nero-brand caldo (espresso-charcoal), NON rosso scuro. Accenti magenta per contrasto.
+      bg: '#161514',
+      surface: '#201e1c',
+      surfaceAlt: '#2a2724',
+      text: '#f6ece9',
+      textDim: 'rgba(246,236,233,.60)',
+      textFaint: 'rgba(246,236,233,.36)',
       primary: PALETTE.coralHot,
       onPrimary: '#ffffff',
-      accentSoft: 'rgba(255,61,110,.14)',
-      accentBorder: 'rgba(255,61,110,.26)',
-      glass: 'rgba(36,16,25,.60)',
-      glassBorder: 'rgba(251,234,230,.12)',
-      line: 'rgba(251,234,230,.10)',
-      shadow: '0 18px 40px -22px rgba(255,61,110,.38)',
-      shadowSoft: '0 10px 28px -16px rgba(0,0,0,.55)',
-      glow: 'rgba(255,61,110,.13)',
+      accentSoft: 'rgba(255,61,110,.15)',
+      accentBorder: 'rgba(255,61,110,.30)',
+      glass: 'rgba(32,30,28,.62)',
+      glassBorder: 'rgba(246,236,233,.12)',
+      line: 'rgba(246,236,233,.10)',
+      shadow: '0 18px 40px -22px rgba(255,61,110,.34)',
+      shadowSoft: '0 12px 30px -16px rgba(0,0,0,.62)',
+      glow: 'rgba(255,61,110,.12)',
       bgImage: ASSETS.bg.dark
     }
   };
@@ -921,6 +922,58 @@ function IOSDevice({
   title,
   keyboard = false
 }) {
+  // Su mobile: niente mockup — l'app occupa tutto lo schermo, come un'app vera.
+  const [isMobile, setIsMobile] = React.useState(() => {
+    try {
+      return window.matchMedia('(max-width: 560px)').matches;
+    } catch {
+      return false;
+    }
+  });
+  React.useEffect(() => {
+    let mq;
+    try {
+      mq = window.matchMedia('(max-width: 560px)');
+    } catch {
+      return;
+    }
+    const fn = e => setIsMobile(e.matches);
+    mq.addEventListener ? mq.addEventListener('change', fn) : mq.addListener(fn);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', fn) : mq.removeListener(fn);
+    };
+  }, []);
+  if (isMobile) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'fixed',
+        inset: 0,
+        overflow: 'hidden',
+        background: dark ? '#000' : '#F2F2F7',
+        fontFamily: '-apple-system, system-ui, sans-serif',
+        WebkitFontSmoothing: 'antialiased',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column'
+      }
+    }, title !== undefined && /*#__PURE__*/React.createElement(IOSNavBar, {
+      title: title,
+      dark: dark
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        overflow: 'auto',
+        position: 'relative'
+      }
+    }, children), keyboard && /*#__PURE__*/React.createElement(IOSKeyboard, {
+      dark: dark
+    })));
+  }
   return /*#__PURE__*/React.createElement("div", {
     style: {
       width,
@@ -1215,11 +1268,26 @@ const {
 } = React;
 
 // ─── Tokens (mirror app.jsx) ────────────────────────────────
+// Tema letto al load (pagina = file separato → dark coerente cross-page)
+const __BYUP_DK_X = (() => {
+  try {
+    const m = localStorage.getItem('byup.themeMode') || 'light';
+    if (m === 'dark') return true;
+    if (m === 'auto') return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return false;
+  } catch {
+    return false;
+  }
+})();
 const PINK_X = '#E32459';
-const TEXT_X = '#1c0f15';
-const MUTED_X = '#6d5a61';
-const BG_X = '#FBF4F1';
-const BORDER_X = '#eddfda';
+const TEXT_X = __BYUP_DK_X ? '#f6ece9' : '#1c0f15';
+const MUTED_X = __BYUP_DK_X ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BG_X = __BYUP_DK_X ? '#161514' : '#FBF4F1';
+const BORDER_X = __BYUP_DK_X ? 'rgba(246,236,233,.13)' : '#eddfda';
+const SURF_X = __BYUP_DK_X ? '#211f22' : '#fff'; // card
+const TINT_X = __BYUP_DK_X ? '#2b272c' : '#F8F5F6'; // superficie tenue
+const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
+const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
 const PROFILE_ALLERGENS = [{
@@ -1413,7 +1481,7 @@ function ProfileToggle({
       width: 22,
       height: 22,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       position: 'absolute',
       top: 2,
       left: value ? 20 : 2,
@@ -1464,7 +1532,7 @@ function AllergensView({
       fontSize: 11,
       fontWeight: 700,
       color: PINK_X,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       padding: '3px 9px',
       borderRadius: 999
     }
@@ -1499,7 +1567,7 @@ function AllergensView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -1582,7 +1650,7 @@ function AllergensView({
       display: 'flex',
       flexDirection: 'column',
       gap: 1,
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 14,
       overflow: 'hidden'
     }
@@ -1596,7 +1664,7 @@ function AllergensView({
         alignItems: 'center',
         gap: 12,
         padding: '13px 14px',
-        background: on ? '#FFF5F5' : '#fff',
+        background: on ? '#FFF5F5' : SURF_X,
         cursor: 'pointer',
         transition: 'background 0.18s',
         borderBottom: i < PROFILE_ALLERGENS.length - 1 ? `1px solid #F0EAEC` : 'none'
@@ -1649,7 +1717,7 @@ function OrdersView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -1685,7 +1753,7 @@ function OrdersView({
     return /*#__PURE__*/React.createElement("div", {
       key: o.id,
       style: {
-        background: '#F8F5F6',
+        background: TINT_X,
         borderRadius: 18,
         overflow: 'hidden'
       }
@@ -1793,7 +1861,7 @@ function OrdersView({
         display: 'flex',
         flexDirection: 'column',
         gap: 0,
-        background: '#fff',
+        background: SURF_X,
         borderRadius: 12,
         overflow: 'hidden'
       }
@@ -1826,7 +1894,7 @@ function OrdersView({
         alignItems: 'center',
         padding: '10px 12px',
         borderTop: '1.5px solid #EDE8EA',
-        background: '#F8F5F6'
+        background: TINT_X
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1849,7 +1917,7 @@ function OrdersView({
     }, /*#__PURE__*/React.createElement("button", {
       style: {
         padding: '9px 24px',
-        background: '#fff',
+        background: SURF_X,
         border: '1px solid #E0DADC',
         borderRadius: 999,
         cursor: 'pointer',
@@ -1970,7 +2038,7 @@ function PagamentiView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2089,7 +2157,7 @@ function PagamentiView({
       display: 'flex',
       flexDirection: 'column',
       gap: 1,
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 16,
       overflow: 'hidden',
       marginBottom: 24
@@ -2102,7 +2170,7 @@ function PagamentiView({
       gap: 12,
       padding: '13px 14px',
       borderBottom: i < others.length - 1 ? '1px solid #EDE8EA' : 'none',
-      background: '#fff'
+      background: SURF_X
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2136,7 +2204,7 @@ function PagamentiView({
       fontSize: 12,
       fontWeight: 600,
       color: PINK_X,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       border: 'none',
       borderRadius: 999,
       padding: '5px 12px',
@@ -2184,7 +2252,7 @@ function PagamentiView({
       left: 0,
       right: 0,
       bottom: 0,
-      background: '#fff',
+      background: SURF_X,
       borderRadius: '20px 20px 0 0',
       padding: '8px 20px 34px',
       zIndex: 21,
@@ -2242,7 +2310,7 @@ function PagamentiView({
       padding: '14px',
       borderRadius: 14,
       border: '1.5px solid #E0DADC',
-      background: '#fff',
+      background: SURF_X,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 15,
@@ -2256,7 +2324,7 @@ function PagamentiView({
       padding: '14px',
       borderRadius: 14,
       border: `1.5px dashed ${PINK_X}`,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 14,
@@ -2288,7 +2356,7 @@ function PagamentiView({
     y2: "12"
   })), "Aggiungi metodo di pagamento") : /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 16,
       padding: '16px'
     }
@@ -2335,7 +2403,7 @@ function PagamentiView({
     style: {
       width: '100%',
       padding: '11px 12px',
-      background: '#fff',
+      background: SURF_X,
       border: '1.5px solid transparent',
       borderRadius: 10,
       fontSize: 14,
@@ -2358,7 +2426,7 @@ function PagamentiView({
       padding: '12px',
       borderRadius: 12,
       border: '1.5px solid #E0DADC',
-      background: '#fff',
+      background: SURF_X,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 13.5,
@@ -2418,7 +2486,7 @@ function PreferitivView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2454,7 +2522,7 @@ function PreferitivView({
       fontSize: 14,
       fontWeight: 700,
       color: PINK_X,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       padding: '4px 12px',
       borderRadius: 999
     }
@@ -2494,7 +2562,7 @@ function PreferitivView({
       display: 'flex',
       alignItems: 'center',
       gap: 14,
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 18,
       padding: '12px 14px',
       cursor: onOpenVenue ? 'pointer' : 'default'
@@ -2540,7 +2608,7 @@ function PreferitivView({
       height: 34,
       borderRadius: 999,
       flexShrink: 0,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       border: 'none',
       cursor: 'pointer',
       display: 'flex',
@@ -2623,7 +2691,7 @@ function SegnalaView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2710,7 +2778,7 @@ function SegnalaView({
       width: '100%',
       padding: '13px 14px',
       boxSizing: 'border-box',
-      background: '#F8F5F6',
+      background: TINT_X,
       border: `1.5px solid ${testo ? PINK_X : 'transparent'}`,
       borderRadius: 12,
       fontSize: 14,
@@ -2786,7 +2854,7 @@ function MieiDatiView({
     style: {
       width: '100%',
       padding: '13px 14px',
-      background: '#F8F5F6',
+      background: TINT_X,
       border: '1.5px solid transparent',
       borderRadius: 12,
       fontSize: 15,
@@ -2809,7 +2877,7 @@ function MieiDatiView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2860,7 +2928,7 @@ function MieiDatiView({
     }
   }, "Genere"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 12,
       overflow: 'hidden'
     }
@@ -2904,7 +2972,7 @@ function MieiDatiView({
       width: 7,
       height: 7,
       borderRadius: 999,
-      background: '#fff'
+      background: SURF_X
     }
   })))))), /*#__PURE__*/React.createElement(Field, {
     label: "Data di nascita",
@@ -2990,7 +3058,7 @@ function AccountFormView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -3099,7 +3167,7 @@ function LegalView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -3182,7 +3250,7 @@ function ProfileScreen({
         p.delete('order');
         p.delete('add');
         const qs = p.toString();
-        window.history.replaceState({}, '', 'byup Home.html' + (qs ? `?${qs}` : ''));
+        window.history.replaceState({}, '', 'home-standalone.html' + (qs ? `?${qs}` : ''));
       } catch {}
     }
   }, []);
@@ -3192,7 +3260,7 @@ function ProfileScreen({
     try {
       localStorage.removeItem('byup_auth');
     } catch {}
-    window.location.href = 'byup Home.html?auth=login';
+    window.location.href = 'home-standalone.html?auth=login';
   };
   const [lang, setLang] = useState('it');
   const themeMode = (() => {
@@ -3208,7 +3276,14 @@ function ProfileScreen({
     try {
       localStorage.setItem('byup.themeMode', next);
     } catch {}
-    window.location.reload();
+    // Ricarico restando sulla pagina Profilo (senza tornare alla Home)
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set('page', 'profile');
+      window.location.replace(u.href);
+    } catch {
+      window.location.reload();
+    }
   };
   const LANGS = [{
     code: 'it',
@@ -3318,7 +3393,7 @@ function ProfileScreen({
     const items = React.Children.toArray(children).filter(Boolean);
     return /*#__PURE__*/React.createElement("div", {
       style: {
-        background: 'rgba(255,255,255,.75)',
+        background: __BYUP_DK_X ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.75)',
         borderRadius: 20,
         overflow: 'hidden',
         border: '1px solid rgba(77,18,46,.07)',
@@ -3331,7 +3406,7 @@ function ProfileScreen({
     }, i > 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         height: 1,
-        background: '#f3eef0',
+        background: TINT_X,
         marginLeft: 58
       }
     }), child)));
@@ -3354,7 +3429,7 @@ function ProfileScreen({
       onClick && onClick();
     },
     style: {
-      background: tint || '#FCE9EE',
+      background: __BYUP_DK_X ? SURF_X : tint || '#FCE9EE',
       borderRadius: 22,
       padding: '15px 14px 13px',
       border: '1px solid rgba(77,18,46,.06)',
@@ -3379,7 +3454,7 @@ function ProfileScreen({
       width: 84,
       height: 84,
       borderRadius: 999,
-      background: 'rgba(255,255,255,.5)'
+      background: __BYUP_DK_X ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.5)'
     }
   }), img ? /*#__PURE__*/React.createElement("img", {
     src: img,
@@ -3397,7 +3472,7 @@ function ProfileScreen({
       width: 40,
       height: 40,
       borderRadius: 14,
-      background: 'rgba(255,255,255,.8)',
+      background: __BYUP_DK_X ? 'rgba(255,255,255,.09)' : 'rgba(255,255,255,.8)',
       display: 'grid',
       placeItems: 'center',
       marginBottom: 9,
@@ -3451,7 +3526,7 @@ function ProfileScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_X,
       position: 'relative',
       fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X,
@@ -3582,7 +3657,7 @@ function ProfileScreen({
       borderRadius: 999,
       overflow: 'hidden',
       border: '3px solid #e32459',
-      background: '#fff'
+      background: SURF_X
     }
   }, /*#__PURE__*/React.createElement("img", {
     src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5",
@@ -3661,7 +3736,7 @@ function ProfileScreen({
       marginTop: -28,
       position: 'relative',
       zIndex: 2,
-      background: 'rgba(255,255,255,.94)',
+      background: __BYUP_DK_X ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.94)',
       border: '1px solid rgba(77,18,46,.08)',
       borderRadius: 20,
       padding: '11px 4px',
@@ -3900,7 +3975,7 @@ function ProfileScreen({
         fontSize: 12,
         fontWeight: 800,
         color: PINK_X,
-        background: '#FCE9EE',
+        background: CORALSURF_X,
         padding: '4px 12px',
         borderRadius: 999,
         textTransform: 'uppercase',
@@ -3969,7 +4044,7 @@ function ProfileScreen({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -4048,7 +4123,7 @@ function ProfileScreen({
     onClick: () => setConfirmDeleteAccount(true),
     style: {
       padding: '8px 28px',
-      background: '#EBEBEB',
+      background: MUTESURF_X,
       border: '1px solid #000',
       borderRadius: 999,
       cursor: 'pointer',
@@ -4067,7 +4142,7 @@ function ProfileScreen({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -4140,7 +4215,7 @@ function ProfileScreen({
   }, /*#__PURE__*/React.createElement("button", {
     style: {
       padding: '8px 24px',
-      background: '#EBEBEB',
+      background: MUTESURF_X,
       border: '1px solid #000',
       borderRadius: 999,
       cursor: 'pointer',
@@ -4277,7 +4352,7 @@ function ProfileScreen({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -4384,7 +4459,7 @@ function ProfileScreen({
     style: {
       width: '100%',
       maxWidth: 320,
-      background: '#fff',
+      background: SURF_X,
       borderRadius: 22,
       padding: '24px 22px 18px',
       textAlign: 'center',
@@ -4534,7 +4609,7 @@ function BookingSheet({
     style: {
       width: '100%',
       maxHeight: '88%',
-      background: '#fff',
+      background: SURF_X,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       padding: '14px 20px 0',
@@ -4552,17 +4627,39 @@ function BookingSheet({
     }
   }), step === 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 20,
-      fontWeight: 700,
-      marginBottom: 4
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 25,
+      fontWeight: 600,
+      color: TEXT_X,
+      marginBottom: 3,
+      letterSpacing: -.3,
+      lineHeight: 1.1
     }
   }, isEdit ? 'Modifica prenotazione' : 'Prenota un tavolo'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: MUTED_X,
-      marginBottom: 18
+      marginBottom: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
     }
-  }, venue?.name || editBooking?.venue || 'Ristorante', isEdit && ' · cambia data/orario in base alle nuove disponibilità'), /*#__PURE__*/React.createElement(Field, {
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: PINK_X,
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "10",
+    r: "3"
+  })), /*#__PURE__*/React.createElement("span", null, venue?.name || editBooking?.venue || 'Ristorante', isEdit && ' · nuova data/orario')), /*#__PURE__*/React.createElement(Field, {
     label: "Data"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4584,7 +4681,7 @@ function BookingSheet({
       display: 'inline-flex',
       alignItems: 'center',
       gap: 6,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       color: PINK_X,
       fontSize: 11.5,
       fontWeight: 700,
@@ -4666,7 +4763,7 @@ function BookingSheet({
       flexDirection: 'column',
       margin: '20px -20px 0',
       padding: '12px 20px 24px',
-      background: '#fff',
+      background: SURF_X,
       boxShadow: '0 -8px 16px rgba(0,0,0,0.05)'
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -4688,15 +4785,16 @@ function BookingSheet({
     style: {
       height: 54,
       flexShrink: 0,
-      background: PINK_X,
+      background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)',
       color: '#fff',
       border: 'none',
       borderRadius: 999,
-      fontSize: 15,
-      fontWeight: 700,
+      fontSize: 15.5,
+      fontWeight: 800,
+      letterSpacing: '.01em',
       cursor: 'pointer',
       fontFamily: 'inherit',
-      boxShadow: '0 4px 14px rgba(227,36,89,0.3)'
+      boxShadow: '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)'
     }
   }, isEdit ? 'Salva modifiche' : 'Conferma prenotazione'), isEdit && /*#__PURE__*/React.createElement("button", {
     onClick: () => onCancelBooking && onCancelBooking(),
@@ -4814,16 +4912,20 @@ function BookingSheet({
   }, "Chiudi"))));
 }
 const stepperBtn = {
-  width: 38,
-  height: 38,
+  width: 42,
+  height: 42,
   borderRadius: 999,
-  border: `1px solid ${BORDER_X}`,
-  background: '#fff',
-  fontSize: 20,
+  border: '1.5px solid #f4d9e1',
+  background: CORALSURF_X,
+  fontSize: 22,
   fontWeight: 600,
   cursor: 'pointer',
   fontFamily: 'inherit',
-  color: TEXT_X
+  color: PINK_X,
+  lineHeight: 1,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center'
 };
 function Field({
   label,
@@ -4831,14 +4933,16 @@ function Field({
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 16
+      marginBottom: 18
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
-      fontWeight: 600,
-      color: TEXT_X,
-      marginBottom: 8
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: MUTED_X,
+      marginBottom: 9,
+      textTransform: 'uppercase',
+      letterSpacing: .6
     }
   }, label), children);
 }
@@ -4851,16 +4955,18 @@ function Pill({
     onClick: onClick,
     style: {
       flex: '0 0 auto',
-      padding: '8px 14px',
+      padding: '9px 16px',
       borderRadius: 999,
-      background: active ? TEXT_X : '#fff',
+      background: active ? 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)' : SURF_X,
       color: active ? '#fff' : TEXT_X,
-      border: `1px solid ${active ? TEXT_X : BORDER_X}`,
+      border: `1.5px solid ${active ? 'transparent' : BORDER_X}`,
       fontSize: 13,
-      fontWeight: 600,
+      fontWeight: 700,
       cursor: 'pointer',
       fontFamily: 'inherit',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      boxShadow: active ? '0 8px 18px -8px rgba(227,36,89,.6)' : 'none',
+      transition: 'background 160ms ease, box-shadow 160ms ease, border-color 160ms ease'
     }
   }, children);
 }
@@ -4876,18 +4982,27 @@ function Input({
     onChange: e => onChange(e.target.value),
     placeholder: placeholder,
     rows: multi ? 3 : undefined,
+    onFocus: e => {
+      e.target.style.borderColor = PINK_X;
+      e.target.style.background = SURF_X;
+    },
+    onBlur: e => {
+      e.target.style.borderColor = BORDER_X;
+      e.target.style.background = TINT_X;
+    },
     style: {
       width: '100%',
-      padding: '12px 14px',
-      borderRadius: 12,
-      border: `1px solid ${BORDER_X}`,
-      fontSize: 14,
+      padding: '13px 15px',
+      borderRadius: 14,
+      border: `1.5px solid ${BORDER_X}`,
+      fontSize: 14.5,
       fontFamily: 'inherit',
       resize: 'none',
-      background: '#fff',
+      background: TINT_X,
       color: TEXT_X,
       outline: 'none',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      transition: 'border-color 140ms ease, background 140ms ease'
     }
   });
 }
@@ -5032,9 +5147,8 @@ function ReelStack({
     onTouchEnd: onUp,
     style: {
       position: 'relative',
-      height: 330,
+      height: 348,
       touchAction: 'pan-y',
-      overflow: 'hidden',
       margin: '0 -16px'
     }
   }, items.map((src, i) => {
@@ -5079,45 +5193,7 @@ function ReelStack({
         objectFit: 'cover',
         display: 'block'
       }
-    }), r === 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        left: '50%',
-        top: '42%',
-        transform: 'translate(-50%,-50%)',
-        width: 52,
-        height: 52,
-        borderRadius: 999,
-        background: 'rgba(255,255,255,.24)',
-        border: '1.5px solid rgba(255,255,255,.55)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        animation: 'bkPulse 2s ease-in-out infinite'
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: "20",
-      height: "20",
-      viewBox: "0 0 24 24",
-      fill: "#fff"
-    }, /*#__PURE__*/React.createElement("polygon", {
-      points: "8 5 19 12 8 19"
-    }))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        left: 10,
-        bottom: 10,
-        right: 10,
-        color: '#fff',
-        fontSize: 10.5,
-        fontWeight: 800,
-        letterSpacing: .8,
-        textTransform: 'uppercase',
-        opacity: .9
-      }
-    }, "Reel")));
+    })));
   }));
 }
 function VenueOriginal({
@@ -5246,7 +5322,7 @@ function VenueOriginal({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_X,
       position: 'relative',
       fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X,
@@ -5481,7 +5557,7 @@ function VenueOriginal({
       width: i === photoIdx ? 18 : 6,
       height: 6,
       borderRadius: 99,
-      background: '#fff',
+      background: SURF_X,
       opacity: i === photoIdx ? 1 : 0.45,
       transition: 'width 0.25s, opacity 0.25s'
     }
@@ -5494,7 +5570,7 @@ function VenueOriginal({
       width: 80,
       height: 80,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
       display: 'flex',
       alignItems: 'center',
@@ -5626,7 +5702,7 @@ function VenueOriginal({
         width: 30,
         height: 30,
         borderRadius: 7,
-        background: filled ? PINK_X : '#f0e6e9',
+        background: filled ? PINK_X : TINT_X,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -5728,7 +5804,7 @@ function VenueOriginal({
       style: {
         borderRadius: 16,
         overflow: 'hidden',
-        background: '#fff',
+        background: SURF_X,
         boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
         border: '1px solid rgba(77,18,46,.06)'
       }
@@ -5895,7 +5971,7 @@ function VenueOriginal({
       bottom: 12,
       right: 12,
       zIndex: 1000,
-      background: '#fff',
+      background: SURF_X,
       border: 'none',
       borderRadius: 999,
       padding: '8px 16px',
@@ -6055,7 +6131,7 @@ function VenueOriginal({
       left: 0,
       right: 0,
       bottom: 0,
-      background: '#fff',
+      background: SURF_X,
       borderRadius: '20px 20px 0 0',
       padding: '8px 0 34px',
       zIndex: 1101,
@@ -6065,7 +6141,7 @@ function VenueOriginal({
     style: {
       width: 40,
       height: 4,
-      background: '#e0d8db',
+      background: MUTESURF_X,
       borderRadius: 999,
       margin: '8px auto 16px'
     }
@@ -6104,7 +6180,7 @@ function VenueOriginal({
       right: 0,
       bottom: 0,
       zIndex: 81,
-      background: '#FBF4F1',
+      background: BG_X,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       maxHeight: '82%',
@@ -6161,7 +6237,7 @@ function VenueOriginal({
     style: {
       padding: '13px 14px',
       borderRadius: 16,
-      background: '#fff',
+      background: SURF_X,
       border: '1px solid rgba(77,18,46,.07)',
       display: 'flex',
       flexDirection: 'column',
@@ -6243,7 +6319,7 @@ function VenueOriginal({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF_X,
       borderRadius: '20px 20px 0 0',
       padding: '8px 20px 30px',
       maxHeight: '80%',
@@ -6253,7 +6329,7 @@ function VenueOriginal({
     style: {
       width: 40,
       height: 4,
-      background: '#e0d8db',
+      background: MUTESURF_X,
       borderRadius: 999,
       margin: '8px auto 16px'
     }
@@ -6322,7 +6398,7 @@ function VenueOriginal({
       padding: '14px 16px',
       borderRadius: 12,
       border: `1.5px solid ${reportReason === r ? PINK_X : BORDER_X}`,
-      background: reportReason === r ? '#FCE9EE' : '#fff',
+      background: reportReason === r ? '#FCE9EE' : SURF_X,
       fontSize: 14,
       color: TEXT_X,
       fontWeight: reportReason === r ? 600 : 500,
@@ -6391,7 +6467,7 @@ function VenueOriginal({
     style: {
       flex: 1,
       height: 58,
-      background: '#fff',
+      background: SURF_X,
       color: TEXT_X,
       border: `1.5px solid ${BORDER_X}`,
       borderRadius: 999,
@@ -6521,7 +6597,7 @@ function PromoTag({
     style: {
       display: 'inline-flex',
       alignItems: 'center',
-      background: '#fff',
+      background: SURF_X,
       border: `1px solid ${BORDER_X}`,
       borderRadius: 12,
       padding: '6px 12px',
@@ -6604,7 +6680,7 @@ function InfoRow({
       width: 28,
       height: 28,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       border: `1px solid ${BORDER_X}`,
       display: 'flex',
       alignItems: 'center',
@@ -6639,7 +6715,7 @@ function SedeRow({
       width: 38,
       height: 38,
       borderRadius: 13,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       flexShrink: 0,
       display: 'flex',
       alignItems: 'center',
@@ -6683,7 +6759,7 @@ function SocialDot({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: TEXT_X,
+      background: PINK_X,
       color: '#fff',
       display: 'flex',
       alignItems: 'center',
@@ -9951,7 +10027,7 @@ function MapScreen({
     onClose: () => setActive(null),
     onOpenVenue: () => onOpenVenue(active),
     onOpenMenu: () => {
-      window.location.href = 'byup Menu.html?from=venue';
+      window.location.href = 'menu-standalone.html?from=venue';
     }
   }));
 }
@@ -12691,7 +12767,7 @@ function ResultsScreen({
       _from: 'results'
     }),
     onMenu: () => {
-      window.location.href = 'byup Menu.html?from=venue';
+      window.location.href = 'menu-standalone.html?from=venue';
     }
   })))));
 }
@@ -14775,20 +14851,17 @@ function PaymentCard({
   }, "Configura"))));
 }
 
-// ─── Anteprima mappa — scorri fino in fondo e si apre la mappa completa ───
-function MapPreviewCard({
-  onOpen
+// ─── Mappa full-bleed — primo scroll si ferma a fine pagina, il secondo apre con zoom ───
+function LeafletMini({
+  mapRef,
+  zoom = 13
 }) {
-  const [T] = BK.useByupTheme();
-  const mapRef = useRef(null);
-  const sentinelRef = useRef(null);
-  const firedRef = useRef(false);
   useEffect(() => {
     const el = mapRef.current;
     if (!el || !window.L) return;
     const map = window.L.map(el, {
       center: [41.9028, 12.4964],
-      zoom: 13,
+      zoom,
       zoomControl: false,
       attributionControl: false,
       dragging: false,
@@ -14815,111 +14888,209 @@ function MapPreviewCard({
     setTimeout(() => map.invalidateSize(), 80);
     return () => map.remove();
   }, []);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(es => {
-      if (es[0].isIntersecting && !firedRef.current) {
-        firedRef.current = true;
-        io.disconnect();
-        setTimeout(() => onOpen?.(), 250);
-      }
-    }, {
-      threshold: 0.95
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
   return /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 18px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bk-press",
-    onClick: () => onOpen?.(),
-    style: {
-      position: 'relative',
-      height: 190,
-      borderRadius: BK.RADII.card,
-      overflow: 'hidden',
-      cursor: 'pointer',
-      boxShadow: T.shadow,
-      border: `1px solid ${T.line}`,
-      background: '#e9e4dd'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
     ref: mapRef,
     style: {
       position: 'absolute',
       inset: 0
     }
+  });
+}
+function MapExpandOverlay({
+  from,
+  T
+}) {
+  const mapRef = useRef(null);
+  const [grown, setGrown] = useState(false);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      zIndex: 900,
+      top: grown ? 0 : from.top,
+      height: grown ? '100%' : from.height,
+      overflow: 'hidden',
+      background: '#e9e4dd',
+      transition: 'top 560ms cubic-bezier(.22,.9,.35,1), height 560ms cubic-bezier(.22,.9,.35,1)'
+    }
+  }, /*#__PURE__*/React.createElement(LeafletMini, {
+    mapRef: mapRef,
+    zoom: 13
   }), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: 'absolute',
       inset: 0,
-      background: 'linear-gradient(180deg, rgba(28,6,16,0) 45%, rgba(28,6,16,.5) 100%)',
+      zIndex: 500,
       pointerEvents: 'none',
-      zIndex: 500
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 16,
-      right: 16,
-      bottom: 12,
-      zIndex: 501,
-      color: '#fff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-      pointerEvents: 'none'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: BK.TYPE.display,
-      fontSize: 17,
-      fontWeight: 600
-    }
-  }, "70 locali qui intorno"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      opacity: .9,
-      fontWeight: 600,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 5
-    }
-  }, "Continua a scorrere per aprire la mappa", /*#__PURE__*/React.createElement("svg", {
-    width: "12",
-    height: "12",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "#fff",
-    strokeWidth: "2.6",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    style: {
-      animation: 'bkBob 1.6s ease-in-out infinite'
-    }
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "6 9 12 15 18 9"
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: 'rgba(255,255,255,.92)',
-      color: '#1c0f15',
-      fontSize: 12,
-      fontWeight: 800,
-      padding: '8px 14px',
-      borderRadius: 999
-    }
-  }, "Apri"))), /*#__PURE__*/React.createElement("div", {
-    ref: sentinelRef,
-    style: {
-      height: 24
+      background: T.dark ? 'rgba(24,22,20,.12)' : 'rgba(251,244,241,.08)',
+      opacity: grown ? 0 : 1,
+      transition: 'opacity 500ms ease'
     }
   }));
+}
+function MapPreviewCard({
+  onOpen
+}) {
+  const [T] = BK.useByupTheme();
+  const wrapRef = useRef(null);
+  const mapRef = useRef(null);
+  const [expanding, setExpanding] = useState(null);
+  const firedRef = useRef(false);
+  const gestureRef = useRef({
+    last: 0,
+    armed: false,
+    touchY: null,
+    touchArmed: false
+  });
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const scroller = wrap.closest('[data-byup-scroll]');
+    if (!scroller) return;
+    const atBottom = () => scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 8;
+    const trigger = () => {
+      if (firedRef.current) return;
+      firedRef.current = true;
+      const root = scroller.closest('[data-byup-approot]') || scroller.parentElement;
+      const rRect = root.getBoundingClientRect();
+      const rect = wrap.getBoundingClientRect();
+      setExpanding({
+        top: rect.top - rRect.top,
+        height: rect.height,
+        rootEl: root
+      });
+      BK.haptic.light();
+      setTimeout(() => onOpen?.(), 600);
+    };
+    const g = gestureRef.current;
+    const onWheel = e => {
+      if (e.deltaY <= 10 || !atBottom()) return;
+      const now = Date.now();
+      // gesto nuovo = pausa di almeno 450ms dall'ultimo evento a fondo pagina
+      if (g.armed && now - g.last > 450) trigger();
+      g.armed = true;
+      g.last = now;
+    };
+    const onTouchStart = e => {
+      g.touchY = e.touches[0].clientY;
+      g.touchArmed = atBottom(); // già a fine pagina PRIMA del nuovo gesto
+    };
+    const onTouchMove = e => {
+      if (g.touchY == null) return;
+      const dy = g.touchY - e.touches[0].clientY;
+      if (dy > 26 && g.touchArmed && atBottom()) {
+        trigger();
+        g.touchY = null;
+      }
+    };
+    const onTouchEnd = () => {
+      g.touchY = null;
+    };
+    scroller.addEventListener('wheel', onWheel, {
+      passive: true
+    });
+    scroller.addEventListener('touchstart', onTouchStart, {
+      passive: true
+    });
+    scroller.addEventListener('touchmove', onTouchMove, {
+      passive: true
+    });
+    scroller.addEventListener('touchend', onTouchEnd, {
+      passive: true
+    });
+    return () => {
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchstart', onTouchStart);
+      scroller.removeEventListener('touchmove', onTouchMove);
+      scroller.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    ref: wrapRef,
+    style: {
+      position: 'relative',
+      height: 448,
+      marginTop: 4,
+      marginBottom: -126,
+      isolation: 'isolate'
+    }
+  }, /*#__PURE__*/React.createElement(LeafletMini, {
+    mapRef: mapRef,
+    zoom: 13
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      height: 100,
+      zIndex: 500,
+      pointerEvents: 'none',
+      background: `linear-gradient(180deg, ${T.bg} 0%, ${T.bg}00 100%)`
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 190,
+      zIndex: 500,
+      pointerEvents: 'none',
+      backdropFilter: 'blur(1.5px)',
+      WebkitBackdropFilter: 'blur(1.5px)',
+      maskImage: 'linear-gradient(180deg, transparent 0%, #000 80%)',
+      WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, #000 80%)'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 152,
+      transform: 'translateX(-50%)',
+      zIndex: 502,
+      pointerEvents: 'none',
+      whiteSpace: 'nowrap',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 8,
+      background: T.dark ? 'rgba(32,30,28,.86)' : 'rgba(255,255,255,.86)',
+      color: T.text,
+      fontFamily: BK.TYPE.sans,
+      fontSize: 12.5,
+      fontWeight: 700,
+      padding: '10px 18px',
+      borderRadius: 999,
+      border: `1px solid ${T.glassBorder}`,
+      backdropFilter: 'blur(14px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+      boxShadow: T.shadowSoft,
+      animation: 'bkBob 2.4s ease-in-out infinite'
+    }
+  }, "Scorri per aprire la mappa", /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: T.primary,
+    strokeWidth: "2.6",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "6 9 12 15 18 9"
+  })))), expanding && ReactDOM.createPortal(/*#__PURE__*/React.createElement(MapExpandOverlay, {
+    from: expanding,
+    T: T
+  }), expanding.rootEl));
 }
 
 // Pure presentational — every action is a callback prop.
@@ -15071,7 +15242,7 @@ function HomeSections({
     style: {
       position: 'relative',
       zIndex: 5,
-      background: T.dark ? 'rgba(22,9,16,0.72)' : 'rgba(251,244,241,0.74)',
+      background: T.dark ? 'rgba(24,22,20,0.74)' : 'rgba(251,244,241,0.74)',
       backdropFilter: 'blur(22px) saturate(160%)',
       WebkitBackdropFilter: 'blur(22px) saturate(160%)',
       paddingTop: topBar ? 12 : 24,
@@ -15381,7 +15552,7 @@ function HomeSections({
     title: "Paga in un tap"
   }), /*#__PURE__*/React.createElement(PaymentCard, {
     onClick: () => {
-      window.location.href = 'byup Menu.html#paymethod';
+      window.location.href = 'menu-standalone.html#paymethod';
     }
   }), /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Qui intorno"
@@ -15826,7 +15997,7 @@ function App({
       try {
         sessionStorage.removeItem('byup_menu_from');
       } catch {}
-      window.location.href = 'byup Menu.html';
+      window.location.href = 'menu-standalone.html';
     }, 1400);
     return () => clearTimeout(t);
   }, [qrOpen]);
@@ -15852,7 +16023,7 @@ function App({
     setRecoveryModalOpen(false);
     setRecoveryLoading(true);
     setTimeout(() => {
-      window.location.href = 'byup Menu.html#home';
+      window.location.href = 'menu-standalone.html#home';
     }, 1600);
   };
   // Overlay condivisi (popup + caricamento): inseriti sia nel ramo Home sia in
@@ -15985,7 +16156,7 @@ function App({
       venue: activeVenue,
       onBack: goBack,
       onMenu: () => {
-        window.location.href = 'byup Menu.html?from=venue';
+        window.location.href = 'menu-standalone.html?from=venue';
       },
       onBook: () => setBookingOpen(true),
       onHome: resetToHome,
@@ -16062,6 +16233,7 @@ function App({
     }));
   }
   return /*#__PURE__*/React.createElement("div", {
+    "data-byup-approot": true,
     style: {
       width: '100%',
       height: '100%',
@@ -16116,7 +16288,7 @@ function App({
       right: 0,
       zIndex: 15,
       height: 60,
-      background: scrolled ? T.dark ? 'rgba(22,9,16,0.78)' : 'rgba(251,244,241,0.82)' : 'transparent',
+      background: scrolled ? T.dark ? 'rgba(24,22,20,0.82)' : 'rgba(251,244,241,0.82)' : 'transparent',
       backdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
       WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
       borderBottom: scrolled ? `1px solid ${T.line}` : '1px solid transparent',
@@ -16125,6 +16297,7 @@ function App({
     }
   }), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
+    "data-byup-scroll": true,
     style: {
       flex: 1,
       overflowY: 'auto',
@@ -16206,7 +16379,7 @@ function App({
     },
     onMenu: () => {
       setDetail(null);
-      window.location.href = 'byup Menu.html?from=venue';
+      window.location.href = 'menu-standalone.html?from=venue';
     },
     onBook: () => {
       setBookingOpen(true);
@@ -16407,7 +16580,7 @@ function BottomTabBar({
     }
   }, /*#__PURE__*/React.createElement("path", {
     d: TABBAR_PATH,
-    fill: T.dark ? '#241019' : 'rgba(255,255,255,0.96)'
+    fill: T.dark ? '#201e1c' : 'rgba(255,255,255,0.96)'
   }), /*#__PURE__*/React.createElement("path", {
     d: TABBAR_PATH,
     fill: "none",
@@ -16536,44 +16709,44 @@ function ShortcutsPanel() {
   const homeItems = [{
     id: 'login',
     label: 'Login',
-    href: 'byup Home.html?auth=login'
+    href: 'home-standalone.html?auth=login'
   }, {
     id: 'register',
     label: 'Registrazione',
-    href: 'byup Home.html?auth=register'
+    href: 'home-standalone.html?auth=register'
   }, {
     id: 'home',
     label: 'Home',
-    href: 'byup Home.html'
+    href: 'home-standalone.html'
   }, {
     id: 'home-empty',
     label: 'Home — nessun locale',
-    href: 'byup Home.html?page=home-empty'
+    href: 'home-standalone.html?page=home-empty'
   }, {
     id: 'map',
     label: 'Mappa',
-    href: 'byup Home.html?page=map'
+    href: 'home-standalone.html?page=map'
   }, {
     id: 'posta',
     label: 'Posta',
-    href: 'byup Home.html?page=posta'
+    href: 'home-standalone.html?page=posta'
   }];
   const menuItems = [{
     id: 'menu',
     label: 'Menu',
-    href: 'byup Menu.html'
+    href: 'menu-standalone.html'
   }, {
     id: 'pay',
     label: 'Pagamento',
-    href: 'byup Menu.html#pay'
+    href: 'menu-standalone.html#pay'
   }, {
     id: 'paymethod',
     label: 'Metodo pagamento',
-    href: 'byup Menu.html#paymethod'
+    href: 'menu-standalone.html#paymethod'
   }, {
     id: 'success',
     label: 'Successo',
-    href: 'byup Menu.html#success'
+    href: 'menu-standalone.html#success'
   }];
   // Stili di vetrina (in produzione li sceglie il ristoratore dal gestionale).
   const venueStyles = [{
@@ -16655,7 +16828,7 @@ function ShortcutsPanel() {
     const active = cur === 'venue' && curVenue === v.id;
     return /*#__PURE__*/React.createElement("a", {
       key: v.id,
-      href: `byup Home.html?page=venue&venue=${v.id}`,
+      href: `home-standalone.html?page=venue&venue=${v.id}`,
       title: v.desc,
       style: {
         flex: v.id === 'original' ? 1.6 : 1,
@@ -17441,15 +17614,38 @@ const {
   useRef,
   useEffect
 } = React;
+
+// Tema letto al caricamento pagina (le pagine sono file separati: ogni pagina
+// legge byup.themeMode e sceglie la palette → dark coerente cross-page).
+const __BYUP_DARK = (() => {
+  try {
+    const m = localStorage.getItem('byup.themeMode') || 'light';
+    if (m === 'dark') return true;
+    if (m === 'auto') return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return false;
+  } catch {
+    return false;
+  }
+})();
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
-const WINE = '#8B1A3A'; // for menu screen accent
+const WINE = __BYUP_DARK ? '#ef6389' : '#8B1A3A'; // accento menu (più chiaro in dark per contrasto)
 const WINE_DARK = '#5a1a2e';
-const TEXT = '#1c0f15';
-const MUTED = '#6d5a61';
-const BORDER = '#eddfda';
-const BG_GRAY = '#f7ece8';
-const BG_PAGE = '#FBF4F1';
+const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
+const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
+const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
+const SURF = __BYUP_DARK ? '#211f22' : '#fff'; // superfici card (bianco→dark)
+const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea'; // superficie tenue (righe riepilogo, chip)
+const MUTESURF = __BYUP_DARK ? '#39333b' : '#e7e1d8'; // superficie muta (avatar/disabled)
+const BADGE = __BYUP_DARK ? '#7a2f4a' : BADGE; // badge/avatar wine (più chiaro in dark)
+
+// ─── Firma CTA byup — gradiente coral + glow + sheen, usato sui money-CTA
+//    di ordine e pagamento per legarli all'identità della Home. ───
+const CTA_GRAD = 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)';
+const CTA_GLOW = '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)';
+const CTA_DEAD = '#e9cfd8';
 
 // ─── Icons ─────────────────────────────────────────────────
 const I = {
@@ -17908,7 +18104,7 @@ function AllergenDots({
         width: 22,
         height: 22,
         borderRadius: 999,
-        background: '#f5f0ec',
+        background: TINT,
         border: '1px solid #e8e0d8',
         cursor: 'pointer',
         fontSize: 11,
@@ -17920,7 +18116,7 @@ function AllergenDots({
         bottom: 24,
         left: '50%',
         transform: 'translateX(-50%)',
-        background: '#1a1a1a',
+        background: BADGE,
         color: '#fff',
         fontSize: 11,
         fontWeight: 600,
@@ -17938,7 +18134,7 @@ function AllergenDots({
         transform: 'translateX(-50%) rotate(45deg)',
         width: 6,
         height: 6,
-        background: '#1a1a1a'
+        background: BADGE
       }
     })));
   }), extra > 0 && /*#__PURE__*/React.createElement("span", {
@@ -17950,7 +18146,7 @@ function AllergenDots({
       minWidth: 22,
       padding: '0 6px',
       borderRadius: 999,
-      background: '#f5f0ec',
+      background: TINT,
       border: '1px solid #e8e0d8',
       fontSize: 10.5,
       fontWeight: 700,
@@ -17983,7 +18179,7 @@ function DishPhoto({
       position: 'absolute',
       top: 8,
       left: 8,
-      background: '#1a1a1a',
+      background: BADGE,
       color: '#fff',
       fontSize: 9.5,
       fontWeight: 700,
@@ -18821,7 +19017,7 @@ function ModeSheet({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       padding: '14px 22px 30px',
@@ -18853,7 +19049,7 @@ function ModeSheet({
     onClick: onScanQR,
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF,
       border: `1.5px solid ${BORDER}`,
       borderRadius: 18,
       padding: '16px 16px',
@@ -18870,7 +19066,7 @@ function ModeSheet({
       width: 52,
       height: 52,
       borderRadius: 14,
-      background: '#1a1a1a',
+      background: BADGE,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -18912,7 +19108,7 @@ function ModeSheet({
     onClick: onTakeaway,
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF,
       border: `1.5px solid ${BORDER}`,
       borderRadius: 18,
       padding: '16px 16px',
@@ -18993,6 +19189,166 @@ function ModeSheet({
 }
 
 // ─── MENU SCREEN ───────────────────────────────────────────
+// Banda di categoria — full-bleed, icona kawaii che entra con spring, titolo Fredoka.
+const CAT_ART = {
+  'Antipasti': ['assets/cat-aperitivo.png', '#fae3de'],
+  'Primi piatti': ['assets/cat-pizza.png', '#FCE9EE'],
+  'Secondi piatti': ['assets/cat-burger.png', '#FEF0E3'],
+  'Dolci': ['assets/cat-dolce.png', '#F9E3EE'],
+  'Bevande': ['assets/cat-vino.png', '#f4e5ef']
+};
+// Divisore-capitolo editoriale: numero-fantasma, dots di avanzamento sezione,
+// icona kawaii che entra in spring, sottolineatura brand che si "disegna".
+// L'insieme dà un senso di progressione → invoglia a scorrere fino in fondo.
+function CatBand({
+  name,
+  count,
+  index = 0,
+  total = 5
+}) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(es => {
+      if (es[0].isIntersecting) {
+        setInView(true);
+        io.disconnect();
+      }
+    }, {
+      threshold: 0.4
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const [img, tint] = CAT_ART[name] || CAT_ART['Antipasti'];
+  const num = String(index + 1).padStart(2, '0');
+  return /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    style: {
+      margin: '32px -18px 18px',
+      padding: '24px 18px 20px',
+      position: 'relative',
+      overflow: 'hidden',
+      background: `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: 8,
+      top: -20,
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 104,
+      fontWeight: 600,
+      lineHeight: 1,
+      color: PINK,
+      letterSpacing: -5,
+      opacity: inView ? 0.09 : 0,
+      transform: inView ? 'none' : 'translateY(12px)',
+      transition: 'opacity 640ms ease, transform 640ms ease',
+      pointerEvents: 'none'
+    }
+  }, num), /*#__PURE__*/React.createElement("img", {
+    src: img,
+    width: "82",
+    alt: "",
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      right: 12,
+      top: '50%',
+      transform: inView ? 'translateY(-50%) rotate(8deg)' : 'translateY(-20%) rotate(-8deg) scale(.6)',
+      opacity: inView ? 1 : 0,
+      transition: 'transform 680ms cubic-bezier(.34,1.45,.64,1), opacity 420ms ease',
+      filter: 'drop-shadow(0 10px 16px rgba(77,18,46,.18))',
+      animation: inView ? 'bkBob 3.6s .8s ease-in-out infinite' : 'none',
+      pointerEvents: 'none',
+      zIndex: 1
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 7,
+      opacity: inView ? 1 : 0,
+      transform: inView ? 'none' : 'translateY(8px)',
+      transition: 'opacity 500ms ease, transform 500ms ease'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: PINK,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase'
+    }
+  }, "Sezione ", index + 1, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: MUTED,
+      fontWeight: 700
+    }
+  }, "/", total)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 4,
+      alignItems: 'center'
+    }
+  }, Array.from({
+    length: total
+  }).map((_, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      width: i === index ? 16 : 5,
+      height: 5,
+      borderRadius: 999,
+      background: i === index ? PINK : i < index ? '#e79fb4' : '#e6d2d9',
+      transition: 'width 420ms ease, background 420ms ease'
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 27,
+      fontWeight: 600,
+      color: TEXT,
+      lineHeight: 1.05,
+      transform: inView ? 'none' : 'translateY(18px)',
+      opacity: inView ? 1 : 0,
+      transition: 'transform 540ms cubic-bezier(.22,.9,.35,1), opacity 440ms ease'
+    }
+  }, name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      fontSize: 11.5,
+      color: MUTED,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: .6,
+      marginTop: 5,
+      opacity: inView ? 1 : 0,
+      transition: 'opacity 520ms 200ms ease'
+    }
+  }, count, " ", count === 1 ? 'piatto' : 'piatti', " · scorri e gusta"), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      height: 3,
+      width: 48,
+      borderRadius: 999,
+      marginTop: 11,
+      background: `linear-gradient(90deg, ${PINK}, ${PINK_DARK})`,
+      transformOrigin: 'left',
+      transform: inView ? 'scaleX(1)' : 'scaleX(0)',
+      transition: 'transform 560ms 120ms cubic-bezier(.22,.9,.35,1)'
+    }
+  }));
+}
 function MenuScreen({
   state,
   setState,
@@ -19333,7 +19689,7 @@ function MenuScreen({
       try {
         sessionStorage.removeItem('byup_menu_from');
       } catch {}
-      if (fromVenue) window.location.href = 'byup Home.html?page=venue';else window.location.href = 'byup Home.html';
+      if (fromVenue) window.location.href = 'home-standalone.html?page=venue';else window.location.href = 'home-standalone.html';
     },
     style: {
       position: 'absolute',
@@ -19381,7 +19737,7 @@ function MenuScreen({
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-      background: '#fff',
+      background: SURF,
       borderRadius: 999,
       padding: '9px 14px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
@@ -19435,7 +19791,7 @@ function MenuScreen({
         height: 38,
         borderRadius: 999,
         flexShrink: 0,
-        background: count > 0 ? WINE : '#fff',
+        background: count > 0 ? WINE : SURF,
         border: 'none',
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         cursor: 'pointer',
@@ -19486,7 +19842,7 @@ function MenuScreen({
         height: 18,
         padding: '0 5px',
         borderRadius: 999,
-        background: '#1a1a1a',
+        background: BADGE,
         color: '#fff',
         fontSize: 10.5,
         fontWeight: 800,
@@ -19593,7 +19949,7 @@ function MenuScreen({
       alignItems: 'center',
       gap: 4,
       flex: '0 0 auto',
-      background: '#1a1a1a',
+      background: BADGE,
       color: '#fff',
       border: 'none',
       padding: '5px 8px 5px 11px',
@@ -19623,7 +19979,7 @@ function MenuScreen({
       try {
         sessionStorage.removeItem('byup_menu_from');
       } catch {}
-      window.location.href = 'byup Home.html?page=venue';
+      window.location.href = 'home-standalone.html?page=venue';
     },
     style: {
       position: 'relative',
@@ -19729,7 +20085,7 @@ function MenuScreen({
         width: 24,
         height: 24,
         borderRadius: 999,
-        background: g.isApp || g.isWebApp ? '#1a1a1a' : '#c4b89f',
+        background: g.isApp || g.isWebApp ? BADGE : '#c4b89f',
         color: '#fff',
         border: '2px solid rgba(255,255,255,0.55)',
         marginLeft: -8,
@@ -19744,7 +20100,7 @@ function MenuScreen({
         width: 24,
         height: 24,
         borderRadius: 999,
-        background: '#c4b89f',
+        background: MUTESURF,
         color: '#fff',
         border: '2px solid rgba(255,255,255,0.55)',
         marginLeft: -8,
@@ -19828,7 +20184,7 @@ function MenuScreen({
         style: {
           flex: '0 0 auto',
           width: 180,
-          background: '#fff',
+          background: SURF,
           borderRadius: 16,
           overflow: 'hidden',
           cursor: 'pointer',
@@ -19858,7 +20214,7 @@ function MenuScreen({
           position: 'absolute',
           top: 8,
           left: 8,
-          background: '#1a1a1a',
+          background: BADGE,
           color: '#fff',
           fontSize: 9,
           fontWeight: 800,
@@ -19906,7 +20262,7 @@ function MenuScreen({
           height: 32,
           borderRadius: 8,
           border: 'none',
-          background: qty > 0 ? WINE : '#1a1a1a',
+          background: qty > 0 ? WINE : BADGE,
           color: '#fff',
           fontSize: 12.5,
           fontWeight: 700,
@@ -19982,7 +20338,7 @@ function MenuScreen({
         style: {
           flex: '0 0 auto',
           width: 180,
-          background: '#fff',
+          background: SURF,
           borderRadius: 16,
           overflow: 'hidden',
           cursor: 'pointer',
@@ -20060,7 +20416,7 @@ function MenuScreen({
           height: 32,
           borderRadius: 8,
           border: 'none',
-          background: qty > 0 ? WINE : '#1a1a1a',
+          background: qty > 0 ? WINE : BADGE,
           color: '#fff',
           fontSize: 12.5,
           fontWeight: 700,
@@ -20069,7 +20425,7 @@ function MenuScreen({
         }
       }, qty > 0 ? `Nel carrello · ${qty}` : 'Aggiungi')));
     })));
-  })()), tabs.map(catName => {
+  })()), tabs.map((catName, catIdx) => {
     const catDishes = (DISHES_BY_CAT[catName] || []).filter(d => {
       if (searchQ && !d.name.toLowerCase().includes(searchQ.toLowerCase()) && !d.desc.toLowerCase().includes(searchQ.toLowerCase())) return false;
       for (const id of Object.keys(allergenFilters)) {
@@ -20094,30 +20450,12 @@ function MenuScreen({
         marginBottom: 8,
         padding: '0 18px'
       }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        alignItems: 'baseline',
-        justifyContent: 'space-between',
-        paddingTop: 24,
-        marginBottom: 18
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 22,
-        fontWeight: 800,
-        color: TEXT,
-        letterSpacing: -0.4
-      }
-    }, catName), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: MUTED,
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em'
-      }
-    }, sorted.length, " ", sorted.length === 1 ? 'piatto' : 'piatti')), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(CatBand, {
+      name: catName,
+      count: sorted.length,
+      index: catIdx,
+      total: tabs.length
+    }), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         flexDirection: 'column',
@@ -20142,7 +20480,7 @@ function MenuScreen({
         style: {
           flex: 1,
           height: 1,
-          background: '#EDE8EA'
+          background: TINT
         }
       }), /*#__PURE__*/React.createElement("span", {
         style: {
@@ -20154,14 +20492,14 @@ function MenuScreen({
         style: {
           flex: 1,
           height: 1,
-          background: '#EDE8EA'
+          background: TINT
         }
       })), /*#__PURE__*/React.createElement("div", {
         onClick: () => goTo('dish', {
           dishId: d.id
         }),
         style: {
-          background: '#fff',
+          background: SURF,
           borderRadius: 18,
           padding: 14,
           height: 166,
@@ -20212,7 +20550,7 @@ function MenuScreen({
           fontSize: 10,
           fontWeight: 700,
           color: '#fff',
-          background: '#1a1a1a',
+          background: BADGE,
           padding: '3px 8px',
           borderRadius: 999,
           letterSpacing: 0.4,
@@ -20410,7 +20748,7 @@ function MenuScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#fff',
+      background: SURF,
       borderRadius: 24,
       padding: '28px 32px',
       display: 'flex',
@@ -20468,7 +20806,7 @@ function MenuScreen({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       padding: '10px 22px 32px',
@@ -20479,7 +20817,7 @@ function MenuScreen({
     style: {
       width: 38,
       height: 4,
-      background: '#e0d8db',
+      background: MUTESURF,
       borderRadius: 999,
       margin: '4px auto 18px'
     }
@@ -20516,7 +20854,7 @@ function MenuScreen({
       height: 64,
       borderRadius: 14,
       border: `1.5px solid ${BORDER}`,
-      background: '#fff',
+      background: SURF,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 20,
@@ -20583,7 +20921,7 @@ function MenuScreen({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       padding: '12px 22px 24px',
@@ -20594,7 +20932,7 @@ function MenuScreen({
     style: {
       width: 38,
       height: 4,
-      background: '#e0d8db',
+      background: MUTESURF,
       borderRadius: 999,
       margin: '4px auto 14px'
     }
@@ -20665,7 +21003,7 @@ function MenuScreen({
     key: f.id || 'all',
     onClick: () => setDietFilter(f.id),
     style: {
-      background: dietFilter === f.id ? WINE : '#fff',
+      background: dietFilter === f.id ? WINE : SURF,
       color: dietFilter === f.id ? '#fff' : TEXT,
       border: dietFilter === f.id ? `1px solid ${WINE}` : `1px solid ${BORDER}`,
       padding: '7px 13px',
@@ -20709,7 +21047,7 @@ function MenuScreen({
         padding: '12px 12px',
         borderRadius: 12,
         border: on ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-        background: on ? '#fcf4f6' : '#fff',
+        background: on ? TINT : SURF,
         cursor: 'pointer',
         fontFamily: 'inherit',
         textAlign: 'left'
@@ -20805,7 +21143,7 @@ function OrderSheet({
       right: 0,
       bottom: 0,
       zIndex: 30,
-      background: '#fff',
+      background: SURF,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       boxShadow: '0 -6px 24px rgba(0,0,0,0.1)',
@@ -20868,15 +21206,18 @@ function OrderSheet({
     disabled: cartCount === 0,
     style: {
       width: '100%',
-      height: 50,
+      height: 52,
       borderRadius: 999,
       border: 'none',
-      background: cartCount === 0 ? '#d8c0c8' : WINE,
+      background: cartCount === 0 ? CTA_DEAD : CTA_GRAD,
       color: '#fff',
       fontSize: 15,
-      fontWeight: 700,
+      fontWeight: 800,
       fontFamily: 'inherit',
+      letterSpacing: '.01em',
+      boxShadow: cartCount === 0 ? 'none' : CTA_GLOW,
       cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
+      transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -20884,7 +21225,7 @@ function OrderSheet({
     }
   }, /*#__PURE__*/React.createElement("span", null, "Invio ordine"), cartTotal > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
-      opacity: 0.85
+      opacity: 0.9
     }
   }, "· ", cartTotal, "€"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -20975,7 +21316,7 @@ function OrderSheet({
       fontSize: 11,
       fontWeight: 600,
       color: WINE,
-      background: '#f5eef2',
+      background: TINT,
       padding: '2px 7px',
       borderRadius: 999
     }
@@ -20991,7 +21332,7 @@ function OrderSheet({
       display: 'flex',
       alignItems: 'center',
       gap: 6,
-      background: '#fff',
+      background: SURF,
       borderRadius: 999,
       padding: '3px 6px'
     }
@@ -21109,7 +21450,7 @@ function OrderSheet({
         padding: '0 12px',
         borderRadius: 999,
         border: `1.5px solid ${WINE}`,
-        background: split ? WINE : '#f5eef2',
+        background: split ? WINE : TINT,
         fontSize: 12,
         fontWeight: 700,
         color: split ? '#fff' : WINE,
@@ -21147,15 +21488,18 @@ function OrderSheet({
     disabled: cartCount === 0,
     style: {
       width: '100%',
-      height: 50,
+      height: 52,
       borderRadius: 999,
       border: 'none',
-      background: cartCount === 0 ? '#d8c0c8' : WINE,
+      background: cartCount === 0 ? CTA_DEAD : CTA_GRAD,
       color: '#fff',
       fontSize: 15,
-      fontWeight: 700,
+      fontWeight: 800,
       fontFamily: 'inherit',
-      cursor: cartCount === 0 ? 'not-allowed' : 'pointer'
+      letterSpacing: '.01em',
+      boxShadow: cartCount === 0 ? 'none' : CTA_GLOW,
+      cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
+      transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)'
     }
   }, "Ordina ora · ", cartTotal.toFixed(2), "€"))));
 }
@@ -21164,7 +21508,7 @@ const qtyBtn = {
   height: 28,
   borderRadius: 999,
   border: 'none',
-  background: '#fff',
+  background: SURF,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -21287,7 +21631,7 @@ function SplitScreen({
       display: 'flex',
       alignItems: 'center',
       gap: 12,
-      background: '#fff',
+      background: SURF,
       borderBottom: `1px solid ${BORDER}`
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -21402,7 +21746,7 @@ function SplitScreen({
         gap: 12,
         padding: '12px 14px',
         borderRadius: 14,
-        background: sel ? '#fff' : '#fff',
+        background: sel ? SURF : SURF,
         border: `1.5px solid ${sel ? WINE : BORDER}`,
         cursor: p.isMe ? 'default' : 'pointer',
         opacity: p.isMe ? 0.85 : 1
@@ -21433,7 +21777,7 @@ function SplitScreen({
         height: 24,
         borderRadius: 999,
         border: `2px solid ${sel ? WINE : '#d0d0d0'}`,
-        background: sel ? WINE : '#fff',
+        background: sel ? WINE : SURF,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -21448,7 +21792,7 @@ function SplitScreen({
       width: '100%',
       padding: '12px 14px',
       borderRadius: 14,
-      background: '#fff',
+      background: SURF,
       border: `1.5px dashed ${BORDER}`,
       cursor: 'pointer',
       fontFamily: 'inherit',
@@ -21464,7 +21808,7 @@ function SplitScreen({
       width: 32,
       height: 32,
       borderRadius: 999,
-      background: '#f6f1ea',
+      background: TINT,
       color: WINE,
       display: 'inline-flex',
       alignItems: 'center',
@@ -21516,7 +21860,7 @@ function SplitScreen({
       width: 42,
       height: 42,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF,
       border: `1.5px dashed ${BORDER}`,
       cursor: 'pointer',
       fontFamily: 'inherit',
@@ -21534,7 +21878,7 @@ function SplitScreen({
       marginTop: 24,
       padding: 16,
       borderRadius: 16,
-      background: '#fff',
+      background: SURF,
       border: `1.5px solid ${BORDER}`
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -21574,7 +21918,7 @@ function SplitScreen({
       right: 0,
       bottom: 0,
       padding: '14px 22px 22px',
-      background: '#fff',
+      background: SURF,
       borderTop: `1px solid ${BORDER}`
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -21608,7 +21952,7 @@ function ModeCard({
       gap: 14,
       padding: '14px 16px',
       borderRadius: 16,
-      background: active ? '#fff' : '#fff',
+      background: active ? SURF : SURF,
       border: `1.5px solid ${active ? WINE : BORDER}`,
       cursor: 'pointer',
       fontFamily: 'inherit',
@@ -21622,7 +21966,7 @@ function ModeCard({
       height: 46,
       borderRadius: 14,
       flexShrink: 0,
-      background: active ? '#f5eef2' : BG_GRAY,
+      background: active ? TINT : BG_GRAY,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -21651,7 +21995,7 @@ function ModeCard({
       height: 22,
       borderRadius: 999,
       border: `2px solid ${active ? WINE : '#d0d0d0'}`,
-      background: active ? WINE : '#fff',
+      background: active ? WINE : SURF,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
@@ -21731,7 +22075,7 @@ function HomeScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#fff',
+      background: SURF,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -21752,19 +22096,19 @@ function HomeScreen({
     quickFilters: quickFilters,
     setQuickFilters: setQuickFilters,
     onMap: () => {
-      window.location.href = 'byup Home.html?page=map';
+      window.location.href = 'home-standalone.html?page=map';
     },
     onPosta: () => {
-      window.location.href = 'byup Home.html?page=posta';
+      window.location.href = 'home-standalone.html?page=posta';
     },
     onSearch: () => {
-      window.location.href = 'byup Home.html?page=search';
+      window.location.href = 'home-standalone.html?page=search';
     },
     onFilters: () => {
-      window.location.href = 'byup Home.html';
+      window.location.href = 'home-standalone.html';
     },
     onCardClick: () => {
-      window.location.href = 'byup Home.html';
+      window.location.href = 'home-standalone.html';
     }
   }) : /*#__PURE__*/React.createElement(React.Fragment, null, before, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -21778,7 +22122,7 @@ function HomeScreen({
       active: "home",
       onHome: () => {},
       onProfile: () => {
-        window.location.href = 'byup Home.html?page=profile';
+        window.location.href = 'home-standalone.html?page=profile';
       },
       onQR: () => goTo('menu')
     }) : null;
@@ -22326,8 +22670,8 @@ function TakeawayCard({
       height: 42,
       borderRadius: 999,
       border: 'none',
-      background: '#fff',
-      color: '#1a1a1a',
+      background: SURF,
+      color: BADGE,
       fontSize: 14,
       fontWeight: 700,
       fontFamily: 'inherit',
@@ -22423,7 +22767,7 @@ function GuestsSheet({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF,
       color: TEXT,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
@@ -22526,7 +22870,7 @@ function GuestsSheet({
       width: 6,
       height: 6,
       borderRadius: 999,
-      background: '#c4b89f'
+      background: MUTESURF
     }
   }), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -22564,7 +22908,7 @@ function GuestsSheet({
       width: 38,
       height: 38,
       borderRadius: 999,
-      background: g.isGuest ? '#f0ede6' : g.isMe ? PINK : '#1a1a1a',
+      background: g.isGuest ? MUTESURF : g.isMe ? PINK : BADGE,
       color: g.isGuest ? MUTED : '#fff',
       display: 'flex',
       alignItems: 'center',
@@ -22637,7 +22981,7 @@ function GuestsSheet({
       marginTop: 12,
       width: '100%',
       padding: '12px 14px',
-      background: '#fff',
+      background: SURF,
       border: `1.5px dashed ${BORDER}`,
       borderRadius: 14,
       cursor: 'pointer',
@@ -22655,7 +22999,7 @@ function GuestsSheet({
       width: 22,
       height: 22,
       borderRadius: 999,
-      background: '#f6f1ea',
+      background: TINT,
       color: WINE,
       display: 'inline-flex',
       alignItems: 'center',
@@ -22667,7 +23011,7 @@ function GuestsSheet({
     style: {
       marginTop: 14,
       padding: 14,
-      background: '#faf6ee',
+      background: TINT,
       borderRadius: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -22709,7 +23053,7 @@ function GuestsSheet({
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-      background: '#fff',
+      background: SURF,
       padding: '6px 6px 6px 12px',
       borderRadius: 999,
       border: `1px solid ${BORDER}`
@@ -22760,7 +23104,7 @@ function GuestsSheet({
       height: 48,
       borderRadius: 999,
       border: 'none',
-      background: '#1a1a1a',
+      background: BADGE,
       color: '#fff',
       marginTop: 14,
       fontSize: 14.5,
@@ -22941,7 +23285,7 @@ function DishDetailScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_PAGE,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -22960,7 +23304,7 @@ function DishDetailScreen({
       width: 42,
       height: 42,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -23013,7 +23357,7 @@ function DishDetailScreen({
       top: 60,
       right: 16,
       zIndex: 5,
-      background: '#1a1a1a',
+      background: BADGE,
       color: '#fff',
       fontSize: 10,
       fontWeight: 800,
@@ -23146,7 +23490,7 @@ function DishDetailScreen({
         padding: '8px 14px',
         borderRadius: 999,
         border: out ? `1.5px solid #d0d0d0` : `1.5px solid ${WINE}`,
-        background: out ? '#f5f5f5' : '#fff',
+        background: out ? TINT : SURF,
         color: out ? '#999' : TEXT,
         fontSize: 13,
         fontWeight: 600,
@@ -23224,7 +23568,7 @@ function DishDetailScreen({
         height: 32,
         borderRadius: 999,
         border: `1.5px solid ${BORDER}`,
-        background: '#fff',
+        background: SURF,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -23314,7 +23658,7 @@ function DishDetailScreen({
         padding: '10px 16px',
         borderRadius: 999,
         border: sel ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-        background: sel ? WINE : '#fff',
+        background: sel ? WINE : SURF,
         color: sel ? '#fff' : TEXT,
         fontSize: 13,
         fontWeight: 600,
@@ -23329,7 +23673,7 @@ function DishDetailScreen({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       borderRadius: 18,
-      background: '#fff',
+      background: SURF,
       padding: 16,
       border: `1px solid ${BORDER}`,
       position: 'relative',
@@ -23435,7 +23779,7 @@ function DishDetailScreen({
   }, m.val, "g")), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 6,
-      background: '#f0ede8',
+      background: TINT,
       borderRadius: 999,
       overflow: 'hidden'
     }
@@ -23490,7 +23834,7 @@ function DishDetailScreen({
         height: 28,
         borderRadius: 999,
         border: 'none',
-        background: '#f1dde4',
+        background: TINT,
         color: WINE,
         fontSize: 18,
         fontWeight: 700,
@@ -23514,7 +23858,7 @@ function DishDetailScreen({
           position: 'relative',
           boxShadow: inCart ? `0 2px 10px rgba(90,26,46,0.22)` : '0 1px 4px rgba(0,0,0,0.05)',
           border: inCart ? `2px solid ${WINE}` : '2px solid transparent',
-          background: inCart ? '#fdf6f8' : '#fff',
+          background: inCart ? TINT : SURF,
           transition: 'all 0.18s'
         }
       }, /*#__PURE__*/React.createElement("div", {
@@ -23618,7 +23962,7 @@ function DishDetailScreen({
       right: 0,
       bottom: 0,
       padding: '14px 22px 22px',
-      background: '#fff',
+      background: SURF,
       borderTop: `1px solid ${BORDER}`,
       boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
       display: 'flex',
@@ -23648,7 +23992,7 @@ function DishDetailScreen({
       borderRadius: 999,
       border: `1px solid ${BORDER}`,
       padding: '0 6px',
-      background: '#fff'
+      background: SURF
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setQty(q => Math.max(1, q - 1)),
@@ -23658,7 +24002,7 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: '#f2f2f2',
+      background: TINT,
       color: TEXT,
       fontSize: 22,
       fontWeight: 700,
@@ -23685,7 +24029,7 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: '#f2f2f2',
+      background: TINT,
       color: TEXT,
       fontSize: 22,
       fontWeight: 700,
@@ -23706,7 +24050,7 @@ function DishDetailScreen({
       borderRadius: 999,
       border: `1px solid ${BORDER}`,
       padding: '0 8px',
-      background: '#fff'
+      background: SURF
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setQty(q => Math.max(1, q - 1)),
@@ -23716,7 +24060,7 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: '#f2f2f2',
+      background: TINT,
       color: TEXT,
       fontSize: 22,
       fontWeight: 700,
@@ -23745,7 +24089,7 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: '#f2f2f2',
+      background: TINT,
       color: TEXT,
       fontSize: 22,
       fontWeight: 700,
@@ -23933,7 +24277,7 @@ function PaymentScreen({
     borderRadius: 999,
     flexShrink: 0,
     border: `1.5px solid ${WINE}`,
-    background: '#fff',
+    background: SURF,
     color: WINE,
     fontSize: 20,
     fontWeight: 500,
@@ -24129,7 +24473,7 @@ function PaymentScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_PAGE,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -24139,7 +24483,7 @@ function PaymentScreen({
     style: {
       flexShrink: 0,
       paddingTop: 60,
-      background: '#FBF4F1',
+      background: BG_PAGE,
       position: 'relative',
       zIndex: 5,
       boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
@@ -24157,7 +24501,7 @@ function PaymentScreen({
       width: 40,
       height: 40,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -24209,7 +24553,7 @@ function PaymentScreen({
       width: 30,
       height: 30,
       borderRadius: 999,
-      background: g.isApp || g.isWebApp ? '#1a1a1a' : '#ebe3d6',
+      background: g.isApp || g.isWebApp ? BADGE : '#ebe3d6',
       color: g.isApp || g.isWebApp ? '#fff' : MUTED,
       border: '2.5px solid #FBF4F1',
       marginLeft: -10,
@@ -24224,7 +24568,7 @@ function PaymentScreen({
       width: 30,
       height: 30,
       borderRadius: 999,
-      background: '#ebe3d6',
+      background: MUTESURF,
       border: '2.5px solid #FBF4F1',
       marginLeft: -10,
       display: 'flex',
@@ -24309,7 +24653,7 @@ function PaymentScreen({
     return /*#__PURE__*/React.createElement("div", {
       key: it.lineId,
       style: {
-        background: paid ? '#f0f7f2' : '#fff',
+        background: paid ? TINT : SURF,
         borderRadius: 14,
         padding: '14px',
         display: 'flex',
@@ -24365,7 +24709,7 @@ function PaymentScreen({
         display: 'inline-flex',
         alignItems: 'center',
         gap: 5,
-        background: '#f6f1ea',
+        background: TINT,
         color: WINE,
         padding: '3px 9px',
         borderRadius: 999,
@@ -24467,7 +24811,7 @@ function PaymentScreen({
     }, "(", (it.price * it.qty).toFixed(0), "€ tot)")));
   }), myItems.length === 0 && tableItems.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#fff',
+      background: SURF,
       borderRadius: 14,
       padding: '28px 18px',
       fontSize: 13.5,
@@ -24506,7 +24850,7 @@ function PaymentScreen({
     return /*#__PURE__*/React.createElement("div", {
       key: 'x-' + it.lineId,
       style: {
-        background: '#fff',
+        background: SURF,
         borderRadius: 14,
         padding: '14px',
         border: `1px solid ${WINE}30`,
@@ -24546,7 +24890,7 @@ function PaymentScreen({
         gap: 5,
         padding: '5px 10px',
         borderRadius: 999,
-        background: sp ? WINE : '#fff',
+        background: sp ? WINE : SURF,
         border: `1.5px solid ${WINE}`,
         color: sp ? '#fff' : WINE,
         fontSize: 11.5,
@@ -24603,7 +24947,7 @@ function PaymentScreen({
     }
   }, "+"), " sui piatti che vuoi pagare tu."), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#fff',
+      background: SURF,
       borderRadius: 14,
       overflow: 'hidden',
       boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
@@ -24622,7 +24966,7 @@ function PaymentScreen({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#f6f1ea',
+      background: TINT,
       color: WINE,
       display: 'flex',
       alignItems: 'center',
@@ -24689,7 +25033,7 @@ function PaymentScreen({
     return /*#__PURE__*/React.createElement("div", {
       key: it.lineId,
       style: {
-        background: disabled ? '#f8f7f3' : '#fff',
+        background: disabled ? TINT : SURF,
         borderRadius: 14,
         padding: '14px',
         border: `1px solid ${BORDER}`,
@@ -24796,7 +25140,7 @@ function PaymentScreen({
     return /*#__PURE__*/React.createElement("div", {
       key: oid,
       style: {
-        background: '#fff',
+        background: SURF,
         borderRadius: 14,
         overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
@@ -24816,7 +25160,7 @@ function PaymentScreen({
         width: 36,
         height: 36,
         borderRadius: 999,
-        background: oid === 'table' ? '#f6f1ea' : guest?.isGuest ? '#ebe3d6' : '#1a1a1a',
+        background: oid === 'table' ? TINT : guest?.isGuest ? '#ebe3d6' : BADGE,
         color: oid === 'table' ? WINE : guest?.isGuest ? MUTED : '#fff',
         display: 'flex',
         alignItems: 'center',
@@ -25013,7 +25357,7 @@ function PaymentScreen({
     onClick: () => setMode('all'),
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF,
       borderRadius: 14,
       padding: '16px 16px',
       display: 'flex',
@@ -25030,7 +25374,7 @@ function PaymentScreen({
       width: 44,
       height: 44,
       borderRadius: 12,
-      background: '#f6f1ea',
+      background: TINT,
       color: WINE,
       display: 'flex',
       alignItems: 'center',
@@ -25097,7 +25441,7 @@ function PaymentScreen({
     onClick: () => setMode('mine'),
     style: {
       padding: '10px 20px',
-      background: '#fff',
+      background: SURF,
       border: `1.5px solid ${BORDER}`,
       borderRadius: 999,
       fontSize: 13,
@@ -25126,7 +25470,7 @@ function PaymentScreen({
       left: 0,
       right: 0,
       bottom: 0,
-      background: '#fff',
+      background: SURF,
       borderTop: `1px solid ${BORDER}`,
       boxShadow: '0 -4px 20px rgba(0,0,0,0.06)'
     }
@@ -25240,7 +25584,7 @@ function PaymentScreen({
         height: 28,
         padding: '0 10px',
         borderRadius: 999,
-        background: active ? TEXT : '#f6f1ea',
+        background: active ? WINE : TINT,
         color: active ? '#fff' : TEXT,
         border: 'none',
         fontSize: 12,
@@ -25265,7 +25609,7 @@ function PaymentScreen({
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      background: '#f6f1ea',
+      background: TINT,
       borderRadius: 12,
       cursor: 'pointer'
     }
@@ -25278,7 +25622,7 @@ function PaymentScreen({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: payMethod === 'apple' ? '#000' : payMethod === 'klarna' ? '#ffb3c7' : '#fff',
+      background: payMethod === 'apple' ? '#000' : payMethod === 'klarna' ? '#ffb3c7' : SURF,
       border: payMethod === 'apple' || payMethod === 'klarna' ? 'none' : `1px solid ${BORDER}`,
       gap: 2
     }
@@ -25339,13 +25683,15 @@ function PaymentScreen({
       height: 54,
       borderRadius: 999,
       border: 'none',
-      background: total <= 0 ? '#ccc' : WINE,
+      background: total <= 0 ? CTA_DEAD : CTA_GRAD,
       color: '#fff',
       fontSize: 15,
-      fontWeight: 700,
+      fontWeight: 800,
       fontFamily: 'inherit',
+      letterSpacing: '.01em',
       cursor: total <= 0 ? 'default' : 'pointer',
-      boxShadow: total <= 0 ? 'none' : `0 4px 14px ${WINE}40`,
+      boxShadow: total <= 0 ? 'none' : CTA_GLOW,
+      transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -25394,7 +25740,7 @@ function PaymentScreen({
           padding: '13px 14px',
           borderRadius: 14,
           textAlign: 'left',
-          background: '#fff',
+          background: SURF,
           border: `1.5px solid ${active ? WINE : BORDER}`,
           cursor: 'pointer',
           fontFamily: 'inherit',
@@ -25409,7 +25755,7 @@ function PaymentScreen({
           borderRadius: 999,
           flexShrink: 0,
           border: `2px solid ${active ? WINE : '#d0d0d0'}`,
-          background: active ? WINE : '#fff',
+          background: active ? WINE : SURF,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -25450,7 +25796,7 @@ function PaymentScreen({
     }, /*#__PURE__*/React.createElement("div", {
       onClick: e => e.stopPropagation(),
       style: {
-        background: '#fff',
+        background: SURF,
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
         width: '100%',
@@ -25464,7 +25810,7 @@ function PaymentScreen({
         width: 36,
         height: 4,
         borderRadius: 999,
-        background: '#e5e1d6',
+        background: MUTESURF,
         margin: '4px auto 16px'
       }
     }), /*#__PURE__*/React.createElement("div", {
@@ -25525,7 +25871,7 @@ function PaymentScreen({
           gap: 6,
           padding: '8px 12px',
           borderRadius: 999,
-          background: sel ? WINE : '#fafaf7',
+          background: sel ? WINE : TINT,
           color: sel ? '#fff' : TEXT,
           border: `1.5px solid ${sel ? WINE : BORDER}`,
           fontSize: 13,
@@ -25543,7 +25889,7 @@ function PaymentScreen({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '12px 14px',
-        background: '#f6f1ea',
+        background: TINT,
         borderRadius: 12,
         margin: '18px 0 14px'
       }
@@ -25587,7 +25933,7 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("div", {
     onClick: e => e.stopPropagation(),
     style: {
-      background: '#fff',
+      background: SURF,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       width: '100%',
@@ -25599,7 +25945,7 @@ function PaymentScreen({
       width: 36,
       height: 4,
       borderRadius: 999,
-      background: '#e5e1d6',
+      background: MUTESURF,
       margin: '0 auto 16px'
     }
   }), /*#__PURE__*/React.createElement("div", {
@@ -25634,7 +25980,7 @@ function PaymentScreen({
       alignItems: 'center',
       gap: 12,
       padding: '10px 12px',
-      background: '#f6f1ea',
+      background: TINT,
       borderRadius: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -25642,7 +25988,7 @@ function PaymentScreen({
       width: 34,
       height: 34,
       borderRadius: 999,
-      background: p.isMe ? PINK_DARK : p.isGuest ? '#ebe3d6' : '#1a1a1a',
+      background: p.isMe ? PINK_DARK : p.isGuest ? '#ebe3d6' : BADGE,
       color: p.isMe ? '#fff' : p.isGuest ? MUTED : '#fff',
       display: 'flex',
       alignItems: 'center',
@@ -25669,7 +26015,7 @@ function PaymentScreen({
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: '12px 12px',
-      background: '#f6f1ea',
+      background: TINT,
       borderRadius: 12,
       marginBottom: 16
     }
@@ -25735,7 +26081,7 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("div", {
     onClick: e => e.stopPropagation(),
     style: {
-      background: '#fff',
+      background: SURF,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       width: '100%',
@@ -25748,7 +26094,7 @@ function PaymentScreen({
       width: 36,
       height: 4,
       borderRadius: 999,
-      background: '#e5e1d6',
+      background: MUTESURF,
       margin: '4px auto 18px'
     }
   }), /*#__PURE__*/React.createElement("div", {
@@ -25793,7 +26139,7 @@ function PaymentScreen({
       padding: '14px',
       borderRadius: 14,
       border: '1.5px solid #E0DADC',
-      background: '#fff',
+      background: SURF,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 15,
@@ -25948,7 +26294,7 @@ function PayMethodScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_PAGE,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -25971,7 +26317,7 @@ function PayMethodScreen({
       width: 40,
       height: 40,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -26003,16 +26349,18 @@ function PayMethodScreen({
     const sel = method === m.id;
     // "Aggiungi carta" → Profilo › Pagamenti con il form "Aggiungi metodo" già aperto
     const onPick = m.id === 'card' ? () => {
-      window.location.href = 'byup Home.html?page=profile&view=pagamenti&add=1';
+      window.location.href = 'home-standalone.html?page=profile&view=pagamenti&add=1';
     } : () => setMethod(m.id);
     return /*#__PURE__*/React.createElement("button", {
       key: m.id,
       onClick: onPick,
       style: {
-        background: '#fff',
+        background: sel ? TINT : SURF,
         borderRadius: 14,
         padding: '14px 16px',
-        border: sel ? `2px solid ${TEXT}` : `1.5px solid ${BORDER}`,
+        border: sel ? `2px solid ${PINK}` : `1.5px solid ${BORDER}`,
+        boxShadow: sel ? '0 10px 24px -14px rgba(227,36,89,.5)' : 'none',
+        transition: 'border-color 160ms ease, background 160ms ease, box-shadow 160ms ease',
         display: 'flex',
         alignItems: 'center',
         gap: 14,
@@ -26028,7 +26376,7 @@ function PayMethodScreen({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: m.id === 'klarna' ? '#ffb3c7' : '#fff',
+        background: m.id === 'klarna' ? '#ffb3c7' : SURF,
         border: m.id === 'klarna' ? 'none' : 'none'
       }
     }, m.icon), /*#__PURE__*/React.createElement("div", {
@@ -26053,9 +26401,10 @@ function PayMethodScreen({
         width: 22,
         height: 22,
         borderRadius: 999,
-        border: sel ? `6px solid ${TEXT}` : `1.5px solid ${BORDER}`,
-        background: sel ? '#fff' : 'transparent',
-        boxSizing: 'border-box'
+        border: sel ? `6px solid ${PINK}` : `1.5px solid ${BORDER}`,
+        background: sel ? SURF : 'transparent',
+        boxSizing: 'border-box',
+        transition: 'border-color 160ms ease'
       }
     }));
   })))), /*#__PURE__*/React.createElement("div", {
@@ -26065,7 +26414,7 @@ function PayMethodScreen({
       right: 0,
       bottom: 0,
       padding: '14px 22px 22px',
-      background: '#fff',
+      background: SURF,
       borderTop: `1px solid ${BORDER}`
     }
   }, isTakeaway ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -26094,12 +26443,15 @@ function PayMethodScreen({
       height: 52,
       borderRadius: 999,
       border: 'none',
-      background: '#1a1a1a',
+      background: CTA_GRAD,
       color: '#fff',
+      boxShadow: CTA_GLOW,
       fontSize: 15,
-      fontWeight: 700,
+      fontWeight: 800,
       fontFamily: 'inherit',
       cursor: 'pointer',
+      letterSpacing: '.01em',
+      transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -26127,12 +26479,15 @@ function PayMethodScreen({
       height: 52,
       borderRadius: 999,
       border: 'none',
-      background: WINE,
+      background: CTA_GRAD,
       color: '#fff',
+      boxShadow: CTA_GLOW,
       fontSize: 15,
-      fontWeight: 700,
+      fontWeight: 800,
       fontFamily: 'inherit',
       cursor: 'pointer',
+      letterSpacing: '.01em',
+      transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -26262,7 +26617,7 @@ function BalanceScreen({
       height: 30,
       padding: '0 10px',
       borderRadius: 999,
-      background: '#f6f1ea',
+      background: TINT,
       color: WINE,
       display: 'inline-flex',
       alignItems: 'center',
@@ -26288,7 +26643,7 @@ function BalanceScreen({
       height: 30,
       borderRadius: 999,
       flexShrink: 0,
-      background: o.me ? WINE : o.guest ? '#ebe3d6' : '#1a1a1a',
+      background: o.me ? WINE : o.guest ? '#ebe3d6' : BADGE,
       color: o.me ? '#fff' : o.guest ? MUTED : '#fff',
       display: 'flex',
       alignItems: 'center',
@@ -26304,7 +26659,7 @@ function BalanceScreen({
       padding: '9px 4px',
       borderRadius: 10,
       fontFamily: 'inherit',
-      background: mode === id ? WINE : '#fafaf7',
+      background: mode === id ? WINE : TINT,
       color: mode === id ? '#fff' : TEXT,
       border: `1.5px solid ${mode === id ? WINE : BORDER}`,
       fontSize: 12.5,
@@ -26317,7 +26672,7 @@ function BalanceScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_PAGE,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -26327,7 +26682,7 @@ function BalanceScreen({
     style: {
       flexShrink: 0,
       paddingTop: 60,
-      background: '#FBF4F1',
+      background: BG_PAGE,
       position: 'relative',
       zIndex: 5,
       boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
@@ -26345,7 +26700,7 @@ function BalanceScreen({
       width: 40,
       height: 40,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -26379,7 +26734,7 @@ function BalanceScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#fff',
+      background: SURF,
       borderRadius: 18,
       padding: '22px 20px',
       textAlign: 'center',
@@ -26439,7 +26794,7 @@ function BalanceScreen({
     }
   }, pending.length, " ", pending.length === 1 ? 'articolo ancora da saldare' : 'articoli ancora da saldare')), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#fff',
+      background: SURF,
       borderRadius: 16,
       overflow: 'hidden',
       boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
@@ -26520,7 +26875,7 @@ function BalanceScreen({
         gap: 10,
         padding: '10px 12px',
         borderRadius: 12,
-        background: locked ? '#f4f2ee' : checked ? '#faf6ef' : '#fafaf7',
+        background: locked ? MUTESURF : checked ? TINT : TINT,
         border: `1.5px solid ${checked && !locked ? WINE : BORDER}`,
         opacity: locked ? 0.65 : 1,
         cursor: locked ? 'default' : 'pointer'
@@ -26553,7 +26908,7 @@ function BalanceScreen({
         borderRadius: 7,
         flexShrink: 0,
         border: `2px solid ${checked ? WINE : '#d0c8cc'}`,
-        background: checked ? WINE : '#fff',
+        background: checked ? WINE : SURF,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -26589,7 +26944,7 @@ function BalanceScreen({
         fontSize: 11.5,
         fontWeight: 700,
         color: '#fff',
-        background: '#1a1a1a',
+        background: BADGE,
         padding: '4px 9px',
         borderRadius: 999,
         whiteSpace: 'nowrap'
@@ -26608,7 +26963,7 @@ function BalanceScreen({
       left: 0,
       right: 0,
       bottom: 0,
-      background: '#fff',
+      background: SURF,
       borderTop: `1px solid ${BORDER}`,
       padding: '14px 18px 22px',
       boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
@@ -26644,7 +26999,7 @@ function BalanceScreen({
         gap: 5,
         padding: '7px 11px',
         borderRadius: 999,
-        background: on ? WINE : '#fafaf7',
+        background: on ? WINE : TINT,
         color: on ? '#fff' : TEXT,
         border: `1.5px solid ${on ? WINE : BORDER}`,
         fontSize: 12,
@@ -26876,7 +27231,7 @@ function SuccessScreen({
       style: {
         width: '100%',
         height: '100%',
-        background: '#FBF4F1',
+        background: BG_PAGE,
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -26950,7 +27305,7 @@ function SuccessScreen({
         gap: 10
       }
     }, /*#__PURE__*/React.createElement("a", {
-      href: "byup Menu.html?takeaway=1",
+      href: "menu-standalone.html?takeaway=1",
       style: {
         flex: 1,
         height: 50,
@@ -26972,10 +27327,10 @@ function SuccessScreen({
       return B ? /*#__PURE__*/React.createElement(B, {
         active: "home",
         onHome: () => {
-          window.location.href = 'byup Home.html';
+          window.location.href = 'home-standalone.html';
         },
         onProfile: () => {
-          window.location.href = 'byup Home.html?page=profile';
+          window.location.href = 'home-standalone.html?page=profile';
         },
         showQR: false
       }) : null;
@@ -26993,7 +27348,7 @@ function SuccessScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_PAGE,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -27056,7 +27411,7 @@ function SuccessScreen({
     }
   }, venue)), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      window.location.href = 'byup Home.html?page=profile&view=orders&order=recent';
+      window.location.href = 'home-standalone.html?page=profile&view=orders&order=recent';
     },
     style: {
       background: 'transparent',
@@ -27104,7 +27459,7 @@ function SuccessScreen({
       width: 34,
       height: 34,
       borderRadius: 999,
-      background: g.isApp || g.isWebApp ? '#1a1a1a' : '#c4b89f',
+      background: g.isApp || g.isWebApp ? BADGE : '#c4b89f',
       color: '#fff',
       border: '2.5px solid #FBF4F1',
       marginLeft: -10,
@@ -27119,7 +27474,7 @@ function SuccessScreen({
       width: 34,
       height: 34,
       borderRadius: 999,
-      background: '#ebe3d6',
+      background: MUTESURF,
       color: MUTED,
       border: '2.5px solid #FBF4F1',
       marginLeft: -10,
@@ -27169,7 +27524,7 @@ function SuccessScreen({
         width: 38,
         height: 38,
         borderRadius: 9,
-        background: filled ? PINK : '#f0e6e9',
+        background: filled ? PINK : TINT,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -27253,7 +27608,7 @@ function SuccessScreen({
       padding: '12px 14px',
       borderRadius: 14,
       border: '1.5px solid #e6e0d8',
-      background: '#fff',
+      background: SURF,
       fontSize: 13.5,
       fontFamily: 'inherit',
       color: TEXT,
@@ -27323,7 +27678,7 @@ function SuccessScreen({
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("a", {
-    href: "byup Home.html",
+    href: "home-standalone.html",
     style: {
       width: '100%',
       height: 54,
@@ -27478,7 +27833,7 @@ function TakeawayScreen({
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#fff',
+      background: SURF,
       minHeight: '100%',
       display: 'flex',
       flexDirection: 'column'
@@ -27538,7 +27893,7 @@ function TakeawayScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#fbf6f3',
+      background: TINT,
       borderRadius: 18,
       padding: 14,
       display: 'flex',
@@ -27610,7 +27965,7 @@ function TakeawayScreen({
       padding: '12px 4px',
       borderRadius: 14,
       border: `1.5px solid ${pickupTime === t ? WINE : BORDER}`,
-      background: pickupTime === t ? WINE : '#fff',
+      background: pickupTime === t ? WINE : SURF,
       color: pickupTime === t ? '#fff' : TEXT,
       fontSize: 14,
       fontWeight: 700,
@@ -27646,7 +28001,7 @@ function TakeawayScreen({
       minWidth: 26,
       height: 26,
       borderRadius: 8,
-      background: '#fff',
+      background: SURF,
       fontSize: 13,
       fontWeight: 700,
       color: TEXT,
@@ -27707,7 +28062,7 @@ function TakeawayScreen({
     style: {
       padding: '12px 22px 18px',
       borderTop: `1px solid ${BORDER}`,
-      background: '#fff'
+      background: SURF
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onContinue,
@@ -28090,7 +28445,7 @@ function Root() {
       top: 20,
       right: 20,
       zIndex: 100,
-      background: '#fff',
+      background: SURF,
       borderRadius: 14,
       padding: 8,
       boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
@@ -28111,15 +28466,15 @@ function Root() {
   }, "Schermate"), [{
     id: 'home-page',
     label: 'Home',
-    href: 'byup Home.html'
+    href: 'home-standalone.html'
   }, {
     id: 'home-empty-page',
     label: 'Home — nessun locale',
-    href: 'byup Home.html?page=home-empty'
+    href: 'home-standalone.html?page=home-empty'
   }, {
     id: 'venue-page',
     label: 'Vetrina',
-    href: 'byup Home.html?page=venue'
+    href: 'home-standalone.html?page=venue'
   }, {
     id: 'menu',
     label: 'Menu'

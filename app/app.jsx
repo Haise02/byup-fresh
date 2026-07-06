@@ -1907,17 +1907,13 @@ function PaymentCard({ onClick }) {
   );
 }
 
-// ─── Anteprima mappa — scorri fino in fondo e si apre la mappa completa ───
-function MapPreviewCard({ onOpen }) {
-  const [T] = BK.useByupTheme();
-  const mapRef = useRef(null);
-  const sentinelRef = useRef(null);
-  const firedRef = useRef(false);
+// ─── Mappa full-bleed — primo scroll si ferma a fine pagina, il secondo apre con zoom ───
+function LeafletMini({ mapRef, zoom = 13 }) {
   useEffect(() => {
     const el = mapRef.current;
     if (!el || !window.L) return;
     const map = window.L.map(el, {
-      center: [41.9028, 12.4964], zoom: 13,
+      center: [41.9028, 12.4964], zoom,
       zoomControl: false, attributionControl: false,
       dragging: false, scrollWheelZoom: false, touchZoom: false,
       doubleClickZoom: false, keyboard: false,
@@ -1930,42 +1926,120 @@ function MapPreviewCard({ onOpen }) {
     setTimeout(() => map.invalidateSize(), 80);
     return () => map.remove();
   }, []);
+  return <div ref={mapRef} style={{ position: 'absolute', inset: 0 }}/>;
+}
+
+function MapExpandOverlay({ from, T }) {
+  const mapRef = useRef(null);
+  const [grown, setGrown] = useState(false);
+  useEffect(() => { const r = requestAnimationFrame(() => setGrown(true)); return () => cancelAnimationFrame(r); }, []);
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, zIndex: 900,
+      top: grown ? 0 : from.top, height: grown ? '100%' : from.height,
+      overflow: 'hidden', background: '#e9e4dd',
+      transition: 'top 560ms cubic-bezier(.22,.9,.35,1), height 560ms cubic-bezier(.22,.9,.35,1)',
+    }}>
+      <LeafletMini mapRef={mapRef} zoom={13}/>
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0, zIndex: 500, pointerEvents: 'none',
+        background: T.dark ? 'rgba(24,22,20,.12)' : 'rgba(251,244,241,.08)',
+        opacity: grown ? 0 : 1, transition: 'opacity 500ms ease',
+      }}/>
+    </div>
+  );
+}
+
+function MapPreviewCard({ onOpen }) {
+  const [T] = BK.useByupTheme();
+  const wrapRef = useRef(null);
+  const mapRef = useRef(null);
+  const [expanding, setExpanding] = useState(null);
+  const firedRef = useRef(false);
+  const gestureRef = useRef({ last: 0, armed: false, touchY: null, touchArmed: false });
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver((es) => {
-      if (es[0].isIntersecting && !firedRef.current) {
-        firedRef.current = true;
-        io.disconnect();
-        setTimeout(() => onOpen?.(), 250);
-      }
-    }, { threshold: 0.95 });
-    io.observe(el);
-    return () => io.disconnect();
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const scroller = wrap.closest('[data-byup-scroll]');
+    if (!scroller) return;
+    const atBottom = () => scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 8;
+    const trigger = () => {
+      if (firedRef.current) return;
+      firedRef.current = true;
+      const root = scroller.closest('[data-byup-approot]') || scroller.parentElement;
+      const rRect = root.getBoundingClientRect();
+      const rect = wrap.getBoundingClientRect();
+      setExpanding({ top: rect.top - rRect.top, height: rect.height, rootEl: root });
+      BK.haptic.light();
+      setTimeout(() => onOpen?.(), 600);
+    };
+    const g = gestureRef.current;
+    const onWheel = (e) => {
+      if (e.deltaY <= 10 || !atBottom()) return;
+      const now = Date.now();
+      // gesto nuovo = pausa di almeno 450ms dall'ultimo evento a fondo pagina
+      if (g.armed && now - g.last > 450) trigger();
+      g.armed = true;
+      g.last = now;
+    };
+    const onTouchStart = (e) => {
+      g.touchY = e.touches[0].clientY;
+      g.touchArmed = atBottom(); // già a fine pagina PRIMA del nuovo gesto
+    };
+    const onTouchMove = (e) => {
+      if (g.touchY == null) return;
+      const dy = g.touchY - e.touches[0].clientY;
+      if (dy > 26 && g.touchArmed && atBottom()) { trigger(); g.touchY = null; }
+    };
+    const onTouchEnd = () => { g.touchY = null; };
+    scroller.addEventListener('wheel', onWheel, { passive: true });
+    scroller.addEventListener('touchstart', onTouchStart, { passive: true });
+    scroller.addEventListener('touchmove', onTouchMove, { passive: true });
+    scroller.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchstart', onTouchStart);
+      scroller.removeEventListener('touchmove', onTouchMove);
+      scroller.removeEventListener('touchend', onTouchEnd);
+    };
   }, []);
   return (
-    <div style={{ padding: '0 18px' }}>
-      <div className="bk-press" onClick={() => onOpen?.()} style={{
-        position: 'relative', height: 190, borderRadius: BK.RADII.card, overflow: 'hidden',
-        cursor: 'pointer', boxShadow: T.shadow, border: `1px solid ${T.line}`,
-        background: '#e9e4dd',
-      }}>
-        <div ref={mapRef} style={{ position: 'absolute', inset: 0 }}/>
-        <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(28,6,16,0) 45%, rgba(28,6,16,.5) 100%)', pointerEvents: 'none', zIndex: 500 }}/>
-        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 12, zIndex: 501, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, pointerEvents: 'none' }}>
-          <div>
-            <div style={{ fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600 }}>70 locali qui intorno</div>
-            <div style={{ fontSize: 11.5, opacity: .9, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-              Continua a scorrere per aprire la mappa
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'bkBob 1.6s ease-in-out infinite' }}><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,.92)', color: '#1c0f15', fontSize: 12, fontWeight: 800, padding: '8px 14px', borderRadius: 999 }}>Apri</div>
+    <>
+      {/* full-bleed: si fonde col tema in alto e SCENDE SOTTO la tab bar in basso
+          (marginBottom negativo mangia il padding dello scroller → niente striscia di sfondo) */}
+      <div ref={wrapRef} style={{ position: 'relative', height: 448, marginTop: 4, marginBottom: -126, isolation: 'isolate' }}>
+        <LeafletMini mapRef={mapRef} zoom={13}/>
+        {/* fusione con lo sfondo in alto */}
+        <div aria-hidden style={{
+          position: 'absolute', left: 0, right: 0, top: 0, height: 100, zIndex: 500, pointerEvents: 'none',
+          background: `linear-gradient(180deg, ${T.bg} 0%, ${T.bg}00 100%)`,
+        }}/>
+        {/* velo di blur diffuso sul fondo — la mappa prosegue sotto la tab bar, nessun fade-to-bg */}
+        <div aria-hidden style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: 190, zIndex: 500, pointerEvents: 'none',
+          backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)',
+          maskImage: 'linear-gradient(180deg, transparent 0%, #000 80%)',
+          WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, #000 80%)',
+        }}/>
+        {/* pill flottante NON cliccabile — sollevata SOPRA la tab bar e il QR */}
+        <div aria-hidden style={{
+          position: 'absolute', left: '50%', bottom: 152, transform: 'translateX(-50%)', zIndex: 502,
+          pointerEvents: 'none', whiteSpace: 'nowrap',
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: T.dark ? 'rgba(32,30,28,.86)' : 'rgba(255,255,255,.86)',
+          color: T.text, fontFamily: BK.TYPE.sans, fontSize: 12.5, fontWeight: 700,
+          padding: '10px 18px', borderRadius: 999,
+          border: `1px solid ${T.glassBorder}`,
+          backdropFilter: 'blur(14px) saturate(160%)', WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+          boxShadow: T.shadowSoft,
+          animation: 'bkBob 2.4s ease-in-out infinite',
+        }}>
+          Scorri per aprire la mappa
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.primary} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
-      {/* sentinella: quando è tutta visibile, apre la mappa */}
-      <div ref={sentinelRef} style={{ height: 24 }}/>
-    </div>
+      {expanding && ReactDOM.createPortal(<MapExpandOverlay from={expanding} T={T}/>, expanding.rootEl)}
+    </>
   );
 }
 
@@ -2044,7 +2118,7 @@ function HomeSections({
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
       <div style={{
         position: 'relative', zIndex: 5,
-        background: T.dark ? 'rgba(22,9,16,0.72)' : 'rgba(251,244,241,0.74)',
+        background: T.dark ? 'rgba(24,22,20,0.74)' : 'rgba(251,244,241,0.74)',
         backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)',
         paddingTop: topBar ? 12 : 24,
         marginTop: topBar ? 0 : -24,
@@ -2234,7 +2308,7 @@ function HomeSections({
           <SectionHeader title="Paga in un tap"/>
           <PaymentCard onClick={() => { window.location.href = 'byup Menu.html#paymethod'; }}/>
 
-          {/* Anteprima mappa — scorri per aprire */}
+          {/* Mappa full-bleed — il secondo scroll a fine pagina la apre */}
           <SectionHeader title="Qui intorno"/>
           <MapPreviewCard onOpen={() => onMap?.()}/>
         </>
@@ -2643,7 +2717,7 @@ function App({ recoveryArmed = false }) {
   }
 
   return (
-    <div style={{
+    <div data-byup-approot style={{
       width: '100%', height: '100%', background: T.bg, position: 'relative',
       fontFamily: BK.TYPE.sans,
       color: T.text, overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -2669,7 +2743,7 @@ function App({ recoveryArmed = false }) {
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 15,
         height: 60,
-        background: scrolled ? (T.dark ? 'rgba(22,9,16,0.78)' : 'rgba(251,244,241,0.82)') : 'transparent',
+        background: scrolled ? (T.dark ? 'rgba(24,22,20,0.82)' : 'rgba(251,244,241,0.82)') : 'transparent',
         backdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
         WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
         borderBottom: scrolled ? `1px solid ${T.line}` : '1px solid transparent',
@@ -2678,7 +2752,7 @@ function App({ recoveryArmed = false }) {
       }}/>
 
       {/* Scrollable content area */}
-      <div ref={scrollRef} style={{
+      <div ref={scrollRef} data-byup-scroll style={{
         flex: 1, overflowY: 'auto', overflowX: 'hidden',
         paddingTop: 60,
         paddingBottom: 126,
@@ -2863,7 +2937,7 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onQR, showQR = true 
       <svg width="100%" height="100%" viewBox="0 0 390 88" preserveAspectRatio="none" style={{
         position: 'absolute', inset: 0, display: 'block',
       }}>
-        <path d={TABBAR_PATH} fill={T.dark ? '#241019' : 'rgba(255,255,255,0.96)'}/>
+        <path d={TABBAR_PATH} fill={T.dark ? '#201e1c' : 'rgba(255,255,255,0.96)'}/>
         <path d={TABBAR_PATH} fill="none" stroke={T.dark ? 'rgba(251,234,230,0.10)' : 'rgba(255,255,255,0.9)'} strokeWidth="1"/>
       </svg>
 

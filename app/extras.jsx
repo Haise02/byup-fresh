@@ -3,11 +3,24 @@
 const { useState, useEffect, useRef } = React;
 
 // ─── Tokens (mirror app.jsx) ────────────────────────────────
+// Tema letto al load (pagina = file separato → dark coerente cross-page)
+const __BYUP_DK_X = (() => {
+  try {
+    const m = localStorage.getItem('byup.themeMode') || 'light';
+    if (m === 'dark') return true;
+    if (m === 'auto') return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return false;
+  } catch { return false; }
+})();
 const PINK_X = '#E32459';
-const TEXT_X = '#1c0f15';
-const MUTED_X = '#6d5a61';
-const BG_X = '#FBF4F1';
-const BORDER_X = '#eddfda';
+const TEXT_X = __BYUP_DK_X ? '#f6ece9' : '#1c0f15';
+const MUTED_X = __BYUP_DK_X ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BG_X = __BYUP_DK_X ? '#161514' : '#FBF4F1';
+const BORDER_X = __BYUP_DK_X ? 'rgba(246,236,233,.13)' : '#eddfda';
+const SURF_X = __BYUP_DK_X ? '#211f22' : '#fff';        // card
+const TINT_X = __BYUP_DK_X ? '#2b272c' : '#F8F5F6';     // superficie tenue
+const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
+const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
 const PROFILE_ALLERGENS = [
@@ -50,7 +63,7 @@ function ProfileToggle({ value, onChange }) {
       flex: '0 0 auto',
     }}>
       <div style={{
-        width: 22, height: 22, borderRadius: 999, background: '#fff',
+        width: 22, height: 22, borderRadius: 999, background: SURF_X,
         position: 'absolute', top: 2, left: value ? 20 : 2,
         transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
       }}/>
@@ -70,7 +83,7 @@ function AllergensView({ onBack, prefs, setPrefs }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: TEXT_X }}>{title}</div>
         {badge > 0 && (
-          <div style={{ fontSize: 11, fontWeight: 700, color: PINK_X, background: '#FCE9EE', padding: '3px 9px', borderRadius: 999 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: PINK_X, background: CORALSURF_X, padding: '3px 9px', borderRadius: 999 }}>
             {badge} {badge === 1 ? 'attivo' : 'attivi'}
           </div>
         )}
@@ -89,7 +102,7 @@ function AllergensView({ onBack, prefs, setPrefs }) {
   return (
     <div style={{ animation: 'profileSlideIn 0.28s cubic-bezier(.2,.8,.2,1)' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+        width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
       }}>
@@ -139,14 +152,14 @@ function AllergensView({ onBack, prefs, setPrefs }) {
         bg="#FFF5F5"
         description="I piatti che contengono questi ingredienti verranno nascosti dal menù."
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: '#F8F5F6', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: TINT_X, borderRadius: 14, overflow: 'hidden' }}>
         {PROFILE_ALLERGENS.map((a, i) => {
           const on = !!prefs.allergens?.[a.id];
           return (
             <div key={a.id} onClick={() => toggle('allergens', a.id)} style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '13px 14px',
-              background: on ? '#FFF5F5' : '#fff',
+              background: on ? '#FFF5F5' : SURF_X,
               cursor: 'pointer',
               transition: 'background 0.18s',
               borderBottom: i < PROFILE_ALLERGENS.length - 1 ? `1px solid #F0EAEC` : 'none',
@@ -176,7 +189,7 @@ function OrdersView({ onBack, initialOpenId }) {
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+        width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
       }}>
@@ -188,7 +201,7 @@ function OrdersView({ onBack, initialOpenId }) {
         {PROFILE_ORDERS.map(o => {
           const open = openId === o.id;
           return (
-            <div key={o.id} style={{ background: '#F8F5F6', borderRadius: 18, overflow: 'hidden' }}>
+            <div key={o.id} style={{ background: TINT_X, borderRadius: 18, overflow: 'hidden' }}>
               <button onClick={() => setOpenId(open ? null : o.id)} style={{
                 width: '100%', padding: '14px 16px', background: 'none', border: 'none',
                 display: 'flex', alignItems: 'center', gap: 14,
@@ -219,7 +232,7 @@ function OrdersView({ onBack, initialOpenId }) {
                   <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '14px 0 10px' }}>
                     Cosa hai ordinato
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0, background: '#fff', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0, background: SURF_X, borderRadius: 12, overflow: 'hidden' }}>
                     {o.items.map((it, i) => (
                       <div key={i} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -233,7 +246,7 @@ function OrdersView({ onBack, initialOpenId }) {
                     <div style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '10px 12px', borderTop: '1.5px solid #EDE8EA',
-                      background: '#F8F5F6',
+                      background: TINT_X,
                     }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: MUTED_X }}>Totale</span>
                       <span style={{ fontSize: 14, fontWeight: 800, color: TEXT_X }}>€ {o.total.toFixed(2)}</span>
@@ -241,7 +254,7 @@ function OrdersView({ onBack, initialOpenId }) {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
                     <button style={{
-                      padding: '9px 24px', background: '#fff',
+                      padding: '9px 24px', background: SURF_X,
                       border: '1px solid #E0DADC', borderRadius: 999,
                       cursor: 'pointer', fontFamily: 'inherit',
                       fontSize: 13, fontWeight: 600, color: TEXT_X,
@@ -300,7 +313,7 @@ function PagamentiView({ onBack, startAdd = false }) {
   return (
     <div style={{ animation: 'fade 0.2s ease', position: 'relative' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+        width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
       }}>
@@ -340,12 +353,12 @@ function PagamentiView({ onBack, startAdd = false }) {
       {others.length > 0 && (
         <>
           <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Altri metodi</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: '#F8F5F6', borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: TINT_X, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
             {others.map((c, i) => (
               <div key={c.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px',
                 borderBottom: i < others.length - 1 ? '1px solid #EDE8EA' : 'none',
-                background: '#fff',
+                background: SURF_X,
               }}>
                 <div style={{ width: 38, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <CardIcon type={c.type}/>
@@ -356,7 +369,7 @@ function PagamentiView({ onBack, startAdd = false }) {
                 </div>
                 <button onClick={() => setPreferred(c.id)} style={{
                   fontSize: 12, fontWeight: 600, color: PINK_X,
-                  background: '#FCE9EE', border: 'none', borderRadius: 999,
+                  background: CORALSURF_X, border: 'none', borderRadius: 999,
                   padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit',
                 }}>Imposta preferita</button>
                 <button onClick={() => setConfirmDelete(c.id)} style={{
@@ -379,7 +392,7 @@ function PagamentiView({ onBack, startAdd = false }) {
           <div onClick={() => setConfirmDelete(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 20 }}/>
           <div style={{
             position: 'absolute', left: 0, right: 0, bottom: 0,
-            background: '#fff', borderRadius: '20px 20px 0 0',
+            background: SURF_X, borderRadius: '20px 20px 0 0',
             padding: '8px 20px 34px', zIndex: 21,
             animation: 'confirmUp 0.28s cubic-bezier(0.32,0.72,0,1)',
           }}>
@@ -396,7 +409,7 @@ function PagamentiView({ onBack, startAdd = false }) {
               }}>Rimuovi</button>
               <button onClick={() => setConfirmDelete(null)} style={{
                 width: '100%', padding: '14px', borderRadius: 14,
-                border: '1.5px solid #E0DADC', background: '#fff',
+                border: '1.5px solid #E0DADC', background: SURF_X,
                 cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 15, fontWeight: 600, color: TEXT_X,
               }}>Annulla</button>
@@ -409,7 +422,7 @@ function PagamentiView({ onBack, startAdd = false }) {
       {!addOpen ? (
         <button onClick={() => setAddOpen(true)} style={{
           width: '100%', padding: '14px', borderRadius: 14,
-          border: `1.5px dashed ${PINK_X}`, background: '#FCE9EE',
+          border: `1.5px dashed ${PINK_X}`, background: CORALSURF_X,
           cursor: 'pointer', fontFamily: 'inherit',
           fontSize: 14, fontWeight: 600, color: PINK_X,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -418,7 +431,7 @@ function PagamentiView({ onBack, startAdd = false }) {
           Aggiungi metodo di pagamento
         </button>
       ) : (
-        <div style={{ background: '#F8F5F6', borderRadius: 16, padding: '16px' }}>
+        <div style={{ background: TINT_X, borderRadius: 16, padding: '16px' }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_X, marginBottom: 14 }}>Nuova carta</div>
           {[
             { label: 'Numero carta', value: newNum, set: setNewNum, placeholder: '•••• •••• •••• ••••' },
@@ -428,7 +441,7 @@ function PagamentiView({ onBack, startAdd = false }) {
             <div key={f.label} style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>{f.label}</div>
               <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
-                style={{ width: '100%', padding: '11px 12px', background: '#fff', border: '1.5px solid transparent', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '11px 12px', background: SURF_X, border: '1.5px solid transparent', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = PINK_X}
                 onBlur={e => e.target.style.borderColor = 'transparent'}
               />
@@ -437,7 +450,7 @@ function PagamentiView({ onBack, startAdd = false }) {
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button onClick={() => setAddOpen(false)} style={{
               flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid #E0DADC',
-              background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: MUTED_X,
+              background: SURF_X, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: MUTED_X,
             }}>Annulla</button>
             <button onClick={addCard} style={{
               flex: 1.5, padding: '12px', borderRadius: 12, border: 'none',
@@ -466,7 +479,7 @@ function PreferitivView({ onBack, onOpenVenue }) {
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+        width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
       }}>
@@ -474,7 +487,7 @@ function PreferitivView({ onBack, onOpenVenue }) {
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <div style={{ fontSize: 22, fontWeight: 700 }}>Preferiti</div>
-        {items.length > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: PINK_X, background: '#FCE9EE', padding: '4px 12px', borderRadius: 999 }}>{items.length}</span>}
+        {items.length > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: PINK_X, background: CORALSURF_X, padding: '4px 12px', borderRadius: 999 }}>{items.length}</span>}
       </div>
 
       {items.length === 0 ? (
@@ -488,7 +501,7 @@ function PreferitivView({ onBack, onOpenVenue }) {
           {items.map(v => (
             <div key={v.id}
               onClick={() => onOpenVenue && onOpenVenue(v)}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#F8F5F6', borderRadius: 18, padding: '12px 14px', cursor: onOpenVenue ? 'pointer' : 'default' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 14, background: TINT_X, borderRadius: 18, padding: '12px 14px', cursor: onOpenVenue ? 'pointer' : 'default' }}>
               <div style={{
                 width: 58, height: 58, borderRadius: 14, flexShrink: 0,
                 backgroundImage: `url("${v.photo}")`,
@@ -501,7 +514,7 @@ function PreferitivView({ onBack, onOpenVenue }) {
               </div>
               <button onClick={(e) => { e.stopPropagation(); remove(v.id); }} style={{
                 width: 34, height: 34, borderRadius: 999, flexShrink: 0,
-                background: '#FCE9EE', border: 'none', cursor: 'pointer',
+                background: CORALSURF_X, border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={PINK_X} stroke={PINK_X} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -545,7 +558,7 @@ function SegnalaView({ onBack }) {
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+        width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
       }}>
@@ -582,7 +595,7 @@ function SegnalaView({ onBack }) {
         rows={5}
         style={{
           width: '100%', padding: '13px 14px', boxSizing: 'border-box',
-          background: '#F8F5F6', border: `1.5px solid ${testo ? PINK_X : 'transparent'}`,
+          background: TINT_X, border: `1.5px solid ${testo ? PINK_X : 'transparent'}`,
           borderRadius: 12, fontSize: 14, color: TEXT_X, lineHeight: 1.55,
           fontFamily: 'inherit', outline: 'none', resize: 'none',
           transition: 'border-color 0.15s',
@@ -628,7 +641,7 @@ function MieiDatiView({ onBack }) {
         onChange={e => onChange(e.target.value)}
         style={{
           width: '100%', padding: '13px 14px',
-          background: '#F8F5F6', border: '1.5px solid transparent',
+          background: TINT_X, border: '1.5px solid transparent',
           borderRadius: 12, fontSize: 15, color: TEXT_X,
           fontFamily: 'inherit', outline: 'none',
           boxSizing: 'border-box',
@@ -643,7 +656,7 @@ function MieiDatiView({ onBack }) {
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+        width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
       }}>
@@ -657,7 +670,7 @@ function MieiDatiView({ onBack }) {
 
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Genere</div>
-          <div style={{ background: '#F8F5F6', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ background: TINT_X, borderRadius: 12, overflow: 'hidden' }}>
             {['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => (
               <button key={g} onClick={() => setGenere(g)} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -673,7 +686,7 @@ function MieiDatiView({ onBack }) {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s', flexShrink: 0,
                 }}>
-                  {genere === g && <div style={{ width: 7, height: 7, borderRadius: 999, background: '#fff' }}/>}
+                  {genere === g && <div style={{ width: 7, height: 7, borderRadius: 999, background: SURF_X }}/>}
                 </div>
               </button>
             ))}
@@ -724,7 +737,7 @@ function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onB
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+        width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
       }}>
@@ -773,7 +786,7 @@ function LegalView({ title, content, onBack }) {
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
       <button onClick={onBack} style={{
-        width: 36, height: 36, borderRadius: 999, background: '#fff',
+        width: 36, height: 36, borderRadius: 999, background: SURF_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 22,
       }}>
@@ -826,7 +839,12 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     const order = ['light', 'dark', 'auto'];
     const next = order[(order.indexOf(themeMode) + 1) % 3];
     try { localStorage.setItem('byup.themeMode', next); } catch {}
-    window.location.reload();
+    // Ricarico restando sulla pagina Profilo (senza tornare alla Home)
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set('page', 'profile');
+      window.location.replace(u.href);
+    } catch { window.location.reload(); }
   };
   const LANGS = [
     { code: 'it', flag: '🇮🇹', label: 'Italiano' },
@@ -866,14 +884,14 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     const items = React.Children.toArray(children).filter(Boolean);
     return (
       <div style={{
-        background: 'rgba(255,255,255,.75)', borderRadius: 20, overflow: 'hidden',
+        background: __BYUP_DK_X ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.75)', borderRadius: 20, overflow: 'hidden',
         border: '1px solid rgba(77,18,46,.07)',
         backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
         boxShadow: '0 12px 26px -22px rgba(77,18,46,.45)',
       }}>
         {items.map((child, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <div style={{ height: 1, background: '#f3eef0', marginLeft: 58 }}/>}
+            {i > 0 && <div style={{ height: 1, background: TINT_X, marginLeft: 58 }}/>}
             {child}
           </React.Fragment>
         ))}
@@ -882,7 +900,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   };
   const QuickCard = ({ label, sub, img, iconSvg, iconColor, tint, onClick, delay = 0 }) => (
     <button className="bk-press" onClick={() => { try { window.ByupKit && window.ByupKit.haptic.selection(); } catch {} onClick && onClick(); }} style={{
-      background: tint || '#FCE9EE', borderRadius: 22,
+      background: __BYUP_DK_X ? SURF_X : (tint || '#FCE9EE'), borderRadius: 22,
       padding: '15px 14px 13px',
       border: '1px solid rgba(77,18,46,.06)', cursor: 'pointer', fontFamily: 'inherit',
       display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
@@ -890,10 +908,10 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       boxShadow: '0 14px 28px -20px rgba(227,36,89,.4)',
       animation: `bkFadeUp 480ms ${160 + delay}ms cubic-bezier(.22,.9,.35,1) backwards`,
     }}>
-      <div aria-hidden style={{ position: 'absolute', right: -18, bottom: -18, width: 84, height: 84, borderRadius: 999, background: 'rgba(255,255,255,.5)' }}/>
+      <div aria-hidden style={{ position: 'absolute', right: -18, bottom: -18, width: 84, height: 84, borderRadius: 999, background: __BYUP_DK_X ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.5)' }}/>
       {img
         ? <img src={img} width="40" height="40" alt="" draggable={false} style={{ marginBottom: 9, filter: 'drop-shadow(0 6px 10px rgba(77,18,46,.18))', position: 'relative' }}/>
-        : <div style={{ width: 40, height: 40, borderRadius: 14, background: 'rgba(255,255,255,.8)', display: 'grid', placeItems: 'center', marginBottom: 9, position: 'relative' }}>
+        : <div style={{ width: 40, height: 40, borderRadius: 14, background: __BYUP_DK_X ? 'rgba(255,255,255,.09)' : 'rgba(255,255,255,.8)', display: 'grid', placeItems: 'center', marginBottom: 9, position: 'relative' }}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={iconColor || PINK_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{iconSvg}</svg>
           </div>}
       <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 15.5, color: TEXT_X, fontWeight: 600, position: 'relative' }}>{label}</span>
@@ -908,7 +926,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_X, position: 'relative',
       fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X, overflow: 'hidden', display: 'flex', flexDirection: 'column',
     }}>
@@ -946,7 +964,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                     animation: 'bkSpinRing 7s linear infinite',
                     boxShadow: '0 16px 34px -12px rgba(77,18,46,.55)',
                   }}/>
-                  <div style={{ position: 'absolute', inset: 4, borderRadius: 999, overflow: 'hidden', border: '3px solid #e32459', background: '#fff' }}>
+                  <div style={{ position: 'absolute', inset: 4, borderRadius: 999, overflow: 'hidden', border: '3px solid #e32459', background: SURF_X }}>
                     <img
                       src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5"
                       alt=""
@@ -979,7 +997,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <div style={{
                 display: 'flex', alignItems: 'stretch', width: '100%', maxWidth: 320,
                 marginTop: -28, position: 'relative', zIndex: 2,
-                background: 'rgba(255,255,255,.94)', border: '1px solid rgba(77,18,46,.08)',
+                background: __BYUP_DK_X ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.94)', border: '1px solid rgba(77,18,46,.08)',
                 borderRadius: 20, padding: '11px 4px',
                 backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                 boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
@@ -1053,7 +1071,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 iconSvg={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>}/>
               <Row label="Tema (prototipo)" onClick={cycleTheme}
                 iconBg="#f4f7d4" iconColor="#5f7000"
-                right={<span style={{ fontSize: 12, fontWeight: 800, color: PINK_X, background: '#FCE9EE', padding: '4px 12px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: .5 }}>{themeMode}</span>}
+                right={<span style={{ fontSize: 12, fontWeight: 800, color: PINK_X, background: CORALSURF_X, padding: '4px 12px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: .5 }}>{themeMode}</span>}
                 iconSvg={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></>}/>
             </RowGroup>
 
@@ -1080,7 +1098,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         {view === 'account' && (
           <div style={{ animation: 'fade 0.2s ease', position: 'relative' }}>
             <button onClick={() => setView('main')} style={{
-              width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+              width: 36, height: 36, borderRadius: 999, background: TINT_X,
               border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', marginBottom: 22,
             }}>
@@ -1102,7 +1120,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
               <button onClick={() => setConfirmDeleteAccount(true)} style={{
-                padding: '8px 28px', background: '#EBEBEB',
+                padding: '8px 28px', background: MUTESURF_X,
                 border: '1px solid #000', borderRadius: 999,
                 cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 13.5, fontWeight: 500, color: '#000',
@@ -1115,7 +1133,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         {view === 'gestione' && (
           <div style={{ animation: 'fade 0.2s ease' }}>
             <button onClick={() => setView('account')} style={{
-              width: 36, height: 36, borderRadius: 999, background: '#fff',
+              width: 36, height: 36, borderRadius: 999, background: SURF_X,
               border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 22,
             }}>
@@ -1136,7 +1154,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
               <button style={{
-                padding: '8px 24px', background: '#EBEBEB',
+                padding: '8px 24px', background: MUTESURF_X,
                 border: '1px solid #000', borderRadius: 999,
                 cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 13.5, fontWeight: 500, color: '#000',
@@ -1240,7 +1258,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         {view === 'lingua' && (
           <div style={{ animation: 'fade 0.2s ease' }}>
             <button onClick={() => setView('main')} style={{
-              width: 36, height: 36, borderRadius: 999, background: '#F8F5F6',
+              width: 36, height: 36, borderRadius: 999, background: TINT_X,
               border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', marginBottom: 22,
             }}>
@@ -1281,7 +1299,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         }}>
           <style>{`@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', maxWidth: 320, background: '#fff', borderRadius: 22,
+            width: '100%', maxWidth: 320, background: SURF_X, borderRadius: 22,
             padding: '24px 22px 18px', textAlign: 'center',
             boxShadow: '0 16px 48px rgba(0,0,0,0.28)',
             animation: 'popIn 0.2s cubic-bezier(0.2,0.9,0.3,1.1)',
@@ -1367,17 +1385,17 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
       display: 'flex', alignItems: 'flex-end',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', maxHeight: '88%', background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        width: '100%', maxHeight: '88%', background: SURF_X, borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: '14px 20px 0', display: 'flex', flexDirection: 'column', overflowY: 'auto',
       }}>
         <div style={{ width: 44, height: 4, borderRadius: 2, background: '#e0dcdd', margin: '0 auto 10px' }}/>
 
         {step === 0 ? (
           <>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{isEdit ? 'Modifica prenotazione' : 'Prenota un tavolo'}</div>
-            <div style={{ fontSize: 13, color: MUTED_X, marginBottom: 18 }}>
-              {venue?.name || editBooking?.venue || 'Ristorante'}
-              {isEdit && ' · cambia data/orario in base alle nuove disponibilità'}
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 25, fontWeight: 600, color: TEXT_X, marginBottom: 3, letterSpacing: -.3, lineHeight: 1.1 }}>{isEdit ? 'Modifica prenotazione' : 'Prenota un tavolo'}</div>
+            <div style={{ fontSize: 13, color: MUTED_X, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PINK_X} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>{venue?.name || editBooking?.venue || 'Ristorante'}{isEdit && ' · nuova data/orario'}</span>
             </div>
 
             <Field label="Data">
@@ -1392,7 +1410,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
               {prefilled && (
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: '#FCE9EE', color: PINK_X,
+                  background: CORALSURF_X, color: PINK_X,
                   fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
                   marginBottom: 8,
                 }}>
@@ -1433,7 +1451,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
               position: 'sticky', bottom: 0, flexShrink: 0,
               display: 'flex', flexDirection: 'column',
               margin: '20px -20px 0', padding: '12px 20px 24px',
-              background: '#fff', boxShadow: '0 -8px 16px rgba(0,0,0,0.05)',
+              background: SURF_X, boxShadow: '0 -8px 16px rgba(0,0,0,0.05)',
             }}>
               <button onClick={() => {
                 try {
@@ -1445,10 +1463,11 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
                 } catch {}
                 setStep(1);
               }} style={{
-                height: 54, flexShrink: 0, background: PINK_X, color: '#fff',
-                border: 'none', borderRadius: 999, fontSize: 15, fontWeight: 700,
+                height: 54, flexShrink: 0,
+                background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)', color: '#fff',
+                border: 'none', borderRadius: 999, fontSize: 15.5, fontWeight: 800, letterSpacing: '.01em',
                 cursor: 'pointer', fontFamily: 'inherit',
-                boxShadow: '0 4px 14px rgba(227,36,89,0.3)',
+                boxShadow: '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)',
               }}>{isEdit ? 'Salva modifiche' : 'Conferma prenotazione'}</button>
 
               {isEdit && (
@@ -1496,14 +1515,15 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
 }
 
 const stepperBtn = {
-  width: 38, height: 38, borderRadius: 999, border: `1px solid ${BORDER_X}`,
-  background: '#fff', fontSize: 20, fontWeight: 600, cursor: 'pointer',
-  fontFamily: 'inherit', color: TEXT_X,
+  width: 42, height: 42, borderRadius: 999, border: '1.5px solid #f4d9e1',
+  background: CORALSURF_X, fontSize: 22, fontWeight: 600, cursor: 'pointer',
+  fontFamily: 'inherit', color: PINK_X, lineHeight: 1,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
 };
 function Field({ label, children }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: TEXT_X, marginBottom: 8 }}>{label}</div>
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 800, color: MUTED_X, marginBottom: 9, textTransform: 'uppercase', letterSpacing: .6 }}>{label}</div>
       {children}
     </div>
   );
@@ -1511,20 +1531,26 @@ function Field({ label, children }) {
 function Pill({ active, onClick, children }) {
   return (
     <button onClick={onClick} style={{
-      flex: '0 0 auto', padding: '8px 14px', borderRadius: 999,
-      background: active ? TEXT_X : '#fff', color: active ? '#fff' : TEXT_X,
-      border: `1px solid ${active ? TEXT_X : BORDER_X}`, fontSize: 13, fontWeight: 600,
+      flex: '0 0 auto', padding: '9px 16px', borderRadius: 999,
+      background: active ? 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)' : SURF_X,
+      color: active ? '#fff' : TEXT_X,
+      border: `1.5px solid ${active ? 'transparent' : BORDER_X}`, fontSize: 13, fontWeight: 700,
       cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+      boxShadow: active ? '0 8px 18px -8px rgba(227,36,89,.6)' : 'none',
+      transition: 'background 160ms ease, box-shadow 160ms ease, border-color 160ms ease',
     }}>{children}</button>
   );
 }
 function Input({ value, onChange, placeholder, multi }) {
   const Tag = multi ? 'textarea' : 'input';
   return (
-    <Tag value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={multi ? 3 : undefined} style={{
-      width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${BORDER_X}`,
-      fontSize: 14, fontFamily: 'inherit', resize: 'none', background: '#fff', color: TEXT_X,
-      outline: 'none', boxSizing: 'border-box',
+    <Tag value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={multi ? 3 : undefined}
+      onFocus={(e) => { e.target.style.borderColor = PINK_X; e.target.style.background = SURF_X; }}
+      onBlur={(e) => { e.target.style.borderColor = BORDER_X; e.target.style.background = TINT_X; }}
+      style={{
+      width: '100%', padding: '13px 15px', borderRadius: 14, border: `1.5px solid ${BORDER_X}`,
+      fontSize: 14.5, fontFamily: 'inherit', resize: 'none', background: TINT_X, color: TEXT_X,
+      outline: 'none', boxSizing: 'border-box', transition: 'border-color 140ms ease, background 140ms ease',
     }}/>
   );
 }
@@ -1615,7 +1641,7 @@ function ReelStack({ items }) {
     <div
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
       onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
-      style={{ position: 'relative', height: 330, touchAction: 'pan-y', overflow: 'hidden', margin: '0 -16px' }}>
+      style={{ position: 'relative', height: 348, touchAction: 'pan-y', margin: '0 -16px' }}>
       {items.map((src, i) => {
         const r = rel(i);
         if (Math.abs(r) > 2) return null;
@@ -1633,19 +1659,6 @@ function ReelStack({ items }) {
             }}>
             <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 20, overflow: 'hidden', boxShadow: r === 0 ? '0 18px 36px -14px rgba(227,36,89,.45)' : '0 10px 22px -14px rgba(77,18,46,.4)' }}>
               <img src={src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
-              {r === 0 && (
-                <div style={{
-                  position: 'absolute', left: '50%', top: '42%', transform: 'translate(-50%,-50%)',
-                  width: 52, height: 52, borderRadius: 999,
-                  background: 'rgba(255,255,255,.24)', border: '1.5px solid rgba(255,255,255,.55)',
-                  backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  animation: 'bkPulse 2s ease-in-out infinite',
-                }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><polygon points="8 5 19 12 8 19"/></svg>
-                </div>
-              )}
-              <div style={{ position: 'absolute', left: 10, bottom: 10, right: 10, color: '#fff', fontSize: 10.5, fontWeight: 800, letterSpacing: .8, textTransform: 'uppercase', opacity: .9 }}>Reel</div>
             </div>
           </div>
         );
@@ -1756,7 +1769,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
 
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_X, position: 'relative',
       fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X, overflow: 'hidden', display: 'flex', flexDirection: 'column',
     }}>
@@ -1867,7 +1880,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             {photos.map((_, i) => (
               <div key={i} style={{
                 width: i === photoIdx ? 18 : 6, height: 6, borderRadius: 99,
-                background: '#fff', opacity: i === photoIdx ? 1 : 0.45,
+                background: SURF_X, opacity: i === photoIdx ? 1 : 0.45,
                 transition: 'width 0.25s, opacity 0.25s',
               }}/>
             ))}
@@ -1876,7 +1889,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           <div style={{
             position: 'absolute', right: 20, bottom: -40, zIndex: 5,
             width: 80, height: 80, borderRadius: 999,
-            background: '#fff', boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
+            background: SURF_X, boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             overflow: 'hidden', border: '3px solid rgba(255,255,255,0.95)',
           }}>
@@ -1925,7 +1938,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
                 return (
                   <div key={n} style={{
                     width: 30, height: 30, borderRadius: 7,
-                    background: filled ? PINK_X : '#f0e6e9',
+                    background: filled ? PINK_X : TINT_X,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinejoin="round">
@@ -1977,7 +1990,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
                 return (
                   <div key={i} className="bk-press" style={{
                     borderRadius: 16, overflow: 'hidden',
-                    background: '#fff', boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
+                    background: SURF_X, boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
                     border: '1px solid rgba(77,18,46,.06)',
                   }}>
                     <div style={{ height: 88, overflow: 'hidden' }}>
@@ -2050,7 +2063,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
               <VenueMapThumbnail lat={v.lat || 41.9065} lng={v.lng || 12.4642}/>
               <button onClick={onMap} style={{
                 position: 'absolute', bottom: 12, right: 12, zIndex: 1000,
-                background: '#fff', border: 'none', borderRadius: 999,
+                background: SURF_X, border: 'none', borderRadius: 999,
                 padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: TEXT_X,
                 cursor: 'pointer', fontFamily: 'inherit',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
@@ -2129,13 +2142,13 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           }}/>
           <div onClick={(e) => e.stopPropagation()} onAnimationEnd={onMoreAnimEnd} style={{
             position: 'absolute', left: 0, right: 0, bottom: 0,
-            background: '#fff', borderRadius: '20px 20px 0 0',
+            background: SURF_X, borderRadius: '20px 20px 0 0',
             padding: '8px 0 34px', zIndex: 1101,
             animation: moreClosing
               ? 'moreSheetDown 0.28s cubic-bezier(0.32,0.72,0,1) forwards'
               : 'moreSheetUp 0.30s cubic-bezier(0.32,0.72,0,1)',
           }}>
-            <div style={{ width: 40, height: 4, background: '#e0d8db', borderRadius: 999, margin: '8px auto 16px' }}/>
+            <div style={{ width: 40, height: 4, background: MUTESURF_X, borderRadius: 999, margin: '8px auto 16px' }}/>
             <MoreRow label="Condividi" icon="↗"/>
             <div style={{ height: 1, background: BORDER_X, margin: '6px 20px' }}/>
             <MoreRow label="Segnala questo locale" icon="⚠" danger
@@ -2150,7 +2163,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           <div onClick={() => setReviewsOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(28,6,16,0.5)', zIndex: 80, animation: 'fade .2s ease' }}/>
           <div style={{
             position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 81,
-            background: '#FBF4F1', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+            background: BG_X, borderTopLeftRadius: 28, borderTopRightRadius: 28,
             maxHeight: '82%', display: 'flex', flexDirection: 'column',
             animation: 'slideUp .32s cubic-bezier(.2,.8,.2,1)',
           }}>
@@ -2161,7 +2174,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             </div>
             <div style={{ overflowY: 'auto', padding: '0 18px 26px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[...reviews, ...reviews].map((r, i) => (
-                <div key={i} style={{ padding: '13px 14px', borderRadius: 16, background: '#fff', border: '1px solid rgba(77,18,46,.07)', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <div key={i} style={{ padding: '13px 14px', borderRadius: 16, background: SURF_X, border: '1px solid rgba(77,18,46,.07)', display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 34, height: 34, borderRadius: 999, background: PINK_X, flexShrink: 0, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13 }}>{r.initial}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -2189,10 +2202,10 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           display: 'flex', alignItems: 'flex-end',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', background: '#fff', borderRadius: '20px 20px 0 0',
+            width: '100%', background: SURF_X, borderRadius: '20px 20px 0 0',
             padding: '8px 20px 30px', maxHeight: '80%', overflowY: 'auto',
           }}>
-            <div style={{ width: 40, height: 4, background: '#e0d8db', borderRadius: 999, margin: '8px auto 16px' }}/>
+            <div style={{ width: 40, height: 4, background: MUTESURF_X, borderRadius: 999, margin: '8px auto 16px' }}/>
             {reportSent ? (
               <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
                 <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
@@ -2217,7 +2230,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
                     <button key={r} onClick={() => setReportReason(r)} style={{
                       textAlign: 'left', padding: '14px 16px', borderRadius: 12,
                       border: `1.5px solid ${reportReason === r ? PINK_X : BORDER_X}`,
-                      background: reportReason === r ? '#FCE9EE' : '#fff',
+                      background: reportReason === r ? '#FCE9EE' : SURF_X,
                       fontSize: 14, color: TEXT_X, fontWeight: reportReason === r ? 600 : 500,
                       cursor: 'pointer', fontFamily: 'inherit',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -2260,7 +2273,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
         display: 'flex', gap: 12, zIndex: 1000,
       }}>
         <button onClick={onBook} style={{
-          flex: 1, height: 58, background: '#fff', color: TEXT_X,
+          flex: 1, height: 58, background: SURF_X, color: TEXT_X,
           border: `1.5px solid ${BORDER_X}`, borderRadius: 999, fontSize: 17, fontWeight: 700,
           cursor: 'pointer', fontFamily: 'inherit',
         }}>Prenota</button>
@@ -2318,7 +2331,7 @@ function PromoTag({ children, info }) {
       {open && info && (
         <span style={{
           display: 'inline-flex', alignItems: 'center',
-          background: '#fff', border: `1px solid ${BORDER_X}`,
+          background: SURF_X, border: `1px solid ${BORDER_X}`,
           borderRadius: 12, padding: '6px 12px',
           fontSize: 12, color: MUTED_X, fontWeight: 500,
           whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
@@ -2354,7 +2367,7 @@ function AwardTag({ children, tier = 'gold' }) {
 function InfoRow({ icon, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 28, height: 28, borderRadius: 999, background: '#fff', border: `1px solid ${BORDER_X}`,
+      <div style={{ width: 28, height: 28, borderRadius: 999, background: SURF_X, border: `1px solid ${BORDER_X}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 13, fontWeight: 700, color: TEXT_X }}>{icon}</div>
       <div style={{ fontSize: 13, color: TEXT_X, flex: 1 }}>{label}</div>
@@ -2364,7 +2377,7 @@ function InfoRow({ icon, label }) {
 function SedeRow({ city, addr }) {
   return (
     <div style={{ background: BG_X, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 38, height: 38, borderRadius: 13, background: '#FCE9EE', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 38, height: 38, borderRadius: 13, background: CORALSURF_X, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={PINK_X} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 10.4 5 5.2A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.2l1 5.2"/>
           <path d="M4 10.4a2.6 2.6 0 0 0 5.2 0 2.6 2.6 0 0 0 5.3 0 2.6 2.6 0 0 0 5.3 0"/>
@@ -2381,7 +2394,7 @@ function SedeRow({ city, addr }) {
 }
 function SocialDot({ label }) {
   return (
-    <div style={{ width: 36, height: 36, borderRadius: 999, background: TEXT_X, color: '#fff',
+    <div style={{ width: 36, height: 36, borderRadius: 999, background: PINK_X, color: '#fff',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 13, fontWeight: 700, fontFamily: 'serif',
     }}>{label}</div>

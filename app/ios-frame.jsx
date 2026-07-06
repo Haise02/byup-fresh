@@ -133,6 +133,35 @@ function IOSDevice({
   children, width = 402, height = 874, dark = false,
   title, keyboard = false,
 }) {
+  // Su mobile: niente mockup — l'app occupa tutto lo schermo, come un'app vera.
+  const [isMobile, setIsMobile] = React.useState(() => {
+    try { return window.matchMedia('(max-width: 560px)').matches; } catch { return false; }
+  });
+  React.useEffect(() => {
+    let mq;
+    try { mq = window.matchMedia('(max-width: 560px)'); } catch { return; }
+    const fn = (e) => setIsMobile(e.matches);
+    mq.addEventListener ? mq.addEventListener('change', fn) : mq.addListener(fn);
+    return () => { mq.removeEventListener ? mq.removeEventListener('change', fn) : mq.removeListener(fn); };
+  }, []);
+  if (isMobile) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, overflow: 'hidden',
+        background: dark ? '#000' : '#F2F2F7',
+        fontFamily: '-apple-system, system-ui, sans-serif',
+        WebkitFontSmoothing: 'antialiased',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {title !== undefined && <IOSNavBar title={title} dark={dark} />}
+          <div style={{ flex: 1, overflow: 'auto', position: 'relative' }}>{children}</div>
+          {keyboard && <IOSKeyboard dark={dark} />}
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{
       width, height, borderRadius: 48, overflow: 'hidden',

@@ -98,22 +98,23 @@
     },
     dark: {
       dark: true,
-      bg: '#160910',
-      surface: '#241019',
-      surfaceAlt: '#2c1520',
-      text: '#fbeae6',
-      textDim: 'rgba(251,234,230,.60)',
-      textFaint: 'rgba(251,234,230,.36)',
+      // Base = nero-brand caldo (espresso-charcoal), NON rosso scuro. Accenti magenta per contrasto.
+      bg: '#161514',
+      surface: '#201e1c',
+      surfaceAlt: '#2a2724',
+      text: '#f6ece9',
+      textDim: 'rgba(246,236,233,.60)',
+      textFaint: 'rgba(246,236,233,.36)',
       primary: PALETTE.coralHot,
       onPrimary: '#ffffff',
-      accentSoft: 'rgba(255,61,110,.14)',
-      accentBorder: 'rgba(255,61,110,.26)',
-      glass: 'rgba(36,16,25,.60)',
-      glassBorder: 'rgba(251,234,230,.12)',
-      line: 'rgba(251,234,230,.10)',
-      shadow: '0 18px 40px -22px rgba(255,61,110,.38)',
-      shadowSoft: '0 10px 28px -16px rgba(0,0,0,.55)',
-      glow: 'rgba(255,61,110,.13)',
+      accentSoft: 'rgba(255,61,110,.15)',
+      accentBorder: 'rgba(255,61,110,.30)',
+      glass: 'rgba(32,30,28,.62)',
+      glassBorder: 'rgba(246,236,233,.12)',
+      line: 'rgba(246,236,233,.10)',
+      shadow: '0 18px 40px -22px rgba(255,61,110,.34)',
+      shadowSoft: '0 12px 30px -16px rgba(0,0,0,.62)',
+      glow: 'rgba(255,61,110,.12)',
       bgImage: ASSETS.bg.dark
     }
   };
@@ -921,6 +922,58 @@ function IOSDevice({
   title,
   keyboard = false
 }) {
+  // Su mobile: niente mockup — l'app occupa tutto lo schermo, come un'app vera.
+  const [isMobile, setIsMobile] = React.useState(() => {
+    try {
+      return window.matchMedia('(max-width: 560px)').matches;
+    } catch {
+      return false;
+    }
+  });
+  React.useEffect(() => {
+    let mq;
+    try {
+      mq = window.matchMedia('(max-width: 560px)');
+    } catch {
+      return;
+    }
+    const fn = e => setIsMobile(e.matches);
+    mq.addEventListener ? mq.addEventListener('change', fn) : mq.addListener(fn);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', fn) : mq.removeListener(fn);
+    };
+  }, []);
+  if (isMobile) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'fixed',
+        inset: 0,
+        overflow: 'hidden',
+        background: dark ? '#000' : '#F2F2F7',
+        fontFamily: '-apple-system, system-ui, sans-serif',
+        WebkitFontSmoothing: 'antialiased',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column'
+      }
+    }, title !== undefined && /*#__PURE__*/React.createElement(IOSNavBar, {
+      title: title,
+      dark: dark
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        overflow: 'auto',
+        position: 'relative'
+      }
+    }, children), keyboard && /*#__PURE__*/React.createElement(IOSKeyboard, {
+      dark: dark
+    })));
+  }
   return /*#__PURE__*/React.createElement("div", {
     style: {
       width,
@@ -1215,11 +1268,26 @@ const {
 } = React;
 
 // ─── Tokens (mirror app.jsx) ────────────────────────────────
+// Tema letto al load (pagina = file separato → dark coerente cross-page)
+const __BYUP_DK_X = (() => {
+  try {
+    const m = localStorage.getItem('byup.themeMode') || 'light';
+    if (m === 'dark') return true;
+    if (m === 'auto') return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return false;
+  } catch {
+    return false;
+  }
+})();
 const PINK_X = '#E32459';
-const TEXT_X = '#1c0f15';
-const MUTED_X = '#6d5a61';
-const BG_X = '#FBF4F1';
-const BORDER_X = '#eddfda';
+const TEXT_X = __BYUP_DK_X ? '#f6ece9' : '#1c0f15';
+const MUTED_X = __BYUP_DK_X ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BG_X = __BYUP_DK_X ? '#161514' : '#FBF4F1';
+const BORDER_X = __BYUP_DK_X ? 'rgba(246,236,233,.13)' : '#eddfda';
+const SURF_X = __BYUP_DK_X ? '#211f22' : '#fff'; // card
+const TINT_X = __BYUP_DK_X ? '#2b272c' : '#F8F5F6'; // superficie tenue
+const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
+const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
 const PROFILE_ALLERGENS = [{
@@ -1413,7 +1481,7 @@ function ProfileToggle({
       width: 22,
       height: 22,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       position: 'absolute',
       top: 2,
       left: value ? 20 : 2,
@@ -1464,7 +1532,7 @@ function AllergensView({
       fontSize: 11,
       fontWeight: 700,
       color: PINK_X,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       padding: '3px 9px',
       borderRadius: 999
     }
@@ -1499,7 +1567,7 @@ function AllergensView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -1582,7 +1650,7 @@ function AllergensView({
       display: 'flex',
       flexDirection: 'column',
       gap: 1,
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 14,
       overflow: 'hidden'
     }
@@ -1596,7 +1664,7 @@ function AllergensView({
         alignItems: 'center',
         gap: 12,
         padding: '13px 14px',
-        background: on ? '#FFF5F5' : '#fff',
+        background: on ? '#FFF5F5' : SURF_X,
         cursor: 'pointer',
         transition: 'background 0.18s',
         borderBottom: i < PROFILE_ALLERGENS.length - 1 ? `1px solid #F0EAEC` : 'none'
@@ -1649,7 +1717,7 @@ function OrdersView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -1685,7 +1753,7 @@ function OrdersView({
     return /*#__PURE__*/React.createElement("div", {
       key: o.id,
       style: {
-        background: '#F8F5F6',
+        background: TINT_X,
         borderRadius: 18,
         overflow: 'hidden'
       }
@@ -1793,7 +1861,7 @@ function OrdersView({
         display: 'flex',
         flexDirection: 'column',
         gap: 0,
-        background: '#fff',
+        background: SURF_X,
         borderRadius: 12,
         overflow: 'hidden'
       }
@@ -1826,7 +1894,7 @@ function OrdersView({
         alignItems: 'center',
         padding: '10px 12px',
         borderTop: '1.5px solid #EDE8EA',
-        background: '#F8F5F6'
+        background: TINT_X
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1849,7 +1917,7 @@ function OrdersView({
     }, /*#__PURE__*/React.createElement("button", {
       style: {
         padding: '9px 24px',
-        background: '#fff',
+        background: SURF_X,
         border: '1px solid #E0DADC',
         borderRadius: 999,
         cursor: 'pointer',
@@ -1970,7 +2038,7 @@ function PagamentiView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2089,7 +2157,7 @@ function PagamentiView({
       display: 'flex',
       flexDirection: 'column',
       gap: 1,
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 16,
       overflow: 'hidden',
       marginBottom: 24
@@ -2102,7 +2170,7 @@ function PagamentiView({
       gap: 12,
       padding: '13px 14px',
       borderBottom: i < others.length - 1 ? '1px solid #EDE8EA' : 'none',
-      background: '#fff'
+      background: SURF_X
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2136,7 +2204,7 @@ function PagamentiView({
       fontSize: 12,
       fontWeight: 600,
       color: PINK_X,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       border: 'none',
       borderRadius: 999,
       padding: '5px 12px',
@@ -2184,7 +2252,7 @@ function PagamentiView({
       left: 0,
       right: 0,
       bottom: 0,
-      background: '#fff',
+      background: SURF_X,
       borderRadius: '20px 20px 0 0',
       padding: '8px 20px 34px',
       zIndex: 21,
@@ -2242,7 +2310,7 @@ function PagamentiView({
       padding: '14px',
       borderRadius: 14,
       border: '1.5px solid #E0DADC',
-      background: '#fff',
+      background: SURF_X,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 15,
@@ -2256,7 +2324,7 @@ function PagamentiView({
       padding: '14px',
       borderRadius: 14,
       border: `1.5px dashed ${PINK_X}`,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 14,
@@ -2288,7 +2356,7 @@ function PagamentiView({
     y2: "12"
   })), "Aggiungi metodo di pagamento") : /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 16,
       padding: '16px'
     }
@@ -2335,7 +2403,7 @@ function PagamentiView({
     style: {
       width: '100%',
       padding: '11px 12px',
-      background: '#fff',
+      background: SURF_X,
       border: '1.5px solid transparent',
       borderRadius: 10,
       fontSize: 14,
@@ -2358,7 +2426,7 @@ function PagamentiView({
       padding: '12px',
       borderRadius: 12,
       border: '1.5px solid #E0DADC',
-      background: '#fff',
+      background: SURF_X,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 13.5,
@@ -2418,7 +2486,7 @@ function PreferitivView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2454,7 +2522,7 @@ function PreferitivView({
       fontSize: 14,
       fontWeight: 700,
       color: PINK_X,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       padding: '4px 12px',
       borderRadius: 999
     }
@@ -2494,7 +2562,7 @@ function PreferitivView({
       display: 'flex',
       alignItems: 'center',
       gap: 14,
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 18,
       padding: '12px 14px',
       cursor: onOpenVenue ? 'pointer' : 'default'
@@ -2540,7 +2608,7 @@ function PreferitivView({
       height: 34,
       borderRadius: 999,
       flexShrink: 0,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       border: 'none',
       cursor: 'pointer',
       display: 'flex',
@@ -2623,7 +2691,7 @@ function SegnalaView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2710,7 +2778,7 @@ function SegnalaView({
       width: '100%',
       padding: '13px 14px',
       boxSizing: 'border-box',
-      background: '#F8F5F6',
+      background: TINT_X,
       border: `1.5px solid ${testo ? PINK_X : 'transparent'}`,
       borderRadius: 12,
       fontSize: 14,
@@ -2786,7 +2854,7 @@ function MieiDatiView({
     style: {
       width: '100%',
       padding: '13px 14px',
-      background: '#F8F5F6',
+      background: TINT_X,
       border: '1.5px solid transparent',
       borderRadius: 12,
       fontSize: 15,
@@ -2809,7 +2877,7 @@ function MieiDatiView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -2860,7 +2928,7 @@ function MieiDatiView({
     }
   }, "Genere"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: '#F8F5F6',
+      background: TINT_X,
       borderRadius: 12,
       overflow: 'hidden'
     }
@@ -2904,7 +2972,7 @@ function MieiDatiView({
       width: 7,
       height: 7,
       borderRadius: 999,
-      background: '#fff'
+      background: SURF_X
     }
   })))))), /*#__PURE__*/React.createElement(Field, {
     label: "Data di nascita",
@@ -2990,7 +3058,7 @@ function AccountFormView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -3099,7 +3167,7 @@ function LegalView({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -3182,7 +3250,7 @@ function ProfileScreen({
         p.delete('order');
         p.delete('add');
         const qs = p.toString();
-        window.history.replaceState({}, '', 'byup Home.html' + (qs ? `?${qs}` : ''));
+        window.history.replaceState({}, '', 'home-standalone.html' + (qs ? `?${qs}` : ''));
       } catch {}
     }
   }, []);
@@ -3192,7 +3260,7 @@ function ProfileScreen({
     try {
       localStorage.removeItem('byup_auth');
     } catch {}
-    window.location.href = 'byup Home.html?auth=login';
+    window.location.href = 'home-standalone.html?auth=login';
   };
   const [lang, setLang] = useState('it');
   const themeMode = (() => {
@@ -3208,7 +3276,14 @@ function ProfileScreen({
     try {
       localStorage.setItem('byup.themeMode', next);
     } catch {}
-    window.location.reload();
+    // Ricarico restando sulla pagina Profilo (senza tornare alla Home)
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set('page', 'profile');
+      window.location.replace(u.href);
+    } catch {
+      window.location.reload();
+    }
   };
   const LANGS = [{
     code: 'it',
@@ -3318,7 +3393,7 @@ function ProfileScreen({
     const items = React.Children.toArray(children).filter(Boolean);
     return /*#__PURE__*/React.createElement("div", {
       style: {
-        background: 'rgba(255,255,255,.75)',
+        background: __BYUP_DK_X ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.75)',
         borderRadius: 20,
         overflow: 'hidden',
         border: '1px solid rgba(77,18,46,.07)',
@@ -3331,7 +3406,7 @@ function ProfileScreen({
     }, i > 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         height: 1,
-        background: '#f3eef0',
+        background: TINT_X,
         marginLeft: 58
       }
     }), child)));
@@ -3354,7 +3429,7 @@ function ProfileScreen({
       onClick && onClick();
     },
     style: {
-      background: tint || '#FCE9EE',
+      background: __BYUP_DK_X ? SURF_X : tint || '#FCE9EE',
       borderRadius: 22,
       padding: '15px 14px 13px',
       border: '1px solid rgba(77,18,46,.06)',
@@ -3379,7 +3454,7 @@ function ProfileScreen({
       width: 84,
       height: 84,
       borderRadius: 999,
-      background: 'rgba(255,255,255,.5)'
+      background: __BYUP_DK_X ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.5)'
     }
   }), img ? /*#__PURE__*/React.createElement("img", {
     src: img,
@@ -3397,7 +3472,7 @@ function ProfileScreen({
       width: 40,
       height: 40,
       borderRadius: 14,
-      background: 'rgba(255,255,255,.8)',
+      background: __BYUP_DK_X ? 'rgba(255,255,255,.09)' : 'rgba(255,255,255,.8)',
       display: 'grid',
       placeItems: 'center',
       marginBottom: 9,
@@ -3451,7 +3526,7 @@ function ProfileScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_X,
       position: 'relative',
       fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X,
@@ -3582,7 +3657,7 @@ function ProfileScreen({
       borderRadius: 999,
       overflow: 'hidden',
       border: '3px solid #e32459',
-      background: '#fff'
+      background: SURF_X
     }
   }, /*#__PURE__*/React.createElement("img", {
     src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5",
@@ -3661,7 +3736,7 @@ function ProfileScreen({
       marginTop: -28,
       position: 'relative',
       zIndex: 2,
-      background: 'rgba(255,255,255,.94)',
+      background: __BYUP_DK_X ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.94)',
       border: '1px solid rgba(77,18,46,.08)',
       borderRadius: 20,
       padding: '11px 4px',
@@ -3900,7 +3975,7 @@ function ProfileScreen({
         fontSize: 12,
         fontWeight: 800,
         color: PINK_X,
-        background: '#FCE9EE',
+        background: CORALSURF_X,
         padding: '4px 12px',
         borderRadius: 999,
         textTransform: 'uppercase',
@@ -3969,7 +4044,7 @@ function ProfileScreen({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -4048,7 +4123,7 @@ function ProfileScreen({
     onClick: () => setConfirmDeleteAccount(true),
     style: {
       padding: '8px 28px',
-      background: '#EBEBEB',
+      background: MUTESURF_X,
       border: '1px solid #000',
       borderRadius: 999,
       cursor: 'pointer',
@@ -4067,7 +4142,7 @@ function ProfileScreen({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -4140,7 +4215,7 @@ function ProfileScreen({
   }, /*#__PURE__*/React.createElement("button", {
     style: {
       padding: '8px 24px',
-      background: '#EBEBEB',
+      background: MUTESURF_X,
       border: '1px solid #000',
       borderRadius: 999,
       cursor: 'pointer',
@@ -4277,7 +4352,7 @@ function ProfileScreen({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: '#F8F5F6',
+      background: TINT_X,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -4384,7 +4459,7 @@ function ProfileScreen({
     style: {
       width: '100%',
       maxWidth: 320,
-      background: '#fff',
+      background: SURF_X,
       borderRadius: 22,
       padding: '24px 22px 18px',
       textAlign: 'center',
@@ -4534,7 +4609,7 @@ function BookingSheet({
     style: {
       width: '100%',
       maxHeight: '88%',
-      background: '#fff',
+      background: SURF_X,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       padding: '14px 20px 0',
@@ -4552,17 +4627,39 @@ function BookingSheet({
     }
   }), step === 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 20,
-      fontWeight: 700,
-      marginBottom: 4
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 25,
+      fontWeight: 600,
+      color: TEXT_X,
+      marginBottom: 3,
+      letterSpacing: -.3,
+      lineHeight: 1.1
     }
   }, isEdit ? 'Modifica prenotazione' : 'Prenota un tavolo'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: MUTED_X,
-      marginBottom: 18
+      marginBottom: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
     }
-  }, venue?.name || editBooking?.venue || 'Ristorante', isEdit && ' · cambia data/orario in base alle nuove disponibilità'), /*#__PURE__*/React.createElement(Field, {
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: PINK_X,
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "10",
+    r: "3"
+  })), /*#__PURE__*/React.createElement("span", null, venue?.name || editBooking?.venue || 'Ristorante', isEdit && ' · nuova data/orario')), /*#__PURE__*/React.createElement(Field, {
     label: "Data"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4584,7 +4681,7 @@ function BookingSheet({
       display: 'inline-flex',
       alignItems: 'center',
       gap: 6,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       color: PINK_X,
       fontSize: 11.5,
       fontWeight: 700,
@@ -4666,7 +4763,7 @@ function BookingSheet({
       flexDirection: 'column',
       margin: '20px -20px 0',
       padding: '12px 20px 24px',
-      background: '#fff',
+      background: SURF_X,
       boxShadow: '0 -8px 16px rgba(0,0,0,0.05)'
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -4688,15 +4785,16 @@ function BookingSheet({
     style: {
       height: 54,
       flexShrink: 0,
-      background: PINK_X,
+      background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)',
       color: '#fff',
       border: 'none',
       borderRadius: 999,
-      fontSize: 15,
-      fontWeight: 700,
+      fontSize: 15.5,
+      fontWeight: 800,
+      letterSpacing: '.01em',
       cursor: 'pointer',
       fontFamily: 'inherit',
-      boxShadow: '0 4px 14px rgba(227,36,89,0.3)'
+      boxShadow: '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)'
     }
   }, isEdit ? 'Salva modifiche' : 'Conferma prenotazione'), isEdit && /*#__PURE__*/React.createElement("button", {
     onClick: () => onCancelBooking && onCancelBooking(),
@@ -4814,16 +4912,20 @@ function BookingSheet({
   }, "Chiudi"))));
 }
 const stepperBtn = {
-  width: 38,
-  height: 38,
+  width: 42,
+  height: 42,
   borderRadius: 999,
-  border: `1px solid ${BORDER_X}`,
-  background: '#fff',
-  fontSize: 20,
+  border: '1.5px solid #f4d9e1',
+  background: CORALSURF_X,
+  fontSize: 22,
   fontWeight: 600,
   cursor: 'pointer',
   fontFamily: 'inherit',
-  color: TEXT_X
+  color: PINK_X,
+  lineHeight: 1,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center'
 };
 function Field({
   label,
@@ -4831,14 +4933,16 @@ function Field({
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 16
+      marginBottom: 18
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
-      fontWeight: 600,
-      color: TEXT_X,
-      marginBottom: 8
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: MUTED_X,
+      marginBottom: 9,
+      textTransform: 'uppercase',
+      letterSpacing: .6
     }
   }, label), children);
 }
@@ -4851,16 +4955,18 @@ function Pill({
     onClick: onClick,
     style: {
       flex: '0 0 auto',
-      padding: '8px 14px',
+      padding: '9px 16px',
       borderRadius: 999,
-      background: active ? TEXT_X : '#fff',
+      background: active ? 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)' : SURF_X,
       color: active ? '#fff' : TEXT_X,
-      border: `1px solid ${active ? TEXT_X : BORDER_X}`,
+      border: `1.5px solid ${active ? 'transparent' : BORDER_X}`,
       fontSize: 13,
-      fontWeight: 600,
+      fontWeight: 700,
       cursor: 'pointer',
       fontFamily: 'inherit',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      boxShadow: active ? '0 8px 18px -8px rgba(227,36,89,.6)' : 'none',
+      transition: 'background 160ms ease, box-shadow 160ms ease, border-color 160ms ease'
     }
   }, children);
 }
@@ -4876,18 +4982,27 @@ function Input({
     onChange: e => onChange(e.target.value),
     placeholder: placeholder,
     rows: multi ? 3 : undefined,
+    onFocus: e => {
+      e.target.style.borderColor = PINK_X;
+      e.target.style.background = SURF_X;
+    },
+    onBlur: e => {
+      e.target.style.borderColor = BORDER_X;
+      e.target.style.background = TINT_X;
+    },
     style: {
       width: '100%',
-      padding: '12px 14px',
-      borderRadius: 12,
-      border: `1px solid ${BORDER_X}`,
-      fontSize: 14,
+      padding: '13px 15px',
+      borderRadius: 14,
+      border: `1.5px solid ${BORDER_X}`,
+      fontSize: 14.5,
       fontFamily: 'inherit',
       resize: 'none',
-      background: '#fff',
+      background: TINT_X,
       color: TEXT_X,
       outline: 'none',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      transition: 'border-color 140ms ease, background 140ms ease'
     }
   });
 }
@@ -5032,9 +5147,8 @@ function ReelStack({
     onTouchEnd: onUp,
     style: {
       position: 'relative',
-      height: 330,
+      height: 348,
       touchAction: 'pan-y',
-      overflow: 'hidden',
       margin: '0 -16px'
     }
   }, items.map((src, i) => {
@@ -5079,45 +5193,7 @@ function ReelStack({
         objectFit: 'cover',
         display: 'block'
       }
-    }), r === 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        left: '50%',
-        top: '42%',
-        transform: 'translate(-50%,-50%)',
-        width: 52,
-        height: 52,
-        borderRadius: 999,
-        background: 'rgba(255,255,255,.24)',
-        border: '1.5px solid rgba(255,255,255,.55)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        animation: 'bkPulse 2s ease-in-out infinite'
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: "20",
-      height: "20",
-      viewBox: "0 0 24 24",
-      fill: "#fff"
-    }, /*#__PURE__*/React.createElement("polygon", {
-      points: "8 5 19 12 8 19"
-    }))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        left: 10,
-        bottom: 10,
-        right: 10,
-        color: '#fff',
-        fontSize: 10.5,
-        fontWeight: 800,
-        letterSpacing: .8,
-        textTransform: 'uppercase',
-        opacity: .9
-      }
-    }, "Reel")));
+    })));
   }));
 }
 function VenueOriginal({
@@ -5246,7 +5322,7 @@ function VenueOriginal({
     style: {
       width: '100%',
       height: '100%',
-      background: '#FBF4F1',
+      background: BG_X,
       position: 'relative',
       fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
       color: TEXT_X,
@@ -5481,7 +5557,7 @@ function VenueOriginal({
       width: i === photoIdx ? 18 : 6,
       height: 6,
       borderRadius: 99,
-      background: '#fff',
+      background: SURF_X,
       opacity: i === photoIdx ? 1 : 0.45,
       transition: 'width 0.25s, opacity 0.25s'
     }
@@ -5494,7 +5570,7 @@ function VenueOriginal({
       width: 80,
       height: 80,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
       display: 'flex',
       alignItems: 'center',
@@ -5626,7 +5702,7 @@ function VenueOriginal({
         width: 30,
         height: 30,
         borderRadius: 7,
-        background: filled ? PINK_X : '#f0e6e9',
+        background: filled ? PINK_X : TINT_X,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -5728,7 +5804,7 @@ function VenueOriginal({
       style: {
         borderRadius: 16,
         overflow: 'hidden',
-        background: '#fff',
+        background: SURF_X,
         boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
         border: '1px solid rgba(77,18,46,.06)'
       }
@@ -5895,7 +5971,7 @@ function VenueOriginal({
       bottom: 12,
       right: 12,
       zIndex: 1000,
-      background: '#fff',
+      background: SURF_X,
       border: 'none',
       borderRadius: 999,
       padding: '8px 16px',
@@ -6055,7 +6131,7 @@ function VenueOriginal({
       left: 0,
       right: 0,
       bottom: 0,
-      background: '#fff',
+      background: SURF_X,
       borderRadius: '20px 20px 0 0',
       padding: '8px 0 34px',
       zIndex: 1101,
@@ -6065,7 +6141,7 @@ function VenueOriginal({
     style: {
       width: 40,
       height: 4,
-      background: '#e0d8db',
+      background: MUTESURF_X,
       borderRadius: 999,
       margin: '8px auto 16px'
     }
@@ -6104,7 +6180,7 @@ function VenueOriginal({
       right: 0,
       bottom: 0,
       zIndex: 81,
-      background: '#FBF4F1',
+      background: BG_X,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       maxHeight: '82%',
@@ -6161,7 +6237,7 @@ function VenueOriginal({
     style: {
       padding: '13px 14px',
       borderRadius: 16,
-      background: '#fff',
+      background: SURF_X,
       border: '1px solid rgba(77,18,46,.07)',
       display: 'flex',
       flexDirection: 'column',
@@ -6243,7 +6319,7 @@ function VenueOriginal({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: '#fff',
+      background: SURF_X,
       borderRadius: '20px 20px 0 0',
       padding: '8px 20px 30px',
       maxHeight: '80%',
@@ -6253,7 +6329,7 @@ function VenueOriginal({
     style: {
       width: 40,
       height: 4,
-      background: '#e0d8db',
+      background: MUTESURF_X,
       borderRadius: 999,
       margin: '8px auto 16px'
     }
@@ -6322,7 +6398,7 @@ function VenueOriginal({
       padding: '14px 16px',
       borderRadius: 12,
       border: `1.5px solid ${reportReason === r ? PINK_X : BORDER_X}`,
-      background: reportReason === r ? '#FCE9EE' : '#fff',
+      background: reportReason === r ? '#FCE9EE' : SURF_X,
       fontSize: 14,
       color: TEXT_X,
       fontWeight: reportReason === r ? 600 : 500,
@@ -6391,7 +6467,7 @@ function VenueOriginal({
     style: {
       flex: 1,
       height: 58,
-      background: '#fff',
+      background: SURF_X,
       color: TEXT_X,
       border: `1.5px solid ${BORDER_X}`,
       borderRadius: 999,
@@ -6521,7 +6597,7 @@ function PromoTag({
     style: {
       display: 'inline-flex',
       alignItems: 'center',
-      background: '#fff',
+      background: SURF_X,
       border: `1px solid ${BORDER_X}`,
       borderRadius: 12,
       padding: '6px 12px',
@@ -6604,7 +6680,7 @@ function InfoRow({
       width: 28,
       height: 28,
       borderRadius: 999,
-      background: '#fff',
+      background: SURF_X,
       border: `1px solid ${BORDER_X}`,
       display: 'flex',
       alignItems: 'center',
@@ -6639,7 +6715,7 @@ function SedeRow({
       width: 38,
       height: 38,
       borderRadius: 13,
-      background: '#FCE9EE',
+      background: CORALSURF_X,
       flexShrink: 0,
       display: 'flex',
       alignItems: 'center',
@@ -6683,7 +6759,7 @@ function SocialDot({
       width: 36,
       height: 36,
       borderRadius: 999,
-      background: TEXT_X,
+      background: PINK_X,
       color: '#fff',
       display: 'flex',
       alignItems: 'center',
@@ -9951,7 +10027,7 @@ function MapScreen({
     onClose: () => setActive(null),
     onOpenVenue: () => onOpenVenue(active),
     onOpenMenu: () => {
-      window.location.href = 'byup Menu.html?from=venue';
+      window.location.href = 'menu-standalone.html?from=venue';
     }
   }));
 }
@@ -14475,7 +14551,7 @@ function ResultsScreen({
       _from: 'results'
     }),
     onMenu: () => {
-      window.location.href = 'byup Menu.html?from=venue';
+      window.location.href = 'menu-standalone.html?from=venue';
     }
   })))));
 }
@@ -16559,20 +16635,17 @@ function PaymentCard({
   }, "Configura"))));
 }
 
-// ─── Anteprima mappa — scorri fino in fondo e si apre la mappa completa ───
-function MapPreviewCard({
-  onOpen
+// ─── Mappa full-bleed — primo scroll si ferma a fine pagina, il secondo apre con zoom ───
+function LeafletMini({
+  mapRef,
+  zoom = 13
 }) {
-  const [T] = BK.useByupTheme();
-  const mapRef = useRef(null);
-  const sentinelRef = useRef(null);
-  const firedRef = useRef(false);
   useEffect(() => {
     const el = mapRef.current;
     if (!el || !window.L) return;
     const map = window.L.map(el, {
       center: [41.9028, 12.4964],
-      zoom: 13,
+      zoom,
       zoomControl: false,
       attributionControl: false,
       dragging: false,
@@ -16599,111 +16672,209 @@ function MapPreviewCard({
     setTimeout(() => map.invalidateSize(), 80);
     return () => map.remove();
   }, []);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(es => {
-      if (es[0].isIntersecting && !firedRef.current) {
-        firedRef.current = true;
-        io.disconnect();
-        setTimeout(() => onOpen?.(), 250);
-      }
-    }, {
-      threshold: 0.95
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
   return /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 18px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bk-press",
-    onClick: () => onOpen?.(),
-    style: {
-      position: 'relative',
-      height: 190,
-      borderRadius: BK.RADII.card,
-      overflow: 'hidden',
-      cursor: 'pointer',
-      boxShadow: T.shadow,
-      border: `1px solid ${T.line}`,
-      background: '#e9e4dd'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
     ref: mapRef,
     style: {
       position: 'absolute',
       inset: 0
     }
+  });
+}
+function MapExpandOverlay({
+  from,
+  T
+}) {
+  const mapRef = useRef(null);
+  const [grown, setGrown] = useState(false);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      zIndex: 900,
+      top: grown ? 0 : from.top,
+      height: grown ? '100%' : from.height,
+      overflow: 'hidden',
+      background: '#e9e4dd',
+      transition: 'top 560ms cubic-bezier(.22,.9,.35,1), height 560ms cubic-bezier(.22,.9,.35,1)'
+    }
+  }, /*#__PURE__*/React.createElement(LeafletMini, {
+    mapRef: mapRef,
+    zoom: 13
   }), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: 'absolute',
       inset: 0,
-      background: 'linear-gradient(180deg, rgba(28,6,16,0) 45%, rgba(28,6,16,.5) 100%)',
+      zIndex: 500,
       pointerEvents: 'none',
-      zIndex: 500
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 16,
-      right: 16,
-      bottom: 12,
-      zIndex: 501,
-      color: '#fff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-      pointerEvents: 'none'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: BK.TYPE.display,
-      fontSize: 17,
-      fontWeight: 600
-    }
-  }, "70 locali qui intorno"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      opacity: .9,
-      fontWeight: 600,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 5
-    }
-  }, "Continua a scorrere per aprire la mappa", /*#__PURE__*/React.createElement("svg", {
-    width: "12",
-    height: "12",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "#fff",
-    strokeWidth: "2.6",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    style: {
-      animation: 'bkBob 1.6s ease-in-out infinite'
-    }
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "6 9 12 15 18 9"
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: 'rgba(255,255,255,.92)',
-      color: '#1c0f15',
-      fontSize: 12,
-      fontWeight: 800,
-      padding: '8px 14px',
-      borderRadius: 999
-    }
-  }, "Apri"))), /*#__PURE__*/React.createElement("div", {
-    ref: sentinelRef,
-    style: {
-      height: 24
+      background: T.dark ? 'rgba(24,22,20,.12)' : 'rgba(251,244,241,.08)',
+      opacity: grown ? 0 : 1,
+      transition: 'opacity 500ms ease'
     }
   }));
+}
+function MapPreviewCard({
+  onOpen
+}) {
+  const [T] = BK.useByupTheme();
+  const wrapRef = useRef(null);
+  const mapRef = useRef(null);
+  const [expanding, setExpanding] = useState(null);
+  const firedRef = useRef(false);
+  const gestureRef = useRef({
+    last: 0,
+    armed: false,
+    touchY: null,
+    touchArmed: false
+  });
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const scroller = wrap.closest('[data-byup-scroll]');
+    if (!scroller) return;
+    const atBottom = () => scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 8;
+    const trigger = () => {
+      if (firedRef.current) return;
+      firedRef.current = true;
+      const root = scroller.closest('[data-byup-approot]') || scroller.parentElement;
+      const rRect = root.getBoundingClientRect();
+      const rect = wrap.getBoundingClientRect();
+      setExpanding({
+        top: rect.top - rRect.top,
+        height: rect.height,
+        rootEl: root
+      });
+      BK.haptic.light();
+      setTimeout(() => onOpen?.(), 600);
+    };
+    const g = gestureRef.current;
+    const onWheel = e => {
+      if (e.deltaY <= 10 || !atBottom()) return;
+      const now = Date.now();
+      // gesto nuovo = pausa di almeno 450ms dall'ultimo evento a fondo pagina
+      if (g.armed && now - g.last > 450) trigger();
+      g.armed = true;
+      g.last = now;
+    };
+    const onTouchStart = e => {
+      g.touchY = e.touches[0].clientY;
+      g.touchArmed = atBottom(); // già a fine pagina PRIMA del nuovo gesto
+    };
+    const onTouchMove = e => {
+      if (g.touchY == null) return;
+      const dy = g.touchY - e.touches[0].clientY;
+      if (dy > 26 && g.touchArmed && atBottom()) {
+        trigger();
+        g.touchY = null;
+      }
+    };
+    const onTouchEnd = () => {
+      g.touchY = null;
+    };
+    scroller.addEventListener('wheel', onWheel, {
+      passive: true
+    });
+    scroller.addEventListener('touchstart', onTouchStart, {
+      passive: true
+    });
+    scroller.addEventListener('touchmove', onTouchMove, {
+      passive: true
+    });
+    scroller.addEventListener('touchend', onTouchEnd, {
+      passive: true
+    });
+    return () => {
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchstart', onTouchStart);
+      scroller.removeEventListener('touchmove', onTouchMove);
+      scroller.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    ref: wrapRef,
+    style: {
+      position: 'relative',
+      height: 448,
+      marginTop: 4,
+      marginBottom: -126,
+      isolation: 'isolate'
+    }
+  }, /*#__PURE__*/React.createElement(LeafletMini, {
+    mapRef: mapRef,
+    zoom: 13
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      height: 100,
+      zIndex: 500,
+      pointerEvents: 'none',
+      background: `linear-gradient(180deg, ${T.bg} 0%, ${T.bg}00 100%)`
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 190,
+      zIndex: 500,
+      pointerEvents: 'none',
+      backdropFilter: 'blur(1.5px)',
+      WebkitBackdropFilter: 'blur(1.5px)',
+      maskImage: 'linear-gradient(180deg, transparent 0%, #000 80%)',
+      WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, #000 80%)'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 152,
+      transform: 'translateX(-50%)',
+      zIndex: 502,
+      pointerEvents: 'none',
+      whiteSpace: 'nowrap',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 8,
+      background: T.dark ? 'rgba(32,30,28,.86)' : 'rgba(255,255,255,.86)',
+      color: T.text,
+      fontFamily: BK.TYPE.sans,
+      fontSize: 12.5,
+      fontWeight: 700,
+      padding: '10px 18px',
+      borderRadius: 999,
+      border: `1px solid ${T.glassBorder}`,
+      backdropFilter: 'blur(14px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+      boxShadow: T.shadowSoft,
+      animation: 'bkBob 2.4s ease-in-out infinite'
+    }
+  }, "Scorri per aprire la mappa", /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: T.primary,
+    strokeWidth: "2.6",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "6 9 12 15 18 9"
+  })))), expanding && ReactDOM.createPortal(/*#__PURE__*/React.createElement(MapExpandOverlay, {
+    from: expanding,
+    T: T
+  }), expanding.rootEl));
 }
 
 // Pure presentational — every action is a callback prop.
@@ -16855,7 +17026,7 @@ function HomeSections({
     style: {
       position: 'relative',
       zIndex: 5,
-      background: T.dark ? 'rgba(22,9,16,0.72)' : 'rgba(251,244,241,0.74)',
+      background: T.dark ? 'rgba(24,22,20,0.74)' : 'rgba(251,244,241,0.74)',
       backdropFilter: 'blur(22px) saturate(160%)',
       WebkitBackdropFilter: 'blur(22px) saturate(160%)',
       paddingTop: topBar ? 12 : 24,
@@ -17165,7 +17336,7 @@ function HomeSections({
     title: "Paga in un tap"
   }), /*#__PURE__*/React.createElement(PaymentCard, {
     onClick: () => {
-      window.location.href = 'byup Menu.html#paymethod';
+      window.location.href = 'menu-standalone.html#paymethod';
     }
   }), /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Qui intorno"
@@ -17610,7 +17781,7 @@ function App({
       try {
         sessionStorage.removeItem('byup_menu_from');
       } catch {}
-      window.location.href = 'byup Menu.html';
+      window.location.href = 'menu-standalone.html';
     }, 1400);
     return () => clearTimeout(t);
   }, [qrOpen]);
@@ -17636,7 +17807,7 @@ function App({
     setRecoveryModalOpen(false);
     setRecoveryLoading(true);
     setTimeout(() => {
-      window.location.href = 'byup Menu.html#home';
+      window.location.href = 'menu-standalone.html#home';
     }, 1600);
   };
   // Overlay condivisi (popup + caricamento): inseriti sia nel ramo Home sia in
@@ -17769,7 +17940,7 @@ function App({
       venue: activeVenue,
       onBack: goBack,
       onMenu: () => {
-        window.location.href = 'byup Menu.html?from=venue';
+        window.location.href = 'menu-standalone.html?from=venue';
       },
       onBook: () => setBookingOpen(true),
       onHome: resetToHome,
@@ -17846,6 +18017,7 @@ function App({
     }));
   }
   return /*#__PURE__*/React.createElement("div", {
+    "data-byup-approot": true,
     style: {
       width: '100%',
       height: '100%',
@@ -17900,7 +18072,7 @@ function App({
       right: 0,
       zIndex: 15,
       height: 60,
-      background: scrolled ? T.dark ? 'rgba(22,9,16,0.78)' : 'rgba(251,244,241,0.82)' : 'transparent',
+      background: scrolled ? T.dark ? 'rgba(24,22,20,0.82)' : 'rgba(251,244,241,0.82)' : 'transparent',
       backdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
       WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
       borderBottom: scrolled ? `1px solid ${T.line}` : '1px solid transparent',
@@ -17909,6 +18081,7 @@ function App({
     }
   }), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
+    "data-byup-scroll": true,
     style: {
       flex: 1,
       overflowY: 'auto',
@@ -17990,7 +18163,7 @@ function App({
     },
     onMenu: () => {
       setDetail(null);
-      window.location.href = 'byup Menu.html?from=venue';
+      window.location.href = 'menu-standalone.html?from=venue';
     },
     onBook: () => {
       setBookingOpen(true);
@@ -18191,7 +18364,7 @@ function BottomTabBar({
     }
   }, /*#__PURE__*/React.createElement("path", {
     d: TABBAR_PATH,
-    fill: T.dark ? '#241019' : 'rgba(255,255,255,0.96)'
+    fill: T.dark ? '#201e1c' : 'rgba(255,255,255,0.96)'
   }), /*#__PURE__*/React.createElement("path", {
     d: TABBAR_PATH,
     fill: "none",
@@ -18320,44 +18493,44 @@ function ShortcutsPanel() {
   const homeItems = [{
     id: 'login',
     label: 'Login',
-    href: 'byup Home.html?auth=login'
+    href: 'home-standalone.html?auth=login'
   }, {
     id: 'register',
     label: 'Registrazione',
-    href: 'byup Home.html?auth=register'
+    href: 'home-standalone.html?auth=register'
   }, {
     id: 'home',
     label: 'Home',
-    href: 'byup Home.html'
+    href: 'home-standalone.html'
   }, {
     id: 'home-empty',
     label: 'Home — nessun locale',
-    href: 'byup Home.html?page=home-empty'
+    href: 'home-standalone.html?page=home-empty'
   }, {
     id: 'map',
     label: 'Mappa',
-    href: 'byup Home.html?page=map'
+    href: 'home-standalone.html?page=map'
   }, {
     id: 'posta',
     label: 'Posta',
-    href: 'byup Home.html?page=posta'
+    href: 'home-standalone.html?page=posta'
   }];
   const menuItems = [{
     id: 'menu',
     label: 'Menu',
-    href: 'byup Menu.html'
+    href: 'menu-standalone.html'
   }, {
     id: 'pay',
     label: 'Pagamento',
-    href: 'byup Menu.html#pay'
+    href: 'menu-standalone.html#pay'
   }, {
     id: 'paymethod',
     label: 'Metodo pagamento',
-    href: 'byup Menu.html#paymethod'
+    href: 'menu-standalone.html#paymethod'
   }, {
     id: 'success',
     label: 'Successo',
-    href: 'byup Menu.html#success'
+    href: 'menu-standalone.html#success'
   }];
   // Stili di vetrina (in produzione li sceglie il ristoratore dal gestionale).
   const venueStyles = [{
@@ -18439,7 +18612,7 @@ function ShortcutsPanel() {
     const active = cur === 'venue' && curVenue === v.id;
     return /*#__PURE__*/React.createElement("a", {
       key: v.id,
-      href: `byup Home.html?page=venue&venue=${v.id}`,
+      href: `home-standalone.html?page=venue&venue=${v.id}`,
       title: v.desc,
       style: {
         flex: v.id === 'original' ? 1.6 : 1,

@@ -1,15 +1,35 @@
 // byup — Menu locale + Divisione + Home con ordine attivo
 const { useState, useRef, useEffect } = React;
 
+// Tema letto al caricamento pagina (le pagine sono file separati: ogni pagina
+// legge byup.themeMode e sceglie la palette → dark coerente cross-page).
+const __BYUP_DARK = (() => {
+  try {
+    const m = localStorage.getItem('byup.themeMode') || 'light';
+    if (m === 'dark') return true;
+    if (m === 'auto') return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return false;
+  } catch { return false; }
+})();
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
-const WINE = '#8B1A3A';     // for menu screen accent
+const WINE = __BYUP_DARK ? '#ef6389' : '#8B1A3A';     // accento menu (più chiaro in dark per contrasto)
 const WINE_DARK = '#5a1a2e';
-const TEXT = '#1c0f15';
-const MUTED = '#6d5a61';
-const BORDER = '#eddfda';
-const BG_GRAY = '#f7ece8';
-const BG_PAGE = '#FBF4F1';
+const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
+const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
+const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
+const SURF = __BYUP_DARK ? '#211f22' : '#fff';        // superfici card (bianco→dark)
+const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea';     // superficie tenue (righe riepilogo, chip)
+const MUTESURF = __BYUP_DARK ? '#39333b' : '#e7e1d8'; // superficie muta (avatar/disabled)
+const BADGE = __BYUP_DARK ? '#7a2f4a' : BADGE;    // badge/avatar wine (più chiaro in dark)
+
+// ─── Firma CTA byup — gradiente coral + glow + sheen, usato sui money-CTA
+//    di ordine e pagamento per legarli all'identità della Home. ───
+const CTA_GRAD = 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)';
+const CTA_GLOW = '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)';
+const CTA_DEAD = '#e9cfd8';
 
 // ─── Icons ─────────────────────────────────────────────────
 const I = {
@@ -101,20 +121,20 @@ function AllergenDots({ ids, onTap, max }) {
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 22, height: 22, borderRadius: 999,
-                background: '#f5f0ec', border: '1px solid #e8e0d8',
+                background: TINT, border: '1px solid #e8e0d8',
                 cursor: 'pointer', fontSize: 11, lineHeight: 1,
               }}>{a.icon}</span>
             {isOpen && (
               <span style={{
                 position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-                background: '#1a1a1a', color: '#fff', fontSize: 11, fontWeight: 600,
+                background: BADGE, color: '#fff', fontSize: 11, fontWeight: 600,
                 padding: '4px 8px', borderRadius: 6, whiteSpace: 'nowrap',
                 zIndex: 5, animation: 'fade 0.15s ease',
               }}>
                 {a.label}
                 <span style={{
                   position: 'absolute', bottom: -3, left: '50%', transform: 'translateX(-50%) rotate(45deg)',
-                  width: 6, height: 6, background: '#1a1a1a',
+                  width: 6, height: 6, background: BADGE,
                 }}/>
               </span>
             )}
@@ -125,7 +145,7 @@ function AllergenDots({ ids, onTap, max }) {
         <span style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           height: 22, minWidth: 22, padding: '0 6px', borderRadius: 999,
-          background: '#f5f0ec', border: '1px solid #e8e0d8',
+          background: TINT, border: '1px solid #e8e0d8',
           fontSize: 10.5, fontWeight: 700, color: MUTED, lineHeight: 1, flexShrink: 0,
         }}>+{extra}</span>
       )}
@@ -143,7 +163,7 @@ function DishPhoto({ tone = 'a', bestSeller, label, kind, hideBadge = false }) {
       {bestSeller && !hideBadge && (
         <div style={{
           position: 'absolute', top: 8, left: 8,
-          background: '#1a1a1a', color: '#fff',
+          background: BADGE, color: '#fff',
           fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4,
           padding: '4px 8px', borderRadius: 999,
           display: 'flex', alignItems: 'center', gap: 4,
@@ -382,7 +402,7 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
       animation: 'fade 0.2s ease',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', background: '#fff',
+        width: '100%', background: SURF,
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
         padding: '14px 22px 30px',
         animation: 'slideUp 0.28s cubic-bezier(.2,.9,.3,1.1)',
@@ -397,14 +417,14 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
 
         {/* Option: Scansiona QR (al tavolo) */}
         <button onClick={onScanQR} style={{
-          width: '100%', background: '#fff',
+          width: '100%', background: SURF,
           border: `1.5px solid ${BORDER}`, borderRadius: 18,
           padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 14,
           textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
           marginBottom: 12,
         }}>
           <div style={{
-            width: 52, height: 52, borderRadius: 14, background: '#1a1a1a',
+            width: 52, height: 52, borderRadius: 14, background: BADGE,
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <I.QR size={26} color="#fff"/>
@@ -422,7 +442,7 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
 
         {/* Option: Take Away */}
         <button onClick={onTakeaway} style={{
-          width: '100%', background: '#fff',
+          width: '100%', background: SURF,
           border: `1.5px solid ${BORDER}`, borderRadius: 18,
           padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 14,
           textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
@@ -458,6 +478,99 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
 }
 
 // ─── MENU SCREEN ───────────────────────────────────────────
+// Banda di categoria — full-bleed, icona kawaii che entra con spring, titolo Fredoka.
+const CAT_ART = {
+  'Antipasti':      ['assets/cat-aperitivo.png', '#fae3de'],
+  'Primi piatti':   ['assets/cat-pizza.png',     '#FCE9EE'],
+  'Secondi piatti': ['assets/cat-burger.png',    '#FEF0E3'],
+  'Dolci':          ['assets/cat-dolce.png',     '#F9E3EE'],
+  'Bevande':        ['assets/cat-vino.png',      '#f4e5ef'],
+};
+// Divisore-capitolo editoriale: numero-fantasma, dots di avanzamento sezione,
+// icona kawaii che entra in spring, sottolineatura brand che si "disegna".
+// L'insieme dà un senso di progressione → invoglia a scorrere fino in fondo.
+function CatBand({ name, count, index = 0, total = 5 }) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return; }
+    const io = new IntersectionObserver((es) => {
+      if (es[0].isIntersecting) { setInView(true); io.disconnect(); }
+    }, { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const [img, tint] = CAT_ART[name] || CAT_ART['Antipasti'];
+  const num = String(index + 1).padStart(2, '0');
+  return (
+    <div ref={ref} style={{
+      margin: '32px -18px 18px', padding: '24px 18px 20px', position: 'relative', overflow: 'hidden',
+      background: `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`,
+    }}>
+      {/* numero-capitolo fantasma */}
+      <div aria-hidden style={{
+        position: 'absolute', left: 8, top: -20, fontFamily: "'Fredoka', sans-serif",
+        fontSize: 104, fontWeight: 600, lineHeight: 1, color: PINK, letterSpacing: -5,
+        opacity: inView ? 0.09 : 0, transform: inView ? 'none' : 'translateY(12px)',
+        transition: 'opacity 640ms ease, transform 640ms ease', pointerEvents: 'none',
+      }}>{num}</div>
+
+      {/* icona kawaii della categoria */}
+      <img src={img} width="82" alt="" aria-hidden style={{
+        position: 'absolute', right: 12, top: '50%',
+        transform: inView ? 'translateY(-50%) rotate(8deg)' : 'translateY(-20%) rotate(-8deg) scale(.6)',
+        opacity: inView ? 1 : 0,
+        transition: 'transform 680ms cubic-bezier(.34,1.45,.64,1), opacity 420ms ease',
+        filter: 'drop-shadow(0 10px 16px rgba(77,18,46,.18))',
+        animation: inView ? 'bkBob 3.6s .8s ease-in-out infinite' : 'none',
+        pointerEvents: 'none', zIndex: 1,
+      }}/>
+
+      {/* label sezione + dots di avanzamento */}
+      <div style={{
+        position: 'relative', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7,
+        opacity: inView ? 1 : 0, transform: inView ? 'none' : 'translateY(8px)',
+        transition: 'opacity 500ms ease, transform 500ms ease',
+      }}>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color: PINK, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          Sezione {index + 1}<span style={{ color: MUTED, fontWeight: 700 }}>/{total}</span>
+        </span>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {Array.from({ length: total }).map((_, i) => (
+            <div key={i} style={{
+              width: i === index ? 16 : 5, height: 5, borderRadius: 999,
+              background: i === index ? PINK : (i < index ? '#e79fb4' : '#e6d2d9'),
+              transition: 'width 420ms ease, background 420ms ease',
+            }}/>
+          ))}
+        </div>
+      </div>
+
+      {/* titolo Fredoka */}
+      <div style={{
+        position: 'relative', fontFamily: "'Fredoka', sans-serif", fontSize: 27, fontWeight: 600, color: TEXT, lineHeight: 1.05,
+        transform: inView ? 'none' : 'translateY(18px)', opacity: inView ? 1 : 0,
+        transition: 'transform 540ms cubic-bezier(.22,.9,.35,1), opacity 440ms ease',
+      }}>{name}</div>
+
+      {/* count */}
+      <div style={{
+        position: 'relative', fontSize: 11.5, color: MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, marginTop: 5,
+        opacity: inView ? 1 : 0, transition: 'opacity 520ms 200ms ease',
+      }}>{count} {count === 1 ? 'piatto' : 'piatti'} · scorri e gusta</div>
+
+      {/* sottolineatura brand che si disegna */}
+      <div aria-hidden style={{
+        height: 3, width: 48, borderRadius: 999, marginTop: 11,
+        background: `linear-gradient(90deg, ${PINK}, ${PINK_DARK})`,
+        transformOrigin: 'left', transform: inView ? 'scaleX(1)' : 'scaleX(0)',
+        transition: 'transform 560ms 120ms cubic-bezier(.22,.9,.35,1)',
+      }}/>
+    </div>
+  );
+}
+
 function MenuScreen({ state, setState, goTo }) {
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   // Tab di navigazione: "Byup" è una voce extra (non una categoria di piatti)
@@ -713,7 +826,7 @@ function MenuScreen({ state, setState, goTo }) {
         <div style={{ padding: '60px 16px 0 64px', display: 'flex', gap: 8 }}>
           <div style={{
             flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-            background: '#fff', borderRadius: 999, padding: '9px 14px',
+            background: SURF, borderRadius: 999, padding: '9px 14px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
@@ -731,7 +844,7 @@ function MenuScreen({ state, setState, goTo }) {
             return (
               <button onClick={() => setAllergenSheetOpen(true)} style={{
                 position: 'relative', width: 38, height: 38, borderRadius: 999, flexShrink: 0,
-                background: count > 0 ? WINE : '#fff', border: 'none',
+                background: count > 0 ? WINE : SURF, border: 'none',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.06)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
@@ -744,7 +857,7 @@ function MenuScreen({ state, setState, goTo }) {
                   <span style={{
                     position: 'absolute', top: -4, right: -4,
                     minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
-                    background: '#1a1a1a', color: '#fff',
+                    background: BADGE, color: '#fff',
                     fontSize: 10.5, fontWeight: 800,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>{count}</span>
@@ -799,7 +912,7 @@ function MenuScreen({ state, setState, goTo }) {
             {Object.entries(allergenFilters).filter(([_, on]) => on).map(([id]) => (
               <button key={id} onClick={() => setAllergenFilters(f => { const n = {...f}; delete n[id]; return n; })} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto',
-                background: '#1a1a1a', color: '#fff', border: 'none',
+                background: BADGE, color: '#fff', border: 'none',
                 padding: '5px 8px 5px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600,
                 cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
               }}>
@@ -850,7 +963,7 @@ function MenuScreen({ state, setState, goTo }) {
                           {guests.slice(0, 3).map((g, i) => (
                             <div key={g.id || i} style={{
                               width: 24, height: 24, borderRadius: 999,
-                              background: (g.isApp || g.isWebApp) ? '#1a1a1a' : '#c4b89f',
+                              background: (g.isApp || g.isWebApp) ? BADGE : '#c4b89f',
                               color: '#fff',
                               border: '2px solid rgba(255,255,255,0.55)', marginLeft: -8,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -860,7 +973,7 @@ function MenuScreen({ state, setState, goTo }) {
                           {guests.length > 3 && (
                             <div style={{
                               width: 24, height: 24, borderRadius: 999,
-                              background: '#c4b89f', color: '#fff',
+                              background: MUTESURF, color: '#fff',
                               border: '2px solid rgba(255,255,255,0.55)', marginLeft: -8,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: 9, fontWeight: 700,
@@ -901,7 +1014,7 @@ function MenuScreen({ state, setState, goTo }) {
                   const qty = cart.filter(i => i.dishId === d.id).reduce((s, i) => s + i.qty, 0);
                   return (
                     <div key={d.id} onClick={() => goTo('dish', { dishId: d.id })} style={{
-                      flex: '0 0 auto', width: 180, background: '#fff', borderRadius: 16,
+                      flex: '0 0 auto', width: 180, background: SURF, borderRadius: 16,
                       overflow: 'hidden', cursor: 'pointer', position: 'relative',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                     }}>
@@ -913,7 +1026,7 @@ function MenuScreen({ state, setState, goTo }) {
                         )}
                         <div style={{
                           position: 'absolute', top: 8, left: 8,
-                          background: '#1a1a1a', color: '#fff',
+                          background: BADGE, color: '#fff',
                           fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
                           padding: '4px 8px', borderRadius: 999,
                         }}>★ TOP</div>
@@ -926,7 +1039,7 @@ function MenuScreen({ state, setState, goTo }) {
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); addDish(d.id); }} style={{
                           marginTop: 8, width: '100%', height: 32, borderRadius: 8,
-                          border: 'none', background: qty > 0 ? WINE : '#1a1a1a',
+                          border: 'none', background: qty > 0 ? WINE : BADGE,
                           color: '#fff', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
                         }}>
                           {qty > 0 ? `Nel carrello · ${qty}` : 'Aggiungi'}
@@ -976,7 +1089,7 @@ function MenuScreen({ state, setState, goTo }) {
                   const qty = cart.filter(i => i.dishId === d.id).reduce((s, i) => s + i.qty, 0);
                   return (
                     <div key={d.id} onClick={() => goTo('dish', { dishId: d.id, perTe: true })} style={{
-                      flex: '0 0 auto', width: 180, background: '#fff', borderRadius: 16,
+                      flex: '0 0 auto', width: 180, background: SURF, borderRadius: 16,
                       overflow: 'hidden', cursor: 'pointer', position: 'relative',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                     }}>
@@ -1001,7 +1114,7 @@ function MenuScreen({ state, setState, goTo }) {
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); addDish(d.id); }} style={{
                           marginTop: 8, width: '100%', height: 32, borderRadius: 8,
-                          border: 'none', background: qty > 0 ? WINE : '#1a1a1a',
+                          border: 'none', background: qty > 0 ? WINE : BADGE,
                           color: '#fff', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
                         }}>
                           {qty > 0 ? `Nel carrello · ${qty}` : 'Aggiungi'}
@@ -1017,7 +1130,7 @@ function MenuScreen({ state, setState, goTo }) {
 
         {/* Tutte le categorie in sequenza */}
         </div>{/* end padding wrapper */}
-        {tabs.map(catName => {
+        {tabs.map((catName, catIdx) => {
           const catDishes = (DISHES_BY_CAT[catName] || []).filter(d => {
             if (searchQ && !d.name.toLowerCase().includes(searchQ.toLowerCase()) && !d.desc.toLowerCase().includes(searchQ.toLowerCase())) return false;
             for (const id of Object.keys(allergenFilters)) {
@@ -1038,10 +1151,7 @@ function MenuScreen({ state, setState, goTo }) {
           if (!sorted.length) return null;
           return (
             <div key={catName} ref={el => sectionRefs.current[catName] = el} data-cat={catName} style={{ marginBottom: 8, padding: '0 18px' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 24, marginBottom: 18 }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>{catName}</div>
-                <div style={{ fontSize: 11, color: MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{sorted.length} {sorted.length === 1 ? 'piatto' : 'piatti'}</div>
-              </div>
+              <CatBand name={catName} count={sorted.length} index={catIdx} total={tabs.length}/>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
                 {sorted.map((d, idx) => {
                   const isFirst = idx === 0;
@@ -1052,13 +1162,13 @@ function MenuScreen({ state, setState, goTo }) {
                     <React.Fragment key={d.id}>
                       {showDivider && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
-                          <div style={{ flex: 1, height: 1, background: '#EDE8EA' }}/>
+                          <div style={{ flex: 1, height: 1, background: TINT }}/>
                           <span style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}>Altri piatti</span>
-                          <div style={{ flex: 1, height: 1, background: '#EDE8EA' }}/>
+                          <div style={{ flex: 1, height: 1, background: TINT }}/>
                         </div>
                       )}
                     <div onClick={() => goTo('dish', { dishId: d.id })} style={{
-                      background: '#fff', borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
+                      background: SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
                       display: 'flex', gap: 14, cursor: 'pointer',
                       boxShadow: qty > 0 ? `0 4px 16px rgba(90,26,46,0.14)` : '0 1px 4px rgba(0,0,0,0.05)',
                       border: qty > 0 ? `1.5px solid ${WINE}` : '1.5px solid transparent',
@@ -1074,7 +1184,7 @@ function MenuScreen({ state, setState, goTo }) {
                         {/* Badge come overlay sulla foto */}
                         {(d.bestSeller || (perTeIds.has(d.id) && !d.bestSeller) || (dietFilter && dietMatch(d))) && (
                           <div style={{ position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                            {d.bestSeller && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: '#1a1a1a', padding: '3px 8px', borderRadius: 999, letterSpacing: 0.4, textTransform: 'uppercase', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>★ TOP</span>}
+                            {d.bestSeller && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: BADGE, padding: '3px 8px', borderRadius: 999, letterSpacing: 0.4, textTransform: 'uppercase', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>★ TOP</span>}
                             {perTeIds.has(d.id) && !d.bestSeller && !(dietFilter && dietMatch(d)) && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: WINE, padding: '3px 8px', borderRadius: 999, letterSpacing: 0.4, textTransform: 'uppercase', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>✨ Per te</span>}
                             {dietFilter && dietMatch(d) && (() => {
                               const labels = { veg: '🌱 Veg', vegan: '🌿 Vegan', gf: '🌾 Senza glutine' };
@@ -1146,7 +1256,7 @@ function MenuScreen({ state, setState, goTo }) {
           animation: 'fade 0.2s ease',
         }}>
           <div style={{
-            background: '#fff', borderRadius: 24, padding: '28px 32px',
+            background: SURF, borderRadius: 24, padding: '28px 32px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
             animation: 'pop 0.3s cubic-bezier(.2,.9,.3,1.3)',
           }}>
@@ -1183,12 +1293,12 @@ function MenuScreen({ state, setState, goTo }) {
           animation: 'fade 0.22s ease',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            width: '100%', background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
             padding: '10px 22px 32px',
             animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
             boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
           }}>
-            <div style={{ width: 38, height: 4, background: '#e0d8db', borderRadius: 999, margin: '4px auto 18px' }}/>
+            <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 18px' }}/>
 
             <div style={{ textAlign: 'center', marginBottom: 22 }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 6 }}>
@@ -1204,7 +1314,7 @@ function MenuScreen({ state, setState, goTo }) {
                 <button key={n} onClick={() => confirmCoperti(n === 6 ? 6 : n)} style={{
                   height: 64, borderRadius: 14,
                   border: `1.5px solid ${BORDER}`,
-                  background: '#fff', cursor: 'pointer', fontFamily: 'inherit',
+                  background: SURF, cursor: 'pointer', fontFamily: 'inherit',
                   fontSize: 20, fontWeight: 800, color: TEXT,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s',
@@ -1252,10 +1362,10 @@ function MenuScreen({ state, setState, goTo }) {
           display: 'flex', alignItems: 'flex-end',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', background: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            width: '100%', background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             padding: '12px 22px 24px', maxHeight: '80%', overflowY: 'auto',
           }}>
-            <div style={{ width: 38, height: 4, background: '#e0d8db', borderRadius: 999, margin: '4px auto 14px' }}/>
+            <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 14px' }}/>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 12 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>Filtra allergeni</div>
               {Object.values(allergenFilters).some(Boolean) && (
@@ -1279,7 +1389,7 @@ function MenuScreen({ state, setState, goTo }) {
                 { id: 'gf', label: '🌾 Senza glutine' },
               ].map(f => (
                 <button key={f.id || 'all'} onClick={() => setDietFilter(f.id)} style={{
-                  background: dietFilter === f.id ? WINE : '#fff',
+                  background: dietFilter === f.id ? WINE : SURF,
                   color: dietFilter === f.id ? '#fff' : TEXT,
                   border: dietFilter === f.id ? `1px solid ${WINE}` : `1px solid ${BORDER}`,
                   padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
@@ -1302,7 +1412,7 @@ function MenuScreen({ state, setState, goTo }) {
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '12px 12px', borderRadius: 12,
                     border: on ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-                    background: on ? '#fcf4f6' : '#fff',
+                    background: on ? TINT : SURF,
                     cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                   }}>
                     <span style={{
@@ -1358,7 +1468,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
-      background: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      background: SURF, borderTopLeftRadius: 28, borderTopRightRadius: 28,
       boxShadow: '0 -6px 24px rgba(0,0,0,0.1)',
       maxHeight: expanded ? '78%' : 'auto',
       transition: 'max-height 0.3s ease',
@@ -1385,14 +1495,16 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
             )}
           </div>
           <button onClick={onSubmit} disabled={cartCount === 0} style={{
-            width: '100%', height: 50, borderRadius: 999, border: 'none',
-            background: cartCount === 0 ? '#d8c0c8' : WINE, color: '#fff',
-            fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+            width: '100%', height: 52, borderRadius: 999, border: 'none',
+            background: cartCount === 0 ? CTA_DEAD : CTA_GRAD, color: '#fff',
+            fontSize: 15, fontWeight: 800, fontFamily: 'inherit', letterSpacing: '.01em',
+            boxShadow: cartCount === 0 ? 'none' : CTA_GLOW,
             cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
+            transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           }}>
             <span>Invio ordine</span>
-            {cartTotal > 0 && <span style={{ opacity: 0.85 }}>· {cartTotal}€</span>}
+            {cartTotal > 0 && <span style={{ opacity: 0.9 }}>· {cartTotal}€</span>}
           </button>
         </div>
       ) : (
@@ -1431,7 +1543,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
                           {it.summary.split(', ').map((tag, i) => (
                             <span key={i} style={{
                               fontSize: 11, fontWeight: 600, color: WINE,
-                              background: '#f5eef2', padding: '2px 7px', borderRadius: 999,
+                              background: TINT, padding: '2px 7px', borderRadius: 999,
                             }}>{tag}</span>
                           ))}
                         </div>
@@ -1440,7 +1552,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
                     </div>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 6,
-                      background: '#fff', borderRadius: 999, padding: '3px 6px',
+                      background: SURF, borderRadius: 999, padding: '3px 6px',
                     }}>
                       <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
                       <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center' }}>{it.qty}</span>
@@ -1487,7 +1599,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
                         </div>
                         <button onClick={() => goTo('split', { item: it, splitKey })} style={{
                           height: 32, padding: '0 12px', borderRadius: 999,
-                          border: `1.5px solid ${WINE}`, background: split ? WINE : '#f5eef2',
+                          border: `1.5px solid ${WINE}`, background: split ? WINE : TINT,
                           fontSize: 12, fontWeight: 700, color: split ? '#fff' : WINE,
                           fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
                           display: 'flex', alignItems: 'center', gap: 4,
@@ -1505,10 +1617,13 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
 
           <div style={{ padding: '0 22px 20px' }}>
             <button onClick={onSubmit} disabled={cartCount === 0} style={{
-              width: '100%', height: 50, borderRadius: 999, border: 'none',
-              background: cartCount === 0 ? '#d8c0c8' : WINE, color: '#fff',
-              fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+              width: '100%', height: 52, borderRadius: 999, border: 'none',
+              background: cartCount === 0 ? CTA_DEAD : CTA_GRAD,
+              color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'inherit',
+              letterSpacing: '.01em',
+              boxShadow: cartCount === 0 ? 'none' : CTA_GLOW,
               cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
+              transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
             }}>Ordina ora · {cartTotal.toFixed(2)}€</button>
           </div>
         </>
@@ -1518,7 +1633,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
 }
 
 const qtyBtn = {
-  width: 28, height: 28, borderRadius: 999, border: 'none', background: '#fff',
+  width: 28, height: 28, borderRadius: 999, border: 'none', background: SURF,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
 };
@@ -1593,7 +1708,7 @@ function SplitScreen({ state, setState, ctx, goBack }) {
       {/* Header */}
       <div style={{
         padding: '60px 22px 14px', display: 'flex', alignItems: 'center', gap: 12,
-        background: '#fff', borderBottom: `1px solid ${BORDER}`,
+        background: SURF, borderBottom: `1px solid ${BORDER}`,
       }}>
         <button onClick={goBack} style={{
           width: 36, height: 36, borderRadius: 999, background: BG_GRAY,
@@ -1635,7 +1750,7 @@ function SplitScreen({ state, setState, ctx, goBack }) {
                   <div key={p.id} onClick={() => togglePerson(p.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 14px', borderRadius: 14,
-                    background: sel ? '#fff' : '#fff',
+                    background: sel ? SURF : SURF,
                     border: `1.5px solid ${sel ? WINE : BORDER}`,
                     cursor: p.isMe ? 'default' : 'pointer',
                     opacity: p.isMe ? 0.85 : 1,
@@ -1650,7 +1765,7 @@ function SplitScreen({ state, setState, ctx, goBack }) {
                     <div style={{
                       width: 24, height: 24, borderRadius: 999,
                       border: `2px solid ${sel ? WINE : '#d0d0d0'}`,
-                      background: sel ? WINE : '#fff',
+                      background: sel ? WINE : SURF,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       {sel && <I.Check size={14} color="#fff"/>}
@@ -1660,13 +1775,13 @@ function SplitScreen({ state, setState, ctx, goBack }) {
               })}
               <button onClick={addParticipant} style={{
                 width: '100%', padding: '12px 14px', borderRadius: 14,
-                background: '#fff', border: `1.5px dashed ${BORDER}`,
+                background: SURF, border: `1.5px dashed ${BORDER}`,
                 cursor: 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 12,
                 color: TEXT, fontSize: 14, fontWeight: 700,
               }}>
                 <span style={{
-                  width: 32, height: 32, borderRadius: 999, background: '#f6f1ea',
+                  width: 32, height: 32, borderRadius: 999, background: TINT,
                   color: WINE, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 18, fontWeight: 700,
                 }}>+</span>
@@ -1694,7 +1809,7 @@ function SplitScreen({ state, setState, ctx, goBack }) {
               </div>
               <button onClick={addParticipant} title="Aggiungi ospite" style={{
                 width: 42, height: 42, borderRadius: 999,
-                background: '#fff', border: `1.5px dashed ${BORDER}`,
+                background: SURF, border: `1.5px dashed ${BORDER}`,
                 cursor: 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: WINE, fontSize: 22, fontWeight: 700, padding: 0, lineHeight: 1,
@@ -1707,7 +1822,7 @@ function SplitScreen({ state, setState, ctx, goBack }) {
         {item && (
           <div style={{
             marginTop: 24, padding: 16, borderRadius: 16,
-            background: '#fff', border: `1.5px solid ${BORDER}`,
+            background: SURF, border: `1.5px solid ${BORDER}`,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MUTED, marginBottom: 6 }}>
               <span>Prezzo piatto</span><span>{item.price}€</span>
@@ -1726,7 +1841,7 @@ function SplitScreen({ state, setState, ctx, goBack }) {
       {/* Save button */}
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        padding: '14px 22px 22px', background: '#fff', borderTop: `1px solid ${BORDER}`,
+        padding: '14px 22px 22px', background: SURF, borderTop: `1px solid ${BORDER}`,
       }}>
         <button onClick={save} style={{
           width: '100%', height: 52, borderRadius: 999, border: 'none',
@@ -1743,14 +1858,14 @@ function ModeCard({ active, onClick, title, desc, emoji }) {
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 14,
       padding: '14px 16px', borderRadius: 16,
-      background: active ? '#fff' : '#fff',
+      background: active ? SURF : SURF,
       border: `1.5px solid ${active ? WINE : BORDER}`,
       cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
       width: '100%', position: 'relative',
     }}>
       <div style={{
         width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-        background: active ? '#f5eef2' : BG_GRAY,
+        background: active ? TINT : BG_GRAY,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 22, transition: 'background 0.18s',
       }}>{emoji}</div>
@@ -1761,7 +1876,7 @@ function ModeCard({ active, onClick, title, desc, emoji }) {
       <div style={{
         width: 22, height: 22, borderRadius: 999,
         border: `2px solid ${active ? WINE : '#d0d0d0'}`,
-        background: active ? WINE : '#fff',
+        background: active ? WINE : SURF,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {active && <I.Check size={13} color="#fff"/>}
@@ -1818,7 +1933,7 @@ function HomeScreen({ state, setState, goTo }) {
 
   return (
     <div data-screen-label="Home con ordine attivo" style={{
-      width: '100%', height: '100%', background: '#fff', position: 'relative',
+      width: '100%', height: '100%', background: SURF, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 60, paddingBottom: 110 }}>
@@ -2138,7 +2253,7 @@ function TakeawayCard({ order, expanded, setExpanded, onReorder }) {
         <div style={{ marginTop: 12 }}>
           <button onClick={onReorder} style={{
             width: '100%', height: 42, borderRadius: 999, border: 'none',
-            background: '#fff', color: '#1a1a1a',
+            background: SURF, color: BADGE,
             fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
           }}>Ordina ancora</button>
         </div>
@@ -2216,7 +2331,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
       animation: 'fadeIn 0.2s',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', background: '#fff', color: TEXT,
+        width: '100%', background: SURF, color: TEXT,
         borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: '14px 22px 28px',
         animation: 'slideUp 0.25s cubic-bezier(.2,.9,.3,1)',
         maxHeight: '85%', overflowY: 'auto',
@@ -2249,7 +2364,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
                 <>
                   <span style={{ color: '#cfc8b9' }}>·</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: '#c4b89f' }}/>
+                    <span style={{ width: 6, height: 6, borderRadius: 999, background: MUTESURF }}/>
                     <span><span style={{ fontWeight: 700, color: TEXT }}>{ospitiCount}</span> {ospitiCount === 1 ? 'ospite' : 'ospiti'}</span>
                   </span>
                 </>
@@ -2270,7 +2385,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
             }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 999,
-                background: g.isGuest ? '#f0ede6' : (g.isMe ? PINK : '#1a1a1a'),
+                background: g.isGuest ? MUTESURF : (g.isMe ? PINK : BADGE),
                 color: g.isGuest ? MUTED : '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 14, fontWeight: 700,
@@ -2312,13 +2427,13 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
         {onAddGuest && (
           <button onClick={onAddGuest} style={{
             marginTop: 12, width: '100%', padding: '12px 14px',
-            background: '#fff', border: `1.5px dashed ${BORDER}`,
+            background: SURF, border: `1.5px dashed ${BORDER}`,
             borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             color: TEXT, fontSize: 13.5, fontWeight: 700,
           }}>
             <span style={{
-              width: 22, height: 22, borderRadius: 999, background: '#f6f1ea',
+              width: 22, height: 22, borderRadius: 999, background: TINT,
               color: WINE, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 16, fontWeight: 700,
             }}>+</span>
@@ -2328,7 +2443,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
 
         {/* Card invito — link al tavolo da condividere */}
         <div style={{
-          marginTop: 14, padding: 14, background: '#faf6ee', borderRadius: 14,
+          marginTop: 14, padding: 14, background: TINT, borderRadius: 14,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -2342,7 +2457,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            background: '#fff', padding: '6px 6px 6px 12px', borderRadius: 999,
+            background: SURF, padding: '6px 6px 6px 12px', borderRadius: 999,
             border: `1px solid ${BORDER}`,
           }}>
             <span style={{
@@ -2372,7 +2487,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
 
         <button onClick={onClose} style={{
           width: '100%', height: 48, borderRadius: 999, border: 'none',
-          background: '#1a1a1a', color: '#fff', marginTop: 14,
+          background: BADGE, color: '#fff', marginTop: 14,
           fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
         }}>Chiudi</button>
       </div>
@@ -2467,13 +2582,13 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
 
   return (
     <div data-screen-label="Dettaglio piatto" style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Back button — fisso sopra tutto */}
       <div style={{ position: 'absolute', top: 56, left: 16, zIndex: 50 }}>
         <button onClick={goBack} style={{
-          width: 42, height: 42, borderRadius: 999, background: '#fff',
+          width: 42, height: 42, borderRadius: 999, background: SURF,
           border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         }}><I.Back size={20}/></button>
@@ -2495,7 +2610,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           {dish.bestSeller && (
             <div style={{
               position: 'absolute', top: 60, right: 16, zIndex: 5,
-              background: '#1a1a1a', color: '#fff',
+              background: BADGE, color: '#fff',
               fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
               padding: '7px 11px', borderRadius: 999,
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
@@ -2555,7 +2670,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   <button key={ing} onClick={() => toggleRemove(ing)} style={{
                     padding: '8px 14px', borderRadius: 999,
                     border: out ? `1.5px solid #d0d0d0` : `1.5px solid ${WINE}`,
-                    background: out ? '#f5f5f5' : '#fff',
+                    background: out ? TINT : SURF,
                     color: out ? '#999' : TEXT,
                     fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                     textDecoration: out ? 'line-through' : 'none',
@@ -2590,7 +2705,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                     {q === 0 ? (
                       <button onClick={() => setExtra(ex.id, 1)} style={{
                         width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${BORDER}`,
-                        background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: SURF, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer',
                       }}><I.Plus size={14} color={TEXT}/></button>
                     ) : (
@@ -2628,7 +2743,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                     style={{
                       padding: '10px 16px', borderRadius: 999,
                       border: sel ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-                      background: sel ? WINE : '#fff',
+                      background: sel ? WINE : SURF,
                       color: sel ? '#fff' : TEXT,
                       fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                     }}>{opt}</button>
@@ -2642,7 +2757,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
         {dish.cal > 0 && (
           <div style={{ padding: '32px 22px 0' }}>
             <div style={{
-              borderRadius: 18, background: '#fff', padding: 16,
+              borderRadius: 18, background: SURF, padding: 16,
               border: `1px solid ${BORDER}`, position: 'relative',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
             }}>
@@ -2680,7 +2795,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                         <span style={{ color: TEXT, fontWeight: 500 }}>{m.label}</span>
                         <span style={{ color: TEXT, fontWeight: 700 }}>{m.val}g</span>
                       </div>
-                      <div style={{ height: 6, background: '#f0ede8', borderRadius: 999, overflow: 'hidden' }}>
+                      <div style={{ height: 6, background: TINT, borderRadius: 999, overflow: 'hidden' }}>
                         <div style={{
                           width: `${Math.min(100, (m.val / m.max) * 100)}%`,
                           height: '100%', background: m.color, borderRadius: 999, transition: 'width 0.4s',
@@ -2710,7 +2825,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   const qty = plain ? plain.qty : 0;
                   const inCart = qty > 0;
                   const stepBtn = {
-                    width: 28, height: 28, borderRadius: 999, border: 'none', background: '#f1dde4',
+                    width: 28, height: 28, borderRadius: 999, border: 'none', background: TINT,
                     color: WINE, fontSize: 18, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   };
@@ -2720,7 +2835,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                       overflow: 'hidden', cursor: inCart ? 'default' : 'pointer', position: 'relative',
                       boxShadow: inCart ? `0 2px 10px rgba(90,26,46,0.22)` : '0 1px 4px rgba(0,0,0,0.05)',
                       border: inCart ? `2px solid ${WINE}` : '2px solid transparent',
-                      background: inCart ? '#fdf6f8' : '#fff',
+                      background: inCart ? TINT : SURF,
                       transition: 'all 0.18s',
                     }}>
                       <div style={{ height: 90, overflow: 'hidden', position: 'relative' }}>
@@ -2767,7 +2882,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
       {/* Bottom CTA */}
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        padding: '14px 22px 22px', background: '#fff', borderTop: `1px solid ${BORDER}`,
+        padding: '14px 22px 22px', background: SURF, borderTop: `1px solid ${BORDER}`,
         boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
@@ -2782,17 +2897,17 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           {!isEdit && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 4, height: 56, flex: '0 0 auto',
-              borderRadius: 999, border: `1px solid ${BORDER}`, padding: '0 6px', background: '#fff',
+              borderRadius: 999, border: `1px solid ${BORDER}`, padding: '0 6px', background: SURF,
             }}>
               <button onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: '#f2f2f2',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
                 color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: qty <= 1 ? 'default' : 'pointer', opacity: qty <= 1 ? 0.4 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>−</button>
               <span style={{ minWidth: 24, textAlign: 'center', fontSize: 16, fontWeight: 800, color: TEXT }}>{qty}</span>
               <button onClick={() => setQty(q => q + 1)} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: '#f2f2f2',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
                 color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>+</button>
@@ -2802,17 +2917,17 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           {isEdit && editLine.qty > 1 && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 4, height: 56, flex: '0 0 auto',
-              borderRadius: 999, border: `1px solid ${BORDER}`, padding: '0 8px', background: '#fff',
+              borderRadius: 999, border: `1px solid ${BORDER}`, padding: '0 8px', background: SURF,
             }}>
               <button onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: '#f2f2f2',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
                 color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: qty <= 1 ? 'default' : 'pointer', opacity: qty <= 1 ? 0.4 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>−</button>
               <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: TEXT, whiteSpace: 'nowrap' }}>{qty} di {editLine.qty}</span>
               <button onClick={() => setQty(q => Math.min(editLine.qty, q + 1))} disabled={qty >= editLine.qty} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: '#f2f2f2',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
                 color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: qty >= editLine.qty ? 'default' : 'pointer', opacity: qty >= editLine.qty ? 0.4 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2949,7 +3064,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   // "+" = contorno vino su bianco; "−"/attivo = pieno vino.
   const addBtnStyle = {
     width: 32, height: 32, borderRadius: 999, flexShrink: 0,
-    border: `1.5px solid ${WINE}`, background: '#fff', color: WINE,
+    border: `1.5px solid ${WINE}`, background: SURF, color: WINE,
     fontSize: 20, fontWeight: 500, lineHeight: 1, cursor: 'pointer', fontFamily: 'inherit',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   };
@@ -3100,18 +3215,18 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
   return (
     <div data-screen-label="Pagamento" style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Header fisso: back + titolo + avatar, sempre visibile anche scrollando */}
       <div style={{
-        flexShrink: 0, paddingTop: 60, background: '#FBF4F1',
+        flexShrink: 0, paddingTop: 60, background: BG_PAGE,
         position: 'relative', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
       }}>
         {/* Header con back + titolo */}
         <div style={{ padding: '8px 22px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={goBack} style={{
-            width: 40, height: 40, borderRadius: 999, background: '#fff',
+            width: 40, height: 40, borderRadius: 999, background: SURF,
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', flexShrink: 0,
           }}><I.Back size={18}/></button>
@@ -3132,7 +3247,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               {(order.guests || []).slice(0, 4).map((g, i) => (
                 <div key={g.id} style={{
                   width: 30, height: 30, borderRadius: 999,
-                  background: (g.isApp || g.isWebApp) ? '#1a1a1a' : '#ebe3d6',
+                  background: (g.isApp || g.isWebApp) ? BADGE : '#ebe3d6',
                   color: (g.isApp || g.isWebApp) ? '#fff' : MUTED,
                   border: '2.5px solid #FBF4F1', marginLeft: -10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -3141,7 +3256,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               ))}
               {(order.guests?.length || 0) > 4 && (
                 <div style={{
-                  width: 30, height: 30, borderRadius: 999, background: '#ebe3d6',
+                  width: 30, height: 30, borderRadius: 999, background: MUTESURF,
                   border: '2.5px solid #FBF4F1', marginLeft: -10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11, fontWeight: 700, color: MUTED,
@@ -3189,7 +3304,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                 : '';
               return (
                 <div key={it.lineId} style={{
-                  background: paid ? '#f0f7f2' : '#fff', borderRadius: 14, padding: '14px',
+                  background: paid ? TINT : SURF, borderRadius: 14, padding: '14px',
                   display: 'flex', alignItems: 'center', gap: 12,
                   boxShadow: paid ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
                   border: paid ? '1px solid #d4e9dc' : '1px solid transparent',
@@ -3211,7 +3326,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                         onClick={(e) => { e.stopPropagation(); setSplitInfo({ item: it, names: sharedNames, splitN, myShare }); }}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 5,
-                          background: '#f6f1ea', color: WINE,
+                          background: TINT, color: WINE,
                           padding: '3px 9px', borderRadius: 999,
                           fontSize: 11, fontWeight: 700, marginTop: 4,
                           letterSpacing: 0.2, cursor: 'pointer',
@@ -3261,7 +3376,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             })}
             {myItems.length === 0 && tableItems.length === 0 && (
               <div style={{
-                background: '#fff', borderRadius: 14, padding: '28px 18px',
+                background: SURF, borderRadius: 14, padding: '28px 18px',
                 fontSize: 13.5, color: MUTED, textAlign: 'center',
               }}>
                 <div style={{ fontSize: 30, color: '#1c8c5b', marginBottom: 6 }}>✓</div>
@@ -3284,7 +3399,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                         : `Diviso in ${(sp.people?.length || 0) + 1}`;
                       return (
                       <div key={'x-'+it.lineId} style={{
-                        background: '#fff', borderRadius: 14, padding: '14px',
+                        background: SURF, borderRadius: 14, padding: '14px',
                         border: `1px solid ${WINE}30`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                         display: 'flex', alignItems: 'center', gap: 12,
                       }}>
@@ -3298,7 +3413,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                             <button onClick={() => openSplitDish(it)} style={{
                               marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5,
                               padding: '5px 10px', borderRadius: 999,
-                              background: sp ? WINE : '#fff',
+                              background: sp ? WINE : SURF,
                               border: `1.5px solid ${WINE}`,
                               color: sp ? '#fff' : WINE,
                               fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
@@ -3331,7 +3446,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                   Tocca <span style={{ fontWeight: 700, color: WINE }}>+</span> sui piatti che vuoi pagare tu.
                 </div>
                 <div style={{
-                  background: '#fff', borderRadius: 14, overflow: 'hidden',
+                  background: SURF, borderRadius: 14, overflow: 'hidden',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 }}>
                   <div onClick={() => setTableOpen(o => !o)} style={{
@@ -3339,7 +3454,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                   }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 999,
-                      background: '#f6f1ea', color: WINE,
+                      background: TINT, color: WINE,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -3374,7 +3489,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
                           return (
                             <div key={it.lineId} style={{
-                              background: disabled ? '#f8f7f3' : '#fff',
+                              background: disabled ? TINT : SURF,
                               borderRadius: 14, padding: '14px',
                               border: `1px solid ${BORDER}`,
                               boxShadow: disabled ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
@@ -3437,7 +3552,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                     const guest = order.guests.find(g => g.id === oid);
                     return (
                       <div key={oid} style={{
-                        background: '#fff', borderRadius: 14, overflow: 'hidden',
+                        background: SURF, borderRadius: 14, overflow: 'hidden',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                         opacity: frozen ? 0.7 : 1,
                       }}>
@@ -3447,7 +3562,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                         }}>
                           <div style={{
                             width: 36, height: 36, borderRadius: 999,
-                            background: oid === 'table' ? '#f6f1ea' : (guest?.isGuest ? '#ebe3d6' : '#1a1a1a'),
+                            background: oid === 'table' ? TINT : (guest?.isGuest ? '#ebe3d6' : BADGE),
                             color: oid === 'table' ? WINE : (guest?.isGuest ? MUTED : '#fff'),
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 13, fontWeight: 700, position: 'relative',
@@ -3554,7 +3669,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             {mode === 'mine' && otherItems.length > 0 && (
               <div style={{ padding: '24px 22px 0' }}>
                 <button onClick={() => setMode('all')} style={{
-                  width: '100%', background: '#fff', borderRadius: 14,
+                  width: '100%', background: SURF, borderRadius: 14,
                   padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 14,
                   border: `1.5px dashed ${WINE}40`, cursor: 'pointer',
                   fontFamily: 'inherit', textAlign: 'left',
@@ -3562,7 +3677,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                 }}>
                   <div style={{
                     width: 44, height: 44, borderRadius: 12,
-                    background: '#f6f1ea', color: WINE,
+                    background: TINT, color: WINE,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
@@ -3592,7 +3707,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             {mode === 'all' && (
               <div style={{ padding: '20px 22px 0', display: 'flex', justifyContent: 'center' }}>
                 <button onClick={() => setMode('mine')} style={{
-                  padding: '10px 20px', background: '#fff', border: `1.5px solid ${BORDER}`,
+                  padding: '10px 20px', background: SURF, border: `1.5px solid ${BORDER}`,
                   borderRadius: 999, fontSize: 13, color: TEXT, fontWeight: 600, fontFamily: 'inherit',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -3607,7 +3722,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       {/* Receipt sticky bottom */}
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        background: '#fff', borderTop: `1px solid ${BORDER}`,
+        background: SURF, borderTop: `1px solid ${BORDER}`,
         boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
       }}>
         {/* Handle per collassare/espandere il pannello */}
@@ -3660,7 +3775,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                     else { setTipPct(t.id); setTipRound(false); }
                   }} style={{
                     minWidth: 36, height: 28, padding: '0 10px', borderRadius: 999,
-                    background: active ? TEXT : '#f6f1ea',
+                    background: active ? WINE : TINT,
                     color: active ? '#fff' : TEXT,
                     border: 'none', fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                     cursor: 'pointer', whiteSpace: 'nowrap',
@@ -3678,12 +3793,12 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         <div onClick={() => goTo('paymethod')} style={{
           margin: '0 16px 8px', padding: '10px 12px',
           display: 'flex', alignItems: 'center', gap: 10,
-          background: '#f6f1ea', borderRadius: 12, cursor: 'pointer',
+          background: TINT, borderRadius: 12, cursor: 'pointer',
         }}>
           <div style={{
             width: 44, height: 28, borderRadius: 6, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: payMethod === 'apple' ? '#000' : (payMethod === 'klarna' ? '#ffb3c7' : '#fff'),
+            background: payMethod === 'apple' ? '#000' : (payMethod === 'klarna' ? '#ffb3c7' : SURF),
             border: (payMethod === 'apple' || payMethod === 'klarna') ? 'none' : `1px solid ${BORDER}`, gap: 2,
           }}>
             {payMethod === 'apple' && <>
@@ -3709,10 +3824,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         <div style={{ padding: '4px 16px 8px' }}>
           <button onClick={payNow} disabled={total <= 0 || paying} style={{
             width: '100%', height: 54, borderRadius: 999, border: 'none',
-            background: total <= 0 ? '#ccc' : WINE, color: '#fff',
-            fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+            background: total <= 0 ? CTA_DEAD : CTA_GRAD, color: '#fff',
+            fontSize: 15, fontWeight: 800, fontFamily: 'inherit', letterSpacing: '.01em',
             cursor: total <= 0 ? 'default' : 'pointer',
-            boxShadow: total <= 0 ? 'none' : `0 4px 14px ${WINE}40`,
+            boxShadow: total <= 0 ? 'none' : CTA_GLOW,
+            transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 22px',
           }}>
@@ -3751,14 +3867,14 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           return (
             <button onClick={() => setKind(kind)} style={{
               width: '100%', padding: '13px 14px', borderRadius: 14, textAlign: 'left',
-              background: '#fff', border: `1.5px solid ${active ? WINE : BORDER}`,
+              background: SURF, border: `1.5px solid ${active ? WINE : BORDER}`,
               cursor: 'pointer', fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
               <div style={{
                 width: 22, height: 22, borderRadius: 999, flexShrink: 0,
                 border: `2px solid ${active ? WINE : '#d0d0d0'}`,
-                background: active ? WINE : '#fff',
+                background: active ? WINE : SURF,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>{active && <I.Check size={13} color="#fff"/>}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -3774,11 +3890,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100,
           }}>
             <div onClick={(e) => e.stopPropagation()} style={{
-              background: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22,
+              background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
               width: '100%', maxWidth: 430, padding: '10px 22px 28px',
               maxHeight: '88%', overflowY: 'auto',
             }}>
-              <div style={{ width: 36, height: 4, borderRadius: 999, background: '#e5e1d6', margin: '4px auto 16px' }}/>
+              <div style={{ width: 36, height: 4, borderRadius: 999, background: MUTESURF, margin: '4px auto 16px' }}/>
               <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.3 }}>{item.name}</div>
               <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>
                 {lineTotal.toFixed(2)}€ · come lo dividi?
@@ -3801,7 +3917,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                         <button key={g.id} onClick={() => togglePerson(g.id)} style={{
                           display: 'inline-flex', alignItems: 'center', gap: 6,
                           padding: '8px 12px', borderRadius: 999,
-                          background: sel ? WINE : '#fafaf7', color: sel ? '#fff' : TEXT,
+                          background: sel ? WINE : TINT, color: sel ? '#fff' : TEXT,
                           border: `1.5px solid ${sel ? WINE : BORDER}`,
                           fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
                         }}>
@@ -3816,7 +3932,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '12px 14px', background: '#f6f1ea', borderRadius: 12,
+                padding: '12px 14px', background: TINT, borderRadius: 12,
                 margin: '18px 0 14px',
               }}>
                 <span style={{ fontSize: 13, color: MUTED }}>La tua quota</span>
@@ -3840,10 +3956,10 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           zIndex: 100,
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            background: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             width: '100%', maxWidth: 430, padding: '20px 22px 28px',
           }}>
-            <div style={{ width: 36, height: 4, borderRadius: 999, background: '#e5e1d6', margin: '0 auto 16px' }}/>
+            <div style={{ width: 36, height: 4, borderRadius: 999, background: MUTESURF, margin: '0 auto 16px' }}/>
             <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginBottom: 4 }}>
               {splitInfo.item.name}
             </div>
@@ -3857,11 +3973,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               ].map(p => (
                 <div key={p.id} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 12px', background: '#f6f1ea', borderRadius: 12,
+                  padding: '10px 12px', background: TINT, borderRadius: 12,
                 }}>
                   <div style={{
                     width: 34, height: 34, borderRadius: 999,
-                    background: p.isMe ? PINK_DARK : (p.isGuest ? '#ebe3d6' : '#1a1a1a'),
+                    background: p.isMe ? PINK_DARK : (p.isGuest ? '#ebe3d6' : BADGE),
                     color: p.isMe ? '#fff' : (p.isGuest ? MUTED : '#fff'),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 13, fontWeight: 700,
@@ -3877,7 +3993,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             </div>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '12px 12px', background: '#f6f1ea', borderRadius: 12,
+              padding: '12px 12px', background: TINT, borderRadius: 12,
               marginBottom: 16,
             }}>
               <span style={{ fontSize: 12.5, color: MUTED }}>Totale piatto</span>
@@ -3906,11 +4022,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           zIndex: 110, animation: 'fade 0.2s ease',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            background: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             width: '100%', maxWidth: 430, padding: '10px 22px 32px',
             animation: 'slideUp 0.28s cubic-bezier(.2,.9,.3,1.05)',
           }}>
-            <div style={{ width: 36, height: 4, borderRadius: 999, background: '#e5e1d6', margin: '4px auto 18px' }}/>
+            <div style={{ width: 36, height: 4, borderRadius: 999, background: MUTESURF, margin: '4px auto 18px' }}/>
             <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginBottom: 8 }}>
               Rifiuti la divisione?
             </div>
@@ -3925,7 +4041,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               }}>Sì, rifiuta</button>
               <button onClick={() => setConfirmRejectSplit(null)} style={{
                 width: '100%', padding: '14px', borderRadius: 14,
-                border: '1.5px solid #E0DADC', background: '#fff',
+                border: '1.5px solid #E0DADC', background: SURF,
                 cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 15, fontWeight: 600, color: TEXT,
               }}>Annulla</button>
@@ -4022,13 +4138,13 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
 
   return (
     <div data-screen-label="Metodo pagamento" style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 60, paddingBottom: 130 }}>
         <div style={{ padding: '8px 22px 0' }}>
           <button onClick={goBack} style={{
-            width: 40, height: 40, borderRadius: 999, background: '#fff',
+            width: 40, height: 40, borderRadius: 999, background: SURF,
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}><I.Back size={18}/></button>
@@ -4046,15 +4162,17 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
                 : () => setMethod(m.id);
               return (
                 <button key={m.id} onClick={onPick} style={{
-                  background: '#fff', borderRadius: 14, padding: '14px 16px',
-                  border: sel ? `2px solid ${TEXT}` : `1.5px solid ${BORDER}`,
+                  background: sel ? TINT : SURF, borderRadius: 14, padding: '14px 16px',
+                  border: sel ? `2px solid ${PINK}` : `1.5px solid ${BORDER}`,
+                  boxShadow: sel ? '0 10px 24px -14px rgba(227,36,89,.5)' : 'none',
+                  transition: 'border-color 160ms ease, background 160ms ease, box-shadow 160ms ease',
                   display: 'flex', alignItems: 'center', gap: 14,
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: 8,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: m.id === 'klarna' ? '#ffb3c7' : '#fff',
+                    background: m.id === 'klarna' ? '#ffb3c7' : SURF,
                     border: m.id === 'klarna' ? 'none' : 'none',
                   }}>{m.icon}</div>
                   <div style={{ flex: 1 }}>
@@ -4063,9 +4181,10 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
                   </div>
                   <div style={{
                     width: 22, height: 22, borderRadius: 999,
-                    border: sel ? `6px solid ${TEXT}` : `1.5px solid ${BORDER}`,
-                    background: sel ? '#fff' : 'transparent',
+                    border: sel ? `6px solid ${PINK}` : `1.5px solid ${BORDER}`,
+                    background: sel ? SURF : 'transparent',
                     boxSizing: 'border-box',
+                    transition: 'border-color 160ms ease',
                   }}/>
                 </button>
               );
@@ -4076,7 +4195,7 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
 
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        padding: '14px 22px 22px', background: '#fff', borderTop: `1px solid ${BORDER}`,
+        padding: '14px 22px 22px', background: SURF, borderTop: `1px solid ${BORDER}`,
       }}>
         {isTakeaway ? (
           <>
@@ -4086,8 +4205,9 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
             </div>
             <button onClick={proceed} style={{
               width: '100%', height: 52, borderRadius: 999, border: 'none',
-              background: '#1a1a1a', color: '#fff',
-              fontSize: 15, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+              background: CTA_GRAD, color: '#fff', boxShadow: CTA_GLOW,
+              fontSize: 15, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer',
+              letterSpacing: '.01em', transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
               {method === 'apple' && <><ApplePayIcon size={20} color="#fff"/> Pay</>}
@@ -4103,8 +4223,9 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
             </div>
             <button onClick={confirmMethod} style={{
               width: '100%', height: 52, borderRadius: 999, border: 'none',
-              background: WINE, color: '#fff',
-              fontSize: 15, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+              background: CTA_GRAD, color: '#fff', boxShadow: CTA_GLOW,
+              fontSize: 15, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer',
+              letterSpacing: '.01em', transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
               <I.Check size={17} color="#fff"/> Conferma metodo
@@ -4197,7 +4318,7 @@ function BalanceScreen({ state, setState, goTo }) {
 
   const Avatar = ({ o }) => o.table ? (
     <div style={{
-      height: 30, padding: '0 10px', borderRadius: 999, background: '#f6f1ea', color: WINE,
+      height: 30, padding: '0 10px', borderRadius: 999, background: TINT, color: WINE,
       display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, flexShrink: 0,
     }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -4208,7 +4329,7 @@ function BalanceScreen({ state, setState, goTo }) {
   ) : (
     <div style={{
       width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-      background: o.me ? WINE : (o.guest ? '#ebe3d6' : '#1a1a1a'),
+      background: o.me ? WINE : (o.guest ? '#ebe3d6' : BADGE),
       color: o.me ? '#fff' : (o.guest ? MUTED : '#fff'),
       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
     }}>{o.me ? 'T' : o.initial}</div>
@@ -4217,7 +4338,7 @@ function BalanceScreen({ state, setState, goTo }) {
   const segBtn = (id, label) => (
     <button onClick={() => setMode(id)} style={{
       flex: 1, padding: '9px 4px', borderRadius: 10, fontFamily: 'inherit',
-      background: mode === id ? WINE : '#fafaf7', color: mode === id ? '#fff' : TEXT,
+      background: mode === id ? WINE : TINT, color: mode === id ? '#fff' : TEXT,
       border: `1.5px solid ${mode === id ? WINE : BORDER}`,
       fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
     }}>{label}</button>
@@ -4225,14 +4346,14 @@ function BalanceScreen({ state, setState, goTo }) {
 
   return (
     <div data-screen-label="Saldo del tavolo" style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Header fisso */}
-      <div style={{ flexShrink: 0, paddingTop: 60, background: '#FBF4F1', position: 'relative', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
+      <div style={{ flexShrink: 0, paddingTop: 60, background: BG_PAGE, position: 'relative', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
         <div style={{ padding: '8px 22px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => goTo('home')} style={{
-            width: 40, height: 40, borderRadius: 999, background: '#fff',
+            width: 40, height: 40, borderRadius: 999, background: SURF,
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', flexShrink: 0,
           }}><I.Back size={18}/></button>
@@ -4246,7 +4367,7 @@ function BalanceScreen({ state, setState, goTo }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', paddingBottom: selItems.length > 0 ? 250 : 120 }}>
         {/* Esito pagamento + saldo residuo */}
         <div style={{
-          background: '#fff', borderRadius: 18, padding: '22px 20px', textAlign: 'center',
+          background: SURF, borderRadius: 18, padding: '22px 20px', textAlign: 'center',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: 18,
         }}>
           <div style={{
@@ -4266,7 +4387,7 @@ function BalanceScreen({ state, setState, goTo }) {
         </div>
 
         {/* Accordion piatti da saldare */}
-        <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: SURF, borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div onClick={() => setOpen(o => !o)} style={{
             padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
           }}>
@@ -4301,7 +4422,7 @@ function BalanceScreen({ state, setState, goTo }) {
                 return (
                   <div key={it.lineId} onClick={locked ? undefined : () => toggleSel(it)} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                    borderRadius: 12, background: locked ? '#f4f2ee' : (checked ? '#faf6ef' : '#fafaf7'),
+                    borderRadius: 12, background: locked ? MUTESURF : (checked ? TINT : TINT),
                     border: `1.5px solid ${checked && !locked ? WINE : BORDER}`,
                     opacity: locked ? 0.65 : 1, cursor: locked ? 'default' : 'pointer',
                   }}>
@@ -4312,7 +4433,7 @@ function BalanceScreen({ state, setState, goTo }) {
                     ) : (
                       <div style={{
                         width: 22, height: 22, borderRadius: 7, flexShrink: 0,
-                        border: `2px solid ${checked ? WINE : '#d0c8cc'}`, background: checked ? WINE : '#fff',
+                        border: `2px solid ${checked ? WINE : '#d0c8cc'}`, background: checked ? WINE : SURF,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>{checked && <I.Check size={13} color="#fff"/>}</div>
                     )}
@@ -4326,7 +4447,7 @@ function BalanceScreen({ state, setState, goTo }) {
                     </div>
                     {revealed === it.lineId && !o.table && (
                       <div style={{
-                        fontSize: 11.5, fontWeight: 700, color: '#fff', background: '#1a1a1a',
+                        fontSize: 11.5, fontWeight: 700, color: '#fff', background: BADGE,
                         padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
                       }}>{o.name}</div>
                     )}
@@ -4345,7 +4466,7 @@ function BalanceScreen({ state, setState, goTo }) {
       {selItems.length > 0 && !paying && (
         <div style={{
           position: 'absolute', left: 0, right: 0, bottom: 0,
-          background: '#fff', borderTop: `1px solid ${BORDER}`,
+          background: SURF, borderTop: `1px solid ${BORDER}`,
           padding: '14px 18px 22px', boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
           display: 'flex', flexDirection: 'column', gap: 10,
         }}>
@@ -4364,7 +4485,7 @@ function BalanceScreen({ state, setState, goTo }) {
                 return (
                   <button key={g.id} onClick={() => togglePerson(g.id)} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 999,
-                    background: on ? WINE : '#fafaf7', color: on ? '#fff' : TEXT,
+                    background: on ? WINE : TINT, color: on ? '#fff' : TEXT,
                     border: `1.5px solid ${on ? WINE : BORDER}`, fontSize: 12, fontWeight: 700,
                     fontFamily: 'inherit', cursor: 'pointer',
                   }}>{on && <I.Check size={11} color="#fff"/>}{g.name.split(' ')[0]}</button>
@@ -4485,7 +4606,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
   if (isTakeaway) {
     return (
       <div data-screen-label="Pagamento riuscito" style={{
-        width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+        width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: '52px 22px 180px' }}>
@@ -4531,7 +4652,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
 
   return (
     <div data-screen-label="Pagamento riuscito" style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: '84px 22px 176px' }}>
@@ -4572,7 +4693,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                 {commensali.slice(0, 5).map((g, i) => (
                   <div key={g.id || i} style={{
                     width: 34, height: 34, borderRadius: 999,
-                    background: (g.isApp || g.isWebApp) ? '#1a1a1a' : '#c4b89f',
+                    background: (g.isApp || g.isWebApp) ? BADGE : '#c4b89f',
                     color: '#fff',
                     border: '2.5px solid #FBF4F1', marginLeft: -10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -4581,7 +4702,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                 ))}
                 {commensali.length > 5 && (
                   <div style={{
-                    width: 34, height: 34, borderRadius: 999, background: '#ebe3d6',
+                    width: 34, height: 34, borderRadius: 999, background: MUTESURF,
                     color: MUTED, border: '2.5px solid #FBF4F1', marginLeft: -10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 700,
@@ -4615,7 +4736,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                         tessera arrotondata PINK + stella bianca. */}
                     <div style={{
                       width: 38, height: 38, borderRadius: 9,
-                      background: filled ? PINK : '#f0e6e9',
+                      background: filled ? PINK : TINT,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'background 0.12s',
                     }}>
@@ -4675,7 +4796,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                   style={{
                     width: '100%', minHeight: 64, resize: 'none', marginTop: 14,
                     padding: '12px 14px', borderRadius: 14,
-                    border: '1.5px solid #e6e0d8', background: '#fff',
+                    border: '1.5px solid #e6e0d8', background: SURF,
                     fontSize: 13.5, fontFamily: 'inherit', color: TEXT,
                     outline: 'none', boxSizing: 'border-box', lineHeight: 1.4,
                   }}/>
@@ -4815,7 +4936,7 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
   };
 
   return (
-    <div style={{ background: '#fff', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: SURF, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Status bar spacer */}
       <div style={{ height: 54 }}/>
 
@@ -4834,7 +4955,7 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 22px 22px' }}>
         {/* Locale info */}
         <div style={{
-          background: '#fbf6f3', borderRadius: 18, padding: 14,
+          background: TINT, borderRadius: 18, padding: 14,
           display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18,
         }}>
           <div style={{
@@ -4864,7 +4985,7 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
             <button key={t} onClick={() => setPickupTime(t)} style={{
               padding: '12px 4px', borderRadius: 14,
               border: `1.5px solid ${pickupTime === t ? WINE : BORDER}`,
-              background: pickupTime === t ? WINE : '#fff',
+              background: pickupTime === t ? WINE : SURF,
               color: pickupTime === t ? '#fff' : TEXT,
               fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
               cursor: 'pointer', letterSpacing: -0.1,
@@ -4880,7 +5001,7 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
               display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
             }}>
               <div style={{
-                minWidth: 26, height: 26, borderRadius: 8, background: '#fff',
+                minWidth: 26, height: 26, borderRadius: 8, background: SURF,
                 fontSize: 13, fontWeight: 700, color: TEXT,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
@@ -4905,7 +5026,7 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
       {/* CTA fissa in basso */}
       <div style={{
         padding: '12px 22px 18px', borderTop: `1px solid ${BORDER}`,
-        background: '#fff',
+        background: SURF,
       }}>
         <button onClick={onContinue} style={{
           width: '100%', height: 54, borderRadius: 999, border: 'none',
@@ -5043,7 +5164,7 @@ function Root() {
       {/* Demo nav for the user to jump between screens */}
       <div className="byup-screen-nav" style={{
         position: 'fixed', top: 20, right: 20, zIndex: 100,
-        background: '#fff', borderRadius: 14, padding: 8,
+        background: SURF, borderRadius: 14, padding: 8,
         boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
         display: 'flex', flexDirection: 'column', gap: 4,
         fontFamily: '-apple-system, system-ui, sans-serif',
