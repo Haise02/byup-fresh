@@ -5,8 +5,13 @@ const PINK_DARK = '#B81C47';
 const PINK_LIGHT = '#FBD8DE';
 const ORANGE = '#FF8C2B';
 const PLUM = '#3a1d2c';
-const TEXT = '#1c0f15';
-const MUTED = '#6d5a61';
+const __BYUP_DARK = (() => { try { const x = localStorage.getItem('byup.themeMode')||'light'; if(x==='dark')return true; if(x==='auto')return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches); return false; } catch { return false; } })();
+const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
+const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
+const SURF = __BYUP_DARK ? '#211f22' : '#fff';
+const TINT = __BYUP_DARK ? '#2b272c' : '#f6f6f6';
 
 const CATEGORIES = [
   { id: 'all',      label: 'Tutti' },
@@ -484,7 +489,7 @@ function VenueCardsTray({ venues, onSelect }) {
         {venues.map(v => (
           <button key={v.id} onClick={() => onSelect(v)} style={{
             flexShrink: 0, width: 165, padding: 0,
-            background: '#fff', border: 'none', borderRadius: 18,
+            background: SURF, border: 'none', borderRadius: 18,
             cursor: 'pointer', textAlign: 'left', overflow: 'hidden',
             boxShadow: '0 8px 28px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)',
           }}>
@@ -554,7 +559,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   );
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#FBF4F1', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'absolute', inset: 0, background: BG_PAGE, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="phone" pageKey="map" message="Tocca un locale per sbirciare il menu." bottom={118} size={116}/> : null; })()}
 
       {/* ── Header ── */}
@@ -580,7 +585,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
 
           <div style={{
             flex: 1, height: 42, borderRadius: 12, border: '1.5px solid #ebebeb',
-            background: '#f6f6f6', display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
+            background: TINT, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
           }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
               <circle cx="11" cy="11" r="7.5" stroke="#9a9a9a" strokeWidth="2"/>
@@ -595,12 +600,12 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
           </div>
 
           <button onClick={onOpenFilters} style={{
-            width: 42, height: 42, borderRadius: 12, border: '1.5px solid #ebebeb',
-            background: '#f6f6f6', cursor: 'pointer', flexShrink: 0,
+            width: 42, height: 42, borderRadius: 12, border: `1.5px solid ${BORDER}`,
+            background: TINT, cursor: 'pointer', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M3 6h18M6 12h12M9 18h6" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M3 6h18M6 12h12M9 18h6" stroke={TEXT} strokeWidth="2" strokeLinecap="round"/>
             </svg>
             {activeFilterCount > 0 && (
               <span style={{
@@ -624,9 +629,9 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
             return (
               <button key={cat.id} onClick={() => { setCatFilter(cat.id); setActive(null); }} style={{
                 flexShrink: 0, padding: '6px 14px', borderRadius: 999,
-                border: `1.5px solid ${on ? PINK : '#e0e0e0'}`,
-                background: on ? PINK : '#fff',
-                color: on ? '#fff' : '#3a3a3a',
+                border: `1.5px solid ${on ? PINK : BORDER}`,
+                background: on ? PINK : SURF,
+                color: on ? '#fff' : TEXT,
                 fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                 transition: 'all 0.15s',
               }}>
@@ -664,7 +669,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
           {/* Recenter */}
           <button onClick={() => setActive(null)} style={{
             width: 42, height: 42, borderRadius: 12,
-            background: '#fff', border: 'none',
+            background: SURF, border: 'none',
             boxShadow: '0 2px 12px rgba(0,0,0,0.14)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
@@ -677,12 +682,12 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
 
           {/* Zoom pill */}
           <div style={{
-            background: '#fff', borderRadius: 12,
+            background: SURF, borderRadius: 12,
             boxShadow: '0 2px 12px rgba(0,0,0,0.14)',
             overflow: 'hidden', display: 'flex', flexDirection: 'column',
           }}>
             <button onClick={() => mapControlsRef.current?.zoomIn()} style={{
-              width: 42, height: 42, border: 'none', background: '#fff',
+              width: 42, height: 42, border: 'none', background: SURF,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderBottom: '1px solid #ebebeb',
             }}>
@@ -691,7 +696,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
               </svg>
             </button>
             <button onClick={() => mapControlsRef.current?.zoomOut()} style={{
-              width: 42, height: 42, border: 'none', background: '#fff',
+              width: 42, height: 42, border: 'none', background: SURF,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -728,14 +733,14 @@ function VenueSheet({ venue, onClose, onOpenVenue, onOpenMenu }) {
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        background: '#fff', borderRadius: '22px 22px 0 0',
+        background: SURF, borderRadius: '22px 22px 0 0',
         boxShadow: '0 -8px 32px rgba(0,0,0,0.15)',
         zIndex: 21,
         animation: 'sheetUp 280ms ease-out',
         padding: '10px 18px 44px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-          <div style={{ width: 38, height: 4, borderRadius: 999, background: '#d8d8d8' }}/>
+          <div style={{ width: 38, height: 4, borderRadius: 999, background: TINT }}/>
         </div>
 
         <div onClick={onOpenVenue} style={{ cursor: 'pointer' }}>
@@ -787,7 +792,7 @@ function VenueSheet({ venue, onClose, onOpenVenue, onOpenMenu }) {
             </span>
           </div>
           <span style={{
-            background: '#f5f5f5', borderRadius: 999, padding: '4px 10px',
+            background: TINT, borderRadius: 999, padding: '4px 10px',
             fontSize: 12.5, fontWeight: 600, color: TEXT,
           }}>{venue.price}</span>
         </div>
@@ -795,7 +800,7 @@ function VenueSheet({ venue, onClose, onOpenVenue, onOpenMenu }) {
         <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
           <button onClick={(e) => { e.stopPropagation(); onOpenVenue(); }} style={{
             flex: 1, padding: '13px 0', borderRadius: 14,
-            border: `1.5px solid ${PINK}`, background: '#fff',
+            border: `1.5px solid ${PINK}`, background: SURF,
             color: PINK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
           }}>Prenota</button>
           <button onClick={(e) => { e.stopPropagation(); onOpenMenu(); }} style={{
@@ -849,7 +854,7 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
 
   return (
     <div style={{
-      position: 'absolute', inset: 0, background: '#fff',
+      position: 'absolute', inset: 0, background: SURF,
       display: 'flex', flexDirection: 'column', overflow: 'hidden', color: TEXT,
     }}>
       <div style={{ padding: '60px 20px 0', flexShrink: 0 }}>
@@ -871,7 +876,7 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
       {!onlyNews && (
         <div style={{
           margin: '14px 20px 4px', flexShrink: 0,
-          background: '#f4f4f5', borderRadius: 12, padding: 4, display: 'flex', gap: 4,
+          background: TINT, borderRadius: 12, padding: 4, display: 'flex', gap: 4,
         }}>
           {[
             { id: 'news',  label: 'Novità', count: news.length + extraNews.length },
@@ -881,9 +886,9 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
             return (
               <button key={t.id} onClick={() => setTab(t.id)} style={{
                 flex: 1, padding: '9px 10px',
-                background: active ? '#fff' : 'transparent', border: 'none', cursor: 'pointer',
+                background: active ? SURF : 'transparent', border: 'none', cursor: 'pointer',
                 fontSize: 13.5, fontWeight: 700,
-                color: active ? TEXT : '#7a7a7a',
+                color: active ? TEXT : MUTED,
                 borderRadius: 9,
                 boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -892,8 +897,8 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
                 {t.label}
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 999,
-                  background: active ? (t.id === 'news' ? PINK : '#FF6B35') : '#e0e0e0',
-                  color: active ? '#fff' : '#7a7a7a',
+                  background: active ? (t.id === 'news' ? PINK : '#FF6B35') : (__BYUP_DARK ? 'rgba(255,255,255,.08)' : TINT),
+                  color: active ? '#fff' : MUTED,
                 }}>{t.count}</span>
               </button>
             );
@@ -921,7 +926,7 @@ function ByupNewsCard({ item, onClick }) {
   };
   return (
     <div onClick={onClick} style={{
-      background: '#fff', border: '1px solid #ececec', borderRadius: 16, padding: 14,
+      background: SURF, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, boxShadow: __BYUP_DARK ? 'none' : '0 2px 10px -6px rgba(77,18,46,.12)',
       marginBottom: 10, display: 'flex', gap: 12, cursor: 'pointer',
     }}>
       <div style={{
@@ -941,7 +946,7 @@ function ByupNewsCard({ item, onClick }) {
           {item.title}
         </div>
         <div style={{
-          marginTop: 3, fontSize: 13, color: '#5a5a5a', lineHeight: 1.4,
+          marginTop: 3, fontSize: 13, color: MUTED, lineHeight: 1.4,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{item.preview}</div>
@@ -953,7 +958,7 @@ function ByupNewsCard({ item, onClick }) {
 function PromoMessageCard({ item }) {
   return (
     <div style={{
-      background: '#fff', border: '1px solid #ececec', borderRadius: 14, padding: '14px 16px',
+      background: SURF, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '14px 16px',
       marginBottom: 10, cursor: 'pointer',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
@@ -963,7 +968,7 @@ function PromoMessageCard({ item }) {
         <div style={{ fontSize: 11.5, color: MUTED, flexShrink: 0 }}>{item.ago}</div>
       </div>
       <div style={{
-        marginTop: 4, fontSize: 13.5, color: '#3a3a3a', lineHeight: 1.4,
+        marginTop: 4, fontSize: 13.5, color: MUTED, lineHeight: 1.4,
         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
         overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{item.preview}</div>

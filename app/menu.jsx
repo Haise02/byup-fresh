@@ -23,13 +23,26 @@ const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
 const SURF = __BYUP_DARK ? '#211f22' : '#fff';        // superfici card (bianco→dark)
 const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea';     // superficie tenue (righe riepilogo, chip)
 const MUTESURF = __BYUP_DARK ? '#39333b' : '#e7e1d8'; // superficie muta (avatar/disabled)
-const BADGE = __BYUP_DARK ? '#7a2f4a' : BADGE;    // badge/avatar wine (più chiaro in dark)
+const BADGE = __BYUP_DARK ? '#7a2f4a' : '#7a1c3e';    // badge/avatar wine (più chiaro in dark)
 
 // ─── Firma CTA byup — gradiente coral + glow + sheen, usato sui money-CTA
 //    di ordine e pagamento per legarli all'identità della Home. ───
 const CTA_GRAD = 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)';
 const CTA_GLOW = '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)';
 const CTA_DEAD = '#e9cfd8';
+
+// Navigazione verso l'app Home: dentro la SPA usa il router globale
+// (__byupNav, nessun reload); da pagina separata fa deep-link classico.
+const __goApp = (page) => {
+  const nav = window.__byupNav;
+  if (nav) {
+    if (!page) nav.home();
+    else if (page === 'venue' && nav.venue) nav.venue();
+    else nav.go(page);
+  } else {
+    window.location.href = page ? ('byup Home.html?page=' + page) : 'byup Home.html';
+  }
+};
 
 // ─── Icons ─────────────────────────────────────────────────
 const I = {
@@ -807,8 +820,8 @@ function MenuScreen({ state, setState, goTo }) {
       {/* Floating back button — sempre visibile */}
       <button onClick={() => {
         try { sessionStorage.removeItem('byup_menu_from'); } catch {}
-        if (fromVenue) window.location.href = 'byup Home.html?page=venue';
-        else window.location.href = 'byup Home.html';
+        if (fromVenue) __goApp('venue');
+        else __goApp();
       }} style={{
         position: 'absolute', top: 56, left: 16, zIndex: 20,
         width: 38, height: 38, borderRadius: 999,
@@ -929,7 +942,7 @@ function MenuScreen({ state, setState, goTo }) {
 
         {/* Hero image — scorre via */}
         {!searchQ && (
-          <div onClick={() => { try { sessionStorage.removeItem('byup_menu_from'); } catch {} window.location.href = 'byup Home.html?page=venue'; }} style={{ position: 'relative', height: 180, overflow: 'hidden', marginBottom: 20, cursor: 'pointer' }}>
+          <div onClick={() => { try { sessionStorage.removeItem('byup_menu_from'); } catch {} __goApp('venue'); }} style={{ position: 'relative', height: 180, overflow: 'hidden', marginBottom: 20, cursor: 'pointer' }}>
             <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=70&auto=format&fit=crop"
               alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }}/>
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.75) 100%)' }}/>
@@ -1942,11 +1955,11 @@ function HomeScreen({ state, setState, goTo }) {
             topBar={topBar}
             activeCat={activeCat} setActiveCat={setActiveCat}
             quickFilters={quickFilters} setQuickFilters={setQuickFilters}
-            onMap={() => { window.location.href = 'byup Home.html?page=map'; }}
-            onPosta={() => { window.location.href = 'byup Home.html?page=posta'; }}
-            onSearch={() => { window.location.href = 'byup Home.html?page=search'; }}
-            onFilters={() => { window.location.href = 'byup Home.html'; }}
-            onCardClick={() => { window.location.href = 'byup Home.html'; }}
+            onMap={() => __goApp('map')}
+            onPosta={() => __goApp('posta')}
+            onSearch={() => __goApp('search')}
+            onFilters={() => __goApp()}
+            onCardClick={() => __goApp()}
           />
         ) : (
           <>
@@ -1959,7 +1972,7 @@ function HomeScreen({ state, setState, goTo }) {
       </div>
 
       {/* Shared bottom tab bar (with QR for re-scanning the menu) */}
-      {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={() => {}} onProfile={() => { window.location.href = 'byup Home.html?page=profile'; }} onQR={() => goTo('menu')}/> : null; })()}
+      {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={() => __goApp()} onProfile={() => __goApp('profile')} onQR={() => goTo('menu')}/> : null; })()}
 
       {guestsOpen && order && (
         <GuestsSheet
@@ -4158,7 +4171,7 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
               const sel = method === m.id;
               // "Aggiungi carta" → Profilo › Pagamenti con il form "Aggiungi metodo" già aperto
               const onPick = m.id === 'card'
-                ? () => { window.location.href = 'byup Home.html?page=profile&view=pagamenti&add=1'; }
+                ? () => __goApp('profile')
                 : () => setMethod(m.id);
               return (
                 <button key={m.id} onClick={onPick} style={{
@@ -4638,7 +4651,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
           }}>Vai alla home</a>
         </div>
-        {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={() => { window.location.href = 'byup Home.html'; }} onProfile={() => { window.location.href = 'byup Home.html?page=profile'; }} showQR={false}/> : null; })()}
+        {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={() => __goApp()} onProfile={() => __goApp('profile')} showQR={false}/> : null; })()}
       </div>
     );
   }
@@ -4677,7 +4690,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
           </div>
           {/* Porta allo Storico ordini (Home app) con l'ordine appena pagato
               espanso. Cross-app: lo storico vive nel Profilo della Vetrina. */}
-          <button onClick={() => { window.location.href = 'byup Home.html?page=profile&view=orders&order=recent'; }} style={{
+          <button onClick={() => { __goApp('profile'); }} style={{
             background: 'transparent', border: 'none', color: WINE,
             fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
             marginTop: 12, padding: '4px 8px',
@@ -4840,7 +4853,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
         background: 'linear-gradient(to top, #fafaf7 60%, rgba(250,250,247,0))',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
       }}>
-        <a href="byup Home.html" style={{
+        <a href="byup Home.html" onClick={(e) => { if (window.__byupNav) { e.preventDefault(); __goApp(); } }} style={{
           width: '100%', height: 54, borderRadius: 999,
           border: reviewing ? `1.5px solid ${WINE}55` : 'none',
           background: reviewing ? 'transparent' : WINE,
@@ -5043,7 +5056,7 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
   );
 }
 
-function Root() {
+function MenuApp({ initial = null }) {
   // demo: ?takeaway=1 preimposta un ordine takeaway già pagato
   const isTakeawayDemo = (() => {
     try { return new URLSearchParams(window.location.search).get('takeaway') === '1'; }
@@ -5122,6 +5135,7 @@ function Root() {
   });
   const [route, setRoute] = useState(() => {
     const valid = ['menu','home','pay','paymethod','balance','success','takeaway'];
+    if (initial && valid.includes(initial)) return { name: initial, ctx: null };
     try {
       const h = (window.location.hash || '').replace('#','');
       if (valid.includes(h)) return { name: h, ctx: null };
@@ -5152,6 +5166,10 @@ function Root() {
     screen = <TakeawayScreen state={state} setState={setState} goTo={goTo} goBack={() => goTo('menu')}/>;
   }
 
+  return screen;
+}
+
+function Root() {
   return (
     <div style={{
       minHeight: '100vh', background: '#ececec',
@@ -5159,49 +5177,15 @@ function Root() {
       padding: '40px 20px', gap: 28, flexWrap: 'wrap',
     }}>
       <IOSDevice width={402} height={874}>
-        {screen}
+        <MenuApp/>
       </IOSDevice>
-      {/* Demo nav for the user to jump between screens */}
-      <div className="byup-screen-nav" style={{
-        position: 'fixed', top: 20, right: 20, zIndex: 100,
-        background: SURF, borderRadius: 14, padding: 8,
-        boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
-        display: 'flex', flexDirection: 'column', gap: 4,
-        fontFamily: '-apple-system, system-ui, sans-serif',
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, padding: '4px 8px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Schermate</div>
-        {[
-          { id: 'home-page', label: 'Home', href: 'byup Home.html' },
-          { id: 'home-empty-page', label: 'Home — nessun locale', href: 'byup Home.html?page=home-empty' },
-          { id: 'venue-page', label: 'Vetrina', href: 'byup Home.html?page=venue' },
-          { id: 'menu', label: 'Menu' },
-          { id: 'takeaway', label: 'Take Away' },
-          { id: 'home', label: 'Home + ordine' },
-          { id: 'pay', label: 'Pagamento' },
-          { id: 'paymethod', label: 'Metodo pagamento' },
-          { id: 'balance', label: 'Saldo tavolo' },
-          { id: 'success', label: 'Successo' },
-        ].map(s => (
-          s.href ? (
-            <a key={s.id} href={s.href} style={{
-              padding: '6px 12px', fontSize: 12.5, borderRadius: 8,
-              background: 'transparent', color: TEXT,
-              fontWeight: 600, textAlign: 'left', textDecoration: 'none',
-              display: 'block',
-            }}>{s.label}</a>
-          ) : (
-            <button key={s.id} onClick={() => goTo(s.id)} style={{
-              padding: '6px 12px', fontSize: 12.5, borderRadius: 8,
-              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: route.name === s.id ? PINK : 'transparent',
-              color: route.name === s.id ? '#fff' : TEXT,
-              fontWeight: 600, textAlign: 'left',
-            }}>{s.label}</button>
-          )
-        ))}
-      </div>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('menu-root')).render(<Root/>);
+window.MenuApp = MenuApp;
+
+/* Mount solo nella pagina menu (byup Menu.html). Dentro la SPA Home,
+   MenuApp è renderizzato da app.jsx come pagina 'menu' — prototipo unico. */
+const __menuRoot = document.getElementById('menu-root');
+if (__menuRoot) ReactDOM.createRoot(__menuRoot).render(<Root/>);

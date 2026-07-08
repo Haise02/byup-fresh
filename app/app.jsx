@@ -1,12 +1,23 @@
 // byup — Home screen prototype v2
 const { useState, useRef, useEffect, useLayoutEffect, useMemo } = React;
 
+const __BYUP_DARK = (() => {
+  try {
+    const m = localStorage.getItem('byup.themeMode') || 'light';
+    if (m === 'dark') return true;
+    if (m === 'auto') return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return false;
+  } catch { return false; }
+})();
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
-const TEXT = '#1c0f15';
-const MUTED = '#6d5a61';
-const BORDER = '#eddfda';
-const BG_GRAY = '#f7ece8';
+const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
+const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
+const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
+const SURF = __BYUP_DARK ? '#211f22' : '#fff';
+const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea';
 const BG_CHIP = '#f6e9e4';
 
 // Design system condiviso — byup-app-kit.jsx DEVE essere caricato prima di questo file.
@@ -14,6 +25,17 @@ const BK = window.ByupKit;
 
 // ─── Icons (coherent line set, stroke=1.7) ─────────────────
 const Icon = {
+  Coin: (p) => {
+    const c = p.color || TEXT;
+    const filled = p.fill && p.fill !== 'none';
+    return (
+      <svg width={p.size||23} height={p.size||23} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8.4" stroke={c} strokeWidth="1.8" fill={filled ? c : 'none'}/>
+        <text x="12" y="12.5" fontFamily="Fredoka, sans-serif" fontSize="11.5" fontWeight="700"
+          fill={filled ? (BG_PAGE || '#fff') : c} textAnchor="middle" dominantBaseline="central">b</text>
+      </svg>
+    );
+  },
   Map: (p) => (
     <svg width={p.size||22} height={p.size||22} viewBox="0 0 24 24" fill="none" stroke={p.color||TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9.3 4.3 5.5 5.6A2.1 2.1 0 0 0 4 7.6v9.5c0 1 1 1.7 1.9 1.3l3-1.1c.5-.2 1.1-.2 1.6 0l3 1.1c.5.2 1.1.2 1.6 0l3.4-1.2a2.1 2.1 0 0 0 1.5-2V5.7c0-1-1-1.7-1.9-1.3l-3 1.1c-.5.2-1.1.2-1.6 0l-3-1.1a2.1 2.1 0 0 0-1.2-.1z"/>
@@ -250,10 +272,14 @@ function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
       <div style={{
         width: 64, height: 64, borderRadius: 21,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: active ? T.accentSoft : T.surface,
-        border: `1.5px solid ${active ? T.primary : T.line}`,
+        background: active
+          ? (T.dark ? 'linear-gradient(158deg, #4a2331 0%, #7d1d3f 100%)' : T.accentSoft)
+          : (T.dark ? 'linear-gradient(158deg, #3b2530 0%, #5a1a30 52%, #7a1c3e 100%)' : T.surface),
+        border: `1.5px solid ${active ? T.primary : (T.dark ? 'rgba(239,99,137,.42)' : T.line)}`,
         transition: `all 0.25s ${BK.SPRING}`,
-        boxShadow: active ? T.shadow : T.shadowSoft,
+        boxShadow: active
+          ? (T.dark ? '0 10px 24px -10px rgba(239,99,137,.5)' : T.shadow)
+          : (T.dark ? '0 8px 20px -12px rgba(122,28,62,.6)' : T.shadowSoft),
         transform: active ? 'scale(1.07)' : 'scale(1)',
       }}>
         {src
@@ -367,7 +393,7 @@ function EventCard({ title, place, tone, photo, date, time, onClick }) {
       {date && (
         <div style={{
           position: 'absolute', top: 11, left: 11,
-          background: '#fff', borderRadius: 12,
+          background: SURF, borderRadius: 12,
           padding: '4px 9px', textAlign: 'center', minWidth: 38,
         }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: PINK, letterSpacing: 0.6, lineHeight: 1.1 }}>{date.month}</div>
@@ -444,7 +470,7 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 51,
-        background: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+        background: SURF, borderTopLeftRadius: 28, borderTopRightRadius: 28,
         padding: '12px 20px 24px', animation: 'slideUp 0.3s cubic-bezier(.2,.8,.2,1)',
         maxHeight: '82%', overflow: 'hidden',
       }}>
@@ -474,7 +500,7 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
           <div style={{ fontFamily: BK.TYPE.display, fontSize: 22, fontWeight: 600, color: TEXT }}>{item.title || item.name}</div>
           <button onClick={(e) => e.stopPropagation()} style={{
             width: 40, height: 40, borderRadius: 999, border: `1.5px solid ${BORDER}`,
-            background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: SURF, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
           }}>
             <Icon.Heart color={PINK}/>
@@ -539,7 +565,7 @@ function FilterSheet({ open, onClose, filters, setFilters }) {
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 71,
-        background: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+        background: SURF, borderTopLeftRadius: 28, borderTopRightRadius: 28,
         padding: '12px 22px 24px', animation: 'slideUp 0.3s cubic-bezier(.2,.8,.2,1)',
         maxHeight: '88%', overflowY: 'auto',
       }}>
@@ -622,7 +648,7 @@ function SelectChip({ label, active, onClick }) {
     <button onClick={onClick} style={{
       height: 38, padding: '0 16px', borderRadius: 999,
       border: `1.5px solid ${active ? PINK : '#e0e0e0'}`,
-      background: active ? '#FCE9EE' : '#fff',
+      background: active ? TINT : SURF,
       color: active ? PINK : TEXT,
       fontSize: 14, fontWeight: active ? 600 : 500,
       fontFamily: 'inherit', cursor: 'pointer',
@@ -651,7 +677,7 @@ function NotifSheet({ open, onClose }) {
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 71,
-        background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: '12px 0 20px', animation: 'slideUp 0.3s cubic-bezier(.2,.8,.2,1)',
         maxHeight: '70%', overflowY: 'auto',
       }}>
@@ -704,6 +730,24 @@ const SEARCH_POPULAR = [
   'Vegan bowl',
 ];
 
+const EXPLORE_VENUES = [
+  ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop', 'Al Settembrini', 'ristorante'],
+  ['https://images.unsplash.com/photo-1592861956120-e524fc739696?w=600&q=70&auto=format&fit=crop', 'Trattoria Lucia', 'cucina romana'],
+  ['https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=70&auto=format&fit=crop', 'Lounge 22', 'cocktail bar'],
+  ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=70&auto=format&fit=crop', "All'Impronta", 'ristorante creativo'],
+  ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop', 'Hops & Co', 'pub'],
+  ['https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop', 'Ristorante da Cecio', 'cucina italiana'],
+  ['https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=600&q=70&auto=format&fit=crop', 'Blue Note', 'jazz club'],
+  ['https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=70&auto=format&fit=crop', 'Cacio e Pepe', 'cucina italiana'],
+  ['https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=70&auto=format&fit=crop', 'Da Michele Pizzeria', 'pizzeria'],
+  ['https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=600&q=70&auto=format&fit=crop', 'Vinaio', 'wine bar'],
+];
+// Griglia explore: le foto reali dei locali, ripetute con offset per varieta'
+const EXPLORE_TILES = Array.from({ length: 30 }, (_, i) => {
+  const v = EXPLORE_VENUES[(i + Math.floor(i / 10) * 3) % EXPLORE_VENUES.length];
+  return { src: v[0], name: v[1], q: v[2] };
+});
+
 function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
@@ -711,15 +755,15 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
   const submit = (term) => onSubmit(term);
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       color: TEXT,
     }}>
-      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 60, paddingBottom: 30 }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 'calc(var(--byup-sat, 54px) + 6px)', paddingBottom: 'calc(108px + env(safe-area-inset-bottom, 0px))' }}>
         <div style={{ padding: '8px 22px 0' }}>
           <button onClick={onBack} style={{
-            width: 40, height: 40, borderRadius: 999, background: '#f3f3f3',
+            width: 40, height: 40, borderRadius: 999, background: TINT,
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
           }}>
@@ -733,7 +777,7 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             height: 50, borderRadius: 999, border: `1.5px solid #e0e0e0`,
-            padding: '0 16px', background: '#fff',
+            padding: '0 16px', background: SURF,
           }}>
             <input ref={inputRef}
               value={q} onChange={(e) => setQ(e.target.value)}
@@ -762,39 +806,29 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
 
         {q.trim().length === 0 && (
           <>
-            <div style={{ padding: '24px 22px 6px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT }}>
-              Ricerche recenti
+            <div style={{ padding: '20px 22px 12px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT }}>
+              Esplora i locali
             </div>
-            {SEARCH_RECENTS.map((r, i) => (
-              <button key={i} onClick={() => submit(r)} style={{
-                width: '100%', textAlign: 'left', padding: '14px 22px',
-                background: 'none', border: 'none', borderBottom: `1px solid ${BORDER}`,
-                fontSize: 14.5, color: TEXT, fontFamily: 'inherit', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <Icon.Clock size={16} color={MUTED}/>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{r}</span>
-              </button>
-            ))}
-
-            <div style={{ padding: '24px 22px 6px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT }}>
-              Più cercati questa settimana
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: '124px', gap: 3, padding: '0 3px' }}>
+              {EXPLORE_TILES.map((t, i) => {
+                const big = i % 7 === 0;
+                return (
+                  <button key={i} onClick={() => submit(t.q)} style={{
+                    gridColumn: big ? 'span 2' : 'span 1', gridRow: big ? 'span 2' : 'span 1',
+                    padding: 0, border: 'none', cursor: 'pointer', position: 'relative',
+                    overflow: 'hidden', borderRadius: 3, background: TINT,
+                  }}>
+                    <img src={t.src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+                    <div style={{
+                      position: 'absolute', left: 0, right: 0, bottom: 0, padding: '16px 8px 7px',
+                      background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.6))',
+                      color: '#fff', fontSize: big ? 12.5 : 10.5, fontWeight: 700, textAlign: 'left',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{t.name}</div>
+                  </button>
+                );
+              })}
             </div>
-            {SEARCH_POPULAR.map((r, i) => (
-              <button key={i} onClick={() => submit(r)} style={{
-                width: '100%', textAlign: 'left', padding: '14px 22px',
-                background: 'none', border: 'none', borderBottom: `1px solid ${BORDER}`,
-                fontSize: 14.5, color: TEXT, fontFamily: 'inherit', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <span style={{
-                  width: 22, height: 22, borderRadius: 999, background: '#FCE9EE',
-                  color: PINK, fontSize: 11, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{i+1}</span>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{r}</span>
-              </button>
-            ))}
           </>
         )}
 
@@ -852,12 +886,12 @@ const RESULT_VENUES = [
     photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&q=70&auto=format&fit=crop' },
 ];
 
-function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpenVenue }) {
+function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpenVenue, onMenu }) {
   const [sort, setSort] = useState('Top offer');
   const [sortOpen, setSortOpen] = useState(false);
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#FBF4F1', position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       color: TEXT,
@@ -865,7 +899,7 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 60, paddingBottom: 100 }}>
         <div style={{ padding: '8px 22px 0' }}>
           <button onClick={onBack} style={{
-            width: 40, height: 40, borderRadius: 999, background: '#f3f3f3',
+            width: 40, height: 40, borderRadius: 999, background: TINT,
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
           }}>
@@ -888,7 +922,7 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             height: 48, borderRadius: 999, border: `1.5px solid #e0e0e0`,
-            padding: '0 16px', background: '#fff',
+            padding: '0 16px', background: SURF,
           }}>
             <span style={{ flex: 1, fontSize: 14, color: TEXT }}>{query || 'Cerca…'}</span>
             <button onClick={onOpenFilters} style={{
@@ -931,7 +965,7 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
               <button key={s} onClick={() => { setSort(s); setSortOpen(false); }} style={{
                 padding: '6px 12px', borderRadius: 999,
                 border: `1px solid ${sort === s ? PINK : BORDER}`,
-                background: sort === s ? '#FCE9EE' : '#fff',
+                background: sort === s ? TINT : SURF,
                 color: sort === s ? PINK : TEXT, fontSize: 12.5, fontWeight: 600,
                 fontFamily: 'inherit', cursor: 'pointer',
               }}>{s}</button>
@@ -943,7 +977,7 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
           {RESULT_VENUES.map((v, i) => (
             <ResultCard key={i} {...v}
               onClick={() => onOpenVenue({ ...v, _from: 'results' })}
-              onMenu={() => { window.location.href = 'byup Menu.html?from=venue'; }}/>
+              onMenu={onMenu}/>
           ))}
         </div>
       </div>
@@ -954,7 +988,7 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
 function ResultCard({ name, cuisine, city, distance, rating, open, hours, topOffer, photo, onClick, onMenu }) {
   return (
     <div onClick={onClick} className="bk-press" style={{
-      background: '#fff', borderRadius: 22, overflow: 'hidden',
+      background: SURF, borderRadius: 22, overflow: 'hidden',
       boxShadow: '0 10px 28px -18px rgba(227,36,89,.25)', cursor: 'pointer',
       border: '1px solid rgba(77,18,46,.08)',
     }}>
@@ -1440,7 +1474,7 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
   const venues = md.venues;
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#FBF4F1',
+      width: '100%', height: '100%', background: BG_PAGE,
       position: 'relative', display: 'flex', flexDirection: 'column',
       fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       color: TEXT, overflow: 'hidden',
@@ -1458,25 +1492,28 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
         <div style={{ height: 248, position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute', inset: 0,
-            backgroundImage: `url("${heroPhoto}")`,
-            backgroundSize: 'cover', backgroundPosition: 'center',
-            backgroundColor: '#2a2622',
+            background: 'linear-gradient(152deg, #ef5a7d 0%, #d1214f 46%, #8a1c40 100%)',
             animation: 'dispoHeroZoom 0.7s cubic-bezier(.2,.8,.2,1)',
+          }}/>
+          {/* trama byup leggera + fondo scuro per la leggibilità del testo */}
+          <div aria-hidden style={{
+            position: 'absolute', inset: 0, opacity: .5, mixBlendMode: 'soft-light',
+            backgroundImage: `url("${BK.ASSETS.bg.coral}")`, backgroundSize: 'cover', backgroundPosition: 'center',
           }}/>
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 32%, rgba(0,0,0,0.82) 100%)',
+            background: 'linear-gradient(180deg, rgba(28,6,16,0.12) 0%, rgba(28,6,16,0) 40%, rgba(28,6,16,0.55) 100%)',
           }}/>
 
           <button onClick={onBack} aria-label="Indietro" style={{
             position: 'absolute', top: 60, left: 16,
             width: 40, height: 40, borderRadius: 999,
-            background: 'rgba(255,255,255,0.95)',
-            backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-            border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
           }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </button>
@@ -1484,13 +1521,13 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
           <button onClick={onMap} style={{
             position: 'absolute', top: 60, right: 16,
             height: 40, padding: '0 14px', borderRadius: 999,
-            background: 'rgba(255,255,255,0.95)',
-            backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 13, fontWeight: 700, color: TEXT, fontFamily: 'inherit',
+            background: 'rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'inherit',
             boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
           }}>
-            <Icon.Map size={16}/>
+            <Icon.Map size={16} color="#fff"/>
             Mappa
           </button>
 
@@ -1519,9 +1556,9 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
         {/* Sticky chips bar */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 5,
-          background: 'rgba(251,244,241,.88)', padding: '14px 0 12px',
+          background: __BYUP_DARK ? 'rgba(22,21,20,.9)' : 'rgba(251,244,241,.88)', padding: '14px 0 12px',
           backdropFilter: 'blur(18px) saturate(160%)', WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-          boxShadow: '0 1px 0 rgba(77,18,46,.08)',
+          boxShadow: __BYUP_DARK ? '0 1px 0 rgba(246,236,233,.08)' : '0 1px 0 rgba(77,18,46,.08)',
         }}>
           <div className="hscroll" style={{
             display: 'flex', gap: 8, padding: '0 22px',
@@ -1560,7 +1597,7 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
 }
 
 // ─── Offerte in evidenza — slideshow auto + swipe manuale ───
-const OFFER_SLIDES = [5, 1, 2, 4, 6].map(n => `assets/offerte/offer-${n}.webp`);
+const OFFER_SLIDES = [5, 1, 3, 4, 6].map(n => `assets/offerte/offer-${n}.webp`);
 function OfferCarousel({ onTap }) {
   const [T] = BK.useByupTheme();
   const ref = useRef(null);
@@ -1765,7 +1802,7 @@ function StackCard({ item, dim }) {
       {item.kind === 'event' ? (
         <>
           {item.date && (
-            <div style={{ position: 'absolute', top: 11, left: 11, background: '#fff', borderRadius: 12, padding: '4px 9px', textAlign: 'center', minWidth: 38 }}>
+            <div style={{ position: 'absolute', top: 11, left: 11, background: SURF, borderRadius: 12, padding: '4px 9px', textAlign: 'center', minWidth: 38 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: PINK, letterSpacing: .6, lineHeight: 1.1 }}>{item.date.month}</div>
               <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, color: '#1c0f15', lineHeight: 1, marginTop: 1 }}>{item.date.day}</div>
             </div>
@@ -2244,7 +2281,7 @@ function HomeSections({
               disabled={notifyState === 'confirmed'}
               style={{
                 marginTop: 10, padding: '12px 22px', borderRadius: 999, border: 'none',
-                background: notifyState === 'confirmed' ? '#ebe3d6' : PINK,
+                background: notifyState === 'confirmed' ? TINT : PINK,
                 color: notifyState === 'confirmed' ? TEXT : '#fff',
                 fontSize: 14, fontWeight: 700,
                 fontFamily: 'inherit',
@@ -2322,14 +2359,14 @@ function HomeSections({
           zIndex: 90, animation: 'fade 0.18s ease', padding: '0 28px',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            background: '#fff', borderRadius: 22, padding: '26px 22px 18px',
+            background: SURF, borderRadius: 22, padding: '26px 22px 18px',
             width: '100%', maxWidth: 320, textAlign: 'center',
             boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
             animation: 'slideUp 0.22s cubic-bezier(.2,.9,.3,1.05)',
           }}>
             <div style={{
               width: 56, height: 56, borderRadius: 999, margin: '0 auto 14px',
-              background: '#e8f5ec', color: '#1a7a3a',
+              background: __BYUP_DARK ? 'rgba(20,130,64,.20)' : '#e8f5ec', color: '#1a7a3a',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a7a3a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -2390,7 +2427,7 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 320, background: '#fff', borderRadius: 22,
+        width: '100%', maxWidth: 320, background: SURF, borderRadius: 22,
         padding: '22px 20px 20px', boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
       }}>
         <div style={{
@@ -2485,6 +2522,861 @@ function RecoveryOrderBanner({ onOpen, onClose }) {
   );
 }
 
+// ─── Byuppini · gamification (portato da byuppini-standalone.html) ──────────
+const BYP = {
+  bg: '#161514', surf: '#211f22', surf2: '#2a262b', tint: '#2b272c',
+  text: '#f6ece9', muted: 'rgba(246,236,233,.6)', faint: 'rgba(246,236,233,.34)',
+  coral: '#e32459', coralHot: '#ff3d6e', lime: '#ceff00', gold: '#ffcf4a',
+  line: 'rgba(246,236,233,.12)',
+};
+const BYP_CSS = `
+@keyframes bypCoinBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-4px) rotate(4deg)}}
+@keyframes bypBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(-2deg)}}
+@keyframes bypShine{to{transform:translateX(230%)}}
+@keyframes bypSweep{0%,55%{left:-60%}100%{left:140%}}
+@keyframes bypFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes bypUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes bypPop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+@keyframes bypFall{to{transform:translateY(960px) rotate(560deg);opacity:0}}
+@keyframes bypPulse{0%,100%{box-shadow:0 0 0 6px rgba(255,61,110,.18),0 10px 24px -6px rgba(227,36,89,.8)}50%{box-shadow:0 0 0 12px rgba(255,61,110,.05),0 10px 30px -6px rgba(227,36,89,.9)}}
+@keyframes bypBadgePulse{0%,100%{box-shadow:0 5px 12px -4px rgba(0,0,0,.6),0 0 0 0 rgba(255,61,110,.5)}50%{box-shadow:0 5px 12px -4px rgba(0,0,0,.6),0 0 0 12px rgba(255,61,110,0)}}
+@keyframes bypCardFloat{0%,100%{transform:translateY(-50%) rotate(-9deg)}50%{transform:translateY(-56%) rotate(-5deg)}}
+.byp-hscroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.byp-hscroll::-webkit-scrollbar{display:none}
+.byp-scroll{scrollbar-width:none}
+.byp-scroll::-webkit-scrollbar{display:none}
+.byp-rw:active{transform:translateY(-2px) scale(.98)}
+.byp-earncard:active{transform:scale(.97)}
+.byp-badgecard:active{transform:scale(.96)}
+`;
+const BYP_LEVEL_NAMES = { 1: 'Novizio', 2: 'Esploratore', 3: 'Buongustaio', 4: 'Intenditore', 5: 'Gourmet', 6: 'Maestro', 7: 'Leggenda', 8: 'Icona' };
+const BYP_CUR_LEVEL = 3;
+const BYP_ACH = [
+  { e: '🍕', t: 'Pizza lover', s: 'done', pts: 100, d: 'Hai ordinato 10 pizze dai locali byup.' },
+  { e: '🍹', t: 'Re dello spritz', s: 'done', pts: 100, d: '10 aperitivi ordinati. Salute!' },
+  { e: '🌍', t: 'Esploratore', s: 'done', pts: 150, d: 'Hai provato 5 cucine diverse.' },
+  { e: '💳', t: 'byup pay', s: 'done', pts: 80, d: 'Primo pagamento con byup pay.' },
+  { e: '👑', t: 'Ambassador', s: 'prog', pts: 300, d: 'Invita 3 amici che ordinano.', cur: 2, goal: 3, unit: 'amici' },
+  { e: '🔥', t: 'Fedelissimo', s: 'prog', pts: 400, d: 'Ordina per 8 settimane di fila.', cur: 3, goal: 8, unit: 'settimane' },
+  { e: '⭐', t: 'Critico', s: 'prog', pts: 200, d: 'Lascia 20 recensioni nei locali byup.', cur: 12, goal: 20, unit: 'recensioni' },
+  { e: '🌙', t: 'Nottambulo', s: 'lock', pts: 150, d: 'Ordina 10 volte dopo le 23:00.', req: '10 ordini dopo le 23' },
+  { e: '🏆', t: 'Icona', s: 'lock', pts: 500, d: 'Raggiungi il livello 5.', req: 'LIV.5' },
+];
+
+// Icone lineari SVG (al posto delle emoji) per Guadagna oggi / Attività recente
+const BypIco = {
+  qr: (c = '#ffd3de') => (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.2"/>
+      <rect x="3.5" y="14" width="6.5" height="6.5" rx="1.2"/><path d="M14 14h3.2v3.2M20.5 20.4v.01M20.5 14.4v.01M14.6 20.4v.01"/>
+    </svg>
+  ),
+  invite: (c = '#ffd3de') => (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9.5" cy="8.2" r="3.4"/><path d="M3.5 19.6c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/>
+      <path d="M18.5 7.5v5M16 10h5"/>
+    </svg>
+  ),
+  star: (c = '#ffd3de') => (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8L12 3.6z"/>
+    </svg>
+  ),
+  diet: (c = '#ffd3de') => (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19.5 4.5c.4 6.8-2.7 12.6-8.6 13.9-3 .7-5.9-1-6.4-3.9-.4-2.6 1-5.2 4-6.3 4.2-1.6 8.2-1.4 11-3.7z"/>
+      <path d="M4.8 19.8c2.3-5.2 6.4-8.6 11-10.4"/>
+    </svg>
+  ),
+  order: (c = '#f3b8c6') => (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="4"/>
+    </svg>
+  ),
+  target: (c = '#f3b8c6') => (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/><circle cx="12" cy="12" r="5.4"/><circle cx="12" cy="12" r="1.4" fill={c}/>
+    </svg>
+  ),
+  gift: (c = '#f3b8c6') => (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="8.5" width="16" height="4"/><path d="M6 12.5h12V20H6zM12 8.5V20"/>
+      <path d="M12 8.5c-1.8 0-4.3-.6-4.3-2.6 0-2.4 3.3-2.4 4.3 2.6zM12 8.5c1.8 0 4.3-.6 4.3-2.6 0-2.4-3.3-2.4-4.3 2.6z"/>
+    </svg>
+  ),
+  profile: (c = '#f3b8c6') => (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8.2" r="3.6"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/>
+    </svg>
+  ),
+  store: (c = '#ffcf4a') => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 9.5 5.4 4h13.2L20 9.5"/>
+      <path d="M4 9.5c0 1.4 1.1 2.6 2.6 2.6S9.3 10.9 9.3 9.5c0 1.4 1.2 2.6 2.7 2.6s2.7-1.2 2.7-2.6c0 1.4 1.1 2.6 2.6 2.6S20 10.9 20 9.5"/>
+      <path d="M5.5 12v8h13v-8M9.5 20v-5h5v5"/>
+    </svg>
+  ),
+};
+
+// Sfida compatta — per la griglia 2×N
+function BypChalMini({ emo, title, desc, rew, pct, meta }) {
+  return (
+    <div style={{ background: BYP.surf, border: `1px solid ${BYP.line}`, borderRadius: 18, padding: '13px 12px',
+      display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 19, background: 'linear-gradient(155deg,#3b2530,#6b1e39)' }}>{emo}</div>
+        <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 12.5, color: BYP.lime }}>{rew}</div>
+      </div>
+      <div style={{ fontSize: 13.5, fontWeight: 800, marginTop: 10, color: BYP.text }}>{title}</div>
+      <div style={{ fontSize: 11.5, color: BYP.muted, marginTop: 2, lineHeight: 1.3, flex: 1 }}>{desc}</div>
+      <div style={{ height: 7, borderRadius: 999, background: BYP.surf2, marginTop: 10, overflow: 'hidden' }}>
+        <span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 999,
+          background: 'linear-gradient(90deg,#e32459,#ff3d6e)' }}/>
+      </div>
+      <div style={{ fontSize: 10.5, color: BYP.muted, marginTop: 5, fontWeight: 700 }}>{meta}</div>
+    </div>
+  );
+}
+
+// Card referral — porta un locale su byup
+function BypReferral() {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, padding: '16px 15px 15px',
+      background: 'radial-gradient(120% 90% at 90% 0%, rgba(255,207,74,.22), transparent 55%), linear-gradient(150deg,#221016,#3a1220 55%,#54160f)',
+      border: '1px solid rgba(255,207,74,.45)', boxShadow: '0 20px 40px -20px rgba(255,160,60,.35)', marginBottom: 12 }}>
+      <span aria-hidden style={{ position: 'absolute', top: 0, left: '-60%', width: '42%', height: '100%',
+        background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.10), transparent)',
+        transform: 'skewX(-18deg)', animation: 'bypSweep 4.6s ease-in-out infinite', pointerEvents: 'none' }}/>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ width: 46, height: 46, borderRadius: 14, flex: 'none', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', background: 'linear-gradient(155deg,#4a3312,#7d5a1d)', border: '1px solid rgba(255,207,74,.5)' }}>
+          {BypIco.store()}
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 800, letterSpacing: .6, color: '#141414',
+            background: 'linear-gradient(180deg,#ffe27a,#ffcf4a)', padding: '3px 8px', borderRadius: 999, textTransform: 'uppercase' }}>Referral · super bonus</span>
+          <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 16.5, marginTop: 6, color: BYP.text }}>Porta un locale su byup</div>
+          <div style={{ fontSize: 12, color: 'rgba(246,236,233,.72)', marginTop: 3, lineHeight: 1.35 }}>
+            Consiglia byup a un locale: se attiva l'abbonamento grazie a te, ricevi un maxi premio.
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(206,255,0,.13)',
+          border: '1px solid rgba(206,255,0,.4)', color: BYP.lime, fontFamily: BK.TYPE.display, fontWeight: 600,
+          fontSize: 13, padding: '6px 11px', borderRadius: 999 }}>
+          <img src="assets/coin.png" alt="" style={{ width: 15, height: 15 }}/>+5.000
+        </span>
+        <span style={{ fontSize: 11, color: 'rgba(246,236,233,.7)', fontWeight: 700 }}>= 50€ convertibili in credito</span>
+      </div>
+      <BypCta style={{ height: 46, marginTop: 13 }}>Invita un locale</BypCta>
+    </div>
+  );
+}
+
+function BypConfetti({ burst }) {
+  if (!burst) return null;
+  const cols = ['#ff3d6e', '#ceff00', '#ffcf4a', '#e32459', '#fff'];
+  return (
+    <div key={burst} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+      {Array.from({ length: 56 }, (_, i) => (
+        <span key={i} style={{
+          position: 'absolute', top: -14, left: ((i * 61) % 100) + '%',
+          width: 8, height: 13, borderRadius: 2, background: cols[i % 5],
+          transform: `rotate(${(i * 47) % 360}deg)`,
+          animation: `bypFall ${(1.6 + ((i * 13) % 14) / 10).toFixed(2)}s linear ${(((i * 7) % 30) / 100).toFixed(2)}s forwards`,
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+function BypSheet({ onClose, children, center }) {
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
+      position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(10,8,10,.82)',
+      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: center ? 'center' : 'flex-end', justifyContent: 'center',
+      animation: 'fade .22s ease', padding: center ? 24 : 0,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function BypCta({ children, ghost, style, onClick }) {
+  return (
+    <button className="bk-press" onClick={onClick} style={{
+      display: 'block', width: '100%', height: 52, border: ghost ? `1px solid ${BYP.line}` : 'none',
+      borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15,
+      color: ghost ? BYP.text : '#fff', letterSpacing: .2,
+      background: ghost ? 'transparent' : 'linear-gradient(122deg,#e32459,#b81c47)',
+      boxShadow: ghost ? 'none' : '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.3)',
+      ...style,
+    }}>{children}</button>
+  );
+}
+
+function BypSect({ children, aside, style }) {
+  return (
+    <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 16, margin: '20px 2px 10px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: BYP.text, ...style }}>
+      <span>{children}</span>
+      {aside && <span style={{ fontSize: 12, color: BYP.muted, fontFamily: BK.TYPE.sans, fontWeight: 600 }}>{aside}</span>}
+    </div>
+  );
+}
+
+// Card premio stile reel — riga scrollabile orizzontale full-bleed
+function BypReward({ img, emoji, title, cost, tag, onOpen }) {
+  return (
+    <button className="byp-rw" onClick={onOpen} style={{
+      flex: '0 0 auto', width: 158, height: 212, borderRadius: 20, overflow: 'hidden',
+      cursor: 'pointer', position: 'relative', scrollSnapAlign: 'start', padding: 0,
+      border: `1px solid ${BYP.line}`, background: '#241c22', transition: 'transform .2s, box-shadow .2s',
+      fontFamily: 'inherit', textAlign: 'left',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden', background: 'radial-gradient(125% 82% at 50% 12%, #3c2231, #1e151b 72%)' }}>
+        {img
+          ? <img src={img} alt="" style={{ width: '74%', height: '74%', objectFit: 'contain', filter: 'drop-shadow(0 14px 20px rgba(0,0,0,.55))' }}/>
+          : <span style={{ fontSize: 62 }}>{emoji}</span>}
+        <span style={{ position: 'absolute', top: 0, left: '-60%', width: '45%', height: '100%',
+          background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.16), transparent)',
+          transform: 'skewX(-18deg)', animation: 'bypSweep 3.8s ease-in-out infinite' }}/>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '56%', zIndex: 1,
+        background: 'linear-gradient(180deg, transparent, rgba(15,9,12,.85) 60%, rgba(15,9,12,.96))' }}/>
+      {tag && <span style={{ position: 'absolute', top: 10, left: 10, zIndex: 3, background: BYP.coral, color: '#fff',
+        fontSize: 10, fontWeight: 800, padding: '4px 9px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: .4 }}>{tag}</span>}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 2, padding: '12px 13px 13px' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.18, color: BYP.text }}>{title}</div>
+        <div style={{ marginTop: 8 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(206,255,0,.14)',
+            border: '1px solid rgba(206,255,0,.4)', color: BYP.lime, fontFamily: BK.TYPE.display, fontWeight: 600,
+            fontSize: 13, padding: '5px 10px', borderRadius: 999 }}>
+            <img src="assets/coin.png" alt="" style={{ width: 15, height: 15 }}/>{cost}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function BypRewardRow({ children }) {
+  return (
+    <div className="byp-hscroll" style={{
+      display: 'flex', gap: 13, overflowX: 'auto', margin: '0 -16px',
+      padding: '2px 16px 14px', scrollSnapType: 'x proximity',
+    }}>{children}</div>
+  );
+}
+
+// Traguardo — card con anello di progresso conico
+function BypBadgeCard({ a, i, onOpen }) {
+  const pct = a.s === 'done' ? 100 : (a.s === 'prog' ? Math.round((a.cur / a.goal) * 100) : 0);
+  const ring = a.s === 'done'
+    ? 'linear-gradient(155deg,#ff3d6e,#b81c47)'
+    : a.s === 'prog'
+      ? `conic-gradient(${BYP.lime} ${pct * 3.6}deg, rgba(246,236,233,.1) 0deg)`
+      : 'rgba(246,236,233,.08)';
+  return (
+    <button className="byp-badgecard" onClick={onOpen} style={{
+      background: a.s === 'done'
+        ? 'linear-gradient(165deg, rgba(227,36,89,.16), rgba(122,28,62,.1)), ' + BYP.surf
+        : BYP.surf,
+      border: `1px solid ${a.s === 'done' ? 'rgba(255,90,130,.35)' : BYP.line}`,
+      borderRadius: 20, padding: '14px 8px 12px', cursor: 'pointer', textAlign: 'center',
+      fontFamily: 'inherit', position: 'relative', transition: 'transform .15s',
+      animation: 'bypFade .35s ease both', animationDelay: `${i * 45}ms`,
+      opacity: a.s === 'lock' ? .62 : 1,
+    }}>
+      {a.s === 'done' && (
+        <span style={{ position: 'absolute', top: 8, right: 8, width: 19, height: 19, borderRadius: 999,
+          background: BYP.lime, color: '#141414', fontSize: 11, fontWeight: 900,
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+      )}
+      <span style={{ display: 'flex', width: 62, height: 62, margin: '0 auto', borderRadius: 999,
+        padding: 3, background: ring, alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ display: 'flex', width: '100%', height: '100%', borderRadius: 999,
+          background: a.s === 'done' ? 'linear-gradient(155deg,#4a2331,#7d1d3f)' : '#1c191d',
+          alignItems: 'center', justifyContent: 'center', fontSize: 27,
+          filter: a.s === 'lock' ? 'grayscale(1)' : 'none', position: 'relative' }}>
+          {a.e}
+          {a.s === 'lock' && <span style={{ position: 'absolute', bottom: -2, right: -2, fontSize: 13 }}>🔒</span>}
+        </span>
+      </span>
+      <div style={{ fontSize: 11.5, fontWeight: 800, marginTop: 9, lineHeight: 1.2, color: BYP.text }}>{a.t}</div>
+      <div style={{ fontSize: 10.5, fontWeight: 800, marginTop: 3,
+        color: a.s === 'done' ? BYP.lime : a.s === 'prog' ? BYP.muted : BYP.faint }}>
+        {a.s === 'done' ? `+${a.pts} riscattati` : a.s === 'prog' ? `${a.cur}/${a.goal} · ${pct}%` : a.req}
+      </div>
+      {a.s === 'prog' && (
+        <div style={{ height: 4, borderRadius: 999, background: 'rgba(246,236,233,.1)', margin: '7px 6px 0', overflow: 'hidden' }}>
+          <span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 999,
+            background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)` }}/>
+        </div>
+      )}
+    </button>
+  );
+}
+
+function BypChal({ emo, title, desc, rew, pct, meta1, meta2, live, cta, onCta }) {
+  return (
+    <div style={{ background: live ? 'linear-gradient(158deg,#20303a,#12212b)' : BYP.surf,
+      border: `1px solid ${live ? 'rgba(120,200,255,.2)' : BYP.line}`, borderRadius: 18, padding: 15, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 13, flex: 'none', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 22,
+          background: live ? 'linear-gradient(155deg,#123044,#0c4a63)' : 'linear-gradient(155deg,#3b2530,#6b1e39)' }}>{emo}</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: BYP.text }}>{title}</div>
+          <div style={{ fontSize: 12, color: BYP.muted, marginTop: 2 }}>{desc}</div>
+        </div>
+        <div style={{ marginLeft: 'auto', flex: 'none', fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13, color: BYP.lime, whiteSpace: 'nowrap' }}>{rew}</div>
+      </div>
+      {pct != null && (
+        <>
+          <div style={{ height: 9, borderRadius: 999, background: BYP.surf2, marginTop: 12, overflow: 'hidden' }}>
+            <span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 999,
+              background: 'linear-gradient(90deg,#e32459,#ff3d6e)' }}/>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: BYP.muted, marginTop: 6, fontWeight: 600 }}>
+            <span>{meta1}</span><span>{meta2}</span>
+          </div>
+        </>
+      )}
+      {cta && <BypCta style={{ height: 46, marginTop: 12 }} onClick={onCta}>{cta}</BypCta>}
+    </div>
+  );
+}
+
+function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }) {
+  const [seg, setSeg] = useState('wallet');
+  const [bal, setBal] = useState(0);
+  const [xp, setXp] = useState(0);
+  const [levelUp, setLevelUp] = useState(false);
+  const [ach, setAch] = useState(null);
+  const [info, setInfo] = useState(false);
+  const [burst, setBurst] = useState(0);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    let raf, t0 = null;
+    const step = (ts) => {
+      if (!t0) t0 = ts;
+      const k = Math.min(1, (ts - t0) / 900);
+      setBal(Math.round(1240 * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    const t = setTimeout(() => setXp(82), 250);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+  }, []);
+
+  const fireConfetti = () => setBurst(b => b + 1);
+  const goSeg = (s) => {
+    setSeg(s);
+    const el = scrollRef.current;
+    if (el && el.scrollTop > 236) el.scrollTo({ top: 236, behavior: 'smooth' });
+  };
+  const openLevelUp = () => { setLevelUp(true); fireConfetti(); };
+  const openAch = (a) => { setAch(a); if (a.s === 'done') fireConfetti(); };
+  const doneCount = BYP_ACH.filter(a => a.s === 'done').length;
+
+  const SEGS = [['wallet', 'Portafoglio'], ['premi', 'Premi'], ['sfide', 'Sfide'], ['tra', 'Traguardi']];
+
+  return (
+    <div style={{
+      width: '100%', height: '100%', position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', fontFamily: BK.TYPE.sans, color: BYP.text,
+      background: `radial-gradient(120% 60% at 50% -8%, rgba(227,36,89,.22), transparent 60%), radial-gradient(90% 50% at 100% 10%, rgba(122,28,62,.28), transparent 55%), ${BYP.bg}`,
+    }}>
+      <style>{BYP_CSS}</style>
+
+      {/* Topbar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px 6px', paddingTop: 'calc(var(--byup-sat, 54px) + 8px)' }}>
+        <button onClick={onBack} style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${BYP.line}`,
+          background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={BYP.text} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h1 style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 19, margin: 0 }}>Byuppini</h1>
+        <button onClick={() => setInfo(true)} style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${BYP.line}`,
+          background: 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BYP.text} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        </button>
+      </div>
+
+      {/* Scroll */}
+      <div ref={scrollRef} className="byp-scroll" style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(126px + env(safe-area-inset-bottom, 0px))' }}>
+        {/* HERO */}
+        <div style={{ position: 'relative', margin: '6px 16px 4px', padding: '22px 20px 20px', borderRadius: 26, overflow: 'hidden',
+          background: 'linear-gradient(158deg,#3b1420,#6a1636 46%,#a01a49)', border: '1px solid rgba(255,90,130,.35)',
+          boxShadow: '0 22px 44px -22px rgba(227,36,89,.6)' }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,.82)' }}>IL TUO SALDO</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
+            <img src="assets/coin.png" alt="" style={{ width: 48, height: 48, flex: 'none', objectFit: 'contain',
+              filter: 'drop-shadow(0 6px 14px rgba(0,0,0,.4))', animation: 'bypCoinBob 3.4s ease-in-out infinite' }}/>
+            <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 46, lineHeight: 1, color: '#fff', letterSpacing: -1 }}>
+              {bal.toLocaleString('it-IT')}<small style={{ fontSize: 20, opacity: .8, fontWeight: 500, marginLeft: 4 }}>byuppini</small>
+            </div>
+          </div>
+          <img src="assets/mascot-wink.png" alt="" style={{ position: 'absolute', right: -6, bottom: -10, width: 118,
+            filter: 'drop-shadow(0 12px 20px rgba(0,0,0,.4))', animation: 'bypBob 3.6s ease-in-out infinite', pointerEvents: 'none' }}/>
+          <button className="bk-press" onClick={onRoadmap} style={{ position: 'relative', marginTop: 16, background: 'rgba(0,0,0,.24)',
+            border: '1px solid rgba(255,255,255,.14)', borderRadius: 16, padding: '12px 14px', maxWidth: '74%', width: '74%',
+            cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', color: BYP.text, display: 'block' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ fontFamily: BK.TYPE.display, fontWeight: 600, color: '#fff' }}>LIV.{BYP_CUR_LEVEL} · <b style={{ color: BYP.lime }}>{BYP_LEVEL_NAMES[BYP_CUR_LEVEL]}</b></span>
+              <span style={{ color: 'rgba(255,255,255,.75)' }}>1.240 / 1.500 XP</span>
+            </div>
+            <div style={{ height: 8, borderRadius: 999, background: 'rgba(255,255,255,.16)', marginTop: 8, overflow: 'hidden' }}>
+              <span style={{ display: 'block', height: '100%', width: `${xp}%`, borderRadius: 999,
+                background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)`, transition: 'width 1s cubic-bezier(.2,.9,.3,1)', position: 'relative' }}>
+                <span style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent)',
+                  transform: 'translateX(-100%)', animation: 'bypShine 2.4s ease-in-out infinite' }}/>
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: BYP.lime, marginTop: 9, fontWeight: 700 }}>
+              Vedi il percorso
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={BYP.lime} strokeWidth="2.6" strokeLinecap="round"><polyline points="9 6 15 12 9 18"/></svg>
+            </div>
+          </button>
+        </div>
+
+        {/* Segmenti */}
+        <div style={{ display: 'flex', gap: 4, margin: '16px 16px 8px', background: BYP.tint, borderRadius: 14, padding: 4 }}>
+          {SEGS.map(([id, label]) => (
+            <button key={id} onClick={() => goSeg(id)} style={{ flex: 1, border: 'none',
+              background: seg === id ? BYP.surf : 'transparent', color: seg === id ? BYP.text : BYP.muted,
+              fontFamily: 'inherit', fontWeight: 700, fontSize: 12.5, padding: '9px 4px', borderRadius: 10,
+              cursor: 'pointer', transition: '.15s', boxShadow: seg === id ? '0 2px 8px rgba(0,0,0,.35)' : 'none' }}>{label}</button>
+          ))}
+        </div>
+
+        {/* PORTAFOGLIO */}
+        {seg === 'wallet' && (
+          <div key="wallet" style={{ padding: '6px 16px 0', animation: 'bypFade .28s ease' }}>
+            {/* Preview del percorso — scorcio della mappa, click → roadmap */}
+            <button className="bk-press" onClick={onRoadmap} style={{
+              position: 'relative', width: '100%', height: 106, borderRadius: 20, overflow: 'hidden',
+              border: '1px solid rgba(255,90,130,.32)', cursor: 'pointer', padding: 0, margin: '4px 0 2px',
+              display: 'block', textAlign: 'left', fontFamily: 'inherit', color: BYP.text,
+              boxShadow: '0 16px 32px -18px rgba(227,36,89,.55)',
+              backgroundImage: 'linear-gradient(90deg, rgba(18,10,14,.9) 0%, rgba(18,10,14,.45) 55%, rgba(18,10,14,.12) 100%), url(assets/road-terrain.png)',
+              backgroundSize: 'auto, 235% auto', backgroundPosition: 'center, 68% 70%',
+            }}>
+              <span style={{ position: 'absolute', left: 14, top: 13, display: 'block' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13.5, color: '#fff' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 999, background: 'linear-gradient(180deg,#ff3d6e,#e32459)',
+                    border: '2px solid #fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11.5, fontWeight: 700, boxShadow: '0 4px 10px -3px rgba(0,0,0,.6)' }}>{BYP_CUR_LEVEL}</span>
+                  LIV.{BYP_CUR_LEVEL} · {BYP_LEVEL_NAMES[BYP_CUR_LEVEL]}
+                </span>
+                <span style={{ display: 'block', fontSize: 11, color: 'rgba(246,236,233,.78)', marginTop: 4 }}>Il tuo percorso tra i locali</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: BYP.lime, fontWeight: 800, marginTop: 10 }}>
+                  Vedi il percorso
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={BYP.lime} strokeWidth="2.8" strokeLinecap="round"><polyline points="9 6 15 12 9 18"/></svg>
+                </span>
+              </span>
+              <img src="assets/mascot-wave.png" alt="" style={{ position: 'absolute', right: 8, bottom: -6, width: 72,
+                filter: 'drop-shadow(0 8px 12px rgba(0,0,0,.5))', animation: 'bypBob 3.2s ease-in-out infinite' }}/>
+            </button>
+            <BypSect>Guadagna oggi</BypSect>
+            <div className="byp-hscroll" style={{ display: 'flex', gap: 10, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 6px' }}>
+              {[
+                [BypIco.qr(), 'Scansiona il QR al tavolo', '+30', onQR],
+                [BypIco.invite(), 'Invita un amico', '+300', null],
+                [BypIco.star(), 'Lascia una recensione', '+40', null],
+                [BypIco.diet(), 'Imposta le diete', '+30', onProfile],
+              ].map(([ic, t, pts, fn], i) => (
+                <button key={i} className="byp-earncard" onClick={fn || undefined} style={{ flex: 'none', width: 134, background: BYP.surf,
+                  border: `1px solid ${BYP.line}`, borderRadius: 18, padding: 13, cursor: 'pointer', textAlign: 'left',
+                  fontFamily: 'inherit', color: BYP.text, transition: 'transform .15s' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'linear-gradient(155deg,#4a2331,#7d1d3f)', border: '1px solid rgba(239,99,137,.4)', marginBottom: 10, fontSize: 20 }}>{ic}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{t}</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13, color: BYP.lime, marginTop: 8 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #fff, #ceff00)', boxShadow: '0 0 6px rgba(206,255,0,.7)' }}/>{pts}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <BypSect>Attività recente</BypSect>
+            <div style={{ background: BYP.surf, border: `1px solid ${BYP.line}`, borderRadius: 18, padding: 14 }}>
+              {[
+                [BypIco.order(), 'Ordine · Al Settembrini', 'Oggi, 21:04 · con byup pay', '+120', false],
+                [BypIco.target(), 'Sfida completata · 3 cucine', 'Ieri', '+150', false],
+                [BypIco.gift(), 'Riscattato · 5€ di credito', '2 giorni fa', '−500', true],
+                [BypIco.profile(), 'Profilo completato', '3 giorni fa', '+50', false],
+              ].map(([ic, t, d, amt, neg], i, arr) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
+                  borderBottom: i < arr.length - 1 ? `1px solid ${BYP.line}` : 'none' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 11, flex: 'none', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', background: BYP.surf2, fontSize: 16 }}>{ic}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <b style={{ fontSize: 13.5, fontWeight: 700 }}>{t}</b>
+                    <span style={{ display: 'block', fontSize: 11.5, color: BYP.muted, marginTop: 1 }}>{d}</span>
+                  </div>
+                  <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 15, color: neg ? BYP.coralHot : BYP.lime }}>{amt}</div>
+                </div>
+              ))}
+            </div>
+            <BypCta style={{ margin: '18px 0 6px' }} onClick={() => goSeg('premi')}>Riscatta i tuoi byuppini</BypCta>
+            <BypCta ghost style={{ margin: '10px 0 6px' }} onClick={openLevelUp}>▶︎ Anteprima level-up</BypCta>
+          </div>
+        )}
+
+        {/* SFIDE */}
+        {seg === 'sfide' && (
+          <div key="sfide" style={{ padding: '6px 16px 0', animation: 'bypFade .28s ease' }}>
+            <BypSect aside="↻ 3 giorni">Sfide della settimana</BypSect>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11, marginBottom: 14 }}>
+              <BypChalMini emo="🌍" title="Esploratore" desc="Prova 3 cucine diverse" rew="+150" pct={66} meta="2 di 3 · 66%"/>
+              <BypChalMini emo="🔁" title="Habitué" desc="Ordina 2 volte in 7 giorni" rew="+100" pct={50} meta="1 di 2 · 50%"/>
+              <BypChalMini emo="🔥" title="Streak ×4" desc="Un ordine a settimana per 4 settimane" rew="+400" pct={50} meta="Settimana 2 di 4"/>
+              <BypChalMini emo="⭐" title="Recensore" desc="Lascia 2 recensioni questa settimana" rew="+80" pct={50} meta="1 di 2 · 50%"/>
+            </div>
+            <BypReferral/>
+            <BypSect>Dal vivo</BypSect>
+            <BypChal live emo="📍" title="Sei in un locale byup?" desc="Scansiona il QR del tavolo per il check-in" rew="+30" cta="Scansiona ora" onCta={onQR}/>
+          </div>
+        )}
+
+        {/* PREMI */}
+        {seg === 'premi' && (
+          <div key="premi" style={{ padding: '6px 16px 0', animation: 'bypFade .28s ease' }}>
+            <button className="bk-press" onClick={onRoadmap} style={{ position: 'relative', margin: '4px 0 8px', borderRadius: 22, overflow: 'hidden',
+              padding: '20px 18px 18px', minHeight: 172, width: '100%', display: 'block', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+              background: 'radial-gradient(130% 100% at 88% 8%, rgba(227,36,89,.42), transparent 55%), linear-gradient(150deg,#1a1014,#2a1020 52%,#4a0f27)',
+              border: '1px solid rgba(255,90,130,.35)', boxShadow: '0 24px 46px -22px rgba(227,36,89,.6)', color: BYP.text }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, letterSpacing: .4,
+                color: '#141414', background: 'linear-gradient(180deg,#ffe27a,#ffcf4a)', padding: '5px 11px', borderRadius: 999, textTransform: 'uppercase' }}>🏆 Premio Icona</span>
+              <h3 style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 23, margin: '13px 0 4px', lineHeight: 1, maxWidth: '56%', color: BYP.text }}>byup card</h3>
+              <p style={{ fontSize: 12.5, color: 'rgba(246,236,233,.78)', margin: '0 0 14px', maxWidth: '56%', lineHeight: 1.35 }}>
+                Cashback fino al <b style={{ color: '#fff' }}>3%</b> ovunque paghi, non solo nei locali.</p>
+              <span style={{ position: 'relative', zIndex: 2, display: 'block', height: 8, borderRadius: 999, background: 'rgba(255,255,255,.15)', overflow: 'hidden', maxWidth: '60%' }}>
+                <i style={{ display: 'block', height: '100%', width: '24%', borderRadius: 999, background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)` }}/>
+              </span>
+              <span style={{ display: 'block', fontSize: 11.5, color: 'rgba(246,236,233,.7)', marginTop: 8, fontWeight: 600, maxWidth: '60%' }}>
+                Sbloccala a <b style={{ color: BYP.lime }}>LIV.5 · 5.000 byuppini</b> — sei al 24%</span>
+              <span style={{ position: 'absolute', right: -14, top: '50%', width: 196, zIndex: 1,
+                filter: 'drop-shadow(0 22px 30px rgba(0,0,0,.6))', animation: 'bypCardFloat 5.5s ease-in-out infinite' }}>
+                <img src="assets/reward-byupcard.png" alt="byup card" style={{ display: 'block', width: '100%' }}/>
+              </span>
+            </button>
+
+            <BypSect aside="100 = 1€">💶 Credito</BypSect>
+            <BypRewardRow>
+              <BypReward img="assets/coin.png" title="1€ di credito" cost="100"/>
+              <BypReward img="assets/coin-stack.png" title="5€ di credito" cost="500"/>
+              <BypReward img="assets/coin-stack.png" title="12€ di credito" cost="1.000" tag="bonus +2€"/>
+            </BypRewardRow>
+
+            <BypSect>🎁 Gadget</BypSect>
+            <BypRewardRow>
+              <BypReward img="assets/reward-bottle.png" title="Borraccia byup" cost="800"/>
+              <BypReward img="assets/reward-tote.png" title="Tote bag" cost="500"/>
+              <BypReward img="assets/reward-stickers.png" title="Sticker pack" cost="150"/>
+            </BypRewardRow>
+
+            <BypSect aside="offerte dai locali">🍹 Esperienze</BypSect>
+            <BypRewardRow>
+              <BypReward img="assets/reward-dessert.png" title="Dessert offerto" cost="400"/>
+              <BypReward img="assets/reward-spritz.png" title="Aperitivo x2" cost="900"/>
+              <BypReward emoji="🍕" title="Pizza offerta" cost="700"/>
+            </BypRewardRow>
+            <div style={{ height: 12 }}/>
+          </div>
+        )}
+
+        {/* TRAGUARDI */}
+        {seg === 'tra' && (
+          <div key="tra" style={{ padding: '6px 16px 0', animation: 'bypFade .28s ease' }}>
+            <BypSect aside={`${doneCount}/${BYP_ACH.length} sbloccati`}>I tuoi traguardi</BypSect>
+            <div style={{ fontSize: 12.5, color: BYP.muted, margin: '-4px 2px 14px' }}>
+              Tocca un traguardo per i dettagli · ognuno regala byuppini
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 11 }}>
+              {BYP_ACH.map((a, i) => <BypBadgeCard key={a.t} a={a} i={i} onOpen={() => openAch(a)}/>)}
+            </div>
+            <div style={{ height: 24 }}/>
+          </div>
+        )}
+      </div>
+
+      <BottomTabBar active="byuppini" forceDark showQR={false} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={() => {}}/>
+
+      {/* Level-up */}
+      {levelUp && (
+        <BypSheet center onClose={() => setLevelUp(false)}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
+            background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.35), transparent 60%), ${BYP.surf}`,
+            border: '1px solid rgba(255,90,130,.4)', borderRadius: 28, padding: '30px 24px 24px',
+            boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)' }}>
+            <img src="assets/mascot-happy.png" onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
+              style={{ width: 130, margin: '-70px 0 4px', filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.5))' }}/>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: BYP.lime, textTransform: 'uppercase' }}>Level up</div>
+            <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.4 · {BYP_LEVEL_NAMES[4]}</div>
+            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>Hai sbloccato il moltiplicatore <b style={{ color: '#fff' }}>×1,5</b> sui byuppini</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(206,255,0,.12)', border: '1px solid rgba(206,255,0,.35)',
+              color: BYP.lime, fontWeight: 800, fontSize: 13, padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>🎁 +250 byuppini bonus</div>
+            <BypCta onClick={() => setLevelUp(false)}>Continua</BypCta>
+          </div>
+        </BypSheet>
+      )}
+
+      {/* Dettaglio traguardo */}
+      {ach && (
+        <BypSheet center onClose={() => setAch(null)}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 330, textAlign: 'center',
+            background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.35), transparent 60%), ${BYP.surf}`,
+            border: '1px solid rgba(255,90,130,.4)', borderRadius: 28, padding: '26px 22px 22px',
+            boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)' }}>
+            <span style={{ display: 'flex', width: 116, height: 116, margin: '0 auto 12px', borderRadius: 999, padding: 4,
+              background: ach.s === 'done' ? 'linear-gradient(155deg,#ff3d6e,#b81c47)'
+                : ach.s === 'prog' ? `conic-gradient(${BYP.lime} ${Math.round((ach.cur / ach.goal) * 360)}deg, rgba(246,236,233,.1) 0deg)`
+                : 'rgba(246,236,233,.08)',
+              alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ display: 'flex', width: '100%', height: '100%', borderRadius: 999,
+                background: ach.s === 'done' ? 'linear-gradient(155deg,#4a2331,#7d1d3f)' : '#1c191d',
+                alignItems: 'center', justifyContent: 'center', fontSize: 52,
+                filter: ach.s === 'lock' ? 'grayscale(1)' : 'none' }}>{ach.e}</span>
+            </span>
+            <h3 style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 22, margin: '2px 0 4px' }}>{ach.t}</h3>
+            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 14 }}>{ach.d}</div>
+            {ach.s === 'prog' && (
+              <div style={{ margin: '0 8px 16px' }}>
+                <div style={{ height: 8, borderRadius: 999, background: 'rgba(246,236,233,.1)', overflow: 'hidden' }}>
+                  <span style={{ display: 'block', height: '100%', width: `${Math.round((ach.cur / ach.goal) * 100)}%`, borderRadius: 999,
+                    background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)` }}/>
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: BYP.muted, marginTop: 6 }}>
+                  {ach.cur} di {ach.goal} {ach.unit} · {Math.round((ach.cur / ach.goal) * 100)}%
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'inline-flex', gap: 7, alignItems: 'center', background: 'rgba(206,255,0,.12)',
+              border: '1px solid rgba(206,255,0,.35)', color: BYP.lime, fontWeight: 800, fontSize: 13,
+              padding: '8px 15px', borderRadius: 999, marginBottom: 16 }}>
+              🪙 {ach.s === 'done' ? `+${ach.pts} riscattati` : `+${ach.pts} byuppini`}
+            </div>
+            <BypCta onClick={() => setAch(null)}>{ach.s === 'done' ? 'Fantastico' : 'Continua così'}</BypCta>
+          </div>
+        </BypSheet>
+      )}
+
+      {/* Info byuppini */}
+      {info && (
+        <BypSheet center onClose={() => setInfo(false)}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 330, textAlign: 'center',
+            background: BYP.surf, border: `1px solid ${BYP.line}`, borderRadius: 28, padding: '26px 22px 22px',
+            boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.1)' }}>
+            <img src="assets/coin.png" alt="" style={{ width: 64, marginBottom: 8 }}/>
+            <h3 style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 20, margin: '2px 0 8px' }}>Come funzionano</h3>
+            <div style={{ fontSize: 13, color: BYP.muted, lineHeight: 1.5, marginBottom: 16, textAlign: 'left' }}>
+              <p style={{ margin: '0 0 8px' }}>🪙 Guadagni byuppini a ogni ordine, prenotazione e sfida completata.</p>
+              <p style={{ margin: '0 0 8px' }}>🎁 Li riscatti in credito, gadget ed esperienze nei locali.</p>
+              <p style={{ margin: 0 }}>🗺 Salendo di livello sblocchi moltiplicatori e premi esclusivi come la byup card.</p>
+            </div>
+            <BypCta onClick={() => setInfo(false)}>Ho capito</BypCta>
+          </div>
+        </BypSheet>
+      )}
+
+      <BypConfetti burst={burst}/>
+    </div>
+  );
+}
+
+// ─── Roadmap · mappa-mondo livelli (portata da byuppini-roadmap.html) ───────
+const ROAD_CUR = 3;
+const ROAD_P = [
+  { lvl: 1, left: 0.5637, top: 0.8095, w: 0.3727, pcx: 0.7373, pcy: 0.8999, pw: 0.3785 },
+  { lvl: 2, left: 0.1327, top: 0.7226, w: 0.2975, pcx: 0.2808, pcy: 0.7955, pw: 0.3299 },
+  { lvl: 3, left: 0.5984, top: 0.6183, w: 0.2789, pcx: 0.7373, pcy: 0.6932, pw: 0.3067 },
+  { lvl: 4, left: 0.1308, top: 0.5166, w: 0.3171, pcx: 0.2888, pcy: 0.6025, pw: 0.3495 },
+  { lvl: 5, left: 0.5745, top: 0.4101, w: 0.3264, pcx: 0.7371, pcy: 0.4925, pw: 0.36 },
+  { lvl: 6, left: 0.1677, top: 0.3296, w: 0.2998, pcx: 0.317, pcy: 0.4154, pw: 0.331 },
+  { lvl: 7, left: 0.5788, top: 0.2167, w: 0.3009, pcx: 0.7286, pcy: 0.3044, pw: 0.331 },
+  { lvl: 8, left: 0.1856, top: 0.1122, w: 0.2917, pcx: 0.3303, pcy: 0.2415, pw: 0.3194 },
+];
+const ROAD_RA = 864 / 2161;
+// Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta
+// brand, quelli futuri in grigio chiaro.
+const ROAD_PATHS = (() => {
+  const pts = ROAD_P.slice().sort((a, b) => a.lvl - b.lvl);
+  const seg = (a, b) => {
+    const ax = a.pcx * 864, ay = a.pcy * 2161, bx = b.pcx * 864, by = b.pcy * 2161;
+    const my = (ay + by) / 2;
+    return 'M ' + ax + ' ' + ay + ' Q ' + ax + ' ' + my + ' ' + ((ax + bx) / 2) + ' ' + my +
+           ' Q ' + bx + ' ' + my + ' ' + bx + ' ' + by + ' ';
+  };
+  let done = '', todo = '';
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (pts[i + 1].lvl <= ROAD_CUR) done += seg(pts[i], pts[i + 1]);
+    else todo += seg(pts[i], pts[i + 1]);
+  }
+  return { done, todo };
+})();
+
+function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }) {
+  const sceneRef = useRef(null);
+  const worldRef = useRef(null);
+  const [imgOk, setImgOk] = useState(false);
+  const pc = (v) => (v * 100).toFixed(3) + '%';
+
+  useEffect(() => {
+    if (!imgOk) return;
+    const scene = sceneRef.current, world = worldRef.current;
+    if (!scene || !world) return;
+    const cur = ROAD_P.find(p => p.lvl === ROAD_CUR);
+    const y = cur.pcy * world.getBoundingClientRect().height - scene.clientHeight * 0.48;
+    scene.scrollTop = Math.max(0, y);
+  }, [imgOk]);
+
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', fontFamily: BK.TYPE.sans, color: BYP.text, background: '#0f0b0e' }}>
+      <style>{BYP_CSS}</style>
+
+      {/* Topbar sfumata */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 22, display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', padding: '16px 16px 26px', paddingTop: 'calc(var(--byup-sat, 54px) + 8px)',
+        background: 'linear-gradient(180deg, rgba(15,9,12,.95) 40%, rgba(15,9,12,.55) 70%, rgba(15,9,12,0))' }}>
+        <button onClick={onBack} style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${BYP.line}`,
+          background: 'rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: '#fff' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 17, margin: 0, lineHeight: 1 }}>Il tuo percorso</h1>
+          <div style={{ fontSize: 11, color: BYP.muted, marginTop: 2 }}>Sali di livello, sblocca i locali</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 14,
+          color: '#141414', background: 'linear-gradient(180deg,#ffe27a,#ffcf4a)', padding: '7px 12px', borderRadius: 999,
+          boxShadow: '0 4px 12px -4px rgba(255,207,74,.7)' }}>
+          <img src="assets/coin.png" alt="" style={{ width: 16, height: 16 }}/>1.240
+        </div>
+      </div>
+
+      {/* Scena scrollabile */}
+      <div ref={sceneRef} className="byp-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
+        <div ref={worldRef} style={{ position: 'relative', width: '140%', marginLeft: '-21.4%' }}>
+          <img src="assets/road-terrain.png" alt="" onLoad={() => setImgOk(true)}
+            style={{ display: 'block', width: '100%', height: 'auto', userSelect: 'none' }}/>
+          <svg viewBox="0 0 864 2161" preserveAspectRatio="none"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
+            <path d={ROAD_PATHS.todo} fill="none" stroke="rgba(255,255,255,.42)" strokeWidth="9" strokeLinecap="round" strokeDasharray="2 26"/>
+            <path d={ROAD_PATHS.done} fill="none" stroke="rgba(227,36,89,.35)" strokeWidth="17" strokeLinecap="round" strokeDasharray="2 26"/>
+            <path d={ROAD_PATHS.done} fill="none" stroke="#e32459" strokeWidth="9" strokeLinecap="round" strokeDasharray="2 26"/>
+          </svg>
+          {ROAD_P.map((p) => {
+            const state = p.lvl < ROAD_CUR ? 'done' : (p.lvl === ROAD_CUR ? 'cur' : 'lock');
+            const sw = p.pw * 1.02;
+            return (
+              <React.Fragment key={p.lvl}>
+                <div style={{ position: 'absolute', transform: 'translate(-50%,-50%)', borderRadius: '50%', zIndex: 2,
+                  pointerEvents: 'none', left: pc(p.pcx), top: pc(p.pcy + 0.004), width: pc(sw), height: pc(sw * 0.5 * ROAD_RA),
+                  background: 'radial-gradient(closest-side, rgba(30,10,18,.5), rgba(30,10,18,.22) 55%, transparent 78%)' }}/>
+                <img src={`assets/venue-${p.lvl}.png`} alt=""
+                  style={{ position: 'absolute', zIndex: 3, left: pc(p.left), top: pc(p.top), width: pc(p.w),
+                    filter: state === 'lock'
+                      ? 'grayscale(.72) brightness(.62) drop-shadow(0 8px 10px rgba(20,6,14,.5))'
+                      : 'drop-shadow(0 10px 12px rgba(20,6,14,.45))',
+                    animation: state === 'cur' ? 'bypBob 3.4s ease-in-out infinite' : 'none' }}/>
+                <div style={{ position: 'absolute', transform: 'translate(-50%,-50%)', zIndex: 4, display: 'flex',
+                  flexDirection: 'column', alignItems: 'center', gap: 3, pointerEvents: 'none',
+                  left: pc(p.pcx), top: pc(p.pcy + p.pw * 0.48 * ROAD_RA) }}>
+                  <div style={{ position: 'relative', width: 34, height: 34, borderRadius: '50%', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', fontFamily: BK.TYPE.display, fontWeight: 700,
+                    fontSize: 15, color: state === 'lock' ? 'rgba(255,255,255,.7)' : '#fff',
+                    border: `2.5px solid ${state === 'lock' ? 'rgba(255,255,255,.55)' : '#fff'}`,
+                    background: state === 'done' ? 'linear-gradient(180deg,#8bd400,#5fa000)'
+                      : state === 'cur' ? 'linear-gradient(180deg,#ff3d6e,#e32459)'
+                      : 'linear-gradient(180deg,#5b5560,#3c383f)',
+                    boxShadow: '0 5px 12px -4px rgba(0,0,0,.6)',
+                    animation: state === 'cur' ? 'bypBadgePulse 1.8s ease-in-out infinite' : 'none' }}>
+                    {state === 'done' ? '✓' : p.lvl}
+                    {state === 'lock' && <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15,
+                      borderRadius: '50%', background: '#2a262b', border: '1.5px solid #fff', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', fontSize: 8 }}>🔒</span>}
+                  </div>
+                  <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 12,
+                    color: state === 'lock' ? 'rgba(255,255,255,.7)' : '#fff', whiteSpace: 'nowrap',
+                    background: 'rgba(20,10,16,.72)', padding: '2.5px 9px', borderRadius: 999,
+                    border: '1px solid rgba(255,255,255,.14)' }}>LIV.{p.lvl} · {BYP_LEVEL_NAMES[p.lvl]}</div>
+                </div>
+                {state === 'cur' && (
+                  <div style={{ position: 'absolute', transform: 'translate(-50%,-100%)', zIndex: 6, display: 'flex',
+                    flexDirection: 'column', alignItems: 'center', pointerEvents: 'none',
+                    left: pc(p.pcx - 0.155), top: pc(p.pcy + p.pw * 0.30 * ROAD_RA) }}>
+                    <div style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 11, color: '#141414',
+                      background: BYP.lime, padding: '4px 10px', borderRadius: 999,
+                      boxShadow: '0 5px 14px -4px rgba(206,255,0,.75)', whiteSpace: 'nowrap',
+                      animation: 'bypBob 2.6s ease-in-out infinite' }}>SEI QUI</div>
+                    <img src="assets/mascot-wave.png" alt="" style={{ width: 74, marginTop: 2,
+                      filter: 'drop-shadow(0 8px 12px rgba(20,6,14,.5))', animation: 'bypBob 3.2s ease-in-out infinite' }}/>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+        {/* Inset per goal card + bottom bar: terreno specchiato e sfumato,
+            così la mappa sembra un'unica immagine continua */}
+        <div aria-hidden style={{ position: 'relative', height: 236, overflow: 'hidden' }}>
+          <img src="assets/road-terrain.png" alt="" style={{
+            position: 'absolute', top: 0, left: '-21.4%', width: '140%',
+            transform: 'scaleY(-1)', filter: 'blur(4px) brightness(.82) saturate(.95)',
+          }}/>
+          <div style={{ position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(15,11,14,0) 0%, rgba(15,11,14,.28) 55%, rgba(15,11,14,.82) 100%)' }}/>
+        </div>
+      </div>
+
+      {/* Goal card — glass, cliccabile, sopra la bottom bar */}
+      <button className="bk-press" onClick={onByuppini} style={{
+        position: 'absolute', left: 14, right: 14, bottom: 'calc(102px + env(safe-area-inset-bottom, 0px))', zIndex: 21,
+        display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer',
+        background: 'linear-gradient(135deg, rgba(84,17,43,.55), rgba(24,10,16,.62))',
+        border: '1px solid rgba(255,120,155,.42)', borderRadius: 22, padding: '13px 14px',
+        backdropFilter: 'blur(16px) saturate(150%)', WebkitBackdropFilter: 'blur(16px) saturate(150%)',
+        boxShadow: '0 22px 44px -16px rgba(227,36,89,.5), inset 0 1px 0 rgba(255,255,255,.18)',
+        color: BYP.text, overflow: 'hidden',
+      }}>
+        <span aria-hidden style={{ position: 'absolute', top: 0, left: '-60%', width: '40%', height: '100%',
+          background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.10), transparent)',
+          transform: 'skewX(-18deg)', animation: 'bypSweep 4.4s ease-in-out infinite', pointerEvents: 'none' }}/>
+        <img src="assets/mascot-coin.png" alt="" onError={(e) => { e.currentTarget.src = 'assets/coin.png'; }}
+          style={{ width: 54, height: 54, objectFit: 'contain', flex: 'none',
+            filter: 'drop-shadow(0 8px 14px rgba(0,0,0,.45))', animation: 'bypBob 3.4s ease-in-out infinite' }}/>
+        <span style={{ flex: 1, minWidth: 0, display: 'block' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <b style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 14.5 }}>Prossimo: {BYP_LEVEL_NAMES[4]} · LIV.4</b>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#141414', background: 'linear-gradient(180deg,#ffe27a,#ffcf4a)',
+              padding: '2.5px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}>🎁 ×1,5 punti</span>
+          </span>
+          <span style={{ display: 'block', fontSize: 11.5, color: 'rgba(246,236,233,.75)', marginTop: 2 }}>
+            Ti mancano <b style={{ color: BYP.lime }}>640 byuppini</b> per sbloccare il Ristorante</span>
+          <span style={{ display: 'block', height: 7, borderRadius: 999, background: 'rgba(255,255,255,.14)', marginTop: 8, overflow: 'hidden', position: 'relative' }}>
+            <i style={{ display: 'block', height: '100%', width: '64%', borderRadius: 999,
+              background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)`, position: 'relative' }}>
+              <i style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent)',
+                transform: 'translateX(-100%)', animation: 'bypShine 2.6s ease-in-out infinite' }}/>
+            </i>
+          </span>
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(246,236,233,.65)" strokeWidth="2.4"
+          strokeLinecap="round" style={{ flex: 'none' }}><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
+
+      <BottomTabBar active="byuppini" forceDark showQR={false} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={onByuppini}/>
+    </div>
+  );
+}
+
 function App({ recoveryArmed = false }) {
   const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
@@ -2497,7 +3389,10 @@ function App({ recoveryArmed = false }) {
   const [navStack, setNavStack] = useState(() => {
     try {
       const p = new URLSearchParams(window.location.search).get('page');
-      if (p === 'venue' || p === 'profile' || p === 'map' || p === 'posta') return ['home', p];
+      if (p === 'venue' || p === 'profile' || p === 'map' || p === 'posta' || p === 'search') return ['home', p];
+      if (p === 'byuppini') return ['home', 'byuppini'];
+      if (p === 'menu') return ['home', 'menu'];
+      if (p === 'roadmap') return ['home', 'byuppini', 'roadmap'];
       if (p === 'home-empty') return ['home-empty'];
     } catch {}
     return ['home'];
@@ -2510,6 +3405,14 @@ function App({ recoveryArmed = false }) {
     setNavStack(s => s.length > 1 ? s.slice(0, -1) : ['home']);
   };
   const resetToHome = () => setNavStack(['home']);
+  // Router globale: le BottomTabBar renderizzate da altri file (profile, map)
+  // navigano via setPage senza reload. Riassegnato a ogni render.
+  useEffect(() => {
+    window.__byupNav = {
+      go: setPage, home: resetToHome,
+      venue: () => { setActiveVenue(v => v || { name: 'Al Settembrini', _from: 'menu' }); setPage('venue'); },
+    };
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [detail, setDetail] = useState(null);
   const [activeVenue, setActiveVenue] = useState(() => {
@@ -2541,7 +3444,8 @@ function App({ recoveryArmed = false }) {
     if (!qrOpen) return;
     const t = setTimeout(() => {
       try { sessionStorage.removeItem('byup_menu_from'); } catch {}
-      window.location.href = 'byup Menu.html';
+      setQrOpen(false);
+      setPage('menu');
     }, 1400);
     return () => clearTimeout(t);
   }, [qrOpen]);
@@ -2601,6 +3505,34 @@ function App({ recoveryArmed = false }) {
 
   const activeFilterCount = Object.values(filters).filter(v => Array.isArray(v) ? v.length > 0 : Boolean(v)).length;
 
+  if (page === 'menu') {
+    const MA = window.MenuApp;
+    return MA ? <MA/> : null;
+  }
+  if (page === 'byuppini') {
+    return (
+      <ByuppiniScreen
+        onBack={goBack}
+        onRoadmap={() => setPage('roadmap')}
+        onHome={resetToHome}
+        onProfile={() => setPage('profile')}
+        onSearch={() => setPage('search')}
+        onQR={() => setQrOpen(true)}
+      />
+    );
+  }
+  if (page === 'roadmap') {
+    return (
+      <RoadmapScreen
+        onBack={goBack}
+        onByuppini={() => setPage('byuppini')}
+        onHome={resetToHome}
+        onProfile={() => setPage('profile')}
+        onSearch={() => setPage('search')}
+        onQR={() => setQrOpen(true)}
+      />
+    );
+  }
   if (page === 'search') {
     return (
       <>
@@ -2610,6 +3542,9 @@ function App({ recoveryArmed = false }) {
           onOpenFilters={() => setFiltersOpen(true)}
           activeFilterCount={activeFilterCount}
         />
+        <BottomTabBar active="search" onHome={resetToHome}
+          onProfile={() => setPage('profile')} onSearch={() => setPage('search')}
+          onQR={() => setQrOpen(true)}/>
         <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)}
           filters={filters} setFilters={setFilters}/>
       </>
@@ -2624,6 +3559,7 @@ function App({ recoveryArmed = false }) {
           onOpenFilters={() => setFiltersOpen(true)}
           activeFilterCount={activeFilterCount}
           onOpenVenue={(v) => { setActiveVenue({ ...v, _from: 'results' }); setPage('venue'); }}
+          onMenu={() => { try { sessionStorage.setItem('byup_menu_from', 'venue'); } catch {} setPage('menu'); }}
         />
         <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)}
           filters={filters} setFilters={setFilters}/>
@@ -2649,7 +3585,7 @@ function App({ recoveryArmed = false }) {
         />}
         <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)}
           filters={filters} setFilters={setFilters}/>
-        <BottomTabBar active="home" onHome={resetToHome} onProfile={() => setPage('profile')} showQR={false}/>
+        <BottomTabBar active="home" onHome={resetToHome} onProfile={() => setPage('profile')} onSearch={() => setPage('search')} showQR={false}/>
       </>
     );
   }
@@ -2670,7 +3606,7 @@ function App({ recoveryArmed = false }) {
       <>
         {VS && <VS venue={activeVenue}
           onBack={goBack}
-          onMenu={() => { window.location.href = 'byup Menu.html?from=venue'; }}
+          onMenu={() => { try { sessionStorage.setItem('byup_menu_from', 'venue'); } catch {} setPage('menu'); }}
           onBook={() => setBookingOpen(true)}
           onHome={resetToHome}
           onProfile={() => setPage('profile')}
@@ -2685,7 +3621,7 @@ function App({ recoveryArmed = false }) {
     const BS = window.BookingSheet;
     return (
       <div style={{
-        width: '100%', height: '100%', background: '#fff', position: 'relative',
+        width: '100%', height: '100%', background: SURF, position: 'relative',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
       }}>
         <DisponibiliScreen
@@ -2707,6 +3643,7 @@ function App({ recoveryArmed = false }) {
         <BottomTabBar active="home"
           onHome={resetToHome}
           onProfile={() => setPage('profile')}
+          onSearch={() => setPage('search')}
           onQR={() => setQrOpen(true)}/>
 
         {BS && <BS open={bookingOpen} venue={activeVenue} defaultTime={bookingSlot}
@@ -2742,7 +3679,7 @@ function App({ recoveryArmed = false }) {
       {/* Sticky header (over status bar background) */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 15,
-        height: 60,
+        height: 'calc(var(--byup-sat, 54px) + 6px)',
         background: scrolled ? (T.dark ? 'rgba(24,22,20,0.82)' : 'rgba(251,244,241,0.82)') : 'transparent',
         backdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
         WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(160%)' : 'none',
@@ -2754,8 +3691,8 @@ function App({ recoveryArmed = false }) {
       {/* Scrollable content area */}
       <div ref={scrollRef} data-byup-scroll style={{
         flex: 1, overflowY: 'auto', overflowX: 'hidden',
-        paddingTop: 60,
-        paddingBottom: 126,
+        paddingTop: 'calc(var(--byup-sat, 54px) + 6px)',
+        paddingBottom: 'calc(126px + env(safe-area-inset-bottom, 0px))',
       }}>
         <HomeSections
           topBar={(recoveryBannerOpen || savedBooking) ? (
@@ -2796,6 +3733,7 @@ function App({ recoveryArmed = false }) {
       <BottomTabBar active="home"
         onHome={resetToHome}
         onProfile={() => setPage('profile')}
+        onSearch={() => setPage('search')}
         onQR={() => setQrOpen(true)}/>
 
       {/* Mascotte — prima visita della Home */}
@@ -2813,7 +3751,7 @@ function App({ recoveryArmed = false }) {
           setActiveVenue(v);
           setPage('venue');
         }}
-        onMenu={() => { setDetail(null); window.location.href = 'byup Menu.html?from=venue'; }}
+        onMenu={() => { setDetail(null); try { sessionStorage.setItem('byup_menu_from', 'venue'); } catch {} setPage('menu'); }}
         onBook={() => { setBookingOpen(true); }}/>
 
       {/* Booking sheet (shared with venue page) */}
@@ -2922,23 +3860,39 @@ function SectionHeader({ title, action, onAction }) {
 const TABBAR_PATH = 'M0 24C0 10.745 10.745 0 24 0H135C141.667 0 148.496 1.74568 154 8C159.504 14.2543 162.5 18 170 22C177.5 26 185 28 195 28C205 28 213 25.5 220 22C227 18.5 231.989 14.6813 237 8.00003C242.011 1.31871 248.333 0 255 0H366C379.255 0 390 10.745 390 24V88H0V24Z';
 const TABBAR_NOTCH_DEPTH_PCT = (28 / 88) * 100; // 31.818…% — deepest point of the notch
 
-function BottomTabBar({ active = 'home', onHome, onProfile, onQR, showQR = true }) {
+function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini, onQR, showQR = true, forceDark = false }) {
   const [T] = BK.useByupTheme();
+  const dark = forceDark || T.dark;
+  // Fallback: dentro la SPA usa il router globale (__byupNav), fuori (menu app)
+  // torna alla Home con deep-link. Mai piu' pagine HTML separate.
+  const goByuppini = onByuppini || (() => {
+    if (window.__byupNav) window.__byupNav.go('byuppini');
+    else window.location.href = 'byup Home.html?page=byuppini';
+  });
+  const goSearch = onSearch || (() => {
+    if (window.__byupNav) window.__byupNav.go('search');
+    else window.location.href = 'byup Home.html?page=search';
+  });
   return (
     <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 0,
+      position: 'absolute', left: 0, right: 0, bottom: 'env(safe-area-inset-bottom, 0px)',
       aspectRatio: '390 / 88',
       zIndex: 20,
-      filter: T.dark
+      filter: dark
         ? 'drop-shadow(0 -3px 14px rgba(0,0,0,0.4)) drop-shadow(0 12px 30px rgba(0,0,0,0.5))'
         : 'drop-shadow(0 -3px 14px rgba(227,36,89,0.07)) drop-shadow(0 12px 30px rgba(77,18,46,0.16))',
     }}>
+      {/* Filler sotto la barra: copre l'inset home-indicator su iPhone */}
+      <div aria-hidden style={{
+        position: 'absolute', left: 0, right: 0, top: '99%', height: 'calc(env(safe-area-inset-bottom, 0px) + 2px)',
+        background: dark ? '#201e1c' : 'rgba(255,255,255,0.96)',
+      }}/>
       {/* Always the same shape — notch visible whether QR is shown or not */}
       <svg width="100%" height="100%" viewBox="0 0 390 88" preserveAspectRatio="none" style={{
         position: 'absolute', inset: 0, display: 'block',
       }}>
-        <path d={TABBAR_PATH} fill={T.dark ? '#201e1c' : 'rgba(255,255,255,0.96)'}/>
-        <path d={TABBAR_PATH} fill="none" stroke={T.dark ? 'rgba(251,234,230,0.10)' : 'rgba(255,255,255,0.9)'} strokeWidth="1"/>
+        <path d={TABBAR_PATH} fill={dark ? '#201e1c' : 'rgba(255,255,255,0.96)'}/>
+        <path d={TABBAR_PATH} fill="none" stroke={dark ? 'rgba(251,234,230,0.10)' : 'rgba(255,255,255,0.9)'} strokeWidth="1"/>
       </svg>
 
       {/* Tab buttons — same positioning and spacer on every page */}
@@ -2947,9 +3901,15 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onQR, showQR = true 
         top: `calc(${TABBAR_NOTCH_DEPTH_PCT}% - 10px)`,
         display: 'flex', alignItems: 'flex-start',
       }}>
-        <TabBtn label="Home" icon={Icon.Home} active={active === 'home'} onClick={onHome}/>
-        <div style={{ width: 50 }}/>
-        <TabBtn label="Profilo" icon={Icon.User} active={active === 'profile'} onClick={onProfile}/>
+        <div style={{ flex: 1, display: 'flex' }}>
+          <TabBtn label="Home" icon={Icon.Home} active={active === 'home'} onClick={onHome} forceDark={forceDark}/>
+          <TabBtn label="Byuppini" icon={Icon.Coin} active={active === 'byuppini'} onClick={goByuppini} forceDark={forceDark}/>
+        </div>
+        <div style={{ width: 88, flex: 'none' }}/>
+        <div style={{ flex: 1, display: 'flex' }}>
+          <TabBtn label="Cerca" icon={Icon.Search} active={active === 'search'} onClick={goSearch} forceDark={forceDark}/>
+          <TabBtn label="Profilo" icon={Icon.User} active={active === 'profile'} onClick={onProfile} forceDark={forceDark}/>
+        </div>
       </div>
 
       {/* QR button — FAB coral rialzato, micro-bounce */}
@@ -2974,16 +3934,16 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onQR, showQR = true 
 }
 window.BottomTabBar = BottomTabBar;
 
-function TabBtn({ label, icon: I, active, onClick }) {
+function TabBtn({ label, icon: I, active, onClick, forceDark = false }) {
   const [T] = BK.useByupTheme();
-  const c = active ? T.primary : T.textFaint;
+  const c = active ? (forceDark ? '#ff3d6e' : T.primary) : (forceDark ? 'rgba(246,236,233,.55)' : T.textFaint);
   return (
     <button onClick={() => { BK.haptic.selection(); onClick?.(); }} style={{
       flex: 1, background: 'none', border: 'none', padding: '4px 0',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
       cursor: 'pointer', fontFamily: BK.TYPE.sans,
     }}>
-      <I color={c} fill={active ? T.primary : 'none'}/>
+      <I color={c} fill={active ? c : 'none'}/>
       <span style={{ fontSize: 11.5, fontWeight: 700, color: c }}>{label}</span>
     </button>
   );
@@ -3011,6 +3971,8 @@ function ShortcutsPanel() {
     { id: 'home',       label: 'Home',                  href: 'byup Home.html' },
     { id: 'home-empty', label: 'Home — nessun locale',  href: 'byup Home.html?page=home-empty' },
     { id: 'map',        label: 'Mappa',                 href: 'byup Home.html?page=map' },
+    { id: 'byuppini',   label: 'Byuppini',              href: 'byup Home.html?page=byuppini' },
+    { id: 'roadmap',    label: 'Roadmap livelli',       href: 'byup Home.html?page=roadmap' },
     { id: 'posta',      label: 'Posta',                 href: 'byup Home.html?page=posta' },
   ];
   const menuItems = [
@@ -3041,7 +4003,7 @@ function ShortcutsPanel() {
   return (
     <div className="byup-screen-nav" style={{
       position: 'fixed', top: 20, right: 20, zIndex: 100,
-      background: '#fff', borderRadius: 14, padding: 8,
+      background: SURF, borderRadius: 14, padding: 8,
       boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
       display: 'flex', flexDirection: 'column', gap: 4,
       fontFamily: '-apple-system, system-ui, sans-serif',
@@ -3058,7 +4020,7 @@ function ShortcutsPanel() {
             <a key={v.id} href={`byup Home.html?page=venue&venue=${v.id}`} title={v.desc} style={{
               flex: v.id === 'original' ? 1.6 : 1,
               padding: '6px 4px', fontSize: 12, borderRadius: 8,
-              background: active ? '#E32459' : '#f3eef0',
+              background: active ? '#E32459' : TINT,
               color: active ? '#fff' : '#1a1a1a',
               fontWeight: 700, textAlign: 'center', textDecoration: 'none', whiteSpace: 'nowrap',
             }}>{v.label}</a>
@@ -3081,24 +4043,15 @@ function Root() {
   const stored = (() => { try { return localStorage.getItem('byup_auth') === '1'; } catch { return false; } })();
 
   const [authed, setAuthed] = useState(forceAuth ? false : (stored || hasDeepLink));
-  // Permessi (notifiche + posizione): chiesti una sola volta, all'apertura
-  // dell'app subito dopo aver completato login/registrazione in questa sessione.
   const permsDecided = (() => { try { return localStorage.getItem('byup_perms') === '1'; } catch { return false; } })();
   const [permsPending, setPermsPending] = useState(false);
-  // Recupero ordine: si arma SOLO dopo una registrazione, quando i popup permessi
-  // sono finiti. Passato ad <App> che mostra il banner in alto + la voce in Posta.
   const fromRegisterRef = useRef(false);
   const [recoveryArmed, setRecoveryArmed] = useState(false);
   const completeAuth = (opts = {}) => {
     try { localStorage.setItem('byup_auth', '1'); } catch {}
     setAuthed(true);
     fromRegisterRef.current = !!opts.fromRegister;
-    // Dopo una registrazione chiediamo sempre i permessi, anche se erano
-    // già stati decisi in passato; altrimenti solo al primo accesso assoluto.
     if (opts.fromRegister) { try { localStorage.removeItem('byup_perms'); } catch {} }
-    // Dopo una registrazione i permessi sono SEMPRE pendenti (sopra azzeriamo
-    // byup_perms), quindi il recovery si arma in finishPerms quando l'utente li
-    // ha chiusi — mai prima.
     if (!permsDecided || opts.fromRegister) setPermsPending(true);
   };
   const finishPerms = () => {
@@ -3111,7 +4064,7 @@ function Root() {
 
   return (
     <div data-screen-label="byup Home" style={{
-      minHeight: '100vh', background: '#ececec',
+      minHeight: '100vh', background: __BYUP_DARK ? '#0e0d0f' : '#ececec',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '40px 20px',
     }}>

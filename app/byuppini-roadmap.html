@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>byup — Percorso Byuppini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Hanken+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--text:#f6ece9;--muted:rgba(246,236,233,.62);--coral:#e32459;--coralHot:#ff3d6e;--lime:#ceff00;--gold:#ffcf4a;--line:rgba(246,236,233,.13)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:#0d0c0d;font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--text)}
+  .app{position:relative;max-width:460px;min-height:100vh;margin:0 auto;overflow:hidden;display:flex;flex-direction:column;background:#0f0b0e}
+
+  /* TOP BAR */
+  .topbar{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+    padding:16px 16px 26px;background:linear-gradient(180deg,rgba(15,9,12,.92),rgba(15,9,12,.55) 55%,rgba(15,9,12,0));backdrop-filter:blur(2px)}
+  .iconbtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;text-decoration:none;font-size:19px}
+  .tb-title{font-family:'Fredoka';font-weight:600;font-size:17px;margin:0;line-height:1}
+  .tb-sub{font-size:11px;color:var(--muted);margin-top:2px;text-align:center}
+  .balchip{display:flex;align-items:center;gap:6px;font-family:'Fredoka';font-weight:600;font-size:14px;color:#141414;
+    background:linear-gradient(180deg,#ffe27a,var(--gold));padding:7px 12px;border-radius:999px;box-shadow:0 4px 12px -4px rgba(255,207,74,.7)}
+  .balchip .c{width:16px;height:16px;border-radius:999px;background:radial-gradient(circle at 34% 30%,#fff,#e0932b);box-shadow:inset 0 0 0 1.5px #b9791f}
+
+  .scene{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}.scene::-webkit-scrollbar{display:none}
+  .world{position:relative;width:140%;margin-left:-21.4%}
+  .terrain{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+
+  /* path */
+  svg.route{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+  /* contact shadow under each building */
+  .shadow{position:absolute;transform:translate(-50%,-50%);border-radius:50%;z-index:2;pointer-events:none;
+    background:radial-gradient(closest-side,rgba(30,10,18,.5),rgba(30,10,18,.22) 55%,transparent 78%)}
+
+  .venue{position:absolute;z-index:3;filter:drop-shadow(0 10px 12px rgba(20,6,14,.45));transition:transform .15s}
+  .venue.locked{filter:grayscale(.72) brightness(.62) drop-shadow(0 8px 10px rgba(20,6,14,.5))}
+  .venue.cur{animation:breathe 3.4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+  /* level badge chip */
+  .badge{position:absolute;transform:translate(-50%,-50%);z-index:4;display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
+  .badge .num{position:relative;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:'Fredoka';font-weight:700;font-size:15px;color:#fff;border:2.5px solid #fff;
+    box-shadow:0 5px 12px -4px rgba(0,0,0,.6)}
+  .badge.done .num{background:linear-gradient(180deg,#8bd400,#5fa000)}
+  .badge.cur  .num{background:linear-gradient(180deg,var(--coralHot),var(--coral));animation:pulse 1.8s ease-in-out infinite}
+  .badge.lock .num{background:linear-gradient(180deg,#5b5560,#3c383f);border-color:rgba(255,255,255,.55);color:rgba(255,255,255,.7)}
+  @keyframes pulse{0%,100%{box-shadow:0 5px 12px -4px rgba(0,0,0,.6),0 0 0 0 rgba(255,61,110,.5)}50%{box-shadow:0 5px 12px -4px rgba(0,0,0,.6),0 0 0 12px rgba(255,61,110,0)}}
+  .badge .nm{font-family:'Fredoka';font-weight:600;font-size:12px;color:#fff;white-space:nowrap;
+    background:rgba(20,10,16,.72);padding:2.5px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.14)}
+  .badge.lock .nm{color:rgba(255,255,255,.7)}
+  .badge .lk{position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;background:#2a262b;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px}
+
+  /* mascot "SEI QUI" */
+  .heref{position:absolute;transform:translate(-50%,-100%);z-index:6;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+  .herepill{font-family:'Fredoka';font-weight:700;font-size:11px;color:#141414;background:var(--lime);padding:4px 10px;border-radius:999px;
+    box-shadow:0 5px 14px -4px rgba(206,255,0,.75);animation:bob 2.6s ease-in-out infinite;white-space:nowrap}
+  .herepill::after{content:"";display:block;width:0;height:0;margin:0 auto;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--lime)}
+  .heref img{width:74px;margin-top:-2px;filter:drop-shadow(0 8px 12px rgba(20,6,14,.5));animation:bob 3.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+  /* bottom current-goal card */
+  .goal{position:absolute;left:12px;right:12px;bottom:14px;z-index:20;display:flex;align-items:center;gap:12px;
+    background:linear-gradient(180deg,rgba(38,20,30,.94),rgba(24,12,18,.96));border:1px solid rgba(255,90,130,.28);
+    border-radius:20px;padding:12px 14px;backdrop-filter:blur(8px);box-shadow:0 18px 40px -18px rgba(0,0,0,.7)}
+  .goal .gic{width:44px;height:44px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;
+    background:linear-gradient(155deg,#4a2331,#7d1d3f);border:1px solid rgba(239,99,137,.4)}
+  .goal .gt{flex:1;min-width:0}
+  .goal .gt b{font-family:'Fredoka';font-weight:600;font-size:14px}
+  .goal .gt span{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+  .goal .pbar{height:7px;border-radius:999px;background:rgba(255,255,255,.12);margin-top:7px;overflow:hidden}
+  .goal .pbar>i{display:block;height:100%;width:64%;border-radius:999px;background:linear-gradient(90deg,var(--lime),#a6d400)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <a class="iconbtn" href="byuppini-standalone.html">&#8249;</a>
+    <div style="text-align:center"><h1 class="tb-title">Il tuo percorso</h1><div class="tb-sub">Sali di livello, sblocca i locali</div></div>
+    <div class="balchip"><span class="c"></span>1.240</div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="world" id="world">
+      <img class="terrain" src="assets/road-terrain.png" alt="" id="terrain"/>
+      <svg class="route" id="route" viewBox="0 0 864 2161" preserveAspectRatio="none"></svg>
+      <!-- nodes injected here -->
+    </div>
+  </div>
+
+  <div class="goal">
+    <div class="gic">&#127837;</div>
+    <div class="gt">
+      <b>Prossimo: Intenditore &middot; LIV.4</b>
+      <span>Ti mancano <b style="color:var(--lime)">640 byuppini</b> per sbloccare il Ristorante</span>
+      <div class="pbar"><i></i></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var CUR = 3;
+  var NAMES = {1:'Novizio',2:'Esploratore',3:'Buongustaio',4:'Intenditore',5:'Gourmet',6:'Maestro',7:'Leggenda',8:'Icona'};
+  var P = [
+    {lvl:1,left:0.5637,top:0.8095,w:0.3727,pcx:0.7373,pcy:0.8999,pw:0.3785},
+    {lvl:2,left:0.1327,top:0.7226,w:0.2975,pcx:0.2808,pcy:0.7955,pw:0.3299},
+    {lvl:3,left:0.5984,top:0.6183,w:0.2789,pcx:0.7373,pcy:0.6932,pw:0.3067},
+    {lvl:4,left:0.1308,top:0.5166,w:0.3171,pcx:0.2888,pcy:0.6025,pw:0.3495},
+    {lvl:5,left:0.5745,top:0.4101,w:0.3264,pcx:0.7371,pcy:0.4925,pw:0.36},
+    {lvl:6,left:0.1677,top:0.3296,w:0.2998,pcx:0.317,pcy:0.4154,pw:0.331},
+    {lvl:7,left:0.5788,top:0.2167,w:0.3009,pcx:0.7286,pcy:0.3044,pw:0.331},
+    {lvl:8,left:0.1856,top:0.1122,w:0.2917,pcx:0.3303,pcy:0.2415,pw:0.3194}
+  ];
+  var world = document.getElementById('world');
+  var RA = 864/2161; // width/height ratio, to convert x-fractions into y-space
+  var pct = function(v){return (v*100).toFixed(3)+'%';};
+
+  // route (dashed) through plot centroids
+  var route = document.getElementById('route');
+  var pts = P.slice().sort(function(a,b){return a.pcy-b.pcy;});
+  var d = 'M '+(pts[0].pcx*864)+' '+(pts[0].pcy*2161);
+  for(var i=1;i<pts.length;i++){
+    var a=pts[i-1],b=pts[i];
+    var my=(a.pcy+b.pcy)/2*2161;
+    d+=' Q '+(a.pcx*864)+' '+my+' '+((a.pcx+b.pcx)/2*864)+' '+my+' T '+(b.pcx*864)+' '+(b.pcy*2161);
+  }
+  route.innerHTML =
+    '<path d="'+d+'" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="9" stroke-linecap="round" stroke-dasharray="2 26"/>';
+
+  P.forEach(function(p){
+    var state = p.lvl<CUR ? 'done' : (p.lvl===CUR ? 'cur' : 'lock');
+
+    var sh=document.createElement('div');
+    sh.className='shadow';
+    var sw=p.pw*1.02;
+    sh.style.left=pct(p.pcx); sh.style.top=pct(p.pcy+0.004);
+    sh.style.width=pct(sw); sh.style.height=pct(sw*0.5*RA);
+    world.appendChild(sh);
+
+    var im=document.createElement('img');
+    im.className='venue'+(state==='lock'?' locked':'')+(state==='cur'?' cur':'');
+    im.src='assets/venue-'+p.lvl+'.png';
+    im.style.left=pct(p.left); im.style.top=pct(p.top); im.style.width=pct(p.w);
+    world.appendChild(im);
+
+    var bd=document.createElement('div');
+    bd.className='badge '+(state==='done'?'done':state==='cur'?'cur':'lock');
+    bd.style.left=pct(p.pcx); bd.style.top=pct(p.pcy+p.pw*0.48*RA);
+    bd.innerHTML='<div class="num">'+(state==='done'?'&#10003;':p.lvl)+(state==='lock'?'<span class="lk">&#128274;</span>':'')+'</div>'+
+                 '<div class="nm">'+NAMES[p.lvl]+'</div>';
+    world.appendChild(bd);
+
+    if(state==='cur'){
+      var hr=document.createElement('div');
+      hr.className='heref';
+      hr.style.left=pct(p.pcx-0.155);
+      hr.style.top=pct(p.pcy+p.pw*0.30*RA);
+      hr.innerHTML='<div class="herepill">SEI QUI</div><img src="assets/mascot-wave.png" alt=""/>';
+      world.appendChild(hr);
+    }
+  });
+
+  window.addEventListener('load',function(){
+    var scene=document.getElementById('scene');
+    var cur=P.find(function(p){return p.lvl===CUR;});
+    var y=cur.pcy*world.getBoundingClientRect().height - scene.clientHeight*0.52;
+    scene.scrollTop=Math.max(0,y);
+  });
+</script>
+</body>
+</html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               

@@ -151,14 +151,22 @@ function IOSDevice({
         background: dark ? '#000' : '#F2F2F7',
         fontFamily: '-apple-system, system-ui, sans-serif',
         WebkitFontSmoothing: 'antialiased',
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        '--byup-sat': 'max(env(safe-area-inset-top, 0px), 12px)',
       }}>
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           {title !== undefined && <IOSNavBar title={title} dark={dark} />}
           <div style={{ flex: 1, overflow: 'auto', position: 'relative' }}>{children}</div>
           {keyboard && <IOSKeyboard dark={dark} />}
         </div>
+        {/* Striscia blur sopra la status bar: l'app va a tutto schermo e i
+            simboli di sistema (ora, batteria) restano leggibili sopra il blur. */}
+        <div aria-hidden style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2000,
+          height: 'env(safe-area-inset-top, 0px)', pointerEvents: 'none',
+          backdropFilter: 'blur(14px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+          background: dark ? 'rgba(18,16,18,0.35)' : 'rgba(251,244,241,0.35)',
+        }}/>
       </div>
     );
   }
@@ -169,6 +177,7 @@ function IOSDevice({
       boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
       fontFamily: '-apple-system, system-ui, sans-serif',
       WebkitFontSmoothing: 'antialiased',
+      '--byup-sat': '54px',
     }}>
       {/* dynamic island */}
       <div style={{

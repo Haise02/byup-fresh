@@ -90,7 +90,7 @@ function AllergensView({ onBack, prefs, setPrefs }) {
       </div>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '10px 12px', background: bg, borderRadius: 10,
+        padding: '10px 12px', background: __BYUP_DK_X ? TINT_X : bg, borderRadius: 10,
         borderLeft: `3px solid ${color}`,
       }}>
         <span style={{ fontSize: 16 }}>{icon}</span>
@@ -129,7 +129,7 @@ function AllergensView({ onBack, prefs, setPrefs }) {
             <button key={d.id} onClick={() => toggle('diets', d.id)} style={{
               padding: '9px 16px 9px 12px', borderRadius: 999,
               border: `1.5px solid ${on ? PINK_X : '#E0DADC'}`,
-              background: on ? '#FCE9EE' : '#F8F5F6',
+              background: on ? CORALSURF_X : TINT_X,
               color: on ? PINK_X : TEXT_X,
               fontSize: 13.5, fontWeight: on ? 700 : 400,
               fontFamily: 'inherit', cursor: 'pointer',
@@ -396,7 +396,7 @@ function PagamentiView({ onBack, startAdd = false }) {
             padding: '8px 20px 34px', zIndex: 21,
             animation: 'confirmUp 0.28s cubic-bezier(0.32,0.72,0,1)',
           }}>
-            <div style={{ width: 40, height: 4, background: '#E0DADC', borderRadius: 999, margin: '8px auto 20px' }}/>
+            <div style={{ width: 40, height: 4, background: MUTESURF_X, borderRadius: 999, margin: '8px auto 20px' }}/>
             <div style={{ fontSize: 16, fontWeight: 700, color: TEXT_X, marginBottom: 6 }}>Rimuovi metodo di pagamento</div>
             <div style={{ fontSize: 13.5, color: MUTED_X, marginBottom: 24, lineHeight: 1.5 }}>
               Sei sicuro di voler rimuovere questa carta? L'operazione non è reversibile.
@@ -757,7 +757,7 @@ function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onB
               onChange={e => setValues(v => ({ ...v, [i]: e.target.value }))}
               style={{
                 width: '100%', padding: '13px 14px', boxSizing: 'border-box',
-                background: f.readOnly ? '#F0EEF0' : '#F8F5F6',
+                background: f.readOnly ? '#F0EEF0' : TINT_X,
                 border: `1.5px solid transparent`,
                 borderRadius: 12, fontSize: 15, color: f.readOnly ? MUTED_X : TEXT_X,
                 fontFamily: 'inherit', outline: 'none',
@@ -869,7 +869,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
     }}>
       {iconSvg && (
-        <div style={{ width: 32, height: 32, borderRadius: 11, flexShrink: 0, background: iconBg || '#FCE9EE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: 11, flexShrink: 0, background: iconBg || CORALSURF_X, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke={iconColor || PINK_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {iconSvg}
@@ -900,7 +900,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   };
   const QuickCard = ({ label, sub, img, iconSvg, iconColor, tint, onClick, delay = 0 }) => (
     <button className="bk-press" onClick={() => { try { window.ByupKit && window.ByupKit.haptic.selection(); } catch {} onClick && onClick(); }} style={{
-      background: __BYUP_DK_X ? SURF_X : (tint || '#FCE9EE'), borderRadius: 22,
+      background: __BYUP_DK_X ? SURF_X : (tint || CORALSURF_X), borderRadius: 22,
       padding: '15px 14px 13px',
       border: '1px solid rgba(77,18,46,.06)', cursor: 'pointer', fontFamily: 'inherit',
       display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
@@ -997,7 +997,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <div style={{
                 display: 'flex', alignItems: 'stretch', width: '100%', maxWidth: 320,
                 marginTop: -28, position: 'relative', zIndex: 2,
-                background: __BYUP_DK_X ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.94)', border: '1px solid rgba(77,18,46,.08)',
+                background: __BYUP_DK_X ? 'rgba(24,18,22,.62)' : 'rgba(255,255,255,.94)', border: __BYUP_DK_X ? '1px solid rgba(255,255,255,.12)' : '1px solid rgba(77,18,46,.08)',
                 borderRadius: 20, padding: '11px 4px',
                 backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                 boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
@@ -1007,7 +1007,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                   <React.Fragment key={l}>
                     {i > 0 && <div style={{ width: 1, background: 'rgba(77,18,46,.1)', margin: '4px 0' }}/>}
                     <button onClick={fn || undefined} style={{ flex: 1, background: 'none', border: 'none', cursor: fn ? 'pointer' : 'default', fontFamily: 'inherit', padding: '2px 0' }}>
-                      <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 600, color: PINK_X, lineHeight: 1.1 }}>{n}</div>
+                      <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 600, color: __BYUP_DK_X ? '#ffffff' : PINK_X, lineHeight: 1.1 }}>{n}</div>
                       <div style={{ fontSize: 11, color: MUTED_X, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .5, marginTop: 2 }}>{l}</div>
                     </button>
                   </React.Fragment>
@@ -1388,7 +1388,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
         width: '100%', maxHeight: '88%', background: SURF_X, borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: '14px 20px 0', display: 'flex', flexDirection: 'column', overflowY: 'auto',
       }}>
-        <div style={{ width: 44, height: 4, borderRadius: 2, background: '#e0dcdd', margin: '0 auto 10px' }}/>
+        <div style={{ width: 44, height: 4, borderRadius: 2, background: MUTESURF_X, margin: '0 auto 10px' }}/>
 
         {step === 0 ? (
           <>
@@ -1481,7 +1481,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
           </>
         ) : (
           <div style={{ padding: '20px 0 28px', textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 999, background: '#E8F5E9',
+            <div style={{ width: 64, height: 64, borderRadius: 999, background: __BYUP_DK_X ? 'rgba(20,130,64,.20)' : '#E8F5E9',
               display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0a8a3a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
@@ -1781,7 +1781,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
       }}>
         <button onClick={onBack} style={{
           width: 38, height: 38, borderRadius: 999,
-          background: 'rgba(255,255,255,0.95)', border: 'none', cursor: 'pointer',
+          background: (__BYUP_DK_X ? 'rgba(48,45,52,0.92)' : 'rgba(255,255,255,0.95)'), border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
           backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
@@ -1792,7 +1792,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
         <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
           <button onClick={() => setSaved(s => !s)} style={{
             width: 38, height: 38, borderRadius: 999,
-            background: saved ? PINK_X : 'rgba(255,255,255,0.95)', border: 'none', cursor: 'pointer',
+            background: saved ? PINK_X : (__BYUP_DK_X ? 'rgba(48,45,52,0.92)' : 'rgba(255,255,255,0.95)'), border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
@@ -1802,7 +1802,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           </button>
           <button onClick={() => moreOpen ? closeMore() : setMoreOpen(true)} style={{
             width: 38, height: 38, borderRadius: 999,
-            background: 'rgba(255,255,255,0.95)', border: 'none', cursor: 'pointer',
+            background: (__BYUP_DK_X ? 'rgba(48,45,52,0.92)' : 'rgba(255,255,255,0.95)'), border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
@@ -1895,7 +1895,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           }}>
             <div style={{
               width: '100%', height: '100%', borderRadius: 999,
-              background: 'linear-gradient(135deg, #FFD3DC 0%, #FFB0C0 100%)',
+              background: __BYUP_DK_X ? 'linear-gradient(135deg, #4a2230 0%, #5e2838 100%)' : 'linear-gradient(135deg, #FFD3DC 0%, #FFB0C0 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 24, fontWeight: 800, color: PINK_X, fontFamily: 'Georgia, serif',
             }}>CP</div>
@@ -1905,11 +1905,11 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
         {/* Status badges row */}
         <div style={{ display: 'flex', gap: 6, padding: '14px 20px 0 20px', flexWrap: 'wrap' }}>
           <span style={{
-            fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: '#e6f5e9',
+            fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: __BYUP_DK_X ? 'rgba(20,130,64,.20)' : '#e6f5e9',
             padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
           }}>APERTO</span>
           <span style={{
-            fontSize: 10.5, fontWeight: 700, color: TEXT_X, background: '#FFE8B0',
+            fontSize: 10.5, fontWeight: 700, color: TEXT_X, background: TINT_X,
             padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
           }}>🏆 TOP 10 ROMA</span>
         </div>
@@ -2045,7 +2045,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             {/* fade blur sulla seconda recensione + CTA solo testo */}
             <div style={{
               position: 'absolute', left: 0, right: 0, bottom: 0, height: 120,
-              background: 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,.92) 70%, #FBF4F1 100%)',
+              background: __BYUP_DK_X ? 'linear-gradient(180deg, rgba(22,21,20,0) 0%, rgba(22,21,20,.92) 70%, #161514 100%)' : 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,.92) 70%, #FBF4F1 100%)',
               backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)',
               display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 2,
             }}>
@@ -2230,7 +2230,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
                     <button key={r} onClick={() => setReportReason(r)} style={{
                       textAlign: 'left', padding: '14px 16px', borderRadius: 12,
                       border: `1.5px solid ${reportReason === r ? PINK_X : BORDER_X}`,
-                      background: reportReason === r ? '#FCE9EE' : SURF_X,
+                      background: reportReason === r ? CORALSURF_X : SURF_X,
                       fontSize: 14, color: TEXT_X, fontWeight: reportReason === r ? 600 : 500,
                       cursor: 'pointer', fontFamily: 'inherit',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -2316,7 +2316,7 @@ function PromoTag({ children, info }) {
     <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
       <span onClick={() => setOpen(o => !o)} style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
-        background: open ? PINK_X : '#FFF4E8',
+        background: open ? PINK_X : TINT_X,
         color: open ? '#fff' : TEXT_X,
         padding: '6px 14px', borderRadius: 999,
         fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap',
@@ -2343,9 +2343,9 @@ function PromoTag({ children, info }) {
 // Premi: outline minimal con icona alloro
 function AwardTag({ children, tier = 'gold' }) {
   const TIERS = {
-    gold:   { c: '#c9930a', bg: '#fdf6e0', bd: '#efd98a' },
-    silver: { c: '#7b8494', bg: '#f3f5f8', bd: '#ccd3dd' },
-    bronze: { c: '#a3652f', bg: '#f9ede1', bd: '#e2c3a2' },
+    gold:   { c: '#c9930a', bg: __BYUP_DK_X ? '#2f2820' : '#fdf6e0', bd: '#efd98a' },
+    silver: { c: '#7b8494', bg: __BYUP_DK_X ? '#262a30' : '#f3f5f8', bd: '#ccd3dd' },
+    bronze: { c: '#a3652f', bg: __BYUP_DK_X ? '#2e2620' : '#f9ede1', bd: '#e2c3a2' },
   };
   const t = TIERS[tier] || TIERS.gold;
   return (
