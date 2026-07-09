@@ -21,6 +21,7 @@ function SalaVenditaDiretta() {
   const [incassaOpen, setIncassaOpen] = React.useState(false);
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
+  const [customOpen, setCustomOpen] = React.useState(false);
 
   const cats = ['Tutti', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
   const piatti = SALA_VENDITA_PIATTI.filter(p => {
@@ -64,6 +65,12 @@ function SalaVenditaDiretta() {
     return prev.map((x, idx) => idx === i ? {...x, qty: x.qty - 1} : x);
   });
   const removeLine = (i) => setLines(prev => prev.filter((_, idx) => idx !== i));
+  const addCustomLine = (name, price) => {
+    setLines(prev => [...prev, {
+      piatto: { id: `custom_${Date.now()}`, name, price, cat: 'Personalizzato', emoji: '✏️' },
+      qty: 1, mods: null, lineTotal: price,
+    }]);
+  };
   const editExistingLine = (i) => {
     const line = lines[i];
     if (isCustomizable(line.piatto)) {
@@ -164,6 +171,29 @@ function SalaVenditaDiretta() {
               />
             );
           })}
+
+          {/* Articolo custom — tessera in coda alla griglia, apre la modale nome+prezzo */}
+          <button
+            onClick={() => setCustomOpen(true)}
+            style={{
+              display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+              gap:8, padding:'18px 12px', minHeight:100,
+              borderRadius:12, cursor:'pointer', fontFamily:'inherit',
+              border:`2px dashed ${PN.BORDER}`,
+              background:'transparent', color:PN.MUTED,
+              transition:'border-color 150ms ease-out, color 150ms ease-out, background 150ms ease-out',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor=PN.TEXT; e.currentTarget.style.color=PN.TEXT; e.currentTarget.style.background=PN.WHITE_FROST; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.color=PN.MUTED; e.currentTarget.style.background='transparent'; }}
+          >
+            <span style={{
+              width:36, height:36, borderRadius:'50%',
+              border:'2px dashed currentColor',
+              display:'grid', placeItems:'center',
+              fontSize:22, lineHeight:1,
+            }}>+</span>
+            <span style={{fontSize:13, fontWeight:600, textAlign:'center', lineHeight:1.3}}>Articolo custom</span>
+          </button>
         </div>
       </section>
 
@@ -198,6 +228,122 @@ function SalaVenditaDiretta() {
           onConfirm={addPersonalized}
         />
       )}
+
+      {customOpen && (
+        <SaCustomModal
+          onClose={() => setCustomOpen(false)}
+          onConfirm={(name, price) => { addCustomLine(name, price); setCustomOpen(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal articolo custom — voce libera (nome + prezzo) aggiunta al conto
+
+function SaCustomModal({ onClose, onConfirm }) {
+  const [name, setName] = React.useState('');
+  const [price, setPrice] = React.useState('');
+  const nameRef = React.useRef(null);
+
+  React.useEffect(() => { nameRef.current?.focus(); }, []);
+
+  const parsedPrice = parseFloat(price.replace(',', '.'));
+  const valid = name.trim().length > 0 && !isNaN(parsedPrice) && parsedPrice > 0;
+
+  const handleConfirm = () => {
+    if (!valid) return;
+    onConfirm(name.trim(), parsedPrice);
+  };
+
+  const handleKey = (e) => { if (e.key === 'Enter' && valid) handleConfirm(); if (e.key === 'Escape') onClose(); };
+
+  const inputStyle = {
+    padding: '10px 12px', borderRadius: 10,
+    border: '1px solid rgba(15,17,21,0.14)', outline: 'none',
+    background: 'rgba(255,255,255,0.75)',
+    fontSize: 14.5, fontFamily: 'inherit', color: PN.TEXT,
+    boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
+    transition: 'border-color 120ms ease-out',
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      display:'grid', placeItems:'center', zIndex: 200, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 20,
+        width: 380, maxWidth:'100%',
+        padding: '22px 22px 20px',
+        display:'flex', flexDirection:'column', gap: 18,
+      }}>
+        {/* Header */}
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
+          <div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Articolo custom</div>
+            <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Aggiungi un articolo non in menù</div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+            background:'rgba(255,255,255,0.95)', border:'none', cursor:'pointer',
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        {/* Inputs */}
+        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+          <div style={{display:'flex', flexDirection:'column', gap:5}}>
+            <label style={{fontSize: 12, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Nome articolo</label>
+            <input
+              ref={nameRef}
+              value={name} onChange={e => setName(e.target.value)} onKeyDown={handleKey}
+              placeholder="es. Coperto, Acqua del rubinetto…"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = 'rgba(15,17,21,0.45)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(15,17,21,0.14)'}
+            />
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:5}}>
+            <label style={{fontSize: 12, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Prezzo (€)</label>
+            <input
+              value={price} onChange={e => setPrice(e.target.value)} onKeyDown={handleKey}
+              placeholder="0.00"
+              inputMode="decimal"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = 'rgba(15,17,21,0.45)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(15,17,21,0.14)'}
+            />
+          </div>
+        </div>
+
+        {/* Bottone conferma */}
+        <button
+          onClick={handleConfirm}
+          disabled={!valid}
+          style={{
+            padding: '12px 18px', borderRadius: 999,
+            background: valid ? SV_SUNSET_BG : PN.WHITE_FROST,
+            color: valid ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
+            border: `1px solid ${valid ? 'transparent' : PN.BORDER_SOFT_A}`,
+            fontSize: 15.5, fontWeight: 700,
+            cursor: valid ? 'pointer' : 'not-allowed',
+            fontFamily:'inherit',
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
+            boxShadow: valid ? SV_SUNSET_SHADOW : 'none',
+            transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
+          }}
+          onMouseEnter={e => { if (valid) svSunsetHoverIn(e); }}
+          onMouseLeave={svSunsetHoverOut}>
+          <span>Aggiungi al conto</span>
+          <span style={{fontSize: 15.5, fontWeight: 700}}>{valid ? `€${parsedPrice.toFixed(2)}` : ''}</span>
+        </button>
+      </div>
     </div>
   );
 }
