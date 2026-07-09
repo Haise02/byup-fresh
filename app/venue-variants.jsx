@@ -623,3 +623,276 @@ function VenueC({ onBack, onMenu, onBook }) {
 
 // Export to window
 Object.assign(window, { VenueA, VenueB, VenueC });
+
+// ─────────────────────────────────────────────────────────────
+// PREMIUM — Vetrina per i locali selezionati byup.
+// Food render su fondo crema (stile "floating dish"), menu per categorie
+// con immagini a trasparenza, perks premium, CTA prenotazione sticky.
+// Attivata dal flag `premium` sui dati del locale o via ?venue=premium.
+// ─────────────────────────────────────────────────────────────
+const GOLD_P = '#C9A227';
+const GOLD_GRAD_P = 'linear-gradient(180deg,#ffe27a,#f0c246)';
+const INK_P = '#1c0f15';
+const CREAM_P = '#FDF9F3';
+const CREAM2_P = '#F6EDDF';
+
+const PREMIUM_MENU = {
+  'Antipasti': [
+    ['dish-bruschette', 'Bruschette al pomodoro', 'Pane di Lariano, datterini, basilico', '8€'],
+    ['dish-tagliere', 'Tagliere della casa', 'Salumi laziali e pecorino DOP', '16€'],
+    ['dish-fritto', "Fritto all'italiana", 'Supplì, fiori di zucca, baccalà', '12€'],
+    ['dish-insalata', 'Insalata del mercato', 'Verdure di stagione, agrumi e semi', '9€'],
+  ],
+  'Primi': [
+    ['dish-carbonara', 'Carbonara', 'Guanciale croccante, pecorino 24 mesi', '14€'],
+    ['dish-risotto', 'Risotto ai funghi', 'Porcini, parmigiano, timo fresco', '16€'],
+    ['dish-lasagna', 'Lasagna al forno', 'Ragù di manzo cotto 8 ore', '13€'],
+  ],
+  'Secondi': [
+    ['dish-tagliata', 'Tagliata di manzo', 'Rucola, grana, riduzione al balsamico', '22€'],
+    ['dish-branzino', 'Branzino al forno', 'Patate, olive taggiasche, datterini', '24€'],
+    ['dish-polpo', 'Polpo alla brace', 'Crema di ceci, paprika affumicata', '21€'],
+    ['dish-pollo', 'Pollo al mattone', 'Limone arrosto, rosmarino', '18€'],
+    ['dish-verdure', 'Verdure alla griglia', "Dall'orto, olio EVO e basilico", '10€'],
+  ],
+  'Dolci': [
+    ['dessert-tiramisu', 'Tiramisù', 'Mascarpone, savoiardi, caffè', '7€'],
+    ['dessert-tortino', 'Tortino al cioccolato', 'Cuore fondente, lamponi e gelato', '8€'],
+  ],
+  'Drink': [
+    ['drink-spritz', 'Spritz', 'Prosecco, bitter, arancia', '8€'],
+    ['drink-negroni', 'Negroni', 'Gin, vermouth rosso, bitter', '9€'],
+    ['drink-mojito', 'Mojito', 'Rum, lime, menta fresca', '9€'],
+    ['drink-vino', 'Vino al calice', 'Selezione del sommelier', '7€'],
+    ['drink-birra', 'Birra artigianale', 'Del birrificio locale', '6€'],
+    ['drink-arancia', 'Spremuta', 'Arance di Ribera', '4€'],
+  ],
+};
+
+function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap }) {
+  const v = venue || {};
+  const name = v.name || 'Al Settembrini';
+  const [cat, setCat] = useStateV('Antipasti');
+  const [saved, setSaved] = useStateV(false);
+  const cats = Object.keys(PREMIUM_MENU);
+  const photos = [
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=700&q=75&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=700&q=75&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&q=75&auto=format&fit=crop',
+  ];
+  const P = (f) => `assets/premium/${f}.webp`;
+
+  return (
+    <div style={{
+      width: '100%', height: '100%', position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', background: CREAM_P, color: INK_P,
+      fontFamily: "'Hanken Grotesk', -apple-system, system-ui, sans-serif",
+    }}>
+      <style>{`
+        .vpz-hscroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+        .vpz-hscroll::-webkit-scrollbar{display:none}
+        @keyframes vpzFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+        @keyframes vpzFloatS{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-4px) rotate(-2deg)}}
+        @keyframes vpzIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+      `}</style>
+
+      {/* Topbar flottante */}
+      <div style={{ position: 'absolute', top: 'calc(var(--byup-sat, 54px) + 6px)', left: 14, right: 14, zIndex: 30,
+        display: 'flex', justifyContent: 'space-between', pointerEvents: 'none' }}>
+        <button onClick={onBack} style={{ pointerEvents: 'auto', width: 38, height: 38, borderRadius: 999,
+          background: 'rgba(255,255,255,.85)', border: '1px solid rgba(28,15,21,.08)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', boxShadow: '0 6px 18px -8px rgba(77,18,46,.3)' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={INK_P} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button onClick={() => setSaved(s => !s)} style={{ pointerEvents: 'auto', width: 38, height: 38, borderRadius: 999,
+          background: 'rgba(255,255,255,.85)', border: '1px solid rgba(28,15,21,.08)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', boxShadow: '0 6px 18px -8px rgba(77,18,46,.3)' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill={saved ? '#E32459' : 'none'} stroke={saved ? '#E32459' : INK_P} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20.6s-6.8-4.3-8.7-9.1C1.9 7.9 4.3 4.6 7.7 4.6c1.9 0 3.3.9 4.3 2.3 1-1.4 2.4-2.3 4.3-2.3 3.4 0 5.8 3.3 4.4 6.9-1.9 4.8-8.7 9.1-8.7 9.1z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div className="vpz-hscroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden',
+        paddingTop: 'calc(var(--byup-sat, 54px) + 6px)',
+        paddingBottom: 'calc(170px + env(safe-area-inset-bottom, 0px))' }}>
+
+        {/* ── HERO: composizione food render come la reference ── */}
+        <div style={{ position: 'relative', padding: '46px 22px 0', textAlign: 'center',
+          background: `radial-gradient(120% 70% at 50% 0%, ${CREAM2_P} 0%, ${CREAM_P} 70%)` }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: GOLD_GRAD_P,
+            color: '#3d2c00', fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase',
+            padding: '6px 14px', borderRadius: 999, boxShadow: '0 8px 20px -8px rgba(190,145,40,.7)',
+            animation: 'vpzIn .4s ease both' }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="#3d2c00"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Selezione byup
+          </span>
+          <h1 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 32, margin: '12px 0 4px',
+            letterSpacing: '-0.5px', animation: 'vpzIn .4s .05s ease both' }}>{name}</h1>
+          <div style={{ fontSize: 13.5, color: '#6d5a61', fontWeight: 600, animation: 'vpzIn .4s .1s ease both' }}>
+            Cucina romana · €€€ · 0.4 km
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8,
+            fontSize: 13, fontWeight: 800, color: INK_P, animation: 'vpzIn .4s .15s ease both' }}>
+            {[0,1,2,3,4].map(i => (
+              <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill={i < 5 ? GOLD_P : 'none'} stroke={GOLD_P} strokeWidth="1.5">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            ))}
+            4.8 <span style={{ color: '#9a8a90', fontWeight: 600 }}>(320)</span>
+          </div>
+
+          {/* Composizione: piatto firma al centro, contorni ai lati */}
+          <div style={{ position: 'relative', height: 250, marginTop: 6 }}>
+            <div aria-hidden style={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)',
+              width: '68%', height: 30, borderRadius: '50%',
+              background: 'radial-gradient(closest-side, rgba(77,18,46,.22), transparent 75%)' }}/>
+            <img src={P('dish-insalata')} alt="" style={{ position: 'absolute', left: '2%', bottom: 26, width: 118,
+              animation: 'vpzFloatS 4.2s .3s ease-in-out infinite', filter: 'drop-shadow(0 14px 16px rgba(77,18,46,.25))' }}/>
+            <img src={P('dish-verdure')} alt="" style={{ position: 'absolute', right: '2%', bottom: 24, width: 124,
+              animation: 'vpzFloatS 4.6s .1s ease-in-out infinite', filter: 'drop-shadow(0 14px 16px rgba(77,18,46,.25))' }}/>
+            <img src={P('dish-carbonara')} alt="La nostra carbonara" style={{ position: 'absolute', left: '50%', bottom: 30,
+              transform: 'translateX(-50%)', width: 216, animation: 'vpzFloat 4s ease-in-out infinite',
+              filter: 'drop-shadow(0 22px 22px rgba(77,18,46,.3))' }}/>
+            <span style={{ position: 'absolute', left: '50%', bottom: -4, transform: 'translateX(-50%)',
+              fontSize: 11.5, fontWeight: 700, color: '#6d5a61', whiteSpace: 'nowrap' }}>
+              Piatto firma · <b style={{ color: INK_P }}>Carbonara</b> · dello chef De Santis
+            </span>
+          </div>
+        </div>
+
+        {/* ── Perks premium ── */}
+        <div className="vpz-hscroll" style={{ display: 'flex', gap: 9, overflowX: 'auto', padding: '22px 22px 4px' }}>
+          {[
+            ['⚡', 'Prenotazione prioritaria'],
+            ['🪙', 'Byuppini ×2 qui'],
+            ['🥂', 'Benvenuto dello chef'],
+          ].map(([e, t]) => (
+            <span key={t} style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 7,
+              background: '#fff', border: '1px solid rgba(201,162,39,.4)', color: INK_P,
+              fontSize: 12, fontWeight: 700, padding: '9px 14px', borderRadius: 999,
+              boxShadow: '0 6px 16px -10px rgba(190,145,40,.5)' }}>
+              <span>{e}</span>{t}
+            </span>
+          ))}
+        </div>
+
+        {/* ── IL MENU — categorie + piatti flottanti ── */}
+        <div style={{ padding: '20px 22px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 21, margin: 0 }}>Il menu</h2>
+            <button onClick={onMenu} style={{ background: 'none', border: 'none', color: '#E32459',
+              fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', padding: 4 }}>
+              Menu completo →</button>
+          </div>
+        </div>
+        <div className="vpz-hscroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '12px 22px 6px' }}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setCat(c)} style={{
+              flex: 'none', padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 13, fontWeight: 700, transition: 'all .15s',
+              background: cat === c ? INK_P : '#fff', color: cat === c ? '#fff' : '#6d5a61',
+              border: cat === c ? '1.5px solid ' + INK_P : '1.5px solid rgba(28,15,21,.1)' }}>{c}</button>
+          ))}
+        </div>
+        <div key={cat} className="vpz-hscroll" style={{ display: 'flex', gap: 14, overflowX: 'auto',
+          padding: '18px 22px 8px', scrollSnapType: 'x proximity' }}>
+          {PREMIUM_MENU[cat].map(([img, title, desc, price], i) => (
+            <div key={title} style={{ flex: 'none', width: 172, scrollSnapAlign: 'start',
+              background: '#fff', borderRadius: 22, padding: '14px 14px 14px', textAlign: 'center',
+              border: '1px solid rgba(28,15,21,.06)', boxShadow: '0 16px 34px -20px rgba(77,18,46,.35)',
+              animation: `vpzIn .35s ${i * 60}ms ease both` }}>
+              <div style={{ position: 'relative', height: 120, marginTop: -34 }}>
+                <div aria-hidden style={{ position: 'absolute', left: '50%', bottom: 2, transform: 'translateX(-50%)',
+                  width: '70%', height: 16, borderRadius: '50%',
+                  background: 'radial-gradient(closest-side, rgba(77,18,46,.2), transparent 75%)' }}/>
+                <img src={P(img)} alt={title} loading="lazy" style={{ position: 'absolute', left: '50%', bottom: 8,
+                  transform: 'translateX(-50%)', maxWidth: 128, maxHeight: 116,
+                  filter: 'drop-shadow(0 14px 14px rgba(77,18,46,.22))' }}/>
+              </div>
+              <div style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 14.5, lineHeight: 1.15 }}>{title}</div>
+              <div style={{ fontSize: 11, color: '#8d7c83', marginTop: 3, lineHeight: 1.3, minHeight: 28 }}>{desc}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 }}>
+                <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 15.5 }}>{price}</span>
+                <button onClick={onMenu} aria-label={`Ordina ${title}`} style={{ width: 30, height: 30, borderRadius: 999,
+                  border: 'none', cursor: 'pointer', background: 'linear-gradient(122deg,#E32459,#B81C47)',
+                  color: '#fff', fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', boxShadow: '0 8px 16px -8px rgba(227,36,89,.7)' }}>+</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Sala & atmosfera ── */}
+        <div style={{ padding: '22px 22px 0' }}>
+          <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 21, margin: '0 0 12px' }}>Sala & atmosfera</h2>
+        </div>
+        <div className="vpz-hscroll" style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 22px' }}>
+          {photos.map((ph, i) => (
+            <img key={i} src={ph} alt="" loading="lazy" style={{ flex: 'none', width: i === 0 ? 250 : 180, height: 150,
+              objectFit: 'cover', borderRadius: 18, border: '1px solid rgba(28,15,21,.06)' }}/>
+          ))}
+        </div>
+
+        {/* ── Recensione + riconoscimenti ── */}
+        <div style={{ margin: '20px 22px 0', background: '#fff', borderRadius: 22, padding: 16,
+          border: '1px solid rgba(28,15,21,.06)', boxShadow: '0 16px 34px -22px rgba(77,18,46,.35)' }}>
+          <div style={{ display: 'flex', gap: 3, marginBottom: 8 }}>
+            {[0,1,2,3,4].map(i => (
+              <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={GOLD_P}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            ))}
+          </div>
+          <div style={{ fontSize: 13.5, lineHeight: 1.45, color: INK_P }}>
+            «Atmosfera incredibile e cucina autentica. La carbonara è la migliore di Roma.»
+          </div>
+          <div style={{ fontSize: 12, color: '#8d7c83', marginTop: 8, fontWeight: 600 }}>Giulia M. · 2 giorni fa · 320 recensioni</div>
+          <div style={{ display: 'flex', gap: 7, marginTop: 12, flexWrap: 'wrap' }}>
+            {['Top 10 Roma 2025', 'Gambero Rosso', 'Stella byup'].map(a => (
+              <span key={a} style={{ fontSize: 10.5, fontWeight: 800, color: '#3d2c00', background: 'rgba(240,194,70,.25)',
+                border: '1px solid rgba(201,162,39,.45)', padding: '4px 10px', borderRadius: 999 }}>{a}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Info ── */}
+        <div style={{ margin: '14px 22px 0', background: '#fff', borderRadius: 22, padding: '6px 16px',
+          border: '1px solid rgba(28,15,21,.06)' }}>
+          {[
+            ['Via dei Gracchi 56, Roma', 'Indicazioni', onMap],
+            ['Aperto · 12:30 – 23:00', 'Orari', null],
+          ].map(([t, a, fn], i, arr) => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '13px 0', borderBottom: i < arr.length - 1 ? '1px solid rgba(28,15,21,.07)' : 'none' }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t}</span>
+              {fn
+                ? <button onClick={fn} style={{ background: 'none', border: 'none', color: '#E32459', fontSize: 12.5,
+                    fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>{a} →</button>
+                : <span style={{ fontSize: 12.5, color: '#8d7c83', fontWeight: 700 }}>{a}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CTA sticky: Prenota + Menu ── */}
+      <div style={{ position: 'absolute', left: 14, right: 14, bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))',
+        zIndex: 25, display: 'flex', gap: 10 }}>
+        <button className="bk-press" onClick={onBook} style={{ flex: 1.6, height: 54, border: 'none', borderRadius: 999,
+          cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15, color: '#fff',
+          background: 'linear-gradient(122deg,#E32459,#B81C47)',
+          boxShadow: '0 18px 36px -12px rgba(227,36,89,.6), inset 0 1px 0 rgba(255,255,255,.3)' }}>
+          Prenota un tavolo</button>
+        <button className="bk-press" onClick={onMenu} style={{ flex: 1, height: 54, borderRadius: 999,
+          cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15, color: INK_P,
+          background: 'rgba(255,255,255,.92)', border: '1.5px solid rgba(28,15,21,.12)',
+          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 12px 28px -14px rgba(77,18,46,.4)' }}>Menu</button>
+      </div>
+
+      {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={onHome} onProfile={onProfile} showQR={false}/> : null; })()}
+    </div>
+  );
+}
+
+window.VenuePremium = VenuePremium;

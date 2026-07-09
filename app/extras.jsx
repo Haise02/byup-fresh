@@ -1679,10 +1679,15 @@ function VenueScreen(props) {
   const variant = (() => {
     try {
       const v = new URLSearchParams(window.location.search).get('venue');
-      if (['a','b','c','original'].includes(v)) return v;
+      if (['a','b','c','original','premium'].includes(v)) return v;
     } catch {}
-    return window.__venueVariant || 'original';
+    return window.__venueVariant || null;
   })();
+  // Vetrina Premium: forzata via ?venue=premium oppure automatica per i
+  // locali selezionati da byup (flag `premium` sui dati del locale).
+  if ((variant === 'premium' || (!variant && props.venue && props.venue.premium)) && window.VenuePremium) {
+    return <window.VenuePremium {...props}/>;
+  }
   if (variant === 'a' && window.VenueA) return <window.VenueA {...props}/>;   // Editorial / Magazine
   if (variant === 'b' && window.VenueB) return <window.VenueB {...props}/>;   // Cinematic / Tasting menu
   if (variant === 'c' && window.VenueC) return <window.VenueC {...props}/>;   // Operativo / Resy-style
@@ -1916,7 +1921,7 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
         </div>
       </div>
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 100 }}>
         {/* Hero — swipeable gallery */}
         <div
           style={{

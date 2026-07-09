@@ -5,7 +5,8 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon-app.svg"/>
 <link rel="icon" type="image/png" href="/assets/favicon-light.png"/>
 <link rel="apple-touch-icon" href="/assets/apple-touch-byup.png"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<style>html,body{overflow-x:hidden;overscroll-behavior:none}body{touch-action:manipulation}</style>
 <title>byup — Menu (standalone)</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -5352,10 +5353,15 @@ function VenueScreen(props) {
   const variant = (() => {
     try {
       const v = new URLSearchParams(window.location.search).get('venue');
-      if (['a', 'b', 'c', 'original'].includes(v)) return v;
+      if (['a', 'b', 'c', 'original', 'premium'].includes(v)) return v;
     } catch {}
-    return window.__venueVariant || 'original';
+    return window.__venueVariant || null;
   })();
+  // Vetrina Premium: forzata via ?venue=premium oppure automatica per i
+  // locali selezionati da byup (flag `premium` sui dati del locale).
+  if ((variant === 'premium' || !variant && props.venue && props.venue.premium) && window.VenuePremium) {
+    return /*#__PURE__*/React.createElement(window.VenuePremium, props);
+  }
   if (variant === 'a' && window.VenueA) return /*#__PURE__*/React.createElement(window.VenueA, props); // Editorial / Magazine
   if (variant === 'b' && window.VenueB) return /*#__PURE__*/React.createElement(window.VenueB, props); // Cinematic / Tasting menu
   if (variant === 'c' && window.VenueC) return /*#__PURE__*/React.createElement(window.VenueC, props); // Operativo / Resy-style
@@ -5753,6 +5759,7 @@ function VenueOriginal({
     style: {
       flex: 1,
       overflowY: 'auto',
+      overflowX: 'hidden',
       paddingBottom: 100
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -7416,7 +7423,7 @@ function VenueA({
       textTransform: 'uppercase',
       marginBottom: 12
     }
-  }, "CUCINA ROMANA · ROMA"), /*#__PURE__*/React.createElement("div", {
+  }, "CUCINA ROMANA \xB7 ROMA"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontSize: 38,
@@ -7455,7 +7462,7 @@ function VenueA({
       fontSize: 13,
       color: MUTED_V
     }
-  }, "· ", v.reviews, " recensioni"))), /*#__PURE__*/React.createElement("div", {
+  }, "\xB7 ", v.reviews, " recensioni"))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
       height: 320,
@@ -7520,7 +7527,7 @@ function VenueA({
       fontWeight: 600,
       letterSpacing: 0.5
     }
-  }, "— ", v.topReview.name.toUpperCase(), ", ", v.topReview.when.toUpperCase())), /*#__PURE__*/React.createElement("div", {
+  }, "\u2014 ", v.topReview.name.toUpperCase(), ", ", v.topReview.when.toUpperCase())), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '32px 24px'
     }
@@ -7804,7 +7811,7 @@ function VenueB({
       textTransform: 'uppercase',
       marginBottom: 14
     }
-  }, v.cuisine, " · ROMA"), /*#__PURE__*/React.createElement("div", {
+  }, v.cuisine, " \xB7 ROMA"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: 'Georgia, serif',
       fontSize: 46,
@@ -8052,7 +8059,7 @@ function VenueB({
       fontWeight: 600,
       letterSpacing: 0.5
     }
-  }, v.topReview.name.toUpperCase(), " · ", v.topReview.when.toUpperCase()))), /*#__PURE__*/React.createElement("div", {
+  }, v.topReview.name.toUpperCase(), " \xB7 ", v.topReview.when.toUpperCase()))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 24px 36px',
       background: '#0e0c0d'
@@ -8259,7 +8266,7 @@ function VenueC({
       borderRadius: 99,
       background: '#0a8a3a'
     }
-  }), "Aperto ora · chiude alle 23:00")), /*#__PURE__*/React.createElement("div", {
+  }), "Aperto ora \xB7 chiude alle 23:00")), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '0 18px 20px',
       padding: 18,
@@ -8276,7 +8283,7 @@ function VenueC({
       textTransform: 'uppercase',
       marginBottom: 12
     }
-  }, "Disponibilità stasera"), /*#__PURE__*/React.createElement("div", {
+  }, "Disponibilit\xE0 stasera"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -8340,7 +8347,7 @@ function VenueC({
       marginTop: 12,
       textAlign: 'center'
     }
-  }, "Conferma istantanea · Cancellazione gratuita fino a 2h prima")), /*#__PURE__*/React.createElement("div", {
+  }, "Conferma istantanea \xB7 Cancellazione gratuita fino a 2h prima")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 22px 20px'
     }
@@ -8544,7 +8551,7 @@ function VenueC({
       color: MUTED_V,
       textAlign: 'center'
     }
-  }, selectedSlot, " · ", people, " ", people === 1 ? 'persona' : 'persone', " · stasera"), /*#__PURE__*/React.createElement("div", {
+  }, selectedSlot, " \xB7 ", people, " ", people === 1 ? 'persona' : 'persone', " \xB7 stasera"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 12
@@ -8578,7 +8585,7 @@ function VenueC({
       cursor: 'pointer',
       boxShadow: '0 4px 14px rgba(227,36,89,0.3)'
     }
-  }, "Menù"))));
+  }, "Men\xF9"))));
 }
 
 // Export to window
@@ -8587,6 +8594,632 @@ Object.assign(window, {
   VenueB,
   VenueC
 });
+
+// ─────────────────────────────────────────────────────────────
+// PREMIUM — Vetrina per i locali selezionati byup.
+// Food render su fondo crema (stile "floating dish"), menu per categorie
+// con immagini a trasparenza, perks premium, CTA prenotazione sticky.
+// Attivata dal flag `premium` sui dati del locale o via ?venue=premium.
+// ─────────────────────────────────────────────────────────────
+const GOLD_P = '#C9A227';
+const GOLD_GRAD_P = 'linear-gradient(180deg,#ffe27a,#f0c246)';
+const INK_P = '#1c0f15';
+const CREAM_P = '#FDF9F3';
+const CREAM2_P = '#F6EDDF';
+const PREMIUM_MENU = {
+  'Antipasti': [['dish-bruschette', 'Bruschette al pomodoro', 'Pane di Lariano, datterini, basilico', '8€'], ['dish-tagliere', 'Tagliere della casa', 'Salumi laziali e pecorino DOP', '16€'], ['dish-fritto', "Fritto all'italiana", 'Supplì, fiori di zucca, baccalà', '12€'], ['dish-insalata', 'Insalata del mercato', 'Verdure di stagione, agrumi e semi', '9€']],
+  'Primi': [['dish-carbonara', 'Carbonara', 'Guanciale croccante, pecorino 24 mesi', '14€'], ['dish-risotto', 'Risotto ai funghi', 'Porcini, parmigiano, timo fresco', '16€'], ['dish-lasagna', 'Lasagna al forno', 'Ragù di manzo cotto 8 ore', '13€']],
+  'Secondi': [['dish-tagliata', 'Tagliata di manzo', 'Rucola, grana, riduzione al balsamico', '22€'], ['dish-branzino', 'Branzino al forno', 'Patate, olive taggiasche, datterini', '24€'], ['dish-polpo', 'Polpo alla brace', 'Crema di ceci, paprika affumicata', '21€'], ['dish-pollo', 'Pollo al mattone', 'Limone arrosto, rosmarino', '18€'], ['dish-verdure', 'Verdure alla griglia', "Dall'orto, olio EVO e basilico", '10€']],
+  'Dolci': [['dessert-tiramisu', 'Tiramisù', 'Mascarpone, savoiardi, caffè', '7€'], ['dessert-tortino', 'Tortino al cioccolato', 'Cuore fondente, lamponi e gelato', '8€']],
+  'Drink': [['drink-spritz', 'Spritz', 'Prosecco, bitter, arancia', '8€'], ['drink-negroni', 'Negroni', 'Gin, vermouth rosso, bitter', '9€'], ['drink-mojito', 'Mojito', 'Rum, lime, menta fresca', '9€'], ['drink-vino', 'Vino al calice', 'Selezione del sommelier', '7€'], ['drink-birra', 'Birra artigianale', 'Del birrificio locale', '6€'], ['drink-arancia', 'Spremuta', 'Arance di Ribera', '4€']]
+};
+function VenuePremium({
+  venue,
+  onBack,
+  onMenu,
+  onBook,
+  onHome,
+  onProfile,
+  onMap
+}) {
+  const v = venue || {};
+  const name = v.name || 'Al Settembrini';
+  const [cat, setCat] = useStateV('Antipasti');
+  const [saved, setSaved] = useStateV(false);
+  const cats = Object.keys(PREMIUM_MENU);
+  const photos = ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=700&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=700&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&q=75&auto=format&fit=crop'];
+  const P = f => `assets/premium/${f}.webp`;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      height: '100%',
+      position: 'relative',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      background: CREAM_P,
+      color: INK_P,
+      fontFamily: "'Hanken Grotesk', -apple-system, system-ui, sans-serif"
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
+        .vpz-hscroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+        .vpz-hscroll::-webkit-scrollbar{display:none}
+        @keyframes vpzFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+        @keyframes vpzFloatS{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-4px) rotate(-2deg)}}
+        @keyframes vpzIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+      `), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 'calc(var(--byup-sat, 54px) + 6px)',
+      left: 14,
+      right: 14,
+      zIndex: 30,
+      display: 'flex',
+      justifyContent: 'space-between',
+      pointerEvents: 'none'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onBack,
+    style: {
+      pointerEvents: 'auto',
+      width: 38,
+      height: 38,
+      borderRadius: 999,
+      background: 'rgba(255,255,255,.85)',
+      border: '1px solid rgba(28,15,21,.08)',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 6px 18px -8px rgba(77,18,46,.3)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "16",
+    height: "16",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: INK_P,
+    strokeWidth: "2.4",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "15 18 9 12 15 6"
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSaved(s => !s),
+    style: {
+      pointerEvents: 'auto',
+      width: 38,
+      height: 38,
+      borderRadius: 999,
+      background: 'rgba(255,255,255,.85)',
+      border: '1px solid rgba(28,15,21,.08)',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 6px 18px -8px rgba(77,18,46,.3)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "17",
+    height: "17",
+    viewBox: "0 0 24 24",
+    fill: saved ? '#E32459' : 'none',
+    stroke: saved ? '#E32459' : INK_P,
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 20.6s-6.8-4.3-8.7-9.1C1.9 7.9 4.3 4.6 7.7 4.6c1.9 0 3.3.9 4.3 2.3 1-1.4 2.4-2.3 4.3-2.3 3.4 0 5.8 3.3 4.4 6.9-1.9 4.8-8.7 9.1-8.7 9.1z"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "vpz-hscroll",
+    style: {
+      flex: 1,
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      paddingTop: 'calc(var(--byup-sat, 54px) + 6px)',
+      paddingBottom: 'calc(170px + env(safe-area-inset-bottom, 0px))'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      padding: '46px 22px 0',
+      textAlign: 'center',
+      background: `radial-gradient(120% 70% at 50% 0%, ${CREAM2_P} 0%, ${CREAM_P} 70%)`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      background: GOLD_GRAD_P,
+      color: '#3d2c00',
+      fontSize: 10.5,
+      fontWeight: 800,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      padding: '6px 14px',
+      borderRadius: 999,
+      boxShadow: '0 8px 20px -8px rgba(190,145,40,.7)',
+      animation: 'vpzIn .4s ease both'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "11",
+    height: "11",
+    viewBox: "0 0 24 24",
+    fill: "#3d2c00"
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })), "Selezione byup"), /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 32,
+      margin: '12px 0 4px',
+      letterSpacing: '-0.5px',
+      animation: 'vpzIn .4s .05s ease both'
+    }
+  }, name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: '#6d5a61',
+      fontWeight: 600,
+      animation: 'vpzIn .4s .1s ease both'
+    }
+  }, "Cucina romana \xB7 \u20AC\u20AC\u20AC \xB7 0.4 km"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 8,
+      fontSize: 13,
+      fontWeight: 800,
+      color: INK_P,
+      animation: 'vpzIn .4s .15s ease both'
+    }
+  }, [0, 1, 2, 3, 4].map(i => /*#__PURE__*/React.createElement("svg", {
+    key: i,
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: i < 5 ? GOLD_P : 'none',
+    stroke: GOLD_P,
+    strokeWidth: "1.5"
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  }))), "4.8 ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#9a8a90',
+      fontWeight: 600
+    }
+  }, "(320)")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      height: 250,
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 18,
+      transform: 'translateX(-50%)',
+      width: '68%',
+      height: 30,
+      borderRadius: '50%',
+      background: 'radial-gradient(closest-side, rgba(77,18,46,.22), transparent 75%)'
+    }
+  }), /*#__PURE__*/React.createElement("img", {
+    src: P('dish-insalata'),
+    alt: "",
+    style: {
+      position: 'absolute',
+      left: '2%',
+      bottom: 26,
+      width: 118,
+      animation: 'vpzFloatS 4.2s .3s ease-in-out infinite',
+      filter: 'drop-shadow(0 14px 16px rgba(77,18,46,.25))'
+    }
+  }), /*#__PURE__*/React.createElement("img", {
+    src: P('dish-verdure'),
+    alt: "",
+    style: {
+      position: 'absolute',
+      right: '2%',
+      bottom: 24,
+      width: 124,
+      animation: 'vpzFloatS 4.6s .1s ease-in-out infinite',
+      filter: 'drop-shadow(0 14px 16px rgba(77,18,46,.25))'
+    }
+  }), /*#__PURE__*/React.createElement("img", {
+    src: P('dish-carbonara'),
+    alt: "La nostra carbonara",
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 30,
+      transform: 'translateX(-50%)',
+      width: 216,
+      animation: 'vpzFloat 4s ease-in-out infinite',
+      filter: 'drop-shadow(0 22px 22px rgba(77,18,46,.3))'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: -4,
+      transform: 'translateX(-50%)',
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: '#6d5a61',
+      whiteSpace: 'nowrap'
+    }
+  }, "Piatto firma \xB7 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: INK_P
+    }
+  }, "Carbonara"), " \xB7 dello chef De Santis"))), /*#__PURE__*/React.createElement("div", {
+    className: "vpz-hscroll",
+    style: {
+      display: 'flex',
+      gap: 9,
+      overflowX: 'auto',
+      padding: '22px 22px 4px'
+    }
+  }, [['⚡', 'Prenotazione prioritaria'], ['🪙', 'Byuppini ×2 qui'], ['🥂', 'Benvenuto dello chef']].map(([e, t]) => /*#__PURE__*/React.createElement("span", {
+    key: t,
+    style: {
+      flex: 'none',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 7,
+      background: '#fff',
+      border: '1px solid rgba(201,162,39,.4)',
+      color: INK_P,
+      fontSize: 12,
+      fontWeight: 700,
+      padding: '9px 14px',
+      borderRadius: 999,
+      boxShadow: '0 6px 16px -10px rgba(190,145,40,.5)'
+    }
+  }, /*#__PURE__*/React.createElement("span", null, e), t))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '20px 22px 0'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'baseline',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 21,
+      margin: 0
+    }
+  }, "Il menu"), /*#__PURE__*/React.createElement("button", {
+    onClick: onMenu,
+    style: {
+      background: 'none',
+      border: 'none',
+      color: '#E32459',
+      fontSize: 12.5,
+      fontWeight: 800,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      padding: 4
+    }
+  }, "Menu completo \u2192"))), /*#__PURE__*/React.createElement("div", {
+    className: "vpz-hscroll",
+    style: {
+      display: 'flex',
+      gap: 8,
+      overflowX: 'auto',
+      padding: '12px 22px 6px'
+    }
+  }, cats.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c,
+    onClick: () => setCat(c),
+    style: {
+      flex: 'none',
+      padding: '8px 16px',
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontSize: 13,
+      fontWeight: 700,
+      transition: 'all .15s',
+      background: cat === c ? INK_P : '#fff',
+      color: cat === c ? '#fff' : '#6d5a61',
+      border: cat === c ? '1.5px solid ' + INK_P : '1.5px solid rgba(28,15,21,.1)'
+    }
+  }, c))), /*#__PURE__*/React.createElement("div", {
+    key: cat,
+    className: "vpz-hscroll",
+    style: {
+      display: 'flex',
+      gap: 14,
+      overflowX: 'auto',
+      padding: '18px 22px 8px',
+      scrollSnapType: 'x proximity'
+    }
+  }, PREMIUM_MENU[cat].map(([img, title, desc, price], i) => /*#__PURE__*/React.createElement("div", {
+    key: title,
+    style: {
+      flex: 'none',
+      width: 172,
+      scrollSnapAlign: 'start',
+      background: '#fff',
+      borderRadius: 22,
+      padding: '14px 14px 14px',
+      textAlign: 'center',
+      border: '1px solid rgba(28,15,21,.06)',
+      boxShadow: '0 16px 34px -20px rgba(77,18,46,.35)',
+      animation: `vpzIn .35s ${i * 60}ms ease both`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      height: 120,
+      marginTop: -34
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 2,
+      transform: 'translateX(-50%)',
+      width: '70%',
+      height: 16,
+      borderRadius: '50%',
+      background: 'radial-gradient(closest-side, rgba(77,18,46,.2), transparent 75%)'
+    }
+  }), /*#__PURE__*/React.createElement("img", {
+    src: P(img),
+    alt: title,
+    loading: "lazy",
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 8,
+      transform: 'translateX(-50%)',
+      maxWidth: 128,
+      maxHeight: 116,
+      filter: 'drop-shadow(0 14px 14px rgba(77,18,46,.22))'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 14.5,
+      lineHeight: 1.15
+    }
+  }, title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#8d7c83',
+      marginTop: 3,
+      lineHeight: 1.3,
+      minHeight: 28
+    }
+  }, desc), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 15.5
+    }
+  }, price), /*#__PURE__*/React.createElement("button", {
+    onClick: onMenu,
+    "aria-label": `Ordina ${title}`,
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      border: 'none',
+      cursor: 'pointer',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      color: '#fff',
+      fontSize: 17,
+      fontWeight: 700,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 8px 16px -8px rgba(227,36,89,.7)'
+    }
+  }, "+"))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '22px 22px 0'
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 21,
+      margin: '0 0 12px'
+    }
+  }, "Sala & atmosfera")), /*#__PURE__*/React.createElement("div", {
+    className: "vpz-hscroll",
+    style: {
+      display: 'flex',
+      gap: 10,
+      overflowX: 'auto',
+      padding: '0 22px'
+    }
+  }, photos.map((ph, i) => /*#__PURE__*/React.createElement("img", {
+    key: i,
+    src: ph,
+    alt: "",
+    loading: "lazy",
+    style: {
+      flex: 'none',
+      width: i === 0 ? 250 : 180,
+      height: 150,
+      objectFit: 'cover',
+      borderRadius: 18,
+      border: '1px solid rgba(28,15,21,.06)'
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: '20px 22px 0',
+      background: '#fff',
+      borderRadius: 22,
+      padding: 16,
+      border: '1px solid rgba(28,15,21,.06)',
+      boxShadow: '0 16px 34px -22px rgba(77,18,46,.35)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 3,
+      marginBottom: 8
+    }
+  }, [0, 1, 2, 3, 4].map(i => /*#__PURE__*/React.createElement("svg", {
+    key: i,
+    width: "12",
+    height: "12",
+    viewBox: "0 0 24 24",
+    fill: GOLD_P
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      lineHeight: 1.45,
+      color: INK_P
+    }
+  }, "\xABAtmosfera incredibile e cucina autentica. La carbonara \xE8 la migliore di Roma.\xBB"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#8d7c83',
+      marginTop: 8,
+      fontWeight: 600
+    }
+  }, "Giulia M. \xB7 2 giorni fa \xB7 320 recensioni"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 7,
+      marginTop: 12,
+      flexWrap: 'wrap'
+    }
+  }, ['Top 10 Roma 2025', 'Gambero Rosso', 'Stella byup'].map(a => /*#__PURE__*/React.createElement("span", {
+    key: a,
+    style: {
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: '#3d2c00',
+      background: 'rgba(240,194,70,.25)',
+      border: '1px solid rgba(201,162,39,.45)',
+      padding: '4px 10px',
+      borderRadius: 999
+    }
+  }, a)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: '14px 22px 0',
+      background: '#fff',
+      borderRadius: 22,
+      padding: '6px 16px',
+      border: '1px solid rgba(28,15,21,.06)'
+    }
+  }, [['Via dei Gracchi 56, Roma', 'Indicazioni', onMap], ['Aperto · 12:30 – 23:00', 'Orari', null]].map(([t, a, fn], i, arr) => /*#__PURE__*/React.createElement("div", {
+    key: t,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '13px 0',
+      borderBottom: i < arr.length - 1 ? '1px solid rgba(28,15,21,.07)' : 'none'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600
+    }
+  }, t), fn ? /*#__PURE__*/React.createElement("button", {
+    onClick: fn,
+    style: {
+      background: 'none',
+      border: 'none',
+      color: '#E32459',
+      fontSize: 12.5,
+      fontWeight: 800,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, a, " \u2192") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: '#8d7c83',
+      fontWeight: 700
+    }
+  }, a))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 14,
+      right: 14,
+      bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))',
+      zIndex: 25,
+      display: 'flex',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "bk-press",
+    onClick: onBook,
+    style: {
+      flex: 1.6,
+      height: 54,
+      border: 'none',
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontWeight: 800,
+      fontSize: 15,
+      color: '#fff',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      boxShadow: '0 18px 36px -12px rgba(227,36,89,.6), inset 0 1px 0 rgba(255,255,255,.3)'
+    }
+  }, "Prenota un tavolo"), /*#__PURE__*/React.createElement("button", {
+    className: "bk-press",
+    onClick: onMenu,
+    style: {
+      flex: 1,
+      height: 54,
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontWeight: 800,
+      fontSize: 15,
+      color: INK_P,
+      background: 'rgba(255,255,255,.92)',
+      border: '1.5px solid rgba(28,15,21,.12)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 12px 28px -14px rgba(77,18,46,.4)'
+    }
+  }, "Menu")), (() => {
+    const B = window.BottomTabBar;
+    return B ? /*#__PURE__*/React.createElement(B, {
+      active: "home",
+      onHome: onHome,
+      onProfile: onProfile,
+      showQR: false
+    }) : null;
+  })());
+}
+window.VenuePremium = VenuePremium;
 })();
 </script>
 <script>/* map.jsx */
@@ -11710,6 +12343,7 @@ function FavoriteCard({
   openHour,
   closeHour,
   open,
+  premium,
   onClick,
   onUnfav
 }) {
@@ -11745,7 +12379,32 @@ function FavoriteCard({
     src: photo,
     label: name,
     tone: tone
-  }), /*#__PURE__*/React.createElement("span", {
+  }), premium && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      top: 8,
+      left: 8,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 3,
+      background: 'linear-gradient(180deg,#ffe27a,#f0c246)',
+      color: '#3d2c00',
+      fontSize: 9,
+      fontWeight: 800,
+      letterSpacing: .4,
+      textTransform: 'uppercase',
+      padding: '3.5px 8px',
+      borderRadius: 999,
+      boxShadow: '0 5px 12px -5px rgba(190,145,40,.7)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "9",
+    height: "9",
+    viewBox: "0 0 24 24",
+    fill: "#3d2c00"
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })), "Premium"), /*#__PURE__*/React.createElement("span", {
     role: "button",
     tabIndex: 0,
     onClick: e => {
@@ -12712,7 +13371,7 @@ function SearchScreen({
       border: 'none',
       outline: 'none',
       background: 'transparent',
-      fontSize: 15,
+      fontSize: 16,
       color: TEXT,
       fontFamily: 'inherit'
     }
@@ -13577,6 +14236,7 @@ const MOMENT_DATA = {
       label: '4.5+'
     }],
     venues: [{
+      premium: true,
       name: 'Al Settembrini',
       cuisine: 'Ristorante',
       distance: '0.4 km',
@@ -13660,6 +14320,7 @@ const MOMENT_DATA = {
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=70&auto=format&fit=crop',
       slots: false
     }, {
+      premium: true,
       name: 'Al Settembrini',
       cuisine: 'Ristorante',
       distance: '0.4 km',
@@ -13713,6 +14374,7 @@ const MOMENT_DATA = {
         last: true
       }]
     }, {
+      premium: true,
       name: 'Al Settembrini',
       cuisine: 'Ristorante',
       distance: '0.4 km',
@@ -14096,6 +14758,7 @@ function RestaurantBigCard({
   photo,
   slots,
   badge,
+  premium,
   onClick,
   onSlotClick
 }) {
@@ -14111,10 +14774,10 @@ function RestaurantBigCard({
       width: '100%',
       borderRadius: BK.RADII.card,
       overflow: 'hidden',
-      border: `1px solid ${T.line}`,
+      border: premium ? '1.5px solid rgba(214,172,60,.75)' : `1px solid ${T.line}`,
       padding: 0,
       background: T.surface,
-      boxShadow: T.shadowSoft,
+      boxShadow: premium ? '0 14px 34px -14px rgba(190,145,40,.45), 0 2px 8px rgba(77,18,46,.08)' : T.shadowSoft,
       fontFamily: BK.TYPE.sans,
       textAlign: 'left',
       cursor: 'pointer'
@@ -14127,7 +14790,32 @@ function RestaurantBigCard({
   }, /*#__PURE__*/React.createElement(Photo, {
     src: photo,
     label: name
-  }), badge && /*#__PURE__*/React.createElement("div", {
+  }), premium ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 12,
+      left: 12,
+      background: 'linear-gradient(180deg,#ffe27a,#f0c246)',
+      color: '#3d2c00',
+      fontSize: 10.5,
+      fontWeight: 800,
+      padding: '5px 11px',
+      borderRadius: 999,
+      letterSpacing: .5,
+      textTransform: 'uppercase',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
+      boxShadow: '0 6px 16px -6px rgba(190,145,40,.7)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "11",
+    height: "11",
+    viewBox: "0 0 24 24",
+    fill: "#3d2c00"
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })), "Premium") : badge && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       top: 12,
@@ -15533,6 +16221,7 @@ function HomeSections({
     label: 'Torta'
   }];
   const favorites = [{
+    premium: true,
     name: 'Al Settembrini',
     type: 'Ristorante',
     distance: '0.4 km',
@@ -18980,6 +19669,7 @@ function App({
       home: resetToHome,
       venue: () => {
         setActiveVenue(v => v || {
+          premium: true,
           name: 'Al Settembrini',
           _from: 'menu'
         });
@@ -18993,6 +19683,7 @@ function App({
     try {
       if (new URLSearchParams(window.location.search).get('page') === 'venue') {
         return {
+          premium: true,
           name: 'Al Settembrini',
           _from: 'home'
         };
@@ -19901,6 +20592,10 @@ function ShortcutsPanel() {
     id: 'c',
     label: 'C',
     desc: 'Operativo / Resy'
+  }, {
+    id: 'premium',
+    label: '★',
+    desc: 'Premium byup'
   }];
   const row = s => {
     const active = s.id === cur;

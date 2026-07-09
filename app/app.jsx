@@ -317,7 +317,7 @@ function FilterChip({ label, active, onClick, leading }) {
 }
 
 // ─── Favorite card (compact, horizontal) ────────────────────
-function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, closeHour, open, onClick, onUnfav }) {
+function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, closeHour, open, premium, onClick, onUnfav }) {
   // hours can be 'HH:MM – HH:MM' format; split in two
   const [oh, ch] = (hours && hours.includes('–'))
     ? hours.split('–').map(s => s.trim())
@@ -332,6 +332,17 @@ function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, clos
     }}>
       <div style={{ height: 100, position: 'relative' }}>
         <Photo src={photo} label={name} tone={tone}/>
+        {premium && (
+          <span style={{
+            position: 'absolute', top: 8, left: 8, display: 'inline-flex', alignItems: 'center', gap: 3,
+            background: 'linear-gradient(180deg,#ffe27a,#f0c246)', color: '#3d2c00',
+            fontSize: 9, fontWeight: 800, letterSpacing: .4, textTransform: 'uppercase',
+            padding: '3.5px 8px', borderRadius: 999, boxShadow: '0 5px 12px -5px rgba(190,145,40,.7)',
+          }}>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="#3d2c00"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Premium
+          </span>
+        )}
         <span role="button" tabIndex={0}
           onClick={(e) => { e.stopPropagation(); onUnfav?.(); }} style={{
           position: 'absolute', top: 8, right: 8, width: 28, height: 28,
@@ -784,7 +795,7 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
               onKeyDown={(e) => { if (e.key === 'Enter' && q.trim()) submit(q.trim()); }}
               placeholder="Cerca per tipologia"
               style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent',
-                fontSize: 15, color: TEXT, fontFamily: 'inherit' }}
+                fontSize: 16, color: TEXT, fontFamily: 'inherit' }}
             />
             <button onClick={onOpenFilters} style={{
               border: 'none', background: 'transparent', cursor: 'pointer',
@@ -1177,7 +1188,7 @@ const MOMENT_DATA = {
       { id: 'top',   label: '4.5+' },
     ],
     venues: [
-      { name: 'Al Settembrini',  cuisine: 'Ristorante',     distance: '0.4 km', rating: 4.5, price: '€€€',
+      { premium: true, name: 'Al Settembrini',  cuisine: 'Ristorante',     distance: '0.4 km', rating: 4.5, price: '€€€',
         badge: 'A piedi · 5 min',  photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '20:00' }, { time: '20:30' }, { time: '21:00', last: true }] },
       { name: 'Trattoria Lucia', cuisine: 'Cucina romana',  distance: '0.6 km', rating: 4.8, price: '€€',
@@ -1207,7 +1218,7 @@ const MOMENT_DATA = {
       { name: 'Vinaio',          cuisine: 'Wine bar · panini',    distance: '0.9 km', rating: 4.7, price: '€',
         badge: 'A piedi',          photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=70&auto=format&fit=crop',
         slots: false },
-      { name: 'Al Settembrini',  cuisine: 'Ristorante',           distance: '0.4 km', rating: 4.5, price: '€€€',
+      { premium: true, name: 'Al Settembrini',  cuisine: 'Ristorante',           distance: '0.4 km', rating: 4.5, price: '€€€',
         badge: 'Top rated',        photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '13:00' }, { time: '13:30' }, { time: '14:00' }] },
     ],
@@ -1229,7 +1240,7 @@ const MOMENT_DATA = {
       { name: "All'Impronta",   cuisine: 'Ristorante creativo', distance: '0.8 km', rating: 4.6, price: '€€€',
         badge: 'Suggerito per te',  photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '20:00' }, { time: '20:30' }, { time: '21:00', last: true }] },
-      { name: 'Al Settembrini', cuisine: 'Ristorante',          distance: '0.4 km', rating: 4.5, price: '€€€',
+      { premium: true, name: 'Al Settembrini', cuisine: 'Ristorante',          distance: '0.4 km', rating: 4.5, price: '€€€',
         badge: 'Vicino a te',       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '20:30' }, { time: '21:00' }, { time: '21:30' }] },
       { name: 'Trattoria Lucia',cuisine: 'Cucina romana',       distance: '0.6 km', rating: 4.8, price: '€€',
@@ -1393,18 +1404,30 @@ function HeroIntentCard({ data, photo, moment, onCta }) {
 }
 
 // Dominant venue card — big photo, name, price, cuisine, inline bookable slots.
-function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slots, badge, onClick, onSlotClick }) {
+function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slots, badge, premium, onClick, onSlotClick }) {
   const [T] = BK.useByupTheme();
   return (
     <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
       display: 'block', width: '100%', borderRadius: BK.RADII.card, overflow: 'hidden',
-      border: `1px solid ${T.line}`, padding: 0, background: T.surface,
-      boxShadow: T.shadowSoft,
+      border: premium ? '1.5px solid rgba(214,172,60,.75)' : `1px solid ${T.line}`,
+      padding: 0, background: T.surface,
+      boxShadow: premium ? '0 14px 34px -14px rgba(190,145,40,.45), 0 2px 8px rgba(77,18,46,.08)' : T.shadowSoft,
       fontFamily: BK.TYPE.sans, textAlign: 'left', cursor: 'pointer',
     }}>
       <div style={{ height: 178, position: 'relative' }}>
         <Photo src={photo} label={name}/>
-        {badge && (
+        {premium ? (
+          <div style={{
+            position: 'absolute', top: 12, left: 12,
+            background: 'linear-gradient(180deg,#ffe27a,#f0c246)', color: '#3d2c00',
+            fontSize: 10.5, fontWeight: 800, padding: '5px 11px', borderRadius: 999,
+            letterSpacing: .5, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5,
+            boxShadow: '0 6px 16px -6px rgba(190,145,40,.7)',
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="#3d2c00"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Premium
+          </div>
+        ) : badge && (
           <div style={{
             position: 'absolute', top: 12, left: 12,
             background: 'rgba(250,227,222,0.92)', color: '#4d122e',
@@ -2125,7 +2148,7 @@ function HomeSections({
     { id: 'torta',     label: 'Torta' },
   ];
   const favorites = [
-    { name: 'Al Settembrini', type: 'Ristorante', distance: '0.4 km', hours: '12:30 – 23:00', open: true,
+    { premium: true, name: 'Al Settembrini', type: 'Ristorante', distance: '0.4 km', hours: '12:30 – 23:00', open: true,
       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop' },
     { name: "All'Impronta", type: 'Ristorante', distance: '0.8 km', hours: '19:00 – 24:00', open: true,
       photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=70&auto=format&fit=crop' },
@@ -3490,7 +3513,7 @@ function App({ recoveryArmed = false }) {
   useEffect(() => {
     window.__byupNav = {
       go: setPage, home: resetToHome,
-      venue: () => { setActiveVenue(v => v || { name: 'Al Settembrini', _from: 'menu' }); setPage('venue'); },
+      venue: () => { setActiveVenue(v => v || { premium: true, name: 'Al Settembrini', _from: 'menu' }); setPage('venue'); },
     };
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -3498,7 +3521,7 @@ function App({ recoveryArmed = false }) {
   const [activeVenue, setActiveVenue] = useState(() => {
     try {
       if (new URLSearchParams(window.location.search).get('page') === 'venue') {
-        return { name: 'Al Settembrini', _from: 'home' };
+        return { premium: true, name: 'Al Settembrini', _from: 'home' };
       }
     } catch {}
     return null;
@@ -4067,6 +4090,7 @@ function ShortcutsPanel() {
     { id: 'a',        label: 'A',         desc: 'Editorial / Magazine' },
     { id: 'b',        label: 'B',         desc: 'Cinematic / Tasting' },
     { id: 'c',        label: 'C',         desc: 'Operativo / Resy' },
+    { id: 'premium',  label: '★',         desc: 'Premium byup' },
   ];
   const row = (s) => {
     const active = s.id === cur;
