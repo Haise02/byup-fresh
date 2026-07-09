@@ -471,7 +471,7 @@ function VenueCardsTray({ venues, onSelect }) {
   if (!venues.length) return null;
   return (
     <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 88,
+      position: 'absolute', left: 0, right: 0, bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
       zIndex: 12, pointerEvents: 'none',
     }}>
       {/* Gradient fade */}

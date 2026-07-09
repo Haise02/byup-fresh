@@ -2543,7 +2543,7 @@ const BYP_CSS = `
 @keyframes bypCardFloat{0%,100%{transform:translateY(-50%) rotate(-9deg)}50%{transform:translateY(-56%) rotate(-5deg)}}
 .byp-hscroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .byp-hscroll::-webkit-scrollbar{display:none}
-.byp-scroll{scrollbar-width:none}
+.byp-scroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .byp-scroll::-webkit-scrollbar{display:none}
 .byp-rw:active{transform:translateY(-2px) scale(.98)}
 .byp-earncard:active{transform:scale(.97)}
@@ -2566,51 +2566,66 @@ const BYP_ACH = [
 // Icone lineari SVG (al posto delle emoji) per Guadagna oggi / Attività recente
 const BypIco = {
   qr: (c = '#ffd3de') => (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.2"/>
       <rect x="3.5" y="14" width="6.5" height="6.5" rx="1.2"/><path d="M14 14h3.2v3.2M20.5 20.4v.01M20.5 14.4v.01M14.6 20.4v.01"/>
     </svg>
   ),
   invite: (c = '#ffd3de') => (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="9.5" cy="8.2" r="3.4"/><path d="M3.5 19.6c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/>
       <path d="M18.5 7.5v5M16 10h5"/>
     </svg>
   ),
   star: (c = '#ffd3de') => (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3.6l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8L12 3.6z"/>
     </svg>
   ),
   diet: (c = '#ffd3de') => (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19.5 4.5c.4 6.8-2.7 12.6-8.6 13.9-3 .7-5.9-1-6.4-3.9-.4-2.6 1-5.2 4-6.3 4.2-1.6 8.2-1.4 11-3.7z"/>
       <path d="M4.8 19.8c2.3-5.2 6.4-8.6 11-10.4"/>
     </svg>
   ),
   order: (c = '#f3b8c6') => (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="4"/>
     </svg>
   ),
   target: (c = '#f3b8c6') => (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/><circle cx="12" cy="12" r="5.4"/><circle cx="12" cy="12" r="1.4" fill={c}/>
     </svg>
   ),
   gift: (c = '#f3b8c6') => (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="8.5" width="16" height="4"/><path d="M6 12.5h12V20H6zM12 8.5V20"/>
       <path d="M12 8.5c-1.8 0-4.3-.6-4.3-2.6 0-2.4 3.3-2.4 4.3 2.6zM12 8.5c1.8 0 4.3-.6 4.3-2.6 0-2.4-3.3-2.4-4.3 2.6z"/>
     </svg>
   ),
   profile: (c = '#f3b8c6') => (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8.2" r="3.6"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/>
     </svg>
   ),
+  globe: (c = '#ffd3de') => (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2M12 3.4c2.4 2.2 3.7 5.2 3.7 8.6s-1.3 6.4-3.7 8.6c-2.4-2.2-3.7-5.2-3.7-8.6s1.3-6.4 3.7-8.6z"/>
+    </svg>
+  ),
+  repeat: (c = '#ffd3de') => (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 2.5l3.5 3.5-3.5 3.5M20.5 6H8a4.5 4.5 0 0 0-4.5 4.5M7 21.5L3.5 18 7 14.5M3.5 18H16a4.5 4.5 0 0 0 4.5-4.5"/>
+    </svg>
+  ),
+  flame: (c = '#ffd3de') => (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21.5c3.9 0 6.5-2.5 6.5-6.2 0-2.6-1.5-4.6-2.9-6.3-.7-.9-2-.4-2.1.7-.1.8-.4 1.5-.9 1.9-.6-1.9-1.7-4.6-3.9-6.1-.8-.5-1.8.1-1.7 1 .1 1.7-.2 3.4-1.2 5-.8 1.3-1.3 2.4-1.3 3.8 0 3.7 2.6 6.2 6.5 6.2z"/>
+    </svg>
+  ),
   store: (c = '#ffcf4a') => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 9.5 5.4 4h13.2L20 9.5"/>
       <path d="M4 9.5c0 1.4 1.1 2.6 2.6 2.6S9.3 10.9 9.3 9.5c0 1.4 1.2 2.6 2.7 2.6s2.7-1.2 2.7-2.6c0 1.4 1.1 2.6 2.6 2.6S20 10.9 20 9.5"/>
       <path d="M5.5 12v8h13v-8M9.5 20v-5h5v5"/>
@@ -2619,13 +2634,13 @@ const BypIco = {
 };
 
 // Sfida compatta — per la griglia 2×N
-function BypChalMini({ emo, title, desc, rew, pct, meta }) {
+function BypChalMini({ icon, title, desc, rew, pct, meta }) {
   return (
     <div style={{ background: BYP.surf, border: `1px solid ${BYP.line}`, borderRadius: 18, padding: '13px 12px',
       display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 19, background: 'linear-gradient(155deg,#3b2530,#6b1e39)' }}>{emo}</div>
+          background: 'linear-gradient(155deg,#3b2530,#6b1e39)' }}>{icon}</div>
         <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 12.5, color: BYP.lime }}>{rew}</div>
       </div>
       <div style={{ fontSize: 13.5, fontWeight: 800, marginTop: 10, color: BYP.text }}>{title}</div>
@@ -2639,26 +2654,37 @@ function BypChalMini({ emo, title, desc, rew, pct, meta }) {
   );
 }
 
-// Card referral — porta un locale su byup
-function BypReferral() {
+// Card referral — porta un locale o un amico su byup
+function BypReferral({ variant = 'locale', onInvite }) {
+  const locale = variant === 'locale';
   return (
     <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, padding: '16px 15px 15px',
-      background: 'radial-gradient(120% 90% at 90% 0%, rgba(255,207,74,.22), transparent 55%), linear-gradient(150deg,#221016,#3a1220 55%,#54160f)',
-      border: '1px solid rgba(255,207,74,.45)', boxShadow: '0 20px 40px -20px rgba(255,160,60,.35)', marginBottom: 12 }}>
+      background: locale
+        ? 'radial-gradient(120% 90% at 90% 0%, rgba(255,207,74,.22), transparent 55%), linear-gradient(150deg,#221016,#3a1220 55%,#54160f)'
+        : 'radial-gradient(120% 90% at 90% 0%, rgba(227,36,89,.3), transparent 55%), linear-gradient(150deg,#1c1014,#33101e 55%,#47102a)',
+      border: locale ? '1px solid rgba(255,207,74,.45)' : '1px solid rgba(255,90,130,.4)',
+      boxShadow: locale ? '0 20px 40px -20px rgba(255,160,60,.35)' : '0 20px 40px -20px rgba(227,36,89,.4)', marginBottom: 12 }}>
       <span aria-hidden style={{ position: 'absolute', top: 0, left: '-60%', width: '42%', height: '100%',
         background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.10), transparent)',
         transform: 'skewX(-18deg)', animation: 'bypSweep 4.6s ease-in-out infinite', pointerEvents: 'none' }}/>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ width: 46, height: 46, borderRadius: 14, flex: 'none', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', background: 'linear-gradient(155deg,#4a3312,#7d5a1d)', border: '1px solid rgba(255,207,74,.5)' }}>
-          {BypIco.store()}
+          justifyContent: 'center',
+          background: locale ? 'linear-gradient(155deg,#4a3312,#7d5a1d)' : 'linear-gradient(155deg,#4a2331,#7d1d3f)',
+          border: locale ? '1px solid rgba(255,207,74,.5)' : '1px solid rgba(239,99,137,.45)' }}>
+          {locale ? BypIco.store() : BypIco.invite('#ff9fb6')}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 800, letterSpacing: .6, color: '#141414',
-            background: 'linear-gradient(180deg,#ffe27a,#ffcf4a)', padding: '3px 8px', borderRadius: 999, textTransform: 'uppercase' }}>Referral · super bonus</span>
-          <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 16.5, marginTop: 6, color: BYP.text }}>Porta un locale su byup</div>
+          <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 800, letterSpacing: .6,
+            color: locale ? '#141414' : '#fff',
+            background: locale ? 'linear-gradient(180deg,#ffe27a,#ffcf4a)' : 'linear-gradient(122deg,#e32459,#b81c47)',
+            padding: '3px 8px', borderRadius: 999, textTransform: 'uppercase' }}>{locale ? 'Referral · super bonus' : 'Referral amici'}</span>
+          <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 16.5, marginTop: 6, color: BYP.text }}>
+            {locale ? 'Porta un locale su byup' : 'Porta un amico su byup'}</div>
           <div style={{ fontSize: 12, color: 'rgba(246,236,233,.72)', marginTop: 3, lineHeight: 1.35 }}>
-            Consiglia byup a un locale: se attiva l'abbonamento grazie a te, ricevi un maxi premio.
+            {locale
+              ? "Consiglia byup a un locale: se attiva l'abbonamento grazie a te, ricevi un maxi premio."
+              : 'Invita un amico: quando completa il suo primo ordine, byuppini per entrambi.'}
           </div>
         </div>
       </div>
@@ -2666,12 +2692,63 @@ function BypReferral() {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(206,255,0,.13)',
           border: '1px solid rgba(206,255,0,.4)', color: BYP.lime, fontFamily: BK.TYPE.display, fontWeight: 600,
           fontSize: 13, padding: '6px 11px', borderRadius: 999 }}>
-          <img src="assets/coin.png" alt="" style={{ width: 15, height: 15 }}/>+5.000
+          <img src="assets/coin.png" alt="" style={{ width: 15, height: 15 }}/>{locale ? '+5.000' : '+300'}
         </span>
-        <span style={{ fontSize: 11, color: 'rgba(246,236,233,.7)', fontWeight: 700 }}>= 50€ convertibili in credito</span>
+        <span style={{ fontSize: 11, color: 'rgba(246,236,233,.7)', fontWeight: 700 }}>
+          {locale ? '= 50€ convertibili in credito' : 'a testa, subito spendibili'}</span>
       </div>
-      <BypCta style={{ height: 46, marginTop: 13 }}>Invita un locale</BypCta>
+      <BypCta style={{ height: 46, marginTop: 13 }} onClick={onInvite}>{locale ? 'Invita un locale' : 'Invita un amico'}</BypCta>
     </div>
+  );
+}
+
+// Popup codice referral — username + 2 caratteri. Il locale lo inserisce
+// nell'onboarding di byup gestionale; l'amico alla registrazione.
+function BypCodeSheet({ type, onClose }) {
+  const [copied, setCopied] = useState(false);
+  const code = 'MARIO24';
+  const locale = type === 'locale';
+  const copy = () => {
+    try { navigator.clipboard && navigator.clipboard.writeText(code); } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <BypSheet center onClose={onClose}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 330, textAlign: 'center',
+        background: `radial-gradient(90% 60% at 50% 0%, ${locale ? 'rgba(255,207,74,.22)' : 'rgba(227,36,89,.3)'}, transparent 60%), ${BYP.surf}`,
+        border: locale ? '1px solid rgba(255,207,74,.45)' : '1px solid rgba(255,90,130,.4)',
+        borderRadius: 28, padding: '26px 22px 22px',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <span style={{ display: 'flex', width: 56, height: 56, margin: '0 auto 10px', borderRadius: 16,
+          alignItems: 'center', justifyContent: 'center',
+          background: locale ? 'linear-gradient(155deg,#4a3312,#7d5a1d)' : 'linear-gradient(155deg,#4a2331,#7d1d3f)',
+          border: locale ? '1px solid rgba(255,207,74,.5)' : '1px solid rgba(239,99,137,.45)' }}>
+          {locale ? BypIco.store() : BypIco.invite('#ff9fb6')}
+        </span>
+        <h3 style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 20, margin: '0 0 6px' }}>
+          {locale ? 'Invita un locale' : 'Porta un amico'}</h3>
+        <p style={{ fontSize: 12.5, color: BYP.muted, lineHeight: 1.45, margin: '0 0 16px' }}>
+          {locale
+            ? "Il locale inserisce il tuo codice durante l'onboarding di byup gestionale: quando attiva l'abbonamento, il bonus è tuo."
+            : 'Il tuo amico inserisce il codice quando si registra: al suo primo ordine, byuppini per entrambi.'}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          border: '1.5px dashed rgba(246,236,233,.35)', borderRadius: 16, padding: '13px 10px',
+          background: 'rgba(255,255,255,.04)', marginBottom: 12 }}>
+          <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 26, letterSpacing: 3, color: '#fff' }}>{code}</span>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(206,255,0,.12)',
+          border: '1px solid rgba(206,255,0,.35)', color: BYP.lime, fontWeight: 800, fontSize: 12.5,
+          padding: '7px 13px', borderRadius: 999, marginBottom: 16 }}>
+          <img src="assets/coin.png" alt="" style={{ width: 14, height: 14 }}/>
+          {locale ? '+5.000 byuppini · 50€ in credito' : '+300 byuppini a testa'}
+        </div>
+        <BypCta onClick={copy}>{copied ? 'Copiato ✓' : 'Copia il codice'}</BypCta>
+        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 10, background: 'none',
+          border: 'none', color: BYP.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 8 }}>Chiudi</button>
+      </div>
+    </BypSheet>
   );
 }
 
@@ -2859,6 +2936,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
   const [levelUp, setLevelUp] = useState(false);
   const [ach, setAch] = useState(null);
   const [info, setInfo] = useState(false);
+  const [refSheet, setRefSheet] = useState(null); // 'locale' | 'amico'
   const [burst, setBurst] = useState(0);
   const scrollRef = useRef(null);
 
@@ -2879,7 +2957,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
   const goSeg = (s) => {
     setSeg(s);
     const el = scrollRef.current;
-    if (el && el.scrollTop > 236) el.scrollTo({ top: 236, behavior: 'smooth' });
+    if (el && el.scrollTop > 236) el.scrollTop = 236;
   };
   const openLevelUp = () => { setLevelUp(true); fireConfetti(); };
   const openAch = (a) => { setAch(a); if (a.s === 'done') fireConfetti(); };
@@ -3024,7 +3102,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
               ))}
             </div>
             <BypCta style={{ margin: '18px 0 6px' }} onClick={() => goSeg('premi')}>Riscatta i tuoi byuppini</BypCta>
-            <BypCta ghost style={{ margin: '10px 0 6px' }} onClick={openLevelUp}>▶︎ Anteprima level-up</BypCta>
+            <BypCta ghost style={{ margin: '10px 0 6px' }} onClick={openLevelUp}>Cosa succede al prossimo livello?</BypCta>
           </div>
         )}
 
@@ -3033,14 +3111,14 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
           <div key="sfide" style={{ padding: '6px 16px 0', animation: 'bypFade .28s ease' }}>
             <BypSect aside="↻ 3 giorni">Sfide della settimana</BypSect>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11, marginBottom: 14 }}>
-              <BypChalMini emo="🌍" title="Esploratore" desc="Prova 3 cucine diverse" rew="+150" pct={66} meta="2 di 3 · 66%"/>
-              <BypChalMini emo="🔁" title="Habitué" desc="Ordina 2 volte in 7 giorni" rew="+100" pct={50} meta="1 di 2 · 50%"/>
-              <BypChalMini emo="🔥" title="Streak ×4" desc="Un ordine a settimana per 4 settimane" rew="+400" pct={50} meta="Settimana 2 di 4"/>
-              <BypChalMini emo="⭐" title="Recensore" desc="Lascia 2 recensioni questa settimana" rew="+80" pct={50} meta="1 di 2 · 50%"/>
+              <BypChalMini icon={BypIco.globe()} title="Esploratore" desc="Prova 3 cucine diverse" rew="+150" pct={66} meta="2 di 3 · 66%"/>
+              <BypChalMini icon={BypIco.repeat()} title="Habitué" desc="Ordina 2 volte in 7 giorni" rew="+100" pct={50} meta="1 di 2 · 50%"/>
+              <BypChalMini icon={BypIco.flame()} title="Streak ×4" desc="Un ordine a settimana per 4 settimane" rew="+400" pct={50} meta="Settimana 2 di 4"/>
+              <BypChalMini icon={BypIco.star()} title="Recensore" desc="Lascia 2 recensioni questa settimana" rew="+80" pct={50} meta="1 di 2 · 50%"/>
             </div>
-            <BypReferral/>
-            <BypSect>Dal vivo</BypSect>
-            <BypChal live emo="📍" title="Sei in un locale byup?" desc="Scansiona il QR del tavolo per il check-in" rew="+30" cta="Scansiona ora" onCta={onQR}/>
+            <BypSect aside="bonus speciali">Referral</BypSect>
+            <BypReferral variant="locale" onInvite={() => setRefSheet('locale')}/>
+            <BypReferral variant="amico" onInvite={() => setRefSheet('amico')}/>
           </div>
         )}
 
@@ -3117,12 +3195,12 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
             boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)' }}>
             <img src="assets/mascot-happy.png" onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
               style={{ width: 130, margin: '-70px 0 4px', filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.5))' }}/>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: BYP.lime, textTransform: 'uppercase' }}>Level up</div>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: BYP.lime, textTransform: 'uppercase' }}>Prossimo livello</div>
             <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.4 · {BYP_LEVEL_NAMES[4]}</div>
-            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>Hai sbloccato il moltiplicatore <b style={{ color: '#fff' }}>×1,5</b> sui byuppini</div>
+            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>Sbloccherai il moltiplicatore <b style={{ color: '#fff' }}>×1,5</b> su tutti i byuppini che guadagni</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(206,255,0,.12)', border: '1px solid rgba(206,255,0,.35)',
-              color: BYP.lime, fontWeight: 800, fontSize: 13, padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>🎁 +250 byuppini bonus</div>
-            <BypCta onClick={() => setLevelUp(false)}>Continua</BypCta>
+              color: BYP.lime, fontWeight: 800, fontSize: 13, padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>🎁 Riceverai +250 byuppini bonus</div>
+            <BypCta onClick={() => setLevelUp(false)}>Non vedo l'ora</BypCta>
           </div>
         </BypSheet>
       )}
@@ -3184,6 +3262,8 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
           </div>
         </BypSheet>
       )}
+
+      {refSheet && <BypCodeSheet type={refSheet} onClose={() => setRefSheet(null)}/>}
 
       <BypConfetti burst={burst}/>
     </div>
@@ -3876,7 +3956,7 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 'env(safe-area-inset-bottom, 0px)',
-      aspectRatio: '390 / 88',
+      height: 78,
       zIndex: 20,
       filter: dark
         ? 'drop-shadow(0 -3px 14px rgba(0,0,0,0.4)) drop-shadow(0 12px 30px rgba(0,0,0,0.5))'

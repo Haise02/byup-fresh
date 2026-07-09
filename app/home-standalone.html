@@ -1616,13 +1616,13 @@ function AllergensView({
       marginBottom: 28,
       lineHeight: 1.5
     }
-  }, "Personalizza la tua esperienza nei menù dei locali."), /*#__PURE__*/React.createElement(SectionHeader, {
+  }, "Personalizza la tua esperienza nei men\xF9 dei locali."), /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Le mie diete",
     badge: count('diets'),
-    icon: "✨",
+    icon: "\u2728",
     color: "#30D158",
     bg: "#F0FFF4",
-    description: "I piatti compatibili con la tua dieta appariranno in cima al menù."
+    description: "I piatti compatibili con la tua dieta appariranno in cima al men\xF9."
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -1658,10 +1658,10 @@ function AllergensView({
   })), /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Allergie e intolleranze",
     badge: count('allergens'),
-    icon: "🚫",
+    icon: "\uD83D\uDEAB",
     color: "#FF6B6B",
     bg: "#FFF5F5",
-    description: "I piatti che contengono questi ingredienti verranno nascosti dal menù."
+    description: "I piatti che contengono questi ingredienti verranno nascosti dal men\xF9."
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -1830,7 +1830,7 @@ function OrdersView({
         fontWeight: 800,
         color: TEXT_X
       }
-    }, "€ ", o.total.toFixed(2))), /*#__PURE__*/React.createElement("div", {
+    }, "\u20AC ", o.total.toFixed(2))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         flexDirection: 'column',
@@ -1904,7 +1904,7 @@ function OrdersView({
         flexShrink: 0,
         marginLeft: 12
       }
-    }, "€ ", it.p.toFixed(2)))), /*#__PURE__*/React.createElement("div", {
+    }, "\u20AC ", it.p.toFixed(2)))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -1925,7 +1925,7 @@ function OrdersView({
         fontWeight: 800,
         color: TEXT_X
       }
-    }, "€ ", o.total.toFixed(2)))), /*#__PURE__*/React.createElement("div", {
+    }, "\u20AC ", o.total.toFixed(2)))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         justifyContent: 'center',
@@ -2042,7 +2042,7 @@ function PagamentiView({
         fontWeight: 700,
         color: '#000'
       }
-    }, "🍎");
+    }, "\uD83C\uDF4E");
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2143,7 +2143,7 @@ function PagamentiView({
       letterSpacing: 3,
       marginBottom: 14
     }
-  }, "•••• •••• •••• ", preferred.last4), /*#__PURE__*/React.createElement("div", {
+  }, "\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 ", preferred.last4), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -2297,7 +2297,7 @@ function PagamentiView({
       marginBottom: 24,
       lineHeight: 1.5
     }
-  }, "Sei sicuro di voler rimuovere questa carta? L'operazione non è reversibile."), /*#__PURE__*/React.createElement("div", {
+  }, "Sei sicuro di voler rimuovere questa carta? L'operazione non \xE8 reversibile."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
@@ -2554,7 +2554,7 @@ function PreferitivView({
       fontSize: 36,
       marginBottom: 12
     }
-  }, "🤍"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83E\uDD0D"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 15,
       fontWeight: 600,
@@ -2615,7 +2615,7 @@ function PreferitivView({
       fontSize: 12,
       color: MUTED_X
     }
-  }, v.cuisine, " · ", v.zone)), /*#__PURE__*/React.createElement("button", {
+  }, v.cuisine, " \xB7 ", v.zone)), /*#__PURE__*/React.createElement("button", {
     onClick: e => {
       e.stopPropagation();
       remove(v.id);
@@ -2669,7 +2669,7 @@ function SegnalaView({
     style: {
       fontSize: 48
     }
-  }, "✅"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2705"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 20,
       fontWeight: 700,
@@ -2682,7 +2682,7 @@ function SegnalaView({
       textAlign: 'center',
       lineHeight: 1.5
     }
-  }, "Il tuo messaggio è stato inviato.", /*#__PURE__*/React.createElement("br", null), "Lo esamineremo al più presto."), /*#__PURE__*/React.createElement("button", {
+  }, "Il tuo messaggio \xE8 stato inviato.", /*#__PURE__*/React.createElement("br", null), "Lo esamineremo al pi\xF9 presto."), /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
     style: {
       marginTop: 16,
@@ -3043,7 +3043,7 @@ function AccountFormView({
     style: {
       fontSize: 44
     }
-  }, "✅"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2705"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 18,
       fontWeight: 700,
@@ -3236,6 +3236,30 @@ function LegalView({
     }
   }, block.p))));
 }
+
+// Tag profilo = traguardi sbloccati (equipaggiabili, max 2) + avatar preset
+const PROFILE_TAGS = [{
+  label: 'Pizza lover',
+  img: 'assets/cat-pizza.png',
+  bg: '#FCE9EE',
+  c: '#E32459'
+}, {
+  label: 'Re dello spritz',
+  img: 'assets/hero-spritz.png',
+  bg: '#fae3de',
+  c: '#4d122e'
+}, {
+  label: 'Esploratore',
+  img: 'assets/cat-poke.png',
+  bg: '#eef3d6',
+  c: '#5f7000'
+}, {
+  label: 'byup pay',
+  img: 'assets/coin.png',
+  bg: '#f4f7d4',
+  c: '#5f7000'
+}];
+const PROFILE_AVATARS = ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&auto=format&fit=crop', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80&auto=format&fit=crop'];
 function ProfileScreen({
   onBack,
   onTabHome,
@@ -3257,6 +3281,16 @@ function ProfileScreen({
   // (es. "Aggiungi carta" dalla schermata Metodo pagamento del menu).
   const initialAddCard = params.get('add') === '1';
   const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
+  const [tagSheet, setTagSheet] = useState(false);
+  const [myTags, setMyTags] = useState(['Pizza lover', 'Re dello spritz']);
+  const [avatarSheet, setAvatarSheet] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
+  const nextAvatar = () => {
+    const i = PROFILE_AVATARS.indexOf(avatarUrl);
+    setAvatarUrl(PROFILE_AVATARS[(i + 1) % PROFILE_AVATARS.length]);
+    setAvatarSheet(false);
+  };
+  const toggleTag = l => setMyTags(t => t.includes(l) ? t.filter(x => x !== l) : t.length >= 2 ? [...t.slice(1), l] : [...t, l]);
   // Consumato il deep-link, lo rimuovo dall'URL così riaprendo il Profilo dal
   // tab si torna a 'main' (il param non resta "incollato").
   useEffect(() => {
@@ -3267,7 +3301,7 @@ function ProfileScreen({
         p.delete('order');
         p.delete('add');
         const qs = p.toString();
-        window.history.replaceState({}, '', 'home-standalone.html' + (qs ? `?${qs}` : ''));
+        window.history.replaceState({}, '', 'byup Home.html' + (qs ? `?${qs}` : ''));
       } catch {}
     }
   }, []);
@@ -3277,7 +3311,7 @@ function ProfileScreen({
     try {
       localStorage.removeItem('byup_auth');
     } catch {}
-    window.location.href = 'home-standalone.html?auth=login';
+    window.location.href = 'byup Home.html?auth=login';
   };
   const [lang, setLang] = useState('it');
   const themeMode = (() => {
@@ -3667,17 +3701,20 @@ function ProfileScreen({
       animation: 'bkSpinRing 7s linear infinite',
       boxShadow: '0 16px 34px -12px rgba(77,18,46,.55)'
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAvatarSheet(true),
     style: {
       position: 'absolute',
       inset: 4,
       borderRadius: 999,
       overflow: 'hidden',
       border: '3px solid #e32459',
-      background: SURF_X
+      background: SURF_X,
+      padding: 0,
+      cursor: 'pointer'
     }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5",
+  }, avatarUrl ? /*#__PURE__*/React.createElement("img", {
+    src: avatarUrl,
     alt: "",
     style: {
       display: 'block',
@@ -3686,7 +3723,51 @@ function ProfileScreen({
       objectFit: 'cover',
       objectPosition: 'center top'
     }
-  })), /*#__PURE__*/React.createElement("img", {
+  }) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 30,
+      fontWeight: 600,
+      color: '#E32459',
+      background: '#FCE9EE'
+    }
+  }, "MR")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: -4,
+      bottom: 0,
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      background: '#fff',
+      border: '2px solid #e32459',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      pointerEvents: 'none',
+      boxShadow: '0 4px 10px rgba(77,18,46,.3)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#E32459",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M4 8h3l2-2.5h6L17 8h3v11H4z"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "13.2",
+    r: "3.1"
+  }))), /*#__PURE__*/React.createElement("img", {
     src: "assets/mascot-wink.png",
     width: "46",
     alt: "",
@@ -3739,7 +3820,7 @@ function ProfileScreen({
       color: 'rgba(255,255,255,.85)',
       fontWeight: 600
     }
-  }, "@mariorossi · Roma"))), /*#__PURE__*/React.createElement("div", {
+  }, "@mariorossi \xB7 Roma"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'center'
@@ -3762,7 +3843,9 @@ function ProfileScreen({
       boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
       animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards'
     }
-  }, [['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')], ['3', 'Gruppi', null]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
+  }, [['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')], ['1.240', 'Byuppini', () => {
+    if (window.__byupNav) window.__byupNav.go('byuppini');
+  }]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
     key: l
   }, i > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3806,28 +3889,39 @@ function ProfileScreen({
       justifyContent: 'center',
       animation: 'bkFadeUp 480ms 140ms cubic-bezier(.22,.9,.35,1) backwards'
     }
-  }, [{
-    img: 'assets/cat-pizza.png',
-    label: 'Pizza lover',
-    bg: '#FCE9EE',
-    c: PINK_X
-  }, {
-    img: 'assets/hero-spritz.png',
-    label: 'Re dello spritz',
-    bg: '#fae3de',
-    c: '#4d122e'
-  }, {
-    label: 'LIV. 3',
-    bg: '#ceff00',
-    c: '#141414'
-  }].map(b => /*#__PURE__*/React.createElement("span", {
-    key: b.label,
+  }, myTags.map(l => {
+    const b = PROFILE_TAGS.find(t => t.label === l);
+    if (!b) return null;
+    return /*#__PURE__*/React.createElement("button", {
+      key: l,
+      onClick: () => setTagSheet(true),
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        background: b.bg,
+        color: b.c,
+        fontSize: 11.5,
+        fontWeight: 800,
+        padding: '5px 11px',
+        borderRadius: 999,
+        letterSpacing: .3,
+        border: '1px solid rgba(77,18,46,.06)',
+        cursor: 'pointer',
+        fontFamily: 'inherit'
+      }
+    }, /*#__PURE__*/React.createElement("img", {
+      src: b.img,
+      width: "16",
+      height: "16",
+      alt: ""
+    }), b.label);
+  }), /*#__PURE__*/React.createElement("span", {
     style: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 5,
-      background: b.bg,
-      color: b.c,
+      background: '#ceff00',
+      color: '#141414',
       fontSize: 11.5,
       fontWeight: 800,
       padding: '5px 11px',
@@ -3835,12 +3929,25 @@ function ProfileScreen({
       letterSpacing: .3,
       border: '1px solid rgba(77,18,46,.06)'
     }
-  }, b.img && /*#__PURE__*/React.createElement("img", {
-    src: b.img,
-    width: "16",
-    height: "16",
-    alt: ""
-  }), b.label))), /*#__PURE__*/React.createElement("div", {
+  }, "LIV. 3"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTagSheet(true),
+    "aria-label": "Modifica tag",
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 27,
+      height: 27,
+      borderRadius: 999,
+      background: 'transparent',
+      color: 'rgba(255,255,255,.9)',
+      border: '1.5px dashed rgba(255,255,255,.6)',
+      cursor: 'pointer',
+      fontSize: 14,
+      fontWeight: 800,
+      fontFamily: 'inherit'
+    }
+  }, "+")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
@@ -4092,7 +4199,7 @@ function ProfileScreen({
       color: MUTED_X,
       marginBottom: 24
     }
-  }, "mario.rossi@email.it · N° 00001"), /*#__PURE__*/React.createElement(RowGroup, null, /*#__PURE__*/React.createElement(Row, {
+  }, "mario.rossi@email.it \xB7 N\xB0 00001"), /*#__PURE__*/React.createElement(RowGroup, null, /*#__PURE__*/React.createElement(Row, {
     label: "Cambia password",
     onClick: () => setView('cambia-password'),
     iconColor: PINK_X,
@@ -4437,7 +4544,194 @@ function ProfileScreen({
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "20 6 9 17 4 12"
-  }))))))), (() => {
+  }))))))), tagSheet && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) setTagSheet(false);
+    },
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 70,
+      background: 'rgba(15,8,12,.5)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      animation: 'fade .2s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      background: SURF_X,
+      borderRadius: '24px 24px 0 0',
+      padding: '12px 20px calc(26px + env(safe-area-inset-bottom, 0px))',
+      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: BORDER_X
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 19,
+      fontWeight: 600,
+      color: TEXT_X
+    }
+  }, "I tuoi tag"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: MUTED_X,
+      margin: '3px 0 14px'
+    }
+  }, "Si sbloccano con i traguardi Byuppini \xB7 scegline due da mostrare"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      flexWrap: 'wrap',
+      marginBottom: 18
+    }
+  }, PROFILE_TAGS.map(b => {
+    const on = myTags.includes(b.label);
+    return /*#__PURE__*/React.createElement("button", {
+      key: b.label,
+      onClick: () => toggleTag(b.label),
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        background: on ? b.bg : 'transparent',
+        color: on ? b.c : MUTED_X,
+        fontSize: 12.5,
+        fontWeight: 800,
+        padding: '8px 14px',
+        borderRadius: 999,
+        border: on ? '1.5px solid rgba(77,18,46,.14)' : `1.5px dashed ${BORDER_X}`,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        transition: 'all .15s'
+      }
+    }, /*#__PURE__*/React.createElement("img", {
+      src: b.img,
+      width: "17",
+      height: "17",
+      alt: "",
+      style: {
+        filter: on ? 'none' : 'grayscale(1)',
+        opacity: on ? 1 : .55
+      }
+    }), b.label, on && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11
+      }
+    }, "\u2713"));
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "bk-press",
+    onClick: () => setTagSheet(false),
+    style: {
+      width: '100%',
+      height: 50,
+      border: 'none',
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontWeight: 800,
+      fontSize: 15,
+      color: '#fff',
+      background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)',
+      boxShadow: '0 14px 30px -12px rgba(227,36,89,.55)'
+    }
+  }, "Fatto"))), avatarSheet && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) setAvatarSheet(false);
+    },
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 70,
+      background: 'rgba(15,8,12,.5)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      animation: 'fade .2s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      background: SURF_X,
+      borderRadius: '24px 24px 0 0',
+      padding: '12px 20px calc(26px + env(safe-area-inset-bottom, 0px))',
+      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: BORDER_X
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 19,
+      fontWeight: 600,
+      color: TEXT_X,
+      marginBottom: 12
+    }
+  }, "Foto profilo"), [['Scatta una foto', nextAvatar, false], ['Scegli dalla libreria', nextAvatar, false], ['Rimuovi foto', () => {
+    setAvatarUrl(null);
+    setAvatarSheet(false);
+  }, true]].map(([l, fn, danger]) => /*#__PURE__*/React.createElement("button", {
+    key: l,
+    onClick: fn,
+    style: {
+      display: 'block',
+      width: '100%',
+      textAlign: 'left',
+      padding: '14px 4px',
+      background: 'none',
+      border: 'none',
+      borderBottom: `1px solid ${BORDER_X}`,
+      fontSize: 15,
+      fontWeight: 700,
+      color: danger ? '#d21e50' : TEXT_X,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, l)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAvatarSheet(false),
+    style: {
+      display: 'block',
+      width: '100%',
+      padding: '15px 4px 4px',
+      background: 'none',
+      border: 'none',
+      fontSize: 14,
+      fontWeight: 700,
+      color: MUTED_X,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      textAlign: 'center'
+    }
+  }, "Annulla"))), (() => {
     const B = window.BottomTabBar;
     return B ? /*#__PURE__*/React.createElement(B, {
       active: "profile",
@@ -4512,7 +4806,7 @@ function ProfileScreen({
       color: '#fff',
       marginBottom: 8
     }
-  }, "Sì, esci"), /*#__PURE__*/React.createElement("button", {
+  }, "S\xEC, esci"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setConfirmLogout(false),
     style: {
       width: '100%',
@@ -4540,7 +4834,7 @@ function ProfileScreen({
       lineHeight: 1.5,
       marginBottom: 22
     }
-  }, "Tutti i tuoi dati, preferenze e storico ordini verranno eliminati definitivamente. Questa operazione non è reversibile."), /*#__PURE__*/React.createElement("button", {
+  }, "Tutti i tuoi dati, preferenze e storico ordini verranno eliminati definitivamente. Questa operazione non \xE8 reversibile."), /*#__PURE__*/React.createElement("button", {
     style: {
       width: '100%',
       padding: '14px',
@@ -4554,7 +4848,7 @@ function ProfileScreen({
       color: '#fff',
       marginBottom: 8
     }
-  }, "Sì, elimina il mio account"), /*#__PURE__*/React.createElement("button", {
+  }, "S\xEC, elimina il mio account"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setConfirmDeleteAccount(false),
     style: {
       width: '100%',
@@ -4738,7 +5032,7 @@ function BookingSheet({
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setPeople(p => Math.max(1, p - 1)),
     style: stepperBtn
-  }, "−"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2212"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 20,
       fontWeight: 700,
@@ -5636,7 +5930,7 @@ function VenueOriginal({
       borderRadius: 999,
       whiteSpace: 'nowrap'
     }
-  }, "🏆 TOP 10 ROMA")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDFC6 TOP 10 ROMA")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '14px 20px 0'
     }
@@ -5693,7 +5987,7 @@ function VenueOriginal({
     r: "10"
   }), /*#__PURE__*/React.createElement("polyline", {
     points: "12 6 12 12 16 14"
-  })), "Lun – Ven · 11:00 – 23:00")), /*#__PURE__*/React.createElement("div", {
+  })), "Lun \u2013 Ven \xB7 11:00 \u2013 23:00")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       marginBottom: 4
@@ -5755,7 +6049,7 @@ function VenueOriginal({
       color: MUTED_X,
       fontWeight: 500
     }
-  }, "· 320 recensioni")))), /*#__PURE__*/React.createElement(Section, {
+  }, "\xB7 320 recensioni")))), /*#__PURE__*/React.createElement(Section, {
     title: "Promo / Eventi"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5764,11 +6058,11 @@ function VenueOriginal({
       flexWrap: 'wrap'
     }
   }, /*#__PURE__*/React.createElement(PromoTag, {
-    info: "Ogni giorno · 18:00 – 21:00"
+    info: "Ogni giorno \xB7 18:00 \u2013 21:00"
   }, "Aperitivo 2x1"), /*#__PURE__*/React.createElement(PromoTag, {
-    info: "Tutti i venerdì · dalle 21:00"
-  }, "Karaoke venerdì"), /*#__PURE__*/React.createElement(PromoTag, {
-    info: "Ogni domenica · 11:00 – 15:00"
+    info: "Tutti i venerd\xEC \xB7 dalle 21:00"
+  }, "Karaoke venerd\xEC"), /*#__PURE__*/React.createElement(PromoTag, {
+    info: "Ogni domenica \xB7 11:00 \u2013 15:00"
   }, "Brunch domenica"))), /*#__PURE__*/React.createElement(Section, {
     title: "Premi e riconoscimenti"
   }, /*#__PURE__*/React.createElement("div", {
@@ -5798,7 +6092,7 @@ function VenueOriginal({
       fontWeight: 600,
       cursor: 'pointer'
     }
-  }, "Meno ↑")) : /*#__PURE__*/React.createElement(React.Fragment, null, "Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti tradizionali della cucina romana, ingredienti freschi e selezionati ogni giorno.", ' ', /*#__PURE__*/React.createElement("span", {
+  }, "Meno \u2191")) : /*#__PURE__*/React.createElement(React.Fragment, null, "Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti tradizionali della cucina romana, ingredienti freschi e selezionati ogni giorno.", ' ', /*#__PURE__*/React.createElement("span", {
     onClick: () => setBioExpanded(true),
     style: {
       color: PINK_X,
@@ -5969,7 +6263,7 @@ function VenueOriginal({
       fontWeight: 700,
       padding: '10px 16px'
     }
-  }, "Leggi tutte le recensioni ↓")))), /*#__PURE__*/React.createElement(Section, {
+  }, "Leggi tutte le recensioni \u2193")))), /*#__PURE__*/React.createElement(Section, {
     title: "Dove siamo"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5999,7 +6293,7 @@ function VenueOriginal({
       fontFamily: 'inherit',
       boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
     }
-  }, "Vedi mappa →"))), /*#__PURE__*/React.createElement(Section, {
+  }, "Vedi mappa \u2192"))), /*#__PURE__*/React.createElement(Section, {
     title: "Altre info"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6015,7 +6309,7 @@ function VenueOriginal({
     label: "Parcheggio custodito Via Giulia"
   }), /*#__PURE__*/React.createElement(InfoRow, {
     icon: "M",
-    label: "Metro Tiburtina linea B · Bus 54, 60, 12, 40"
+    label: "Metro Tiburtina linea B \xB7 Bus 54, 60, 12, 40"
   }))), /*#__PURE__*/React.createElement(Section, {
     title: "Altre sedi"
   }, /*#__PURE__*/React.createElement(SedeRow, {
@@ -6055,7 +6349,7 @@ function VenueOriginal({
       transform: faqOpen === i ? 'rotate(180deg)' : 'none',
       transition: 'transform 0.15s'
     }
-  }, "⌄")), faqOpen === i && /*#__PURE__*/React.createElement("div", {
+  }, "\u2304")), faqOpen === i && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: MUTED_X,
@@ -6164,7 +6458,7 @@ function VenueOriginal({
     }
   }), /*#__PURE__*/React.createElement(MoreRow, {
     label: "Condividi",
-    icon: "↗"
+    icon: "\u2197"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 1,
@@ -6173,7 +6467,7 @@ function VenueOriginal({
     }
   }), /*#__PURE__*/React.createElement(MoreRow, {
     label: "Segnala questo locale",
-    icon: "⚠",
+    icon: "\u26A0",
     danger: true,
     onClick: () => {
       closeMore();
@@ -6241,7 +6535,7 @@ function VenueOriginal({
       fontFamily: 'inherit',
       padding: 4
     }
-  }, "×")), /*#__PURE__*/React.createElement("div", {
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
     style: {
       overflowY: 'auto',
       padding: '0 18px 26px',
@@ -6360,7 +6654,7 @@ function VenueOriginal({
       fontSize: 48,
       marginBottom: 12
     }
-  }, "✓"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2713"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 18,
       fontWeight: 700,
@@ -6373,7 +6667,7 @@ function VenueOriginal({
       lineHeight: 1.5,
       marginBottom: 20
     }
-  }, "Il team byup la esaminerà entro 48 ore. Ti aggiorneremo via email."), /*#__PURE__*/React.createElement("button", {
+  }, "Il team byup la esaminer\xE0 entro 48 ore. Ti aggiorneremo via email."), /*#__PURE__*/React.createElement("button", {
     onClick: () => setReportOpen(false),
     style: {
       width: '100%',
@@ -6430,7 +6724,7 @@ function VenueOriginal({
       color: PINK_X,
       fontWeight: 700
     }
-  }, "✓")))), /*#__PURE__*/React.createElement("textarea", {
+  }, "\u2713")))), /*#__PURE__*/React.createElement("textarea", {
     placeholder: "Vuoi aggiungere dettagli? (opzionale)",
     style: {
       width: '100%',
@@ -6508,7 +6802,7 @@ function VenueOriginal({
       fontFamily: 'inherit',
       boxShadow: '0 4px 14px rgba(227,36,89,0.3)'
     }
-  }, "Menù")));
+  }, "Men\xF9")));
 }
 function MoreRow({
   label,
@@ -9610,7 +9904,7 @@ function VenueCardsTray({
       position: 'absolute',
       left: 0,
       right: 0,
-      bottom: 88,
+      bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
       zIndex: 12,
       pointerEvents: 'none'
     }
@@ -9841,7 +10135,7 @@ function MapScreen({
   })), /*#__PURE__*/React.createElement("input", {
     value: searchQ,
     onChange: e => setSearchQ(e.target.value),
-    placeholder: "Cerca ristorante o zona…",
+    placeholder: "Cerca ristorante o zona\u2026",
     style: {
       flex: 1,
       border: 'none',
@@ -10058,7 +10352,7 @@ function MapScreen({
     onClose: () => setActive(null),
     onOpenVenue: () => onOpenVenue(active),
     onOpenMenu: () => {
-      window.location.href = 'menu-standalone.html?from=venue';
+      window.location.href = 'byup Menu.html?from=venue';
     }
   }));
 }
@@ -10156,7 +10450,7 @@ function VenueSheet({
       color: 'rgba(255,255,255,0.82)',
       marginTop: 2
     }
-  }, venue.cat, " · ", venue.distance)), /*#__PURE__*/React.createElement("div", {
+  }, venue.cat, " \xB7 ", venue.distance)), /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'rgba(255,255,255,0.22)',
       backdropFilter: 'blur(6px)',
@@ -10250,7 +10544,7 @@ function VenueSheet({
       cursor: 'pointer',
       boxShadow: '0 6px 18px rgba(227,36,89,0.40)'
     }
-  }, "Menù"))), /*#__PURE__*/React.createElement("style", null, `@keyframes sheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }`));
+  }, "Men\xF9"))), /*#__PURE__*/React.createElement("style", null, `@keyframes sheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }`));
 }
 window.MapScreen = MapScreen;
 
@@ -17808,7 +18102,7 @@ const BYP_CSS = `
 @keyframes bypCardFloat{0%,100%{transform:translateY(-50%) rotate(-9deg)}50%{transform:translateY(-56%) rotate(-5deg)}}
 .byp-hscroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .byp-hscroll::-webkit-scrollbar{display:none}
-.byp-scroll{scrollbar-width:none}
+.byp-scroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .byp-scroll::-webkit-scrollbar{display:none}
 .byp-rw:active{transform:translateY(-2px) scale(.98)}
 .byp-earncard:active{transform:scale(.97)}
@@ -17900,7 +18194,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("rect", {
@@ -17930,7 +18224,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("circle", {
@@ -17948,7 +18242,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("path", {
@@ -17960,7 +18254,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("path", {
@@ -17974,7 +18268,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("circle", {
@@ -17992,7 +18286,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("path", {
@@ -18013,7 +18307,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("rect", {
@@ -18032,7 +18326,7 @@ const BypIco = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("circle", {
@@ -18042,13 +18336,53 @@ const BypIco = {
   }), /*#__PURE__*/React.createElement("path", {
     d: "M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"
   })),
+  globe: (c = '#ffd3de') => /*#__PURE__*/React.createElement("svg", {
+    width: "21",
+    height: "21",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: c,
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "8.6"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3.4 12h17.2M12 3.4c2.4 2.2 3.7 5.2 3.7 8.6s-1.3 6.4-3.7 8.6c-2.4-2.2-3.7-5.2-3.7-8.6s1.3-6.4 3.7-8.6z"
+  })),
+  repeat: (c = '#ffd3de') => /*#__PURE__*/React.createElement("svg", {
+    width: "21",
+    height: "21",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: c,
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M17 2.5l3.5 3.5-3.5 3.5M20.5 6H8a4.5 4.5 0 0 0-4.5 4.5M7 21.5L3.5 18 7 14.5M3.5 18H16a4.5 4.5 0 0 0 4.5-4.5"
+  })),
+  flame: (c = '#ffd3de') => /*#__PURE__*/React.createElement("svg", {
+    width: "21",
+    height: "21",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: c,
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 21.5c3.9 0 6.5-2.5 6.5-6.2 0-2.6-1.5-4.6-2.9-6.3-.7-.9-2-.4-2.1.7-.1.8-.4 1.5-.9 1.9-.6-1.9-1.7-4.6-3.9-6.1-.8-.5-1.8.1-1.7 1 .1 1.7-.2 3.4-1.2 5-.8 1.3-1.3 2.4-1.3 3.8 0 3.7 2.6 6.2 6.5 6.2z"
+  })),
   store: (c = '#ffcf4a') => /*#__PURE__*/React.createElement("svg", {
     width: "22",
     height: "22",
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: c,
-    strokeWidth: "1.9",
+    strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("path", {
@@ -18062,7 +18396,7 @@ const BypIco = {
 
 // Sfida compatta — per la griglia 2×N
 function BypChalMini({
-  emo,
+  icon,
   title,
   desc,
   rew,
@@ -18093,10 +18427,9 @@ function BypChalMini({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: 19,
       background: 'linear-gradient(155deg,#3b2530,#6b1e39)'
     }
-  }, emo), /*#__PURE__*/React.createElement("div", {
+  }, icon), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: BK.TYPE.display,
       fontWeight: 600,
@@ -18144,17 +18477,21 @@ function BypChalMini({
   }, meta));
 }
 
-// Card referral — porta un locale su byup
-function BypReferral() {
+// Card referral — porta un locale o un amico su byup
+function BypReferral({
+  variant = 'locale',
+  onInvite
+}) {
+  const locale = variant === 'locale';
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
       overflow: 'hidden',
       borderRadius: 20,
       padding: '16px 15px 15px',
-      background: 'radial-gradient(120% 90% at 90% 0%, rgba(255,207,74,.22), transparent 55%), linear-gradient(150deg,#221016,#3a1220 55%,#54160f)',
-      border: '1px solid rgba(255,207,74,.45)',
-      boxShadow: '0 20px 40px -20px rgba(255,160,60,.35)',
+      background: locale ? 'radial-gradient(120% 90% at 90% 0%, rgba(255,207,74,.22), transparent 55%), linear-gradient(150deg,#221016,#3a1220 55%,#54160f)' : 'radial-gradient(120% 90% at 90% 0%, rgba(227,36,89,.3), transparent 55%), linear-gradient(150deg,#1c1014,#33101e 55%,#47102a)',
+      border: locale ? '1px solid rgba(255,207,74,.45)' : '1px solid rgba(255,90,130,.4)',
+      boxShadow: locale ? '0 20px 40px -20px rgba(255,160,60,.35)' : '0 20px 40px -20px rgba(227,36,89,.4)',
       marginBottom: 12
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -18185,10 +18522,10 @@ function BypReferral() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(155deg,#4a3312,#7d5a1d)',
-      border: '1px solid rgba(255,207,74,.5)'
+      background: locale ? 'linear-gradient(155deg,#4a3312,#7d5a1d)' : 'linear-gradient(155deg,#4a2331,#7d1d3f)',
+      border: locale ? '1px solid rgba(255,207,74,.5)' : '1px solid rgba(239,99,137,.45)'
     }
-  }, BypIco.store()), /*#__PURE__*/React.createElement("div", {
+  }, locale ? BypIco.store() : BypIco.invite('#ff9fb6')), /*#__PURE__*/React.createElement("div", {
     style: {
       minWidth: 0,
       flex: 1
@@ -18199,13 +18536,13 @@ function BypReferral() {
       fontSize: 9.5,
       fontWeight: 800,
       letterSpacing: .6,
-      color: '#141414',
-      background: 'linear-gradient(180deg,#ffe27a,#ffcf4a)',
+      color: locale ? '#141414' : '#fff',
+      background: locale ? 'linear-gradient(180deg,#ffe27a,#ffcf4a)' : 'linear-gradient(122deg,#e32459,#b81c47)',
       padding: '3px 8px',
       borderRadius: 999,
       textTransform: 'uppercase'
     }
-  }, "Referral \xB7 super bonus"), /*#__PURE__*/React.createElement("div", {
+  }, locale ? 'Referral · super bonus' : 'Referral amici'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: BK.TYPE.display,
       fontWeight: 600,
@@ -18213,14 +18550,14 @@ function BypReferral() {
       marginTop: 6,
       color: BYP.text
     }
-  }, "Porta un locale su byup"), /*#__PURE__*/React.createElement("div", {
+  }, locale ? 'Porta un locale su byup' : 'Porta un amico su byup'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: 'rgba(246,236,233,.72)',
       marginTop: 3,
       lineHeight: 1.35
     }
-  }, "Consiglia byup a un locale: se attiva l'abbonamento grazie a te, ricevi un maxi premio."))), /*#__PURE__*/React.createElement("div", {
+  }, locale ? "Consiglia byup a un locale: se attiva l'abbonamento grazie a te, ricevi un maxi premio." : 'Invita un amico: quando completa il suo primo ordine, byuppini per entrambi.'))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -18249,18 +18586,138 @@ function BypReferral() {
       width: 15,
       height: 15
     }
-  }), "+5.000"), /*#__PURE__*/React.createElement("span", {
+  }), locale ? '+5.000' : '+300'), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       color: 'rgba(246,236,233,.7)',
       fontWeight: 700
     }
-  }, "= 50\u20AC convertibili in credito")), /*#__PURE__*/React.createElement(BypCta, {
+  }, locale ? '= 50€ convertibili in credito' : 'a testa, subito spendibili')), /*#__PURE__*/React.createElement(BypCta, {
     style: {
       height: 46,
       marginTop: 13
+    },
+    onClick: onInvite
+  }, locale ? 'Invita un locale' : 'Invita un amico'));
+}
+
+// Popup codice referral — username + 2 caratteri. Il locale lo inserisce
+// nell'onboarding di byup gestionale; l'amico alla registrazione.
+function BypCodeSheet({
+  type,
+  onClose
+}) {
+  const [copied, setCopied] = useState(false);
+  const code = 'MARIO24';
+  const locale = type === 'locale';
+  const copy = () => {
+    try {
+      navigator.clipboard && navigator.clipboard.writeText(code);
+    } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  return /*#__PURE__*/React.createElement(BypSheet, {
+    center: true,
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      width: '100%',
+      maxWidth: 330,
+      textAlign: 'center',
+      background: `radial-gradient(90% 60% at 50% 0%, ${locale ? 'rgba(255,207,74,.22)' : 'rgba(227,36,89,.3)'}, transparent 60%), ${BYP.surf}`,
+      border: locale ? '1px solid rgba(255,207,74,.45)' : '1px solid rgba(255,90,130,.4)',
+      borderRadius: 28,
+      padding: '26px 22px 22px',
+      boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)',
+      animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)'
     }
-  }, "Invita un locale"));
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'flex',
+      width: 56,
+      height: 56,
+      margin: '0 auto 10px',
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: locale ? 'linear-gradient(155deg,#4a3312,#7d5a1d)' : 'linear-gradient(155deg,#4a2331,#7d1d3f)',
+      border: locale ? '1px solid rgba(255,207,74,.5)' : '1px solid rgba(239,99,137,.45)'
+    }
+  }, locale ? BypIco.store() : BypIco.invite('#ff9fb6')), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontFamily: BK.TYPE.display,
+      fontWeight: 600,
+      fontSize: 20,
+      margin: '0 0 6px'
+    }
+  }, locale ? 'Invita un locale' : 'Porta un amico'), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12.5,
+      color: BYP.muted,
+      lineHeight: 1.45,
+      margin: '0 0 16px'
+    }
+  }, locale ? "Il locale inserisce il tuo codice durante l'onboarding di byup gestionale: quando attiva l'abbonamento, il bonus è tuo." : 'Il tuo amico inserisce il codice quando si registra: al suo primo ordine, byuppini per entrambi.'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      border: '1.5px dashed rgba(246,236,233,.35)',
+      borderRadius: 16,
+      padding: '13px 10px',
+      background: 'rgba(255,255,255,.04)',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: BK.TYPE.display,
+      fontWeight: 700,
+      fontSize: 26,
+      letterSpacing: 3,
+      color: '#fff'
+    }
+  }, code)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      background: 'rgba(206,255,0,.12)',
+      border: '1px solid rgba(206,255,0,.35)',
+      color: BYP.lime,
+      fontWeight: 800,
+      fontSize: 12.5,
+      padding: '7px 13px',
+      borderRadius: 999,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "assets/coin.png",
+    alt: "",
+    style: {
+      width: 14,
+      height: 14
+    }
+  }), locale ? '+5.000 byuppini · 50€ in credito' : '+300 byuppini a testa'), /*#__PURE__*/React.createElement(BypCta, {
+    onClick: copy
+  }, copied ? 'Copiato ✓' : 'Copia il codice'), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      display: 'block',
+      width: '100%',
+      marginTop: 10,
+      background: 'none',
+      border: 'none',
+      color: BYP.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      padding: 8
+    }
+  }, "Chiudi")));
 }
 function BypConfetti({
   burst
@@ -18735,6 +19192,7 @@ function ByuppiniScreen({
   const [levelUp, setLevelUp] = useState(false);
   const [ach, setAch] = useState(null);
   const [info, setInfo] = useState(false);
+  const [refSheet, setRefSheet] = useState(null); // 'locale' | 'amico'
   const [burst, setBurst] = useState(0);
   const scrollRef = useRef(null);
   useEffect(() => {
@@ -18757,10 +19215,7 @@ function ByuppiniScreen({
   const goSeg = s => {
     setSeg(s);
     const el = scrollRef.current;
-    if (el && el.scrollTop > 236) el.scrollTo({
-      top: 236,
-      behavior: 'smooth'
-    });
+    if (el && el.scrollTop > 236) el.scrollTop = 236;
   };
   const openLevelUp = () => {
     setLevelUp(true);
@@ -19256,7 +19711,7 @@ function ByuppiniScreen({
       margin: '10px 0 6px'
     },
     onClick: openLevelUp
-  }, "\u25B6\uFE0E Anteprima level-up")), seg === 'sfide' && /*#__PURE__*/React.createElement("div", {
+  }, "Cosa succede al prossimo livello?")), seg === 'sfide' && /*#__PURE__*/React.createElement("div", {
     key: "sfide",
     style: {
       padding: '6px 16px 0',
@@ -19272,41 +19727,41 @@ function ByuppiniScreen({
       marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement(BypChalMini, {
-    emo: "\uD83C\uDF0D",
+    icon: BypIco.globe(),
     title: "Esploratore",
     desc: "Prova 3 cucine diverse",
     rew: "+150",
     pct: 66,
     meta: "2 di 3 \xB7 66%"
   }), /*#__PURE__*/React.createElement(BypChalMini, {
-    emo: "\uD83D\uDD01",
+    icon: BypIco.repeat(),
     title: "Habitu\xE9",
     desc: "Ordina 2 volte in 7 giorni",
     rew: "+100",
     pct: 50,
     meta: "1 di 2 \xB7 50%"
   }), /*#__PURE__*/React.createElement(BypChalMini, {
-    emo: "\uD83D\uDD25",
+    icon: BypIco.flame(),
     title: "Streak \xD74",
     desc: "Un ordine a settimana per 4 settimane",
     rew: "+400",
     pct: 50,
     meta: "Settimana 2 di 4"
   }), /*#__PURE__*/React.createElement(BypChalMini, {
-    emo: "\u2B50",
+    icon: BypIco.star(),
     title: "Recensore",
     desc: "Lascia 2 recensioni questa settimana",
     rew: "+80",
     pct: 50,
     meta: "1 di 2 \xB7 50%"
-  })), /*#__PURE__*/React.createElement(BypReferral, null), /*#__PURE__*/React.createElement(BypSect, null, "Dal vivo"), /*#__PURE__*/React.createElement(BypChal, {
-    live: true,
-    emo: "\uD83D\uDCCD",
-    title: "Sei in un locale byup?",
-    desc: "Scansiona il QR del tavolo per il check-in",
-    rew: "+30",
-    cta: "Scansiona ora",
-    onCta: onQR
+  })), /*#__PURE__*/React.createElement(BypSect, {
+    aside: "bonus speciali"
+  }, "Referral"), /*#__PURE__*/React.createElement(BypReferral, {
+    variant: "locale",
+    onInvite: () => setRefSheet('locale')
+  }), /*#__PURE__*/React.createElement(BypReferral, {
+    variant: "amico",
+    onInvite: () => setRefSheet('amico')
   })), seg === 'premi' && /*#__PURE__*/React.createElement("div", {
     key: "premi",
     style: {
@@ -19535,7 +19990,7 @@ function ByuppiniScreen({
       color: BYP.lime,
       textTransform: 'uppercase'
     }
-  }, "Level up"), /*#__PURE__*/React.createElement("div", {
+  }, "Prossimo livello"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: BK.TYPE.display,
       fontWeight: 600,
@@ -19548,11 +20003,11 @@ function ByuppiniScreen({
       color: BYP.muted,
       marginBottom: 16
     }
-  }, "Hai sbloccato il moltiplicatore ", /*#__PURE__*/React.createElement("b", {
+  }, "Sbloccherai il moltiplicatore ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: '#fff'
     }
-  }, "\xD71,5"), " sui byuppini"), /*#__PURE__*/React.createElement("div", {
+  }, "\xD71,5"), " su tutti i byuppini che guadagni"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'inline-flex',
       alignItems: 'center',
@@ -19566,9 +20021,9 @@ function ByuppiniScreen({
       borderRadius: 999,
       marginBottom: 18
     }
-  }, "\uD83C\uDF81 +250 byuppini bonus"), /*#__PURE__*/React.createElement(BypCta, {
+  }, "\uD83C\uDF81 Riceverai +250 byuppini bonus"), /*#__PURE__*/React.createElement(BypCta, {
     onClick: () => setLevelUp(false)
-  }, "Continua"))), ach && /*#__PURE__*/React.createElement(BypSheet, {
+  }, "Non vedo l'ora"))), ach && /*#__PURE__*/React.createElement(BypSheet, {
     center: true,
     onClose: () => setAch(null)
   }, /*#__PURE__*/React.createElement("div", {
@@ -19715,7 +20170,10 @@ function ByuppiniScreen({
     }
   }, "\uD83D\uDDFA Salendo di livello sblocchi moltiplicatori e premi esclusivi come la byup card.")), /*#__PURE__*/React.createElement(BypCta, {
     onClick: () => setInfo(false)
-  }, "Ho capito"))), /*#__PURE__*/React.createElement(BypConfetti, {
+  }, "Ho capito"))), refSheet && /*#__PURE__*/React.createElement(BypCodeSheet, {
+    type: refSheet,
+    onClose: () => setRefSheet(null)
+  }), /*#__PURE__*/React.createElement(BypConfetti, {
     burst: burst
   }));
 }
@@ -20982,7 +21440,7 @@ function BottomTabBar({
       left: 0,
       right: 0,
       bottom: 'env(safe-area-inset-bottom, 0px)',
-      aspectRatio: '390 / 88',
+      height: 78,
       zIndex: 20,
       filter: dark ? 'drop-shadow(0 -3px 14px rgba(0,0,0,0.4)) drop-shadow(0 12px 30px rgba(0,0,0,0.5))' : 'drop-shadow(0 -3px 14px rgba(227,36,89,0.07)) drop-shadow(0 12px 30px rgba(77,18,46,0.16))'
     }

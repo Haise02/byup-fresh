@@ -804,6 +804,19 @@ function LegalView({ title, content, onBack }) {
   );
 }
 
+// Tag profilo = traguardi sbloccati (equipaggiabili, max 2) + avatar preset
+const PROFILE_TAGS = [
+  { label: 'Pizza lover', img: 'assets/cat-pizza.png', bg: '#FCE9EE', c: '#E32459' },
+  { label: 'Re dello spritz', img: 'assets/hero-spritz.png', bg: '#fae3de', c: '#4d122e' },
+  { label: 'Esploratore', img: 'assets/cat-poke.png', bg: '#eef3d6', c: '#5f7000' },
+  { label: 'byup pay', img: 'assets/coin.png', bg: '#f4f7d4', c: '#5f7000' },
+];
+const PROFILE_AVATARS = [
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80&auto=format&fit=crop',
+];
+
 function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   // Deep-link: ?view=orders&order=<id|recent> apre direttamente una sotto-vista
   // (es. "Vedi scontrino" dalla schermata di pagamento → Storico ordini).
@@ -815,6 +828,18 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   // (es. "Aggiungi carta" dalla schermata Metodo pagamento del menu).
   const initialAddCard = params.get('add') === '1';
   const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
+  const [tagSheet, setTagSheet] = useState(false);
+  const [myTags, setMyTags] = useState(['Pizza lover', 'Re dello spritz']);
+  const [avatarSheet, setAvatarSheet] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
+  const nextAvatar = () => {
+    const i = PROFILE_AVATARS.indexOf(avatarUrl);
+    setAvatarUrl(PROFILE_AVATARS[(i + 1) % PROFILE_AVATARS.length]);
+    setAvatarSheet(false);
+  };
+  const toggleTag = (l) => setMyTags(t => t.includes(l)
+    ? t.filter(x => x !== l)
+    : (t.length >= 2 ? [...t.slice(1), l] : [...t, l]));
   // Consumato il deep-link, lo rimuovo dall'URL così riaprendo il Profilo dal
   // tab si torna a 'main' (il param non resta "incollato").
   useEffect(() => {
@@ -964,13 +989,16 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                     animation: 'bkSpinRing 7s linear infinite',
                     boxShadow: '0 16px 34px -12px rgba(77,18,46,.55)',
                   }}/>
-                  <div style={{ position: 'absolute', inset: 4, borderRadius: 999, overflow: 'hidden', border: '3px solid #e32459', background: SURF_X }}>
-                    <img
-                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5"
-                      alt=""
-                      style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
-                    />
-                  </div>
+                  <button onClick={() => setAvatarSheet(true)} style={{ position: 'absolute', inset: 4, borderRadius: 999, overflow: 'hidden', border: '3px solid #e32459', background: SURF_X, padding: 0, cursor: 'pointer' }}>
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}/>
+                    ) : (
+                      <span style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, color: '#E32459', background: '#FCE9EE' }}>MR</span>
+                    )}
+                  </button>
+                  <span style={{ position: 'absolute', left: -4, bottom: 0, width: 30, height: 30, borderRadius: 999, background: '#fff', border: '2px solid #e32459', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', boxShadow: '0 4px 10px rgba(77,18,46,.3)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E32459" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.1"/></svg>
+                  </span>
                   <img src="assets/mascot-wink.png" width="46" alt="" style={{
                     position: 'absolute', right: -20, bottom: -8, transform: 'rotate(8deg)',
                     filter: 'drop-shadow(0 6px 12px rgba(77,18,46,.45))',
@@ -1003,7 +1031,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
                 animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards',
               }}>
-                {[['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')], ['3', 'Gruppi', null]].map(([n, l, fn], i) => (
+                {[['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')], ['1.240', 'Byuppini', () => { if (window.__byupNav) window.__byupNav.go('byuppini'); }]].map(([n, l, fn], i) => (
                   <React.Fragment key={l}>
                     {i > 0 && <div style={{ width: 1, background: 'rgba(77,18,46,.1)', margin: '4px 0' }}/>}
                     <button onClick={fn || undefined} style={{ flex: 1, background: 'none', border: 'none', cursor: fn ? 'pointer' : 'default', fontFamily: 'inherit', padding: '2px 0' }}>
@@ -1015,23 +1043,29 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               </div>
             </div>
 
-            {/* Badge giocosi */}
+            {/* Tag sbloccati con i traguardi — tap per sceglierli */}
             <div style={{ display: 'flex', gap: 7, margin: '12px 0 20px', flexWrap: 'wrap', justifyContent: 'center', animation: 'bkFadeUp 480ms 140ms cubic-bezier(.22,.9,.35,1) backwards' }}>
-              {[
-                { img: 'assets/cat-pizza.png', label: 'Pizza lover', bg: '#FCE9EE', c: PINK_X },
-                { img: 'assets/hero-spritz.png', label: 'Re dello spritz', bg: '#fae3de', c: '#4d122e' },
-                { label: 'LIV. 3', bg: '#ceff00', c: '#141414' },
-              ].map((b) => (
-                <span key={b.label} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  background: b.bg, color: b.c, fontSize: 11.5, fontWeight: 800,
-                  padding: '5px 11px', borderRadius: 999, letterSpacing: .3,
-                  border: '1px solid rgba(77,18,46,.06)',
-                }}>
-                  {b.img && <img src={b.img} width="16" height="16" alt=""/>}
-                  {b.label}
-                </span>
-              ))}
+              {myTags.map((l) => {
+                const b = PROFILE_TAGS.find(t => t.label === l);
+                if (!b) return null;
+                return (
+                  <button key={l} onClick={() => setTagSheet(true)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: b.bg, color: b.c, fontSize: 11.5, fontWeight: 800,
+                    padding: '5px 11px', borderRadius: 999, letterSpacing: .3,
+                    border: '1px solid rgba(77,18,46,.06)', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    <img src={b.img} width="16" height="16" alt=""/>
+                    {b.label}
+                  </button>
+                );
+              })}
+              <span style={{ display: 'inline-flex', alignItems: 'center', background: '#ceff00', color: '#141414', fontSize: 11.5, fontWeight: 800, padding: '5px 11px', borderRadius: 999, letterSpacing: .3, border: '1px solid rgba(77,18,46,.06)' }}>LIV. 3</span>
+              <button onClick={() => setTagSheet(true)} aria-label="Modifica tag" style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 27, height: 27,
+                borderRadius: 999, background: 'transparent', color: 'rgba(255,255,255,.9)',
+                border: '1.5px dashed rgba(255,255,255,.6)', cursor: 'pointer', fontSize: 14, fontWeight: 800, fontFamily: 'inherit',
+              }}>+</button>
             </div>
 
             {/* Quick actions 2x2 */}
@@ -1286,6 +1320,76 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       </div>
 
       {/* Shared bottom tab bar (no QR) */}
+      {/* Sheet: scegli i tuoi tag (dai traguardi sbloccati) */}
+      {tagSheet && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setTagSheet(false); }} style={{
+          position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(15,8,12,.5)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease' }}>
+          <div style={{ width: '100%', background: SURF_X, borderRadius: '24px 24px 0 0',
+            padding: '12px 20px calc(26px + env(safe-area-inset-bottom, 0px))', animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/>
+            </div>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 19, fontWeight: 600, color: TEXT_X }}>I tuoi tag</div>
+            <div style={{ fontSize: 12.5, color: MUTED_X, margin: '3px 0 14px' }}>Si sbloccano con i traguardi Byuppini · scegline due da mostrare</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+              {PROFILE_TAGS.map((b) => {
+                const on = myTags.includes(b.label);
+                return (
+                  <button key={b.label} onClick={() => toggleTag(b.label)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: on ? b.bg : 'transparent', color: on ? b.c : MUTED_X,
+                    fontSize: 12.5, fontWeight: 800, padding: '8px 14px', borderRadius: 999,
+                    border: on ? '1.5px solid rgba(77,18,46,.14)' : `1.5px dashed ${BORDER_X}`,
+                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
+                  }}>
+                    <img src={b.img} width="17" height="17" alt="" style={{ filter: on ? 'none' : 'grayscale(1)', opacity: on ? 1 : .55 }}/>
+                    {b.label}
+                    {on && <span style={{ fontSize: 11 }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <button className="bk-press" onClick={() => setTagSheet(false)} style={{
+              width: '100%', height: 50, border: 'none', borderRadius: 999, cursor: 'pointer',
+              fontFamily: 'inherit', fontWeight: 800, fontSize: 15, color: '#fff',
+              background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)',
+              boxShadow: '0 14px 30px -12px rgba(227,36,89,.55)' }}>Fatto</button>
+          </div>
+        </div>
+      )}
+
+      {/* Sheet: foto profilo */}
+      {avatarSheet && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setAvatarSheet(false); }} style={{
+          position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(15,8,12,.5)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease' }}>
+          <div style={{ width: '100%', background: SURF_X, borderRadius: '24px 24px 0 0',
+            padding: '12px 20px calc(26px + env(safe-area-inset-bottom, 0px))', animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/>
+            </div>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 19, fontWeight: 600, color: TEXT_X, marginBottom: 12 }}>Foto profilo</div>
+            {[
+              ['Scatta una foto', nextAvatar, false],
+              ['Scegli dalla libreria', nextAvatar, false],
+              ['Rimuovi foto', () => { setAvatarUrl(null); setAvatarSheet(false); }, true],
+            ].map(([l, fn, danger]) => (
+              <button key={l} onClick={fn} style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '14px 4px',
+                background: 'none', border: 'none', borderBottom: `1px solid ${BORDER_X}`,
+                fontSize: 15, fontWeight: 700, color: danger ? '#d21e50' : TEXT_X,
+                cursor: 'pointer', fontFamily: 'inherit' }}>{l}</button>
+            ))}
+            <button onClick={() => setAvatarSheet(false)} style={{
+              display: 'block', width: '100%', padding: '15px 4px 4px', background: 'none', border: 'none',
+              fontSize: 14, fontWeight: 700, color: MUTED_X, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>Annulla</button>
+          </div>
+        </div>
+      )}
+
       {(() => { const B = window.BottomTabBar; return B ? <B active="profile" onHome={onTabHome} onProfile={() => {}} showQR={false}/> : null; })()}
       {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="confident" pageKey="profile" message="Qui comandi tu." bottom={112} size={116}/> : null; })()}
 
