@@ -284,28 +284,24 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             }}>{alertCount}</span>
           </button>
 
-          {/* CTA conti aperti → Contabilità con filtro "da saldare" attivo */}
+          {/* Shortcut conti aperti → Contabilità con filtro "da saldare" attivo.
+              Volutamente non un pulsante: link testuale discreto con freccia. */}
           <button
             onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
             title="Apri la Contabilità con il filtro Da saldare attivo"
             style={{
-              display:'inline-flex', alignItems:'center', gap: 6,
-              padding: '4px 10px', borderRadius: 8, height: 28,
-              background: PN.WHITE, color: PN.TEXT,
-              border: `1px solid ${PN.BORDER}`,
+              display:'inline-flex', alignItems:'center', gap: 4,
+              padding: '4px 6px', height: 28,
+              background: 'transparent', color: PN.MUTED,
+              border: 'none',
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              flexShrink: 0, transition: 'background 150ms, border-color 150ms',
+              flexShrink: 0, transition: 'color 150ms',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
+            onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
             Vai a conti aperti
-            <span style={{
-              fontSize: 12, fontWeight: 800, fontVariantNumeric:'tabular-nums',
-              padding: '1px 7px', borderRadius: 999,
-              background: '#FEF3C7', color: '#92400E',
-            }}>€{(typeof SALA_CONTI_APERTI !== 'undefined' ? SALA_CONTI_APERTI : []).reduce((s, c) => s + (c.daSaldare || 0), 0).toFixed(0)}</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
           </button>
 
           <span style={{flex: 1}}/>
