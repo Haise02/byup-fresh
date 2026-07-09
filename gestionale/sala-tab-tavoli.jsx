@@ -182,27 +182,6 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 
           <span style={{flex: 1}}/>
 
-          {/* Shortcut conti aperti → Contabilità con filtro "da saldare" attivo.
-              Volutamente non un pulsante: link testuale discreto con freccia,
-              affiancato al select della sala. */}
-          <button
-            onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
-            title="Apri la Contabilità con il filtro Da saldare attivo"
-            style={{
-              display:'inline-flex', alignItems:'center', gap: 4,
-              padding: '4px 6px', height: 28,
-              background: 'transparent', color: PN.MUTED,
-              border: 'none',
-              fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              flexShrink: 0, transition: 'color 150ms',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
-            onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}
-          >
-            Vai a conti aperti
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
-          </button>
-
           <SaSelect value={room} onChange={setRoom} options={['Sala principale','Sala terrazza','Privé']}/>
 
           {/* Fullscreen — affiancato al select sala, estrema destra */}
@@ -306,6 +285,34 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
           </button>
 
           <span style={{flex: 1}}/>
+
+          {/* Conti aperti — stato della sala come il riempimento, ma cliccabile:
+              porta in Contabilità col filtro "da saldare" attivo. Nascosto a zero. */}
+          {(window.SALA_CONTI_APERTI || []).length > 0 && (
+            <button
+              onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
+              title="Apri la Contabilità con il filtro Da saldare attivo"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                padding: '4px 10px', borderRadius: 8,
+                background: PN.WHITE_HUSH, border: `1px solid ${PN.BORDER_HAIR}`,
+                boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'border-color 150ms, background 150ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = PN.WHITE; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_HAIR; e.currentTarget.style.background = PN.WHITE_HUSH; }}
+            >
+              <span style={{
+                fontSize: 16.5, fontWeight: 700, color: PN.TEXT,
+                fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
+              }}>{(window.SALA_CONTI_APERTI || []).length}</span>
+              <span style={{fontSize: 15, color: PN.MUTED}}>
+                Conti aperti
+              </span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color: PN.MUTED}}><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </button>
+          )}
 
           {/* Riempimento inline — metrica contestuale, non filtro */}
           <div style={{
