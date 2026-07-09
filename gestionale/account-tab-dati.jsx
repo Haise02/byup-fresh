@@ -393,33 +393,93 @@ const AcBtnGhost = {
   fontFamily:'inherit',
 };
 
-// Select con la stessa veste di AcField, ma modificabile.
+// Select custom con la stessa veste di AcField: il menu nativo del browser
+// non è stilizzabile, qui il pannello è in vetro (GLASS_MENU) con hover e
+// spunta sull'opzione selezionata.
 function AcSelect({ label, value, onChange, options, full }) {
+  const [open, setOpen] = React.useState(false);
+  const [hovered, setHovered] = React.useState(null);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   return (
     <div style={{gridColumn: full ? '1 / -1' : 'auto'}}>
       <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 6}}>{label}</div>
-      <div style={{position:'relative'}}>
-        <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
+      <div ref={ref} style={{position:'relative'}}>
+        {/* Trigger — veste identica ad AcField */}
+        <button
+          onClick={() => setOpen(o => !o)}
           style={{
-            width:'100%', padding:'10px 34px 10px 12px', borderRadius: 10,
-            border:`1px solid ${PN.BORDER}`, background: '#FAFBFC',
+            width:'100%', padding:'10px 12px', borderRadius: 10,
+            border:`1px solid ${open ? PN.TEXT : PN.BORDER}`,
+            background: open ? PN.WHITE : '#FAFBFC',
             fontSize: 15.5, color: PN.TEXT, fontWeight: 500,
-            fontFamily:'inherit', outline:'none', cursor:'pointer',
-            appearance:'none', WebkitAppearance:'none', MozAppearance:'none',
+            fontFamily:'inherit', cursor:'pointer', textAlign:'left',
+            display:'flex', alignItems:'center', gap: 8,
+            transition:'border-color 150ms, background 150ms',
           }}
-          onFocus={e => e.target.style.borderColor = PN.TEXT}
-          onBlur={e => e.target.style.borderColor = PN.BORDER}
+          onMouseEnter={e => { if (!open) e.currentTarget.style.borderColor = '#9CA3AF'; }}
+          onMouseLeave={e => { if (!open) e.currentTarget.style.borderColor = PN.BORDER; }}
         >
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <span style={{
-          position:'absolute', right: 12, top:'50%', transform:'translateY(-50%)',
-          pointerEvents:'none', color: PN.MUTED, display:'inline-flex',
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-        </span>
+          <span style={{flex: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{value}</span>
+          <span style={{
+            display:'inline-flex', color: PN.MUTED, flexShrink: 0,
+            transform: open ? 'rotate(180deg)' : 'none',
+            transition:'transform 180ms ease-out',
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </button>
+
+        {/* Pannello opzioni — glass menu come il resto del gestionale */}
+        {open && (
+          <div className="pn-scroll" style={{
+            position:'absolute', top:'calc(100% + 6px)', left: 0, right: 0,
+            ...PN.GLASS_MENU,
+            zIndex: 60, overflow:'auto', maxHeight: 240,
+            padding: 6,
+          }}>
+            {options.map(o => {
+              const selected = o === value;
+              const hov = hovered === o;
+              return (
+                <button
+                  key={o}
+                  onClick={() => { onChange(o); setOpen(false); }}
+                  onMouseEnter={() => setHovered(o)}
+                  onMouseLeave={() => setHovered(null)}
+                  style={{
+                    width:'100%', padding:'9px 10px', borderRadius: 8,
+                    border:'none', textAlign:'left', cursor:'pointer',
+                    background: hov ? 'rgba(15,17,21,0.05)' : 'transparent',
+                    color: PN.TEXT,
+                    fontSize: 15, fontWeight: selected ? 700 : 500,
+                    fontFamily:'inherit',
+                    display:'flex', alignItems:'center', gap: 8,
+                    transition:'background 120ms',
+                  }}>
+                  <span style={{flex: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{o}</span>
+                  {selected && (
+                    <span style={{display:'inline-flex', color: PN.PINK_DARK, flexShrink: 0}}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
