@@ -447,12 +447,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
 
   // Severity "Da pulire" progressiva
   const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire) : 'normal';
-  const stateBg = {
-    libero:    'linear-gradient(160deg, #F3F4F6 0%, #EAECEF 75%)',
-    prenotato: 'linear-gradient(160deg, #F5F3FF 0%, #FFFFFF 75%)',
-    occupato:  'linear-gradient(160deg, #DBEAFE 0%, #FFFFFF 75%)',
-    dapulire:  'linear-gradient(160deg, #FFFBEB 0%, #FFFFFF 75%)',
-  }[t.state];
+  // Sfumatura identica alle tessere della mappa: velo bianco sfumato verticale
+  // sopra la tinta di stato (SALA_STATE_META.bg), su base bianca.
+  const stateBg = `linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 55%, rgba(255,255,255,0) 100%), linear-gradient(0deg, ${meta.bg}, ${meta.bg}) #FFFFFF`;
   const [hover, setHover] = React.useState(false);
   // Accent (border + top bar) per stato. Da pulire: resta sempre grigio, anche in critical.
   let accent = meta.dot;
@@ -460,7 +457,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   // Dot stato (header). Da pulire: resta grigio (#64748B) per qualsiasi severity.
   let dotColor = meta.dot;
   if (t.state === 'prenotato') {
-    dotColor = '#7C3AED'; // sempre viola — lo stato è prenotazione, l'urgenza è nel triangolo
+    dotColor = '#6D28D9'; // sempre viola (tono mappa) — lo stato è prenotazione, l'urgenza è nel triangolo
   }
   const showAlertTriangle = hasAlertTriangle(t);
 
@@ -472,7 +469,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       style={{
         background: stateBg,
         borderRadius: 14,
-        border: `1px solid ${hover ? accent + '40' : 'rgba(15, 17, 21, 0.06)'}`,
+        border: `1px solid ${hover ? accent + '66' : meta.border}`,
         padding: expanded ? '16px 18px' : '12px 14px',
         cursor: 'pointer',
         transition: 'transform 220ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 220ms ease-out, border-color 200ms ease-out',
