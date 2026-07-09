@@ -15,7 +15,7 @@ const svSunsetHoverOut = e => { e.currentTarget.style.filter = 'none'; };
 
 function SalaVenditaDiretta() {
   const [search, setSearch] = React.useState('');
-  const [cat, setCat] = React.useState('Tutti');
+  const [cat, setCat] = React.useState('Tutto');
   const [lines, setLines] = React.useState([]); // [{id, piatto, qty, mods, lineTotal}]
   const [takeaway, setTakeaway] = React.useState(false);
   const [incassaOpen, setIncassaOpen] = React.useState(false);
@@ -42,9 +42,9 @@ function SalaVenditaDiretta() {
     showToast(`✓ Ordine ${ordine.codice} consegnato a ${ordine.cliente}`);
   };
 
-  const cats = ['Tutti', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
+  const cats = ['Tutto', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
   const piatti = SALA_VENDITA_PIATTI.filter(p => {
-    if (cat !== 'Tutti' && p.cat !== cat) return false;
+    if (cat !== 'Tutto' && p.cat !== cat) return false;
     if (search.trim() && !p.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
   });
@@ -129,7 +129,7 @@ function SalaVenditaDiretta() {
               </span>
               <input
                 value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Cerca un piatto…"
+                placeholder="Cerca nel menù…"
                 style={{
                   width:'100%', padding: '10px 14px 10px 36px',
                   borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
@@ -651,8 +651,8 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
 
   return (
     <div
-      onClick={onQuickAdd}
-      title="Aggiungi al conto"
+      onClick={customizable ? onPersonalizza : onQuickAdd}
+      title={customizable ? 'Personalizza e aggiungi' : 'Aggiungi al conto'}
       style={{
         background: PN.WHITE, borderRadius: 12,
         border: `1px solid ${inCart ? PN.PINK : PN.BORDER_SOFT_A}`,
@@ -721,9 +721,12 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
           marginTop: 6, gap: 8,
         }}>
           <span style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
-          {customizable && (
+          {/* + Aggiungi: aggiunta rapida su OGNI card; il click sul piatto
+              personalizza (se personalizzabile) o aggiunge direttamente. */}
+          {(
             <button
-              onClick={(e) => { e.stopPropagation(); onPersonalizza(); }}
+              onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
+              title="Aggiungi al conto"
               style={{
                 height: 30, padding:'0 12px', borderRadius: 8,
                 background: PN.BTN_NEUTRAL, color: PN.TEXT, border:`1px solid ${PN.BORDER_LIGHT}`,
@@ -732,7 +735,7 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
                 flexShrink: 0,
                 boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
               }}>
-              <span style={{fontSize: 17, lineHeight: 1}}>+</span> Personalizza
+              <span style={{fontSize: 17, lineHeight: 1}}>+</span> Aggiungi
             </button>
           )}
         </div>
@@ -883,7 +886,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
           {/* Extras con stepper */}
           {(piatto.extras || []).length > 0 && (
             <div style={{marginBottom: 6}}>
-              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Extras</div>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Extra</div>
               <div style={{display:'flex', flexDirection:'column', gap: 6}}>
                 {piatto.extras.map(e => {
                   const q = extras[e.name] || 0;
@@ -959,7 +962,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
             }}
             onMouseEnter={e => { if (requiredOk) svSunsetHoverIn(e); }}
             onMouseLeave={svSunsetHoverOut}>
-            <span>{initialMods != null || initialQty ? 'Aggiorna' : 'Aggiungi'}</span>
+            <span>{initialMods != null || initialQty ? 'Aggiorna' : 'Aggiungi al conto'}</span>
             <span style={{fontSize: 17.5, fontWeight: 700}}>€{(lineTotal * qty).toFixed(2)}</span>
           </button>
         </div>
@@ -973,6 +976,8 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 
 function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
   window.SALA_VENDITA_CLEAR = onClear;
+  // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
+  const [clearConfirm, setClearConfirm] = React.useState(false);
   return (
     <aside style={{
       background: PN.WHITE, borderRadius: 14,
@@ -998,7 +1003,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         </div>
         <button
           onClick={() => setTakeaway(v => !v)}
-          title={takeaway ? 'Da asporto — clicca per annullare' : 'Segna come da asporto'}
+          title={takeaway ? 'Da asporto — tocca per togliere' : 'Segna come da asporto'}
           style={{
             display:'inline-flex', alignItems:'center', gap: 5,
             padding: '5px 10px', borderRadius: 8,
@@ -1016,13 +1021,66 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
           Da asporto
         </button>
         {lines.length > 0 && (
-          <button onClick={onClear} title="Svuota conto" style={{
+          <button onClick={() => setClearConfirm(true)} title="Rimuovi tutti gli articoli dal conto" style={{
             padding:'5px 10px', borderRadius: 8, fontSize: 15, fontWeight: 600,
             background:'transparent', color: PN.MUTED, border: `1px solid ${PN.BORDER}`,
-            cursor:'pointer', fontFamily:'inherit',
-          }}>Svuota</button>
+            cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+          }}>Rimuovi tutto</button>
         )}
       </div>
+
+      {/* Popup conferma svuotamento conto */}
+      {clearConfirm && (
+        <div onClick={() => setClearConfirm(false)} style={{
+          position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG,
+            borderRadius: 20, width: 380, maxWidth:'100%',
+            padding: '22px 22px 20px',
+            display:'flex', flexDirection:'column', gap: 16,
+          }}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: '#FEE2E2', color: '#DC2626',
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </div>
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Rimuovere tutto?</div>
+                <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+                  Tutti gli articoli verranno tolti dall'ordine in corso.
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button
+                onClick={() => setClearConfirm(false)}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+                  border: '1px solid rgba(15,17,21,0.12)',
+                  fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Annulla
+              </button>
+              <button
+                onClick={() => { setClearConfirm(false); onClear(); }}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: '#DC2626', color: '#fff',
+                  border: '1px solid rgba(153,27,27,0.5)',
+                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Rimuovi tutto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
       {/* Lines */}
@@ -1040,7 +1098,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
             </div>
             <div style={{fontSize: 17, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Conto vuoto</div>
-            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>Tocca un piatto per aggiungerlo<br/>o l'icona <strong>+</strong> per aggiungere veloce</div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>Tocca <strong>+ Aggiungi</strong> per aggiungere un piatto all'ordine,<br/>o clicca sul piatto per personalizzarlo prima di procedere</div>
           </div>
         ) : (
           <div style={{display:'flex', flexDirection:'column', gap: 6}}>
@@ -1365,7 +1423,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14.5, color: '#6B7280', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                  Pagamento
+                  Incassa
                 </div>
               </div>
               <button onClick={onClose} style={{
@@ -1405,11 +1463,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 <div style={{ textAlign: 'right', marginTop: 6 }}>
                   <button onClick={() => setAdjustOpen(o => !o)} style={{
                     background: 'transparent', border: 'none', padding: 0,
-                    fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700,
+                    fontFamily: 'inherit', fontSize: 15.5, fontWeight: 400,
                     color: adjustOpen ? '#0F1115' : '#6B7280', cursor: 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}>
-                    {adjust ? 'Modifica aggiustamento' : 'Aggiusta totale'}
+                    {adjust ? 'Modifica sconto' : 'Applica sconto o arrotonda'}
                     <span style={{
                       display: 'inline-block', fontSize: 13,
                       transform: adjustOpen ? 'rotate(180deg)' : 'none',
@@ -1483,7 +1541,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 onMouseEnter={e => { if (canConfirm) svSunsetHoverIn(e); }}
                 onMouseLeave={svSunsetHoverOut}>
                 {!canConfirm
-                  ? (finalTotal === 0 ? 'Nessun articolo' : `Manca €${(finalTotal - paid).toFixed(2)}`)
+                  ? (finalTotal === 0 ? 'Nessun articolo nel conto' : `Mancano €${(finalTotal - paid).toFixed(2)}`)
                   : <>Conferma incasso <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>}
               </button>
             </div>

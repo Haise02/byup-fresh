@@ -18,7 +18,7 @@ const NP_ALLERGENI = [
 
 const NP_TAG = [
   { id:'compleanno',  label:'Compleanno'  },
-  { id:'aziendale',   label:'Aziendale'   },
+  { id:'aziendale',   label:'Cena aziendale'   },
   { id:'anniversario',label:'Anniversario'},
   { id:'altro',       label:'Altro'       },
 ];
@@ -615,7 +615,7 @@ function SalaModalNuova({ open, onClose, initData }) {
           <div>
             <NpFieldLabel required>Nome cliente</NpFieldLabel>
             <input value={nome} onChange={e=>setNome(e.target.value)}
-              placeholder="Es. Rossi, Famiglia Bianchi" style={npInput}/>
+              placeholder="Es. Rossi, Famiglia Bianchi…" style={npInput}/>
           </div>
           <div>
             <NpFieldLabel required>Telefono</NpFieldLabel>
@@ -865,7 +865,7 @@ function SalaModalNuova({ open, onClose, initData }) {
         </div>
         {tag==='altro' && (
           <input value={tagAltro} onChange={e=>setTagAltro(e.target.value)}
-            placeholder="Descrivi l'occasione..."
+            placeholder="Descrivi l'occasione…"
             style={{...npInput, marginTop: 10}}/>
         )}
       </section>
@@ -874,7 +874,7 @@ function SalaModalNuova({ open, onClose, initData }) {
       <section>
         <NpFieldLabel>Note</NpFieldLabel>
         <textarea value={note} onChange={e=>setNote(e.target.value)}
-          placeholder="Note aggiuntive..." rows={3}
+          placeholder="Richieste speciali, note per la cucina…" rows={3}
           style={{
             ...npInput, resize:'vertical', minHeight: 80, padding:'12px 14px',
           }}/>
@@ -894,8 +894,8 @@ function SalaModalNuova({ open, onClose, initData }) {
         >
           <span style={{fontSize: NP_FS.sm, fontWeight: 600, color: allergeni.size > 0 ? NP_T.text : NP_T.textMuted}}>
             {allergeni.size > 0
-              ? `Allergeni · ${allergeni.size} selezionat${allergeni.size===1?'o':'i'}`
-              : '+ Aggiungi allergeni'}
+              ? `Allergie e intolleranze · ${allergeni.size} selezionat${allergeni.size===1?'a':'e'}`
+              : '+ Aggiungi allergie e intolleranze'}
           </span>
           <NpChevron dir={showAllergeni ? 'up' : 'down'} size={12}/>
         </button>
@@ -928,7 +928,7 @@ function SalaModalNuova({ open, onClose, initData }) {
       width={720}
       footer={
         <PnButton variant="primary" disabled={!canSubmit}>
-          {initData?.editMode ? 'Salva modifiche' : 'Crea prenotazione'}
+          {initData?.editMode ? 'Salva modifiche' : 'Conferma prenotazione'}
         </PnButton>
       }
     >
