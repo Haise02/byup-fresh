@@ -790,7 +790,7 @@ function WidgetRecensioni() {
 // ─── 6. Azioni rapide ───────────────────────────────────────────────────────
 
 function WidgetAzioni({ size }) {
-  // 8 shortcut "app launcher" desktop. Layout adattivo in 2 modalità:
+  // Shortcut "app launcher" desktop. Layout adattivo in 2 modalità:
   //  • FULL banner (w=4, h=2): grid fissa 4×2 con icona + LABEL — il
   //    pattern "homepage premium". 4 sopra + 4 sotto, come Launchpad.
   //  • Tutto il resto (w=1/2, qualunque h, o w=4 con h=1): grid auto-fit
@@ -802,9 +802,7 @@ function WidgetAzioni({ size }) {
     { label: 'Apri cassa',         icon: 'commerce-wallet',     color: '#34D399' },
     { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA' },
     { label: 'Invita staff',       icon: 'people-staff-group',  color: '#A78BFA' },
-    { label: 'Fine turno',         icon: 'time-history',        color: '#FBBF24' },
     { label: 'Esporta giornaliero',icon: 'download',            color: '#22D3EE' },
-    { label: 'Promo flash',        icon: 'sparkles',            color: '#FF6066' },
   ];
 
   const w = (size && size.w) || 1;

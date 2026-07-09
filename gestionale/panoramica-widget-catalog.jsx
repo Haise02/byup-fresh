@@ -17,7 +17,7 @@ const PN_WIDGET_CATALOG = [
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Mappa visiva sala in tempo reale', component: 'WidgetTavoliStato', defaultSize: { w: 1, h: 2 }, category: 'Sala', icon: 'place-table' },
   { id: 'top-piatti', name: 'Top piatti', desc: 'Classifica settimanale per ricavo', component: 'WidgetTopPiatti', defaultSize: { w: 1, h: 2 }, category: 'Menu', icon: 'food-meal' },
   { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni e media stelle', component: 'WidgetRecensioni', defaultSize: { w: 1, h: 2 }, category: 'Reputazione', theme: 'aurora', icon: 'star' },
-  { id: 'azioni', name: 'Azioni rapide', desc: '8 shortcut launcher (full row, ridimensionabile)', component: 'WidgetAzioni', defaultSize: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
+  { id: 'azioni', name: 'Azioni rapide', desc: 'Shortcut launcher (full row, ridimensionabile)', component: 'WidgetAzioni', defaultSize: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
   { id: 'coperti-sett', name: 'Coperti settimana', desc: 'Bar chart 7 giorni', component: 'WidgetCopertiSettimana', defaultSize: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'cucina-live', name: 'Cucina live', desc: 'Ordini in cottura e pronti', component: 'WidgetCucinaLive', defaultSize: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
 ];
