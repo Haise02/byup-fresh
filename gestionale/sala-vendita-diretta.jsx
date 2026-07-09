@@ -22,10 +22,25 @@ function SalaVenditaDiretta() {
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
   const [customOpen, setCustomOpen] = React.useState(false);
-  // Sezione: 'ordine' = POS classico, 'asporto' = conti asporto da app da saldare.
-  const [sezione, setSezione] = React.useState('ordine');
-  const [asportoConti, setAsportoConti] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
-  const [asportoPay, setAsportoPay] = React.useState(null);
+  // Ritiri: ordini d'asporto già pagati in app/webapp, in attesa di consegna.
+  // Drawer laterale + conferma con codice ritiro — nessun incasso al banco.
+  const [ritiri, setRitiri] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
+  const [ritiriOpen, setRitiriOpen] = React.useState(false);
+  const [consegna, setConsegna] = React.useState(null); // ordine in consegna (modale codice)
+  const [toast, setToast] = React.useState(null);
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2800);
+  };
+  const confermaConsegna = (ordine) => {
+    setRitiri(prev => {
+      const next = prev.filter(r => r.id !== ordine.id);
+      if (!next.length) setRitiriOpen(false);
+      return next;
+    });
+    setConsegna(null);
+    showToast(`✓ Ordine ${ordine.codice} consegnato a ${ordine.cliente}`);
+  };
 
   const cats = ['Tutti', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
   const piatti = SALA_VENDITA_PIATTI.filter(p => {
@@ -93,31 +108,6 @@ function SalaVenditaDiretta() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14, height:'100%', minHeight: 0}}>
-      {/* Switch sezione: Nuovo ordine (POS) / Asporto (conti app da saldare al ritiro) */}
-      <div style={{display:'flex', gap: 6, flexShrink: 0}}>
-        {[
-          {key:'ordine',  label:'Nuovo ordine'},
-          {key:'asporto', label:'Asporto' + (asportoConti.length ? ` · ${asportoConti.length}` : '')},
-        ].map(s => {
-          const on = sezione === s.key;
-          return (
-            <button key={s.key} onClick={() => setSezione(s.key)} style={{
-              padding: '8px 18px', borderRadius: 999,
-              border: `1px solid ${on ? 'transparent' : PN.BORDER_LIGHT}`,
-              background: on ? SV_SUNSET_BG : PN.BTN_NEUTRAL,
-              color: on ? SV_SUNSET_TEXT : PN.TEXT,
-              fontSize: 17, fontWeight: 700, cursor:'pointer',
-              fontFamily:'inherit', whiteSpace:'nowrap',
-              boxShadow: on ? SV_SUNSET_SHADOW : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
-              transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out',
-            }}>{s.label}</button>
-          );
-        })}
-      </div>
-
-      {sezione === 'asporto' ? (
-        <SaAsportoBoard conti={asportoConti} onPay={setAsportoPay}/>
-      ) : (
       <div style={{display:'grid', gridTemplateColumns:'1fr 400px', gap: 18, flex: 1, minHeight: 0}}>
       {/* === GRID PIATTI === */}
       <section style={{
@@ -132,20 +122,50 @@ function SalaVenditaDiretta() {
           borderBottom: `1px solid ${PN.BORDER_SOFT}`,
           background: PN.WHITE,
         }}>
-          <div style={{position:'relative', marginBottom: 12}}>
-            <span style={{position:'absolute', left: 13, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            </span>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Cerca un piatto…"
-              style={{
-                width:'100%', padding: '10px 14px 10px 36px',
-                borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
-                fontSize: 18, fontFamily:'inherit', outline:'none',
-                background: '#FAFBFC',
-                boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
-              }}/>
+          <div style={{display:'flex', gap: 8, marginBottom: 12}}>
+            <div style={{position:'relative', flex: 1}}>
+              <span style={{position:'absolute', left: 13, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </span>
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Cerca un piatto…"
+                style={{
+                  width:'100%', padding: '10px 14px 10px 36px',
+                  borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
+                  fontSize: 18, fontFamily:'inherit', outline:'none',
+                  background: '#FAFBFC',
+                  boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
+                }}/>
+            </div>
+
+            {/* Ritiri — ordini asporto pagati in app, in attesa di consegna.
+                Chip di stato (non modalità): apre il drawer laterale. */}
+            {ritiri.length > 0 && (
+              <button
+                onClick={() => setRitiriOpen(true)}
+                title="Ordini d'asporto in attesa di ritiro"
+                style={{
+                  display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
+                  padding: '0 14px', borderRadius: 10,
+                  background: PN.WHITE, color: PN.TEXT,
+                  border: `1px solid ${PN.BORDER_LIGHT}`,
+                  fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+                  transition: 'border-color 150ms, background 150ms',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = '#FAFBFC'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_LIGHT; e.currentTarget.style.background = PN.WHITE; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                Ritiri
+                <span style={{
+                  minWidth: 22, padding: '2px 7px', borderRadius: 999,
+                  background: PN.PINK, color: '#fff',
+                  fontSize: 14, fontWeight: 800, lineHeight: 1.2, textAlign:'center',
+                }}>{ritiri.length}</span>
+              </button>
+            )}
           </div>
           <div style={{display:'flex', gap: 6, paddingBottom: 12, overflowX:'auto'}}>
             {cats.map(c => {
@@ -246,7 +266,6 @@ function SalaVenditaDiretta() {
         onIncassa={() => setIncassaOpen(true)}
       />
       </div>
-      )}
 
       <SaIncassaModal
         open={incassaOpen}
@@ -255,14 +274,29 @@ function SalaVenditaDiretta() {
         onConfirm={() => setLines([])}
       />
 
-      {/* Pagamento conto asporto — riusa il modale incasso col totale del conto */}
-      {asportoPay && (
-        <SaIncassaModal
-          open={true}
-          total={asportoPay.daSaldare}
-          onClose={() => setAsportoPay(null)}
-          onConfirm={() => setAsportoConti(cs => cs.filter(c => c.id !== asportoPay.id))}
+      {/* Drawer ritiri + modale consegna con codice */}
+      <SaRitiriDrawer
+        open={ritiriOpen}
+        ritiri={ritiri}
+        onClose={() => setRitiriOpen(false)}
+        onConsegna={setConsegna}
+      />
+      {consegna && (
+        <SaConsegnaModal
+          ordine={consegna}
+          onClose={() => setConsegna(null)}
+          onConfirm={() => confermaConsegna(consegna)}
         />
+      )}
+
+      {toast && (
+        <div style={{
+          position:'fixed', bottom: 28, left:'50%', transform:'translateX(-50%)',
+          background:'#0F1115', color:'#fff',
+          padding:'12px 22px', borderRadius: 999,
+          fontSize: 17, fontWeight: 700, zIndex: 400,
+          boxShadow:'0 8px 24px rgba(0,0,0,0.18)',
+        }}>{toast}</div>
       )}
 
       {personalize && (
@@ -286,96 +320,207 @@ function SalaVenditaDiretta() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sezione Asporto — conti aperti da Byup App, da saldare al ritiro
+// Ritiri — ordini d'asporto già pagati in app/webapp, in attesa di consegna.
+// Drawer laterale con le card ordine + modale di consegna con codice ritiro.
 
-function SaAsportoBoard({ conti, onPay }) {
-  if (!conti.length) {
-    return (
-      <div style={{
-        flex: 1, minHeight: 0,
-        background: PN.WHITE, borderRadius: 14,
-        border: `1px solid ${PN.BORDER_HAIR}`,
-        boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
-        display:'grid', placeItems:'center', padding: 40,
-      }}>
-        <div style={{textAlign:'center', color: PN.MUTED}}>
-          <div style={{
-            width: 48, height: 48, borderRadius: '50%', margin: '0 auto 12px',
-            background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
-            display:'grid', placeItems:'center',
-          }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-          </div>
-          <div style={{fontSize: 17, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Nessun conto asporto aperto</div>
-          <div style={{fontSize: 15.5, lineHeight: 1.5}}>Gli ordini da asporto effettuati dai clienti<br/>tramite Byup App compariranno qui.</div>
-        </div>
-      </div>
-    );
-  }
+function SaRitiriDrawer({ open, ritiri, onClose, onConsegna }) {
   return (
-    <div className="pn-scroll" style={{
-      flex: 1, minHeight: 0, overflow:'auto',
-      display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))',
-      gap: 14, alignContent:'start',
-    }}>
-      {conti.map(c => (
-        <div key={c.id} style={{
-          background: PN.WHITE, borderRadius: 14,
-          border: `1px solid ${PN.BORDER_HAIR}`,
-          boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
-          display:'flex', flexDirection:'column', overflow:'hidden',
-        }}>
-          {/* Header conto */}
-          <div style={{
-            padding: '12px 16px',
-            borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-            display:'flex', alignItems:'center', gap: 10,
-          }}>
-            <div style={{flex: 1, minWidth: 0}}>
-              <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                <span style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.cliente}</span>
-                <span style={{
-                  fontSize: 13, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
-                  padding: '2px 8px', borderRadius: 999,
-                  background: PN.PINK_SOFT, color: PN.PINK_DARK, flexShrink: 0,
-                }}>byup app</span>
-              </div>
-              <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>{c.codice} · ritiro ore {c.ritiro}</div>
+    <>
+      {/* scrim */}
+      <div onClick={onClose} style={{
+        position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+        backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
+        transition:'opacity 0.2s', zIndex: 200,
+      }}/>
+      {/* drawer */}
+      <div style={{
+        position:'fixed', top: 0, right: 0, bottom: 0,
+        width: 440, maxWidth:'92vw', background: PN.WHITE,
+        boxShadow:'-12px 0 32px rgba(15,17,21,0.14)',
+        transform: open ? 'translateX(0)' : 'translateX(100%)',
+        transition:'transform 0.25s cubic-bezier(.4,.0,.2,1)',
+        zIndex: 210, display:'flex', flexDirection:'column',
+      }}>
+        {/* header */}
+        <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 10}}>
+          <div style={{flex: 1}}>
+            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Ritiri</div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
+              Ordini d'asporto già pagati in app, in attesa di consegna. Chiedi al cliente il codice ritiro.
             </div>
           </div>
-
-          {/* Piatti ordinati */}
-          <div style={{padding: '10px 16px', flex: 1, display:'flex', flexDirection:'column', gap: 3}}>
-            {c.items.map((item, i) => (
-              <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 15.5}}>
-                <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 22, flexShrink: 0}}>{item.qty}×</span>
-                <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
-                <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Footer: totale + pagamento */}
-          <div style={{padding: '12px 16px 14px', borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
-            <button
-              onClick={() => onPay(c)}
-              style={{
-                width:'100%', padding: '11px 16px', borderRadius: 999,
-                background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
-                border: '1px solid transparent',
-                fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
-                boxShadow: SV_SUNSET_SHADOW,
-                transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
-              }}
-              onMouseEnter={svSunsetHoverIn}
-              onMouseLeave={svSunsetHoverOut}>
-              <span>Procedi al pagamento</span>
-              <span style={{fontVariantNumeric:'tabular-nums'}}>€{c.daSaldare.toFixed(2)}</span>
-            </button>
-          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            border:'none', background:'#F4F5F7', color: PN.TEXT,
+            cursor:'pointer', display:'grid', placeItems:'center', fontSize: 18, fontFamily:'inherit',
+          }}>×</button>
         </div>
-      ))}
+
+        {/* lista ordini */}
+        <div className="pn-scroll" style={{flex: 1, overflow:'auto', padding: '14px 16px 20px', display:'flex', flexDirection:'column', gap: 12}}>
+          {ritiri.map(r => (
+            <div key={r.id} style={{
+              border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 14,
+              boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.04)',
+              overflow:'hidden',
+            }}>
+              <div style={{padding:'12px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap: 10}}>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{display:'flex', alignItems:'center', gap: 8}}>
+                    <span style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.cliente}</span>
+                    <span style={{fontSize: 13, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase', padding:'2px 8px', borderRadius: 999, background: PN.PINK_SOFT, color: PN.PINK_DARK, flexShrink: 0}}>byup app</span>
+                  </div>
+                  <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>{r.codice} · ritiro ore {r.ritiro}</div>
+                </div>
+                <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 14, fontWeight: 700, color:'#15803D', background:'#DCFCE7', padding:'3px 10px', borderRadius: 999, flexShrink: 0}}>
+                  ✓ Pagato in app
+                </span>
+              </div>
+              <div style={{padding:'10px 14px', display:'flex', flexDirection:'column', gap: 3}}>
+                {r.items.map((item, i) => (
+                  <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 15.5}}>
+                    <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 24, flexShrink: 0}}>{item.qty}×</span>
+                    <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
+                    <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div style={{display:'flex', justifyContent:'space-between', fontSize: 15.5, fontWeight: 700, color: PN.TEXT, borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 8, marginTop: 5}}>
+                  <span>Totale (pagato)</span>
+                  <span style={{fontVariantNumeric:'tabular-nums'}}>€{r.totale.toFixed(2)}</span>
+                </div>
+              </div>
+              <div style={{padding:'0 14px 14px'}}>
+                <button onClick={() => onConsegna(r)} style={{
+                  width:'100%', padding:'11px 16px', borderRadius: 999,
+                  background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
+                  border:'1px solid transparent',
+                  fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  boxShadow: SV_SUNSET_SHADOW,
+                  transition:'box-shadow 180ms ease-out, filter 150ms ease-out',
+                }}
+                  onMouseEnter={svSunsetHoverIn}
+                  onMouseLeave={svSunsetHoverOut}>
+                  Consegna
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Modale consegna: il cliente detta il codice ritiro mostrato dalla sua app;
+// il codice corretto è la prova di consegna e l'ordine esce dalla lista.
+function SaConsegnaModal({ ordine, onClose, onConfirm }) {
+  const [code, setCode] = React.useState('');
+  const [errore, setErrore] = React.useState(false);
+  const inputRef = React.useRef(null);
+
+  React.useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const tryConfirm = () => {
+    if (code.trim().toUpperCase() === ordine.codiceRitiro.toUpperCase()) {
+      onConfirm();
+    } else {
+      setErrore(true);
+    }
+  };
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && code.length >= 4) tryConfirm();
+    if (e.key === 'Escape') onClose();
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      display:'grid', placeItems:'center', zIndex: 300, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 20, width: 400, maxWidth:'100%',
+        padding: '22px 22px 20px',
+        display:'flex', flexDirection:'column', gap: 16,
+      }}>
+        {/* Header */}
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
+          <div>
+            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>Consegna ordine</div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>
+              {ordine.codice} · {ordine.cliente} · {ordine.items.reduce((s, i) => s + i.qty, 0)} articoli
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+            background:'rgba(255,255,255,0.95)', border:'none', cursor:'pointer',
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        {/* Codice ritiro */}
+        <div style={{display:'flex', flexDirection:'column', gap: 6}}>
+          <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Codice ritiro del cliente</label>
+          <input
+            ref={inputRef}
+            value={code}
+            onChange={e => { setCode(e.target.value.toUpperCase().slice(0, 4)); setErrore(false); }}
+            onKeyDown={handleKey}
+            placeholder="····"
+            maxLength={4}
+            style={{
+              padding: '14px 12px', borderRadius: 12,
+              border: `2px solid ${errore ? '#DC2626' : 'rgba(15,17,21,0.14)'}`, outline: 'none',
+              background: 'rgba(255,255,255,0.85)',
+              fontSize: 30, fontWeight: 800, fontFamily: 'inherit', color: PN.TEXT,
+              textAlign: 'center', letterSpacing: '0.5em', textIndent: '0.5em',
+              fontVariantNumeric: 'tabular-nums',
+              transition: 'border-color 120ms ease-out',
+            }}
+          />
+          {errore && (
+            <div style={{fontSize: 14.5, fontWeight: 600, color:'#DC2626'}}>
+              Codice non valido — chiedi al cliente di ricontrollarlo nell'app.
+            </div>
+          )}
+        </div>
+
+        {/* Conferma */}
+        <button
+          onClick={tryConfirm}
+          disabled={code.length < 4}
+          style={{
+            padding: '12px 18px', borderRadius: 999,
+            background: code.length >= 4 ? SV_SUNSET_BG : PN.WHITE_FROST,
+            color: code.length >= 4 ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
+            border: `1px solid ${code.length >= 4 ? 'transparent' : PN.BORDER_SOFT_A}`,
+            fontSize: 17.5, fontWeight: 700,
+            cursor: code.length >= 4 ? 'pointer' : 'not-allowed',
+            fontFamily:'inherit',
+            boxShadow: code.length >= 4 ? SV_SUNSET_SHADOW : 'none',
+            transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
+          }}
+          onMouseEnter={e => { if (code.length >= 4) svSunsetHoverIn(e); }}
+          onMouseLeave={svSunsetHoverOut}>
+          Conferma consegna
+        </button>
+
+        {/* Scappatoia: telefono scarico, codice non recuperabile */}
+        <button
+          onClick={onConfirm}
+          title="Da usare solo se il cliente non può mostrare il codice"
+          style={{
+            border:'none', background:'transparent', padding: 0,
+            fontSize: 14.5, fontWeight: 600, color: PN.MUTED,
+            cursor:'pointer', fontFamily:'inherit',
+          }}>
+          Consegna senza codice
+        </button>
+      </div>
     </div>
   );
 }

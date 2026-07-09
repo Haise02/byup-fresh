@@ -71,14 +71,15 @@ const SALA_VENDITA_CATS = {
   'Dolci': { color: '#831843', bg: '#FBCFE8', icon: 'cake' },
 };
 
-// Conti asporto aperti — ordini effettuati dai clienti via Byup App, da saldare
-// al ritiro dal bancone (sezione Asporto della Vendita diretta).
+// Ritiri asporto — ordini effettuati (e già pagati) dai clienti via Byup App
+// o webapp, in attesa di consegna al banco. Il codiceRitiro è mostrato al
+// cliente nell'app: dettarlo al banco è la prova di consegna.
 const SALA_ASPORTO_CONTI = [
-  { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', daSaldare:64.50,
+  { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', totale:64.50, codiceRitiro:'K4F7',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{nome:'Birra media',qty:2,prezzo:5.50},{nome:'Supplì (4pz)',qty:1,prezzo:7.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:2,prezzo:2.50},{nome:'Patatine fritte',qty:1,prezzo:4.00}] },
-  { id:'asp-2', codice:'#A-1043', cliente:'Elena Greco', ritiro:'20:15', fonte:'byup', daSaldare:31.00,
+  { id:'asp-2', codice:'#A-1043', cliente:'Elena Greco', ritiro:'20:15', fonte:'byup', totale:31.00, codiceRitiro:'B2N9',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tagliere salumi',qty:1,prezzo:13.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
-  { id:'asp-3', codice:'#A-1044', cliente:'Marta Ferri', ritiro:'20:30', fonte:'byup', daSaldare:22.00,
+  { id:'asp-3', codice:'#A-1044', cliente:'Marta Ferri', ritiro:'20:30', fonte:'byup', totale:22.00, codiceRitiro:'Q7D3',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
 ];
 
