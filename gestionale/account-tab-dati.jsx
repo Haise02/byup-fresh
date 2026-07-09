@@ -141,6 +141,34 @@ function AccDatiGenerali() {
         </div>
       </AcCard>
 
+      <AcCard title="Sessione" subtitle="Gestisci l'accesso a questo dispositivo.">
+        <div style={{display:'flex', alignItems:'center', gap: 14}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Esci dall'account</div>
+            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>
+              Termina la sessione su questo dispositivo. Potrai rientrare con email e password.
+            </div>
+          </div>
+          <button
+            onClick={() => { window.location.href = 'byup Login.html'; }}
+            style={{
+              display:'inline-flex', alignItems:'center', gap: 8,
+              padding:'10px 18px', borderRadius: 999,
+              background: PN.WHITE, color: PN.TEXT,
+              border:`1px solid ${PN.BORDER}`,
+              fontSize: 15, fontWeight: 700, cursor:'pointer',
+              fontFamily:'inherit',
+              transition:'background 150ms, border-color 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Esci
+          </button>
+        </div>
+      </AcCard>
+
       <AcCard title="Zona pericolosa" danger subtitle="Azioni irreversibili.">
         <div style={{display:'flex', alignItems:'center', gap: 14}}>
           <div style={{flex:1}}>
