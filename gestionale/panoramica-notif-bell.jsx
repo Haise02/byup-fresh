@@ -57,7 +57,7 @@ const PN_NOTIFICATIONS = [
   },
 ];
 
-function PnNotifBell({ dropUp = false }) {
+function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState(PN_NOTIFICATIONS);
   const ref = React.useRef(null);
@@ -75,7 +75,50 @@ function PnNotifBell({ dropUp = false }) {
   const markAllRead = () => setItems(items.map(i => ({...i, unread: false})));
 
   return (
-    <div ref={ref} style={{position:'relative'}}>
+    <div ref={ref} style={{position:'relative', ...(sidebar ? {width: collapsed ? 'auto' : '100%'} : {})}}>
+      {sidebar ? (
+        // Variante sidebar: riga di sistema identica a PnSysItem (Supporto/Impostazioni),
+        // con badge non letti a destra (pallino sull'icona quando è collassata).
+        <button onClick={() => setOpen(o => !o)} title="Notifiche"
+          style={{
+            width: '100%',
+            display: 'flex', alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            gap: collapsed ? 0 : 12,
+            padding: collapsed ? '8px' : '9px 10px',
+            borderRadius: 10,
+            border: 'none',
+            background: open ? 'rgba(15, 17, 21, 0.045)' : 'transparent',
+            color: open ? PN.TEXT : PN.MUTED,
+            fontWeight: 500, fontSize: 17.5,
+            cursor: 'pointer', fontFamily: 'inherit',
+            position: 'relative',
+            transition: 'background 160ms ease, color 160ms ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; e.currentTarget.style.color = PN.TEXT; }}
+          onMouseLeave={e => { if (!open) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
+        >
+          <span style={{position:'relative', display:'inline-flex'}}>
+            <Icon name="bell" size={18}/>
+            {collapsed && unreadCount > 0 && (
+              <span style={{
+                position:'absolute', top: -3, right: -3,
+                width: 9, height: 9, borderRadius: '50%',
+                background: PN.PINK, border: '1.5px solid #fff',
+              }}/>
+            )}
+          </span>
+          {!collapsed && <span style={{flex: 1, textAlign:'left'}}>Notifiche</span>}
+          {!collapsed && unreadCount > 0 && (
+            <span style={{
+              minWidth: 20, padding: '2px 7px', borderRadius: 999,
+              background: PN.PINK, color: '#fff',
+              fontSize: 12.5, fontWeight: 800, lineHeight: 1.2,
+              textAlign: 'center', flexShrink: 0,
+            }}>{unreadCount}</span>
+          )}
+        </button>
+      ) : (
       <button onClick={() => setOpen(o => !o)} style={{
         position:'relative',
         width: 36, height: 36, borderRadius: 10,
@@ -95,6 +138,7 @@ function PnNotifBell({ dropUp = false }) {
           }}>{unreadCount}</span>
         )}
       </button>
+      )}
 
       {open && (
         // Glass menu Apple Sonoma — il dropdown si sovrappone al main e le card
@@ -102,9 +146,9 @@ function PnNotifBell({ dropUp = false }) {
         // del nostro design system (vedi PN.GLASS_MENU).
         <div style={{
           position: 'absolute',
-          // dropUp: usato dalla sidebar (in basso) — il menu si apre verso l'alto,
-          // agganciato a sinistra così si distende sopra il contenuto principale.
-          ...(dropUp
+          // dropUp/sidebar: il menu si apre verso l'alto, agganciato a sinistra
+          // così si distende sopra il contenuto principale.
+          ...((dropUp || sidebar)
             ? { bottom: 'calc(100% + 8px)', left: 0 }
             : { top: 'calc(100% + 8px)', right: 0 }),
           width: 380,
@@ -199,7 +243,7 @@ function PnWifiIcon({ color = '#9CA3AF', size = 15, weak = false }) {
   );
 }
 
-function PnConnectionStatus() {
+function PnConnectionStatus({ variant }) {
   const getStatus = () => {
     if (!navigator.onLine) return 'offline';
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -254,6 +298,29 @@ function PnConnectionStatus() {
 
   return (
     <>
+      {variant === 'mini' ? (
+        // Mini: solo icona, quasi impercettibile quando tutto è ok;
+        // si colora (ambra/rosso) solo se la connessione ha problemi.
+        <span
+          onClick={handleDemoClick}
+          title={isOffline ? 'Connessione assente' : isUnstable ? 'Connessione instabile' : 'Connessione ok'}
+          style={{
+            display:'inline-flex', alignItems:'center', justifyContent:'center',
+            width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+            cursor:'pointer',
+            opacity: (isUnstable || isOffline) ? 1 : 0.35,
+            transition:'opacity .2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = 1; }}
+          onMouseLeave={e => { if (!isUnstable && !isOffline) e.currentTarget.style.opacity = 0.35; }}
+        >
+          <PnWifiIcon
+            color={isUnstable ? '#D97706' : isOffline ? '#DC2626' : PN.MUTED}
+            size={13}
+            weak={isUnstable}
+          />
+        </span>
+      ) : (
       <div
         onClick={handleDemoClick}
         title="Clicca per simulare stati connessione"
@@ -277,6 +344,7 @@ function PnConnectionStatus() {
           </span>
         )}
       </div>
+      )}
 
       {(isOffline || showRestored) && (
         <div style={{

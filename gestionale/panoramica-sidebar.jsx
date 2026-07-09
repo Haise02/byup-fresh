@@ -164,22 +164,17 @@ function PnSidebar({ active = 'panoramica', onNav }) {
       </div>
 
       {/* Notifiche + stato connessione — vivono qui (l'header è stato eliminato).
-          Il wifi è informazione secondaria: resta appena percettibile. */}
+          Notifiche = voce di sistema con badge; il wifi è un mini-indicatore
+          quasi invisibile finché la connessione è ok. */}
       <div style={{
         display: 'flex', alignItems: 'center',
         flexDirection: collapsed ? 'column' : 'row',
-        gap: collapsed ? 6 : 8,
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        padding: collapsed ? '0 0 8px' : '0 8px 8px',
+        gap: collapsed ? 2 : 4,
+        marginBottom: 10,
         position: 'relative',
       }}>
-        {window.PnNotifBell && <window.PnNotifBell dropUp/>}
-        {!collapsed && <span style={{flex: 1}}/>}
-        {window.PnConnectionStatus && (
-          <span style={{opacity: 0.4, display:'inline-flex'}} title="Stato connessione">
-            <window.PnConnectionStatus/>
-          </span>
-        )}
+        {window.PnNotifBell && <window.PnNotifBell sidebar collapsed={collapsed}/>}
+        {window.PnConnectionStatus && <window.PnConnectionStatus variant="mini"/>}
       </div>
 
       {/* Profile */}
