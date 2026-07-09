@@ -7,7 +7,7 @@ const SALA_STATE_META = {
   libero:    { dot: '#15803D', label: 'Libero',    plural: 'Liberi',    bg: 'rgba(22, 163, 74, 0.10)',  mapBg: 'rgba(22, 163, 74, 0.10)',  border: 'rgba(22, 163, 74, 0.40)',  mapBorder: 'rgba(22, 163, 74, 0.40)',  accent: '#15803D' },
   prenotato: { dot: '#6D28D9', label: 'Prenotato', plural: 'Prenotati', bg: 'rgba(124, 58, 237, 0.12)', mapBg: 'rgba(124, 58, 237, 0.12)', border: 'rgba(124, 58, 237, 0.38)', mapBorder: 'rgba(124, 58, 237, 0.38)', accent: '#6D28D9' },
   occupato:  { dot: '#E32459', label: 'Occupato',  plural: 'Occupati',  bg: 'rgba(255, 90, 95, 0.18)',  mapBg: 'rgba(255, 90, 95, 0.18)',  border: 'rgba(227, 36, 89, 0.42)',  mapBorder: 'rgba(227, 36, 89, 0.42)',  accent: '#E32459' },
-  dapulire:  { dot: '#B45309', label: 'Da pulire', plural: 'Da pulire', bg: 'rgba(217, 119, 6, 0.14)',  mapBg: 'rgba(217, 119, 6, 0.14)',  border: 'rgba(217, 119, 6, 0.42)',  mapBorder: 'rgba(217, 119, 6, 0.42)',  accent: '#B45309' },
+  dapulire:  { dot: '#B45309', label: 'Da liberare', plural: 'Da liberare', bg: 'rgba(217, 119, 6, 0.14)',  mapBg: 'rgba(217, 119, 6, 0.14)',  border: 'rgba(217, 119, 6, 0.42)',  mapBorder: 'rgba(217, 119, 6, 0.42)',  accent: '#B45309' },
 };
 
 // Triangolo rosso accanto al dot: prenotato in ritardo >20' OR da pulire da >20'
@@ -53,7 +53,7 @@ function readNote(note) {
 }
 
 const ORDINE_STATO_META = {
-  ordinato:   { color:'#6B7280', bg:'#F3F4F6', label:'In coda',         icon:'M12 7v5l3 2' },
+  ordinato:   { color:'#6B7280', bg:'#F3F4F6', label:'In attesa',         icon:'M12 7v5l3 2' },
   in_cottura: { color:'#A16207', bg:'#FEF3C7', label:'In preparazione', icon:'M12 3 v3 M9 6 c0 2 -3 2 -3 5 c0 4 6 4 6 0 c0 -3 -3 -3 -3 -5 M3 14 H21' },
   pronto:     { color:'#065F46', bg:'#D1FAE5', label:'Servito',         icon:'M5 13 L9 17 L19 7' },
 };
@@ -199,7 +199,7 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
           padding: 12, minWidth: 200, fontFamily:'inherit',
         }}>
           <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
-            Numero di posti
+            Quanti posti?
           </div>
           <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 10}}>
             <button onClick={() => setVal(v => Math.max(min, v - 1))} disabled={val <= min} style={{
@@ -270,7 +270,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
   if (byup > 0)    conn.push(`${byup} app byup`);
   if (byupWeb > 0) conn.push(`${byupWeb} web app`);
   const tipText = editable
-    ? `${coperti}/${posti} coperti · clicca per modificare la capacità`
+    ? `${coperti}/${posti} coperti · tocca per modificare i posti`
     : `${coperti} ospiti su ${posti}${conn.length ? ' · ' + conn.join(', ') : ''}`;
   const Inner = (
     <div style={{display:'inline-flex', alignItems:'center', gap: expanded ? 8 : 6, cursor: editable ? 'pointer' : 'help'}}>
@@ -292,7 +292,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
             </div>
           ))}
           {overflow > 0 && (
-            <Tip text={`${overflow} ospiti aggiuntivi connessi`}>
+            <Tip text={`${overflow} coperti in più`}>
               <div style={{
                 width: sz, height: sz, borderRadius: '50%',
                 background: '#6B7280', border: '2px solid #FFFFFF',
@@ -349,7 +349,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
           fontFamily:'inherit',
         }}>
           <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
-            Capacità tavolo
+            Posti del tavolo
           </div>
           <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 10}}>
             <button onClick={() => onAdjust(Math.max(coperti || 1, posti - 1))} disabled={posti <= (coperti || 1)} style={{
@@ -365,7 +365,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
                 {posti}
               </span>
               <span style={{fontSize: 17, color:'#6B7280', fontWeight: 600, marginLeft: 4}}>
-                posti totali
+                posti
               </span>
             </div>
             <button onClick={() => onAdjust(Math.min(20, posti + 1))} disabled={posti >= 20} style={{
@@ -392,7 +392,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
                 width: 14, height: 14, borderRadius:'50%', background:'#475569',
                 display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
               }}><ByupB size={9}/></span>
-              <span>{byup} {byup === 1 ? 'connesso' : 'connessi'} a byup · gli altri non hanno scansionato il QR</span>
+              <span>{byup} {byup === 1 ? 'connesso' : 'connessi'} a byup · gli altri non hanno ancora scansionato il QR</span>
             </div>
           )}
         </div>
@@ -428,20 +428,20 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
     if (t.state === 'occupato')  return occupatoSaldato
       ? { label: 'Libera tavolo', onClick: () => onLibera && onLibera(t) }
       : { label: 'Salda ora', onClick: onPay };
-    if (t.state === 'dapulire')  return { label: 'Segna come pulito', onClick: onAdd };
+    if (t.state === 'dapulire')  return { label: 'Segna come pronto', onClick: onAdd };
   })();
   // Menu 3-puntini — sempre presenti i due primi; il terzo dipende dallo stato del tavolo.
-  // "Modifica Tavolo" copre sia unisci che split (vedi SalaUnisciModal).
+  // "Unisci o separa" copre sia unisci che split (vedi SalaUnisciModal).
   const menuItems = [
-    { key:'modifica-tavolo', label:'Modifica Tavolo', onClick: () => onUnisci && onUnisci(t) },
+    { key:'modifica-tavolo', label:'Unisci o separa', onClick: () => onUnisci && onUnisci(t) },
     { key:'sposta',          label:'Sposta tavolo',   onClick: () => onMove && onMove(t) },
     ...(t.state === 'occupato' && !occupatoSaldato
       ? [{ key:'libera', label:'Libera tavolo', onClick: () => onLibera && onLibera(t), danger: true }]
       : []),
     ...(t.state === 'prenotato'
       ? [isLate
-          ? { key:'noshow',   label:'Segna no-show',           onClick: () => onNoShow && onNoShow(t), danger: true }
-          : { key:'cancella', label:'Cancella prenotazione',   onClick: () => {},                      danger: true }]
+          ? { key:'noshow',   label:'Segna come non presentato',           onClick: () => onNoShow && onNoShow(t), danger: true }
+          : { key:'cancella', label:'Annulla prenotazione',   onClick: () => {},                      danger: true }]
       : []),
   ];
 
@@ -500,7 +500,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tav.{[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
         {t.state === 'occupato' && (
-          <Tip text={`Seduti da ${formatOpenDuration(t.sittingMin)}`}>
+          <Tip text={`Al tavolo da ${formatOpenDuration(t.sittingMin)}`}>
             <span style={{
               display:'inline-flex', alignItems:'center', gap: 3,
               fontSize: 15, color:'#6B7280', fontWeight: 600, cursor:'help',
@@ -518,7 +518,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         <span style={{flex:1}}/>
         {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
         {showAlertTriangle && (
-          <Tip text={t.state === 'dapulire' ? 'Tavolo da pulire da oltre 20\'' : 'Prenotazione in ritardo di oltre 20\''}>
+          <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="#DC2626" stroke="none" style={{display:'block', cursor:'help'}}>
               <path d="M12 2 L22 20 H2 Z" fill="#DC2626"/>
               <path d="M12 9 V14 M12 17 h0.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
@@ -584,7 +584,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
         <div style={{fontSize: 15, fontWeight: 600, color: '#7C3AED'}}>Prenotato</div>
       );
     }
-    const label = isLate ? `In ritardo di ${lateMin}'` : `In arrivo fra ${t.minutiAllaPrenotazione ?? t.nextReservation?.inMin}'`;
+    const label = isLate ? `In ritardo di ${lateMin} minuti` : `In arrivo fra ${t.minutiAllaPrenotazione ?? t.nextReservation?.inMin} minuti`;
     const accentCol = isLate ? '#A16207' : (urgent ? '#7C3AED' : '#16A34A');
     return (
       <div style={{display:'flex', flexDirection:'column', gap: 2}}>
@@ -625,7 +625,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
     return (
       <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
         <span style={{fontSize: 15.5, color: pulireColor, fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: 0.4}}>
-          {pulireSev === 'normal' ? `Liberato ${min}' fa` : `Da pulire da ${min}'`}
+          {pulireSev === 'normal' ? `Liberato ${min} minuti fa` : `Da liberare da ${min} minuti`}
         </span>
         {t.nextReservation && (
           <span style={{color:'#9CA3AF', fontSize: 14.5, fontWeight: 500}}>
@@ -661,7 +661,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             <div style={{display:'flex', flexDirection:'column', gap: 4}}>
               {(() => {
                 const minAlla = t.minutiAllaPrenotazione ?? t.nextReservation.inMin;
-                const tag = isLate ? `In ritardo di ${lateMin}'` : `In arrivo fra ${minAlla}'`;
+                const tag = isLate ? `In ritardo di ${lateMin} minuti` : `In arrivo fra ${minAlla} minuti`;
                 // In ritardo: SOLO il testo è giallo
                 const tagColor = isLate ? '#A16207' : (minAlla < PRENOTAZIONE_BLOCCO_MIN ? '#7C3AED' : '#16A34A');
                 return (
@@ -780,8 +780,8 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#0F1115'),
               letterSpacing:'-0.01em'}}>
               {pulireSev === 'normal'
-                ? `Tavolo liberato ${t.minutiDaPulire ?? t.freedMinAgo} min fa`
-                : `Da pulire da ${t.minutiDaPulire ?? t.freedMinAgo} min`}
+                ? `Tavolo liberato ${t.minutiDaPulire ?? t.freedMinAgo} minuti fa`
+                : `Da liberare da ${t.minutiDaPulire ?? t.freedMinAgo} minuti`}
             </div>
             {t.nextReservation && (
               <div style={{fontSize: 16.5, color:'#6B7280'}}>
@@ -793,7 +793,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         )}
       </div>
 
-      {/* CTA contestuali — primaria nera + Articolo + secondaria + menu 3-puntini */}
+      {/* CTA contestuali — primaria nera + Aggiungi + secondaria + menu 3-puntini */}
       <ExpandedCTARow
         t={t} cta={cta} occupatoSaldato={occupatoSaldato} isLate={isLate}
         onAddArticle={onAddArticle} onAssignOther={onAssignOther} onNoShow={onNoShow}
@@ -803,7 +803,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
 }
 
 function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssignOther, onNoShow, menuItems }) {
-  // Occupato non-saldato: prima riga CTA piena, seconda riga [+ Articolo][⋯]
+  // Occupato non-saldato: prima riga CTA piena, seconda riga [+ Aggiungi][⋯]
   // Tutti gli altri stati: [CTA][⋯] su una riga
   const showArticolo = t.state === 'occupato';
   const primaryBtn = (
@@ -841,7 +841,7 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
             onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
-            Articolo
+            Aggiungi
           </button>
           {menuItems && menuItems.length > 0 && <DotMenu items={menuItems}/>}
         </div>
@@ -1009,8 +1009,8 @@ function OrdiniList({ ordini }) {
             pillColor = ORDINE_CODA_WARN_META.color;
             pillBg    = ORDINE_CODA_WARN_META.bg;
           }
-          pillLabel = `In coda · ${o.minutiInCoda || 0}min`;
-          tipText = `In coda da ${o.minutiInCoda || 0} minuti`;
+          pillLabel = `In attesa · ${o.minutiInCoda || 0}min`;
+          tipText = `In attesa da ${o.minutiInCoda || 0} minuti`;
         }
         return (
           <OrdineRow key={idx}
@@ -1019,7 +1019,7 @@ function OrdiniList({ ordini }) {
             alert={isAlert}
             nomeExtra={isAlert && (
               <span style={{color: '#DC2626', marginLeft: 6, fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 3}}>
-                <NoteIcon type="allergia" size={10}/> ALLERGIA
+                <NoteIcon type="allergia" size={10}/> Allergie
               </span>
             )}
             pill={<StatoPill color={pillColor} bg={pillBg} label={pillLabel} tip={tipText}/>}

@@ -318,9 +318,9 @@ function summarizeOrdini(ordini) {
   const totale = totQty(ordini);
   const prontiQty = totQty(pronti);
 
-  if (pronti.length > 0)  return { tone:'alert',   label:`${prontiQty}/${totale} pronti`, count: prontiQty };
+  if (pronti.length > 0)  return { tone:'alert',   label: prontiQty === totale ? 'Tutto pronto, da servire' : `${prontiQty}/${totale} pronti`, count: prontiQty };
   if (cottura.length > 0) return { tone:'warn',    label:`${totQty(cottura)} in cottura`, count: totQty(cottura) };
-  if (ordinati.length > 0)return { tone:'neutral', label:`${totQty(ordinati)} in coda`,   count: totQty(ordinati) };
+  if (ordinati.length > 0)return { tone:'neutral', label:`${totQty(ordinati)} in attesa`,   count: totQty(ordinati) };
   return null;
 }
 

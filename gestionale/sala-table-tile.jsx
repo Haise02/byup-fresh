@@ -33,7 +33,7 @@ const TT_ACCENTS = {
   dapulire:  { tint: 'rgba(217, 119, 6, 0.14)',  ring: 'rgba(217, 119, 6, 0.42)',  ink: '#B45309',
                seat: 'rgba(217, 119, 6, 0.22)',  back: 'rgba(217, 119, 6, 0.36)' },
 };
-const TT_LABELS = { libero: 'Libero', prenotato: 'Prenotato', occupato: 'Occupato', dapulire: 'Da pulire' };
+const TT_LABELS = { libero: 'Libero', prenotato: 'Prenotato', occupato: 'Occupato', dapulire: 'Da liberare' };
 
 // Forma derivata dai posti: 2-5 square · 6+ rect.
 // (La shape 'round' è stata ritirata: sotto il 120% di zoom la label di
@@ -269,7 +269,7 @@ function TableTile({
           fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
           boxShadow: '0 1px 3px rgba(220,38,38,0.35)',
           whiteSpace: 'nowrap', zIndex: 6,
-        }}>ALLERGIA</div>
+        }}>Allergie</div>
       )}
       {children}
     </div>
