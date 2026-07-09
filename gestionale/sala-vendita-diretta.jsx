@@ -346,7 +346,7 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna }) {
         zIndex: 90, display:'flex', flexDirection:'column',
       }}>
         {/* header */}
-        <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 10}}>
+        <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
           <div style={{flex: 1}}>
             <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Ritiri</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
@@ -368,6 +368,10 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna }) {
               border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 14,
               boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.04)',
               overflow:'hidden',
+              // flexShrink 0 obbligatorio: senza, la colonna flex COMPRIME le card
+              // per farcele stare (niente overflow → niente scroll) e il fondo
+              // di ogni card — la CTA Consegna — resta clippato da overflow:hidden.
+              flexShrink: 0,
             }}>
               <div style={{padding:'12px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap: 10}}>
                 <div style={{flex: 1, minWidth: 0}}>
