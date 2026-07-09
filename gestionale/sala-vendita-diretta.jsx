@@ -291,10 +291,11 @@ function SalaVenditaDiretta() {
 
       {toast && (
         <div style={{
-          position:'fixed', bottom: 28, left:'50%', transform:'translateX(-50%)',
+          position:'absolute', bottom: 28, left:'50%', transform:'translateX(-50%)',
           background:'#0F1115', color:'#fff',
           padding:'12px 22px', borderRadius: 999,
-          fontSize: 17, fontWeight: 700, zIndex: 400,
+          fontSize: 17, fontWeight: 700, zIndex: 120,
+          whiteSpace:'nowrap',
           boxShadow:'0 8px 24px rgba(0,0,0,0.18)',
         }}>{toast}</div>
       )}
@@ -326,21 +327,23 @@ function SalaVenditaDiretta() {
 function SaRitiriDrawer({ open, ritiri, onClose, onConsegna }) {
   return (
     <>
-      {/* scrim */}
+      {/* scrim — absolute (ancorato al frame, non alla finestra): dentro il
+          canvas scalato con zoom i fixed si disallineano; stesso pattern del
+          drawer "Aggiungi widget" in Panoramica. Niente blur: animazione fluida. */}
       <div onClick={onClose} style={{
-        position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
-        backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        position:'absolute', inset: 0, background:'rgba(15,17,21,0.30)',
         opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
-        transition:'opacity 0.2s', zIndex: 200,
+        transition:'opacity 0.2s', zIndex: 80,
       }}/>
       {/* drawer */}
       <div style={{
-        position:'fixed', top: 0, right: 0, bottom: 0,
-        width: 440, maxWidth:'92vw', background: PN.WHITE,
+        position:'absolute', top: 0, right: 0, bottom: 0,
+        width: 440, maxWidth:'100%', background: PN.WHITE,
         boxShadow:'-12px 0 32px rgba(15,17,21,0.14)',
         transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition:'transform 0.25s cubic-bezier(.4,.0,.2,1)',
-        zIndex: 210, display:'flex', flexDirection:'column',
+        visibility: open ? 'visible' : 'hidden',
+        transition:'transform 0.25s cubic-bezier(.4,.0,.2,1), visibility 0.25s',
+        zIndex: 90, display:'flex', flexDirection:'column',
       }}>
         {/* header */}
         <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 10}}>
@@ -435,9 +438,8 @@ function SaConsegnaModal({ ordine, onClose, onConfirm }) {
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
-      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
-      display:'grid', placeItems:'center', zIndex: 300, padding: 20,
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG,
