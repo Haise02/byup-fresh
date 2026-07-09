@@ -7,7 +7,7 @@ function SaSelect({ value, onChange, options }) {
       <button onClick={() => setOpen(o => !o)} style={{
         padding:'9px 14px', borderRadius: 8,
         border:`1px solid ${PN.BORDER}`, background: PN.WHITE,
-        fontSize: 15, color: PN.TEXT, fontWeight: 600,
+        fontSize: 17, color: PN.TEXT, fontWeight: 600,
         cursor:'pointer', fontFamily:'inherit',
         display:'flex', alignItems:'center', gap: 8,
         minWidth: 170,
@@ -27,7 +27,7 @@ function SaSelect({ value, onChange, options }) {
               display:'block', width:'100%', textAlign:'left',
               padding:'7px 10px', borderRadius: 6,
               background:'transparent', border:'none',
-              fontSize: 15, color: PN.TEXT, cursor:'pointer',
+              fontSize: 17, color: PN.TEXT, cursor:'pointer',
               fontFamily:'inherit',
             }}
               onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}

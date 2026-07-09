@@ -25,7 +25,7 @@ function ResStatusPill({ status }) {
       background: m.tint,
       boxShadow: `inset 0 0 0 1px ${m.ring}`,
       color: m.ink,
-      fontSize: 11.5, fontWeight: 700, lineHeight: 1.3,
+      fontSize: 13.5, fontWeight: 700, lineHeight: 1.3,
       letterSpacing: '0.01em', whiteSpace: 'nowrap',
       maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
     }}>
@@ -46,7 +46,7 @@ function ResNoteChip({ note }) {
       background: isAllergia ? 'rgba(220, 38, 38, 0.10)' : 'rgba(124, 58, 237, 0.08)',
       boxShadow: `inset 0 0 0 1px ${isAllergia ? 'rgba(220,38,38,0.32)' : 'rgba(124,58,237,0.22)'}`,
       color: isAllergia ? '#DC2626' : '#6D28D9',
-      fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+      fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
       textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0,
     }}>
       {isAllergia ? 'Allergia' : (note.type || 'Nota')}
@@ -96,12 +96,12 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
       {/* Orario — tipografia display, tabulare */}
       <div style={{flexShrink: 0, textAlign: 'center', minWidth: compact ? 46 : 54}}>
         <div style={{
-          fontSize: compact ? 16 : 19, fontWeight: 800, lineHeight: 1,
+          fontSize: compact ? 18 : 21, fontWeight: 800, lineHeight: 1,
           color: ghost ? '#9CA3AF' : (urgent ? '#E32459' : '#0F1115'),
           fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
         }}>{r.time}</div>
         {!compact && r.dur && (
-          <div style={{fontSize: 10, fontWeight: 600, color: '#9CA3AF', marginTop: 3, fontVariantNumeric: 'tabular-nums'}}>
+          <div style={{fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginTop: 3, fontVariantNumeric: 'tabular-nums'}}>
             {r.dur}′
           </div>
         )}
@@ -114,7 +114,7 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
       <div style={{flex: '1 1 0%', minWidth: 0}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 7, minWidth: 0}}>
           <span style={{
-            fontSize: compact ? 13 : 14, fontWeight: 700,
+            fontSize: compact ? 15 : 16, fontWeight: 700,
             color: ghost ? '#9CA3AF' : '#0F1115',
             letterSpacing: '-0.01em',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -124,7 +124,7 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
-          fontSize: compact ? 11 : 12, fontWeight: 500, color: '#6B7280',
+          fontSize: compact ? 13 : 14, fontWeight: 500, color: '#6B7280',
           marginTop: compact ? 1 : 3,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>

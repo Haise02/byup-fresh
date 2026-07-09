@@ -106,7 +106,7 @@ function SalaVenditaDiretta() {
               border: `1px solid ${on ? 'transparent' : PN.BORDER_LIGHT}`,
               background: on ? SV_SUNSET_BG : PN.BTN_NEUTRAL,
               color: on ? SV_SUNSET_TEXT : PN.TEXT,
-              fontSize: 15, fontWeight: 700, cursor:'pointer',
+              fontSize: 17, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit', whiteSpace:'nowrap',
               boxShadow: on ? SV_SUNSET_SHADOW : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
               transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out',
@@ -142,7 +142,7 @@ function SalaVenditaDiretta() {
               style={{
                 width:'100%', padding: '10px 14px 10px 36px',
                 borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
-                fontSize: 16, fontFamily:'inherit', outline:'none',
+                fontSize: 18, fontFamily:'inherit', outline:'none',
                 background: '#FAFBFC',
                 boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
               }}/>
@@ -156,7 +156,7 @@ function SalaVenditaDiretta() {
                   border: `1px solid ${on ? 'transparent' : PN.BORDER_LIGHT}`,
                   background: on ? SV_SUNSET_BG : PN.BTN_NEUTRAL,
                   color: on ? SV_SUNSET_TEXT : PN.TEXT,
-                  fontSize: 14.5, fontWeight: 600, cursor:'pointer',
+                  fontSize: 16.5, fontWeight: 600, cursor:'pointer',
                   fontFamily:'inherit', whiteSpace:'nowrap',
                   boxShadow: on
                     ? SV_SUNSET_SHADOW
@@ -179,7 +179,7 @@ function SalaVenditaDiretta() {
           gap: 14, alignContent:'start',
         }}>
           {piatti.length === 0 && (
-            <div style={{gridColumn:'1/-1', padding: 60, textAlign:'center', color: PN.MUTED, fontSize: 15.5}}>
+            <div style={{gridColumn:'1/-1', padding: 60, textAlign:'center', color: PN.MUTED, fontSize: 17.5}}>
               <div style={{
                 width: 44, height: 44, borderRadius: '50%', margin: '0 auto 10px',
                 background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
@@ -222,9 +222,9 @@ function SalaVenditaDiretta() {
               width:36, height:36, borderRadius:'50%',
               border:'2px dashed currentColor',
               display:'grid', placeItems:'center',
-              fontSize:22, lineHeight:1,
+              fontSize:24, lineHeight:1,
             }}>+</span>
-            <span style={{fontSize:13, fontWeight:600, textAlign:'center', lineHeight:1.3}}>Articolo custom</span>
+            <span style={{fontSize:15, fontWeight:600, textAlign:'center', lineHeight:1.3}}>Articolo custom</span>
           </button>
         </div>
       </section>
@@ -306,8 +306,8 @@ function SaAsportoBoard({ conti, onPay }) {
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           </div>
-          <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Nessun conto asporto aperto</div>
-          <div style={{fontSize: 13.5, lineHeight: 1.5}}>Gli ordini da asporto effettuati dai clienti<br/>tramite Byup App compariranno qui.</div>
+          <div style={{fontSize: 17, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Nessun conto asporto aperto</div>
+          <div style={{fontSize: 15.5, lineHeight: 1.5}}>Gli ordini da asporto effettuati dai clienti<br/>tramite Byup App compariranno qui.</div>
         </div>
       </div>
     );
@@ -333,21 +333,21 @@ function SaAsportoBoard({ conti, onPay }) {
           }}>
             <div style={{flex: 1, minWidth: 0}}>
               <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.cliente}</span>
+                <span style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.cliente}</span>
                 <span style={{
-                  fontSize: 11, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
+                  fontSize: 13, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
                   padding: '2px 8px', borderRadius: 999,
                   background: PN.PINK_SOFT, color: PN.PINK_DARK, flexShrink: 0,
                 }}>byup app</span>
               </div>
-              <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>{c.codice} · ritiro ore {c.ritiro}</div>
+              <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>{c.codice} · ritiro ore {c.ritiro}</div>
             </div>
           </div>
 
           {/* Piatti ordinati */}
           <div style={{padding: '10px 16px', flex: 1, display:'flex', flexDirection:'column', gap: 3}}>
             {c.items.map((item, i) => (
-              <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 13.5}}>
+              <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 15.5}}>
                 <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 22, flexShrink: 0}}>{item.qty}×</span>
                 <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
                 <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
@@ -363,7 +363,7 @@ function SaAsportoBoard({ conti, onPay }) {
                 width:'100%', padding: '11px 16px', borderRadius: 999,
                 background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
                 border: '1px solid transparent',
-                fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
                 boxShadow: SV_SUNSET_SHADOW,
                 transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
@@ -404,7 +404,7 @@ function SaCustomModal({ onClose, onConfirm }) {
     padding: '10px 12px', borderRadius: 10,
     border: '1px solid rgba(15,17,21,0.14)', outline: 'none',
     background: 'rgba(255,255,255,0.75)',
-    fontSize: 14.5, fontFamily: 'inherit', color: PN.TEXT,
+    fontSize: 16.5, fontFamily: 'inherit', color: PN.TEXT,
     boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
     transition: 'border-color 120ms ease-out',
   };
@@ -425,8 +425,8 @@ function SaCustomModal({ onClose, onConfirm }) {
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
           <div>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Articolo custom</div>
-            <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Aggiungi un articolo non in menù</div>
+            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>Articolo custom</div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>Aggiungi un articolo non in menù</div>
           </div>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
@@ -440,7 +440,7 @@ function SaCustomModal({ onClose, onConfirm }) {
         {/* Inputs */}
         <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
           <div style={{display:'flex', flexDirection:'column', gap:5}}>
-            <label style={{fontSize: 12, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Nome articolo</label>
+            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Nome articolo</label>
             <input
               ref={nameRef}
               value={name} onChange={e => setName(e.target.value)} onKeyDown={handleKey}
@@ -451,7 +451,7 @@ function SaCustomModal({ onClose, onConfirm }) {
             />
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:5}}>
-            <label style={{fontSize: 12, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Prezzo (€)</label>
+            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Prezzo (€)</label>
             <input
               value={price} onChange={e => setPrice(e.target.value)} onKeyDown={handleKey}
               placeholder="0.00"
@@ -472,7 +472,7 @@ function SaCustomModal({ onClose, onConfirm }) {
             background: valid ? SV_SUNSET_BG : PN.WHITE_FROST,
             color: valid ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
             border: `1px solid ${valid ? 'transparent' : PN.BORDER_SOFT_A}`,
-            fontSize: 15.5, fontWeight: 700,
+            fontSize: 17.5, fontWeight: 700,
             cursor: valid ? 'pointer' : 'not-allowed',
             fontFamily:'inherit',
             display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
@@ -482,7 +482,7 @@ function SaCustomModal({ onClose, onConfirm }) {
           onMouseEnter={e => { if (valid) svSunsetHoverIn(e); }}
           onMouseLeave={svSunsetHoverOut}>
           <span>Aggiungi al conto</span>
-          <span style={{fontSize: 15.5, fontWeight: 700}}>{valid ? `€${parsedPrice.toFixed(2)}` : ''}</span>
+          <span style={{fontSize: 17.5, fontWeight: 700}}>{valid ? `€${parsedPrice.toFixed(2)}` : ''}</span>
         </button>
       </div>
     </div>
@@ -534,7 +534,7 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
           <div style={{
             width:'100%', height:'100%',
             display:'grid', placeItems:'center',
-            color: cat.color, fontSize: 32, fontWeight: 700,
+            color: cat.color, fontSize: 34, fontWeight: 700,
             background: cat.bg,
           }}>{p.name.charAt(0)}</div>
         )}
@@ -545,7 +545,7 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
             position:'absolute', top: 8, left: 8,
             background: PN.PINK_DARK, color: PN.WHITE,
             padding:'3px 9px', borderRadius: 999,
-            fontSize: 13, fontWeight: 700,
+            fontSize: 15, fontWeight: 700,
             boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
           }}>×{qtyInCart}</div>
         )}
@@ -555,12 +555,12 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
       {/* Body */}
       <div style={{padding: '10px 13px 12px', display:'flex', flexDirection:'column', gap: 3}}>
         <div style={{
-          fontSize: 11.5, fontWeight: 700, color: cat.color,
+          fontSize: 13.5, fontWeight: 700, color: cat.color,
           letterSpacing: 0.5, textTransform:'uppercase',
         }}>{p.cat}</div>
 
         <div style={{
-          fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
+          fontSize: 17.5, fontWeight: 700, color: PN.TEXT,
           lineHeight: 1.25, textWrap:'pretty',
         }}>{p.name}</div>
 
@@ -568,19 +568,19 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
           display:'flex', alignItems:'center', justifyContent:'space-between',
           marginTop: 6, gap: 8,
         }}>
-          <span style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
+          <span style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
           {customizable && (
             <button
               onClick={(e) => { e.stopPropagation(); onPersonalizza(); }}
               style={{
                 height: 30, padding:'0 12px', borderRadius: 8,
                 background: PN.BTN_NEUTRAL, color: PN.TEXT, border:`1px solid ${PN.BORDER_LIGHT}`,
-                fontSize: 13, fontWeight: 700, cursor:'pointer',
+                fontSize: 15, fontWeight: 700, cursor:'pointer',
                 fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 5,
                 flexShrink: 0,
                 boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
               }}>
-              <span style={{fontSize: 15, lineHeight: 1}}>+</span> Personalizza
+              <span style={{fontSize: 17, lineHeight: 1}}>+</span> Personalizza
             </button>
           )}
         </div>
@@ -663,10 +663,10 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
         </div>
 
         <div style={{padding: '14px 20px 0'}}>
-          <div style={{fontSize: 12, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform:'uppercase'}}>{piatto.cat}</div>
+          <div style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform:'uppercase'}}>{piatto.cat}</div>
           <div style={{display:'flex', alignItems:'baseline', gap: 10, marginTop: 2}}>
-            <span style={{fontSize: 21, fontWeight: 700, color: PN.TEXT}}>{piatto.name}</span>
-            <span style={{fontSize: 16, fontWeight: 700, color: PN.MUTED, marginLeft:'auto'}}>€{piatto.price.toFixed(2)}</span>
+            <span style={{fontSize: 23, fontWeight: 700, color: PN.TEXT}}>{piatto.name}</span>
+            <span style={{fontSize: 18, fontWeight: 700, color: PN.MUTED, marginLeft:'auto'}}>€{piatto.price.toFixed(2)}</span>
           </div>
         </div>
 
@@ -676,9 +676,9 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
           {(piatto.variants || []).map(g => (
             <div key={g.group} style={{marginBottom: 18}}>
               <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 8}}>
-                <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{g.group}</span>
+                <span style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{g.group}</span>
                 {g.required && variants[g.group] == null && (
-                  <span style={{fontSize: 12.5, color: PN.AMBER, fontWeight: 600}}>· Seleziona un'opzione</span>
+                  <span style={{fontSize: 14.5, color: PN.AMBER, fontWeight: 600}}>· Seleziona un'opzione</span>
                 )}
               </div>
               <div style={{display:'flex', gap: 6, flexWrap:'wrap'}}>
@@ -690,7 +690,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
                       border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                       background: on ? PN.PINK_SOFT : PN.WHITE,
                       color: on ? PN.PINK_DARK : PN.TEXT,
-                      fontSize: 14.5, fontWeight: 600, cursor:'pointer',
+                      fontSize: 16.5, fontWeight: 600, cursor:'pointer',
                       fontFamily:'inherit',
                     }}>
                       {o.name}{o.extra ? <span style={{color: PN.MUTED, fontWeight: 500}}> · +€{o.extra.toFixed(2)}</span> : null}
@@ -704,7 +704,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
           {/* Ingredienti rimovibili */}
           {(piatto.ingredients || []).filter(i => i.removable).length > 0 && (
             <div style={{marginBottom: 18}}>
-              <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Ingredienti</div>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Ingredienti</div>
               <div style={{display:'flex', gap: 6, flexWrap:'wrap'}}>
                 {piatto.ingredients.filter(i => i.removable).map(ing => {
                   const isRemoved = removed.includes(ing.name);
@@ -714,12 +714,12 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
                       border: `1.5px solid ${isRemoved ? '#FECACA' : PN.GREEN_SOFT}`,
                       background: isRemoved ? '#FEF2F2' : PN.GREEN_SOFT,
                       color: isRemoved ? '#B91C1C' : PN.GREEN,
-                      fontSize: 14.5, fontWeight: 600, cursor:'pointer',
+                      fontSize: 16.5, fontWeight: 600, cursor:'pointer',
                       fontFamily:'inherit',
                       textDecoration: isRemoved ? 'line-through' : 'none',
                       display:'inline-flex', alignItems:'center', gap: 5,
                     }}>
-                      <span style={{fontSize: 13}}>{isRemoved ? '×' : '✓'}</span>
+                      <span style={{fontSize: 15}}>{isRemoved ? '×' : '✓'}</span>
                       {ing.name}
                     </button>
                   );
@@ -731,7 +731,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
           {/* Extras con stepper */}
           {(piatto.extras || []).length > 0 && (
             <div style={{marginBottom: 6}}>
-              <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Extras</div>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Extras</div>
               <div style={{display:'flex', flexDirection:'column', gap: 6}}>
                 {piatto.extras.map(e => {
                   const q = extras[e.name] || 0;
@@ -742,21 +742,21 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
                       background: q > 0 ? PN.PINK_SOFT : '#FAFBFC',
                       border: `1px solid ${q > 0 ? PN.PINK : PN.BORDER_SOFT}`,
                     }}>
-                      <span style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, flex: 1}}>{e.name}</span>
-                      <span style={{fontSize: 14, color: PN.MUTED, fontWeight: 500}}>+€{e.price.toFixed(2)}</span>
+                      <span style={{fontSize: 17, fontWeight: 600, color: PN.TEXT, flex: 1}}>{e.name}</span>
+                      <span style={{fontSize: 16, color: PN.MUTED, fontWeight: 500}}>+€{e.price.toFixed(2)}</span>
                       <div style={{display:'flex', alignItems:'center', gap: 6, marginLeft: 4}}>
                         <button onClick={() => setExtras(x => ({...x, [e.name]: Math.max(0, q - 1)}))} disabled={q === 0} style={{
                           width: 24, height: 24, borderRadius:'50%',
                           background: q === 0 ? '#F4F5F7' : PN.TEXT,
                           color: q === 0 ? PN.MUTED_LIGHT : PN.WHITE,
-                          border:'none', fontSize: 15, fontWeight: 700,
+                          border:'none', fontSize: 17, fontWeight: 700,
                           cursor: q === 0 ? 'default' : 'pointer', fontFamily:'inherit',
                         }}>−</button>
-                        <span style={{minWidth: 16, textAlign:'center', fontSize: 15, fontWeight: 700}}>{q}</span>
+                        <span style={{minWidth: 16, textAlign:'center', fontSize: 17, fontWeight: 700}}>{q}</span>
                         <button onClick={() => setExtras(x => ({...x, [e.name]: q + 1}))} style={{
                           width: 24, height: 24, borderRadius:'50%',
                           background: PN.TEXT, color: PN.WHITE, border:'none',
-                          fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                          fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                         }}>+</button>
                       </div>
                     </div>
@@ -778,14 +778,14 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
             <button onClick={() => setQty(Math.max(1, qty - 1))} style={{
               width: 34, height: 34, borderRadius:'50%',
               background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
-              border: '1px solid rgba(15,17,21,0.10)', fontSize: 17, fontWeight: 700,
+              border: '1px solid rgba(15,17,21,0.10)', fontSize: 19, fontWeight: 700,
               cursor:'pointer', fontFamily:'inherit',
             }}>−</button>
-            <span style={{minWidth: 22, textAlign:'center', fontSize: 17, fontWeight: 700}}>{qty}</span>
+            <span style={{minWidth: 22, textAlign:'center', fontSize: 19, fontWeight: 700}}>{qty}</span>
             <button onClick={() => setQty(qty + 1)} style={{
               width: 34, height: 34, borderRadius:'50%',
               background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
-              border: '1px solid rgba(15,17,21,0.10)', fontSize: 17, fontWeight: 700,
+              border: '1px solid rgba(15,17,21,0.10)', fontSize: 19, fontWeight: 700,
               cursor:'pointer', fontFamily:'inherit',
             }}>+</button>
           </div>
@@ -798,7 +798,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
               background: requiredOk ? SV_SUNSET_BG : PN.WHITE_FROST,
               color: requiredOk ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
               border: `1px solid ${requiredOk ? 'transparent' : PN.BORDER_SOFT_A}`,
-              fontSize: 15.5, fontWeight: 700,
+              fontSize: 17.5, fontWeight: 700,
               cursor: requiredOk ? 'pointer' : 'not-allowed',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
@@ -808,7 +808,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
             onMouseEnter={e => { if (requiredOk) svSunsetHoverIn(e); }}
             onMouseLeave={svSunsetHoverOut}>
             <span>{initialMods != null || initialQty ? 'Aggiorna' : 'Aggiungi'}</span>
-            <span style={{fontSize: 15.5, fontWeight: 700}}>€{(lineTotal * qty).toFixed(2)}</span>
+            <span style={{fontSize: 17.5, fontWeight: 700}}>€{(lineTotal * qty).toFixed(2)}</span>
           </button>
         </div>
       </div>
@@ -841,8 +841,8 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
         </span>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2}}>Ordine</div>
-          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}{lines.length > 0 && ` · ${lines.length} righ${lines.length === 1 ? 'a' : 'e'}`}</div>
+          <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2}}>Ordine</div>
+          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}{lines.length > 0 && ` · ${lines.length} righ${lines.length === 1 ? 'a' : 'e'}`}</div>
         </div>
         <button
           onClick={() => setTakeaway(v => !v)}
@@ -853,7 +853,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             border: `1.5px solid ${takeaway ? PN.TEXT : PN.BORDER}`,
             background: takeaway ? PN.TEXT : 'transparent',
             color: takeaway ? PN.WHITE : PN.MUTED,
-            fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             transition:'background .12s, color .12s, border-color .12s',
           }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -865,7 +865,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         </button>
         {lines.length > 0 && (
           <button onClick={onClear} title="Svuota conto" style={{
-            padding:'5px 10px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+            padding:'5px 10px', borderRadius: 8, fontSize: 15, fontWeight: 600,
             background:'transparent', color: PN.MUTED, border: `1px solid ${PN.BORDER}`,
             cursor:'pointer', fontFamily:'inherit',
           }}>Svuota</button>
@@ -887,8 +887,8 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
             </div>
-            <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Conto vuoto</div>
-            <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>Tocca un piatto per aggiungerlo<br/>o l'icona <strong>+</strong> per aggiungere veloce</div>
+            <div style={{fontSize: 17, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Conto vuoto</div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>Tocca un piatto per aggiungerlo<br/>o l'icona <strong>+</strong> per aggiungere veloce</div>
           </div>
         ) : (
           <div style={{display:'flex', flexDirection:'column', gap: 6}}>
@@ -911,7 +911,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
       }}>
         <div style={{
           display:'flex', justifyContent:'space-between',
-          fontSize: 18, fontWeight: 700, color: PN.TEXT,
+          fontSize: 20, fontWeight: 700, color: PN.TEXT,
           paddingBottom: 12,
         }}>
           <span>Totale</span><span>€{total.toFixed(2)}</span>
@@ -927,7 +927,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
               background: lines.length === 0 ? PN.WHITE_FROST : SV_SUNSET_BG,
               color: lines.length === 0 ? PN.MUTED_SOFT : SV_SUNSET_TEXT,
               border: `1px solid ${lines.length === 0 ? PN.BORDER_SOFT_A : 'transparent'}`,
-              fontSize: 15.5, fontWeight: 700,
+              fontSize: 17.5, fontWeight: 700,
               cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
               fontFamily:'inherit',
               display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
@@ -977,7 +977,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
   const inlineInputStyle = {
     border:'none', borderBottom:`1.5px solid ${PN.TEXT}`, outline:'none',
     background:'transparent', fontFamily:'inherit',
-    fontSize:14.5, fontWeight:700, color: PN.TEXT, padding:'0 1px',
+    fontSize:16.5, fontWeight:700, color: PN.TEXT, padding:'0 1px',
   };
 
   return (
@@ -994,7 +994,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
       }}>
         {piatto.img
           ? <img src={piatto.img} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
-          : <span style={{fontSize: 20}}>{piatto.emoji || '🍽'}</span>}
+          : <span style={{fontSize: 22}}>{piatto.emoji || '🍽'}</span>}
       </div>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
@@ -1010,7 +1010,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
             <span
               onClick={() => isCustomizable ? onEdit() : setEditingName(true)}
               title={isCustomizable ? 'Clicca per personalizzare' : 'Clicca per modificare il nome'}
-              style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none'}}
+              style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none'}}
             >{displayName}</span>
           )}
           {editingPrice ? (
@@ -1020,18 +1020,18 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
               onKeyDown={e => { if (e.key==='Enter') commitPrice(); if (e.key==='Escape') { setPriceVal(lineTotal.toFixed(2)); setEditingPrice(false); } }}
               autoFocus
               inputMode="decimal"
-              style={{...inlineInputStyle, fontSize: 14, width: 60, textAlign:'right', fontVariantNumeric:'tabular-nums'}}
+              style={{...inlineInputStyle, fontSize: 16, width: 60, textAlign:'right', fontVariantNumeric:'tabular-nums'}}
             />
           ) : (
             <span
               onClick={() => setEditingPrice(true)}
               title="Clicca per modificare il prezzo"
-              style={{fontSize: 14, fontWeight: 700, color: PN.TEXT, cursor:'text', fontVariantNumeric:'tabular-nums'}}
+              style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, cursor:'text', fontVariantNumeric:'tabular-nums'}}
             >€{(lineTotal * qty).toFixed(2)}</span>
           )}
         </div>
         {hasMods && (
-          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
+          <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
             {Object.entries(mods.variants || {}).map(([g, v]) => (
               <span key={g} style={{color: PN.TEXT, fontWeight: 600}}>{v} · </span>
             ))}
@@ -1047,27 +1047,27 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
           <button onClick={onDec} style={{
             width: 22, height: 22, borderRadius:'50%',
             background: PN.PINK_SOFT, color: PN.PINK_DARK, border:'none',
-            fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center',
           }}>−</button>
-          <span style={{fontSize: 14, fontWeight: 700, minWidth: 14, textAlign:'center'}}>{qty}</span>
+          <span style={{fontSize: 16, fontWeight: 700, minWidth: 14, textAlign:'center'}}>{qty}</span>
           <button onClick={onInc} style={{
             width: 22, height: 22, borderRadius:'50%',
             background: PN.PINK_SOFT, color: PN.PINK_DARK, border:'none',
-            fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center',
           }}>+</button>
           <span style={{flex:1}}/>
           {hasMods !== undefined && (line.piatto.variants?.length || line.piatto.ingredients?.length || line.piatto.extras?.length) ? (
             <button onClick={onEdit} title="Modifica" style={{
-              padding:'2px 6px', borderRadius: 5, fontSize: 12.5, fontWeight: 600,
+              padding:'2px 6px', borderRadius: 5, fontSize: 14.5, fontWeight: 600,
               background:'transparent', color: PN.MUTED,
               border: `1px solid ${PN.BORDER}`, cursor:'pointer', fontFamily:'inherit',
             }}>✎</button>
           ) : null}
           <button onClick={onRemove} title="Rimuovi" style={{
             background:'transparent', border:'none', color: PN.MUTED,
-            cursor:'pointer', fontSize: 16, padding: '0 2px', fontFamily:'inherit', lineHeight: 1,
+            cursor:'pointer', fontSize: 18, padding: '0 2px', fontFamily:'inherit', lineHeight: 1,
           }}>×</button>
         </div>
       </div>
@@ -1077,7 +1077,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
 
 function SaRow({ l, v }) {
   return (
-    <div style={{display:'flex', justifyContent:'space-between', fontSize: 14.5, color: PN.MUTED, padding: '2px 0'}}>
+    <div style={{display:'flex', justifyContent:'space-between', fontSize: 16.5, color: PN.MUTED, padding: '2px 0'}}>
       <span>{l}</span><span style={{color: PN.TEXT, fontWeight: 600}}>{v}</span>
     </div>
   );
@@ -1186,20 +1186,20 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 <path d="M5 13 L9 17 L19 7"/>
               </svg>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#0F1115', marginBottom: 4 }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: '#0F1115', marginBottom: 4 }}>
               Pagamento incassato
             </div>
-            <div style={{ fontSize: 30, fontWeight: 700, color: '#0F1115', marginBottom: 6, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 32, fontWeight: 700, color: '#0F1115', marginBottom: 6, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }}>
               €{confirmedTotal.toFixed(2)}
             </div>
-            <div style={{ fontSize: 15, color: '#6B7280', marginBottom: 24 }}>
+            <div style={{ fontSize: 17, color: '#6B7280', marginBottom: 24 }}>
               {confirmedPay.contanti > 0 && confirmedPay.carta > 0
                 ? `€${confirmedPay.contanti.toFixed(2)} contanti + €${confirmedPay.carta.toFixed(2)} carta`
                 : confirmedPay.contanti > 0 ? 'Contanti' : 'Carta'}
             </div>
             <button onClick={onClose} style={{
               padding: '10px 24px', background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
-              border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700,
+              border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700,
               boxShadow: SV_SUNSET_SHADOW,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
@@ -1212,7 +1212,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
             }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12.5, color: '#6B7280', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 14.5, color: '#6B7280', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>
                   Pagamento
                 </div>
               </div>
@@ -1220,7 +1220,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 width: 32, height: 32, borderRadius: 8,
                 background: 'rgba(255,255,255,0.65)', border: '1px solid rgba(15,17,21,0.08)',
                 cursor: 'pointer',
-                fontSize: 20, fontFamily: 'inherit', color: '#6B7280',
+                fontSize: 22, fontFamily: 'inherit', color: '#6B7280',
               }}>×</button>
             </div>
 
@@ -1242,24 +1242,24 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   paddingBottom: 6, borderBottom: '1px solid #E5E7EB',
                 }}>
                   <span style={{
-                    fontSize: 13, fontWeight: 700, color: '#6B7280',
+                    fontSize: 15, fontWeight: 700, color: '#6B7280',
                     letterSpacing: 0.6, textTransform: 'uppercase', flex: 1,
                   }}>Totale</span>
                   <span style={{
-                    fontSize: 38, fontWeight: 700, color: '#0F1115',
+                    fontSize: 40, fontWeight: 700, color: '#0F1115',
                     letterSpacing: -1, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
                   }}>€{finalTotal.toFixed(2)}</span>
                 </div>
                 <div style={{ textAlign: 'right', marginTop: 6 }}>
                   <button onClick={() => setAdjustOpen(o => !o)} style={{
                     background: 'transparent', border: 'none', padding: 0,
-                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
+                    fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700,
                     color: adjustOpen ? '#0F1115' : '#6B7280', cursor: 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}>
                     {adjust ? 'Modifica aggiustamento' : 'Aggiusta totale'}
                     <span style={{
-                      display: 'inline-block', fontSize: 11,
+                      display: 'inline-block', fontSize: 13,
                       transform: adjustOpen ? 'rotate(180deg)' : 'none',
                       transition: 'transform 0.15s',
                     }}>▾</span>
@@ -1279,7 +1279,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               {/* PAGAMENTO */}
               <div>
                 <div style={{
-                  fontSize: 12.5, fontWeight: 700, color: '#6B7280',
+                  fontSize: 14.5, fontWeight: 700, color: '#6B7280',
                   letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10,
                 }}>Come paga il cliente?</div>
 
@@ -1321,7 +1321,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   background: canConfirm ? SV_SUNSET_BG : PN.WHITE_FROST,
                   color: canConfirm ? SV_SUNSET_TEXT : '#9CA3AF',
                   border: `1px solid ${canConfirm ? 'transparent' : PN.BORDER_SOFT_A}`,
-                  fontSize: 17, fontWeight: 700,
+                  fontSize: 19, fontWeight: 700,
                   cursor: canConfirm ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit', letterSpacing: -0.2,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

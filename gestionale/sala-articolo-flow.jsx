@@ -92,15 +92,15 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
             <button onClick={()=>setCustomizing(null)} style={{
               width: 32, height: 32, borderRadius: 8,
               background:'#F1F2F5', border:'none', cursor:'pointer',
-              color:'#0F1115', fontSize: 18, fontFamily:'inherit',
+              color:'#0F1115', fontSize: 20, fontFamily:'inherit',
               display:'grid', placeItems:'center',
             }} aria-label="Indietro">‹</button>
           )}
           <div style={{flex:1}}>
-            <div style={{fontSize: 13, color:'#6B7280', fontWeight: 700, letterSpacing: 0.5, textTransform:'uppercase'}}>
+            <div style={{fontSize: 15, color:'#6B7280', fontWeight: 700, letterSpacing: 0.5, textTransform:'uppercase'}}>
               {customizing ? 'Personalizza' : 'Aggiungi articolo'}
             </div>
-            <div style={{fontSize: 19, fontWeight: 800, color:'#0F1115', marginTop: 2,
+            <div style={{fontSize: 21, fontWeight: 800, color:'#0F1115', marginTop: 2,
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
               {customizing ? customizing.item.nome : `T.${tavolo.id}${tavolo.party ? ` · ${tavolo.party}` : ''}`}
             </div>
@@ -108,7 +108,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
           <button onClick={handleClose} style={{
             width: 32, height: 32, borderRadius: 8,
             background:'#F1F2F5', border:'none', cursor:'pointer',
-            color:'#0F1115', fontSize: 18, fontFamily:'inherit',
+            color:'#0F1115', fontSize: 20, fontFamily:'inherit',
             display:'grid', placeItems:'center',
           }}>×</button>
         </div>
@@ -128,7 +128,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
         {!customizing && (
           <div style={{borderTop:'1px solid #F0F2F5', padding:'14px 20px', background:'#fff'}}>
             {itemCount === 0 ? (
-              <div style={{textAlign:'center', fontSize: 14, color:'#9CA3AF', padding:'8px 0'}}>
+              <div style={{textAlign:'center', fontSize: 16, color:'#9CA3AF', padding:'8px 0'}}>
                 Tap su un articolo per aggiungerlo
               </div>
             ) : (
@@ -148,10 +148,10 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap: 10}}>
                   <div>
-                    <div style={{fontSize: 12, color:'#6B7280', fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.4}}>
+                    <div style={{fontSize: 14, color:'#6B7280', fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.4}}>
                       {itemCount} articol{itemCount === 1 ? 'o' : 'i'}
                     </div>
-                    <div style={{fontSize: 22, fontWeight: 800, color:'#0F1115', letterSpacing: -0.4, lineHeight: 1.1}}>
+                    <div style={{fontSize: 24, fontWeight: 800, color:'#0F1115', letterSpacing: -0.4, lineHeight: 1.1}}>
                       €{total.toFixed(2)}
                     </div>
                   </div>
@@ -159,7 +159,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
                   <button onClick={onConfirm} style={{
                     padding:'12px 22px',
                     background:'#0F1115', color:'#fff', border:'none',
-                    borderRadius: 10, fontSize: 15.5, fontWeight: 700,
+                    borderRadius: 10, fontSize: 17.5, fontWeight: 700,
                     cursor:'pointer', fontFamily:'inherit',
                     display:'inline-flex', alignItems:'center', gap: 8, minHeight: 44,
                   }}>
@@ -188,10 +188,10 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
             padding:'24px 22px', maxWidth: 340, width:'100%',
             boxShadow:'0 16px 48px rgba(0,0,0,0.22)',
           }}>
-            <div style={{fontSize: 18, fontWeight: 800, color:'#0F1115', marginBottom: 8}}>
+            <div style={{fontSize: 20, fontWeight: 800, color:'#0F1115', marginBottom: 8}}>
               Sei sicuro?
             </div>
-            <div style={{fontSize: 15, color:'#6B7280', lineHeight: 1.5, marginBottom: 22}}>
+            <div style={{fontSize: 17, color:'#6B7280', lineHeight: 1.5, marginBottom: 22}}>
               Se confermi <strong style={{color:'#0F1115'}}>NON</strong> verranno inviati gli ordini alla cucina e gli articoli selezionati andranno persi.
             </div>
             <div style={{display:'flex', gap: 8}}>
@@ -200,7 +200,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
                 style={{
                   flex: 1, padding:'10px 0', borderRadius: 8,
                   background:'#F3F4F6', color:'#0F1115', border:'none',
-                  fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 }}>
                 Annulla
               </button>
@@ -209,7 +209,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
                 style={{
                   flex: 1, padding:'10px 0', borderRadius: 8,
                   background:'#DC2626', color:'#fff', border:'none',
-                  fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 }}>
                 Conferma
               </button>
@@ -233,22 +233,22 @@ function CartLine({ it, onRemove }) {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 2}}>
       <div style={{display:'flex', alignItems:'center', gap: 6}}>
-        <span style={{fontSize: 13, fontWeight: 800, color:'#9A3412', minWidth: 26}}>{it.qty}×</span>
-        <span style={{flex:1, fontSize: 14, color:'#0F1115', fontWeight: 600,
+        <span style={{fontSize: 15, fontWeight: 800, color:'#9A3412', minWidth: 26}}>{it.qty}×</span>
+        <span style={{flex:1, fontSize: 16, color:'#0F1115', fontWeight: 600,
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.nome}</span>
-        <span style={{fontSize: 13.5, color:'#6B7280', fontWeight: 600}}>
+        <span style={{fontSize: 15.5, color:'#6B7280', fontWeight: 600}}>
           €{(it.qty * it.prezzo).toFixed(2)}
         </span>
         <button onClick={onRemove} style={{
           width: 22, height: 22, borderRadius: 4,
           background:'#fff', border:'1px solid #E5E7EB',
-          color:'#6B7280', fontSize: 16, fontWeight: 700,
+          color:'#6B7280', fontSize: 18, fontWeight: 700,
           cursor:'pointer', fontFamily:'inherit', padding: 0,
           display:'grid', placeItems:'center',
         }}>−</button>
       </div>
       {hasMods && (
-        <div style={{paddingLeft: 32, fontSize: 12.5, color:'#6B7280', lineHeight: 1.45}}>
+        <div style={{paddingLeft: 32, fontSize: 14.5, color:'#6B7280', lineHeight: 1.45}}>
           {m.variants?.map(v => <div key={v.id}>· {v.label}: <b>{v.value}</b></div>)}
           {m.removed?.length > 0 && <div style={{color:'#DC2626'}}>− senza {m.removed.join(', ')}</div>}
           {m.extras?.map(e => <div key={e.id} style={{color:'#15803D'}}>+ {e.qty}× {e.nome}</div>)}
@@ -270,7 +270,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
             style={{
               width:'100%', padding:'10px 12px 10px 36px',
               background:'#F8F9FB', border:'1px solid #F0F2F5',
-              borderRadius: 8, fontSize: 15, color:'#0F1115',
+              borderRadius: 8, fontSize: 17, color:'#0F1115',
               outline:'none', fontFamily:'inherit',
             }}/>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280"
@@ -295,7 +295,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
                 padding:'10px 14px', border:'none',
                 background: on ? '#fff' : 'transparent',
                 color: on ? '#0F1115' : '#6B7280',
-                fontSize: 14.5, fontWeight: on ? 700 : 500,
+                fontSize: 16.5, fontWeight: on ? 700 : 500,
                 cursor:'pointer', fontFamily:'inherit',
                 borderLeft: on ? '3px solid #E04347' : '3px solid transparent',
               }}>{c}</button>
@@ -305,7 +305,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
 
         <div className="pn-scroll" style={{flex:1, overflow:'auto', padding: 12}}>
           {items.length === 0 ? (
-            <div style={{padding: 30, textAlign:'center', color:'#9CA3AF', fontSize: 14.5}}>
+            <div style={{padding: 30, textAlign:'center', color:'#9CA3AF', fontSize: 16.5}}>
               Nessun articolo trovato
             </div>
           ) : items.map(it => {
@@ -320,10 +320,10 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
                 borderRadius: 8, cursor:'pointer',
               }}>
                 <div style={{flex:1, minWidth: 0}}>
-                  <div style={{fontSize: 15, fontWeight: 600, color:'#0F1115',
+                  <div style={{fontSize: 17, fontWeight: 600, color:'#0F1115',
                     overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.nome}</div>
                   {customizable && (
-                    <div style={{fontSize: 12, color:'#6B7280', marginTop: 2,
+                    <div style={{fontSize: 14, color:'#6B7280', marginTop: 2,
                       display:'inline-flex', alignItems:'center', gap: 4}}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9 M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4z"/>
@@ -332,12 +332,12 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
                     </div>
                   )}
                 </div>
-                <span style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', minWidth: 44, textAlign:'right'}}>
+                <span style={{fontSize: 16.5, fontWeight: 700, color:'#6B7280', minWidth: 44, textAlign:'right'}}>
                   €{it.prezzo.toFixed(2)}
                 </span>
                 {inCart && (
                   <span style={{
-                    fontSize: 13, fontWeight: 700,
+                    fontSize: 15, fontWeight: 700,
                     color:'#6B7280', background:'#F1F2F5',
                     padding:'2px 8px', borderRadius: 999,
                   }}>×{inCart.qty}</span>
@@ -347,7 +347,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
                   background:'#F1F2F5', color:'#0F1115',
                   border:'none', cursor:'pointer', fontFamily:'inherit',
                   display:'grid', placeItems:'center',
-                  fontSize: 16, fontWeight: 800,
+                  fontSize: 18, fontWeight: 800,
                 }}>+</button>
               </div>
             );
@@ -387,8 +387,8 @@ function CustomizeView({ c, setC, onAdd }) {
           padding:'10px 12px', background:'#FAFBFC',
           border:'1px solid #F0F2F5', borderRadius: 8, marginBottom: 18,
         }}>
-          <span style={{fontSize: 14, color:'#6B7280', fontWeight: 600}}>Prezzo base</span>
-          <span style={{fontSize: 16, fontWeight: 800, color:'#0F1115'}}>€{it.prezzo.toFixed(2)}</span>
+          <span style={{fontSize: 16, color:'#6B7280', fontWeight: 600}}>Prezzo base</span>
+          <span style={{fontSize: 18, fontWeight: 800, color:'#0F1115'}}>€{it.prezzo.toFixed(2)}</span>
         </div>
 
         {/* Varianti */}
@@ -403,7 +403,7 @@ function CustomizeView({ c, setC, onAdd }) {
                     border: sel ? '1.5px solid #0F1115' : '1.5px solid #E5E7EB',
                     background: sel ? '#0F1115' : '#fff',
                     color: sel ? '#fff' : '#0F1115',
-                    fontSize: 14.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
+                    fontSize: 16.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
                   }}>{opt}</button>
                 );
               })}
@@ -423,12 +423,12 @@ function CustomizeView({ c, setC, onAdd }) {
                     border: out ? '1.5px solid #E5E7EB' : '1.5px solid #15803D',
                     background: out ? '#F8F9FB' : '#fff',
                     color: out ? '#9CA3AF' : '#0F1115',
-                    fontSize: 14.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
+                    fontSize: 16.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
                     textDecoration: out ? 'line-through' : 'none',
                     display:'inline-flex', alignItems:'center', gap: 4,
                   }}>
                     <span style={{
-                      fontSize: 13, fontWeight: 800,
+                      fontSize: 15, fontWeight: 800,
                       color: out ? '#9CA3AF' : '#15803D',
                     }}>{out ? '×' : '✓'}</span>
                     {ing}
@@ -451,8 +451,8 @@ function CustomizeView({ c, setC, onAdd }) {
                     padding:'10px 0', borderBottom:'1px solid #F0F2F5',
                   }}>
                     <div style={{flex:1, minWidth: 0}}>
-                      <div style={{fontSize: 15, fontWeight: 600, color:'#0F1115'}}>{ex.nome}</div>
-                      <div style={{fontSize: 13.5, color:'#6B7280', marginTop: 1}}>
+                      <div style={{fontSize: 17, fontWeight: 600, color:'#0F1115'}}>{ex.nome}</div>
+                      <div style={{fontSize: 15.5, color:'#6B7280', marginTop: 1}}>
                         {ex.prezzo === 0 ? 'gratis' : `+€${ex.prezzo.toFixed(2)}`}
                       </div>
                     </div>
@@ -460,7 +460,7 @@ function CustomizeView({ c, setC, onAdd }) {
                       <button onClick={()=>setExtra(ex.id, 1)} style={{
                         width: 30, height: 30, borderRadius: 8,
                         background:'#F1F2F5', border:'none', cursor:'pointer',
-                        color:'#0F1115', fontSize: 18, fontWeight: 800, fontFamily:'inherit',
+                        color:'#0F1115', fontSize: 20, fontWeight: 800, fontFamily:'inherit',
                         display:'grid', placeItems:'center',
                       }}>+</button>
                     ) : (
@@ -471,14 +471,14 @@ function CustomizeView({ c, setC, onAdd }) {
                         <button onClick={()=>setExtra(ex.id, q-1)} style={{
                           width: 24, height: 24, borderRadius: 999,
                           background:'rgba(255,255,255,0.15)', border:'none',
-                          color:'#fff', fontSize: 16, fontWeight: 800, cursor:'pointer',
+                          color:'#fff', fontSize: 18, fontWeight: 800, cursor:'pointer',
                           fontFamily:'inherit', display:'grid', placeItems:'center',
                         }}>−</button>
-                        <span style={{fontSize: 14, fontWeight: 800, color:'#fff', minWidth: 14, textAlign:'center'}}>{q}</span>
+                        <span style={{fontSize: 16, fontWeight: 800, color:'#fff', minWidth: 14, textAlign:'center'}}>{q}</span>
                         <button onClick={()=>setExtra(ex.id, q+1)} style={{
                           width: 24, height: 24, borderRadius: 999,
                           background:'rgba(255,255,255,0.15)', border:'none',
-                          color:'#fff', fontSize: 16, fontWeight: 800, cursor:'pointer',
+                          color:'#fff', fontSize: 18, fontWeight: 800, cursor:'pointer',
                           fontFamily:'inherit', display:'grid', placeItems:'center',
                         }}>+</button>
                       </div>
@@ -505,15 +505,15 @@ function CustomizeView({ c, setC, onAdd }) {
           <button onClick={()=>setC(s=>({...s, qty: Math.max(1, s.qty-1)}))} disabled={c.qty<=1} style={{
             width: 30, height: 30, borderRadius: 999,
             background: c.qty<=1 ? 'transparent' : '#fff', border:'none',
-            color: c.qty<=1 ? '#C9CDD3' : '#0F1115', fontSize: 18, fontWeight: 800,
+            color: c.qty<=1 ? '#C9CDD3' : '#0F1115', fontSize: 20, fontWeight: 800,
             cursor: c.qty<=1 ? 'default' : 'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center',
           }}>−</button>
-          <span style={{fontSize: 16, fontWeight: 800, color:'#0F1115', minWidth: 18, textAlign:'center'}}>{c.qty}</span>
+          <span style={{fontSize: 18, fontWeight: 800, color:'#0F1115', minWidth: 18, textAlign:'center'}}>{c.qty}</span>
           <button onClick={()=>setC(s=>({...s, qty: s.qty+1}))} style={{
             width: 30, height: 30, borderRadius: 999,
             background:'#fff', border:'none',
-            color:'#0F1115', fontSize: 18, fontWeight: 800,
+            color:'#0F1115', fontSize: 20, fontWeight: 800,
             cursor:'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center',
           }}>+</button>
@@ -523,7 +523,7 @@ function CustomizeView({ c, setC, onAdd }) {
           background: canAdd ? '#0F1115' : '#E5E7EB',
           color: canAdd ? '#fff' : '#9CA3AF',
           border:'none', borderRadius: 10,
-          fontSize: 15.5, fontWeight: 700,
+          fontSize: 17.5, fontWeight: 700,
           cursor: canAdd ? 'pointer' : 'not-allowed', fontFamily:'inherit',
           display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
           minHeight: 44,
@@ -539,8 +539,8 @@ function Section({ title, hint, children }) {
   return (
     <div style={{marginBottom: 22}}>
       <div style={{display:'flex', alignItems:'baseline', gap: 6, marginBottom: 10}}>
-        <span style={{fontSize: 15, fontWeight: 800, color:'#0F1115', letterSpacing: -0.1}}>{title}</span>
-        {hint && <span style={{fontSize: 13, color:'#9CA3AF', marginLeft: 'auto'}}>{hint}</span>}
+        <span style={{fontSize: 17, fontWeight: 800, color:'#0F1115', letterSpacing: -0.1}}>{title}</span>
+        {hint && <span style={{fontSize: 15, color:'#9CA3AF', marginLeft: 'auto'}}>{hint}</span>}
       </div>
       {children}
     </div>

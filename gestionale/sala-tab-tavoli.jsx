@@ -139,7 +139,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
                 padding: '6px 16px', borderRadius: 7,
                 background: 'transparent',
                 color: view === v.id ? PN.TEXT : PN.MUTED,
-                border: 'none', fontSize: 14.5, fontWeight: 600,
+                border: 'none', fontSize: 16.5, fontWeight: 600,
                 cursor: 'pointer', fontFamily: 'inherit',
                 transition: 'color 200ms ease-out',
               }}>{v.label}</button>
@@ -164,7 +164,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
               boxShadow: mergeMode
                 ? 'inset 0 1px 0 rgba(255,200,210,0.26), inset 0 0 0 1px rgba(255,130,150,0.30), 0 0 0 3px rgba(255,90,95,0.22), 0 8px 22px -8px rgba(80,10,30,0.60)'
                 : 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)',
-              fontSize: 12.5, fontWeight: 700, letterSpacing: '0.01em',
+              fontSize: 14.5, fontWeight: 700, letterSpacing: '0.01em',
               cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
               transition: 'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms ease-out',
             }}
@@ -238,7 +238,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
                 }}/>
                 {/* Count */}
                 <span style={{
-                  fontSize: 17, fontWeight: 700, lineHeight: 1,
+                  fontSize: 19, fontWeight: 700, lineHeight: 1,
                   color: isActive ? kpi.accent : '#374151',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.01em',
@@ -246,7 +246,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
                 }}>{kpi.value}</span>
                 {/* Label */}
                 <span style={{
-                  fontSize: 14, fontWeight: 500, lineHeight: 1,
+                  fontSize: 16, fontWeight: 500, lineHeight: 1,
                   color: isActive ? kpi.accent : '#9CA3AF',
                   transition: 'color 150ms ease-out',
                 }}>{kpi.label}</span>
@@ -278,7 +278,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
               <path d="M12 9 V14 M12 17 h0.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
             </svg>
             <span style={{
-              fontSize: 14.5, fontWeight: 700,
+              fontSize: 16.5, fontWeight: 700,
               color: alertCount === 0 ? '#9CA3AF' : '#DC2626',
               fontVariantNumeric:'tabular-nums', lineHeight: 1,
             }}>{alertCount}</span>
@@ -294,7 +294,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
               padding: '4px 6px', height: 28,
               background: 'transparent', color: PN.MUTED,
               border: 'none',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
               flexShrink: 0, transition: 'color 150ms',
             }}
             onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
@@ -314,10 +314,10 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
           }}>
             <span style={{
-              fontSize: 14.5, fontWeight: 700, color: PN.TEXT,
+              fontSize: 16.5, fontWeight: 700, color: PN.TEXT,
               fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
             }}>{occPct}%</span>
-            <span style={{fontSize: 13, color: PN.MUTED}}>
+            <span style={{fontSize: 15, color: PN.MUTED}}>
               Riempimento tavoli
             </span>
           </div>
@@ -373,7 +373,7 @@ function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCart
       {sorted.length === 0 && (
         <div style={{
           gridColumn:'1/-1', padding: 50, textAlign:'center',
-          color:'#6B7280', fontSize: 16,
+          color:'#6B7280', fontSize: 18,
           background:'#fff', borderRadius: 12,
           border:'1px dashed #E5E7EB',
         }}>Nessun tavolo trovato.</div>
@@ -900,7 +900,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const zoomBtn = (enabled) => ({
               width: 24, height: 24, borderRadius: 7,
               border: 'none', cursor: enabled ? 'pointer' : 'default',
-              fontFamily: 'inherit', fontSize: 14, fontWeight: 700, lineHeight: 1,
+              fontFamily: 'inherit', fontSize: 16, fontWeight: 700, lineHeight: 1,
               background: 'transparent',
               color: enabled ? '#0F1115' : '#C5C8CE',
               display: 'grid', placeItems: 'center', padding: 0,
@@ -913,7 +913,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                   style={zoomBtn(zoom > ZOOM_MIN)}>−</button>
                 <button title="Riporta al 100%" onClick={() => setZoom(100)} style={{
                   border: 'none', background: 'transparent', cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
+                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
                   color: '#0F1115', minWidth: 40, textAlign: 'center',
                   fontVariantNumeric: 'tabular-nums', padding: 0,
                 }}>{zoom}%</button>
@@ -984,7 +984,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 borderBottom: '3px solid #6B4C36',
               }}>
                 <span style={{
-                  color: 'rgba(255,255,255,0.65)', fontSize: 12.5,
+                  color: 'rgba(255,255,255,0.65)', fontSize: 14.5,
                   fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase',
                   fontFamily: 'inherit',
                 }}>Bancone</span>
@@ -997,7 +997,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 borderBottom: '3px solid #3A3D4A',
               }}>
                 <span style={{
-                  color: 'rgba(255,255,255,0.5)', fontSize: 12.5,
+                  color: 'rgba(255,255,255,0.5)', fontSize: 14.5,
                   fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase',
                   fontFamily: 'inherit',
                 }}>Cucina</span>
@@ -1012,7 +1012,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 flexDirection: 'column', gap: 4,
               }}>
                 <span style={{
-                  fontSize: 12, fontWeight: 700, color: '#6B7280',
+                  fontSize: 14, fontWeight: 700, color: '#6B7280',
                   letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: 'inherit',
                 }}>Bagno</span>
               </div>
@@ -1186,7 +1186,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                     color: NOTE_TYPE_META[noteTipo].color,
                     border: '1.5px solid #fff',
                     width: 16, height: 16, borderRadius: '50%',
-                    fontSize: 11, fontWeight: 700,
+                    fontSize: 13, fontWeight: 700,
                     display:'grid', placeItems:'center', zIndex: 6,
                   }}>·</div>
                 )}
@@ -1282,7 +1282,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                     </svg>
                   )}
-                  <span style={{fontSize: 14.5, fontWeight: 700, color: isBlocked ? '#DC2626' : '#111827'}}>
+                  <span style={{fontSize: 16.5, fontWeight: 700, color: isBlocked ? '#DC2626' : '#111827'}}>
                     {isBlocked
                       ? (bothPrenotati ? 'Non si possono unire due tavoli prenotati' : 'Non si possono unire due tavoli occupati')
                       : `Unisci ${srcLabel} + ${tgtLabel}?`}
@@ -1354,7 +1354,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 {warningMsg && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 5,
-                    fontSize: 13, fontWeight: 600, color: '#92400E',
+                    fontSize: 15, fontWeight: 600, color: '#92400E',
                     background: '#FEF3C7', borderRadius: 6, padding: '3px 8px',
                   }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1396,7 +1396,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 }}>
                 {/* Header */}
                 <div style={{display:'flex', alignItems:'center', padding:'9px 10px 8px', borderBottom:'1px solid #F0F2F5'}}>
-                  <span style={{flex:1, fontSize:13.5, fontWeight:700, color:'#374151', letterSpacing:0.2}}>
+                  <span style={{flex:1, fontSize:15.5, fontWeight:700, color:'#374151', letterSpacing:0.2}}>
                     Unione T.{[...allIds].sort((a,b)=>a-b).join('-')}
                   </span>
                   <button onClick={() => setSplitMenu(null)} style={{
@@ -1411,7 +1411,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 <div style={{padding:'5px 8px'}}>
                   {src.mergedTables.map(id => (
                     <div key={id} style={{display:'flex', alignItems:'center', padding:'4px 2px', gap:8}}>
-                      <span style={{flex:1, fontSize:15, fontWeight:600, color:'#0F1115'}}>Tav.{id}</span>
+                      <span style={{flex:1, fontSize:17, fontWeight:600, color:'#0F1115'}}>Tav.{id}</span>
                       <button
                         onClick={() => {
                           if (window.SALA_DO_DETACH) window.SALA_DO_DETACH(src, id);
@@ -1420,7 +1420,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                         style={{
                           padding:'3px 9px', borderRadius:6,
                           background:'#F9FAFB', border:'1px solid #E5E7EB',
-                          fontSize:13.5, fontWeight:600, color:'#374151',
+                          fontSize:15.5, fontWeight:600, color:'#374151',
                           cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
                         }}>Separa</button>
                     </div>
@@ -1434,7 +1434,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                       width:'100%', padding:'7px 0',
                       background:'#FFF5F5', color:'#DC2626',
                       border:'1px solid #FECACA', borderRadius:7,
-                      fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                      fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
                     }}>Dividi tutto</button>
                 </div>
               </div>
@@ -1517,7 +1517,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                   animation: 'mergeChipIn 200ms cubic-bezier(0.32,0.72,0,1)',
                   whiteSpace: 'nowrap',
                 }}>
-                <span style={{fontSize: 12.5, fontWeight: 700, color: blockMsg ? '#DC2626' : '#0F1115'}}>
+                <span style={{fontSize: 14.5, fontWeight: 700, color: blockMsg ? '#DC2626' : '#0F1115'}}>
                   {blockMsg || (prims.length === 0
                     ? 'Tocca i tavoli da unire'
                     : `${prims.length} tavol${prims.length === 1 ? 'o' : 'i'} selezionat${prims.length === 1 ? 'o' : 'i'}`)}
@@ -1527,14 +1527,14 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                   background: canConfirm ? '#0F1115' : 'rgba(15,17,21,0.08)',
                   color: canConfirm ? '#fff' : '#9CA3AF',
                   border: 'none', cursor: canConfirm ? 'pointer' : 'default',
-                  fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                  fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
                   transition: 'background 150ms, color 150ms',
                 }}>Unisci</button>
                 <button onClick={() => onExitMerge && onExitMerge()} style={{
                   height: 28, padding: '0 10px', borderRadius: 8,
                   background: 'transparent', color: '#6B7280',
                   border: '1px solid rgba(15,17,21,0.10)',
-                  cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                  cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
                 }}>Annulla</button>
               </div>
             );
@@ -1581,7 +1581,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               color: enabled ? '#0F1115' : '#C5C8CE',
               cursor: enabled ? 'pointer' : 'default',
               display: 'grid', placeItems: 'center',
-              fontFamily: 'inherit', fontSize: 15, fontWeight: 700, lineHeight: 1,
+              fontFamily: 'inherit', fontSize: 17, fontWeight: 700, lineHeight: 1,
               padding: 0, transition: 'background 150ms ease-out',
             });
 
@@ -1605,7 +1605,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 }}>
                 <button style={btnStyle(!!minusTarget)} disabled={!minusTarget} onClick={() => applySeats(minusTarget)}>−</button>
                 <span style={{
-                  fontSize: 12, fontWeight: 700, color: '#0F1115',
+                  fontSize: 14, fontWeight: 700, color: '#0F1115',
                   minWidth: 46, textAlign: 'center',
                   fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
                 }}>{seats} posti</span>
@@ -1768,7 +1768,7 @@ function SearchExpandable({ value, onChange, placeholder, expandedWidth = 240 })
             padding: '0 14px 0 38px',
             border: 'none',
             background: 'transparent',
-            fontSize: 15.5, color: PN.TEXT,
+            fontSize: 17.5, color: PN.TEXT,
             outline: 'none', fontFamily: 'inherit',
             opacity: expanded ? 1 : 0,
             transition: 'opacity 200ms ease',

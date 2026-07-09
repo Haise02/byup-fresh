@@ -122,17 +122,17 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
         }}>
           <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:20, fontWeight:800, color:'#0F1115', letterSpacing:'-0.02em'}}>
+              <div style={{fontSize:22, fontWeight:800, color:'#0F1115', letterSpacing:'-0.02em'}}>
                 Modifica Tav.{[tavolo.id, ...(tavolo.mergedTables || [])].sort((a, b) => a - b).join('-')}
               </div>
-              <div style={{fontSize:15, color:'#6B7280', marginTop:4}}>
+              <div style={{fontSize:17, color:'#6B7280', marginTop:4}}>
                 Unisci o separa tavoli, e personalizza i coperti
               </div>
             </div>
             <button onClick={onClose} aria-label="Chiudi" style={{
               width:32, height:32, borderRadius:8,
               background:'#F1F2F5', border:'none', cursor:'pointer',
-              fontSize:20, color:'#6B7280', fontFamily:'inherit',
+              fontSize:22, color:'#6B7280', fontFamily:'inherit',
               flexShrink:0,
             }}>×</button>
           </div>
@@ -151,7 +151,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
               style={{
                 width:'100%', padding:'9px 12px 9px 34px',
                 border:'1px solid #E5E7EB', borderRadius:10,
-                fontSize:15, color:'#0F1115', outline:'none',
+                fontSize:17, color:'#0F1115', outline:'none',
                 fontFamily:'inherit', background:'#fff',
                 boxSizing:'border-box',
               }}
@@ -165,7 +165,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
           flexShrink:0,
         }}>
           <div style={{
-            fontSize:12.5, fontWeight:800, color:'#6B7280',
+            fontSize:14.5, fontWeight:800, color:'#6B7280',
             letterSpacing:0.6, textTransform:'uppercase', marginBottom:8,
           }}>
             Composto da
@@ -179,10 +179,10 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
               display:'inline-flex', alignItems:'center', gap:6,
               padding:'5px 10px', borderRadius:8,
               background:'#fff', border:'1px solid #FDBA74',
-              fontSize:14, fontWeight:700, color:'#9A3412',
+              fontSize:16, fontWeight:700, color:'#9A3412',
             }}>
               Tav.{tavolo.id}
-              <span style={{fontSize:12, color:'#9A3412', opacity:0.7, fontWeight:600}}>principale</span>
+              <span style={{fontSize:14, color:'#9A3412', opacity:0.7, fontWeight:600}}>principale</span>
             </div>
             {(tavolo.mergedTables || []).map(id => {
               const kept = keptMerged.has(id);
@@ -196,7 +196,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                     padding:'5px 6px 5px 10px', borderRadius:8,
                     background: kept ? '#fff' : '#F1F2F5',
                     border: kept ? '1px solid #FDBA74' : '1px dashed #9CA3AF',
-                    fontSize:14, fontWeight:700,
+                    fontSize:16, fontWeight:700,
                     color: kept ? '#9A3412' : '#6B7280',
                     textDecoration: kept ? 'none' : 'line-through',
                     cursor:'pointer', fontFamily:'inherit',
@@ -207,7 +207,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                     width:18, height:18, borderRadius:'50%',
                     background: kept ? '#FED7AA' : 'transparent',
                     color: kept ? '#9A3412' : '#9CA3AF',
-                    fontSize:15, fontWeight:800, lineHeight:1,
+                    fontSize:17, fontWeight:800, lineHeight:1,
                     display:'inline-flex', alignItems:'center', justifyContent:'center',
                     textDecoration:'none',
                   }}>×</span>
@@ -223,14 +223,14 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                   display:'inline-flex', alignItems:'center', gap:6,
                   padding:'5px 6px 5px 10px', borderRadius:8,
                   background:'#fff', border:'1px solid #16A34A',
-                  fontSize:14, fontWeight:700, color:'#15803D',
+                  fontSize:16, fontWeight:700, color:'#15803D',
                   cursor:'pointer', fontFamily:'inherit',
                 }}>
                 Tav.{t.id}
                 <span style={{
                   width:18, height:18, borderRadius:'50%',
                   background:'#DCFCE7', color:'#15803D',
-                  fontSize:15, fontWeight:800, lineHeight:1,
+                  fontSize:17, fontWeight:800, lineHeight:1,
                   display:'inline-flex', alignItems:'center', justifyContent:'center',
                 }}>×</span>
               </button>
@@ -241,7 +241,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
         {/* TITOLO sezione aggiungi */}
         <div style={{
           padding:'14px 22px 8px', flexShrink:0,
-          fontSize:12.5, fontWeight:800, color:'#6B7280',
+          fontSize:14.5, fontWeight:800, color:'#6B7280',
           letterSpacing:0.6, textTransform:'uppercase',
         }}>
           Aggiungi tavoli
@@ -253,7 +253,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
         }}>
           {candidates.length === 0 ? (
             <div style={{
-              padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:15,
+              padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:17,
             }}>
               {search.trim() ? 'Nessun tavolo corrisponde alla ricerca.' : 'Nessun tavolo libero o da pulire disponibile.'}
             </div>
@@ -295,15 +295,15 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                         </svg>
                       </div>
                     )}
-                    <div style={{fontSize:18, fontWeight:800, color:'#0F1115', letterSpacing:'-0.01em', paddingRight:24}}>
+                    <div style={{fontSize:20, fontWeight:800, color:'#0F1115', letterSpacing:'-0.01em', paddingRight:24}}>
                       Tav.{t.id}
                     </div>
-                    <div style={{fontSize:13.5, color:'#6B7280', fontWeight:500}}>
+                    <div style={{fontSize:15.5, color:'#6B7280', fontWeight:500}}>
                       {t.posti} posti
                     </div>
                     {t.state === 'dapulire' && (
                       <div style={{
-                        marginTop:2, fontSize:12, fontWeight:700,
+                        marginTop:2, fontSize:14, fontWeight:700,
                         color:'#374151', background:'#F3F4F6',
                         padding:'3px 7px', borderRadius:4,
                         alignSelf:'flex-start',
@@ -312,7 +312,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                     )}
                     {t.state === 'libero' && t.nextReservation && t.nextReservation.time && (
                       <div style={{
-                        marginTop:2, fontSize:12, fontWeight:700,
+                        marginTop:2, fontSize:14, fontWeight:700,
                         color:'#92400E', background:'#FEF3C7',
                         padding:'3px 7px', borderRadius:4,
                         alignSelf:'flex-start',
@@ -331,7 +331,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
         {/* COPERTI STEPPER — sotto l'aggiunta tavoli */}
         <div style={{padding:'0 22px 14px', flexShrink:0}}>
           <div style={{
-            fontSize:12.5, fontWeight:800, color:'#6B7280',
+            fontSize:14.5, fontWeight:800, color:'#6B7280',
             letterSpacing:0.6, textTransform:'uppercase', marginBottom:8,
           }}>
             Capacità massima
@@ -349,14 +349,14 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                 border:'1px solid #E5E7EB',
                 background: clampedCoperti <= 1 ? '#F4F5F7' : '#fff',
                 color: clampedCoperti <= 1 ? '#D1D5DB' : '#0F1115',
-                fontSize:20, fontWeight:700,
+                fontSize:22, fontWeight:700,
                 cursor: clampedCoperti <= 1 ? 'default' : 'pointer',
                 fontFamily:'inherit',
                 display:'grid', placeItems:'center',
               }}>−</button>
             <div style={{
               minWidth:40, textAlign:'center',
-              fontSize:22, fontWeight:800, color:'#0F1115',
+              fontSize:24, fontWeight:800, color:'#0F1115',
               fontVariantNumeric:'tabular-nums',
             }}>{clampedCoperti}</div>
             <button
@@ -367,7 +367,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                 border:'1px solid #E5E7EB',
                 background: clampedCoperti >= 20 ? '#F4F5F7' : '#fff',
                 color: clampedCoperti >= 20 ? '#D1D5DB' : '#0F1115',
-                fontSize:20, fontWeight:700,
+                fontSize:22, fontWeight:700,
                 cursor: clampedCoperti >= 20 ? 'default' : 'pointer',
                 fontFamily:'inherit',
                 display:'grid', placeItems:'center',
@@ -384,14 +384,14 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
             padding:'10px 12px', borderRadius:8,
             background:'#fff', border:'1px solid #E5E7EB',
             display:'flex', alignItems:'center', gap:6,
-            fontSize:15, fontWeight:700, color:'#0F1115',
+            fontSize:17, fontWeight:700, color:'#0F1115',
             flexWrap:'wrap',
           }}>
             <span style={{fontVariantNumeric:'tabular-nums'}}>{summaryLabel}</span>
             <span style={{color:'#9CA3AF', margin:'0 4px'}}>→</span>
             <span style={{fontVariantNumeric:'tabular-nums'}}>{clampedCoperti} posti</span>
           </div>
-          <div style={{fontSize:13, color:'#9CA3AF', margin:'8px 2px 12px', lineHeight:1.4}}>
+          <div style={{fontSize:15, color:'#9CA3AF', margin:'8px 2px 12px', lineHeight:1.4}}>
             I tavoli torneranno alla configurazione originale quando vengono liberati.
           </div>
           <div style={{display:'flex', gap:8}}>
@@ -399,7 +399,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
               flex:1, padding:'11px 14px',
               background:'#fff', color:'#0F1115',
               border:'1px solid #E5E7EB', borderRadius:10,
-              fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+              fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
             }}>Annulla</button>
             <button
               onClick={handleConfirm}
@@ -409,7 +409,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                 background: canConfirm ? '#0F1115' : '#E5E7EB',
                 color: canConfirm ? '#fff' : '#9CA3AF',
                 border:'none', borderRadius:10,
-                fontSize:15, fontWeight:700,
+                fontSize:17, fontWeight:700,
                 cursor: canConfirm ? 'pointer' : 'not-allowed',
                 fontFamily:'inherit',
                 display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
@@ -450,10 +450,10 @@ function SalaCopertiModal({ tavolo, onClose, onSave }) {
         zIndex:61, padding:'22px 22px 18px',
         fontFamily:'inherit',
       }}>
-        <div style={{fontSize:19, fontWeight:800, color:'#0F1115', marginBottom:6, letterSpacing:'-0.02em'}}>
+        <div style={{fontSize:21, fontWeight:800, color:'#0F1115', marginBottom:6, letterSpacing:'-0.02em'}}>
           Modifica coperti — Tav.{tavolo.id}
         </div>
-        <div style={{fontSize:14, color:'#9CA3AF', marginBottom:18}}>
+        <div style={{fontSize:16, color:'#9CA3AF', marginBottom:18}}>
           Capacità tavolo: {maxPosti} posti
         </div>
 
@@ -470,14 +470,14 @@ function SalaCopertiModal({ tavolo, onClose, onSave }) {
               border:'1px solid #E5E7EB',
               background: coperti <= 1 ? '#F4F5F7' : '#fff',
               color: coperti <= 1 ? '#D1D5DB' : '#0F1115',
-              fontSize:24, fontWeight:700,
+              fontSize:26, fontWeight:700,
               cursor: coperti <= 1 ? 'default' : 'pointer',
               fontFamily:'inherit',
               display:'grid', placeItems:'center',
             }}>−</button>
           <div style={{
             minWidth:64, textAlign:'center',
-            fontSize:36, fontWeight:800, color:'#0F1115',
+            fontSize:38, fontWeight:800, color:'#0F1115',
             fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', lineHeight:1,
           }}>
             {coperti}
@@ -490,7 +490,7 @@ function SalaCopertiModal({ tavolo, onClose, onSave }) {
               border:'1px solid #E5E7EB',
               background: coperti >= maxPosti ? '#F4F5F7' : '#fff',
               color: coperti >= maxPosti ? '#D1D5DB' : '#0F1115',
-              fontSize:24, fontWeight:700,
+              fontSize:26, fontWeight:700,
               cursor: coperti >= maxPosti ? 'default' : 'pointer',
               fontFamily:'inherit',
               display:'grid', placeItems:'center',
@@ -502,12 +502,12 @@ function SalaCopertiModal({ tavolo, onClose, onSave }) {
             flex:1, padding:'11px 14px',
             background:'#fff', color:'#0F1115',
             border:'1px solid #E5E7EB', borderRadius:10,
-            fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
           }}>Annulla</button>
           <button onClick={() => onSave && onSave(coperti)} style={{
             flex:1, padding:'11px 14px',
             background:'#0F1115', color:'#fff', border:'none',
-            borderRadius:10, fontSize:15, fontWeight:700,
+            borderRadius:10, fontSize:17, fontWeight:700,
             cursor:'pointer', fontFamily:'inherit',
           }}>Salva</button>
         </div>
@@ -581,17 +581,17 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
         <div style={{padding:'18px 22px 14px', borderBottom:'1px solid #F0F2F5', flexShrink:0}}>
           <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:20, fontWeight:800, color:'#0F1115', letterSpacing:'-0.02em'}}>
+              <div style={{fontSize:22, fontWeight:800, color:'#0F1115', letterSpacing:'-0.02em'}}>
                 Sposta {tavLabel(tavolo)}
               </div>
-              <div style={{fontSize:15, color:'#6B7280', marginTop:4}}>
+              <div style={{fontSize:17, color:'#6B7280', marginTop:4}}>
                 Scegli il tavolo con cui scambiare {tavolo.party ? `"${tavolo.party}"` : 'i dati'}
               </div>
             </div>
             <button onClick={onClose} aria-label="Chiudi" style={{
               width:32, height:32, borderRadius:8,
               background:'#F1F2F5', border:'none', cursor:'pointer',
-              fontSize:20, color:'#6B7280', fontFamily:'inherit', flexShrink:0,
+              fontSize:22, color:'#6B7280', fontFamily:'inherit', flexShrink:0,
             }}>×</button>
           </div>
 
@@ -609,7 +609,7 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
               style={{
                 width:'100%', padding:'9px 12px 9px 34px',
                 border:'1px solid #E5E7EB', borderRadius:10,
-                fontSize:15, color:'#0F1115', outline:'none',
+                fontSize:17, color:'#0F1115', outline:'none',
                 fontFamily:'inherit', background:'#fff', boxSizing:'border-box',
               }}
             />
@@ -619,7 +619,7 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
         {/* LISTA TAVOLI — singola selezione */}
         <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'12px 22px 18px'}}>
           {candidates.length === 0 ? (
-            <div style={{padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:15}}>
+            <div style={{padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:17}}>
               Nessun tavolo disponibile.
             </div>
           ) : (
@@ -645,8 +645,8 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
                       background: meta.dot, flexShrink: 0,
                     }}/>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontSize:16, fontWeight:800, color:'#0F1115'}}>{tavLabel(t)}</div>
-                      <div style={{fontSize:13.5, color:'#6B7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                      <div style={{fontSize:18, fontWeight:800, color:'#0F1115'}}>{tavLabel(t)}</div>
+                      <div style={{fontSize:15.5, color:'#6B7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                         {stateDescription(t)}
                       </div>
                     </div>
@@ -674,7 +674,7 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
             <div style={{
               padding:'10px 12px', borderRadius:8,
               background:'#fff', border:'1px solid #E5E7EB',
-              fontSize:15, fontWeight:700, color:'#0F1115', marginBottom:10,
+              fontSize:17, fontWeight:700, color:'#0F1115', marginBottom:10,
               display:'flex', alignItems:'center', gap:6, flexWrap:'wrap',
             }}>
               <span>{tavLabel(tavolo)}</span>
@@ -687,7 +687,7 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
               flex:1, padding:'11px 14px',
               background:'#fff', color:'#0F1115',
               border:'1px solid #E5E7EB', borderRadius:10,
-              fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+              fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
             }}>Annulla</button>
             <button
               onClick={handleConfirm}
@@ -697,7 +697,7 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
                 background: selectedId == null ? '#E5E7EB' : '#0F1115',
                 color: selectedId == null ? '#9CA3AF' : '#fff',
                 border:'none', borderRadius:10,
-                fontSize:15, fontWeight:700,
+                fontSize:17, fontWeight:700,
                 cursor: selectedId == null ? 'not-allowed' : 'pointer',
                 fontFamily:'inherit',
               }}>Sposta</button>

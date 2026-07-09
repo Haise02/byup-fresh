@@ -105,7 +105,7 @@ const NP_T = {
   brand:'#111827', brandHover:'#1F2937',
 };
 const NP_R = { sm:8, md:10, lg:12, pill:999 };
-const NP_FS = { xs:13, sm:14, md:15, base:16, lg:18, xl:24 };
+const NP_FS = { xs:15, sm:16, md:17, base:18, lg:20, xl:26 };
 
 const npInput = {
   width:'100%', padding:'10px 12px', borderRadius: NP_R.md,
@@ -260,11 +260,11 @@ function NpDateStrip({ value, onChange, label }) {
               transition:'background 160ms ease, color 160ms ease, border-color 160ms ease',
             }}>
               <span style={{
-                fontSize: 13, fontWeight: 700, lineHeight: 1,
+                fontSize: 15, fontWeight: 700, lineHeight: 1,
                 textTransform:'uppercase', letterSpacing: 0.4,
                 color: isSel ? 'rgba(255,255,255,0.85)' : NP_T.textSubtle,
               }}>{wd}</span>
-              <span style={{fontSize: 18, fontWeight: 700, lineHeight: 1.1}}>{d.getDate()}</span>
+              <span style={{fontSize: 20, fontWeight: 700, lineHeight: 1.1}}>{d.getDate()}</span>
               {isToday && (
                 <span style={{
                   position:'absolute', bottom: 4, left:'50%', transform:'translateX(-50%)',
@@ -337,7 +337,7 @@ function NpMonthCalendar({ today, selected, onPick }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 4, marginBottom: 4}}>
         {['L','M','M','G','V','S','D'].map((d,i)=>(
           <span key={i} style={{
-            fontSize: 12, fontWeight: 700, color: NP_T.textSubtle,
+            fontSize: 14, fontWeight: 700, color: NP_T.textSubtle,
             textAlign:'center', padding: 2, letterSpacing: 0.3,
           }}>{d}</span>
         ))}
@@ -710,14 +710,14 @@ function SalaModalNuova({ open, onClose, initData }) {
                   display:'flex', flexDirection:'column', alignItems:'center', gap: 1,
                   transition:'border-color 140ms ease, box-shadow 140ms ease',
                 }}>
-                <span style={{fontSize: 20, fontWeight: 700, color: c.num, lineHeight: 1}}>
+                <span style={{fontSize: 22, fontWeight: 700, color: c.num, lineHeight: 1}}>
                   {isFull ? '—' : free}
                 </span>
-                <span style={{fontSize: 10, fontWeight: 700, color: c.num, opacity: 0.85, lineHeight: 1,
+                <span style={{fontSize: 12, fontWeight: 700, color: c.num, opacity: 0.85, lineHeight: 1,
                   textTransform:'uppercase', letterSpacing: 0.4}}>
                   {isFull ? 'pieno' : 'liberi'}
                 </span>
-                <span style={{fontSize: 13, fontWeight: isSel ? 800 : 600,
+                <span style={{fontSize: 15, fontWeight: isSel ? 800 : 600,
                   color: isSel ? NP_T.text : NP_T.textMuted, lineHeight: 1, marginTop: 4}}>
                   {f.label}
                 </span>

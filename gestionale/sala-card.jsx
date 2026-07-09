@@ -110,7 +110,7 @@ function Tip({ text, children, position = 'top', delay = 250, disabled, style })
           transform: position === 'bottom' ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
           background:'#0F1115', color:'#fff',
           padding:'6px 10px', borderRadius: 6,
-          fontSize: 13, fontWeight: 600, lineHeight: 1.35,
+          fontSize: 15, fontWeight: 600, lineHeight: 1.35,
           maxWidth: 240, textAlign:'center',
           whiteSpace: text.length > 32 ? 'normal' : 'nowrap',
           zIndex: 9999, pointerEvents:'none',
@@ -178,7 +178,7 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
         height: 18, marginLeft: withLabel ? 0 : 2, padding: withLabel ? '0 2px' : 0,
         background:'transparent', border:'none', cursor:'pointer',
         color:'#6B7280', borderRadius: 4, fontFamily:'inherit',
-        fontSize: withLabel ? 14.5 : 'inherit',
+        fontSize: withLabel ? 16.5 : 'inherit',
         fontWeight: withLabel ? 500 : 'inherit',
         transition:'color 120ms, background 120ms',
       }}
@@ -196,7 +196,7 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
           boxShadow:'0 12px 28px rgba(15,17,21,0.12), 0 2px 6px rgba(15,17,21,0.06)',
           padding: 12, minWidth: 200, fontFamily:'inherit',
         }}>
-          <div style={{fontSize: 12.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
+          <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
             Numero di posti
           </div>
           <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 10}}>
@@ -204,16 +204,16 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
               width: 32, height: 32, borderRadius: 8,
               border:'1px solid #E5E7EB', background: val <= min ? '#FAFBFC' : '#FFFFFF',
               cursor: val <= min ? 'default' : 'pointer',
-              fontSize: 20, fontWeight: 600, color: val <= min ? '#D1D5DB' : '#0F1115',
+              fontSize: 22, fontWeight: 600, color: val <= min ? '#D1D5DB' : '#0F1115',
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               fontFamily:'inherit',
             }}>−</button>
-            <div style={{flex: 1, textAlign:'center', fontSize: 24, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{val}</div>
+            <div style={{flex: 1, textAlign:'center', fontSize: 26, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{val}</div>
             <button onClick={() => setVal(v => Math.min(max, v + 1))} disabled={val >= max} style={{
               width: 32, height: 32, borderRadius: 8,
               border:'1px solid #E5E7EB', background: val >= max ? '#FAFBFC' : '#FFFFFF',
               cursor: val >= max ? 'default' : 'pointer',
-              fontSize: 20, fontWeight: 600, color: val >= max ? '#D1D5DB' : '#0F1115',
+              fontSize: 22, fontWeight: 600, color: val >= max ? '#D1D5DB' : '#0F1115',
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               fontFamily:'inherit',
             }}>+</button>
@@ -222,7 +222,7 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
             width:'100%', padding:'8px 12px', borderRadius: 8,
             background: PN.BTN_DARK, color:'#fff',
             border:'1px solid rgba(0,0,0,0.32)',
-            fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             boxShadow: PN.INSET_HIGHLIGHT_DARK,
           }}>Salva</button>
         </div>
@@ -296,14 +296,14 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
                 background: '#6B7280', border: '2px solid #FFFFFF',
                 marginLeft: -overlap,
                 display:'inline-flex', alignItems:'center', justifyContent:'center',
-                color: '#FFFFFF', fontSize: expanded ? 11.5 : 10, fontWeight: 700,
+                color: '#FFFFFF', fontSize: expanded ? 13.5 : 12, fontWeight: 700,
                 cursor:'help',
               }}>+{overflow}</div>
             </Tip>
           )}
         </div>
         <span style={{
-          fontSize: expanded ? 14.5 : 13.5,
+          fontSize: expanded ? 16.5 : 15.5,
           color: '#0F1115', fontWeight: 700,
           whiteSpace:'nowrap',
           fontVariantNumeric: 'tabular-nums',
@@ -346,7 +346,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
           padding: 12, minWidth: 220,
           fontFamily:'inherit',
         }}>
-          <div style={{fontSize: 12.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
+          <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
             Capacità tavolo
           </div>
           <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 10}}>
@@ -354,15 +354,15 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
               width: 32, height: 32, borderRadius: 8,
               border:'1px solid #E5E7EB', background: posti <= (coperti || 1) ? '#FAFBFC' : '#FFFFFF',
               cursor: posti <= (coperti || 1) ? 'default' : 'pointer',
-              fontSize: 20, fontWeight: 600, color: posti <= (coperti || 1) ? '#D1D5DB' : '#0F1115',
+              fontSize: 22, fontWeight: 600, color: posti <= (coperti || 1) ? '#D1D5DB' : '#0F1115',
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               fontFamily:'inherit',
             }}>−</button>
             <div style={{flex: 1, textAlign:'center'}}>
-              <span style={{fontSize: 24, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>
+              <span style={{fontSize: 26, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>
                 {posti}
               </span>
-              <span style={{fontSize: 15, color:'#6B7280', fontWeight: 600, marginLeft: 4}}>
+              <span style={{fontSize: 17, color:'#6B7280', fontWeight: 600, marginLeft: 4}}>
                 posti totali
               </span>
             </div>
@@ -370,19 +370,19 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
               width: 32, height: 32, borderRadius: 8,
               border:'1px solid #E5E7EB', background: posti >= 20 ? '#FAFBFC' : '#FFFFFF',
               cursor: posti >= 20 ? 'default' : 'pointer',
-              fontSize: 20, fontWeight: 600, color: posti >= 20 ? '#D1D5DB' : '#0F1115',
+              fontSize: 22, fontWeight: 600, color: posti >= 20 ? '#D1D5DB' : '#0F1115',
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               fontFamily:'inherit',
             }}>+</button>
           </div>
           {coperti > 0 && (
-            <div style={{fontSize: 12.5, color:'#9CA3AF', marginBottom: 8, lineHeight: 1.4}}>
+            <div style={{fontSize: 14.5, color:'#9CA3AF', marginBottom: 8, lineHeight: 1.4}}>
               Coperti seduti: <b style={{color:'#0F1115', fontWeight: 700}}>{coperti}</b>
             </div>
           )}
           {byup > 0 && (
             <div style={{
-              fontSize: 13, color:'#6B7280', lineHeight: 1.4,
+              fontSize: 15, color:'#6B7280', lineHeight: 1.4,
               padding:'8px 10px', background:'#FAFBFC', borderRadius: 6,
               display:'flex', alignItems:'center', gap: 6,
             }}>
@@ -497,14 +497,14 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       {/* === HEADER — Tav.X numero, posti, dot stato a dx (tooltip on hover) === */}
       <div style={{display: 'flex', alignItems: 'center', gap: 8, marginTop: 2}}>
         <span style={{
-          fontSize: 18, fontWeight: 600, color: '#0F1115',
+          fontSize: 20, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tav.{[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
         {t.state === 'occupato' && (
           <Tip text={`Seduti da ${formatOpenDuration(t.sittingMin)}`}>
             <span style={{
               display:'inline-flex', alignItems:'center', gap: 3,
-              fontSize: 13, color:'#6B7280', fontWeight: 600, cursor:'help',
+              fontSize: 15, color:'#6B7280', fontWeight: 600, cursor:'help',
               lineHeight: 1,
             }}>
               <ChairIcon size={12}/>
@@ -513,7 +513,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           </Tip>
         )}
         {t.state !== 'occupato' && (
-          <span style={{fontSize: 13, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
+          <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
         )}
 
         <span style={{flex:1}}/>
@@ -540,7 +540,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       {note && noteIsCritical && (
         <div style={{
           display:'flex', alignItems:'center', gap: 5,
-          fontSize: 13, fontWeight: 700, color: '#DC2626',
+          fontSize: 15, fontWeight: 700, color: '#DC2626',
           padding: '2px 0', lineHeight: 1.25, textTransform: 'uppercase', letterSpacing: 0.4,
         }}>
           <span style={{whiteSpace: expanded ? 'normal' : 'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
@@ -570,7 +570,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
       return null;
     }
     return (
-      <div style={{display:'flex', alignItems:'baseline', gap: 6, fontSize: 13.5, color:'#6B7280'}}>
+      <div style={{display:'flex', alignItems:'baseline', gap: 6, fontSize: 15.5, color:'#6B7280'}}>
         <span style={{color:'#9CA3AF', flexShrink: 0}}>→</span>
         <span style={{fontWeight: 700, color:'#0F1115', flexShrink: 0}}>{t.nextReservation.time}</span>
         <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
@@ -582,21 +582,21 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   if (t.state === 'prenotato') {
     if (!t.nextReservation) {
       return (
-        <div style={{fontSize: 13, fontWeight: 600, color: '#7C3AED'}}>Prenotato</div>
+        <div style={{fontSize: 15, fontWeight: 600, color: '#7C3AED'}}>Prenotato</div>
       );
     }
     const label = isLate ? `In ritardo di ${lateMin}'` : `In arrivo fra ${t.minutiAllaPrenotazione ?? t.nextReservation?.inMin}'`;
     const accentCol = isLate ? '#A16207' : (urgent ? '#7C3AED' : '#16A34A');
     return (
       <div style={{display:'flex', flexDirection:'column', gap: 2}}>
-        <div style={{fontSize: 12.5, fontWeight: 700, color: accentCol, letterSpacing: 0.3, textTransform:'uppercase'}}>
+        <div style={{fontSize: 14.5, fontWeight: 700, color: accentCol, letterSpacing: 0.3, textTransform:'uppercase'}}>
           {label}
         </div>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
-          <span style={{fontSize: 16, fontWeight: 700, color: '#0F1115', flexShrink: 0}}>
+          <span style={{fontSize: 18, fontWeight: 700, color: '#0F1115', flexShrink: 0}}>
             {t.nextReservation.time}
           </span>
-          <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: '#0F1115', fontWeight: 600,
+          <span style={{flex: 1, minWidth: 0, fontSize: 15.5, color: '#0F1115', fontWeight: 600,
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
             {t.nextReservation.name}
           </span>
@@ -610,7 +610,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
         <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti}/>
         {alert && (
           <div style={{
-            fontSize: 13, fontWeight: 700,
+            fontSize: 15, fontWeight: 700,
             color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
             background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
             padding: '3px 7px', borderRadius: 6,
@@ -625,11 +625,11 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
     const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
     return (
       <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
-        <span style={{fontSize: 13.5, color: pulireColor, fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: 0.4}}>
+        <span style={{fontSize: 15.5, color: pulireColor, fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: 0.4}}>
           {pulireSev === 'normal' ? `Liberato ${min}' fa` : `Da pulire da ${min}'`}
         </span>
         {t.nextReservation && (
-          <span style={{color:'#9CA3AF', fontSize: 12.5, fontWeight: 500}}>
+          <span style={{color:'#9CA3AF', fontSize: 14.5, fontWeight: 500}}>
             → {t.nextReservation.time}
           </span>
         )}
@@ -645,13 +645,13 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
         {t.state === 'libero' && t.nextReservation && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-            <div style={{fontSize: 12.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
+            <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
               Prossima prenotazione
             </div>
-            <div style={{fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2}}>
+            <div style={{fontSize: 21, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2}}>
               {t.nextReservation.time} · {t.nextReservation.name}
             </div>
-            <div style={{display:'flex', alignItems:'baseline', gap: 8, fontSize: 14.5, color:'#6B7280'}}>
+            <div style={{display:'flex', alignItems:'baseline', gap: 8, fontSize: 16.5, color:'#6B7280'}}>
               <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
             </div>
           </div>
@@ -666,22 +666,22 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                 // In ritardo: SOLO il testo è giallo
                 const tagColor = isLate ? '#A16207' : (minAlla < PRENOTAZIONE_BLOCCO_MIN ? '#7C3AED' : '#16A34A');
                 return (
-                  <div style={{fontSize: 12.5, fontWeight: 700, color: tagColor, letterSpacing: 0.4, textTransform:'uppercase'}}>
+                  <div style={{fontSize: 14.5, fontWeight: 700, color: tagColor, letterSpacing: 0.4, textTransform:'uppercase'}}>
                     {tag}
                   </div>
                 );
               })()}
-              <div style={{fontSize: 20, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+              <div style={{fontSize: 22, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                 {t.nextReservation.time} · {t.nextReservation.name}
               </div>
-              <div style={{fontSize: 14.5, color:'#6B7280', display:'flex', alignItems:'baseline', gap: 6}}>
+              <div style={{fontSize: 16.5, color:'#6B7280', display:'flex', alignItems:'baseline', gap: 6}}>
                 <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
               </div>
             </div>
             {note && !noteMeta?.critical && (
               <div style={{
-                fontSize: 14, color: noteMeta.color, fontWeight: 600,
+                fontSize: 16, color: noteMeta.color, fontWeight: 600,
                 background: noteMeta.bg, padding:'6px 10px', borderRadius: 8,
                 display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
               }}>
@@ -691,7 +691,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             )}
             {extraNote && extraNoteMeta && !extraNoteMeta.critical && (
               <div style={{
-                fontSize: 14, color: extraNoteMeta.color, fontWeight: 600,
+                fontSize: 16, color: extraNoteMeta.color, fontWeight: 600,
                 background: extraNoteMeta.bg, padding:'6px 10px', borderRadius: 8,
                 display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
               }}>
@@ -706,7 +706,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
           <>
             <div style={{display:'flex', flexDirection:'column', gap: 8}}>
               {t.party && (
-                <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+                <div style={{fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                   {t.party}
                 </div>
@@ -716,7 +716,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
 
             {alert && (
               <div style={{
-                fontSize: 13.5, fontWeight: 700,
+                fontSize: 15.5, fontWeight: 700,
                 color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
                 background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
                 padding:'6px 10px', borderRadius: 8, alignSelf:'flex-start',
@@ -725,7 +725,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
 
             {note && !noteMeta?.critical && (
               <div style={{
-                fontSize: 14, color: noteMeta.color, fontWeight: 600,
+                fontSize: 16, color: noteMeta.color, fontWeight: 600,
                 background: noteMeta.bg, padding:'6px 10px', borderRadius: 8,
                 display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
               }}>
@@ -735,7 +735,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             )}
             {extraNote && extraNoteMeta && !extraNoteMeta.critical && (
               <div style={{
-                fontSize: 14, color: extraNoteMeta.color, fontWeight: 600,
+                fontSize: 16, color: extraNoteMeta.color, fontWeight: 600,
                 background: extraNoteMeta.bg, padding:'6px 10px', borderRadius: 8,
                 display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
               }}>
@@ -753,21 +753,21 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             }}>
               <div style={{display:'flex', alignItems:'baseline', gap: 8}}>
                 <span style={{
-                  fontSize: 30, fontWeight: 700, lineHeight: 1,
+                  fontSize: 32, fontWeight: 700, lineHeight: 1,
                   letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums',
                   color: occupatoSaldato ? '#065F46' : '#0F1115',
                 }}>
                   €{occupatoSaldato ? t.conto.toFixed(2) : (t.daIncassare != null ? t.daIncassare : t.conto).toFixed(2)}
                 </span>
                 <span style={{
-                  fontSize: 14, fontWeight: 700,
+                  fontSize: 16, fontWeight: 700,
                   color: occupatoSaldato ? '#16A34A' : '#6B7280',
                 }}>
                   {occupatoSaldato ? 'saldato' : 'da incassare'}
                 </span>
               </div>
               {!occupatoSaldato && (
-                <div style={{fontSize: 13, color:'#9CA3AF', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
+                <div style={{fontSize: 15, color:'#9CA3AF', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
                   Totale conto €{t.conto.toFixed(2)}
                 </div>
               )}
@@ -777,7 +777,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
 
         {t.state === 'dapulire' && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-            <div style={{fontSize: 16, fontWeight: 700,
+            <div style={{fontSize: 18, fontWeight: 700,
               color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#0F1115'),
               letterSpacing:'-0.01em'}}>
               {pulireSev === 'normal'
@@ -785,7 +785,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                 : `Da pulire da ${t.minutiDaPulire ?? t.freedMinAgo} min`}
             </div>
             {t.nextReservation && (
-              <div style={{fontSize: 14.5, color:'#6B7280'}}>
+              <div style={{fontSize: 16.5, color:'#6B7280'}}>
                 Prossima prenotazione: <b style={{color:'#0F1115'}}>{t.nextReservation.time}</b>
                 {t.nextReservation.posti && <span> · {t.nextReservation.posti} posti</span>}
               </div>
@@ -812,7 +812,7 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
       flex: 1, padding:'11px 14px',
       background: PN.BTN_DARK, color:'#fff',
       border:'1px solid rgba(0,0,0,0.32)',
-      borderRadius: 10, fontSize: 14.5, fontWeight: 700,
+      borderRadius: 10, fontSize: 16.5, fontWeight: 700,
       cursor:'pointer', fontFamily:'inherit', minHeight: 42,
       letterSpacing: 0.1, whiteSpace: 'nowrap',
       boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
@@ -831,7 +831,7 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
             flex: 1, padding:'11px 14px',
             background: PN.BTN_NEUTRAL, color:'#0F1115',
             border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10,
-            fontSize: 14.5, fontWeight: 700,
+            fontSize: 16.5, fontWeight: 700,
             cursor:'pointer', fontFamily:'inherit',
             minHeight: 42, whiteSpace:'nowrap',
             display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 5,
@@ -895,7 +895,7 @@ function DotMenu({ items }) {
               padding:'8px 12px', borderRadius: 6,
               background:'transparent', border:'none',
               color: it.danger ? '#DC2626' : '#0F1115',
-              fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+              fontSize: 16.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
             }}
               onMouseEnter={(e)=>{ e.currentTarget.style.background = '#FAFBFC'; }}
               onMouseLeave={(e)=>{ e.currentTarget.style.background = 'transparent'; }}
@@ -919,7 +919,7 @@ function StatoPill({ color, bg, label, tip }) {
   return (
     <Tip text={tip} style={{maxWidth: '100%', minWidth: 0}}>
       <span style={{
-        fontSize: 13, fontWeight: 700,
+        fontSize: 15, fontWeight: 700,
         color, background: bg,
         padding: '2px 7px', borderRadius: 4,
         display: 'inline-block',
@@ -942,14 +942,14 @@ function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
       ...style,
     }}>
       <span style={{
-        fontSize: 13, fontWeight: 700, color: '#0F1115',
+        fontSize: 15, fontWeight: 700, color: '#0F1115',
         minWidth: 28, textAlign: 'center', flexShrink: 0,
       }}>{qty}×</span>
       {/* Il nome cede spazio fino al 45% della riga (ellissi); oltre,
           è il badge a passare alla riga sotto, mai a sforare. */}
       <span style={{
         flex: '1 1 0%', minWidth: '45%',
-        fontSize: 13.5, color: '#0F1115', fontWeight: alert ? 700 : 500,
+        fontSize: 15.5, color: '#0F1115', fontWeight: alert ? 700 : 500,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {nome}{nomeExtra}
@@ -991,7 +991,7 @@ function OrdiniList({ ordini }) {
       border: '1px solid #F0F2F5',
     }}>
       <div style={{
-        fontSize: 11.5, fontWeight: 700, color:'#6B7280',
+        fontSize: 13.5, fontWeight: 700, color:'#6B7280',
         letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 2,
       }}>Ordini</div>
       {sorted.map((o, idx) => {
@@ -1019,7 +1019,7 @@ function OrdiniList({ ordini }) {
             nome={o.nome}
             alert={isAlert}
             nomeExtra={isAlert && (
-              <span style={{color: '#DC2626', marginLeft: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 3}}>
+              <span style={{color: '#DC2626', marginLeft: 6, fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 3}}>
                 <NoteIcon type="allergia" size={10}/> ALLERGIA
               </span>
             )}
@@ -1064,12 +1064,12 @@ function ContiApertiPanel({ collapsed, onToggle, onSalda }) {
       }}>
         <span style={{
           writingMode:'vertical-rl', transform:'rotate(180deg)',
-          fontSize: 13, fontWeight: 700, color:'#0F1115',
+          fontSize: 15, fontWeight: 700, color:'#0F1115',
           letterSpacing: 0.6, textTransform:'uppercase', whiteSpace:'nowrap',
         }}>Conti aperti</span>
         <span style={{
           background:'#E5E7EB', color:'#374151',
-          fontSize: 14, fontWeight: 700,
+          fontSize: 16, fontWeight: 700,
           padding:'2px 8px', borderRadius: 999,
         }}>{conti.length}</span>
       </div>
@@ -1092,12 +1092,12 @@ function ContiApertiPanel({ collapsed, onToggle, onSalda }) {
         background: '#FAFBFC',
       }}>
         <span onClick={onToggle} style={{
-          fontSize: 14, fontWeight: 600, color: '#0F1115',
+          fontSize: 16, fontWeight: 600, color: '#0F1115',
           letterSpacing: 0.4, textTransform: 'uppercase',
           cursor: 'pointer',
         }}>Conti aperti</span>
         <span style={{
-          fontSize: 13, fontWeight: 600,
+          fontSize: 15, fontWeight: 600,
           background: '#E5E7EB', color: '#374151',
           padding: '2px 8px', borderRadius: 999,
           letterSpacing: 0.2,
@@ -1106,7 +1106,7 @@ function ContiApertiPanel({ collapsed, onToggle, onSalda }) {
         <span style={{flex: 1}}/>
         <button onClick={onToggle} title="Comprimi" style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          color: '#6B7280', fontFamily: 'inherit', fontSize: 20, padding: 4,
+          color: '#6B7280', fontFamily: 'inherit', fontSize: 22, padding: 4,
           lineHeight: 1,
         }}>›</button>
       </div>
@@ -1118,19 +1118,19 @@ function ContiApertiPanel({ collapsed, onToggle, onSalda }) {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        <div style={{position: 'relative', fontSize: 12.5, fontWeight: 600, color: '#6B7280', letterSpacing: 0.4, textTransform: 'uppercase'}}>
+        <div style={{position: 'relative', fontSize: 14.5, fontWeight: 600, color: '#6B7280', letterSpacing: 0.4, textTransform: 'uppercase'}}>
           Da incassare
         </div>
         <div style={{
           position: 'relative',
-          fontSize: 34, fontWeight: 600, color: '#0F1115',
+          fontSize: 36, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 4,
           fontVariantNumeric: 'tabular-nums',
         }}>
           €{totDaSaldare.toFixed(2)}
         </div>
         <div style={{position: 'relative', textAlign: 'right', marginTop: 4}}>
-          <span style={{fontSize: 12.5, color: '#9CA3AF', fontWeight: 500}}>
+          <span style={{fontSize: 14.5, color: '#9CA3AF', fontWeight: 500}}>
             Saldati oggi <span style={{fontWeight: 700, color: '#6B7280', fontVariantNumeric: 'tabular-nums'}}>12 / 21</span>
           </span>
         </div>
@@ -1190,16 +1190,16 @@ function ContoApertoCard({conto, isOld, onSalda, innerRef, isHighlighted}) {
           boxShadow: isOld ? `0 0 0 3px ${accent}26` : 'none',
           flexShrink: 0,
         }}/>
-        <span style={{fontSize: 14.5, fontWeight: 600, color: '#0F1115', letterSpacing: '-0.01em', flexShrink: 0}}>{conto.tavolo}</span>
+        <span style={{fontSize: 16.5, fontWeight: 600, color: '#0F1115', letterSpacing: '-0.01em', flexShrink: 0}}>{conto.tavolo}</span>
         <span style={{
-          fontSize: 13, color: '#6B7280', flex: '1 1 0%', minWidth: '30%',
+          fontSize: 15, color: '#6B7280', flex: '1 1 0%', minWidth: '30%',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           fontWeight: 500,
         }}>
           · {conto.cliente}
         </span>
         <span style={{
-          fontSize: 12.5, fontWeight: 600,
+          fontSize: 14.5, fontWeight: 600,
           color: getOpenDurationColor(Math.round(conto.oreFa * 60)),
           fontVariantNumeric: 'tabular-nums',
           whiteSpace: 'nowrap', marginLeft: 'auto',
@@ -1207,16 +1207,16 @@ function ContoApertoCard({conto, isOld, onSalda, innerRef, isHighlighted}) {
         }}>Aperto da {formatOpenDuration(Math.round(conto.oreFa * 60))}</span>
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 2}}>
-        <div style={{fontSize: 16, fontWeight: 600, color: '#0F1115', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums'}}>
+        <div style={{fontSize: 18, fontWeight: 600, color: '#0F1115', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums'}}>
           €{conto.daSaldare.toFixed(2)} da incassare
         </div>
-        <div style={{fontSize: 13.5, color: '#6B7280', fontWeight: 500, fontVariantNumeric: 'tabular-nums'}}>
+        <div style={{fontSize: 15.5, color: '#6B7280', fontWeight: 500, fontVariantNumeric: 'tabular-nums'}}>
           Totale conto €{conto.totTavolo.toFixed(2)}
         </div>
         {/* "Salda →" come affordance, l'intera card è già cliccabile */}
         <span style={{
           marginTop: 4,
-          fontSize: 13, fontWeight: 600,
+          fontSize: 15, fontWeight: 600,
           color: hover ? accent : '#6B7280',
           display: 'inline-flex', alignItems: 'center', gap: 3,
           transition: 'color 150ms ease-out',

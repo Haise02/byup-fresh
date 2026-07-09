@@ -144,7 +144,7 @@ function Toolbar({ dayView, setDayView, onNuova }) {
         <button onClick={()=>setShowCal(s=>!s)} style={{
           padding:'8px 13px', borderRadius: 8,
           background:'#F1F2F5', border:'1px solid transparent',
-          fontSize: 14.5, fontWeight: 700, color:'#0F1115',
+          fontSize: 16.5, fontWeight: 700, color:'#0F1115',
           cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap', textTransform:'capitalize',
           display:'inline-flex', alignItems:'center', gap: 7,
         }}>
@@ -167,7 +167,7 @@ function Toolbar({ dayView, setDayView, onNuova }) {
           linear-gradient(180deg, rgba(58, 28, 22, 0.96) 0%, rgba(30, 12, 10, 0.98) 100%)
         `,
         color:'#FFE9E6', border:'none',
-        fontSize: 14, fontWeight: 700, letterSpacing:'0.01em',
+        fontSize: 16, fontWeight: 700, letterSpacing:'0.01em',
         cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
         boxShadow: 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)',
@@ -204,7 +204,7 @@ function ToolbarCalendar({ today, selected, onPick }) {
     background: disabled ? 'transparent' : '#fff',
     border: `1px solid ${disabled ? '#F0F2F5' : '#E5E7EB'}`,
     cursor: disabled ? 'default' : 'pointer', fontFamily:'inherit',
-    color: disabled ? '#D1D5DB' : '#0F1115', fontSize: 16,
+    color: disabled ? '#D1D5DB' : '#0F1115', fontSize: 18,
     display:'flex', alignItems:'center', justifyContent:'center', opacity: disabled ? 0.5 : 1,
   });
 
@@ -217,12 +217,12 @@ function ToolbarCalendar({ today, selected, onPick }) {
     }}>
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10}}>
         <button onClick={goPrev} disabled={!canPrev} style={navBtn(!canPrev)}>‹</button>
-        <span style={{fontSize: 15, fontWeight: 700, color:'#0F1115', textTransform:'capitalize'}}>{monthLabel}</span>
+        <span style={{fontSize: 17, fontWeight: 700, color:'#0F1115', textTransform:'capitalize'}}>{monthLabel}</span>
         <button onClick={goNext} style={navBtn(false)}>›</button>
       </div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 4, marginBottom: 4}}>
         {CAL_DOW.map((d,i) => (
-          <span key={i} style={{fontSize: 12, fontWeight: 700, color:'#9CA3AF', textAlign:'center', padding: 2}}>{d}</span>
+          <span key={i} style={{fontSize: 14, fontWeight: 700, color:'#9CA3AF', textAlign:'center', padding: 2}}>{d}</span>
         ))}
       </div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 4}}>
@@ -237,7 +237,7 @@ function ToolbarCalendar({ today, selected, onPick }) {
               background: isSel ? '#0F1115' : 'transparent',
               color: isSel ? '#fff' : isPast ? '#D1D5DB' : '#0F1115',
               border:'none', cursor: isPast ? 'default' : 'pointer', fontFamily:'inherit',
-              fontSize: 14.5, fontWeight: isSel || isToday ? 700 : 500,
+              fontSize: 16.5, fontWeight: isSel || isToday ? 700 : 500,
             }}>
               {day.getDate()}
               {isToday && !isSel && (
@@ -262,7 +262,7 @@ function Segmented({ value, onChange, options, small }) {
           padding: small ? '6px 11px' : '7px 13px', borderRadius: 6,
           background: value === o.id ? '#fff' : 'transparent',
           border:'none', cursor:'pointer', fontFamily:'inherit',
-          fontSize: small ? 14 : 14.5, fontWeight: value === o.id ? 700 : 600,
+          fontSize: small ? 16 : 16.5, fontWeight: value === o.id ? 700 : 600,
           color: value === o.id ? '#0F1115' : '#6B7280',
           boxShadow: value === o.id ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
           whiteSpace:'nowrap', transition:'all 0.12s',
@@ -593,7 +593,7 @@ function DayTimeline({ onNuova, onModifica }) {
               top:3, bottom:3, pointerEvents:'none', zIndex:10,
               background:'rgba(16,185,129,0.13)', border:'2px dashed #10B981', borderRadius:7,
               display:'flex', alignItems:'center', justifyContent:'space-between',
-              padding:'0 7px', fontSize:12.5, fontWeight:700, color:'#059669',
+              padding:'0 7px', fontSize:14.5, fontWeight:700, color:'#059669',
               overflow:'hidden', whiteSpace:'nowrap'}}>
               <span>{sHH}:{sMM}</span><span style={{opacity:0.7}}>{dLbl}</span><span>{eHH}:{eMM}</span>
             </div>
@@ -610,7 +610,7 @@ function DayTimeline({ onNuova, onModifica }) {
               top:3, bottom:3, pointerEvents:'none', zIndex:10,
               background:'rgba(16,185,129,0.13)', border:'2px dashed #10B981', borderRadius:7,
               display:'flex', alignItems:'center', padding:'0 7px',
-              fontSize:12.5, fontWeight:700, color:'#059669',
+              fontSize:14.5, fontWeight:700, color:'#059669',
               overflow:'hidden', whiteSpace:'nowrap'}}>{hh}:{mm}</div>
           );
         })()}
@@ -627,7 +627,7 @@ function DayTimeline({ onNuova, onModifica }) {
               top:5, bottom:5, pointerEvents:'none', zIndex:10,
               background:'rgba(255,90,95,0.09)', border:'2px dashed #FF5A5F', borderRadius:7,
               display:'flex', alignItems:'center', padding:'0 6px',
-              fontSize:12.5, fontWeight:700, color:'#E32459',
+              fontSize:14.5, fontWeight:700, color:'#E32459',
               overflow:'hidden', whiteSpace:'nowrap'}}>{hh}:{mm} · {dLbl}</div>
           );
         })()}
@@ -654,7 +654,7 @@ function DayTimeline({ onNuova, onModifica }) {
                 border: `1.5px solid ${sty.border}`,
                 borderRadius:7,
                 padding: showLabel ? '6px 8px 0' : '0',
-                fontSize:18, fontWeight:700,
+                fontSize:20, fontWeight:700,
                 display:'flex', alignItems:'flex-start', gap:4,
                 overflow:'hidden', whiteSpace:'nowrap',
                 opacity: (slotDrag && slotDrag.resId===r.id) || (resizeDrag && resizeDrag.resId===r.id) ? 0.3 : past ? 0.5 : 1,
@@ -675,13 +675,13 @@ function DayTimeline({ onNuova, onModifica }) {
                         width:18, height:18, borderRadius:'50%', background:'#475569',
                         display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
                       }}>
-                        <span style={{fontSize:14, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
+                        <span style={{fontSize:16, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
                           fontFamily:'-apple-system,system-ui,sans-serif', display:'inline-block', transform:'translateY(-0.5px)',
                         }}>b</span>
                       </span>
                     )}
                   </span>
-                  <span title={`${r.posti} ${r.posti===1?'coperto':'coperti'}`} style={{opacity:0.55, flexShrink:0, paddingRight:6, fontSize:16, fontWeight:700, display:'inline-flex', alignItems:'center', gap:3}}>
+                  <span title={`${r.posti} ${r.posti===1?'coperto':'coperti'}`} style={{opacity:0.55, flexShrink:0, paddingRight:6, fontSize:18, fontWeight:700, display:'inline-flex', alignItems:'center', gap:3}}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
@@ -731,7 +731,7 @@ function DayTimeline({ onNuova, onModifica }) {
                   const h = Math.floor(m / 60); const min = m % 60;
                   const label = min === 0 ? `${h}:00` : `${String(min).padStart(2,'0')}`;
                   ticks.push(<span key={m} style={{position:'absolute', left,
-                    top: isHour ? 2 : 8, fontSize: isHour ? 14 : 11.5,
+                    top: isHour ? 2 : 8, fontSize: isHour ? 16 : 13.5,
                     fontWeight: isHour ? 800 : 500, color: isHour ? '#6B7280' : '#B0B7C3',
                     transform:tx, whiteSpace:'nowrap'}}>{label}</span>);
                 }
@@ -744,7 +744,7 @@ function DayTimeline({ onNuova, onModifica }) {
               )}
             </div>
             <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%'}}>
-              <span style={{fontSize:11, fontWeight:600, color:'#AEB4BE', letterSpacing:1.2,
+              <span style={{fontSize:13, fontWeight:600, color:'#AEB4BE', letterSpacing:1.2,
                 textTransform:'uppercase', whiteSpace:'nowrap'}}>Chiuso</span>
             </div>
             <div ref={cenaTrackRef} style={{position:'relative', height:24}}>
@@ -765,7 +765,7 @@ function DayTimeline({ onNuova, onModifica }) {
                   const h = Math.floor(m / 60); const min = m % 60;
                   const label = isLast ? '00:00' : min === 0 ? `${h}:00` : `${String(min).padStart(2,'0')}`;
                   ticks.push(<span key={m} style={{position:'absolute', left,
-                    top: isHour ? 2 : 8, fontSize: isHour ? 14 : 11.5,
+                    top: isHour ? 2 : 8, fontSize: isHour ? 16 : 13.5,
                     fontWeight: isHour ? 800 : 500, color: isHour ? '#6B7280' : '#B0B7C3',
                     transform:tx, whiteSpace:'nowrap', zIndex:1}}>{label}</span>);
                 }
@@ -779,7 +779,7 @@ function DayTimeline({ onNuova, onModifica }) {
             </div>
             {/* Chiuso post-mezzanotte — stessa larghezza del gap pranzo–cena */}
             <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%'}}>
-              <span style={{fontSize:11, fontWeight:600, color:'#AEB4BE', letterSpacing:1.2,
+              <span style={{fontSize:13, fontWeight:600, color:'#AEB4BE', letterSpacing:1.2,
                 textTransform:'uppercase', whiteSpace:'nowrap'}}>Chiuso</span>
             </div>
           </div>
@@ -810,8 +810,8 @@ function DayTimeline({ onNuova, onModifica }) {
             background: ti%2===1 ? '#FAFBFC' : 'transparent',
           }}>
             <div style={{display:'flex', flexDirection:'column', gap:1, paddingRight:8, borderRight:'1px solid #EDEEF2'}}>
-              <span style={{fontSize:18, fontWeight:700, color:'#0F1115', lineHeight:1}}>Tav. {t.id}</span>
-              <span style={{fontSize:13, fontWeight:500, color:'#9CA3AF', lineHeight:1}}>{t.p} posti</span>
+              <span style={{fontSize:20, fontWeight:700, color:'#0F1115', lineHeight:1}}>Tav. {t.id}</span>
+              <span style={{fontSize:15, fontWeight:500, color:'#9CA3AF', lineHeight:1}}>{t.p} posti</span>
             </div>
             {renderTurnoTrack(t, TURNI[0])}
             {/* Gap — chiuso: banda incassata quieta tra pranzo e cena */}
@@ -854,11 +854,11 @@ function DayTimeline({ onNuova, onModifica }) {
       {/* Legenda */}
       <div style={{padding:'10px 18px', borderTop:'1px solid #EDEEF2',
         display:'flex', alignItems:'center', gap:16, flexWrap:'wrap',
-        fontSize:13, color:'#6B7280'}}>
+        fontSize:15, color:'#6B7280'}}>
         <Legend label="In arrivo" bg="#FFECEA" border="#FFA3A6"/>
         <Legend label="Tavolo attivo" bg="#EDF0F4" border="#D2D9E2"/>
         <span style={{flex:1}}/>
-        <span style={{fontSize:12.5, color:'#C4C9D4', fontWeight:600}}>Trascina per creare · Clicca per modificare</span>
+        <span style={{fontSize:14.5, color:'#C4C9D4', fontWeight:600}}>Trascina per creare · Clicca per modificare</span>
       </div>
 
       {/* Popup sovrapposizione */}
@@ -880,18 +880,18 @@ function DayTimeline({ onNuova, onModifica }) {
                   <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
               </div>
-              <div style={{fontSize:17, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
+              <div style={{fontSize:19, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
                 Sovrapposizione non consentita
               </div>
             </div>
-            <div style={{fontSize:15, color:'#6B7280', lineHeight:1.5}}>
+            <div style={{fontSize:17, color:'#6B7280', lineHeight:1.5}}>
               Lo slot si sovrappone a una prenotazione esistente sullo stesso tavolo. La modifica è stata annullata.
             </div>
             <button onClick={() => setConflictWarning(false)} style={{
               padding:'10px 14px', borderRadius:8,
               background: PN.BTN_DARK, color:'#fff',
               border:'1px solid rgba(0,0,0,0.32)',
-              fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+              fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
               boxShadow: PN.INSET_HIGHLIGHT_DARK,
             }}>Ok, capito</button>
           </div>
@@ -984,7 +984,7 @@ function DayList({ onModifica }) {
       {past.length > 0 && <CalPastSection items={past} onModifica={onModifica} onDismiss={onDismiss}/>}
 
       {rest.length === 0 && (
-        <div style={{padding:'36px 18px', textAlign:'center', fontSize:14, color:'#9CA3AF', fontWeight:600}}>
+        <div style={{padding:'36px 18px', textAlign:'center', fontSize:16, color:'#9CA3AF', fontWeight:600}}>
           Nessuna prenotazione in programma
         </div>
       )}
@@ -1005,7 +1005,7 @@ function CalBandHeader({ hh }) {
         background:'#fff', marginLeft: 8,
         boxShadow:'inset 0 0 0 2px rgba(15,17,21,0.22)',
       }}/>
-      <span style={{fontSize: 12, fontWeight: 800, color:'#6B7280', fontVariantNumeric:'tabular-nums', letterSpacing:'0.02em'}}>{hh}</span>
+      <span style={{fontSize: 14, fontWeight: 800, color:'#6B7280', fontVariantNumeric:'tabular-nums', letterSpacing:'0.02em'}}>{hh}</span>
       <span style={{flex: 1, height: 1, background:'rgba(15,17,21,0.06)'}}/>
     </div>
   );
@@ -1020,7 +1020,7 @@ function CalNowLine({ hhmm }) {
         padding:'2px 9px', borderRadius: 999, flexShrink: 0,
         background:'rgba(255, 90, 95, 0.12)',
         boxShadow:'inset 0 0 0 1px rgba(255, 90, 95, 0.45)',
-        color:'#E32459', fontSize: 10.5, fontWeight: 800, letterSpacing:'0.06em',
+        color:'#E32459', fontSize: 12.5, fontWeight: 800, letterSpacing:'0.06em',
       }}>
         <span style={{width: 5, height: 5, borderRadius:'50%', background:'#FF5A5F'}}/>
         ORA · {hhmm}
@@ -1074,10 +1074,10 @@ function CalResRow({ r, nowMin, dim, onModifica, onDismiss }) {
             width: 330,
             display:'flex', flexDirection:'column', gap: 16,
           }}>
-            <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', letterSpacing:-0.3}}>
+            <div style={{fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:-0.3}}>
               Cancellare la prenotazione?
             </div>
-            <div style={{fontSize: 14, color:'#6B7280', lineHeight: 1.5}}>
+            <div style={{fontSize: 16, color:'#6B7280', lineHeight: 1.5}}>
               <strong style={{color:'#0F1115'}}>{r.name}</strong> · {r.time} · T{r.table}<br/>
               L'operazione non può essere annullata.
             </div>
@@ -1086,14 +1086,14 @@ function CalResRow({ r, nowMin, dim, onModifica, onDismiss }) {
                 flex: 1, padding:'10px 14px', borderRadius: 10,
                 background:'rgba(255,255,255,0.75)', color:'#0F1115',
                 border:'1px solid rgba(15,17,21,0.10)',
-                fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
               }}>Indietro</button>
               <button onClick={() => { setCancelConfirm(false); onDismiss && onDismiss(r.id); }} style={{
                 flex: 1, padding:'10px 14px', borderRadius: 10,
                 background:'linear-gradient(180deg, #DC2626 0%, #B91C1C 100%)', color:'#fff',
                 border:'1px solid rgba(124,14,14,0.40)',
                 boxShadow:'inset 0 1px 0 rgba(255,255,255,0.30)',
-                fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
               }}>Cancella</button>
             </div>
           </div>
@@ -1119,12 +1119,12 @@ function CalPastSection({ items, onModifica, onDismiss }) {
         border:'1px solid rgba(255,255,255,0.65)',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
-        <span style={{fontSize: 11, fontWeight: 700, color:'#9CA3AF', letterSpacing: 0.5, textTransform:'uppercase'}}>Passate</span>
-        <span style={{fontSize: 12, color:'#B6BCC6', fontWeight: 600}}>
+        <span style={{fontSize: 13, fontWeight: 700, color:'#9CA3AF', letterSpacing: 0.5, textTransform:'uppercase'}}>Passate</span>
+        <span style={{fontSize: 14, color:'#B6BCC6', fontWeight: 600}}>
           · {servite} servite{noshow > 0 ? ` · ${noshow} no-show` : ''}
         </span>
         <span style={{flex: 1}}/>
-        <span style={{fontSize: 13, color:'#B6BCC6', transform: open ? 'rotate(90deg)' : 'none', transition:'transform 0.15s'}}>›</span>
+        <span style={{fontSize: 15, color:'#B6BCC6', transform: open ? 'rotate(90deg)' : 'none', transition:'transform 0.15s'}}>›</span>
       </button>
       {open && (
         <div style={{display:'flex', flexDirection:'column', gap: 8, marginTop: 8, marginLeft: -28}}>
@@ -1162,14 +1162,14 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
       {/* Ora */}
       <span style={{
         minWidth:46, flexShrink:0,
-        fontSize:17, fontWeight:700, letterSpacing:-0.3,
+        fontSize:19, fontWeight:700, letterSpacing:-0.3,
         color: isImminente ? '#DC2626' : '#374151',
       }}>{r.time}</span>
 
       {/* Flusso unico: nome · byup · tavolo · coperti · note */}
       <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:6, overflow:'hidden'}}>
         <span style={{
-          fontSize:17, fontWeight: isImminente ? 700 : 500, color:'#0F1115',
+          fontSize:19, fontWeight: isImminente ? 700 : 500, color:'#0F1115',
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flexShrink:1,
           textDecoration: isCancelled ? 'line-through' : 'none',
         }}>{r.name}</span>
@@ -1178,17 +1178,17 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
             width:16, height:16, borderRadius:'50%', background:'#475569',
             display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
           }}>
-            <span style={{fontSize:11, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
+            <span style={{fontSize:13, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
               fontFamily:'-apple-system,system-ui,sans-serif', display:'inline-block', transform:'translateY(-0.5px)',
             }}>b</span>
           </span>
         )}
-        <span style={{color:'#D1D5DB', flexShrink:0, fontSize:15}}>·</span>
-        <span style={{fontSize:16, fontWeight:600, color:'#6B7280', whiteSpace:'nowrap', flexShrink:0}}>Tav. {r.table}</span>
-        <span style={{color:'#D1D5DB', flexShrink:0, fontSize:15}}>·</span>
+        <span style={{color:'#D1D5DB', flexShrink:0, fontSize:17}}>·</span>
+        <span style={{fontSize:18, fontWeight:600, color:'#6B7280', whiteSpace:'nowrap', flexShrink:0}}>Tav. {r.table}</span>
+        <span style={{color:'#D1D5DB', flexShrink:0, fontSize:17}}>·</span>
         <span title={`${r.posti} ${r.posti === 1 ? 'coperto' : 'coperti'}`} style={{
           display:'inline-flex', alignItems:'center', gap:3,
-          fontSize:16, fontWeight:600, color:'#6B7280', whiteSpace:'nowrap', flexShrink:0,
+          fontSize:18, fontWeight:600, color:'#6B7280', whiteSpace:'nowrap', flexShrink:0,
           cursor:'default',
         }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1196,11 +1196,11 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
           </svg>
           {r.posti}
         </span>
-        {r.note && <span style={{color:'#D1D5DB', flexShrink:0, fontSize:15}}>·</span>}
+        {r.note && <span style={{color:'#D1D5DB', flexShrink:0, fontSize:17}}>·</span>}
         {r.note && <NotePill note={r.note}/>}
-        {r.notes && <span style={{color:'#D1D5DB', flexShrink:0, fontSize:15}}>·</span>}
+        {r.notes && <span style={{color:'#D1D5DB', flexShrink:0, fontSize:17}}>·</span>}
         {r.notes && <span style={{
-          fontSize:15, color:'#9CA3AF', fontWeight:400,
+          fontSize:17, color:'#9CA3AF', fontWeight:400,
           whiteSpace:'nowrap', flexShrink:1,
           overflow:'hidden', textOverflow:'ellipsis',
         }}>{r.notes}</span>}
@@ -1214,7 +1214,7 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
             display:'inline-flex', alignItems:'center',
             padding:'5px 7px', borderRadius:6,
             background:'transparent', border:'1px solid #E5E7EB',
-            color:'#9CA3AF', fontSize:14, fontWeight:600,
+            color:'#9CA3AF', fontSize:16, fontWeight:600,
             cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
             flexShrink:0,
           }}
@@ -1238,10 +1238,10 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
             width:320, boxShadow:'0 20px 60px rgba(0,0,0,0.22)',
             display:'flex', flexDirection:'column', gap:16,
           }}>
-            <div style={{fontSize:18, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
+            <div style={{fontSize:20, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
               Cancellare la prenotazione?
             </div>
-            <div style={{fontSize:15, color:'#6B7280', lineHeight:1.5}}>
+            <div style={{fontSize:17, color:'#6B7280', lineHeight:1.5}}>
               <strong style={{color:'#0F1115'}}>{r.name}</strong> · {r.time} · Tav. {r.table}<br/>
               L'operazione non può essere annullata.
             </div>
@@ -1249,12 +1249,12 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
               <button onClick={() => setCancelConfirm(false)} style={{
                 flex:1, padding:'10px 14px', borderRadius:8,
                 background:'#F4F5F7', color:'#0F1115', border:'none',
-                fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
               }}>Indietro</button>
               <button onClick={() => { setCancelConfirm(false); onNoShow && onNoShow(r.id); }} style={{
                 flex:1, padding:'10px 14px', borderRadius:8,
                 background:'#DC2626', color:'#fff', border:'none',
-                fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
               }}>Cancella</button>
             </div>
           </div>
@@ -1314,7 +1314,7 @@ function NotePill({ note }) {
         padding:'2px 7px', borderRadius:5, flexShrink:0,
         background: ALLERGEN_COLOR.bg, border:`1px solid ${ALLERGEN_COLOR.border}`,
         color: ALLERGEN_COLOR.color, cursor:'default',
-        fontSize:14, fontWeight:700,
+        fontSize:16, fontWeight:700,
       }}>
         {def.icon}{def.label}
       </span>
@@ -1325,7 +1325,7 @@ function NotePill({ note }) {
   return (
     <span title={note.text} style={{
       display:'inline-flex', alignItems:'center', gap:4,
-      fontSize:14.5, fontWeight:700, color:'#6D28D9',
+      fontSize:16.5, fontWeight:700, color:'#6D28D9',
       background:'#F5F3FF', border:'1px solid #DDD6FE',
       padding:'2px 7px', borderRadius:999, whiteSpace:'nowrap', flexShrink:0,
       cursor:'default',
@@ -1347,12 +1347,12 @@ function PastSection({ items, nowMin, onModifica, onNoShow }) {
         background:'#FAFBFC', border:'none', borderBottom:'1px solid #F0F2F5',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
-        <span style={{fontSize:13, fontWeight:700, color:'#9CA3AF', letterSpacing:0.4, textTransform:'uppercase'}}>Passati</span>
-        <span style={{fontSize:13, color:'#C4C9D4', fontWeight:600}}>
+        <span style={{fontSize:15, fontWeight:700, color:'#9CA3AF', letterSpacing:0.4, textTransform:'uppercase'}}>Passati</span>
+        <span style={{fontSize:15, color:'#C4C9D4', fontWeight:600}}>
           · {arrivati} serviti{noshow > 0 ? ` · ${noshow} no-show` : ''}
         </span>
         <span style={{flex:1}}/>
-        <span style={{fontSize:13, color:'#C4C9D4', transform: open ? 'rotate(90deg)' : 'none', transition:'transform 0.15s'}}>›</span>
+        <span style={{fontSize:15, color:'#C4C9D4', transform: open ? 'rotate(90deg)' : 'none', transition:'transform 0.15s'}}>›</span>
       </button>
       {open && items.map(r => <ResRow key={r.id} r={r} nowMin={-9999} dim onModifica={onModifica} onNoShow={onNoShow}/>)}
     </div>

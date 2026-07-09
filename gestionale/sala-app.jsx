@@ -459,7 +459,7 @@ function SalaApp() {
             position:'absolute', bottom: 24, left: '50%', transform:'translateX(-50%)',
             background:'#0F1115', color:'#fff',
             padding:'12px 22px', borderRadius: 999,
-            fontSize: 15, fontWeight: 700, zIndex: 50,
+            fontSize: 17, fontWeight: 700, zIndex: 50,
             boxShadow:'0 8px 24px rgba(0,0,0,0.18)',
             animation:'fadeIn 0.2s ease',
           }}>{confirmedToast}</div>
@@ -534,18 +534,18 @@ function SalaAperiModal({ tavolo, onConfirm, onClose }) {
           display:'inline-flex', alignItems:'center', gap: 6,
           background:'#EFF6FF', color:'#1E40AF',
           padding:'4px 10px', borderRadius:999, marginBottom:14,
-          fontSize: 13.5, fontWeight: 700,
+          fontSize: 15.5, fontWeight: 700,
         }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
           </svg>
           {badgeLabel}
         </div>
-        <div style={{fontSize: 20, fontWeight: 700, color:'#0F1115', marginBottom: 6, letterSpacing:'-0.02em'}}>
+        <div style={{fontSize: 22, fontWeight: 700, color:'#0F1115', marginBottom: 6, letterSpacing:'-0.02em'}}>
           Vuoi aprire il tavolo lo stesso?
         </div>
         {res && (
-          <div style={{fontSize: 15, color:'#6B7280', marginBottom: 20, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+          <div style={{fontSize: 17, color:'#6B7280', marginBottom: 20, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
             {res.time} · {res.name} · {res.posti} posti
           </div>
         )}
@@ -554,14 +554,14 @@ function SalaAperiModal({ tavolo, onConfirm, onClose }) {
             flex:1, padding:'11px 14px',
             background: PN.BTN_NEUTRAL, color:'#0F1115',
             border:`1px solid ${PN.BORDER_LIGHT}`,
-            borderRadius:10, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            borderRadius:10, fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
             boxShadow: PN.INSET_HIGHLIGHT,
           }}>Annulla</button>
           <button onClick={onConfirm} style={{
             flex:1, padding:'11px 14px',
             background: PN.BTN_DARK, color:'#fff',
             border:'1px solid rgba(0,0,0,0.32)',
-            borderRadius:10, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            borderRadius:10, fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
             boxShadow: PN.INSET_HIGHLIGHT_DARK,
           }}>Apri tavolo</button>
         </div>

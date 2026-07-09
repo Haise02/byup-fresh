@@ -237,12 +237,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               display:'flex', alignItems:'center', gap: 12, flexShrink: 0,
             }}>
               <div style={{flex:1}}>
-                <div style={{fontSize: 12.5, color:'#6B7280', fontWeight:800, letterSpacing:0.6, textTransform:'uppercase'}}>
+                <div style={{fontSize: 14.5, color:'#6B7280', fontWeight:800, letterSpacing:0.6, textTransform:'uppercase'}}>
                   Salda conto
                 </div>
-                <div style={{fontSize: 20, fontWeight: 800, color:'#0F1115', marginTop: 1, letterSpacing:-0.2}}>
+                <div style={{fontSize: 22, fontWeight: 800, color:'#0F1115', marginTop: 1, letterSpacing:-0.2}}>
                   T.{tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}
-                  <span style={{fontSize:14, fontWeight:600, color:'#9CA3AF', marginLeft:8}}>
+                  <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', marginLeft:8}}>
                     · {tavolo.coperti || 1} coperti
                   </span>
                 </div>
@@ -357,11 +357,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       display:'flex', alignItems:'baseline', gap: 8,
                     }}>
                       <span style={{
-                        fontSize: 13, fontWeight: 800, color:'#6B7280',
+                        fontSize: 15, fontWeight: 800, color:'#6B7280',
                         letterSpacing: 0.6, textTransform:'uppercase', flex: 1,
                       }}>Totale</span>
                       <span style={{
-                        fontSize: 38, fontWeight: 800, color:'#0F1115',
+                        fontSize: 40, fontWeight: 800, color:'#0F1115',
                         letterSpacing:-1, lineHeight: 1,
                         fontVariantNumeric:'tabular-nums',
                       }}>€{total.toFixed(2)}</span>
@@ -371,7 +371,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     <div style={{textAlign:'right', marginTop: 6}}>
                       <button onClick={() => setAdjustOpen(o => !o)} style={{
                         background:'transparent', border:'none', padding: 0,
-                        fontFamily:'inherit', fontSize: 13.5, fontWeight: 700,
+                        fontFamily:'inherit', fontSize: 15.5, fontWeight: 700,
                         color: adjustOpen ? '#0F1115' : '#6B7280',
                         cursor:'pointer',
                         display:'inline-flex', alignItems:'center', gap: 4,
@@ -381,7 +381,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           display:'inline-block',
                           transform: adjustOpen ? 'rotate(180deg)' : 'none',
                           transition:'transform 0.15s',
-                          fontSize: 11,
+                          fontSize: 13,
                         }}>▾</span>
                       </button>
                     </div>
@@ -442,8 +442,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       padding:'4px 0',
                     }}>
                       <div style={{flex:1}}>
-                        <div style={{fontSize: 15, fontWeight: 700, color:'#0F1115'}}>Emetti fattura</div>
-                        <div style={{fontSize: 13, color:'#9CA3AF', marginTop: 1}}>
+                        <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115'}}>Emetti fattura</div>
+                        <div style={{fontSize: 15, color:'#9CA3AF', marginTop: 1}}>
                           {invoice && invoiceData.ragione
                             ? `${invoiceData.ragione}${invoiceData.piva ? ' · '+invoiceData.piva : ''}`
                             : 'Solo se richiesta dal cliente'}
@@ -470,7 +470,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       width:'100%', padding:'15px 16px', borderRadius: 10,
                       background: canConfirm ? '#0F1115' : '#E5E7EB',
                       color: canConfirm ? '#fff' : '#9CA3AF',
-                      border:'none', fontSize: 17, fontWeight: 800,
+                      border:'none', fontSize: 19, fontWeight: 800,
                       cursor: canConfirm ? 'pointer' : 'not-allowed',
                       fontFamily:'inherit',
                       letterSpacing:-0.2,
@@ -482,7 +482,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   </button>
                   {preContoStampato && (
                     <div style={{
-                      fontSize: 12.5, color:'#9CA3AF', textAlign:'center',
+                      fontSize: 14.5, color:'#9CA3AF', textAlign:'center',
                       fontWeight: 600,
                     }}>
                       Pre-conto stampato {Math.floor((Date.now() - preContoStampato)/60000) || 'ora'}{Math.floor((Date.now() - preContoStampato)/60000) > 0 ? ' min fa' : ''}
@@ -498,7 +498,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 transform:'translateX(-50%)',
                 padding:'10px 16px', borderRadius: 999,
                 background:'#0F1115', color:'#fff',
-                fontSize: 14.5, fontWeight: 700,
+                fontSize: 16.5, fontWeight: 700,
                 boxShadow:'0 8px 24px rgba(0,0,0,0.2)',
                 zIndex: 62,
               }}>{toast.text}</div>
@@ -585,21 +585,21 @@ function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedG
                 display:'flex', alignItems:'center', gap: 6,
               }}>
                 <div style={{flex:1, minWidth: 0}}>
-                  <div style={{fontSize: 15, fontWeight: 700, color:'#0F1115', display:'flex', alignItems:'center', gap: 6}}>
+                  <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', display:'flex', alignItems:'center', gap: 6}}>
                     <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{g.title}</span>
                     {g.type === 'guest' && g.meta?.source === 'byup' && (
                       <span style={{
-                        fontSize: 11, fontWeight: 800, color:'#E04347',
+                        fontSize: 13, fontWeight: 800, color:'#E04347',
                         background:'#FFE0DD', padding:'1px 5px', borderRadius: 3,
                         letterSpacing: 0.4, textTransform:'uppercase', flexShrink: 0,
                       }}>byup</span>
                     )}
                   </div>
-                  <div style={{fontSize: 12.5, color:'#9CA3AF', fontWeight: 600}}>
+                  <div style={{fontSize: 14.5, color:'#9CA3AF', fontWeight: 600}}>
                     {g.sub} · {g.items.length} articol{g.items.length === 1 ? 'o' : 'i'}
                   </div>
                 </div>
-                <span style={{fontSize: 15, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{groupTotal.toFixed(2)}</span>
+                <span style={{fontSize: 17, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{groupTotal.toFixed(2)}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{
                   transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)',
                   transition:'transform 0.15s',
@@ -678,7 +678,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
         }}>
           <button onClick={() => onSetQty(selectedQty - 1)} style={qtyBtn} title="Togli uno">−</button>
           <span style={{
-            fontSize: 14, fontWeight: 800, color:'#0F1115',
+            fontSize: 16, fontWeight: 800, color:'#0F1115',
             minWidth: 38, textAlign:'center', padding:'0 4px',
             whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
           }}>{selectedQty}/{o.qty}</span>
@@ -686,7 +686,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
         </div>
       ) : (
         <span style={{
-          fontSize: 14, fontWeight: 800, color:'#0F1115',
+          fontSize: 16, fontWeight: 800, color:'#0F1115',
           background:'#F1F2F5', borderRadius: 4,
           padding:'1px 6px', minWidth: 22, textAlign:'center',
           fontVariantNumeric:'tabular-nums',
@@ -706,7 +706,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
             style={{
               flex:1, minWidth: 0, padding:'3px 6px',
               border:'1px solid #0F1115', borderRadius: 4,
-              fontSize: 15, color:'#0F1115', outline:'none',
+              fontSize: 17, color:'#0F1115', outline:'none',
               fontFamily:'inherit', background:'#fff',
             }}
           />
@@ -724,21 +724,21 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
             }}
             title="Doppio click per modificare il nome"
             style={{
-              fontSize: 15, color:'#0F1115', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+              fontSize: 17, color:'#0F1115', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
               cursor:'default', borderRadius: 3, padding:'1px 3px', marginLeft: -3,
             }}
           >
-            {o.nome}{o._added && <span style={{marginLeft: 6, fontSize: 11, color:'#16A34A', fontWeight: 800, letterSpacing: 0.4}}>NUOVO</span>}
+            {o.nome}{o._added && <span style={{marginLeft: 6, fontSize: 13, color:'#16A34A', fontWeight: 800, letterSpacing: 0.4}}>NUOVO</span>}
           </span>
         )}
       </span>
 
       {guest && (
-        <span style={{fontSize: 12.5, color:'#9CA3AF', fontStyle:'italic'}}>{guest.name.split(' ')[0]}</span>
+        <span style={{fontSize: 14.5, color:'#9CA3AF', fontStyle:'italic'}}>{guest.name.split(' ')[0]}</span>
       )}
       {o.origin === 'byup' && o.guestId && !hideBayupBadge && (
         <span style={{
-          fontSize: 11, fontWeight: 800, color:'#E04347',
+          fontSize: 13, fontWeight: 800, color:'#E04347',
           background:'#FFE0DD', padding:'1px 5px', borderRadius: 3,
           letterSpacing: 0.4, textTransform:'uppercase',
         }}>byup</span>
@@ -756,7 +756,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
           style={{
             width: 72, padding:'3px 6px',
             border:'1px solid #0F1115', borderRadius: 4,
-            fontSize: 15, color:'#0F1115', outline:'none',
+            fontSize: 17, color:'#0F1115', outline:'none',
             fontFamily:'inherit', background:'#fff',
             textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700,
           }}
@@ -766,7 +766,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
           onClick={(e) => { e.stopPropagation(); setEditingPrice(true); }}
           title="Modifica prezzo unitario"
           style={{
-            fontSize: 15, fontWeight: 700, color:'#0F1115',
+            fontSize: 17, fontWeight: 700, color:'#0F1115',
             minWidth: 56, textAlign:'right', fontVariantNumeric:'tabular-nums',
             background:'transparent', border:'none', cursor:'pointer',
             padding:'2px 4px', borderRadius: 4, fontFamily:'inherit',
@@ -805,7 +805,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
 const qtyBtn = {
   width: 22, height: 22, padding: 0, border: 'none',
   background: 'transparent', color: '#0F1115',
-  fontSize: 16, fontWeight: 800, cursor:'pointer',
+  fontSize: 18, fontWeight: 800, cursor:'pointer',
   display:'grid', placeItems:'center',
 };
 
@@ -817,7 +817,7 @@ function GuestAvatarV2({ g }) {
       background: isUser ? '#FFE0DD' : g.source === 'guest' ? '#FEF3C7' : '#F1F2F5',
       color: isUser ? '#E04347' : g.source === 'guest' ? '#92400E' : '#6B7280',
       display:'grid', placeItems:'center',
-      fontSize: 12.5, fontWeight: 800,
+      fontSize: 14.5, fontWeight: 800,
       flexShrink: 0,
     }}>
       {g.name.split(' ').map(s=>s[0]).join('').slice(0,2)}
@@ -829,7 +829,7 @@ function EmptyOrdini() {
   return (
     <div style={{
       padding:'40px 20px', textAlign:'center', color:'#9CA3AF',
-      fontSize: 15,
+      fontSize: 17,
     }}>Nessun articolo ordinato</div>
   );
 }
@@ -838,12 +838,12 @@ function EmptyOrdini() {
 function ReceiptRow({ label, value, tone, onRemove }) {
   const color = tone === 'success' ? '#16A34A' : tone === 'danger' ? '#DC2626' : '#6B7280';
   return (
-    <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 14.5}}>
+    <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 16.5}}>
       <span style={{color, flex: 1}}>{label}</span>
       {onRemove && (
         <button onClick={onRemove} style={{
           background:'transparent', border:'none', padding: 0,
-          fontFamily:'inherit', fontSize: 13, color:'#9CA3AF',
+          fontFamily:'inherit', fontSize: 15, color:'#9CA3AF',
           cursor:'pointer', textDecoration:'underline',
         }}>rimuovi</button>
       )}
@@ -861,7 +861,7 @@ function MethodTab({ active, onClick, icon, label }) {
       color: active ? '#fff' : '#0F1115',
       border: active ? '1px solid #0F1115' : '1px solid #E5E7EB',
       cursor:'pointer', fontFamily:'inherit',
-      fontSize: 14, fontWeight: 700,
+      fontSize: 16, fontWeight: 700,
       transition:'all 0.15s',
     }}>
       <span style={{opacity: active ? 1 : 0.7}}>{icon}</span>
@@ -877,7 +877,7 @@ function CashTendered({ total, value, onChange, chips }) {
   return (
     <div>
       <div style={{
-        fontSize: 13, fontWeight: 700, color:'#6B7280',
+        fontSize: 15, fontWeight: 700, color:'#6B7280',
         marginBottom: 6,
       }}>Importo ricevuto</div>
       <div style={{
@@ -886,12 +886,12 @@ function CashTendered({ total, value, onChange, chips }) {
         borderRadius: 10, padding:'12px 14px',
         marginBottom: 8,
       }}>
-        <span style={{fontSize: 20, fontWeight: 700, color:'#9CA3AF'}}>€</span>
+        <span style={{fontSize: 22, fontWeight: 700, color:'#9CA3AF'}}>€</span>
         <input type="number" value={value} onChange={e => onChange(e.target.value)}
           placeholder={total.toFixed(2)}
           style={{
             border:'none', outline:'none',
-            fontSize: 24, fontWeight: 800, color:'#0F1115',
+            fontSize: 26, fontWeight: 800, color:'#0F1115',
             width:'100%', padding: 0, fontFamily:'inherit',
             background:'transparent',
             fontVariantNumeric:'tabular-nums',
@@ -907,7 +907,7 @@ function CashTendered({ total, value, onChange, chips }) {
               background: sel ? '#0F1115' : '#fff',
               color: sel ? '#fff' : '#0F1115',
               border: sel ? '1px solid #0F1115' : '1px solid #E5E7EB',
-              fontSize: 14, fontWeight: 700, cursor:'pointer',
+              fontSize: 16, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit', whiteSpace:'nowrap',
             }}>{c.label}</button>
           );
@@ -921,10 +921,10 @@ function CashTendered({ total, value, onChange, chips }) {
           color: enough ? '#166534' : '#92400E',
           display:'flex', justifyContent:'space-between', alignItems:'center',
         }}>
-          <span style={{fontSize: 14, fontWeight: 700}}>
+          <span style={{fontSize: 16, fontWeight: 700}}>
             {enough ? (resto > 0.01 ? 'Resto da dare' : 'Pagamento esatto') : 'Manca ancora'}
           </span>
-          <span style={{fontSize: 20, fontWeight: 800, fontVariantNumeric:'tabular-nums'}}>
+          <span style={{fontSize: 22, fontWeight: 800, fontVariantNumeric:'tabular-nums'}}>
             €{Math.abs(enough ? resto : total - tendered).toFixed(2)}
           </span>
         </div>
@@ -949,13 +949,13 @@ function CardPay({ total }) {
           <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
         </svg>
       </div>
-      <div style={{fontSize: 15, fontWeight: 700, color:'#0F1115', marginBottom: 2}}>
+      <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', marginBottom: 2}}>
         Inserisci la carta nel POS
       </div>
-      <div style={{fontSize: 24, fontWeight: 800, color:'#0F1115', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>
+      <div style={{fontSize: 26, fontWeight: 800, color:'#0F1115', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>
         €{total.toFixed(2)}
       </div>
-      <div style={{fontSize: 13, color:'#9CA3AF', marginTop: 4}}>
+      <div style={{fontSize: 15, color:'#9CA3AF', marginTop: 4}}>
         Conferma quando la transazione è completata
       </div>
     </div>
@@ -1003,7 +1003,7 @@ function MixedPay({ total, pay, contanti, carta, paid, onCash, onCard }) {
       </div>
       <div style={{
         display:'flex', justifyContent:'space-between',
-        fontSize: 14, fontWeight: 700,
+        fontSize: 16, fontWeight: 700,
       }}>
         <span style={{color: enough ? '#166534' : '#6B7280'}}>
           Pagato €{paid.toFixed(2)} / €{total.toFixed(2)}
@@ -1026,15 +1026,15 @@ function SmallPayInput({ label, icon, value, onChange }) {
     }}>
       <div style={{display:'flex', alignItems:'center', gap: 5, color:'#6B7280'}}>
         {icon}
-        <span style={{fontSize: 13, fontWeight: 700}}>{label}</span>
+        <span style={{fontSize: 15, fontWeight: 700}}>{label}</span>
       </div>
       <div style={{display:'flex', alignItems:'baseline', gap: 3}}>
-        <span style={{fontSize: 15, fontWeight: 700, color:'#9CA3AF'}}>€</span>
+        <span style={{fontSize: 17, fontWeight: 700, color:'#9CA3AF'}}>€</span>
         <input type="number" value={value} onChange={e => onChange(e.target.value)}
           placeholder="0.00"
           style={{
             border:'none', outline:'none',
-            fontSize: 18, fontWeight: 800, color:'#0F1115',
+            fontSize: 20, fontWeight: 800, color:'#0F1115',
             width:'100%', padding: 0, fontFamily:'inherit',
             background:'transparent',
             fontVariantNumeric:'tabular-nums',
@@ -1074,7 +1074,7 @@ const miniSplit = {
   flex: 1, padding:'7px 8px', borderRadius: 8,
   background:'#fff', color:'#0F1115',
   border:'1px solid #E5E7EB', cursor:'pointer',
-  fontSize: 13, fontWeight: 700, fontFamily:'inherit',
+  fontSize: 15, fontWeight: 700, fontFamily:'inherit',
   whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
 };
 
@@ -1109,7 +1109,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust, onClose }) {
             flex:1, padding:'6px 4px', borderRadius: 6,
             background: mode === opt.id ? '#0F1115' : '#F8F9FB',
             color: mode === opt.id ? '#fff' : '#0F1115',
-            border:'none', fontSize: 13, fontWeight: 700,
+            border:'none', fontSize: 15, fontWeight: 700,
             cursor:'pointer', fontFamily:'inherit',
           }}>{opt.label}</button>
         ))}
@@ -1146,7 +1146,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust, onClose }) {
           width:'100%', padding:'10px 12px', borderRadius: 8,
           background:'#F1F2F5', color:'#0F1115',
           border:'1px solid #E5E7EB', cursor:'pointer',
-          fontSize: 15, fontWeight: 700, fontFamily:'inherit',
+          fontSize: 17, fontWeight: 700, fontFamily:'inherit',
         }}>
           Arrotonda per difetto a €{Math.floor(subtotale).toFixed(0)}
         </button>
@@ -1156,8 +1156,8 @@ function AdjustPanel({ subtotale, adjust, setAdjust, onClose }) {
         <div>
           <input type="number" value={val} onChange={e=>{setVal(e.target.value); apply('custom', e.target.value);}}
             placeholder={`Naturale: €${subtotale.toFixed(2)}`}
-            style={{...inputV2, fontSize: 18, fontWeight: 800}}/>
-          <div style={{fontSize: 12.5, color:'#6B7280', marginTop: 4}}>
+            style={{...inputV2, fontSize: 20, fontWeight: 800}}/>
+          <div style={{fontSize: 14.5, color:'#6B7280', marginTop: 4}}>
             Sostituisce il totale naturale di €{subtotale.toFixed(2)}
           </div>
         </div>
@@ -1204,13 +1204,13 @@ function SaldaDoneV2({ tavolo, total, pay, invoice, onClose }) {
           <path d="M5 13 L9 17 L19 7"/>
         </svg>
       </div>
-      <div style={{fontSize: 24, fontWeight: 800, color:'#0F1115', marginBottom: 4}}>
+      <div style={{fontSize: 26, fontWeight: 800, color:'#0F1115', marginBottom: 4}}>
         Pagamento incassato
       </div>
-      <div style={{fontSize: 28, fontWeight: 800, color:'#0F1115', marginBottom: 8, letterSpacing:-0.5}}>
+      <div style={{fontSize: 30, fontWeight: 800, color:'#0F1115', marginBottom: 8, letterSpacing:-0.5}}>
         €{total.toFixed(2)}
       </div>
-      <div style={{fontSize: 15, color:'#6B7280', marginBottom: 24, textAlign:'center'}}>
+      <div style={{fontSize: 17, color:'#6B7280', marginBottom: 24, textAlign:'center'}}>
         T.{tavolo.id}
         {pay.contanti > 0 && pay.carta > 0
           ? ` · €${pay.contanti.toFixed(2)} contanti + €${pay.carta.toFixed(2)} carta`
@@ -1247,35 +1247,35 @@ function IconCard() { return (
 const btnGhost = {
   display:'inline-flex', alignItems:'center', gap: 6,
   padding:'7px 12px', background:'#F1F2F5', color:'#0F1115',
-  border:'none', borderRadius: 8, fontSize: 14, fontWeight: 700,
+  border:'none', borderRadius: 8, fontSize: 16, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit',
 };
 const saldaIconBtn = {
   width: 32, height: 32, borderRadius: 8,
   background:'#F1F2F5', border:'none', cursor:'pointer',
-  fontSize: 20, fontFamily:'inherit', color:'#6B7280',
+  fontSize: 22, fontFamily:'inherit', color:'#6B7280',
 };
 const sectionLabel = {
-  fontSize: 12.5, fontWeight: 800, color:'#6B7280',
+  fontSize: 14.5, fontWeight: 800, color:'#6B7280',
   letterSpacing: 0.6, textTransform:'uppercase',
   marginBottom: 8,
 };
 const btnPrimaryV2 = {
   display:'inline-flex', alignItems:'center', gap: 6,
   padding:'10px 16px', background:'#0F1115', color:'#fff',
-  border:'none', borderRadius: 8, fontSize: 15, fontWeight: 700,
+  border:'none', borderRadius: 8, fontSize: 17, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit',
 };
 const btnSecondaryV2 = {
   padding:'10px 16px', background:'#fff', color:'#0F1115',
-  border:'1px solid #E5E7EB', borderRadius: 8, fontSize: 15, fontWeight: 700,
+  border:'1px solid #E5E7EB', borderRadius: 8, fontSize: 17, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit',
 };
 function segBtn(on) {
   return {
     padding:'6px 12px', background: on ? '#0F1115' : 'transparent',
     color: on ? '#fff' : '#0F1115',
-    border:'none', fontSize: 14, fontWeight: 700,
+    border:'none', fontSize: 16, fontWeight: 700,
     cursor:'pointer', fontFamily:'inherit',
     whiteSpace:'nowrap',
   };
@@ -1283,7 +1283,7 @@ function segBtn(on) {
 const miniLink = {
   background:'none', border:'none',
   padding:'2px 4px', color:'#6B7280',
-  fontSize: 13.5, fontWeight: 700,
+  fontSize: 15.5, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit',
   display:'inline-flex', alignItems:'center', gap: 4,
 };
@@ -1291,11 +1291,11 @@ const chipQuick = {
   flex: 1, padding:'5px 8px', borderRadius: 6,
   background:'#F8F9FB', color:'#0F1115',
   border:'1px solid #E5E7EB', cursor:'pointer',
-  fontSize: 13, fontWeight: 700, fontFamily:'inherit',
+  fontSize: 15, fontWeight: 700, fontFamily:'inherit',
 };
 const inputV2 = {
   padding:'8px 10px', border:'1px solid #E5E7EB',
-  borderRadius: 6, fontSize: 15,
+  borderRadius: 6, fontSize: 17,
   fontFamily:'inherit', outline:'none',
   width:'100%', background:'#fff',
   boxSizing:'border-box',
@@ -1344,7 +1344,7 @@ function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
           placeholder="Aggiungi articolo dal menù…"
           style={{
             flex:1, border:'none', outline:'none',
-            background:'transparent', fontSize: 15,
+            background:'transparent', fontSize: 17,
             color:'#0F1115', fontFamily:'inherit',
           }}
         />
@@ -1354,7 +1354,7 @@ function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
             style={{
               width: 18, height: 18, padding: 0, borderRadius: 4,
               background:'transparent', border:'none', cursor:'pointer',
-              color:'#9CA3AF', fontSize: 16, fontFamily:'inherit',
+              color:'#9CA3AF', fontSize: 18, fontFamily:'inherit',
               display:'inline-flex', alignItems:'center', justifyContent:'center',
             }}>×</button>
         )}
@@ -1368,13 +1368,13 @@ function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
           zIndex: 70, maxHeight: 280, overflow:'auto', padding: 4,
         }}>
           {matches.length === 0 ? (
-            <div style={{padding:'14px 12px', fontSize: 14.5, color:'#9CA3AF', textAlign:'center'}}>
+            <div style={{padding:'14px 12px', fontSize: 16.5, color:'#9CA3AF', textAlign:'center'}}>
               Nessun articolo trovato. <button
                 onClick={() => onPick({ nome: query.trim(), prezzo: 0 })}
                 style={{
                   marginLeft: 4, padding:'2px 6px',
                   background:'#0F1115', color:'#fff', border:'none',
-                  borderRadius: 4, fontSize: 13, fontWeight: 700,
+                  borderRadius: 4, fontSize: 15, fontWeight: 700,
                   cursor:'pointer', fontFamily:'inherit',
                 }}>Crea "{query.trim()}"</button>
             </div>
@@ -1393,9 +1393,9 @@ function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
                 onMouseEnter={e => { e.currentTarget.style.background = '#F8F9FB'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <span style={{flex:1, fontSize: 15, color:'#0F1115'}}>{m.nome}</span>
-                <span style={{fontSize: 13, color:'#9CA3AF'}}>{m.categoria}</span>
-                <span style={{fontSize: 15, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums', minWidth: 50, textAlign:'right'}}>
+                <span style={{flex:1, fontSize: 17, color:'#0F1115'}}>{m.nome}</span>
+                <span style={{fontSize: 15, color:'#9CA3AF'}}>{m.categoria}</span>
+                <span style={{fontSize: 17, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums', minWidth: 50, textAlign:'right'}}>
                   €{m.prezzo.toFixed(2)}
                 </span>
               </button>

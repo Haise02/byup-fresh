@@ -149,9 +149,9 @@ function TableTile({
   const m = ttChairMetrics(unit);
   // Tipografia a dimensione QUASI fissa: non scala con la griglia — è ciò
   // che tiene "T3" leggibile anche quando la mappa si adatta allo schermo.
-  const numSize = Math.round(Math.min(25, Math.max(15, unit * 0.34)));
+  const numSize = Math.round(Math.min(27, Math.max(17, unit * 0.34)));
   const tSize = Math.round(numSize * 0.56);
-  const labelSize = Math.min(10, Math.max(8, unit * 0.165));
+  const labelSize = Math.min(12, Math.max(10, unit * 0.165));
   // Il wrapper coincide col CORPO: le sedie sporgono fuori (overflow visibile)
   // e vivono nel gutter riservato dalla griglia.
   const W = body.w;
@@ -266,7 +266,7 @@ function TableTile({
           background: '#DC2626', color: '#fff',
           padding: '2px 6px 2px 4px', borderRadius: 999,
           border: '1.5px solid #fff',
-          fontSize: 9, fontWeight: 700, letterSpacing: 0.3,
+          fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
           boxShadow: '0 1px 3px rgba(220,38,38,0.35)',
           whiteSpace: 'nowrap', zIndex: 6,
         }}>ALLERGIA</div>
