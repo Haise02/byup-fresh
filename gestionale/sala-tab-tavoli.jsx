@@ -182,6 +182,27 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 
           <span style={{flex: 1}}/>
 
+          {/* Shortcut conti aperti → Contabilità con filtro "da saldare" attivo.
+              Volutamente non un pulsante: link testuale discreto con freccia,
+              affiancato al select della sala. */}
+          <button
+            onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
+            title="Apri la Contabilità con il filtro Da saldare attivo"
+            style={{
+              display:'inline-flex', alignItems:'center', gap: 4,
+              padding: '4px 6px', height: 28,
+              background: 'transparent', color: PN.MUTED,
+              border: 'none',
+              fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              flexShrink: 0, transition: 'color 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}
+          >
+            Vai a conti aperti
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+          </button>
+
           <SaSelect value={room} onChange={setRoom} options={['Sala principale','Sala terrazza','Privé']}/>
 
           {/* Fullscreen — affiancato al select sala, estrema destra */}
@@ -282,26 +303,6 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
               color: alertCount === 0 ? '#9CA3AF' : '#DC2626',
               fontVariantNumeric:'tabular-nums', lineHeight: 1,
             }}>{alertCount}</span>
-          </button>
-
-          {/* Shortcut conti aperti → Contabilità con filtro "da saldare" attivo.
-              Volutamente non un pulsante: link testuale discreto con freccia. */}
-          <button
-            onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
-            title="Apri la Contabilità con il filtro Da saldare attivo"
-            style={{
-              display:'inline-flex', alignItems:'center', gap: 4,
-              padding: '4px 6px', height: 28,
-              background: 'transparent', color: PN.MUTED,
-              border: 'none',
-              fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              flexShrink: 0, transition: 'color 150ms',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
-            onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}
-          >
-            Vai a conti aperti
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
           </button>
 
           <span style={{flex: 1}}/>
