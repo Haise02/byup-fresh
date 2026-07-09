@@ -129,6 +129,36 @@ function PnApp() {
             </div>
           )}
 
+          {widgets.length === 0 ? (
+            /* Empty state — dashboard senza widget: shortcut centrale */
+            <div style={{flex: 1, display:'grid', placeItems:'center', minHeight: 320}}>
+              <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap: 14, textAlign:'center'}}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: 20,
+                  background: PN.WHITE, border: `1px solid ${PN.BORDER_HAIR}`,
+                  boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.06)',
+                  display:'grid', placeItems:'center', color: PN.MUTED,
+                }}>
+                  <Icon name="grid" size={28}/>
+                </div>
+                <div>
+                  <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>La tua dashboard è vuota</div>
+                  <div style={{fontSize: 15, color: PN.MUTED, marginTop: 4, maxWidth: 340, lineHeight: 1.5}}>
+                    Aggiungi i widget che vuoi tenere sott'occhio: incassi, tavoli, prenotazioni, cucina e altro.
+                  </div>
+                </div>
+                <button onClick={() => setDrawerOpen(true)} style={{
+                  display:'inline-flex', alignItems:'center', gap: 8,
+                  padding:'12px 22px', borderRadius: 999,
+                  background: PN.BTN_DARK, color: PN.WHITE,
+                  border: '1px solid rgba(0,0,0,0.32)',
+                  fontSize: 15.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                  <Icon name="plus" size={15}/> Aggiungi widget
+                </button>
+              </div>
+            </div>
+          ) : (
           <PnGrid
             widgets={widgets}
             editMode={editMode}
@@ -136,8 +166,9 @@ function PnApp() {
             onReorder={reorder}
             onResize={resize}
           />
+          )}
 
-          {editMode && (
+          {editMode && widgets.length > 0 && (
             <button onClick={() => setDrawerOpen(true)} style={{
               padding:'24px',
               background:'transparent',

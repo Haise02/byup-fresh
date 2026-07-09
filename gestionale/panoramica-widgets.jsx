@@ -4,23 +4,27 @@
 // ─── shared bits ────────────────────────────────────────────────────────────
 
 function WMetric({ label, value, sub, trend, trendColor, big }) {
+  // minWidth:0 + ellipsis su label/sub: dopo il font bump le etichette lunghe
+  // ("Coperti questa settimana"…) sbordavano oltre il bordo card a w=1.
+  // Il valore numerico non va MAI spezzato → whiteSpace nowrap.
   return (
-    <div>
-      <div style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase', marginBottom: 6}}>{label}</div>
-      <div style={{display:'flex', alignItems:'baseline', gap: 12, marginBottom: 4, flexWrap:'wrap'}}>
-        <div style={{fontSize: big ? 58 : 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.4, lineHeight: 1}}>{value}</div>
+    <div style={{minWidth: 0}}>
+      <div style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
+      <div style={{display:'flex', alignItems:'baseline', gap: 12, marginBottom: 4, flexWrap:'wrap', minWidth: 0}}>
+        <div style={{fontSize: big ? 58 : 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.4, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
         {trend && (
           <div style={{
             display:'inline-flex', alignItems:'center', gap: 3,
             fontSize: 16, fontWeight: 700,
             color: trendColor || PN.GREEN,
+            whiteSpace:'nowrap', flexShrink: 0,
           }}>
             {trend.startsWith('+') ? <Icon name="arrow-up-right" size={14}/> : trend.startsWith('-') ? <Icon name="arrow-down-right" size={14}/> : null}
             {trend}
           </div>
         )}
       </div>
-      {sub && <div style={{fontSize:14.5, color: PN.MUTED}}>{sub}</div>}
+      {sub && <div style={{fontSize:14.5, color: PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{sub}</div>}
     </div>
   );
 }
@@ -120,7 +124,7 @@ function WSparkline({ data, color = PN.PINK, animated }) {
 
 // ─── 1. Incassi (toggle Oggi / Settimana / Mese) ───────────────────────────
 
-function WidgetIncassi() {
+function WidgetIncassi({ size }) {
   const [period, setPeriod] = React.useState('oggi');
 
   // Spark più movimentate: invece di curve smooth crescenti,
@@ -151,13 +155,44 @@ function WidgetIncassi() {
   };
   const d = data[period];
 
+  // Layout adattivo (stesso pattern sideBySide di WidgetRiempimento):
+  // a h=1 il contenuto stacked (toggle + metrica 58px + sparkline) supera
+  // di molto i ~108px utili della cella → metrica a sinistra, toggle +
+  // sparkline a destra. A h≥2 resta lo stacked classico.
+  const compact = ((size && size.h) || 1) === 1;
+
+  if (compact) {
+    return (
+      <div style={{display: 'flex', height: '100%', minHeight: 0, gap: 18}}>
+        <div style={{flex: '0 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+          <WMetric label={`Incassi ${period}`} value={d.total} trend={d.trend} sub={d.sub} big/>
+        </div>
+        <div style={{flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8}}>
+          <div style={{display: 'flex', justifyContent: 'flex-end', flexShrink: 0}}>
+            <PnPeriodToggle period={period} setPeriod={setPeriod}/>
+          </div>
+          <div style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
+            <div style={{flex: '1 1 auto', minHeight: 0}}>
+              <WSparkline data={d.spark} color={PN.PINK} animated/>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
+              {d.labels.map((l,i) => <span key={i}>{l}</span>)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%'}}>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}>
       <PnPeriodToggle period={period} setPeriod={setPeriod}/>
       <WMetric label={`Incassi ${period}`} value={d.total} trend={d.trend} sub={d.sub} big/>
-      <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}}>
-        <WSparkline data={d.spark} color={PN.PINK} animated/>
-        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4}}>
+      <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
+        <div style={{flex: '1 1 auto', minHeight: 0}}>
+          <WSparkline data={d.spark} color={PN.PINK} animated/>
+        </div>
+        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
           {d.labels.map((l,i) => <span key={i}>{l}</span>)}
         </div>
       </div>
@@ -168,7 +203,7 @@ function WidgetIncassi() {
 // Piccolo toggle riusabile per oggi/settimana/mese
 function PnPeriodToggle({ period, setPeriod }) {
   return (
-    <div style={{display:'flex', gap: 4, padding: 3, background:'#F4F5F7', borderRadius: 8, alignSelf:'flex-start'}}>
+    <div style={{display:'flex', gap: 4, padding: 3, background:'#F4F5F7', borderRadius: 8, alignSelf:'flex-start', flexShrink: 0}}>
       {['oggi', 'settimana', 'mese'].map(p => (
         <button key={p} onClick={() => setPeriod(p)} style={{
           padding:'4px 10px',
@@ -178,6 +213,7 @@ function PnPeriodToggle({ period, setPeriod }) {
           fontSize: 13.5, fontWeight: 600, fontFamily:'inherit',
           cursor: 'pointer',
           textTransform:'capitalize',
+          whiteSpace:'nowrap',
           boxShadow: period === p ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
         }}>{p}</button>
       ))}
@@ -187,10 +223,14 @@ function PnPeriodToggle({ period, setPeriod }) {
 
 // ─── KPI di vendita (scontrino + coperti per periodo) ──────────────────────
 
-function WidgetKpiVendita() {
+function WidgetKpiVendita({ size }) {
   const [period, setPeriod] = React.useState('oggi');
   const [paused, setPaused] = React.useState(false);
   const periods = ['oggi', 'settimana', 'mese'];
+  // A w=1 la colonna è ~240px: valore 40px + delta + mini-chart non entrano
+  // sulla stessa riga → il chart va a capo (wrap) sotto i numeri, con
+  // spaziature ridotte per stare nei ~266px di h=2.
+  const narrow = ((size && size.w) || 1) === 1;
 
   // Auto-switch ogni 2s tra oggi → settimana → mese → oggi.
   // pause-on-hover: l'utente può "fermare" il carosello mettendo il mouse sopra.
@@ -221,11 +261,12 @@ function WidgetKpiVendita() {
       <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
 
       <div key={period} style={{
-        flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 22,
+        flex: 1, minHeight: 0, overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: narrow ? 12 : 22,
         animation: 'kpi-fade-in 320ms ease-out',
       }}>
-        <KpiRow label="Scontrino medio" value={d.scontrino} delta={d.sDelta} trend={d.sTrend} variant="line"/>
-        <KpiRow label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta} trend={d.cTrend} variant="bar"/>
+        <KpiRow label="Scontrino medio" value={d.scontrino} delta={d.sDelta} trend={d.sTrend} variant="line" narrow={narrow}/>
+        <KpiRow label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta} trend={d.cTrend} variant="bar" narrow={narrow}/>
       </div>
       <style>{`
         @keyframes kpi-fade-in {
@@ -237,19 +278,22 @@ function WidgetKpiVendita() {
   );
 }
 
-function KpiRow({ label, value, delta, trend, variant }) {
+function KpiRow({ label, value, delta, trend, variant, narrow }) {
+  // narrow (w=1): il chart non entra a fianco dei numeri → flexWrap lo manda
+  // a capo (flexBasis 120px forza il wrap quando lo spazio residuo è poco)
+  // e l'altezza scende a 36px. minWidth:0 + ellipsis evitano sbordi.
   return (
-    <div style={{display:'flex', alignItems:'center', gap: 16}}>
-      <div style={{flex:'0 0 auto', minWidth: 0}}>
-        <div style={{fontSize:13.5, color: PN.MUTED, fontWeight:600, marginBottom: 6, textTransform:'uppercase', letterSpacing: 0.5}}>{label}</div>
-        <div style={{display:'flex', alignItems:'baseline', gap: 10}}>
-          <div style={{fontSize: 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.8, lineHeight: 1}}>{value}</div>
-          <div style={{fontSize: 15, color: PN.GREEN, fontWeight: 700}}>{delta}</div>
+    <div style={{display:'flex', alignItems:'center', gap: narrow ? 8 : 16, flexWrap: narrow ? 'wrap' : 'nowrap', minWidth: 0}}>
+      <div style={{flex:'0 1 auto', minWidth: 0}}>
+        <div style={{fontSize:13.5, color: PN.MUTED, fontWeight:600, marginBottom: 6, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
+        <div style={{display:'flex', alignItems:'baseline', gap: 10, minWidth: 0}}>
+          <div style={{fontSize: 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.8, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
+          <div style={{fontSize: 15, color: PN.GREEN, fontWeight: 700, whiteSpace:'nowrap'}}>{delta}</div>
         </div>
       </div>
-      <div style={{flex:1, minWidth: 80, height: 48, display:'flex', alignItems:'flex-end', justifyContent:'flex-end'}}>
+      <div style={{flex:'1 1 120px', minWidth: 0, height: narrow ? 36 : 48, display:'flex', alignItems:'flex-end', justifyContent:'flex-end', overflow:'hidden'}}>
         {variant === 'line'
-          ? <div style={{width:'100%', maxWidth: 160}}><WSparkline data={trend} color={PN.PINK}/></div>
+          ? <div style={{width:'100%', maxWidth: 160, height:'100%'}}><WSparkline data={trend} color={PN.PINK}/></div>
           : <KpiBars data={trend}/>
         }
       </div>
@@ -261,10 +305,12 @@ function KpiBars({ data }) {
   const max = Math.max(...data);
   const labels = ['L','M','M','G','V','S','D'];
   return (
-    <div style={{display:'flex', alignItems:'flex-end', gap: 4, width:'100%', maxWidth: 160, height: 44}}>
+    // height 100% (non più 44px fissi): il wrapper in KpiRow decide l'altezza
+    // (48px, 36px in narrow) — con 44 hardcoded le barre sbordavano dal box.
+    <div style={{display:'flex', alignItems:'flex-end', gap: 4, width:'100%', maxWidth: 160, height: '100%', minWidth: 0}}>
       {data.map((v,i) => (
-        <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap: 3, height:'100%'}}>
-          <div style={{flex:1, width:'100%', display:'flex', alignItems:'flex-end'}}>
+        <div key={i} style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column', alignItems:'center', gap: 3, height:'100%'}}>
+          <div style={{flex:1, minHeight: 0, width:'100%', display:'flex', alignItems:'flex-end'}}>
             <div style={{
               width:'100%',
               height: `${(v/max)*100}%`, minHeight: 4,
@@ -272,7 +318,7 @@ function KpiBars({ data }) {
               borderRadius: 2,
             }}/>
           </div>
-          <div style={{fontSize: 10.5, color: PN.MUTED, fontWeight: 600}}>{labels[i]}</div>
+          <div style={{fontSize: 10.5, color: PN.MUTED, fontWeight: 600, flexShrink: 0}}>{labels[i]}</div>
         </div>
       ))}
     </div>
@@ -300,12 +346,11 @@ function WidgetRiempimento({ size }) {
   const d = data[period];
   const isPos = !d.delta.startsWith('-');
 
-  // Layout adattivo: in WIDE (w>=2, h=1) → % grande a sinistra + grafico a
-  // destra, side-by-side. In tutti gli altri casi (tall, square, full) →
-  // stacked verticale come prima.
-  const wW = (size && size.w) || 1;
+  // Layout adattivo: a h=1 (qualunque larghezza) → % grande a sinistra +
+  // grafico a destra, side-by-side: lo stacked non entra mai nei ~108px
+  // utili. In tutti gli altri casi (tall, square, full) → stacked verticale.
   const wH = (size && size.h) || 1;
-  const sideBySide = wW >= 2 && wH === 1;
+  const sideBySide = wH === 1;
 
   return (
     <div style={{
@@ -313,25 +358,32 @@ function WidgetRiempimento({ size }) {
       flexDirection: sideBySide ? 'row' : 'column',
       height:'100%', minHeight: 0,
       gap: sideBySide ? 18 : 14,
-      alignItems: sideBySide ? 'stretch' : 'stretch',
+      alignItems: 'stretch',
     }}>
-      {/* Block A: PnPeriodToggle + % grande */}
+      {/* Block A: PnPeriodToggle + % grande. In sideBySide il sub va inline
+          accanto al delta (con ellipsis): toggle+label+% da soli riempiono
+          già i ~108px — il sub su riga propria veniva tagliato a metà. */}
       <div style={{
         display:'flex', flexDirection:'column',
-        gap: 10,
+        gap: sideBySide ? 6 : 10,
         flexShrink: 0,
         flexBasis: sideBySide ? '38%' : 'auto',
-        minWidth: 0,
+        minWidth: 0, minHeight: 0, overflow:'hidden',
         justifyContent: sideBySide ? 'center' : 'flex-start',
       }}>
         <PnPeriodToggle period={period} setPeriod={setPeriod}/>
-        <div>
-          <div style={{fontSize:13, color: PN.MUTED, fontWeight:600, marginBottom: 4, textTransform:'uppercase', letterSpacing: 0.5}}>Riempimento {period}</div>
-          <div style={{display:'flex', alignItems:'baseline', gap: sideBySide ? 8 : 14, flexWrap: 'wrap'}}>
-            <div style={{fontSize: sideBySide ? 46 : 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.2, lineHeight: 1}}>{d.pct}%</div>
-            <div style={{fontSize: 16, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700}}>{d.delta}</div>
+        <div style={{minWidth: 0}}>
+          <div style={{fontSize:13, color: PN.MUTED, fontWeight:600, marginBottom: sideBySide ? 2 : 4, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Riempimento {period}</div>
+          <div style={{display:'flex', alignItems:'baseline', gap: sideBySide ? 8 : 14, flexWrap: sideBySide ? 'nowrap' : 'wrap', minWidth: 0}}>
+            <div style={{fontSize: sideBySide ? 46 : 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.2, lineHeight: 1, whiteSpace:'nowrap'}}>{d.pct}%</div>
+            <div style={{fontSize: 16, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700, whiteSpace:'nowrap', flexShrink: 0}}>{d.delta}</div>
+            {sideBySide && (
+              <div style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.sub}</div>
+            )}
           </div>
-          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 4}}>{d.sub}</div>
+          {!sideBySide && (
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.sub}</div>
+          )}
         </div>
       </div>
 
@@ -344,9 +396,9 @@ function WidgetRiempimento({ size }) {
         paddingTop: sideBySide ? 0 : 10,
         paddingLeft: sideBySide ? 18 : 0,
       }}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 10}}>
-          <div style={{fontSize:12.5, color: PN.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing: 0.5}}>Occupazione per fascia oraria</div>
-          <div style={{fontSize:12, color: PN.MUTED}}>0–100%</div>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 10, gap: 8, minWidth: 0}}>
+          <div style={{fontSize:12.5, color: PN.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', minWidth: 0}}>Occupazione per fascia oraria</div>
+          <div style={{fontSize:12, color: PN.MUTED, whiteSpace:'nowrap', flexShrink: 0}}>0–100%</div>
         </div>
         <div style={{flex:1, display:'flex', alignItems:'stretch', gap: 8, paddingTop: 4, position:'relative'}}>
           {/* Gridlines orizzontali */}
@@ -360,17 +412,17 @@ function WidgetRiempimento({ size }) {
           {d.fasce.map((f, i) => {
             const colorBar = f.v >= 90 ? PN.PINK : f.v >= 70 ? PN.WINE : f.v >= 50 ? PN.AMBER : PN.MUTED_LIGHT;
             return (
-              <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap: 4, position:'relative', zIndex:1}}>
-                <div style={{flex:1, width:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end', alignItems:'center'}}>
-                  <div style={{fontSize: 12, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{f.v}%</div>
+              <div key={i} style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column', alignItems:'center', gap: 4, position:'relative', zIndex:1}}>
+                <div style={{flex:1, minHeight: 0, width:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end', alignItems:'center', overflow:'hidden'}}>
+                  <div style={{fontSize: 12, fontWeight: 700, color: PN.TEXT, marginBottom: 3, whiteSpace:'nowrap'}}>{f.v}%</div>
                   <div style={{
                     width: '100%', maxWidth: 26,
-                    height: `${(f.v/100)*100}%`, minHeight: 6,
+                    height: `${(f.v/100)*100}%`, minHeight: 6, flexShrink: 1,
                     background: colorBar,
                     borderRadius: '4px 4px 2px 2px',
                   }}/>
                 </div>
-                <div style={{fontSize: 12, color: PN.MUTED, fontWeight: 600}}>{f.h}:00</div>
+                <div style={{fontSize: 12, color: PN.MUTED, fontWeight: 600, whiteSpace:'nowrap', flexShrink: 0}}>{f.h}:00</div>
               </div>
             );
           })}
@@ -438,9 +490,11 @@ function WidgetPrenotazioniOggi() {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}>
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12, flexShrink: 0}}>
-        <div style={{fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>23 prenotazioni</div>
-        <div style={{fontSize: 14, color: PN.MUTED}}>· 67 coperti · 84% riempimento</div>
+      {/* flexWrap: a w=1 titolo (24px) + meta non entrano su una riga sola —
+          senza wrap la meta sbordava oltre il bordo destro della card. */}
+      <div style={{display: 'flex', alignItems: 'baseline', gap: '2px 12px', marginBottom: 12, flexShrink: 0, flexWrap: 'wrap', minWidth: 0}}>
+        <div style={{fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em', whiteSpace: 'nowrap'}}>23 prenotazioni</div>
+        <div style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>· 67 coperti · 84% riempimento</div>
       </div>
 
       {/* Auto-scroll wrapper — overflow:auto sempre attivo. Lista duplicata
@@ -495,7 +549,7 @@ function WidgetPrenotazioniOggi() {
                   </div>
                   {it.note && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{it.note}</div>}
                 </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, color: PN.MUTED, fontWeight: 600}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, color: PN.MUTED, fontWeight: 600, whiteSpace: 'nowrap'}}>
                   <Icon name="people-customer" size={12} color={PN.MUTED}/> {it.covers} · {it.table}
                 </div>
               </div>
@@ -543,9 +597,9 @@ function WidgetTavoliStato() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0}}>
-      <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 10, flexShrink: 0}}>
-        <div style={{fontSize: 24, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4}}>{occupati}/{tables.length} occupati</div>
-        <div style={{fontSize: 14, color: PN.MUTED}}>Sala principale</div>
+      <div style={{display:'flex', alignItems:'baseline', gap: '2px 10px', marginBottom: 10, flexShrink: 0, flexWrap:'wrap', minWidth: 0}}>
+        <div style={{fontSize: 24, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4, whiteSpace:'nowrap'}}>{occupati}/{tables.length} occupati</div>
+        <div style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Sala principale</div>
       </div>
 
       {/* Grid auto-fill: in 660px ~10 col, in 330px ~5 col. Tile più
@@ -616,8 +670,8 @@ function WidgetTopPiatti() {
         height: 'calc(100% + 34px)',
         display:'flex', flexDirection:'column',
       }}>
-      <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 14}}>
-        <div style={{fontSize: 17, fontWeight: 700, color: '#F5F5F7'}}>Top piatti questa settimana</div>
+      <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 14, minWidth: 0}}>
+        <div style={{fontSize: 17, fontWeight: 700, color: '#F5F5F7', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Top piatti questa settimana</div>
       </div>
       {/* Lista responsive: ogni dish ha flex:1 0 auto + minHeight → gli item
           crescono uniformemente quando il widget è alto (h≥2), restano compatti
@@ -631,8 +685,10 @@ function WidgetTopPiatti() {
             display:'flex', flexDirection:'column', justifyContent:'center',
             gap: 5,
           }}>
-            <div style={{display:'flex', justifyContent:'space-between'}}>
-              <div style={{display:'flex', alignItems:'center', gap: 8, fontSize:15, color: '#F5F5F7', fontWeight: 600}}>
+            {/* minWidth:0 + ellipsis sul nome: a w=1 nome + numeri superano la
+                larghezza card — il nome tronca, i numeri restano interi. */}
+            <div style={{display:'flex', justifyContent:'space-between', gap: 10, minWidth: 0}}>
+              <div style={{display:'flex', alignItems:'center', gap: 8, fontSize:15, color: '#F5F5F7', fontWeight: 600, flex:'1 1 auto', minWidth: 0}}>
                 <span style={{
                   width: 18, height: 18, borderRadius: 5,
                   background: i === 0 ? '#FF6066' : 'rgba(255,255,255,0.08)',
@@ -642,9 +698,9 @@ function WidgetTopPiatti() {
                   boxShadow: i === 0 ? '0 0 10px rgba(255, 96, 102, 0.50)' : 'inset 0 0 0 1px rgba(255,255,255,0.10)',
                   flexShrink: 0,
                 }}>{i+1}</span>
-                {d.name}
+                <span style={{minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.name}</span>
               </div>
-              <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 14}}>
+              <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 14, flexShrink: 0, whiteSpace:'nowrap'}}>
                 <span style={{color: 'rgba(255,255,255,0.55)'}}>{d.sales}× · </span>
                 <span style={{color: '#F5F5F7', fontWeight: 600}}>€{d.rev.toLocaleString('it')}</span>
                 <span style={{color: d.up ? '#86EFAC' : '#FCA5A5', fontWeight: 600, minWidth: 36, textAlign:'right'}}>{d.trend}</span>
@@ -671,22 +727,25 @@ function WidgetRecensioni() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12}}>
-        <div>
-          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Recensioni recenti</div>
-          <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4}}>
-            <div style={{display:'flex', gap: 2}}>
+      {/* flexWrap: a w=1 titolo + badge verde non entrano su una riga —
+          il badge scende sotto invece di sbordare dalla card. */}
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, gap: '6px 10px', flexWrap:'wrap', minWidth: 0, flexShrink: 0}}>
+        <div style={{minWidth: 0}}>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Recensioni recenti</div>
+          <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4, minWidth: 0}}>
+            <div style={{display:'flex', gap: 2, flexShrink: 0}}>
               {[1,2,3,4,5].map(i => (
                 <Icon name="star" key={i} size={13} color={i <= 4 ? '#F59E0B' : '#E5E7EB'}/>
               ))}
             </div>
-            <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>4,7</span>
-            <span style={{fontSize: 14, color: PN.MUTED}}>· 312 recensioni</span>
+            <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap'}}>4,7</span>
+            <span style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>· 312 recensioni</span>
           </div>
         </div>
         <div style={{
           fontSize: 13, fontWeight: 600, color: PN.GREEN,
           background: PN.GREEN_SOFT, padding: '4px 8px', borderRadius: 6,
+          whiteSpace:'nowrap', flexShrink: 0,
         }}>+8 questa settimana</div>
       </div>
 
@@ -710,14 +769,15 @@ function WidgetRecensioni() {
               'inset 0 0 0 1px rgba(242, 107, 122, 0.08), ' +
               '0 1px 2px rgba(15, 17, 21, 0.03)',
           }}>
-            <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 5}}>
-              <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{r.name}</div>
-              <div style={{display:'flex', gap: 1}}>
+            <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 5, minWidth: 0}}>
+              <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', flexShrink: 0}}>{r.name}</div>
+              <div style={{display:'flex', gap: 1, flexShrink: 0}}>
                 {[1,2,3,4,5].map(i => (
                   <Icon name="star" key={i} size={10} color={i <= r.stars ? '#F59E0B' : '#E5E7EB'}/>
                 ))}
               </div>
-              <div style={{fontSize: 13, color: PN.MUTED, marginLeft:'auto'}}>{r.when} · {r.source}</div>
+              {/* ellipsis: a w=1 "2h fa · Google" sbordava dal tile glass */}
+              <div style={{fontSize: 13, color: PN.MUTED, marginLeft:'auto', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.when} · {r.source}</div>
             </div>
             <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>{r.text}</div>
           </div>
@@ -749,7 +809,9 @@ function WidgetAzioni({ size }) {
 
   const w = (size && size.w) || 1;
   const h = (size && size.h) || 1;
-  const isFullBanner = w === 4 && h === 2;
+  // h >= 2 (non === 2): col resize ↕ il widget diventa 4×4 — anche lì resta
+  // launcher con label, altrimenti 8 icone nude si spalmavano su ~580px.
+  const isFullBanner = w === 4 && h >= 2;
   const showLabels = isFullBanner;
 
   return (
@@ -762,11 +824,11 @@ function WidgetAzioni({ size }) {
         display:'flex', flexDirection:'column',
         minHeight: 0,
       }}>
-      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 12, flexShrink: 0}}>
-        <div style={{fontSize: 17, fontWeight: 700, color: '#F5F5F7', letterSpacing:'-0.01em'}}>
+      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 12, flexShrink: 0, gap: 10, minWidth: 0}}>
+        <div style={{fontSize: 17, fontWeight: 700, color: '#F5F5F7', letterSpacing:'-0.01em', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
           Azioni rapide
         </div>
-        <div style={{fontSize: 13.5, color: 'rgba(255,255,255,0.50)'}}>
+        <div style={{fontSize: 13.5, color: 'rgba(255,255,255,0.50)', whiteSpace:'nowrap', flexShrink: 0}}>
           {actions.length} shortcut
         </div>
       </div>
@@ -844,30 +906,46 @@ function WidgetAzioni({ size }) {
 
 // ─── 7. Coperti settimana (bar chart) ────────────────────────────────────────
 
-function WidgetCopertiSettimana() {
+function WidgetCopertiSettimana({ size }) {
   const days = [
     {d:'L', v:38}, {d:'M', v:42}, {d:'M', v:51}, {d:'G', v:67, today:true},
     {d:'V', v:0, future:true}, {d:'S', v:0, future:true}, {d:'D', v:0, future:true},
   ];
   const max = Math.max(...days.map(d=>d.v), 80);
+  // Layout adattivo: a h=1 la metrica (~85px) + bar chart stacked non entrano
+  // nei ~108px utili → metrica a sinistra, chart a destra (stesso pattern
+  // sideBySide di Riempimento). A h≥2 resta lo stacked classico.
+  const compact = ((size && size.h) || 1) === 1;
   return (
-    <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
-      <WMetric label="Coperti questa settimana" value="198" sub="prev. fine sett: 412" trend="+11%"/>
-      <div style={{flex:1, display:'flex', alignItems:'flex-end', gap: 8, marginTop: 18, paddingBottom: 24, position:'relative'}}>
+    <div style={{
+      display:'flex', flexDirection: compact ? 'row' : 'column',
+      height:'100%', minHeight: 0, gap: compact ? 18 : 0,
+    }}>
+      <div style={{flexShrink: 0, minWidth: 0, maxWidth: compact ? '46%' : 'none', display:'flex', flexDirection:'column', justifyContent: compact ? 'center' : 'flex-start'}}>
+        <WMetric label="Coperti questa settimana" value="198" sub="prev. fine sett: 412" trend="+11%"/>
+      </div>
+      <div style={{flex:1, minWidth: 0, minHeight: 0, display:'flex', alignItems:'stretch', gap: 8, marginTop: compact ? 0 : 18, paddingBottom: 24, position:'relative'}}>
         {days.map((d,i) => (
-          <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap: 6}}>
+          // Colonna a piena altezza + barra con flexBasis % (shrinkabile):
+          // il vecchio height % si risolveva su un parent auto → barre sempre
+          // collassate a 6px; ora la barra prende v/max dell'altezza reale
+          // e si comprime senza sbordare quando la cella è bassa.
+          <div key={i} style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap: 6, minHeight: 0}}>
             <div style={{
               fontSize: 12.5, color: d.today ? PN.PINK_DARK : PN.MUTED,
               fontWeight: d.today ? 700 : 600,
               opacity: d.future ? 0 : 1,
+              flexShrink: 0, whiteSpace:'nowrap',
             }}>{d.v || ''}</div>
             <div style={{
-              width: '100%', height: d.future ? 6 : `${(d.v/max)*100}%`, minHeight: 6,
+              width: '100%',
+              flex: d.future ? '0 0 6px' : `0 1 ${(d.v/max)*100}%`,
+              minHeight: 6,
               background: d.today ? PN.PINK : d.future ? '#F0F2F5' : '#D4D6DB',
               borderRadius: 4,
               border: d.future ? `1px dashed ${PN.MUTED_LIGHT}` : 'none',
             }}/>
-            <div style={{fontSize: 13, color: d.today ? PN.PINK_DARK : PN.MUTED, fontWeight: d.today ? 700 : 500, position:'absolute', bottom: 0, left:`calc(${i*100/7}% + ${100/14}%)`, transform:'translateX(-50%)'}}>{d.d}</div>
+            <div style={{fontSize: 13, color: d.today ? PN.PINK_DARK : PN.MUTED, fontWeight: d.today ? 700 : 500, position:'absolute', bottom: 0, left:`calc(${i*100/7}% + ${100/14}%)`, transform:'translateX(-50%)', whiteSpace:'nowrap'}}>{d.d}</div>
           </div>
         ))}
       </div>
@@ -914,15 +992,17 @@ function WidgetCucinaLive() {
       {/* Header — kitchen-head del preview */}
       <div style={{
         display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-        marginBottom: 4,
+        marginBottom: 4, gap: 8, minWidth: 0, flexShrink: 0,
       }}>
         <span style={{
           fontSize: 15, fontWeight: 600, color: '#F3F4F6',
           letterSpacing: '-0.01em',
+          minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>Cucina · live</span>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontSize: 13, fontWeight: 500, color: '#9CA3AF',
+          whiteSpace: 'nowrap', flexShrink: 0,
         }}>
           <span style={{
             width: 6, height: 6, borderRadius: 999, background: '#F87171',
@@ -955,15 +1035,19 @@ function WidgetCucinaLive() {
                 background: 'rgba(255, 255, 255, 0.10)',
                 padding: '2px 7px', borderRadius: 6,
                 minWidth: 22, textAlign: 'center',
+                whiteSpace: 'nowrap',
               }}>{o.table}</span>
-              <span style={{fontSize: 13.5, color: '#9CA3AF'}}>
-                {o.items} portate · <span style={{color: s.fg, fontWeight: 600, fontVariantNumeric: 'tabular-nums'}}>{o.time}</span>
+              {/* minWidth:0: la colonna 1fr può stringersi sotto il contenuto
+                  — il testo va a capo dentro la riga invece di sbordare. */}
+              <span style={{fontSize: 13.5, color: '#9CA3AF', minWidth: 0}}>
+                {o.items} portate · <span style={{color: s.fg, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{o.time}</span>
               </span>
               <span style={{
                 fontSize: 12, fontWeight: 700,
                 padding: '2px 7px', borderRadius: 5,
                 letterSpacing: '0.02em',
                 background: s.bg, color: s.fg,
+                whiteSpace: 'nowrap',
               }}>{o.label}</span>
             </div>
           );
@@ -980,10 +1064,14 @@ function WidgetCucinaLive() {
 // Pause-on-hover comune. Pattern Apple "live activity": tutto scorre insieme.
 // ─────────────────────────────────────────────────────────────────────────
 
-function WidgetFinancials() {
+function WidgetFinancials({ size }) {
   const [period, setPeriod] = React.useState('oggi');
   const [paused, setPaused] = React.useState(false);
   const periods = ['oggi', 'settimana', 'mese'];
+  // A h=1 (default 2×1) lo stacked (toggle + totale + spark 56px + mini-card)
+  // vale ~230px contro i ~108 utili: le mini-card sparivano sotto il bordo.
+  // → compact: totale a sinistra, sparkline + mini-card a destra.
+  const compact = ((size && size.h) || 1) === 1;
 
   React.useEffect(() => {
     if (paused) return;
@@ -1015,27 +1103,84 @@ function WidgetFinancials() {
   };
   const d = data[period];
 
+  const finKeyframes = (
+    <style>{`
+      @keyframes fin-fade-in {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    `}</style>
+  );
+
+  if (compact) {
+    return (
+      <div
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        style={{display: 'flex', height: '100%', minHeight: 0, gap: 16}}
+      >
+        {/* Sinistra: toggle + incasso totale */}
+        <div key={period + '-l'} style={{
+          flex: '0 1 auto', minWidth: 0,
+          display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center',
+          animation: 'fin-fade-in 320ms ease-out',
+        }}>
+          <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
+          <div style={{minWidth: 0}}>
+            <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+              Incassi {period}
+            </div>
+            <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
+              <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>
+                {d.total}
+              </span>
+              <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
+            </div>
+            <div style={{fontSize: 13, color: PN.MUTED, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</div>
+          </div>
+        </div>
+
+        {/* Destra: sparkline (flex, si comprime) + mini-card sotto */}
+        <div key={period + '-r'} style={{
+          flex: '1 1 auto', minWidth: 0, minHeight: 0,
+          display: 'flex', flexDirection: 'column', gap: 8,
+          animation: 'fin-fade-in 320ms ease-out 60ms both',
+        }}>
+          <div style={{flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: 8}}>
+            <WSparkline data={d.spark} color={PN.PINK} animated/>
+          </div>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, flexShrink: 0}}>
+            <FinMiniCard label="Scontrino" value={d.scontrino} delta={d.sDelta}/>
+            <FinMiniCard label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta}/>
+          </div>
+        </div>
+        {finKeyframes}
+      </div>
+    );
+  }
+
   return (
     <div
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      style={{display: 'flex', flexDirection: 'column', height: '100%', gap: 12}}
+      style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 12}}
     >
       <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
 
       {/* Top: incassi + sparkline animata */}
       <div key={period + '-top'} style={{
         animation: 'fin-fade-in 320ms ease-out',
+        minWidth: 0,
       }}>
-        <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4}}>
+        <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
           Incassi {period}
         </div>
-        <div style={{display: 'flex', alignItems: 'baseline', gap: 10}}>
-          <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums'}}>
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
+          <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>
             {d.total}
           </span>
-          <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600}}>{d.trend}</span>
-          <span style={{fontSize: 13, color: PN.MUTED, marginLeft: 'auto'}}>{d.sub}</span>
+          <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
+          <span style={{fontSize: 13, color: PN.MUTED, marginLeft: 'auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</span>
         </div>
         <div style={{marginTop: 8, height: 56, overflow: 'hidden', borderRadius: 8}}>
           <WSparkline data={d.spark} color={PN.PINK} animated/>
@@ -1051,18 +1196,14 @@ function WidgetFinancials() {
         <FinMiniCard label="Scontrino" value={d.scontrino} delta={d.sDelta}/>
         <FinMiniCard label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta}/>
       </div>
-
-      <style>{`
-        @keyframes fin-fade-in {
-          from { opacity: 0; transform: translateY(4px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      {finKeyframes}
     </div>
   );
 }
 
 function FinMiniCard({label, value, delta}) {
+  // minWidth:0 + overflow hidden: nella grid 1fr 1fr la card può scendere
+  // sotto la larghezza del contenuto — clip pulito invece di sbordo.
   return (
     <div style={{
       padding: '10px 12px',
@@ -1070,16 +1211,18 @@ function FinMiniCard({label, value, delta}) {
       border: `1px solid ${PN.BORDER_HAIR}`,
       borderRadius: 10,
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+      minWidth: 0, overflow: 'hidden',
     }}>
-      <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4}}>
+      <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
         {label}
       </div>
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0}}>
         <span style={{
           fontSize: 19, fontWeight: 600, color: PN.TEXT, lineHeight: 1,
           letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums',
+          whiteSpace: 'nowrap',
         }}>{value}</span>
-        <span style={{fontSize: 13, color: PN.GREEN, fontWeight: 600}}>{delta}</span>
+        <span style={{fontSize: 13, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap'}}>{delta}</span>
       </div>
     </div>
   );

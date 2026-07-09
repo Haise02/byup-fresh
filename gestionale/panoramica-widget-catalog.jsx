@@ -100,41 +100,18 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
                   background: inUse ? '#FAFAFB' : PN.WHITE,
                   opacity: inUse ? 0.6 : 1,
                 }}>
-                  {/* Icona del widget — riconoscibilità immediata nel catalogo */}
+                  {/* Icona del widget — neutra, niente ingombro dimensioni:
+                      la misura si scopre (e si cambia) direttamente in griglia */}
                   <div style={{
                     width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    background: '#F4F5F7', color: PN.TEXT,
                     display:'grid', placeItems:'center',
                   }}>
                     <Icon name={w.icon || 'grid'} size={22}/>
                   </div>
-                  {/* Mini-sketch shape: ghost layout della griglia 12col x 2 righe */}
-                  <div style={{
-                    width: 56, height: 44, borderRadius: 6,
-                    background:'#F4F5F7',
-                    padding: 4,
-                    display:'grid',
-                    gridTemplateColumns:'repeat(4, 1fr)',
-                    gridTemplateRows:'repeat(2, 1fr)',
-                    gap: 2,
-                    flexShrink: 0,
-                  }}>
-                    {Array.from({length: 8}).map((_, i) => {
-                      const col = i % 4;
-                      const row = Math.floor(i / 4);
-                      // Mappa defaultSize.w (1-4) e h (1-2) sulla mini griglia
-                      const filled = col < w.defaultSize.w && row < w.defaultSize.h;
-                      return (
-                        <div key={i} style={{
-                          background: filled ? PN.TEXT : '#E1E3E8',
-                          borderRadius: 1.5,
-                        }}/>
-                      );
-                    })}
-                  </div>
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontSize: 15.5, fontWeight: 600, color: PN.TEXT, marginBottom: 2}}>{w.name}</div>
-                    <div style={{fontSize: 13.5, color: PN.MUTED}}>{w.desc}</div>
+                    <div style={{fontSize: 15.5, fontWeight: 600, color: PN.TEXT, marginBottom: 2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{w.name}</div>
+                    <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.4}}>{w.desc}</div>
                   </div>
                   <button
                     disabled={inUse}
@@ -146,7 +123,7 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
                       border:'none', borderRadius: 8,
                       fontWeight: 600, fontSize: 14, fontFamily:'inherit',
                       cursor: inUse ? 'default' : 'pointer',
-                      whiteSpace:'nowrap',
+                      whiteSpace:'nowrap', flexShrink: 0, alignSelf:'center',
                     }}>
                     {inUse ? 'Già presente' : 'Aggiungi'}
                   </button>
