@@ -2,6 +2,7 @@
 
 function AccDatiGenerali() {
   const [logoutConfirm, setLogoutConfirm] = React.useState(false);
+  const [deleteConfirm, setDeleteConfirm] = React.useState(false);
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
       <AcCard title="Profilo personale" subtitle="Le informazioni del tuo account.">
@@ -236,15 +237,74 @@ function AccDatiGenerali() {
               Tutti i dati del ristorante verranno cancellati definitivamente.
             </div>
           </div>
-          <button style={{
-            padding:'10px 18px', borderRadius: 999,
-            background: PN.WHITE, color: PN.RED,
-            border:`1px solid ${PN.RED}`,
-            fontSize: 15, fontWeight: 700, cursor:'pointer',
-            fontFamily:'inherit',
-          }}>Elimina account</button>
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            style={{
+              padding:'10px 18px', borderRadius: 999,
+              background: PN.WHITE, color: PN.RED,
+              border:`1px solid ${PN.RED}`,
+              fontSize: 15, fontWeight: 700, cursor:'pointer',
+              fontFamily:'inherit',
+              transition:'background 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}
+          >Elimina account</button>
         </div>
       </AcCard>
+
+      {/* Popup conferma eliminazione — danger, ancorato al frame */}
+      {deleteConfirm && (
+        <div onClick={() => setDeleteConfirm(false)} style={{
+          position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG,
+            borderRadius: 20, width: 400, maxWidth:'100%',
+            padding: '22px 22px 20px',
+            display:'flex', flexDirection:'column', gap: 16,
+          }}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: '#FEE2E2', color: '#DC2626',
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6"/></svg>
+              </div>
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Eliminare l'account?</div>
+                <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+                  Tutti i dati del ristorante — menu, ordini, conti e statistiche — verranno cancellati <strong>definitivamente</strong>. Questa azione non può essere annullata.
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+                  border: '1px solid rgba(15,17,21,0.12)',
+                  fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Annulla
+              </button>
+              <button
+                onClick={() => { window.location.href = 'byup Login.html'; }}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: '#DC2626', color: '#fff',
+                  border: '1px solid rgba(153,27,27,0.5)',
+                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Elimina definitivamente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
