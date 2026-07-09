@@ -834,10 +834,12 @@ function WidgetAzioni({ size }) {
       <div style={{
         flex: 1, minHeight: 0, overflowY: 'auto',
         display: 'grid',
+        // Launcher esteso: 3 colonne — con 6 azioni la griglia è un 3×2
+        // perfettamente bilanciato (niente ultima riga sbilenca).
         gridTemplateColumns: isFullBanner
-          ? 'repeat(4, 1fr)'
+          ? 'repeat(3, 1fr)'
           : 'repeat(auto-fit, minmax(54px, 1fr))',
-        gridTemplateRows: isFullBanner ? 'repeat(2, 1fr)' : 'none',
+        gridTemplateRows: isFullBanner ? `repeat(${Math.max(2, Math.ceil(actions.length / 3))}, 1fr)` : 'none',
         gridAutoRows: isFullBanner ? undefined : 'minmax(54px, 1fr)',
         gap: isFullBanner ? 10 : 6,
         alignContent: 'start',
