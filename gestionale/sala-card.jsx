@@ -1,11 +1,13 @@
 // Sala — Card con SVG icone (no emoji), byup chip, lista articoli realistica
 // Inoltre: ContiApertiPanel laterale + flow "+ Articolo" inline
 
+// Palette allineata alle tessere della mappa (TT_ACCENTS in sala-table-tile.jsx):
+// libero verde, prenotato viola, occupato corallo brand, da pulire ambra.
 const SALA_STATE_META = {
-  libero:    { dot: '#9CA3AF', label: 'Libero',    plural: 'Liberi',    bg: '#F3F4F6', mapBg: '#F3F4F6', border: '#D1D5DB', mapBorder: '#D1D5DB', accent: '#6B7280' },
-  prenotato: { dot: '#7C3AED', label: 'Prenotato', plural: 'Prenotati', bg: '#FAF8FF', mapBg: '#FAF8FF', border: '#EDE9FE', mapBorder: '#DDD6FE', accent: '#7C3AED' },
-  occupato:  { dot: '#172554', label: 'Occupato',  plural: 'Occupati',  bg: '#DBEAFE', mapBg: '#DBEAFE', border: '#BFDBFE', mapBorder: '#93C5FD', accent: '#172554' },
-  dapulire:  { dot: '#D97706', label: 'Da pulire', plural: 'Da pulire', bg: '#FFFBEB', mapBg: '#FEF3C7', border: '#FDE68A', mapBorder: '#FCD34D', accent: '#D97706' },
+  libero:    { dot: '#15803D', label: 'Libero',    plural: 'Liberi',    bg: 'rgba(22, 163, 74, 0.10)',  mapBg: 'rgba(22, 163, 74, 0.10)',  border: 'rgba(22, 163, 74, 0.40)',  mapBorder: 'rgba(22, 163, 74, 0.40)',  accent: '#15803D' },
+  prenotato: { dot: '#6D28D9', label: 'Prenotato', plural: 'Prenotati', bg: 'rgba(124, 58, 237, 0.12)', mapBg: 'rgba(124, 58, 237, 0.12)', border: 'rgba(124, 58, 237, 0.38)', mapBorder: 'rgba(124, 58, 237, 0.38)', accent: '#6D28D9' },
+  occupato:  { dot: '#E32459', label: 'Occupato',  plural: 'Occupati',  bg: 'rgba(255, 90, 95, 0.18)',  mapBg: 'rgba(255, 90, 95, 0.18)',  border: 'rgba(227, 36, 89, 0.42)',  mapBorder: 'rgba(227, 36, 89, 0.42)',  accent: '#E32459' },
+  dapulire:  { dot: '#B45309', label: 'Da pulire', plural: 'Da pulire', bg: 'rgba(217, 119, 6, 0.14)',  mapBg: 'rgba(217, 119, 6, 0.14)',  border: 'rgba(217, 119, 6, 0.42)',  mapBorder: 'rgba(217, 119, 6, 0.42)',  accent: '#B45309' },
 };
 
 // Triangolo rosso accanto al dot: prenotato in ritardo >20' OR da pulire da >20'

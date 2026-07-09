@@ -77,12 +77,13 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 
   // KPI cards = filtri multi-select della pagina. Click su una card aggiunge/toglie
   // il suo stato dal filtro attivo; più card insieme = unione (OR) degli stati.
+  // Accenti allineati alla palette della mappa (TT_ACCENTS in sala-table-tile.jsx)
   const kpiCards = [
     {key: 'Tutti',     label: 'Tutti',     value: counts.Tutti,        accent: '#0F1115', soft: '#F3F4F6', icon: 'M4 6h16M4 12h16M4 18h16'},
-    {key: 'Occupati',  label: 'Occupati',  value: counts.Occupati,     accent: '#172554', soft: '#DBEAFE', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75'},
-    {key: 'Prenotati', label: 'Prenotati', value: counts.Prenotati,    accent: '#7C3AED', soft: '#EDE9FE', icon: 'M3 4h18v18H3z M3 10h18 M8 2v4 M16 2v4'},
-    {key: 'Da pulire', label: 'Da pulire', value: counts['Da pulire'], accent: '#D97706', soft: '#FFFBEB', icon: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'},
-    {key: 'Liberi',    label: 'Liberi',    value: counts.Liberi,       accent: '#6B7280', soft: '#F3F4F6', icon: 'M5 13l4 4L19 7'},
+    {key: 'Occupati',  label: 'Occupati',  value: counts.Occupati,     accent: '#E32459', soft: 'rgba(255, 90, 95, 0.18)',  icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75'},
+    {key: 'Prenotati', label: 'Prenotati', value: counts.Prenotati,    accent: '#6D28D9', soft: 'rgba(124, 58, 237, 0.12)', icon: 'M3 4h18v18H3z M3 10h18 M8 2v4 M16 2v4'},
+    {key: 'Da pulire', label: 'Da pulire', value: counts['Da pulire'], accent: '#B45309', soft: 'rgba(217, 119, 6, 0.14)',  icon: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'},
+    {key: 'Liberi',    label: 'Liberi',    value: counts.Liberi,       accent: '#15803D', soft: 'rgba(22, 163, 74, 0.10)',  icon: 'M5 13l4 4L19 7'},
   ];
   const totale = counts.Tutti;
   // KPI Riempimento: preferisci coperti se disponibili, fallback su numero tavoli

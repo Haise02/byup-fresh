@@ -360,8 +360,9 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna }) {
           }}>×</button>
         </div>
 
-        {/* lista ordini */}
-        <div className="pn-scroll" style={{flex: 1, overflow:'auto', padding: '14px 16px 20px', display:'flex', flexDirection:'column', gap: 12}}>
+        {/* lista ordini — minHeight:0 obbligatorio: senza, il flex item cresce
+            quanto il contenuto e la lista non scrolla (card tagliate in basso) */}
+        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '14px 16px 20px', display:'flex', flexDirection:'column', gap: 12}}>
           {ritiri.map(r => (
             <div key={r.id} style={{
               border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 14,
