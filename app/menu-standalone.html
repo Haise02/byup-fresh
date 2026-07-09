@@ -4876,24 +4876,28 @@ function BookingSheet({
   onConfirm,
   onCancelBooking
 }) {
+  // Redesign UX: una sola schermata, tre scelte visive (quando · ora · quanti),
+  // dati personali già compilati e ripiegati, riepilogo sempre visibile nel footer.
   const isEdit = !!editBooking;
   const [step, setStep] = useState(0); // 0 form, 1 success
-  const [date, setDate] = useState('Sab 4 mag');
+  const [date, setDate] = useState('Oggi');
   const [time, setTime] = useState(defaultTime || '20:30');
   const [people, setPeople] = useState(2);
   const [name, setName] = useState('Mario Rossi');
   const [phone, setPhone] = useState('+39 333 1234567');
   const [note, setNote] = useState('');
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
   useEffect(() => {
     if (open) {
       setStep(0);
+      setDetailsOpen(false);
       if (editBooking) {
-        setDate(editBooking.date || date);
-        setTime(editBooking.time || time);
+        setDate(editBooking.date || 'Oggi');
+        setTime(editBooking.time || '20:30');
         setPeople(editBooking.people || 2);
-        setName(editBooking.name || name);
-        setPhone(editBooking.phone || phone);
+        setName(editBooking.name || 'Mario Rossi');
+        setPhone(editBooking.phone || '+39 333 1234567');
         setNote(editBooking.note || '');
         setPrefilled(false);
       } else if (defaultTime) {
@@ -4903,9 +4907,33 @@ function BookingSheet({
     }
   }, [open, defaultTime, editBooking]);
   if (!open) return null;
-  const dates = ['Sab 4 mag', 'Dom 5 mag', 'Lun 6 mag', 'Mar 7 mag', 'Mer 8 mag', 'Gio 9 mag', 'Ven 10 mag'];
-  const baseTimes = ['12:30', '13:00', '13:30', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
-  const times = !baseTimes.includes(time) ? [...baseTimes, time].sort() : baseTimes;
+  const dates = ['Oggi', 'Domani', 'Sab 11', 'Dom 12', 'Lun 13', 'Mar 14'];
+  const lunch = ['12:30', '13:00', '13:30'];
+  const dinner = ['19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
+  const chip = active => ({
+    padding: '11px 0',
+    borderRadius: 14,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    fontWeight: 800,
+    textAlign: 'center',
+    transition: 'all .15s',
+    background: active ? 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)' : TINT_X,
+    color: active ? '#fff' : TEXT_X,
+    border: active ? '1.5px solid transparent' : `1.5px solid ${BORDER_X}`,
+    boxShadow: active ? '0 8px 18px -8px rgba(227,36,89,.6)' : 'none'
+  });
+  const label = t => /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: MUTED_X,
+      margin: '16px 0 8px',
+      textTransform: 'uppercase',
+      letterSpacing: .6
+    }
+  }, t);
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -4920,14 +4948,14 @@ function BookingSheet({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      maxHeight: '88%',
+      maxHeight: '90%',
       background: SURF_X,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: '14px 20px 0',
+      borderTopLeftRadius: 26,
+      borderTopRightRadius: 26,
       display: 'flex',
       flexDirection: 'column',
-      overflowY: 'auto'
+      overflow: 'hidden',
+      animation: 'slideUp .3s cubic-bezier(.2,.9,.3,1)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4935,15 +4963,21 @@ function BookingSheet({
       height: 4,
       borderRadius: 2,
       background: MUTESURF_X,
-      margin: '0 auto 10px'
+      margin: '10px auto 0',
+      flexShrink: 0
     }
   }), step === 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: '10px 20px 12px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       fontFamily: "'Fredoka', sans-serif",
-      fontSize: 25,
+      fontSize: 23,
       fontWeight: 600,
       color: TEXT_X,
-      marginBottom: 3,
       letterSpacing: -.3,
       lineHeight: 1.1
     }
@@ -4951,14 +4985,14 @@ function BookingSheet({
     style: {
       fontSize: 13,
       color: MUTED_X,
-      marginBottom: 20,
+      marginTop: 3,
       display: 'flex',
       alignItems: 'center',
-      gap: 6
+      gap: 5
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
+    width: "12",
+    height: "12",
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: PINK_X,
@@ -4971,114 +5005,189 @@ function BookingSheet({
     cx: "12",
     cy: "10",
     r: "3"
-  })), /*#__PURE__*/React.createElement("span", null, venue?.name || editBooking?.venue || 'Ristorante', isEdit && ' · nuova data/orario')), /*#__PURE__*/React.createElement(Field, {
-    label: "Data"
-  }, /*#__PURE__*/React.createElement("div", {
+  })), venue?.name || editBooking?.venue || 'Ristorante', prefilled && /*#__PURE__*/React.createElement("span", {
     style: {
-      display: 'flex',
-      gap: 8,
-      overflowX: 'auto',
-      paddingBottom: 4,
-      margin: '0 -20px',
-      padding: '0 20px 4px'
-    }
-  }, dates.map(d => /*#__PURE__*/React.createElement(Pill, {
-    key: d,
-    active: date === d,
-    onClick: () => setDate(d)
-  }, d)))), /*#__PURE__*/React.createElement(Field, {
-    label: "Orario"
-  }, prefilled && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 6,
-      background: CORALSURF_X,
       color: PINK_X,
-      fontSize: 11.5,
+      fontWeight: 700
+    }
+  }, "\xB7 slot scelto dalla home")), label('Quando'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 8
+    }
+  }, dates.map(d => /*#__PURE__*/React.createElement("button", {
+    key: d,
+    onClick: () => setDate(d),
+    style: chip(date === d)
+  }, d))), label('A che ora'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
       fontWeight: 700,
-      padding: '4px 10px',
-      borderRadius: 999,
-      marginBottom: 8
+      color: MUTED_X,
+      marginBottom: 6
     }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "12",
-    height: "12",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: PINK_X,
-    strokeWidth: "2.5",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "4 12 10 18 20 6"
-  })), "Slot scelto dalla home"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2600\uFE0F Pranzo"), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: 'flex',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
       gap: 8,
-      flexWrap: 'wrap'
+      marginBottom: 10
     }
-  }, times.map(t => /*#__PURE__*/React.createElement(Pill, {
+  }, lunch.map(t => /*#__PURE__*/React.createElement("button", {
     key: t,
-    active: time === t,
-    onClick: () => setTime(t)
-  }, t)))), /*#__PURE__*/React.createElement(Field, {
-    label: "Coperti"
-  }, /*#__PURE__*/React.createElement("div", {
+    onClick: () => setTime(t),
+    style: chip(time === t)
+  }, t))), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 14
+      fontSize: 11,
+      fontWeight: 700,
+      color: MUTED_X,
+      marginBottom: 6
+    }
+  }, "\uD83C\uDF19 Cena"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 8
+    }
+  }, dinner.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: () => setTime(t),
+    style: chip(time === t)
+  }, t))), label('In quanti'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(6, 1fr)',
+      gap: 8
+    }
+  }, [1, 2, 3, 4, 5, 6].map(n => /*#__PURE__*/React.createElement("button", {
+    key: n,
+    onClick: () => setPeople(n),
+    style: chip(people === n)
+  }, n))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPeople(p => Math.min(20, p + 1)),
+    style: {
+      marginTop: 8,
+      background: 'none',
+      border: 'none',
+      color: people > 6 ? PINK_X : MUTED_X,
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      padding: 4
+    }
+  }, people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      background: TINT_X,
+      borderRadius: 16,
+      border: `1px solid ${BORDER_X}`,
+      overflow: 'hidden'
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPeople(p => Math.max(1, p - 1)),
-    style: stepperBtn
-  }, "\u2212"), /*#__PURE__*/React.createElement("div", {
+    onClick: () => setDetailsOpen(o => !o),
     style: {
-      fontSize: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      width: '100%',
+      padding: '13px 14px',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      textAlign: 'left'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      background: PINK_X,
+      color: '#fff',
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 12,
+      fontWeight: 800
+    }
+  }, "MR"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 13.5,
       fontWeight: 700,
-      minWidth: 50,
-      textAlign: 'center'
+      color: TEXT_X
     }
-  }, people), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPeople(p => Math.min(20, p + 1)),
-    style: stepperBtn
-  }, "+"), /*#__PURE__*/React.createElement("span", {
+  }, name), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 13,
-      color: MUTED_X,
-      marginLeft: 4
+      display: 'block',
+      fontSize: 11.5,
+      color: MUTED_X
     }
-  }, people === 1 ? 'persona' : 'persone'))), /*#__PURE__*/React.createElement(Field, {
-    label: "Nome"
+  }, phone, note ? ' · con note' : '')), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: PINK_X,
+      fontWeight: 800
+    }
+  }, detailsOpen ? 'Chiudi' : 'Modifica')), detailsOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '0 14px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
   }, /*#__PURE__*/React.createElement(Input, {
     value: name,
     onChange: setName
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Telefono"
-  }, /*#__PURE__*/React.createElement(Input, {
+  }), /*#__PURE__*/React.createElement(Input, {
     value: phone,
     onChange: setPhone
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Note (opzionale)"
-  }, /*#__PURE__*/React.createElement(Input, {
+  }), /*#__PURE__*/React.createElement(Input, {
     value: note,
     onChange: setNote,
-    placeholder: "Allergie, occasione speciale, posto vicino finestra...",
+    placeholder: "Note: allergie, occasioni, preferenze...",
     multi: true
-  })), /*#__PURE__*/React.createElement("div", {
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: 'sticky',
-      bottom: 0,
       flexShrink: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      margin: '20px -20px 0',
-      padding: '12px 20px 24px',
+      padding: '10px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
       background: SURF_X,
-      boxShadow: '0 -8px 16px rgba(0,0,0,0.05)'
+      boxShadow: '0 -8px 16px rgba(0,0,0,0.06)'
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      fontSize: 13,
+      fontWeight: 700,
+      color: MUTED_X,
+      marginBottom: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: TEXT_X
+    }
+  }, date), "\xB7", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: TEXT_X
+    }
+  }, time), "\xB7", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: TEXT_X
+    }
+  }, people, " ", people === 1 ? 'persona' : 'persone')), /*#__PURE__*/React.createElement("button", {
+    className: "bk-press",
     onClick: () => {
       try {
         localStorage.setItem('byup_booking', JSON.stringify({
@@ -5095,8 +5204,8 @@ function BookingSheet({
       setStep(1);
     },
     style: {
+      width: '100%',
       height: 54,
-      flexShrink: 0,
       background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)',
       color: '#fff',
       border: 'none',
@@ -5111,22 +5220,23 @@ function BookingSheet({
   }, isEdit ? 'Salva modifiche' : 'Conferma prenotazione'), isEdit && /*#__PURE__*/React.createElement("button", {
     onClick: () => onCancelBooking && onCancelBooking(),
     style: {
-      marginTop: 10,
-      height: 52,
-      flexShrink: 0,
+      width: '100%',
+      marginTop: 9,
+      height: 48,
       background: 'transparent',
       color: '#c0392b',
       border: '1.5px solid #ecc9c4',
       borderRadius: 999,
-      fontSize: 14.5,
+      fontSize: 14,
       fontWeight: 700,
       cursor: 'pointer',
       fontFamily: 'inherit'
     }
   }, "Annulla prenotazione"))) : /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: '20px 0 28px',
-      textAlign: 'center'
+      padding: '20px 20px calc(28px + env(safe-area-inset-bottom, 0px))',
+      textAlign: 'center',
+      overflowY: 'auto'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5154,21 +5264,22 @@ function BookingSheet({
     style: {
       fontSize: 22,
       fontWeight: 700,
-      marginBottom: 6
+      marginBottom: 6,
+      color: TEXT_X
     }
   }, isEdit ? 'Prenotazione aggiornata' : 'Prenotazione confermata'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       color: MUTED_X,
-      marginBottom: 22
+      marginBottom: 20
     }
-  }, "Ti aspettiamo ", date, " alle ", time, " per ", people, " ", people === 1 ? 'persona' : 'persone', "."), /*#__PURE__*/React.createElement("div", {
+  }, "Ti aspettiamo ", date.toLowerCase(), " alle ", time, " per ", people, " ", people === 1 ? 'persona' : 'persone', "."), /*#__PURE__*/React.createElement("div", {
     style: {
       background: BG_X,
       borderRadius: 14,
       padding: 16,
       textAlign: 'left',
-      marginBottom: 18
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement(RowKV, {
     k: "Locale",
@@ -5185,9 +5296,6 @@ function BookingSheet({
   }), /*#__PURE__*/React.createElement(RowKV, {
     k: "A nome di",
     v: name
-  }), /*#__PURE__*/React.createElement(RowKV, {
-    k: "Telefono",
-    v: phone
   }), note && /*#__PURE__*/React.createElement(RowKV, {
     k: "Note",
     v: note
@@ -8596,9 +8704,10 @@ Object.assign(window, {
 });
 
 // ─────────────────────────────────────────────────────────────
-// PREMIUM — Vetrina per i locali selezionati byup.
-// Food render su fondo crema (stile "floating dish"), menu per categorie
-// con immagini a trasparenza, perks premium, CTA prenotazione sticky.
+// PREMIUM v2 — Vetrina per i locali selezionati byup.
+// Hero con box-carousel foto/video, menu stile reel con food render PNG,
+// orari espandibili, sedi, recensioni, reel, social, evento animato,
+// headline finale con widget di prenotazione rapida (solo oggi/domani).
 // Attivata dal flag `premium` sui dati del locale o via ?venue=premium.
 // ─────────────────────────────────────────────────────────────
 const GOLD_P = '#C9A227';
@@ -8607,12 +8716,91 @@ const INK_P = '#1c0f15';
 const CREAM_P = '#FDF9F3';
 const CREAM2_P = '#F6EDDF';
 const PREMIUM_MENU = {
-  'Antipasti': [['dish-bruschette', 'Bruschette al pomodoro', 'Pane di Lariano, datterini, basilico', '8€'], ['dish-tagliere', 'Tagliere della casa', 'Salumi laziali e pecorino DOP', '16€'], ['dish-fritto', "Fritto all'italiana", 'Supplì, fiori di zucca, baccalà', '12€'], ['dish-insalata', 'Insalata del mercato', 'Verdure di stagione, agrumi e semi', '9€']],
+  'Antipasti': [['dish-bruschette', 'Bruschette', 'Pane di Lariano, datterini, basilico', '8€'], ['dish-tagliere', 'Tagliere della casa', 'Salumi laziali e pecorino DOP', '16€'], ['dish-fritto', "Fritto all'italiana", 'Supplì, fiori di zucca, baccalà', '12€'], ['dish-insalata', 'Insalata del mercato', 'Verdure di stagione e agrumi', '9€']],
   'Primi': [['dish-carbonara', 'Carbonara', 'Guanciale croccante, pecorino 24 mesi', '14€'], ['dish-risotto', 'Risotto ai funghi', 'Porcini, parmigiano, timo fresco', '16€'], ['dish-lasagna', 'Lasagna al forno', 'Ragù di manzo cotto 8 ore', '13€']],
-  'Secondi': [['dish-tagliata', 'Tagliata di manzo', 'Rucola, grana, riduzione al balsamico', '22€'], ['dish-branzino', 'Branzino al forno', 'Patate, olive taggiasche, datterini', '24€'], ['dish-polpo', 'Polpo alla brace', 'Crema di ceci, paprika affumicata', '21€'], ['dish-pollo', 'Pollo al mattone', 'Limone arrosto, rosmarino', '18€'], ['dish-verdure', 'Verdure alla griglia', "Dall'orto, olio EVO e basilico", '10€']],
-  'Dolci': [['dessert-tiramisu', 'Tiramisù', 'Mascarpone, savoiardi, caffè', '7€'], ['dessert-tortino', 'Tortino al cioccolato', 'Cuore fondente, lamponi e gelato', '8€']],
-  'Drink': [['drink-spritz', 'Spritz', 'Prosecco, bitter, arancia', '8€'], ['drink-negroni', 'Negroni', 'Gin, vermouth rosso, bitter', '9€'], ['drink-mojito', 'Mojito', 'Rum, lime, menta fresca', '9€'], ['drink-vino', 'Vino al calice', 'Selezione del sommelier', '7€'], ['drink-birra', 'Birra artigianale', 'Del birrificio locale', '6€'], ['drink-arancia', 'Spremuta', 'Arance di Ribera', '4€']]
+  'Secondi': [['dish-tagliata', 'Tagliata di manzo', 'Rucola, grana, balsamico', '22€'], ['dish-branzino', 'Branzino al forno', 'Patate, olive, datterini', '24€'], ['dish-polpo', 'Polpo alla brace', 'Crema di ceci, paprika', '21€'], ['dish-pollo', 'Pollo al mattone', 'Limone arrosto, rosmarino', '18€'], ['dish-verdure', 'Verdure alla griglia', "Dall'orto, olio EVO", '10€']],
+  'Dolci': [['dessert-tiramisu', 'Tiramisù', 'Mascarpone, savoiardi, caffè', '7€'], ['dessert-tortino', 'Tortino al cioccolato', 'Cuore fondente e lamponi', '8€']],
+  'Drink': [['drink-spritz', 'Spritz', '', '8€'], ['drink-negroni', 'Negroni', '', '9€'], ['drink-mojito', 'Mojito', '', '9€'], ['drink-vino', 'Vino al calice', '', '7€'], ['drink-birra', 'Birra artigianale', '', '6€'], ['drink-arancia', 'Spremuta', '', '4€']]
 };
+const PREMIUM_HOURS = [['Lunedì', '12:30 – 23:00'], ['Martedì', '12:30 – 23:00'], ['Mercoledì', '12:30 – 23:00'], ['Giovedì', '12:30 – 23:00'], ['Venerdì', '12:30 – 24:00'], ['Sabato', '12:30 – 24:00'], ['Domenica', 'Chiuso']];
+const PREMIUM_REVIEWS = [{
+  name: 'Giulia M.',
+  initial: 'G',
+  rating: 5,
+  when: '2 giorni fa',
+  text: 'Atmosfera incredibile e cucina autentica. La carbonara è la migliore di Roma.'
+}, {
+  name: 'Marco R.',
+  initial: 'M',
+  rating: 5,
+  when: '1 settimana fa',
+  text: 'Servizio impeccabile, vino consigliato dal cameriere perfetto.'
+}, {
+  name: 'Sara D.',
+  initial: 'S',
+  rating: 4,
+  when: '2 settimane fa',
+  text: 'Ottima esperienza, tornerò sicuramente con amici.'
+}, {
+  name: 'Luca P.',
+  initial: 'L',
+  rating: 5,
+  when: '3 settimane fa',
+  text: 'Il tavolo prioritario byup è una svolta: zero attesa il sabato sera.'
+}];
+
+// Stelle — stesso stile della vetrina originale (quadratini brand)
+function PremStars({
+  rating = 4.8,
+  reviews = 320
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6
+    }
+  }, [1, 2, 3, 4, 5].map(n => {
+    const filled = n <= Math.round(rating);
+    return /*#__PURE__*/React.createElement("div", {
+      key: n,
+      style: {
+        width: 26,
+        height: 26,
+        borderRadius: 6,
+        background: filled ? '#E32459' : '#f0e7dc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: "15",
+      height: "15",
+      viewBox: "0 0 24 24",
+      fill: "#fff",
+      stroke: "#fff",
+      strokeWidth: "1",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("polygon", {
+      points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+    })));
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 6,
+      fontSize: 19,
+      fontWeight: 800,
+      color: INK_P,
+      letterSpacing: -.4
+    }
+  }, rating), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: '#8d7c83',
+      fontWeight: 600
+    }
+  }, "\xB7 ", reviews, " recensioni"));
+}
 function VenuePremium({
   venue,
   onBack,
@@ -8624,11 +8812,26 @@ function VenuePremium({
 }) {
   const v = venue || {};
   const name = v.name || 'Al Settembrini';
+  const isOpen = true; // demo: aperto ora
   const [cat, setCat] = useStateV('Antipasti');
   const [saved, setSaved] = useStateV(false);
+  const [slide, setSlide] = useStateV(0);
+  const [hoursOpen, setHoursOpen] = useStateV(false);
+  const [reviewsOpen, setReviewsOpen] = useStateV(false);
+  const [qbTime, setQbTime] = useStateV('20:30');
+  const [qbPeople, setQbPeople] = useStateV(2);
+  const [qbDone, setQbDone] = useStateV(false);
   const cats = Object.keys(PREMIUM_MENU);
-  const photos = ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=700&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=700&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&q=75&auto=format&fit=crop'];
+  const photos = ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=800&q=75&auto=format&fit=crop'];
   const P = f => `assets/premium/${f}.webp`;
+  const today = new Date().getDay(); // 0 dom
+  const qbDay = isOpen && today !== 0 ? 'oggi' : 'domani';
+
+  // autoplay carousel hero
+  useEffectV(() => {
+    const t = setInterval(() => setSlide(s => (s + 1) % photos.length), 3000);
+    return () => clearInterval(t);
+  }, []);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       width: '100%',
@@ -8644,9 +8847,10 @@ function VenuePremium({
   }, /*#__PURE__*/React.createElement("style", null, `
         .vpz-hscroll{scrollbar-width:none;-webkit-overflow-scrolling:touch}
         .vpz-hscroll::-webkit-scrollbar{display:none}
-        @keyframes vpzFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-        @keyframes vpzFloatS{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-4px) rotate(-2deg)}}
         @keyframes vpzIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+        @keyframes vpzSheen{0%,60%{transform:translateX(-130%) skewX(-16deg)}100%{transform:translateX(260%) skewX(-16deg)}}
+        @keyframes vpzPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}50%{box-shadow:0 0 0 12px rgba(255,255,255,0)}}
+        @keyframes vpzBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
       `), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
@@ -8665,7 +8869,7 @@ function VenuePremium({
       width: 38,
       height: 38,
       borderRadius: 999,
-      background: 'rgba(255,255,255,.85)',
+      background: 'rgba(255,255,255,.88)',
       border: '1px solid rgba(28,15,21,.08)',
       cursor: 'pointer',
       display: 'flex',
@@ -8693,7 +8897,7 @@ function VenuePremium({
       width: 38,
       height: 38,
       borderRadius: 999,
-      background: 'rgba(255,255,255,.85)',
+      background: 'rgba(255,255,255,.88)',
       border: '1px solid rgba(28,15,21,.08)',
       cursor: 'pointer',
       display: 'flex',
@@ -8726,7 +8930,7 @@ function VenuePremium({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
-      padding: '46px 22px 0',
+      padding: '44px 22px 0',
       textAlign: 'center',
       background: `radial-gradient(120% 70% at 50% 0%, ${CREAM2_P} 0%, ${CREAM_P} 70%)`
     }
@@ -8767,128 +8971,215 @@ function VenuePremium({
       fontSize: 13.5,
       color: '#6d5a61',
       fontWeight: 600,
+      marginBottom: 10,
       animation: 'vpzIn .4s .1s ease both'
     }
   }, "Cucina romana \xB7 \u20AC\u20AC\u20AC \xB7 0.4 km"), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 5,
-      marginTop: 8,
-      fontSize: 13,
-      fontWeight: 800,
-      color: INK_P,
       animation: 'vpzIn .4s .15s ease both'
     }
-  }, [0, 1, 2, 3, 4].map(i => /*#__PURE__*/React.createElement("svg", {
-    key: i,
-    width: "13",
-    height: "13",
-    viewBox: "0 0 24 24",
-    fill: i < 5 ? GOLD_P : 'none',
-    stroke: GOLD_P,
-    strokeWidth: "1.5"
-  }, /*#__PURE__*/React.createElement("polygon", {
-    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-  }))), "4.8 ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: '#9a8a90',
-      fontWeight: 600
-    }
-  }, "(320)")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(PremStars, null)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
-      height: 250,
-      marginTop: 6
+      height: 210,
+      marginTop: 16,
+      borderRadius: 24,
+      overflow: 'hidden',
+      border: '1px solid rgba(28,15,21,.08)',
+      boxShadow: '0 24px 48px -22px rgba(77,18,46,.45)',
+      animation: 'vpzIn .45s .2s ease both'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
     style: {
-      position: 'absolute',
-      left: '50%',
-      bottom: 18,
-      transform: 'translateX(-50%)',
-      width: '68%',
-      height: 30,
-      borderRadius: '50%',
-      background: 'radial-gradient(closest-side, rgba(77,18,46,.22), transparent 75%)'
+      display: 'flex',
+      height: '100%',
+      transform: `translateX(-${slide * 100}%)`,
+      transition: 'transform .55s cubic-bezier(.4,0,.2,1)'
     }
-  }), /*#__PURE__*/React.createElement("img", {
-    src: P('dish-insalata'),
+  }, photos.map((ph, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: ph,
     alt: "",
     style: {
-      position: 'absolute',
-      left: '2%',
-      bottom: 26,
-      width: 118,
-      animation: 'vpzFloatS 4.2s .3s ease-in-out infinite',
-      filter: 'drop-shadow(0 14px 16px rgba(77,18,46,.25))'
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      display: 'block'
     }
-  }), /*#__PURE__*/React.createElement("img", {
-    src: P('dish-verdure'),
-    alt: "",
+  }), i === 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
-      right: '2%',
-      bottom: 24,
-      width: 124,
-      animation: 'vpzFloatS 4.6s .1s ease-in-out infinite',
-      filter: 'drop-shadow(0 14px 16px rgba(77,18,46,.25))'
-    }
-  }), /*#__PURE__*/React.createElement("img", {
-    src: P('dish-carbonara'),
-    alt: "La nostra carbonara",
-    style: {
-      position: 'absolute',
-      left: '50%',
-      bottom: 30,
-      transform: 'translateX(-50%)',
-      width: 216,
-      animation: 'vpzFloat 4s ease-in-out infinite',
-      filter: 'drop-shadow(0 22px 22px rgba(77,18,46,.3))'
+      inset: 0,
+      background: 'rgba(15,8,10,.22)'
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       position: 'absolute',
       left: '50%',
-      bottom: -4,
-      transform: 'translateX(-50%)',
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: '#6d5a61',
-      whiteSpace: 'nowrap'
+      top: '50%',
+      transform: 'translate(-50%,-50%)',
+      width: 54,
+      height: 54,
+      borderRadius: 999,
+      background: 'rgba(255,255,255,.92)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      animation: 'vpzPulse 2.2s ease-in-out infinite',
+      cursor: 'pointer'
     }
-  }, "Piatto firma \xB7 ", /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "20",
+    height: "20",
+    viewBox: "0 0 24 24",
+    fill: INK_P
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "8 5 20 12 8 19"
+  }))), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: INK_P
+      position: 'absolute',
+      left: 12,
+      top: 12,
+      background: 'rgba(15,8,10,.55)',
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: 800,
+      letterSpacing: .6,
+      padding: '4px 9px',
+      borderRadius: 999,
+      textTransform: 'uppercase',
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)'
     }
-  }, "Carbonara"), " \xB7 dello chef De Santis"))), /*#__PURE__*/React.createElement("div", {
-    className: "vpz-hscroll",
+  }, "Video tour"))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      bottom: 10,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      gap: 5
+    }
+  }, photos.map((_, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    onClick: () => setSlide(i),
+    style: {
+      width: i === slide ? 18 : 6,
+      height: 6,
+      borderRadius: 99,
+      background: '#fff',
+      opacity: i === slide ? 1 : .5,
+      transition: 'width .25s, opacity .25s',
+      cursor: 'pointer'
+    }
+  }))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: '14px 22px 0',
+      background: '#fff',
+      borderRadius: 20,
+      border: '1px solid rgba(28,15,21,.06)',
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setHoursOpen(o => !o),
     style: {
       display: 'flex',
+      alignItems: 'center',
+      width: '100%',
       gap: 9,
-      overflowX: 'auto',
-      padding: '22px 22px 4px'
+      padding: '14px 16px',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      borderRadius: 999,
+      background: isOpen ? '#0a8a3a' : '#d21e50',
+      boxShadow: isOpen ? '0 0 8px rgba(10,138,58,.55)' : '0 0 8px rgba(210,30,80,.55)'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: isOpen ? '#0a8a3a' : '#d21e50'
+    }
+  }, isOpen ? 'Aperto ora' : 'Chiuso'), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: '#8d7c83',
+      fontWeight: 600
+    }
+  }, "\xB7 chiude alle 23:00"), /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#8d7c83",
+    strokeWidth: "2.4",
+    strokeLinecap: "round",
+    style: {
+      marginLeft: 'auto',
+      transform: hoursOpen ? 'rotate(180deg)' : 'none',
+      transition: 'transform .2s'
+    }
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "6 9 12 15 18 9"
+  }))), hoursOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '2px 16px 12px',
+      animation: 'vpzIn .25s ease'
+    }
+  }, PREMIUM_HOURS.map(([d, h], i) => {
+    const isToday = i === (today + 6) % 7;
+    return /*#__PURE__*/React.createElement("div", {
+      key: d,
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: '7px 0',
+        fontSize: 13,
+        fontWeight: isToday ? 800 : 600,
+        color: h === 'Chiuso' ? '#d21e50' : isToday ? INK_P : '#6d5a61',
+        borderBottom: i < PREMIUM_HOURS.length - 1 ? '1px solid rgba(28,15,21,.05)' : 'none'
+      }
+    }, /*#__PURE__*/React.createElement("span", null, d, isToday ? ' · oggi' : ''), /*#__PURE__*/React.createElement("span", null, h));
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      padding: '14px 22px 0'
     }
   }, [['⚡', 'Prenotazione prioritaria'], ['🪙', 'Byuppini ×2 qui'], ['🥂', 'Benvenuto dello chef']].map(([e, t]) => /*#__PURE__*/React.createElement("span", {
     key: t,
     style: {
-      flex: 'none',
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 7,
+      gap: 6,
       background: '#fff',
       border: '1px solid rgba(201,162,39,.4)',
       color: INK_P,
-      fontSize: 12,
+      fontSize: 11.5,
       fontWeight: 700,
-      padding: '9px 14px',
+      padding: '8px 12px',
       borderRadius: 999,
       boxShadow: '0 6px 16px -10px rgba(190,145,40,.5)'
     }
   }, /*#__PURE__*/React.createElement("span", null, e), t))), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: '20px 22px 0'
+      padding: '22px 22px 0'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -8921,7 +9212,7 @@ function VenuePremium({
       display: 'flex',
       gap: 8,
       overflowX: 'auto',
-      padding: '12px 22px 6px'
+      padding: '12px 22px 4px'
     }
   }, cats.map(c => /*#__PURE__*/React.createElement("button", {
     key: c,
@@ -8944,103 +9235,304 @@ function VenuePremium({
     className: "vpz-hscroll",
     style: {
       display: 'flex',
-      gap: 14,
+      gap: 12,
       overflowX: 'auto',
-      padding: '18px 22px 8px',
+      padding: '14px 22px 8px',
       scrollSnapType: 'x proximity'
     }
-  }, PREMIUM_MENU[cat].map(([img, title, desc, price], i) => /*#__PURE__*/React.createElement("div", {
-    key: title,
+  }, PREMIUM_MENU[cat].map(([img, title, desc, price], i) => {
+    const drink = !desc;
+    return /*#__PURE__*/React.createElement("div", {
+      key: title,
+      style: {
+        position: 'relative',
+        flex: 'none',
+        width: drink ? 128 : 158,
+        height: drink ? 190 : 236,
+        borderRadius: 20,
+        overflow: 'hidden',
+        scrollSnapAlign: 'start',
+        background: 'radial-gradient(120% 90% at 50% 0%, #fffdf8 0%, #f3e8d8 100%)',
+        border: '1px solid rgba(28,15,21,.07)',
+        boxShadow: '0 18px 36px -20px rgba(77,18,46,.4)',
+        animation: `vpzIn .35s ${i * 55}ms ease both`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      "aria-hidden": true,
+      style: {
+        position: 'absolute',
+        left: '50%',
+        top: drink ? 96 : 108,
+        transform: 'translateX(-50%)',
+        width: '62%',
+        height: 14,
+        borderRadius: '50%',
+        background: 'radial-gradient(closest-side, rgba(77,18,46,.22), transparent 75%)'
+      }
+    }), /*#__PURE__*/React.createElement("img", {
+      src: P(img),
+      alt: title,
+      loading: "lazy",
+      style: {
+        position: 'absolute',
+        left: '50%',
+        top: drink ? 10 : 12,
+        transform: 'translateX(-50%)',
+        maxWidth: drink ? 84 : 122,
+        maxHeight: drink ? 96 : 106,
+        filter: 'drop-shadow(0 12px 12px rgba(77,18,46,.25))'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: drink ? '46%' : '52%',
+        background: 'linear-gradient(180deg, transparent, rgba(26,12,18,.78) 55%, rgba(26,12,18,.94))'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        padding: '0 11px 11px',
+        color: '#fff'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Fredoka', sans-serif",
+        fontWeight: 600,
+        fontSize: drink ? 13 : 14.5,
+        lineHeight: 1.15
+      }
+    }, title), !drink && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: 'rgba(255,255,255,.75)',
+        marginTop: 3,
+        lineHeight: 1.3
+      }
+    }, desc), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: drink ? 6 : 9
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'Fredoka', sans-serif",
+        fontWeight: 600,
+        fontSize: 15
+      }
+    }, price), !drink && /*#__PURE__*/React.createElement("button", {
+      onClick: onMenu,
+      style: {
+        border: 'none',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: 'linear-gradient(122deg,#E32459,#B81C47)',
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: 800,
+        padding: '6px 12px',
+        borderRadius: 999,
+        boxShadow: '0 8px 16px -8px rgba(227,36,89,.8)'
+      }
+    }, "Ordina"))));
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
-      flex: 'none',
-      width: 172,
-      scrollSnapAlign: 'start',
-      background: '#fff',
-      borderRadius: 22,
-      padding: '14px 14px 14px',
-      textAlign: 'center',
-      border: '1px solid rgba(28,15,21,.06)',
-      boxShadow: '0 16px 34px -20px rgba(77,18,46,.35)',
-      animation: `vpzIn .35s ${i * 60}ms ease both`
+      padding: '20px 22px 0'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 21,
+      margin: '0 0 12px'
+    }
+  }, "Dalla cucina")), /*#__PURE__*/React.createElement("div", {
+    className: "vpz-hscroll",
+    style: {
+      display: 'flex',
+      gap: 10,
+      overflowX: 'auto',
+      padding: '0 22px'
+    }
+  }, [1, 2, 3, 4].map(n => /*#__PURE__*/React.createElement("div", {
+    key: n,
     style: {
       position: 'relative',
-      height: 120,
-      marginTop: -34
+      flex: 'none',
+      width: 118,
+      height: 176,
+      borderRadius: 16,
+      overflow: 'hidden',
+      border: '1px solid rgba(28,15,21,.07)',
+      cursor: 'pointer'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("img", {
+    src: `assets/reels/reel-${n}.webp`,
+    alt: "",
+    loading: "lazy",
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      display: 'block'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      background: 'linear-gradient(180deg, transparent 55%, rgba(15,8,10,.55))'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%,-50%)',
+      width: 34,
+      height: 34,
+      borderRadius: 999,
+      background: 'rgba(255,255,255,.9)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: INK_P
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "8 5 20 12 8 19"
+  }))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: 9,
+      bottom: 8,
+      color: '#fff',
+      fontSize: 10.5,
+      fontWeight: 800
+    }
+  }, "0:", 20 + n * 7)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      margin: '20px 22px 0',
+      borderRadius: 22,
+      overflow: 'hidden',
+      background: 'linear-gradient(140deg,#2a1208,#4a2508 55%,#6b3a05)',
+      border: '1px solid rgba(255,207,74,.5)',
+      padding: '16px 16px 15px',
+      color: '#fff',
+      boxShadow: '0 22px 44px -20px rgba(107,58,5,.65)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     "aria-hidden": true,
     style: {
       position: 'absolute',
-      left: '50%',
-      bottom: 2,
-      transform: 'translateX(-50%)',
-      width: '70%',
-      height: 16,
-      borderRadius: '50%',
-      background: 'radial-gradient(closest-side, rgba(77,18,46,.2), transparent 75%)'
+      top: 0,
+      left: 0,
+      width: '38%',
+      height: '100%',
+      background: 'linear-gradient(100deg, transparent, rgba(255,226,122,.22), transparent)',
+      animation: 'vpzSheen 3.6s ease-in-out infinite',
+      pointerEvents: 'none'
     }
-  }), /*#__PURE__*/React.createElement("img", {
-    src: P(img),
-    alt: title,
-    loading: "lazy",
-    style: {
-      position: 'absolute',
-      left: '50%',
-      bottom: 8,
-      transform: 'translateX(-50%)',
-      maxWidth: 128,
-      maxHeight: 116,
-      filter: 'drop-shadow(0 14px 14px rgba(77,18,46,.22))'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Fredoka', sans-serif",
-      fontWeight: 600,
-      fontSize: 14.5,
-      lineHeight: 1.15
-    }
-  }, title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: '#8d7c83',
-      marginTop: 3,
-      lineHeight: 1.3,
-      minHeight: 28
-    }
-  }, desc), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 9
+      gap: 13
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 'none',
+      width: 52,
+      height: 56,
+      borderRadius: 14,
+      background: GOLD_GRAD_P,
+      color: '#3d2c00',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      animation: 'vpzBob 3.2s ease-in-out infinite',
+      boxShadow: '0 10px 20px -8px rgba(0,0,0,.5)'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
+      fontSize: 9.5,
+      fontWeight: 800,
+      textTransform: 'uppercase',
+      letterSpacing: .5
+    }
+  }, "Gio"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 700,
+      fontSize: 21,
+      lineHeight: 1
+    }
+  }, "16")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 0,
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 5,
+      fontSize: 9.5,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      color: '#ffe27a'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: 999,
+      background: '#ffe27a',
+      animation: 'vpzPulse 2s ease-in-out infinite'
+    }
+  }), "Evento \xB7 posti limitati"), /*#__PURE__*/React.createElement("div", {
+    style: {
       fontFamily: "'Fredoka', sans-serif",
       fontWeight: 600,
-      fontSize: 15.5
+      fontSize: 17,
+      marginTop: 3
     }
-  }, price), /*#__PURE__*/React.createElement("button", {
-    onClick: onMenu,
-    "aria-label": `Ordina ${title}`,
+  }, "Cena degli chef \xB7 5 portate"), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
+      fontSize: 11.5,
+      color: 'rgba(255,255,255,.75)',
+      marginTop: 2
+    }
+  }, "Con vini in abbinamento \xB7 65\u20AC a persona")), /*#__PURE__*/React.createElement("button", {
+    onClick: onBook,
+    style: {
+      flex: 'none',
       border: 'none',
       cursor: 'pointer',
-      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      fontFamily: 'inherit',
+      background: 'rgba(255,255,255,.14)',
       color: '#fff',
-      fontSize: 17,
-      fontWeight: 700,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 8px 16px -8px rgba(227,36,89,.7)'
+      border: '1px solid rgba(255,255,255,.35)',
+      fontSize: 11.5,
+      fontWeight: 800,
+      padding: '9px 13px',
+      borderRadius: 999,
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)'
     }
-  }, "+"))))), /*#__PURE__*/React.createElement("div", {
+  }, "Riserva"))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '22px 22px 0'
     }
@@ -9051,105 +9543,403 @@ function VenuePremium({
       fontSize: 21,
       margin: '0 0 12px'
     }
-  }, "Sala & atmosfera")), /*#__PURE__*/React.createElement("div", {
-    className: "vpz-hscroll",
+  }, "Cosa dicono di noi"), PREMIUM_REVIEWS.slice(0, 2).map(r => /*#__PURE__*/React.createElement("div", {
+    key: r.name,
     style: {
-      display: 'flex',
-      gap: 10,
-      overflowX: 'auto',
-      padding: '0 22px'
-    }
-  }, photos.map((ph, i) => /*#__PURE__*/React.createElement("img", {
-    key: i,
-    src: ph,
-    alt: "",
-    loading: "lazy",
-    style: {
-      flex: 'none',
-      width: i === 0 ? 250 : 180,
-      height: 150,
-      objectFit: 'cover',
-      borderRadius: 18,
-      border: '1px solid rgba(28,15,21,.06)'
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: '20px 22px 0',
       background: '#fff',
-      borderRadius: 22,
-      padding: 16,
-      border: '1px solid rgba(28,15,21,.06)',
-      boxShadow: '0 16px 34px -22px rgba(77,18,46,.35)'
+      borderRadius: 18,
+      padding: '13px 14px',
+      marginBottom: 10,
+      border: '1px solid rgba(28,15,21,.06)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
-      gap: 3,
-      marginBottom: 8
+      alignItems: 'center',
+      gap: 10
     }
-  }, [0, 1, 2, 3, 4].map(i => /*#__PURE__*/React.createElement("svg", {
-    key: i,
-    width: "12",
-    height: "12",
-    viewBox: "0 0 24 24",
-    fill: GOLD_P
-  }, /*#__PURE__*/React.createElement("polygon", {
-    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13.5,
-      lineHeight: 1.45,
-      color: INK_P
-    }
-  }, "\xABAtmosfera incredibile e cucina autentica. La carbonara \xE8 la migliore di Roma.\xBB"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: '#8d7c83',
-      marginTop: 8,
-      fontWeight: 600
-    }
-  }, "Giulia M. \xB7 2 giorni fa \xB7 320 recensioni"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 7,
-      marginTop: 12,
-      flexWrap: 'wrap'
-    }
-  }, ['Top 10 Roma 2025', 'Gambero Rosso', 'Stella byup'].map(a => /*#__PURE__*/React.createElement("span", {
-    key: a,
-    style: {
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: '#3d2c00',
-      background: 'rgba(240,194,70,.25)',
-      border: '1px solid rgba(201,162,39,.45)',
-      padding: '4px 10px',
-      borderRadius: 999
-    }
-  }, a)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: '14px 22px 0',
-      background: '#fff',
-      borderRadius: 22,
-      padding: '6px 16px',
-      border: '1px solid rgba(28,15,21,.06)'
-    }
-  }, [['Via dei Gracchi 56, Roma', 'Indicazioni', onMap], ['Aperto · 12:30 – 23:00', 'Orari', null]].map(([t, a, fn], i, arr) => /*#__PURE__*/React.createElement("div", {
-    key: t,
-    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 999,
+      background: '#E32459',
+      flexShrink: 0,
+      color: '#fff',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '13px 0',
-      borderBottom: i < arr.length - 1 ? '1px solid rgba(28,15,21,.07)' : 'none'
+      justifyContent: 'center',
+      fontWeight: 700,
+      fontSize: 13
+    }
+  }, r.initial), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13.5,
+      fontWeight: 700
+    }
+  }, r.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: '#8d7c83'
+    }
+  }, r.when)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 2,
+      marginTop: 3
+    }
+  }, [1, 2, 3, 4, 5].map(s => /*#__PURE__*/React.createElement("svg", {
+    key: s,
+    width: "11",
+    height: "11",
+    viewBox: "0 0 24 24",
+    fill: s <= r.rating ? '#E32459' : '#e8dfe2'
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      lineHeight: 1.5,
+      marginTop: 8
+    }
+  }, r.text))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReviewsOpen(true),
+    style: {
+      display: 'block',
+      width: '100%',
+      padding: '13px 0',
+      background: '#fff',
+      border: '1.5px solid rgba(28,15,21,.1)',
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: INK_P
+    }
+  }, "Vedi tutte le 320 recensioni")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: '18px 22px 0',
+      background: '#fff',
+      borderRadius: 20,
+      padding: '4px 16px',
+      border: '1px solid rgba(28,15,21,.06)'
+    }
+  }, [['Roma · Via dei Gracchi 56', 'Sede principale', onMap], ['Milano · Corso Venezia 50', 'Altra sede', null], ['Firenze · Via dei Calzaiuoli 12', 'Altra sede', null]].map(([t, sub, fn], i, arr) => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: fn || undefined,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      width: '100%',
+      gap: 11,
+      padding: '13px 0',
+      background: 'none',
+      border: 'none',
+      cursor: fn ? 'pointer' : 'default',
+      fontFamily: 'inherit',
+      textAlign: 'left',
+      borderBottom: i < arr.length - 1 ? '1px solid rgba(28,15,21,.06)' : 'none'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      flexShrink: 0,
+      background: CREAM2_P,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "15",
+    height: "15",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: GOLD_P,
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "10",
+    r: "3"
+  }))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 13.5,
+      fontWeight: 700
+    }
+  }, t), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 11,
+      color: '#8d7c83',
       fontWeight: 600
     }
-  }, t), fn ? /*#__PURE__*/React.createElement("button", {
-    onClick: fn,
+  }, sub)), fn && /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#8d7c83",
+    strokeWidth: "2.4",
+    strokeLinecap: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "9 6 15 12 9 18"
+  }))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: 12,
+      padding: '16px 22px 0'
+    }
+  }, [['Instagram', /*#__PURE__*/React.createElement("svg", {
+    key: "ig",
+    width: "17",
+    height: "17",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: INK_P,
+    strokeWidth: "1.9",
+    strokeLinecap: "round"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "3",
+    width: "18",
+    height: "18",
+    rx: "5.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "4.2"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "17.4",
+    cy: "6.6",
+    r: "1.2",
+    fill: INK_P,
+    stroke: "none"
+  }))], ['Facebook', /*#__PURE__*/React.createElement("svg", {
+    key: "fb",
+    width: "17",
+    height: "17",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: INK_P,
+    strokeWidth: "1.9",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M15 3h-2.5A4.5 4.5 0 0 0 8 7.5V10H5.5v3.5H8V21h3.7v-7.5h2.6l.6-3.5h-3.2V8c0-.9.5-1.5 1.5-1.5H15z"
+  }))], ['TikTok', /*#__PURE__*/React.createElement("svg", {
+    key: "tt",
+    width: "16",
+    height: "16",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: INK_P,
+    strokeWidth: "1.9",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M14.5 3v10.8a3.9 3.9 0 1 1-3.4-3.87"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M14.5 5.2c.8 2.3 2.6 3.8 5 4"
+  }))]].map(([label, icon]) => /*#__PURE__*/React.createElement("button", {
+    key: label,
+    "aria-label": label,
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 999,
+      cursor: 'pointer',
+      background: '#fff',
+      border: '1px solid rgba(28,15,21,.1)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 8px 18px -12px rgba(77,18,46,.4)'
+    }
+  }, icon))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: '26px 22px 0',
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 25,
+      lineHeight: 1.15,
+      margin: 0
+    }
+  }, "Il tavolo migliore di Roma", /*#__PURE__*/React.createElement("br", null), "ti sta aspettando"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: '#6d5a61',
+      fontWeight: 600,
+      margin: '8px 0 14px'
+    }
+  }, "Prenotazione prioritaria per i membri byup \xB7 conferma immediata"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#fff',
+      borderRadius: 22,
+      padding: 16,
+      border: '1px solid rgba(201,162,39,.45)',
+      boxShadow: '0 20px 42px -22px rgba(190,145,40,.55)'
+    }
+  }, !qbDone ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      letterSpacing: .8,
+      textTransform: 'uppercase',
+      color: GOLD_P,
+      marginBottom: 10
+    }
+  }, "Prenotazione rapida \xB7 ", qbDay), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 7,
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      marginBottom: 10
+    }
+  }, ['19:30', '20:00', '20:30', '21:00'].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: () => setQbTime(t),
+    style: {
+      padding: '9px 14px',
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontSize: 13.5,
+      fontWeight: 800,
+      transition: 'all .15s',
+      background: qbTime === t ? INK_P : CREAM_P,
+      color: qbTime === t ? '#fff' : '#6d5a61',
+      border: qbTime === t ? '1.5px solid ' + INK_P : '1.5px solid rgba(28,15,21,.1)'
+    }
+  }, t))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 7,
+      justifyContent: 'center',
+      marginBottom: 13
+    }
+  }, [2, 3, 4, 6].map(n => /*#__PURE__*/React.createElement("button", {
+    key: n,
+    onClick: () => setQbPeople(n),
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontSize: 13.5,
+      fontWeight: 800,
+      transition: 'all .15s',
+      background: qbPeople === n ? INK_P : CREAM_P,
+      color: qbPeople === n ? '#fff' : '#6d5a61',
+      border: qbPeople === n ? '1.5px solid ' + INK_P : '1.5px solid rgba(28,15,21,.1)'
+    }
+  }, n)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      alignSelf: 'center',
+      fontSize: 11.5,
+      color: '#8d7c83',
+      fontWeight: 700
+    }
+  }, "persone")), /*#__PURE__*/React.createElement("button", {
+    className: "bk-press",
+    onClick: () => setQbDone(true),
+    style: {
+      width: '100%',
+      height: 52,
+      border: 'none',
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontWeight: 800,
+      fontSize: 15,
+      color: '#fff',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      boxShadow: '0 16px 32px -12px rgba(227,36,89,.6)'
+    }
+  }, "Prenota ", qbDay, " alle ", qbTime), /*#__PURE__*/React.createElement("button", {
+    onClick: onBook,
+    style: {
+      display: 'block',
+      width: '100%',
+      marginTop: 9,
+      background: 'none',
+      border: 'none',
+      color: '#8d7c83',
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      padding: 6
+    }
+  }, "Altre date e opzioni \u2192")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      animation: 'vpzIn .3s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 52,
+      height: 52,
+      borderRadius: 999,
+      background: '#E8F5E9',
+      margin: '2px auto 10px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "26",
+    height: "26",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#0a8a3a",
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 600,
+      fontSize: 18
+    }
+  }, "Tavolo riservato"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: '#6d5a61',
+      fontWeight: 600,
+      margin: '4px 0 10px'
+    }
+  }, qbDay.charAt(0).toUpperCase() + qbDay.slice(1), " alle ", qbTime, " \xB7 ", qbPeople, " persone \xB7 a nome Mario"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setQbDone(false),
     style: {
       background: 'none',
       border: 'none',
@@ -9157,15 +9947,102 @@ function VenuePremium({
       fontSize: 12.5,
       fontWeight: 800,
       cursor: 'pointer',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      padding: 6
     }
-  }, a, " \u2192") : /*#__PURE__*/React.createElement("span", {
+  }, "Modifica"))))), reviewsOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) setReviewsOpen(false);
+    },
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 60,
+      background: 'rgba(15,8,10,.5)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      maxHeight: '78%',
+      background: CREAM_P,
+      borderRadius: '24px 24px 0 0',
+      padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+      overflowY: 'auto',
+      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: 'rgba(28,15,21,.15)'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: 19,
+      fontWeight: 600,
+      marginBottom: 4
+    }
+  }, "Recensioni"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement(PremStars, null)), PREMIUM_REVIEWS.map(r => /*#__PURE__*/React.createElement("div", {
+    key: r.name,
+    style: {
+      background: '#fff',
+      borderRadius: 16,
+      padding: '12px 13px',
+      marginBottom: 9,
+      border: '1px solid rgba(28,15,21,.06)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800
+    }
+  }, r.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: '#8d7c83'
+    }
+  }, r.when)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 2,
+      marginBottom: 6
+    }
+  }, [1, 2, 3, 4, 5].map(s => /*#__PURE__*/React.createElement("svg", {
+    key: s,
+    width: "10",
+    height: "10",
+    viewBox: "0 0 24 24",
+    fill: s <= r.rating ? '#E32459' : '#e8dfe2'
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: '#8d7c83',
-      fontWeight: 700
+      lineHeight: 1.45
     }
-  }, a))))), /*#__PURE__*/React.createElement("div", {
+  }, r.text))))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       left: 14,
@@ -14763,6 +15640,17 @@ function RestaurantBigCard({
   onSlotClick
 }) {
   const [T] = BK.useByupTheme();
+  if (premium) return /*#__PURE__*/React.createElement(PremiumBigCard, {
+    name,
+    cuisine,
+    distance,
+    rating,
+    price,
+    photo,
+    slots,
+    onClick,
+    onSlotClick
+  });
   return /*#__PURE__*/React.createElement("button", {
     className: "bk-press",
     onClick: () => {
@@ -14969,6 +15857,223 @@ function RestaurantBigCard({
       opacity: .75
     }
   }, "ultimo"))))) : null));
+}
+
+// Card premium — layout dedicato per i locali Selezione byup: scuro, oro,
+// piatto firma in PNG flottante. Ben distinguibile dalle card normali.
+function PremiumBigCard({
+  name,
+  cuisine,
+  distance,
+  rating,
+  price,
+  photo,
+  slots,
+  onClick,
+  onSlotClick
+}) {
+  return /*#__PURE__*/React.createElement("button", {
+    className: "bk-press",
+    onClick: () => {
+      BK.haptic.light();
+      onClick?.();
+    },
+    style: {
+      display: 'block',
+      width: '100%',
+      borderRadius: BK.RADII.card,
+      overflow: 'hidden',
+      position: 'relative',
+      border: '1.5px solid rgba(214,172,60,.6)',
+      padding: 0,
+      background: 'linear-gradient(165deg, #231318 0%, #1a0e13 55%, #2b1608 100%)',
+      boxShadow: '0 24px 48px -20px rgba(20,8,4,.65), 0 10px 26px -14px rgba(190,145,40,.4)',
+      fontFamily: BK.TYPE.sans,
+      textAlign: 'left',
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `@keyframes pbcSheen{0%,55%{transform:translateX(-140%) skewX(-16deg)}100%{transform:translateX(280%) skewX(-16deg)}}`), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 152,
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement(Photo, {
+    src: photo,
+    label: name
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      background: 'linear-gradient(180deg, rgba(20,8,10,.18) 0%, transparent 40%, rgba(26,14,19,.96) 100%)'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 12,
+      left: 12,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
+      background: 'linear-gradient(180deg,#ffe27a,#f0c246)',
+      color: '#3d2c00',
+      fontSize: 10,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      padding: '5px 11px',
+      borderRadius: 999,
+      boxShadow: '0 8px 18px -6px rgba(0,0,0,.55)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "10",
+    height: "10",
+    viewBox: "0 0 24 24",
+    fill: "#3d2c00"
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })), "Selezione byup"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+      background: 'rgba(20,8,10,.6)',
+      color: '#ffe27a',
+      fontSize: 12,
+      fontWeight: 800,
+      padding: '5px 9px',
+      borderRadius: 999,
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "11",
+    height: "11",
+    viewBox: "0 0 24 24",
+    fill: "#ffe27a"
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })), rating.toFixed(1)), /*#__PURE__*/React.createElement("img", {
+    src: "assets/premium/dish-carbonara.webp",
+    alt: "",
+    loading: "lazy",
+    style: {
+      position: 'absolute',
+      right: 6,
+      bottom: -30,
+      width: 122,
+      zIndex: 2,
+      filter: 'drop-shadow(0 14px 16px rgba(0,0,0,.55))',
+      pointerEvents: 'none'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      padding: '12px 16px 15px',
+      color: '#fff'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '34%',
+      height: '100%',
+      background: 'linear-gradient(100deg, transparent, rgba(255,226,122,.08), transparent)',
+      animation: 'pbcSheen 4.2s ease-in-out infinite',
+      pointerEvents: 'none'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      gap: 10,
+      paddingRight: 108
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: BK.TYPE.display,
+      fontSize: 20,
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      lineHeight: 1.15
+    }
+  }, name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: BK.TYPE.display,
+      fontSize: 13.5,
+      color: '#ffe27a',
+      fontWeight: 600,
+      flexShrink: 0
+    }
+  }, price)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: 'rgba(255,255,255,.62)',
+      marginTop: 4,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", null, cuisine), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 3,
+      height: 3,
+      borderRadius: 999,
+      background: 'rgba(255,255,255,.35)'
+    }
+  }), /*#__PURE__*/React.createElement("span", null, distance), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 3,
+      height: 3,
+      borderRadius: 999,
+      background: 'rgba(255,255,255,.35)'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#ffe27a',
+      fontWeight: 700
+    }
+  }, "\u26A1 prioritaria")), slots && slots.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginTop: 12
+    }
+  }, slots.map((s, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    className: "bk-press",
+    onClick: e => {
+      e.stopPropagation();
+      BK.haptic.selection();
+      onSlotClick?.(s);
+    },
+    style: {
+      height: 34,
+      padding: '0 13px',
+      borderRadius: 999,
+      border: 'none',
+      background: 'linear-gradient(180deg,#ffe27a,#f0c246)',
+      color: '#3d2c00',
+      fontSize: 13,
+      fontWeight: 800,
+      display: 'inline-flex',
+      alignItems: 'center',
+      cursor: 'pointer',
+      boxShadow: '0 8px 18px -8px rgba(240,194,70,.7)'
+    }
+  }, s.time, s.last && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 5,
+      fontSize: 10,
+      opacity: .75
+    }
+  }, "ultimo"))))));
 }
 
 // Drill-in screen for "Vedi disponibili" — full-screen list of moment venues

@@ -1452,25 +1452,29 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
 // ─── Booking sheet ──────────────────────────────────────────
 function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfirm, onCancelBooking }) {
+  // Redesign UX: una sola schermata, tre scelte visive (quando · ora · quanti),
+  // dati personali già compilati e ripiegati, riepilogo sempre visibile nel footer.
   const isEdit = !!editBooking;
   const [step, setStep] = useState(0); // 0 form, 1 success
-  const [date, setDate] = useState('Sab 4 mag');
+  const [date, setDate] = useState('Oggi');
   const [time, setTime] = useState(defaultTime || '20:30');
   const [people, setPeople] = useState(2);
   const [name, setName] = useState('Mario Rossi');
   const [phone, setPhone] = useState('+39 333 1234567');
   const [note, setNote] = useState('');
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
     if (open) {
       setStep(0);
+      setDetailsOpen(false);
       if (editBooking) {
-        setDate(editBooking.date || date);
-        setTime(editBooking.time || time);
+        setDate(editBooking.date || 'Oggi');
+        setTime(editBooking.time || '20:30');
         setPeople(editBooking.people || 2);
-        setName(editBooking.name || name);
-        setPhone(editBooking.phone || phone);
+        setName(editBooking.name || 'Mario Rossi');
+        setPhone(editBooking.phone || '+39 333 1234567');
         setNote(editBooking.note || '');
         setPrefilled(false);
       } else if (defaultTime) { setTime(defaultTime); setPrefilled(true); }
@@ -1479,9 +1483,21 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
   }, [open, defaultTime, editBooking]);
   if (!open) return null;
 
-  const dates = ['Sab 4 mag', 'Dom 5 mag', 'Lun 6 mag', 'Mar 7 mag', 'Mer 8 mag', 'Gio 9 mag', 'Ven 10 mag'];
-  const baseTimes = ['12:30','13:00','13:30','19:30','20:00','20:30','21:00','21:30','22:00'];
-  const times = !baseTimes.includes(time) ? [...baseTimes, time].sort() : baseTimes;
+  const dates = ['Oggi', 'Domani', 'Sab 11', 'Dom 12', 'Lun 13', 'Mar 14'];
+  const lunch = ['12:30', '13:00', '13:30'];
+  const dinner = ['19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
+  const chip = (active) => ({
+    padding: '11px 0', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
+    fontSize: 14, fontWeight: 800, textAlign: 'center', transition: 'all .15s',
+    background: active ? 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)' : TINT_X,
+    color: active ? '#fff' : TEXT_X,
+    border: active ? '1.5px solid transparent' : `1.5px solid ${BORDER_X}`,
+    boxShadow: active ? '0 8px 18px -8px rgba(227,36,89,.6)' : 'none',
+  });
+  const label = (t) => (
+    <div style={{ fontSize: 11.5, fontWeight: 800, color: MUTED_X, margin: '16px 0 8px',
+      textTransform: 'uppercase', letterSpacing: .6 }}>{t}</div>
+  );
 
   return (
     <div onClick={onClose} style={{
@@ -1489,75 +1505,89 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
       display: 'flex', alignItems: 'flex-end',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', maxHeight: '88%', background: SURF_X, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '14px 20px 0', display: 'flex', flexDirection: 'column', overflowY: 'auto',
+        width: '100%', maxHeight: '90%', background: SURF_X, borderTopLeftRadius: 26, borderTopRightRadius: 26,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        animation: 'slideUp .3s cubic-bezier(.2,.9,.3,1)',
       }}>
-        <div style={{ width: 44, height: 4, borderRadius: 2, background: MUTESURF_X, margin: '0 auto 10px' }}/>
+        <div style={{ width: 44, height: 4, borderRadius: 2, background: MUTESURF_X, margin: '10px auto 0', flexShrink: 0 }}/>
 
         {step === 0 ? (
           <>
-            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 25, fontWeight: 600, color: TEXT_X, marginBottom: 3, letterSpacing: -.3, lineHeight: 1.1 }}>{isEdit ? 'Modifica prenotazione' : 'Prenota un tavolo'}</div>
-            <div style={{ fontSize: 13, color: MUTED_X, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PINK_X} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span>{venue?.name || editBooking?.venue || 'Ristorante'}{isEdit && ' · nuova data/orario'}</span>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '10px 20px 12px' }}>
+              <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 23, fontWeight: 600, color: TEXT_X, letterSpacing: -.3, lineHeight: 1.1 }}>
+                {isEdit ? 'Modifica prenotazione' : 'Prenota un tavolo'}
+              </div>
+              <div style={{ fontSize: 13, color: MUTED_X, marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={PINK_X} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                {venue?.name || editBooking?.venue || 'Ristorante'}
+                {prefilled && <span style={{ color: PINK_X, fontWeight: 700 }}>· slot scelto dalla home</span>}
+              </div>
+
+              {label('Quando')}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {dates.map(d => (
+                  <button key={d} onClick={() => setDate(d)} style={chip(date === d)}>{d}</button>
+                ))}
+              </div>
+
+              {label('A che ora')}
+              <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_X, marginBottom: 6 }}>☀️ Pranzo</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
+                {lunch.map(t => (
+                  <button key={t} onClick={() => setTime(t)} style={chip(time === t)}>{t}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_X, marginBottom: 6 }}>🌙 Cena</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {dinner.map(t => (
+                  <button key={t} onClick={() => setTime(t)} style={chip(time === t)}>{t}</button>
+                ))}
+              </div>
+
+              {label('In quanti')}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+                {[1, 2, 3, 4, 5, 6].map(n => (
+                  <button key={n} onClick={() => setPeople(n)} style={chip(people === n)}>{n}</button>
+                ))}
+              </div>
+              <button onClick={() => setPeople(p => Math.min(20, p + 1))} style={{
+                marginTop: 8, background: 'none', border: 'none', color: people > 6 ? PINK_X : MUTED_X,
+                fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 4 }}>
+                {people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'}
+              </button>
+
+              {/* Dati già compilati, ripiegati */}
+              <div style={{ marginTop: 14, background: TINT_X, borderRadius: 16, border: `1px solid ${BORDER_X}`, overflow: 'hidden' }}>
+                <button onClick={() => setDetailsOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', padding: '13px 14px', background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', textAlign: 'left' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 999, background: PINK_X, color: '#fff', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>MR</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: TEXT_X }}>{name}</span>
+                    <span style={{ display: 'block', fontSize: 11.5, color: MUTED_X }}>{phone}{note ? ' · con note' : ''}</span>
+                  </span>
+                  <span style={{ fontSize: 12, color: PINK_X, fontWeight: 800 }}>{detailsOpen ? 'Chiudi' : 'Modifica'}</span>
+                </button>
+                {detailsOpen && (
+                  <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Input value={name} onChange={setName}/>
+                    <Input value={phone} onChange={setPhone}/>
+                    <Input value={note} onChange={setNote} placeholder="Note: allergie, occasioni, preferenze..." multi/>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <Field label="Data">
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, margin: '0 -20px', padding: '0 20px 4px' }}>
-                {dates.map(d => (
-                  <Pill key={d} active={date===d} onClick={() => setDate(d)}>{d}</Pill>
-                ))}
+            {/* Footer: riepilogo + conferma sempre visibili */}
+            <div style={{ flexShrink: 0, padding: '10px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
+              background: SURF_X, boxShadow: '0 -8px 16px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                fontSize: 13, fontWeight: 700, color: MUTED_X, marginBottom: 9 }}>
+                <span style={{ color: TEXT_X }}>{date}</span>·<span style={{ color: TEXT_X }}>{time}</span>·
+                <span style={{ color: TEXT_X }}>{people} {people === 1 ? 'persona' : 'persone'}</span>
               </div>
-            </Field>
-
-            <Field label="Orario">
-              {prefilled && (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: CORALSURF_X, color: PINK_X,
-                  fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
-                  marginBottom: 8,
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={PINK_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="4 12 10 18 20 6"/>
-                  </svg>
-                  Slot scelto dalla home
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {times.map(t => (
-                  <Pill key={t} active={time===t} onClick={() => setTime(t)}>{t}</Pill>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="Coperti">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <button onClick={() => setPeople(p => Math.max(1, p-1))} style={stepperBtn}>−</button>
-                <div style={{ fontSize: 20, fontWeight: 700, minWidth: 50, textAlign: 'center' }}>{people}</div>
-                <button onClick={() => setPeople(p => Math.min(20, p+1))} style={stepperBtn}>+</button>
-                <span style={{ fontSize: 13, color: MUTED_X, marginLeft: 4 }}>{people === 1 ? 'persona' : 'persone'}</span>
-              </div>
-            </Field>
-
-            <Field label="Nome">
-              <Input value={name} onChange={setName}/>
-            </Field>
-            <Field label="Telefono">
-              <Input value={phone} onChange={setPhone}/>
-            </Field>
-            <Field label="Note (opzionale)">
-              <Input value={note} onChange={setNote} placeholder="Allergie, occasione speciale, posto vicino finestra..." multi/>
-            </Field>
-
-            {/* Footer ancorato: i pulsanti restano sempre visibili, i campi scrollano sopra */}
-            <div style={{
-              position: 'sticky', bottom: 0, flexShrink: 0,
-              display: 'flex', flexDirection: 'column',
-              margin: '20px -20px 0', padding: '12px 20px 24px',
-              background: SURF_X, boxShadow: '0 -8px 16px rgba(0,0,0,0.05)',
-            }}>
-              <button onClick={() => {
+              <button className="bk-press" onClick={() => {
                 try {
                   localStorage.setItem('byup_booking', JSON.stringify({
                     venue: venue?.name || editBooking?.venue || 'Ristorante',
@@ -1567,44 +1597,40 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
                 } catch {}
                 setStep(1);
               }} style={{
-                height: 54, flexShrink: 0,
+                width: '100%', height: 54,
                 background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)', color: '#fff',
                 border: 'none', borderRadius: 999, fontSize: 15.5, fontWeight: 800, letterSpacing: '.01em',
                 cursor: 'pointer', fontFamily: 'inherit',
                 boxShadow: '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)',
               }}>{isEdit ? 'Salva modifiche' : 'Conferma prenotazione'}</button>
-
               {isEdit && (
                 <button onClick={() => onCancelBooking && onCancelBooking()} style={{
-                  marginTop: 10, height: 52, flexShrink: 0, background: 'transparent', color: '#c0392b',
-                  border: '1.5px solid #ecc9c4', borderRadius: 999, fontSize: 14.5, fontWeight: 700,
+                  width: '100%', marginTop: 9, height: 48, background: 'transparent', color: '#c0392b',
+                  border: '1.5px solid #ecc9c4', borderRadius: 999, fontSize: 14, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>Annulla prenotazione</button>
               )}
             </div>
           </>
         ) : (
-          <div style={{ padding: '20px 0 28px', textAlign: 'center' }}>
+          <div style={{ padding: '20px 20px calc(28px + env(safe-area-inset-bottom, 0px))', textAlign: 'center', overflowY: 'auto' }}>
             <div style={{ width: 64, height: 64, borderRadius: 999, background: __BYUP_DK_X ? 'rgba(20,130,64,.20)' : '#E8F5E9',
               display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0a8a3a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{isEdit ? 'Prenotazione aggiornata' : 'Prenotazione confermata'}</div>
-            <div style={{ fontSize: 14, color: MUTED_X, marginBottom: 22 }}>
-              Ti aspettiamo {date} alle {time} per {people} {people===1?'persona':'persone'}.
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6, color: TEXT_X }}>{isEdit ? 'Prenotazione aggiornata' : 'Prenotazione confermata'}</div>
+            <div style={{ fontSize: 14, color: MUTED_X, marginBottom: 20 }}>
+              Ti aspettiamo {date.toLowerCase()} alle {time} per {people} {people === 1 ? 'persona' : 'persone'}.
             </div>
-            <div style={{ background: BG_X, borderRadius: 14, padding: 16, textAlign: 'left', marginBottom: 18 }}>
+            <div style={{ background: BG_X, borderRadius: 14, padding: 16, textAlign: 'left', marginBottom: 16 }}>
               <RowKV k="Locale" v={venue?.name || editBooking?.venue || 'Ristorante'}/>
               <RowKV k="Data" v={date}/>
               <RowKV k="Orario" v={time}/>
               <RowKV k="Coperti" v={people}/>
               <RowKV k="A nome di" v={name}/>
-              <RowKV k="Telefono" v={phone}/>
               {note && <RowKV k="Note" v={note}/>}
             </div>
-            <div style={{ fontSize: 12, color: MUTED_X, marginBottom: 12 }}>
-              Riceverai un promemoria un'ora prima.
-            </div>
+            <div style={{ fontSize: 12, color: MUTED_X, marginBottom: 12 }}>Riceverai un promemoria un'ora prima.</div>
             <button onClick={() => { onConfirm?.({ date, time, people, name, phone, note }); }} style={{
               width: '100%', height: 50, background: PINK_X, color: '#fff',
               border: 'none', borderRadius: 999, fontSize: 15, fontWeight: 700,

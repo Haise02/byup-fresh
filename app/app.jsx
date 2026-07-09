@@ -1406,6 +1406,7 @@ function HeroIntentCard({ data, photo, moment, onCta }) {
 // Dominant venue card — big photo, name, price, cuisine, inline bookable slots.
 function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slots, badge, premium, onClick, onSlotClick }) {
   const [T] = BK.useByupTheme();
+  if (premium) return <PremiumBigCard {...{ name, cuisine, distance, rating, price, photo, slots, onClick, onSlotClick }}/>;
   return (
     <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
       display: 'block', width: '100%', borderRadius: BK.RADII.card, overflow: 'hidden',
@@ -1484,6 +1485,72 @@ function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slot
             </div>
           </>
         ) : null}
+      </div>
+    </button>
+  );
+}
+
+// Card premium — layout dedicato per i locali Selezione byup: scuro, oro,
+// piatto firma in PNG flottante. Ben distinguibile dalle card normali.
+function PremiumBigCard({ name, cuisine, distance, rating, price, photo, slots, onClick, onSlotClick }) {
+  return (
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      display: 'block', width: '100%', borderRadius: BK.RADII.card, overflow: 'hidden',
+      position: 'relative', border: '1.5px solid rgba(214,172,60,.6)', padding: 0,
+      background: 'linear-gradient(165deg, #231318 0%, #1a0e13 55%, #2b1608 100%)',
+      boxShadow: '0 24px 48px -20px rgba(20,8,4,.65), 0 10px 26px -14px rgba(190,145,40,.4)',
+      fontFamily: BK.TYPE.sans, textAlign: 'left', cursor: 'pointer',
+    }}>
+      <style>{`@keyframes pbcSheen{0%,55%{transform:translateX(-140%) skewX(-16deg)}100%{transform:translateX(280%) skewX(-16deg)}}`}</style>
+      <div style={{ height: 152, position: 'relative' }}>
+        <Photo src={photo} label={name}/>
+        <div style={{ position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg, rgba(20,8,10,.18) 0%, transparent 40%, rgba(26,14,19,.96) 100%)' }}/>
+        <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 5,
+          background: 'linear-gradient(180deg,#ffe27a,#f0c246)', color: '#3d2c00',
+          fontSize: 10, fontWeight: 800, letterSpacing: .6, textTransform: 'uppercase',
+          padding: '5px 11px', borderRadius: 999, boxShadow: '0 8px 18px -6px rgba(0,0,0,.55)' }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#3d2c00"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Selezione byup
+        </div>
+        <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 4,
+          background: 'rgba(20,8,10,.6)', color: '#ffe27a', fontSize: 12, fontWeight: 800,
+          padding: '5px 9px', borderRadius: 999, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffe27a"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          {rating.toFixed(1)}
+        </div>
+        <img src="assets/premium/dish-carbonara.webp" alt="" loading="lazy" style={{
+          position: 'absolute', right: 6, bottom: -30, width: 122, zIndex: 2,
+          filter: 'drop-shadow(0 14px 16px rgba(0,0,0,.55))', pointerEvents: 'none' }}/>
+      </div>
+      <div style={{ position: 'relative', padding: '12px 16px 15px', color: '#fff' }}>
+        <span aria-hidden style={{ position: 'absolute', top: 0, left: 0, width: '34%', height: '100%',
+          background: 'linear-gradient(100deg, transparent, rgba(255,226,122,.08), transparent)',
+          animation: 'pbcSheen 4.2s ease-in-out infinite', pointerEvents: 'none' }}/>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, paddingRight: 108 }}>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.15 }}>{name}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 13.5, color: '#ffe27a', fontWeight: 600, flexShrink: 0 }}>{price}</div>
+        </div>
+        <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.62)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>{cuisine}</span>
+          <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.35)' }}/>
+          <span>{distance}</span>
+          <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.35)' }}/>
+          <span style={{ color: '#ffe27a', fontWeight: 700 }}>⚡ prioritaria</span>
+        </div>
+        {slots && slots.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+            {slots.map((s, i) => (
+              <span key={i} className="bk-press"
+                onClick={(e) => { e.stopPropagation(); BK.haptic.selection(); onSlotClick?.(s); }} style={{
+                height: 34, padding: '0 13px', borderRadius: 999, border: 'none',
+                background: 'linear-gradient(180deg,#ffe27a,#f0c246)', color: '#3d2c00',
+                fontSize: 13, fontWeight: 800, display: 'inline-flex', alignItems: 'center', cursor: 'pointer',
+                boxShadow: '0 8px 18px -8px rgba(240,194,70,.7)',
+              }}>{s.time}{s.last && <span style={{ marginLeft: 5, fontSize: 10, opacity: .75 }}>ultimo</span>}</span>
+            ))}
+          </div>
+        )}
       </div>
     </button>
   );
