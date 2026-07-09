@@ -324,6 +324,7 @@ function PnConnectionStatus({ variant, collapsed = false }) {
               justifyContent: collapsed ? 'center' : 'flex-start',
               gap: collapsed ? 0 : 10,
               padding: collapsed ? '8px' : '9px 10px',
+              margin: '0 0 10px',
               borderRadius: 10, cursor:'pointer',
               background: isOffline ? '#FEE2E2' : '#FEF3C7',
               border: `1px solid ${isOffline ? '#FECACA' : '#FDE68A'}`,

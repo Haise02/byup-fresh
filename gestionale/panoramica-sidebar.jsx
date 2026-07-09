@@ -152,6 +152,11 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         ))}
       </div>
 
+      {/* Stato connessione — event-driven, sopra la plan card: quando compare
+          ruba spazio solo alla nav scrollabile, tutto ciò che sta sotto
+          (piano, Supporto, Impostazioni, Notifiche, profilo) resta immobile. */}
+      {window.PnConnectionStatus && <window.PnConnectionStatus variant="mini" collapsed={collapsed}/>}
+
       {!collapsed && <PnSidebarPlanCard/>}
 
       {/* System actions */}
@@ -165,16 +170,12 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         ))}
       </div>
 
-      {/* Notifiche + stato connessione — vivono qui (l'header è stato eliminato).
-          Il chip connessione è event-driven: non esiste quando è tutto ok,
-          compare (ambra/rosso) solo con problemi. Demo: doppio click sul logo. */}
+      {/* Notifiche — voce di sistema con badge (l'header è stato eliminato). */}
       <div style={{
         display: 'flex', flexDirection: 'column',
-        gap: 4,
         marginBottom: 10,
         position: 'relative',
       }}>
-        {window.PnConnectionStatus && <window.PnConnectionStatus variant="mini" collapsed={collapsed}/>}
         {window.PnNotifBell && <window.PnNotifBell sidebar collapsed={collapsed}/>}
       </div>
 
