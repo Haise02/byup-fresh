@@ -8821,6 +8821,13 @@ function VenuePremium({
   const [qbTime, setQbTime] = useStateV('20:30');
   const [qbPeople, setQbPeople] = useStateV(2);
   const [qbDone, setQbDone] = useStateV(false);
+  // Il menu digitale eredita la veste premium
+  const openMenu = () => {
+    try {
+      sessionStorage.setItem('byup_menu_premium', '1');
+    } catch {}
+    onMenu && onMenu();
+  };
   const cats = Object.keys(PREMIUM_MENU);
   const photos = ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=800&q=75&auto=format&fit=crop'];
   const P = f => `assets/premium/${f}.webp`;
@@ -9195,7 +9202,7 @@ function VenuePremium({
       margin: 0
     }
   }, "Il menu"), /*#__PURE__*/React.createElement("button", {
-    onClick: onMenu,
+    onClick: openMenu,
     style: {
       background: 'none',
       border: 'none',
@@ -9276,10 +9283,10 @@ function VenuePremium({
       style: {
         position: 'absolute',
         left: '50%',
-        top: drink ? 10 : 12,
+        bottom: drink ? 88 : 122,
         transform: 'translateX(-50%)',
         maxWidth: drink ? 84 : 122,
-        maxHeight: drink ? 96 : 106,
+        maxHeight: drink ? 92 : 104,
         filter: 'drop-shadow(0 12px 12px rgba(77,18,46,.25))'
       }
     }), /*#__PURE__*/React.createElement("div", {
@@ -9328,7 +9335,7 @@ function VenuePremium({
         fontSize: 15
       }
     }, price), !drink && /*#__PURE__*/React.createElement("button", {
-      onClick: onMenu,
+      onClick: openMenu,
       style: {
         border: 'none',
         cursor: 'pointer',
@@ -9390,27 +9397,6 @@ function VenuePremium({
       background: 'linear-gradient(180deg, transparent 55%, rgba(15,8,10,.55))'
     }
   }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%,-50%)',
-      width: 34,
-      height: 34,
-      borderRadius: 999,
-      background: 'rgba(255,255,255,.9)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
-    viewBox: "0 0 24 24",
-    fill: INK_P
-  }, /*#__PURE__*/React.createElement("polygon", {
-    points: "8 5 20 12 8 19"
-  }))), /*#__PURE__*/React.createElement("span", {
     style: {
       position: 'absolute',
       left: 9,
@@ -10070,7 +10056,7 @@ function VenuePremium({
     }
   }, "Prenota un tavolo"), /*#__PURE__*/React.createElement("button", {
     className: "bk-press",
-    onClick: onMenu,
+    onClick: openMenu,
     style: {
       flex: 1,
       height: 54,
@@ -11357,6 +11343,17 @@ function LeafletMap({
     };
   }, []);
 
+  // Centra la mappa sul locale selezionato (tray, marker o focus esterno)
+  React.useEffect(() => {
+    if (!mapRef.current || !selectedId) return;
+    const v = venues.find(x => x.id === selectedId);
+    if (!v) return;
+    const z = Math.max(mapRef.current.getZoom(), 15);
+    mapRef.current.flyTo([v.lat, v.lng - 0.0008], z, {
+      duration: 0.8
+    });
+  }, [selectedId]);
+
   // Rebuild markers when venues or selection changes
   React.useEffect(() => {
     if (!mapRef.current || !window.L || !clusterRef.current) return;
@@ -11551,6 +11548,19 @@ function MapScreen({
   const [catFilter, setCatFilter] = React.useState('all');
   const mapControlsRef = React.useRef(null);
   const [searchQ, setSearchQ] = React.useState('');
+
+  // Focus richiesto da un'altra schermata (vetrina → "Indicazioni"):
+  // seleziona il locale e la mappa ci vola sopra.
+  React.useEffect(() => {
+    let nm = null;
+    try {
+      nm = window.__byupMapFocus;
+      window.__byupMapFocus = null;
+    } catch {}
+    if (!nm) return;
+    const v = Object.values(VENUES_BY_CITY).flat().find(x => x.name === nm);
+    if (v) setTimeout(() => setActive(v), 350);
+  }, []);
   const allVenues = React.useMemo(() => Object.values(VENUES_BY_CITY).flat(), []);
   const filteredVenues = React.useMemo(() => catFilter === 'all' ? allVenues : allVenues.filter(v => v.cuisine === catFilter), [catFilter, allVenues]);
   return /*#__PURE__*/React.createElement("div", {
@@ -17739,20 +17749,7 @@ function PremiumBigCard({
     fill: "#ffe27a"
   }, /*#__PURE__*/React.createElement("polygon", {
     points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-  })), rating.toFixed(1)), /*#__PURE__*/React.createElement("img", {
-    src: "assets/premium/dish-carbonara.webp",
-    alt: "",
-    loading: "lazy",
-    style: {
-      position: 'absolute',
-      right: 6,
-      bottom: -30,
-      width: 122,
-      zIndex: 2,
-      filter: 'drop-shadow(0 14px 16px rgba(0,0,0,.55))',
-      pointerEvents: 'none'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
+  })), rating.toFixed(1))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
       padding: '12px 16px 15px',
@@ -17775,8 +17772,7 @@ function PremiumBigCard({
       display: 'flex',
       alignItems: 'baseline',
       justifyContent: 'space-between',
-      gap: 10,
-      paddingRight: 108
+      gap: 10
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -17810,19 +17806,7 @@ function PremiumBigCard({
       borderRadius: 999,
       background: 'rgba(255,255,255,.35)'
     }
-  }), /*#__PURE__*/React.createElement("span", null, distance), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 3,
-      height: 3,
-      borderRadius: 999,
-      background: 'rgba(255,255,255,.35)'
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: '#ffe27a',
-      fontWeight: 700
-    }
-  }, "\u26A1 prioritaria")), slots && slots.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", null, distance)), slots && slots.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 6,
@@ -22612,6 +22596,9 @@ function App({
         sessionStorage.removeItem('byup_menu_from');
       } catch {}
       setQrOpen(false);
+      try {
+        sessionStorage.setItem('byup_menu_premium', '1');
+      } catch {}
       setPage('menu');
     }, 1400);
     return () => clearTimeout(t);
@@ -22810,13 +22797,19 @@ function App({
       onMenu: () => {
         try {
           sessionStorage.setItem('byup_menu_from', 'venue');
+          sessionStorage.setItem('byup_menu_premium', activeVenue && activeVenue.premium ? '1' : '0');
         } catch {}
         setPage('menu');
       },
       onBook: () => setBookingOpen(true),
       onHome: resetToHome,
       onProfile: () => setPage('profile'),
-      onMap: () => setPage('map')
+      onMap: () => {
+        try {
+          window.__byupMapFocus = activeVenue && activeVenue.name || null;
+        } catch {}
+        setPage('map');
+      }
     }), BS && /*#__PURE__*/React.createElement(BS, {
       open: bookingOpen,
       venue: activeVenue,
@@ -24360,6 +24353,60 @@ const CTA_DEAD = '#e9cfd8';
 
 // Navigazione verso l'app Home: dentro la SPA usa il router globale
 // (__byupNav, nessun reload); da pagina separata fa deep-link classico.
+// Menu premium (locali Selezione byup): food render PNG al posto delle foto
+// e accenti oro. Attivato da sessionStorage byup_menu_premium = '1'.
+const __menuPremium = () => {
+  try {
+    return sessionStorage.getItem('byup_menu_premium') === '1';
+  } catch {
+    return false;
+  }
+};
+const PREMIUM_RENDERS = [['bruschette', 'dish-bruschette'], ['tagliere', 'dish-tagliere'], ['fritto', 'dish-fritto'], ['carbonara', 'dish-carbonara'], ['risotto', 'dish-risotto'], ['lasagna', 'dish-lasagna'], ['saltimbocca', 'dish-tagliata'], ['tagliata', 'dish-tagliata'], ['branzino', 'dish-branzino'], ['polpo', 'dish-polpo'], ['pollo', 'dish-pollo'], ['insalata', 'dish-insalata'], ['verdure', 'dish-verdure'], ['tiramis', 'dessert-tiramisu'], ['tortino', 'dessert-tortino'], ['spritz', 'drink-spritz'], ['negroni', 'drink-negroni'], ['mojito', 'drink-mojito'], ['vino', 'drink-vino'], ['birra', 'drink-birra'], ['spremuta', 'drink-arancia'], ['cola', 'drink-cola'], ['acqua', 'drink-soda']];
+const __premRender = name => {
+  if (!__menuPremium() || !name) return null;
+  const n = name.toLowerCase();
+  const hit = PREMIUM_RENDERS.find(([k]) => n.includes(k));
+  return hit ? 'assets/premium/' + hit[1] + '.webp' : null;
+};
+const PremFoodImg = ({
+  name,
+  photo,
+  style
+}) => {
+  const pr = __premRender(name);
+  if (pr) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'radial-gradient(120% 100% at 50% 0%, #fffdf8 0%, #f3e8d8 100%)'
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: pr,
+    alt: name,
+    loading: "lazy",
+    style: {
+      width: '80%',
+      height: '80%',
+      objectFit: 'contain',
+      filter: 'drop-shadow(0 8px 10px rgba(77,18,46,.25))',
+      ...(style || {})
+    }
+  }));
+  return photo ? /*#__PURE__*/React.createElement("img", {
+    src: photo,
+    alt: name,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      ...(style || {})
+    }
+  }) : null;
+};
 const __goApp = page => {
   const nav = window.__byupNav;
   if (nav) {
@@ -26738,7 +26785,30 @@ function MenuScreen({
       alignItems: 'flex-end',
       justifyContent: 'space-between'
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, __menuPremium() && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 5,
+      background: 'linear-gradient(180deg,#ffe27a,#f0c246)',
+      color: '#3d2c00',
+      fontSize: 9.5,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      padding: '4px 10px',
+      borderRadius: 999,
+      marginBottom: 6,
+      boxShadow: '0 6px 14px -6px rgba(0,0,0,.4)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "9",
+    height: "9",
+    viewBox: "0 0 24 24",
+    fill: "#3d2c00"
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+  })), "Selezione byup"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 700,
@@ -26918,14 +26988,9 @@ function MenuScreen({
           height: 130,
           position: 'relative'
         }
-      }, d.photo ? /*#__PURE__*/React.createElement("img", {
-        src: d.photo,
-        alt: d.name,
-        style: {
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover'
-        }
+      }, d.photo ? /*#__PURE__*/React.createElement(PremFoodImg, {
+        name: d.name,
+        photo: d.photo
       }) : /*#__PURE__*/React.createElement(DishPhoto, {
         tone: d.tone,
         kind: d.kind,
@@ -27072,14 +27137,9 @@ function MenuScreen({
           height: 130,
           position: 'relative'
         }
-      }, d.photo ? /*#__PURE__*/React.createElement("img", {
-        src: d.photo,
-        alt: d.name,
-        style: {
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover'
-        }
+      }, d.photo ? /*#__PURE__*/React.createElement(PremFoodImg, {
+        name: d.name,
+        photo: d.photo
       }) : /*#__PURE__*/React.createElement(DishPhoto, {
         tone: d.tone,
         kind: d.kind,
@@ -27243,14 +27303,9 @@ function MenuScreen({
           flexShrink: 0,
           position: 'relative'
         }
-      }, d.photo ? /*#__PURE__*/React.createElement("img", {
-        src: d.photo,
-        alt: d.name,
-        style: {
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover'
-        }
+      }, d.photo ? /*#__PURE__*/React.createElement(PremFoodImg, {
+        name: d.name,
+        photo: d.photo
       }) : /*#__PURE__*/React.createElement(DishPhoto, {
         tone: d.tone,
         bestSeller: false,
@@ -30038,14 +30093,9 @@ function DishDetailScreen({
       overflow: 'hidden',
       background: '#eee'
     }
-  }, dish.photo ? /*#__PURE__*/React.createElement("img", {
-    src: dish.photo,
-    alt: dish.name,
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }
+  }, dish.photo ? /*#__PURE__*/React.createElement(PremFoodImg, {
+    name: dish.name,
+    photo: dish.photo
   }) : /*#__PURE__*/React.createElement(DishPhoto, {
     tone: dish.tone,
     bestSeller: false,
@@ -30577,13 +30627,10 @@ function DishDetailScreen({
           overflow: 'hidden',
           position: 'relative'
         }
-      }, d.photo ? /*#__PURE__*/React.createElement("img", {
-        src: d.photo,
-        alt: d.name,
+      }, d.photo ? /*#__PURE__*/React.createElement(PremFoodImg, {
+        name: d.name,
+        photo: d.photo,
         style: {
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
           opacity: inCart ? 0.85 : 1
         }
       }) : /*#__PURE__*/React.createElement(DishPhoto, {

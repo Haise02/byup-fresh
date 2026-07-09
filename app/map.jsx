@@ -421,6 +421,15 @@ function LeafletMap({ venues, selectedId, onVenueSelect, controlsRef }) {
     };
   }, []);
 
+  // Centra la mappa sul locale selezionato (tray, marker o focus esterno)
+  React.useEffect(() => {
+    if (!mapRef.current || !selectedId) return;
+    const v = venues.find(x => x.id === selectedId);
+    if (!v) return;
+    const z = Math.max(mapRef.current.getZoom(), 15);
+    mapRef.current.flyTo([v.lat, v.lng - 0.0008], z, { duration: 0.8 });
+  }, [selectedId]);
+
   // Rebuild markers when venues or selection changes
   React.useEffect(() => {
     if (!mapRef.current || !window.L || !clusterRef.current) return;
@@ -548,6 +557,16 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   const [catFilter, setCatFilter]   = React.useState('all');
   const mapControlsRef              = React.useRef(null);
   const [searchQ, setSearchQ]       = React.useState('');
+
+  // Focus richiesto da un'altra schermata (vetrina → "Indicazioni"):
+  // seleziona il locale e la mappa ci vola sopra.
+  React.useEffect(() => {
+    let nm = null;
+    try { nm = window.__byupMapFocus; window.__byupMapFocus = null; } catch {}
+    if (!nm) return;
+    const v = Object.values(VENUES_BY_CITY).flat().find(x => x.name === nm);
+    if (v) setTimeout(() => setActive(v), 350);
+  }, []);
 
   const allVenues = React.useMemo(
     () => Object.values(VENUES_BY_CITY).flat(),

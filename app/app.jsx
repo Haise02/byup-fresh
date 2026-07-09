@@ -1519,15 +1519,12 @@ function PremiumBigCard({ name, cuisine, distance, rating, price, photo, slots, 
           <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffe27a"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           {rating.toFixed(1)}
         </div>
-        <img src="assets/premium/dish-carbonara.webp" alt="" loading="lazy" style={{
-          position: 'absolute', right: 6, bottom: -30, width: 122, zIndex: 2,
-          filter: 'drop-shadow(0 14px 16px rgba(0,0,0,.55))', pointerEvents: 'none' }}/>
       </div>
       <div style={{ position: 'relative', padding: '12px 16px 15px', color: '#fff' }}>
         <span aria-hidden style={{ position: 'absolute', top: 0, left: 0, width: '34%', height: '100%',
           background: 'linear-gradient(100deg, transparent, rgba(255,226,122,.08), transparent)',
           animation: 'pbcSheen 4.2s ease-in-out infinite', pointerEvents: 'none' }}/>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, paddingRight: 108 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ fontFamily: BK.TYPE.display, fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.15 }}>{name}</div>
           <div style={{ fontFamily: BK.TYPE.display, fontSize: 13.5, color: '#ffe27a', fontWeight: 600, flexShrink: 0 }}>{price}</div>
         </div>
@@ -1535,8 +1532,6 @@ function PremiumBigCard({ name, cuisine, distance, rating, price, photo, slots, 
           <span>{cuisine}</span>
           <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.35)' }}/>
           <span>{distance}</span>
-          <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.35)' }}/>
-          <span style={{ color: '#ffe27a', fontWeight: 700 }}>⚡ prioritaria</span>
         </div>
         {slots && slots.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
@@ -3615,6 +3610,7 @@ function App({ recoveryArmed = false }) {
     const t = setTimeout(() => {
       try { sessionStorage.removeItem('byup_menu_from'); } catch {}
       setQrOpen(false);
+      try { sessionStorage.setItem('byup_menu_premium', '1'); } catch {}
       setPage('menu');
     }, 1400);
     return () => clearTimeout(t);
@@ -3776,11 +3772,11 @@ function App({ recoveryArmed = false }) {
       <>
         {VS && <VS venue={activeVenue}
           onBack={goBack}
-          onMenu={() => { try { sessionStorage.setItem('byup_menu_from', 'venue'); } catch {} setPage('menu'); }}
+          onMenu={() => { try { sessionStorage.setItem('byup_menu_from', 'venue'); sessionStorage.setItem('byup_menu_premium', activeVenue && activeVenue.premium ? '1' : '0'); } catch {} setPage('menu'); }}
           onBook={() => setBookingOpen(true)}
           onHome={resetToHome}
           onProfile={() => setPage('profile')}
-          onMap={() => setPage('map')}/>}
+          onMap={() => { try { window.__byupMapFocus = (activeVenue && activeVenue.name) || null; } catch {} setPage('map'); }}/>}
         {BS && <BS open={bookingOpen} venue={activeVenue} defaultTime={bookingSlot}
           onClose={() => { setBookingOpen(false); setBookingSlot(null); }}
           onConfirm={() => { setBookingOpen(false); setBookingSlot(null); refreshBooking(); }}/>}

@@ -33,6 +33,37 @@ const CTA_DEAD = '#e9cfd8';
 
 // Navigazione verso l'app Home: dentro la SPA usa il router globale
 // (__byupNav, nessun reload); da pagina separata fa deep-link classico.
+// Menu premium (locali Selezione byup): food render PNG al posto delle foto
+// e accenti oro. Attivato da sessionStorage byup_menu_premium = '1'.
+const __menuPremium = () => { try { return sessionStorage.getItem('byup_menu_premium') === '1'; } catch { return false; } };
+const PREMIUM_RENDERS = [
+  ['bruschette', 'dish-bruschette'], ['tagliere', 'dish-tagliere'], ['fritto', 'dish-fritto'],
+  ['carbonara', 'dish-carbonara'], ['risotto', 'dish-risotto'], ['lasagna', 'dish-lasagna'],
+  ['saltimbocca', 'dish-tagliata'], ['tagliata', 'dish-tagliata'], ['branzino', 'dish-branzino'],
+  ['polpo', 'dish-polpo'], ['pollo', 'dish-pollo'], ['insalata', 'dish-insalata'],
+  ['verdure', 'dish-verdure'], ['tiramis', 'dessert-tiramisu'], ['tortino', 'dessert-tortino'],
+  ['spritz', 'drink-spritz'], ['negroni', 'drink-negroni'], ['mojito', 'drink-mojito'],
+  ['vino', 'drink-vino'], ['birra', 'drink-birra'], ['spremuta', 'drink-arancia'],
+  ['cola', 'drink-cola'], ['acqua', 'drink-soda'],
+];
+const __premRender = (name) => {
+  if (!__menuPremium() || !name) return null;
+  const n = name.toLowerCase();
+  const hit = PREMIUM_RENDERS.find(([k]) => n.includes(k));
+  return hit ? ('assets/premium/' + hit[1] + '.webp') : null;
+};
+const PremFoodImg = ({ name, photo, style }) => {
+  const pr = __premRender(name);
+  if (pr) return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'radial-gradient(120% 100% at 50% 0%, #fffdf8 0%, #f3e8d8 100%)' }}>
+      <img src={pr} alt={name} loading="lazy" style={{ width: '80%', height: '80%', objectFit: 'contain',
+        filter: 'drop-shadow(0 8px 10px rgba(77,18,46,.25))', ...(style || {}) }}/>
+    </div>
+  );
+  return photo ? <img src={photo} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', ...(style || {}) }}/> : null;
+};
+
 const __goApp = (page) => {
   const nav = window.__byupNav;
   if (nav) {
@@ -949,6 +980,14 @@ function MenuScreen({ state, setState, goTo }) {
             <div style={{ position: 'absolute', left: 18, right: 18, bottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                 <div>
+                  {__menuPremium() && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'linear-gradient(180deg,#ffe27a,#f0c246)',
+                      color: '#3d2c00', fontSize: 9.5, fontWeight: 800, letterSpacing: .6, textTransform: 'uppercase',
+                      padding: '4px 10px', borderRadius: 999, marginBottom: 6, boxShadow: '0 6px 14px -6px rgba(0,0,0,.4)' }}>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="#3d2c00"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      Selezione byup
+                    </div>
+                  )}
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Menu</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: -0.4, lineHeight: 1.1 }}>Al Settembrini</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
@@ -1033,7 +1072,7 @@ function MenuScreen({ state, setState, goTo }) {
                     }}>
                       <div style={{ height: 130, position: 'relative' }}>
                         {d.photo ? (
-                          <img src={d.photo} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                          <PremFoodImg name={d.name} photo={d.photo}/>
                         ) : (
                           <DishPhoto tone={d.tone} kind={d.kind} hideBadge label={d.name.split(' ')[0].toLowerCase()}/>
                         )}
@@ -1108,7 +1147,7 @@ function MenuScreen({ state, setState, goTo }) {
                     }}>
                       <div style={{ height: 130, position: 'relative' }}>
                         {d.photo ? (
-                          <img src={d.photo} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                          <PremFoodImg name={d.name} photo={d.photo}/>
                         ) : (
                           <DishPhoto tone={d.tone} kind={d.kind} hideBadge label={d.name.split(' ')[0].toLowerCase()}/>
                         )}
@@ -1190,7 +1229,7 @@ function MenuScreen({ state, setState, goTo }) {
                       {/* Immagine a sinistra — riempie tutta l'altezza della card */}
                       <div style={{ width: 130, height: '100%', borderRadius: 14, overflow: 'hidden', background: '#eee', flexShrink: 0, position: 'relative' }}>
                         {d.photo ? (
-                          <img src={d.photo} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                          <PremFoodImg name={d.name} photo={d.photo}/>
                         ) : (
                           <DishPhoto tone={d.tone} bestSeller={false} kind={d.kind} hideBadge label={d.name.split(' ')[0].toLowerCase()}/>
                         )}
@@ -2611,7 +2650,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
         {/* Hero photo */}
         <div style={{ width: '100%', height: 320, position: 'relative', overflow: 'hidden', background: '#eee' }}>
           {dish.photo ? (
-            <img src={dish.photo} alt={dish.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+            <PremFoodImg name={dish.name} photo={dish.photo}/>
           ) : (
             <DishPhoto tone={dish.tone} bestSeller={false} kind={dish.kind} hideBadge label={dish.name.split(' ')[0].toLowerCase()}/>
           )}
@@ -2853,7 +2892,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                     }}>
                       <div style={{ height: 90, overflow: 'hidden', position: 'relative' }}>
                         {d.photo ? (
-                          <img src={d.photo} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: inCart ? 0.85 : 1 }}/>
+                          <PremFoodImg name={d.name} photo={d.photo} style={{ opacity: inCart ? 0.85 : 1 }}/>
                         ) : (
                           <DishPhoto tone={d.tone} kind={d.kind} hideBadge label={d.name.split(' ')[0].toLowerCase()}/>
                         )}

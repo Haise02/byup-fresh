@@ -716,6 +716,8 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
   const [qbTime, setQbTime] = useStateV('20:30');
   const [qbPeople, setQbPeople] = useStateV(2);
   const [qbDone, setQbDone] = useStateV(false);
+  // Il menu digitale eredita la veste premium
+  const openMenu = () => { try { sessionStorage.setItem('byup_menu_premium', '1'); } catch {} onMenu && onMenu(); };
   const cats = Object.keys(PREMIUM_MENU);
   const photos = [
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=75&auto=format&fit=crop',
@@ -872,7 +874,7 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
         <div style={{ padding: '22px 22px 0' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
             <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 21, margin: 0 }}>Il menu</h2>
-            <button onClick={onMenu} style={{ background: 'none', border: 'none', color: '#E32459',
+            <button onClick={openMenu} style={{ background: 'none', border: 'none', color: '#E32459',
               fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', padding: 4 }}>Menu completo →</button>
           </div>
         </div>
@@ -895,12 +897,13 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
                 background: 'radial-gradient(120% 90% at 50% 0%, #fffdf8 0%, #f3e8d8 100%)',
                 border: '1px solid rgba(28,15,21,.07)', boxShadow: '0 18px 36px -20px rgba(77,18,46,.4)',
                 animation: `vpzIn .35s ${i * 55}ms ease both` }}>
+                {/* Ombra fissa + piatto ANCORATO AL BASSO sull'ombra: tutti allineati */}
                 <div aria-hidden style={{ position: 'absolute', left: '50%', top: drink ? 96 : 108, transform: 'translateX(-50%)',
                   width: '62%', height: 14, borderRadius: '50%',
                   background: 'radial-gradient(closest-side, rgba(77,18,46,.22), transparent 75%)' }}/>
                 <img src={P(img)} alt={title} loading="lazy" style={{ position: 'absolute', left: '50%',
-                  top: drink ? 10 : 12, transform: 'translateX(-50%)',
-                  maxWidth: drink ? 84 : 122, maxHeight: drink ? 96 : 106,
+                  bottom: drink ? 88 : 122, transform: 'translateX(-50%)',
+                  maxWidth: drink ? 84 : 122, maxHeight: drink ? 92 : 104,
                   filter: 'drop-shadow(0 12px 12px rgba(77,18,46,.25))' }}/>
                 {/* gradiente scuro in basso, stile reel */}
                 <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: drink ? '46%' : '52%',
@@ -911,7 +914,7 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: drink ? 6 : 9 }}>
                     <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 15 }}>{price}</span>
                     {!drink && (
-                      <button onClick={onMenu} style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      <button onClick={openMenu} style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                         background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff', fontSize: 11,
                         fontWeight: 800, padding: '6px 12px', borderRadius: 999,
                         boxShadow: '0 8px 16px -8px rgba(227,36,89,.8)' }}>Ordina</button>
@@ -934,11 +937,6 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
               <img src={`assets/reels/reel-${n}.webp`} alt="" loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 55%, rgba(15,8,10,.55))' }}/>
-              <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-                width: 34, height: 34, borderRadius: 999, background: 'rgba(255,255,255,.9)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill={INK_P}><polygon points="8 5 20 12 8 19"/></svg>
-              </span>
               <span style={{ position: 'absolute', left: 9, bottom: 8, color: '#fff', fontSize: 10.5, fontWeight: 800 }}>0:{20 + n * 7}</span>
             </div>
           ))}
@@ -1132,7 +1130,7 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
           cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15, color: '#fff',
           background: 'linear-gradient(122deg,#E32459,#B81C47)',
           boxShadow: '0 18px 36px -12px rgba(227,36,89,.6), inset 0 1px 0 rgba(255,255,255,.3)' }}>Prenota un tavolo</button>
-        <button className="bk-press" onClick={onMenu} style={{ flex: 1, height: 54, borderRadius: 999,
+        <button className="bk-press" onClick={openMenu} style={{ flex: 1, height: 54, borderRadius: 999,
           cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15, color: INK_P,
           background: 'rgba(255,255,255,.92)', border: '1.5px solid rgba(28,15,21,.12)',
           backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
