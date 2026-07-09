@@ -90,8 +90,10 @@ function PnSidebar({ active = 'panoramica', onNav }) {
     }}>
       <GlassMeshSubstrate/>
 
-      {/* Logo row */}
-      <div style={{
+      {/* Logo row — doppio click: demo stati connessione (online → instabile → offline) */}
+      <div
+        onDoubleClick={() => window.dispatchEvent(new Event('byup-conn-demo'))}
+        style={{
         display: 'flex', alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'space-between',
         paddingBottom: 24, flexShrink: 0, position: 'relative',
@@ -164,17 +166,16 @@ function PnSidebar({ active = 'panoramica', onNav }) {
       </div>
 
       {/* Notifiche + stato connessione — vivono qui (l'header è stato eliminato).
-          Notifiche = voce di sistema con badge; il wifi è un mini-indicatore
-          quasi invisibile finché la connessione è ok. */}
+          Il chip connessione è event-driven: non esiste quando è tutto ok,
+          compare (ambra/rosso) solo con problemi. Demo: doppio click sul logo. */}
       <div style={{
-        display: 'flex', alignItems: 'center',
-        flexDirection: collapsed ? 'column' : 'row',
-        gap: collapsed ? 2 : 4,
+        display: 'flex', flexDirection: 'column',
+        gap: 4,
         marginBottom: 10,
         position: 'relative',
       }}>
+        {window.PnConnectionStatus && <window.PnConnectionStatus variant="mini" collapsed={collapsed}/>}
         {window.PnNotifBell && <window.PnNotifBell sidebar collapsed={collapsed}/>}
-        {window.PnConnectionStatus && <window.PnConnectionStatus variant="mini"/>}
       </div>
 
       {/* Profile */}

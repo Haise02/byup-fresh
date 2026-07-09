@@ -243,7 +243,7 @@ function PnWifiIcon({ color = '#9CA3AF', size = 15, weak = false }) {
   );
 }
 
-function PnConnectionStatus({ variant }) {
+function PnConnectionStatus({ variant, collapsed = false }) {
   const getStatus = () => {
     if (!navigator.onLine) return 'offline';
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -253,7 +253,13 @@ function PnConnectionStatus({ variant }) {
   };
 
   const [realStatus, setRealStatus] = React.useState(getStatus);
-  const [demoOverride, setDemoOverride] = React.useState(null);
+  // Stato demo: seedabile via ?conn=instabile|offline per demo/link diretti.
+  const [demoOverride, setDemoOverride] = React.useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('conn');
+      return ['online', 'instabile', 'offline'].includes(p) ? p : null;
+    } catch (e) { return null; }
+  });
   const [showRestored, setShowRestored] = React.useState(false);
 
   React.useEffect(() => {
@@ -278,6 +284,13 @@ function PnConnectionStatus({ variant }) {
     };
   }, []);
 
+  // Trigger demo esterno: doppio click sul logo byup in sidebar cicla gli stati.
+  React.useEffect(() => {
+    const cycle = () => handleDemoClick();
+    window.addEventListener('byup-conn-demo', cycle);
+    return () => window.removeEventListener('byup-conn-demo', cycle);
+  }, [realStatus]);
+
   const DEMO_CYCLE = ['online', 'instabile', 'offline'];
   const handleDemoClick = () => {
     setDemoOverride(prev => {
@@ -299,32 +312,39 @@ function PnConnectionStatus({ variant }) {
   return (
     <>
       {variant === 'mini' ? (
-        // Mini: icona compatta con pallino di stato (verde/ambra/rosso) —
-        // leggibile a colpo d'occhio senza rubare spazio alla sidebar.
-        <span
-          onClick={handleDemoClick}
-          title={isOffline ? 'Connessione assente' : isUnstable ? 'Connessione instabile' : 'Connessione ok'}
-          style={{
-            display:'inline-flex', alignItems:'center', justifyContent:'center',
-            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-            cursor:'pointer', position:'relative',
-            transition:'background .15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-        >
-          <PnWifiIcon
-            color={isUnstable ? '#D97706' : isOffline ? '#DC2626' : PN.MUTED}
-            size={15}
-            weak={isUnstable}
-          />
-          <span style={{
-            position:'absolute', right: 3, bottom: 3,
-            width: 7, height: 7, borderRadius: '50%',
-            background: isOffline ? '#DC2626' : isUnstable ? '#F59E0B' : '#22C55E',
-            border: '1.5px solid #fff',
-          }}/>
-        </span>
+        // Event-driven: quando la connessione è ok non esiste. Compare solo
+        // con un problema — chip ambra (instabile) o rosso (offline) in fondo
+        // alla sidebar, dove di solito non c'è nulla: impossibile non notarlo.
+        (isUnstable || isOffline) ? (
+          <div
+            onClick={handleDemoClick}
+            title={isOffline ? 'Connessione assente' : 'Connessione instabile'}
+            style={{
+              display:'flex', alignItems:'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: collapsed ? 0 : 10,
+              padding: collapsed ? '8px' : '9px 10px',
+              borderRadius: 10, cursor:'pointer',
+              background: isOffline ? '#FEE2E2' : '#FEF3C7',
+              border: `1px solid ${isOffline ? '#FECACA' : '#FDE68A'}`,
+              animation: 'pn-banner-in .22s ease-out',
+            }}>
+            <PnWifiIcon
+              color={isOffline ? '#DC2626' : '#D97706'}
+              size={16}
+              weak={isUnstable}
+            />
+            {!collapsed && (
+              <span style={{
+                fontSize: 15, fontWeight: 700,
+                color: isOffline ? '#B91C1C' : '#92400E',
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+              }}>
+                {isOffline ? 'Connessione assente' : 'Connessione instabile'}
+              </span>
+            )}
+          </div>
+        ) : null
       ) : (
       <div
         onClick={handleDemoClick}
