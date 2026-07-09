@@ -98,6 +98,26 @@ function ImpSalaTavoli() {
   const [importModal, setImportModal] = React.useState(false);
   const [isLoadingSala, setIsLoadingSala] = React.useState(false);
 
+  // Moduli attivi (sincronizzati con localStorage condiviso tra pagine —
+  // helper byupRead/WriteModules in panoramica-sidebar.jsx). Il toggle qui è
+  // speculare a quello della tab Operazioni: stessa chiave, stessa notifica.
+  const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true});
+  const [modules, setModules] = React.useState(readMods);
+  React.useEffect(() => {
+    const update = () => setModules(readMods());
+    window.addEventListener('byup-modules-change', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('byup-modules-change', update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
+  const setModule = (key, val) => {
+    const next = {...readMods(), [key]: val};
+    setModules(next);
+    if (window.byupWriteModules) window.byupWriteModules(next);
+  };
+
   const active = sale.find(s => s.id === activeId);
   const tavoli = active?.tavoli || [];
   const furniture = active?.furniture || [];
@@ -377,7 +397,9 @@ function ImpSalaTavoli() {
   else if (sortBy === 'coperti-desc') visible.sort((a,b) => b.coperti - a.coperti);
   const isFiltering = search || filterStato !== 'all';
 
-  return (
+  // Configurazione sale/tavoli — renderizzata solo quando il modulo Sala è
+  // attivo (vedi return in fondo): da spenta resta solo la card di riattivazione.
+  const configGrid = (
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr', gap: 16}}>
       <aside>
         <ImpCard aurora title="Le tue sale" sub="Crea sale separate per gestire spazi diversi" action={
@@ -856,6 +878,129 @@ function ImpSalaTavoli() {
       />}
       {toast && <UndoToast toast={toast} onUndo={() => { toast.undo?.(); setToast(null); }} onClose={() => setToast(null)}/>}
     </div>
+  );
+
+  return (
+    <div>
+      {/* Toggle moduli Sala / Prenotazioni — speculari alla tab Operazioni
+          (stessa chiave localStorage, stesso pattern pill + ImpToggle).
+          Qui vive la "riattivazione" promessa dall'onboarding solo-asporto. */}
+      <ImpModuloSalaCard active={modules.sala} onToggle={(v) => setModule('sala', v)}/>
+      <ImpModuloPrenotazioniCard active={modules.prenotazioni} onToggle={(v) => setModule('prenotazioni', v)}/>
+
+      {modules.sala && configGrid}
+    </div>
+  );
+}
+
+// ─── Card moduli — toggle di (ri)attivazione Sala e Prenotazioni ───
+// Pattern identico alle sezioni della tab Operazioni (impostazioni-menu-cucina):
+// header con pill Attivo/Non attivo + ImpToggle, body con empty-state tratteggiato
+// quando il modulo è spento. Le impostazioni complete restano in Operazioni.
+
+function ImpModuleStatusPill({ active }) {
+  return (
+    <span style={{
+      fontSize: 13, fontWeight: 700, letterSpacing: 0.4,
+      padding: '3px 9px', borderRadius: 999,
+      background: active ? PN.GREEN_SOFT : '#F4F5F7',
+      color: active ? PN.GREEN : PN.MUTED,
+      textTransform: 'uppercase',
+    }}>
+      {active ? 'Attivo' : 'Non attivo'}
+    </span>
+  );
+}
+
+function ImpModuloSalaCard({ active, onToggle }) {
+  return (
+    <ImpCard
+      title="Sala e tavoli"
+      sub={active
+        ? "Il modulo è attivo: la sezione Sala è visibile nel gestionale"
+        : "Attiva per configurare sale, tavoli e mappa del locale"
+      }
+      action={
+        <div style={{display:'flex', alignItems:'center', gap: 10}}>
+          <ImpModuleStatusPill active={active}/>
+          <ImpToggle checked={active} onChange={() => onToggle(!active)}/>
+        </div>
+      }
+    >
+      {active ? (
+        <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>
+          Configura qui sotto sale, tavoli e mappa. Il flusso ordini in cucina e il coperto
+          si impostano nella tab <strong style={{color: PN.TEXT}}>Operazioni</strong>.
+        </div>
+      ) : (
+        <div style={{
+          padding: '28px 20px', textAlign:'center',
+          background:'#FAFBFC', borderRadius: 11,
+          border: `1px dashed ${PN.BORDER}`,
+        }}>
+          <div style={{
+            width: 48, height: 48, margin:'0 auto 10px',
+            borderRadius: 12, background: PN.WHITE,
+            border: `1px solid ${PN.BORDER}`,
+            display:'grid', placeItems:'center', color: PN.MUTED,
+          }}>
+            <PnI.Plate size={22}/>
+          </div>
+          <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Sala disattivata</div>
+          <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 360, margin:'0 auto 14px'}}>
+            Attivando la sala potrai configurare sale, tavoli e mappa del locale.
+            La sezione Sala tornerà visibile nel gestionale.
+          </div>
+          <ImpButton variant="primary" onClick={() => onToggle(true)}>Attiva sala</ImpButton>
+        </div>
+      )}
+    </ImpCard>
+  );
+}
+
+function ImpModuloPrenotazioniCard({ active, onToggle }) {
+  return (
+    <ImpCard
+      title="Prenotazioni"
+      sub={active
+        ? "Il modulo è attivo: la sezione Prenotazioni è visibile nel gestionale"
+        : "Attiva per gestire agenda, slot orari e conferme"
+      }
+      action={
+        <div style={{display:'flex', alignItems:'center', gap: 10}}>
+          <ImpModuleStatusPill active={active}/>
+          <ImpToggle checked={active} onChange={() => onToggle(!active)}/>
+        </div>
+      }
+    >
+      {active ? (
+        <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>
+          Durata media dei servizi e regole di prenotazione si impostano nella
+          tab <strong style={{color: PN.TEXT}}>Operazioni</strong>.
+        </div>
+      ) : (
+        <div style={{
+          padding: '28px 20px', textAlign:'center',
+          background:'#FAFBFC', borderRadius: 11,
+          border: `1px dashed ${PN.BORDER}`,
+        }}>
+          <div style={{
+            width: 48, height: 48, margin:'0 auto 10px',
+            borderRadius: 12, background: PN.WHITE,
+            border: `1px solid ${PN.BORDER}`,
+            display:'grid', placeItems:'center', color: PN.MUTED,
+          }}>
+            {(BuIcons.calendar||BuIcons.user)({size: 22, color:'currentColor'})}
+          </div>
+          <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Prenotazioni disattivate</div>
+          <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 360, margin:'0 auto 14px'}}>
+            Attivando le prenotazioni potrai gestire agenda, slot orari e conferme dei clienti.
+            La sezione Prenotazioni tornerà visibile nel gestionale.
+          </div>
+          <ImpButton variant="primary" onClick={() => onToggle(true)}>Attiva prenotazioni</ImpButton>
+        </div>
+      )}
+    </ImpCard>
   );
 }
 

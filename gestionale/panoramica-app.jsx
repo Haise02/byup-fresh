@@ -25,10 +25,45 @@ const DEFAULT_LAYOUT = [
   { id: 'recensioni',        size: { w: 1, h: 2 } },  // tall: lista recensioni
 ];
 
+// Layout persistito: le modifiche salvate (Fine / "Salva ed esci") e i drag
+// fuori dall'edit mode sopravvivono al cambio pagina via localStorage.
+const PN_LAYOUT_KEY = 'byup_dashboard_layout';
+function pnLoadLayout() {
+  try {
+    const raw = localStorage.getItem(PN_LAYOUT_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length && arr.every(w => w && w.id && w.size)) return arr;
+    }
+  } catch (e) {}
+  return DEFAULT_LAYOUT;
+}
+function pnSaveLayout(ws) {
+  try { localStorage.setItem(PN_LAYOUT_KEY, JSON.stringify(ws)); } catch (e) {}
+}
+
 function PnApp() {
   const [editMode, setEditMode] = React.useState(false);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [widgets, setWidgets] = React.useState(DEFAULT_LAYOUT);
+  const [widgets, setWidgets] = React.useState(pnLoadLayout);
+  // Snapshot del layout all'ingresso in edit mode: serve per "Annulla modifiche".
+  const savedRef = React.useRef(null);
+  // URL in attesa quando si tenta di cambiare schermata con modifiche non salvate.
+  const [navConfirm, setNavConfirm] = React.useState(null);
+
+  const dirty = editMode && savedRef.current !== null
+    && JSON.stringify(savedRef.current) !== JSON.stringify(widgets);
+
+  const toggleEdit = () => {
+    if (!editMode) {
+      savedRef.current = widgets;
+      setEditMode(true);
+    } else {
+      pnSaveLayout(widgets); // "Fine" = salva
+      savedRef.current = null;
+      setEditMode(false);
+    }
+  };
 
   const remove = (id) => setWidgets(ws => ws.filter(w => w.id !== id));
   const add = (id) => {
@@ -37,8 +72,8 @@ function PnApp() {
     setWidgets(ws => [...ws, { id, size: def.defaultSize }]);
     setDrawerOpen(false);
   };
-  // Resize handler: PnWidgetShell ha già forzato la regola (max 2 in 1 dim,
-  // mai 2×2). Qui mi limito ad applicare. fixedSize è gestito dalla shell.
+  // Resize handler: PnWidgetShell ha già forzato la regola (un solo raddoppio
+  // per direzione rispetto alla base). Qui mi limito ad applicare.
   const resize = (id, newSize) => {
     setWidgets(ws => ws.map(w => w.id === id ? { ...w, size: newSize } : w));
   };
@@ -50,16 +85,25 @@ function PnApp() {
       const next = [...ws];
       const [moved] = next.splice(fromIdx, 1);
       next.splice(toIdx, 0, moved);
+      // Drag fuori da Personalizza: la nuova disposizione si salva subito.
+      // In edit mode invece si salva solo con Fine / "Salva ed esci".
+      if (!editMode) pnSaveLayout(next);
       return next;
     });
   };
 
+  // Navigazione dalla sidebar: se ci sono modifiche non salvate, chiedi prima.
+  const handleNav = (id) => {
+    const url = PN_PAGES[id];
+    if (!url) return;
+    if (dirty) { setNavConfirm(url); return; }
+    window.location.href = url;
+  };
+
   return (
     <div style={{display:'flex', flex:1, minHeight:0}}>
-      <PnSidebar/>
+      <PnSidebar onNav={handleNav}/>
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
-        <PnHeader/>
-
         <div className="pn-scroll" style={{
           flex: 1, overflow: 'auto',
           padding: '16px 28px 24px',
@@ -68,7 +112,7 @@ function PnApp() {
         }}>
           <PnPageActions
             editMode={editMode}
-            onToggleEdit={() => setEditMode(e => !e)}
+            onToggleEdit={toggleEdit}
             onAddWidget={() => setDrawerOpen(true)}
           />
 
@@ -114,6 +158,69 @@ function PnApp() {
           currentIds={widgets.map(w => w.id)}
           onAdd={add}
         />
+
+        {/* Popup modifiche non salvate — appare cambiando schermata in edit mode */}
+        {navConfirm && (
+          <div onClick={() => setNavConfirm(null)} style={{
+            position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+            backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+            display:'grid', placeItems:'center', zIndex: 300, padding: 20,
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              ...PN.GLASS_STRONG,
+              borderRadius: 20, width: 420, maxWidth:'100%',
+              padding: '22px 22px 20px',
+              display:'flex', flexDirection:'column', gap: 16,
+            }}>
+              <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                  display:'grid', placeItems:'center',
+                }}>
+                  <Icon name="pencil" size={18}/>
+                </div>
+                <div style={{flex: 1}}>
+                  <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Modifiche non salvate</div>
+                  <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+                    Hai personalizzato la dashboard. Vuoi salvare le modifiche prima di uscire?
+                  </div>
+                </div>
+              </div>
+              <div style={{display:'flex', gap: 8}}>
+                <button
+                  onClick={() => { window.location.href = navConfirm; }}
+                  style={{
+                    flex: 1, padding: '11px 14px', borderRadius: 999,
+                    background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+                    border: '1px solid rgba(15,17,21,0.12)',
+                    fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                  }}>
+                  Annulla modifiche
+                </button>
+                <button
+                  onClick={() => { pnSaveLayout(widgets); window.location.href = navConfirm; }}
+                  style={{
+                    flex: 1, padding: '11px 14px', borderRadius: 999,
+                    background: PN.BTN_DARK, color: PN.WHITE,
+                    border: '1px solid rgba(0,0,0,0.32)',
+                    fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  }}>
+                  Salva ed esci
+                </button>
+              </div>
+              <button
+                onClick={() => setNavConfirm(null)}
+                style={{
+                  border:'none', background:'transparent', padding: 0,
+                  fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                  cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Continua a modificare
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

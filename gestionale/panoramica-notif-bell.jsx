@@ -57,7 +57,7 @@ const PN_NOTIFICATIONS = [
   },
 ];
 
-function PnNotifBell() {
+function PnNotifBell({ dropUp = false }) {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState(PN_NOTIFICATIONS);
   const ref = React.useRef(null);
@@ -101,10 +101,15 @@ function PnNotifBell() {
         // dietro creano vibrancy. blur(24px) saturate(180%) è il setting massimo
         // del nostro design system (vedi PN.GLASS_MENU).
         <div style={{
-          position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+          position: 'absolute',
+          // dropUp: usato dalla sidebar (in basso) — il menu si apre verso l'alto,
+          // agganciato a sinistra così si distende sopra il contenuto principale.
+          ...(dropUp
+            ? { bottom: 'calc(100% + 8px)', left: 0 }
+            : { top: 'calc(100% + 8px)', right: 0 }),
           width: 380,
           ...PN.GLASS_MENU,
-          zIndex: 50,
+          zIndex: 120,
           overflow: 'hidden',
           fontFamily: 'inherit',
         }}>

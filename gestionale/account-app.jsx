@@ -22,7 +22,6 @@ function AccountApp() {
       <PnSidebar active="account"/>
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
-        <PnPageHeader title="Profilo" subtitle="Gestisci il tuo profilo personale e l'abbonamento." icon="people-user-circle"/>
         <PnUnderlineTabs tabs={tabs} active={tab} onChange={setTab}/>
 
         <div className="pn-scroll" style={{

@@ -4,7 +4,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   const [search, setSearch] = React.useState('');
   const [room, setRoom] = React.useState('Sala principale');
   // Filtri multi-select: Set di chiavi KPI. Tutte attive default; vuoto = mostra tutti.
-  const [filters, setFilters] = React.useState(() => new Set(['Liberi', 'Prenotati', 'Occupati', 'Da pulire']));
+  const [filters, setFilters] = React.useState(() => new Set(['Tutti']));
   // Filtro alert: quando attivo, mostra solo le card con triangolo rosso (>20' di ritardo o da pulire)
   const [alertOnly, setAlertOnly] = React.useState(false);
   const [view, setView] = React.useState(tweaks.defaultView || 'mappa');
@@ -38,16 +38,17 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   const activeStates = new Set();
   filters.forEach(k => { if (filterToState[k]) activeStates.add(filterToState[k]); });
 
-  // Match function: stato (multi-select) + ricerca + alert filter
+  // Match function: stato (multi-select) + ricerca + alert filter (aggiuntivo)
   const matchTavolo = (t) => {
+    const matchState = activeStates.size === 0 || activeStates.has(t.state);
+    if (!matchState) return false;
     if (alertOnly && !(window.hasAlertTriangle && window.hasAlertTriangle(t))) return false;
-    const matchState = alertOnly || activeStates.size === 0 || activeStates.has(t.state);
-    if (!search.trim()) return matchState;
+    if (!search.trim()) return true;
     const q = search.toLowerCase();
     const inId = String(t.id).includes(q);
     const inParty = (t.party || '').toLowerCase().includes(q);
     const inNext = (t.nextReservation?.name || '').toLowerCase().includes(q);
-    return matchState && (inId || inParty || inNext);
+    return inId || inParty || inNext;
   };
 
   // Senza useMemo: legge window.SALA_TAVOLI fresco ad ogni render (la memo era stale su cambio stato).
@@ -69,7 +70,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
     return (a.id || 0) - (b.id || 0);
   });
   // Mappa: tutti i tavoli sempre visibili (la disposizione fisica è significativa); i non-match sono dimmed
-  const isFiltering = activeStates.size > 0 || search.trim();
+  const isFiltering = activeStates.size > 0 || !!search.trim() || alertOnly;
   const dimmedIds = isFiltering
     ? new Set(tavoliBase.filter(t => !matchTavolo(t)).map(t => t.id))
     : new Set();
@@ -77,6 +78,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   // KPI cards = filtri multi-select della pagina. Click su una card aggiunge/toglie
   // il suo stato dal filtro attivo; più card insieme = unione (OR) degli stati.
   const kpiCards = [
+    {key: 'Tutti',     label: 'Tutti',     value: counts.Tutti,        accent: '#0F1115', soft: '#F3F4F6', icon: 'M4 6h16M4 12h16M4 18h16'},
     {key: 'Occupati',  label: 'Occupati',  value: counts.Occupati,     accent: '#172554', soft: '#DBEAFE', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75'},
     {key: 'Prenotati', label: 'Prenotati', value: counts.Prenotati,    accent: '#7C3AED', soft: '#EDE9FE', icon: 'M3 4h18v18H3z M3 10h18 M8 2v4 M16 2v4'},
     {key: 'Da pulire', label: 'Da pulire', value: counts['Da pulire'], accent: '#D97706', soft: '#FFFBEB', icon: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'},
@@ -92,9 +94,12 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   const fillLabel = useCoperti ? 'coperti'   : 'tavoli';
   const occPct = fillDen ? Math.round((fillNum / fillDen) * 100) : 0;
   const toggleFilter = (key) => setFilters(prev => {
+    if (key === 'Tutti') return new Set(['Tutti']);
     const next = new Set(prev);
+    next.delete('Tutti');
     if (next.has(key)) next.delete(key); else next.add(key);
-    if (next.size === 0) return new Set(['Occupati', 'Prenotati', 'Liberi', 'Da pulire']);
+    if (next.size === 0) return new Set(['Tutti']);
+    if (['Occupati','Prenotati','Da pulire','Liberi'].every(k => next.has(k))) return new Set(['Tutti']);
     return next;
   });
 
@@ -279,24 +284,29 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             }}>{alertCount}</span>
           </button>
 
-          {/* Reset parziale — appare solo quando filtro parziale attivo */}
-          {filters.size > 0 && filters.size < kpiCards.length && (
-            <button
-              onClick={() => setFilters(new Set(['Liberi','Prenotati','Occupati','Da pulire']))}
-              style={{
-                padding: '4px 8px', borderRadius: 6, height: 28,
-                background: 'transparent', color: PN.MUTED,
-                border: `1px dashed #D1D5DB`,
-                fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                flexShrink: 0, transition: 'color 150ms, border-color 150ms',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.borderColor = '#9CA3AF'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.borderColor = '#D1D5DB'; }}
-            >
-              <PnI.X size={9} color="currentColor"/> Tutti
-            </button>
-          )}
+          {/* CTA conti aperti → Contabilità con filtro "da saldare" attivo */}
+          <button
+            onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
+            title="Apri la Contabilità con il filtro Da saldare attivo"
+            style={{
+              display:'inline-flex', alignItems:'center', gap: 6,
+              padding: '4px 10px', borderRadius: 8, height: 28,
+              background: PN.WHITE, color: PN.TEXT,
+              border: `1px solid ${PN.BORDER}`,
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              flexShrink: 0, transition: 'background 150ms, border-color 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+            Vai a conti aperti
+            <span style={{
+              fontSize: 12, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+              padding: '1px 7px', borderRadius: 999,
+              background: '#FEF3C7', color: '#92400E',
+            }}>€{(typeof SALA_CONTI_APERTI !== 'undefined' ? SALA_CONTI_APERTI : []).reduce((s, c) => s + (c.daSaldare || 0), 0).toFixed(0)}</span>
+          </button>
 
           <span style={{flex: 1}}/>
 

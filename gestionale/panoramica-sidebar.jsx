@@ -10,6 +10,7 @@ const PN_PAGES = {
   contabilita: 'byup Contabilita.html',
   impostazioni: 'byup Impostazioni.html',
   supporto: 'byup Supporto.html',
+  profilo: 'byup Profilo.html',
 };
 
 // Moduli abilitati — condivisi via localStorage tra pagine
@@ -82,7 +83,10 @@ function PnSidebar({ active = 'panoramica', onNav }) {
       height: '100%',
       position: 'relative',
       transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1), padding 220ms cubic-bezier(0.4, 0, 0.2, 1)',
-      overflow: 'hidden',
+      // overflow visibile + zIndex: il menu notifiche (in basso) deve potersi
+      // distendere sopra il contenuto principale senza essere clippato.
+      overflow: 'visible',
+      zIndex: 60,
     }}>
       <GlassMeshSubstrate/>
 
@@ -159,8 +163,27 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         ))}
       </div>
 
+      {/* Notifiche + stato connessione — vivono qui (l'header è stato eliminato).
+          Il wifi è informazione secondaria: resta appena percettibile. */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        flexDirection: collapsed ? 'column' : 'row',
+        gap: collapsed ? 6 : 8,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '0 0 8px' : '0 8px 8px',
+        position: 'relative',
+      }}>
+        {window.PnNotifBell && <window.PnNotifBell dropUp/>}
+        {!collapsed && <span style={{flex: 1}}/>}
+        {window.PnConnectionStatus && (
+          <span style={{opacity: 0.4, display:'inline-flex'}} title="Stato connessione">
+            <window.PnConnectionStatus/>
+          </span>
+        )}
+      </div>
+
       {/* Profile */}
-      <button title="Profilo" onClick={() => { window.location.href = 'byup Profilo.html'; }} style={{
+      <button title="Profilo" onClick={() => navTo('profilo')} style={{
         display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
         justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '10px 0' : '10px 8px',

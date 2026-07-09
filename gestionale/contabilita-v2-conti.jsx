@@ -4,12 +4,16 @@
 const CONTI_MOCK = [
   // ─── Non saldati ───────────────────────────────────────────────
   { id:'cnt-1',  idOrdine:'#2511-0042', dataOra:'2025-11-15 19:42', tavolo:'Tav.4',  cliente:'Mario Rossi',       riferimento:{nome:'Mario Rossi', tipo:'byup'}, liberatoOre:5.5,  totaleConto:85.00,   daSaldare:45.00,  stato:'non_saldato', note:'Ospiti morbidi', operatore:'Marco',
+    ordini: [{id:'o1-1',nome:'Tagliere salumi',qty:2,prezzo:13.00},{id:'o1-2',nome:'Pasta amatriciana',qty:2,prezzo:14.00},{id:'o1-3',nome:'Birra artigianale',qty:3,prezzo:6.00},{id:'o1-4',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o1-5',nome:'Tiramisù',qty:1,prezzo:6.50},{id:'o1-6',nome:'Caffè',qty:1,prezzo:1.50}],
     payments: [{id:'p1a', method:'contanti', amount:40.00, ora:'2025-11-15 19:55', scontrinoNum:'SC-2511-0042-1'}] },
   { id:'cnt-3',  idOrdine:'#2511-0040', dataOra:'2025-11-15 22:30', tavolo:'Asporto', canale:'asporto', cliente:'Simone De Luca',    liberatoOre:2.0,  totaleConto:64.50,   daSaldare:64.50,  stato:'non_saldato', note:'Allergeni richiesti', operatore:'Marco',
+    ordini: [{id:'o3-1',nome:'Pizza Margherita',qty:1,prezzo:9.00},{id:'o3-2',nome:'Pizza Diavola',qty:1,prezzo:11.00},{id:'o3-3',nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{id:'o3-4',nome:'Birra media',qty:2,prezzo:5.50},{id:'o3-5',nome:'Supplì (4pz)',qty:1,prezzo:7.00},{id:'o3-6',nome:'Tiramisù',qty:1,prezzo:5.50},{id:'o3-7',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o3-8',nome:'Patatine fritte',qty:1,prezzo:4.00}],
     payments: [] },
   { id:'cnt-11', idOrdine:'#2511-0036', dataOra:'2025-11-14 21:45', tavolo:'Tav.10', cliente:'Roberto Esposito',  liberatoOre:18,   totaleConto:128.00,  daSaldare:128.00, stato:'non_saldato', note:'Cliente uscito senza pagare', operatore:'Giulia',
+    ordini: [{id:'o11-1',nome:'Antipasto misto',qty:3,prezzo:11.00},{id:'o11-2',nome:'Risotto ai funghi',qty:2,prezzo:16.00},{id:'o11-3',nome:'Tagliata di manzo',qty:1,prezzo:24.00},{id:'o11-4',nome:'Vino al bicchiere',qty:3,prezzo:7.00},{id:'o11-5',nome:'Acqua minerale',qty:2,prezzo:3.00},{id:'o11-6',nome:'Caffè',qty:3,prezzo:1.50},{id:'o11-7',nome:'Dolce del giorno',qty:1,prezzo:7.50}],
     payments: [] },
   { id:'cnt-20', idOrdine:'#2511-0046', dataOra:'2025-11-16 13:45', tavolo:'Tav.12', cliente:'Compleanno Russo (8 ospiti)', riferimento:{nome:'Giulia Russo', tipo:'prenotazione'}, liberatoOre:0.5, totaleConto:312.00, daSaldare:42.00, stato:'non_saldato', note:'Conto diviso', operatore:'Marco',
+    ordini: [{id:'o20-1',nome:'Coperto',qty:8,prezzo:2.00},{id:'o20-2',nome:'Antipasto misto',qty:8,prezzo:12.00},{id:'o20-3',nome:'Pasta alla norma',qty:4,prezzo:13.00},{id:'o20-4',nome:'Pasta al ragù',qty:4,prezzo:13.00},{id:'o20-5',nome:'Secondo del giorno',qty:2,prezzo:22.00},{id:'o20-6',nome:'Bottiglia vino rosso',qty:2,prezzo:18.00},{id:'o20-7',nome:'Acqua minerale',qty:8,prezzo:2.00}],
     payments: [
       {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1'},
       {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2'},
@@ -200,21 +204,33 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
 
         {/* Body 2 colonne */}
         <div style={{flex:1, display:'flex', minHeight:0, overflow:'hidden'}}>
-          {/* Sinistra: voce conto */}
+          {/* Sinistra: piatti ordinati */}
           <div style={{flex:'1.5 1 0', display:'flex', flexDirection:'column', borderRight:'1px solid #F0F2F5', minWidth:0, overflowY:'auto', padding:'16px 20px'}}>
-            <div style={{fontSize:12, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:10}}>Voci</div>
-            <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderRadius:10, background:'#F9FAFB', border:'1.5px solid #E5E7EB'}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15, fontWeight:700, color:'#0F1115'}}>Saldo conto</div>
-                {hasPartial && (
-                  <div style={{fontSize:13.5, color:'#9CA3AF', marginTop:2}}>
-                    Tot. €{conto.totaleConto.toFixed(2)} · già incassato €{(conto.totaleConto - conto.daSaldare).toFixed(2)}
-                  </div>
-                )}
+            <div style={{fontSize:12, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:10}}>Piatti ordinati</div>
+            {hasPartial && (
+              <div style={{fontSize:13, color:'#9CA3AF', marginBottom:10, padding:'8px 12px', background:'#F9FAFB', borderRadius:8, border:'1px solid #E5E7EB'}}>
+                Tot. €{conto.totaleConto.toFixed(2)} · già incassato €{(conto.totaleConto - conto.daSaldare).toFixed(2)}
               </div>
-              <div style={{fontSize:18, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>
-                €{total.toFixed(2)}
-              </div>
+            )}
+            <div style={{display:'flex', flexDirection:'column', gap:3}}>
+              {(conto.ordini || []).map(item => (
+                <div key={item.id} style={{display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, background:'#F9FAFB'}}>
+                  <span style={{fontSize:13, fontWeight:700, color:'#9CA3AF', minWidth:22, flexShrink:0}}>{item.qty}×</span>
+                  <span style={{flex:1, fontSize:14, fontWeight:600, color:'#0F1115'}}>{item.nome}</span>
+                  <span style={{fontSize:14, fontWeight:700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
+                </div>
+              ))}
+              {!conto.ordini && (
+                <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderRadius:10, background:'#F9FAFB', border:'1.5px solid #E5E7EB'}}>
+                  <div style={{flex:1, fontSize:15, fontWeight:700, color:'#0F1115'}}>Saldo conto</div>
+                  <div style={{fontSize:18, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
+                </div>
+              )}
+            </div>
+            <div style={{height:1, background:'#E5E7EB', margin:'12px 0'}}/>
+            <div style={{display:'flex', justifyContent:'space-between', padding:'2px 12px', fontSize:14, fontWeight:700, color:'#0F1115'}}>
+              <span>Totale ordine</span>
+              <span style={{fontVariantNumeric:'tabular-nums'}}>€{conto.totaleConto.toFixed(2)}</span>
             </div>
           </div>
 
@@ -935,26 +951,24 @@ function ContConti({ filter = 'all' }) {
           <div style={{borderRadius: C.R_SM, overflow:'hidden', border:`1px solid ${PN.BORDER}`}}>
             <div style={{
               display:'grid',
-              gridTemplateColumns:'0.7fr 1.1fr 0.7fr 0.7fr 0.9fr 0.8fr 110px',
+              gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px',
               padding:'10px 14px', background: C.TH_BG,
               fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT,
               textTransform:'uppercase', letterSpacing: 0.5,
             }}>
-              <span>Origine</span>
-              <span>Riferimento</span>
               <span
                 onClick={toggleSortData}
                 style={{
                   cursor:'pointer', userSelect:'none',
                   alignSelf:'stretch',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+                  display:'flex', alignItems:'center', gap:4,
                   margin:'-10px 0', padding:'10px 8px',
                   background: sortData ? C.SURF_ALT : 'transparent',
                   color: sortData ? PN.TEXT : C.TH_TEXT,
                   transition:'background .15s',
                 }}
                 title="Ordina per data">
-                Apertura
+                Data
                 <span style={{
                   display:'inline-flex',
                   opacity: sortData ? 1 : 0.35,
@@ -962,7 +976,9 @@ function ContConti({ filter = 'all' }) {
                   transition:'transform .15s',
                 }}><PnI.ChevronDown size={11}/></span>
               </span>
-              <span style={{textAlign:'center'}}>Ora chiusura</span>
+              <span>Ora</span>
+              <span>Origine</span>
+              <span>Riferimento</span>
               <span style={{textAlign:'center'}}>Totale</span>
               <span style={{textAlign:'center'}}>Da saldare</span>
               <span/>
@@ -975,7 +991,7 @@ function ContConti({ filter = 'all' }) {
                     onClick={() => setExpandedId(isExpanded ? null : conto.id)}
                     style={{
                       display:'grid',
-                      gridTemplateColumns:'0.7fr 1.1fr 0.7fr 0.7fr 0.9fr 0.8fr 110px',
+                      gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px',
                       padding:'12px 14px', alignItems:'center',
                       fontSize: C.T_SM, color: PN.TEXT,
                       borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
@@ -984,6 +1000,20 @@ function ContConti({ filter = 'all' }) {
                       cursor:'pointer',
                       transition:'background 0.12s, box-shadow 0.12s',
                     }}>
+                    <span style={{
+                      fontWeight: 500,
+                      color: sortData ? PN.TEXT : PN.MUTED,
+                      fontVariantNumeric:'tabular-nums',
+                      alignSelf:'stretch',
+                      display:'flex', alignItems:'center',
+                      margin:'-12px 0', padding:'12px 8px',
+                      background: sortData ? C.SURF_ALT : 'transparent',
+                      transition:'background .15s',
+                    }}>{fmtData(conto.dataOra)}</span>
+                    <span style={{
+                      fontWeight: 500, color: PN.MUTED, fontSize: C.T_XS,
+                      fontVariantNumeric:'tabular-nums',
+                    }}>{oraChiusura(conto)}</span>
                     <span style={{fontWeight:600, color: PN.TEXT, display:'inline-flex', alignItems:'center', gap:6}}>
                       <span style={{
                         display:'inline-flex',
@@ -1006,20 +1036,6 @@ function ContConti({ filter = 'all' }) {
                         <span style={{color: PN.MUTED}}>—</span>
                       )}
                     </span>
-                    <span style={{
-                      fontWeight: 500,
-                      color: sortData ? PN.TEXT : PN.MUTED,
-                      fontVariantNumeric:'tabular-nums',
-                      alignSelf:'stretch',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      margin:'-12px 0', padding:'12px 8px',
-                      background: sortData ? C.SURF_ALT : 'transparent',
-                      transition:'background .15s',
-                    }}>{fmtData(conto.dataOra)}</span>
-                    <span style={{
-                      fontWeight: 500, color: PN.MUTED, fontSize: C.T_XS,
-                      fontVariantNumeric:'tabular-nums', textAlign:'center',
-                    }}>{oraChiusura(conto)}</span>
                     <span style={{fontWeight:800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, textAlign:'center'}}>
                       €{conto.totaleConto.toFixed(2)}
                     </span>
@@ -1180,7 +1196,7 @@ function ContConti({ filter = 'all' }) {
               party: modalPagamento.cliente || '',
               coperti: 1,
               guests: [],
-              ordini: [{ id: modalPagamento.id + '-1', nome: 'Saldo conto', prezzo: modalPagamento.daSaldare, qty: 1 }],
+              ordini: modalPagamento.ordini || [{ id: modalPagamento.id + '-1', nome: 'Saldo conto', prezzo: modalPagamento.daSaldare, qty: 1 }],
             },
             onClose: () => setModalPagamento(null),
             onConfirm: () => setSaldati(s => new Set([...s, modalPagamento.id])),

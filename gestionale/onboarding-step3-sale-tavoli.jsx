@@ -1,9 +1,19 @@
 // Step 3 — Sale e tavoli (vivace).
+// Prima di tutto l'utente sceglie la modalità di servizio ("Ho sale e tavoli"
+// vs "Faccio solo asporto"): la configurazione sale/tavoli appare solo nel
+// primo caso; il secondo disattiva i moduli Sala e Prenotazioni del gestionale
+// (localStorage condiviso — stesso formato di byupWriteModules in
+// panoramica-sidebar.jsx, che qui non è caricato).
 // Hero illustration sala vista dall'alto, accent color cycling per ogni sala,
 // table dots con numero, counter animato, micro-copy posti.
 
 function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
   const totalTables = rooms.reduce((sum, r) => sum + r.tables, 0);
+
+  // Modalità di servizio — nessuna preselezione: finché l'utente non sceglie,
+  // la configurazione resta nascosta e Continua è disabilitato.
+  // 'tavoli' → flusso sale/tavoli · 'asporto' → info box, moduli off.
+  const [mode, setMode] = React.useState(null);
 
   const addRoom = () => {
     setRooms(rs => [...rs, {
@@ -17,6 +27,25 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
   const updateRoom = (id, key, val) =>
     setRooms(rs => rs.map(r => r.id === id ? {...r, [key]: val} : r));
 
+  // Continua: scrive i flag moduli condivisi col gestionale prima di procedere.
+  // Scrittura diretta su localStorage + evento 'byup-modules-change': stesso
+  // formato/notifica di byupWriteModules (panoramica-sidebar.jsx), non caricato
+  // in questa pagina.
+  const handleContinue = () => {
+    const flags = mode === 'asporto'
+      ? {sala: false, prenotazioni: false}
+      : {sala: true, prenotazioni: true};
+    try {
+      localStorage.setItem('byup_modules_enabled', JSON.stringify(flags));
+      window.dispatchEvent(new Event('byup-modules-change'));
+    } catch(e) {}
+    onNext();
+  };
+
+  const canContinue =
+    mode === 'asporto' ||
+    (mode === 'tavoli' && rooms.length > 0 && totalTables > 0);
+
   return (
     <div style={{
       padding: '40px 48px 64px',
@@ -26,7 +55,9 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
       <div style={{maxWidth: 880, margin: '0 auto'}}>
 
         {/* Hero — illustrazione + copy. Layout flex per integrare sala-illustration
-            (planimetria astratta) col headline. */}
+            (planimetria astratta) col headline. Il copy segue la modalità: prima
+            è una domanda ("Come lavora il tuo locale?"), poi — scelto "Ho sale e
+            tavoli" — torna il titolo del flusso di configurazione. */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 24,
           marginBottom: 32,
@@ -44,17 +75,43 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
               fontSize: 34, fontWeight: 600, lineHeight: 1.2,
               letterSpacing: '-0.02em', margin: '0 0 8px', color: ONB.TEXT,
             }}>
-              Crea sale, tavoli e QR Code.
+              {mode === 'tavoli' ? 'Crea sale, tavoli e QR Code.' : 'Come lavora il tuo locale?'}
             </h1>
             <p style={{
               fontSize: 18, fontWeight: 400, lineHeight: 1.4,
               color: ONB.MUTED, margin: 0, maxWidth: 540,
             }}>
-              Aggiungi le sale del locale e quanti tavoli ospitano: ogni tavolo avrà 4 coperti, potrai modificarli in seguito.
-              Verrà generato un QR Code per ogni tavolo, stampali e applicali!
+              {mode === 'tavoli'
+                ? <>Aggiungi le sale del locale e quanti tavoli ospitano: ogni tavolo avrà 4 coperti, potrai modificarli in seguito.
+                    Verrà generato un QR Code per ogni tavolo, stampali e applicali!</>
+                : <>Scegli la modalità più adatta al tuo servizio: potrai cambiarla in qualsiasi momento dalle Impostazioni.</>}
             </p>
           </div>
         </div>
+
+        {/* Scelta modalità — due radio card grandi affiancate */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
+          marginBottom: 24,
+        }}>
+          <ServiceModeCard
+            selected={mode === 'tavoli'}
+            icon="place-table"
+            title="Ho sale e tavoli"
+            desc="Ideale per i locali con servizio al tavolo: ristoranti, pizzerie, pub e cocktail bar."
+            onSelect={() => setMode('tavoli')}
+          />
+          <ServiceModeCard
+            selected={mode === 'asporto'}
+            icon="commerce-bag"
+            title="Faccio solo asporto"
+            desc="Ideale per chi lavora senza servizio al tavolo: pizzerie d'asporto, food truck e dark kitchen."
+            onSelect={() => setMode('asporto')}
+          />
+        </div>
+
+        {/* Configurazione sale/tavoli — solo per "Ho sale e tavoli" */}
+        {mode === 'tavoli' && <>
 
         {/* Summary strip */}
         <div style={{
@@ -103,6 +160,11 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
           Aggiungi sala
         </button>
 
+        </>}
+
+        {/* Solo asporto — info box calmo al posto della configurazione */}
+        {mode === 'asporto' && <AsportoInfoBox/>}
+
         {/* Footer */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -113,7 +175,7 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
             <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
             Indietro
           </SecondaryCta>
-          <PrimaryCta onClick={onNext} disabled={rooms.length === 0 || totalTables === 0}>
+          <PrimaryCta onClick={handleContinue} disabled={!canContinue}>
             Continua
             <OnbIcon.ArrowRight size={14} color="#fff"/>
           </PrimaryCta>
@@ -134,6 +196,119 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
           transform-origin: center center;
         }
       `}</style>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ServiceModeCard — radio card grande per la scelta della modalità di servizio.
+// Stesso idioma selected delle radio card del regime fiscale (step 2):
+// BRAND_TINT + border brand al 30% quando selezionata, bianco + hairline
+// altrimenti. Indicatore check circolare top-right (niente radio nativo:
+// la card intera è il target).
+// ─────────────────────────────────────────────────────────────────────────
+
+function ServiceModeCard({selected, icon, title, desc, onSelect}) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onSelect}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'relative',
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14,
+        padding: '24px 24px 26px',
+        background: selected ? ONB.BRAND_TINT : '#fff',
+        border: `1px solid ${selected
+          ? 'rgba(255, 90, 95, 0.30)'
+          : hover ? 'rgba(15, 17, 21, 0.24)' : 'rgba(15, 17, 21, 0.08)'}`,
+        borderRadius: 12,
+        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        boxShadow: selected
+          ? '0 4px 16px rgba(255, 90, 95, 0.08)'
+          : '0 1px 0 rgba(15, 17, 21, 0.04)',
+        transition: 'all 150ms ease-out',
+      }}
+    >
+      {/* Indicatore selezione — check circolare, pattern dei selettori card */}
+      <span aria-hidden="true" style={{
+        position: 'absolute', top: 18, right: 18,
+        width: 22, height: 22, borderRadius: 999,
+        background: selected ? ONB.BRAND : '#fff',
+        border: selected ? 'none' : '1px solid rgba(15, 17, 21, 0.16)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 150ms ease-out',
+      }}>
+        {selected && <OnbIcon.Check size={11}/>}
+      </span>
+
+      {/* Icona — sistema Icon (panoramica-sf-icons, caricato in questa pagina) */}
+      <span style={{
+        width: 48, height: 48, borderRadius: 12,
+        background: selected ? ONB.BRAND_SOFT : ONB.BG,
+        color: selected ? ONB.BRAND_DARK : ONB.MUTED,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 150ms ease-out',
+      }}>
+        <Icon name={icon} size={24}/>
+      </span>
+
+      <span style={{display: 'block'}}>
+        <span style={{
+          display: 'block', fontSize: 19, fontWeight: 600,
+          color: ONB.TEXT, letterSpacing: '-0.01em', lineHeight: 1.3,
+        }}>
+          {title}
+        </span>
+        <span style={{
+          display: 'block', fontSize: 15, fontWeight: 400,
+          color: ONB.MUTED, lineHeight: 1.45, marginTop: 4,
+        }}>
+          {desc}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// AsportoInfoBox — sostituisce la configurazione sale quando l'utente sceglie
+// "Faccio solo asporto". Tono calmo e rassicurante: spiega cosa sparisce dal
+// gestionale e come riattivarlo (nessun allarme, è una scelta reversibile).
+// ─────────────────────────────────────────────────────────────────────────
+
+function AsportoInfoBox() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 16,
+      padding: '20px 22px',
+      background: '#fff',
+      border: '1px solid rgba(15, 17, 21, 0.08)',
+      borderRadius: 12,
+      boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04)',
+    }}>
+      <span style={{
+        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+        background: ONB.BG, color: ONB.MUTED,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name="commerce-bag" size={20}/>
+      </span>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT, lineHeight: 1.4}}>
+          Nessuna sala da configurare
+        </div>
+        <div style={{
+          fontSize: 15, fontWeight: 400, color: ONB.MUTED,
+          lineHeight: 1.5, marginTop: 4,
+        }}>
+          Le sezioni Sala, Tavoli e Prenotazioni non compariranno nel gestionale:
+          l'interfaccia resterà essenziale, pensata per il banco e l'asporto.
+          Potrai riattivarle in qualsiasi momento da{' '}
+          <strong style={{color: ONB.TEXT, fontWeight: 600}}>Impostazioni → Sala e tavoli</strong>.
+        </div>
+      </div>
     </div>
   );
 }

@@ -33,8 +33,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   const [salaToast, setSalaToast]   = React.useState(null);    // { ticketId, courseLabel } per pulse
   const [readyTickets, setReadyTickets] = React.useState([]);
   const [prontiCollapsed, setProntiCollapsed] = React.useState(true);
-  const [draggingId, setDraggingId] = React.useState(null);
-  const [dragOverId, setDragOverId] = React.useState(null);
 
   // Stato ticket
   const [tickets, setTickets] = React.useState(() => [
@@ -195,37 +193,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     setReadyTickets(prev => [...done, ...prev]);
   }, [tickets]);
 
-  function reorderInColumn(dragId, targetId, isLeft) {
-    if (dragId === targetId) return;
-    setTickets(prev => {
-      const match = isLeft
-        ? t => !t.items.some(i => i.state === 'doing')
-        : t => t.items.some(i => i.state === 'doing');
-      const col = prev.filter(match);
-      const di = col.findIndex(t => t.id === dragId);
-      const ti = col.findIndex(t => t.id === targetId);
-      if (di === -1 || ti === -1) return prev;
-      const reordered = [...col];
-      const [dragged] = reordered.splice(di, 1);
-      reordered.splice(ti, 0, dragged);
-      let idx = 0;
-      return prev.map(t => match(t) ? reordered[idx++] : t);
-    });
-  }
-
-  function reorderReady(dragId, targetId) {
-    if (dragId === targetId) return;
-    setReadyTickets(prev => {
-      const di = prev.findIndex(t => t.id === dragId);
-      const ti = prev.findIndex(t => t.id === targetId);
-      if (di === -1 || ti === -1) return prev;
-      const reordered = [...prev];
-      const [dragged] = reordered.splice(di, 1);
-      reordered.splice(ti, 0, dragged);
-      return reordered;
-    });
-  }
-
   function revertReadyItem(ticketId, itemIdx) {
     const ticket = readyTickets.find(t => t.id === ticketId);
     if (!ticket) return;
@@ -337,12 +304,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
-                dragging={draggingId === t.id}
-                dragOver={dragOverId === t.id}
-                onDragStart={() => setDraggingId(t.id)}
-                onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
-                onDragEnter={() => { if (draggingId && draggingId !== t.id) setDragOverId(t.id); }}
-                onDrop={() => { reorderInColumn(draggingId, t.id, true); setDragOverId(null); }}
               />
             ))}
           </KdsColumn>
@@ -357,12 +318,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
-                dragging={draggingId === t.id}
-                dragOver={dragOverId === t.id}
-                onDragStart={() => setDraggingId(t.id)}
-                onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
-                onDragEnter={() => { if (draggingId && draggingId !== t.id) setDragOverId(t.id); }}
-                onDrop={() => { reorderInColumn(draggingId, t.id, false); setDragOverId(null); }}
               />
             ))}
           </KdsColumn>
@@ -376,12 +331,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
         onToggle={() => setProntiCollapsed(c => !c)}
         onRevertItem={revertReadyItem}
         onRevertCard={revertReadyCard}
-        draggingId={draggingId}
-        dragOverId={dragOverId}
-        onDragStart={setDraggingId}
-        onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
-        onDragEnterCard={(id) => { if (draggingId && draggingId !== id) setDragOverId(id); }}
-        onDropCard={(targetId) => { reorderReady(draggingId, targetId); setDragOverId(null); }}
       />
 
       {confirmCancel && (
@@ -429,8 +378,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
 }
 
 // ─── Pronti panel ────────────────────────────────────────────
-function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard,
-  draggingId, dragOverId, onDragStart, onDragEnd, onDragEnterCard, onDropCard }) {
+function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard }) {
   // Pannello Pronti — light come la board, accento verde menta
   const darkPanel = {
     background: `
@@ -488,12 +436,6 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
             ticket={ticket}
             onRevertItem={(idx) => onRevertItem(ticket.id, idx)}
             onRevertCard={() => onRevertCard(ticket.id)}
-            dragging={draggingId === ticket.id}
-            dragOver={dragOverId === ticket.id}
-            onDragStart={() => onDragStart(ticket.id)}
-            onDragEnd={onDragEnd}
-            onDragEnter={() => onDragEnterCard(ticket.id)}
-            onDrop={() => onDropCard(ticket.id)}
           />
         ))}
       </div>
@@ -501,27 +443,18 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
   );
 }
 
-function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver, onDragStart, onDragEnd, onDragEnter, onDrop }) {
+function KdsProntiCard({ ticket, onRevertItem, onRevertCard }) {
   return (
     <div
-      draggable={true}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragEnter={onDragEnter}
-      onDragOver={e => e.preventDefault()}
-      onDrop={e => { e.preventDefault(); onDrop && onDrop(); }}
       style={{
         background: PN.WHITE,
         borderRadius: 16,
         border: 'none',
         overflow: 'hidden',
-        opacity: dragging ? 0.4 : 1,
-        cursor: 'grab',
         boxShadow: [
-          dragOver ? 'inset 0 0 0 1px rgba(220, 38, 38, 0.45)' : 'inset 0 0 0 1px rgba(16, 185, 129, 0.28)',
+          'inset 0 0 0 1px rgba(16, 185, 129, 0.28)',
           '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
         ].join(', '),
-        transition: 'opacity 0.15s, box-shadow 0.15s',
       }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
@@ -539,7 +472,8 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
             </div>
           )}
         </div>
-        <button onClick={onRevertCard} style={{
+        {/* Ritorno esplicito: tutto il ticket torna in preparazione */}
+        <button onClick={onRevertCard} title="Riporta il ticket in preparazione" style={{
           padding: '6px 10px', borderRadius: 999, flexShrink: 0,
           background: 'rgba(15, 17, 21, 0.04)',
           border: 'none', boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
@@ -547,7 +481,7 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
           fontSize: 12, fontWeight: 700,
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}>
-          <RevertArrowIcon/> Riporta tutti
+          <RevertArrowIcon/> In preparazione
         </button>
       </div>
       {ticket.items.map((it, i) => (
@@ -555,17 +489,9 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
           display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
           borderTop: i > 0 ? '1px solid rgba(15, 17, 21, 0.05)' : 'none',
         }}>
-          <button onClick={() => onRevertItem(i)} style={{
-            width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-            background: 'transparent',
-            border: 'none', boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.12)',
-            color: KDS_CL.mut, cursor: 'pointer',
-            display: 'grid', placeItems: 'center',
-          }}>
-            <RevertArrowIcon/>
-          </button>
           <span style={{flex: 1, fontSize: 15, fontWeight: 500, color: KDS_CL.mut, textDecoration: 'line-through'}}>{it.name}</span>
           {it.qty > 1 && <span style={{fontSize: 13, fontWeight: 700, color: KDS_CL.mut}}>×{it.qty}</span>}
+          <KdsStepBtn dir="back" title="Riporta in preparazione" onClick={() => onRevertItem(i)}/>
         </div>
       ))}
     </div>
@@ -609,8 +535,7 @@ function KdsColumn({ title, toneKey = 'ok', count, empty, children }) {
 }
 
 // ─── Ticket ────────────────────────────────────────────────
-function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems,
-  dragging, dragOver, onDragStart, onDragEnd, onDragEnter, onDrop }) {
+function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems }) {
   const age = _ageMin(ticket.time);
   const minToPickup = ticket.pickup ? _toMin(ticket.pickup) - CUC_NOW_MIN : null;
   const u = (ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup
@@ -714,12 +639,6 @@ const lateGlow = u.tone === 'late';
 
   return (
     <div
-      draggable={true}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragEnter={onDragEnter}
-      onDragOver={e => e.preventDefault()}
-      onDrop={e => { e.preventDefault(); onDrop && onDrop(); }}
       style={{
         position: 'relative',
         borderRadius: 20,
@@ -733,21 +652,17 @@ const lateGlow = u.tone === 'late';
         boxShadow: dark ? [
           'inset 0 1px 0 rgba(255, 200, 210, 0.18)',
           innerRing,
-          dragOver ? '0 0 0 3px rgba(255, 90, 95, 0.40)' : null,
           '0 0 0 3px rgba(255, 90, 95, 0.18)',
           '0 14px 36px -10px rgba(80, 10, 30, 0.55)',
           '0 4px 10px -4px rgba(80, 10, 30, 0.30)',
-        ].filter(Boolean).join(', ') : [
+        ].join(', ') : [
           innerRing,
-          dragOver ? '0 0 0 3px rgba(220, 38, 38, 0.30)' : null,
           '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
           '0 1px 2px rgba(15, 17, 21, 0.04)',
-        ].filter(Boolean).join(', '),
+        ].join(', '),
         animation: lateGlow ? 'kdsLatePulse 2.4s ease-in-out infinite' : 'none',
-        opacity: dragging ? 0.4 : 1,
-        cursor: 'grab',
         color: C.text,
-        transition: 'opacity 0.15s, box-shadow 0.2s',
+        transition: 'box-shadow 0.2s',
       }}>
       <style>{`@keyframes kdsLatePulse {
         0%,100% { outline: 3px solid rgba(255,90,95,0.16); outline-offset: 0; }
@@ -781,8 +696,8 @@ const lateGlow = u.tone === 'late';
             </div>
           )}
         </div>
-        {hasTodo && (
-          <button onClick={onPrimary} style={{
+        {isInQueue && hasTodo && (
+          <button onClick={onPrimary} title="Avvia tutti i piatti" style={{
             padding: '7px 12px', borderRadius: 999, flexShrink: 0,
             background: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 17, 21, 0.04)',
             boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.10)'}`,
@@ -793,6 +708,38 @@ const lateGlow = u.tone === 'late';
           onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.14)' : 'rgba(15,17,21,0.08)'; e.currentTarget.style.color = C.text; }}
           onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,17,21,0.04)'; e.currentTarget.style.color = C.sub; }}
           >Inizia tutti</button>
+        )}
+        {!isInQueue && (
+          <React.Fragment>
+            {/* Secondaria: rimette in coda tutti i piatti in cottura */}
+            <button
+              onClick={() => onRevertItems(doingItems.map(it => it.idx))}
+              title="Rimetti in coda"
+              style={{
+                width: 30, height: 30, borderRadius: 999, flexShrink: 0,
+                background: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 17, 21, 0.04)',
+                boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.10)'}`,
+                border: 'none', color: C.sub, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'grid', placeItems: 'center',
+                transition: 'background 150ms ease-out, color 150ms ease-out',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.14)' : 'rgba(15,17,21,0.08)'; e.currentTarget.style.color = C.text; }}
+              onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,17,21,0.04)'; e.currentTarget.style.color = C.sub; }}
+            ><RevertArrowIcon/></button>
+            {/* Primaria: tutto il ticket passa in Pronti */}
+            <button onClick={onMarkReady} title="Sposta il ticket in Pronti" style={{
+              padding: '7px 12px', borderRadius: 999, flexShrink: 0,
+              background: dark ? 'rgba(52, 211, 153, 0.16)' : 'rgba(16, 185, 129, 0.10)',
+              boxShadow: 'inset 0 0 0 1px rgba(16, 185, 129, 0.45)',
+              border: 'none', color: dark ? '#6EE7B7' : '#059669',
+              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5,
+              transition: 'background 150ms ease-out',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(52,211,153,0.24)' : 'rgba(16,185,129,0.16)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(52,211,153,0.16)' : 'rgba(16,185,129,0.10)'; }}
+            >Tutto pronto <ForwardArrowIcon/></button>
+          </React.Fragment>
         )}
         {/* Tempo — accento traslucido, il segnale d'urgenza */}
         <div style={{
@@ -835,16 +782,8 @@ const lateGlow = u.tone === 'late';
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
               borderTop: `1px solid ${C.hair}`,
             }}>
-              <button onClick={() => onRevertItems([it.idx])} style={{
-                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                background: 'transparent',
-                border: 'none', boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 17, 21, 0.12)'}`,
-                color: C.mut, cursor: 'pointer',
-                display: 'grid', placeItems: 'center', marginLeft: -4,
-              }}>
-                <RevertArrowIcon/>
-              </button>
               <span style={{flex:1, fontSize: 16, fontWeight: 500, color: C.mut, textDecoration: 'line-through'}}>{it.name}</span>
+              <KdsStepBtn dir="back" dark={dark} title="Riporta in preparazione" onClick={() => onRevertItems([it.idx])}/>
             </div>
           ))}
         </div>
@@ -937,7 +876,7 @@ const lateGlow = u.tone === 'late';
 // ─── Item row ───────────────────────────────────────────────
 function KdsItemRow({ item, onBump, onRevert, dark = false, disabled = false, selected = false, inSelectionMode = false }) {
   const [hover, setHover] = React.useState(false);
-  const [hoverRevert, setHoverRevert] = React.useState(false);
+  const [hoverBtn, setHoverBtn] = React.useState(false); // hover sulle frecce: sospende il feedback della riga
   const C = dark ? KDS_C : KDS_CL;
   const noteLower = (item.note || '').toLowerCase();
   const isRemove = !item.allergen && noteLower.startsWith('senza ');
@@ -957,34 +896,13 @@ function KdsItemRow({ item, onBump, onRevert, dark = false, disabled = false, se
         cursor: disabled ? 'not-allowed' : 'pointer',
         background: selected
           ? 'rgba(16, 185, 129, 0.10)'
-          : (hover && !hoverRevert && !disabled ? (dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 17, 21, 0.03)') : 'transparent'),
+          : (hover && !hoverBtn && !disabled ? (dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 17, 21, 0.03)') : 'transparent'),
         boxShadow: selected ? `inset 0 0 0 1px rgba(16, 185, 129, ${dark ? 0.35 : 0.32})` : 'none',
         opacity: disabled ? 0.4 : 1,
         borderTop: `1px solid ${C.hair}`,
         transition: 'background 0.12s',
       }}
     >
-      {/* Revert arrow — sinistra, azione secondaria */}
-      {onRevert && (
-        <button
-          onClick={e => { e.stopPropagation(); onRevert(); }}
-          onMouseEnter={() => setHoverRevert(true)}
-          onMouseLeave={() => setHoverRevert(false)}
-          onTouchStart={() => setHoverRevert(true)}
-          onTouchEnd={() => setHoverRevert(false)}
-          style={{
-            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: hoverRevert ? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,17,21,0.06)') : 'transparent',
-            border: 'none', boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.12)'}`,
-            color: hover || hoverRevert ? C.text : C.mut,
-            cursor: 'pointer',
-            display: 'grid', placeItems: 'center', marginLeft: -4,
-            transition: 'background 0.12s',
-          }}>
-          <RevertArrowIcon/>
-        </button>
-      )}
-
       {/* Selection indicator */}
       {inSelectionMode && (
         <div style={{
@@ -1046,16 +964,50 @@ function KdsItemRow({ item, onBump, onRevert, dark = false, disabled = false, se
         })()}
       </div>
 
-      {/* Chevron avanzamento */}
-      {!inSelectionMode && !onRevert && (
-        <span style={{
-          fontSize: 20, color: C.sub, fontWeight: 700, flexShrink: 0,
-          opacity: hover && !disabled ? 1 : 0,
-          transform: hover && !disabled ? 'translateX(2px)' : 'translateX(-4px)',
-          transition: 'opacity 0.15s, transform 0.15s',
-        }}>›</span>
+      {/* Frecce stato — ← indietro / → avanti, azioni esplicite sul piatto */}
+      {!disabled && (
+        <div style={{display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0}}>
+          {onRevert && item.state !== 'todo' && (
+            <KdsStepBtn dir="back" dark={dark} onClick={onRevert} onHoverChange={setHoverBtn}
+              title={item.state === 'done' ? 'Riporta in preparazione' : 'Rimetti in coda'}/>
+          )}
+          {item.state !== 'done' && (
+            <KdsStepBtn dir="fwd" dark={dark} onClick={onBump} onHoverChange={setHoverBtn}
+              title={item.state === 'todo' ? 'Inizia preparazione' : 'Segna pronto'}/>
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+// ─── Step button ────────────────────────────────────────────
+// Freccia compatta (← indietro / → avanti) per far avanzare o retrocedere
+// un singolo piatto di uno stato. Sempre visibile, stopPropagation sulla riga.
+function KdsStepBtn({ dir, onClick, dark = false, title, onHoverChange }) {
+  const [hover, setHover] = React.useState(false);
+  const C = dark ? KDS_C : KDS_CL;
+  const setH = v => { setHover(v); onHoverChange && onHoverChange(v); };
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onClick(); }}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      onTouchStart={() => setH(true)}
+      onTouchEnd={() => setH(false)}
+      title={title}
+      style={{
+        width: 24, height: 24, borderRadius: 7, flexShrink: 0, padding: 0,
+        background: hover ? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,17,21,0.06)') : 'transparent',
+        border: 'none',
+        boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.12)'}`,
+        color: hover ? C.text : C.mut,
+        cursor: 'pointer',
+        display: 'grid', placeItems: 'center',
+        transition: 'background 0.12s, color 0.12s',
+      }}>
+      {dir === 'back' ? <RevertArrowIcon/> : <ForwardArrowIcon/>}
+    </button>
   );
 }
 
@@ -1063,6 +1015,7 @@ function KdsItemRow({ item, onBump, onRevert, dark = false, disabled = false, se
 function BagIcon()   { return (<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>); }
 function ScooterIcon() { return (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M14 6h3l3 8M8 17l3-8h6"/></svg>); }
 function RevertArrowIcon() { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>); }
+function ForwardArrowIcon() { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>); }
 function NoteRemoveIcon() { return (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>); }
 function NoteAddIcon()    { return (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>); }
 

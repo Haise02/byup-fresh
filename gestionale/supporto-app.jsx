@@ -16,28 +16,6 @@ function SupportoApp() {
       <PnSidebar active="supporto"/>
 
       <main style={{flex: 1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
-        {/* Header */}
-        <header style={{
-          display:'flex', alignItems:'center', gap: 14,
-          padding: '18px 28px 16px',
-          borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-          background: PN.WHITE,
-        }}>
-          <span style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: PN.PINK_SOFT, color: PN.PINK_DARK,
-            display: 'grid', placeItems: 'center', flexShrink: 0,
-          }}>
-            <Icon name="headphones" size={20}/>
-          </span>
-          <div style={{flex:1}}>
-            <h1 style={{margin:0, fontSize: 22, fontWeight: 600, color: PN.TEXT, letterSpacing:'-0.02em'}}>Supporto</h1>
-            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>Trova rapidamente l'assistenza giusta per le tue necessità</div>
-          </div>
-          <PnConnectionStatus/>
-          <PnNotifBell/>
-        </header>
-
         {/* Body */}
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: '20px 28px 32px', background:'#fafafa'}}>
           <div style={{display:'flex', flexDirection:'column', gap: 20}}>

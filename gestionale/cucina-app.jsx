@@ -16,14 +16,6 @@ function CucinaApp() {
       {!focus && <PnSidebar active="cucina"/>}
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
-        {!focus && (
-          <PnPageHeader
-            title="Cucina"
-            subtitle="Martedì 9 Dicembre 2025"
-            icon="food-meal"
-          />
-        )}
-
         <div className="pn-scroll" style={{
           flex: 1, overflow: 'auto',
           padding: focus ? 0 : '22px 32px 32px',

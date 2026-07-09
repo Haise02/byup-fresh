@@ -9,17 +9,17 @@
 //   sunset    → applicato dal widget internamente con GlassDarkBox (Top piatti,
 //                Cucina live) → non serve sullo shell
 const PN_WIDGET_CATALOG = [
-  { id: 'financials', name: 'Andamento incassi', desc: 'Incassi + scontrino medio + coperti, switch automatico', component: 'WidgetFinancials', defaultSize: { w: 2, h: 1 }, category: 'Incassi' },
-  { id: 'incassi', name: 'Solo incassi', desc: 'Oggi/Settimana/Mese con sparkline', component: 'WidgetIncassi', defaultSize: { w: 2, h: 1 }, category: 'Incassi' },
-  { id: 'kpi-vendita', name: 'KPI di vendita', desc: 'Scontrino medio e coperti per periodo', component: 'WidgetKpiVendita', defaultSize: { w: 1, h: 2 }, category: 'Statistiche' },
-  { id: 'riempimento', name: 'Riempimento', desc: 'Tasso di occupazione + fasce orarie', component: 'WidgetRiempimento', defaultSize: { w: 2, h: 1 }, category: 'Statistiche' },
-  { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Lista live coperti del giorno', component: 'WidgetPrenotazioniOggi', defaultSize: { w: 1, h: 2 }, category: 'Sala' },
-  { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Mappa visiva sala in tempo reale', component: 'WidgetTavoliStato', defaultSize: { w: 1, h: 2 }, category: 'Sala' },
-  { id: 'top-piatti', name: 'Top piatti', desc: 'Classifica settimanale per ricavo', component: 'WidgetTopPiatti', defaultSize: { w: 1, h: 2 }, category: 'Menu' },
-  { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni e media stelle', component: 'WidgetRecensioni', defaultSize: { w: 1, h: 2 }, category: 'Reputazione', theme: 'aurora' },
-  { id: 'azioni', name: 'Azioni rapide', desc: '8 shortcut launcher (full row, ridimensionabile)', component: 'WidgetAzioni', defaultSize: { w: 4, h: 2 }, category: 'Utilità' },
-  { id: 'coperti-sett', name: 'Coperti settimana', desc: 'Bar chart 7 giorni', component: 'WidgetCopertiSettimana', defaultSize: { w: 2, h: 1 }, category: 'Statistiche' },
-  { id: 'cucina-live', name: 'Cucina live', desc: 'Ordini in cottura e pronti', component: 'WidgetCucinaLive', defaultSize: { w: 1, h: 2 }, category: 'Cucina' },
+  { id: 'financials', name: 'Andamento incassi', desc: 'Incassi + scontrino medio + coperti, switch automatico', component: 'WidgetFinancials', defaultSize: { w: 2, h: 1 }, category: 'Incassi', icon: 'chart-area' },
+  { id: 'incassi', name: 'Solo incassi', desc: 'Oggi/Settimana/Mese con sparkline', component: 'WidgetIncassi', defaultSize: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
+  { id: 'kpi-vendita', name: 'KPI di vendita', desc: 'Scontrino medio e coperti per periodo', component: 'WidgetKpiVendita', defaultSize: { w: 1, h: 2 }, category: 'Statistiche', icon: 'chart-bar' },
+  { id: 'riempimento', name: 'Riempimento', desc: 'Tasso di occupazione + fasce orarie', component: 'WidgetRiempimento', defaultSize: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-doughnut' },
+  { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Lista live coperti del giorno', component: 'WidgetPrenotazioniOggi', defaultSize: { w: 1, h: 2 }, category: 'Sala', icon: 'time-calendar' },
+  { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Mappa visiva sala in tempo reale', component: 'WidgetTavoliStato', defaultSize: { w: 1, h: 2 }, category: 'Sala', icon: 'place-table' },
+  { id: 'top-piatti', name: 'Top piatti', desc: 'Classifica settimanale per ricavo', component: 'WidgetTopPiatti', defaultSize: { w: 1, h: 2 }, category: 'Menu', icon: 'food-meal' },
+  { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni e media stelle', component: 'WidgetRecensioni', defaultSize: { w: 1, h: 2 }, category: 'Reputazione', theme: 'aurora', icon: 'star' },
+  { id: 'azioni', name: 'Azioni rapide', desc: '8 shortcut launcher (full row, ridimensionabile)', component: 'WidgetAzioni', defaultSize: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
+  { id: 'coperti-sett', name: 'Coperti settimana', desc: 'Bar chart 7 giorni', component: 'WidgetCopertiSettimana', defaultSize: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
+  { id: 'cucina-live', name: 'Cucina live', desc: 'Ordini in cottura e pronti', component: 'WidgetCucinaLive', defaultSize: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
 ];
 
 function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
@@ -100,6 +100,14 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
                   background: inUse ? '#FAFAFB' : PN.WHITE,
                   opacity: inUse ? 0.6 : 1,
                 }}>
+                  {/* Icona del widget — riconoscibilità immediata nel catalogo */}
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    display:'grid', placeItems:'center',
+                  }}>
+                    <Icon name={w.icon || 'grid'} size={22}/>
+                  </div>
                   {/* Mini-sketch shape: ghost layout della griglia 12col x 2 righe */}
                   <div style={{
                     width: 56, height: 44, borderRadius: 6,

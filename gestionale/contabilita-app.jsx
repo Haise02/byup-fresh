@@ -22,20 +22,6 @@ function ContabilitaApp() {
       <GlassMeshSubstrate tone="neutral"/>
       <PnSidebar active="contabilita"/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
-        {/* Header */}
-        <header style={{
-          display:'flex', alignItems:'flex-start', gap: 16,
-          padding:'18px 28px 14px',
-          borderBottom:`1px solid ${PN.BORDER_SOFT}`,
-          background: PN.WHITE,
-        }}>
-          <div style={{flex:1}}>
-            <h1 style={{margin:0, fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Contabilità</h1>
-            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, textTransform:'capitalize'}}>{dateStr}</div>
-          </div>
-          <PnNotifBell/>
-        </header>
-
         {/* Body */}
         <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'18px 28px 32px', background:'#fafafa'}}>
           {/* Stat cards globali — sempre visibili */}

@@ -22,6 +22,10 @@ function SalaVenditaDiretta() {
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
   const [customOpen, setCustomOpen] = React.useState(false);
+  // Sezione: 'ordine' = POS classico, 'asporto' = conti asporto da app da saldare.
+  const [sezione, setSezione] = React.useState('ordine');
+  const [asportoConti, setAsportoConti] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
+  const [asportoPay, setAsportoPay] = React.useState(null);
 
   const cats = ['Tutti', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
   const piatti = SALA_VENDITA_PIATTI.filter(p => {
@@ -65,6 +69,8 @@ function SalaVenditaDiretta() {
     return prev.map((x, idx) => idx === i ? {...x, qty: x.qty - 1} : x);
   });
   const removeLine = (i) => setLines(prev => prev.filter((_, idx) => idx !== i));
+  const editLineName = (i, name) => setLines(prev => prev.map((l, idx) => idx === i ? {...l, displayName: name} : l));
+  const editLinePrice = (i, price) => setLines(prev => prev.map((l, idx) => idx === i ? {...l, lineTotal: price} : l));
   const addCustomLine = (name, price) => {
     setLines(prev => [...prev, {
       piatto: { id: `custom_${Date.now()}`, name, price, cat: 'Personalizzato', emoji: '✏️' },
@@ -86,7 +92,33 @@ function SalaVenditaDiretta() {
   const popolari = SALA_VENDITA_PIATTI.slice(0, 4);
 
   return (
-    <div style={{display:'grid', gridTemplateColumns:'1fr 400px', gap: 18, height:'100%', minHeight: 0}}>
+    <div style={{display:'flex', flexDirection:'column', gap: 14, height:'100%', minHeight: 0}}>
+      {/* Switch sezione: Nuovo ordine (POS) / Asporto (conti app da saldare al ritiro) */}
+      <div style={{display:'flex', gap: 6, flexShrink: 0}}>
+        {[
+          {key:'ordine',  label:'Nuovo ordine'},
+          {key:'asporto', label:'Asporto' + (asportoConti.length ? ` · ${asportoConti.length}` : '')},
+        ].map(s => {
+          const on = sezione === s.key;
+          return (
+            <button key={s.key} onClick={() => setSezione(s.key)} style={{
+              padding: '8px 18px', borderRadius: 999,
+              border: `1px solid ${on ? 'transparent' : PN.BORDER_LIGHT}`,
+              background: on ? SV_SUNSET_BG : PN.BTN_NEUTRAL,
+              color: on ? SV_SUNSET_TEXT : PN.TEXT,
+              fontSize: 15, fontWeight: 700, cursor:'pointer',
+              fontFamily:'inherit', whiteSpace:'nowrap',
+              boxShadow: on ? SV_SUNSET_SHADOW : `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+              transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out',
+            }}>{s.label}</button>
+          );
+        })}
+      </div>
+
+      {sezione === 'asporto' ? (
+        <SaAsportoBoard conti={asportoConti} onPay={setAsportoPay}/>
+      ) : (
+      <div style={{display:'grid', gridTemplateColumns:'1fr 400px', gap: 18, flex: 1, minHeight: 0}}>
       {/* === GRID PIATTI === */}
       <section style={{
         background: PN.WHITE, borderRadius: 14,
@@ -208,9 +240,13 @@ function SalaVenditaDiretta() {
         onDec={decLine}
         onRemove={removeLine}
         onEdit={editExistingLine}
+        onChangeName={editLineName}
+        onChangePrice={editLinePrice}
         onClear={() => setLines([])}
         onIncassa={() => setIncassaOpen(true)}
       />
+      </div>
+      )}
 
       <SaIncassaModal
         open={incassaOpen}
@@ -218,6 +254,16 @@ function SalaVenditaDiretta() {
         onClose={() => setIncassaOpen(false)}
         onConfirm={() => setLines([])}
       />
+
+      {/* Pagamento conto asporto — riusa il modale incasso col totale del conto */}
+      {asportoPay && (
+        <SaIncassaModal
+          open={true}
+          total={asportoPay.daSaldare}
+          onClose={() => setAsportoPay(null)}
+          onConfirm={() => setAsportoConti(cs => cs.filter(c => c.id !== asportoPay.id))}
+        />
+      )}
 
       {personalize && (
         <SaPersonalizzaModal
@@ -235,6 +281,101 @@ function SalaVenditaDiretta() {
           onConfirm={(name, price) => { addCustomLine(name, price); setCustomOpen(false); }}
         />
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sezione Asporto — conti aperti da Byup App, da saldare al ritiro
+
+function SaAsportoBoard({ conti, onPay }) {
+  if (!conti.length) {
+    return (
+      <div style={{
+        flex: 1, minHeight: 0,
+        background: PN.WHITE, borderRadius: 14,
+        border: `1px solid ${PN.BORDER_HAIR}`,
+        boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
+        display:'grid', placeItems:'center', padding: 40,
+      }}>
+        <div style={{textAlign:'center', color: PN.MUTED}}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%', margin: '0 auto 12px',
+            background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          </div>
+          <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Nessun conto asporto aperto</div>
+          <div style={{fontSize: 13.5, lineHeight: 1.5}}>Gli ordini da asporto effettuati dai clienti<br/>tramite Byup App compariranno qui.</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="pn-scroll" style={{
+      flex: 1, minHeight: 0, overflow:'auto',
+      display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))',
+      gap: 14, alignContent:'start',
+    }}>
+      {conti.map(c => (
+        <div key={c.id} style={{
+          background: PN.WHITE, borderRadius: 14,
+          border: `1px solid ${PN.BORDER_HAIR}`,
+          boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
+          display:'flex', flexDirection:'column', overflow:'hidden',
+        }}>
+          {/* Header conto */}
+          <div style={{
+            padding: '12px 16px',
+            borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+            display:'flex', alignItems:'center', gap: 10,
+          }}>
+            <div style={{flex: 1, minWidth: 0}}>
+              <div style={{display:'flex', alignItems:'center', gap: 8}}>
+                <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.cliente}</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
+                  padding: '2px 8px', borderRadius: 999,
+                  background: PN.PINK_SOFT, color: PN.PINK_DARK, flexShrink: 0,
+                }}>byup app</span>
+              </div>
+              <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>{c.codice} · ritiro ore {c.ritiro}</div>
+            </div>
+          </div>
+
+          {/* Piatti ordinati */}
+          <div style={{padding: '10px 16px', flex: 1, display:'flex', flexDirection:'column', gap: 3}}>
+            {c.items.map((item, i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 13.5}}>
+                <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 22, flexShrink: 0}}>{item.qty}×</span>
+                <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
+                <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer: totale + pagamento */}
+          <div style={{padding: '12px 16px 14px', borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+            <button
+              onClick={() => onPay(c)}
+              style={{
+                width:'100%', padding: '11px 16px', borderRadius: 999,
+                background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
+                border: '1px solid transparent',
+                fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
+                boxShadow: SV_SUNSET_SHADOW,
+                transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
+              }}
+              onMouseEnter={svSunsetHoverIn}
+              onMouseLeave={svSunsetHoverOut}>
+              <span>Procedi al pagamento</span>
+              <span style={{fontVariantNumeric:'tabular-nums'}}>€{c.daSaldare.toFixed(2)}</span>
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -678,7 +819,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 // ─────────────────────────────────────────────────────────────────────────────
 // Carrello
 
-function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec, onRemove, onEdit, onClear, onIncassa }) {
+function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
   window.SALA_VENDITA_CLEAR = onClear;
   return (
     <aside style={{
@@ -752,7 +893,11 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         ) : (
           <div style={{display:'flex', flexDirection:'column', gap: 6}}>
             {lines.map((l, i) => (
-              <SaCartLine key={i} line={l} onInc={() => onInc(i)} onDec={() => onDec(i)} onRemove={() => onRemove(i)} onEdit={() => onEdit(i)}/>
+              <SaCartLine key={i} line={l}
+                onInc={() => onInc(i)} onDec={() => onDec(i)}
+                onRemove={() => onRemove(i)} onEdit={() => onEdit(i)}
+                onChangeName={(name) => onChangeName(i, name)}
+                onChangePrice={(price) => onChangePrice(i, price)}/>
             ))}
           </div>
         )}
@@ -800,10 +945,41 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
   );
 }
 
-function SaCartLine({ line, onInc, onDec, onRemove, onEdit }) {
+function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice }) {
   const { piatto, qty, mods, lineTotal } = line;
   const cat = SALA_VENDITA_CATS[piatto.cat] || { color: PN.MUTED, bg: '#F4F5F7' };
+  const displayName = line.displayName || piatto.name;
+  const isCustomizable = !!(piatto.variants?.length || piatto.ingredients?.length || piatto.extras?.length);
   const hasMods = mods && (Object.keys(mods.variants||{}).length || (mods.removed||[]).length || Object.keys(mods.extras||{}).length);
+
+  // Editing inline nome/prezzo: click sul testo, Enter conferma, Esc annulla.
+  const [editingName, setEditingName] = React.useState(false);
+  const [editingPrice, setEditingPrice] = React.useState(false);
+  const [nameVal, setNameVal] = React.useState(displayName);
+  const [priceVal, setPriceVal] = React.useState(lineTotal.toFixed(2));
+
+  React.useEffect(() => { if (!editingName) setNameVal(displayName); }, [displayName, editingName]);
+  React.useEffect(() => { if (!editingPrice) setPriceVal(lineTotal.toFixed(2)); }, [lineTotal, editingPrice]);
+
+  const commitName = () => {
+    setEditingName(false);
+    const v = nameVal.trim();
+    if (v && v !== displayName) onChangeName(v);
+    else setNameVal(displayName);
+  };
+  const commitPrice = () => {
+    setEditingPrice(false);
+    const v = parseFloat(priceVal.replace(',', '.'));
+    if (!isNaN(v) && v >= 0) onChangePrice(v);
+    else setPriceVal(lineTotal.toFixed(2));
+  };
+
+  const inlineInputStyle = {
+    border:'none', borderBottom:`1.5px solid ${PN.TEXT}`, outline:'none',
+    background:'transparent', fontFamily:'inherit',
+    fontSize:14.5, fontWeight:700, color: PN.TEXT, padding:'0 1px',
+  };
+
   return (
     <div style={{
       display:'flex', gap: 10,
@@ -822,8 +998,37 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit }) {
       </div>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
-          <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{piatto.name}</span>
-          <span style={{fontSize: 14, fontWeight: 700, color: PN.TEXT}}>€{(lineTotal * qty).toFixed(2)}</span>
+          {editingName ? (
+            <input
+              value={nameVal} onChange={e => setNameVal(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={e => { if (e.key==='Enter') commitName(); if (e.key==='Escape') { setNameVal(displayName); setEditingName(false); } }}
+              autoFocus
+              style={{...inlineInputStyle, flex: 1, minWidth: 0, width:'100%'}}
+            />
+          ) : (
+            <span
+              onClick={() => isCustomizable ? onEdit() : setEditingName(true)}
+              title={isCustomizable ? 'Clicca per personalizzare' : 'Clicca per modificare il nome'}
+              style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none'}}
+            >{displayName}</span>
+          )}
+          {editingPrice ? (
+            <input
+              value={priceVal} onChange={e => setPriceVal(e.target.value)}
+              onBlur={commitPrice}
+              onKeyDown={e => { if (e.key==='Enter') commitPrice(); if (e.key==='Escape') { setPriceVal(lineTotal.toFixed(2)); setEditingPrice(false); } }}
+              autoFocus
+              inputMode="decimal"
+              style={{...inlineInputStyle, fontSize: 14, width: 60, textAlign:'right', fontVariantNumeric:'tabular-nums'}}
+            />
+          ) : (
+            <span
+              onClick={() => setEditingPrice(true)}
+              title="Clicca per modificare il prezzo"
+              style={{fontSize: 14, fontWeight: 700, color: PN.TEXT, cursor:'text', fontVariantNumeric:'tabular-nums'}}
+            >€{(lineTotal * qty).toFixed(2)}</span>
+          )}
         </div>
         {hasMods && (
           <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>

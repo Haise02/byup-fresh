@@ -58,7 +58,6 @@ function SalaApp() {
   const [modalPay, setModalPay] = React.useState(null);
   const [modalNuova, setModalNuova] = React.useState(null);
   const [datePickerOpen, setDatePickerOpen] = React.useState(false);
-  const [contiCollapsed, setContiCollapsed] = React.useState(false);
   const [articoloSheet, setArticoloSheet] = React.useState(null);
   const [cart, setCart] = React.useState({ tableId: null, items: [] });
   const [confirmedToast, setConfirmedToast] = React.useState(null);
@@ -130,7 +129,6 @@ function SalaApp() {
     };
   }, [tweaks.noOrderWarn, tweaks.noOrderAlert, tweaks.overstay, tweaks.oldBillHours]);
 
-  const showContiPanel = tweaks.showContiPanel && tab === 'tavoli' && !focus;
 
   function detachMergedTables(t) {
     if (!t.mergedTables || t.mergedTables.length === 0) return;
@@ -381,25 +379,6 @@ function SalaApp() {
       {!focus && <PnSidebar active={sidebarActive}/>}
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
-        {!focus && (
-          <header style={{
-            display: 'flex', alignItems: 'center', gap: 16,
-            padding: '20px 32px 18px',
-            borderBottom: `1px solid ${PN.BORDER_HAIR}`,
-            background: PN.WHITE_OFF,
-          }}>
-            <div style={{flex: 1, minWidth: 0}}>
-              <h1 style={{margin: 0, fontSize: 26, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
-                {headerTitle}
-              </h1>
-              <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, textTransform: 'capitalize'}}>{dateStr}</div>
-            </div>
-
-            <PnConnectionStatus/>
-            <PnNotifBell/>
-          </header>
-        )}
-
         <div style={{flex:1, display:'flex', minHeight:0, minWidth:0, overflow:'hidden'}}>
           <div className="pn-scroll" style={{
             flex: 1, overflow: 'auto',
@@ -415,7 +394,7 @@ function SalaApp() {
                 tweaks={tweaks}
                 focus={focus}
                 onToggleFocus={() => setFocus(f => !f)}
-                contiCollapsed={!showContiPanel || contiCollapsed}
+                contiCollapsed={true}
                 onOpenAdd={(t) => {
                   if (t.state === 'prenotato' || (t.state === 'libero' && t.nextReservation)) {
                     setModalApri(t);
@@ -467,19 +446,6 @@ function SalaApp() {
             />}
           </div>
 
-          {/* Pannello conti aperti laterale */}
-          {showContiPanel && (
-            <div style={{padding: '16px 10px 24px 0', flexShrink: 0, display:'flex', minWidth: 0}}>
-              <ContiApertiPanel
-                collapsed={contiCollapsed}
-                onToggle={() => setContiCollapsed(c => !c)}
-                onSalda={(conto) => {
-                  const idNum = parseInt(String(conto.tavolo).replace(/\D/g,''), 10);
-                  const t = SALA_TAVOLI.find(x => x.id === idNum);
-                  if (t) setModalPay(t);
-                }}/>
-            </div>
-          )}
         </div>
 
         <SalaArticoloSheet

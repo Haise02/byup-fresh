@@ -30,28 +30,6 @@ function ContabilitaApp() {
       <GlassMeshSubstrate tone="neutral"/>
       <PnSidebar active="contabilita"/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
-        {/* Header */}
-        <header style={{
-          display:'flex', alignItems:'center', gap: 14,
-          padding:'18px 28px 14px',
-          borderBottom:`1px solid ${PN.BORDER_SOFT}`,
-          background: PN.WHITE,
-        }}>
-          <span style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: PN.PINK_SOFT, color: PN.PINK_DARK,
-            display: 'grid', placeItems: 'center', flexShrink: 0,
-          }}>
-            <Icon name="commerce-receipt" size={20}/>
-          </span>
-          <div style={{flex:1}}>
-            <h1 style={{margin:0, fontSize: C.T_XL, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.5}}>Contabilità</h1>
-            <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2, textTransform:'capitalize'}}>{dateStr}</div>
-          </div>
-          <PnConnectionStatus/>
-          <PnNotifBell/>
-        </header>
-
         {/* Body */}
         <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'20px 28px 32px', background: C.SURF}}>
           {/* KPI banner dark-glass — UN solo gradient Byup applicato all'intero

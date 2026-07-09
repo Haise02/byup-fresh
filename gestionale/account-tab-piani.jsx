@@ -11,11 +11,22 @@ function AccPianiAbbonamenti() {
   const euroRisparmiati = Math.round(ordiniRisparmiati * current.ordineExtra * 100) / 100;
   const pct = Math.min(100, Math.round((ordiniUsati / current.ordiniInclusi) * 100));
 
+  const [billing, setBilling] = React.useState('annual');
+
   const fmtPrice = (n) => {
     if (n === 0) return '0';
     if (Number.isInteger(n)) return String(n);
     return n.toFixed(2).replace('.', ',');
   };
+
+  // Prezzi di listino = annuale scontato; il mensile costa il 15% in più.
+  const billedPrice = (p) => {
+    if (p.prezzo === 0) return 0;
+    if (billing === 'monthly') return Math.round(p.prezzo * 1.15 * 100) / 100;
+    return p.prezzo;
+  };
+
+  const billedPeriodo = '/mese + IVA';
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 18}}>
@@ -41,8 +52,61 @@ function AccPianiAbbonamenti() {
       {/* Riga 2 — Cambia piano: subito sotto le 2 card, è la decisione successiva
           naturale dopo aver visto risparmio + utilizzo. */}
       <AcCard title="Cambia piano" subtitle="Passa a un piano superiore quando hai bisogno di più ordini, più menu o più membri dello staff.">
+
+        {/* Toggle mensile / annuale */}
+        <div style={{display:'flex', justifyContent:'center', marginBottom: 20}}>
+          <div style={{
+            display:'inline-flex', alignItems:'center',
+            background:'#F3F4F6', borderRadius:999,
+            padding: 3, gap: 2,
+            border: '1px solid #E5E7EB',
+          }}>
+            {[
+              { key:'monthly', label:'Mensile' },
+              { key:'annual',  label:'Annuale', badge:'Risparmia 15%' },
+            ].map(({ key, label, badge }) => {
+              const active = billing === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setBilling(key)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:7,
+                    padding:'7px 18px', borderRadius:999, border:'none',
+                    background: active ? '#fff' : 'transparent',
+                    color: active ? PN.TEXT : PN.MUTED,
+                    fontFamily:'inherit', fontSize:14, fontWeight: active ? 700 : 500,
+                    cursor:'pointer',
+                    boxShadow: active ? '0 1px 3px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.06)' : 'none',
+                    transition:'all .15s',
+                  }}
+                >
+                  {label}
+                  {badge && (
+                    <span style={{
+                      fontSize:11.5, fontWeight:700,
+                      padding:'2px 8px', borderRadius:999,
+                      background: active ? '#DCFCE7' : '#E5E7EB',
+                      color: active ? '#15803D' : PN.MUTED,
+                      transition:'all .15s',
+                    }}>{badge}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12}}>
-          {ACC_PIANI.map(p => <PianoCard key={p.id} p={p} fmtPrice={fmtPrice}/>)}
+          {ACC_PIANI.map(p => (
+            <PianoCard
+              key={p.id}
+              p={p}
+              fmtPrice={fmtPrice}
+              displayPrezzo={billedPrice(p)}
+              periodo={p.prezzo === 0 ? 'gratis' : billedPeriodo}
+            />
+          ))}
         </div>
       </AcCard>
 
@@ -261,9 +325,11 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
 // (caricato in ogni pagina dashboard, condiviso col sidebar plan card).
 // ─────────────────────────────────────────────────────────────────────────
 
-function PianoCard({p, fmtPrice}) {
+function PianoCard({p, fmtPrice, displayPrezzo, periodo}) {
   const isCurrent = p.current;
   const isHighlight = p.highlight && !isCurrent;
+  const prezzoMostrato = displayPrezzo !== undefined ? displayPrezzo : p.prezzo;
+  const periodoMostrato = periodo !== undefined ? periodo : p.periodo;
 
   // Stili per piano consigliato in negativo (filled BRAND, scritte bianche)
   const styles = isHighlight
@@ -313,8 +379,10 @@ function PianoCard({p, fmtPrice}) {
         <div style={{fontSize: 16, fontWeight: 600, color: styles.textColor}}>{p.nome}</div>
       </div>
       <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 12, flexWrap: 'wrap'}}>
-        <span style={{fontSize: 28, fontWeight: 600, color: styles.priceColor, lineHeight: 1, letterSpacing: '-0.02em'}}>€{fmtPrice(p.prezzo)}</span>
-        <span style={{fontSize: 13, color: styles.mutedColor}}>{p.periodo}</span>
+        <span style={{fontSize: 28, fontWeight: 600, color: styles.priceColor, lineHeight: 1, letterSpacing: '-0.02em'}}>
+          {prezzoMostrato === 0 ? 'Gratis' : `€${fmtPrice(prezzoMostrato)}`}
+        </span>
+        <span style={{fontSize: 13, color: styles.mutedColor}}>{prezzoMostrato === 0 ? '' : periodoMostrato}</span>
       </div>
 
       <div style={{

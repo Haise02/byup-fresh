@@ -15,27 +15,6 @@ function StatisticheApp() {
       <GlassMeshSubstrate tone="neutral"/>
       <PnSidebar active="statistiche"/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <header style={{
-          display:'flex', alignItems:'center', gap: 14,
-          padding:'18px 28px 14px',
-          borderBottom:`1px solid ${PN.BORDER_SOFT}`,
-          background: PN.WHITE,
-        }}>
-          <span style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: PN.PINK_SOFT, color: PN.PINK_DARK,
-            display: 'grid', placeItems: 'center', flexShrink: 0,
-          }}>
-            <Icon name="chart-bar" size={20}/>
-          </span>
-          <div style={{flex:1}}>
-            <h1 style={{margin:0, fontSize: 22, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Statistiche</h1>
-            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, textTransform:'capitalize'}}>{dateStr}</div>
-          </div>
-          <PnConnectionStatus/>
-          <PnNotifBell/>
-        </header>
-
         <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'18px 28px 32px', background:'#fafafa'}}>
           {/* Macro tabs + period picker */}
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 18, gap: 16}}>
