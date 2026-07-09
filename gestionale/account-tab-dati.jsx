@@ -3,23 +3,51 @@
 function AccDatiGenerali() {
   const [logoutConfirm, setLogoutConfirm] = React.useState(false);
   const [deleteConfirm, setDeleteConfirm] = React.useState(false);
+  // Foto profilo: url (null = iniziali), posizione dell'inquadratura in %, popup.
+  const [fotoOpen, setFotoOpen] = React.useState(false);
+  const [foto, setFoto] = React.useState(null);            // { url, pos:{x,y} } | null
+  const [fotoHover, setFotoHover] = React.useState(false);
+  // Preferenze locali — modificabili.
+  const [lingua, setLingua] = React.useState('Italiano');
+  const [fuso, setFuso] = React.useState('Europe/Rome (UTC+1)');
+  const [valuta, setValuta] = React.useState('EUR (€)');
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
       <AcCard title="Profilo personale" subtitle="Le informazioni del tuo account.">
         <div style={{display:'flex', alignItems:'center', gap: 18, marginBottom: 22}}>
-          <div style={{
-            width: 72, height: 72, borderRadius:'50%',
-            background:`linear-gradient(135deg, ${PN.PINK_DARK}, #B91C5C)`,
-            color: PN.WHITE, display:'grid', placeItems:'center',
-            fontSize: 28, fontWeight: 800,
-          }}>MR</div>
+          {/* Avatar cliccabile — apre il popup di gestione foto */}
+          <button
+            onClick={() => setFotoOpen(true)}
+            onMouseEnter={() => setFotoHover(true)}
+            onMouseLeave={() => setFotoHover(false)}
+            title="Gestisci la foto profilo"
+            style={{
+              width: 72, height: 72, borderRadius:'50%', flexShrink: 0,
+              padding: 0, border: 'none', cursor: 'pointer',
+              position:'relative', overflow:'hidden',
+              background: foto ? PN.WHITE : `linear-gradient(135deg, ${PN.PINK_DARK}, #B91C5C)`,
+              color: PN.WHITE, display:'grid', placeItems:'center',
+              fontSize: 28, fontWeight: 800, fontFamily:'inherit',
+            }}>
+            {foto ? (
+              <img src={foto.url} alt="Foto profilo" style={{
+                position:'absolute', inset: 0, width:'100%', height:'100%',
+                objectFit:'cover', objectPosition:`${foto.pos.x}% ${foto.pos.y}%`,
+              }}/>
+            ) : 'MR'}
+            {/* overlay hover: segnala che la foto è cliccabile */}
+            <span style={{
+              position:'absolute', inset: 0, borderRadius:'50%',
+              background:'rgba(15,17,21,0.45)',
+              display:'grid', placeItems:'center',
+              opacity: fotoHover ? 1 : 0, transition:'opacity 150ms',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg>
+            </span>
+          </button>
           <div>
             <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>{ACC_DATI.nome} {ACC_DATI.cognome}</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{ACC_DATI.ruolo} · {ACC_DATI.ristorante}</div>
-            <div style={{display:'flex', gap: 8, marginTop: 10}}>
-              <button style={AcBtnGhost}>Cambia foto</button>
-              <button style={AcBtnGhost}>Rimuovi</button>
-            </div>
           </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
@@ -137,11 +165,22 @@ function AccDatiGenerali() {
 
       <AcCard title="Lingua e regione" subtitle="Preferenze locali.">
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 14}}>
-          <AcField label="Lingua" value="Italiano"/>
-          <AcField label="Fuso orario" value="Europe/Rome (UTC+1)"/>
-          <AcField label="Valuta" value="EUR (€)"/>
+          <AcSelect label="Lingua" value={lingua} onChange={setLingua}
+            options={['Italiano','English','Español','Français','Deutsch']}/>
+          <AcSelect label="Fuso orario" value={fuso} onChange={setFuso}
+            options={['Europe/Rome (UTC+1)','Europe/London (UTC+0)','Europe/Paris (UTC+1)','Europe/Madrid (UTC+1)','Europe/Berlin (UTC+1)','Europe/Athens (UTC+2)']}/>
+          <AcSelect label="Valuta" value={valuta} onChange={setValuta}
+            options={['EUR (€)','USD ($)','GBP (£)','CHF (Fr)']}/>
         </div>
       </AcCard>
+
+      {fotoOpen && (
+        <AcFotoModal
+          foto={foto}
+          onClose={() => setFotoOpen(false)}
+          onSave={(next) => { setFoto(next); setFotoOpen(false); }}
+        />
+      )}
 
       {/* Logout — card senza intestazione: solo la riga azione */}
       <div style={{
@@ -353,6 +392,185 @@ const AcBtnGhost = {
   fontSize: 14, fontWeight: 600, cursor:'pointer',
   fontFamily:'inherit',
 };
+
+// Select con la stessa veste di AcField, ma modificabile.
+function AcSelect({ label, value, onChange, options, full }) {
+  return (
+    <div style={{gridColumn: full ? '1 / -1' : 'auto'}}>
+      <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 6}}>{label}</div>
+      <div style={{position:'relative'}}>
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{
+            width:'100%', padding:'10px 34px 10px 12px', borderRadius: 10,
+            border:`1px solid ${PN.BORDER}`, background: '#FAFBFC',
+            fontSize: 15.5, color: PN.TEXT, fontWeight: 500,
+            fontFamily:'inherit', outline:'none', cursor:'pointer',
+            appearance:'none', WebkitAppearance:'none', MozAppearance:'none',
+          }}
+          onFocus={e => e.target.style.borderColor = PN.TEXT}
+          onBlur={e => e.target.style.borderColor = PN.BORDER}
+        >
+          {options.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <span style={{
+          position:'absolute', right: 12, top:'50%', transform:'translateY(-50%)',
+          pointerEvents:'none', color: PN.MUTED, display:'inline-flex',
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Popup gestione foto profilo: anteprima, riposizionamento a trascinamento,
+// caricamento nuova, rimozione, requisiti di formato e dimensioni.
+function AcFotoModal({ foto, onClose, onSave }) {
+  // Copia di lavoro: Annulla scarta, Salva applica.
+  const [draft, setDraft] = React.useState(foto);
+  const fileRef = React.useRef(null);
+  const previewRef = React.useRef(null);
+  const SIZE = 200;
+
+  const caricaFile = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    setDraft({ url, pos: { x: 50, y: 50 } });
+    e.target.value = '';
+  };
+
+  // Trascina per riposizionare: il delta del mouse sposta l'inquadratura
+  // (objectPosition) in percentuale, clampata 0–100.
+  const startDrag = (e) => {
+    if (!draft) return;
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const startPos = { ...draft.pos };
+    const onMove = (ev) => {
+      const dx = ((ev.clientX - startX) / SIZE) * 100;
+      const dy = ((ev.clientY - startY) / SIZE) * 100;
+      setDraft(d => d && ({ ...d, pos: {
+        x: Math.max(0, Math.min(100, startPos.x - dx)),
+        y: Math.max(0, Math.min(100, startPos.y - dy)),
+      }}));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 20, width: 420, maxWidth:'100%',
+        padding: '22px 22px 20px',
+        display:'flex', flexDirection:'column', gap: 16,
+      }}>
+        {/* Header */}
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
+          <div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Foto profilo</div>
+            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>
+              {draft ? 'Trascina la foto per riposizionarla nel cerchio.' : 'Carica una foto per il tuo profilo.'}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+            background:'rgba(255,255,255,0.95)', border:'none', cursor:'pointer',
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        {/* Anteprima circolare, trascinabile */}
+        <div style={{display:'grid', placeItems:'center'}}>
+          <div
+            ref={previewRef}
+            onMouseDown={startDrag}
+            style={{
+              width: SIZE, height: SIZE, borderRadius:'50%',
+              overflow:'hidden', position:'relative',
+              cursor: draft ? 'grab' : 'default',
+              background: draft ? PN.WHITE : `linear-gradient(135deg, ${PN.PINK_DARK}, #B91C5C)`,
+              border: '3px solid rgba(255,255,255,0.9)',
+              boxShadow: '0 8px 24px rgba(15,17,21,0.15)',
+              display:'grid', placeItems:'center',
+              color: PN.WHITE, fontSize: 64, fontWeight: 800,
+              userSelect:'none',
+            }}>
+            {draft ? (
+              <img src={draft.url} alt="Anteprima foto" draggable={false} style={{
+                position:'absolute', inset: 0, width:'100%', height:'100%',
+                objectFit:'cover', objectPosition:`${draft.pos.x}% ${draft.pos.y}%`,
+                pointerEvents:'none',
+              }}/>
+            ) : 'MR'}
+          </div>
+        </div>
+
+        {/* Azioni foto */}
+        <div style={{display:'flex', gap: 8, justifyContent:'center'}}>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={caricaFile} style={{display:'none'}}/>
+          <button onClick={() => fileRef.current && fileRef.current.click()} style={{
+            display:'inline-flex', alignItems:'center', gap: 7,
+            padding:'9px 16px', borderRadius: 999,
+            background: PN.BTN_DARK, color: PN.WHITE,
+            border: '1px solid rgba(0,0,0,0.32)',
+            fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            {draft ? 'Carica un\'altra foto' : 'Carica foto'}
+          </button>
+          {draft && (
+            <button onClick={() => setDraft(null)} style={{
+              padding:'9px 16px', borderRadius: 999,
+              background:'rgba(255,255,255,0.75)', color: PN.RED,
+              border: '1px solid rgba(220,38,38,0.35)',
+              fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+            }}>Rimuovi</button>
+          )}
+        </div>
+
+        {/* Requisiti */}
+        <div style={{
+          padding:'10px 14px', borderRadius: 10,
+          background:'rgba(255,255,255,0.55)', border:'1px solid rgba(15,17,21,0.08)',
+          fontSize: 13.5, color: PN.MUTED, lineHeight: 1.6, textAlign:'center',
+        }}>
+          Formati accettati: <strong>JPG, PNG o WebP</strong> · minimo <strong>400×400 px</strong><br/>
+          consigliato 1000×1000 px · peso massimo 5 MB
+        </div>
+
+        {/* Footer */}
+        <div style={{display:'flex', gap: 8}}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: '11px 14px', borderRadius: 999,
+            background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+            border: '1px solid rgba(15,17,21,0.12)',
+            fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+          }}>Annulla</button>
+          <button onClick={() => onSave(draft)} style={{
+            flex: 1, padding: '11px 14px', borderRadius: 999,
+            background: PN.BTN_DARK, color: PN.WHITE,
+            border: '1px solid rgba(0,0,0,0.32)',
+            fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+          }}>Salva foto</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 window.AccDatiGenerali = AccDatiGenerali;
 window.AcCard = AcCard;
