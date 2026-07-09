@@ -299,26 +299,31 @@ function PnConnectionStatus({ variant }) {
   return (
     <>
       {variant === 'mini' ? (
-        // Mini: solo icona, quasi impercettibile quando tutto è ok;
-        // si colora (ambra/rosso) solo se la connessione ha problemi.
+        // Mini: icona compatta con pallino di stato (verde/ambra/rosso) —
+        // leggibile a colpo d'occhio senza rubare spazio alla sidebar.
         <span
           onClick={handleDemoClick}
           title={isOffline ? 'Connessione assente' : isUnstable ? 'Connessione instabile' : 'Connessione ok'}
           style={{
             display:'inline-flex', alignItems:'center', justifyContent:'center',
-            width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-            cursor:'pointer',
-            opacity: (isUnstable || isOffline) ? 1 : 0.35,
-            transition:'opacity .2s',
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            cursor:'pointer', position:'relative',
+            transition:'background .15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = 1; }}
-          onMouseLeave={e => { if (!isUnstable && !isOffline) e.currentTarget.style.opacity = 0.35; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
         >
           <PnWifiIcon
             color={isUnstable ? '#D97706' : isOffline ? '#DC2626' : PN.MUTED}
-            size={13}
+            size={15}
             weak={isUnstable}
           />
+          <span style={{
+            position:'absolute', right: 3, bottom: 3,
+            width: 7, height: 7, borderRadius: '50%',
+            background: isOffline ? '#DC2626' : isUnstable ? '#F59E0B' : '#22C55E',
+            border: '1.5px solid #fff',
+          }}/>
         </span>
       ) : (
       <div
@@ -346,14 +351,18 @@ function PnConnectionStatus({ variant }) {
       </div>
       )}
 
-      {(isOffline || showRestored) && (
+      {/* Banner offline/ripristino: montato sul body via portal — il frame è
+          scalato con zoom, quindi un fixed al suo interno non coprirebbe
+          l'intera finestra della piattaforma. Sul body copre tutto, sempre. */}
+      {(isOffline || showRestored) && ReactDOM.createPortal(
         <div style={{
           position:'fixed', top:0, left:0, right:0, zIndex:9999,
           background: showRestored ? '#15803D' : '#B91C1C',
           color:'#fff',
           display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-          padding:'11px 24px',
-          fontSize:15.5, fontWeight:600, letterSpacing:0.1,
+          padding:'12px 24px',
+          fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif",
+          fontSize:16, fontWeight:600, letterSpacing:0.1,
           boxShadow: showRestored
             ? '0 2px 12px rgba(21,128,61,0.2)'
             : '0 2px 16px rgba(185,28,28,0.25)',
@@ -362,7 +371,8 @@ function PnConnectionStatus({ variant }) {
           {showRestored
             ? '✓  Connessione ripristinata'
             : '⚠  Connessione assente — verifica la rete'}
-        </div>
+        </div>,
+        document.body
       )}
       <style>{`
         @keyframes pn-banner-in {
