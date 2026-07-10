@@ -446,9 +446,15 @@ function DayTimeline({ onNuova, onModifica }) {
 
   const [conflictWarning, setConflictWarning] = React.useState(false);
 
+  // Ref sempre aggiornato: hasConflict è chiamato dal mouseup registrato una
+  // volta sola (deps []) — con resData diretto vedrebbe le posizioni del primo
+  // render e lascerebbe sovrapporre gli slot spostati/aggiunti dopo.
+  const resDataRef = React.useRef(resData);
+  resDataRef.current = resData;
+
   function hasConflict(resId, tableId, newStart, dur) {
     const newEnd = newStart + dur;
-    return resData.some(r => {
+    return resDataRef.current.some(r => {
       if (r.id === resId) return false;
       if (r.table !== tableId) return false;
       if (r.status === 'cancellata' || r.status === 'noshow') return false;
@@ -570,7 +576,7 @@ function DayTimeline({ onNuova, onModifica }) {
       const rd = resizeRef.current;
       if (rd) {
         resizeRef.current = null; setResizeDrag(null);
-        if (hasConflict(rd.resId, resData.find(r => r.id === rd.resId)?.table, rd.curStartMin, rd.curEndMin - rd.curStartMin)) {
+        if (hasConflict(rd.resId, resDataRef.current.find(r => r.id === rd.resId)?.table, rd.curStartMin, rd.curEndMin - rd.curStartMin)) {
           setConflictWarning(true);
         } else {
           const hh = String(Math.floor(rd.curStartMin / 60)).padStart(2, '0');
