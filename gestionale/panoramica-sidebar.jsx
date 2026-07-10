@@ -219,8 +219,9 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         borderRadius: 8,
         borderTop: `1px solid ${PN.BORDER}`,
         paddingTop: 14,
+        transition: 'background 160ms ease',
       }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#f0f1f3'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
       >
         <div style={{
@@ -257,6 +258,8 @@ function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
         padding: collapsed ? '9px' : '9px 10px',
         borderRadius: 10,
         border: 'none',
+        // Base esplicita: senza, i <button> mostrano il grigio UA al load
+        background: 'transparent',
         color: active ? PN.PINK_DARK : PN.TEXT,
         fontWeight: active ? 600 : 500,
         fontSize: 19.5,
@@ -319,6 +322,7 @@ function PnSysItem({ label, icon, active, onClick, collapsed }) {
         padding: collapsed ? '8px' : '9px 10px',
         borderRadius: 10,
         border: 'none',
+        background: 'transparent',
         color: active ? PN.PINK_DARK : PN.MUTED,
         fontWeight: active ? 600 : 500,
         fontSize: 17.5,

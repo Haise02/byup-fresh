@@ -29,11 +29,9 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
   return (
     <div style={{
       display:'flex', justifyContent:'flex-end', gap: 10,
-      position:'sticky', top: 0, zIndex: 40,
-      // Sfumatura del fondo pagina dietro i bottoni: scorrendo, i widget
-      // passano sotto senza collidere visivamente con le pillole.
-      margin: '-16px -28px 0', padding: '16px 28px 10px',
-      background: `linear-gradient(180deg, ${PN.BG} 0%, ${PN.BG} 62%, transparent 100%)`,
+      position:'sticky', top: 6, zIndex: 40,
+      // Nessun fondo: fluttuano solo le pillole, che hanno superficie
+      // piena e ombra proprie — niente strisce sopra i widget.
       pointerEvents: 'none',
     }}>
       {editMode && (
@@ -44,7 +42,7 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
           border:'none', borderRadius: 9,
           fontWeight: 600, fontSize: 14.5, fontFamily:'inherit',
           cursor:'pointer', pointerEvents:'auto',
-          boxShadow: '0 2px 8px rgba(15,17,21,0.10)',
+          boxShadow: '0 3px 12px rgba(15,17,21,0.18)',
         }}>
           <Icon name="plus" size={13}/> Aggiungi widget
         </button>
@@ -58,7 +56,7 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
         borderRadius: 9,
         fontWeight: 600, fontSize: 14.5, fontFamily:'inherit',
         cursor:'pointer', pointerEvents:'auto',
-        boxShadow: '0 2px 8px rgba(15,17,21,0.10)',
+        boxShadow: '0 3px 12px rgba(15,17,21,0.18)',
       }}>
         {editMode ? <><Icon name="check" size={13}/> Salva</> : <><Icon name="pencil" size={13}/> Personalizza</>}
       </button>
