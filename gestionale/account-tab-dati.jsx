@@ -267,7 +267,7 @@ function AccDatiGenerali() {
                       cursor:'pointer', fontFamily:'inherit', textAlign:'center',
                       transition:'color 150ms',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#DC2626'}
+                    onMouseEnter={e => e.currentTarget.style.color = PN.TEXT}
                     onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
                   >Annulla richiesta</button>
                 </>
@@ -309,7 +309,7 @@ function AccDatiGenerali() {
                       cursor:'pointer', fontFamily:'inherit', textAlign:'center',
                       transition:'color 150ms',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#DC2626'}
+                    onMouseEnter={e => e.currentTarget.style.color = PN.TEXT}
                     onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
                   >Dissocia</button>
                 </>
@@ -439,7 +439,7 @@ function AccDatiGenerali() {
             <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
               <div style={{
                 width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: '#FEE2E2', color: '#DC2626',
+                background: '#FEF3C7', color: '#B45309',
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7"/><path d="M15 7h2a5 5 0 0 1 4 8"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
@@ -470,8 +470,8 @@ function AccDatiGenerali() {
                 onClick={confermaDissocia}
                 style={{
                   flex: 1, padding: '11px 14px', borderRadius: 999,
-                  background: '#DC2626', color: '#fff',
-                  border: '1px solid rgba(153,27,27,0.5)',
+                  background: '#0F1115', color: '#fff',
+                  border: '1px solid rgba(15,17,21,0.5)',
                   fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 }}>
                 {dissocia.pending ? 'Annulla richiesta' : 'Dissocia'}
@@ -492,15 +492,16 @@ function AccDatiGenerali() {
           <button
             onClick={() => setDeleteConfirm(true)}
             style={{
+              // Spento, grigio: il rosso è riservato al brand, non al pericolo.
               padding:'10px 18px', borderRadius: 999,
-              background: PN.WHITE, color: PN.RED,
-              border:`1px solid ${PN.RED}`,
+              background: PN.WHITE, color: PN.MUTED,
+              border:`1px solid ${PN.BORDER}`,
               fontSize: 15, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit',
-              transition:'background 150ms',
+              transition:'background 150ms, color 150ms',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.MUTED; }}
           >Elimina account</button>
         </div>
       </AcCard>
@@ -520,7 +521,7 @@ function AccDatiGenerali() {
             <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
               <div style={{
                 width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: '#FEE2E2', color: '#DC2626',
+                background: '#FEF3C7', color: '#B45309',
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6"/></svg>
@@ -547,8 +548,8 @@ function AccDatiGenerali() {
                 onClick={() => { window.location.href = 'byup Login.html'; }}
                 style={{
                   flex: 1, padding: '11px 14px', borderRadius: 999,
-                  background: '#DC2626', color: '#fff',
-                  border: '1px solid rgba(153,27,27,0.5)',
+                  background: '#0F1115', color: '#fff',
+                  border: '1px solid rgba(15,17,21,0.5)',
                   fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 }}>
                 Elimina definitivamente
@@ -573,12 +574,13 @@ function AcCard({ title, subtitle, children, danger, aurora, action }) {
     <div style={{
       background: aurora ? auroraBg : PN.WHITE,
       borderRadius: 14,
-      border: `1px solid ${danger ? '#FECACA' : aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
+      // Danger = ambra warning, non rosso: il rosso è il colore brand di Byup.
+      border: `1px solid ${danger ? '#FDE68A' : aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
       padding: 22,
     }}>
       <div style={{marginBottom: 18, display:'flex', alignItems:'flex-start', gap: 12}}>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 17, fontWeight: 700, color: danger ? PN.RED : PN.TEXT}}>{title}</div>
+          <div style={{fontSize: 17, fontWeight: 700, color: danger ? '#B45309' : PN.TEXT}}>{title}</div>
           {subtitle && <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3}}>{subtitle}</div>}
         </div>
         {action && <div style={{flexShrink: 0}}>{action}</div>}

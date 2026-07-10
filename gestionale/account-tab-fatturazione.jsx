@@ -96,17 +96,18 @@ function AccFatturazione() {
       {/* Zona pericolosa — Annulla abbonamento */}
       <AcCard title="Annulla abbonamento" subtitle="L'abbonamento resterà attivo fino alla fine del periodo già pagato. Dopo, il tuo account passerà al piano Free.">
         <div style={{
+          // Warning ambra, non rosso: il rosso è il colore brand di Byup.
           display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14,
           padding: 16, borderRadius: 12,
-          background:'#FFF7F7', border:`1px solid ${PN.RED}33`,
+          background:'#FFFBEB', border:'1px solid #FDE68A',
         }}>
           <div style={{flex: 1, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
             Una volta annullato, perderai accesso ai menu digitali extra, ai membri staff aggiuntivi e al supporto telefonico (se inclusi nel tuo piano).
           </div>
           <button style={{
             padding:'9px 16px', borderRadius: 999,
-            background: PN.WHITE, color: PN.RED,
-            border:`1px solid ${PN.RED}`,
+            background: PN.WHITE, color: PN.MUTED,
+            border:`1px solid ${PN.BORDER}`,
             fontSize: 14.5, fontWeight: 700, cursor:'pointer',
             fontFamily:'inherit', flexShrink: 0,
           }}>Annulla abbonamento</button>
