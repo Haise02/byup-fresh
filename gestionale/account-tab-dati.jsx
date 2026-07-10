@@ -177,16 +177,7 @@ function AccDatiGenerali() {
         )}
       </AcCard>
 
-      <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca su un locale per passare al suo gestionale." action={
-        <button onClick={() => setAddOpen(true)} style={{
-          padding:'8px 14px', borderRadius: 999,
-          background: PN.TEXT, color: PN.WHITE, border:'none',
-          fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-          display:'inline-flex', alignItems:'center', gap: 6,
-        }}>
-          <PnI.Plus size={13} color={PN.WHITE}/> Aggiungi locale
-        </button>
-      }>
+      <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca su un locale per passare al suo gestionale.">
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 12}}>
           {switching && <style>{`@keyframes acSpin { to { transform: rotate(360deg); } }`}</style>}
           {locali.map((loc) => {
