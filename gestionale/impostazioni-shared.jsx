@@ -230,7 +230,7 @@ function ImpToggle({ checked, onChange }) {
 // ImpButton — Apple-style: tutte le varianti hanno gradient sottile + inset highlight.
 // Mai background piatto. Mai bianco-su-bianco: la ghost variant usa il gradient
 // neutro (#FFF → #F5F5F7) invece del piatto #FFF.
-function ImpButton({ variant = 'primary', icon, children, onClick, style = {} }) {
+function ImpButton({ variant = 'primary', icon, children, onClick, style = {}, disabled = false }) {
   const [hover, setHover] = React.useState(false);
   const variants = {
     primary: {
@@ -261,18 +261,20 @@ function ImpButton({ variant = 'primary', icon, children, onClick, style = {} })
   const v = variants[variant] || variants.primary;
   return (
     <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
+      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      onMouseEnter={() => { if (!disabled) setHover(true); }}
       onMouseLeave={() => setHover(false)}
       style={{
         display:'inline-flex', alignItems:'center', gap: 7,
         padding: '9px 16px',
         borderRadius: 9,
         fontSize: 15, fontWeight: 600,
-        cursor: 'pointer', fontFamily: 'inherit',
+        cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
         background: v.bg, color: v.color, border: v.border,
         boxShadow: v.shadow,
-        transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
+        opacity: disabled ? 0.45 : 1,
+        transition: 'background 150ms ease-out, box-shadow 150ms ease-out, opacity 150ms ease-out',
         ...style,
       }}
     >

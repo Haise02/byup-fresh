@@ -8,9 +8,16 @@ const { useState: useStateS, useEffect: useEffectS } = React;
 function ScreenSala({ nav, openModal }) {
   const [tab, setTab] = useStateS('attivi');
   const [search, setSearch] = useStateS(false);
+  const [query, setQuery] = useStateS('');
 
-  const tavoli = TAVOLI;
-  const liberi = TAVOLI_LIBERI;
+  // Ricerca su numero tavolo, cameriere e nome prenotazione
+  const q = query.trim().toLowerCase();
+  const match = (t) => !q
+    || String(t.n).includes(q)
+    || (t.cameriere || '').toLowerCase().includes(q)
+    || ((t.prenotazione && t.prenotazione.nome) || '').toLowerCase().includes(q);
+  const tavoli = TAVOLI.filter(match);
+  const liberi = TAVOLI_LIBERI.filter(match);
 
   return (
     <div style={{ background: ST.BG, minHeight: '100%' }}>
@@ -38,11 +45,11 @@ function ScreenSala({ nav, openModal }) {
                 border: '2px solid ' + ST.SURF_ALT,
               }}/>
             </button>
-            <button onClick={() => setSearch(s => !s)} style={{
+            <button onClick={() => setSearch(s => { if (s) setQuery(''); return !s; })} style={{
               width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none',
-              background: ST.SURF_ALT, cursor: 'pointer',
+              background: search ? ST.TEXT : ST.SURF_ALT, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}><I.Search s={18}/></button>
+            }}><I.Search s={18} c={search ? '#fff' : undefined}/></button>
           </div>
         </div>
 
@@ -56,6 +63,22 @@ function ScreenSala({ nav, openModal }) {
           <Stat n={liberi.filter(t => t.stato === 'prenotato').length} l="Prenotati"/>
           <Stat n={STAFF_USER.oggi.scontrino} l="€/cop" euro/>
         </div>
+
+        {/* Campo ricerca — visibile solo col toggle attivo */}
+        {search && (
+          <input
+            autoFocus
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Cerca tavolo, cameriere o nome…"
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              height: 42, padding: '0 16px', marginBottom: 12,
+              borderRadius: ST.R_PILL, border: `1.5px solid ${ST.BORDER}`,
+              background: ST.SURF_ALT, fontSize: 14, fontFamily: 'inherit',
+              outline: 'none', color: ST.TEXT,
+            }}/>
+        )}
 
         {/* Tab segmented */}
         <div style={{
@@ -83,6 +106,12 @@ function ScreenSala({ nav, openModal }) {
         {tab === 'attivi'
           ? tavoli.map(t => <TavoloCardAttivo key={t.id} t={t} onOpen={() => nav.push({ s: 'tavolo', id: t.id })} onPay={() => nav.push({ s: 'pagamento-split', id: t.id })} onActions={() => openModal({ kind: 'tavolo-actions', tavolo: t })}/>)
           : liberi.map(t => <TavoloCardLibero key={t.id} t={t} onConferma={() => openModal({ kind: 'conferma-presenza', tavolo: t })} onModifica={() => openModal({ kind: 'modifica-prenotazione', tavolo: t })} onWalkIn={() => openModal({ kind: 'walk-in', tavolo: t })}/>)}
+
+        {q && (tab === 'attivi' ? tavoli : liberi).length === 0 && (
+          <div style={{ padding: '28px 0', textAlign: 'center', color: ST.MUTED, fontSize: 14 }}>
+            Nessun risultato per «{query.trim()}»
+          </div>
+        )}
 
         {tab === 'liberi' && (
           <button onClick={() => openModal({ kind: 'walk-in' })} style={{

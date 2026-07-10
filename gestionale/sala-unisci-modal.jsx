@@ -67,9 +67,6 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
   ];
   const summaryLabel = unionLabels.join(' + ');
 
-  // Almeno 1 tavolo selezionato per chiudere — il source è sempre presente quindi vero.
-  const canConfirm = true;
-
   function toggleAdd(id) {
     setSelected(s => {
       const ns = new Set(s);
@@ -86,7 +83,6 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
   }
 
   function handleConfirm() {
-    if (!canConfirm) return;
     // 1) Stacca i tavoli deselezionati
     if (toDetach.length > 0 && onDetach) {
       toDetach.forEach(id => onDetach(tavolo, id));
@@ -403,15 +399,12 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
             }}>Annulla</button>
             <button
               onClick={handleConfirm}
-              disabled={!canConfirm}
               style={{
                 flex:1, padding:'11px 14px',
-                background: canConfirm ? '#0F1115' : '#E5E7EB',
-                color: canConfirm ? '#fff' : '#9CA3AF',
+                background:'#0F1115', color:'#fff',
                 border:'none', borderRadius:10,
                 fontSize:17, fontWeight:700,
-                cursor: canConfirm ? 'pointer' : 'not-allowed',
-                fontFamily:'inherit',
+                cursor:'pointer', fontFamily:'inherit',
                 display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
                 transition:'background 150ms ease-out, color 150ms ease-out',
               }}>
@@ -419,97 +412,6 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
               <span style={{opacity:0.7}}>→</span>
             </button>
           </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function SalaCopertiModal({ tavolo, onClose, onSave }) {
-  const initial = tavolo?.coperti || tavolo?.posti || 1;
-  const [coperti, setCoperti] = React.useState(initial);
-
-  React.useEffect(() => {
-    if (tavolo) setCoperti(tavolo.coperti || tavolo.posti || 1);
-  }, [tavolo?.id]);
-
-  if (!tavolo) return null;
-
-  const maxPosti = tavolo.posti || 20;
-
-  return (
-    <>
-      <div onClick={onClose} style={{
-        position:'absolute', inset:0, background:'rgba(15,17,21,0.45)', zIndex:60,
-      }}/>
-      <div style={{
-        position:'absolute', top:'50%', left:'50%',
-        transform:'translate(-50%,-50%)',
-        width: 360, background:'#fff', borderRadius:16,
-        boxShadow:'0 20px 60px rgba(0,0,0,0.22)',
-        zIndex:61, padding:'22px 22px 18px',
-        fontFamily:'inherit',
-      }}>
-        <div style={{fontSize:21, fontWeight:800, color:'#0F1115', marginBottom:6, letterSpacing:'-0.02em'}}>
-          Modifica coperti — Tav.{tavolo.id}
-        </div>
-        <div style={{fontSize:16, color:'#9CA3AF', marginBottom:18}}>
-          Capacità tavolo: {maxPosti} posti
-        </div>
-
-        <div style={{
-          display:'flex', alignItems:'center', justifyContent:'center', gap:16,
-          padding:'16px 0', marginBottom:18,
-          background:'#FAFBFC', borderRadius:12,
-        }}>
-          <button
-            onClick={() => setCoperti(c => Math.max(1, c - 1))}
-            disabled={coperti <= 1}
-            style={{
-              width:44, height:44, borderRadius:10,
-              border:'1px solid #E5E7EB',
-              background: coperti <= 1 ? '#F4F5F7' : '#fff',
-              color: coperti <= 1 ? '#D1D5DB' : '#0F1115',
-              fontSize:26, fontWeight:700,
-              cursor: coperti <= 1 ? 'default' : 'pointer',
-              fontFamily:'inherit',
-              display:'grid', placeItems:'center',
-            }}>−</button>
-          <div style={{
-            minWidth:64, textAlign:'center',
-            fontSize:38, fontWeight:800, color:'#0F1115',
-            fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', lineHeight:1,
-          }}>
-            {coperti}
-          </div>
-          <button
-            onClick={() => setCoperti(c => Math.min(maxPosti, c + 1))}
-            disabled={coperti >= maxPosti}
-            style={{
-              width:44, height:44, borderRadius:10,
-              border:'1px solid #E5E7EB',
-              background: coperti >= maxPosti ? '#F4F5F7' : '#fff',
-              color: coperti >= maxPosti ? '#D1D5DB' : '#0F1115',
-              fontSize:26, fontWeight:700,
-              cursor: coperti >= maxPosti ? 'default' : 'pointer',
-              fontFamily:'inherit',
-              display:'grid', placeItems:'center',
-            }}>+</button>
-        </div>
-
-        <div style={{display:'flex', gap:8}}>
-          <button onClick={onClose} style={{
-            flex:1, padding:'11px 14px',
-            background:'#fff', color:'#0F1115',
-            border:'1px solid #E5E7EB', borderRadius:10,
-            fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-          }}>Annulla</button>
-          <button onClick={() => onSave && onSave(coperti)} style={{
-            flex:1, padding:'11px 14px',
-            background:'#0F1115', color:'#fff', border:'none',
-            borderRadius:10, fontSize:17, fontWeight:700,
-            cursor:'pointer', fontFamily:'inherit',
-          }}>Salva</button>
         </div>
       </div>
     </>
@@ -709,5 +611,4 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
 }
 
 window.SalaUnisciModal = SalaUnisciModal;
-window.SalaCopertiModal = SalaCopertiModal;
 window.SalaSpostaModal = SalaSpostaModal;

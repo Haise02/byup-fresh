@@ -397,7 +397,13 @@ function ModificaTavoliModal({ modal, closeModal, openModal }) {
 
 // ─── Filtri menu ────────────────────────────────────────────
 function FiltriModal({ modal, closeModal }) {
-  const [active, setActive] = useStateMo({ portate: ['Primo'], tipi: ['Pasta'] });
+  // Selezioni filtri: set piatto di opzioni attive (toggle sui chip)
+  const [active, setActive] = useStateMo(() => new Set(['Primo', 'Pasta']));
+  const toggle = (o) => setActive(prev => {
+    const n = new Set(prev);
+    n.has(o) ? n.delete(o) : n.add(o);
+    return n;
+  });
   const isBev = modal.cat === 'bevande';
   const sections = isBev ? [
     { title: 'Tipo di bevanda', opts: ['Acqua','Vino','Birra','Cocktail','Superalcolici'] },
@@ -415,7 +421,7 @@ function FiltriModal({ modal, closeModal }) {
       <SheetHandle/>
       <div style={{ padding: '8px 0 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px 16px' }}>
-          <button onClick={closeModal} style={{ fontSize: 13, fontWeight: 600, color: ST.PINK_DARK, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reset</button>
+          <button onClick={() => setActive(new Set())} style={{ fontSize: 13, fontWeight: 600, color: ST.PINK_DARK, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reset</button>
           <div style={{ fontSize: 16, fontWeight: 800 }}>Filtra per tipologia</div>
           <button onClick={closeModal} style={{ width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', background: ST.SURF_ALT, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><I.Close s={14}/></button>
         </div>
@@ -425,18 +431,26 @@ function FiltriModal({ modal, closeModal }) {
               {sec.title}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {sec.opts.map(o => (
-                <button key={o} style={{
-                  height: 34, padding: '0 14px', borderRadius: ST.R_PILL,
-                  border: `1.5px solid ${ST.BORDER}`, background: '#fff',
-                  fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                }}>{o}</button>
-              ))}
+              {sec.opts.map(o => {
+                const sel = active.has(o);
+                return (
+                  <button key={o} onClick={() => toggle(o)} style={{
+                    height: 34, padding: '0 14px', borderRadius: ST.R_PILL,
+                    border: `1.5px solid ${sel ? ST.PINK_DARK : ST.BORDER}`,
+                    background: sel ? ST.PINK_DARK : '#fff',
+                    color: sel ? '#fff' : ST.TEXT,
+                    fontSize: 12.5, fontWeight: sel ? 700 : 600, cursor: 'pointer', fontFamily: 'inherit',
+                    transition: 'background 140ms ease, color 140ms ease, border-color 140ms ease',
+                  }}>{o}</button>
+                );
+              })}
             </div>
           </div>
         ))}
         <div style={{ padding: '0 24px' }}>
-          <Btn variant="primary" full onClick={closeModal}>Filtra</Btn>
+          <Btn variant="primary" full onClick={closeModal}>
+            {active.size > 0 ? `Filtra (${active.size})` : 'Filtra'}
+          </Btn>
         </div>
       </div>
     </ModalShell>
