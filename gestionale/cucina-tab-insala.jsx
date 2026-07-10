@@ -211,6 +211,25 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     setTickets(prev => [{...ticket, items: updatedItems}, ...prev]);
   }
 
+  // Frecce su/giù: sposta la card al posto di un'altra nella stessa colonna
+  function reorderInColumn(ticketId, targetId, isLeft) {
+    if (ticketId === targetId) return;
+    setTickets(prev => {
+      const match = isLeft
+        ? t => !t.items.some(i => i.state === 'doing')
+        : t => t.items.some(i => i.state === 'doing');
+      const col = prev.filter(match);
+      const di = col.findIndex(t => t.id === ticketId);
+      const ti = col.findIndex(t => t.id === targetId);
+      if (di === -1 || ti === -1) return prev;
+      const reordered = [...col];
+      const [moved] = reordered.splice(di, 1);
+      reordered.splice(ti, 0, moved);
+      let idx = 0;
+      return prev.map(t => match(t) ? reordered[idx++] : t);
+    });
+  }
+
   function requestCancel(ticketId) {
     const t = tickets.find(x => x.id === ticketId);
     if (!t) return;
@@ -295,7 +314,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
           alignItems: 'flex-start',
         }}>
           <KdsColumn title="In attesa" toneKey="ok" count={filteredLeft.length} empty="Nessun ordine in attesa">
-            {filteredLeft.map(t => (
+            {filteredLeft.map((t, i) => (
               <KdsTicket
                 key={t.id} ticket={t}
                 onBumpItem={(idx) => bumpItem(t.id, idx)}
@@ -304,12 +323,14 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
+                onMoveUp={i > 0 ? () => reorderInColumn(t.id, filteredLeft[i - 1].id, true) : null}
+                onMoveDown={i < filteredLeft.length - 1 ? () => reorderInColumn(t.id, filteredLeft[i + 1].id, true) : null}
               />
             ))}
           </KdsColumn>
 
           <KdsColumn title="In preparazione" toneKey="doing" count={filteredRight.length} empty="Nessun ordine in preparazione">
-            {filteredRight.map(t => (
+            {filteredRight.map((t, i) => (
               <KdsTicket
                 key={t.id} ticket={t}
                 onBumpItem={(idx) => bumpItem(t.id, idx)}
@@ -318,6 +339,8 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
+                onMoveUp={i > 0 ? () => reorderInColumn(t.id, filteredRight[i - 1].id, false) : null}
+                onMoveDown={i < filteredRight.length - 1 ? () => reorderInColumn(t.id, filteredRight[i + 1].id, false) : null}
               />
             ))}
           </KdsColumn>
@@ -534,8 +557,41 @@ function KdsColumn({ title, toneKey = 'ok', count, empty, children }) {
   );
 }
 
+// ─── Move button ────────────────────────────────────────────
+// Freccia compatta ▲/▼ nell'header: sposta la card su/giù nella propria
+// colonna. Disabilitata (attenuata) quando la card è già prima o ultima.
+function KdsMoveBtn({ dir, onClick, dark = false }) {
+  const [hover, setHover] = React.useState(false);
+  const C = dark ? KDS_C : KDS_CL;
+  const enabled = !!onClick;
+  return (
+    <button
+      onClick={enabled ? onClick : undefined}
+      disabled={!enabled}
+      title={dir === 'up' ? 'Sposta su' : 'Sposta giù'}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 30, height: 22, borderRadius: 7, flexShrink: 0, padding: 0,
+        background: hover && enabled ? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,17,21,0.06)') : 'transparent',
+        border: 'none',
+        boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.12)'}`,
+        color: hover && enabled ? C.text : C.mut,
+        opacity: enabled ? 1 : 0.3,
+        cursor: enabled ? 'pointer' : 'default',
+        display: 'grid', placeItems: 'center',
+        transition: 'background 0.12s, color 0.12s',
+      }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        {dir === 'up' ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+      </svg>
+    </button>
+  );
+}
+
 // ─── Ticket ────────────────────────────────────────────────
-function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems }) {
+function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems,
+  onMoveUp, onMoveDown }) {
   const age = _ageMin(ticket.time);
   const minToPickup = ticket.pickup ? _toMin(ticket.pickup) - CUC_NOW_MIN : null;
   const u = (ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup
@@ -696,20 +752,11 @@ const lateGlow = u.tone === 'late';
             </div>
           )}
         </div>
-        {isInQueue && hasTodo && (
-          <button onClick={onPrimary} title="Avvia tutti i piatti" style={{
-            padding: '7px 12px', borderRadius: 999, flexShrink: 0,
-            background: dark ? 'rgba(245, 158, 11, 0.18)' : 'rgba(245, 158, 11, 0.14)',
-            boxShadow: 'inset 0 0 0 1px rgba(245, 158, 11, 0.50)',
-            border: 'none', color: dark ? '#FFC964' : '#B45309',
-            fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5,
-            transition: 'background 150ms ease-out',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.22)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.14)'; }}
-          >Inizia tutto <ForwardArrowIcon/></button>
-        )}
+        {/* Frecce su/giù — riordina la card nella propria colonna */}
+        <div style={{display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0}}>
+          <KdsMoveBtn dir="up" dark={dark} onClick={onMoveUp}/>
+          <KdsMoveBtn dir="down" dark={dark} onClick={onMoveDown}/>
+        </div>
         {!isInQueue && (
           <React.Fragment>
             {/* Secondaria: rimette in coda tutti i piatti in cottura */}
@@ -870,6 +917,24 @@ const lateGlow = u.tone === 'late';
           {doneQty}/{totQty}
         </span>
       </div>
+
+      {/* Footer — Inizia tutto in fondo alla card */}
+      {isInQueue && hasTodo && (
+        <div style={{padding: '0 16px 14px'}}>
+          <button onClick={onPrimary} title="Avvia tutti i piatti" style={{
+            width: '100%', padding: '9px 12px', borderRadius: 999,
+            background: dark ? 'rgba(245, 158, 11, 0.18)' : 'rgba(245, 158, 11, 0.14)',
+            boxShadow: 'inset 0 0 0 1px rgba(245, 158, 11, 0.50)',
+            border: 'none', color: dark ? '#FFC964' : '#B45309',
+            fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            transition: 'background 150ms ease-out',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.22)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.14)'; }}
+          >Inizia tutto <ForwardArrowIcon/></button>
+        </div>
+      )}
     </div>
   );
 }
