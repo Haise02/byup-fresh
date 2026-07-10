@@ -438,6 +438,7 @@ function SalaApp() {
             {tab === 'calendar' && <SalaCalendario tweaks={tweaks}
               onNuova={(data) => setModalNuova(data || true)}
               onModifica={(r) => setModalNuova({
+                resId: r.id,
                 time: r.time, dur: r.dur || 90, tableId: r.table, coperti: r.posti,
                 nome: r.name || '', phone: r.phone || '',
                 tag: r.note?.type || null, noteText: r.note?.text || '',
@@ -500,7 +501,22 @@ function SalaApp() {
             if (modalPay?._isBanco && window.SALA_VENDITA_CLEAR) window.SALA_VENDITA_CLEAR();
           }}/>
         <SalaModalNuova open={!!modalNuova} initData={modalNuova && typeof modalNuova === 'object' ? modalNuova : null} onClose={() => setModalNuova(null)}
-          onConfirm={(p) => showToast(`✓ Prenotazione ${p.editMode ? 'aggiornata' : 'confermata'} · ${p.nome} · ore ${p.time} · ${p.coperti} coperti`)}/>
+          onConfirm={(p) => {
+            // Scrive nel calendario: update se in modifica, altrimenti una
+            // prenotazione per ogni tavolo scelto (pattern tavolata multi-tavolo).
+            if (p.editMode && p.resId && window.SALA_RES_UPDATE) {
+              window.SALA_RES_UPDATE(p.resId, {
+                time: p.time, name: p.nome, posti: p.coperti, phone: p.phone,
+                table: p.tavoli[0], note: p.note, notes: p.notes,
+              });
+            } else if (!p.editMode && window.SALA_RES_ADD) {
+              p.tavoli.forEach(tid => window.SALA_RES_ADD({
+                time: p.time, dur: p.dur, name: p.nome, posti: p.coperti,
+                table: tid, phone: p.phone, note: p.note, notes: p.notes,
+              }));
+            }
+            showToast(`✓ Prenotazione ${p.editMode ? 'aggiornata' : 'confermata'} · ${p.nome} · ore ${p.time} · ${p.coperti} coperti`);
+          }}/>
 
         <TweaksPanel>
         </TweaksPanel>

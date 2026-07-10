@@ -548,14 +548,21 @@ function SalaModalNuova({ open, onClose, initData, onConfirm }) {
     : null;
   const canSubmit = !!effectiveTavolo && !!nome.trim() && !!phone.trim();
 
-  // Conferma: consegna il riepilogo al chiamante (toast in sala-app) e chiude.
+  // Conferma: consegna i dati completi al chiamante (sala-app li scrive
+  // nel calendario via SALA_RES_ADD/UPDATE e mostra il toast) e chiude.
   const handleSubmit = () => {
     if (!canSubmit) return;
+    const noteTag = allergeni.size
+      ? { type: 'allergia', text: [...allergeni].join(', ') }
+      : (tag ? { type: tag, text: tag === 'altro' ? tagAltro.trim() : '' } : null);
     if (onConfirm) onConfirm({
       editMode: !!initData?.editMode,
+      resId: initData?.resId || null,
       nome: nome.trim(), phone: phone.trim(),
-      date, time: selectedSlot, coperti,
+      date, time: selectedSlot, coperti: Number(coperti),
+      dur: initData?.dur || 90,
       tavoli: effectiveTavolo.tables.map(t => t.id),
+      note: noteTag, notes: note.trim() || null,
     });
     onClose();
   };
@@ -935,7 +942,6 @@ function SalaModalNuova({ open, onClose, initData, onConfirm }) {
 
   return (
     <PnModal open={open} onClose={onClose}
-      sheet
       title={initData?.editMode ? 'Modifica prenotazione' : 'Nuova prenotazione'}
       width={720}
       footer={

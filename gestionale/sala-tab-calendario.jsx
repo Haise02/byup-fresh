@@ -50,6 +50,30 @@ const SALA_RES_DATA = (() => {
 const NOW_HHMM = '12:00';
 const ALL_TABLES = [{id:1,p:8},{id:2,p:4},{id:3,p:2},{id:4,p:2},{id:5,p:4},{id:6,p:2},{id:7,p:6},{id:8,p:2},{id:9,p:4},{id:11,p:6},{id:12,p:4}];
 
+// API runtime per il modal "Nuova prenotazione" (vive in sala-app, fuori dai
+// componenti calendario): muta l'array condiviso e notifica via evento same-page.
+let SALA_RES_SEQ = 1;
+window.SALA_RES_ADD = (res) => {
+  const rec = { id: 'live' + (SALA_RES_SEQ++), dur: 90, status: 'confermata', phone: '', note: null, notes: null, source: 'tel', ...res };
+  SALA_RES_DATA.push(rec);
+  window.dispatchEvent(new CustomEvent('sala-res-change', { detail: { type: 'add', res: rec } }));
+  return rec;
+};
+window.SALA_RES_UPDATE = (id, patch) => {
+  const i = SALA_RES_DATA.findIndex(r => r.id === id);
+  if (i !== -1) Object.assign(SALA_RES_DATA[i], patch);
+  window.dispatchEvent(new CustomEvent('sala-res-change', { detail: { type: 'update', id, patch } }));
+};
+// Per i componenti che leggono SALA_RES_DATA direttamente nel render:
+// re-render quando l'array cambia da fuori.
+function useSalaResVersion() {
+  const [, bump] = React.useReducer(x => x + 1, 0);
+  React.useEffect(() => {
+    window.addEventListener('sala-res-change', bump);
+    return () => window.removeEventListener('sala-res-change', bump);
+  }, []);
+}
+
 function timeToMin(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
 
 const RES_STATUS_META = {
@@ -285,6 +309,17 @@ function DayTimeline({ onNuova, onModifica }) {
   const tables = ALL_TABLES;
 
   const [resData, setResData] = React.useState(() => SALA_RES_DATA);
+  // Prenotazioni aggiunte/modificate dal modal (fuori da questo componente):
+  // merge nello stato locale senza perdere gli spostamenti fatti col drag.
+  React.useEffect(() => {
+    const onChange = (e) => {
+      const d = e.detail || {};
+      if (d.type === 'add') setResData(prev => [...prev, d.res]);
+      else if (d.type === 'update') setResData(prev => prev.map(r => r.id === d.id ? { ...r, ...d.patch } : r));
+    };
+    window.addEventListener('sala-res-change', onChange);
+    return () => window.removeEventListener('sala-res-change', onChange);
+  }, []);
   const valid = resData.filter(r => r.status !== 'cancellata' && r.status !== 'noshow' && r.table);
   const nowMin = timeToMin(NOW_HHMM);
 
@@ -922,6 +957,7 @@ function Legend({ dot, label, bg, border }) {
 function DayList({ onModifica }) {
   const nowMin = timeToMin(NOW_HHMM);
   const [dismissed, setDismissed] = React.useState(new Set());
+  useSalaResVersion();
   const sorted = [...SALA_RES_DATA]
     .filter(r => !dismissed.has(r.id))
     .sort((a,b) => timeToMin(a.time) - timeToMin(b.time));
