@@ -68,20 +68,26 @@
 <script>
 (function () {
   var DESIGN_H = 900, MARGIN = 24, MIN_W = 1280;
+  // Zoom guidato dall'altezza: tutta la UI scala in proporzione al desktop.
+  // Larghezza fluida: dopo lo zoom il frame riempie la larghezza disponibile.
+  var cur = { frame: null, zoom: null, width: null };
   function fit() {
     var frame = document.querySelector('.frame');
     if (!frame) return;
     var s = (window.innerHeight - MARGIN) / DESIGN_H;
     s = Math.max(0.4, Math.min(2.2, s));
-    frame.style.zoom = s;
-    var w = (window.innerWidth - MARGIN) / s;
-    frame.style.width = Math.max(MIN_W, w) + 'px';
+    var w = Math.max(MIN_W, (window.innerWidth - MARGIN) / s);
+    if (frame !== cur.frame || s !== cur.zoom) frame.style.zoom = s;
+    if (frame !== cur.frame || w !== cur.width) frame.style.width = w + 'px';
+    cur = { frame: frame, zoom: s, width: w };
   }
   window.addEventListener('resize', fit);
+  // Il frame lo monta React dopo la compilazione Babel (async, da CDN): al
+  // primo load può non esistere ancora e i retry a tempo fisso perdevano la
+  // gara su rete lenta. L'observer applica il fit appena il frame compare
+  // (e su ogni remount): adattamento al primo colpo, senza refresh.
+  new MutationObserver(fit).observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
   fit();
-  setTimeout(fit, 100);
-  setTimeout(fit, 400);
-  setTimeout(fit, 1000);
 })();
 </script>
 </body>
