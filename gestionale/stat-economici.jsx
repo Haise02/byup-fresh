@@ -9,8 +9,8 @@ function StatEconomici() {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       <div style={{display:'flex', gap: 22, borderBottom:`1px solid ${PN.BORDER_SOFT}`, marginBottom: -8}}>
-        <StatSubTab active={sub==='ricavi'} onClick={() => setSub('ricavi')} label="Ricavi e costi"/>
-        <StatSubTab active={sub==='vendite'} onClick={() => setSub('vendite')} label="Vendite piatti"/>
+        <StatSubTab active={sub==='ricavi'} onClick={() => setSub('ricavi')} label="Ricavi e costi" icon="commerce-money"/>
+        <StatSubTab active={sub==='vendite'} onClick={() => setSub('vendite')} label="Vendite piatti" icon="food-meal"/>
       </div>
 
       {sub === 'ricavi' && <RicaviCosti d={e} months={months}/>}
