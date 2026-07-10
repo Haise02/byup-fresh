@@ -11,6 +11,21 @@ function AccDatiGenerali() {
   const [lingua, setLingua] = React.useState('Italiano');
   const [fuso, setFuso] = React.useState('Europe/Rome (UTC+1)');
   const [valuta, setValuta] = React.useState('EUR (€)');
+  // Dati personali modificabili: draft (a video) vs salvati; le modifiche
+  // vanno confermate con "Salva modifiche" o scartate con "Annulla".
+  const [datiSalvati, setDatiSalvati] = React.useState({
+    nome: ACC_DATI.nome, cognome: ACC_DATI.cognome,
+    email: ACC_DATI.email, telefono: ACC_DATI.telefono,
+  });
+  const [datiDraft, setDatiDraft] = React.useState(datiSalvati);
+  const [datiToast, setDatiToast] = React.useState(null);
+  const datiDirty = JSON.stringify(datiDraft) !== JSON.stringify(datiSalvati);
+  const setCampo = (k) => (v) => setDatiDraft(d => ({ ...d, [k]: v }));
+  const salvaDati = () => {
+    setDatiSalvati(datiDraft);
+    setDatiToast('✓ Dati profilo aggiornati');
+    setTimeout(() => setDatiToast(null), 2600);
+  };
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
       <AcCard title="Profilo personale" subtitle="Le informazioni del tuo account.">
@@ -46,16 +61,61 @@ function AccDatiGenerali() {
             </span>
           </button>
           <div>
-            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>{ACC_DATI.nome} {ACC_DATI.cognome}</div>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>{datiSalvati.nome} {datiSalvati.cognome}</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{ACC_DATI.ruolo} · {ACC_DATI.ristorante}</div>
           </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-          <AcField label="Nome" value={ACC_DATI.nome}/>
-          <AcField label="Cognome" value={ACC_DATI.cognome}/>
-          <AcField label="Email" value={ACC_DATI.email}/>
-          <AcField label="Telefono" value={ACC_DATI.telefono}/>
+          <AcInput label="Nome" value={datiDraft.nome} onChange={setCampo('nome')}/>
+          <AcInput label="Cognome" value={datiDraft.cognome} onChange={setCampo('cognome')}/>
+          <AcInput label="Email" type="email" value={datiDraft.email} onChange={setCampo('email')}/>
+          <AcInput label="Telefono" type="tel" value={datiDraft.telefono} onChange={setCampo('telefono')}/>
         </div>
+
+        {/* Barra conferma — compare solo con modifiche in sospeso */}
+        {datiDirty && (
+          <div style={{
+            display:'flex', alignItems:'center', gap: 10,
+            marginTop: 16, padding: '10px 14px',
+            background: PN.PINK_SOFT, border: `1px dashed ${PN.PINK}`,
+            borderRadius: 10,
+          }}>
+            <span style={{flex: 1, fontSize: 14.5, fontWeight: 600, color: PN.PINK_DARK}}>
+              Hai modifiche non salvate.
+            </span>
+            <button
+              onClick={() => setDatiDraft(datiSalvati)}
+              style={{
+                padding:'8px 14px', borderRadius: 999,
+                background: PN.WHITE, color: PN.TEXT,
+                border:`1px solid ${PN.BORDER}`,
+                fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+              }}>
+              Annulla
+            </button>
+            <button
+              onClick={salvaDati}
+              style={{
+                padding:'8px 16px', borderRadius: 999,
+                background: PN.BTN_DARK, color: PN.WHITE,
+                border: '1px solid rgba(0,0,0,0.32)',
+                fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+              }}>
+              Salva modifiche
+            </button>
+          </div>
+        )}
+
+        {datiToast && (
+          <div style={{
+            position:'absolute', bottom: 28, left:'50%', transform:'translateX(-50%)',
+            background:'#0F1115', color:'#fff',
+            padding:'12px 22px', borderRadius: 999,
+            fontSize: 15.5, fontWeight: 700, zIndex: 120,
+            whiteSpace:'nowrap',
+            boxShadow:'0 8px 24px rgba(0,0,0,0.18)',
+          }}>{datiToast}</div>
+        )}
       </AcCard>
 
       <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca per accedere al gestionale del singolo locale." action={
@@ -392,6 +452,29 @@ const AcBtnGhost = {
   fontSize: 14, fontWeight: 600, cursor:'pointer',
   fontFamily:'inherit',
 };
+
+// Input con la stessa veste di AcField, ma modificabile.
+function AcInput({ label, value, onChange, type = 'text', full }) {
+  return (
+    <div style={{gridColumn: full ? '1 / -1' : 'auto'}}>
+      <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 6}}>{label}</div>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          width:'100%', padding:'10px 12px', borderRadius: 10,
+          border:`1px solid ${PN.BORDER}`, background: '#FAFBFC',
+          fontSize: 15.5, color: PN.TEXT, fontWeight: 500,
+          fontFamily:'inherit', outline:'none', boxSizing:'border-box',
+          transition:'border-color 150ms, background 150ms',
+        }}
+        onFocus={e => { e.target.style.borderColor = PN.TEXT; e.target.style.background = PN.WHITE; }}
+        onBlur={e => { e.target.style.borderColor = PN.BORDER; e.target.style.background = '#FAFBFC'; }}
+      />
+    </div>
+  );
+}
 
 // Select custom con la stessa veste di AcField: il menu nativo del browser
 // non è stilizzabile, qui il pannello è in vetro (GLASS_MENU) con hover e
