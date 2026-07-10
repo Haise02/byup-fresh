@@ -71,6 +71,22 @@ function PnSidebar({ active = 'panoramica', onNav }) {
 
   // Locale attivo — mostrato sotto il nome utente, reattivo al cambio da Profilo
   const [localeAttivo, setLocaleAttivo] = React.useState(() => window.byupReadLocale());
+
+  // Menu avatar (drop-up): Vai al profilo / Esci dall'account — pattern SaaS standard.
+  const [profileMenu, setProfileMenu] = React.useState(false);
+  const [logoutConfirm, setLogoutConfirm] = React.useState(false);
+  const profileRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!profileMenu) return;
+    const onDoc = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileMenu(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setProfileMenu(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [profileMenu]);
   React.useEffect(() => {
     const update = () => setLocaleAttivo(window.byupReadLocale());
     window.addEventListener('byup-locale-change', update);
@@ -208,33 +224,141 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         {window.PnNotifBell && <window.PnNotifBell sidebar collapsed={collapsed}/>}
       </div>
 
-      {/* Profile — click: pagina Profilo; icona a destra: logout con conferma */}
-      <div title="Profilo" onClick={() => navTo('profilo')} style={{
-        display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        padding: collapsed ? '10px 0' : '10px 8px',
-        cursor: 'pointer', fontFamily: 'inherit',
-        textAlign: 'left', width: '100%', boxSizing: 'border-box',
-        borderRadius: 8,
-        borderTop: `1px solid ${PN.BORDER}`,
-        paddingTop: 14,
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#f0f1f3'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-      >
-        <div style={{
-          width: 34, height: 34, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
-          color: '#fff', display: 'grid', placeItems: 'center',
-          fontWeight: 700, fontSize: 15, flexShrink: 0,
-        }}>MR</div>
-        {!collapsed && (
-          <div style={{minWidth: 0, flex: 1}}>
-            <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Mario Rossi</div>
-            <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{localeAttivo.nome}</div>
+      {/* Profile — click: menu avatar (Vai al profilo / Esci dall'account) */}
+      <div ref={profileRef} style={{position:'relative'}}>
+        <div title="Account" onClick={() => setProfileMenu(m => !m)} style={{
+          display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          padding: collapsed ? '10px 0' : '10px 8px',
+          cursor: 'pointer', fontFamily: 'inherit',
+          textAlign: 'left', width: '100%', boxSizing: 'border-box',
+          borderRadius: 8,
+          borderTop: `1px solid ${PN.BORDER}`,
+          paddingTop: 14,
+          background: profileMenu ? '#f0f1f3' : 'transparent',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#f0f1f3'; }}
+          onMouseLeave={e => { if (!profileMenu) e.currentTarget.style.background = 'transparent'; }}
+        >
+          <div style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
+            color: '#fff', display: 'grid', placeItems: 'center',
+            fontWeight: 700, fontSize: 15, flexShrink: 0,
+          }}>MR</div>
+          {!collapsed && (
+            <div style={{minWidth: 0, flex: 1}}>
+              <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Mario Rossi</div>
+              <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{localeAttivo.nome}</div>
+            </div>
+          )}
+          {!collapsed && (
+            <span style={{
+              display:'inline-flex', color: PN.MUTED, flexShrink: 0,
+              transform: profileMenu ? 'rotate(180deg)' : 'none',
+              transition:'transform 180ms ease-out',
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+            </span>
+          )}
+        </div>
+
+        {/* Menu drop-up */}
+        {profileMenu && (
+          <div style={{
+            position:'absolute', bottom:'calc(100% + 8px)', left: 0,
+            width: collapsed ? 220 : '100%', minWidth: 200,
+            ...PN.GLASS_MENU,
+            zIndex: 120, overflow:'hidden', padding: 6,
+          }}>
+            <button
+              onClick={() => { setProfileMenu(false); navTo('profilo'); }}
+              style={{
+                width:'100%', display:'flex', alignItems:'center', gap: 10,
+                padding:'9px 10px', borderRadius: 8, border:'none',
+                background:'transparent', color: PN.TEXT,
+                fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                textAlign:'left', transition:'background 120ms',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(15,17,21,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Icon name="people-user-circle" size={16}/>
+              Vai al profilo
+            </button>
+            <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 6px'}}/>
+            <button
+              onClick={() => { setProfileMenu(false); setLogoutConfirm(true); }}
+              style={{
+                width:'100%', display:'flex', alignItems:'center', gap: 10,
+                padding:'9px 10px', borderRadius: 8, border:'none',
+                background:'transparent', color: PN.TEXT,
+                fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                textAlign:'left', transition:'background 120ms, color 120ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.color = '#DC2626'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.TEXT; }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Esci dall'account
+            </button>
           </div>
         )}
       </div>
+
+      {/* Popup conferma logout — portal sul frame: scrim a tutta app */}
+      {logoutConfirm && ReactDOM.createPortal(
+        <div onClick={() => setLogoutConfirm(false)} style={{
+          position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 300, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG,
+            borderRadius: 20, width: 380, maxWidth:'100%',
+            padding: '22px 22px 20px',
+            display:'flex', flexDirection:'column', gap: 16,
+          }}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Esci dall'account?</div>
+                <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+                  La sessione su questo dispositivo verrà terminata.
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button
+                onClick={() => setLogoutConfirm(false)}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+                  border: '1px solid rgba(15,17,21,0.12)',
+                  fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Annulla
+              </button>
+              <button
+                onClick={() => { window.location.href = 'byup Login.html'; }}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: PN.BTN_DARK, color: PN.WHITE,
+                  border: '1px solid rgba(0,0,0,0.32)',
+                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Esci
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.querySelector('.frame') || document.body
+      )}
     </aside>
   );
 }
