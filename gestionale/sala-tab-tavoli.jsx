@@ -579,6 +579,12 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
   const clickedTable = mergeMode ? null
     : (expandedId ? tavoli.find(t=>t.id===expandedId) : null);
 
+  // Azioni "launcher" della card cliccata: chiudono la card prima di aprire
+  // il flusso successivo (salda, unisci, sposta, sheet articoli…) — la card
+  // non deve restare sotto i popup che lancia. Restano in-card solo gli
+  // stepper coperti e il carrello.
+  const closeAnd = (fn) => (...args) => { setExpandedId(null); fn && fn(...args); };
+
   // Helpers: bounding box e gruppi
   const tableRect = React.useCallback((id, customPos) => {
     const p = customPos || positions[id];
@@ -1728,14 +1734,14 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             <SalaCard t={clickedTable}
               expanded={true}
               onToggle={()=>{}}
-              onAdd={()=>onOpenAdd(clickedTable)}
-              onPay={()=>onOpenPay(clickedTable)}
-              onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
+              onAdd={closeAnd(()=>onOpenAdd(clickedTable))}
+              onPay={closeAnd(()=>onOpenPay(clickedTable))}
+              onAddArticle={closeAnd(onAddArticle)} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
               onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(clickedTable.id, n)}
               onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(clickedTable.id, n)}
-              onLibera={onLibera} onMove={onMove} onEdit={onEdit}
-              onAssignOther={onAssignOther} onNoShow={onNoShow}
-              onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
+              onLibera={closeAnd(onLibera)} onMove={closeAnd(onMove)} onEdit={closeAnd(onEdit)}
+              onAssignOther={closeAnd(onAssignOther)} onNoShow={closeAnd(onNoShow)}
+              onUnisci={closeAnd(onUnisci)} onModificaCoperti={closeAnd(onModificaCoperti)}/>
           </div>
         </div>,
         document.querySelector('.frame') || document.body
