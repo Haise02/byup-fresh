@@ -269,36 +269,27 @@ function StatPeriodPicker({ period, setPeriod }) {
   );
 }
 
-// ─── Macro tab — segmented control single-line ─────────────────
+// ─── Macro tab — underline pattern come Contabilità/Account ────
+// La barra contenitore (in stat-app-main) ha borderBottom 1px PN.BORDER;
+// il tab attivo la sovrascrive con l'underline pink (marginBottom -1).
 function StatTab({ id, active, onClick, label, hint, icon }) {
-  const [hover, setHover] = React.useState(false);
-  // glass-shimmer sull'attivo: il pulsante "selezionato" emette uno sweep
-  // di luce ogni ~5s, segnale calmo che il tab è vivo senza distrarre.
-  // Lift hover (+ subtle scale) sui non-attivi per feedback diretto.
   return (
-    <button onClick={() => onClick(id)}
-      className={active ? 'glass-shimmer glass-shimmer-dark' : ''}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        padding:'9px 18px',
-        background: active ? PN.TEXT : PN.WHITE,
-        border: `1px solid ${active ? PN.TEXT : (hover ? PN.MUTED_LIGHT : PN.BORDER)}`,
-        color: active ? '#fff' : PN.TEXT,
-        borderRadius: 10, fontSize: 15.5, fontWeight: 700,
-        cursor:'pointer', fontFamily:'inherit',
-        display:'inline-flex', alignItems:'center', gap: 8,
-        whiteSpace:'nowrap',
-        position: 'relative',
-        transform: (!active && hover) ? 'translateY(-1px)' : 'translateY(0)',
-        boxShadow: active
-          ? '0 4px 10px -2px rgba(15, 17, 21, 0.25), inset 0 1px 0 rgba(255,255,255,0.10)'
-          : (hover ? '0 4px 12px -4px rgba(15, 17, 21, 0.10)' : '0 1px 2px rgba(15, 17, 21, 0.04)'),
-        transition: 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease',
-      }}>
-      {icon && <span style={{position:'relative', zIndex: 3}}><Icon name={icon} size={14}/></span>}
-      <span style={{position:'relative', zIndex: 3}}>{label}</span>
-      {hint && <span style={{fontSize: 13, fontWeight: 500, opacity: 0.6, position:'relative', zIndex: 3}}>{hint}</span>}
+    <button onClick={() => onClick(id)} style={{
+      position:'relative',
+      display:'inline-flex', alignItems:'center', gap: 7,
+      padding:'10px 18px',
+      background:'transparent', border:'none',
+      color: active ? PN.TEXT : PN.MUTED,
+      fontSize: 15.5, fontWeight: active ? 700 : 500,
+      cursor:'pointer', fontFamily:'inherit',
+      marginBottom: -1,
+      borderBottom: `2px solid ${active ? PN.PINK : 'transparent'}`,
+      whiteSpace:'nowrap',
+      transition:'color 150ms ease-out, border-color 150ms ease-out',
+    }}>
+      {icon && <Icon name={icon} size={14}/>}
+      {label}
+      {hint && <span style={{fontSize: 13, fontWeight: 500, opacity: 0.6}}>{hint}</span>}
     </button>
   );
 }
