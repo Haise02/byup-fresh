@@ -48,10 +48,10 @@ function StatApp() {
                   </div>
                   <div style={{display:'flex', alignItems:'center', gap: 12}}>
                     {prev != null && dropPct > 0 && (
-                      <span style={{fontSize: 13, color: PN.RED, fontWeight: 600}}>↓ {dropPct.toFixed(0)}% abbandoni</span>
+                      <span style={{fontSize: 14, color: PN.RED, fontWeight: 600}}>↓ {dropPct.toFixed(0)}% abbandoni</span>
                     )}
                     <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 80, textAlign:'right'}}>{step.val.toLocaleString('it-IT')}</strong>
-                    <span style={{fontSize: 14, color: PN.MUTED, fontWeight: 600, minWidth: 44, textAlign:'right'}}>{step.pct}%</span>
+                    <span style={{fontSize: 14.5, color: PN.MUTED, fontWeight: 600, minWidth: 44, textAlign:'right'}}>{step.pct}%</span>
                   </div>
                 </div>
                 <div style={{height: 14, background:'#f3f4f6', borderRadius: 999, overflow:'hidden'}}>
@@ -105,7 +105,7 @@ function StatApp() {
                   padding:'3px 9px', borderRadius: 999,
                   background: p.conv >= 60 ? PN.GREEN_SOFT : (p.conv >= 40 ? PN.AMBER_SOFT : PN.RED_SOFT),
                   color: p.conv >= 60 ? '#15803d' : (p.conv >= 40 ? '#9a3412' : '#991b1b'),
-                  fontSize: 13, fontWeight: 700, minWidth: 56, textAlign:'center',
+                  fontSize: 14, fontWeight: 700, minWidth: 56, textAlign:'center',
                 }}>{p.conv.toFixed(1)}%</span>
               </div>
             </div>

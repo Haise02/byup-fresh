@@ -48,7 +48,7 @@ function StatStaff() {
             <BuIcons.search size={13} color={PN.MUTED}/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca membro…" style={{border:'none', outline:'none', fontSize: 14.5, fontFamily:'inherit', width: 160}}/>
           </div>
-          <button style={{padding:'8px 14px', background: PN.TEXT, color:'#fff', border:'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><BuIcons.download size={12}/> Esporta</button>
+          <button style={{padding:'8px 14px', background: PN.TEXT, color:'#fff', border:'none', borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><BuIcons.download size={12}/> Esporta</button>
         </div>
       }>
         <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
@@ -95,7 +95,7 @@ function StatStaff() {
                         flexShrink: 0,
                       }}><BuIcons.trophy size={10}/> Top</span>}
                     </div>
-                    <div style={{fontSize: 13, color: PN.MUTED}}>{s.ruolo}</div>
+                    <div style={{fontSize: 14, color: PN.MUTED}}>{s.ruolo}</div>
                   </div>
                 </div>
                 <span style={{fontVariantNumeric:'tabular-nums', fontWeight: 600}}>€ {s.scontrino.toFixed(2)}</span>
@@ -105,7 +105,7 @@ function StatStaff() {
                     padding:'3px 9px', borderRadius: 999,
                     background: vsPct >= 0 ? PN.GREEN_SOFT : PN.RED_SOFT,
                     color: vsPct >= 0 ? PN.GREEN : PN.RED,
-                    fontSize: 13, fontWeight: 700,
+                    fontSize: 14, fontWeight: 700,
                   }}>
                     {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct).toFixed(1)}%
                   </span>

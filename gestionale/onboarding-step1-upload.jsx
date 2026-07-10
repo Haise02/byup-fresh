@@ -311,7 +311,7 @@ function PrimaryCta({onClick, disabled, children}) {
         height: 44, padding: '0 20px',
         background: bg,
         color: disabled ? ONB.MUTED_LIGHT : '#fff',
-        border: 'none', borderRadius: 8,
+        border: 'none', borderRadius: 999,
         fontSize: 16, fontWeight: 600, fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 150ms ease-out',

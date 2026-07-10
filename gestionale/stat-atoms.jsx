@@ -65,12 +65,12 @@ function StatKpi({ label, value, sub, delta, suffix, spark, sparkColor, variant 
           display:'flex', flexDirection:'column', gap: 10,
         }}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8, minHeight: 18}}>
-          <div style={{fontSize: 14, color: 'rgba(58, 10, 14, 0.65)', fontWeight: 500, letterSpacing: 0.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</div>
+          <div style={{fontSize: 14.5, color: 'rgba(58, 10, 14, 0.65)', fontWeight: 500, letterSpacing: 0.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</div>
           <StatDelta value={delta}/>
         </div>
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
           <div style={{
-            fontSize: 28, fontWeight: 700, color: '#3A0A0E',
+            fontSize: 32, fontWeight: 700, color: '#3A0A0E',
             letterSpacing: -0.6, fontVariantNumeric:'tabular-nums',
             lineHeight: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
           }}>
@@ -89,12 +89,12 @@ function StatKpi({ label, value, sub, delta, suffix, spark, sparkColor, variant 
           </div>
         )}
         {target && (
-          <div style={{fontSize: 13, color: 'rgba(58, 10, 14, 0.55)', display:'flex', justifyContent:'space-between'}}>
+          <div style={{fontSize: 14, color: 'rgba(58, 10, 14, 0.55)', display:'flex', justifyContent:'space-between'}}>
             <span>obiettivo</span>
             <strong style={{color: '#3A0A0E', fontWeight: 700}}>{target}</strong>
           </div>
         )}
-        {sub && <div style={{fontSize: 13.5, color: 'rgba(58, 10, 14, 0.62)', lineHeight: 1.4}}>{sub}</div>}
+        {sub && <div style={{fontSize: 14.5, color: 'rgba(58, 10, 14, 0.62)', lineHeight: 1.4}}>{sub}</div>}
       </GlassDarkBox>
     );
   }
@@ -108,13 +108,13 @@ function StatKpi({ label, value, sub, delta, suffix, spark, sparkColor, variant 
       display:'flex', flexDirection:'column', gap: 10,
     }}>
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8, minHeight: 18}}>
-        <div style={{fontSize: 14, color: PN.MUTED, fontWeight: 500, letterSpacing: 0.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</div>
+        <div style={{fontSize: 14.5, color: PN.MUTED, fontWeight: 500, letterSpacing: 0.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</div>
         <StatDelta value={delta}/>
       </div>
 
       <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
         <div style={{
-          fontSize: 28, fontWeight: 700, color: PN.TEXT,
+          fontSize: 32, fontWeight: 700, color: PN.TEXT,
           letterSpacing: -0.6, fontVariantNumeric:'tabular-nums',
           lineHeight: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
         }}>
@@ -134,12 +134,12 @@ function StatKpi({ label, value, sub, delta, suffix, spark, sparkColor, variant 
         </div>
       )}
       {target && (
-        <div style={{fontSize: 13, color: PN.MUTED, display:'flex', justifyContent:'space-between'}}>
+        <div style={{fontSize: 14, color: PN.MUTED, display:'flex', justifyContent:'space-between'}}>
           <span>obiettivo</span>
           <strong style={{color: PN.TEXT, fontWeight: 700}}>{target}</strong>
         </div>
       )}
-      {sub && <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.4}}>{sub}</div>}
+      {sub && <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.4}}>{sub}</div>}
     </div>
   );
 }
@@ -176,14 +176,14 @@ function StatInsight({ items = [] }) {
             {(!it.tone || it.tone === 'neutral') && <BuIcons.info size={15}/>}
           </div>
           <div style={{flex: 1, minWidth: 0}}>
-            <div style={{fontSize: 14, fontWeight: 700, color: '#F5F5F7', marginBottom: 2}}>{it.title}</div>
-            <div style={{fontSize: 13.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45}}>{it.desc}</div>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: '#F5F5F7', marginBottom: 2}}>{it.title}</div>
+            <div style={{fontSize: 14.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45}}>{it.desc}</div>
             {it.cta && (
               <button style={{
                 marginTop: 6, padding:'4px 10px',
                 background:'rgba(255,255,255,0.08)',
                 border:'1px solid rgba(255,255,255,0.18)',
-                borderRadius: 6, fontSize: 13, fontWeight: 600,
+                borderRadius: 6, fontSize: 14.5, fontWeight: 600,
                 color: '#F5F5F7', cursor:'pointer', fontFamily:'inherit',
               }}>{it.cta} →</button>
             )}
@@ -205,8 +205,8 @@ function StatCard({ title, sub, action, children, padding = 20 }) {
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 16, marginBottom: 14}}>
           {title && (
             <div>
-              <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>{title}</div>
-              {sub && <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>{sub}</div>}
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{title}</div>
+              {sub && <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>{sub}</div>}
             </div>
           )}
           {action}
@@ -285,7 +285,7 @@ function StatTab({ id, active, onClick, label, hint, icon }) {
         background: active ? PN.TEXT : PN.WHITE,
         border: `1px solid ${active ? PN.TEXT : (hover ? PN.MUTED_LIGHT : PN.BORDER)}`,
         color: active ? '#fff' : PN.TEXT,
-        borderRadius: 10, fontSize: 15, fontWeight: 700,
+        borderRadius: 10, fontSize: 15.5, fontWeight: 700,
         cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', gap: 8,
         whiteSpace:'nowrap',
@@ -312,7 +312,7 @@ function StatSubTab({ active, onClick, label, icon }) {
       background: 'transparent',
       border:'none', borderBottom: `2px solid ${active ? PN.TEXT : 'transparent'}`,
       color: active ? PN.TEXT : PN.MUTED,
-      fontSize: 15, fontWeight: active ? 700 : 500,
+      fontSize: 15.5, fontWeight: active ? 700 : 500,
       cursor:'pointer', fontFamily:'inherit',
       transition:'all 0.15s',
       whiteSpace:'nowrap',

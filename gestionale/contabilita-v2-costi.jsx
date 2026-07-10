@@ -250,7 +250,7 @@ function ContCosti({ openNewCost }) {
       {pendingDelete && (
         <React.Fragment>
           <div onClick={() => setPendingDelete(null)} style={{
-            position:'fixed', inset:0, background:'rgba(15,17,21,0.55)', zIndex:60,
+            position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:60,
           }}/>
           <div style={{
             position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)',

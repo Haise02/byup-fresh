@@ -43,7 +43,7 @@ function Step4GoLive({ onBack, onComplete }) {
           }}>
             STEP 4 · ULTIMO PASSO
           </div>
-          <h1 style={{fontSize:36, fontWeight:800, margin:'0 0 8px', letterSpacing:-0.8}}>
+          <h1 style={{fontSize:34, fontWeight:600, margin:'0 0 8px', letterSpacing:'-0.02em'}}>
             Orari e tavoli.
           </h1>
           <p style={{fontSize:15, color:ONB.MUTED, margin:0}}>
@@ -80,13 +80,13 @@ function Step4GoLive({ onBack, onComplete }) {
                           slots: !open ? (h[day].slots.length ? h[day].slots : [['12:00','15:00'],['19:00','23:00']]) : [],
                         },
                       }))} style={{
-                        padding:'10px 4px', borderRadius:9,
+                        padding:'10px 2px', borderRadius:9,
                         border:`1.5px solid ${open ? ONB.PINK : ONB.BORDER_SOFT}`,
                         background: open ? ONB.PINK_SOFT : '#fff',
                         cursor:'pointer', fontFamily:'inherit',
                       }}>
                         <div style={{fontSize:11, fontWeight:700, color: open ? ONB.PINK_DARK : ONB.MUTED, marginBottom:4}}>{dayLabels[day]}</div>
-                        <div style={{fontSize:10.5, color: open ? ONB.TEXT : ONB.MUTED, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>
+                        <div style={{fontSize:13, color: open ? ONB.TEXT : ONB.MUTED, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>
                           {summary}
                         </div>
                       </button>
@@ -142,13 +142,13 @@ function Step4GoLive({ onBack, onComplete }) {
                   }}>
                     <div>
                       <label style={{
-                        fontSize:10.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
+                        fontSize:12.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
                         textTransform:'uppercase', marginBottom:4, display:'block',
                       }}>
                         Sala {idx + 1}
                         {r.default && <span style={{
                           marginLeft:8, background: ONB.PINK_DARK, color:'#fff',
-                          padding:'1px 7px', borderRadius:4, fontSize:9, letterSpacing:0.4,
+                          padding:'1px 7px', borderRadius:4, fontSize:10.5, letterSpacing:0.4,
                         }}>PRINCIPALE</span>}
                       </label>
                       <input
@@ -163,7 +163,7 @@ function Step4GoLive({ onBack, onComplete }) {
                     </div>
                     <div>
                       <label style={{
-                        fontSize:10.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
+                        fontSize:12.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
                         textTransform:'uppercase', marginBottom:4, display:'block',
                       }}>Tavoli</label>
                       <div style={{display:'flex', alignItems:'center', gap:8, background:'#fff', borderRadius:7, border:`1px solid ${ONB.BORDER}`, padding:'4px 6px'}}>
@@ -258,15 +258,11 @@ function Step4GoLive({ onBack, onComplete }) {
               padding:'13px 22px', borderRadius:11, fontSize:13.5, fontWeight:700,
               cursor:'pointer', fontFamily:'inherit',
             }}>Salva e completa dopo</button>
-            <button onClick={() => onComplete && onComplete('config')} style={{
-              background:ONB.PINK, color:'#fff', border:'none',
-              padding:'14px 28px', borderRadius:12, fontSize:15, fontWeight:700,
-              cursor:'pointer', fontFamily:'inherit',
-              boxShadow:'0 4px 14px rgba(233,30,99,0.3)',
-              display:'flex', alignItems:'center', gap:8,
-            }}>
+            {/* CTA primaria canonica (pillola) — PrimaryCta è globale, definito in
+                onboarding-step1-upload.jsx e caricato prima di questo file. */}
+            <PrimaryCta onClick={() => onComplete && onComplete('config')}>
               Vai alla configurazione completa <OnbIcon.ChevronRight size={14} color="#fff"/>
-            </button>
+            </PrimaryCta>
           </div>
         </div>
       </div>
@@ -314,7 +310,7 @@ function Field4({label, value, onChange, placeholder, wide}){
   return (
     <div style={wide?{gridColumn:'1 / -1'}:{}}>
       <label style={{
-        fontSize:11.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
+        fontSize:12.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
         textTransform:'uppercase', marginBottom:6, display:'block',
       }}>{label}</label>
       <input

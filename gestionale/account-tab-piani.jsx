@@ -75,7 +75,7 @@ function AccPianiAbbonamenti() {
                     padding:'7px 18px', borderRadius:999, border:'none',
                     background: active ? '#fff' : 'transparent',
                     color: active ? PN.TEXT : PN.MUTED,
-                    fontFamily:'inherit', fontSize:14, fontWeight: active ? 700 : 500,
+                    fontFamily:'inherit', fontSize:15, fontWeight: active ? 700 : 500,
                     cursor:'pointer',
                     boxShadow: active ? '0 1px 3px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.06)' : 'none',
                     transition:'all .15s',

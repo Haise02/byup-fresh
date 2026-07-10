@@ -33,7 +33,7 @@ function Step3SalesIntegrations({ onNext, onBack }) {
           }}>
             STEP 3 · 3 MINUTI
           </div>
-          <h1 style={{fontSize:36, fontWeight:800, margin:'0 0 8px', letterSpacing:-0.8}}>
+          <h1 style={{fontSize:34, fontWeight:600, margin:'0 0 8px', letterSpacing:'-0.02em'}}>
             Collega i sistemi di pagamento e dicci chi sei.
           </h1>
           <p style={{fontSize:15, color:ONB.MUTED, margin:0}}>
@@ -131,15 +131,11 @@ function Step3SalesIntegrations({ onNext, onBack }) {
                 Collega Stripe e Fatturazione per continuare
               </div>
             )}
-            <button onClick={required ? onNext : undefined} disabled={!required} style={{
-              background: required ? ONB.PINK : ONB.BORDER, color:'#fff', border:'none',
-              padding:'14px 28px', borderRadius:12, fontSize:15, fontWeight:700,
-              cursor: required ? 'pointer' : 'not-allowed', fontFamily:'inherit',
-              boxShadow: required ? '0 4px 14px rgba(233,30,99,0.3)' : 'none',
-              display:'flex', alignItems:'center', gap:8,
-            }}>
-              Continua <OnbIcon.ChevronRight size={14} color="#fff"/>
-            </button>
+            {/* CTA primaria canonica (pillola) — PrimaryCta è globale, definito in
+                onboarding-step1-upload.jsx e caricato prima di questo file. */}
+            <PrimaryCta onClick={onNext} disabled={!required}>
+              Continua <OnbIcon.ChevronRight size={14} color={required ? '#fff' : ONB.MUTED_LIGHT}/>
+            </PrimaryCta>
           </div>
         </div>
       </div>
@@ -215,7 +211,7 @@ function IntegrationCard({logo, name, tag, desc, status, setStatus, accountInfo}
           <span style={{fontSize:15, fontWeight:800, letterSpacing:-0.2}}>{name}</span>
           {tag && (
             <span style={{
-              fontSize:9.5, fontWeight:800, letterSpacing:0.4,
+              fontSize:10.5, fontWeight:800, letterSpacing:0.4,
               background: connected ? ONB.GREEN : ONB.PINK_DARK, color:'#fff',
               padding:'2px 7px', borderRadius:4,
             }}>{connected ? 'CONNESSO' : tag}</span>

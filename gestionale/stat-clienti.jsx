@@ -16,16 +16,16 @@ function StatClienti() {
         <StatCard title="Valutazioni" sub="Riepilogo recensioni Google · byup">
           <div style={{display:'flex', gap: 24, alignItems:'flex-start'}}>
             <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap: 4, paddingRight: 24, borderRight:`1px solid ${PN.BORDER_SOFT}`}}>
-              <div style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-2, lineHeight: 1}}>{d.rating}</div>
+              <div style={{fontSize: 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.8, lineHeight: 1}}>{d.rating}</div>
               <div style={{display:'flex', gap: 2, color: PN.AMBER, fontSize: 18}}>{'★'.repeat(5)}</div>
-              <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Sulla base di {d.recensioni} recensioni</div>
+              <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>Sulla base di {d.recensioni} recensioni</div>
             </div>
             <div style={{flex: 1, display:'flex', flexDirection:'column', gap: 6}}>
               {[5,4,3,2,1].map(stars => {
                 const row = d.starBreakdown.find(r => r.stars === stars);
                 const pct = (row.count / totRev) * 100;
                 return (
-                  <div key={stars} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 14}}>
+                  <div key={stars} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 14.5}}>
                     <span style={{width: 36, color: PN.MUTED, fontWeight: 600}}>{stars} ★</span>
                     <div style={{flex: 1}}><StatBar pct={pct} color={stars >= 4 ? PN.AMBER : stars === 3 ? '#F59E0B' : PN.RED} height={10}/></div>
                     <span style={{width: 60, textAlign:'right', color: PN.TEXT, fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{row.count}</span>
@@ -86,14 +86,14 @@ function StatClienti() {
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>{r.n}</span>
               <div style={{display:'flex', alignItems:'center', gap: 10}}>
                 <div style={{flex: 1}}><StatBar pct={r.pct} height={8}/></div>
-                <span style={{fontSize: 14, color: PN.MUTED, fontVariantNumeric:'tabular-nums', minWidth: 32, textAlign:'right'}}>{r.pct}%</span>
+                <span style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums', minWidth: 32, textAlign:'right'}}>{r.pct}%</span>
               </div>
               <span style={{textAlign:'right'}}>
                 <span style={{
                   display:'inline-flex', alignItems:'center', gap: 4,
                   padding:'3px 9px', borderRadius: 999,
                   background: PN.GREEN_SOFT, color: PN.GREEN,
-                  fontSize: 13, fontWeight: 700,
+                  fontSize: 14, fontWeight: 700,
                 }}>↑ {r.delta}%</span>
               </span>
             </div>

@@ -601,12 +601,12 @@ function DishLibraryPicker({ library, excludeIds, catName, onClose, onPick, onCr
   };
   const count = Object.keys(selected).length;
   return (
-    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(20,20,20,0.45)', zIndex:1000, display:'grid', placeItems:'center', padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 14, width: 640, maxWidth:'100%', maxHeight:'85vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,0.25)', overflow:'hidden'}}>
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:1000, display:'grid', placeItems:'center', padding: 20}}>
+      <div onClick={e => e.stopPropagation()} style={{...PN.GLASS_STRONG, borderRadius: 20, width: 480, maxWidth:'100%', maxHeight:'85vh', display:'flex', flexDirection:'column', overflow:'hidden'}}>
         <div style={{padding:'18px 22px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:10}}>
           <div style={{flex:1}}>
             <div style={{fontSize:13, color:PN.MUTED, textTransform:'uppercase', letterSpacing:0.4, fontWeight:700}}>{catName}</div>
-            <div style={{fontSize:18, fontWeight:700, color:PN.TEXT}}>Aggiungi piatti dalla libreria</div>
+            <div style={{fontSize:17, fontWeight:700, color:PN.TEXT}}>Aggiungi piatti dalla libreria</div>
           </div>
           <button onClick={onClose} style={{width:30, height:30, borderRadius:7, border:'none', background:'#F4F5F7', cursor:'pointer', fontSize:18, color:PN.MUTED}}>✕</button>
         </div>
@@ -614,7 +614,7 @@ function DishLibraryPicker({ library, excludeIds, catName, onClose, onPick, onCr
           <div style={{position:'relative'}}>
             <span style={{position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:PN.MUTED, display: 'flex', alignItems: 'center'}}><PnI.Search size={13} color={PN.MUTED}/></span>
             <input autoFocus value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca nella libreria…" style={{
-              width:'100%', padding:'9px 12px 9px 34px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none',
+              width:'100%', padding:'9px 12px 9px 34px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)',
             }}/>
           </div>
         </div>
@@ -1410,13 +1410,13 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(20,20,20,0.45)', zIndex: 1000,
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 1000,
       display:'grid', placeItems:'center', padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 14, width: 640, maxWidth:'100%',
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 560, maxWidth:'100%',
         maxHeight: '90vh', display:'flex', flexDirection:'column',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+        overflow: 'hidden',
       }}>
         {/* Header */}
         <div style={{padding:'16px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:12}}>
@@ -1424,7 +1424,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             <div style={{fontSize:14, color:PN.MUTED, textTransform:'uppercase', letterSpacing:0.5, fontWeight:700, marginBottom:2}}>
               {fromLibrary ? 'Libreria piatti' : (catName || cat)}
             </div>
-            <div style={{fontSize:20, fontWeight:800, color:PN.TEXT, lineHeight:1.2}}>
+            <div style={{fontSize:17, fontWeight:700, color:PN.TEXT, lineHeight:1.2}}>
               {name.trim() || (isEdit ? 'Modifica piatto' : 'Nuovo piatto')}
             </div>
           </div>
@@ -1455,7 +1455,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                 <div style={{flex:1}}>
                   <ImpField label="Nome">
                     <input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="es. Spaghetti alle vongole" style={{
-                      width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16.5, fontFamily:'inherit', outline:'none',
+                      width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)',
                     }}/>
                   </ImpField>
                 </div>
@@ -1505,7 +1505,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </div>
               <ImpField label="Descrizione breve">
                 <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={2} placeholder="Ingredienti principali, breve descrizione…" style={{
-                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5,
+                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, background:'rgba(255,255,255,0.8)',
                 }}/>
               </ImpField>
             </div>
@@ -2802,11 +2802,11 @@ function MCConfigura() {
       {/* QR Modal */}
       {showQr && (
         <div onClick={() => setShowQr(false)} style={{
-          position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
           display:'grid', placeItems:'center', zIndex: 100,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: PN.WHITE, borderRadius: 16, padding: 28,
+            ...PN.GLASS_STRONG, borderRadius: 20, padding: 28,
             width: 360, position:'relative', textAlign:'center',
           }}>
             <button onClick={() => setShowQr(false)} style={{
@@ -2815,7 +2815,7 @@ function MCConfigura() {
               background:'#F4F5F7', border:'none', cursor:'pointer',
               display:'grid', placeItems:'center',
             }}><PnI.X size={14}/></button>
-            <div style={{fontSize: 18, fontWeight: 800, marginBottom: 4}}>QR ordini d'asporto</div>
+            <div style={{fontSize: 17, fontWeight: 700, marginBottom: 4}}>QR ordini d'asporto</div>
             <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 16}}>Scansiona per ordinare e ritirare al banco</div>
             <div style={{
               width: 220, height: 220, margin:'0 auto 16px',
@@ -3037,7 +3037,7 @@ function AIMenuUploadModal({ onClose, onImport }) {
 
   return (
     <div onClick={onClose} style={{
-      position:'absolute', inset:0, background:'rgba(20,20,20,0.55)', zIndex:1100,
+      position:'absolute', inset:0, background:'rgba(15,17,21,0.42)', zIndex:1100,
       display:'grid', placeItems:'center', padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -3054,7 +3054,7 @@ function AIMenuUploadModal({ onClose, onImport }) {
           }}>✨</div>
           <div style={{flex:1}}>
             <div style={{fontSize: 13, color: PN.PINK_DARK, textTransform:'uppercase', letterSpacing: 0.5, fontWeight: 800}}>Importazione AI</div>
-            <div style={{fontSize: 18, fontWeight: 800, color: PN.TEXT}}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
               {stage === 'upload' && 'Carica il tuo menu'}
               {stage === 'processing' && 'Stiamo analizzando il menu…'}
               {stage === 'review' && 'Verifica i piatti estratti'}

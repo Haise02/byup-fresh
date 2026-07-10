@@ -58,7 +58,7 @@ function RicaviCosti({ d, months }) {
 
       <div style={{display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16}}>
         <StatCard title="Origine incassi" sub="Confronto canali ultimi 7 giorni" action={
-          <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 13, color: PN.MUTED}}>
+          <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 14, color: PN.MUTED}}>
             <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> Sala</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.GREEN}}/> Asporto</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.BLUE}}/> Vendita diretta</span>
@@ -101,7 +101,7 @@ function RicaviCosti({ d, months }) {
                   <span style={{width: 12, height: 12, background: s.color, borderRadius: 3}}/>
                   <span style={{flex: 1, color: PN.TEXT}}>{s.label}</span>
                   <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{Math.round((s.val/totRicavi)*100)}%</strong>
-                  <span style={{color: PN.MUTED, fontSize: 13, fontVariantNumeric:'tabular-nums', minWidth: 60, textAlign:'right'}}>€{s.val.toLocaleString('it-IT')}</span>
+                  <span style={{color: PN.MUTED, fontSize: 14, fontVariantNumeric:'tabular-nums', minWidth: 60, textAlign:'right'}}>€{s.val.toLocaleString('it-IT')}</span>
                 </div>
               ))}
             </div>
@@ -113,7 +113,7 @@ function RicaviCosti({ d, months }) {
         <div style={{display:'inline-flex', gap: 4, padding: 4, background:'#f5f5f7', borderRadius: 999}}>
           {[['6m','6 mesi'],['12m','12 mesi'],['24m','2 anni']].map(([id, label]) => (
             <button key={id} onClick={() => setTrendRange(id)} style={{
-              padding:'6px 14px', fontSize: 13.5, fontWeight: 600,
+              padding:'6px 14px', fontSize: 14.5, fontWeight: 600,
               background: trendRange === id ? PN.WHITE : 'transparent',
               border:'none', borderRadius: 999,
               color: trendRange === id ? PN.PINK_DARK : PN.MUTED,
@@ -148,19 +148,19 @@ function RicaviCosti({ d, months }) {
       </StatCard>
 
       <StatCard title="Totale costi" sub="Suddivisi per tipologia e categoria" action={
-        <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 13, color: PN.MUTED}}>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 14, color: PN.MUTED}}>
           <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> variabili</span>
           <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK_SOFT}}/> fissi</span>
         </span>
       }>
         <div style={{padding:'12px 16px', background: PN.WINE, borderRadius: 12, marginBottom: 16, color:'#fff', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <div>
-            <div style={{fontSize: 14, opacity: 0.85}}>Costi totali del periodo</div>
+            <div style={{fontSize: 14.5, opacity: 0.85}}>Costi totali del periodo</div>
             <div style={{fontSize: 24, fontWeight: 700, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>€ {STAT_ECONOMICI.costi.val.toLocaleString('it-IT')}</div>
           </div>
           <span style={{
             padding:'5px 12px', background:'rgba(255,255,255,0.2)',
-            borderRadius: 999, fontSize: 14, fontWeight: 700,
+            borderRadius: 999, fontSize: 14.5, fontWeight: 700,
           }}>↓ 4.2% vs mese scorso</span>
         </div>
         <div style={{display:'flex', flexDirection:'column', gap: 12}}>
@@ -169,7 +169,7 @@ function RicaviCosti({ d, months }) {
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 5}}>
                 <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{c.cat}</span>
                 <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                  <span style={{fontSize: 13, color: PN.MUTED}}>{c.fissi}% fissi · {c.var}% variabili</span>
+                  <span style={{fontSize: 14, color: PN.MUTED}}>{c.fissi}% fissi · {c.var}% variabili</span>
                   <strong style={{fontSize: 14.5, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 70, textAlign:'right'}}>€ {c.tot.toLocaleString('it-IT')}</strong>
                   <span style={{
                     padding:'2px 7px', borderRadius: 999,
@@ -194,10 +194,10 @@ function RicaviCosti({ d, months }) {
 function Mini({ label, pct, val }) {
   return (
     <div style={{padding: 10, background:'#fafafa', borderRadius: 10, border:`1px solid ${PN.BORDER_SOFT}`}}>
-      <div style={{fontSize: 13, color: PN.MUTED}}>{label}</div>
+      <div style={{fontSize: 14, color: PN.MUTED}}>{label}</div>
       <div style={{display:'flex', alignItems:'baseline', gap: 6, marginTop: 2}}>
         <strong style={{fontSize: 18, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{pct}%</strong>
-        <span style={{fontSize: 13, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{val}</span>
+        <span style={{fontSize: 14, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{val}</span>
       </div>
     </div>
   );
@@ -276,7 +276,7 @@ function VenditePiatti({ v }) {
                   padding:'3px 9px', borderRadius: 999,
                   background: p.marginePct >= 65 ? PN.GREEN_SOFT : (p.marginePct >= 55 ? PN.AMBER_SOFT : PN.RED_SOFT),
                   color: p.marginePct >= 65 ? PN.GREEN : (p.marginePct >= 55 ? PN.AMBER : PN.RED),
-                  fontSize: 13, fontWeight: 700,
+                  fontSize: 14, fontWeight: 700,
                 }}>{p.marginePct}%</span>
               </span>
             </div>

@@ -319,7 +319,7 @@ function ContNuovoCosto({ open, onClose }) {
 
   if (!open) return null;
   return (
-    <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,23,42,0.42)', zIndex: 60, display:'flex', justifyContent:'flex-end'}}>
+    <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 60, display:'flex', justifyContent:'flex-end'}}>
       <div onClick={e => e.stopPropagation()} style={{
         width: 480, maxWidth:'100%', height:'100%', background: PN.WHITE,
         boxShadow:'-12px 0 40px rgba(0,0,0,0.18)',
@@ -449,13 +449,13 @@ function ContShareModal({ open, onClose }) {
   if (!open) return null;
   const toggle = (k) => setFiles({...files, [k]: !files[k]});
   return (
-    <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,23,42,0.42)', zIndex: 60, display:'grid', placeItems:'center', padding: 24}}>
+    <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 60, display:'grid', placeItems:'center', padding: 24}}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: C.R_MD, width: 520, maxWidth:'100%',
-        boxShadow:'0 24px 60px rgba(0,0,0,0.2)', overflow:'hidden',
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 480, maxWidth:'100%',
+        overflow:'hidden',
       }}>
         {/* Header neutro */}
-        <div style={{padding:'18px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE, display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12}}>
+        <div style={{padding:'18px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12}}>
           <div style={{display:'flex', alignItems:'center', gap: 12}}>
             <div style={{width: 36, height: 36, borderRadius: C.R_SM, background: C.SURF_ALT, color: PN.TEXT, display:'grid', placeItems:'center'}}>
               <Ic.send size={16}/>

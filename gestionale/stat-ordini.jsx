@@ -40,7 +40,7 @@ function StatOrdini() {
 
       {/* Trend scontrino */}
       <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi" action={
-        <div style={{display:'inline-flex', alignItems:'center', gap: 14, fontSize: 13, color: PN.MUTED}}>
+        <div style={{display:'inline-flex', alignItems:'center', gap: 14, fontSize: 14, color: PN.MUTED}}>
           <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> sala</span>
           <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.GREEN}}/> asporto</span>
           <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.BLUE}}/> delivery</span>
@@ -76,7 +76,7 @@ function StatOrdini() {
         <div style={{display:'inline-flex', gap: 6, padding: 4, background:'#f5f5f7', borderRadius: 999}}>
           {['Sala','Asporto','Delivery','App clienti'].map(ch => (
             <button key={ch} onClick={() => setChannel(ch)} style={{
-              padding:'5px 12px', fontSize: 13.5, fontWeight: 600,
+              padding:'5px 12px', fontSize: 14.5, fontWeight: 600,
               background: channel === ch ? PN.WHITE : 'transparent',
               border:'none', borderRadius: 999,
               color: channel === ch ? PN.PINK_DARK : PN.MUTED,
@@ -101,7 +101,7 @@ function StatOrdini() {
           {d.heatmap.map((row, ri) => (
             <React.Fragment key={ri}>
               <div style={{
-                padding:'10px 8px', fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                padding:'10px 8px', fontSize: 14.5, fontWeight: 600, color: PN.MUTED,
                 fontVariantNumeric:'tabular-nums',
               }}>{row.ora}</div>
               {row.val.map((v, i) => (
@@ -109,13 +109,13 @@ function StatOrdini() {
                   height: 40, borderRadius: 6,
                   background: heatBg(v), color: heatColor(v),
                   display:'grid', placeItems:'center',
-                  fontSize: 14, fontWeight: 700, fontVariantNumeric:'tabular-nums',
+                  fontSize: 14.5, fontWeight: 700, fontVariantNumeric:'tabular-nums',
                 }}>{v}</div>
               ))}
             </React.Fragment>
           ))}
         </div>
-        <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 16, fontSize: 13, color: PN.MUTED}}>
+        <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 16, fontSize: 14, color: PN.MUTED}}>
           <span>Bassa attività</span>
           {['#FFF1EF','#FFC2C0','#FF8E92','#ff5a5f','#B53338'].map(c => (
             <span key={c} style={{width: 16, height: 16, background: c, borderRadius: 3}}/>
@@ -138,8 +138,8 @@ function ChannelCard({ title, subtitle, data, iconKey, color }) {
           display:'grid', placeItems:'center',
         }}>{Ico ? <Ico size={18} color={color}/> : null}</div>
         <div>
-          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>{title}</div>
-          <div style={{fontSize: 14, color: PN.MUTED}}>{subtitle}</div>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{title}</div>
+          <div style={{fontSize: 14.5, color: PN.MUTED}}>{subtitle}</div>
         </div>
       </div>
       <div style={{display:'flex', gap: 10}}>
@@ -159,7 +159,7 @@ function Pill({ iconKey, label, value }) {
     }}>
       {Ico ? <Ico size={14} color={PN.MUTED}/> : null}
       <div style={{flex:1, minWidth: 0}}>
-        <div style={{fontSize: 13, color: PN.MUTED}}>{label}</div>
+        <div style={{fontSize: 14, color: PN.MUTED}}>{label}</div>
         <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{value}</div>
       </div>
     </div>

@@ -189,7 +189,7 @@ function CuStoricoRow({ order, open, onToggle }) {
     : (
       <span style={{display:'inline-flex', alignItems:'center', gap: 6, minWidth: 0}}>
         <span style={{
-          fontSize: 9.5, fontWeight: 700, padding:'2px 6px', borderRadius: 5,
+          fontSize: 10.5, fontWeight: 700, padding:'2px 6px', borderRadius: 5,
           background: PN.BLUE_SOFT, color: PN.BLUE,
           textTransform:'uppercase', letterSpacing: 0.4, flexShrink: 0,
         }}>ASP</span>

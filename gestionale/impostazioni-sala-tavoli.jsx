@@ -1198,14 +1198,14 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
   };
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16, width: 420, maxWidth:'100%',
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 420, maxWidth:'100%',
       }}>
         <div style={{padding:'18px 20px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, position:'relative'}}>
-          <div style={{fontSize: 18, fontWeight: 800}}>
+          <div style={{fontSize: 17, fontWeight: 700}}>
             {isNew ? <span style={{display:'inline-flex', alignItems:'center', gap: 8}}><BuIcons.sparkle size={16} color={PN.PINK_DARK}/> Nuovo tavolo posizionato</span> : `Modifica ${tavolo.name}`}
           </div>
           <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>
@@ -1401,16 +1401,16 @@ function QRModal({ data, onClose }) {
   ];
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16, padding: 24,
-        width: isMulti ? 640 : 420, maxHeight: '85vh', overflow:'auto',
+        ...PN.GLASS_STRONG, borderRadius: 20, padding: 24,
+        width: isMulti ? 480 : 420, maxHeight: '85vh', overflow:'auto',
       }}>
         <div style={{display:'flex', alignItems:'center', gap: 12, marginBottom: 18}}>
           <div style={{flex:1}}>
-            <div style={{fontSize: 18, fontWeight: 800}}>
+            <div style={{fontSize: 17, fontWeight: 700}}>
               {data.mode === 'all' ? 'QR di tutti i tavoli' : isMulti ? `QR di ${data.tavoli.length} tavoli` : data.tavoli[0].name}
             </div>
             <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>I clienti scansionano il QR per vedere il menù del tavolo</div>
@@ -1479,14 +1479,14 @@ function SalaModal({ sala, onSave, onClose }) {
   const maxTavoli = Math.max(1, Math.floor((w * d) / 5));
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16, width: 420, maxWidth:'100%',
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 420, maxWidth:'100%',
       }}>
         <div style={{padding:'18px 20px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, position:'relative'}}>
-          <div style={{fontSize: 18, fontWeight: 800}}>{isNew ? 'Nuova sala' : 'Modifica sala'}</div>
+          <div style={{fontSize: 17, fontWeight: 700}}>{isNew ? 'Nuova sala' : 'Modifica sala'}</div>
           <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>
             {isNew ? 'Crea uno spazio separato (es. dehors, terrazza, sala VIP)' : 'Aggiorna nome e stato della sala'}
           </div>
@@ -1502,20 +1502,20 @@ function SalaModal({ sala, onSave, onClose }) {
             <input
               value={name} onChange={e => setName(e.target.value)} autoFocus
               placeholder="Es. Terrazza, Sala VIP, Dehors..."
-              style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none'}}
+              style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)'}}
             />
           </ImpField>
           <div style={{display:'flex', gap: 12, marginBottom: 4}}>
             <ImpField label="Larghezza (m)">
               <input
                 type="number" step="0.1" min="1" value={widthM} onChange={e => setWidthM(e.target.value)}
-                style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none'}}
+                style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)'}}
               />
             </ImpField>
             <ImpField label="Profondità (m)">
               <input
                 type="number" step="0.1" min="1" value={depthM} onChange={e => setDepthM(e.target.value)}
-                style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none'}}
+                style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)'}}
               />
             </ImpField>
           </div>
@@ -1576,11 +1576,11 @@ function UndoToast({ toast, onUndo, onClose }) {
 function ConfirmDialog({ title, msg, danger, confirmLabel, cancelLabel, singleAction, onConfirm, onClose }) {
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 150, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16, width: 400, maxWidth:'100%',
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 400, maxWidth:'100%',
         animation:'dialogIn 0.2s ease-out',
       }}>
         <div style={{padding: '24px 24px 16px'}}>
@@ -1591,7 +1591,7 @@ function ConfirmDialog({ title, msg, danger, confirmLabel, cancelLabel, singleAc
             display:'grid', placeItems:'center',
             marginBottom: 14,
           }}>{danger ? <BuIcons.alert size={20}/> : <BuIcons.info size={20}/>}</div>
-          <div style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, marginBottom: 6}}>{title}</div>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>{title}</div>
           <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>{msg}</div>
         </div>
         <div style={{padding: '14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
@@ -1678,11 +1678,11 @@ function ImportPlanModal({ onClose, onImport }) {
 
   return (
     <div onClick={step !== 'processing' ? onClose : undefined} style={{
-      position:'fixed', inset: 0, background:'rgba(0,0,0,0.55)',
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 120, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 18, width: 560, maxWidth:'100%',
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 560, maxWidth:'100%',
         overflow:'hidden', animation:'dialogIn 0.25s ease-out',
       }}>
         <div style={{

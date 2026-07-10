@@ -474,16 +474,16 @@ function InviteModal({ onClose, prefill }) {
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16,
-        width: 540, maxWidth:'100%', position:'relative',
+        ...PN.GLASS_STRONG, borderRadius: 20,
+        width: 480, maxWidth:'100%', position:'relative',
         maxHeight: '90vh', display:'flex', flexDirection:'column',
       }}>
         <div style={{padding: '20px 24px', borderBottom: `1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize: 19, fontWeight: 800, marginBottom: 3}}>Aggiungi un membro / dispositivo</div>
+          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>Aggiungi un membro / dispositivo</div>
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
             {kind === 'person'
               ? 'Invia un invito email per attivare l\'accesso al gestionale'
@@ -545,6 +545,7 @@ function InviteModal({ onClose, prefill }) {
                   style={{
                     width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                     borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
+                    background:'rgba(255,255,255,0.8)',
                   }}
                 />
               </ImpField>
@@ -600,6 +601,7 @@ function InviteModal({ onClose, prefill }) {
                   style={{
                     width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                     borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', resize:'vertical',
+                    background:'rgba(255,255,255,0.8)',
                   }}
                 />
               </ImpField>
@@ -713,6 +715,7 @@ function InviteModal({ onClose, prefill }) {
                     style={{
                       width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                       borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
+                      background:'rgba(255,255,255,0.8)',
                     }}
                   />
                 </ImpField>
@@ -729,6 +732,7 @@ function InviteModal({ onClose, prefill }) {
                     style={{
                       width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                       borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
+                      background:'rgba(255,255,255,0.8)',
                     }}
                   />
                 </ImpField>
@@ -843,7 +847,7 @@ function InviteModal({ onClose, prefill }) {
                       border:`1px solid ${PN.BORDER}`, borderLeft:'none',
                       borderRadius:'0 9px 9px 0',
                       fontSize:15.5, fontFamily:'ui-monospace, Menlo, monospace',
-                      outline:'none',
+                      outline:'none', background:'rgba(255,255,255,0.8)',
                     }}
                   />
                 </div>
@@ -861,6 +865,7 @@ function InviteModal({ onClose, prefill }) {
                         width:'100%', padding:'10px 40px 10px 12px',
                         border:`1px solid ${PN.BORDER}`, borderRadius:9,
                         fontSize:15.5, fontFamily:'inherit', outline:'none',
+                        background:'rgba(255,255,255,0.8)',
                       }}
                     />
                     <button
@@ -1013,17 +1018,16 @@ function DeviceRow({ d, idx, openMenu, setOpenMenu, onEdit }) {
 
       {confirmScollega && (
         <div onClick={() => setConfirmScollega(false)} style={{
-          position:'fixed', inset:0, background:'rgba(0,0,0,0.45)',
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
           display:'grid', placeItems:'center', zIndex:200,
-          backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: PN.WHITE, borderRadius: 14,
+            ...PN.GLASS_STRONG, borderRadius: 20,
             width: 380, maxWidth:'90%',
             padding: '24px',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
           }}>
-            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
               Scollega dispositivo
             </div>
             <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
@@ -1103,16 +1107,16 @@ function PersonRow({ p, idx, openMenu, setOpenMenu }) {
 function PendingModal({ onClose }) {
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16,
-        width: 540, maxWidth:'100%', position:'relative',
+        ...PN.GLASS_STRONG, borderRadius: 20,
+        width: 480, maxWidth:'100%', position:'relative',
         maxHeight:'90vh', display:'flex', flexDirection:'column',
       }}>
         <div style={{padding:'20px 24px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize: 19, fontWeight: 800, marginBottom: 3}}>Inviti in sospeso</div>
+          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>Inviti in sospeso</div>
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
             {PENDING.length === 0
               ? 'Nessun invito in attesa'
@@ -1205,19 +1209,19 @@ function CreateRoleModal({ onClose, role }) {
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16,
-        width: 520, maxWidth:'100%', position:'relative',
+        ...PN.GLASS_STRONG, borderRadius: 20,
+        width: 480, maxWidth:'100%', position:'relative',
         maxHeight: '90vh', display:'flex', flexDirection:'column',
       }}>
         <div style={{
           padding: '20px 24px',
           borderBottom: `1px solid ${PN.BORDER_SOFT}`,
         }}>
-          <div style={{fontSize: 19, fontWeight: 800, marginBottom: 3}}>
+          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>
             {isEdit ? `Modifica permessi · ${role.label}` : 'Crea ruolo personalizzato'}
           </div>
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
@@ -1240,6 +1244,7 @@ function CreateRoleModal({ onClose, role }) {
               style={{
                 width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                 borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
+                background:'rgba(255,255,255,0.8)',
               }}
             />
           </ImpField>

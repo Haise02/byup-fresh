@@ -533,7 +533,7 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver,
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{fontSize: 17, fontWeight: 800, color: KDS_CL.text, letterSpacing: '-0.01em'}}>
             {ticket.kind === 'sala'
-              ? <React.Fragment><span style={{fontSize: 11.5, fontWeight: 700, color: KDS_CL.mut}}>Tavolo </span>{ticket.table}</React.Fragment>
+              ? <React.Fragment><span style={{fontSize: 12.5, fontWeight: 700, color: KDS_CL.mut}}>Tavolo </span>{ticket.table}</React.Fragment>
               : ticket.customer}
           </div>
           {(ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup && (
@@ -833,7 +833,7 @@ const lateGlow = u.tone === 'late';
           <div style={{fontSize: 20, fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em'}}>
             {isPickupKind ? (minToPickup <= 0 ? 'ora' : `${minToPickup}′`) : `${age}′`}
           </div>
-          <div style={{fontSize: 8.5, fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.7}}>
+          <div style={{fontSize: 11, fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.7}}>
             {isPickupKind ? 'al ritiro' : 'attesa'}
           </div>
         </div>
@@ -947,7 +947,7 @@ const lateGlow = u.tone === 'late';
             transition: 'width 320ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}/>
         </div>
-        <span style={{fontSize: 11.5, fontWeight: 700, color: C.mut, fontVariantNumeric: 'tabular-nums', flexShrink: 0}}>
+        <span style={{fontSize: 13, fontWeight: 700, color: C.mut, fontVariantNumeric: 'tabular-nums', flexShrink: 0}}>
           {doneQty}/{totQty}
         </span>
       </div>
@@ -1006,11 +1006,11 @@ function KdsItemRow({ item, onBump, onRevert, dark = false, disabled = false, se
         {item.allergen && item.note && (
           <div style={{
             display:'inline-flex', alignItems:'center', gap: 4, marginBottom: 4,
-            fontSize: 11.5, fontWeight: 800,
+            fontSize: 15, fontWeight: 800, maxWidth: '100%',
             color: /glutin/i.test(item.note) ? (dark ? '#FDBA74' : '#C2410C') : (dark ? '#FF9A9E' : '#DC2626'),
             background: /glutin/i.test(item.note) ? (dark ? 'rgba(234, 88, 12, 0.16)' : 'rgba(234, 88, 12, 0.10)') : (dark ? 'rgba(255, 90, 95, 0.16)' : 'rgba(220, 38, 38, 0.08)'),
             boxShadow: `inset 0 0 0 1px ${/glutin/i.test(item.note) ? 'rgba(234, 88, 12, 0.45)' : (dark ? 'rgba(255, 90, 95, 0.45)' : 'rgba(220, 38, 38, 0.40)')}`,
-            padding:'2px 8px', borderRadius: 999, textTransform:'uppercase', letterSpacing: '0.05em',
+            padding:'3px 10px', borderRadius: 999, textTransform:'uppercase', letterSpacing: '0.05em',
           }}>
             {item.note}
           </div>

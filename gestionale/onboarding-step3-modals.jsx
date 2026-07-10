@@ -45,7 +45,7 @@ function FieldX({ label, placeholder, type='text', wide, hint, value }) {
   return (
     <div style={wide?{gridColumn:'1 / -1'}:{}}>
       <label style={{
-        fontSize:11.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
+        fontSize:12.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
         textTransform:'uppercase', marginBottom:6, display:'block',
       }}>{label}</label>
       <input type={type} placeholder={placeholder} defaultValue={value} style={{
@@ -497,7 +497,7 @@ function DishModal({ cat, dish, onClose }) {
       {/* Photo dropzone */}
       <div style={{marginBottom:16}}>
         <label style={{
-          fontSize:11.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
+          fontSize:12.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
           textTransform:'uppercase', marginBottom:6, display:'block',
         }}>Foto del piatto</label>
         {photo ? (
@@ -540,7 +540,7 @@ function DishModal({ cat, dish, onClose }) {
 
       <div style={{marginTop:18}}>
         <label style={{
-          fontSize:11.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
+          fontSize:12.5, fontWeight:700, color:ONB.MUTED, letterSpacing:0.4,
           textTransform:'uppercase', marginBottom:8, display:'block',
         }}>Allergeni</label>
         <div style={{display:'flex', flexWrap:'wrap', gap:6}}>

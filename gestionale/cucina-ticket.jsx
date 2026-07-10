@@ -61,7 +61,7 @@ function KdsPill({ tone = 'ok', light = false, children, style }) {
       background: m.tint,
       boxShadow: `inset 0 0 0 1px ${m.ring}`,
       color: m.ink,
-      fontSize: 11.5, fontWeight: 700, lineHeight: 1.3,
+      fontSize: 13, fontWeight: 700, lineHeight: 1.3,
       letterSpacing: '0.02em', whiteSpace: 'nowrap',
       maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
       ...style,
@@ -164,7 +164,7 @@ function KdsTicket({ t, now, onItemTap, selected, style, children }) {
           }}>
             {isPickup ? (minToPickup <= 0 ? 'ora' : `${minToPickup}′`) : `${age}′`}
           </div>
-          <div style={{fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: tm.ink, opacity: 0.7, marginTop: 2}}>
+          <div style={{fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: tm.ink, opacity: 0.7, marginTop: 2}}>
             {isPickup ? 'al ritiro' : 'fa'}
           </div>
         </div>
@@ -186,7 +186,7 @@ function KdsTicket({ t, now, onItemTap, selected, style, children }) {
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: idx === 0 ? '0 0 2px' : '8px 0 2px',
                 }}>
-                  <span style={{fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: KDS_C.mut}}>
+                  <span style={{fontSize: 12.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: KDS_C.mut}}>
                     {KDS_COURSE_LABEL[it.course] || `Portata ${it.course}`}
                   </span>
                   <span style={{flex: 1, height: 1, background: KDS_C.hair}}/>
@@ -223,8 +223,8 @@ function KdsTicket({ t, now, onItemTap, selected, style, children }) {
                   <div style={{flexBasis: '100%', display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 36, minWidth: 0}}>
                     {it.allergen && (
                       <span style={{
-                        fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
-                        color: '#FF9A9E', padding: '1px 7px', borderRadius: 999,
+                        fontSize: 14, fontWeight: 800, letterSpacing: '0.06em',
+                        color: '#FF9A9E', padding: '2px 9px', borderRadius: 999,
                         background: 'rgba(255, 90, 95, 0.16)',
                         boxShadow: 'inset 0 0 0 1px rgba(255, 90, 95, 0.45)',
                         textTransform: 'uppercase', flexShrink: 0,
@@ -255,7 +255,7 @@ function KdsTicket({ t, now, onItemTap, selected, style, children }) {
             transition: 'width 320ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}/>
         </div>
-        <span style={{fontSize: 11.5, fontWeight: 700, color: allDone ? '#6EE7B7' : KDS_C.mut, fontVariantNumeric: 'tabular-nums', flexShrink: 0}}>
+        <span style={{fontSize: 13, fontWeight: 700, color: allDone ? '#6EE7B7' : KDS_C.mut, fontVariantNumeric: 'tabular-nums', flexShrink: 0}}>
           {doneN}/{total}
         </span>
       </div>

@@ -9,7 +9,7 @@ function WMetric({ label, value, sub, trend, trendColor, big }) {
   // Il valore numerico non va MAI spezzato → whiteSpace nowrap.
   return (
     <div style={{minWidth: 0}}>
-      <div style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
+      <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
       <div style={{display:'flex', alignItems:'baseline', gap: 12, marginBottom: 4, flexWrap:'wrap', minWidth: 0}}>
         <div style={{fontSize: big ? 58 : 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.4, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
         {trend && (
@@ -288,7 +288,7 @@ function KpiRow({ label, value, delta, trend, variant, narrow }) {
         <div style={{fontSize:13.5, color: PN.MUTED, fontWeight:600, marginBottom: 6, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
         <div style={{display:'flex', alignItems:'baseline', gap: 10, minWidth: 0}}>
           <div style={{fontSize: 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.8, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
-          <div style={{fontSize: 15, color: PN.GREEN, fontWeight: 700, whiteSpace:'nowrap'}}>{delta}</div>
+          <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700, whiteSpace:'nowrap'}}>{delta}</div>
         </div>
       </div>
       <div style={{flex:'1 1 120px', minWidth: 0, height: narrow ? 36 : 48, display:'flex', alignItems:'flex-end', justifyContent:'flex-end', overflow:'hidden'}}>
@@ -376,7 +376,7 @@ function WidgetRiempimento({ size }) {
           <div style={{fontSize:13, color: PN.MUTED, fontWeight:600, marginBottom: sideBySide ? 2 : 4, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Riempimento {period}</div>
           <div style={{display:'flex', alignItems:'baseline', gap: sideBySide ? 8 : 14, flexWrap: sideBySide ? 'nowrap' : 'wrap', minWidth: 0}}>
             <div style={{fontSize: sideBySide ? 46 : 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.2, lineHeight: 1, whiteSpace:'nowrap'}}>{d.pct}%</div>
-            <div style={{fontSize: 16, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700, whiteSpace:'nowrap', flexShrink: 0}}>{d.delta}</div>
+            <div style={{fontSize: 14, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700, whiteSpace:'nowrap', flexShrink: 0}}>{d.delta}</div>
             {sideBySide && (
               <div style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.sub}</div>
             )}
@@ -1213,7 +1213,7 @@ function FinMiniCard({label, value, delta}) {
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
       minWidth: 0, overflow: 'hidden',
     }}>
-      <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+      <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
         {label}
       </div>
       <div style={{display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0}}>
@@ -1222,7 +1222,7 @@ function FinMiniCard({label, value, delta}) {
           letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums',
           whiteSpace: 'nowrap',
         }}>{value}</span>
-        <span style={{fontSize: 13, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap'}}>{delta}</span>
+        <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap'}}>{delta}</span>
       </div>
     </div>
   );

@@ -46,7 +46,7 @@ function StatPrenotazioni() {
                       transition:'width 0.4s ease-out',
                     }}/>
                   </div>
-                  <span style={{fontSize: 13.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>{f.tavoli}/{f.max} tavoli</span>
+                  <span style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>{f.tavoli}/{f.max} tavoli</span>
                   <span style={{fontSize: 14.5, fontWeight: 700, color: tone, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>{pct}%</span>
                 </div>
               );
@@ -69,7 +69,7 @@ function StatPrenotazioni() {
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
         {/* Coperti per giorno */}
         <StatCard title="Coperti per giorno" sub="Confronto con target settimanale (25)" action={
-          <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 13, color: PN.MUTED}}>
+          <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 14, color: PN.MUTED}}>
             <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> coperti</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:14, height:2, background: PN.TEXT}}/> target</span>
           </span>

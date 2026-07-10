@@ -23,10 +23,19 @@ function PnHeader({ editMode, onToggleEdit, onAddWidget }) {
   );
 }
 
-// Inline action row above the grid — Personalizza / Aggiungi widget / Fine
+// Inline action row above the grid — Personalizza / Aggiungi widget / Salva.
+// Sticky: resta visibile in alto a destra anche scorrendo la dashboard.
 function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
   return (
-    <div style={{display:'flex', justifyContent:'flex-end', gap: 10}}>
+    <div style={{
+      display:'flex', justifyContent:'flex-end', gap: 10,
+      position:'sticky', top: 0, zIndex: 40,
+      // Sfumatura del fondo pagina dietro i bottoni: scorrendo, i widget
+      // passano sotto senza collidere visivamente con le pillole.
+      margin: '-16px -28px 0', padding: '16px 28px 10px',
+      background: `linear-gradient(180deg, ${PN.BG} 0%, ${PN.BG} 62%, transparent 100%)`,
+      pointerEvents: 'none',
+    }}>
       {editMode && (
         <button onClick={onAddWidget} style={{
           display:'inline-flex', alignItems:'center', gap: 6,
@@ -34,7 +43,8 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
           background: PN.TEXT, color: PN.WHITE,
           border:'none', borderRadius: 9,
           fontWeight: 600, fontSize: 14.5, fontFamily:'inherit',
-          cursor:'pointer',
+          cursor:'pointer', pointerEvents:'auto',
+          boxShadow: '0 2px 8px rgba(15,17,21,0.10)',
         }}>
           <Icon name="plus" size={13}/> Aggiungi widget
         </button>
@@ -47,7 +57,8 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
         border: `1px solid ${editMode ? PN.PINK : PN.BORDER}`,
         borderRadius: 9,
         fontWeight: 600, fontSize: 14.5, fontFamily:'inherit',
-        cursor:'pointer',
+        cursor:'pointer', pointerEvents:'auto',
+        boxShadow: '0 2px 8px rgba(15,17,21,0.10)',
       }}>
         {editMode ? <><Icon name="check" size={13}/> Salva</> : <><Icon name="pencil" size={13}/> Personalizza</>}
       </button>

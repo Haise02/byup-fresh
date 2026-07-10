@@ -163,7 +163,7 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
 
   return (
     <React.Fragment>
-      <div onClick={done ? onClose : undefined} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.55)', zIndex:60}}/>
+      <div onClick={done ? onClose : undefined} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:60}}/>
       <div style={{
         position:'fixed', top:'50%', left:'50%',
         transform:'translate(-50%,-50%)',
@@ -180,12 +180,12 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
               <path d="M5 13 L9 17 L19 7"/>
             </svg>
           </div>
-          <div style={{fontSize:24, fontWeight:800, color:'#0F1115', marginBottom:4}}>Pagamento incassato</div>
-          <div style={{fontSize:28, fontWeight:800, color:'#0F1115', marginBottom:8, letterSpacing:-0.5, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
-          <div style={{fontSize:15, color:'#6B7280', marginBottom:24}}>
+          <div style={{fontSize:C.T_MD, fontWeight:700, color:'#0F1115', marginBottom:4}}>Pagamento incassato</div>
+          <div style={{fontSize:C.T_XL, fontWeight:800, color:'#0F1115', marginBottom:8, letterSpacing:-0.5, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
+          <div style={{fontSize:C.T_SM, color:'#6B7280', marginBottom:24}}>
             {conto.tavolo} · {method === 'contanti' ? 'Contanti' : 'Carta'}
           </div>
-          <button onClick={onClose} style={{padding:'11px 24px', background:'#0F1115', color:'#fff', border:'none', borderRadius:8, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit'}}>
+          <button onClick={onClose} style={{padding:'11px 24px', background:'#0F1115', color:'#fff', border:'none', borderRadius:9, fontSize:C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit'}}>
             Chiudi
           </button>
         </div>
@@ -194,8 +194,8 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
         {/* Header */}
         <div style={{padding:'14px 20px', borderBottom:'1px solid #F0F2F5', display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
           <div style={{flex:1}}>
-            <div style={{fontSize:12.5, color:'#6B7280', fontWeight:800, letterSpacing:0.6, textTransform:'uppercase'}}>Salda conto</div>
-            <div style={{fontSize:20, fontWeight:800, color:'#0F1115', marginTop:1}}>
+            <div style={{fontSize:C.T_XS, color:'#6B7280', fontWeight:800, letterSpacing:0.6, textTransform:'uppercase'}}>Salda conto</div>
+            <div style={{fontSize:C.T_LG, fontWeight:800, color:'#0F1115', marginTop:1}}>
               {conto.tavolo}{conto.cliente ? ` · ${conto.cliente}` : ''}
             </div>
           </div>
@@ -206,29 +206,29 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
         <div style={{flex:1, display:'flex', minHeight:0, overflow:'hidden'}}>
           {/* Sinistra: piatti ordinati */}
           <div style={{flex:'1.5 1 0', display:'flex', flexDirection:'column', borderRight:'1px solid #F0F2F5', minWidth:0, overflowY:'auto', padding:'16px 20px'}}>
-            <div style={{fontSize:12, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:10}}>Piatti ordinati</div>
+            <div style={{fontSize:C.T_XS, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:10}}>Piatti ordinati</div>
             {hasPartial && (
-              <div style={{fontSize:13, color:'#9CA3AF', marginBottom:10, padding:'8px 12px', background:'#F9FAFB', borderRadius:8, border:'1px solid #E5E7EB'}}>
+              <div style={{fontSize:C.T_XS, color:'#9CA3AF', marginBottom:10, padding:'8px 12px', background:'#F9FAFB', borderRadius:8, border:'1px solid #E5E7EB'}}>
                 Tot. €{conto.totaleConto.toFixed(2)} · già incassato €{(conto.totaleConto - conto.daSaldare).toFixed(2)}
               </div>
             )}
             <div style={{display:'flex', flexDirection:'column', gap:3}}>
               {(conto.ordini || []).map(item => (
                 <div key={item.id} style={{display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, background:'#F9FAFB'}}>
-                  <span style={{fontSize:13, fontWeight:700, color:'#9CA3AF', minWidth:22, flexShrink:0}}>{item.qty}×</span>
-                  <span style={{flex:1, fontSize:14, fontWeight:600, color:'#0F1115'}}>{item.nome}</span>
-                  <span style={{fontSize:14, fontWeight:700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
+                  <span style={{fontSize:C.T_XS, fontWeight:700, color:'#9CA3AF', minWidth:22, flexShrink:0}}>{item.qty}×</span>
+                  <span style={{flex:1, fontSize:C.T_SM, fontWeight:600, color:'#0F1115'}}>{item.nome}</span>
+                  <span style={{fontSize:C.T_SM, fontWeight:700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
                 </div>
               ))}
               {!conto.ordini && (
                 <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderRadius:10, background:'#F9FAFB', border:'1.5px solid #E5E7EB'}}>
-                  <div style={{flex:1, fontSize:15, fontWeight:700, color:'#0F1115'}}>Saldo conto</div>
-                  <div style={{fontSize:18, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
+                  <div style={{flex:1, fontSize:C.T_SM, fontWeight:700, color:'#0F1115'}}>Saldo conto</div>
+                  <div style={{fontSize:C.T_MD, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
                 </div>
               )}
             </div>
             <div style={{height:1, background:'#E5E7EB', margin:'12px 0'}}/>
-            <div style={{display:'flex', justifyContent:'space-between', padding:'2px 12px', fontSize:14, fontWeight:700, color:'#0F1115'}}>
+            <div style={{display:'flex', justifyContent:'space-between', padding:'2px 12px', fontSize:C.T_SM, fontWeight:700, color:'#0F1115'}}>
               <span>Totale ordine</span>
               <span style={{fontVariantNumeric:'tabular-nums'}}>€{conto.totaleConto.toFixed(2)}</span>
             </div>
@@ -237,14 +237,14 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
           {/* Destra: metodo + importo */}
           <div style={{flex:'1 1 0', display:'flex', flexDirection:'column', minWidth:0, overflowY:'auto', padding:'16px 20px', gap:16}}>
             {/* Riepilogo */}
-            <div style={{display:'flex', justifyContent:'space-between', fontSize:15, fontWeight:700, color:'#0F1115', padding:'10px 14px', background:'#F9FAFB', borderRadius:10}}>
+            <div style={{display:'flex', justifyContent:'space-between', fontSize:C.T_SM, fontWeight:700, color:'#0F1115', padding:'10px 14px', background:'#F9FAFB', borderRadius:10}}>
               <span>Da incassare</span>
               <span style={{fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</span>
             </div>
 
             {/* Metodo */}
             <div>
-              <div style={{fontSize:12, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:8}}>Come paga il cliente?</div>
+              <div style={{fontSize:C.T_XS, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:8}}>Come paga il cliente?</div>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:14}}>
                 {[{id:'contanti',icon:'💵',label:'Contanti'},{id:'carta',icon:'💳',label:'Carta'},{id:'byup',icon:'📱',label:'App byup'}].map(m => {
                   const on = method === m.id;
@@ -255,7 +255,7 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
                       background: on ? '#0F1115' : '#fff',
                       color: on ? '#fff' : '#0F1115',
                       border: on ? '1px solid #0F1115' : '1px solid #E5E7EB',
-                      cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:700,
+                      cursor:'pointer', fontFamily:'inherit', fontSize:C.T_SM, fontWeight:700,
                     }}>
                       <span>{m.icon}</span>{m.label}
                     </button>
@@ -265,12 +265,12 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
 
               {method === 'contanti' && (
                 <div>
-                  <div style={{fontSize:13, fontWeight:700, color:'#6B7280', marginBottom:6}}>Importo ricevuto</div>
+                  <div style={{fontSize:C.T_XS, fontWeight:700, color:'#6B7280', marginBottom:6}}>Importo ricevuto</div>
                   <div style={{display:'flex', alignItems:'baseline', gap:4, background:'#fff', border:'1.5px solid #E5E7EB', borderRadius:10, padding:'12px 14px', marginBottom:8}}>
-                    <span style={{fontSize:20, fontWeight:700, color:'#9CA3AF'}}>€</span>
+                    <span style={{fontSize:C.T_LG, fontWeight:700, color:'#9CA3AF'}}>€</span>
                     <input type="number" value={cash} onChange={e => setCash(e.target.value)}
                       placeholder={total.toFixed(2)}
-                      style={{border:'none', outline:'none', fontSize:24, fontWeight:800, color:'#0F1115', width:'100%', padding:0, fontFamily:'inherit', background:'transparent', fontVariantNumeric:'tabular-nums'}}/>
+                      style={{border:'none', outline:'none', fontSize:C.T_XL, fontWeight:800, color:'#0F1115', width:'100%', padding:0, fontFamily:'inherit', background:'transparent', fontVariantNumeric:'tabular-nums'}}/>
                   </div>
                   <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:12}}>
                     {chipVals.map(v => {
@@ -281,17 +281,17 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
                           background: sel ? '#0F1115' : '#fff',
                           color: sel ? '#fff' : '#0F1115',
                           border: sel ? '1px solid #0F1115' : '1px solid #E5E7EB',
-                          fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                          fontSize:C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
                         }}>€{v % 1 === 0 ? v : v.toFixed(2)}</button>
                       );
                     })}
                   </div>
                   {tendered > 0 && (
                     <div style={{padding:'10px 14px', borderRadius:10, background: canConfirm ? '#DCFCE7' : '#FEF3C7', color: canConfirm ? '#166534' : '#92400E', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                      <span style={{fontSize:14, fontWeight:700}}>
+                      <span style={{fontSize:C.T_SM, fontWeight:700}}>
                         {canConfirm ? (resto > 0.01 ? 'Resto da dare' : 'Pagamento esatto') : 'Manca ancora'}
                       </span>
-                      <span style={{fontSize:20, fontWeight:800, fontVariantNumeric:'tabular-nums'}}>
+                      <span style={{fontSize:C.T_LG, fontWeight:800, fontVariantNumeric:'tabular-nums'}}>
                         €{Math.abs(canConfirm ? resto : total - tendered).toFixed(2)}
                       </span>
                     </div>
@@ -306,15 +306,15 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
                       <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
                     </svg>
                   </div>
-                  <div style={{fontSize:15, fontWeight:700, color:'#0F1115', marginBottom:4}}>Inserisci la carta nel POS</div>
-                  <div style={{fontSize:26, fontWeight:800, color:'#0F1115', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
+                  <div style={{fontSize:C.T_SM, fontWeight:700, color:'#0F1115', marginBottom:4}}>Inserisci la carta nel POS</div>
+                  <div style={{fontSize:C.T_XL, fontWeight:800, color:'#0F1115', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
                 </div>
               )}
 
               {method === 'byup' && (
                 <div style={{padding:'20px 16px', borderRadius:12, background:'#F5F3FF', border:'1.5px solid #DDD6FE', textAlign:'center'}}>
-                  <div style={{fontSize:15, fontWeight:700, color:'#6D28D9', marginBottom:4}}>Pagamento via app byup</div>
-                  <div style={{fontSize:26, fontWeight:800, color:'#6D28D9', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
+                  <div style={{fontSize:C.T_SM, fontWeight:700, color:'#6D28D9', marginBottom:4}}>Pagamento via app byup</div>
+                  <div style={{fontSize:C.T_XL, fontWeight:800, color:'#6D28D9', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
                 </div>
               )}
             </div>
@@ -323,7 +323,7 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
 
         {/* Footer */}
         <div style={{padding:'14px 20px', borderTop:'1px solid #F0F2F5', display:'flex', gap:10, flexShrink:0}}>
-          <button onClick={onClose} style={{flex:1, padding:'11px 16px', background:'#fff', border:'1px solid #E5E7EB', borderRadius:8, fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>
+          <button onClick={onClose} style={{flex:1, padding:'11px 16px', background:'#fff', border:'1px solid #E5E7EB', borderRadius:9, fontSize:C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>
             Annulla
           </button>
           <button
@@ -332,7 +332,7 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
               flex:2, padding:'11px 16px',
               background: canConfirm ? '#0F1115' : '#E5E7EB',
               color: canConfirm ? '#fff' : '#9CA3AF',
-              border:'none', borderRadius:8, fontSize:15, fontWeight:700,
+              border:'none', borderRadius:9, fontSize:C.T_SM, fontWeight:700,
               cursor: canConfirm ? 'pointer' : 'default', fontFamily:'inherit',
             }}>
             Incassa €{total.toFixed(2)}
@@ -512,7 +512,7 @@ function ApriCassaModal({ open, onClose, onConfirm }) {
       <div
         onClick={onClose}
         style={{
-          position:'fixed', inset:0, background:'rgba(15,17,21,0.55)', zIndex:60,
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:60,
           opacity: show ? 1 : 0, transition:'opacity .18s ease',
         }}/>
       <div style={{
@@ -580,7 +580,7 @@ function ApriCassaModal({ open, onClose, onConfirm }) {
         <div style={{padding:'16px 22px 18px', display:'flex', gap:10}}>
           <button onClick={onClose} style={{
             flex:1, padding:'11px 16px', background: PN.WHITE,
-            border:`1px solid ${PN.BORDER}`, borderRadius:8,
+            border:`1px solid ${PN.BORDER}`, borderRadius:9,
             fontSize: C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
           }}>Annulla</button>
           <button
@@ -590,7 +590,7 @@ function ApriCassaModal({ open, onClose, onConfirm }) {
               flex:2, padding:'11px 16px',
               background: canConfirm ? '#059669' : '#E5E7EB',
               color: canConfirm ? '#fff' : '#9CA3AF',
-              border:'none', borderRadius:8, fontSize: C.T_SM, fontWeight:700,
+              border:'none', borderRadius:9, fontSize: C.T_SM, fontWeight:700,
               cursor: canConfirm ? 'pointer' : 'default', fontFamily:'inherit',
             }}>
             Apri cassa con €{value.toFixed(2)}
@@ -649,8 +649,8 @@ function ChiudiCassaModal({ open, fondoCassa, aperturaOra, onClose, onConfirm })
     padding:'10px 14px', fontSize: C.T_SM, color: PN.TEXT,
     borderTop: first ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
   });
-  const btnSecondary = { flex:1, padding:'11px 16px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize: C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit' };
-  const btnPrimary = { flex:2, padding:'11px 16px', background: PN.TEXT, color:'#fff', border:'none', borderRadius:8, fontSize: C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit' };
+  const btnSecondary = { flex:1, padding:'11px 16px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius:9, fontSize: C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit' };
+  const btnPrimary = { flex:2, padding:'11px 16px', background: PN.TEXT, color:'#fff', border:'none', borderRadius:9, fontSize: C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit' };
   const btnDisabled = { ...btnPrimary, background:'#E5E7EB', color:'#9CA3AF', cursor:'default' };
   const btnWarn = { ...btnPrimary, background:'#D97706' };
 
@@ -659,7 +659,7 @@ function ChiudiCassaModal({ open, fondoCassa, aperturaOra, onClose, onConfirm })
       <div
         onClick={onClose}
         style={{
-          position:'fixed', inset:0, background:'rgba(15,17,21,0.55)', zIndex:60,
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:60,
           opacity: show ? 1 : 0, transition:'opacity .18s ease',
         }}/>
       <div style={{
@@ -1051,7 +1051,7 @@ function ContConti({ filter = 'all' }) {
                           onClick={() => setModalPagamento(conto)}
                           style={{
                             padding:'7px 12px', background: PN.TEXT, color:'#fff',
-                            border:'none', borderRadius: C.R_SM, fontSize: C.T_XS,
+                            border:'none', borderRadius: 9, fontSize: C.T_XS,
                             fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                           }}>
                           Salda ora
@@ -1090,19 +1090,19 @@ function ContConti({ filter = 'all' }) {
         return (
         <div style={{
           position:'fixed', top:0, left:0, right:0, bottom:0,
-          background:'rgba(0,0,0,0.5)', zIndex: 999,
+          background:'rgba(15,17,21,0.42)', zIndex: 999,
           display:'flex', alignItems:'center', justifyContent:'center',
           fontFamily:'inherit',
         }} onClick={chiudiRimborso}>
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background:'#fff', borderRadius: C.R_MD,
-              padding: 32, maxWidth: 440, width:'100%', boxShadow:'0 20px 60px rgba(0,0,0,0.15)',
+              ...PN.GLASS_STRONG, borderRadius: 20,
+              padding: 32, maxWidth: 440, width:'100%',
             }}>
             {rimborsoStep === 1 ? (
               <React.Fragment>
-                <h2 style={{margin:'0 0 4px 0', fontSize: C.T_LG, fontWeight: 700, color: PN.TEXT}}>
+                <h2 style={{margin:'0 0 4px 0', fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>
                   Rimborso
                 </h2>
                 <p style={{margin:'0 0 24px 0', fontSize: C.T_SM, color: PN.MUTED}}>
@@ -1145,7 +1145,7 @@ function ContConti({ filter = 'all' }) {
                   onClick={chiudiRimborso}
                   style={{
                     width:'100%', padding:'10px 16px', background: PN.WHITE,
-                    border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
+                    border:`1px solid ${PN.BORDER}`, borderRadius: 9,
                     fontSize: C.T_SM, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                   }}>
                   Annulla
@@ -1153,7 +1153,7 @@ function ContConti({ filter = 'all' }) {
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <h2 style={{margin:'0 0 4px 0', fontSize: C.T_LG, fontWeight: 700, color: PN.TEXT}}>
+                <h2 style={{margin:'0 0 4px 0', fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>
                   Confermi il rimborso?
                 </h2>
                 <p style={{margin:'0 0 24px 0', fontSize: C.T_SM, color: PN.MUTED}}>
@@ -1164,7 +1164,7 @@ function ContConti({ filter = 'all' }) {
                     onClick={() => setRimborsoStep(1)}
                     style={{
                       flex:1, padding:'10px 16px', background: PN.WHITE,
-                      border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
+                      border:`1px solid ${PN.BORDER}`, borderRadius: 9,
                       fontSize: C.T_SM, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                     }}>
                     Indietro
@@ -1174,7 +1174,7 @@ function ContConti({ filter = 'all' }) {
                     style={{
                       flex:1, padding:'10px 16px',
                       background: useStripe ? '#4F46E5' : PN.TEXT,
-                      color:'#fff', border:'none', borderRadius: C.R_SM,
+                      color:'#fff', border:'none', borderRadius: 9,
                       fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                     }}>
                     Conferma

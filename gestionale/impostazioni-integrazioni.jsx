@@ -256,11 +256,11 @@ function ByupPayHero({ devices, onAdd }) {
 function ByupPayQrModal({ onClose }) {
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: PN.WHITE, borderRadius: 16,
+        ...PN.GLASS_STRONG, borderRadius: 20,
         width: 420, padding: 28, position:'relative',
       }}>
         <button onClick={onClose} style={{
@@ -278,7 +278,7 @@ function ByupPayQrModal({ onClose }) {
             fontSize: 28, fontWeight: 800,
             marginBottom: 12, fontStyle:'italic',
           }}>b</div>
-          <div style={{fontSize: 20, fontWeight: 800, marginBottom: 4}}>Collega un dispositivo</div>
+          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 4}}>Collega un dispositivo</div>
           <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5}}>
             Scansiona il QR con il dispositivo che vuoi collegare a Byup Staff
           </div>

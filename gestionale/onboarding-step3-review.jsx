@@ -56,7 +56,7 @@ function ConfidenceBadge({ score }) {
     <span style={{
       display:'inline-flex', alignItems:'center', gap:4,
       background:bg, color:fg, padding:'2px 8px', borderRadius:999,
-      fontSize:10.5, fontWeight:700, letterSpacing:0.3,
+      fontSize:11.5, fontWeight:700, letterSpacing:0.3,
     }}>
       <OnbIcon.Sparkle size={9} color={fg}/>
       {label} · {Math.round(score*100)}%
@@ -78,11 +78,11 @@ function DishRow({ dish, onEdit }) {
     }}>
       <div>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:4}}>
-          <span style={{fontSize:14.5, fontWeight:600}}>{dish.name}</span>
+          <span style={{fontSize:15, fontWeight:600}}>{dish.name}</span>
           {lowConfidence && (
             <span title="Da rivedere" style={{
               display:'inline-flex', alignItems:'center', gap:4,
-              fontSize:10.5, fontWeight:700, color:ONB.AMBER,
+              fontSize:11.5, fontWeight:700, color:ONB.AMBER,
               background:ONB.AMBER_SOFT, padding:'2px 8px', borderRadius:999,
             }}>⚠ Da rivedere</span>
           )}
@@ -101,7 +101,7 @@ function DishRow({ dish, onEdit }) {
           </div>
         )}
       </div>
-      <div style={{fontSize:14, fontWeight:700, textAlign:'right'}}>
+      <div style={{fontSize:15, fontWeight:700, textAlign:'right'}}>
         € {dish.price.toFixed(2)}
       </div>
       <button onClick={onEdit} style={{
@@ -136,7 +136,7 @@ function CategoryBlock({ cat, defaultOpen, onAddDish, onEditDish }) {
         </span>
         {reviewCount > 0 && (
           <span style={{
-            fontSize:11, fontWeight:700, color:ONB.AMBER,
+            fontSize:11.5, fontWeight:700, color:ONB.AMBER,
             background:ONB.AMBER_SOFT, padding:'3px 9px', borderRadius:999,
           }}>{reviewCount} da rivedere</span>
         )}
@@ -196,7 +196,7 @@ function Step3Review({ onNext, onBack }) {
               <OnbIcon.Check size={11} color={ONB.GREEN}/>
               MENU RICREATO CON SUCCESSO
             </div>
-            <h1 style={{fontSize:36, fontWeight:800, margin:'0 0 8px', letterSpacing:-0.8}}>
+            <h1 style={{fontSize:34, fontWeight:600, margin:'0 0 8px', letterSpacing:'-0.02em'}}>
               Ecco il tuo menu.<br/>
               <span style={{color:ONB.MUTED, fontWeight:600}}>L'IA può commettere errori. Verifica che sia tutto corretto.</span>
             </h1>
@@ -287,15 +287,11 @@ function Step3Review({ onNext, onBack }) {
             padding:'12px 22px', borderRadius:10, fontSize:14, fontWeight:600,
             cursor:'pointer', fontFamily:'inherit',
           }}>← Ricarica il menu</button>
-          <button onClick={onNext} style={{
-            background:ONB.PINK, color:'#fff', border:'none',
-            padding:'14px 28px', borderRadius:12, fontSize:15, fontWeight:700,
-            cursor:'pointer', fontFamily:'inherit',
-            boxShadow:'0 4px 14px rgba(233,30,99,0.3)',
-            display:'flex', alignItems:'center', gap:8,
-          }}>
+          {/* CTA primaria canonica (pillola) — PrimaryCta è globale, definito in
+              onboarding-step1-upload.jsx e caricato prima di questo file. */}
+          <PrimaryCta onClick={onNext}>
             Conferma menu e continua <OnbIcon.ChevronRight size={14} color="#fff"/>
-          </button>
+          </PrimaryCta>
         </div>
       </div>
 

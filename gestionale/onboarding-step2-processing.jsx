@@ -60,7 +60,7 @@ function Step2Processing({ onNext }) {
           <style>{`@keyframes spin { to { transform: rotate(360deg); }}`}</style>
         </div>
 
-        <h1 style={{fontSize:34, fontWeight:800, margin:'0 0 10px', letterSpacing:-0.8}}>
+        <h1 style={{fontSize:34, fontWeight:600, margin:'0 0 10px', letterSpacing:'-0.02em'}}>
           Stiamo ricreando il tuo menu
         </h1>
         <p style={{fontSize:15, color:ONB.MUTED, margin:'0 0 40px'}}>

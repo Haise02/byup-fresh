@@ -69,7 +69,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             </div>
 
             <h1 style={{
-              fontSize: 42, fontWeight: 600, lineHeight: 1.2,
+              fontSize: 34, fontWeight: 600, lineHeight: 1.2,
               letterSpacing: '-0.02em', margin: '0 0 12px', color: ONB.TEXT,
               position: 'relative', zIndex: 1,
             }}>
@@ -664,7 +664,7 @@ function PrimaryCtaArrow({onClick, disabled, children}) {
         height: 44, padding: '0 20px',
         background: bg,
         color: disabled ? ONB.MUTED_LIGHT : '#fff',
-        border: 'none', borderRadius: 8,
+        border: 'none', borderRadius: 999,
         fontSize: 16, fontWeight: 600, fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 150ms ease-out',
