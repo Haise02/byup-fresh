@@ -272,7 +272,7 @@ function MCMenuComposer() {
                             updateMenu(m.id, {active: !m.active});
                             setOpenMenuDot(null);
                           }}>
-                            {m.active ? 'Imposta come disattivo' : 'Imposta come attivo'}
+                            {m.active ? 'Disattiva menù' : 'Attiva menù'}
                           </MenuDotItem>
                           <MenuDotItem icon="⧉" onClick={() => { duplicateMenu(m.id); setOpenMenuDot(null); }}>Duplica</MenuDotItem>
                           {menus.length > 1 && <>
@@ -536,7 +536,7 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
             border: `1.5px dashed ${PN.BORDER}`, background:'#FAFBFC',
             color: PN.MUTED, fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
             marginBottom: 14,
-          }}>+ Aggiungi nuova categoria a questo menù</button>
+          }}>+ Aggiungi categoria</button>
         )}
 
         {totalDishes === 0 && cats.length === 0 && (
@@ -745,7 +745,7 @@ function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemov
     <ImpCard
       aurora
       title="Libreria piatti"
-      sub={`${filtered.length} di ${library.length} piatti · catalogo della cucina (senza prezzo né stato)`}
+      sub={`${filtered.length} di ${library.length} piatti · catalogo della cucina`}
       action={
         <ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => setEditingDish({dishId: null, isNew: true, fromLibrary: true})}>Nuovo piatto</ImpButton>
       }
@@ -1804,7 +1804,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           </div>
           <div style={{display:'flex', gap:8}}>
             <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-            <ImpButton variant="primary" onClick={handleSave}>{isEdit ? 'Salva modifiche' : 'Crea piatto'}</ImpButton>
+            <ImpButton variant="primary" onClick={handleSave}>{isEdit ? 'Salva modifiche' : 'Salva piatto'}</ImpButton>
           </div>
         </div>
       </div>
@@ -2000,7 +2000,7 @@ function MCIngredienti() {
                   borderTop: `1px solid ${PN.BORDER_SOFT}`,
                   background:'transparent', border:'none', cursor:'pointer',
                   fontSize: 14, color: PN.MUTED, fontFamily:'inherit',
-                }}>Cancella filtri</button>
+                }}>Azzera filtri</button>
               )}
             </div>
           )}
@@ -2308,7 +2308,7 @@ function PrenotazioniDurata() {
         <div style={{
           fontSize: 14, fontWeight: 700, color: PN.MUTED,
           letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8,
-        }}>Durata standard</div>
+        }}>Durata media del tavolo</div>
         <PillRow value={stdDur} onChange={setStdDur}/>
       </div>
 
@@ -2487,8 +2487,8 @@ function MCConfigura() {
         {/* Selettore */}
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10, marginBottom: 16}}>
           {[
-            {id:'diretto', title:'Diretto in cucina', sub:'Più veloce, niente attese', Icon: PnI.Lightning, pros:['Ordini istantanei','Cucina vede in tempo reale','Ideale per alto volume']},
-            {id:'cameriere', title:'Passa dal cameriere', sub:'Cameriere approva poi invia', Icon: PnI.Person, pros:['Filtro umano sui dettagli','Gestisci personalizzazioni','Ideale per piatti elaborati']},
+            {id:'diretto', title:'Diretto in cucina', sub:'Più veloce, niente attese', Icon: PnI.Lightning, pros:['Ordini istantanei','La cucina vede in tempo reale','Ideale per alto volume']},
+            {id:'cameriere', title:'Passa dal cameriere', sub:'Il cameriere approva, poi invia', Icon: PnI.Person, pros:['Filtro umano sui dettagli','Gestisci personalizzazioni','Ideale per piatti elaborati']},
           ].map(c => {
             const on = cucina === c.id;
             return (
@@ -2661,7 +2661,7 @@ function MCConfigura() {
         title="Prenotazioni"
         sub={modules.prenotazioni
           ? "Durata media per servizio — usata come default nel popup di nuova prenotazione"
-          : "Attiva per gestire agenda, slot orari e conferme"
+          : "Attiva per gestire agenda, orari e conferme"
         }
         action={
           <div style={{display:'flex', alignItems:'center', gap: 10}}>
@@ -2694,7 +2694,7 @@ function MCConfigura() {
             </div>
             <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Prenotazioni disattivate</div>
             <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 360, margin:'0 auto 14px'}}>
-              Attivando le prenotazioni potrai gestire agenda, slot orari e conferme dei clienti.
+              Attivando le prenotazioni potrai gestire agenda, orari e conferme dei clienti.
             </div>
             <ImpButton variant="primary" onClick={() => setModule('prenotazioni', true)}>Attiva prenotazioni</ImpButton>
           </div>

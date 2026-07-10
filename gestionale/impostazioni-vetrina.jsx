@@ -10,7 +10,7 @@ function ImpVetrina() {
   const subs = [
     { id: 'profilo', label: 'Profilo' },
     { id: 'aspetto', label: 'Aspetto' },
-    { id: 'pubblico', label: 'Pubblico' },
+    { id: 'pubblico', label: 'Social e FAQ' },
   ];
 
   const markDirty = () => setDirty(true);
@@ -85,7 +85,7 @@ function VetrinaCompletion({ items, pct }) {
               padding:'3px 9px', borderRadius: 999,
               background: c.done ? PN.GREEN_SOFT : '#F4F5F7',
               color: c.done ? PN.GREEN : PN.MUTED,
-            }}>{c.done ? '✓' : '○'} {c.label}</span>
+            }}>{c.done ? `✓ ${c.label}` : `${c.label} · Da completare`}</span>
           ))}
         </div>
       </div>
@@ -118,7 +118,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         <ImpField label="Sito web">
           <ImpInput placeholder="es. nomeristorante.it"/>
         </ImpField>
-        <ImpField label="Posizione GPS (Google Maps)" hint="Incolla il link Google Maps della tua attività">
+        <ImpField label="Indirizzo su Google Maps" hint="Incolla il link Google Maps della tua attività">
           <ImpInput placeholder="https://maps.app.goo.gl/..."/>
         </ImpField>
         <ImpField label="Descrizione" hint="Racconta storia, atmosfera e cosa rende unico il locale (consigliato 2–4 frasi)">
@@ -137,7 +137,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           <div>
             <div style={{fontSize:14, fontWeight:600, marginBottom:4}}>Accessibilità</div>
             <div style={{display:'flex', flexDirection:'column'}}>
-              {['Rampa per disabili','Menù per non vedenti','Assistenza ai tavoli','Servizio al tavolo'].map(s => (
+              {['Rampa per disabili','Menù per non vedenti','Servizio al tavolo'].map(s => (
                 <ImpCheckbox key={s} label={s} checked={!!access[s]} onChange={() => {setAccess(o => ({...o, [s]: !o[s]})); onChange();}}/>
               ))}
             </div>
@@ -212,7 +212,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard aurora title="Categoria del locale" sub="Scegli la categoria che descrive meglio il tuo locale">
+      <ImpCard aurora title="Categoria del locale" sub="Il tuo locale apparirà agli utenti dell'App Byup nella categoria che selezioni">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
           {cats.map(c => (
             <button key={c} onClick={() => setCategoria(c)} style={{
@@ -263,7 +263,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
           {[
             {name:'Sede principale', addr:'Via Roma 13, Roma', status:'Attiva', sc:PN.GREEN, bg:PN.GREEN_SOFT, c:'#7B3F2A'},
-            {name:'Sede Parioli', addr:'Viale Parioli 23, Roma', status:'In attesa', sc:PN.AMBER, bg:PN.AMBER_SOFT, c:'#D2691E'},
+            {name:'Sede Parioli', addr:'Viale Parioli 23, Roma', status:'In verifica', sc:PN.AMBER, bg:PN.AMBER_SOFT, c:'#D2691E'},
           ].map((s,i) => (
             <div key={i} style={{
               border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow:'hidden',
@@ -329,7 +329,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
 function VetrinaAspetto({ onChange }) {
   return (
     <div>
-      <ImpCard aurora title="Logo del ristorante" sub="PNG o JPG, formato quadrato consigliato, max 5MB">
+      <ImpCard aurora title="Logo del tuo locale" sub="PNG o JPG, formato quadrato consigliato, max 5MB">
         <div style={{
           padding: 32, border:`2px dashed ${PN.BORDER}`, borderRadius: 12,
           textAlign:'center', background:'#FAFBFC',

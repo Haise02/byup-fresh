@@ -32,7 +32,7 @@ function StatisticheApp() {
               <div style={{display:'flex', gap: 22, borderBottom:`1px solid ${PN.BORDER_SOFT}`, marginBottom: 16}}>
                 <StatSubTab active={opSub==='prenotazioni'} onClick={() => setOpSub('prenotazioni')} label="Prenotazioni" icon="time-calendar"/>
                 <StatSubTab active={opSub==='ordini'} onClick={() => setOpSub('ordini')} label="Ordini" icon="commerce-cart"/>
-                <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Staff" icon="people-staff-group"/>
+                <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Team" icon="people-staff-group"/>
                 <StatSubTab active={opSub==='clienti'} onClick={() => setOpSub('clienti')} label="Clienti" icon="people-customer"/>
               </div>
               {opSub === 'prenotazioni' && <StatPrenotazioni/>}

@@ -140,8 +140,8 @@ function ContCassa({ cassaOpen = false, setCassaOpen }) {
           </div>
           <div style={{fontSize: C.T_XS, color: cassaOpen ? '#047857' : '#B91C1C', marginTop: 2}}>
             {cassaOpen
-              ? `Apertura ore ${aperturaOra || '09:30'} · Operatore: Marco${fondoCassa != null ? ` · Fondo cassa €${fondoCassa.toFixed(2)}` : ''}`
-              : 'Quadratura di cassa eseguita correttamente'}
+              ? `Aperta alle ${aperturaOra || '09:30'} · Da: Marco${fondoCassa != null ? ` · Fondo €${fondoCassa.toFixed(2)}` : ''}`
+              : 'Quadratura completata correttamente'}
           </div>
         </div>
         <button
@@ -194,7 +194,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen }) {
           </div>
           <div ref={pickerRef} style={{position:'relative'}}>
             <button onClick={() => setPickerOpen(o => !o)} style={iconBtn}>
-              <Ic.calendar size={14}/> {selDate || 'Periodo'}
+              <Ic.calendar size={14}/> {selDate || 'Filtra per data'}
             </button>
             {pickerOpen && (
               <CassaDatePicker
@@ -214,12 +214,12 @@ function ContCassa({ cassaOpen = false, setCassaOpen }) {
             fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT,
             textTransform:'uppercase', letterSpacing: 0.5,
           }}>
-            <span>Data di chiusura</span>
+            <span>Data</span>
             <span style={{textAlign:'right'}}>Totale incassato</span>
-            <span style={{textAlign:'right'}}>Di cui IVA al 10%</span>
-            <span style={{textAlign:'right'}}>Di cui IVA al 22%</span>
-            <span style={{textAlign:'right'}}>Contanti incassati</span>
-            <span style={{textAlign:'right'}}>Non contanti</span>
+            <span style={{textAlign:'right'}}>IVA 10%</span>
+            <span style={{textAlign:'right'}}>IVA 22%</span>
+            <span style={{textAlign:'right'}}>Contanti</span>
+            <span style={{textAlign:'right'}}>Carta e digitale</span>
           </div>
           {rows.map((r,i) => (
             <div key={r.id} style={{

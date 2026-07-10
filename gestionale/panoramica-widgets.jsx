@@ -721,7 +721,7 @@ function WidgetTopPiatti() {
 function WidgetRecensioni() {
   const reviews = [
     { name: 'Laura M.', stars: 5, when:'2h fa', text:'Cacio e pepe stellare, servizio impeccabile. Torneremo!', source:'Google' },
-    { name: 'Andrea P.', stars: 4, when:'5h fa', text:'Tutto buono, ma sala un po\' rumorosa di sabato sera.', source:'TheFork' },
+    { name: 'Andrea P.', stars: 4, when:'5h fa', text:'Tutto buono, ma sala un po\' rumorosa di sabato sera.', source:'byup' },
     { name: 'Sofia R.', stars: 5, when:'1g fa', text:'Personale gentilissimo, tagliata cotta perfetta. Top.', source:'Google' },
   ];
 

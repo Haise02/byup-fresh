@@ -51,7 +51,7 @@ function AccPianiAbbonamenti() {
 
       {/* Riga 2 — Cambia piano: subito sotto le 2 card, è la decisione successiva
           naturale dopo aver visto risparmio + utilizzo. */}
-      <AcCard title="Cambia piano" subtitle="Passa a un piano superiore quando hai bisogno di più ordini, più menu o più membri dello staff.">
+      <AcCard title="Cambia piano" subtitle="Passa a un piano superiore per avere più ordini, più menù e più membri nel tuo team.">
 
         {/* Toggle mensile / annuale */}
         <div style={{display:'flex', justifyContent:'center', marginBottom: 20}}>
@@ -112,8 +112,8 @@ function AccPianiAbbonamenti() {
 
       {/* Pacchetti ordini extra */}
       <AcCard
-        title="Pacchetti ordini extra"
-        subtitle="Acquista pacchetti di ordini per gestire picchi occasionali senza passare al piano superiore. Si sommano agli ordini inclusi nel tuo piano."
+        title="Ordini aggiuntivi"
+        subtitle="Aggiungi ordini per gestire i picchi senza cambiare piano: si sommano a quelli già inclusi."
       >
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12}}>
           {ACC_PACCHETTI.map((p, i) => {
@@ -139,10 +139,10 @@ function AccPianiAbbonamenti() {
                 </div>
                 <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
                   <span style={{fontSize: 20, fontWeight: 600, color: PN.TEXT}}>€{fmtPrice(p.prezzo)}</span>
-                  <span style={{fontSize: 13, color: PN.MUTED}}>una tantum + IVA</span>
+                  <span style={{fontSize: 13, color: PN.MUTED}}>pagamento unico + IVA</span>
                 </div>
                 <div style={{fontSize: 13, color: PN.MUTED}}>
-                  {fmtPrice(Math.round((p.prezzo / p.ordini) * 100) / 100)} € per ordine
+                  {fmtPrice(Math.round((p.prezzo / p.ordini) * 100) / 100)} € a ordine
                 </div>
                 <button style={{
                   marginTop: 6, padding: '9px 12px', borderRadius: 999,
@@ -152,7 +152,7 @@ function AccPianiAbbonamenti() {
                   fontSize: 14.5, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
                   boxShadow: isPopular ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)` : PN.INSET_HIGHLIGHT_DARK,
-                }}>Acquista</button>
+                }}>Aggiungi al piano</button>
               </div>
             );
           })}
@@ -221,12 +221,12 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
             </span>
           </div>
           <div style={{fontSize: 14.5, color: '#065F46', marginTop: 2, fontWeight: 500}}>
-            {ordiniRisparmiati.toLocaleString('it-IT')} ordini non conteggiati
+            {ordiniRisparmiati.toLocaleString('it-IT')} ordini a metà prezzo
           </div>
         </div>
       </div>
       <div style={{position: 'relative', fontSize: 14.5, color: 'rgba(6, 78, 59, 0.85)', marginTop: 14, lineHeight: 1.45, zIndex: 1}}>
-        Gli ordini effettuati direttamente dai clienti tramite app pesano <strong style={{color: '#047857'}}>0,5 invece di 1</strong>: più adotti il self-ordering, più risparmi.
+        Gli ordini fatti dai clienti tramite app vengono contati come <strong style={{color: '#047857'}}>0,5 invece di 1</strong>: più i clienti ordinano da soli e meno paghi.
       </div>
     </div>
   );
@@ -259,7 +259,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
           </div>
         </div>
         <div style={{textAlign: 'right'}}>
-          <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Extra/ordine</div>
+          <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Costo per ordine extra</div>
           <div style={{fontSize: 15, fontWeight: 600, color: '#F5F5F7'}}>+{fmtPrice(current.ordineExtra)} €</div>
         </div>
       </div>
@@ -284,7 +284,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
       </div>
       <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.60)'}}>
         <span>{pct}% utilizzato</span>
-        <span>{(current.ordiniInclusi - ordiniUsati).toLocaleString('it-IT')} residui</span>
+        <span>{(current.ordiniInclusi - ordiniUsati).toLocaleString('it-IT')} ancora disponibili</span>
       </div>
 
       {/* Breakdown POS vs App — versione compatta inline (su dark) */}
@@ -293,7 +293,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
         marginTop: 14, paddingTop: 12, borderTop: '1px dashed rgba(255,255,255,0.12)',
       }}>
         <div style={{padding: '8px 10px', background: 'rgba(255,255,255,0.06)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)'}}>
-          <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Cassa</div>
+          <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da cassa</div>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
             <span style={{fontSize: 17, fontWeight: 600, color: '#F5F5F7'}}>{ordiniPos.toLocaleString('it-IT')}</span>
             <span style={{
@@ -304,7 +304,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
           </div>
         </div>
         <div style={{padding: '8px 10px', background: 'rgba(255, 96, 102, 0.18)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255, 96, 102, 0.30)'}}>
-          <div style={{fontSize: 12, color: '#FF8B90', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da app</div>
+          <div style={{fontSize: 12, color: '#FF8B90', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da app clienti</div>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
             <span style={{fontSize: 17, fontWeight: 600, color: '#FFC8B0'}}>{ordiniApp.toLocaleString('it-IT')}</span>
             <span style={{
@@ -446,12 +446,12 @@ function ConfrontoTable() {
   const rows = [
     ['Ordini inclusi/mese',          '550',          '1.850',         '7.500',          '15.000'],
     ['Costo per ordine extra',       '0,45 €+IVA',   '0,34 €+IVA',    '0,23 €+IVA',     '0,12 €+IVA'],
-    ['Menu digitali',                '1',            '3',             'Illimitati',     'Illimitati'],
-    ['Membri dello staff',           '1',            'Fino a 3',      'Illimitati',     'Illimitati'],
-    ['Chat bot + tutorial + ticket', '✓',            '✓',             '✓',              '✓'],
+    ['Menù digitali',                '1',            '3',             'Illimitati',     'Illimitati'],
+    ['Membri del team',              '1',            'Fino a 3',      'Illimitati',     'Illimitati'],
+    ['Assistenza via ticket, chat e guide', '✓',     '✓',             '✓',              '✓'],
     ['Supporto telefonico 24/7',     '—',            '—',             '✓',              '✓'],
-    ['Richiamata entro 30 min',      '—',            '—',             '✓',              '✓'],
-    ['Canale prioritario',           '—',            '—',             '—',              '✓'],
+    ['Richiamata entro 30 minuti',   '—',            '—',             '✓',              '✓'],
+    ['Canale riservato prioritario', '—',            '—',             '—',              '✓'],
   ];
 
   // Render cella: ✓ → check verde su pillola, — → muted, altro → testo
@@ -474,7 +474,7 @@ function ConfrontoTable() {
   };
 
   return (
-    <AcCard title="Confronta funzionalità">
+    <AcCard title="Confronto tra piani">
       <div style={{
         border: `1px solid ${PN.BORDER_HAIR}`,
         borderRadius: 12, overflow: 'hidden',

@@ -8,7 +8,7 @@ function SupChannelCards({ onChat, onEmail, onCall }) {
         iconBg="#dcfce7" iconColor="#15803d"
         badge="Online ora" badgeBg="#dcfce7" badgeColor="#15803d"
         title="Chat live"
-        desc="Parla con il chatbot byup in tempo reale. Risposta istantanea."
+        desc="Parla con l'assistente IA byup in tempo reale. Risposta immediata."
         cta="Avvia la chat"
         onClick={onChat}
       />
@@ -147,7 +147,7 @@ function SupSearch({ value, onChange }) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Cerca guide, tutorial o FAQ… (es: come configurare i pagamenti)"
+        placeholder="Cerca guide, video o domande frequenti… (es. come configurare i pagamenti)"
         style={{
           flex: 1, border:'none', outline:'none',
           fontSize: 15.5, color: PN.TEXT,

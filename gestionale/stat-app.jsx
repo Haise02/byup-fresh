@@ -24,12 +24,12 @@ function StatApp() {
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
         <StatKpi label="Visite vetrina" value={totV.toLocaleString('it-IT')} delta={14.2} sub="Visualizzazioni totali della tua vetrina"/>
         <StatKpi label="Pagamenti completati" value={last.toLocaleString('it-IT')} delta={9.6} sub="Ordini conclusi con successo"/>
-        <StatKpi label="Tasso di conversione" value={`${((last/totV)*100).toFixed(1)}%`} delta={2.4} sub="Vetrina → pagamento"/>
-        <StatKpi label="Drop-off totale" value={dropTotal.toLocaleString('it-IT')} delta={-3.1} sub="Utenti persi nel funnel"/>
+        <StatKpi label="Tasso di conversione" value={`${((last/totV)*100).toFixed(1)}%`} delta={2.4} sub="Dalla vetrina al pagamento"/>
+        <StatKpi label="Abbandoni totali" value={dropTotal.toLocaleString('it-IT')} delta={-3.1} sub="Utenti che non completano il percorso"/>
       </div>
 
       {/* Funnel viz */}
-      <StatCard title="Funnel di conversione" sub="Quanti utenti completano ogni step della journey">
+      <StatCard title="Funnel di conversione" sub="Quanti utenti completano ogni passaggio del percorso">
         <div style={{display:'flex', flexDirection:'column', gap: 14}}>
           {d.funnel.map((step, i) => {
             const prev = i > 0 ? d.funnel[i - 1].val : null;
@@ -48,7 +48,7 @@ function StatApp() {
                   </div>
                   <div style={{display:'flex', alignItems:'center', gap: 12}}>
                     {prev != null && dropPct > 0 && (
-                      <span style={{fontSize: 13, color: PN.RED, fontWeight: 600}}>↓ {dropPct.toFixed(0)}% drop-off</span>
+                      <span style={{fontSize: 13, color: PN.RED, fontWeight: 600}}>↓ {dropPct.toFixed(0)}% abbandoni</span>
                     )}
                     <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 80, textAlign:'right'}}>{step.val.toLocaleString('it-IT')}</strong>
                     <span style={{fontSize: 14, color: PN.MUTED, fontWeight: 600, minWidth: 44, textAlign:'right'}}>{step.pct}%</span>

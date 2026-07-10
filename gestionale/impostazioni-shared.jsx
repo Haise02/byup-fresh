@@ -3,12 +3,12 @@
 function ImpHeader({ active }) {
   const SUBTITLES = {
     vetrina: 'Vetrina · come appare il locale ai clienti',
-    'menu-cucina': 'Menù · catalogo, allergeni, regole IVA',
+    'menu-cucina': 'Menù · catalogo piatti, allergeni e prezzi',
     sala: 'Sala e tavoli · sale, tavoli e coperti',
-    personale: 'Personale · staff e dispositivi connessi',
+    personale: 'Personale · membri del team e dispositivi connessi',
     flussi: 'Operazioni · come arrivano e vengono gestiti gli ordini',
-    fiscali: 'Dati fiscali locale · P.IVA, SDI, sede legale, IBAN',
-    integrazioni: 'POS e integrazioni · pagamenti e software esterni',
+    fiscali: 'Dati fiscali · P.IVA, SDI, sede legale, IBAN',
+    integrazioni: 'POS e integrazioni · pagamenti, delivery e dispositivi',
   };
 
   return (
@@ -47,7 +47,7 @@ function ImpTabs({ active, onChange }) {
     { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
     { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
     { id: 'flussi', label: 'Operazioni', icon: 'chart-workflow' },
-    { id: 'fiscali', label: 'Dati fiscali locale', icon: 'commerce-receipt' },
+    { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
     { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
   ];
 

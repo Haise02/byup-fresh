@@ -303,7 +303,7 @@ function ImpSalaTavoli() {
     const max = salaMaxTavoli(active);
     if (tavoli.length >= max) {
       setConfirmDialog({
-        title: 'Sala piena',
+        title: 'Spazio esaurito',
         msg: `Questa sala (${active?.widthM || DEF_W}×${active?.depthM || DEF_D} m) può contenere al massimo ${max} tavoli. Ingrandisci la sala per aggiungerne altri.`,
         confirmLabel: 'Modifica sala',
         onConfirm: () => { setConfirmDialog(null); setEditSala({...active}); },
@@ -633,7 +633,7 @@ function ImpSalaTavoli() {
                     padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 8,
                     fontSize: 15, fontFamily:'inherit', background: PN.WHITE, cursor:'pointer',
                   }}>
-                    <option value="all">Tutti</option>
+                    <option value="all">Tutti gli stati</option>
                     <option value="attivi">Attivi</option>
                     <option value="fuoriuso">Inattivi</option>
                   </select>
@@ -1288,7 +1288,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                       display:'inline-flex', alignItems:'center', paddingLeft: 10, paddingRight: 8,
                       fontSize: 12.5, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase',
                       color: PN.PINK_DARK, whiteSpace: 'nowrap',
-                    }}>Altro</span>
+                    }}>Personalizzato</span>
                     <button
                       onClick={() => onUpdate({coperti: Math.max(1, tavolo.coperti - 1)})}
                       title="Diminuisci"
@@ -1341,7 +1341,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                     onMouseEnter={e => { e.currentTarget.style.borderColor = PN.PINK_DARK; e.currentTarget.style.color = PN.PINK_DARK; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.color = PN.MUTED; }}
                   >
-                    Altro…
+                    Personalizzato…
                   </button>
                 )}
               </div>
@@ -1384,7 +1384,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
         <div style={{padding:'14px 20px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 8, justifyContent: (!isNew && onDelete) ? 'space-between' : 'flex-end'}}>
           {!isNew && onDelete && <ImpButton variant="ghost" icon={<BuIcons.trash size={13}/>} onClick={onDelete} style={{color: PN.PINK_DARK}}>Elimina</ImpButton>}
           <ImpButton variant="primary" onClick={handleConfirm}>
-            {isNew ? (quantity > 1 ? `Crea ${quantity} tavoli` : 'Crea') : 'Salva'}
+            {isNew ? (quantity > 1 ? `Crea ${quantity} tavoli` : 'Crea tavolo') : 'Salva'}
           </ImpButton>
         </div>
       </div>
@@ -1527,7 +1527,7 @@ function SalaModal({ sala, onSave, onClose }) {
             <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} style={{accentColor: PN.PINK}}/>
             <div style={{flex:1}}>
               <div style={{fontSize: 15, fontWeight: 700}}>Sala attiva</div>
-              <div style={{fontSize: 13.5, color: PN.MUTED}}>Le sale disattive non sono prenotabili dai clienti</div>
+              <div style={{fontSize: 13.5, color: PN.MUTED}}>Le sale disattivate non appaiono nell'app e non accettano ordini</div>
             </div>
           </label>
         </div>

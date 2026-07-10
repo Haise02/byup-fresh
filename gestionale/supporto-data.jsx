@@ -8,7 +8,7 @@ const SUP_TUTORIAL_CATS = [
     tutorials: [
       { id:'c1', title: 'Come configurare il tuo account', desc: 'Imposta il tuo profilo e le preferenze iniziali per poter utilizzare la piattaforma byup.', mins: 8, read: 5 },
       { id:'c2', title: 'Verifica email e P.IVA', desc: 'Verifica i dati fiscali del ristorante per attivare i pagamenti.', mins: 4, read: 3 },
-      { id:'c3', title: 'Aggiungere il primo membro dello staff', desc: 'Invita cuochi e camerieri assegnando ruoli e permessi.', mins: 6, read: 4 },
+      { id:'c3', title: 'Aggiungere il primo membro del team', desc: 'Invita cuochi e camerieri assegnando ruoli e permessi.', mins: 6, read: 4 },
     ],
   },
   {
@@ -47,7 +47,7 @@ const SUP_TUTORIAL_CATS = [
     title: 'Gestione sala e tavoli',
     tutorials: [
       { id:'s1', title: 'Configurare la pianta della sala', desc: 'Disegna sale e tavoli con capienza.', mins: 10, read: 7 },
-      { id:'s2', title: 'Calendario prenotazioni', desc: 'Imposta slot, capacità e regole walk-in.', mins: 8, read: 5 },
+      { id:'s2', title: 'Calendario prenotazioni', desc: 'Imposta slot, capacità e regole per i clienti senza prenotazione.', mins: 8, read: 5 },
       { id:'s3', title: 'QR code per tavolo', desc: 'Stampa i QR code unici per ogni tavolo.', mins: 4, read: 3 },
     ],
   },
@@ -58,7 +58,7 @@ const SUP_TUTORIAL_CATS = [
     tutorials: [
       { id:'st1', title: 'Dashboard panoramica', desc: 'Personalizza i widget della tua dashboard.', mins: 7, read: 4 },
       { id:'st2', title: 'Esportare i report', desc: 'CSV, PDF e integrazioni con Google Sheets.', mins: 5, read: 3 },
-      { id:'st3', title: 'Predittive AI', desc: 'Sfrutta i suggerimenti AI di byup.', mins: 9, read: 6 },
+      { id:'st3', title: 'Previsioni AI', desc: 'Sfrutta i suggerimenti AI di byup.', mins: 9, read: 6 },
     ],
   },
   {

@@ -17,21 +17,21 @@ const CONTI_MOCK = [
     payments: [
       {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1'},
       {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2'},
-      {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3'},
+      {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3'},
       {id:'p20d', method:'contanti', amount:50.00, ora:'2025-11-16 14:11', scontrinoNum:'SC-2511-0046-4'},
-      {id:'p20e', method:'carta',    amount:40.00, ora:'2025-11-16 14:13', posRef:{email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0046-5'},
+      {id:'p20e', method:'carta',    amount:40.00, ora:'2025-11-16 14:13', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0046-5'},
     ] },
 
   // ─── Saldati ───────────────────────────────────────────────────
   { id:'cnt-5',  idOrdine:'#2511-0038', dataOra:'2025-11-13 20:30', tavolo:'Tav.1',  cliente:'Lucia Marchesi',    riferimento:{nome:'Lucia Marchesi', tipo:'byup'}, liberatoOre:48,    totaleConto:72.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1'}] },
+    payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1'}] },
   { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tav.3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p6a', method:'contanti', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1'}] },
   { id:'cnt-13', idOrdine:'#2511-0035', dataOra:'2025-11-13 13:15', tavolo:'Tav.4',  cliente:'Pellegrini',        liberatoOre:60,    totaleConto:64.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1'}] },
+    payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1'}] },
   { id:'cnt-14', idOrdine:'#2511-0034', dataOra:'2025-11-12 20:00', tavolo:'Tav.8',  cliente:'Carlo Russo',       liberatoOre:84,    totaleConto:215.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [
-      {id:'p14a', method:'carta', amount:150.00, ora:'2025-11-12 22:30', posRef:{email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1'},
+      {id:'p14a', method:'carta', amount:150.00, ora:'2025-11-12 22:30', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1'},
       {id:'p14b', method:'contanti', amount:65.00, ora:'2025-11-12 22:32', scontrinoNum:'SC-2511-0034-2'},
     ] },
   { id:'cnt-21', idOrdine:'#2511-0029', dataOra:'2025-11-09 20:15', tavolo:'Tav.7',  cliente:'Cena aziendale Mele', riferimento:{nome:'Andrea Mele', tipo:'prenotazione'}, liberatoOre:96,  totaleConto:485.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'carta',
@@ -39,9 +39,9 @@ const CONTI_MOCK = [
       {id:'p21a', method:'byup',     amount:60.00, ora:'2025-11-09 22:40', scontrinoNum:'SC-2511-0029-1'},
       {id:'p21b', method:'byup',     amount:60.00, ora:'2025-11-09 22:41', scontrinoNum:'SC-2511-0029-2'},
       {id:'p21c', method:'byup',     amount:60.00, ora:'2025-11-09 22:42', scontrinoNum:'SC-2511-0029-3'},
-      {id:'p21d', method:'carta',    amount:200.00, ora:'2025-11-09 22:48', posRef:{email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4'},
+      {id:'p21d', method:'carta',    amount:200.00, ora:'2025-11-09 22:48', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4'},
       {id:'p21e', method:'contanti', amount:80.00, ora:'2025-11-09 22:50', scontrinoNum:'SC-2511-0029-5'},
-      {id:'p21f', method:'carta',    amount:25.00, ora:'2025-11-09 22:52', posRef:{email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0029-6'},
+      {id:'p21f', method:'carta',    amount:25.00, ora:'2025-11-09 22:52', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0029-6'},
     ] },
   { id:'cnt-22', idOrdine:'#2511-0027', dataOra:'2025-11-08 13:00', tavolo:'Tav.5',  cliente:'Pranzo team',         liberatoOre:144,  totaleConto:156.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'byup',
     payments: [
@@ -55,23 +55,23 @@ const CONTI_MOCK = [
       {id:'p23a', method:'contanti', amount:45.00, ora:'2025-11-07 23:10', scontrinoNum:'SC-2511-0025-1'},
       {id:'p23b', method:'contanti', amount:50.00, ora:'2025-11-07 23:11', scontrinoNum:'SC-2511-0025-2'},
       {id:'p23c', method:'byup',     amount:42.00, ora:'2025-11-07 23:14', scontrinoNum:'SC-2511-0025-3'},
-      {id:'p23d', method:'carta',    amount:75.00, ora:'2025-11-07 23:16', posRef:{email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0025-4'},
+      {id:'p23d', method:'carta',    amount:75.00, ora:'2025-11-07 23:16', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0025-4'},
       {id:'p23e', method:'contanti', amount:55.00, ora:'2025-11-07 23:18', scontrinoNum:'SC-2511-0025-5'},
     ] },
   { id:'cnt-15', idOrdine:'#2511-0033', dataOra:'2025-11-12 13:30', tavolo:'Asporto', canale:'asporto', cliente:'Anna Costa',        riferimento:{nome:'Anna Costa', tipo:'byup'}, liberatoOre:96,    totaleConto:38.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'byup',
     payments: [{id:'p15a', method:'byup', amount:38.50, ora:'2025-11-12 14:10', scontrinoNum:'SC-2511-0033-1'}] },
   { id:'cnt-16', idOrdine:'#2511-0032', dataOra:'2025-11-11 21:30', tavolo:'Tav.11', cliente:'Gallo (aziendale)', liberatoOre:120,   totaleConto:340.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p16a', method:'carta', amount:340.00, ora:'2025-11-11 23:00', posRef:{email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1'}] },
+    payments: [{id:'p16a', method:'carta', amount:340.00, ora:'2025-11-11 23:00', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1'}] },
   { id:'cnt-17', idOrdine:'#2511-0030', dataOra:'2025-11-10 12:45', tavolo:'Tav.6',  cliente:'Coppia Neri',       riferimento:{nome:'Francesca Neri', tipo:'prenotazione'}, liberatoOre:144,   totaleConto:58.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p17a', method:'carta', amount:58.00, ora:'2025-11-10 13:50', posRef:{email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1'}],
+    payments: [{id:'p17a', method:'carta', amount:58.00, ora:'2025-11-10 13:50', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1'}],
     rimborso: {amount:12.00, ora:'2025-11-10 14:05', method:'carta', reason:'Coperto contestato'} },
   { id:'cnt-7',  idOrdine:'#2509-0156', dataOra:'2025-08-17 22:15', tavolo:'Tav.6',  cliente:'Paolo Bianchi',     liberatoOre:2160,  totaleConto:110.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1'}],
+    payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1'}],
     rimborso: {amount:25.00, ora:'2025-08-18 10:12', method:'carta', reason:'Piatto reso — pasta troppo cotta'} },
   { id:'cnt-18', idOrdine:'#2510-0089', dataOra:'2025-10-05 21:00', tavolo:'Asporto', canale:'asporto', cliente:'Sara Mancini',      liberatoOre:1032,  totaleConto:76.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p18a', method:'contanti', amount:76.00, ora:'2025-10-05 21:50', scontrinoNum:'SC-2510-0089-1'}] },
   { id:'cnt-19', idOrdine:'#2509-0143', dataOra:'2025-09-20 13:00', tavolo:'Tav.3',  cliente:'Luca Caruso',       liberatoOre:1380,  totaleConto:42.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p19a', method:'carta', amount:42.50, ora:'2025-09-20 13:55', posRef:{email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2509-0143-1'}] },
+    payments: [{id:'p19a', method:'carta', amount:42.50, ora:'2025-09-20 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2509-0143-1'}] },
   { id:'cnt-8',  idOrdine:'#2411-0004', dataOra:'2024-11-14 19:00', tavolo:'Asporto', canale:'asporto', cliente:'Elena Greco',       liberatoOre:8760,  totaleConto:48.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p8a', method:'contanti', amount:48.00, ora:'2024-11-14 19:45', scontrinoNum:'SC-2411-0004-1'}] },
 ];
@@ -244,9 +244,9 @@ function ContSaldaModal({ open, conto, onClose, onConfirm }) {
 
             {/* Metodo */}
             <div>
-              <div style={{fontSize:12, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:8}}>Metodo</div>
+              <div style={{fontSize:12, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:8}}>Come paga il cliente?</div>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:14}}>
-                {[{id:'contanti',icon:'💵',label:'Contanti'},{id:'carta',icon:'💳',label:'Carta'},{id:'byup',icon:'📱',label:'byup'}].map(m => {
+                {[{id:'contanti',icon:'💵',label:'Contanti'},{id:'carta',icon:'💳',label:'Carta'},{id:'byup',icon:'📱',label:'App byup'}].map(m => {
                   const on = method === m.id;
                   return (
                     <button key={m.id} onClick={() => setMethod(m.id)} style={{
@@ -410,9 +410,9 @@ function ContoExpandedPanel({ conto, onRimborso }) {
                 <div style={{minWidth: 0, display:'flex', flexDirection:'column'}}>
                   <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, display:'flex', alignItems:'baseline', gap: 8, flexWrap:'wrap'}}>
                     <span>{meta.label}</span>
-                    {p.posRef && (p.posRef.device || p.posRef.email) && (
+                    {p.posRef && (p.posRef.nome || p.posRef.email || p.posRef.device) && (
                       <span style={{fontSize: C.T_XS, fontWeight: 500, color: PN.MUTED}}>
-                        · <span style={{fontWeight: 700, color: PN.MUTED}}>Byup Staff:</span> {[p.posRef.device, p.posRef.email].filter(Boolean).join('; ')}
+                        · <span style={{fontWeight: 700, color: PN.MUTED}}>Dispositivo:</span> {[p.posRef.nome || p.posRef.device, p.posRef.email].filter(Boolean).join(' · ')}
                       </span>
                     )}
                   </div>
@@ -777,7 +777,7 @@ function ChiudiCassaModal({ open, fondoCassa, aperturaOra, onClose, onConfirm })
               <span style={{width:42, height:42, borderRadius:'50%', background:'#FEF3C7', color:'#B45309',
                 display:'grid', placeItems:'center', flexShrink:0}}><Ic.warn size={20}/></span>
               <div>
-                <div style={{fontSize: C.T_MD, fontWeight:800, color: PN.TEXT}}>La differenza cassa è diversa da zero</div>
+                <div style={{fontSize: C.T_MD, fontWeight:800, color: PN.TEXT}}>La cassa non è in pari</div>
                 <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop:4}}>
                   Differenza rilevata: <strong style={{color:'#B45309', fontVariantNumeric:'tabular-nums'}}>€ {differenza.toFixed(2)}</strong>. Sei sicuro di voler continuare?
                 </div>
@@ -785,7 +785,7 @@ function ChiudiCassaModal({ open, fondoCassa, aperturaOra, onClose, onConfirm })
             </div>
             <div style={{padding:'16px 22px 18px', display:'flex', gap:10}}>
               <button onClick={() => setStep('form')} style={btnSecondary}>Torna indietro</button>
-              <button onClick={onConfirm} style={btnWarn}>Conferma comunque</button>
+              <button onClick={onConfirm} style={btnWarn}>Chiudi comunque</button>
             </div>
           </>
         )}
@@ -945,7 +945,7 @@ function ContConti({ filter = 'all' }) {
             color: PN.MUTED,
           }}>
             <div style={{fontSize: C.T_SM, fontWeight: 600}}>Nessun conto trovato</div>
-            <div style={{fontSize: C.T_XS, marginTop: 6}}>Nessun conto corrisponde ai filtri selezionati</div>
+            <div style={{fontSize: C.T_XS, marginTop: 6}}>Nessun conto corrisponde ai filtri</div>
           </div>
         ) : (
           <div style={{borderRadius: C.R_SM, overflow:'hidden', border:`1px solid ${PN.BORDER}`}}>

@@ -104,7 +104,7 @@ function ImpDatiFiscali() {
               </ImpField>
             </div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginTop: 4}}>
-              <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata Ag. Entrate' : 'Inserisci 11 cifre con prefisso IT'}>
+              <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata con l\'Agenzia delle Entrate' : 'Inserisci 11 cifre con prefisso IT'}>
                 <div style={{position:'relative'}}>
                   <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
                   {data.piva.length === 13 && (
@@ -121,7 +121,7 @@ function ImpDatiFiscali() {
             </div>
           </ImpCard>
 
-          <ImpCard title="Sede operativa" sub="Indirizzo dove vengono emessi gli scontrini, stampato in cima al documento">
+          <ImpCard title="Sede operativa" sub="Indirizzo stampato in cima allo scontrino">
             <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
               <ImpField label="Indirizzo">
                 <ImpInput value={data.indirizzo} onChange={e => set('indirizzo', e.target.value)}/>
@@ -251,7 +251,7 @@ function ImpDatiFiscali() {
                 background: '#1A1A1A', color: PN.WHITE,
                 border:'none', cursor:'pointer', fontFamily:'inherit',
                 fontSize: 15, fontWeight: 600,
-              }}>Sostituisci banca</button>
+              }}>Modifica dati bancari</button>
             </div>
 
             {/* Info delegata ad Aruba */}

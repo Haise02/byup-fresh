@@ -33,7 +33,7 @@ function StatStaff() {
 
       {/* KPI riepilogo */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <StatKpi label="Membri attivi" value={STAFF.length} sub="Camerieri & maître nel periodo"/>
+        <StatKpi label="Membri attivi" value={STAFF.length} sub="Camerieri e maître nel periodo"/>
         <StatKpi label="Scontrino medio team" value={`€ ${teamAvg.toFixed(2)}`} delta={6.4} spark={[42,44,43,46,45,47,48]} sub="Media tra tutti i membri attivi"/>
         <StatKpi label="Ordini gestiti" value={totOrdini.toLocaleString('it-IT')} delta={9.2} spark={[1820,1900,1880,1950,2010,2080,2129]} sub="Totale ordini gestiti dal team"/>
         <StatKpi label="Mance raccolte" value={`€ ${totTip.toLocaleString('it-IT')}`} delta={14.1} spark={[2100,2200,2150,2300,2400,2500,2570]} sub="Totale mance del periodo"/>

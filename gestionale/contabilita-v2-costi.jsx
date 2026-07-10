@@ -94,10 +94,10 @@ function ContCosti({ openNewCost }) {
           }}><Ic.warn size={18}/></div>
           <div style={{flex:1}}>
             <div style={{fontSize: C.T_SM, fontWeight: 700, color: '#78350F'}}>
-              {overdue.length} scaduti · {upcoming.length} in scadenza nei prossimi 7 giorni
+              {overdue.length} scaduti · {upcoming.length} in scadenza entro 7 giorni
             </div>
             <div style={{fontSize: C.T_XS, color:'#92400E', marginTop: 2}}>
-              Totale da gestire: <strong style={{fontVariantNumeric:'tabular-nums'}}>€ {totalAlert.toFixed(2)}</strong>
+              Da saldare: <strong style={{fontVariantNumeric:'tabular-nums'}}>€ {totalAlert.toFixed(2)}</strong>
             </div>
           </div>
           <button onClick={() => setAlertOnly(a => !a)} style={{
@@ -106,7 +106,7 @@ function ContCosti({ openNewCost }) {
             border: alertOnly ? `1px solid ${PN.AMBER}` : 'none',
             borderRadius: C.R_PILL, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer',
             fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
-          }}>{alertOnly ? 'Mostra tutti' : 'Vedi dettaglio'} <Ic.chevronR size={12} stroke={2.4}/></button>
+          }}>{alertOnly ? 'Mostra tutti i costi' : 'Mostra solo questi'} <Ic.chevronR size={12} stroke={2.4}/></button>
         </div>
       )}
 
@@ -154,10 +154,10 @@ function ContCosti({ openNewCost }) {
             <button onClick={openNewCost} style={{padding:'6px 14px', background:'rgba(255,255,255,0.12)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.edit size={12}/> Modifica</button>
           )}
           {allUnpaid && (
-            <button onClick={markSelectedPaid} style={{padding:'6px 14px', background:'rgba(16,185,129,0.22)', color:'#fff', border:'1px solid rgba(16,185,129,0.55)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.check size={12} stroke={2.6}/> Pagato</button>
+            <button onClick={markSelectedPaid} style={{padding:'6px 14px', background:'rgba(16,185,129,0.22)', color:'#fff', border:'1px solid rgba(16,185,129,0.55)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.check size={12} stroke={2.6}/> Segna come pagati</button>
           )}
           {allPaid && (
-            <button onClick={markSelectedUnpaid} style={{padding:'6px 14px', background:'rgba(255,255,255,0.12)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.recurring size={12}/> Ancora da pagare</button>
+            <button onClick={markSelectedUnpaid} style={{padding:'6px 14px', background:'rgba(255,255,255,0.12)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.recurring size={12}/> Segna come da pagare</button>
           )}
           <button onClick={askDeleteSelected} style={{padding:'6px 14px', background:'rgba(239,68,68,0.22)', color:'#fff', border:'1px solid rgba(239,68,68,0.5)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.trash size={12}/> Elimina</button>
           <button onClick={() => setSelected(new Set())} style={{padding:'6px 8px', background:'transparent', color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit', display:'flex'}}><Ic.close size={14}/></button>
@@ -168,14 +168,14 @@ function ContCosti({ openNewCost }) {
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap: 12}}>
         <div>
           <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Costi della tua attività</div>
-          <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>{filtered.length} voci · raggruppate per mese di scadenza</div>
+          <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>{filtered.length} voci · per mese di scadenza</div>
         </div>
         <button onClick={openNewCost} style={{
           padding:'10px 18px', background: PN.TEXT, color:'#fff', border:'none',
           borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer',
           fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 8,
         }}>
-          <Ic.plus size={14} stroke={2.4}/> Nuovo costo
+          <Ic.plus size={14} stroke={2.4}/> Aggiungi costo
         </button>
       </div>
 
@@ -184,8 +184,8 @@ function ContCosti({ openNewCost }) {
           <div style={{display:'inline-flex', padding: 14, borderRadius:'50%', background: C.SURF_ALT, color: PN.MUTED, marginBottom: 10}}>
             <Ic.invoice size={28}/>
           </div>
-          <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>Nessun costo in questa categoria</div>
-          <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 4}}>Aggiungi il primo costo per iniziare a tracciare le spese</div>
+          <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>Nessun costo trovato</div>
+          <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 4}}>Aggiungi il primo costo per tracciare le spese</div>
         </div>
       )}
 
@@ -199,7 +199,7 @@ function ContCosti({ openNewCost }) {
               <div style={{fontSize: C.T_XS, color: PN.MUTED}}>{grp.items.length} voci · <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {groupTotal.toFixed(2)}</strong></div>
             </div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 16, padding:'10px 18px', fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5, borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
-              <span>Nome</span><span>Categoria</span><span>Tipo</span><span>Prossimo</span><span>Importo</span>
+              <span>Nome</span><span>Categoria</span><span>Tipo</span><span>Prossima scadenza</span><span>Importo</span>
             </div>
             {grp.items.map((c,i) => {
               const m = catMeta[c.cat];
@@ -265,7 +265,7 @@ function ContCosti({ openNewCost }) {
                   Eliminare {pendingDelete.length} cost{pendingDelete.length===1?'o':'i'}?
                 </div>
                 <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 4}}>
-                  L'operazione non è reversibile.
+                  Questa azione non può essere annullata.
                 </div>
               </div>
             </div>

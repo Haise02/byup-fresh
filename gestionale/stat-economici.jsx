@@ -59,9 +59,9 @@ function RicaviCosti({ d, months }) {
       <div style={{display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16}}>
         <StatCard title="Origine incassi" sub="Confronto canali ultimi 7 giorni" action={
           <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 13, color: PN.MUTED}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> sala</span>
-            <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.GREEN}}/> asporto</span>
-            <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.BLUE}}/> diretta</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> Sala</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.GREEN}}/> Asporto</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.BLUE}}/> Vendita diretta</span>
           </span>
         }>
           <svg viewBox="0 0 460 200" style={{width:'100%', height: 200}}>
@@ -83,7 +83,7 @@ function RicaviCosti({ d, months }) {
           <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 8, marginTop: 12}}>
             <Mini label="Sala" pct={43} val="34.020 €"/>
             <Mini label="Asporto" pct={28} val="22.120 €"/>
-            <Mini label="Diretta" pct={12} val="9.480 €"/>
+            <Mini label="Vendita diretta" pct={12} val="9.480 €"/>
           </div>
         </StatCard>
 

@@ -14,16 +14,16 @@ function ContIva({ month, setMonth }) {
       <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 20}}>
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom: 14, flexWrap:'wrap', gap: 12}}>
           <div>
-            <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Movimenti IVA — Anno 2025</div>
+            <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Movimenti IVA — 2026</div>
             <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>
               {selected
-                ? <>Selezionato: <strong style={{color: PN.TEXT}}>{selected.m} 2025</strong> · saldo <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {(selected.deb-selected.cred).toFixed(2)}</strong> · <button onClick={() => setMonth(null)} style={{background:'none', border:'none', color: PN.PINK, cursor:'pointer', fontWeight:600, padding:0, fontFamily:'inherit', fontSize: C.T_SM}}>azzera filtro</button></>
-                : 'Clicca su un mese per filtrare la tabella'}
+                ? <><strong style={{color: PN.TEXT}}>{selected.m} 2026</strong> · saldo <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {(selected.deb-selected.cred).toFixed(2)}</strong> · <button onClick={() => setMonth(null)} style={{background:'none', border:'none', color: PN.PINK, cursor:'pointer', fontWeight:600, padding:0, fontFamily:'inherit', fontSize: C.T_SM}}>Rimuovi filtro</button></>
+                : 'Seleziona un mese per vederne il dettaglio'}
             </div>
           </div>
           <div style={{display:'flex', alignItems:'center', gap: 14, fontSize: C.T_XS, color: PN.MUTED}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap: 6}}><span style={{width:10, height:10, borderRadius: 3, background: PN.PINK}}/> a debito</span>
-            <span style={{display:'inline-flex', alignItems:'center', gap: 6}}><span style={{width:10, height:10, borderRadius: 3, background: PN.PINK_SOFT, border:`1px solid ${PN.PINK}`}}/> a credito</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 6}}><span style={{width:10, height:10, borderRadius: 3, background: PN.PINK}}/> IVA a debito</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 6}}><span style={{width:10, height:10, borderRadius: 3, background: PN.PINK_SOFT, border:`1px solid ${PN.PINK}`}}/> IVA a credito</span>
           </div>
         </div>
 
@@ -76,11 +76,11 @@ function ContIva({ month, setMonth }) {
       <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 20}}>
         <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Tabella mensile</div>
         <div style={{fontSize: C.T_SM, color: PN.MUTED, marginBottom: 14}}>
-          {month != null ? `Filtrato per ${IVA_MONTHLY[month].m} 2025` : 'Visualizza le contabilità e i relativi saldi'}
+          {month != null ? `Filtrato per ${IVA_MONTHLY[month].m} 2026` : 'Visualizza le contabilità e i relativi saldi'}
         </div>
         <div style={{borderRadius: C.R_SM, overflow:'hidden', border:`1px solid ${PN.BORDER}`}}>
           <div style={{display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr', padding:'10px 16px', background: C.TH_BG, fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5}}>
-            <span>Mese</span><span style={{textAlign:'right'}}>a debito</span><span style={{textAlign:'right'}}>a credito</span><span style={{textAlign:'right'}}>Saldo</span>
+            <span>Mese</span><span style={{textAlign:'right'}}>Debito</span><span style={{textAlign:'right'}}>Credito</span><span style={{textAlign:'right'}}>Saldo</span>
           </div>
           {(month != null ? [IVA_MONTHLY[month]] : IVA_MONTHLY).map((m,i) => {
             const saldo = m.deb - m.cred;
@@ -91,7 +91,7 @@ function ContIva({ month, setMonth }) {
                 fontSize: C.T_SM, color: PN.TEXT,
                 borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
               }}>
-                <span style={{fontWeight: 600}}>{m.m} 2025</span>
+                <span style={{fontWeight: 600}}>{m.m} 2026</span>
                 <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {m.deb.toFixed(2)}</span>
                 <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {m.cred.toFixed(2)}</span>
                 <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700, color: saldo>0 ? PN.GREEN : PN.RED}}>{saldo>0?'+':''}€ {saldo.toFixed(2)}</span>
@@ -107,7 +107,7 @@ function ContIva({ month, setMonth }) {
         <div style={{fontSize: C.T_SM, color: PN.MUTED, marginBottom: 14}}>Riepilogo delle partite IVA per fascia di aliquota</div>
         <div style={{borderRadius: C.R_SM, overflow:'hidden', border:`1px solid ${PN.BORDER}`}}>
           <div style={{display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr', padding:'10px 16px', background: C.TH_BG, fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5}}>
-            <span>Aliquota</span><span style={{textAlign:'right'}}>a debito</span><span style={{textAlign:'right'}}>a credito</span><span style={{textAlign:'right'}}>Saldo</span>
+            <span>Aliquota</span><span style={{textAlign:'right'}}>Debito</span><span style={{textAlign:'right'}}>Credito</span><span style={{textAlign:'right'}}>Saldo</span>
           </div>
           {filteredRates.map((r,i) => (
             <div key={r.rate} style={{
@@ -138,17 +138,17 @@ function ContExport({ openShare }) {
     <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 320px', gap: 16}}>
       <div style={{display:'flex', flexDirection:'column', gap: 16}}>
         <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 22}}>
-          <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Esporta dati</div>
-          <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 4, marginBottom: 18}}>Seleziona il formato e l'intervallo temporale per esportare i dati contabili.</div>
+          <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Esporta dati contabili</div>
+          <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 4, marginBottom: 18}}>Scegli il periodo e i file da esportare.</div>
 
-          <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Seleziona periodo</div>
+          <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Periodo</div>
           <div style={{display:'flex', flexWrap:'wrap', gap: 8, marginBottom: 22}}>
             {[['oggi','Oggi'],['ultima-settimana','Ultima settimana'],['ultimo-mese','Ultimo mese'],['custom','Personalizzato']].map(([id,label]) => (
               <FilterChip key={id} active={period===id} onClick={() => setPeriod(id)} label={label}/>
             ))}
           </div>
 
-          <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Seleziona i file da esportare</div>
+          <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>File da esportare</div>
           <div style={{
             background: C.SURF, border:`1px solid ${PN.BORDER_SOFT}`,
             borderRadius: C.R_MD, padding: 14, marginBottom: 22,
@@ -160,14 +160,14 @@ function ContExport({ openShare }) {
           </div>
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap: 12}}>
-            <ExportCard variant="secondary" icon={Ic.fileCsv} title="Esporta CSV" desc="File separato da virgole" cta="Scarica CSV" ctaIcon={Ic.download} onClick={() => {}}/>
-            <ExportCard variant="primary"   icon={Ic.send}    title="Invia a commercialista" desc="Invio diretto via email" cta="Invia ora" ctaIcon={Ic.send} onClick={openShare}/>
-            <ExportCard variant="secondary" icon={Ic.filePdf} title="Esporta PDF" desc="Report stampabile completo" cta="Scarica PDF" ctaIcon={Ic.download} onClick={() => {}}/>
+            <ExportCard variant="secondary" icon={Ic.fileCsv} title="Scarica in CSV" desc="Compatibile con Excel" cta="Scarica CSV" ctaIcon={Ic.download} onClick={() => {}}/>
+            <ExportCard variant="primary"   icon={Ic.send}    title="Invia al commercialista" desc="Invio diretto via email" cta="Invia ora" ctaIcon={Ic.send} onClick={openShare}/>
+            <ExportCard variant="secondary" icon={Ic.filePdf} title="Scarica in PDF" desc="Report completo pronto da stampare" cta="Scarica PDF" ctaIcon={Ic.download} onClick={() => {}}/>
           </div>
         </div>
 
         <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 22}}>
-          <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>File esportati di recente</div>
+          <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Export recenti</div>
           <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2, marginBottom: 14}}>Gli ultimi 5 export disponibili al download</div>
           {EXPORT_HISTORY.map((f,i) => (
             <div key={i} style={{
@@ -197,7 +197,7 @@ function ContExport({ openShare }) {
           <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 14}}>
             <div style={{width: 36, height: 36, borderRadius: C.R_SM, background: PN.GREEN_SOFT, color: PN.GREEN, display:'grid', placeItems:'center'}}><Ic.calendar size={18}/></div>
             <div>
-              <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>Invio Automatico</div>
+              <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>Invio automatico</div>
               <div style={{fontSize: C.T_XS, color: PN.GREEN, fontWeight: 600, display:'inline-flex', alignItems:'center', gap: 5}}>
                 <span style={{width:6, height:6, borderRadius:'50%', background: PN.GREEN}}/> Attivo
               </div>
@@ -211,7 +211,7 @@ function ContExport({ openShare }) {
             padding:'10px 0', background: PN.WHITE, color: PN.TEXT,
             border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
             fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-          }}>Modifica impostazioni</button>
+          }}>Modifica</button>
         </div>
 
         <div style={{background:'#FFFBEB', border:`1px solid ${PN.AMBER_SOFT}`, borderRadius: C.R_MD, padding: 16}}>
@@ -220,7 +220,7 @@ function ContExport({ openShare }) {
             <span style={{fontSize: C.T_SM, fontWeight: 700}}>Suggerimento</span>
           </div>
           <div style={{fontSize: C.T_XS, color:'#78350F', lineHeight: 1.5}}>
-            Programma l'invio automatico per non dimenticare mai di inviare i dati al tuo commercialista.
+            Con l'invio automatico i dati arrivano al commercialista ogni mese, senza che tu debba ricordartene.
           </div>
         </div>
       </div>
@@ -327,16 +327,16 @@ function ContNuovoCosto({ open, onClose }) {
       }}>
         <div style={{padding:'18px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <div>
-            <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Nuovo costo</div>
-            <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>Aggiungi una spesa periodica o una tantum</div>
+            <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Aggiungi costo</div>
+            <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>Registra una spesa ricorrente o un pagamento singolo</div>
           </div>
           <button onClick={onClose} style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6}}><Ic.close size={18}/></button>
         </div>
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: 22}}>
-          <Field label="Nome del costo*">
+          <Field label="Nome del costo">
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Es. Affitto locale" style={inp}/>
           </Field>
-          <Field label="Categoria*">
+          <Field label="Categoria">
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
               {COST_CATEGORIES.map(c => {
                 const m = catMeta[c.id];
@@ -359,17 +359,17 @@ function ContNuovoCosto({ open, onClose }) {
             </div>
           </Field>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-            <Field label="Importo (€)*">
+            <Field label="Importo (€)">
               <input value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" type="number" style={inp}/>
             </Field>
             <Field label="Fornitore">
               <input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Es. Enel" style={inp}/>
             </Field>
           </div>
-          <Field label="Tipo*">
+          <Field label="Tipo">
             <div style={{display:'flex', gap: 8}}>
               <TypeBtn active={type==='recurring'} onClick={() => setType('recurring')} icon={Ic.recurring} label="Ricorrente" desc="Si ripete ogni…"/>
-              <TypeBtn active={type==='one-off'}   onClick={() => setType('one-off')}   icon={Ic.pin}       label="Una tantum" desc="Pagamento singolo"/>
+              <TypeBtn active={type==='one-off'}   onClick={() => setType('one-off')}   icon={Ic.pin}       label="Pagamento unico" desc="Unico addebito"/>
             </div>
           </Field>
           {type==='recurring' && (
@@ -390,7 +390,7 @@ function ContNuovoCosto({ open, onClose }) {
               background: C.SURF, border:`1.5px dashed ${PN.BORDER}`, borderRadius: C.R_SM,
               fontSize: C.T_SM, color: PN.MUTED, cursor:'pointer', fontFamily:'inherit',
               display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
-            }}><Ic.paperclip size={14}/> Trascina un file PDF o clicca per selezionare</button>
+            }}><Ic.paperclip size={14}/> Trascina un PDF qui, o clicca per sceglierlo</button>
           </Field>
         </div>
         <div style={{padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
@@ -461,16 +461,16 @@ function ContShareModal({ open, onClose }) {
               <Ic.send size={16}/>
             </div>
             <div>
-              <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Condividi Export</div>
-              <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>Invia i dati al tuo commercialista</div>
+              <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Invia al commercialista</div>
+              <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>Invia i dati contabili via email</div>
             </div>
           </div>
           <button onClick={onClose} style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6}}><Ic.close size={18}/></button>
         </div>
         <div style={{padding: 22}}>
-          <Field label="Email commercialista">
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="esempio@commercialista.it" style={inp}/>
-            <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 6}}>Il file verrà inviato in modo sicuro all'indirizzo indicato.</div>
+          <Field label="Destinatario · Email del commercialista">
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="es. studio.rossi@email.it" style={inp}/>
+            <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 6}}>Il file viene inviato in modo sicuro.</div>
           </Field>
           <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Seleziona i file da inviare</div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 16}}>
@@ -500,18 +500,18 @@ function ContShareModal({ open, onClose }) {
               }}/>
             </div>
             <div style={{flex: 1}}>
-              <div style={{fontSize: C.T_SM, fontWeight: 700, color: auto ? PN.PINK_DARK : PN.TEXT}}>Programma invio periodico</div>
+              <div style={{fontSize: C.T_SM, fontWeight: 700, color: auto ? PN.PINK_DARK : PN.TEXT}}>Attiva invio automatico mensile</div>
               <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>
                 {auto
                   ? <>Verrà inviato automaticamente <strong style={{color: PN.PINK_DARK}}>ogni 1° del mese</strong> all'email indicata</>
-                  : 'Invia automaticamente gli export al commercialista con cadenza regolare'}
+                  : 'Invia l\'export ogni mese senza doverci pensare'}
               </div>
             </div>
           </button>
         </div>
         <div style={{padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
           <button onClick={onClose} style={{padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
-          <button onClick={onClose} style={{padding:'10px 22px', background: PN.PINK, color:'#fff', border:'none', borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.send size={13}/> Invia</button>
+          <button onClick={onClose} style={{padding:'10px 22px', background: PN.PINK, color:'#fff', border:'none', borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.send size={13}/> Invia ora</button>
         </div>
       </div>
     </div>

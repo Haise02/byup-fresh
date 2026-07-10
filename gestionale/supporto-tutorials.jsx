@@ -17,7 +17,7 @@ function SupTutorials({ openCat, setOpenCat, onOpenTutorial, search }) {
     }}>
       <div style={{marginBottom: 18}}>
         <h2 style={{margin: '0 0 4px', fontSize: 19, fontWeight: 700, color: PN.TEXT}}>Centro assistenza</h2>
-        <p style={{margin: 0, fontSize: 14.5, color: PN.MUTED}}>Guide dettagliate e video tutorial per ogni funzionalità della piattaforma</p>
+        <p style={{margin: 0, fontSize: 14.5, color: PN.MUTED}}>Guide dettagliate e video per ogni funzione della piattaforma</p>
       </div>
 
       {filtered.length === 0 && (
@@ -45,7 +45,7 @@ function SupTutorials({ openCat, setOpenCat, onOpenTutorial, search }) {
               }}>
                 <span style={{display:'inline-flex'}}>{(BuIcons[cat.icon]||BuIcons.doc)({size: 16, color: 'currentColor'})}</span>
                 <span style={{flex: 1, fontSize: 15, fontWeight: 600}}>
-                  {cat.title} <span style={{color: PN.MUTED, fontWeight: 500}}>· {cat.tutorials.length} guide tutorial</span>
+                  {cat.title} <span style={{color: PN.MUTED, fontWeight: 500}}>· {cat.tutorials.length} guide</span>
                 </span>
                 <span style={{display:'inline-flex', color: PN.MUTED,
                   transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',

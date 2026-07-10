@@ -214,7 +214,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   function requestCancel(ticketId) {
     const t = tickets.find(x => x.id === ticketId);
     if (!t) return;
-    const label = t.kind === 'sala' ? `Tav.${t.table}` : t.customer;
+    const label = t.kind === 'sala' ? `Tavolo ${t.table}` : t.customer;
     setConfirmCancel({ ticketId, label, count: t.items.reduce((a,i) => a+i.qty, 0) });
   }
   function confirmCancelDo() {
@@ -247,17 +247,17 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 16, gap: 12}}>
           <div style={{display:'flex', alignItems:'center', gap: 8}}>
             <KdsFilterChip
-              label="Canali" selected={kindFilter} defaultLabel="Tutti"
+              label="Canali" selected={kindFilter} defaultLabel="Tutti i canali"
               options={['Sala','Asporto','Delivery']}
               onChange={setKindFilter}
             />
             <KdsFilterChip
-              label="Categorie" selected={station} defaultLabel="Tutte"
+              label="Categorie" selected={station} defaultLabel="Tutte le categorie"
               options={stations}
               onChange={setStation}
             />
             {lateCount > 0 && (
-              <button onClick={() => setOnlyLate(v => !v)} title="Filtra in ritardo" style={{
+              <button onClick={() => setOnlyLate(v => !v)} title="Mostra solo i ritardi" style={{
                 height: 36, minWidth: 36, padding: '0 11px', borderRadius: 10, flexShrink: 0,
                 background: onlyLate ? 'rgba(220, 38, 38, 0.16)' : 'rgba(220, 38, 38, 0.08)',
                 border: 'none',
@@ -272,7 +272,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
               </button>
             )}
           </div>
-          <button onClick={onToggleFocus} title={focus ? 'Esci (Esc)' : 'Schermo intero'} style={{
+          <button onClick={onToggleFocus} title={focus ? 'Esci da schermo intero' : 'Schermo intero'} style={{
             width: 36, height: 36, borderRadius: 10,
             background: 'rgba(15, 17, 21, 0.04)',
             border: 'none',
@@ -294,7 +294,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
           scrollBehavior: 'smooth',
           alignItems: 'flex-start',
         }}>
-          <KdsColumn title="In coda" toneKey="ok" count={filteredLeft.length} empty="Nessun ticket in attesa">
+          <KdsColumn title="In attesa" toneKey="ok" count={filteredLeft.length} empty="Nessun ordine in attesa">
             {filteredLeft.map(t => (
               <KdsTicket
                 key={t.id} ticket={t}
@@ -308,7 +308,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
             ))}
           </KdsColumn>
 
-          <KdsColumn title="In preparazione" toneKey="doing" count={filteredRight.length} empty="Nessun ticket in cottura">
+          <KdsColumn title="In preparazione" toneKey="doing" count={filteredRight.length} empty="Nessun ordine in preparazione">
             {filteredRight.map(t => (
               <KdsTicket
                 key={t.id} ticket={t}
@@ -353,16 +353,16 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 <path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/>
               </svg>
             </div>
-            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Annullare il ticket?</div>
+            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Annullare questa comanda?</div>
             <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5, marginBottom: 18}}>
-              Stai per annullare <strong style={{color: PN.TEXT}}>{confirmCancel.label}</strong> ({confirmCancel.count} piatti). L'azione non è reversibile dalla cucina.
+              Stai per annullare <strong style={{color: PN.TEXT}}>{confirmCancel.label}</strong> — {confirmCancel.count} piatti. Non sarà più visibile in cucina.
             </div>
             <div style={{display:'flex', gap: 10, justifyContent:'flex-end'}}>
               <button onClick={() => setConfirmCancel(null)} style={{
                 padding:'9px 16px', borderRadius: 999, background: PN.BTN_NEUTRAL, color: PN.TEXT,
                 border: `1px solid ${PN.BORDER_LIGHT}`, fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                 boxShadow: PN.INSET_HIGHLIGHT,
-              }}>Mantieni ticket</button>
+              }}>No, mantieni</button>
               <button onClick={confirmCancelDo} style={{
                 padding:'9px 16px', borderRadius: 999,
                 background: 'linear-gradient(180deg, #E94343 0%, #DC2626 100%)', color: PN.WHITE,
@@ -423,7 +423,7 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
         <span style={{fontSize: 17, fontWeight: 700, color: KDS_CL.text, letterSpacing: '-0.01em'}}>Pronti</span>
         <KdsPill light tone="done" style={{fontSize: 12.5, fontVariantNumeric: 'tabular-nums'}}>{tickets.length}</KdsPill>
         <span style={{flex: 1}}/>
-        <button onClick={onToggle} title="Comprimi" style={{
+        <button onClick={onToggle} title="Comprimi pannello" style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
           color: KDS_CL.mut, fontFamily: 'inherit', fontSize: 22, padding: 4,
           lineHeight: 1, width: 32, height: 32, display: 'grid', placeItems: 'center',
@@ -463,12 +463,12 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard }) {
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{fontSize: 17, fontWeight: 800, color: KDS_CL.text, letterSpacing: '-0.01em'}}>
             {ticket.kind === 'sala'
-              ? <React.Fragment><span style={{fontSize: 11.5, fontWeight: 700, color: KDS_CL.mut}}>T</span>{ticket.table}</React.Fragment>
+              ? <React.Fragment><span style={{fontSize: 11.5, fontWeight: 700, color: KDS_CL.mut}}>Tavolo </span>{ticket.table}</React.Fragment>
               : ticket.customer}
           </div>
           {(ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup && (
             <div style={{fontSize: 12, color: KDS_CL.mut, marginTop: 1}}>
-              {ticket.kind === 'delivery' ? 'consegna' : 'ritiro'} {ticket.pickup}
+              {ticket.kind === 'delivery' ? 'Consegna' : 'Ritiro'} {ticket.pickup}
             </div>
           )}
         </div>
@@ -481,7 +481,7 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard }) {
           fontSize: 12, fontWeight: 700,
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}>
-          <RevertArrowIcon/> In preparazione
+          <RevertArrowIcon/> Rimanda tutti in cucina
         </button>
       </div>
       {ticket.items.map((it, i) => (
@@ -692,22 +692,23 @@ const lateGlow = u.tone === 'late';
             </React.Fragment>
           ) : (
             <div style={{fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1, letterSpacing: '-0.02em'}}>
-              <span style={{fontSize: 14, fontWeight: 700, color: C.mut, letterSpacing: '0.02em'}}>T</span>{ticket.table}
+              <span style={{fontSize: 14, fontWeight: 700, color: C.mut, letterSpacing: '0.02em'}}>Tavolo </span>{ticket.table}
             </div>
           )}
         </div>
         {isInQueue && hasTodo && (
           <button onClick={onPrimary} title="Avvia tutti i piatti" style={{
             padding: '7px 12px', borderRadius: 999, flexShrink: 0,
-            background: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 17, 21, 0.04)',
-            boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.10)'}`,
-            border: 'none', color: C.sub,
+            background: dark ? 'rgba(245, 158, 11, 0.18)' : 'rgba(245, 158, 11, 0.14)',
+            boxShadow: 'inset 0 0 0 1px rgba(245, 158, 11, 0.50)',
+            border: 'none', color: dark ? '#FFC964' : '#B45309',
             fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            whiteSpace: 'nowrap', transition: 'background 150ms ease-out, color 150ms ease-out',
+            whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5,
+            transition: 'background 150ms ease-out',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.14)' : 'rgba(15,17,21,0.08)'; e.currentTarget.style.color = C.text; }}
-          onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,17,21,0.04)'; e.currentTarget.style.color = C.sub; }}
-          >Inizia tutti</button>
+          onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.22)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.14)'; }}
+          >Inizia tutto <ForwardArrowIcon/></button>
         )}
         {!isInQueue && (
           <React.Fragment>
@@ -821,7 +822,7 @@ const lateGlow = u.tone === 'late';
                   textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-                  In coda · {todoItems.length}
+                  In attesa · {todoItems.length}
                 </span>
                 <span style={{fontSize: 12, color: C.mut}}>{todoCollapsed ? '▾' : '▴'}</span>
               </div>
@@ -845,7 +846,7 @@ const lateGlow = u.tone === 'late';
           borderTop: `1px solid rgba(245, 158, 11, ${dark ? 0.30 : 0.35})`,
         }}>
           <span style={{fontSize: 13, fontWeight: 700, color: dark ? '#FFC964' : '#B45309'}}>
-            Invio in {pendingCountdown}s · {pendingTodo.size} piatt{pendingTodo.size === 1 ? 'o' : 'i'}
+            Avvio in {pendingCountdown}s · {pendingTodo.size} piatt{pendingTodo.size === 1 ? 'o' : 'i'}
           </span>
         </div>
       )}

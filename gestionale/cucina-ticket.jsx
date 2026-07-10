@@ -125,7 +125,7 @@ function KdsTicket({ t, now, onItemTap, selected, style, children }) {
           <div style={{display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0}}>
             {t.kind === 'sala' ? (
               <span style={{fontSize: 23, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em'}}>
-                <span style={{fontSize: 14, fontWeight: 700, color: KDS_C.mut, letterSpacing: '0.02em'}}>T</span>{t.table}
+                <span style={{fontSize: 14, fontWeight: 700, color: KDS_C.mut, letterSpacing: '0.02em'}}>Tavolo </span>{t.table}
               </span>
             ) : (
               <span style={{

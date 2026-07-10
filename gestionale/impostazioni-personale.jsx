@@ -85,7 +85,7 @@ const MENU_CATEGORIES = MENUS[0].categories;
 
 const ALL_AREAS = [
   { id: 'panoramica', label: 'Panoramica', icon: 'stats' },
-  { id: 'sala', label: 'Sala & prenotazioni', icon: 'utensils' },
+  { id: 'sala', label: 'Sala e prenotazioni', icon: 'utensils' },
   { id: 'cucina', label: 'Cucina', icon: 'chef' },
   { id: 'app', label: 'App cameriere', icon: 'phone' },
   { id: 'statistiche', label: 'Statistiche', icon: 'stats' },
@@ -100,7 +100,7 @@ const SETTINGS_PAGES = [
   { id: 'sala', label: 'Sala e tavoli', icon: 'utensils' },
   { id: 'personale', label: 'Personale', icon: 'users' },
   { id: 'flussi', label: 'Operazioni', icon: 'bolt' },
-  { id: 'fiscali', label: 'Dati fiscali locale', icon: 'doc' },
+  { id: 'fiscali', label: 'Dati fiscali', icon: 'doc' },
   { id: 'integrazioni', label: 'POS e integrazioni', icon: 'plug' },
 ];
 
@@ -166,14 +166,14 @@ function ImpPersonale() {
     <div>
       <ImpCard
         title="Personale"
-        sub="Organizzato per ruolo: vedi chi accede al gestionale, con quali permessi, e gestisci persone e dispositivi"
+        sub="Vedi chi accede al gestionale e con quali permessi, e gestisci persone e dispositivi"
         action={
           <div style={{display:'flex', gap: 8, alignItems:'center'}}>
             <ImpButton
               variant="ghost"
               icon={(BuIcons.mail||BuIcons.doc)({size: 13, color:'currentColor'})}
               onClick={() => setShowPending(true)}
-            >Inviti ({PENDING.length})</ImpButton>
+            >Inviti in sospeso ({PENDING.length})</ImpButton>
             <ImpButton
               variant="ghost"
               icon={<PnI.Plus size={13}/>}
@@ -183,7 +183,7 @@ function ImpPersonale() {
               variant="primary"
               icon={<PnI.Plus size={13}/>}
               onClick={() => setInvite({ roleId: null, kind: 'person' })}
-            >Aggiungi</ImpButton>
+            >Aggiungi persona</ImpButton>
           </div>
         }
       >
@@ -487,7 +487,7 @@ function InviteModal({ onClose, prefill }) {
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
             {kind === 'person'
               ? 'Invia un invito email per attivare l\'accesso al gestionale'
-              : 'Crea credenziali locali (username/password) per il dispositivo'}
+              : 'Crea username e password per il dispositivo — non serve un\'email'}
           </div>
           <button onClick={onClose} style={{
             position:'absolute', top: 16, right: 16,
@@ -888,7 +888,7 @@ function InviteModal({ onClose, prefill }) {
                   >Genera</button>
                 </div>
                 <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>
-                  Salvala in un posto sicuro — la password resta locale al dispositivo.
+                  Salvala in un posto sicuro — vale solo per questo dispositivo.
                 </div>
               </ImpField>}
             </>
@@ -1112,7 +1112,7 @@ function PendingModal({ onClose }) {
         maxHeight:'90vh', display:'flex', flexDirection:'column',
       }}>
         <div style={{padding:'20px 24px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize: 19, fontWeight: 800, marginBottom: 3}}>Inviti pendenti</div>
+          <div style={{fontSize: 19, fontWeight: 800, marginBottom: 3}}>Inviti in sospeso</div>
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
             {PENDING.length === 0
               ? 'Nessun invito in attesa'
@@ -1248,7 +1248,7 @@ function CreateRoleModal({ onClose, role }) {
             Aree visibili a questo ruolo
           </div>
           <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 12}}>
-            Seleziona quali aree del gestionale può vedere chi ha questo ruolo
+            Scegli cosa può vedere e fare chi ha questo ruolo
           </div>
           <div style={{display:'flex', flexDirection:'column', gap: 6}}>
             {ALL_AREAS.map(a => {

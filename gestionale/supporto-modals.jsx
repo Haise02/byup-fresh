@@ -61,7 +61,7 @@ function SupChatWidget({ open, onClose }) {
         }}><BuIcons.chat size={15} color="#fff"/></div>
         <div style={{flex:1}}>
           <div style={{fontSize: 15, fontWeight: 700}}>Assistente byup</div>
-          <div style={{fontSize: 13, opacity: 0.85}}>Sempre disponibile</div>
+          <div style={{fontSize: 13, opacity: 0.85}}>Risponde subito</div>
         </div>
         <button onClick={onClose} aria-label="Chiudi" style={{
           background:'transparent', border:'none', color:'#fff',
@@ -202,7 +202,7 @@ function SupEmailModal({ open, onClose }) {
                 <option value="pagamenti">Pagamenti e fatturazione</option>
                 <option value="account">Account e sicurezza</option>
                 <option value="menu">Menù e ordini</option>
-                <option value="commerciale">Vendite / Commerciale</option>
+                <option value="commerciale">Vendite e commerciale</option>
                 <option value="altro">Altro</option>
               </select>
             </SupField>
@@ -249,7 +249,7 @@ function SupCallScheduler({ open, onClose }) {
   };
   const slots = [
     { id:'30min', label:'Entro 30 min', desc:'Operatore disponibile ora' },
-    { id:'2h', label:'Entro 2 ore', desc:'Quando ti è più comodo' },
+    { id:'2h', label:'Entro 2 ore', desc:'Verrai chiamato il prima possibile' },
     { id:'oggi', label:'Oggi pomeriggio', desc:'Tra le 14:00 e le 18:00' },
     { id:'domani', label:'Domani mattina', desc:'Tra le 9:00 e le 12:00' },
   ];
@@ -358,8 +358,8 @@ function SupTutorialPlayer({ tutorial, onClose }) {
         {/* Body */}
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: '18px 22px 22px'}}>
           <div style={{display:'flex', alignItems:'center', gap: 16, marginBottom: 16, fontSize: 14, color: PN.MUTED}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap: 5}}><BuIcons.monitor size={13}/> {tutorial.mins} min video</span>
-            <span style={{display:'inline-flex', alignItems:'center', gap: 5}}><BuIcons.doc size={13}/> {tutorial.read} min lettura</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 5}}><BuIcons.monitor size={13}/> {tutorial.mins} min di video</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 5}}><BuIcons.doc size={13}/> {tutorial.read} min di lettura</span>
             <span style={{display:'inline-flex', alignItems:'center', gap: 5}}><BuIcons.eye size={13}/> 1.2k visualizzazioni</span>
           </div>
 

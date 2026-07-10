@@ -74,7 +74,7 @@ function StatOrdini() {
       {/* Heatmap */}
       <StatCard title="Heatmap oraria ordini" sub={`Ordini medi per fascia oraria · canale ${channel}`} action={
         <div style={{display:'inline-flex', gap: 6, padding: 4, background:'#f5f5f7', borderRadius: 999}}>
-          {['Sala','Asporto','Delivery','App'].map(ch => (
+          {['Sala','Asporto','Delivery','App clienti'].map(ch => (
             <button key={ch} onClick={() => setChannel(ch)} style={{
               padding:'5px 12px', fontSize: 13.5, fontWeight: 600,
               background: channel === ch ? PN.WHITE : 'transparent',

@@ -13,7 +13,7 @@ function StatClienti() {
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap: 16}}>
-        <StatCard title="Valutazioni" sub="Riepilogo recensioni Google · TripAdvisor · byup">
+        <StatCard title="Valutazioni" sub="Riepilogo recensioni Google · byup">
           <div style={{display:'flex', gap: 24, alignItems:'flex-start'}}>
             <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap: 4, paddingRight: 24, borderRight:`1px solid ${PN.BORDER_SOFT}`}}>
               <div style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-2, lineHeight: 1}}>{d.rating}</div>

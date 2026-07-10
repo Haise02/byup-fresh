@@ -47,8 +47,8 @@ function ContabilitaApp() {
             }}>
             <Kpi label="Saldo cassa"     value={cassaSaldo} delta="+12,5%" up   icon={Ic.receipt}   tooltip="vs ieri"            divider/>
             <Kpi label="Costi del mese"  value={totalCosti} delta="−4,2%"  down icon={Ic.trendDown} tooltip="vs mese scorso"     divider/>
-            <Kpi label="Fatturato mese"  value={fatturatoMese} delta="+8,3%" up icon={Ic.trendUp}   tooltip="vs mese scorso"     divider/>
-            <Kpi label="Saldo IVA"       value={ivaSaldo}    delta="+2,1%" up  icon={Ic.invoice}   tooltip="vs trim. scorso"/>
+            <Kpi label="Fatturato del mese"  value={fatturatoMese} delta="+8,3%" up icon={Ic.trendUp}   tooltip="vs mese scorso"     divider/>
+            <Kpi label="Saldo IVA"       value={ivaSaldo}    delta="+2,1%" up  icon={Ic.invoice}   tooltip="vs trimestre scorso"/>
           </GlassDarkBox>
 
           {/* Primary tabs — underline pattern (più sobrio, meno brand-loaded) */}
