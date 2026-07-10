@@ -90,19 +90,6 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
             opacity: hover ? 1 : 0.6,
             transition: 'opacity 0.15s',
           }}>
-            <button
-              data-drag-handle="true"
-              title="Sposta"
-              style={{
-                width: 26, height: 26, borderRadius: 6,
-                background: PN.WHITE,
-                border: `1px solid ${PN.BORDER_LIGHT}`,
-                cursor: 'grab',
-                display: 'grid', placeItems: 'center',
-                color: PN.MUTED,
-              }}>
-              <Icon name="grip" size={14}/>
-            </button>
             {/* Resize buttons: nascosti per widget fixedSize (es. Azioni launcher).
                 Un solo ingrandimento per direzione rispetto alla misura base:
                 ↔ raddoppia la larghezza, ↕ raddoppia l'altezza; ricliccare torna
@@ -193,10 +180,10 @@ function PnGrid({ widgets, editMode, onRemove, onReorder, onResize }) {
 
   // Drag da qualsiasi punto della card, sempre attivo (anche fuori da Personalizza).
   // Soglia di 6px: sotto è un click e va ai controlli interni del widget;
-  // gli elementi interattivi non avviano mai il drag (tranne la maniglia "Sposta").
+  // gli elementi interattivi non avviano mai il drag.
   const handleDragStart = (id) => (e) => {
     if (e.button !== 0) return;
-    if (e.target.closest('button:not([data-drag-handle]), a, input, select, textarea')) return;
+    if (e.target.closest('button, a, input, select, textarea')) return;
     const startX = e.clientX, startY = e.clientY;
     let active = false;
 
