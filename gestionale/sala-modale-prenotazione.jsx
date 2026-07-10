@@ -384,8 +384,10 @@ function npFmtDateLabel(iso) {
 }
 
 // ─── Modal principale ─────────────────────────────────────────────────────────
-function SalaModalNuova({ open, onClose, initData, onConfirm }) {
+function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
   const [coperti, setCoperti]                 = React.useState(2);
+  // Cancellazione (solo in modifica): conferma in due passi nel footer
+  const [confirmDelete, setConfirmDelete]     = React.useState(false);
   const [date, setDate]                       = React.useState(npTodayISO());
   const [time, setTime]                       = React.useState('20:00');
   const [dur, setDur]                         = React.useState(npSmartDur('20:00'));
@@ -432,6 +434,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm }) {
       setSalaFilter(null);
       setShowExtra(false);
       setShowAllergeni(false);
+      setConfirmDelete(false);
       setNome(initData?.nome || ''); setPhone(initData?.phone || '');
       setTag(initData?.tag || null); setTagAltro('');
       setAllergeni(new Set()); setNote(initData?.noteText || '');
@@ -945,9 +948,44 @@ function SalaModalNuova({ open, onClose, initData, onConfirm }) {
       title={initData?.editMode ? 'Modifica prenotazione' : 'Nuova prenotazione'}
       width={720}
       footer={
-        <PnButton variant="primary" disabled={!canSubmit} onClick={handleSubmit}>
-          {initData?.editMode ? 'Salva modifiche' : 'Conferma prenotazione'}
-        </PnButton>
+        <React.Fragment>
+          {initData?.editMode && onDelete && (confirmDelete ? (
+            <div style={{marginRight:'auto', display:'flex', alignItems:'center', gap: 10}}>
+              <span style={{fontSize: NP_FS.sm, fontWeight: 600, color: NP_T.text}}>Cancellare la prenotazione?</span>
+              <button
+                onClick={() => { onDelete(initData.resId); onClose(); }}
+                style={{
+                  padding:'9px 16px', borderRadius: 999,
+                  background:'#0F1115', color:'#fff', border:'1px solid rgba(15,17,21,0.5)',
+                  fontSize: NP_FS.sm, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>Sì, cancella</button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                style={{
+                  padding:'9px 12px', borderRadius: 999,
+                  background:'transparent', color: NP_T.textMuted, border:'none',
+                  fontSize: NP_FS.sm, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>No</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              style={{
+                // Grigio spento: il rosso è del brand, non del pericolo.
+                marginRight:'auto', padding:'9px 16px', borderRadius: 999,
+                background:'transparent', color: NP_T.textMuted,
+                border:`1px solid ${NP_T.border}`,
+                fontSize: NP_FS.sm, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                transition:'background 150ms, color 150ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = NP_T.text; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = NP_T.textMuted; }}
+            >Cancella prenotazione</button>
+          ))}
+          <PnButton variant="primary" disabled={!canSubmit} onClick={handleSubmit}>
+            {initData?.editMode ? 'Salva modifiche' : 'Conferma prenotazione'}
+          </PnButton>
+        </React.Fragment>
       }
     >
       <div style={{display:'flex', flexDirection:'column', gap: 18}}>

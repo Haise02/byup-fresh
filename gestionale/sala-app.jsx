@@ -516,6 +516,11 @@ function SalaApp() {
               }));
             }
             showToast(`✓ Prenotazione ${p.editMode ? 'aggiornata' : 'confermata'} · ${p.nome} · ore ${p.time} · ${p.coperti} coperti`);
+          }}
+          onDelete={(resId) => {
+            // Cancellazione soft: esce dalla timeline, resta sbarrata nella Lista.
+            if (resId && window.SALA_RES_UPDATE) window.SALA_RES_UPDATE(resId, { status: 'cancellata' });
+            showToast('✓ Prenotazione cancellata');
           }}/>
 
         <TweaksPanel>
