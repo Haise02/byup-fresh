@@ -29,6 +29,23 @@ window.byupWriteModules = function(m) {
   } catch(e) {}
 };
 
+// Locale attivo — quello su cui opera il gestionale; condiviso via localStorage.
+// Si cambia da Profilo → I tuoi locali; la sidebar lo mostra sotto il nome utente.
+const BYUP_LOCALE_KEY = 'byup_locale_attivo';
+window.byupReadLocale = function() {
+  try {
+    const s = localStorage.getItem(BYUP_LOCALE_KEY);
+    if (s) { const v = JSON.parse(s); if (v && v.id && v.nome) return v; }
+  } catch(e) {}
+  return { id: 'cp', nome: 'Cacio e Pepe' };
+};
+window.byupWriteLocale = function(l) {
+  try {
+    localStorage.setItem(BYUP_LOCALE_KEY, JSON.stringify(l));
+    window.dispatchEvent(new Event('byup-locale-change'));
+  } catch(e) {}
+};
+
 function PnSidebar({ active = 'panoramica', onNav }) {
   const [collapsed, setCollapsed] = React.useState(() => {
     try { return localStorage.getItem('pn_sidebar_collapsed') === '1'; } catch(e) { return false; }
@@ -48,6 +65,18 @@ function PnSidebar({ active = 'panoramica', onNav }) {
     window.addEventListener('storage', update);
     return () => {
       window.removeEventListener('byup-modules-change', update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
+
+  // Locale attivo — mostrato sotto il nome utente, reattivo al cambio da Profilo
+  const [localeAttivo, setLocaleAttivo] = React.useState(() => window.byupReadLocale());
+  React.useEffect(() => {
+    const update = () => setLocaleAttivo(window.byupReadLocale());
+    window.addEventListener('byup-locale-change', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('byup-locale-change', update);
       window.removeEventListener('storage', update);
     };
   }, []);
@@ -203,7 +232,7 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         {!collapsed && (
           <div style={{minWidth: 0, flex: 1}}>
             <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Mario Rossi</div>
-            <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Trattoria del Borgo</div>
+            <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{localeAttivo.nome}</div>
           </div>
         )}
       </button>

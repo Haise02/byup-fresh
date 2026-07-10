@@ -1,5 +1,16 @@
 // Account — Tab Dati generali
 
+// I locali gestiti da questo account. L'attivo è condiviso via
+// window.byupReadLocale/byupWriteLocale (definiti in panoramica-sidebar.jsx).
+const ACC_LOCALI = [
+  { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner',
+    cover: 'linear-gradient(135deg, #8B4513, #D2691E)', logo: 'CP' },
+  { id: 'co', name: 'Cacio e Pepe — Ostiense', city: 'Roma · Ostiense', addr: 'Via Ostiense 142', role: 'Owner',
+    cover: 'linear-gradient(135deg, #E04347, #B53338)', logo: 'CO' },
+  { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager',
+    cover: 'linear-gradient(135deg, #2E7D32, #66BB6A)', logo: 'TB' },
+];
+
 function AccDatiGenerali() {
   const [logoutConfirm, setLogoutConfirm] = React.useState(false);
   const [deleteConfirm, setDeleteConfirm] = React.useState(false);
@@ -25,6 +36,23 @@ function AccDatiGenerali() {
     setDatiSalvati(datiDraft);
     setDatiToast('✓ Dati profilo aggiornati');
     setTimeout(() => setDatiToast(null), 2600);
+  };
+  // Locale attivo + cambio contesto: breve transizione, persistenza condivisa
+  // (sidebar inclusa), poi si apre la Panoramica del locale scelto.
+  const [localeAttivo, setLocaleAttivo] = React.useState(() =>
+    (window.byupReadLocale && window.byupReadLocale()) || { id: 'cp', nome: 'Cacio e Pepe' });
+  const [switching, setSwitching] = React.useState(null); // id del locale in apertura
+  const apriGestionale = (loc) => {
+    if (switching || loc.id === localeAttivo.id) return;
+    setSwitching(loc.id);
+    setTimeout(() => {
+      const nuovo = { id: loc.id, nome: loc.name };
+      if (window.byupWriteLocale) window.byupWriteLocale(nuovo);
+      setLocaleAttivo(nuovo);
+      setSwitching(null);
+      setDatiToast(`✓ Ora stai gestendo ${loc.name} — apro la Panoramica…`);
+      setTimeout(() => { window.location.href = 'byup Panoramica.html'; }, 1200);
+    }, 900);
   };
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
@@ -62,7 +90,7 @@ function AccDatiGenerali() {
           </button>
           <div>
             <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>{datiSalvati.nome} {datiSalvati.cognome}</div>
-            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{ACC_DATI.ruolo} · {ACC_DATI.ristorante}</div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{ACC_DATI.ruolo} · {localeAttivo.nome}</div>
           </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
@@ -119,7 +147,7 @@ function AccDatiGenerali() {
       </AcCard>
 
       <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca per accedere al gestionale del singolo locale." action={
-        <button style={{
+        <button onClick={() => { window.location.href = 'byup Restaurant Onboarding.html'; }} style={{
           padding:'8px 14px', borderRadius: 999,
           background: PN.TEXT, color: PN.WHITE, border:'none',
           fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
@@ -129,20 +157,24 @@ function AccDatiGenerali() {
         </button>
       }>
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 12}}>
-          {[
-            { name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner', active: true,
-              cover: 'linear-gradient(135deg, #8B4513, #D2691E)', logo: 'CP' },
-            { name: 'Cacio e Pepe — Ostiense', city: 'Roma · Ostiense', addr: 'Via Ostiense 142', role: 'Owner', active: false,
-              cover: 'linear-gradient(135deg, #E04347, #B53338)', logo: 'CO' },
-            { name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager', active: false,
-              cover: 'linear-gradient(135deg, #2E7D32, #66BB6A)', logo: 'TB' },
-          ].map((loc) => (
-            <div key={loc.name} style={{
-              border: `1px solid ${loc.active ? PN.PINK : PN.BORDER_SOFT}`,
+          {switching && <style>{`@keyframes acSpin { to { transform: rotate(360deg); } }`}</style>}
+          {ACC_LOCALI.map((loc) => {
+            const active = loc.id === localeAttivo.id;
+            const opening = switching === loc.id;
+            return (
+            <div key={loc.id}
+              onClick={() => apriGestionale(loc)}
+              style={{
+              border: `1px solid ${active ? PN.PINK : PN.BORDER_SOFT}`,
               borderRadius: 14, overflow:'hidden', background: PN.WHITE,
-              cursor:'pointer', transition:'box-shadow .15s, transform .15s',
-              boxShadow: loc.active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none',
-            }}>
+              cursor: active ? 'default' : 'pointer',
+              transition:'box-shadow .15s, transform .15s, opacity .15s',
+              boxShadow: active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none',
+              opacity: switching && !opening && !active ? 0.6 : 1,
+            }}
+              onMouseEnter={e => { if (!active && !switching) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(15,17,21,0.10)'; } }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none'; }}
+            >
               <div style={{
                 height: 90, background: loc.cover, position:'relative',
                 display:'flex', alignItems:'flex-end', padding: 12,
@@ -158,7 +190,7 @@ function AccDatiGenerali() {
                     color:'#fff', fontSize: 15, fontWeight: 800,
                   }}>{loc.logo}</div>
                 </div>
-                {loc.active && (
+                {active && (
                   <span style={{
                     position:'absolute', top: 10, right: 10,
                     fontSize: 12, fontWeight: 800, color: PN.WHITE,
@@ -181,14 +213,32 @@ function AccDatiGenerali() {
                 <div style={{fontSize: 14.5, color: PN.MUTED}}>{loc.city}</div>
                 <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{loc.addr}</div>
                 <div style={{display:'flex', gap: 6, marginTop: 12}}>
-                  <button style={{
+                  <button
+                    onClick={(e) => { e.stopPropagation(); apriGestionale(loc); }}
+                    disabled={active || !!switching}
+                    style={{
                     flex:1, padding:'7px 10px', borderRadius: 8,
-                    background: loc.active ? PN.PINK_SOFT : PN.TEXT,
-                    color: loc.active ? PN.PINK_DARK : PN.WHITE,
+                    background: active ? PN.PINK_SOFT : PN.TEXT,
+                    color: active ? PN.PINK_DARK : PN.WHITE,
                     border:'none', fontSize: 14, fontWeight: 700,
-                    cursor:'pointer', fontFamily:'inherit',
-                  }}>{loc.active ? '✓ In uso' : 'Apri gestionale →'}</button>
-                  <button title="Impostazioni locale" style={{
+                    cursor: active ? 'default' : 'pointer', fontFamily:'inherit',
+                    display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 7,
+                  }}>
+                    {opening ? (
+                      <>
+                        <span style={{
+                          width: 13, height: 13, borderRadius:'50%',
+                          border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'#fff',
+                          animation:'acSpin 0.7s linear infinite', display:'inline-block',
+                        }}/>
+                        Apertura…
+                      </>
+                    ) : active ? '✓ In uso' : 'Apri gestionale →'}
+                  </button>
+                  <button
+                    title="Impostazioni del locale"
+                    onClick={(e) => { e.stopPropagation(); window.location.href = 'byup Impostazioni.html'; }}
+                    style={{
                     width: 32, height: 32, borderRadius: 8,
                     background:'transparent', border:`1px solid ${PN.BORDER}`,
                     cursor:'pointer', display:'grid', placeItems:'center',
@@ -198,10 +248,11 @@ function AccDatiGenerali() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
 
-          {/* Add new — dashed card */}
-          <button style={{
+          {/* Add new — dashed card → flusso di creazione = onboarding */}
+          <button onClick={() => { window.location.href = 'byup Restaurant Onboarding.html'; }} style={{
             border: `2px dashed ${PN.BORDER}`,
             borderRadius: 14, background: 'transparent',
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
