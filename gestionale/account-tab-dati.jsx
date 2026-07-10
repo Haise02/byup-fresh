@@ -11,6 +11,15 @@ const ACC_LOCALI = [
     cover: 'linear-gradient(135deg, #2E7D32, #66BB6A)', logo: 'TB' },
 ];
 
+// Locali già su byup ma non ancora collegati a questo account — usati dalla
+// ricerca "Collega un locale esistente".
+const ACC_DIRECTORY = [
+  { id: 'op', name: 'Osteria del Ponte',   addr: 'Via del Moro 12',        city: 'Roma · Trastevere' },
+  { id: 'll', name: 'La Lanterna',         addr: 'Corso Duca di Genova 88', city: 'Ostia · RM' },
+  { id: 'pg', name: 'Pizzeria da Gigi',    addr: 'Via Tuscolana 340',       city: 'Frascati · RM' },
+  { id: 'bm', name: 'Bar Mediterraneo',    addr: 'Piazza Navona 4',         city: 'Roma · Centro' },
+];
+
 function AccDatiGenerali() {
   const [logoutConfirm, setLogoutConfirm] = React.useState(false);
   const [deleteConfirm, setDeleteConfirm] = React.useState(false);
@@ -41,7 +50,29 @@ function AccDatiGenerali() {
   // (sidebar inclusa), poi si apre la Panoramica del locale scelto.
   const [localeAttivo, setLocaleAttivo] = React.useState(() =>
     (window.byupReadLocale && window.byupReadLocale()) || { id: 'cp', nome: 'Cacio e Pepe' });
-  const [switching, setSwitching] = React.useState(null); // id del locale in apertura
+  const [switching, setSwitching] = React.useState(null); // id del locale in passaggio
+  // Lista locali (con eventuali richieste in attesa) + popup aggiunta/dissociazione
+  const [locali, setLocali] = React.useState(ACC_LOCALI);
+  const [addOpen, setAddOpen] = React.useState(false);
+  const [dissocia, setDissocia] = React.useState(null); // locale da dissociare
+  const inviaRichiesta = (dir) => {
+    setLocali(prev => [...prev, {
+      id: dir.id, name: dir.name, city: dir.city, addr: dir.addr,
+      role: 'Manager', pending: true,
+      cover: 'linear-gradient(135deg, #64748B, #94A3B8)',
+      logo: dir.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+    }]);
+    setAddOpen(false);
+    setDatiToast(`✓ Richiesta inviata a ${dir.name} — attendi la conferma del proprietario`);
+    setTimeout(() => setDatiToast(null), 3200);
+  };
+  const confermaDissocia = () => {
+    const loc = dissocia;
+    setLocali(prev => prev.filter(l => l.id !== loc.id));
+    setDissocia(null);
+    setDatiToast(loc.pending ? `✓ Richiesta a ${loc.name} annullata` : `✓ ${loc.name} dissociato dal tuo account`);
+    setTimeout(() => setDatiToast(null), 2800);
+  };
   const apriGestionale = (loc) => {
     if (switching || loc.id === localeAttivo.id) return;
     setSwitching(loc.id);
@@ -146,8 +177,8 @@ function AccDatiGenerali() {
         )}
       </AcCard>
 
-      <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca per accedere al gestionale del singolo locale." action={
-        <button onClick={() => { window.location.href = 'byup Restaurant Onboarding.html'; }} style={{
+      <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca su un locale per passare al suo gestionale." action={
+        <button onClick={() => setAddOpen(true)} style={{
           padding:'8px 14px', borderRadius: 999,
           background: PN.TEXT, color: PN.WHITE, border:'none',
           fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
@@ -158,21 +189,21 @@ function AccDatiGenerali() {
       }>
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 12}}>
           {switching && <style>{`@keyframes acSpin { to { transform: rotate(360deg); } }`}</style>}
-          {ACC_LOCALI.map((loc) => {
+          {locali.map((loc) => {
             const active = loc.id === localeAttivo.id;
             const opening = switching === loc.id;
             return (
             <div key={loc.id}
-              onClick={() => apriGestionale(loc)}
+              onClick={() => { if (!loc.pending) apriGestionale(loc); }}
               style={{
               border: `1px solid ${active ? PN.PINK : PN.BORDER_SOFT}`,
               borderRadius: 14, overflow:'hidden', background: PN.WHITE,
-              cursor: active ? 'default' : 'pointer',
+              cursor: active || loc.pending ? 'default' : 'pointer',
               transition:'box-shadow .15s, transform .15s, opacity .15s',
               boxShadow: active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none',
-              opacity: switching && !opening && !active ? 0.6 : 1,
+              opacity: loc.pending ? 0.85 : (switching && !opening && !active ? 0.6 : 1),
             }}
-              onMouseEnter={e => { if (!active && !switching) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(15,17,21,0.10)'; } }}
+              onMouseEnter={e => { if (!active && !switching && !loc.pending) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(15,17,21,0.10)'; } }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none'; }}
             >
               <div style={{
@@ -198,6 +229,14 @@ function AccDatiGenerali() {
                     backdropFilter:'blur(6px)', letterSpacing: 0.4,
                   }}>ATTIVO</span>
                 )}
+                {loc.pending && (
+                  <span style={{
+                    position:'absolute', top: 10, right: 10,
+                    fontSize: 12, fontWeight: 800, color: '#92400E',
+                    background: '#FEF3C7', padding:'3px 8px', borderRadius: 999,
+                    letterSpacing: 0.4,
+                  }}>IN ATTESA</span>
+                )}
               </div>
               <div style={{padding: '14px 16px 16px'}}>
                 <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 4}}>
@@ -212,6 +251,22 @@ function AccDatiGenerali() {
                 </div>
                 <div style={{fontSize: 14.5, color: PN.MUTED}}>{loc.city}</div>
                 <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{loc.addr}</div>
+                {loc.pending ? (
+                  /* Richiesta inviata: si attende la conferma del proprietario */
+                  <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 12}}>
+                    <span style={{flex:1, fontSize: 13.5, color: PN.MUTED}}>
+                      Richiesta inviata al proprietario
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDissocia(loc); }}
+                      style={{
+                        padding:'7px 12px', borderRadius: 8,
+                        background:'transparent', color: PN.MUTED,
+                        border:`1px solid ${PN.BORDER}`,
+                        fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                      }}>Annulla richiesta</button>
+                  </div>
+                ) : (
                 <div style={{display:'flex', gap: 6, marginTop: 12}}>
                   <button
                     onClick={(e) => { e.stopPropagation(); apriGestionale(loc); }}
@@ -231,28 +286,37 @@ function AccDatiGenerali() {
                           border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'#fff',
                           animation:'acSpin 0.7s linear infinite', display:'inline-block',
                         }}/>
-                        Apertura…
+                        Passaggio…
                       </>
-                    ) : active ? '✓ In uso' : 'Apri gestionale →'}
+                    ) : active ? '✓ In uso' : 'Passa a questo locale'}
                   </button>
+                  {/* Dissocia — unica azione secondaria: icona scollega, non rotella */}
                   <button
-                    title="Impostazioni del locale"
-                    onClick={(e) => { e.stopPropagation(); window.location.href = 'byup Impostazioni.html'; }}
+                    title={active ? 'Non puoi dissociare il locale in uso' : 'Dissocia dal tuo account'}
+                    disabled={active}
+                    onClick={(e) => { e.stopPropagation(); if (!active) setDissocia(loc); }}
                     style={{
                     width: 32, height: 32, borderRadius: 8,
                     background:'transparent', border:`1px solid ${PN.BORDER}`,
-                    cursor:'pointer', display:'grid', placeItems:'center',
-                  }}>
-                    <PnI.Settings size={14} color={PN.MUTED}/>
+                    cursor: active ? 'not-allowed' : 'pointer',
+                    display:'grid', placeItems:'center',
+                    opacity: active ? 0.45 : 1,
+                    color: PN.MUTED, transition:'color 150ms, border-color 150ms',
+                  }}
+                    onMouseEnter={e => { if (!active) { e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.borderColor = '#FCA5A5'; } }}
+                    onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.borderColor = PN.BORDER; }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7"/><path d="M15 7h2a5 5 0 0 1 4 8"/><line x1="8" y1="12" x2="12" y2="12"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
                   </button>
                 </div>
+                )}
               </div>
             </div>
             );
           })}
 
-          {/* Add new — dashed card → flusso di creazione = onboarding */}
-          <button onClick={() => { window.location.href = 'byup Restaurant Onboarding.html'; }} style={{
+          {/* Add new — dashed card → popup: collega esistente o crea nuovo */}
+          <button onClick={() => setAddOpen(true)} style={{
             border: `2px dashed ${PN.BORDER}`,
             borderRadius: 14, background: 'transparent',
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
@@ -291,6 +355,71 @@ function AccDatiGenerali() {
           onClose={() => setFotoOpen(false)}
           onSave={(next) => { setFoto(next); setFotoOpen(false); }}
         />
+      )}
+
+      {addOpen && (
+        <AcAggiungiLocaleModal
+          esistenti={locali.map(l => l.id)}
+          onClose={() => setAddOpen(false)}
+          onCollega={inviaRichiesta}
+        />
+      )}
+
+      {/* Conferma dissociazione (o annullo richiesta) */}
+      {dissocia && (
+        <div onClick={() => setDissocia(null)} style={{
+          position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG,
+            borderRadius: 20, width: 400, maxWidth:'100%',
+            padding: '22px 22px 20px',
+            display:'flex', flexDirection:'column', gap: 16,
+          }}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: '#FEE2E2', color: '#DC2626',
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7"/><path d="M15 7h2a5 5 0 0 1 4 8"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+              </div>
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
+                  {dissocia.pending ? 'Annullare la richiesta?' : `Dissociare ${dissocia.name}?`}
+                </div>
+                <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+                  {dissocia.pending
+                    ? `La richiesta di collegamento a ${dissocia.name} verrà ritirata.`
+                    : 'Il locale sarà rimosso dal tuo account e non potrai più accedere al suo gestionale. Il proprietario potrà invitarti di nuovo.'}
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button
+                onClick={() => setDissocia(null)}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+                  border: '1px solid rgba(15,17,21,0.12)',
+                  fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Annulla
+              </button>
+              <button
+                onClick={confermaDissocia}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: '#DC2626', color: '#fff',
+                  border: '1px solid rgba(153,27,27,0.5)',
+                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                {dissocia.pending ? 'Annulla richiesta' : 'Dissocia'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Logout — card senza intestazione: solo la riga azione */}
@@ -459,7 +588,7 @@ function AccDatiGenerali() {
   );
 }
 
-function AcCard({ title, subtitle, children, danger, aurora }) {
+function AcCard({ title, subtitle, children, danger, aurora, action }) {
   // L2 Aurora soft wash multi-color (pink + lavender + cream mesh).
   // Sistema 75/15/10.
   const auroraBg =
@@ -474,9 +603,12 @@ function AcCard({ title, subtitle, children, danger, aurora }) {
       border: `1px solid ${danger ? '#FECACA' : aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
       padding: 22,
     }}>
-      <div style={{marginBottom: 18}}>
-        <div style={{fontSize: 17, fontWeight: 700, color: danger ? PN.RED : PN.TEXT}}>{title}</div>
-        {subtitle && <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3}}>{subtitle}</div>}
+      <div style={{marginBottom: 18, display:'flex', alignItems:'flex-start', gap: 12}}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 17, fontWeight: 700, color: danger ? PN.RED : PN.TEXT}}>{title}</div>
+          {subtitle && <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3}}>{subtitle}</div>}
+        </div>
+        {action && <div style={{flexShrink: 0}}>{action}</div>}
       </div>
       {children}
     </div>
@@ -503,6 +635,177 @@ const AcBtnGhost = {
   fontSize: 14, fontWeight: 600, cursor:'pointer',
   fontFamily:'inherit',
 };
+
+// Popup "Aggiungi un locale": collega un locale già su byup (ricerca per nome
+// + richiesta al proprietario) oppure crea un nuovo locale (onboarding).
+function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
+  const [step, setStep] = React.useState('scelta'); // 'scelta' | 'cerca'
+  const [query, setQuery] = React.useState('');
+  const [selected, setSelected] = React.useState(null);
+  const risultati = ACC_DIRECTORY
+    .filter(d => !esistenti.includes(d.id))
+    .filter(d => !query.trim() || d.name.toLowerCase().includes(query.trim().toLowerCase()));
+
+  const optionStyle = (hover) => ({
+    display:'flex', alignItems:'flex-start', gap: 12, width:'100%',
+    padding: '16px 16px', borderRadius: 14, textAlign:'left',
+    background: hover ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.65)',
+    border: '1px solid rgba(15,17,21,0.10)',
+    cursor:'pointer', fontFamily:'inherit',
+    transition:'background 150ms, border-color 150ms',
+  });
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 20, width: 440, maxWidth:'100%',
+        padding: '22px 22px 20px',
+        display:'flex', flexDirection:'column', gap: 16,
+      }}>
+        {/* Header */}
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
+          <div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
+              {step === 'scelta' ? 'Aggiungi un locale' : 'Collega un locale esistente'}
+            </div>
+            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
+              {step === 'scelta'
+                ? 'Il locale esiste già su byup o parti da zero?'
+                : 'Cerca il locale per nome e invia la richiesta al proprietario.'}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+            background:'rgba(255,255,255,0.95)', border:'none', cursor:'pointer',
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        {step === 'scelta' ? (
+          <div style={{display:'flex', flexDirection:'column', gap: 10}}>
+            <button onClick={() => setStep('cerca')} style={optionStyle(false)}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.65)'}>
+              <span style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              </span>
+              <span style={{flex: 1}}>
+                <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Collega un locale esistente</span>
+                <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
+                  Il locale è già su byup: cercalo per nome e invia una richiesta di collegamento al proprietario.
+                </span>
+              </span>
+            </button>
+            <button onClick={() => { window.location.href = 'byup Restaurant Onboarding.html'; }} style={optionStyle(false)}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.65)'}>
+              <span style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: '#F4F5F7', color: PN.TEXT,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+              </span>
+              <span style={{flex: 1}}>
+                <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Crea un nuovo locale</span>
+                <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
+                  Configura da zero un nuovo punto vendita con la procedura guidata.
+                </span>
+              </span>
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Ricerca */}
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </span>
+              <input
+                autoFocus
+                value={query}
+                onChange={e => { setQuery(e.target.value); setSelected(null); }}
+                placeholder="Cerca il nome del locale…"
+                style={{
+                  width:'100%', padding:'10px 12px 10px 34px', borderRadius: 10,
+                  border:'1px solid rgba(15,17,21,0.14)', outline:'none',
+                  background:'rgba(255,255,255,0.85)',
+                  fontSize: 15, fontFamily:'inherit', color: PN.TEXT, boxSizing:'border-box',
+                }}
+              />
+            </div>
+
+            {/* Risultati: nome + via e città */}
+            <div style={{display:'flex', flexDirection:'column', gap: 6, maxHeight: 240, overflow:'auto'}}>
+              {risultati.length === 0 && (
+                <div style={{padding:'18px 10px', textAlign:'center', fontSize: 14, color: PN.MUTED}}>
+                  Nessun locale trovato con questo nome.
+                </div>
+              )}
+              {risultati.map(d => {
+                const sel = selected && selected.id === d.id;
+                return (
+                  <button key={d.id} onClick={() => setSelected(d)} style={{
+                    display:'flex', alignItems:'center', gap: 10, width:'100%',
+                    padding:'10px 12px', borderRadius: 10, textAlign:'left',
+                    background: sel ? PN.PINK_SOFT : 'rgba(255,255,255,0.65)',
+                    border: `1px solid ${sel ? PN.PINK : 'rgba(15,17,21,0.10)'}`,
+                    cursor:'pointer', fontFamily:'inherit',
+                    transition:'background 120ms, border-color 120ms',
+                  }}>
+                    <span style={{flex: 1, minWidth: 0}}>
+                      <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.name}</span>
+                      <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>{d.addr} · {d.city}</span>
+                    </span>
+                    {sel && (
+                      <span style={{display:'inline-flex', color: PN.PINK_DARK, flexShrink: 0}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Conferma */}
+            <button
+              disabled={!selected}
+              onClick={() => selected && onCollega(selected)}
+              style={{
+                padding: '12px 18px', borderRadius: 999,
+                background: selected ? PN.BTN_DARK : PN.WHITE_FROST,
+                color: selected ? PN.WHITE : PN.MUTED_SOFT,
+                border: `1px solid ${selected ? 'rgba(0,0,0,0.32)' : PN.BORDER_SOFT_A}`,
+                fontSize: 15, fontWeight: 700,
+                cursor: selected ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+              }}>
+              Invia richiesta di collegamento
+            </button>
+            <button
+              onClick={() => { setStep('scelta'); setSelected(null); setQuery(''); }}
+              style={{
+                border:'none', background:'transparent', padding: 0,
+                fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                cursor:'pointer', fontFamily:'inherit',
+              }}>
+              ← Torna alla scelta
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Input con la stessa veste di AcField, ma modificabile.
 function AcEditField({ label, value, onChange, type = 'text', full }) {
