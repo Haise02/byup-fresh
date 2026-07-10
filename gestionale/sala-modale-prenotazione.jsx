@@ -976,10 +976,19 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
                 background:'transparent', color: NP_T.textMuted,
                 border:`1px solid ${NP_T.border}`,
                 fontSize: NP_FS.sm, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                transition:'background 150ms, color 150ms',
+                transition:'background 150ms, color 150ms, border-color 150ms',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = NP_T.text; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = NP_T.textMuted; }}
+              onMouseEnter={e => {
+                // Il footer è già grigio-chiaro: serve un hover ben marcato
+                e.currentTarget.style.background = 'rgba(15,17,21,0.08)';
+                e.currentTarget.style.color = NP_T.text;
+                e.currentTarget.style.borderColor = 'rgba(15,17,21,0.30)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = NP_T.textMuted;
+                e.currentTarget.style.borderColor = NP_T.border;
+              }}
             >Cancella prenotazione</button>
           ))}
           <PnButton variant="primary" disabled={!canSubmit} onClick={handleSubmit}>
