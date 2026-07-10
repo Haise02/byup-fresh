@@ -139,7 +139,7 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
                 display: 'grid', placeItems: 'center',
                 color: PN.RED,
               }}>
-              <Icon name="xmark" size={13}/>
+              <Icon name="trash" size={13}/>
             </button>
           </div>
 
