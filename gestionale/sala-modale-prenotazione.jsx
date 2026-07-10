@@ -384,7 +384,7 @@ function npFmtDateLabel(iso) {
 }
 
 // ─── Modal principale ─────────────────────────────────────────────────────────
-function SalaModalNuova({ open, onClose, initData }) {
+function SalaModalNuova({ open, onClose, initData, onConfirm }) {
   const [coperti, setCoperti]                 = React.useState(2);
   const [date, setDate]                       = React.useState(npTodayISO());
   const [time, setTime]                       = React.useState('20:00');
@@ -548,6 +548,18 @@ function SalaModalNuova({ open, onClose, initData }) {
     : null;
   const canSubmit = !!effectiveTavolo && !!nome.trim() && !!phone.trim();
 
+  // Conferma: consegna il riepilogo al chiamante (toast in sala-app) e chiude.
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    if (onConfirm) onConfirm({
+      editMode: !!initData?.editMode,
+      nome: nome.trim(), phone: phone.trim(),
+      date, time: selectedSlot, coperti,
+      tavoli: effectiveTavolo.tables.map(t => t.id),
+    });
+    onClose();
+  };
+
   const toggleTable = (id) => {
     setTableOverrideIds(prev => {
       const base = prev ?? new Set(suggeritoIds);
@@ -602,11 +614,11 @@ function SalaModalNuova({ open, onClose, initData }) {
           <div style={{flex:'0 0 330px', minWidth: 300}}>
             <NpDateStrip label="Data" value={date} onChange={setDate}/>
           </div>
-          <div style={{textAlign:'center', width: 82}}>
+          <div style={{textAlign:'center', width: 100}}>
             <NpFieldLabel>Ora</NpFieldLabel>
             <NpSelect value={time} onChange={setTime} options={oraOpts}/>
           </div>
-          <div style={{textAlign:'center', width: 60}}>
+          <div style={{textAlign:'center', width: 78}}>
             <NpFieldLabel>Coperti</NpFieldLabel>
             <NpSelect value={String(coperti)} onChange={v=>setCoperti(+v)} options={coperitOpts}/>
           </div>
@@ -927,7 +939,7 @@ function SalaModalNuova({ open, onClose, initData }) {
       title={initData?.editMode ? 'Modifica prenotazione' : 'Nuova prenotazione'}
       width={720}
       footer={
-        <PnButton variant="primary" disabled={!canSubmit}>
+        <PnButton variant="primary" disabled={!canSubmit} onClick={handleSubmit}>
           {initData?.editMode ? 'Salva modifiche' : 'Conferma prenotazione'}
         </PnButton>
       }

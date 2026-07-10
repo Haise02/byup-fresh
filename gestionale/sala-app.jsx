@@ -499,7 +499,8 @@ function SalaApp() {
             }
             if (modalPay?._isBanco && window.SALA_VENDITA_CLEAR) window.SALA_VENDITA_CLEAR();
           }}/>
-        <SalaModalNuova open={!!modalNuova} initData={modalNuova && typeof modalNuova === 'object' ? modalNuova : null} onClose={() => setModalNuova(null)}/>
+        <SalaModalNuova open={!!modalNuova} initData={modalNuova && typeof modalNuova === 'object' ? modalNuova : null} onClose={() => setModalNuova(null)}
+          onConfirm={(p) => showToast(`✓ Prenotazione ${p.editMode ? 'aggiornata' : 'confermata'} · ${p.nome} · ore ${p.time} · ${p.coperti} coperti`)}/>
 
         <TweaksPanel>
         </TweaksPanel>
