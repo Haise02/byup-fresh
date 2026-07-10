@@ -278,12 +278,12 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
           {avatars.map((isByup, i) => (
             <div key={i} style={{
               width: sz, height: sz, borderRadius: '50%',
-              background: isByup ? '#475569' : '#E5E7EB',
+              background: isByup ? '#FF5A5F' : '#E5E7EB',
               border: '2px solid #FFFFFF',
               marginLeft: i === 0 ? 0 : -overlap,
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               zIndex: visible - i,
-              boxShadow: isByup ? '0 1px 2px rgba(71,85,105,0.25)' : 'none',
+              boxShadow: isByup ? '0 1px 2px rgba(255,90,95,0.30)' : 'none',
             }}>
               {isByup
                 ? <ByupB size={expanded ? 13 : 11}/>
@@ -389,7 +389,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
               display:'flex', alignItems:'center', gap: 6,
             }}>
               <span style={{
-                width: 14, height: 14, borderRadius:'50%', background:'#475569',
+                width: 14, height: 14, borderRadius:'50%', background:'#FF5A5F',
                 display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
               }}><ByupB size={9}/></span>
               <span>{byup} {byup === 1 ? 'connesso' : 'connessi'} a byup · gli altri non hanno ancora scansionato il QR</span>

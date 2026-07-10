@@ -672,7 +672,7 @@ function DayTimeline({ onNuova, onModifica }) {
                     </span>
                     {r.source === 'byup' && (
                       <span style={{
-                        width:18, height:18, borderRadius:'50%', background:'#475569',
+                        width:18, height:18, borderRadius:'50%', background:'#FF5A5F',
                         display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
                       }}>
                         <span style={{fontSize:16, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
@@ -1175,7 +1175,7 @@ function ResRow({ r, nowMin, dim, onModifica, onNoShow }) {
         }}>{r.name}</span>
         {r.source === 'byup' && (
           <span title="Prenotazione byup" style={{
-            width:16, height:16, borderRadius:'50%', background:'#475569',
+            width:16, height:16, borderRadius:'50%', background:'#FF5A5F',
             display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
           }}>
             <span style={{fontSize:13, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
