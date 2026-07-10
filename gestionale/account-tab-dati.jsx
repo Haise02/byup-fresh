@@ -3,12 +3,9 @@
 // I locali gestiti da questo account. L'attivo è condiviso via
 // window.byupReadLocale/byupWriteLocale (definiti in panoramica-sidebar.jsx).
 const ACC_LOCALI = [
-  { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner',
-    cover: 'linear-gradient(135deg, #8B4513, #D2691E)', logo: 'CP' },
-  { id: 'co', name: 'Cacio e Pepe — Ostiense', city: 'Roma · Ostiense', addr: 'Via Ostiense 142', role: 'Owner',
-    cover: 'linear-gradient(135deg, #E04347, #B53338)', logo: 'CO' },
-  { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager',
-    cover: 'linear-gradient(135deg, #2E7D32, #66BB6A)', logo: 'TB' },
+  { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner', logo: 'CP' },
+  { id: 'co', name: 'Cacio e Pepe — Ostiense', city: 'Roma · Ostiense', addr: 'Via Ostiense 142', role: 'Owner', logo: 'CO' },
+  { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager', logo: 'TB' },
 ];
 
 // Locali già su byup ma non ancora collegati a questo account — usati dalla
@@ -21,7 +18,6 @@ const ACC_DIRECTORY = [
 ];
 
 function AccDatiGenerali() {
-  const [logoutConfirm, setLogoutConfirm] = React.useState(false);
   const [deleteConfirm, setDeleteConfirm] = React.useState(false);
   // Foto profilo: url (null = iniziali), posizione dell'inquadratura in %, popup.
   const [fotoOpen, setFotoOpen] = React.useState(false);
@@ -187,90 +183,90 @@ function AccDatiGenerali() {
             <div key={loc.id}
               onClick={() => { if (!loc.pending) apriGestionale(loc); }}
               style={{
-              border: `1px solid ${active ? PN.PINK : PN.BORDER_SOFT}`,
-              borderRadius: 14, overflow:'hidden', background: PN.WHITE,
-              cursor: active || loc.pending ? 'default' : 'pointer',
-              transition:'box-shadow .15s, transform .15s, opacity .15s',
-              boxShadow: active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none',
-              opacity: loc.pending ? 0.85 : (switching && !opening && !active ? 0.6 : 1),
-            }}
-              onMouseEnter={e => { if (!active && !switching && !loc.pending) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(15,17,21,0.10)'; } }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none'; }}
+                position:'relative',
+                borderRadius: 12,
+                border: active ? `2px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
+                background: PN.WHITE,
+                boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.03)',
+                padding: '16px 14px 14px',
+                display:'flex', flexDirection:'column',
+                cursor: active || loc.pending ? 'default' : 'pointer',
+                transition:'box-shadow .15s, transform .15s, opacity .15s',
+                opacity: loc.pending ? 0.9 : (switching && !opening && !active ? 0.6 : 1),
+              }}
+              onMouseEnter={e => { if (!active && !switching && !loc.pending) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(15,17,21,0.09)'; } }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.03)'; }}
             >
-              <div style={{
-                height: 54, background: loc.cover, position:'relative',
-                display:'flex', alignItems:'flex-end', padding: 10,
-              }}>
+              {/* Badge sul bordo superiore — stesso pattern di ATTUALE nelle card piano */}
+              {active && (
+                <span style={{
+                  position:'absolute', top: -9, left:'50%', transform:'translateX(-50%)',
+                  fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5,
+                  background: PN.PINK, color: PN.WHITE,
+                  padding:'3px 10px', borderRadius: 999, whiteSpace:'nowrap',
+                }}>IN USO</span>
+              )}
+              {loc.pending && (
+                <span style={{
+                  position:'absolute', top: -9, left:'50%', transform:'translateX(-50%)',
+                  fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5,
+                  background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A',
+                  padding:'2px 10px', borderRadius: 999, whiteSpace:'nowrap',
+                }}>IN ATTESA</span>
+              )}
+
+              {/* Logo + nome + ruolo */}
+              <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 6}}>
                 <div style={{
-                  width: 34, height: 34, borderRadius: 9, padding: 2.5,
-                  background: PN.WHITE, boxShadow:'0 2px 6px rgba(0,0,0,0.15)',
-                }}>
-                  <div style={{
-                    width:'100%', height:'100%', borderRadius: 6.5,
-                    background:'linear-gradient(135deg, #FF5A5F, #E04347)',
-                    display:'grid', placeItems:'center',
-                    color:'#fff', fontSize: 12.5, fontWeight: 800,
-                  }}>{loc.logo}</div>
+                  width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                  background:'linear-gradient(135deg, #FF5A5F, #E04347)',
+                  display:'grid', placeItems:'center',
+                  color:'#fff', fontSize: 11.5, fontWeight: 800,
+                }}>{loc.logo}</div>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.name}</div>
+                  <div style={{fontSize: 11.5, fontWeight: 700, color: loc.role === 'Owner' ? PN.PINK_DARK : PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{loc.role}</div>
                 </div>
-                {active && (
-                  <span style={{
-                    position:'absolute', top: 10, right: 10,
-                    fontSize: 12, fontWeight: 800, color: PN.WHITE,
-                    background: 'rgba(0,0,0,0.55)', padding:'3px 8px', borderRadius: 999,
-                    backdropFilter:'blur(6px)', letterSpacing: 0.4,
-                  }}>ATTIVO</span>
-                )}
-                {loc.pending && (
-                  <span style={{
-                    position:'absolute', top: 10, right: 10,
-                    fontSize: 12, fontWeight: 800, color: '#92400E',
-                    background: '#FEF3C7', padding:'3px 8px', borderRadius: 999,
-                    letterSpacing: 0.4,
-                  }}>IN ATTESA</span>
-                )}
               </div>
-              <div style={{padding: '10px 12px 12px'}}>
-                <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 3}}>
-                  <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.name}</div>
-                  <span style={{
-                    fontSize: 10.5, fontWeight: 700,
-                    padding:'2px 7px', borderRadius: 999,
-                    background: loc.role === 'Owner' ? PN.PINK_SOFT : '#EFF1F4',
-                    color: loc.role === 'Owner' ? PN.PINK_DARK : PN.MUTED,
-                    letterSpacing: 0.3, flexShrink: 0,
-                  }}>{loc.role.toUpperCase()}</span>
-                </div>
-                <div style={{fontSize: 13, color: PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.city}</div>
-                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.addr}</div>
-                {loc.pending ? (
-                  /* Richiesta inviata: si attende la conferma del proprietario */
-                  <div style={{display:'flex', flexDirection:'column', gap: 6, marginTop: 10}}>
-                    <span style={{fontSize: 12.5, color: PN.MUTED}}>
-                      Richiesta inviata al proprietario
-                    </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDissocia(loc); }}
-                      style={{
-                        padding:'6px 10px', borderRadius: 8,
-                        background:'transparent', color: PN.MUTED,
-                        border:`1px solid ${PN.BORDER}`,
-                        fontSize: 12.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                      }}>Annulla richiesta</button>
+
+              <div style={{fontSize: 13, color: PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.city}</div>
+              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.addr}</div>
+
+              <div style={{flex: 1}}/>
+
+              {loc.pending ? (
+                <>
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 10, textAlign:'center'}}>
+                    Richiesta inviata al proprietario
                   </div>
-                ) : (
-                <div style={{display:'flex', gap: 6, marginTop: 10}}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDissocia(loc); }}
+                    style={{
+                      marginTop: 6, border:'none', background:'transparent', padding: 0,
+                      fontSize: 12.5, fontWeight: 600, color: PN.MUTED,
+                      cursor:'pointer', fontFamily:'inherit', textAlign:'center',
+                      transition:'color 150ms',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#DC2626'}
+                    onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
+                  >Annulla richiesta</button>
+                </>
+              ) : (
+                <>
+                  {/* CTA a pillola — pattern delle card piano */}
                   <button
                     onClick={(e) => { e.stopPropagation(); apriGestionale(loc); }}
                     disabled={active || !!switching}
                     style={{
-                    flex:1, padding:'6px 8px', borderRadius: 8, minWidth: 0,
-                    background: active ? PN.PINK_SOFT : PN.TEXT,
-                    color: active ? PN.PINK_DARK : PN.WHITE,
-                    border:'none', fontSize: 12.5, fontWeight: 700,
-                    cursor: active ? 'default' : 'pointer', fontFamily:'inherit',
-                    display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
-                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-                  }}>
+                      marginTop: 12, padding: '8px 12px', borderRadius: 999,
+                      background: active ? PN.WHITE : PN.BTN_DARK,
+                      color: active ? PN.MUTED : PN.WHITE,
+                      border: active ? `1px solid ${PN.BORDER_LIGHT}` : '1px solid rgba(0,0,0,0.32)',
+                      fontSize: 13, fontWeight: 700,
+                      cursor: active ? 'default' : 'pointer', fontFamily:'inherit',
+                      display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+                      whiteSpace:'nowrap', overflow:'hidden',
+                    }}>
                     {opening ? (
                       <>
                         <span style={{
@@ -282,31 +278,25 @@ function AccDatiGenerali() {
                       </>
                     ) : active ? '✓ In uso' : 'Passa a questo locale'}
                   </button>
-                  {/* Dissocia — unica azione secondaria: icona scollega, non rotella */}
+                  {/* Dissocia — link testuale discreto, come "Rimuovi" nel carrello */}
                   <button
-                    title={active ? 'Non puoi dissociare il locale in uso' : 'Dissocia dal tuo account'}
-                    disabled={active}
                     onClick={(e) => { e.stopPropagation(); if (!active) setDissocia(loc); }}
                     style={{
-                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                    background:'transparent', border:`1px solid ${PN.BORDER}`,
-                    cursor: active ? 'not-allowed' : 'pointer',
-                    display:'grid', placeItems:'center',
-                    opacity: active ? 0.45 : 1,
-                    color: PN.MUTED, transition:'color 150ms, border-color 150ms',
-                  }}
-                    onMouseEnter={e => { if (!active) { e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.borderColor = '#FCA5A5'; } }}
-                    onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.borderColor = PN.BORDER; }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7"/><path d="M15 7h2a5 5 0 0 1 4 8"/><line x1="8" y1="12" x2="12" y2="12"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
-                  </button>
-                </div>
-                )}
-              </div>
+                      marginTop: 8, border:'none', background:'transparent', padding: 0,
+                      fontSize: 12.5, fontWeight: 600,
+                      color: PN.MUTED, opacity: active ? 0 : 1,
+                      pointerEvents: active ? 'none' : 'auto',
+                      cursor:'pointer', fontFamily:'inherit', textAlign:'center',
+                      transition:'color 150ms',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#DC2626'}
+                    onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
+                  >Dissocia</button>
+                </>
+              )}
             </div>
             );
           })}
-
           {/* Add new — dashed card → popup: collega esistente o crea nuovo */}
           <button onClick={() => setAddOpen(true)} style={{
             border: `2px dashed ${PN.BORDER}`,
@@ -412,92 +402,6 @@ function AccDatiGenerali() {
                   fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 }}>
                 {dissocia.pending ? 'Annulla richiesta' : 'Dissocia'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Logout — card senza intestazione: solo la riga azione */}
-      <div style={{
-        background: PN.WHITE, borderRadius: 14,
-        border: `1px solid ${PN.BORDER_SOFT}`,
-        padding: 22,
-      }}>
-        <div style={{display:'flex', alignItems:'center', gap: 14}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Esci dall'account</div>
-            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>
-              Termina la sessione su questo dispositivo. Potrai rientrare con email e password.
-            </div>
-          </div>
-          <button
-            onClick={() => setLogoutConfirm(true)}
-            style={{
-              display:'inline-flex', alignItems:'center', gap: 8,
-              padding:'10px 18px', borderRadius: 999,
-              background: PN.WHITE, color: PN.TEXT,
-              border:`1px solid ${PN.BORDER}`,
-              fontSize: 15, fontWeight: 700, cursor:'pointer',
-              fontFamily:'inherit',
-              transition:'background 150ms, border-color 150ms',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Esci
-          </button>
-        </div>
-      </div>
-
-      {/* Popup conferma logout — absolute: ancorato al frame, non alla finestra */}
-      {logoutConfirm && (
-        <div onClick={() => setLogoutConfirm(false)} style={{
-          position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            ...PN.GLASS_STRONG,
-            borderRadius: 20, width: 380, maxWidth:'100%',
-            padding: '22px 22px 20px',
-            display:'flex', flexDirection:'column', gap: 16,
-          }}>
-            <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                display:'grid', placeItems:'center',
-              }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              </div>
-              <div style={{flex: 1}}>
-                <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Esci dall'account?</div>
-                <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
-                  La sessione su questo dispositivo verrà terminata.
-                </div>
-              </div>
-            </div>
-            <div style={{display:'flex', gap: 8}}>
-              <button
-                onClick={() => setLogoutConfirm(false)}
-                style={{
-                  flex: 1, padding: '11px 14px', borderRadius: 999,
-                  background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
-                  border: '1px solid rgba(15,17,21,0.12)',
-                  fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                }}>
-                Annulla
-              </button>
-              <button
-                onClick={() => { window.location.href = 'byup Login.html'; }}
-                style={{
-                  flex: 1, padding: '11px 14px', borderRadius: 999,
-                  background: PN.BTN_DARK, color: PN.WHITE,
-                  border: '1px solid rgba(0,0,0,0.32)',
-                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                }}>
-                Esci
               </button>
             </div>
           </div>

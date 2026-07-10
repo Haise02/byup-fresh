@@ -71,6 +71,8 @@ function PnSidebar({ active = 'panoramica', onNav }) {
 
   // Locale attivo — mostrato sotto il nome utente, reattivo al cambio da Profilo
   const [localeAttivo, setLocaleAttivo] = React.useState(() => window.byupReadLocale());
+  // Conferma logout (icona sulla riga profilo)
+  const [logoutConfirm, setLogoutConfirm] = React.useState(false);
   React.useEffect(() => {
     const update = () => setLocaleAttivo(window.byupReadLocale());
     window.addEventListener('byup-locale-change', update);
@@ -208,14 +210,13 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         {window.PnNotifBell && <window.PnNotifBell sidebar collapsed={collapsed}/>}
       </div>
 
-      {/* Profile */}
-      <button title="Profilo" onClick={() => navTo('profilo')} style={{
+      {/* Profile — click: pagina Profilo; icona a destra: logout con conferma */}
+      <div title="Profilo" onClick={() => navTo('profilo')} style={{
         display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
         justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '10px 0' : '10px 8px',
-        border: 'none', background: 'transparent',
         cursor: 'pointer', fontFamily: 'inherit',
-        textAlign: 'left', width: '100%',
+        textAlign: 'left', width: '100%', boxSizing: 'border-box',
         borderRadius: 8,
         borderTop: `1px solid ${PN.BORDER}`,
         paddingTop: 14,
@@ -235,7 +236,77 @@ function PnSidebar({ active = 'panoramica', onNav }) {
             <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{localeAttivo.nome}</div>
           </div>
         )}
-      </button>
+        {!collapsed && (
+          <button
+            title="Esci dall'account"
+            onClick={(e) => { e.stopPropagation(); setLogoutConfirm(true); }}
+            style={{
+              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+              background: 'transparent', border: 'none',
+              cursor: 'pointer', display: 'grid', placeItems: 'center',
+              color: PN.MUTED, transition: 'color 150ms, background 150ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.background = 'transparent'; }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        )}
+      </div>
+
+      {/* Popup conferma logout — portal sul frame: scrim a tutta app, scala coerente */}
+      {logoutConfirm && ReactDOM.createPortal(
+        <div onClick={() => setLogoutConfirm(false)} style={{
+          position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 300, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG,
+            borderRadius: 20, width: 380, maxWidth:'100%',
+            padding: '22px 22px 20px',
+            display:'flex', flexDirection:'column', gap: 16,
+          }}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Esci dall'account?</div>
+                <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+                  La sessione su questo dispositivo verrà terminata.
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button
+                onClick={() => setLogoutConfirm(false)}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+                  border: '1px solid rgba(15,17,21,0.12)',
+                  fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Annulla
+              </button>
+              <button
+                onClick={() => { window.location.href = 'byup Login.html'; }}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: PN.BTN_DARK, color: PN.WHITE,
+                  border: '1px solid rgba(0,0,0,0.32)',
+                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Esci
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.querySelector('.frame') || document.body
+      )}
     </aside>
   );
 }
