@@ -22,11 +22,12 @@ function SalaVenditaDiretta() {
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
   const [customOpen, setCustomOpen] = React.useState(false);
-  // Ritiri: ordini d'asporto già pagati in app/webapp, in attesa di consegna.
-  // Drawer laterale + conferma con codice ritiro — nessun incasso al banco.
+  // Ritiri: ordini d'asporto in attesa di consegna. Drawer laterale + conferma
+  // con codice ritiro; "Salda ordine" (CTA secondaria) apre l'incasso al banco.
   const [ritiri, setRitiri] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
   const [ritiriOpen, setRitiriOpen] = React.useState(false);
   const [consegna, setConsegna] = React.useState(null); // ordine in consegna (modale codice)
+  const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
   const [toast, setToast] = React.useState(null);
   const showToast = (msg) => {
     setToast(msg);
@@ -280,6 +281,7 @@ function SalaVenditaDiretta() {
         ritiri={ritiri}
         onClose={() => setRitiriOpen(false)}
         onConsegna={setConsegna}
+        onSalda={setSaldaOrdine}
       />
       {consegna && (
         <SaConsegnaModal
@@ -288,6 +290,13 @@ function SalaVenditaDiretta() {
           onConfirm={() => confermaConsegna(consegna)}
         />
       )}
+
+      {/* Salda ordine asporto: stessa modale incasso del banco, sul totale dell'ordine */}
+      <SaIncassaModal
+        open={!!saldaOrdine}
+        total={saldaOrdine ? saldaOrdine.totale : 0}
+        onClose={() => setSaldaOrdine(null)}
+      />
 
       {toast && (
         <div style={{
@@ -324,7 +333,7 @@ function SalaVenditaDiretta() {
 // Ritiri — ordini d'asporto già pagati in app/webapp, in attesa di consegna.
 // Drawer laterale con le card ordine + modale di consegna con codice ritiro.
 
-function SaRitiriDrawer({ open, ritiri, onClose, onConsegna }) {
+function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
   return (
     <>
       {/* scrim — absolute (ancorato al frame, non alla finestra): dentro il
@@ -398,9 +407,20 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna }) {
                   <span style={{fontVariantNumeric:'tabular-nums'}}>€{r.totale.toFixed(2)}</span>
                 </div>
               </div>
-              <div style={{padding:'0 14px 14px'}}>
+              <div style={{padding:'0 14px 14px', display:'flex', gap: 8}}>
+                <button onClick={() => onSalda(r)} style={{
+                  flex: 1, padding:'11px 16px', borderRadius: 999,
+                  background: PN.WHITE, color: PN.TEXT,
+                  border: `1px solid ${PN.BORDER}`,
+                  fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  transition:'background 150ms ease-out',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}>
+                  Salda ordine
+                </button>
                 <button onClick={() => onConsegna(r)} style={{
-                  width:'100%', padding:'11px 16px', borderRadius: 999,
+                  flex: 1.3, padding:'11px 16px', borderRadius: 999,
                   background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
                   border:'1px solid transparent',
                   fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
