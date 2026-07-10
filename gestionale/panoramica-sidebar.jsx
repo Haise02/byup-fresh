@@ -199,10 +199,10 @@ function PnSidebar({ active = 'panoramica', onNav }) {
           background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
           color: '#fff', display: 'grid', placeItems: 'center',
           fontWeight: 700, fontSize: 15, flexShrink: 0,
-        }}>MS</div>
+        }}>MR</div>
         {!collapsed && (
           <div style={{minWidth: 0, flex: 1}}>
-            <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Marco Silvestri</div>
+            <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Mario Rossi</div>
             <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Trattoria del Borgo</div>
           </div>
         )}
