@@ -105,7 +105,7 @@ function PnSidebar({ active = 'panoramica', onNav }) {
 
   return (
     <aside style={{
-      width: collapsed ? 68 : 252,
+      width: collapsed ? 68 : 272,
       flexShrink: 0,
       ...PN.GLASS_VIBRANT,
       display: 'flex', flexDirection: 'column',
