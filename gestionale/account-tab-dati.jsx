@@ -66,10 +66,10 @@ function AccDatiGenerali() {
           </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-          <AcInput label="Nome" value={datiDraft.nome} onChange={setCampo('nome')}/>
-          <AcInput label="Cognome" value={datiDraft.cognome} onChange={setCampo('cognome')}/>
-          <AcInput label="Email" type="email" value={datiDraft.email} onChange={setCampo('email')}/>
-          <AcInput label="Telefono" type="tel" value={datiDraft.telefono} onChange={setCampo('telefono')}/>
+          <AcEditField label="Nome" value={datiDraft.nome} onChange={setCampo('nome')}/>
+          <AcEditField label="Cognome" value={datiDraft.cognome} onChange={setCampo('cognome')}/>
+          <AcEditField label="Email" type="email" value={datiDraft.email} onChange={setCampo('email')}/>
+          <AcEditField label="Telefono" type="tel" value={datiDraft.telefono} onChange={setCampo('telefono')}/>
         </div>
 
         {/* Barra conferma — compare solo con modifiche in sospeso */}
@@ -454,7 +454,7 @@ const AcBtnGhost = {
 };
 
 // Input con la stessa veste di AcField, ma modificabile.
-function AcInput({ label, value, onChange, type = 'text', full }) {
+function AcEditField({ label, value, onChange, type = 'text', full }) {
   return (
     <div style={{gridColumn: full ? '1 / -1' : 'auto'}}>
       <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 6}}>{label}</div>
