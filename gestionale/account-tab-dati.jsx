@@ -178,7 +178,7 @@ function AccDatiGenerali() {
       </AcCard>
 
       <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca su un locale per passare al suo gestionale.">
-        <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 12}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
           {switching && <style>{`@keyframes acSpin { to { transform: rotate(360deg); } }`}</style>}
           {locali.map((loc) => {
             const active = loc.id === localeAttivo.id;
@@ -198,18 +198,18 @@ function AccDatiGenerali() {
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = active ? '0 0 0 2px rgba(233,30,99,0.08)' : 'none'; }}
             >
               <div style={{
-                height: 90, background: loc.cover, position:'relative',
-                display:'flex', alignItems:'flex-end', padding: 12,
+                height: 54, background: loc.cover, position:'relative',
+                display:'flex', alignItems:'flex-end', padding: 10,
               }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 10, padding: 3,
+                  width: 34, height: 34, borderRadius: 9, padding: 2.5,
                   background: PN.WHITE, boxShadow:'0 2px 6px rgba(0,0,0,0.15)',
                 }}>
                   <div style={{
-                    width:'100%', height:'100%', borderRadius: 7,
+                    width:'100%', height:'100%', borderRadius: 6.5,
                     background:'linear-gradient(135deg, #FF5A5F, #E04347)',
                     display:'grid', placeItems:'center',
-                    color:'#fff', fontSize: 15, fontWeight: 800,
+                    color:'#fff', fontSize: 12.5, fontWeight: 800,
                   }}>{loc.logo}</div>
                 </div>
                 {active && (
@@ -229,51 +229,52 @@ function AccDatiGenerali() {
                   }}>IN ATTESA</span>
                 )}
               </div>
-              <div style={{padding: '14px 16px 16px'}}>
-                <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 4}}>
-                  <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.name}</div>
+              <div style={{padding: '10px 12px 12px'}}>
+                <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 3}}>
+                  <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.name}</div>
                   <span style={{
-                    fontSize: 12, fontWeight: 700,
-                    padding:'2px 8px', borderRadius: 999,
+                    fontSize: 10.5, fontWeight: 700,
+                    padding:'2px 7px', borderRadius: 999,
                     background: loc.role === 'Owner' ? PN.PINK_SOFT : '#EFF1F4',
                     color: loc.role === 'Owner' ? PN.PINK_DARK : PN.MUTED,
-                    letterSpacing: 0.3,
+                    letterSpacing: 0.3, flexShrink: 0,
                   }}>{loc.role.toUpperCase()}</span>
                 </div>
-                <div style={{fontSize: 14.5, color: PN.MUTED}}>{loc.city}</div>
-                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{loc.addr}</div>
+                <div style={{fontSize: 13, color: PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.city}</div>
+                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.addr}</div>
                 {loc.pending ? (
                   /* Richiesta inviata: si attende la conferma del proprietario */
-                  <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 12}}>
-                    <span style={{flex:1, fontSize: 13.5, color: PN.MUTED}}>
+                  <div style={{display:'flex', flexDirection:'column', gap: 6, marginTop: 10}}>
+                    <span style={{fontSize: 12.5, color: PN.MUTED}}>
                       Richiesta inviata al proprietario
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDissocia(loc); }}
                       style={{
-                        padding:'7px 12px', borderRadius: 8,
+                        padding:'6px 10px', borderRadius: 8,
                         background:'transparent', color: PN.MUTED,
                         border:`1px solid ${PN.BORDER}`,
-                        fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                        fontSize: 12.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                       }}>Annulla richiesta</button>
                   </div>
                 ) : (
-                <div style={{display:'flex', gap: 6, marginTop: 12}}>
+                <div style={{display:'flex', gap: 6, marginTop: 10}}>
                   <button
                     onClick={(e) => { e.stopPropagation(); apriGestionale(loc); }}
                     disabled={active || !!switching}
                     style={{
-                    flex:1, padding:'7px 10px', borderRadius: 8,
+                    flex:1, padding:'6px 8px', borderRadius: 8, minWidth: 0,
                     background: active ? PN.PINK_SOFT : PN.TEXT,
                     color: active ? PN.PINK_DARK : PN.WHITE,
-                    border:'none', fontSize: 14, fontWeight: 700,
+                    border:'none', fontSize: 12.5, fontWeight: 700,
                     cursor: active ? 'default' : 'pointer', fontFamily:'inherit',
-                    display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 7,
+                    display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
                   }}>
                     {opening ? (
                       <>
                         <span style={{
-                          width: 13, height: 13, borderRadius:'50%',
+                          width: 11, height: 11, borderRadius:'50%',
                           border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'#fff',
                           animation:'acSpin 0.7s linear infinite', display:'inline-block',
                         }}/>
@@ -287,7 +288,7 @@ function AccDatiGenerali() {
                     disabled={active}
                     onClick={(e) => { e.stopPropagation(); if (!active) setDissocia(loc); }}
                     style={{
-                    width: 32, height: 32, borderRadius: 8,
+                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
                     background:'transparent', border:`1px solid ${PN.BORDER}`,
                     cursor: active ? 'not-allowed' : 'pointer',
                     display:'grid', placeItems:'center',
@@ -311,19 +312,23 @@ function AccDatiGenerali() {
             border: `2px dashed ${PN.BORDER}`,
             borderRadius: 14, background: 'transparent',
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-            gap: 8, padding: 24, cursor:'pointer', fontFamily:'inherit',
-            color: PN.MUTED, minHeight: 220,
-          }}>
+            gap: 6, padding: 14, cursor:'pointer', fontFamily:'inherit',
+            color: PN.MUTED,
+            transition:'border-color 150ms, background 150ms',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.background = '#FAFBFC'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.background = 'transparent'; }}
+          >
             <div style={{
-              width: 48, height: 48, borderRadius: 12,
+              width: 36, height: 36, borderRadius: 10,
               background: PN.PINK_SOFT, color: PN.PINK,
               display:'grid', placeItems:'center',
             }}>
-              <PnI.Plus size={22} color={PN.PINK}/>
+              <PnI.Plus size={17} color={PN.PINK}/>
             </div>
-            <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Aggiungi un nuovo locale</div>
-            <div style={{fontSize: 14, color: PN.MUTED, textAlign:'center', maxWidth: 220, lineHeight: 1.4}}>
-              Apri un secondo punto vendita o gestisci una nuova attività con lo stesso account.
+            <div style={{fontSize: 14, fontWeight: 700, color: PN.TEXT, textAlign:'center'}}>Aggiungi un locale</div>
+            <div style={{fontSize: 12.5, color: PN.MUTED, textAlign:'center', lineHeight: 1.4}}>
+              Collegane uno esistente o creane uno nuovo.
             </div>
           </button>
         </div>
