@@ -33,6 +33,9 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   const [salaToast, setSalaToast]   = React.useState(null);    // { ticketId, courseLabel } per pulse
   const [readyTickets, setReadyTickets] = React.useState([]);
   const [prontiCollapsed, setProntiCollapsed] = React.useState(true);
+  const [dropCol, setDropCol] = React.useState(null); // 'left' | 'right' — colonna evidenziata durante il drag
+  const cardNodes = React.useRef(new Map());          // ticketId → nodo DOM card (per risolvere il drop)
+  const colNodes  = React.useRef({});                 // { left, right } → nodi DOM colonne
 
   // Stato ticket
   const [tickets, setTickets] = React.useState(() => [
@@ -211,22 +214,60 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     setTickets(prev => [{...ticket, items: updatedItems}, ...prev]);
   }
 
-  // Frecce su/giù: sposta la card al posto di un'altra nella stessa colonna
-  function reorderInColumn(ticketId, targetId, isLeft) {
-    if (ticketId === targetId) return;
+  // Drag & drop delle card (pressione prolungata): verticale = riordino nella
+  // colonna, orizzontale = cambio colonna (→ avvia i piatti, ← li rimette in coda).
+  // Colonna e posizione di drop si risolvono dai rect DOM di colonne e card.
+  function _dropTargetIsLeft(x) {
+    const l = colNodes.current.left, r = colNodes.current.right;
+    if (!l || !r) return null;
+    const lr = l.getBoundingClientRect(), rr = r.getBoundingClientRect();
+    return x < (lr.right + rr.left) / 2;
+  }
+
+  function dragHoverAt(x) {
+    const isLeft = _dropTargetIsLeft(x);
+    if (isLeft === null) return;
+    setDropCol(isLeft ? 'left' : 'right');
+  }
+
+  function dropTicketAt(ticketId, x, y) {
+    setDropCol(null);
+    const isLeftTarget = _dropTargetIsLeft(x);
+    if (isLeftTarget === null) return;
+    // Anchor: prima card visibile della colonna target il cui centro sta sotto il drop
+    const vis = (isLeftTarget ? filteredLeft : filteredRight).filter(t => t.id !== ticketId);
+    let anchorId = null;
+    for (const t of vis) {
+      const el = cardNodes.current.get(t.id);
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (y < r.top + r.height / 2) { anchorId = t.id; break; }
+    }
     setTickets(prev => {
-      const match = isLeft
-        ? t => !t.items.some(i => i.state === 'doing')
-        : t => t.items.some(i => i.state === 'doing');
-      const col = prev.filter(match);
-      const di = col.findIndex(t => t.id === ticketId);
-      const ti = col.findIndex(t => t.id === targetId);
-      if (di === -1 || ti === -1) return prev;
-      const reordered = [...col];
-      const [moved] = reordered.splice(di, 1);
-      reordered.splice(ti, 0, moved);
-      let idx = 0;
-      return prev.map(t => match(t) ? reordered[idx++] : t);
+      const dragged = prev.find(t => t.id === ticketId);
+      if (!dragged) return prev;
+      const wasLeft = !dragged.items.some(i => i.state === 'doing');
+      const moved = isLeftTarget === wasLeft ? dragged : {
+        ...dragged,
+        items: dragged.items.map(it =>
+          isLeftTarget
+            ? (it.state === 'doing' ? {...it, state: 'todo'} : it)
+            : (it.state === 'todo'  ? {...it, state: 'doing'} : it)),
+      };
+      const rest = prev.filter(t => t.id !== ticketId);
+      if (anchorId) {
+        const ai = rest.findIndex(t => t.id === anchorId);
+        rest.splice(ai === -1 ? rest.length : ai, 0, moved);
+      } else {
+        // Nessuna card sotto il punto di drop: in fondo alla colonna target
+        let last = -1;
+        rest.forEach((t, i) => {
+          const isL = !t.items.some(it => it.state === 'doing');
+          if (isL === isLeftTarget) last = i;
+        });
+        rest.splice(last + 1, 0, moved);
+      }
+      return rest;
     });
   }
 
@@ -313,8 +354,9 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
           scrollBehavior: 'smooth',
           alignItems: 'flex-start',
         }}>
-          <KdsColumn title="In attesa" toneKey="ok" count={filteredLeft.length} empty="Nessun ordine in attesa">
-            {filteredLeft.map((t, i) => (
+          <KdsColumn title="In attesa" toneKey="ok" count={filteredLeft.length} empty="Nessun ordine in attesa"
+            innerRef={el => { colNodes.current.left = el; }} highlight={dropCol === 'left'}>
+            {filteredLeft.map(t => (
               <KdsTicket
                 key={t.id} ticket={t}
                 onBumpItem={(idx) => bumpItem(t.id, idx)}
@@ -323,14 +365,17 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
-                onMoveUp={i > 0 ? () => reorderInColumn(t.id, filteredLeft[i - 1].id, true) : null}
-                onMoveDown={i < filteredLeft.length - 1 ? () => reorderInColumn(t.id, filteredLeft[i + 1].id, true) : null}
+                registerNode={el => { if (el) cardNodes.current.set(t.id, el); else cardNodes.current.delete(t.id); }}
+                onDragHover={(x, y) => dragHoverAt(x)}
+                onDropAt={(x, y) => dropTicketAt(t.id, x, y)}
+                onDragCancel={() => setDropCol(null)}
               />
             ))}
           </KdsColumn>
 
-          <KdsColumn title="In preparazione" toneKey="doing" count={filteredRight.length} empty="Nessun ordine in preparazione">
-            {filteredRight.map((t, i) => (
+          <KdsColumn title="In preparazione" toneKey="doing" count={filteredRight.length} empty="Nessun ordine in preparazione"
+            innerRef={el => { colNodes.current.right = el; }} highlight={dropCol === 'right'}>
+            {filteredRight.map(t => (
               <KdsTicket
                 key={t.id} ticket={t}
                 onBumpItem={(idx) => bumpItem(t.id, idx)}
@@ -339,8 +384,10 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
-                onMoveUp={i > 0 ? () => reorderInColumn(t.id, filteredRight[i - 1].id, false) : null}
-                onMoveDown={i < filteredRight.length - 1 ? () => reorderInColumn(t.id, filteredRight[i + 1].id, false) : null}
+                registerNode={el => { if (el) cardNodes.current.set(t.id, el); else cardNodes.current.delete(t.id); }}
+                onDragHover={(x, y) => dragHoverAt(x)}
+                onDropAt={(x, y) => dropTicketAt(t.id, x, y)}
+                onDragCancel={() => setDropCol(null)}
               />
             ))}
           </KdsColumn>
@@ -524,14 +571,17 @@ function KdsProntiCard({ ticket, onRevertItem, onRevertCard }) {
 // ─── Column ────────────────────────────────────────────────
 // Pannello in vetro scuro leggerissimo: la colonna è un contenitore calmo,
 // l'identità di stato sta nella pill del conteggio (toneKey di KDS_TONE).
-function KdsColumn({ title, toneKey = 'ok', count, empty, children }) {
+function KdsColumn({ title, toneKey = 'ok', count, empty, children, innerRef, highlight }) {
   const tm = KDS_TONE_L[toneKey] || KDS_TONE_L.ok;
   return (
-    <div style={{
+    <div ref={innerRef} style={{
       flex: '1 0 340px', minWidth: 340,
-      background: 'rgba(15, 17, 21, 0.025)',
+      background: highlight ? 'rgba(59, 130, 246, 0.05)' : 'rgba(15, 17, 21, 0.025)',
       borderRadius: 18, padding: 14,
-      boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.06)',
+      boxShadow: highlight
+        ? 'inset 0 0 0 2px rgba(59, 130, 246, 0.55)'
+        : 'inset 0 0 0 1px rgba(15, 17, 21, 0.06)',
+      transition: 'box-shadow 120ms ease-out, background 120ms ease-out',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
@@ -557,41 +607,12 @@ function KdsColumn({ title, toneKey = 'ok', count, empty, children }) {
   );
 }
 
-// ─── Move button ────────────────────────────────────────────
-// Freccia compatta ▲/▼ nell'header: sposta la card su/giù nella propria
-// colonna. Disabilitata (attenuata) quando la card è già prima o ultima.
-function KdsMoveBtn({ dir, onClick, dark = false }) {
-  const [hover, setHover] = React.useState(false);
-  const C = dark ? KDS_C : KDS_CL;
-  const enabled = !!onClick;
-  return (
-    <button
-      onClick={enabled ? onClick : undefined}
-      disabled={!enabled}
-      title={dir === 'up' ? 'Sposta su' : 'Sposta giù'}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        width: 38, height: 32, borderRadius: 9, flexShrink: 0, padding: 0,
-        background: hover && enabled ? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,17,21,0.06)') : 'transparent',
-        border: 'none',
-        boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.12)'}`,
-        color: hover && enabled ? C.text : C.mut,
-        opacity: enabled ? 1 : 0.3,
-        cursor: enabled ? 'pointer' : 'default',
-        display: 'grid', placeItems: 'center',
-        transition: 'background 0.12s, color 0.12s',
-      }}>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        {dir === 'up' ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
-      </svg>
-    </button>
-  );
-}
+// Pressione prolungata prima che il drag della card si attivi
+const KDS_HOLD_MS = 800;
 
 // ─── Ticket ────────────────────────────────────────────────
 function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems,
-  onMoveUp, onMoveDown }) {
+  registerNode, onDragHover, onDropAt, onDragCancel }) {
   const age = _ageMin(ticket.time);
   const minToPickup = ticket.pickup ? _toMin(ticket.pickup) - CUC_NOW_MIN : null;
   const u = (ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup
@@ -672,6 +693,71 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
     }
   }, [doingItems.length]);
 
+  // Drag & drop con pressione prolungata: dopo KDS_HOLD_MS senza muoversi la
+  // card si "solleva" e segue il puntatore; il rilascio la deposita (verticale
+  // = riordino, orizzontale = cambio colonna). Un tap rapido resta un click.
+  const rootRef = React.useRef(null);
+  const holdTimer = React.useRef(null);
+  const dragRef = React.useRef(null);      // { x0, y0, active }
+  const didDragRef = React.useRef(false);  // sopprime il click sintetico post-drag
+  const [draggingCard, setDraggingCard] = React.useState(false);
+
+  React.useEffect(() => () => clearTimeout(holdTimer.current), []);
+
+  const cancelHold = () => {
+    if (dragRef.current && dragRef.current.active) return; // drag attivo: gestito dai listener document
+    clearTimeout(holdTimer.current);
+    dragRef.current = null;
+  };
+
+  const handleCardPointerDown = (e) => {
+    if (dragRef.current && dragRef.current.active) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const x0 = e.clientX, y0 = e.clientY;
+    dragRef.current = { x0, y0, active: false };
+    clearTimeout(holdTimer.current);
+    holdTimer.current = setTimeout(() => {
+      const d = dragRef.current;
+      if (!d) return;
+      d.active = true;
+      didDragRef.current = true;
+      setDraggingCard(true);
+      if (rootRef.current) rootRef.current.style.transform = 'scale(1.03)';
+      const move = ev => {
+        ev.preventDefault();
+        if (rootRef.current) {
+          rootRef.current.style.transform = `translate(${ev.clientX - d.x0}px, ${ev.clientY - d.y0}px) scale(1.03)`;
+        }
+        onDragHover && onDragHover(ev.clientX, ev.clientY);
+      };
+      const finish = (ev, commit) => {
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        document.removeEventListener('pointercancel', cancel);
+        window.removeEventListener('touchmove', touchGuard);
+        if (rootRef.current) rootRef.current.style.transform = '';
+        setDraggingCard(false);
+        dragRef.current = null;
+        if (commit) onDropAt && onDropAt(ev.clientX, ev.clientY);
+        else onDragCancel && onDragCancel();
+        setTimeout(() => { didDragRef.current = false; }, 250);
+      };
+      const up = ev => finish(ev, true);
+      const cancel = ev => finish(ev, false);
+      const touchGuard = ev => ev.preventDefault(); // blocca lo scroll touch a drag attivo
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+      document.addEventListener('pointercancel', cancel);
+      window.addEventListener('touchmove', touchGuard, { passive: false });
+    }, KDS_HOLD_MS);
+  };
+
+  const handleCardPointerMove = (e) => {
+    const d = dragRef.current;
+    // Se il dito/mouse si sposta prima dell'attivazione, è uno scroll o un tap: annulla il hold
+    if (d && !d.active && (Math.abs(e.clientX - d.x0) > 8 || Math.abs(e.clientY - d.y0) > 8)) cancelHold();
+  };
+
 const lateGlow = u.tone === 'late';
   const toneKey = u.tone === 'late' ? 'late' : u.tone === 'warn' ? 'warn' : 'ok';
   // La card in RITARDO resta in vetro scuro sunset: è il segnale d'urgenza.
@@ -695,6 +781,13 @@ const lateGlow = u.tone === 'late';
 
   return (
     <div
+      ref={el => { rootRef.current = el; registerNode && registerNode(el); }}
+      onPointerDown={handleCardPointerDown}
+      onPointerMove={handleCardPointerMove}
+      onPointerUp={cancelHold}
+      onPointerLeave={cancelHold}
+      onContextMenu={e => e.preventDefault()}
+      onClickCapture={e => { if (didDragRef.current) { e.preventDefault(); e.stopPropagation(); } }}
       style={{
         position: 'relative',
         borderRadius: 20,
@@ -705,20 +798,26 @@ const lateGlow = u.tone === 'late';
           : PN.WHITE,
         border: 'none',
         overflow: 'hidden',
-        boxShadow: dark ? [
-          'inset 0 1px 0 rgba(255, 200, 210, 0.18)',
-          innerRing,
-          '0 0 0 3px rgba(255, 90, 95, 0.18)',
-          '0 14px 36px -10px rgba(80, 10, 30, 0.55)',
-          '0 4px 10px -4px rgba(80, 10, 30, 0.30)',
-        ].join(', ') : [
-          innerRing,
-          '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
-          '0 1px 2px rgba(15, 17, 21, 0.04)',
+        boxShadow: [
+          ...(dark ? [
+            'inset 0 1px 0 rgba(255, 200, 210, 0.18)',
+            innerRing,
+            '0 0 0 3px rgba(255, 90, 95, 0.18)',
+            '0 14px 36px -10px rgba(80, 10, 30, 0.55)',
+            '0 4px 10px -4px rgba(80, 10, 30, 0.30)',
+          ] : [
+            innerRing,
+            '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
+            '0 1px 2px rgba(15, 17, 21, 0.04)',
+          ]),
+          ...(draggingCard ? ['0 24px 48px -12px rgba(15, 17, 21, 0.40)'] : []),
         ].join(', '),
         animation: lateGlow ? 'kdsLatePulse 2.4s ease-in-out infinite' : 'none',
         color: C.text,
         transition: 'box-shadow 0.2s',
+        zIndex: draggingCard ? 100 : 'auto',
+        cursor: draggingCard ? 'grabbing' : 'default',
+        userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none',
       }}>
       <style>{`@keyframes kdsLatePulse {
         0%,100% { outline: 3px solid rgba(255,90,95,0.16); outline-offset: 0; }
@@ -730,6 +829,23 @@ const lateGlow = u.tone === 'late';
         display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
         borderBottom: `1px solid ${C.hair}`,
       }}>
+        {/* Freccia ← prima del titolo: rimette in coda tutti i piatti in cottura */}
+        {!isInQueue && (
+          <button
+            onClick={() => onRevertItems(doingItems.map(it => it.idx))}
+            title="Rimetti in coda"
+            style={{
+              width: 34, height: 34, borderRadius: 999, flexShrink: 0,
+              background: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 17, 21, 0.04)',
+              boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.10)'}`,
+              border: 'none', color: C.sub, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'grid', placeItems: 'center',
+              transition: 'background 150ms ease-out, color 150ms ease-out',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.14)' : 'rgba(15,17,21,0.08)'; e.currentTarget.style.color = C.text; }}
+            onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,17,21,0.04)'; e.currentTarget.style.color = C.sub; }}
+          ><RevertArrowIcon size={15}/></button>
+        )}
         <div style={{flex: 1, minWidth: 0}}>
           {kindBadge ? (
             <React.Fragment>
@@ -752,43 +868,6 @@ const lateGlow = u.tone === 'late';
             </div>
           )}
         </div>
-        {/* Frecce su/giù — riordina la card nella propria colonna */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0}}>
-          <KdsMoveBtn dir="up" dark={dark} onClick={onMoveUp}/>
-          <KdsMoveBtn dir="down" dark={dark} onClick={onMoveDown}/>
-        </div>
-        {!isInQueue && (
-          <React.Fragment>
-            {/* Secondaria: rimette in coda tutti i piatti in cottura */}
-            <button
-              onClick={() => onRevertItems(doingItems.map(it => it.idx))}
-              title="Rimetti in coda"
-              style={{
-                width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-                background: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 17, 21, 0.04)',
-                boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.10)'}`,
-                border: 'none', color: C.sub, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'grid', placeItems: 'center',
-                transition: 'background 150ms ease-out, color 150ms ease-out',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.14)' : 'rgba(15,17,21,0.08)'; e.currentTarget.style.color = C.text; }}
-              onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,17,21,0.04)'; e.currentTarget.style.color = C.sub; }}
-            ><RevertArrowIcon/></button>
-            {/* Primaria: tutto il ticket passa in Pronti */}
-            <button onClick={onMarkReady} title="Sposta il ticket in Pronti" style={{
-              padding: '7px 12px', borderRadius: 999, flexShrink: 0,
-              background: dark ? 'rgba(52, 211, 153, 0.16)' : 'rgba(16, 185, 129, 0.10)',
-              boxShadow: 'inset 0 0 0 1px rgba(16, 185, 129, 0.45)',
-              border: 'none', color: dark ? '#6EE7B7' : '#059669',
-              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5,
-              transition: 'background 150ms ease-out',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(52,211,153,0.24)' : 'rgba(16,185,129,0.16)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(52,211,153,0.16)' : 'rgba(16,185,129,0.10)'; }}
-            >Tutto pronto <ForwardArrowIcon/></button>
-          </React.Fragment>
-        )}
         {/* Tempo — accento traslucido, il segnale d'urgenza */}
         <div style={{
           textAlign: 'center', padding: '7px 12px', borderRadius: 13,
@@ -918,21 +997,37 @@ const lateGlow = u.tone === 'late';
         </span>
       </div>
 
-      {/* Footer — Inizia tutto in fondo alla card */}
+      {/* Footer — CTA principale, grande, in fondo alla card */}
       {isInQueue && hasTodo && (
         <div style={{padding: '0 16px 14px'}}>
           <button onClick={onPrimary} title="Avvia tutti i piatti" style={{
-            width: '100%', padding: '9px 12px', borderRadius: 999,
+            width: '100%', padding: '13px 14px', borderRadius: 999,
             background: dark ? 'rgba(245, 158, 11, 0.18)' : 'rgba(245, 158, 11, 0.14)',
             boxShadow: 'inset 0 0 0 1px rgba(245, 158, 11, 0.50)',
             border: 'none', color: dark ? '#FFC964' : '#B45309',
-            fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+            whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
             transition: 'background 150ms ease-out',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.22)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.14)'; }}
-          >Inizia tutto <ForwardArrowIcon/></button>
+          >Inizia tutto <ForwardArrowIcon size={16}/></button>
+        </div>
+      )}
+      {!isInQueue && (
+        <div style={{padding: '0 16px 14px'}}>
+          <button onClick={onMarkReady} title="Sposta il ticket in Pronti" style={{
+            width: '100%', padding: '13px 14px', borderRadius: 999,
+            background: dark ? 'rgba(52, 211, 153, 0.16)' : 'rgba(16, 185, 129, 0.10)',
+            boxShadow: 'inset 0 0 0 1px rgba(16, 185, 129, 0.45)',
+            border: 'none', color: dark ? '#6EE7B7' : '#059669',
+            fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+            whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            transition: 'background 150ms ease-out',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(52,211,153,0.24)' : 'rgba(16,185,129,0.16)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = dark ? 'rgba(52,211,153,0.16)' : 'rgba(16,185,129,0.10)'; }}
+          >Tutto pronto <ForwardArrowIcon size={16}/></button>
         </div>
       )}
     </div>
@@ -1073,8 +1168,8 @@ function KdsStepBtn({ dir, onClick, dark = false, title, onHoverChange }) {
 // ─── Icons ────────────────────────────────────────────────
 function BagIcon()   { return (<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>); }
 function ScooterIcon() { return (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M14 6h3l3 8M8 17l3-8h6"/></svg>); }
-function RevertArrowIcon() { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>); }
-function ForwardArrowIcon() { return (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>); }
+function RevertArrowIcon({ size = 13 }) { return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>); }
+function ForwardArrowIcon({ size = 13 }) { return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>); }
 function NoteRemoveIcon() { return (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>); }
 function NoteAddIcon()    { return (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>); }
 
