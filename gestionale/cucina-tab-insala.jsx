@@ -572,7 +572,7 @@ function KdsMoveBtn({ dir, onClick, dark = false }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: 30, height: 22, borderRadius: 7, flexShrink: 0, padding: 0,
+        width: 38, height: 32, borderRadius: 9, flexShrink: 0, padding: 0,
         background: hover && enabled ? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,17,21,0.06)') : 'transparent',
         border: 'none',
         boxShadow: `inset 0 0 0 1px ${dark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 17, 21, 0.12)'}`,
@@ -582,7 +582,7 @@ function KdsMoveBtn({ dir, onClick, dark = false }) {
         display: 'grid', placeItems: 'center',
         transition: 'background 0.12s, color 0.12s',
       }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         {dir === 'up' ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
       </svg>
     </button>
@@ -753,7 +753,7 @@ const lateGlow = u.tone === 'late';
           )}
         </div>
         {/* Frecce su/giù — riordina la card nella propria colonna */}
-        <div style={{display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0}}>
           <KdsMoveBtn dir="up" dark={dark} onClick={onMoveUp}/>
           <KdsMoveBtn dir="down" dark={dark} onClick={onMoveDown}/>
         </div>
@@ -1030,18 +1030,11 @@ function KdsItemRow({ item, onBump, onRevert, dark = false, disabled = false, se
         })()}
       </div>
 
-      {/* Frecce stato — ← indietro / → avanti, azioni esplicite sul piatto */}
-      {!disabled && (
-        <div style={{display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0}}>
-          {onRevert && item.state !== 'todo' && (
-            <KdsStepBtn dir="back" dark={dark} onClick={onRevert} onHoverChange={setHoverBtn}
-              title={item.state === 'done' ? 'Riporta in preparazione' : 'Rimetti in coda'}/>
-          )}
-          {item.state !== 'done' && (
-            <KdsStepBtn dir="fwd" dark={dark} onClick={onBump} onHoverChange={setHoverBtn}
-              title={item.state === 'todo' ? 'Inizia preparazione' : 'Segna pronto'}/>
-          )}
-        </div>
+      {/* Freccia ← a destra della riga: rimanda il piatto allo stato precedente.
+          Niente freccia →: il click sulla riga fa già avanzare il piatto. */}
+      {!disabled && onRevert && item.state !== 'todo' && (
+        <KdsStepBtn dir="back" dark={dark} onClick={onRevert} onHoverChange={setHoverBtn}
+          title={item.state === 'done' ? 'Riporta in preparazione' : 'Rimetti in coda'}/>
       )}
     </div>
   );
