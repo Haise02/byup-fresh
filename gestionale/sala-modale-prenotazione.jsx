@@ -388,6 +388,17 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
   const [coperti, setCoperti]                 = React.useState(2);
   // Cancellazione (solo in modifica): conferma in due passi nel footer
   const [confirmDelete, setConfirmDelete]     = React.useState(false);
+  // Popup di sovrapposizione alla conferma (guard finale sui dati live)
+  const [submitConflict, setSubmitConflict]   = React.useState(null);
+  // Il componente resta montato tra un'apertura e l'altra: senza questo bump
+  // i useMemo di disponibilità riuserebbero il calcolo dell'apertura precedente
+  // anche se nel frattempo la griglia è cambiata (prenotazioni nuove o spostate).
+  const [resVersion, setResVersion]           = React.useState(0);
+  React.useEffect(() => {
+    const bump = () => setResVersion(v => v + 1);
+    window.addEventListener('sala-res-change', bump);
+    return () => window.removeEventListener('sala-res-change', bump);
+  }, []);
   const [date, setDate]                       = React.useState(npTodayISO());
   const [time, setTime]                       = React.useState('20:00');
   const [dur, setDur]                         = React.useState(npSmartDur('20:00'));
@@ -435,6 +446,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
       setShowExtra(false);
       setShowAllergeni(false);
       setConfirmDelete(false);
+      setSubmitConflict(null);
       setNome(initData?.nome || ''); setPhone(initData?.phone || '');
       setTag(initData?.tag || null); setTagAltro('');
       setAllergeni(new Set()); setNote(initData?.noteText || '');
@@ -485,7 +497,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
       fasce.push({ min: m, label, occ, total, selectable: NP_ORARI.includes(label) });
     }
     return fasce;
-  }, [time, activeIds, dur]);
+  }, [time, activeIds, dur, open, resVersion]);
 
   // Availability analysis for currently selected slot + alternatives
   const slotInfo = React.useMemo(() => {
@@ -529,7 +541,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
       else if (tMin > reqMin) { if (!altAfter || tMin < npTimeToMin(altAfter.time)) altAfter = cand; }
     }
     return { suggerito, ratio, available: !!suggerito, altBefore, altAfter, tavoliIdonei: combos, freeTables };
-  }, [selectedSlot, dur, activeIds, coperti]);
+  }, [selectedSlot, dur, activeIds, coperti, open, resVersion]);
 
   const toggleAllergene = (a) => setAllergeni(prev => {
     const n = new Set(prev); n.has(a) ? n.delete(a) : n.add(a); return n;
@@ -555,6 +567,21 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
   // nel calendario via SALA_RES_ADD/UPDATE e mostra il toast) e chiude.
   const handleSubmit = () => {
     if (!canSubmit) return;
+    // Guard finale sui dati live della griglia: se un tavolo scelto è nel
+    // frattempo occupato in quell'orario, blocca e mostra il popup.
+    const resLive = window.SALA_RES_DATA_GLOBAL || [];
+    const reqMin = npTimeToMin(selectedSlot);
+    const reqEnd = reqMin + (initData?.dur || 90);
+    const busy = effectiveTavolo.tables.filter(t =>
+      resLive.some(r => {
+        if (initData?.resId && r.id === initData.resId) return false;
+        if (r.table !== t.id) return false;
+        if (r.status === 'cancellata' || r.status === 'noshow') return false;
+        const rs = npTimeToMin(r.time);
+        return rs < reqEnd && rs + (r.dur || 90) > reqMin;
+      })
+    );
+    if (busy.length) { setSubmitConflict(busy.map(t => t.id)); return; }
     const noteTag = allergeni.size
       ? { type: 'allergia', text: [...allergeni].join(', ') }
       : (tag ? { type: tag, text: tag === 'altro' ? tagAltro.trim() : '' } : null);
@@ -1001,6 +1028,45 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
         {renderDettagli()}
         {renderTavolo()}
       </div>
+
+      {/* Popup sovrapposizione — guard finale alla conferma, stesso
+          linguaggio del popup della griglia */}
+      {submitConflict && (
+        <div onClick={() => setSubmitConflict(null)} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.45)', zIndex:300,
+          display:'grid', placeItems:'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'#fff', borderRadius:14, padding:'24px 24px 20px',
+            width:340, boxShadow:'0 20px 60px rgba(0,0,0,0.22)',
+            display:'flex', flexDirection:'column', gap:14,
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <div style={{width:36, height:36, borderRadius:10, background:'#FEF3C7',
+                display:'grid', placeItems:'center', flexShrink:0}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div style={{fontSize:19, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
+                Sovrapposizione non consentita
+              </div>
+            </div>
+            <div style={{fontSize:16, color:'#6B7280', lineHeight:1.5}}>
+              {submitConflict.length === 1
+                ? <>Il <strong>Tavolo {submitConflict[0]}</strong> è già occupato alle {selectedSlot}.</>
+                : <>I tavoli <strong>{submitConflict.join(', ')}</strong> sono già occupati alle {selectedSlot}.</>}
+              {' '}Scegli un altro tavolo o cambia orario.
+            </div>
+            <button onClick={() => setSubmitConflict(null)} style={{
+              padding:'11px 14px', borderRadius: 999,
+              background:'#0F1115', color:'#fff', border:'none',
+              fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            }}>Ok, ho capito</button>
+          </div>
+        </div>
+      )}
     </PnModal>
   );
 }

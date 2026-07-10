@@ -570,7 +570,9 @@ function DayTimeline({ onNuova, onModifica }) {
         } else {
           const hh = String(Math.floor(sd.curMin / 60)).padStart(2, '0');
           const mm = String(sd.curMin % 60).padStart(2, '0');
-          setResData(prev => prev.map(r => r.id === sd.resId ? {...r, time:`${hh}:${mm}`, table:sd.curTableId} : r));
+          // Scrive nello store globale (il listener sala-res-change aggiorna
+          // resData): così modale e Lista vedono sempre le posizioni vere.
+          window.SALA_RES_UPDATE(sd.resId, { time:`${hh}:${mm}`, table:sd.curTableId });
         }
       }
       const rd = resizeRef.current;
@@ -581,7 +583,7 @@ function DayTimeline({ onNuova, onModifica }) {
         } else {
           const hh = String(Math.floor(rd.curStartMin / 60)).padStart(2, '0');
           const mm = String(rd.curStartMin % 60).padStart(2, '0');
-          setResData(prev => prev.map(r => r.id === rd.resId ? {...r, time:`${hh}:${mm}`, dur:rd.curEndMin - rd.curStartMin} : r));
+          window.SALA_RES_UPDATE(rd.resId, { time:`${hh}:${mm}`, dur:rd.curEndMin - rd.curStartMin });
         }
       }
     };
