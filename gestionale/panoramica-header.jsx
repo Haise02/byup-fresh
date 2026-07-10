@@ -49,7 +49,7 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
         fontWeight: 600, fontSize: 14.5, fontFamily:'inherit',
         cursor:'pointer',
       }}>
-        {editMode ? <><Icon name="check" size={13}/> Fine</> : <><Icon name="pencil" size={13}/> Personalizza</>}
+        {editMode ? <><Icon name="check" size={13}/> Salva</> : <><Icon name="pencil" size={13}/> Personalizza</>}
       </button>
     </div>
   );

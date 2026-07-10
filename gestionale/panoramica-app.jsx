@@ -125,7 +125,7 @@ function PnApp() {
               fontSize: 15, color: PN.PINK_DARK, fontWeight: 600,
             }}>
               <Icon name="pencil" size={14} color={PN.PINK_DARK}/>
-              Modalità personalizzazione attiva — trascina, rimuovi o aggiungi widget. Clicca <em style={{fontStyle:'normal', textDecoration:'underline'}}>Fine</em> per salvare.
+              Stai modificando la dashboard — trascina, rimuovi o aggiungi widget. Premi <em style={{fontStyle:'normal', textDecoration:'underline'}}>Salva</em> quando hai finito.
             </div>
           )}
 

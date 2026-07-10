@@ -591,7 +591,7 @@ function WidgetTavoliStato() {
     libero:    { bg:'#F4F5F7',     fg: PN.MUTED,     label:'Libero' },
     occupato:  { bg:'#FFE0DD',     fg: PN.PINK_DARK, label:'Occupato' },
     prenotato: { bg: PN.BLUE_SOFT, fg: PN.BLUE,      label:'Prenotato' },
-    dapulire:  { bg: PN.PURPLE_SOFT, fg: PN.PURPLE,  label:'Da pulire' },
+    dapulire:  { bg: PN.PURPLE_SOFT, fg: PN.PURPLE,  label:'Da liberare' },
   };
   const occupati = tables.filter(t => t.s === 'occupato').length;
 
@@ -701,7 +701,7 @@ function WidgetTopPiatti() {
                 <span style={{minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.name}</span>
               </div>
               <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 14, flexShrink: 0, whiteSpace:'nowrap'}}>
-                <span style={{color: 'rgba(255,255,255,0.55)'}}>{d.sales}× · </span>
+                <span style={{color: 'rgba(255,255,255,0.55)'}}>{d.sales} ordini · </span>
                 <span style={{color: '#F5F5F7', fontWeight: 600}}>€{d.rev.toLocaleString('it')}</span>
                 <span style={{color: d.up ? '#86EFAC' : '#FCA5A5', fontWeight: 600, minWidth: 36, textAlign:'right'}}>{d.trend}</span>
               </div>
@@ -801,8 +801,8 @@ function WidgetAzioni({ size }) {
     { label: 'Aggiungi piatto',    icon: 'food-meal',           color: '#F472B6' },
     { label: 'Apri cassa',         icon: 'commerce-wallet',     color: '#34D399' },
     { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA' },
-    { label: 'Invita staff',       icon: 'people-staff-group',  color: '#A78BFA' },
-    { label: 'Esporta giornaliero',icon: 'download',            color: '#22D3EE' },
+    { label: 'Invita membro del team', icon: 'people-staff-group',  color: '#A78BFA' },
+    { label: 'Esporta dati del giorno', icon: 'download',            color: '#22D3EE' },
   ];
 
   const w = (size && size.w) || 1;
@@ -827,7 +827,7 @@ function WidgetAzioni({ size }) {
           Azioni rapide
         </div>
         <div style={{fontSize: 13.5, color: 'rgba(255,255,255,0.50)', whiteSpace:'nowrap', flexShrink: 0}}>
-          {actions.length} shortcut
+          {actions.length} azioni
         </div>
       </div>
 
@@ -922,7 +922,7 @@ function WidgetCopertiSettimana({ size }) {
       height:'100%', minHeight: 0, gap: compact ? 18 : 0,
     }}>
       <div style={{flexShrink: 0, minWidth: 0, maxWidth: compact ? '46%' : 'none', display:'flex', flexDirection:'column', justifyContent: compact ? 'center' : 'flex-start'}}>
-        <WMetric label="Coperti questa settimana" value="198" sub="prev. fine sett: 412" trend="+11%"/>
+        <WMetric label="Coperti questa settimana" value="198" sub="Previsione a fine settimana: 412" trend="+11%"/>
       </div>
       <div style={{flex:1, minWidth: 0, minHeight: 0, display:'flex', alignItems:'stretch', gap: 8, marginTop: compact ? 0 : 18, paddingBottom: 24, position:'relative'}}>
         {days.map((d,i) => (
@@ -966,13 +966,13 @@ function WidgetCucinaLive() {
   // Il NUMERO MINUTI viene colorato come il pill status, così l'occhio capisce
   // urgenza scansionando la colonna centrale senza dover leggere la pill.
   const orders = [
-    { table: '7',  items: 3, time: "8' 20\"",  status: 'amber', label: 'In prep' },
+    { table: '7',  items: 3, time: "8' 20\"",  status: 'amber', label: 'In preparazione' },
     { table: '12', items: 2, time: "2' 10\"",  status: 'green', label: 'Pronto' },
-    { table: '3',  items: 5, time: "12' 40\"", status: 'red',   label: 'Ritardo' },
-    { table: '9',  items: 4, time: "6' 45\"",  status: 'amber', label: 'In prep' },
+    { table: '3',  items: 5, time: "12' 40\"", status: 'red',   label: 'In ritardo' },
+    { table: '9',  items: 4, time: "6' 45\"",  status: 'amber', label: 'In preparazione' },
     { table: '14', items: 1, time: "1' 30\"",  status: 'green', label: 'Pronto' },
     { table: '5',  items: 3, time: "4' 10\"",  status: 'green', label: 'Pronto' },
-    { table: '11', items: 6, time: "10' 15\"", status: 'red',   label: 'Ritardo' },
+    { table: '11', items: 6, time: "10' 15\"", status: 'red',   label: 'In ritardo' },
   ];
   const statusStyles = {
     amber: { bg: 'rgba(251, 146, 60, 0.18)', fg: '#FDBA74' },
@@ -998,7 +998,7 @@ function WidgetCucinaLive() {
           fontSize: 15, fontWeight: 600, color: '#F3F4F6',
           letterSpacing: '-0.01em',
           minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>Cucina · live</span>
+        }}>Cucina · in diretta</span>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontSize: 13, fontWeight: 500, color: '#9CA3AF',
@@ -1007,7 +1007,7 @@ function WidgetCucinaLive() {
           <span style={{
             width: 6, height: 6, borderRadius: 999, background: '#F87171',
           }}/>
-          {orders.length} in coda
+          {orders.length} in attesa
         </span>
       </div>
 

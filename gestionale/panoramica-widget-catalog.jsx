@@ -10,16 +10,16 @@
 //                Cucina live) → non serve sullo shell
 const PN_WIDGET_CATALOG = [
   { id: 'financials', name: 'Andamento incassi', desc: 'Incassi + scontrino medio + coperti, switch automatico', component: 'WidgetFinancials', defaultSize: { w: 2, h: 1 }, category: 'Incassi', icon: 'chart-area' },
-  { id: 'incassi', name: 'Solo incassi', desc: 'Oggi/Settimana/Mese con sparkline', component: 'WidgetIncassi', defaultSize: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
+  { id: 'incassi', name: 'Incassi', desc: 'Oggi/Settimana/Mese con sparkline', component: 'WidgetIncassi', defaultSize: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
   { id: 'kpi-vendita', name: 'KPI di vendita', desc: 'Scontrino medio e coperti per periodo', component: 'WidgetKpiVendita', defaultSize: { w: 1, h: 2 }, category: 'Statistiche', icon: 'chart-bar' },
-  { id: 'riempimento', name: 'Riempimento', desc: 'Tasso di occupazione + fasce orarie', component: 'WidgetRiempimento', defaultSize: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-doughnut' },
+  { id: 'riempimento', name: 'Occupazione sala', desc: 'Tasso di occupazione + fasce orarie', component: 'WidgetRiempimento', defaultSize: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-doughnut' },
   { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Lista live coperti del giorno', component: 'WidgetPrenotazioniOggi', defaultSize: { w: 1, h: 2 }, category: 'Sala', icon: 'time-calendar' },
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Mappa visiva sala in tempo reale', component: 'WidgetTavoliStato', defaultSize: { w: 1, h: 2 }, category: 'Sala', icon: 'place-table' },
   { id: 'top-piatti', name: 'Top piatti', desc: 'Classifica settimanale per ricavo', component: 'WidgetTopPiatti', defaultSize: { w: 1, h: 2 }, category: 'Menu', icon: 'food-meal' },
   { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni e media stelle', component: 'WidgetRecensioni', defaultSize: { w: 1, h: 2 }, category: 'Reputazione', theme: 'aurora', icon: 'star' },
   { id: 'azioni', name: 'Azioni rapide', desc: 'Shortcut launcher (full row, ridimensionabile)', component: 'WidgetAzioni', defaultSize: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
   { id: 'coperti-sett', name: 'Coperti settimana', desc: 'Bar chart 7 giorni', component: 'WidgetCopertiSettimana', defaultSize: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
-  { id: 'cucina-live', name: 'Cucina live', desc: 'Ordini in cottura e pronti', component: 'WidgetCucinaLive', defaultSize: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
+  { id: 'cucina-live', name: 'Cucina in diretta', desc: 'Ordini in cottura e pronti', component: 'WidgetCucinaLive', defaultSize: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
 ];
 
 function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
@@ -125,7 +125,7 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
                       cursor: inUse ? 'default' : 'pointer',
                       whiteSpace:'nowrap', flexShrink: 0, alignSelf:'center',
                     }}>
-                    {inUse ? 'Già presente' : 'Aggiungi'}
+                    {inUse ? 'Già in dashboard' : 'Aggiungi'}
                   </button>
                 </div>
               );
