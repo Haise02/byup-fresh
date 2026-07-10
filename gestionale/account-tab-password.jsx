@@ -1,6 +1,8 @@
 // Account — Tab Password e sicurezza
 
 function AccPasswordSicurezza() {
+  // Logout: vive qui, tra le sessioni — azione rara, contesto di sicurezza.
+  const [logoutConfirm, setLogoutConfirm] = React.useState(false);
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
       <AcCard title="Password" subtitle="Aggiorna la password dell'account.">
@@ -70,7 +72,24 @@ function AccPasswordSicurezza() {
                 </div>
                 <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>{s.loc} · {s.when}</div>
               </div>
-              {!s.current && (
+              {s.current ? (
+                <button
+                  onClick={() => setLogoutConfirm(true)}
+                  style={{
+                  padding:'7px 14px', borderRadius: 999,
+                  background:'transparent', color: PN.TEXT,
+                  border:`1px solid ${PN.BORDER}`,
+                  fontSize: 14, fontWeight: 600, cursor:'pointer',
+                  fontFamily:'inherit',
+                  display:'inline-flex', alignItems:'center', gap: 6,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = PN.BORDER; }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Esci dall'account
+                </button>
+              ) : (
                 <button style={{
                   padding:'7px 14px', borderRadius: 999,
                   background:'transparent', color: PN.RED,
@@ -91,6 +110,59 @@ function AccPasswordSicurezza() {
           fontFamily:'inherit',
         }}>Termina tutte le altre sessioni</button>
       </AcCard>
+
+      {/* Popup conferma logout */}
+      {logoutConfirm && (
+        <div onClick={() => setLogoutConfirm(false)} style={{
+          position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG,
+            borderRadius: 20, width: 380, maxWidth:'100%',
+            padding: '22px 22px 20px',
+            display:'flex', flexDirection:'column', gap: 16,
+          }}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Esci dall'account?</div>
+                <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+                  La sessione su questo dispositivo verrà terminata.
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button
+                onClick={() => setLogoutConfirm(false)}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+                  border: '1px solid rgba(15,17,21,0.12)',
+                  fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Annulla
+              </button>
+              <button
+                onClick={() => { window.location.href = 'byup Login.html'; }}
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 999,
+                  background: PN.BTN_DARK, color: PN.WHITE,
+                  border: '1px solid rgba(0,0,0,0.32)',
+                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                Esci
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
