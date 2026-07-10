@@ -573,8 +573,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
   // In modalità unione niente card hover/dettaglio: il click serve a selezionare.
-  const detailedTable = mergeMode ? null
-    : (expandedId ? tavoli.find(t=>t.id===expandedId) : (hovered ? tavoli.find(t=>t.id===hovered) : null));
+  // Hover = anteprima leggera ancorata a destra; click = popup centrale grande.
+  const hoverPreview = mergeMode || expandedId ? null
+    : (hovered ? tavoli.find(t=>t.id===hovered) : null);
+  const clickedTable = mergeMode ? null
+    : (expandedId ? tavoli.find(t=>t.id===expandedId) : null);
 
   // Helpers: bounding box e gruppi
   const tableRect = React.useCallback((id, customPos) => {
@@ -1553,10 +1556,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
           {/* Barra ridimensionamento — [−] posti [+] e ruota, sul tavolo selezionato.
               Scala posti: 2(round) → 4(square) → 6(rect 2u) → 8(rect 2u denso) → 10(rect 3u).
               Nascosta per i tavoli uniti (il footprint del gruppo si gestisce col drag). */}
-          {!mergeMode && expandedId != null && positions[expandedId] && (() => {
+          {/* Regolatore posti/rotazione — segue l'HOVER: il click apre il popup di dettaglio */}
+          {!mergeMode && hovered != null && positions[hovered] && (() => {
             const all = window.SALA_TAVOLI || tavoli;
-            const t = all.find(x => x.id === expandedId);
-            const p = positions[expandedId];
+            const t = all.find(x => x.id === hovered);
+            const p = positions[hovered];
             if (!t || !p || t.mergedWith || (t.mergedTables && t.mergedTables.length > 0)) return null;
             const seats = t.posti || 4;
             const fp = getTableDims(null, seats, p.orientation);
@@ -1637,19 +1641,14 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
         </div>{/* /viewport */}
       </div>
 
-      {/* Card di dettaglio — overlay flottante FUORI dal contenitore bianco della mappa.
-          Posizionata sopra (z-index) la mappa ma con elevazione/shadow chiaramente
-          separate, così non riduce mai lo spazio del white container. */}
-      {detailedTable && (
+      {/* Anteprima hover — pannello leggero ancorato a destra, com'era. */}
+      {hoverPreview && (
         <div style={{
           position:'absolute',
           top: 0, right: 0, bottom: 0,
           width: 288, maxWidth: '95%',
           zIndex: 20,
           animation: 'salaPanelIn 240ms cubic-bezier(0.32,0.72,0,1)',
-          // Il wrapper copre tutta l'altezza della mappa ma non blocca i click
-          // fuori dalla card; la card NON può sporgere sotto la mappa (creava
-          // la scrollbar di pagina → la griglia si restringeva a caso in hover).
           pointerEvents: 'none',
         }}>
           <div className="pn-scroll" style={{
@@ -1661,14 +1660,57 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             maxHeight: '100%', overflowY: 'auto',
             pointerEvents: 'auto',
           }}>
-            {/* Pulsante chiusura — chiaro affordance per dismissere la card */}
+            <SalaCard t={hoverPreview}
+              expanded={true}
+              onToggle={()=>{}}
+              onAdd={()=>onOpenAdd(hoverPreview)}
+              onPay={()=>onOpenPay(hoverPreview)}
+              onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
+              onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(hoverPreview.id, n)}
+              onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(hoverPreview.id, n)}
+              onLibera={onLibera} onMove={onMove} onEdit={onEdit}
+              onAssignOther={onAssignOther} onNoShow={onNoShow}
+              onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
+          </div>
+        </div>
+      )}
+
+      {/* Dettaglio al click — popup grande centrato con sfondo sfocato.
+          Portal sul frame: copre tutta l'app, scala coerente con lo zoom. */}
+      {clickedTable && ReactDOM.createPortal(
+        <div
+          onClick={() => setExpandedId(null)}
+          style={{
+            position:'absolute', inset: 0,
+            background:'rgba(15,17,21,0.42)',
+            backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+            display:'grid', placeItems:'center',
+            zIndex: 200, padding: 28,
+          }}>
+          <style>{`@keyframes salaDetailIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to   { opacity: 1; transform: none; }
+          }`}</style>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="pn-scroll"
+            style={{
+              position:'relative',
+              width: 480, maxWidth:'94%', maxHeight:'90%',
+              overflowY:'auto',
+              borderRadius: 16,
+              background:'#fff',
+              boxShadow: '0 32px 80px rgba(15,17,21,0.30), 0 4px 12px rgba(15,17,21,0.12)',
+              animation: 'salaDetailIn 220ms cubic-bezier(0.32,0.72,0,1)',
+            }}>
+            {/* Pulsante chiusura */}
             <button
               onClick={() => setExpandedId(null)}
               title="Chiudi dettaglio"
               aria-label="Chiudi dettaglio tavolo"
               style={{
-                position:'absolute', top: 8, right: 8, zIndex: 5,
-                width: 28, height: 28, borderRadius: '50%',
+                position:'absolute', top: 10, right: 10, zIndex: 5,
+                width: 30, height: 30, borderRadius: '50%',
                 background: '#fff', color: '#6B7280',
                 border: '1px solid rgba(15,17,21,0.08)',
                 boxShadow: '0 1px 4px rgba(15,17,21,0.08)',
@@ -1679,23 +1721,24 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.color = '#0F1115'; }}
               onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6B7280'; }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M6 6l12 12 M18 6L6 18"/>
               </svg>
             </button>
-            <SalaCard t={detailedTable}
+            <SalaCard t={clickedTable}
               expanded={true}
               onToggle={()=>{}}
-              onAdd={()=>onOpenAdd(detailedTable)}
-              onPay={()=>onOpenPay(detailedTable)}
+              onAdd={()=>onOpenAdd(clickedTable)}
+              onPay={()=>onOpenPay(clickedTable)}
               onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-              onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(detailedTable.id, n)}
-              onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(detailedTable.id, n)}
+              onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(clickedTable.id, n)}
+              onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(clickedTable.id, n)}
               onLibera={onLibera} onMove={onMove} onEdit={onEdit}
               onAssignOther={onAssignOther} onNoShow={onNoShow}
               onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
           </div>
-        </div>
+        </div>,
+        document.querySelector('.frame') || document.body
       )}
     </div>
   );
