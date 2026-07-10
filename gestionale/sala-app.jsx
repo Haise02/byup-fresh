@@ -53,11 +53,10 @@ function SalaApp() {
       return ['tavoli','vendita','calendar'].includes(t) ? t : 'tavoli';
     } catch(e) { return 'tavoli'; }
   })();
-  const [tab, setTab] = React.useState(initialTab);
+  const [tab] = React.useState(initialTab);
   const [focus, setFocus] = React.useState(false);
   const [modalPay, setModalPay] = React.useState(null);
   const [modalNuova, setModalNuova] = React.useState(null);
-  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
   const [articoloSheet, setArticoloSheet] = React.useState(null);
   const [cart, setCart] = React.useState({ tableId: null, items: [] });
   const [confirmedToast, setConfirmedToast] = React.useState(null);

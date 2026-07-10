@@ -860,20 +860,5 @@ function Icon({ name, size = 'md', color, className, style, ...rest }) {
   );
 }
 
-// Famiglie per la pagina di preview (e per i consumer che vogliono raggruppare)
-const SfIconFamilies = {
-  ui: ['grid','magnifying-glass','bell','gear','plus','xmark','grip','check','pencil','chevron-right','star','sparkles','headphones','arrow-up-right','arrow-down-right','download'],
-  food: ['food-flame','food-meal','food-pizza','food-hamburger','food-taco','food-salad','food-pasta','food-sandwich','food-sushi','food-soup','food-steak','food-seafood','food-vegetables','food-dessert','food-ice-cream'],
-  drink: ['drink-coffee','drink-coffee-to-go','drink-tea','drink-cocktail','drink-wine','drink-beer','drink-champagne','drink-juice','drink-water-bottle','drink-milkshake'],
-  commerce: ['commerce-wallet','commerce-receipt','commerce-bank-cards','commerce-cart','commerce-bag','commerce-coins','commerce-price-tag','commerce-discount','commerce-gift','commerce-delivery','commerce-in-transit','commerce-coupon','commerce-money'],
-  people: ['people-customer','people-chef','people-waiter','people-manager','people-staff-group','people-female-user','people-user-circle'],
-  time: ['time-calendar','time-clock','time-stopwatch','time-alarm','time-history','time-schedule'],
-  place: ['place-table','place-restaurant','place-food-cart','place-building','place-map-pin','place-truck'],
-  chart: ['chart-bar','chart-area','chart-doughnut','chart-positive-dynamic','chart-mind-map','chart-flow-chart','chart-workflow'],
-  event: ['event-confetti','event-gift-box','event-pumpkin'],
-  status: ['status-success','status-warning','status-error','status-info','status-pending','status-tip','status-feature'],
-};
-
 window.SfIcons = SfIcons;
-window.SfIconFamilies = SfIconFamilies;
 window.Icon = Icon;

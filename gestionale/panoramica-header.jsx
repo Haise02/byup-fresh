@@ -1,28 +1,5 @@
 // Header — page title + search + utility
 
-function PnHeader({ editMode, onToggleEdit, onAddWidget }) {
-  return (
-    <header style={{
-      display: 'flex', alignItems: 'center', gap: 16,
-      padding: '16px 28px 14px',
-      borderBottom: `1px solid ${PN.BORDER_HAIR}`,
-      background: PN.WHITE_OFF,
-    }}>
-      <div style={{flex: 1}}>
-        <div style={{fontSize: 14, fontWeight: 600, color: PN.MUTED, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4}}>
-          Trattoria del Borgo · Centro storico
-        </div>
-        <h1 style={{margin: 0, fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
-          Buongiorno Marco
-        </h1>
-      </div>
-
-      <PnConnectionStatus/>
-      <PnNotifBell/>
-    </header>
-  );
-}
-
 // Inline action row above the grid — Personalizza / Aggiungi widget / Salva.
 // Sticky: resta visibile in alto a destra anche scorrendo la dashboard.
 function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
@@ -65,5 +42,3 @@ function PnPageActions({ editMode, onToggleEdit, onAddWidget }) {
 }
 
 window.PnPageActions = PnPageActions;
-
-window.PnHeader = PnHeader;

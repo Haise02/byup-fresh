@@ -55,12 +55,6 @@ const salaGrid = (s) => ({
 const salaMaxTavoli = (s) =>
   Math.max(1, Math.floor(((s?.widthM || DEF_W) * (s?.depthM || DEF_D)) / MQ_PER_TAVOLO));
 
-const SHAPES = [
-  { id: 'round', label: 'Tondo', icon: '○' },
-  { id: 'square', label: 'Quadrato', icon: '☐' },
-  { id: 'rect', label: 'Rettangolare', icon: '▭' },
-];
-
 function TavoloShape({ shape, size = 36, active = true, coperti }) {
   const fill = active ? PN.PINK_SOFT : '#F4F5F7';
   const border = active ? PN.PINK : PN.BORDER;

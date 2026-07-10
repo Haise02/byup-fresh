@@ -75,14 +75,6 @@ function ttFootprintUnits(seats, shape, orientation) {
   return orientation === 'v' ? { w: 1, h: units } : { w: units, h: 1 };
 }
 
-// Pitch della griglia: 1 cella di corpo + il suo gutter = 134px naturali.
-// ttOuterSize = ingombro totale sedie incluse (per chi deve riservare spazio).
-const TT_UNIT_OUTER = TT_UNIT + TT_GUTTER; // 134 — pitch cella+gutter
-function ttOuterSize(seats, shape, orientation) {
-  const b = ttBodySize(seats, shape, orientation);
-  return { w: b.w + 2 * TT_CHAIR_OUT, h: b.h + 2 * TT_CHAIR_OUT };
-}
-
 // Lista sedie: [{side:'top|bottom|left|right', frac}] — frac = posizione
 // del centro lungo quel lato (0..1). Si ricalcola da seats+shape+orientation.
 function ttChairs(seats, shape, orientation) {
@@ -280,9 +272,7 @@ window.TableTile = TableTile;
 window.ttFootprintUnits = ttFootprintUnits;
 window.ttBodySize = ttBodySize;
 window.ttChairMetrics = ttChairMetrics;
-window.ttOuterSize = ttOuterSize;
 window.ttSeatShape = ttSeatShape;
 window.TT_UNIT = TT_UNIT;
-window.TT_UNIT_OUTER = TT_UNIT_OUTER;
 window.TT_GUTTER = TT_GUTTER;
 window.TT_CHAIR_OUT = TT_CHAIR_OUT;

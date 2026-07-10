@@ -1285,14 +1285,6 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
   );
 }
 
-function SaRow({ l, v }) {
-  return (
-    <div style={{display:'flex', justifyContent:'space-between', fontSize: 16.5, color: PN.MUTED, padding: '2px 0'}}>
-      <span>{l}</span><span style={{color: PN.TEXT, fontWeight: 600}}>{v}</span>
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Modale incasso semplificato (solo totale + pagamento)
 

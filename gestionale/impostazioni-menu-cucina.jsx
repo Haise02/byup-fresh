@@ -128,7 +128,6 @@ function MCMenuComposer() {
   const [renameVal, setRenameVal] = React.useState('');
   const [confirmDelId, setConfirmDelId] = React.useState(null);
   const [aiUpload, setAiUpload] = React.useState(false);
-  const [libraryFilters, setLibraryFilters] = React.useState({ category: 'all', allergens: [], unused: false });
   const activeMenu = menus.find(m => m.id === activeMenuId);
 
   const createMenu = () => {
@@ -1686,7 +1685,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               <div style={{fontSize:15, color:PN.MUTED, marginBottom:10, lineHeight:1.45}}>
                 Spunta gli ingredienti che il cliente può <strong style={{color:PN.TEXT}}>togliere dal piatto</strong>.
               </div>
-              <IngredientList ingredients={ingredients} setIngredients={setIngredients} library={INGREDIENT_LIBRARY}/>
+              <IngredientList ingredients={ingredients} setIngredients={setIngredients}/>
             </CollapseSection>
             <CollapseSection
               title="Aggiunte a pagamento"
@@ -2406,8 +2405,6 @@ function MCConfigura() {
   const [timeout, setTimeoutMin] = React.useState(5);
   const [timeoutAction, setTimeoutAction] = React.useState('auto');
   const [coperto, setCoperto] = React.useState(2);
-  const [copertoObb, setCopertoObb] = React.useState(true);
-  const [tipDefault, setTipDefault] = React.useState(5);
   const [showQr, setShowQr] = React.useState(false);
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true});
@@ -2417,7 +2414,6 @@ function MCConfigura() {
     setModules(next);
     if (window.byupWriteModules) window.byupWriteModules(next);
   };
-  const [modAdvOpen, setModAdvOpen] = React.useState(false);
 
   return (
     <div>

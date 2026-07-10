@@ -209,14 +209,6 @@ function getCodaSeverity(min) {
   if (min > CODA_ALERT_MIN) return 'warning';
   return 'normal';
 }
-// Scroll a una conto-card nel pannello laterale + highlight breve
-function scrollToContoCard(id) {
-  const el = document.querySelector(`[data-conto-id="${id}"]`);
-  if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  el.classList.add('conto-flash');
-  window.setTimeout(() => el.classList.remove('conto-flash'), 1500);
-}
 
 // Mini-menù realistico per il flow "+ Articolo"
 const SALA_MENU = {
@@ -324,20 +316,7 @@ function summarizeOrdini(ordini) {
   return null;
 }
 
-function getOccupiedPhase(t, thresholds = window.SALA_THRESHOLDS || SALA_THRESHOLDS) {
-  if (t.state !== 'occupato') return null;
-  const hasAnyOrder = t.ordini && t.ordini.length > 0;
-  if (!hasAnyOrder) {
-    if (t.sittingMin < thresholds.noOrderWarn)  return { id:'lettura', label:'In ordinazione', tone:'neutral' };
-    if (t.sittingMin < thresholds.noOrderAlert) return { id:'attesa',  label:`Non ordina da ${t.sittingMin}'`, tone:'warn' };
-    return { id:'alert', label:`Non ordina da ${t.sittingMin}'`, tone:'alert' };
-  }
-  // Se ha ordini, derivo dal sommario ordini
-  const s = summarizeOrdini(t.ordini);
-  return { id:'corso', label: s?.label || 'Servizio in corso', tone: s?.tone || 'neutral' };
-}
-
-// Notifica di stato basata su soglie — separata da getOccupiedPhase.
+// Notifica di stato basata su soglie.
 // Usa le soglie progressive ORDINE_WARN_MIN (15) / ORDINE_ALERT_MIN (30) — MAI rosso.
 // 0-15' nessun segnale | 15-30' chip grigio info | >30' chip ambra warning.
 function getOccupiedAlert(t) {
@@ -365,7 +344,6 @@ window.SALA_CONTI_APERTI = SALA_CONTI_APERTI;
 window.SALA_THRESHOLDS = SALA_THRESHOLDS;
 window.SALA_MENU = SALA_MENU;
 window.summarizeOrdini = summarizeOrdini;
-window.getOccupiedPhase = getOccupiedPhase;
 window.getOccupiedAlert = getOccupiedAlert;
 window.PULIRE_WARNING_MIN  = PULIRE_WARNING_MIN;
 window.PULIRE_CRITICAL_MIN = PULIRE_CRITICAL_MIN;
@@ -377,4 +355,3 @@ window.NOSHOW_ALERT_MIN    = NOSHOW_ALERT_MIN;
 window.getPulireSeverity   = getPulireSeverity;
 window.getOrdineSeverity   = getOrdineSeverity;
 window.getCodaSeverity     = getCodaSeverity;
-window.scrollToContoCard   = scrollToContoCard;

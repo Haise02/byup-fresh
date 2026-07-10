@@ -805,7 +805,6 @@ function ContConti({ filter = 'all' }) {
   const [modalRimborso, setModalRimborso] = React.useState(null);
   const [rimborsoPayment, setRimborsoPayment] = React.useState(null);
   const [rimborsoStep, setRimborsoStep] = React.useState(1);
-  const [rimborsati, setRimborsati] = React.useState(new Set());
 
   const [expandedId, setExpandedId] = React.useState(null);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
@@ -833,7 +832,7 @@ function ContConti({ filter = 'all' }) {
     setRimborsoPayment(null);
     setRimborsoStep(1);
   }
-  function confermaRimborso() { setRimborsati(s => new Set([...s, modalRimborso.id])); chiudiRimborso(); }
+  function confermaRimborso() { chiudiRimborso(); }
 
   // KPI: tavoli in sospeso
   const nonSaldati = CONTI_MOCK.filter(c => c.stato === 'non_saldato');

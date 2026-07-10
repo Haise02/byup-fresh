@@ -1,42 +1,6 @@
 // Shared page header for top-level operative pages (Sala, Cucina, Account)
 // Design system 2.0: WHITE_OFF bg, hairline border, weight 600, letter-spacing tighter.
 
-// `icon` accetta il nome di un'icona Content del registry SfIcons (es.
-// 'food-meal', 'place-restaurant'). Quando passato, viene resa in un cerchio
-// soft come ancora di sezione, accanto al titolo. Vedi `dashboard-icon-mapping.md`
-// per il vincolo "1 sola Content icon per header".
-function PnPageHeader({ title, subtitle, actions, icon }) {
-  return (
-    <header style={{
-      display: 'flex', alignItems: 'center', gap: 16,
-      padding: '20px 32px 18px',
-      borderBottom: `1px solid ${PN.BORDER_HAIR}`,
-      background: PN.WHITE_OFF,
-    }}>
-      {icon && (
-        <span style={{
-          width: 40, height: 40, borderRadius: 11,
-          background: PN.PINK_SOFT, color: PN.PINK_DARK,
-          display: 'grid', placeItems: 'center', flexShrink: 0,
-        }}>
-          <Icon name={icon} size={22}/>
-        </span>
-      )}
-      <div style={{flex: 1, minWidth: 0}}>
-        <h1 style={{margin: 0, fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em'}}>
-          {title}
-        </h1>
-        {subtitle && (
-          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 4}}>{subtitle}</div>
-        )}
-      </div>
-      {actions}
-      <PnConnectionStatus/>
-      <PnNotifBell/>
-    </header>
-  );
-}
-
 // Underline tab bar — pillola attiva con gradient sottile + inset highlight (Apple).
 // Sostituisce il border-bottom 2px solid con un'underline più morbida + tonalità.
 // Ogni tab può opzionalmente avere `icon` (nome registry SfIcons). Quando
@@ -232,7 +196,6 @@ function PnButton({ variant = 'primary', icon, children, onClick, style, disable
   );
 }
 
-window.PnPageHeader = PnPageHeader;
 window.PnUnderlineTabs = PnUnderlineTabs;
 window.PnSearchInput = PnSearchInput;
 window.PnModal = PnModal;

@@ -57,8 +57,6 @@ function npFmtDur(m) {
   const h = Math.floor(m / 60), mm = m % 60;
   return mm === 0 ? `${h}h` : h === 0 ? `${mm} min` : `${h}h ${mm}m`;
 }
-const NP_DUR_OPTIONS = [60, 90, 120];
-const NP_DUR_EXTRA = [45, 75, 105, 135, 150, 165, 180];
 
 // Trova le combinazioni di tavoli liberi che coprono coperti, max 3 tavoli
 function npFindCombinations(freeTables, coperti) {
@@ -88,13 +86,6 @@ function npOccLevel(ratio) {
   if (r >= 0.50) return { level:'quasi-piena', label:'Quasi piena',    bg:'#FFFBEB', border:'#FDE68A', accent:'#D97706', accentDeep:'#92400E', text:'#92400E', barLight:'#FCD34D', barDeep:'#B45309' };
   if (r >= 0.20) return { level:'disponibile', label:'Disponibile',    bg:'#F8FAFC', border:'#E2E8F0', accent:'#475569', accentDeep:'#1E293B', text:'#334155', barLight:'#94A3B8', barDeep:'#334155' };
   return                  { level:'libera',     label:'Sala libera',    bg:'#F0FDF4', border:'#BBF7D0', accent:'#16A34A', accentDeep:'#166534', text:'#166534', barLight:'#86EFAC', barDeep:'#166534' };
-}
-
-function npFmtTavoli(tables) {
-  if (!tables || tables.length === 0) return '';
-  if (tables.length === 1) return `Tav. ${tables[0].id}`;
-  const ids = tables.map(t => t.id).sort((a, b) => a - b);
-  return `Tav. ${ids[0]}-${ids[ids.length - 1]}`;
 }
 
 // ─── Design tokens unificati ──────────────────────────────────────────────────
@@ -376,11 +367,6 @@ function NpMonthCalendar({ today, selected, onPick }) {
 function npTodayISO() {
   const d = new Date(); d.setHours(0,0,0,0);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function npFmtDateLabel(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
 }
 
 // ─── Modal principale ─────────────────────────────────────────────────────────
