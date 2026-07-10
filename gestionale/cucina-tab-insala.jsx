@@ -916,14 +916,14 @@ const lateGlow = u.tone === 'late';
         </div>
       )}
 
-      {/* FASCIA 2 — In preparazione (doing): tap → selezione → CTA "Servi" */}
+      {/* FASCIA 2 — In preparazione (doing): tap sulla riga → servito.
+          Niente freccia ← sul singolo piatto: per tornare in coda c'è la ← nell'header. */}
       {doingItems.length > 0 && (
         <div style={{borderBottom: todoItems.length > 0 ? `1px solid ${C.hair}` : 'none'}}>
           {doingItems.map(it => (
             <KdsItemRow
               key={it.idx} item={it} dark={dark}
               onBump={() => onBumpItem(it.idx)}
-              onRevert={() => onRevertItems([it.idx])}
               selected={false}
               inSelectionMode={false}
             />
