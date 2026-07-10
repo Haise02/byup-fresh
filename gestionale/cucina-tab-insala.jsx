@@ -40,6 +40,42 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     ...CUC_TICKETS_PREP.map(t => ({...t, items: t.items.map(i => ({...i, state: 'doing'})), firedCourses: new Set([1, 2])})),
   ]);
 
+  // Drag & drop verticale: SOLO riordino dentro la colonna (le transizioni di
+  // stato restano sulle frecce/CTA). draggingId = comanda in mano, dragOverId = target.
+  const [draggingId, setDraggingId] = React.useState(null);
+  const [dragOverId, setDragOverId] = React.useState(null);
+
+  function reorderInColumn(dragId, targetId, isLeft) {
+    if (dragId === targetId) return;
+    setTickets(prev => {
+      const match = isLeft
+        ? t => !t.items.some(i => i.state === 'doing')
+        : t => t.items.some(i => i.state === 'doing');
+      const col = prev.filter(match);
+      const di = col.findIndex(t => t.id === dragId);
+      const ti = col.findIndex(t => t.id === targetId);
+      if (di === -1 || ti === -1) return prev;
+      const reordered = [...col];
+      const [dragged] = reordered.splice(di, 1);
+      reordered.splice(ti, 0, dragged);
+      let idx = 0;
+      return prev.map(t => match(t) ? reordered[idx++] : t);
+    });
+  }
+
+  function reorderReady(dragId, targetId) {
+    if (dragId === targetId) return;
+    setReadyTickets(prev => {
+      const di = prev.findIndex(t => t.id === dragId);
+      const ti = prev.findIndex(t => t.id === targetId);
+      if (di === -1 || ti === -1) return prev;
+      const reordered = [...prev];
+      const [dragged] = reordered.splice(di, 1);
+      reordered.splice(ti, 0, dragged);
+      return reordered;
+    });
+  }
+
   // Timer live: re-render ogni 30s (e simula scorrere del tempo)
   React.useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 30000);
@@ -304,6 +340,12 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
+                dragging={draggingId === t.id}
+                dragOver={dragOverId === t.id}
+                onDragStart={() => setDraggingId(t.id)}
+                onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
+                onDragEnter={() => { if (draggingId && draggingId !== t.id) setDragOverId(t.id); }}
+                onDrop={() => { reorderInColumn(draggingId, t.id, true); setDragOverId(null); }}
               />
             ))}
           </KdsColumn>
@@ -318,6 +360,12 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onMarkReady={() => markReady(t.id)}
                 onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
+                dragging={draggingId === t.id}
+                dragOver={dragOverId === t.id}
+                onDragStart={() => setDraggingId(t.id)}
+                onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
+                onDragEnter={() => { if (draggingId && draggingId !== t.id) setDragOverId(t.id); }}
+                onDrop={() => { reorderInColumn(draggingId, t.id, false); setDragOverId(null); }}
               />
             ))}
           </KdsColumn>
@@ -331,6 +379,12 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
         onToggle={() => setProntiCollapsed(c => !c)}
         onRevertItem={revertReadyItem}
         onRevertCard={revertReadyCard}
+        draggingId={draggingId}
+        dragOverId={dragOverId}
+        onDragStart={setDraggingId}
+        onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
+        onDragEnterCard={(id) => { if (draggingId && draggingId !== id) setDragOverId(id); }}
+        onDropCard={(targetId) => { reorderReady(draggingId, targetId); setDragOverId(null); }}
       />
 
       {confirmCancel && (
@@ -378,7 +432,8 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
 }
 
 // ─── Pronti panel ────────────────────────────────────────────
-function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard }) {
+function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard,
+  draggingId, dragOverId, onDragStart, onDragEnd, onDragEnterCard, onDropCard }) {
   // Pannello Pronti — light come la board, accento verde menta
   const darkPanel = {
     background: `
@@ -436,6 +491,12 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
             ticket={ticket}
             onRevertItem={(idx) => onRevertItem(ticket.id, idx)}
             onRevertCard={() => onRevertCard(ticket.id)}
+            dragging={draggingId === ticket.id}
+            dragOver={dragOverId === ticket.id}
+            onDragStart={() => onDragStart(ticket.id)}
+            onDragEnd={onDragEnd}
+            onDragEnter={() => onDragEnterCard(ticket.id)}
+            onDrop={() => onDropCard(ticket.id)}
           />
         ))}
       </div>
@@ -443,18 +504,27 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
   );
 }
 
-function KdsProntiCard({ ticket, onRevertItem, onRevertCard }) {
+function KdsProntiCard({ ticket, onRevertItem, onRevertCard, dragging, dragOver, onDragStart, onDragEnd, onDragEnter, onDrop }) {
   return (
     <div
+      draggable={true}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragEnter={onDragEnter}
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => { e.preventDefault(); onDrop && onDrop(); }}
       style={{
         background: PN.WHITE,
         borderRadius: 16,
         border: 'none',
         overflow: 'hidden',
+        cursor: 'grab',
+        opacity: dragging ? 0.5 : 1,
         boxShadow: [
           'inset 0 0 0 1px rgba(16, 185, 129, 0.28)',
+          dragOver ? '0 0 0 3px rgba(16, 185, 129, 0.40)' : null,
           '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
-        ].join(', '),
+        ].filter(Boolean).join(', '),
       }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
@@ -535,7 +605,8 @@ function KdsColumn({ title, toneKey = 'ok', count, empty, children }) {
 }
 
 // ─── Ticket ────────────────────────────────────────────────
-function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems }) {
+function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems,
+  dragging, dragOver, onDragStart, onDragEnd, onDragEnter, onDrop }) {
   const age = _ageMin(ticket.time);
   const minToPickup = ticket.pickup ? _toMin(ticket.pickup) - CUC_NOW_MIN : null;
   const u = (ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup
@@ -639,9 +710,17 @@ const lateGlow = u.tone === 'late';
 
   return (
     <div
+      draggable={true}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragEnter={onDragEnter}
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => { e.preventDefault(); onDrop && onDrop(); }}
       style={{
         position: 'relative',
         borderRadius: 20,
+        cursor: 'grab',
+        opacity: dragging ? 0.5 : 1,
         // In ritardo: vetro scuro D3 + inset specular caldo. Altrimenti: carta light W1.
         background: dark
           ? `radial-gradient(circle at 82% 12%, rgba(255, 96, 102, 0.20), transparent 60%),
@@ -652,14 +731,16 @@ const lateGlow = u.tone === 'late';
         boxShadow: dark ? [
           'inset 0 1px 0 rgba(255, 200, 210, 0.18)',
           innerRing,
+          dragOver ? '0 0 0 3px rgba(255, 90, 95, 0.40)' : null,
           '0 0 0 3px rgba(255, 90, 95, 0.18)',
           '0 14px 36px -10px rgba(80, 10, 30, 0.55)',
           '0 4px 10px -4px rgba(80, 10, 30, 0.30)',
-        ].join(', ') : [
+        ].filter(Boolean).join(', ') : [
           innerRing,
+          dragOver ? '0 0 0 3px rgba(220, 38, 38, 0.30)' : null,
           '0 4px 14px -4px rgba(15, 17, 21, 0.08)',
           '0 1px 2px rgba(15, 17, 21, 0.04)',
-        ].join(', '),
+        ].filter(Boolean).join(', '),
         animation: lateGlow ? 'kdsLatePulse 2.4s ease-in-out infinite' : 'none',
         color: C.text,
         transition: 'box-shadow 0.2s',
