@@ -491,9 +491,12 @@ function DayTimeline({ onNuova, onModifica }) {
     const turno = turnoForMin(sMin);
     if (!turno) return;
     const clickMin = minInTrack(e.clientX, turno);
-    const d = { resId:r.id, dur:r.dur, turno, offsetMin:clickMin - sMin, curMin:sMin, curTableId:r.table };
+    // Il drag parte solo oltre una soglia di movimento: sotto, è un click
+    // che apre la prenotazione in modifica (vedi onUp). Niente setSlotDrag
+    // qui, così un click semplice non fa nemmeno lampeggiare lo slot.
+    const d = { resId:r.id, res:r, dur:r.dur, turno, offsetMin:clickMin - sMin, curMin:sMin, curTableId:r.table,
+      startX:e.clientX, startY:e.clientY, moved:false };
     slotDragRef.current = d;
-    setSlotDrag({...d});
   }
 
   function handleTrackMouseDown(e, table, turno) {
@@ -519,6 +522,8 @@ function DayTimeline({ onNuova, onModifica }) {
       }
       if (slotDragRef.current) {
         const sd = slotDragRef.current;
+        // Soglia anti-click: micro-movimenti (≤5px) non avviano il drag
+        if (!sd.moved && Math.abs(e.clientX - sd.startX) + Math.abs(e.clientY - sd.startY) <= 5) return;
         const rawMin = minInTrack(e.clientX, sd.turno);
         const newStart = Math.max(sd.turno.start, Math.min(rawMin - sd.offsetMin, sd.turno.end - sd.dur));
         let curTableId = sd.curTableId;
@@ -527,7 +532,7 @@ function DayTimeline({ onNuova, onModifica }) {
           const rb = el.getBoundingClientRect();
           if (e.clientY >= rb.top && e.clientY <= rb.bottom) { curTableId = parseInt(tid); break; }
         }
-        slotDragRef.current = {...sd, curMin: newStart, curTableId};
+        slotDragRef.current = {...sd, moved:true, curMin: newStart, curTableId};
         setSlotDrag({...slotDragRef.current});
       }
       if (resizeRef.current) {
@@ -551,7 +556,10 @@ function DayTimeline({ onNuova, onModifica }) {
       const sd = slotDragRef.current;
       if (sd) {
         slotDragRef.current = null; setSlotDrag(null);
-        if (hasConflict(sd.resId, sd.curTableId, sd.curMin, sd.dur)) {
+        if (!sd.moved) {
+          // Click senza trascinamento: apre la prenotazione in modifica
+          if (onModifica) onModifica(sd.res);
+        } else if (hasConflict(sd.resId, sd.curTableId, sd.curMin, sd.dur)) {
           setConflictWarning(true);
         } else {
           const hh = String(Math.floor(sd.curMin / 60)).padStart(2, '0');
@@ -680,7 +688,6 @@ function DayTimeline({ onNuova, onModifica }) {
           return (
             <div key={r.id} title={`${r.time} · ${r.name} · ${r.posti}p · ${r.dur}min`}
               onMouseDown={!isOccupato ? (e) => handleSlotMouseDown(e,r) : (e) => e.stopPropagation()}
-              onClick={!isOccupato && !slotDrag && onModifica ? () => onModifica(r) : undefined}
               style={{
                 position:'absolute', left:`${left}%`, width:`${width}%`,
                 top:5, bottom:5,
