@@ -42,6 +42,10 @@ function SalaVenditaDiretta() {
     setConsegna(null);
     showToast(`✓ Ordine ${ordine.codice} consegnato a ${ordine.cliente}`);
   };
+  // Incasso confermato: l'ordine diventa pagato e resta in lista per la consegna.
+  const confermaSaldo = (ordine) => {
+    setRitiri(prev => prev.map(r => r.id === ordine.id ? {...r, pagato: true} : r));
+  };
 
   const cats = ['Tutto', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
   const piatti = SALA_VENDITA_PIATTI.filter(p => {
@@ -140,8 +144,8 @@ function SalaVenditaDiretta() {
                 }}/>
             </div>
 
-            {/* Ritiri — ordini asporto pagati in app, in attesa di consegna.
-                Chip di stato (non modalità): apre il drawer laterale. */}
+            {/* Ritiri — ordini asporto (pagati in app o da saldare al banco)
+                in attesa di consegna. Chip di stato (non modalità): apre il drawer. */}
             {ritiri.length > 0 && (
               <button
                 onClick={() => setRitiriOpen(true)}
@@ -296,6 +300,7 @@ function SalaVenditaDiretta() {
         open={!!saldaOrdine}
         total={saldaOrdine ? saldaOrdine.totale : 0}
         onClose={() => setSaldaOrdine(null)}
+        onConfirm={() => confermaSaldo(saldaOrdine)}
       />
 
       {toast && (
@@ -330,7 +335,8 @@ function SalaVenditaDiretta() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Ritiri — ordini d'asporto già pagati in app/webapp, in attesa di consegna.
+// Ritiri — ordini d'asporto in attesa di consegna: pagati in app (solo
+// Consegna) o da pagare al banco (Salda ordine + Consegna).
 // Drawer laterale con le card ordine + modale di consegna con codice ritiro.
 
 function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
@@ -359,7 +365,7 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
           <div style={{flex: 1}}>
             <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Ordini da asporto</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
-              Ordini d'asporto già pagati in app, in attesa di consegna. Chiedi al cliente il codice ritiro.
+              Ordini d'asporto in attesa di consegna. Per i pagati chiedi il codice ritiro; quelli da pagare vanno prima saldati al banco.
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -386,13 +392,24 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
                 <div style={{flex: 1, minWidth: 0}}>
                   <div style={{display:'flex', alignItems:'center', gap: 8}}>
                     <span style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.cliente}</span>
-                    <span style={{fontSize: 13, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase', padding:'2px 8px', borderRadius: 999, background: PN.PINK_SOFT, color: PN.PINK_DARK, flexShrink: 0}}>byup app</span>
+                    <span style={{
+                      fontSize: 13, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
+                      padding:'2px 8px', borderRadius: 999, flexShrink: 0,
+                      background: r.fonte === 'webapp' ? PN.BLUE_SOFT : PN.PINK_SOFT,
+                      color: r.fonte === 'webapp' ? PN.BLUE : PN.PINK_DARK,
+                    }}>{r.fonte === 'webapp' ? 'webapp' : 'byup app'}</span>
                   </div>
                   <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>{r.codice} · ritiro ore {r.ritiro}</div>
                 </div>
-                <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 14, fontWeight: 700, color:'#15803D', background:'#DCFCE7', padding:'3px 10px', borderRadius: 999, flexShrink: 0}}>
-                  ✓ Pagato in app
-                </span>
+                {r.pagato ? (
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 14, fontWeight: 700, color:'#15803D', background:'#DCFCE7', padding:'3px 10px', borderRadius: 999, flexShrink: 0}}>
+                    ✓ Pagato in app
+                  </span>
+                ) : (
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 14, fontWeight: 700, color: PN.AMBER, background: PN.AMBER_SOFT, padding:'3px 10px', borderRadius: 999, flexShrink: 0}}>
+                    Da pagare
+                  </span>
+                )}
               </div>
               <div style={{padding:'10px 14px', display:'flex', flexDirection:'column', gap: 3}}>
                 {r.items.map((item, i) => (
@@ -403,24 +420,26 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
                   </div>
                 ))}
                 <div style={{display:'flex', justifyContent:'space-between', fontSize: 15.5, fontWeight: 700, color: PN.TEXT, borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 8, marginTop: 5}}>
-                  <span>Totale (pagato)</span>
+                  <span>{r.pagato ? 'Totale (pagato)' : 'Totale da pagare'}</span>
                   <span style={{fontVariantNumeric:'tabular-nums'}}>€{r.totale.toFixed(2)}</span>
                 </div>
               </div>
               <div style={{padding:'0 14px 14px', display:'flex', gap: 8}}>
-                <button onClick={() => onSalda(r)} style={{
-                  flex: 1, padding:'11px 16px', borderRadius: 999,
-                  background: PN.WHITE, color: PN.TEXT,
-                  border: `1px solid ${PN.BORDER}`,
-                  fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                  transition:'background 150ms ease-out',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}>
-                  Salda ordine
-                </button>
+                {!r.pagato && (
+                  <button onClick={() => onSalda(r)} style={{
+                    flex: 1, padding:'11px 16px', borderRadius: 999,
+                    background: PN.WHITE, color: PN.TEXT,
+                    border: `1px solid ${PN.BORDER}`,
+                    fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                    transition:'background 150ms ease-out',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}>
+                    Salda ordine
+                  </button>
+                )}
                 <button onClick={() => onConsegna(r)} style={{
-                  flex: 1.3, padding:'11px 16px', borderRadius: 999,
+                  flex: r.pagato ? 1 : 1.3, padding:'11px 16px', borderRadius: 999,
                   background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
                   border:'1px solid transparent',
                   fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
