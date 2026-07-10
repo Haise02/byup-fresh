@@ -112,14 +112,15 @@ function oraChiusura(conto) {
   return fmtOra(ps[ps.length - 1].ora);
 }
 
-// Logo Byup inline — cerchio coral con la "b" di Byup.
+// Logo Byup inline — gradiente brand con la "b" di Byup (stesso trattamento
+// degli avatar app in sala e dell'avatar profilo in sidebar).
 // Segnala che il riferimento è un utente loggato sulla Byup App.
 function ByupMark({ size = 16 }) {
   return (
     <span title="Utente Byup App" style={{
       display:'inline-flex', alignItems:'center', justifyContent:'center',
       width: size, height: size, borderRadius:'50%', flexShrink:0,
-      background: '#000', color:'#fff',
+      background: 'linear-gradient(135deg, #FF5A5F, #B53338)', color:'#fff',
       fontSize: size * 0.66, fontWeight: 800, lineHeight: 1,
       fontFamily:'inherit',
     }}>b</span>
