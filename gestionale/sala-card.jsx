@@ -841,7 +841,7 @@ function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssig
             onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
-            Aggiungi
+            Aggiungi articolo
           </button>
           {menuItems && menuItems.length > 0 && <DotMenu items={menuItems}/>}
         </div>
