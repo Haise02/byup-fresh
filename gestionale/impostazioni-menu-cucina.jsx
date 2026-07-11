@@ -2404,7 +2404,7 @@ function MCConfigura() {
   const [cucina, setCucina] = React.useState('diretto');
   const [timeout, setTimeoutMin] = React.useState(5);
   const [timeoutAction, setTimeoutAction] = React.useState('auto');
-  const [coperto, setCoperto] = React.useState(2);
+  const [coperto, setCoperto] = React.useState(0);
   const [showQr, setShowQr] = React.useState(false);
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true});
@@ -2441,33 +2441,21 @@ function MCConfigura() {
               Alcune operazioni sono collegate alla sala e ai tavoli: vuoi attivare ora la sala?
             </div>
           </div>
-          <ImpButton variant="primary" onClick={() => setModule('sala', true)} style={{flexShrink: 0}}>
+          <ImpButton variant="primary" onClick={() => {
+            setModule('sala', true);
+            window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: 'sala' }));
+          }} style={{flexShrink: 0}}>
             Attiva ora
           </ImpButton>
         </div>
       )}
 
       {/* === SEZIONE 1: SALA === */}
-      {/* La card compare solo a modulo attivo: da spento c'è già il banner in alto */}
+      {/* Card senza header: a modulo attivo si parte diretti dal flusso ordini.
+          La (dis)attivazione del modulo vive solo nella tab Sala e tavoli;
+          da spento qui resta il banner in alto. */}
       {modules.sala && (
-      <ImpCard
-        title="Sala"
-        sub="Gestione tavoli, conti aperti, coperto e flusso ordini in cucina"
-        action={
-          <div style={{display:'flex', alignItems:'center', gap: 10}}>
-            <span style={{
-              fontSize: 13, fontWeight: 700, letterSpacing: 0.4,
-              padding: '3px 9px', borderRadius: 999,
-              background: PN.GREEN_SOFT,
-              color: PN.GREEN,
-              textTransform: 'uppercase',
-            }}>
-              Attivo
-            </span>
-            <ImpToggle checked={modules.sala} onChange={() => setModule('sala', !modules.sala)}/>
-          </div>
-        }
-      >
+      <ImpCard>
         <div style={{display:'flex', flexDirection:'column', gap: 16}}>
         {/* --- Flusso ordini in cucina --- */}
         <div>

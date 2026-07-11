@@ -3,6 +3,14 @@
 function ImpApp() {
   const [active, setActive] = React.useState('vetrina');
 
+  // Salto tra tab richiesto dall'interno di una tab
+  // (es. CTA "Attiva ora" in Operazioni → Sala e tavoli)
+  React.useEffect(() => {
+    const go = (e) => setActive(e.detail);
+    window.addEventListener('byup-imp-goto', go);
+    return () => window.removeEventListener('byup-imp-goto', go);
+  }, []);
+
   return (
     <div style={{display:'flex', flex:1, minHeight:0}}>
       <PnSidebar active="impostazioni-shadow"/>

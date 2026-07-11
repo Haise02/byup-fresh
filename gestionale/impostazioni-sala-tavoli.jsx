@@ -90,6 +90,7 @@ function ImpSalaTavoli() {
   const [toast, setToast] = React.useState(null); // { msg, undo }
   const [confirmDialog, setConfirmDialog] = React.useState(null); // { title, msg, danger, onConfirm }
   const [importModal, setImportModal] = React.useState(false);
+  const [disattivaModal, setDisattivaModal] = React.useState(false); // conferma spegnimento modulo sala
   const [isLoadingSala, setIsLoadingSala] = React.useState(false);
 
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine —
@@ -880,9 +881,24 @@ function ImpSalaTavoli() {
           (stessa chiave localStorage, stesso pattern pill + ImpToggle).
           Qui vive la "riattivazione" promessa dall'onboarding solo-asporto.
           Il toggle Prenotazioni vive solo in Operazioni. */}
-      <ImpModuloSalaCard active={modules.sala} onToggle={(v) => setModule('sala', v)}/>
+      <ImpModuloSalaCard active={modules.sala} onToggle={(v) => {
+        // Spegnere elimina tavoli e QR: passa sempre dal popup di conferma
+        if (!v) { setDisattivaModal(true); return; }
+        setModule('sala', true);
+      }}/>
 
       {modules.sala && configGrid}
+
+      {disattivaModal && <DisattivaSalaModal
+        tavoli={sale.flatMap(s => s.tavoli || [])}
+        onClose={() => setDisattivaModal(false)}
+        onConfirmed={() => {
+          setSale(prev => prev.map(s => ({...s, tavoli: [], groups: []})));
+          setSelected(new Set());
+          setModule('sala', false);
+          setDisattivaModal(false);
+        }}
+      />}
     </div>
   );
 }
@@ -1562,6 +1578,124 @@ function ConfirmDialog({ title, msg, danger, confirmLabel, cancelLabel, singleAc
   );
 }
 
+// ─────────── Disattivazione sala: conferma con anteprima eliminazione ───────────
+// Il popup elenca i tavoli esistenti; alla conferma le card si dissolvono in
+// cenere (deriva verso l'alto a destra + particelle, stile "snap" di Thanos) e
+// solo a fine animazione tavoli e QR vengono eliminati davvero da tutte le sale.
+function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
+  const [burning, setBurning] = React.useState(false);
+  const shown = tavoli.slice(0, 12); // anteprima: max 12 card
+  const extra = tavoli.length - shown.length;
+
+  // Particelle di cenere per card, generate una sola volta al mount
+  const ashes = React.useMemo(() => shown.map((_, i) =>
+    Array.from({length: 14}).map((_, j) => ({
+      left: 6 + Math.random() * 84,
+      top: 6 + Math.random() * 80,
+      size: 2 + Math.random() * 3.5,
+      dx: `${14 + Math.random() * 48}px`,
+      dy: `${-(24 + Math.random() * 60)}px`,
+      rot: `${-45 + Math.random() * 90}deg`,
+      delay: i * 90 + Math.random() * 260,
+      color: ['#AEB4BE', '#CDD1D8', '#8E959F', PN.PINK][j % 4],
+    }))
+  ), []);
+
+  const confirm = () => {
+    if (burning) return;
+    if (!shown.length) { onConfirmed(); return; }
+    setBurning(true);
+    setTimeout(onConfirmed, 950 + shown.length * 90 + 400);
+  };
+
+  return (
+    <div onClick={burning ? undefined : onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 150, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 540, maxWidth:'100%',
+        animation:'dialogIn 0.2s ease-out',
+      }}>
+        <div style={{padding: '24px 24px 16px'}}>
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%',
+            background: PN.PINK_SOFT, color: PN.PINK_DARK,
+            display:'grid', placeItems:'center', marginBottom: 14,
+          }}><BuIcons.alert size={20}/></div>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>
+            Disattivare la sala?
+          </div>
+          <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>
+            {tavoli.length > 0 ? (
+              <>Disattivando la sala verranno <strong style={{color: PN.TEXT}}>eliminati
+              definitivamente {tavoli.length} {tavoli.length === 1 ? 'tavolo' : 'tavoli'}</strong> e
+              i relativi QR code. Riattivando la sala dovrai ricrearli da zero.</>
+            ) : (
+              'La sezione Sala non sarà più visibile nel gestionale. Potrai riattivarla in ogni momento.'
+            )}
+          </div>
+        </div>
+
+        {shown.length > 0 && (
+          <div style={{padding: '4px 24px 18px'}}>
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10,
+              padding: 14, borderRadius: 14,
+              background:'#FAFBFC', border:`1px dashed ${PN.BORDER}`,
+            }}>
+              {shown.map((t, i) => (
+                <div key={t.id} style={{position:'relative'}}>
+                  {/* La card svanisce; le particelle sono fuori dal nodo animato
+                      per non ereditarne opacità e blur */}
+                  <div style={{
+                    display:'flex', flexDirection:'column', alignItems:'center', gap: 5,
+                    padding:'10px 6px', borderRadius: 10,
+                    background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
+                    animation: burning ? `salaAshCard 950ms ease-in ${i * 90}ms forwards` : 'none',
+                  }}>
+                    <TavoloShape shape={t.shape} size={28} active={!t.disabled} coperti={t.coperti}/>
+                    <div style={{fontSize: 12, fontWeight: 700, color: PN.TEXT}}>{t.name}</div>
+                    <div style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: 0.4, color: PN.MUTED,
+                      border:`1px solid ${PN.BORDER}`, borderRadius: 5, padding:'1px 5px',
+                    }}>QR</div>
+                  </div>
+                  {burning && ashes[i].map((p, j) => (
+                    <span key={j} style={{
+                      position:'absolute', left:`${p.left}%`, top:`${p.top}%`,
+                      width: p.size, height: p.size, borderRadius: 2,
+                      background: p.color, opacity: 0, pointerEvents:'none',
+                      '--ash-dx': p.dx, '--ash-dy': p.dy, '--ash-rot': p.rot,
+                      animation:`salaAshParticle 1100ms ease-out ${p.delay}ms forwards`,
+                    }}/>
+                  ))}
+                </div>
+              ))}
+            </div>
+            {extra > 0 && (
+              <div style={{fontSize: 13, color: PN.MUTED, marginTop: 8, textAlign:'center'}}>
+                …e altri {extra} tavoli
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{padding: '14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose} disabled={burning}>Annulla</ImpButton>
+          <button onClick={confirm} disabled={burning} style={{
+            padding: '9px 16px', borderRadius: 8,
+            background: PN.PINK_DARK, color: PN.WHITE,
+            border:'none', cursor: burning ? 'default' : 'pointer',
+            fontSize: 15, fontWeight: 700, fontFamily:'inherit',
+            opacity: burning ? 0.7 : 1,
+          }}>{burning ? 'Eliminazione…' : 'Disattiva ed elimina'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─────────── Skeleton cambio sala ───────────
 function SalaSkeleton() {
   return (
@@ -1789,6 +1923,8 @@ if (typeof document !== 'undefined' && !document.getElementById('sala-anims')) {
     @keyframes tcSubItemIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes salaDropPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 100, 0.0); } 50% { box-shadow: 0 0 0 4px rgba(220, 38, 100, 0.12); } }
     @keyframes dropHintIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+    @keyframes salaAshCard { 0% { opacity: 1; transform: none; filter: none; } 25% { opacity: 0.96; } 100% { opacity: 0; transform: translate(26px, -34px) rotate(6deg) scale(0.88); filter: blur(5px); } }
+    @keyframes salaAshParticle { 0% { opacity: 0; transform: none; } 15% { opacity: 0.9; } 100% { opacity: 0; transform: translate(var(--ash-dx), var(--ash-dy)) rotate(var(--ash-rot)); } }
   `;
   document.head.appendChild(s);
 }

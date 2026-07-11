@@ -23,7 +23,7 @@ function SalaVenditaDiretta() {
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
   const [customOpen, setCustomOpen] = React.useState(false);
   // Ritiri: ordini d'asporto in attesa di consegna. Drawer laterale + conferma
-  // con codice ritiro; "Salda ordine" (CTA secondaria) apre l'incasso al banco.
+  // con codice ritiro; "Salda ora" (CTA secondaria) apre l'incasso al banco.
   const [ritiri, setRitiri] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
   const [ritiriOpen, setRitiriOpen] = React.useState(false);
   const [consegna, setConsegna] = React.useState(null); // ordine in consegna (modale codice)
@@ -295,7 +295,7 @@ function SalaVenditaDiretta() {
         />
       )}
 
-      {/* Salda ordine asporto: stessa modale incasso del banco, sul totale dell'ordine */}
+      {/* Salda ora asporto: stessa modale incasso del banco, sul totale dell'ordine */}
       <SaIncassaModal
         open={!!saldaOrdine}
         total={saldaOrdine ? saldaOrdine.totale : 0}
@@ -336,7 +336,7 @@ function SalaVenditaDiretta() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ritiri — ordini d'asporto in attesa di consegna: pagati in app (solo
-// Consegna) o da pagare al banco (Salda ordine + Consegna).
+// Consegna) o da pagare al banco (Salda ora + Consegna).
 // Drawer laterale con le card ordine + modale di consegna con codice ritiro.
 
 function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
@@ -435,7 +435,7 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
                   }}
                     onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}>
-                    Salda ordine
+                    Salda ora
                   </button>
                 )}
                 <button onClick={() => onConsegna(r)} style={{
