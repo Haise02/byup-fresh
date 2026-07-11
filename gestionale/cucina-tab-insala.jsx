@@ -37,6 +37,45 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   const cardNodes = React.useRef(new Map());          // ticketId → nodo DOM card (per risolvere il drop)
   const colNodes  = React.useRef({});                 // { left, right } → nodi DOM colonne
 
+  // FLIP: anima lo spostamento delle card tra le colonne (e i riordini).
+  // A ogni render confronta la posizione di ogni card con quella precedente e,
+  // se è cambiata, fa scivolare il nodo dal vecchio al nuovo posto.
+  // Escluse: card in drag (seguono il puntatore) e card appena droppate
+  // (data-kds-skip-flip: il rilascio deve essere immediato, non una scivolata).
+  const lastCardRects = React.useRef(new Map());
+  React.useLayoutEffect(() => {
+    const nodes = cardNodes.current;
+    nodes.forEach((node, id) => {
+      if (!node || !node.isConnected) return;
+      if (node.dataset.kdsDragging) return;
+      const rect = node.getBoundingClientRect();
+      const prev = lastCardRects.current.get(id);
+      lastCardRects.current.set(id, rect);
+      if (node.dataset.kdsSkipFlip) { delete node.dataset.kdsSkipFlip; return; }
+      if (!prev) return;
+      const dx = prev.left - rect.left;
+      const dy = prev.top - rect.top;
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      node.style.transition = 'none';
+      node.style.transform = `translate(${dx}px, ${dy}px)`;
+      node.style.zIndex = '5';
+      node.getBoundingClientRect(); // reflow: fissa il punto di partenza
+      node.style.transition = 'transform 340ms cubic-bezier(0.32, 0.72, 0, 1)';
+      node.style.transform = '';
+      const clear = () => {
+        node.style.transition = '';
+        node.style.zIndex = '';
+        node.removeEventListener('transitionend', clear);
+      };
+      node.addEventListener('transitionend', clear);
+      setTimeout(clear, 420); // fallback se la transizione viene interrotta
+    });
+    // Dimentica le card rimosse dal board
+    Array.from(lastCardRects.current.keys()).forEach(id => {
+      if (!nodes.has(id)) lastCardRects.current.delete(id);
+    });
+  });
+
   // Stato ticket
   const [tickets, setTickets] = React.useState(() => [
     ...CUC_TICKETS_ATTIVI.map(t => ({...t, items: t.items.map(i => ({...i, state: 'todo'})), firedCourses: new Set([1])})),
@@ -722,7 +761,10 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
       d.active = true;
       didDragRef.current = true;
       setDraggingCard(true);
-      if (rootRef.current) rootRef.current.style.transform = 'scale(1.03)';
+      if (rootRef.current) {
+        rootRef.current.style.transform = 'scale(1.03)';
+        rootRef.current.dataset.kdsDragging = '1'; // il FLIP delle colonne la ignora
+      }
       const move = ev => {
         ev.preventDefault();
         if (rootRef.current) {
@@ -735,7 +777,11 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
         document.removeEventListener('pointerup', up);
         document.removeEventListener('pointercancel', cancel);
         window.removeEventListener('touchmove', touchGuard);
-        if (rootRef.current) rootRef.current.style.transform = '';
+        if (rootRef.current) {
+          rootRef.current.style.transform = '';
+          delete rootRef.current.dataset.kdsDragging;
+          rootRef.current.dataset.kdsSkipFlip = '1'; // il drop deposita la card sul posto, senza scivolata
+        }
         setDraggingCard(false);
         dragRef.current = null;
         if (commit) onDropAt && onDropAt(ev.clientX, ev.clientY);
