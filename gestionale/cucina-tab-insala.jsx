@@ -60,8 +60,8 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
       node.style.transform = `translate(${dx}px, ${dy}px)`;
       node.style.zIndex = '5';
       node.getBoundingClientRect(); // reflow: fissa il punto di partenza
-      // Lenta di proposito: deve essere evidente che la card cambia colonna
-      node.style.transition = 'transform 800ms cubic-bezier(0.32, 0.72, 0, 1)';
+      // Molto lenta di proposito: deve essere evidente che la card cambia colonna
+      node.style.transition = 'transform 2000ms cubic-bezier(0.4, 0.1, 0.25, 1)';
       node.style.transform = '';
       const clear = () => {
         node.style.transition = '';
@@ -69,7 +69,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
         node.removeEventListener('transitionend', clear);
       };
       node.addEventListener('transitionend', clear);
-      setTimeout(clear, 900); // fallback se la transizione viene interrotta
+      setTimeout(clear, 2200); // fallback se la transizione viene interrotta
     });
     // Dimentica le card rimosse dal board
     Array.from(lastCardRects.current.keys()).forEach(id => {
