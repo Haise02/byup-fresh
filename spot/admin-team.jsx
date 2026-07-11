@@ -46,12 +46,12 @@ function AdmTeamPage({ search }) {
                 color: tab===t.id ? '#fff' : ADM.TEXT,
                 border:`1px solid ${tab===t.id ? ADM.TEXT : ADM.BORDER}`,
                 borderRadius:8, marginRight:6,
-                fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                fontSize:19, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
                 display:'inline-flex', alignItems:'center', gap:6,
               }}>{t.l} {t.b!==undefined && <span style={{
                 background: tab===t.id ? 'rgba(255,255,255,0.2)' : '#F0F1F3',
                 color: tab===t.id ? '#fff' : ADM.MUTED,
-                padding:'1px 6px', borderRadius:99, fontSize:12.5, fontWeight:700,
+                padding:'1px 6px', borderRadius:99, fontSize:17.5, fontWeight:700,
               }}>{t.b}</span>}</button>
             ))}
           </div>
@@ -66,7 +66,7 @@ function AdmTeamPage({ search }) {
               gridTemplateColumns:'minmax(0,2fr) 1.2fr 1.2fr 1fr 1fr 60px',
               padding:'10px 22px',
               borderBottom:`1px solid ${ADM.BORDER}`,
-              fontSize:12.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
+              fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
             }}>
               <div>Membro</div><div>Ruolo</div><div>Ultimo accesso</div><div>2FA</div><div>Stato</div><div></div>
             </div>
@@ -80,23 +80,23 @@ function AdmTeamPage({ search }) {
                   background: i%2===1 ? ADM.ROW_STRIPE : 'transparent',
                 }}>
                   <div style={{display:'flex', alignItems:'center', gap:11}}>
-                    <AdmAvatar name={m.nome} size={34}/>
+                    <AdmAvatar name={m.nome} size={39}/>
                     <div>
-                      <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT}}>{m.nome}</div>
-                      <div style={{fontSize:13.5, color:ADM.MUTED}}>{m.email}</div>
+                      <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>{m.nome}</div>
+                      <div style={{fontSize:18.5, color:ADM.MUTED}}>{m.email}</div>
                     </div>
                   </div>
                   <div><AdmBadge color={ruolo.color} size="xs">{ruolo.label}</AdmBadge></div>
-                  <div style={{fontSize:14, color:ADM.TEXT}}>{fmtRelative(m.lastActive)}</div>
+                  <div style={{fontSize:19, color:ADM.TEXT}}>{fmtRelative(m.lastActive)}</div>
                   <div>{m.due_fa
-                    ? <span style={{color:ADM.OK, display:'inline-flex', alignItems:'center', gap:5, fontSize:13.5, fontWeight:600}}><BuIcons.shield size={13}/> Attiva</span>
-                    : <span style={{color:ADM.WARN, display:'inline-flex', alignItems:'center', gap:5, fontSize:13.5, fontWeight:600}}><BuIcons.shield size={13}/> Disattiva</span>}</div>
+                    ? <span style={{color:ADM.OK, display:'inline-flex', alignItems:'center', gap:5, fontSize:18.5, fontWeight:600}}><BuIcons.shield size={18}/> Attiva</span>
+                    : <span style={{color:ADM.WARN, display:'inline-flex', alignItems:'center', gap:5, fontSize:18.5, fontWeight:600}}><BuIcons.shield size={18}/> Disattiva</span>}</div>
                   <div>{m.pending
                     ? <AdmBadge color="WARN" size="xs">Invitato</AdmBadge>
                     : m.attivo
                     ? <AdmBadge color="OK" size="xs">Attivo</AdmBadge>
                     : <AdmBadge color="PLAN_FREE" size="xs">Sospeso</AdmBadge>}</div>
-                  <div style={{textAlign:'right', color:ADM.MUTED}}><BuIcons.more size={15}/></div>
+                  <div style={{textAlign:'right', color:ADM.MUTED}}><BuIcons.more size={20}/></div>
                 </div>
               );
             })}
@@ -156,11 +156,11 @@ function InviteMemberModal({ open, onClose, onInvite }) {
         {/* Header */}
         <div style={{padding:'18px 22px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
           <div style={{width:36, height:36, borderRadius:9, background:ADM.PINK_BG_SOFT, color:ADM.PINK, display:'grid', placeItems:'center'}}>
-            <BuIcons.users size={17}/>
+            <BuIcons.users size={22}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontSize:17.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Invita un membro</div>
-            <div style={{fontSize:14, color:ADM.MUTED, marginTop:2}}>Riceverà un'email per impostare la password e accedere</div>
+            <div style={{fontSize:22.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Invita un membro</div>
+            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Riceverà un'email per impostare la password e accedere</div>
           </div>
           <AdmIconBtn icon="x" onClick={onClose} label="Chiudi"/>
         </div>
@@ -169,10 +169,10 @@ function InviteMemberModal({ open, onClose, onInvite }) {
         <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:16}}>
           {/* Anteprima avatar + nome */}
           <div style={{display:'flex', alignItems:'center', gap:12}}>
-            <AdmAvatar name={nome.trim() || '?'} size={44}/>
+            <AdmAvatar name={nome.trim() || '?'} size={49}/>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:15.5, fontWeight:600, color: nome.trim() ? ADM.TEXT : ADM.MUTED_LIGHT}}>{nome.trim() || 'Nuovo membro'}</div>
-              <div style={{fontSize:14, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{email.trim() || 'email@byup.it'}</div>
+              <div style={{fontSize:20.5, fontWeight:600, color: nome.trim() ? ADM.TEXT : ADM.MUTED_LIGHT}}>{nome.trim() || 'Nuovo membro'}</div>
+              <div style={{fontSize:19, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{email.trim() || 'email@byup.it'}</div>
             </div>
           </div>
 
@@ -186,7 +186,7 @@ function InviteMemberModal({ open, onClose, onInvite }) {
           </div>
 
           <div>
-            <div style={{fontSize:13.5, fontWeight:600, color:ADM.TEXT, marginBottom:8}}>Ruolo</div>
+            <div style={{fontSize:18.5, fontWeight:600, color:ADM.TEXT, marginBottom:8}}>Ruolo</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
               {Object.entries(RUOLI).map(([id, r]) => {
                 const sel = ruolo === id;
@@ -200,9 +200,9 @@ function InviteMemberModal({ open, onClose, onInvite }) {
                   }}>
                     <div style={{display:'flex', alignItems:'center', gap:7}}>
                       <span style={{width:8, height:8, borderRadius:'50%', background:ADM[r.color], flexShrink:0}}/>
-                      <span style={{fontSize:14.5, fontWeight:600, color:ADM.TEXT}}>{r.label}</span>
+                      <span style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT}}>{r.label}</span>
                     </div>
-                    <span style={{fontSize:12.5, color:ADM.MUTED, lineHeight:1.35}}>{r.desc}</span>
+                    <span style={{fontSize:17.5, color:ADM.MUTED, lineHeight:1.35}}>{r.desc}</span>
                   </button>
                 );
               })}
@@ -212,8 +212,8 @@ function InviteMemberModal({ open, onClose, onInvite }) {
 
         {/* Footer */}
         <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:10, background:ADM.PANEL_SOFT}}>
-          <div style={{fontSize:13.5, color:ADM.MUTED, display:'flex', alignItems:'center', gap:6}}>
-            <BuIcons.shield size={13} color={ADM.MUTED}/> L'invito scade dopo 7 giorni
+          <div style={{fontSize:18.5, color:ADM.MUTED, display:'flex', alignItems:'center', gap:6}}>
+            <BuIcons.shield size={18} color={ADM.MUTED}/> L'invito scade dopo 7 giorni
           </div>
           <div style={{flex:1}}/>
           <AdmButton variant="secondary" size="sm" onClick={onClose}>Annulla</AdmButton>
@@ -231,7 +231,7 @@ function InviteMemberModal({ open, onClose, onInvite }) {
 const teamInputStyle = {
   width:'100%', padding:'9px 12px',
   border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-  fontSize:15, fontFamily:'inherit', color:ADM.TEXT,
+  fontSize:20, fontFamily:'inherit', color:ADM.TEXT,
   outline:'none', boxSizing:'border-box',
 };
 
@@ -239,8 +239,8 @@ function TeamField({ label, hint, children }) {
   return (
     <div>
       <div style={{display:'flex', justifyContent:'space-between', marginBottom:6, gap:8}}>
-        <label style={{fontSize:13.5, fontWeight:600, color:ADM.TEXT}}>{label}</label>
-        {hint && <span style={{fontSize:13, color:ADM.DANGER, fontWeight:500}}>{hint}</span>}
+        <label style={{fontSize:18.5, fontWeight:600, color:ADM.TEXT}}>{label}</label>
+        {hint && <span style={{fontSize:18, color:ADM.DANGER, fontWeight:500}}>{hint}</span>}
       </div>
       {children}
     </div>
@@ -250,14 +250,14 @@ function TeamField({ label, hint, children }) {
 function RuoliMatrix() {
   return (
     <div style={{padding:'20px 22px'}}>
-      <div style={{fontSize:14, color:ADM.MUTED, marginBottom:14}}>Matrice di permessi per ogni ruolo. Le modifiche si applicano a tutti i membri con quel ruolo.</div>
+      <div style={{fontSize:19, color:ADM.MUTED, marginBottom:14}}>Matrice di permessi per ogni ruolo. Le modifiche si applicano a tutti i membri con quel ruolo.</div>
       <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
         <div style={{
           display:'grid',
           gridTemplateColumns:`220px repeat(${Object.keys(RUOLI).length}, 1fr)`,
           background:ADM.PANEL_SOFT, borderBottom:`1px solid ${ADM.BORDER}`,
         }}>
-          <div style={{padding:'12px 14px', fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Permesso</div>
+          <div style={{padding:'12px 14px', fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Permesso</div>
           {Object.entries(RUOLI).map(([id, r]) => (
             <div key={id} style={{padding:'12px 8px', textAlign:'center', borderLeft:`1px solid ${ADM.BORDER}`}}>
               <AdmBadge color={r.color} size="xs">{r.label}</AdmBadge>
@@ -272,8 +272,8 @@ function RuoliMatrix() {
             background: i%2===1 ? ADM.ROW_STRIPE : '#fff',
           }}>
             <div style={{padding:'12px 14px'}}>
-              <div style={{fontSize:14.5, fontWeight:600, color:ADM.TEXT}}>{p.label}</div>
-              <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{p.desc}</div>
+              <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT}}>{p.label}</div>
+              <div style={{fontSize:18, color:ADM.MUTED, marginTop:2}}>{p.desc}</div>
             </div>
             {Object.entries(RUOLI).map(([rid, r]) => {
               const has = r.permessi.includes(p.id);
@@ -281,7 +281,7 @@ function RuoliMatrix() {
                 <div key={rid} style={{padding:'12px 8px', textAlign:'center', borderLeft:`1px solid ${ADM.BORDER_SOFT}`, display:'grid', placeItems:'center'}}>
                   {has ? (
                     <div style={{width:22, height:22, borderRadius:5, background:ADM.OK, color:'#fff', display:'grid', placeItems:'center'}}>
-                      <BuIcons.check size={13}/>
+                      <BuIcons.check size={18}/>
                     </div>
                   ) : (
                     <div style={{width:22, height:22, borderRadius:5, border:`1.5px dashed ${ADM.BORDER}`, color:ADM.MUTED_LIGHT}}/>
@@ -306,15 +306,15 @@ function InvitiPending() {
       {inviti.map((inv, i) => (
         <div key={i} style={{display:'grid', gridTemplateColumns:'minmax(0,2fr) 1.2fr 1.2fr 1.2fr 160px', padding:'14px 22px', borderBottom: i === inviti.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`, alignItems:'center'}}>
           <div style={{display:'flex', alignItems:'center', gap:11}}>
-            <div style={{width:34, height:34, borderRadius:'50%', background:'#F0F1F3', display:'grid', placeItems:'center', color:ADM.MUTED}}><BuIcons.mail size={15}/></div>
+            <div style={{width:34, height:34, borderRadius:'50%', background:'#F0F1F3', display:'grid', placeItems:'center', color:ADM.MUTED}}><BuIcons.mail size={20}/></div>
             <div>
-              <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT}}>{inv.nome}</div>
-              <div style={{fontSize:13.5, color:ADM.MUTED}}>{inv.email}</div>
+              <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>{inv.nome}</div>
+              <div style={{fontSize:18.5, color:ADM.MUTED}}>{inv.email}</div>
             </div>
           </div>
           <div><AdmBadge color={RUOLI[inv.ruolo].color} size="xs">{RUOLI[inv.ruolo].label}</AdmBadge></div>
-          <div style={{fontSize:14, color:ADM.MUTED}}>Inviato {fmtRelative(inv.inviato)}</div>
-          <div style={{fontSize:14, color:ADM.WARN, fontWeight:500}}>Scade {fmtRelative(inv.scade)}</div>
+          <div style={{fontSize:19, color:ADM.MUTED}}>Inviato {fmtRelative(inv.inviato)}</div>
+          <div style={{fontSize:19, color:ADM.WARN, fontWeight:500}}>Scade {fmtRelative(inv.scade)}</div>
           <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
             <AdmButton variant="ghost" size="sm">Rinvia</AdmButton>
             <AdmButton variant="ghost" size="sm">Revoca</AdmButton>
@@ -369,7 +369,7 @@ function AuditLog() {
       <div style={{padding:'14px 22px', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, flexWrap:'wrap'}}>
         <div style={{position:'relative', display:'flex', alignItems:'center'}}>
           <span style={{position:'absolute', left:10, color:ADM.MUTED, pointerEvents:'none', display:'inline-flex'}}>
-            <BuIcons.search size={13}/>
+            <BuIcons.search size={18}/>
           </span>
           <input
             value={query}
@@ -378,7 +378,7 @@ function AuditLog() {
             style={{
               padding:'7px 12px 7px 30px',
               border:`1px solid ${ADM.BORDER}`, borderRadius:7,
-              fontSize:14.5, fontFamily:'inherit',
+              fontSize:19.5, fontFamily:'inherit',
               width:280, color:ADM.TEXT, background:'#fff', outline:'none',
             }}
           />
@@ -386,7 +386,7 @@ function AuditLog() {
             <button onClick={()=>setQuery('')} style={{
               position:'absolute', right:6, background:'transparent', border:'none', cursor:'pointer',
               color:ADM.MUTED, padding:4, display:'inline-flex', borderRadius:4,
-            }} aria-label="Cancella ricerca"><BuIcons.x size={12}/></button>
+            }} aria-label="Cancella ricerca"><BuIcons.x size={17}/></button>
           )}
         </div>
 
@@ -400,12 +400,12 @@ function AuditLog() {
         ]}/>
 
         <div style={{flex:1}}/>
-        <span style={{fontSize:14, color:ADM.MUTED}}>{filtered.length} eventi</span>
+        <span style={{fontSize:19, color:ADM.MUTED}}>{filtered.length} eventi</span>
         {hasFilters && (
           <button onClick={()=>{ setQuery(''); setAutore('all'); setTipo('all'); }} style={{
-            background:'transparent', border:'none', color:ADM.PINK, fontSize:14, fontWeight:600,
+            background:'transparent', border:'none', color:ADM.PINK, fontSize:19, fontWeight:600,
             cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap:5,
-          }}><BuIcons.x size={12}/> Azzera filtri</button>
+          }}><BuIcons.x size={17}/> Azzera filtri</button>
         )}
       </div>
 
@@ -419,14 +419,14 @@ function AuditLog() {
           return (
             <div key={i} style={{display:'flex', gap:14, padding:'14px 22px', borderBottom: i === filtered.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`, alignItems:'center'}}>
               <div style={{width:32, height:32, borderRadius:8, background:ADM[e.color+'_SOFT'], color:ADM[e.color], display:'grid', placeItems:'center', flexShrink:0}}>
-                <Icon size={14}/>
+                <Icon size={19}/>
               </div>
-              <div style={{flex:1, fontSize:15, color:ADM.TEXT}}>
+              <div style={{flex:1, fontSize:20, color:ADM.TEXT}}>
                 <span style={{fontWeight:600}}>{e.who}</span>
                 <span style={{color:ADM.MUTED}}> {e.action} </span>
                 <span style={{fontWeight:600}}>{e.target}</span>
               </div>
-              <div style={{fontSize:13, color:ADM.MUTED_SOFT}}>{fmtRelative(e.when)}</div>
+              <div style={{fontSize:18, color:ADM.MUTED_SOFT}}>{fmtRelative(e.when)}</div>
             </div>
           );
         })}

@@ -73,7 +73,7 @@ const BuIcons = new Proxy({}, {
   get(_, name) {
     const spec = ICON_PATHS[name];
     if (!spec) return () => null;
-    return ({ size = 16, color = 'currentColor', strokeWidth = 1.7 }) => (
+    return ({ size = 21, color = 'currentColor', strokeWidth = 1.7 }) => (
       <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block', flexShrink:0, verticalAlign:'middle'}}>
         {renderIconParts(spec)}
       </svg>

@@ -119,9 +119,9 @@ function CampagnePane({ onNew }) {
           <div style={{position:'absolute', right:-30, top:-30, width:140, height:140, borderRadius:'50%', background:'rgba(255,255,255,0.08)'}}/>
           <div style={{position:'absolute', right:24, bottom:-20, width:80, height:80, borderRadius:'50%', background:'rgba(255,255,255,0.08)'}}/>
           <div style={{position:'relative', zIndex:1}}>
-            <div style={{fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.85)', textTransform:'uppercase', letterSpacing:'0.08em'}}>Nuovi utenti · ultimi 30 giorni</div>
-            <div style={{fontSize:44, fontWeight:800, letterSpacing:'-0.03em', marginTop:8, lineHeight:1}}>{fmtNum(tot)}</div>
-            <div style={{fontSize:14.5, color:'rgba(255,255,255,0.85)', marginTop:8}}>Aggregato dei 3 canali · CAC medio Paid <strong style={{color:'#fff'}}>{fmtEur(cac)}</strong> · MRR generato <strong style={{color:'#fff'}}>{fmtEur(totMrr)}/mese</strong> · Payback <strong style={{color:'#fff'}}>{totMrr > 0 ? fmtPaybackMonths(totSpeso/totMrr) : '—'}</strong></div>
+            <div style={{fontSize:18, fontWeight:700, color:'rgba(255,255,255,0.85)', textTransform:'uppercase', letterSpacing:'0.08em'}}>Nuovi utenti · ultimi 30 giorni</div>
+            <div style={{fontSize:49, fontWeight:800, letterSpacing:'-0.03em', marginTop:8, lineHeight:1}}>{fmtNum(tot)}</div>
+            <div style={{fontSize:19.5, color:'rgba(255,255,255,0.85)', marginTop:8}}>Aggregato dei 3 canali · CAC medio Paid <strong style={{color:'#fff'}}>{fmtEur(cac)}</strong> · MRR generato <strong style={{color:'#fff'}}>{fmtEur(totMrr)}/mese</strong> · Payback <strong style={{color:'#fff'}}>{totMrr > 0 ? fmtPaybackMonths(totSpeso/totMrr) : '—'}</strong></div>
           </div>
         </AdmCard>
         <ChannelKpi label="Paid"     value={totPaid} pct={tot ? Math.round(totPaid/tot*100) : 0} trend={-2.8} color={ADM.PINK}    icon="megaphone"/>
@@ -133,8 +133,8 @@ function CampagnePane({ onNew }) {
       <AdmCard padding={22}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
           <div>
-            <div style={{fontSize:16, fontWeight:600, color:ADM.TEXT}}>Distribuzione utenti acquisiti</div>
-            <div style={{fontSize:14, color:ADM.MUTED, marginTop:2}}>Clicca sul segmento Paid per esplodere le singole campagne</div>
+            <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT}}>Distribuzione utenti acquisiti</div>
+            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Clicca sul segmento Paid per esplodere le singole campagne</div>
           </div>
         </div>
 
@@ -143,32 +143,32 @@ function CampagnePane({ onNew }) {
             width:`${tot ? totPaid/tot*100 : 0}%`,
             background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`,
             color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:14.5, fontWeight:700, cursor:'pointer', position:'relative',
+            fontSize:19.5, fontWeight:700, cursor:'pointer', position:'relative',
             transition:'opacity 0.15s', userSelect:'none',
           }} onMouseEnter={e=>e.currentTarget.style.opacity='0.9'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
-            <BuIcons.megaphone size={12} color="#fff"/>
+            <BuIcons.megaphone size={17} color="#fff"/>
             <span style={{marginLeft:6}}>Paid · {fmtNum(totPaid)}</span>
-            <span style={{marginLeft:6, fontSize:12, opacity:0.85}}>{paidExpanded ? '▾' : '▸'}</span>
+            <span style={{marginLeft:6, fontSize:17, opacity:0.85}}>{paidExpanded ? '▾' : '▸'}</span>
           </div>
           <div style={{
             width:`${tot ? totOrg/tot*100 : 0}%`,
             background:ADM.OK, color:'#fff',
             display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:14.5, fontWeight:700,
+            fontSize:19.5, fontWeight:700,
           }}>Organico · {fmtNum(totOrg)}</div>
           <div style={{
             width:`${tot ? totRef/tot*100 : 0}%`,
             background:ADM.PURPLE, color:'#fff',
             display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:14.5, fontWeight:700,
+            fontSize:19.5, fontWeight:700,
           }}>Referral · {fmtNum(totRef)}</div>
         </div>
 
         {/* Sub-breakdown Paid */}
         {paidExpanded && totPaid > 0 && (
           <div style={{marginTop:14, padding:'14px 16px', background:ADM.PINK_BG_SOFT, border:`1px solid ${ADM.PINK_SOFT}`, borderRadius:10}}>
-            <div style={{fontSize:13, fontWeight:700, color:ADM.PINK_DARK, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10, display:'flex', alignItems:'center', gap:6}}>
-              <BuIcons.megaphone size={12}/>
+            <div style={{fontSize:18, fontWeight:700, color:ADM.PINK_DARK, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10, display:'flex', alignItems:'center', gap:6}}>
+              <BuIcons.megaphone size={17}/>
               Composizione Paid · {paid.length} campagne attive
             </div>
             <div style={{display:'flex', height:14, borderRadius:6, overflow:'hidden', background:'rgba(255,255,255,0.5)', marginBottom:10}}>
@@ -191,9 +191,9 @@ function CampagnePane({ onNew }) {
                     transition:'border-color 0.15s',
                   }} onMouseEnter={e=>e.currentTarget.style.borderColor=ADM.PINK} onMouseLeave={e=>e.currentTarget.style.borderColor='transparent'}>
                     <span style={{width:8, height:8, borderRadius:2, background:`hsl(${hue}, 78%, ${52 - i*3}%)`, flexShrink:0}}/>
-                    <span style={{fontSize:14, color:ADM.TEXT, fontWeight:500, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.nome}</span>
-                    <span style={{fontSize:14, color:ADM.TEXT, fontWeight:700}}>{fmtNum(c.utentiAcquisiti)}</span>
-                    <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, width:30, textAlign:'right'}}>{pct}%</span>
+                    <span style={{fontSize:19, color:ADM.TEXT, fontWeight:500, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.nome}</span>
+                    <span style={{fontSize:19, color:ADM.TEXT, fontWeight:700}}>{fmtNum(c.utentiAcquisiti)}</span>
+                    <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, width:30, textAlign:'right'}}>{pct}%</span>
                   </div>
                 );
               })}
@@ -206,20 +206,20 @@ function CampagnePane({ onNew }) {
       <AdmCard padding={0}>
         <div style={{padding:'16px 22px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <div>
-            <div style={{fontSize:16, fontWeight:700, color:ADM.TEXT}}>Le tue campagne</div>
-            <div style={{fontSize:14, color:ADM.MUTED, marginTop:2}}>Clicca su una riga per recuperare il link tracciato</div>
+            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Le tue campagne</div>
+            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Clicca su una riga per recuperare il link tracciato</div>
           </div>
           <button onClick={()=>setCreating(true)} style={{
             display:'inline-flex', alignItems:'center', gap:7,
             padding:'9px 16px',
             background:'linear-gradient(135deg, #FF5A5F, #E04347)',
             color:'#fff', border:'none', borderRadius:9,
-            fontSize:15, fontWeight:700, cursor:'pointer',
+            fontSize:20, fontWeight:700, cursor:'pointer',
             fontFamily:'inherit', letterSpacing:'-0.005em',
             boxShadow:'0 6px 18px -6px rgba(255,90,95,0.55)',
             whiteSpace:'nowrap',
           }}>
-            <BuIcons.plus size={14}/>
+            <BuIcons.plus size={19}/>
             Nuova campagna
           </button>
         </div>
@@ -243,15 +243,15 @@ function CampagnePane({ onNew }) {
         {/* Organico (generico, non-cliccabile, niente link da copiare) */}
         <div style={{padding:'18px 22px', display:'flex', alignItems:'center', gap:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
           <div style={{width:38, height:38, borderRadius:9, background:ADM.OK_SOFT, color:ADM.OK, display:'grid', placeItems:'center'}}>
-            <BuIcons.trendUp size={17}/>
+            <BuIcons.trendUp size={22}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT}}>Organico</div>
-            <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:2}}>Traffico spontaneo: store, ricerca, passaparola non tracciato</div>
+            <div style={{fontSize:20.5, fontWeight:700, color:ADM.TEXT}}>Organico</div>
+            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Traffico spontaneo: store, ricerca, passaparola non tracciato</div>
           </div>
           <div style={{textAlign:'right'}}>
-            <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{fmtNum(totOrg)}</div>
-            <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>utenti acquisiti · 30g</div>
+            <div style={{fontSize:27, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{fmtNum(totOrg)}</div>
+            <div style={{fontSize:18, color:ADM.MUTED, marginTop:1}}>utenti acquisiti · 30g</div>
           </div>
         </div>
       </AdmCard>
@@ -275,25 +275,25 @@ function ChannelKpi({ label, value, pct, trend, color, icon }) {
     <AdmCard padding={18}>
       <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
         <div style={{width:36, height:36, borderRadius:9, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}>
-          <Icon size={16}/>
+          <Icon size={21}/>
         </div>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
+          <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginTop:4, flexWrap:'wrap'}}>
-            <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(value)}</div>
+            <div style={{fontSize:31, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(value)}</div>
             {hasTrend && (
               <span style={{
                 display:'inline-flex', alignItems:'center', gap:3,
                 padding:'2px 6px', borderRadius:5,
                 background:`${trendCol}1A`, color:trendCol,
-                fontSize:13, fontWeight:700, letterSpacing:'-0.005em',
+                fontSize:18, fontWeight:700, letterSpacing:'-0.005em',
               }}>
-                {(() => { const I = BuIcons[trendUp ? 'trendUp' : 'trendDown']; return <I size={10}/>; })()}
+                {(() => { const I = BuIcons[trendUp ? 'trendUp' : 'trendDown']; return <I size={15}/>; })()}
                 {trendUp ? '+' : ''}{trend}%
               </span>
             )}
           </div>
-          <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:6}}>
+          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:6}}>
             <span style={{color:ADM.TEXT, fontWeight:700}}>{pct}%</span> del totale · ultimi 30g
           </div>
         </div>
@@ -329,7 +329,7 @@ const fmtPaybackMonths = (m) => {
 };
 
 function CampHeaderRow() {
-  const cellStyle = {fontSize:12, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'right'};
+  const cellStyle = {fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'right'};
   return (
     <div style={{
       padding:'8px 22px 10px',
@@ -354,13 +354,13 @@ function CampSection({ title, desc, color, campaigns, onOpen }) {
     <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
       <div style={{padding:'14px 22px 8px', display:'flex', alignItems:'center', gap:10}}>
         <span style={{width:6, height:18, borderRadius:3, background:color}}/>
-        <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT}}>{title}</div>
-        <span style={{fontSize:12.5, color:ADM.MUTED}}>· {desc}</span>
+        <div style={{fontSize:19.5, fontWeight:700, color:ADM.TEXT}}>{title}</div>
+        <span style={{fontSize:17.5, color:ADM.MUTED}}>· {desc}</span>
         <div style={{flex:1}}/>
-        <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, padding:'2px 8px', background:'#F0F1F3', borderRadius:99}}>{campaigns.length}</span>
+        <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, padding:'2px 8px', background:'#F0F1F3', borderRadius:99}}>{campaigns.length}</span>
       </div>
       {campaigns.length === 0 && (
-        <div style={{padding:'18px 22px 24px', fontSize:14, color:ADM.MUTED_SOFT, fontStyle:'italic'}}>Nessuna campagna ancora. Creane una col pulsante in alto.</div>
+        <div style={{padding:'18px 22px 24px', fontSize:19, color:ADM.MUTED_SOFT, fontStyle:'italic'}}>Nessuna campagna ancora. Creane una col pulsante in alto.</div>
       )}
       {campaigns.length > 0 && <CampHeaderRow/>}
       {campaigns.map((c, i, arr) => (
@@ -373,8 +373,8 @@ function CampSection({ title, desc, color, campaigns, onOpen }) {
 function MetricCell({ value, sub, tone }) {
   return (
     <div style={{textAlign:'right', minWidth:0}}>
-      <div style={{fontSize:15.5, fontWeight:700, color: tone || ADM.TEXT, lineHeight:1, letterSpacing:'-0.01em'}}>{value}</div>
-      {sub && <div style={{fontSize:12, color:ADM.MUTED, marginTop:3, fontWeight:600}}>{sub}</div>}
+      <div style={{fontSize:20.5, fontWeight:700, color: tone || ADM.TEXT, lineHeight:1, letterSpacing:'-0.01em'}}>{value}</div>
+      {sub && <div style={{fontSize:17, color:ADM.MUTED, marginTop:3, fontWeight:600}}>{sub}</div>}
     </div>
   );
 }
@@ -403,22 +403,22 @@ function CampRow({ camp: c, color, onClick, last }) {
       {/* Nome + id */}
       <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
         <div style={{width:32, height:32, borderRadius:8, background:`${color}1A`, color, display:'grid', placeItems:'center', flexShrink:0}}>
-          <BuIcons.link size={14}/>
+          <BuIcons.link size={19}/>
         </div>
         <div style={{minWidth:0}}>
-          <div style={{fontSize:15.5, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.nome}</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace,monospace'}}>{c.id}</div>
+          <div style={{fontSize:20.5, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.nome}</div>
+          <div style={{fontSize:18, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace,monospace'}}>{c.id}</div>
         </div>
       </div>
 
       {/* Speso / Budget mensile */}
       <div style={{minWidth:0}}>
         <div style={{display:'flex', alignItems:'baseline', gap:6, marginBottom:5}}>
-          <span style={{fontSize:15.5, fontWeight:700, color: overBudget ? ADM.WARN : ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtEur(speso)}</span>
+          <span style={{fontSize:20.5, fontWeight:700, color: overBudget ? ADM.WARN : ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtEur(speso)}</span>
           {budget > 0 ? (
-            <span style={{fontSize:13, color:ADM.MUTED, fontWeight:500}}>/ {fmtEur(budget)}</span>
+            <span style={{fontSize:18, color:ADM.MUTED, fontWeight:500}}>/ {fmtEur(budget)}</span>
           ) : (
-            <span style={{fontSize:12.5, color:ADM.MUTED_SOFT, fontWeight:500, fontStyle:'italic'}}>· nessun budget</span>
+            <span style={{fontSize:17.5, color:ADM.MUTED_SOFT, fontWeight:500, fontStyle:'italic'}}>· nessun budget</span>
           )}
         </div>
         {budget > 0 ? (
@@ -444,8 +444,8 @@ function CampRow({ camp: c, color, onClick, last }) {
       <MetricCell value={c.paganti > 0 ? fmtEur(Math.round(cac)) : '—'} tone={ADM.TEXT}/>
       {/* MRR */}
       <div style={{textAlign:'right', minWidth:0}}>
-        <div style={{fontSize:15.5, fontWeight:800, color: ADM.OK, lineHeight:1, letterSpacing:'-0.01em'}}>{fmtEur(c.mrr||0)}</div>
-        <div style={{fontSize:12, color:ADM.MUTED, marginTop:3, fontWeight:600}}>/ mese</div>
+        <div style={{fontSize:20.5, fontWeight:800, color: ADM.OK, lineHeight:1, letterSpacing:'-0.01em'}}>{fmtEur(c.mrr||0)}</div>
+        <div style={{fontSize:17, color:ADM.MUTED, marginTop:3, fontWeight:600}}>/ mese</div>
       </div>
 
       {/* Payback (Speso ÷ MRR mensile) */}
@@ -456,15 +456,15 @@ function CampRow({ camp: c, color, onClick, last }) {
         const tone = fast ? ADM.OK : slow ? ADM.WARN : ADM.TEXT;
         return (
           <div style={{textAlign:'right', minWidth:0}}>
-            <div style={{fontSize:15.5, fontWeight:700, color: tone, lineHeight:1, letterSpacing:'-0.01em'}}>{fmtPaybackMonths(pb)}</div>
-            <div style={{fontSize:12, color:ADM.MUTED, marginTop:3, fontWeight:600}}>
+            <div style={{fontSize:20.5, fontWeight:700, color: tone, lineHeight:1, letterSpacing:'-0.01em'}}>{fmtPaybackMonths(pb)}</div>
+            <div style={{fontSize:17, color:ADM.MUTED, marginTop:3, fontWeight:600}}>
               {pb === 0 ? '' : fast ? 'recupero rapido' : slow ? 'lento' : 'a rientro'}
             </div>
           </div>
         );
       })()}
 
-      <div style={{textAlign:'right', color: hover ? ADM.PINK : ADM.MUTED}}><BuIcons.chevronRight size={16}/></div>
+      <div style={{textAlign:'right', color: hover ? ADM.PINK : ADM.MUTED}}><BuIcons.chevronRight size={21}/></div>
     </div>
   );
 }
@@ -482,16 +482,16 @@ function NewCampaignModal({ onClose, onCreate }) {
       <div style={{padding:'22px 26px'}}>
         <div style={{display:'flex', alignItems:'center', gap:11, marginBottom:18}}>
           <div style={{width:42, height:42, borderRadius:10, background:'linear-gradient(135deg, #FF5A5F, #E04347)', color:'#fff', display:'grid', placeItems:'center', boxShadow:'0 4px 12px -4px rgba(255,90,95,0.5)'}}>
-            <BuIcons.plus size={18}/>
+            <BuIcons.plus size={23}/>
           </div>
           <div>
-            <div style={{fontSize:18, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Nuova campagna</div>
-            <div style={{fontSize:14, color:ADM.MUTED, marginTop:2}}>Genera un link tracciato da condividere</div>
+            <div style={{fontSize:23, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Nuova campagna</div>
+            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Genera un link tracciato da condividere</div>
           </div>
         </div>
 
         <div style={{marginBottom:18}}>
-          <label style={{display:'block', fontSize:13.5, color:ADM.TEXT, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>Nome campagna</label>
+          <label style={{display:'block', fontSize:18.5, color:ADM.TEXT, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>Nome campagna</label>
           <input
             autoFocus
             value={nome}
@@ -499,7 +499,7 @@ function NewCampaignModal({ onClose, onCreate }) {
             placeholder='Es. "LinkedIn Q1 Trattorie Roma"'
             style={{
               width:'100%', padding:'12px 14px',
-              fontSize:16, fontFamily:'inherit',
+              fontSize:21, fontFamily:'inherit',
               border:`1.5px solid ${ADM.BORDER}`, borderRadius:9,
               outline:'none', boxSizing:'border-box',
               transition:'border-color 0.15s',
@@ -508,17 +508,17 @@ function NewCampaignModal({ onClose, onCreate }) {
             onBlur={e=>e.target.style.borderColor=ADM.BORDER}
             onKeyDown={e=>{ if (e.key === 'Enter' && canCreate) onCreate(nome.trim(), tipo, budgetNum); }}
           />
-          <div style={{fontSize:13, color:ADM.MUTED_SOFT, marginTop:6}}>Minimo 3 caratteri. Sarà visibile nel link e nelle analitiche.</div>
+          <div style={{fontSize:18, color:ADM.MUTED_SOFT, marginTop:6}}>Minimo 3 caratteri. Sarà visibile nel link e nelle analitiche.</div>
         </div>
 
         <div style={{marginBottom:18}}>
-          <label style={{display:'block', fontSize:13.5, color:ADM.TEXT, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>
+          <label style={{display:'block', fontSize:18.5, color:ADM.TEXT, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>
             Budget mensile {tipo === 'referral' && <span style={{textTransform:'none', color:ADM.MUTED_SOFT, fontWeight:500, letterSpacing:0}}>· opzionale per i referral</span>}
           </label>
           <div style={{position:'relative'}}>
             <span style={{
               position:'absolute', left:14, top:'50%', transform:'translateY(-50%)',
-              fontSize:16, fontWeight:700, color: budgetNum > 0 ? ADM.TEXT : ADM.MUTED_SOFT,
+              fontSize:21, fontWeight:700, color: budgetNum > 0 ? ADM.TEXT : ADM.MUTED_SOFT,
               pointerEvents:'none',
             }}>€</span>
             <input
@@ -529,7 +529,7 @@ function NewCampaignModal({ onClose, onCreate }) {
               placeholder="Es. 1500"
               style={{
                 width:'100%', padding:'12px 14px 12px 30px',
-                fontSize:16, fontFamily:'inherit', fontWeight: budgetNum > 0 ? 700 : 400,
+                fontSize:21, fontFamily:'inherit', fontWeight: budgetNum > 0 ? 700 : 400,
                 border:`1.5px solid ${ADM.BORDER}`, borderRadius:9,
                 outline:'none', boxSizing:'border-box',
                 transition:'border-color 0.15s',
@@ -541,17 +541,17 @@ function NewCampaignModal({ onClose, onCreate }) {
             {budgetNum > 0 && (
               <span style={{
                 position:'absolute', right:14, top:'50%', transform:'translateY(-50%)',
-                fontSize:13, fontWeight:600, color:ADM.MUTED, pointerEvents:'none',
+                fontSize:18, fontWeight:600, color:ADM.MUTED, pointerEvents:'none',
               }}>/ mese</span>
             )}
           </div>
-          <div style={{fontSize:13, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.5}}>
+          <div style={{fontSize:18, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.5}}>
             Tetto di spesa mensile pianificato. Lo speso effettivo lo inserirai a mano dal dettaglio campagna; CAC e altre derivate sono calcolate da lì.
           </div>
         </div>
 
         <div style={{marginBottom:22}}>
-          <label style={{display:'block', fontSize:13.5, color:ADM.TEXT, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>Tipo</label>
+          <label style={{display:'block', fontSize:18.5, color:ADM.TEXT, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>Tipo</label>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
             <TipoTile id="paid" label="Paid" desc="Investimento media (ads, sponsored)" icon="megaphone" color={ADM.PINK} active={tipo==='paid'} onClick={()=>setTipo('paid')}/>
             <TipoTile id="referral" label="Referral" desc="Programma passaparola, ambassador" icon="users" color={ADM.PURPLE} active={tipo==='referral'} onClick={()=>setTipo('referral')}/>
@@ -562,7 +562,7 @@ function NewCampaignModal({ onClose, onCreate }) {
           <button onClick={onClose} style={{
             padding:'10px 16px', background:'transparent', color:ADM.MUTED,
             border:`1px solid ${ADM.BORDER}`, borderRadius:9,
-            fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+            fontSize:20, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
           }}>Annulla</button>
           <button
             disabled={!canCreate}
@@ -571,7 +571,7 @@ function NewCampaignModal({ onClose, onCreate }) {
               padding:'10px 18px',
               background: canCreate ? 'linear-gradient(135deg, #FF5A5F, #E04347)' : '#E5E7EB',
               color:'#fff', border:'none', borderRadius:9,
-              fontSize:15, fontWeight:700, cursor: canCreate ? 'pointer' : 'not-allowed',
+              fontSize:20, fontWeight:700, cursor: canCreate ? 'pointer' : 'not-allowed',
               fontFamily:'inherit', letterSpacing:'-0.005em',
               boxShadow: canCreate ? '0 6px 18px -6px rgba(255,90,95,0.55)' : 'none',
               transition:'all 0.15s',
@@ -595,10 +595,10 @@ function TipoTile({ label, desc, icon, color, active, onClick }) {
       display:'flex', gap:11, alignItems:'flex-start',
       transition:'all 0.15s',
     }}>
-      <span style={{width:30, height:30, borderRadius:7, background: active ? color : '#F0F1F3', color: active ? '#fff' : ADM.MUTED, display:'grid', placeItems:'center', flexShrink:0}}><Icon size={14}/></span>
+      <span style={{width:30, height:30, borderRadius:7, background: active ? color : '#F0F1F3', color: active ? '#fff' : ADM.MUTED, display:'grid', placeItems:'center', flexShrink:0}}><Icon size={19}/></span>
       <div>
-        <div style={{fontSize:15, fontWeight:700, color:ADM.TEXT}}>{label}</div>
-        <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{desc}</div>
+        <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT}}>{label}</div>
+        <div style={{fontSize:18, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{desc}</div>
       </div>
     </button>
   );
@@ -638,14 +638,14 @@ function CampaignLinkModal({ camp, onClose }) {
             color:'#fff', display:'grid', placeItems:'center',
             boxShadow: `0 4px 12px -4px ${camp.tipo === 'paid' ? 'rgba(255,90,95,0.5)' : 'rgba(124,58,237,0.5)'}`,
           }}>
-            <BuIcons.link size={18}/>
+            <BuIcons.link size={23}/>
           </div>
           <div style={{flex:1, minWidth:0}}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <div style={{fontSize:18, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{camp.nome}</div>
-              {isNew && <span style={{fontSize:13, fontWeight:700, color:ADM.OK, padding:'2px 7px', borderRadius:99, background:ADM.OK_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>Appena creata</span>}
+              <div style={{fontSize:23, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{camp.nome}</div>
+              {isNew && <span style={{fontSize:18, fontWeight:700, color:ADM.OK, padding:'2px 7px', borderRadius:99, background:ADM.OK_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>Appena creata</span>}
             </div>
-            <div style={{fontSize:14, color:ADM.MUTED, marginTop:3}}>
+            <div style={{fontSize:19, color:ADM.MUTED, marginTop:3}}>
               {camp.tipo === 'paid' ? 'Campagna Paid' : 'Campagna Referral'} · creata {fmtDateTime(camp.creata)}
             </div>
           </div>
@@ -661,15 +661,15 @@ function CampaignLinkModal({ camp, onClose }) {
           transition:'all 0.2s',
         }}>
           <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
-            <BuIcons.link size={12} color={copied ? ADM.OK : ADM.MUTED}/>
-            <span style={{fontSize:12.5, fontWeight:700, color: copied ? ADM.OK : ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>
+            <BuIcons.link size={17} color={copied ? ADM.OK : ADM.MUTED}/>
+            <span style={{fontSize:17.5, fontWeight:700, color: copied ? ADM.OK : ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>
               {copied ? 'Link copiato negli appunti' : 'Link tracciato'}
             </span>
             <div style={{flex:1}}/>
           </div>
           <div style={{
             fontFamily:'ui-monospace,monospace',
-            fontSize:14.5, color:ADM.TEXT,
+            fontSize:19.5, color:ADM.TEXT,
             wordBreak:'break-all', lineHeight:1.5,
           }}>{link}</div>
         </div>
@@ -683,8 +683,8 @@ function CampaignLinkModal({ camp, onClose }) {
           background:'#fff',
         }}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
-            <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT}}>Performance</div>
-            <div style={{fontSize:13, color:ADM.MUTED}}>Click, iscritti e paganti sono tracciati automaticamente</div>
+            <div style={{fontSize:19.5, fontWeight:700, color:ADM.TEXT}}>Performance</div>
+            <div style={{fontSize:18, color:ADM.MUTED}}>Click, iscritti e paganti sono tracciati automaticamente</div>
           </div>
 
           {/* Budget vs Speso */}
@@ -696,10 +696,10 @@ function CampaignLinkModal({ camp, onClose }) {
           }}>
             <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:8, gap:10}}>
               <div style={{display:'flex', alignItems:'baseline', gap:8, minWidth:0, flexWrap:'wrap'}}>
-                <span style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Speso</span>
+                <span style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Speso</span>
                 {editingSpeso ? (
                   <span style={{display:'inline-flex', alignItems:'center', gap:4}}>
-                    <span style={{fontSize:20, fontWeight:800, color:ADM.TEXT}}>€</span>
+                    <span style={{fontSize:25, fontWeight:800, color:ADM.TEXT}}>€</span>
                     <input
                       autoFocus
                       type="text"
@@ -710,7 +710,7 @@ function CampaignLinkModal({ camp, onClose }) {
                       onKeyDown={e=>{ if (e.key === 'Enter' || e.key === 'Escape') setEditingSpeso(false); }}
                       style={{
                         width:90, padding:'2px 6px',
-                        fontSize:20, fontWeight:800, fontFamily:'inherit', color:ADM.TEXT,
+                        fontSize:25, fontWeight:800, fontFamily:'inherit', color:ADM.TEXT,
                         border:`1.5px solid ${ADM.PINK}`, borderRadius:6,
                         outline:'none', background:'#fff',
                       }}
@@ -719,15 +719,15 @@ function CampaignLinkModal({ camp, onClose }) {
                 ) : (
                   <button onClick={()=>setEditingSpeso(true)} style={{
                     all:'unset', cursor:'pointer',
-                    fontSize:22, fontWeight:800, color: overBudget ? ADM.WARN : ADM.TEXT, letterSpacing:'-0.02em',
+                    fontSize:27, fontWeight:800, color: overBudget ? ADM.WARN : ADM.TEXT, letterSpacing:'-0.02em',
                     borderBottom:`1px dashed ${ADM.MUTED_SOFT}`,
                   }} title="Clicca per modificare">{fmtEur(speso)}</button>
                 )}
-                {budget > 0 && <span style={{fontSize:14, color:ADM.MUTED, fontWeight:600}}>/ {fmtEur(budget)} budget</span>}
+                {budget > 0 && <span style={{fontSize:19, color:ADM.MUTED, fontWeight:600}}>/ {fmtEur(budget)} budget</span>}
               </div>
               {budget > 0 && (
                 <span style={{
-                  fontSize:13, fontWeight:700,
+                  fontSize:18, fontWeight:700,
                   color: overBudget ? ADM.WARN : (pctBudget > 0.85 ? ADM.WARN : ADM.OK),
                   padding:'2px 8px', borderRadius:99,
                   background: overBudget ? '#FED7AA' : (pctBudget > 0.85 ? '#FEF3C7' : ADM.OK_SOFT),
@@ -746,8 +746,8 @@ function CampaignLinkModal({ camp, onClose }) {
                 }}/>
               </div>
             )}
-            <div style={{fontSize:13, color:ADM.MUTED_SOFT, marginTop:8, lineHeight:1.5}}>
-              <BuIcons.info size={10}/> Lo speso è inserito a mano: clicca sul valore per aggiornarlo.
+            <div style={{fontSize:18, color:ADM.MUTED_SOFT, marginTop:8, lineHeight:1.5}}>
+              <BuIcons.info size={15}/> Lo speso è inserito a mano: clicca sul valore per aggiornarlo.
             </div>
           </div>
 
@@ -761,18 +761,18 @@ function CampaignLinkModal({ camp, onClose }) {
           {/* Derivate */}
           <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8}}>
             <div style={{padding:'12px 14px', background:'linear-gradient(135deg, #FEE2E2, #FECACA)', border:`1px solid #FCA5A5`, borderRadius:10}}>
-              <div style={{fontSize:12, fontWeight:700, color:'#991B1B', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>CAC</div>
-              <div style={{fontSize:22, fontWeight:800, color:'#7F1D1D', letterSpacing:'-0.02em', lineHeight:1.1}}>
+              <div style={{fontSize:17, fontWeight:700, color:'#991B1B', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>CAC</div>
+              <div style={{fontSize:27, fontWeight:800, color:'#7F1D1D', letterSpacing:'-0.02em', lineHeight:1.1}}>
                 {paganti > 0 ? fmtEur(Math.round(cac * 100) / 100) : '—'}
               </div>
-              <div style={{fontSize:12.5, color:'#991B1B', marginTop:4, fontWeight:500}}>Speso ÷ Paganti</div>
+              <div style={{fontSize:17.5, color:'#991B1B', marginTop:4, fontWeight:500}}>Speso ÷ Paganti</div>
             </div>
             <div style={{padding:'12px 14px', background:'linear-gradient(135deg, #D1FAE5, #A7F3D0)', border:`1px solid #6EE7B7`, borderRadius:10}}>
-              <div style={{fontSize:12, fontWeight:700, color:'#065F46', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>MRR generato</div>
-              <div style={{fontSize:22, fontWeight:800, color:'#064E3B', letterSpacing:'-0.02em', lineHeight:1.1}}>
-                {fmtEur(mrr)}<span style={{fontSize:14, fontWeight:600, color:'#047857'}}> /mese</span>
+              <div style={{fontSize:17, fontWeight:700, color:'#065F46', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>MRR generato</div>
+              <div style={{fontSize:27, fontWeight:800, color:'#064E3B', letterSpacing:'-0.02em', lineHeight:1.1}}>
+                {fmtEur(mrr)}<span style={{fontSize:19, fontWeight:600, color:'#047857'}}> /mese</span>
               </div>
-              <div style={{fontSize:12.5, color:'#065F46', marginTop:4, fontWeight:500}}>Da {fmtNum(paganti)} {paganti === 1 ? 'pagante' : 'paganti'}</div>
+              <div style={{fontSize:17.5, color:'#065F46', marginTop:4, fontWeight:500}}>Da {fmtNum(paganti)} {paganti === 1 ? 'pagante' : 'paganti'}</div>
             </div>
             {(() => {
               const pb = mrr > 0 ? speso / mrr : 0;
@@ -780,11 +780,11 @@ function CampaignLinkModal({ camp, onClose }) {
               const slow = pb >= 6;
               return (
                 <div style={{padding:'12px 14px', background:'linear-gradient(135deg, #DBEAFE, #BFDBFE)', border:`1px solid #93C5FD`, borderRadius:10}}>
-                  <div style={{fontSize:12, fontWeight:700, color:'#1E3A8A', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>Payback period</div>
-                  <div style={{fontSize:22, fontWeight:800, color:'#1E40AF', letterSpacing:'-0.02em', lineHeight:1.1}}>
+                  <div style={{fontSize:17, fontWeight:700, color:'#1E3A8A', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>Payback period</div>
+                  <div style={{fontSize:27, fontWeight:800, color:'#1E40AF', letterSpacing:'-0.02em', lineHeight:1.1}}>
                     {mrr > 0 ? fmtPaybackMonths(pb) : '—'}
                   </div>
-                  <div style={{fontSize:12.5, color:'#1E3A8A', marginTop:4, fontWeight:500}}>
+                  <div style={{fontSize:17.5, color:'#1E3A8A', marginTop:4, fontWeight:500}}>
                     Speso ÷ MRR{mrr > 0 && (fast ? ' · ottimo' : slow ? ' · lento' : '')}
                   </div>
                 </div>
@@ -794,8 +794,8 @@ function CampaignLinkModal({ camp, onClose }) {
         </div>
 
         {!hasActivity && (
-          <div style={{padding:'14px 16px', background:ADM.INFO_SOFT, border:`1px solid #BFDBFE`, borderRadius:8, fontSize:14.5, color:'#1E40AF', marginBottom:18, lineHeight:1.5}}>
-            <BuIcons.info size={13}/> Condividi il link per iniziare a raccogliere acquisizioni. Click, iscritti e paganti appariranno qui automaticamente.
+          <div style={{padding:'14px 16px', background:ADM.INFO_SOFT, border:`1px solid #BFDBFE`, borderRadius:8, fontSize:19.5, color:'#1E40AF', marginBottom:18, lineHeight:1.5}}>
+            <BuIcons.info size={18}/> Condividi il link per iniziare a raccogliere acquisizioni. Click, iscritti e paganti appariranno qui automaticamente.
           </div>
         )}
 
@@ -803,19 +803,19 @@ function CampaignLinkModal({ camp, onClose }) {
           <button onClick={onClose} style={{
             padding:'10px 16px', background:'transparent', color:ADM.MUTED,
             border:`1px solid ${ADM.BORDER}`, borderRadius:9,
-            fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+            fontSize:20, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
           }}>Chiudi</button>
           <button onClick={copy} style={{
             padding:'10px 18px',
             background: copied ? ADM.OK : 'linear-gradient(135deg, #FF5A5F, #E04347)',
             color:'#fff', border:'none', borderRadius:9,
-            fontSize:15, fontWeight:700, cursor:'pointer',
+            fontSize:20, fontWeight:700, cursor:'pointer',
             fontFamily:'inherit', letterSpacing:'-0.005em',
             boxShadow: copied ? '0 6px 18px -6px rgba(22,163,74,0.5)' : '0 6px 18px -6px rgba(255,90,95,0.55)',
             display:'inline-flex', alignItems:'center', gap:7,
             transition:'all 0.18s',
           }}>
-            {copied ? <BuIcons.check size={14}/> : <BuIcons.copy size={14}/>}
+            {copied ? <BuIcons.check size={19}/> : <BuIcons.copy size={19}/>}
             {copied ? 'Copiato!' : 'Copia link'}
           </button>
         </div>
@@ -876,8 +876,8 @@ function BroadcastPane({ onNew }) {
 
       {/* Toolbar */}
       <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
-        <div style={{fontSize:16, fontWeight:700, color:ADM.TEXT}}>Cronologia broadcast</div>
-        <span style={{fontSize:13.5, color:ADM.MUTED}}>· filtra per canale</span>
+        <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Cronologia broadcast</div>
+        <span style={{fontSize:18.5, color:ADM.MUTED}}>· filtra per canale</span>
         <div style={{flex:'0 0 14px'}}/>
         <PromoChip label="Tutti" active={chan==='all'} onClick={()=>setChan('all')}/>
         <PromoChip label="Push" icon="bell" active={chan==='push'} onClick={()=>setChan('push')}/>
@@ -890,10 +890,10 @@ function BroadcastPane({ onNew }) {
           padding:'9px 16px',
           background:'linear-gradient(135deg, #FF5A5F, #E04347)',
           color:'#fff', border:'none', borderRadius:9,
-          fontSize:15, fontWeight:700, cursor:'pointer',
+          fontSize:20, fontWeight:700, cursor:'pointer',
           fontFamily:'inherit', boxShadow:'0 6px 18px -6px rgba(255,90,95,0.55)',
         }}>
-          <BuIcons.plus size={13}/>
+          <BuIcons.plus size={18}/>
           Nuovo broadcast
         </button>
       </div>
@@ -913,10 +913,10 @@ function BroadKpi({ label, value, hint, color }) {
     <AdmCard padding={16}>
       <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
         <span style={{width:6, height:18, borderRadius:3, background:ADM.MUTED_LIGHT}}/>
-        <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
+        <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
       </div>
-      <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{value}</div>
-      <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:2}}>{hint}</div>
+      <div style={{fontSize:31, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{value}</div>
+      <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>{hint}</div>
     </AdmCard>
   );
 }
@@ -930,10 +930,10 @@ function PromoChip({ label, icon, active, onClick }) {
       background: active ? ADM.TEXT : '#fff',
       color: active ? '#fff' : ADM.TEXT,
       border: `1px solid ${active ? ADM.TEXT : ADM.BORDER}`,
-      borderRadius: 999, fontSize:14, fontWeight:600,
+      borderRadius: 999, fontSize:19, fontWeight:600,
       cursor:'pointer', fontFamily:'inherit',
     }}>
-      {Icon && <Icon size={12} color={active ? '#fff' : ADM.MUTED}/>}
+      {Icon && <Icon size={17} color={active ? '#fff' : ADM.MUTED}/>}
       {label}
     </button>
   );
@@ -975,18 +975,18 @@ function BroadCard({ item, onOpen }) {
                   width:22, height:22, borderRadius:5,
                   background:`${colors[c]}1A`, color:colors[c],
                   display:'grid', placeItems:'center',
-                }}><Icon size={11}/></span>
+                }}><Icon size={16}/></span>
               );
             })}
-            <span style={{fontSize:12.5, color:ADM.MUTED}}>· {fmtRelative(item.data)}</span>
+            <span style={{fontSize:17.5, color:ADM.MUTED}}>· {fmtRelative(item.data)}</span>
           </div>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', lineHeight:1.3, marginBottom:4}}>{item.titolo}</div>
-          <div style={{fontSize:14, color:ADM.MUTED, lineHeight:1.4}}>{item.audience}</div>
+          <div style={{fontSize:22, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', lineHeight:1.3, marginBottom:4}}>{item.titolo}</div>
+          <div style={{fontSize:19, color:ADM.MUTED, lineHeight:1.4}}>{item.audience}</div>
         </div>
         <span style={{
           padding:'4px 9px', borderRadius:99,
           background:`${engagementColor}15`, color:engagementColor,
-          fontSize:12.5, fontWeight:700, whiteSpace:'nowrap',
+          fontSize:17.5, fontWeight:700, whiteSpace:'nowrap',
           textTransform:'uppercase', letterSpacing:'0.04em',
         }}>{engagementLabel}</span>
       </div>
@@ -1005,14 +1005,14 @@ function BroadCard({ item, onOpen }) {
 function BroadStat({ label, value, color, pct }) {
   return (
     <div>
-      <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:3}}>{label}</div>
-      <div style={{fontSize:18, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>{value}</div>
+      <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:3}}>{label}</div>
+      <div style={{fontSize:23, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>{value}</div>
       {pct !== undefined && (
         <div style={{display:'flex', alignItems:'center', gap:5, marginTop:4}}>
           <div style={{flex:1, height:3, background:'#F0F1F3', borderRadius:99, overflow:'hidden'}}>
             <div style={{width:`${Math.round(pct*100)}%`, height:'100%', background:color, borderRadius:99}}/>
           </div>
-          <span style={{fontSize:12, fontWeight:700, color, minWidth:28, textAlign:'right'}}>{Math.round(pct*100)}%</span>
+          <span style={{fontSize:17, fontWeight:700, color, minWidth:28, textAlign:'right'}}>{Math.round(pct*100)}%</span>
         </div>
       )}
     </div>
@@ -1053,17 +1053,17 @@ function BroadDetailDrawer({ item, onClose }) {
               const labels = {push:'Push', email:'Email', in_app:'In-app', sms:'SMS'};
               const Icon = BuIcons[icons[c]];
               return (
-                <span key={c} style={{display:'inline-flex', alignItems:'center', gap:5, padding:'3px 9px', borderRadius:5, background:'#F0F1F3', fontSize:13, fontWeight:600, color:ADM.TEXT}}>
-                  <Icon size={11}/>{labels[c]}
+                <span key={c} style={{display:'inline-flex', alignItems:'center', gap:5, padding:'3px 9px', borderRadius:5, background:'#F0F1F3', fontSize:18, fontWeight:600, color:ADM.TEXT}}>
+                  <Icon size={16}/>{labels[c]}
                 </span>
               );
             })}
-            <span style={{fontSize:13, color:ADM.MUTED, fontFamily:'ui-monospace,monospace'}}>{item.id}</span>
+            <span style={{fontSize:18, color:ADM.MUTED, fontFamily:'ui-monospace,monospace'}}>{item.id}</span>
             <div style={{flex:1}}/>
             <AdmIconBtn icon="x" onClick={onClose}/>
           </div>
-          <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em', marginBottom:6}}>{item.titolo}</div>
-          <div style={{fontSize:14.5, color:ADM.MUTED}}>{item.audience} · inviata {fmtDateTime(item.data)}</div>
+          <div style={{fontSize:27, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em', marginBottom:6}}>{item.titolo}</div>
+          <div style={{fontSize:19.5, color:ADM.MUTED}}>{item.audience} · inviata {fmtDateTime(item.data)}</div>
 
           <div style={{display:'flex', gap:8, marginTop:14}}>
             <AdmButton variant="secondary" size="sm" icon="copy">Duplica</AdmButton>
@@ -1075,15 +1075,15 @@ function BroadDetailDrawer({ item, onClose }) {
         <div style={{flex:1, overflow:'auto', padding:'22px 24px', background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:14}}>
           {/* Funnel */}
           <AdmCard padding={20}>
-            <div style={{fontSize:15, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Funnel campagna</div>
+            <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Funnel campagna</div>
             <div style={{display:'flex', flexDirection:'column', gap:11}}>
               {funnel.map(f => {
                 const pct = funnel[0].count ? f.count / funnel[0].count : 0;
                 return (
                   <div key={f.label}>
                     <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:5}}>
-                      <span style={{fontSize:14.5, fontWeight:600, color:ADM.TEXT}}>{f.label}</span>
-                      <span style={{fontSize:13.5, color:ADM.MUTED}}>
+                      <span style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT}}>{f.label}</span>
+                      <span style={{fontSize:18.5, color:ADM.MUTED}}>
                         <strong style={{color: f.color, fontWeight:700}}>{fmtNum(f.count)}</strong> · {Math.round(pct*100)}%
                       </span>
                     </div>
@@ -1098,7 +1098,7 @@ function BroadDetailDrawer({ item, onClose }) {
 
           {/* Dettagli */}
           <AdmCard padding={20}>
-            <div style={{fontSize:15, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Dettagli</div>
+            <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Dettagli</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
               <DetailStat label="Tasso di apertura" value={`${Math.round(item.aperti*100)}%`}/>
               <DetailStat label="Tasso di click"    value={`${Math.round(item.click*100)}%`}/>
@@ -1107,7 +1107,7 @@ function BroadDetailDrawer({ item, onClose }) {
               <DetailStat label="Canali"  value={item.canali.map(c=>({push:'Push',email:'Email',in_app:'In-app',sms:'SMS'}[c])).join(' · ')}/>
               <DetailStat label="ID broadcast" value={item.id} mono/>
             </div>
-            <div style={{marginTop:14, padding:'12px 14px', background: ADM.PANEL_SOFT, borderRadius:8, fontSize:14, color: ADM.MUTED, lineHeight:1.5}}>
+            <div style={{marginTop:14, padding:'12px 14px', background: ADM.PANEL_SOFT, borderRadius:8, fontSize:19, color: ADM.MUTED, lineHeight:1.5}}>
               <strong style={{color: ADM.TEXT}}>Insight.</strong> {item.aperti > 0.7 ? 'Eccellente coinvolgimento: i destinatari sono altamente partecipi.' : item.aperti > 0.5 ? 'Buon coinvolgimento, ma c\'è margine sul testo dell\'oggetto.' : 'Tasso di apertura sotto la media: rivedere la selezione del pubblico o il testo dell\'oggetto.'}
             </div>
           </AdmCard>
@@ -1120,8 +1120,8 @@ function BroadDetailDrawer({ item, onClose }) {
 function DetailStat({ label, value, mono }) {
   return (
     <div style={{padding:'10px 12px', background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:8}}>
-      <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3}}>{label}</div>
-      <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT, fontFamily: mono ? 'ui-monospace,monospace' : 'inherit'}}>{value}</div>
+      <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3}}>{label}</div>
+      <div style={{fontSize:19.5, fontWeight:700, color:ADM.TEXT, fontFamily: mono ? 'ui-monospace,monospace' : 'inherit'}}>{value}</div>
     </div>
   );
 }
@@ -1129,9 +1129,9 @@ function DetailStat({ label, value, mono }) {
 function PromoMiniStat({ label, value, hint, tone }) {
   return (
     <div style={{padding:'10px 12px', background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:8}}>
-      <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:3}}>{label}</div>
-      <div style={{fontSize:18, fontWeight:800, color: tone || ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.1}}>{value}</div>
-      {hint && <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:3, fontWeight:500}}>{hint}</div>}
+      <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:3}}>{label}</div>
+      <div style={{fontSize:23, fontWeight:800, color: tone || ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.1}}>{value}</div>
+      {hint && <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:3, fontWeight:500}}>{hint}</div>}
     </div>
   );
 }

@@ -130,7 +130,7 @@
     color: #fff;
     padding: 7px 10px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 500;
     line-height: 1.45;
     white-space: pre-line;
@@ -199,11 +199,11 @@
      Apple lo fa così in App Store Connect, Mail e Messages.
      ═══════════════════════════════════════════════════════════════════════ */
 
-  /* === Cap larghezza contenuto pagina (>= 1700px → centro il contenuto) ===
-     Il primo figlio del wrapper-scroll di <main> è il root di ogni pagina.
-     Limito quel root a 1680px massimi e lo centro orizzontalmente. */
+  /* === Contenuto a piena finestra ===
+     Il primo figlio del wrapper-scroll di <main> è il root di ogni pagina:
+     occupa sempre il 100% della larghezza disponibile, senza cap. */
   main > div > * {
-    max-width: 1680px;
+    max-width: none;
     margin-left: auto !important;
     margin-right: auto !important;
     width: 100%;
@@ -212,7 +212,7 @@
   /* === Tablet (760-1199px) ===
      Sidebar più stretta, padding header ridotti, niente cap (non serve). */
   @media (max-width: 1199px) {
-    aside[style*="width: 248"] { width: 200px !important; }
+    aside[style*="width: 288"] { width: 240px !important; }
     main > header { padding: 14px 22px !important; }
   }
 
@@ -236,7 +236,7 @@
       padding: 32px 24px;
       text-align: center;
       font-family: inherit;
-      font-size: 16px;
+      font-size: 21px;
       font-weight: 600;
       line-height: 1.55;
       letter-spacing: -0.01em;

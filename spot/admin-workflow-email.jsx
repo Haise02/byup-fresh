@@ -434,8 +434,8 @@ function WorkflowList({ workflows, onOpen, onNew, onDuplicate, onToggleState, on
     <div style={{display:'flex', flexDirection:'column', gap:20}}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:14}}>
         <div>
-          <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em'}}>Workflow email</div>
-          <div style={{fontSize:15, color:ADM.MUTED, marginTop:5, maxWidth:680, lineHeight:1.55}}>
+          <div style={{fontSize:27, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em'}}>Workflow email</div>
+          <div style={{fontSize:20, color:ADM.MUTED, marginTop:5, maxWidth:680, lineHeight:1.55}}>
             Automatismi di email marketing per i tuoi locali · trigger comportamentali, filtri ricchi,
             sequenze multi-step con diramazioni e guardrails di sicurezza.
           </div>
@@ -451,17 +451,17 @@ function WorkflowList({ workflows, onOpen, onNew, onDuplicate, onToggleState, on
       </div>
 
       <AdmCard padding={0}>
-        <div style={{padding:'14px 18px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <div style={{padding:'14px 18px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
           <span>Workflow configurati</span>
           <span style={{color:ADM.MUTED_SOFT, fontWeight:600, letterSpacing:'0.05em'}}>{workflows.length} totali</span>
         </div>
         {workflows.length === 0 && (
           <div style={{padding:'48px 24px', textAlign:'center'}}>
             <div style={{width:54, height:54, borderRadius:14, background:ADM.PINK_SOFT, color:ADM.PINK, display:'grid', placeItems:'center', margin:'0 auto 12px'}}>
-              <BuIcons.mail size={22}/>
+              <BuIcons.mail size={27}/>
             </div>
-            <div style={{fontSize:16, fontWeight:700, color:ADM.TEXT}}>Ancora nessun workflow</div>
-            <div style={{fontSize:14, color:ADM.MUTED, marginTop:4, marginBottom:14}}>Parti da un template curato per ristoratori o costruiscine uno da zero.</div>
+            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Ancora nessun workflow</div>
+            <div style={{fontSize:19, color:ADM.MUTED, marginTop:4, marginBottom:14}}>Parti da un template curato per ristoratori o costruiscine uno da zero.</div>
             <AdmButton variant="cta" icon="plus" onClick={onNew}>Crea il primo workflow</AdmButton>
           </div>
         )}
@@ -488,12 +488,12 @@ function WfKpi({ label, value, sub, accent='PINK', icon='trendUp' }) {
     <AdmCard padding={14}>
       <div style={{display:'flex', alignItems:'center', gap:11}}>
         <div style={{width:36, height:36, borderRadius:9, background:cSoft, color:c, display:'grid', placeItems:'center', flexShrink:0}}>
-          <Icon size={16}/>
+          <Icon size={21}/>
         </div>
         <div style={{minWidth:0}}>
-          <div style={{fontSize:12.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
-          <div style={{fontSize:21, fontWeight:800, color:ADM.TEXT, marginTop:3, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
-          {sub && <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
+          <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
+          <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, marginTop:3, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
+          {sub && <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
         </div>
       </div>
     </AdmCard>
@@ -527,14 +527,14 @@ function WorkflowRow({ wf, last, onOpen, onDuplicate, onToggle, onRemove }) {
           color: trigColor,
           display:'grid', placeItems:'center', flexShrink:0,
         }}>
-          <TrigIcon size={16}/>
+          <TrigIcon size={21}/>
         </div>
         <div style={{minWidth:0, flex:1}}>
           <div style={{display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
-            <span style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%'}}>{wf.nome}</span>
+            <span style={{fontSize:20.5, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%'}}>{wf.nome}</span>
             <WfStatoBadge stato={wf.stato}/>
           </div>
-          <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:2, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
+          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
             <span>{trig.label}</span>
             <span style={{color:ADM.MUTED_LIGHT}}>·</span>
             <span><strong style={{color:ADM.TEXT, fontWeight:700}}>{nEmail}</strong> msg</span>
@@ -579,9 +579,9 @@ function countStepKind(steps, kind) {
 function InlineNum({ label, value, sub, tone }) {
   return (
     <div style={{textAlign:'right', whiteSpace:'nowrap'}}>
-      <div style={{fontSize:11, color:ADM.MUTED_SOFT, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em'}}>{label}</div>
-      <div style={{fontSize:15.5, fontWeight:700, color: tone ? ADM[tone] : ADM.TEXT, letterSpacing:'-0.01em', lineHeight:1.1, marginTop:1}}>{value}</div>
-      {sub && <div style={{fontSize:12, color:ADM.MUTED, marginTop:1}}>{sub}</div>}
+      <div style={{fontSize:16, color:ADM.MUTED_SOFT, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em'}}>{label}</div>
+      <div style={{fontSize:20.5, fontWeight:700, color: tone ? ADM[tone] : ADM.TEXT, letterSpacing:'-0.01em', lineHeight:1.1, marginTop:1}}>{value}</div>
+      {sub && <div style={{fontSize:17, color:ADM.MUTED, marginTop:1}}>{sub}</div>}
     </div>
   );
 }
@@ -596,7 +596,7 @@ function WfStatoBadge({ stato }) {
   return (
     <span style={{
       display:'inline-flex', alignItems:'center', gap:5,
-      fontSize:13, fontWeight:800, color:s.color, background:s.bg,
+      fontSize:18, fontWeight:800, color:s.color, background:s.bg,
       padding:'2px 7px', borderRadius:5, textTransform:'uppercase', letterSpacing:'0.05em',
       whiteSpace:'nowrap',
     }}>
@@ -631,23 +631,23 @@ function TemplateGallery({ onClose, onPick }) {
             onMouseLeave={e => { e.currentTarget.style.borderColor = ADM.BORDER_SOFT; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display:'flex', alignItems:'center', gap:10}}>
                 <div style={{width:34, height:34, borderRadius:9, background:cSoft, color:c, display:'grid', placeItems:'center'}}>
-                  <Icon size={15}/>
+                  <Icon size={20}/>
                 </div>
                 <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{tpl.nome}</div>
+                  <div style={{fontSize:20.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{tpl.nome}</div>
                   {!isBlank && (
-                    <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2, fontWeight:600}}>
+                    <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:2, fontWeight:600}}>
                       {nSteps} step · {findTrigger(tpl.trigger.id)?.label}
                     </div>
                   )}
                 </div>
                 {!isBlank && (
-                  <span style={{fontSize:12, fontWeight:800, color:c, background:cSoft, padding:'3px 7px', borderRadius:5, letterSpacing:'0.03em', whiteSpace:'nowrap'}}>
+                  <span style={{fontSize:17, fontWeight:800, color:c, background:cSoft, padding:'3px 7px', borderRadius:5, letterSpacing:'0.03em', whiteSpace:'nowrap'}}>
                     {tpl.benchmark}
                   </span>
                 )}
               </div>
-              <div style={{fontSize:14, color:ADM.MUTED, lineHeight:1.5}}>{tpl.pitch}</div>
+              <div style={{fontSize:19, color:ADM.MUTED, lineHeight:1.5}}>{tpl.pitch}</div>
             </button>
           );
         })}
@@ -686,15 +686,15 @@ function WorkflowEditor({ workflow, onChange, onClose, onDelete }) {
             display:'inline-flex', alignItems:'center', gap:6,
             border:`1px solid ${ADM.BORDER}`, background:'#fff',
             padding:'7px 12px', borderRadius:8, color:ADM.TEXT,
-            fontSize:14.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+            fontSize:19.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
             whiteSpace:'nowrap',
           }}>
-            <BuIcons.chevronLeft size={13}/> Tutti i workflow
+            <BuIcons.chevronLeft size={18}/> Tutti i workflow
           </button>
           <WfStatoBadge stato={wf.stato}/>
           {validation.length > 0 && (
-            <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.5, color:ADM.WARN, fontWeight:700, padding:'5px 10px', background:ADM.WARN_SOFT, borderRadius:7, whiteSpace:'nowrap'}}>
-              <BuIcons.alertTriangle size={12}/>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:18.5, color:ADM.WARN, fontWeight:700, padding:'5px 10px', background:ADM.WARN_SOFT, borderRadius:7, whiteSpace:'nowrap'}}>
+              <BuIcons.alertTriangle size={17}/>
               {validation.length} {validation.length === 1 ? 'cosa da sistemare' : 'cose da sistemare'}
             </span>
           )}
@@ -717,7 +717,7 @@ function WorkflowEditor({ workflow, onChange, onClose, onDelete }) {
               onBlur={()=>setNameEditing(false)}
               onKeyDown={e => e.key==='Enter' && setNameEditing(false)}
               style={{
-                fontSize:26, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em',
+                fontSize:31, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em',
                 border:`1px solid ${ADM.PINK}`, borderRadius:8,
                 padding:'4px 10px', fontFamily:'inherit', outline:'none',
                 width:'100%', maxWidth:640, background:'#fff',
@@ -725,7 +725,7 @@ function WorkflowEditor({ workflow, onChange, onClose, onDelete }) {
             />
           ) : (
             <h2 onClick={()=>setNameEditing(true)} style={{
-              fontSize:26, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', margin:0,
+              fontSize:31, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', margin:0,
               cursor:'text', padding:'4px 10px', borderRadius:8,
               border:'1px solid transparent',
               transition:'background 0.12s, border-color 0.12s',
@@ -788,7 +788,7 @@ function TriggerSection({ trigger, onChange, onPick }) {
       <SectionShell label="Trigger" sub="Quando deve partire il workflow" color={ADM.MUTED}
         help="Il trigger è l'evento che fa entrare un cliente nella sequenza. Ogni workflow ne ha esattamente uno.">
         <button onClick={onPick} className="wf-tap" style={emptyNodeStyle()}>
-          <BuIcons.plus size={14}/>
+          <BuIcons.plus size={19}/>
           <span>Seleziona trigger…</span>
         </button>
       </SectionShell>
@@ -801,11 +801,11 @@ function TriggerSection({ trigger, onChange, onPick }) {
       help="Il trigger è l'evento che fa entrare un cliente nella sequenza. Cambialo in qualsiasi momento.">
       <div className="wf-tap" style={nodeStyle(c, ADM[t.color+'_SOFT'])}>
         <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
-          <div style={iconBoxStyle(c, ADM[t.color+'_SOFT'])}><Icon size={16}/></div>
+          <div style={iconBoxStyle(c, ADM[t.color+'_SOFT'])}><Icon size={21}/></div>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:13, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Trigger</div>
-            <div style={{fontSize:16.5, fontWeight:700, color:ADM.TEXT, marginTop:2, letterSpacing:'-0.01em'}}>{t.label}</div>
-            {t.desc && <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>{t.desc}</div>}
+            <div style={{fontSize:18, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Trigger</div>
+            <div style={{fontSize:21.5, fontWeight:700, color:ADM.TEXT, marginTop:2, letterSpacing:'-0.01em'}}>{t.label}</div>
+            {t.desc && <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>{t.desc}</div>}
           </div>
           <button onClick={onPick} style={miniBtnStyle()}>Cambia</button>
         </div>
@@ -830,14 +830,14 @@ function TriggerSection({ trigger, onChange, onPick }) {
 function ParamField({ label, value, onChange, unit, type='number' }) {
   return (
     <label style={{display:'inline-flex', alignItems:'center', gap:7, padding:'5px 10px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:7}}>
-      <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600}}>{label}</span>
+      <span style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>{label}</span>
       <input
         type={type}
         value={value}
         onChange={e => onChange(type==='number' ? Number(e.target.value) : e.target.value)}
-        style={{width:type==='number'?60:120, border:'none', outline:'none', fontSize:15, fontWeight:700, color:ADM.TEXT, fontFamily:'inherit', background:'transparent', padding:0}}
+        style={{width:type==='number'?60:120, border:'none', outline:'none', fontSize:20, fontWeight:700, color:ADM.TEXT, fontFamily:'inherit', background:'transparent', padding:0}}
       />
-      {unit && <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>{unit}</span>}
+      {unit && <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600}}>{unit}</span>}
     </label>
   );
 }
@@ -858,7 +858,7 @@ function TriggerPicker({ current, onPick, onClose }) {
       <div style={{position:'sticky', top:0, background:'#fff', paddingBottom:12, marginBottom:6, zIndex:2}}>
         <div style={{position:'relative'}}>
           <span style={{position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED}}>
-            <BuIcons.search size={14}/>
+            <BuIcons.search size={19}/>
           </span>
           <input
             value={q} onChange={e=>setQ(e.target.value)} autoFocus
@@ -866,19 +866,19 @@ function TriggerPicker({ current, onPick, onClose }) {
             style={{
               width:'100%', padding:'10px 12px 10px 36px',
               border:`1px solid ${ADM.BORDER}`, borderRadius:9,
-              fontSize:15, fontFamily:'inherit', outline:'none',
+              fontSize:20, fontFamily:'inherit', outline:'none',
               background:'#FBFBFC',
             }}/>
         </div>
       </div>
       {grouped.length === 0 && (
-        <div style={{padding:'40px 0', textAlign:'center', color:ADM.MUTED, fontSize:14.5}}>
+        <div style={{padding:'40px 0', textAlign:'center', color:ADM.MUTED, fontSize:19.5}}>
           Nessun trigger corrisponde a "{q}"
         </div>
       )}
       {grouped.map(([cat, ts]) => (
         <div key={cat} style={{marginBottom:18}}>
-          <div style={{fontSize:12.5, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8}}>{cat}</div>
+          <div style={{fontSize:17.5, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8}}>{cat}</div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
             {ts.map(t => {
               const Icon = BuIcons[t.icon];
@@ -902,14 +902,14 @@ function TriggerPicker({ current, onPick, onClose }) {
                     textAlign:'left',
                   }}>
                   <div style={{width:32, height:32, borderRadius:8, background: ADM[t.color+'_SOFT'], color:c, display:'grid', placeItems:'center', flexShrink:0}}>
-                    <Icon size={15}/>
+                    <Icon size={20}/>
                   </div>
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{display:'flex', alignItems:'center', gap:6}}>
-                      <div style={{fontSize:15, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{t.label}</div>
-                      {sel && <BuIcons.check size={13} color={c}/>}
+                      <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{t.label}</div>
+                      {sel && <BuIcons.check size={18} color={c}/>}
                     </div>
-                    {t.desc && <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{t.desc}</div>}
+                    {t.desc && <div style={{fontSize:18, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{t.desc}</div>}
                   </div>
                 </button>
               );
@@ -948,7 +948,7 @@ function ConditionsSection({ conditions, onChange, title='Filtri di ingresso', h
     <div style={nodeStyle(c, cSoft)}>
       <div style={{display:'flex', flexDirection:'column', gap:7}}>
         {conditions.items.length === 0 && (
-          <div style={{fontSize:14, color:ADM.MUTED, padding:'6px 0', lineHeight:1.55}}>
+          <div style={{fontSize:19, color:ADM.MUTED, padding:'6px 0', lineHeight:1.55}}>
             Nessun filtro · {compact ? 'vero per chiunque' : <>la sequenza partirà per <strong style={{color:ADM.TEXT}}>tutti</strong> i clienti che attivano il trigger.</>}
           </div>
         )}
@@ -956,7 +956,7 @@ function ConditionsSection({ conditions, onChange, title='Filtri di ingresso', h
           <div key={it.id} className="wf-step-enter" style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
             {i > 0 && (
               <span style={{
-                fontSize:13, fontWeight:800, color: c, background:cSoft,
+                fontSize:18, fontWeight:800, color: c, background:cSoft,
                 padding:'3px 7px', borderRadius:4, letterSpacing:'0.06em',
               }}>{conditions.mode}</span>
             )}
@@ -1007,10 +1007,10 @@ function FieldPickerBtn({ onPick, accent='WARN' }) {
         display:'inline-flex', alignItems:'center', gap:6,
         padding:'7px 12px',
         background:'#fff', border:`1px dashed ${c}80`,
-        color: c, fontSize:14, fontWeight:700,
+        color: c, fontSize:19, fontWeight:700,
         borderRadius:8, cursor:'pointer', fontFamily:'inherit',
       }}>
-        <BuIcons.plus size={12}/> Aggiungi condizione
+        <BuIcons.plus size={17}/> Aggiungi condizione
       </button>
       {open && (
         <>
@@ -1026,18 +1026,18 @@ function FieldPickerBtn({ onPick, accent='WARN' }) {
               style={{
                 width:'100%', padding:'7px 10px', marginBottom:7,
                 border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:7,
-                fontSize:14, fontFamily:'inherit', outline:'none',
+                fontSize:19, fontFamily:'inherit', outline:'none',
                 background:'#FBFBFC',
               }}/>
             {grouped.map(([cat, fs]) => (
               <div key={cat} style={{marginBottom:8}}>
-                <div style={{fontSize:13, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', padding:'5px 7px'}}>{cat}</div>
+                <div style={{fontSize:18, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', padding:'5px 7px'}}>{cat}</div>
                 {fs.map(f => (
                   <button key={f.id} onClick={()=>{ onPick(f.id); setOpen(false); setQ(''); }}
                     style={{
                       display:'block', width:'100%', textAlign:'left',
                       padding:'7px 9px', border:'none', background:'transparent',
-                      fontSize:14.5, color:ADM.TEXT, fontFamily:'inherit',
+                      fontSize:19.5, color:ADM.TEXT, fontFamily:'inherit',
                       borderRadius:6, cursor:'pointer',
                     }}
                     onMouseEnter={e=>e.currentTarget.style.background = ADM.PANEL_SOFT}
@@ -1048,7 +1048,7 @@ function FieldPickerBtn({ onPick, accent='WARN' }) {
               </div>
             ))}
             {grouped.length === 0 && (
-              <div style={{padding:'14px 8px', textAlign:'center', color:ADM.MUTED, fontSize:13.5}}>
+              <div style={{padding:'14px 8px', textAlign:'center', color:ADM.MUTED, fontSize:18.5}}>
                 Nessun campo per "{q}"
               </div>
             )}
@@ -1068,7 +1068,7 @@ function ConditionRow({ item, onChange, onRemove }) {
       padding:'5px 7px', background:'#fff',
       border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:8,
     }}>
-      <span style={{fontSize:12, fontWeight:800, color:ADM.MUTED, background:'#F4F5F7', padding:'2px 6px', borderRadius:4, letterSpacing:'0.04em', textTransform:'uppercase'}}>{f.cat}</span>
+      <span style={{fontSize:17, fontWeight:800, color:ADM.MUTED, background:'#F4F5F7', padding:'2px 6px', borderRadius:4, letterSpacing:'0.04em', textTransform:'uppercase'}}>{f.cat}</span>
       <SmallSelect value={item.field}
         onChange={(v) => {
           const nf = findField(v);
@@ -1086,7 +1086,7 @@ function ConditionRow({ item, onChange, onRemove }) {
         <span style={{display:'inline-flex', alignItems:'center', gap:5}}>
           <SmallInput type={f.kind === 'number' ? 'number' : 'text'} value={item.value?.split('|')[0] || ''}
             onChange={(v)=>onChange({value: `${v}|${item.value?.split('|')[1] || ''}`})} width={70} placeholder="min"/>
-          <span style={{fontSize:13, color:ADM.MUTED}}>e</span>
+          <span style={{fontSize:18, color:ADM.MUTED}}>e</span>
           <SmallInput type={f.kind === 'number' ? 'number' : 'text'} value={item.value?.split('|')[1] || ''}
             onChange={(v)=>onChange({value: `${item.value?.split('|')[0] || ''}|${v}`})} width={70} placeholder="max"/>
         </span>
@@ -1095,13 +1095,13 @@ function ConditionRow({ item, onChange, onRemove }) {
           onChange={(v)=>onChange({value:v})} width={f.kind==='number' ? 90 : 140}
           placeholder={f.kind==='number' ? '0' : 'valore…'}/>
       )}
-      {f.unit && <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, marginLeft:-2}}>{f.unit}</span>}
+      {f.unit && <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, marginLeft:-2}}>{f.unit}</span>}
       <button onClick={onRemove} title="Rimuovi" className="wf-tap" style={{
         display:'inline-flex', alignItems:'center', justifyContent:'center',
         width:22, height:22, borderRadius:6, border:'none', background:'transparent', color:ADM.MUTED,
         cursor:'pointer',
       }}>
-        <BuIcons.x size={11}/>
+        <BuIcons.x size={16}/>
       </button>
     </div>
   );
@@ -1113,7 +1113,7 @@ function ModeToggle({ mode, onChange, accent='WARN' }) {
     <div style={{display:'inline-flex', background:'#F4F5F7', borderRadius:8, padding:2}}>
       {['AND','OR'].map(m => (
         <button key={m} onClick={()=>onChange(m)} style={{
-          padding:'4px 12px', fontSize:13, fontWeight:800,
+          padding:'4px 12px', fontSize:18, fontWeight:800,
           background: mode===m ? '#fff' : 'transparent',
           color: mode===m ? c : ADM.MUTED,
           border:'none', borderRadius:6, cursor:'pointer',
@@ -1222,11 +1222,11 @@ function AddStepBar({ onAdd, primary }) {
         background: open ? ADM.PINK_SOFT : '#fff',
         border: `1px ${primary?'solid':'dashed'} ${open ? ADM.PINK : ADM.BORDER}`,
         color: open ? ADM.PINK : (primary ? ADM.PINK : ADM.MUTED),
-        fontSize:13.5, fontWeight:700,
+        fontSize:18.5, fontWeight:700,
         borderRadius: 99, cursor:'pointer', fontFamily:'inherit',
         transition:'all 0.15s',
       }}>
-        <BuIcons.plus size={11}/>
+        <BuIcons.plus size={16}/>
         {primary ? 'Aggiungi il primo step' : 'Aggiungi step'}
       </button>
       {open && (
@@ -1254,11 +1254,11 @@ function AddStepBar({ onAdd, primary }) {
                 onMouseEnter={e => e.currentTarget.style.background = ADM.PANEL_SOFT}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span style={{width:24, height:24, borderRadius:7, background:`${c}1f`, color:c, display:'grid', placeItems:'center', flexShrink:0, marginTop:1}}>
-                    <Icon size={12}/>
+                    <Icon size={17}/>
                   </span>
                   <span style={{minWidth:0, flex:1}}>
-                    <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT}}>{k.label}</div>
-                    <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{k.hint}</div>
+                    <div style={{fontSize:19.5, fontWeight:700, color:ADM.TEXT}}>{k.label}</div>
+                    <div style={{fontSize:18, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{k.hint}</div>
                   </span>
                 </button>
               );
@@ -1281,18 +1281,18 @@ function EmailStepEditor({ step, idx, onChange, onRemove, onMove, canUp, canDown
           background:ADM.PINK_SOFT, color:c, flexShrink:0,
           display:'grid', placeItems:'center', position:'relative',
         }}>
-          <BuIcons.mail size={17}/>
+          <BuIcons.mail size={22}/>
           <span style={{
             position:'absolute', top:-5, right:-5,
             width:18, height:18, borderRadius:'50%',
             background:c, color:'#fff',
-            fontSize:12, fontWeight:800, display:'grid', placeItems:'center',
+            fontSize:17, fontWeight:800, display:'grid', placeItems:'center',
             border:'2px solid #fff',
           }}>{idx}</span>
         </div>
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
-            <span style={{fontSize:13, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Email #{idx}</span>
+            <span style={{fontSize:18, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Email #{idx}</span>
             <DelayEditor delay={step.delay} onChange={(d)=>onChange({delay:d})}/>
             <span style={{flex:1}}/>
             <button onClick={()=>setOpen(o=>!o)} style={miniBtnStyle()}>{open?'Comprimi':'Espandi'}</button>
@@ -1301,7 +1301,7 @@ function EmailStepEditor({ step, idx, onChange, onRemove, onMove, canUp, canDown
             value={step.subject}
             onChange={(v)=>onChange({subject:v})}
             placeholder="Oggetto della email…"
-            style={{marginTop:9, fontSize:15.5, fontWeight:700}}
+            style={{marginTop:9, fontSize:20.5, fontWeight:700}}
             block
           />
           {open && (<>
@@ -1309,7 +1309,7 @@ function EmailStepEditor({ step, idx, onChange, onRemove, onMove, canUp, canDown
               value={step.preheader}
               onChange={(v)=>onChange({preheader:v})}
               placeholder="Preheader · testo di anteprima visibile nell'inbox"
-              style={{marginTop:7, fontSize:14, color:ADM.MUTED}}
+              style={{marginTop:7, fontSize:19, color:ADM.MUTED}}
               block
             />
             <textarea
@@ -1321,7 +1321,7 @@ function EmailStepEditor({ step, idx, onChange, onRemove, onMove, canUp, canDown
                 marginTop:9, width:'100%',
                 padding:'8px 10px',
                 border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:7,
-                fontFamily:'inherit', fontSize:13.5, color:ADM.TEXT,
+                fontFamily:'inherit', fontSize:18.5, color:ADM.TEXT,
                 outline:'none', resize:'vertical', background:'#FBFBFC',
               }}
             />
@@ -1344,16 +1344,16 @@ function PushStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) {
   return (
     <div style={nodeStyle(c, ADM.INFO_SOFT)}>
       <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
-        <div style={iconBoxStyle(c, ADM.INFO_SOFT, 38)}><BuIcons.bell size={15}/></div>
+        <div style={iconBoxStyle(c, ADM.INFO_SOFT, 38)}><BuIcons.bell size={20}/></div>
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
-            <span style={{fontSize:13, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Push notification</span>
+            <span style={{fontSize:18, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Push notification</span>
             <DelayEditor delay={step.delay} onChange={(d)=>onChange({delay:d})}/>
           </div>
           <SmallInput value={step.title} onChange={(v)=>onChange({title:v})}
             placeholder="Titolo della push (60 char)" style={{marginTop:9, fontWeight:700}} block/>
           <SmallInput value={step.body} onChange={(v)=>onChange({body:v})}
-            placeholder="Corpo · breve, accattivante, max 100 caratteri" style={{marginTop:7, fontSize:14}} block/>
+            placeholder="Corpo · breve, accattivante, max 100 caratteri" style={{marginTop:7, fontSize:19}} block/>
         </div>
         <StepActions onMove={onMove} onRemove={onRemove} canUp={canUp} canDown={canDown}/>
       </div>
@@ -1366,10 +1366,10 @@ function SmsStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) {
   return (
     <div style={nodeStyle(c, ADM.PURPLE_SOFT)}>
       <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
-        <div style={iconBoxStyle(c, ADM.PURPLE_SOFT, 38)}><BuIcons.phone size={15}/></div>
+        <div style={iconBoxStyle(c, ADM.PURPLE_SOFT, 38)}><BuIcons.phone size={20}/></div>
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
-            <span style={{fontSize:13, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>SMS</span>
+            <span style={{fontSize:18, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>SMS</span>
             <DelayEditor delay={step.delay} onChange={(d)=>onChange({delay:d})}/>
             <Chip color={ADM.WARN} dot>Costo extra · ~€0.04/SMS</Chip>
           </div>
@@ -1380,10 +1380,10 @@ function SmsStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) {
               marginTop:9, width:'100%',
               padding:'8px 10px',
               border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:7,
-              fontFamily:'inherit', fontSize:14, color:ADM.TEXT,
+              fontFamily:'inherit', fontSize:19, color:ADM.TEXT,
               outline:'none', resize:'vertical', background:'#FBFBFC',
             }}/>
-          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:5, fontWeight:600}}>
+          <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:5, fontWeight:600}}>
             {(step.body || '').length}/160 caratteri
           </div>
         </div>
@@ -1401,9 +1401,9 @@ function WaitStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) {
     }}>
       <div style={{display:'flex', alignItems:'center', gap:12}}>
         <div style={iconBoxStyle(ADM.MUTED, '#F0F1F3', 32)}>
-          <BuIcons.clock size={14}/>
+          <BuIcons.clock size={19}/>
         </div>
-        <span style={{fontSize:13, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em'}}>Attendi</span>
+        <span style={{fontSize:18, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em'}}>Attendi</span>
         <DelayEditor delay={step.delay} onChange={(d)=>onChange({delay:d})}/>
         <span style={{flex:1}}/>
         <StepActions onMove={onMove} onRemove={onRemove} canUp={canUp} canDown={canDown}/>
@@ -1430,16 +1430,16 @@ function BranchStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) 
     <div style={{...nodeStyle(c, ADM.WARN_SOFT), padding:'14px 16px'}}>
       <div style={{display:'flex', alignItems:'flex-start', gap:12, marginBottom: expanded ? 12 : 0}}>
         <div style={iconBoxStyle(c, ADM.WARN_SOFT, 38)}>
-          <BuIcons.filter size={15}/>
+          <BuIcons.filter size={20}/>
         </div>
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
-            <span style={{fontSize:13, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Diramazione if/else</span>
-            <span style={{fontSize:13.5, color:ADM.MUTED, fontWeight:600}}>
+            <span style={{fontSize:18, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>Diramazione if/else</span>
+            <span style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>
               · il cliente segue il ramo <strong style={{color:cYes}}>Sì</strong> se le condizioni sono vere, altrimenti il ramo <strong style={{color:cNo}}>No</strong>
             </span>
           </div>
-          <div style={{fontSize:14.5, color:ADM.TEXT, marginTop:5, lineHeight:1.5}}>
+          <div style={{fontSize:19.5, color:ADM.TEXT, marginTop:5, lineHeight:1.5}}>
             {step.conditions?.items?.length > 0
               ? <>Valuta <strong>{step.conditions.items.length}</strong> {step.conditions.items.length === 1 ? 'condizione' : `condizioni in ${step.conditions.mode}`} per scegliere il ramo.</>
               : <span style={{color:ADM.MUTED}}>Aggiungi almeno una condizione · senza condizioni il branch è inutile.</span>
@@ -1453,7 +1453,7 @@ function BranchStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) 
       {expanded && (
         <div className="wf-branch-enter">
           <div style={{marginBottom:14}}>
-            <div style={{fontSize:12.5, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8, display:'flex', alignItems:'center', gap:8}}>
+            <div style={{fontSize:17.5, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8, display:'flex', alignItems:'center', gap:8}}>
               <span>Condizioni del branch</span>
               {step.conditions?.items?.length > 1 && (
                 <ModeToggle mode={step.conditions.mode} onChange={(mode)=>setBranchConditions({...step.conditions, mode})} accent="WARN"/>
@@ -1490,9 +1490,9 @@ function BranchStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) 
           <div style={{
             marginTop:14, padding:'9px 12px',
             background:'#FBFBFC', border:`1px dashed ${ADM.BORDER}`, borderRadius:8,
-            fontSize:13, color:ADM.MUTED, lineHeight:1.5, display:'flex', alignItems:'center', gap:8,
+            fontSize:18, color:ADM.MUTED, lineHeight:1.5, display:'flex', alignItems:'center', gap:8,
           }}>
-            <BuIcons.info size={13} color={ADM.MUTED}/>
+            <BuIcons.info size={18} color={ADM.MUTED}/>
             Dopo il branch, entrambi i rami terminano: aggiungi step successivi sotto se vuoi una continuazione comune.
           </div>
         </div>
@@ -1519,13 +1519,13 @@ function BranchSplitVisual({ yesCount, noCount }) {
       </svg>
       <span style={{
         position:'absolute', left:'25%', top:18, transform:'translateX(-50%)',
-        fontSize:12, fontWeight:800, color:ADM.OK, background:'#fff',
+        fontSize:17, fontWeight:800, color:ADM.OK, background:'#fff',
         padding:'1px 8px', borderRadius:99, border:`1px solid ${ADM.OK}40`,
         letterSpacing:'0.06em',
       }}>SÌ {yesCount > 0 && <span style={{color:ADM.MUTED, fontWeight:700}}>· {yesCount} step</span>}</span>
       <span style={{
         position:'absolute', right:'25%', top:18, transform:'translateX(50%)',
-        fontSize:12, fontWeight:800, color:ADM.MUTED, background:'#fff',
+        fontSize:17, fontWeight:800, color:ADM.MUTED, background:'#fff',
         padding:'1px 8px', borderRadius:99, border:`1px solid ${ADM.BORDER}`,
         letterSpacing:'0.06em',
       }}>NO {noCount > 0 && <span style={{fontWeight:700}}>· {noCount} step</span>}</span>
@@ -1560,13 +1560,13 @@ function BranchColumn({ label, color, colorSoft, icon, steps, onChange }) {
     }}>
       <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:4}}>
         <div style={{width:20, height:20, borderRadius:5, background:colorSoft, color, display:'grid', placeItems:'center'}}>
-          <Icon size={11}/>
+          <Icon size={16}/>
         </div>
-        <span style={{fontSize:12, fontWeight:800, color, textTransform:'uppercase', letterSpacing:'0.07em'}}>{label}</span>
+        <span style={{fontSize:17, fontWeight:800, color, textTransform:'uppercase', letterSpacing:'0.07em'}}>{label}</span>
       </div>
 
       {steps.length === 0 && (
-        <div style={{fontSize:13.5, color:ADM.MUTED, padding:'8px 0', textAlign:'center', lineHeight:1.5}}>
+        <div style={{fontSize:18.5, color:ADM.MUTED, padding:'8px 0', textAlign:'center', lineHeight:1.5}}>
           Nessuno step in questo ramo
         </div>
       )}
@@ -1612,12 +1612,12 @@ function BranchStepCompact({ step, onChange, onRemove, onMove, canUp, canDown })
       borderRadius:7,
     }}>
       <div style={{width:22, height:22, borderRadius:6, background:`${c}1f`, color:c, display:'grid', placeItems:'center', flexShrink:0}}>
-        <Icon size={11}/>
+        <Icon size={16}/>
       </div>
       <div style={{flex:1, minWidth:0}}>
-        <div style={{fontSize:13.5, fontWeight:700, color:ADM.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{titleLine}</div>
+        <div style={{fontSize:18.5, fontWeight:700, color:ADM.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{titleLine}</div>
         {step.kind === 'email' || step.kind === 'push' || step.kind === 'sms' ? (
-          <div style={{fontSize:12, color:ADM.MUTED, marginTop:1}}>+{step.delay?.n || 0} {step.delay?.unit}</div>
+          <div style={{fontSize:17, color:ADM.MUTED, marginTop:1}}>+{step.delay?.n || 0} {step.delay?.unit}</div>
         ) : null}
       </div>
       {(step.kind === 'email' || step.kind === 'push' || step.kind === 'sms') && (
@@ -1626,13 +1626,13 @@ function BranchStepCompact({ step, onChange, onRemove, onMove, canUp, canDown })
           onChange={(v)=>onChange(step.kind === 'email' ? {subject:v} : step.kind === 'push' ? {title:v} : {body:v})}
           placeholder="Modifica…"
           width={120}
-          style={{fontSize:13}}
+          style={{fontSize:18}}
         />
       )}
       <div style={{display:'flex', gap:2}}>
-        {onMove && canUp && <AdmIconBtn icon="chevronUp" label="Su" onClick={()=>onMove(-1)} size={22}/>}
-        {onMove && canDown && <AdmIconBtn icon="chevronDown" label="Giù" onClick={()=>onMove(+1)} size={22}/>}
-        <AdmIconBtn icon="x" label="Rimuovi" onClick={onRemove} size={22}/>
+        {onMove && canUp && <AdmIconBtn icon="chevronUp" label="Su" onClick={()=>onMove(-1)} size={27}/>}
+        {onMove && canDown && <AdmIconBtn icon="chevronDown" label="Giù" onClick={()=>onMove(+1)} size={27}/>}
+        <AdmIconBtn icon="x" label="Rimuovi" onClick={onRemove} size={27}/>
       </div>
     </div>
   );
@@ -1648,10 +1648,10 @@ function BranchAddBtn({ onAdd, color }) {
         display:'inline-flex', alignItems:'center', gap:5,
         padding:'4px 10px',
         background:'#fff', border:`1px dashed ${color}60`,
-        color, fontSize:12.5, fontWeight:700,
+        color, fontSize:17.5, fontWeight:700,
         borderRadius:99, cursor:'pointer', fontFamily:'inherit',
       }}>
-        <BuIcons.plus size={10}/> Step
+        <BuIcons.plus size={15}/> Step
       </button>
       {open && (
         <>
@@ -1677,9 +1677,9 @@ function BranchAddBtn({ onAdd, color }) {
                 onMouseEnter={e => e.currentTarget.style.background = ADM.PANEL_SOFT}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span style={{width:18, height:18, borderRadius:5, background:`${c}1f`, color:c, display:'grid', placeItems:'center', flexShrink:0}}>
-                    <Icon size={9}/>
+                    <Icon size={14}/>
                   </span>
-                  <span style={{fontSize:13.5, fontWeight:600, color:ADM.TEXT}}>{k.label}</span>
+                  <span style={{fontSize:18.5, fontWeight:600, color:ADM.TEXT}}>{k.label}</span>
                 </button>
               );
             })}
@@ -1696,18 +1696,18 @@ function SplitStepEditor({ step, onChange, onRemove, onMove, canUp, canDown }) {
   return (
     <div style={nodeStyle(c, ADM.PURPLE_SOFT)}>
       <div style={{display:'flex', alignItems:'flex-start', gap:12, marginBottom:10}}>
-        <div style={iconBoxStyle(c, ADM.PURPLE_SOFT, 38)}><BuIcons.list size={15}/></div>
+        <div style={iconBoxStyle(c, ADM.PURPLE_SOFT, 38)}><BuIcons.list size={20}/></div>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:13, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>A/B split test</div>
-          <div style={{fontSize:14.5, color:ADM.TEXT, marginTop:4, lineHeight:1.5}}>
+          <div style={{fontSize:18, fontWeight:800, color:c, textTransform:'uppercase', letterSpacing:'0.07em'}}>A/B split test</div>
+          <div style={{fontSize:19.5, color:ADM.TEXT, marginTop:4, lineHeight:1.5}}>
             Suddivisione casuale dei clienti su due varianti per misurare quale converte meglio.
           </div>
           <div style={{display:'flex', alignItems:'center', gap:10, marginTop:8}}>
-            <span style={{fontSize:13, fontWeight:600, color:ADM.MUTED}}>Distribuzione</span>
+            <span style={{fontSize:18, fontWeight:600, color:ADM.MUTED}}>Distribuzione</span>
             <input type="range" min={10} max={90} value={step.ratio}
               onChange={e=>onChange({ratio: Number(e.target.value)})}
               style={{flex:1, accentColor:c}}/>
-            <span style={{fontSize:14, fontWeight:800, color:c, minWidth:80, textAlign:'right'}}>
+            <span style={{fontSize:19, fontWeight:800, color:c, minWidth:80, textAlign:'right'}}>
               {step.ratio}% / {100-step.ratio}%
             </span>
           </div>
@@ -1739,9 +1739,9 @@ function TagStepEditor({ step, onChange, onRemove }) {
     <div style={nodeStyle(ADM.INFO, ADM.INFO_SOFT)}>
       <div style={{display:'flex', alignItems:'center', gap:12}}>
         <div style={iconBoxStyle(ADM.INFO, ADM.INFO_SOFT)}>
-          <BuIcons.paperclip size={14}/>
+          <BuIcons.paperclip size={19}/>
         </div>
-        <span style={{fontSize:13, fontWeight:800, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.07em'}}>Aggiungi tag</span>
+        <span style={{fontSize:18, fontWeight:800, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.07em'}}>Aggiungi tag</span>
         <SmallInput value={step.tagName} onChange={(v)=>onChange({tagName:v})} placeholder="es. cliente_engaged" width={220}/>
         <span style={{flex:1}}/>
         <StepActions onRemove={onRemove}/>
@@ -1754,9 +1754,9 @@ function NotifyStepEditor({ step, onChange, onRemove }) {
   return (
     <div style={nodeStyle(ADM.INFO, ADM.INFO_SOFT)}>
       <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
-        <div style={iconBoxStyle(ADM.INFO, ADM.INFO_SOFT)}><BuIcons.waiter size={14}/></div>
+        <div style={iconBoxStyle(ADM.INFO, ADM.INFO_SOFT)}><BuIcons.waiter size={19}/></div>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:13, fontWeight:800, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.07em'}}>Notifica lo staff</div>
+          <div style={{fontSize:18, fontWeight:800, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.07em'}}>Notifica lo staff</div>
           <div style={{display:'flex', alignItems:'center', gap:7, flexWrap:'wrap', marginTop:6}}>
             <SmallSelect value={step.recipients} onChange={(v)=>onChange({recipients:v})}
               options={[
@@ -1779,9 +1779,9 @@ function GoalStepEditor({ onRemove }) {
   return (
     <div style={nodeStyle(ADM.OK, ADM.OK_SOFT)}>
       <div style={{display:'flex', alignItems:'center', gap:12}}>
-        <div style={iconBoxStyle(ADM.OK, ADM.OK_SOFT)}><BuIcons.check size={14}/></div>
-        <span style={{fontSize:13, fontWeight:800, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.07em'}}>Obiettivo</span>
-        <span style={{fontSize:15, fontWeight:700, color:ADM.TEXT}}>Il cliente ha raggiunto l'obiettivo del workflow</span>
+        <div style={iconBoxStyle(ADM.OK, ADM.OK_SOFT)}><BuIcons.check size={19}/></div>
+        <span style={{fontSize:18, fontWeight:800, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.07em'}}>Obiettivo</span>
+        <span style={{fontSize:20, fontWeight:700, color:ADM.TEXT}}>Il cliente ha raggiunto l'obiettivo del workflow</span>
         <span style={{flex:1}}/>
         <StepActions onRemove={onRemove}/>
       </div>
@@ -1793,9 +1793,9 @@ function StopStepEditor({ onRemove }) {
   return (
     <div style={nodeStyle(ADM.DANGER, ADM.DANGER_SOFT)}>
       <div style={{display:'flex', alignItems:'center', gap:12}}>
-        <div style={iconBoxStyle(ADM.DANGER, ADM.DANGER_SOFT)}><BuIcons.x size={14}/></div>
-        <span style={{fontSize:13, fontWeight:800, color:ADM.DANGER, textTransform:'uppercase', letterSpacing:'0.07em'}}>Termina</span>
-        <span style={{fontSize:15, fontWeight:700, color:ADM.TEXT}}>Il cliente esce dal workflow</span>
+        <div style={iconBoxStyle(ADM.DANGER, ADM.DANGER_SOFT)}><BuIcons.x size={19}/></div>
+        <span style={{fontSize:18, fontWeight:800, color:ADM.DANGER, textTransform:'uppercase', letterSpacing:'0.07em'}}>Termina</span>
+        <span style={{fontSize:20, fontWeight:700, color:ADM.TEXT}}>Il cliente esce dal workflow</span>
         <span style={{flex:1}}/>
         <StepActions onRemove={onRemove}/>
       </div>
@@ -1810,15 +1810,15 @@ function DelayEditor({ delay, onChange }) {
       padding:'2px 8px',
       background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:6,
     }}>
-      <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600}}>+</span>
+      <span style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>+</span>
       <input
         type="number" min={0} value={delay.n}
         onChange={e => onChange({...delay, n: Number(e.target.value)})}
-        style={{width:42, border:'none', outline:'none', fontSize:14.5, fontWeight:700, color:ADM.PURPLE, fontFamily:'inherit', padding:0, background:'transparent'}}
+        style={{width:42, border:'none', outline:'none', fontSize:19.5, fontWeight:700, color:ADM.PURPLE, fontFamily:'inherit', padding:0, background:'transparent'}}
       />
       <select value={delay.unit}
         onChange={e => onChange({...delay, unit: e.target.value})}
-        style={{border:'none', outline:'none', fontSize:13.5, fontWeight:700, color:ADM.PURPLE, fontFamily:'inherit', background:'transparent', cursor:'pointer'}}>
+        style={{border:'none', outline:'none', fontSize:18.5, fontWeight:700, color:ADM.PURPLE, fontFamily:'inherit', background:'transparent', cursor:'pointer'}}>
         {TIME_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
       </select>
     </span>
@@ -1841,7 +1841,7 @@ function StepActions({ onMove, onRemove, canUp, canDown }) {
 
 function Chip({ children, color, dot }) {
   return (
-    <span style={{display:'inline-flex', alignItems:'center', gap:5, padding:'2px 8px', background:`${color}10`, color, borderRadius:99, fontSize:12.5, fontWeight:700}}>
+    <span style={{display:'inline-flex', alignItems:'center', gap:5, padding:'2px 8px', background:`${color}10`, color, borderRadius:99, fontSize:17.5, fontWeight:700}}>
       {dot && <span style={{width:5, height:5, borderRadius:'50%', background:color}}/>}
       {children}
     </span>
@@ -1858,10 +1858,10 @@ function GuardrailsSection({ g, onChange }) {
   return (
     <AdmCard padding={0}>
       <div style={{padding:'12px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:8}}>
-        <BuIcons.shield size={14} color={ADM.OK}/>
-        <span style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Guardrails</span>
+        <BuIcons.shield size={19} color={ADM.OK}/>
+        <span style={{fontSize:18.5, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Guardrails</span>
         <span style={{flex:1}}/>
-        <span style={{fontSize:12, fontWeight:800, color:ADM.OK, background:ADM.OK_SOFT, padding:'2px 7px', borderRadius:5, textTransform:'uppercase', letterSpacing:'0.05em'}}>Protetto</span>
+        <span style={{fontSize:17, fontWeight:800, color:ADM.OK, background:ADM.OK_SOFT, padding:'2px 7px', borderRadius:5, textTransform:'uppercase', letterSpacing:'0.05em'}}>Protetto</span>
       </div>
 
       <div style={{padding:'10px 14px 4px', display:'flex', gap:4, borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
@@ -1875,13 +1875,13 @@ function GuardrailsSection({ g, onChange }) {
           return (
             <button key={t.id} onClick={()=>setSection(t.id)} className="wf-tap" style={{
               display:'inline-flex', alignItems:'center', gap:5,
-              padding:'5px 9px', fontSize:13, fontWeight:700,
+              padding:'5px 9px', fontSize:18, fontWeight:700,
               background: active ? ADM.OK_SOFT : 'transparent',
               color: active ? ADM.OK : ADM.MUTED,
               border:'none', borderRadius:6, cursor:'pointer', fontFamily:'inherit',
               transition:'all 0.15s',
             }}>
-              <Icon size={11}/> {t.label}
+              <Icon size={16}/> {t.label}
             </button>
           );
         })}
@@ -1892,21 +1892,21 @@ function GuardrailsSection({ g, onChange }) {
           <GuardrailRow label="Max sequenze al mese per cliente"
             hint="Quante volte uno stesso cliente può ri-entrare in questo workflow ogni mese.">
             <SmallInput type="number" width={56} value={g.maxPerMonth} onChange={(v)=>set({maxPerMonth: Number(v)})}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>volte/mese</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>volte/mese</span>
           </GuardrailRow>
 
           <GuardrailRow label="Cooldown · non riavviare prima di"
             hint="Tempo minimo tra due entrate consecutive dello stesso cliente.">
             <SmallInput type="number" width={56} value={g.cooldownDays} onChange={(v)=>set({cooldownDays: Number(v)})}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>giorni</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>giorni</span>
           </GuardrailRow>
 
           <GuardrailRow label="Max email totali · per cliente"
             hint="Frequency cap globale: sommando TUTTI i workflow attivi.">
             <SmallInput type="number" width={50} value={g.dayLimit} onChange={(v)=>set({dayLimit: Number(v)})}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>/giorno</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>/giorno</span>
             <SmallInput type="number" width={50} value={g.weekLimit} onChange={(v)=>set({weekLimit: Number(v)})} style={{marginLeft:6}}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>/settimana</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>/settimana</span>
           </GuardrailRow>
 
           <ToggleRow checked={g.skipIfRecent7g} onChange={(v)=>set({skipIfRecent7g:v})}
@@ -1922,7 +1922,7 @@ function GuardrailsSection({ g, onChange }) {
           <GuardrailRow label="Finestra di invio"
             hint="Le comunicazioni non partono fuori da questo intervallo.">
             <SmallInput type="time" width={86} value={g.timeFrom} onChange={(v)=>set({timeFrom:v})}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>–</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>–</span>
             <SmallInput type="time" width={86} value={g.timeTo} onChange={(v)=>set({timeTo:v})}/>
           </GuardrailRow>
 
@@ -1950,19 +1950,19 @@ function GuardrailsSection({ g, onChange }) {
           <GuardrailRow label="Pausa automatica se bounce rate supera"
             hint="Il workflow si ferma automaticamente per proteggere il dominio.">
             <SmallInput type="number" width={60} value={g.pauseIfBounceAbove} onChange={(v)=>set({pauseIfBounceAbove: Number(v)})}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>%</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>%</span>
           </GuardrailRow>
 
           <GuardrailRow label="Pausa automatica se unsubscribe rate supera"
             hint="Pausa di emergenza per evitare danni alla reputazione.">
             <SmallInput type="number" width={60} value={g.pauseIfUnsubAbove} onChange={(v)=>set({pauseIfUnsubAbove: Number(v)})}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>%</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>%</span>
           </GuardrailRow>
 
           <GuardrailRow label="Cap di spesa (SMS + delivery)"
             hint="Budget massimo del workflow al mese · 0 = nessun cap.">
             <SmallInput type="number" width={70} value={g.budgetCap} onChange={(v)=>set({budgetCap: Number(v)})}/>
-            <span style={{fontSize:13, color:ADM.MUTED}}>€/mese</span>
+            <span style={{fontSize:18, color:ADM.MUTED}}>€/mese</span>
           </GuardrailRow>
 
           <ToggleRow checked={g.respectOptOut} onChange={(v)=>set({respectOptOut:v})}
@@ -1970,7 +1970,7 @@ function GuardrailsSection({ g, onChange }) {
             hint="Obbligatorio per GDPR · non disattivabile."/>
 
           <div style={{padding:'10px 12px', background:ADM.WARN_SOFT, borderLeft:`3px solid ${ADM.WARN}`, borderRadius:'0 7px 7px 0'}}>
-            <div style={{fontSize:13, fontWeight:800, color:ADM.WARN, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6}}>Modalità test</div>
+            <div style={{fontSize:18, fontWeight:800, color:ADM.WARN, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6}}>Modalità test</div>
             <ToggleRow checked={g.testMode} onChange={(v)=>set({testMode:v})}
               label="Manda solo a un destinatario di test"
               hint="Tutti i messaggi vanno a un singolo indirizzo per verifica."/>
@@ -1988,8 +1988,8 @@ function GuardrailsSection({ g, onChange }) {
 function GuardrailRow({ label, hint, children }) {
   return (
     <div>
-      <div style={{fontSize:13.5, color:ADM.TEXT, fontWeight:600, marginBottom:5, lineHeight:1.4}}>{label}</div>
-      {hint && <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:6, lineHeight:1.5}}>{hint}</div>}
+      <div style={{fontSize:18.5, color:ADM.TEXT, fontWeight:600, marginBottom:5, lineHeight:1.4}}>{label}</div>
+      {hint && <div style={{fontSize:17.5, color:ADM.MUTED, marginBottom:6, lineHeight:1.5}}>{hint}</div>}
       <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>{children}</div>
     </div>
   );
@@ -2001,10 +2001,10 @@ function ToggleRow({ label, hint, checked, onChange, required }) {
       <label style={{display:'flex', alignItems:'flex-start', gap:9, cursor: required ? 'default' : 'pointer'}}>
         <Toggle checked={checked} onChange={onChange} disabled={required}/>
         <span style={{flex:1, minWidth:0}}>
-          <span style={{display:'block', fontSize:13.5, color:ADM.TEXT, lineHeight:1.4, fontWeight:600}}
+          <span style={{display:'block', fontSize:18.5, color:ADM.TEXT, lineHeight:1.4, fontWeight:600}}
             dangerouslySetInnerHTML={{__html: label}}/>
-          {hint && <span style={{display:'block', fontSize:12.5, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>{hint}</span>}
-          {required && <span style={{display:'inline-block', marginTop:3, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Obbligatorio per GDPR</span>}
+          {hint && <span style={{display:'block', fontSize:17.5, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>{hint}</span>}
+          {required && <span style={{display:'inline-block', marginTop:3, fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Obbligatorio per GDPR</span>}
         </span>
       </label>
     </div>
@@ -2060,16 +2060,16 @@ function SummaryCard({ wf, validation }) {
   return (
     <AdmCard padding={0}>
       <div style={{padding:'12px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:8}}>
-        <BuIcons.eye size={13} color={ADM.MUTED}/>
-        <span style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Anteprima</span>
+        <BuIcons.eye size={18} color={ADM.MUTED}/>
+        <span style={{fontSize:18.5, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Anteprima</span>
       </div>
       <div style={{padding:'14px', display:'flex', flexDirection:'column', gap:9}}>
         <div style={{padding:'12px 14px', background:`linear-gradient(135deg, ${ADM.PINK_SOFT}, ${ADM.PINK_BG_SOFT})`, borderRadius:10, border:`1px solid ${ADM.PINK}30`}}>
-          <div style={{fontSize:12.5, color:ADM.PINK_DARK, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em'}}>Audience stimata</div>
-          <div style={{fontSize:34, fontWeight:800, color:ADM.PINK_DARK, letterSpacing:'-0.03em', marginTop:4, lineHeight:1}}>
+          <div style={{fontSize:17.5, color:ADM.PINK_DARK, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em'}}>Audience stimata</div>
+          <div style={{fontSize:39, fontWeight:800, color:ADM.PINK_DARK, letterSpacing:'-0.03em', marginTop:4, lineHeight:1}}>
             ≈ {fmtNum(audienceDisplay)}
           </div>
-          <div style={{fontSize:12.5, color:ADM.PINK_DARK, opacity:0.7, marginTop:4, lineHeight:1.5}}>
+          <div style={{fontSize:17.5, color:ADM.PINK_DARK, opacity:0.7, marginTop:4, lineHeight:1.5}}>
             clienti idonei oggi · aggiornata in tempo reale al variare dei filtri
           </div>
         </div>
@@ -2084,8 +2084,8 @@ function SummaryCard({ wf, validation }) {
 
         {validation.length > 0 && (
           <div style={{marginTop:4, padding:'10px 12px', background:ADM.WARN_SOFT, borderLeft:`3px solid ${ADM.WARN}`, borderRadius:'0 7px 7px 0'}}>
-            <div style={{fontSize:12.5, fontWeight:800, color:ADM.WARN, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5}}>Da sistemare</div>
-            <ul style={{margin:0, paddingLeft:16, fontSize:13.5, color:ADM.TEXT, lineHeight:1.6}}>
+            <div style={{fontSize:17.5, fontWeight:800, color:ADM.WARN, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5}}>Da sistemare</div>
+            <ul style={{margin:0, paddingLeft:16, fontSize:18.5, color:ADM.TEXT, lineHeight:1.6}}>
               {validation.map((v,i) => <li key={i}>{v}</li>)}
             </ul>
           </div>
@@ -2098,8 +2098,8 @@ function SummaryCard({ wf, validation }) {
 function SumRow({ label, value, tone }) {
   return (
     <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:10}}>
-      <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>{label}</span>
-      <span style={{fontSize:14.5, fontWeight:700, color: tone ? ADM[tone] : ADM.TEXT, textAlign:'right'}}>{value}</span>
+      <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600}}>{label}</span>
+      <span style={{fontSize:19.5, fontWeight:700, color: tone ? ADM[tone] : ADM.TEXT, textAlign:'right'}}>{value}</span>
     </div>
   );
 }
@@ -2163,8 +2163,8 @@ function SectionShell({ label, sub, color, right, children, help }) {
     <div style={{marginBottom:8}}>
       <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:9}}>
         <span style={{width:7, height:7, borderRadius:'50%', background: color}}/>
-        <span style={{fontSize:13, fontWeight:800, color, textTransform:'uppercase', letterSpacing:'0.08em'}}>{label}</span>
-        {sub && <span style={{fontSize:13.5, color:ADM.MUTED}}>· {sub}</span>}
+        <span style={{fontSize:18, fontWeight:800, color, textTransform:'uppercase', letterSpacing:'0.08em'}}>{label}</span>
+        {sub && <span style={{fontSize:18.5, color:ADM.MUTED}}>· {sub}</span>}
         {help && <Tooltip text={help}/>}
         <span style={{flex:1}}/>
         {right}
@@ -2179,12 +2179,12 @@ function Tooltip({ text }) {
   return (
     <span style={{position:'relative', display:'inline-flex'}}
       onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)}>
-      <BuIcons.help size={12} color={ADM.MUTED_SOFT}/>
+      <BuIcons.help size={17} color={ADM.MUTED_SOFT}/>
       {open && (
         <span className="wf-popover-enter" style={{
           position:'absolute', top:'140%', left:0, zIndex:30,
           background:'#0F1115', color:'#fff', padding:'8px 11px',
-          fontSize:13.5, lineHeight:1.5, borderRadius:7,
+          fontSize:18.5, lineHeight:1.5, borderRadius:7,
           width:260, fontWeight:500, letterSpacing:'-0.005em',
           boxShadow:'0 10px 28px -8px rgba(15,17,21,0.40)',
         }}>{text}</span>
@@ -2212,9 +2212,9 @@ function EndNode() {
         border:`1px dashed ${ADM.BORDER}`, borderRadius:9,
         color:ADM.MUTED,
       }}>
-        <div style={iconBoxStyle(ADM.MUTED, '#F0F1F3', 28)}><BuIcons.check size={12}/></div>
-        <span style={{fontSize:13.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Fine sequenza</span>
-        <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>· il cliente esce dal workflow</span>
+        <div style={iconBoxStyle(ADM.MUTED, '#F0F1F3', 28)}><BuIcons.check size={17}/></div>
+        <span style={{fontSize:18.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Fine sequenza</span>
+        <span style={{fontSize:18, color:ADM.MUTED_SOFT}}>· il cliente esce dal workflow</span>
       </div>
     </>
   );
@@ -2240,13 +2240,13 @@ function emptyNodeStyle() {
     background:'#fff',
     border:`1.5px dashed ${ADM.BORDER}`,
     color:ADM.MUTED,
-    fontSize:15, fontWeight:600, fontFamily:'inherit',
+    fontSize:20, fontWeight:600, fontFamily:'inherit',
     borderRadius:10, cursor:'pointer', width:'100%',
   };
 }
 function miniBtnStyle() {
   return {
-    fontSize:13, fontWeight:700, color:ADM.MUTED,
+    fontSize:18, fontWeight:700, color:ADM.MUTED,
     background:'#fff', border:`1px solid ${ADM.BORDER}`,
     padding:'5px 10px', borderRadius:6, cursor:'pointer', fontFamily:'inherit',
   };
@@ -2265,7 +2265,7 @@ function SmallInput({ value, onChange, type='text', placeholder, width, block, s
       style={{
         padding:'5px 9px',
         border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:6,
-        fontSize:14.5, fontFamily:'inherit', color:ADM.TEXT,
+        fontSize:19.5, fontFamily:'inherit', color:ADM.TEXT,
         outline:'none',
         width: block ? '100%' : (width || 'auto'),
         background:'#fff',
@@ -2284,7 +2284,7 @@ function SmallSelect({ value, onChange, options, width }) {
       <select value={value} onChange={e => onChange(e.target.value)} style={{
         padding:'5px 24px 5px 9px',
         border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:6,
-        fontSize:14.5, fontFamily:'inherit', color:ADM.TEXT,
+        fontSize:19.5, fontFamily:'inherit', color:ADM.TEXT,
         outline:'none', background:'#fff', appearance:'none',
         cursor:'pointer',
         width: width ? `${width}px` : 'auto',
@@ -2292,7 +2292,7 @@ function SmallSelect({ value, onChange, options, width }) {
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
       <span style={{position:'absolute', right:6, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}>
-        <BuIcons.chevronDown size={11}/>
+        <BuIcons.chevronDown size={16}/>
       </span>
     </div>
   );
@@ -2311,14 +2311,14 @@ function ModalShell({ title, subtitle, onClose, children, width=560 }) {
       }}>
         <div style={{padding:'18px 22px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:14}}>
           <div style={{minWidth:0}}>
-            <div style={{fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.015em'}}>{title}</div>
-            {subtitle && <div style={{fontSize:14, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>{subtitle}</div>}
+            <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.015em'}}>{title}</div>
+            {subtitle && <div style={{fontSize:19, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>{subtitle}</div>}
           </div>
           <button onClick={onClose} style={{
             background:'transparent', border:'none', color:ADM.MUTED,
             padding:6, borderRadius:6, cursor:'pointer', display:'inline-flex',
             flexShrink:0,
-          }}><BuIcons.x size={15}/></button>
+          }}><BuIcons.x size={20}/></button>
         </div>
         <div style={{padding:22}}>{children}</div>
       </div>

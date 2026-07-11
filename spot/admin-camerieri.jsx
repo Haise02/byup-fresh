@@ -149,10 +149,10 @@ function AdmCamerieriPage({ search: searchProp }) {
       <AdmCard padding={0}>
         <div style={{padding:'14px 18px', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, flexWrap:'wrap'}}>
           <div style={{position:'relative', flex:'0 0 240px'}}>
-            <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={14}/></span>
+            <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={19}/></span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca per nome o locale…" style={{
               width:'100%', padding:'7px 10px 7px 32px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
-              fontSize:14.5, fontFamily:'inherit', outline:'none', background:'#fff',
+              fontSize:19.5, fontFamily:'inherit', outline:'none', background:'#fff',
             }}/>
           </div>
           <FilterDropdown label="Tipo" value={ruolo} onChange={setRuolo} options={[
@@ -169,7 +169,7 @@ function AdmCamerieriPage({ search: searchProp }) {
             {value:'inattivi', label:'Non attivi oggi'},
           ]}/>
           <div style={{flex:1}}/>
-          <span style={{fontSize:14, color:ADM.MUTED}}>
+          <span style={{fontSize:19, color:ADM.MUTED}}>
             {filtered.length} di {totStaff}
             {viewMode === 'byLocale' && <> · {grouped.length} locali</>}
           </span>
@@ -189,7 +189,7 @@ function AdmCamerieriPage({ search: searchProp }) {
               gridTemplateColumns:'minmax(0,2fr) 1fr 1.6fr 1fr 60px',
               padding:'10px 18px',
               borderBottom:`1px solid ${ADM.BORDER}`,
-              fontSize:12.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
+              fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
             }}>
               <div>Membro</div>
               <div>Tipo</div>
@@ -230,14 +230,14 @@ function ViewModeToggle({ value, onChange }) {
         return (
           <button key={o.id} onClick={()=>onChange(o.id)} title={o.label} style={{
             display:'inline-flex', alignItems:'center', gap:5,
-            padding:'5px 10px', fontSize:13.5, fontWeight:700,
+            padding:'5px 10px', fontSize:18.5, fontWeight:700,
             background: active ? '#fff' : 'transparent',
             color: active ? ADM.TEXT : ADM.MUTED,
             border:'none', borderRadius:5, cursor:'pointer', fontFamily:'inherit',
             boxShadow: active ? '0 1px 2px rgba(15,17,21,0.08)' : 'none',
             transition:'all 0.15s',
           }}>
-            <Icon size={12}/>
+            <Icon size={17}/>
             <span>{o.label}</span>
           </button>
         );
@@ -285,7 +285,7 @@ function LocaleGroup({ group, onSelectStaff }) {
           transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
           transition:'transform 0.18s cubic-bezier(0.2, 0.7, 0.3, 1)',
         }}>
-          <BuIcons.chevronRight size={14}/>
+          <BuIcons.chevronRight size={19}/>
         </span>
         {/* Health dot */}
         <span className={att === 0 ? 'cam-pulse' : ''} style={{
@@ -298,22 +298,22 @@ function LocaleGroup({ group, onSelectStaff }) {
           background:ADM.PINK_SOFT, color:ADM.PINK,
           display:'grid', placeItems:'center', flexShrink:0,
         }}>
-          <BuIcons.store size={15}/>
+          <BuIcons.store size={20}/>
         </div>
         {/* Nome + città */}
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-            <span style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{group.nome}</span>
+            <span style={{fontSize:20.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{group.nome}</span>
             <span style={{
-              fontSize:13, fontWeight:800, color:c, background:cSoft,
+              fontSize:18, fontWeight:800, color:c, background:cSoft,
               padding:'2px 7px', borderRadius:4, letterSpacing:'0.05em', textTransform:'uppercase',
             }}>{healthLabel}</span>
           </div>
-          <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:2, display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
+          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2, display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
             <span>{group.citta}</span>
             {group.tipo && <><span style={{color:ADM.MUTED_LIGHT}}>·</span><span>{group.tipo}</span></>}
             <span style={{color:ADM.MUTED_LIGHT}}>·</span>
-            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.5}}>{group.id}</span>
+            <span style={{fontFamily:'ui-monospace,monospace', fontSize:17.5}}>{group.id}</span>
           </div>
         </div>
         {/* Breakdown ruoli (compatto) */}
@@ -323,7 +323,7 @@ function LocaleGroup({ group, onSelectStaff }) {
               display:'inline-flex', alignItems:'center', gap:4,
               padding:'2px 7px', borderRadius:5,
               background: ADM[r.def.color+'_SOFT'], color: ADM[r.def.color],
-              fontSize:12.5, fontWeight:700,
+              fontSize:17.5, fontWeight:700,
             }}>
               <span>{r.n}</span>
               <span style={{opacity:0.7, fontWeight:600}}>{r.def.label.slice(0,3).toLowerCase()}</span>
@@ -332,8 +332,8 @@ function LocaleGroup({ group, onSelectStaff }) {
         </div>
         {/* Conteggio attivi/totale */}
         <div style={{textAlign:'right', flexShrink:0, minWidth:84}}>
-          <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Attivi oggi</div>
-          <div style={{fontSize:17, fontWeight:800, color:c, letterSpacing:'-0.015em', marginTop:2}}>
+          <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Attivi oggi</div>
+          <div style={{fontSize:22, fontWeight:800, color:c, letterSpacing:'-0.015em', marginTop:2}}>
             {att}<span style={{color:ADM.MUTED_SOFT, fontWeight:600}}>/{total}</span>
           </div>
         </div>
@@ -388,29 +388,29 @@ function StaffRow({ staff: s, onClick, striped, indented }) {
       )}
       <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
         {s.ruolo === 'dispositivo'
-          ? <div style={{width:34, height:34, borderRadius:8, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.monitor size={16}/></div>
-          : <AdmAvatar name={s.nome} size={34} bg={`hsl(${(s.id.charCodeAt(2)+s.id.charCodeAt(3))*7 % 360}, 45%, 55%)`}/>}
+          ? <div style={{width:34, height:34, borderRadius:8, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.monitor size={21}/></div>
+          : <AdmAvatar name={s.nome} size={39} bg={`hsl(${(s.id.charCodeAt(2)+s.id.charCodeAt(3))*7 % 360}, 45%, 55%)`}/>}
         <div style={{minWidth:0}}>
-          <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT, fontFamily: s.ruolo === 'dispositivo' ? 'ui-monospace,monospace' : 'inherit'}}>{s.nome}</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:1, fontFamily: s.ruolo === 'dispositivo' ? 'inherit' : 'ui-monospace,monospace'}}>{s.ruolo === 'dispositivo' ? s.modello : s.id}</div>
+          <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, fontFamily: s.ruolo === 'dispositivo' ? 'ui-monospace,monospace' : 'inherit'}}>{s.nome}</div>
+          <div style={{fontSize:18, color:ADM.MUTED, marginTop:1, fontFamily: s.ruolo === 'dispositivo' ? 'inherit' : 'ui-monospace,monospace'}}>{s.ruolo === 'dispositivo' ? s.modello : s.id}</div>
         </div>
       </div>
       <div>
         <span style={{
           padding:'3px 9px', borderRadius:5,
           background: ADM[ruoloDef.color+'_SOFT'], color: ADM[ruoloDef.color],
-          fontSize:13, fontWeight:700,
+          fontSize:18, fontWeight:700,
         }}>{ruoloDef.label}</span>
       </div>
       <div>
-        <div style={{fontSize:14.5, color:ADM.TEXT, fontWeight:500}}>{s.localeNome}</div>
-        <div style={{fontSize:13, color:ADM.MUTED}}>{s.localeCitta}</div>
+        <div style={{fontSize:19.5, color:ADM.TEXT, fontWeight:500}}>{s.localeNome}</div>
+        <div style={{fontSize:18, color:ADM.MUTED}}>{s.localeCitta}</div>
       </div>
       <div style={{display:'flex', alignItems:'center', gap:6}}>
         <span style={{width:7, height:7, borderRadius:'50%', background: s.attivoOggi ? ADM.OK : ADM.MUTED_LIGHT}}/>
-        <span style={{fontSize:13.5, color:ADM.MUTED}}>{fmtRelative(s.lastActive)}</span>
+        <span style={{fontSize:18.5, color:ADM.MUTED}}>{fmtRelative(s.lastActive)}</span>
       </div>
-      <div style={{textAlign:'right', color:ADM.MUTED}}><BuIcons.chevronRight size={15}/></div>
+      <div style={{textAlign:'right', color:ADM.MUTED}}><BuIcons.chevronRight size={20}/></div>
     </div>
   );
 }
@@ -429,14 +429,14 @@ function StaffDrawer({ staff: s, onClose }) {
       }}>
         <div style={{padding:'20px 24px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
           {s.ruolo === 'dispositivo'
-            ? <div style={{width:48, height:48, borderRadius:10, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.monitor size={22}/></div>
-            : <AdmAvatar name={s.nome} size={48} bg={`hsl(${(s.id.charCodeAt(2)+s.id.charCodeAt(3))*7 % 360}, 45%, 55%)`}/>}
+            ? <div style={{width:48, height:48, borderRadius:10, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.monitor size={27}/></div>
+            : <AdmAvatar name={s.nome} size={53} bg={`hsl(${(s.id.charCodeAt(2)+s.id.charCodeAt(3))*7 % 360}, 45%, 55%)`}/>}
           <div style={{flex:1, minWidth:0}}>
             <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3}}>
-              <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', fontFamily: s.ruolo === 'dispositivo' ? 'ui-monospace,monospace' : 'inherit'}}>{s.nome}</div>
-              <span style={{padding:'3px 9px', borderRadius:5, background: ADM[ruoloDef.color+'_SOFT'], color: ADM[ruoloDef.color], fontSize:13, fontWeight:700}}>{ruoloDef.label}</span>
+              <div style={{fontSize:25, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', fontFamily: s.ruolo === 'dispositivo' ? 'ui-monospace,monospace' : 'inherit'}}>{s.nome}</div>
+              <span style={{padding:'3px 9px', borderRadius:5, background: ADM[ruoloDef.color+'_SOFT'], color: ADM[ruoloDef.color], fontSize:18, fontWeight:700}}>{ruoloDef.label}</span>
             </div>
-            <div style={{fontSize:14, color:ADM.MUTED, display:'flex', gap:8}}>
+            <div style={{fontSize:19, color:ADM.MUTED, display:'flex', gap:8}}>
               <span style={{fontFamily: s.ruolo === 'dispositivo' ? 'inherit' : 'ui-monospace,monospace'}}>{s.ruolo === 'dispositivo' ? s.modello : s.id}</span>
               <span>·</span>
               <span>{s.localeNome}, {s.localeCitta}</span>
@@ -458,8 +458,8 @@ function StaffDrawer({ staff: s, onClose }) {
           {/* Aree del gestionale coperte — solo per i ruoli personalizzati */}
           {s.ruolo === 'personalizzato' && s.aree && (
             <AdmCard padding={20}>
-              <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>Aree del gestionale</div>
-              <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Questo ruolo personalizzato ha accesso a {s.aree.length} aree su {AREE_GESTIONALE.length}</div>
+              <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>Aree del gestionale</div>
+              <div style={{fontSize:18, color:ADM.MUTED, marginBottom:14}}>Questo ruolo personalizzato ha accesso a {s.aree.length} aree su {AREE_GESTIONALE.length}</div>
               <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
                 {AREE_GESTIONALE.map(area => {
                   const on = s.aree.includes(area);
@@ -469,10 +469,10 @@ function StaffDrawer({ staff: s, onClose }) {
                       padding:'6px 11px', borderRadius:8,
                       background: on ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT,
                       color: on ? ADM.OK : ADM.MUTED_SOFT,
-                      fontSize:13, fontWeight:600,
+                      fontSize:18, fontWeight:600,
                       border:`1px solid ${on ? ADM.OK + '33' : 'transparent'}`,
                     }}>
-                      <BuIcons.check size={12} color={on ? ADM.OK : ADM.MUTED_LIGHT}/>
+                      <BuIcons.check size={17} color={on ? ADM.OK : ADM.MUTED_LIGHT}/>
                       {area}
                     </span>
                   );
@@ -482,7 +482,7 @@ function StaffDrawer({ staff: s, onClose }) {
           )}
 
           <AdmCard padding={20}>
-            <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>{s.ruolo === 'dispositivo' ? 'Dettagli dispositivo' : 'Dati anagrafici'}</div>
+            <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>{s.ruolo === 'dispositivo' ? 'Dettagli dispositivo' : 'Dati anagrafici'}</div>
             <DataRow label="Tipo" value={ruoloDef.label}/>
             {s.ruolo === 'dispositivo' && <DataRow label="Codice" value={s.nome} mono/>}
             {s.ruolo === 'dispositivo' && <DataRow label="Modello" value={s.modello}/>}
