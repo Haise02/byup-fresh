@@ -178,9 +178,50 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     });
   }
 
+  // Feedback "va in Pronti": un chip del ticket vola ad arco dalla card al
+  // pannello Pronti (stesso pattern del fly-to-cart della vendita diretta),
+  // poi il contatore del pannello fa un piccolo bump.
+  function flyToPronti(ticketId) {
+    const t = tickets.find(x => x.id === ticketId);
+    const node = cardNodes.current.get(ticketId);
+    const target = document.getElementById('kds-pronti-panel');
+    if (!t || !node || !target || !Element.prototype.animate) return;
+    const from = node.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.style.cssText =
+      `position:fixed; left:0; top:0;` +
+      `display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px;` +
+      `background:#ECFDF5; border:1.5px solid #A7F3D0; color:#065F46;` +
+      `font-size:15px; font-weight:800; font-family:inherit; white-space:nowrap;` +
+      `box-shadow:0 8px 22px rgba(6,95,70,0.22); z-index:300; pointer-events:none;`;
+    ghost.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13 L9 17 L19 7"/></svg>';
+    const label = document.createElement('span');
+    label.textContent = t.kind === 'sala' ? `Tavolo ${t.table}` : (t.customer || 'Ordine');
+    ghost.appendChild(label);
+    document.body.appendChild(ghost);
+    const gw = ghost.getBoundingClientRect().width;
+    const startX = from.left + from.width / 2 - gw / 2;
+    const startY = from.top + 18;
+    ghost.style.left = `${startX}px`;
+    ghost.style.top = `${startY}px`;
+    const dx = (to.left + to.width / 2 - gw / 2) - startX;
+    const dy = (to.top + 26) - startY;
+    const anim = ghost.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 42}px) scale(0.9)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.4)`, opacity: 0.2 },
+    ], { duration: 700, easing: 'cubic-bezier(0.25, 0.1, 0.3, 1)' });
+    anim.onfinish = () => {
+      ghost.remove();
+      window.dispatchEvent(new CustomEvent('kds-pronti-bump'));
+    };
+  }
+
   function markReady(ticketId) {
     const t = tickets.find(x => x.id === ticketId);
     if (!t) return;
+    flyToPronti(ticketId); // cattura la posizione prima che la card smonti
     setTickets(prev => prev.filter(x => x.id !== ticketId));
     setReadyTickets(prev => [t, ...prev]);
   }
@@ -231,6 +272,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   React.useEffect(() => {
     const done = tickets.filter(t => t.items.length > 0 && t.items.every(i => i.state === 'done'));
     if (done.length === 0) return;
+    done.forEach(t => flyToPronti(t.id)); // le card sono ancora montate qui
     const doneIds = new Set(done.map(t => t.id));
     setTickets(prev => prev.filter(t => !doneIds.has(t.id)));
     setReadyTickets(prev => [...done, ...prev]);
@@ -489,6 +531,18 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
 
 // ─── Pronti panel ────────────────────────────────────────────
 function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard }) {
+  // Bump del contatore quando il chip "vola in Pronti" atterra (evento da flyToPronti)
+  const [bump, setBump] = React.useState(0);
+  React.useEffect(() => {
+    const b = () => setBump(x => x + 1);
+    window.addEventListener('kds-pronti-bump', b);
+    return () => window.removeEventListener('kds-pronti-bump', b);
+  }, []);
+  const bumpWrap = (pill) => (
+    <span key={bump} style={{display:'inline-flex', animation: bump ? 'kdsBump 360ms ease-out' : 'none'}}>
+      {pill}
+    </span>
+  );
   // Pannello Pronti — light come la board, accento verde menta
   const darkPanel = {
     background: `
@@ -500,7 +554,7 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
   };
   if (collapsed) {
     return (
-      <div onClick={onToggle} style={{
+      <div id="kds-pronti-panel" onClick={onToggle} style={{
         width: 40, flexShrink: 0, alignSelf: 'stretch',
         ...darkPanel,
         borderRadius: 16, cursor: 'pointer',
@@ -512,13 +566,13 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
           fontSize: 13, fontWeight: 700, color: KDS_CL.text,
           letterSpacing: 0.6, textTransform: 'uppercase', whiteSpace: 'nowrap',
         }}>Pronti</span>
-        <KdsPill light tone="done" style={{fontSize: 12}}>{tickets.length}</KdsPill>
+        {bumpWrap(<KdsPill light tone="done" style={{fontSize: 12}}>{tickets.length}</KdsPill>)}
       </div>
     );
   }
 
   return (
-    <div style={{
+    <div id="kds-pronti-panel" style={{
       width: 280, flexShrink: 0, alignSelf: 'stretch',
       ...darkPanel,
       borderRadius: 16,
@@ -531,7 +585,7 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
         flexShrink: 0,
       }}>
         <span style={{fontSize: 17, fontWeight: 700, color: KDS_CL.text, letterSpacing: '-0.01em'}}>Pronti</span>
-        <KdsPill light tone="done" style={{fontSize: 12.5, fontVariantNumeric: 'tabular-nums'}}>{tickets.length}</KdsPill>
+        {bumpWrap(<KdsPill light tone="done" style={{fontSize: 12.5, fontVariantNumeric: 'tabular-nums'}}>{tickets.length}</KdsPill>)}
         <span style={{flex: 1}}/>
         <button onClick={onToggle} title="Comprimi pannello" style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
@@ -1319,6 +1373,16 @@ function KdsFilterChip({ label, selected, defaultLabel, options, onChange }) {
       )}
     </div>
   );
+}
+
+// Animations
+if (typeof document !== 'undefined' && !document.getElementById('kds-anims')) {
+  const s = document.createElement('style');
+  s.id = 'kds-anims';
+  s.textContent = `
+    @keyframes kdsBump { 0% { transform: scale(1); } 40% { transform: scale(1.22); } 100% { transform: scale(1); } }
+  `;
+  document.head.appendChild(s);
 }
 
 window.CucinaInSala = CucinaInSala;
