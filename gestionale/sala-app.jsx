@@ -70,6 +70,7 @@ function SalaApp() {
   const [modalApri, setModalApri] = React.useState(null); // tavolo con prenotazione imminente
   const [modalUnisci, setModalUnisci] = React.useState(null);
   const [modalSposta, setModalSposta] = React.useState(null);
+  const [modalModifica, setModalModifica] = React.useState(null); // hub Sposta/Dividi/Unisci
 
   const openTable = React.useCallback((t) => {
     if (t.state === 'libero' || t.state === 'prenotato') {
@@ -224,7 +225,7 @@ function SalaApp() {
 
     forceUpdate();
   }
-  function handleEdit(t)        { alert(`Modifica Tav.${t.id} (mock)`); }
+  function handleEdit(t)        { setModalModifica(t); }
   function handleAssignOther(t) { alert(`Assegna Tav.${t.id} ad altri (mock)`); }
   function handleNoShow(t)      { t.state = 'libero'; t.nextReservation = null; t.minutiAllaPrenotazione = null; forceUpdate(); }
 
@@ -489,6 +490,15 @@ function SalaApp() {
           tavolo={modalSposta}
           onClose={() => setModalSposta(null)}
           onConfirm={handleSpostaConfirm}/>
+
+        <SalaModificaModal
+          tavolo={modalModifica}
+          onClose={() => setModalModifica(null)}
+          onSposta={handleSpostaConfirm}
+          onUnisciConfirm={handleUnisciConfirm}
+          onDetach={handleDetach}
+          onLibera={handleLibera}
+          onNoShow={handleNoShow}/>
 
         <SalaSaldaModal open={!!modalPay} onClose={() => setModalPay(null)} tavolo={modalPay}
           onConfirm={() => {

@@ -430,20 +430,8 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       : { label: 'Salda ora', onClick: onPay };
     if (t.state === 'dapulire')  return { label: 'Segna come pronto', onClick: onAdd };
   })();
-  // Menu 3-puntini — sempre presenti i due primi; il terzo dipende dallo stato del tavolo.
-  // "Unisci o separa" copre sia unisci che split (vedi SalaUnisciModal).
-  const menuItems = [
-    { key:'modifica-tavolo', label:'Unisci o separa', onClick: () => onUnisci && onUnisci(t) },
-    { key:'sposta',          label:'Sposta tavolo',   onClick: () => onMove && onMove(t) },
-    ...(t.state === 'occupato' && !occupatoSaldato
-      ? [{ key:'libera', label:'Libera tavolo', onClick: () => onLibera && onLibera(t), danger: true }]
-      : []),
-    ...(t.state === 'prenotato'
-      ? [isLate
-          ? { key:'noshow',   label:'Segna come non presentato',           onClick: () => onNoShow && onNoShow(t), danger: true }
-          : { key:'cancella', label:'Annulla prenotazione',   onClick: () => {},                      danger: true }]
-      : []),
-  ];
+  // Le azioni sul tavolo (sposta / dividi / unisci + azioni di stato) vivono
+  // nella modale "Modifica tavolo" aperta dal pulsante Modifica (onEdit).
 
   // Severity "Da pulire" progressiva
   const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire) : 'normal';
@@ -516,6 +504,26 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         )}
 
         <span style={{flex:1}}/>
+        {/* + Aggiungi articolo — in alto a destra sulla card espansa occupata */}
+        {expanded && t.state === 'occupato' && (
+          <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}}
+            title="Aggiungi articolo al conto" style={{
+            display:'inline-flex', alignItems:'center', gap: 5,
+            height: 32, padding:'0 12px', borderRadius: 8,
+            background: PN.BTN_NEUTRAL, color:'#0F1115',
+            border:`1px solid ${PN.BORDER_LIGHT}`,
+            fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            whiteSpace:'nowrap', flexShrink: 0,
+            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+            transition:'background 150ms ease-out',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+            Aggiungi articolo
+          </button>
+        )}
         {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
         {showAlertTriangle && (
           <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
@@ -556,7 +564,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         onAddArticle={onAddArticle} onConfirmCart={onConfirmCart} cart={cart} onCartChange={onCartChange}
         onAdjustCoperti={onAdjustCoperti}
         onAdjustReservationPosti={onAdjustReservationPosti}
-        menuItems={menuItems} occupatoSaldato={occupatoSaldato}
+        onEdit={onEdit} occupatoSaldato={occupatoSaldato}
         isLate={isLate} lateMin={lateMin} isNoShow={isNoShow}
         onAssignOther={onAssignOther} onNoShow={onNoShow} pulireSev={pulireSev}/>}
     </div>
@@ -638,7 +646,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   return null;
 }
 
-function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, menuItems, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev }) {
+function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onEdit, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev }) {
   return (
     <>
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
@@ -793,115 +801,47 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         )}
       </div>
 
-      {/* CTA contestuali — primaria nera + Aggiungi + secondaria + menu 3-puntini */}
-      <ExpandedCTARow
-        t={t} cta={cta} occupatoSaldato={occupatoSaldato} isLate={isLate}
-        onAddArticle={onAddArticle} onAssignOther={onAssignOther} onNoShow={onNoShow}
-        menuItems={menuItems}/>
+      {/* CTA contestuali — primaria nera + Modifica (apre la modale sposta/dividi/unisci) */}
+      <ExpandedCTARow t={t} cta={cta} onEdit={onEdit}/>
     </>
   );
 }
 
-function ExpandedCTARow({ t, cta, occupatoSaldato, isLate, onAddArticle, onAssignOther, onNoShow, menuItems }) {
-  // Occupato non-saldato: prima riga CTA piena, seconda riga [+ Aggiungi][⋯]
-  // Tutti gli altri stati: [CTA][⋯] su una riga
-  const showArticolo = t.state === 'occupato';
-  const primaryBtn = (
-    <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
-      flex: 1, padding:'11px 14px',
-      background: PN.BTN_DARK, color:'#fff',
-      border:'1px solid rgba(0,0,0,0.32)',
-      borderRadius: 10, fontSize: 16.5, fontWeight: 700,
-      cursor:'pointer', fontFamily:'inherit', minHeight: 42,
-      letterSpacing: 0.1, whiteSpace: 'nowrap',
-      boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
-      transition:'background 150ms ease-out',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
-      onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
-    >{cta.label}</button>
-  );
-  if (showArticolo) {
-    return (
-      <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-        {primaryBtn}
-        <div style={{display:'flex', gap: 8, alignItems:'center'}}>
-          <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}} style={{
-            flex: 1, padding:'11px 14px',
-            background: PN.BTN_NEUTRAL, color:'#0F1115',
-            border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10,
-            fontSize: 16.5, fontWeight: 700,
-            cursor:'pointer', fontFamily:'inherit',
-            minHeight: 42, whiteSpace:'nowrap',
-            display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 5,
-            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
-            transition:'background 150ms ease-out',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
-            Aggiungi articolo
-          </button>
-          {menuItems && menuItems.length > 0 && <DotMenu items={menuItems}/>}
-        </div>
-      </div>
-    );
-  }
+function ExpandedCTARow({ t, cta, onEdit }) {
   return (
     <div style={{display:'flex', gap: 8, alignItems:'center'}}>
-      {primaryBtn}
-      {menuItems && menuItems.length > 0 && <DotMenu items={menuItems}/>}
-    </div>
-  );
-}
-
-function DotMenu({ items }) {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef(null);
-  React.useEffect(() => {
-    if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-  return (
-    <div ref={ref} style={{position:'relative', display:'inline-flex'}} onClick={(e)=>e.stopPropagation()}>
-      <button onClick={() => setOpen(v => !v)} aria-label="Altre azioni" style={{
-        width: 42, height: 42, borderRadius: 10,
-        background: PN.BTN_NEUTRAL, color:'#6B7280',
-        border:`1px solid ${PN.BORDER_LIGHT}`, cursor:'pointer', fontFamily:'inherit',
-        display:'inline-flex', alignItems:'center', justifyContent:'center',
+      <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
+        flex: 1, padding:'11px 14px',
+        background: PN.BTN_DARK, color:'#fff',
+        border:'1px solid rgba(0,0,0,0.32)',
+        borderRadius: 10, fontSize: 16.5, fontWeight: 700,
+        cursor:'pointer', fontFamily:'inherit', minHeight: 42,
+        letterSpacing: 0.1, whiteSpace: 'nowrap',
+        boxShadow: `${PN.INSET_HIGHLIGHT_DARK}, 0 1px 2px rgba(15,17,21,0.16)`,
+        transition:'background 150ms ease-out',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
+      >{cta.label}</button>
+      <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
+        title="Sposta, dividi o unisci il tavolo" style={{
+        padding:'11px 16px', minHeight: 42,
+        background: PN.BTN_NEUTRAL, color:'#0F1115',
+        border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10,
+        fontSize: 16.5, fontWeight: 700,
+        cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+        display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
         boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
         transition:'background 150ms ease-out',
       }}
         onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
         onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
         </svg>
+        Modifica
       </button>
-      {open && (
-        <div style={{
-          position:'absolute', bottom:'calc(100% + 6px)', right: 0, zIndex: 30,
-          background:'#fff', border:`1px solid ${PN.BORDER_SOFT_A}`, borderRadius: 12,
-          boxShadow:'inset 0 1px 0 rgba(255,255,255,0.75), 0 16px 36px rgba(15,17,21,0.14), 0 2px 6px rgba(15,17,21,0.06)',
-          minWidth: 160, padding: 4, fontFamily:'inherit',
-        }}>
-          {items.map(it => (
-            <button key={it.key} onClick={(e)=>{ e.stopPropagation(); setOpen(false); it.onClick && it.onClick(); }} style={{
-              display:'block', width:'100%', textAlign:'left',
-              padding:'8px 12px', borderRadius: 6,
-              background:'transparent', border:'none',
-              color: it.danger ? '#DC2626' : '#0F1115',
-              fontSize: 16.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-            }}
-              onMouseEnter={(e)=>{ e.currentTarget.style.background = '#FAFBFC'; }}
-              onMouseLeave={(e)=>{ e.currentTarget.style.background = 'transparent'; }}
-            >{it.label}</button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
