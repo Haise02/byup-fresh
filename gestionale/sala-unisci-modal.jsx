@@ -900,10 +900,15 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
         }}>
           {stateAction && (
             <button onClick={stateAction.onClick} style={{
-              background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
-              fontSize:15.5, fontWeight:700, color:'#DC2626', padding:'8px 4px',
+              background:'#fff', border:'1px solid #FCA5A5', borderRadius:10,
+              cursor:'pointer', fontFamily:'inherit',
+              fontSize:15.5, fontWeight:700, color:'#DC2626', padding:'10px 14px',
               whiteSpace:'nowrap',
-            }}>{stateAction.label}</button>
+              transition:'background 150ms ease-out, border-color 150ms ease-out',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.borderColor = '#F87171'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
+            >{stateAction.label}</button>
           )}
           <span style={{flex:1}}/>
           <button
