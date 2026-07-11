@@ -107,5 +107,99 @@
 <script type="text/babel" src="dish-art.jsx"></script>
 <script type="text/babel" src="venue.jsx"></script>
 <script type="text/babel" src="menu.jsx"></script>
+
+<!-- ── Mockup iPhone da desktop ─────────────────────────────────────────
+     Da browser desktop (puntatore fine, niente touch) la webapp non va a
+     tutto schermo: si visiona dentro una cornice iPhone a dimensioni REALI
+     (1:1), completamente utilizzabile, con selettore del modello — come la
+     preview della web cameriere. L'iframe ha la width vera del telefono,
+     quindi il gate dei 600px non scatta e le media query reagiscono come
+     su un device vero. I query param (?takeaway, ?os, …) e l'hash vengono
+     inoltrati all'iframe: ogni link di test resta valido.
+     Telefoni e tablet veri (touch) non cambiano: telefono → app piena,
+     tablet → gate CSS "passa al telefono" come prima. -->
+<script>
+(function () {
+  if (window.self !== window.top) {
+    // Dentro un iframe (mockup o simulator.html): app nuda, mai mockup
+    // annidato; il bottone "Home byup" resta solo sulla pagina esterna.
+    var hub = document.getElementById('byup-hub-btn');
+    if (hub) hub.style.setProperty('display', 'none', 'important');
+    return;
+  }
+  var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if (coarse && (navigator.maxTouchPoints || 0) > 0) return; // dispositivo touch reale
+
+  // Spengo l'app top-level PRIMA che Babel la compili (girerebbe nascosta
+  // e sporcherebbe la sessionStorage, condivisa con l'iframe) e il gate CSS.
+  document.querySelectorAll('script[type="text/babel"]').forEach(function (s) { s.type = 'text/plain'; });
+  var gate = document.getElementById('desktop-gate');
+  if (gate) gate.style.setProperty('display', 'none', 'important');
+  var rootEl = document.getElementById('menu-root');
+  if (rootEl) rootEl.style.setProperty('display', 'none', 'important');
+
+  var IPHONES = [
+    { label: 'iPhone SE',         w: 375, h: 667 },
+    { label: 'iPhone 14',         w: 390, h: 844 },
+    { label: 'iPhone 15 Pro',     w: 393, h: 852 },
+    { label: 'iPhone 14 Pro Max', w: 430, h: 932 },
+  ];
+  var current = IPHONES[1]; // default: iPhone 14
+
+  var stage = document.createElement('div');
+  stage.style.cssText = 'position:fixed;inset:0;z-index:9000;background:#1a1a1f;overflow:auto;display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:40px;padding:40px 24px;';
+
+  // pannello informativo + selettore modello
+  var info = document.createElement('div');
+  info.style.cssText = 'max-width:320px;padding-top:24px;flex-shrink:0;';
+  info.innerHTML =
+    '<div style="width:56px;height:56px;border-radius:16px;margin-bottom:20px;background:#FFE0DD;display:flex;align-items:center;justify-content:center;">' +
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F26B7A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="11" y1="18" x2="13" y2="18"/></svg>' +
+    '</div>' +
+    '<div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:12px;letter-spacing:-0.4px;">Pensata per lo smartphone</div>' +
+    '<div style="font-size:14.5px;line-height:1.55;color:rgba(255,255,255,0.6);font-weight:500;margin-bottom:24px;">La webapp cliente è pensata per il telefono. Da desktop la provi qui, dentro una cornice iPhone a dimensioni reali: tutto è utilizzabile come dal vivo. Scegli il modello per testare le diverse dimensioni.</div>';
+  var pills = document.createElement('div');
+  pills.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+  info.appendChild(pills);
+  var caption = document.createElement('div');
+  caption.style.cssText = 'margin-top:16px;font-size:12.5px;color:rgba(255,255,255,0.45);font-weight:600;';
+  info.appendChild(caption);
+
+  // cornice iPhone con la webapp dentro
+  var frame = document.createElement('div');
+  frame.style.cssText = 'flex-shrink:0;border-radius:44px;overflow:hidden;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,0.45),0 0 0 11px #111,0 0 0 12px rgba(255,255,255,0.08);';
+  var iframe = document.createElement('iframe');
+  iframe.src = 'index.html' + location.search + location.hash;
+  iframe.style.cssText = 'border:0;display:block;background:#fff;';
+  frame.appendChild(iframe);
+
+  function apply() {
+    frame.style.width = current.w + 'px';
+    frame.style.height = current.h + 'px';
+    iframe.style.width = current.w + 'px';
+    iframe.style.height = current.h + 'px';
+    caption.textContent = current.label + ' · ' + current.w + '×' + current.h + ' · scala 1:1';
+    Array.prototype.forEach.call(pills.children, function (b, i) {
+      var on = IPHONES[i] === current;
+      b.style.background = on ? '#fff' : 'transparent';
+      b.style.color = on ? '#0F1115' : 'rgba(255,255,255,0.8)';
+      b.style.borderColor = on ? 'transparent' : 'rgba(255,255,255,0.25)';
+    });
+  }
+
+  IPHONES.forEach(function (d) {
+    var b = document.createElement('button');
+    b.textContent = d.label;
+    b.style.cssText = 'padding:8px 14px;border-radius:999px;cursor:pointer;border:1px solid rgba(255,255,255,0.25);background:transparent;color:rgba(255,255,255,0.8);font-family:inherit;font-size:12.5px;font-weight:700;';
+    b.onclick = function () { current = d; apply(); };
+    pills.appendChild(b);
+  });
+
+  stage.appendChild(info);
+  stage.appendChild(frame);
+  document.body.appendChild(stage);
+  apply();
+})();
+</script>
 </body>
 </html>
