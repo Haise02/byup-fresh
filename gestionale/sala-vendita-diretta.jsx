@@ -798,29 +798,25 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
           lineHeight: 1.25, textWrap:'pretty',
         }}>{p.name}</div>
 
-        <div style={{
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          marginTop: 6, gap: 8,
-        }}>
-          <span style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>€{p.price.toFixed(2)}</span>
-          {/* + Aggiungi: aggiunta rapida su OGNI card; il click sul piatto
-              personalizza (se personalizzabile) o aggiunge direttamente. */}
-          {(
-            <button
-              onClick={(e) => { e.stopPropagation(); quickAddConFeedback(); }}
-              title="Aggiungi al conto"
-              style={{
-                height: 30, padding:'0 12px', borderRadius: 8,
-                background: PN.BTN_NEUTRAL, color: PN.TEXT, border:`1px solid ${PN.BORDER_LIGHT}`,
-                fontSize: 15, fontWeight: 700, cursor:'pointer',
-                fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 5,
-                flexShrink: 0,
-                boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
-              }}>
-              <span style={{fontSize: 17, lineHeight: 1}}>+</span> Aggiungi
-            </button>
-          )}
-        </div>
+        <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, marginTop: 6}}>€{p.price.toFixed(2)}</div>
+        {/* + Aggiungi: aggiunta rapida su OGNI card, a tutta larghezza; il click
+            sul piatto personalizza (se personalizzabile) o aggiunge direttamente. */}
+        <button
+          onClick={(e) => { e.stopPropagation(); quickAddConFeedback(); }}
+          title="Aggiungi al conto"
+          style={{
+            marginTop: 9, width:'100%', height: 38, borderRadius: 10,
+            background: PN.BTN_NEUTRAL, color: PN.TEXT, border:`1px solid ${PN.BORDER_LIGHT}`,
+            fontSize: 16.5, fontWeight: 700, cursor:'pointer',
+            fontFamily:'inherit', display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+            transition:'background 150ms ease-out, border-color 150ms ease-out',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; e.currentTarget.style.borderColor = PN.BORDER_LIGHT; }}
+        >
+          <span style={{fontSize: 19, lineHeight: 1}}>+</span> Aggiungi
+        </button>
       </div>
     </div>
   );
@@ -1191,7 +1187,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>Tocca <strong>+ Aggiungi</strong> per aggiungere un piatto all'ordine,<br/>o clicca sul piatto per personalizzarlo prima di procedere</div>
           </div>
         ) : (
-          <div style={{display:'flex', flexDirection:'column', gap: 6}}>
+          <div style={{display:'flex', flexDirection:'column', gap: 7}}>
             {lines.map((l, i) => (
               <SaCartLine key={i} line={l}
                 onInc={() => onInc(i)} onDec={() => onDec(i)}
@@ -1277,24 +1273,24 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
   const inlineInputStyle = {
     border:'none', borderBottom:`1.5px solid ${PN.TEXT}`, outline:'none',
     background:'transparent', fontFamily:'inherit',
-    fontSize:16.5, fontWeight:700, color: PN.TEXT, padding:'0 1px',
+    fontSize:17.5, fontWeight:700, color: PN.TEXT, padding:'0 1px',
   };
 
   return (
     <div style={{
-      display:'flex', gap: 10,
-      padding: 8, borderRadius: 9,
+      display:'flex', gap: 11,
+      padding: 10, borderRadius: 10,
       background: '#FAFBFC',
       border: `1px solid ${PN.BORDER_SOFT}`,
     }}>
       <div style={{
-        width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+        width: 44, height: 44, borderRadius: 9, flexShrink: 0,
         background: cat.bg, overflow:'hidden',
         display:'grid', placeItems:'center',
       }}>
         {piatto.img
           ? <img src={piatto.img} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
-          : <span style={{fontSize: 22}}>{piatto.emoji || '🍽'}</span>}
+          : <span style={{fontSize: 23}}>{piatto.emoji || '🍽'}</span>}
       </div>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
@@ -1310,7 +1306,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
             <span
               onClick={() => isCustomizable ? onEdit() : setEditingName(true)}
               title={isCustomizable ? 'Clicca per personalizzare' : 'Clicca per modificare il nome'}
-              style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none'}}
+              style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none'}}
             >{displayName}</span>
           )}
           {editingPrice ? (
@@ -1320,18 +1316,18 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
               onKeyDown={e => { if (e.key==='Enter') commitPrice(); if (e.key==='Escape') { setPriceVal(lineTotal.toFixed(2)); setEditingPrice(false); } }}
               autoFocus
               inputMode="decimal"
-              style={{...inlineInputStyle, fontSize: 16, width: 60, textAlign:'right', fontVariantNumeric:'tabular-nums'}}
+              style={{...inlineInputStyle, fontSize: 17, width: 64, textAlign:'right', fontVariantNumeric:'tabular-nums'}}
             />
           ) : (
             <span
               onClick={() => setEditingPrice(true)}
               title="Clicca per modificare il prezzo"
-              style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, cursor:'text', fontVariantNumeric:'tabular-nums'}}
+              style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, cursor:'text', fontVariantNumeric:'tabular-nums'}}
             >€{(lineTotal * qty).toFixed(2)}</span>
           )}
         </div>
         {hasMods && (
-          <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
+          <div style={{fontSize: 15.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
             {Object.entries(mods.variants || {}).map(([g, v]) => (
               <span key={g} style={{color: PN.TEXT, fontWeight: 600}}>{v} · </span>
             ))}
@@ -1343,31 +1339,31 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
             ))}
           </div>
         )}
-        <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4}}>
+        <div style={{display:'flex', alignItems:'center', gap: 7, marginTop: 5}}>
           <button onClick={onDec} style={{
-            width: 22, height: 22, borderRadius:'50%',
+            width: 24, height: 24, borderRadius:'50%',
             background: PN.PINK_SOFT, color: PN.PINK_DARK, border:'none',
-            fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center',
           }}>−</button>
-          <span style={{fontSize: 16, fontWeight: 700, minWidth: 14, textAlign:'center'}}>{qty}</span>
+          <span style={{fontSize: 17, fontWeight: 700, minWidth: 15, textAlign:'center'}}>{qty}</span>
           <button onClick={onInc} style={{
-            width: 22, height: 22, borderRadius:'50%',
+            width: 24, height: 24, borderRadius:'50%',
             background: PN.PINK_SOFT, color: PN.PINK_DARK, border:'none',
-            fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center',
           }}>+</button>
           <span style={{flex:1}}/>
           {hasMods !== undefined && (line.piatto.variants?.length || line.piatto.ingredients?.length || line.piatto.extras?.length) ? (
             <button onClick={onEdit} title="Modifica" style={{
-              padding:'2px 6px', borderRadius: 5, fontSize: 14.5, fontWeight: 600,
+              padding:'3px 7px', borderRadius: 6, fontSize: 15.5, fontWeight: 600,
               background:'transparent', color: PN.MUTED,
               border: `1px solid ${PN.BORDER}`, cursor:'pointer', fontFamily:'inherit',
             }}>✎</button>
           ) : null}
           <button onClick={onRemove} title="Rimuovi" style={{
             background:'transparent', border:'none', color: PN.MUTED,
-            cursor:'pointer', fontSize: 18, padding: '0 2px', fontFamily:'inherit', lineHeight: 1,
+            cursor:'pointer', fontSize: 19, padding: '0 2px', fontFamily:'inherit', lineHeight: 1,
           }}>×</button>
         </div>
       </div>
