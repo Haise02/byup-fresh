@@ -1,61 +1,56 @@
-// byup Staff — Sala (lista tavoli) + Profilo
+// byup Staff — Sala (lista tavoli unica) + Profilo
 
 const { useState: useStateS, useEffect: useEffectS, useRef: useRefS } = React;
 
+// ─── Logica di stato condivisa fra lista e card ──────────────
+// Prenotazioni con graduated disclosure (3 livelli), per non mettere rumore con
+// info non ancora azionabili:
+//  · imminente (≤ arrivoImminente): "Prenotato · In arrivo" — ora è suo, si prepara.
+//  · preavviso (≥ preavvisoArrivo): tavolo LIBERO con prenotazione ANCORA lontana
+//    (1h30+): avviso "prenot. tra X" così si sa che il posto è già impegnato dopo.
+//  · vicino ma non imminente (tra arrivoImminente e preavvisoArrivo): Libero pulito,
+//    niente label — manca poco e diventerà "In arrivo" a breve, non serve rumore.
+const prenotInWindow   = (t) => t.stato === 'prenotato' && minutiPrenotazione(t) <= STAFF_SETTINGS.arrivoImminente;
+const prenotComeLibero = (t) => t.stato === 'prenotato' && minutiPrenotazione(t) >  STAFF_SETTINGS.arrivoImminente;
+// Preavviso sul libero SOLO quando alla prenotazione manca almeno preavvisoArrivo
+// (1h30): sotto questa soglia il libero non mostra nulla sulla prenotazione.
+const prenotPreavviso  = (t) => prenotComeLibero(t) && minutiPrenotazione(t) >= STAFF_SETTINGS.preavvisoArrivo;
+// Disponibile a sedere subito: libero vero, da-pulire, o prenotato non imminente.
+const tavoloLibero = (t) => t.stato === 'libero' || t.stato === 'da-pulire' || prenotComeLibero(t);
+
+// Ritardo sulla prenotazione (minuti oltre l'orario). Oltre la tolleranza è un
+// no-show: il tavolo resta bloccato e va deciso il da farsi. Prima, è "in ritardo".
+const ritardoPrenot = (t) => (t.stato === 'prenotato' && t.prenotazione?.ritardo) || 0;
+const isNoShow  = (t) => ritardoPrenot(t) >= STAFF_SETTINGS.tolleranzaNoShow;
+const inRitardo = (t) => ritardoPrenot(t) > 0 && !isNoShow(t);
+const haPronti = (t) => STAFF_SETTINGS.tracciaConsegne && t.pronti > 0;
+const haDaInviare = (t) => t.daInviare > 0;
+// Comanda da prendere: seduti da un po' ma ancora senza ordini → azione operativa.
+const daComandare = (t) => t.stato === 'occupato' && !(t.ordini > 0) && (t.sedutiDa || 0) >= STAFF_SETTINGS.attesaComanda;
+
+// Urgenza: blocchi per macro-stato, leggibili a colpo d'occhio. Più basso = più
+// in alto. Dentro ogni blocco l'ordine è per numero di tavolo (vedi sort), così
+// gli occupati scorrono 1,2,3… senza spezzarsi. L'eventuale azione (consegna,
+// invio, comanda) resta visibile nella meta della card, non cambia l'ordine.
+//   0  occupato     → servizio in corso
+//   1  da pulire    → liberare il tavolo (spesso proprio per chi arriva)
+//   2  prenotato presente → in arrivo / in ritardo / no-show: gestire l'arrivo
+//   3  libero / lontano   → pronto all'uso
+const urgenzaTavolo = (t) => {
+  if (t.stato === 'occupato') return 0;
+  if (t.stato === 'da-pulire') return 1;
+  if (isNoShow(t) || inRitardo(t) || prenotInWindow(t)) return 2;
+  return 3;
+};
+
 // ═══════════════════════════════════════════════════════════
-// SALA — lista tavoli (Attivi / Liberi)
+// SALA — lista tavoli unica (colore = stato, filtri come scorciatoia)
 // ═══════════════════════════════════════════════════════════
 function ScreenSala({ nav, openModal }) {
-  const [tab, setTab] = useStateS('attivi');
+  const [filtro, setFiltro] = useStateS('tutti'); // 'tutti' | 'liberi' | 'dainviare'
   const [q, setQ] = useStateS('');
+  const [cercaAperta, setCercaAperta] = useStateS(false); // ricerca compatta (lente) ↔ barra piena
   const [salaSel, setSalaSel] = useStateS(SALE[0]);
-
-  // ─── Swipe orizzontale per cambiare tab ──────────────────
-  const listRef = useRefS(null);
-  const g = useRefS({ x0: 0, y0: 0, axis: null }); // stato gesture in un unico ref
-  const [dragX, setDragX] = useStateS(0);
-  const [snapBack, setSnapBack] = useStateS(false);
-
-  useEffectS(() => {
-    const el = listRef.current;
-    if (!el) return;
-
-    const start = (e) => {
-      g.current = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, axis: null };
-      setSnapBack(false);
-    };
-
-    const move = (e) => {
-      const dx = e.touches[0].clientX - g.current.x0;
-      const dy = e.touches[0].clientY - g.current.y0;
-      if (!g.current.axis) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        g.current.axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
-      }
-      if (g.current.axis !== 'h') return;
-      e.preventDefault();         // blocca lo scroll mentre si swipe orizzontale
-      setDragX(dx * 0.3);         // resistenza: il contenuto segue al 30%
-    };
-
-    const end = (e) => {
-      if (g.current.axis !== 'h') return;
-      const dx = e.changedTouches[0].clientX - g.current.x0;
-      setSnapBack(true);
-      setDragX(0);
-      if (dx < -55) setTab('liberi');      // swipe sinistra → Liberi
-      else if (dx > 55) setTab('attivi'); // swipe destra  → Occupati
-      g.current.axis = null;
-    };
-
-    el.addEventListener('touchstart', start, { passive: true });
-    el.addEventListener('touchmove',  move,  { passive: false });
-    el.addEventListener('touchend',   end,   { passive: true });
-    return () => {
-      el.removeEventListener('touchstart', start);
-      el.removeEventListener('touchmove',  move);
-      el.removeEventListener('touchend',   end);
-    };
-  }, []);   // setTab è stabile, tutto il resto passa via ref
 
   const matches = (t) => {
     if (!q.trim()) return true;
@@ -66,34 +61,34 @@ function ScreenSala({ nav, openModal }) {
     return false;
   };
 
-  // Tavoli dallo store condiviso: le azioni si riflettono ovunque.
+  // Tavoli dallo store condiviso: le azioni si riflettono ovunque. Occupati e
+  // liberi confluiscono in un'unica lista — la posizione non cambia con lo stato.
   const { attivi: tavoliAttivi, liberi: tavoliLiberi, store } = useTavoli();
-  const segnaConsegnato = (id) => store.segnaConsegnato(id);
-  const segnaPiattoConsegnato = (id, idx) => store.segnaPiattoConsegnato(id, idx);
-  const segnaPulito = (id) => store.segnaPulito(id);
 
-  // Priorità in lista: prima i piatti pronti da servire, poi gli ordini da
-  // approvare, infine il resto.
-  const prioritaTavolo = (t) => {
-    if (STAFF_SETTINGS.tracciaConsegne && t.pronti > 0) return 0;
-    if (t.daInviare > 0) return 1;
-    return 2;
-  };
-  const tavoli = tavoliAttivi.filter(matches)
-    .sort((a, b) => prioritaTavolo(a) - prioritaTavolo(b));
+  // Filtri-scorciatoia: "Liberi" (dove siedo un walk-in) e "Da inviare" (cosa
+  // mandare in cucina, a colpo d'occhio). Le viste panoramiche restano sul desktop.
+  const passaFiltro = (t) =>
+    filtro === 'liberi' ? tavoloLibero(t)
+    : filtro === 'dainviare' ? haDaInviare(t)
+    : true;
 
-  // Sezione Liberi come to-do: prima i "da pulire" (capacità bloccata da
-  // un'azione rapida), poi i prenotati ordinati per imminenza, infine i
-  // liberi pronti all'uso. I da-pulire restano qui — non hanno clienti né
-  // servizio in corso, quindi non sono "Occupati": sono liberi in attesa.
-  const prioritaLibero = (t) =>
-    t.stato === 'da-pulire' ? 0 : t.stato === 'prenotato' ? 1 : 2;
-  const liberi = tavoliLiberi.filter(matches).sort((a, b) => {
-    const d = prioritaLibero(a) - prioritaLibero(b);
-    if (d !== 0) return d;
-    if (a.stato === 'prenotato') return minutiPrenotazione(a) - minutiPrenotazione(b);
-    return 0;
-  });
+  const tavoli = [...tavoliAttivi, ...tavoliLiberi]
+    .filter(matches)
+    .filter(passaFiltro)
+    .sort((a, b) => {
+      const d = urgenzaTavolo(a) - urgenzaTavolo(b);
+      if (d !== 0) return d;
+      // Solo i prenotati: in ordine di arrivo (chi arriva prima sta sopra).
+      if (a.stato === 'prenotato' && b.stato === 'prenotato')
+        return minutiPrenotazione(a) - minutiPrenotazione(b);
+      // Tutti gli altri blocchi: per numero di tavolo crescente. Posizione
+      // prevedibile, la lista non "salta" mentre guardi lo schermo.
+      return String(a.n).localeCompare(String(b.n), undefined, { numeric: true });
+    });
+
+  const tuttiTavoli = [...tavoliAttivi, ...tavoliLiberi];
+  const contaLiberi = tuttiTavoli.filter(tavoloLibero).length;
+  const contaDaInviare = tuttiTavoli.filter(haDaInviare).length;
 
   return (
     <div style={{ background: ST.BG, minHeight: '100%' }}>
@@ -103,403 +98,393 @@ function ScreenSala({ nav, openModal }) {
         padding: 'calc(20px + env(safe-area-inset-top)) 20px 0', background: '#fff',
         borderBottom: `1px solid ${ST.BORDER_SOFT}`,
       }}>
-        {/* Titolo + notifiche */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          {/* Sala + freccia cambio sala */}
+        {/* Nome sala corrente + freccia cambio sala (select) */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
           <button onClick={() => openModal({ kind: 'scelta-sala', sale: SALE, salaCorrente: salaSel, onCambia: setSalaSel })} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 6,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ fontSize: 26, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.5 }}>Sala</span>
-              <I.ChevDown s={18} c={ST.MUTED}/>
-            </div>
-            <div style={{ fontSize: 12, color: ST.MUTED, fontWeight: 600, marginTop: 1 }}>{salaSel.nome}</div>
-          </button>
-          <button onClick={() => openModal({ kind: 'notifiche' })} style={{
-            width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none',
-            background: ST.SURF_ALT, position: 'relative', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <I.Bell s={20}/>
-            <span style={{
-              position: 'absolute', top: 8, right: 9, width: 8, height: 8,
-              borderRadius: ST.R_PILL, background: ST.PINK_DARK,
-              border: '2px solid ' + ST.SURF_ALT,
-            }}/>
+            <span style={{ fontSize: 26, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.5 }}>{salaSel.nome}</span>
+            <I.ChevDown s={18} c={ST.MUTED}/>
           </button>
         </div>
 
-        {/* Tab segmented */}
-        <div style={{
-          display: 'flex', background: ST.SURF_ALT, borderRadius: ST.R_PILL,
-          padding: 3, marginBottom: 10,
-        }}>
-          {[
-            { id: 'attivi', label: 'Occupati', count: tavoli.length },
-            { id: 'liberi', label: 'Liberi',   count: liberi.length },
-          ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              flex: 1, height: 38, borderRadius: ST.R_PILL, border: 'none',
-              background: tab === t.id ? '#fff' : 'transparent',
-              boxShadow: tab === t.id ? ST.SH_SM : 'none',
-              cursor: 'pointer', fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+        {/* Riga unica — ricerca compatta (lente) + QR + scorciatoie con contatore.
+            La lente espande la barra a tutta riga; i chip rientrano quando cerchi.
+            Tap di nuovo su un filtro = torna a "Tutti". */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, height: 38 }}>
+          {cercaAperta ? (
+            /* Ricerca espansa: barra piena su tutta la riga, con chiusura a sinistra */
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+              background: ST.SURF_ALT, borderRadius: ST.R_PILL, padding: '0 14px', height: 38,
             }}>
-              <span style={{
-                fontSize: 16.5, fontWeight: tab === t.id ? 700 : 600,
-                color: tab === t.id ? ST.TEXT : ST.MUTED,
-              }}>{t.label}</span>
-              <span style={{
-                fontSize: 12.5, fontWeight: 400,
-                color: tab === t.id ? ST.MUTED : ST.MUTED_2,
-              }}>({t.count})</span>
-            </button>
-          ))}
-        </div>
+              <I.Search s={15} c={ST.MUTED}/>
+              <input
+                autoFocus
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Cerca tavolo o nome…"
+                style={{
+                  flex: 1, border: 'none', outline: 'none', minWidth: 0,
+                  background: 'transparent', fontSize: 13.5,
+                  fontFamily: 'inherit', color: ST.TEXT,
+                }}/>
+              <button onClick={() => { setQ(''); setCercaAperta(false); }} style={{
+                width: 22, height: 22, borderRadius: ST.R_PILL, border: 'none',
+                background: 'rgba(0,0,0,0.08)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><I.Close s={11}/></button>
+            </div>
+          ) : (
+            <>
+              {/* Lente compatta: tap → espande la ricerca. Pallino se filtro attivo. */}
+              <button onClick={() => setCercaAperta(true)} style={{
+                position: 'relative',
+                width: 38, height: 38, flexShrink: 0, borderRadius: ST.R_PILL,
+                border: q.trim() ? `1.5px solid ${ST.PINK}` : 'none',
+                background: ST.SURF_ALT, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <I.Search s={16} c={q.trim() ? ST.PINK_DARK : ST.MUTED}/>
+              </button>
 
-        {/* Dots: indicatore visivo swipe sinistra/destra */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5, margin: '6px 0 8px' }}>
-          {['attivi', 'liberi'].map(id => (
-            <div key={id} style={{
-              height: 5, borderRadius: 3,
-              width: tab === id ? 18 : 5,
-              background: tab === id ? ST.TEXT : ST.MUTED_3,
-              transition: 'width 220ms ease, background 220ms ease',
-            }}/>
-          ))}
-        </div>
+              {/* QR: scansiona → dritto al tavolo */}
+              <button onClick={() => openModal({ kind: 'qr-scan' })} style={{
+                width: 38, height: 38, flexShrink: 0, borderRadius: ST.R_PILL, border: 'none',
+                background: ST.TEXT, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><I.QR s={18} c="#fff"/></button>
 
-        {/* Ricerca — sempre visibile subito sotto i tab */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
-          background: ST.SURF_ALT, borderRadius: ST.R_PILL, padding: '0 14px', height: 38,
-        }}>
-          <I.Search s={15} c={ST.MUTED}/>
-          <input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="Cerca tavolo o nome…"
-            style={{
-              flex: 1, border: 'none', outline: 'none',
-              background: 'transparent', fontSize: 13.5,
-              fontFamily: 'inherit', color: ST.TEXT,
-            }}/>
-          {q && (
-            <button onClick={() => setQ('')} style={{
-              width: 22, height: 22, borderRadius: ST.R_PILL, border: 'none',
-              background: 'rgba(0,0,0,0.08)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}><I.Close s={11}/></button>
+              {/* Scorciatoie con contatore, allineate a destra */}
+              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                {[
+                  { id: 'liberi', label: 'Liberi', count: contaLiberi, on: ST.PINK, onBg: ST.PINK_SOFT, onText: ST.PINK_DARK },
+                  { id: 'dainviare', label: 'Da inviare', count: contaDaInviare, on: '#EA580C', onBg: '#FFF7ED', onText: '#EA580C' },
+                ].map(f => {
+                  const active = filtro === f.id;
+                  return (
+                    <button key={f.id} onClick={() => setFiltro(active ? 'tutti' : f.id)} style={{
+                      height: 38, padding: '0 12px', borderRadius: ST.R_PILL,
+                      border: `1.5px solid ${active ? f.on : ST.BORDER}`,
+                      background: active ? f.onBg : '#fff', cursor: 'pointer', fontFamily: 'inherit',
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                    }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: active ? f.onText : ST.TEXT }}>{f.label}</span>
+                      <span style={{
+                        fontSize: 11.5, fontWeight: 800, minWidth: 18, height: 18, padding: '0 5px', borderRadius: ST.R_PILL,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        background: active ? f.on : ST.SURF_ALT, color: active ? '#fff' : ST.MUTED,
+                      }}>{f.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* Lista — area swipe */}
-      <div ref={listRef} style={{
+      {/* Lista unica — ordinata per urgenza, posizione stabile */}
+      <div style={{
         padding: '14px 16px 110px', display: 'flex', flexDirection: 'column', gap: 12,
-        transform: `translateX(${dragX}px)`,
-        transition: snapBack ? 'transform 280ms cubic-bezier(.2,.8,.2,1)' : 'none',
-        willChange: 'transform',
       }}>
-        {tab === 'attivi' && tavoli.length === 0 && (
+        {tavoli.length === 0 && (
           <div style={{padding:'40px 20px', textAlign:'center', color: ST.MUTED, fontSize: 13.5}}>
-            Nessun tavolo trovato per "{q}"
+            {q ? `Nessun tavolo trovato per "${q}"` : 'Nessun tavolo in questa vista'}
           </div>
         )}
-        {tab === 'liberi' && liberi.length === 0 && q && (
-          <div style={{padding:'40px 20px', textAlign:'center', color: ST.MUTED, fontSize: 13.5}}>
-            Nessun tavolo trovato per "{q}"
-          </div>
-        )}
-        {tab === 'attivi'
-          ? tavoli.map(t => <TavoloCardAttivo key={t.id} t={t} onOpen={() => nav.push({ s: 'tavolo', id: t.id })} onActions={() => openModal({ kind: 'tavolo-actions', tavolo: t })} onConsegnato={() => segnaConsegnato(t.id)} onConsegnatoPiatto={(idx) => segnaPiattoConsegnato(t.id, idx)} onApprova={() => nav.push({ s: 'tavolo', id: t.id })}/>)
-          : liberi.map(t => <TavoloCardLibero
-              key={t.id}
-              t={t}
-              onAttiva={() => openModal({ kind: 'attiva-tavolo', tavolo: t })}
-              onModificaTavolo={() => openModal({ kind: 'modifica-tavolo', tavolo: t, scope: 'libero' })}
-              onCoperti={(n) => store.setCopertiLibero(t.id, n)}
-              onModificaPrenotazione={() => openModal({ kind: 'modifica-prenotazione', tavolo: t })}
-              onPulito={() => segnaPulito(t.id)}
-              onMore={() => openModal({ kind: 'libero-actions', tavolo: t })}
-            />)}
 
-        {tab === 'liberi' && (
-          <button onClick={() => openModal({ kind: 'attiva-tavolo' })} style={{
-            marginTop: 12, height: 56, borderRadius: ST.R_LG, border: `2px dashed ${ST.MUTED_3}`,
-            background: 'transparent', color: ST.MUTED, fontSize: 14, fontWeight: 600,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            <I.Plus s={18} c={ST.MUTED}/> Attiva un tavolo libero
-          </button>
-        )}
+        {tavoli.map(t => (
+          <TavoloCard
+            key={`${t.stato}-${t.id}`}
+            t={t}
+            onOpen={() => nav.push({ s: 'tavolo', id: t.id })}
+            onAttiva={(opts) => openModal({ kind: 'attiva-tavolo', tavolo: t, ...opts })}
+            onLibera={() => openModal({ kind: 'conferma-cancella-prenotazione', tavolo: t, noShow: isNoShow(t) })}
+            onChiudi={() => openModal({ kind: 'conferma-libera', tavolo: t })}
+            onPulito={() => store.segnaPulito(t.id)}
+            onInvia={(indici) => { store.inviaCucinaItems(t.id, indici); openModal({ kind: 'send-success' }); }}
+            onAddOrder={() => nav.push({ s: 'menu', tavoloId: t.id })}
+            onPaga={() => nav.push({ s: 'pagamento-split', id: t.id })}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── Card tavolo ATTIVO ─────────────────────────────────────
-// Banner di alert in cima alla card (riutilizzabile per i vari tipi)
-function CardAlert({ bg, icon, text, actionLabel, onAction }) {
-  return (
-    <div style={{
-      background: bg, color: '#fff', padding: '8px 14px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-    }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700 }}>
-        {icon} {text}
-      </span>
-      <button onClick={(e) => { e.stopPropagation(); onAction(); }} style={{
-        border: 'none', background: 'rgba(255,255,255,0.22)', color: '#fff',
-        borderRadius: ST.R_PILL, padding: '5px 12px', flexShrink: 0,
-        fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-      }}>{actionLabel}</button>
-    </div>
-  );
-}
+// ─── Card tavolo UNICA ──────────────────────────────────────
+// Un solo livello: accento colorato a sinistra = stato, numero + meta, e una
+// sola CTA per stato. Niente pallino (ridondante con l'accento), niente banner
+// (l'info sta nella meta), niente "…": le azioni di servizio vivono nel
+// dettaglio del tavolo. Il "pronti" resta solo come piccolo badge segnale.
+function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia, onAddOrder, onPaga }) {
+  const [aperto, setAperto] = useStateS(false);   // pannello "da inviare" espanso
+  const [inviaSel, setInviaSel] = useStateS({});  // selezione articoli da inviare (default: tutti)
 
-function TavoloCardAttivo({ t, onOpen, onActions, onConsegnato, onConsegnatoPiatto, onApprova }) {
-  const [prontiOpen, setProntiOpen] = useStateS(false);
-  const haPronti = STAFF_SETTINGS.tracciaConsegne && t.pronti > 0;
-  const daApprovare = t.daInviare > 0;
-  const borderColor = haPronti ? ST.PINK_DARK : daApprovare ? ST.ST_BOOKED : ST.BORDER_SOFT;
-  // Numero tavolo: più tavoli uniti => testo più piccolo (min 18), poi ellissi.
-  const nLen = String(t.n).length;
-  const nFont = nLen <= 6 ? 30 : nLen <= 12 ? 24 : 18;
+  const daInviareT = haDaInviare(t);
+  const isOccupato = t.stato === 'occupato';
+  const isDaPulire = t.stato === 'da-pulire';
+  const isLibero = t.stato === 'libero';
+  const noShow = isNoShow(t);              // prenotato non presentato (oltre tolleranza)
+  const ritardo = inRitardo(t);            // prenotato in ritardo (entro tolleranza)
+  const ritMin = ritardoPrenot(t);
+  const inWindow = prenotInWindow(t) && !noShow && !ritardo; // in arrivo, ancora in orario
+  const comeLibero = prenotComeLibero(t);  // prenotato lontano: di fatto libero (walk-in)
+  const items = t.daInviareItems || [];
+
+  // Tassello = IDENTITÀ del tavolo: il numero per i singoli, la composizione
+  // completa (es. 45+46) per gli uniti. Così la riga forte resta libera per il
+  // fatto primario (nome prenotazione / conteggio) e l'unito si legge come un
+  // singolo. Il "+" segnala già il gruppo: niente icona-merge separata.
+  const nMostra = String(t.n);
+  const partiN = nMostra.split('+');
+  // Fino a 2 tavoli la coppia intera entra nel tassello (es. 45+46). Da 3 in su
+  // non c'è spazio: si mostra il PRIMARIO + un badge "+N" (es. 53 ·⁺²); la
+  // composizione completa vive nell'hub. Scala a qualsiasi numero di tavoli.
+  const tantiUniti = partiN.length >= 3;
+  const tileMain = tantiUniti ? partiN[0] : nMostra;
+  const nLen = tileMain.length;
+
+  // Saldato: ha consumato e il conto è a zero → è ancora un tavolo OCCUPATO,
+  // solo da liberare. Lo trattiamo COME occupato (tessera neutra, riga "N
+  // coperti"); a dirlo sono il sub "Saldato · da liberare", l'icona ✓ e la CTA
+  // "Libera". Non è un'eccezione accesa. (richiede ordini>0: appena seduti, saldo
+  // 0 ma non è saldato).
+  const saldato = isOccupato && t.ordini > 0 && !(t.saldo > 0);
+  const senzaComanda = isOccupato && daComandare(t);
+  // Eccezioni "accese" (tessera piena) = ciò che richiede attenzione SUBITO. La
+  // prenotazione resta viola in tutti gli stati (in arrivo / in ritardo / no-show):
+  // a escalare sono testo ("In ritardo") e icona Alert, non la tinta della card.
+  const loud = senzaComanda || noShow || ritardo;
+  // Tassello "pieno" (sfondo nel tono, numero bianco): le eccezioni accese e il
+  // saldato. Per il saldato è SOLO il tassello a scurirsi (stessa logica del
+  // prenotato in ritardo), non l'intera card — basta a farlo notare a colpo d'occhio.
+  const tileFilled = loud || saldato;
+
+  // Tono = colore di stato (bordo + icona), con override per le eccezioni accese.
+  // Le prenotazioni restano SEMPRE viola (in arrivo / in ritardo / no-show): è la
+  // tinta dello stato, l'urgenza la dicono testo e icona Alert, non il colore.
+  const tone = noShow ? statoConfig('prenotato').color
+    : ritardo ? statoConfig('prenotato').color
+    : senzaComanda ? '#D97706'
+    : saldato ? statoConfig('occupato').color
+    : comeLibero ? statoConfig('libero').color
+    : statoConfig(t.stato).color;
+  // Sfondo tenue dello stesso stato, per tingere il tassello anche quando NON è
+  // un'eccezione accesa: ogni tavolo porta il suo colore, lo stato si legge subito.
+  const toneBg = noShow ? statoConfig('prenotato').bg
+    : ritardo ? statoConfig('prenotato').bg
+    : senzaComanda ? '#FBEBD2'
+    : saldato ? statoConfig('occupato').bg
+    : comeLibero ? statoConfig('libero').bg
+    : statoConfig(t.stato).bg;
+
+  // PRINCIPIO: colore = stato, l'icona dà il senso del NUMERO, le parole solo se
+  // aggiungono qualcosa. La riga FORTE è l'identità primaria della card:
+  //  · tavolo unito → la COMPOSIZIONE (es. 45+46): è ciò che lo identifica;
+  //  · occupato/saldato/libero → il CONTEGGIO sedute (numero) con l'icona accanto;
+  //  · prenotazione/azione → lo STATO ("In arrivo", "Senza comanda", "Da pulire").
+  // Il conteggio coperti, quando NON è già la riga forte (prenotazioni, e i tavoli
+  // uniti dove la forte è la composizione), scende nel SUB con la sua icona — così
+  // è sempre visibile senza ripetere la parola "coperti"/"posti".
+  let head, headKind = 'label', copertiSub = null;
+  const subParts = [];
+  if (saldato)           { head = `${t.coperti}`; headKind = 'count'; subParts.push('Saldato'); }
+  else if (senzaComanda) { head = 'Senza comanda'; subParts.push(`seduti da ${t.sedutiDa}'`); }
+  else if (isOccupato)   { head = `${t.coperti}`; headKind = 'count'; if (t.saldo > 0) subParts.push(`€${t.saldo}`); }
+  // Prenotazioni — 3 fatti puliti: CHI (nome, riga forte) · QUANTI (👥 nel sub) ·
+  // QUANDO (tempo esplicito nel sub). Lo STATO lo dicono colore (viola) e icona
+  // (🕐 in arrivo, ⚠️ ritardo/no-show): niente etichetta-di-stato ridondante.
+  else if (noShow)       { head = t.prenotazione.nome; copertiSub = t.coperti; subParts.push(`ritardo ${ritMin}'`); }
+  else if (ritardo)      { head = t.prenotazione.nome; copertiSub = t.coperti; subParts.push(`ritardo ${ritMin}'`); }
+  else if (inWindow)     { head = t.prenotazione.nome; copertiSub = t.coperti; subParts.push(`tra ${t.prenotazione.quando}`); }
+  else if (comeLibero)   { head = `${t.coperti}`; headKind = 'count'; if (prenotPreavviso(t)) subParts.push(`prenot. tra ${t.prenotazione.quando}`); }
+  else if (isDaPulire)   { head = 'Da pulire'; }
+  else                   { head = `${t.coperti}`; headKind = 'count'; } // libero
+  // L'unito NON cambia più head/sub: la composizione è nel tassello, quindi la
+  // card si comporta come un singolo (nome o conteggio sulla riga forte).
+  const sub = subParts.join(' · ');
+
+  // Icona pre-attentiva (canale a11y, leggibile in controluce), colorata dal tono.
+  // Non si mostra sui tavoli uniti: la riga forte è la composizione e il tassello
+  // porta già l'icona-gruppo (niente doppione). Saldato resta OCCUPATO → 👥 (non
+  // la spunta: "Saldato" lo dice il sub e il tassello pieno).
+  const StateIcon = (noShow || senzaComanda || ritardo) ? I.Alert
+    : isOccupato ? I.Users
+    : isDaPulire ? I.Refresh
+    : inWindow ? I.Clock
+    : I.Chair; // libero / prenotato lontano
+  // Icona del conteggio nel sub: 👥 per chi è/sta per sedersi, 🪑 per i liberi.
+  const CopIcon = (isLibero || comeLibero || isDaPulire) ? I.Chair : I.Users;
+  // Icona nella riga forte solo quando NON è un nome-di-prenotazione: lì il tassello
+  // (tinta/pieno) dice già lo stato e l'icona davanti al nome lo disallineerebbe.
+  const showHeadIcon = !(inWindow || ritardo || noShow);
+
+  // Azioni: UNA sola, contestuale = la mossa più probabile dello stato. Solo i
+  // prenotati attivi tengono i due esiti (Attiva / Cancella) finché il foglio
+  // prenotazione non li assorbe. Aggiungi/Sposta/Modifica vivono nell'hub (tap).
+  let actions = [];
+  if (isDaPulire) actions = [{ label: 'Pulito', onClick: onPulito, variant: 'secondary', icon: <I.Check s={15} c={ST.TEXT}/> }];
+  else if (isOccupato) actions = [
+    // CTA primaria dell'occupato = aggiungere alla comanda, l'azione RICORRENTE
+    // del servizio: "Comanda" se non hanno ancora ordinato, "Aggiungi" poi. Il
+    // Conto NON è in card — è azione di fine pasto, vive nell'hub (tap sulla card).
+    saldato
+      ? { label: 'Libera', onClick: onChiudi, variant: 'danger', icon: <I.Close s={14} c="#DC2626"/> }
+      : { label: (t.ordini > 0 ? 'Aggiungi' : 'Comanda'), onClick: onAddOrder, variant: 'secondary', icon: <I.Plus s={15} c={ST.TEXT}/> },
+  ];
+  else if (comeLibero) actions = [{ label: 'Attiva', onClick: () => onAttiva({ walkIn: true }), variant: 'secondary', icon: <I.Walk s={15} c={ST.TEXT}/> }];
+  else if (isLibero) actions = [{ label: 'Attiva', onClick: () => onAttiva(), variant: 'secondary', icon: <I.Walk s={15} c={ST.TEXT}/> }];
+  else actions = [ // prenotato: una sola CTA. "Cancella prenotazione" vive nell'hub (tap sulla card).
+    { label: 'Attiva', onClick: () => onAttiva(), variant: 'secondary', icon: <I.Walk s={15} c={ST.TEXT}/> },
+  ];
+  const cta = actions[0];
+
+  const tileFont = nLen <= 2 ? 19 : nLen <= 3 ? 16 : nLen <= 5 ? 12.5 : 10.5;
+
+  // Tap sul corpo apre SEMPRE l'hub del tavolo (dettaglio + gestione), come per
+  // l'occupato: lì vivono modifica/unisci/sposta/disgiungi e le CTA Attiva /
+  // Cancella prenotazione. Da-pulire non ha hub (solo il bottone "Pulito").
+  const bodyTap = isDaPulire ? undefined : onOpen;
+
   return (
     <div style={{
       background: '#fff', borderRadius: ST.R_LG, overflow: 'hidden',
-      boxShadow: ST.SH_SM,
-      border: `${(haPronti || daApprovare) ? '1.5px' : '1px'} solid ${borderColor}`,
+      boxShadow: ST.SH_SM, border: `1px solid ${ST.BORDER_SOFT}`,
+      borderLeft: `5px solid ${tone}`,
     }}>
-      {/* Alert: ordine del tavolo da approvare e inviare in cucina */}
-      {daApprovare && (
-        <CardAlert
-          bg={ST.ST_BOOKED}
-          icon={<I.Receipt s={14} c="#fff"/>}
-          text="Ordine da approvare"
-          actionLabel="Vedi ordine"
-          onAction={onApprova}
-        />
-      )}
-      {/* Piatti pronti: header comprimibile + elenco senza immagine con
-          consegna del singolo piatto, così il cameriere capisce cosa portare. */}
-      {haPronti && (
-        <>
-          {/* Header: toggle apri/chiudi anteprima */}
-          <div onClick={(e) => { e.stopPropagation(); setProntiOpen(o => !o); }} style={{
-            background: ST.PINK_DARK, color: '#fff', padding: '8px 14px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-            cursor: 'pointer',
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700 }}>
-              <I.Bell s={14} c="#fff"/> <span>{t.pronti}</span> <span>Da consegnare</span>
-            </span>
-            <I.ChevDown s={16} c="#fff" style={{ transform: prontiOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 200ms' }}/>
-          </div>
-          {/* Elenco piatti pronti: ogni riga si segna come consegnato */}
-          {prontiOpen && t.piattiPronti?.length > 0 && (
-            <div style={{
-              padding: '10px 14px', background: ST.PINK_SOFT,
-              borderBottom: `1px solid ${ST.BORDER_SOFT}`,
-              display: 'flex', flexDirection: 'column', gap: 10,
-            }}>
-              {t.piattiPronti.map((p, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{
-                    minWidth: 32, height: 26, padding: '0 7px', borderRadius: 7,
-                    background: '#fff', color: ST.PINK_DARK,
-                    fontSize: 13, fontWeight: 800,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>{p.qty}×</span>
-                  <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: ST.TEXT }}>{p.nome}</span>
-                  <button onClick={(e) => { e.stopPropagation(); onConsegnatoPiatto(i); }} style={{
-                    height: 36, padding: '0 14px', borderRadius: ST.R_PILL, border: 'none',
-                    background: ST.PINK_DARK, color: '#fff',
-                    fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-                  }}>
-                    <I.Check s={14} c="#fff"/> Consegna
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      <div onClick={onOpen} style={{
-        padding: 16, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-      }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Gerarchia massima: numero tavolo (si adatta e va in ellissi) */}
-          <div style={{
-            fontSize: nFont, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.6, lineHeight: 1.05,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            Tavolo {t.n}
-          </div>
-          {/* Gerarchia minima: saldo */}
-          <div style={{ fontSize: 11, color: ST.MUTED, marginTop: 6, fontWeight: 600 }}>
-            Saldo €{t.saldo}
-          </div>
-        </div>
-        {/* Modifiche del tavolo: coperti, unisci/dividi, libera */}
-        <button onClick={(e) => { e.stopPropagation(); onActions(); }} aria-label="Modifica tavolo" style={{
-          width: 40, height: 40, borderRadius: ST.R_PILL, flexShrink: 0,
-          border: `1.5px solid ${ST.BORDER}`, background: '#fff', cursor: 'pointer',
+      {/* Riga principale: tassello numero + situazione + azione singola */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px' }}>
+        {/* Tassello numero: tinto del colore di stato (sfondo tenue + numero nel
+            tono) così lo stato si legge a colpo d'occhio. Si riempie pieno del tono
+            (numero bianco) per le eccezioni accese (senza comanda / ritardo / no-show). */}
+        <div onClick={bodyTap} style={{
+          position: 'relative',
+          width: 46, height: 46, borderRadius: 13, flexShrink: 0,
+          background: tileFilled ? tone : toneBg,
+          color: tileFilled ? '#fff' : tone,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: tileFont, fontWeight: 800, letterSpacing: -0.3,
+          cursor: bodyTap ? 'pointer' : 'default',
         }}>
-          <I.More s={20}/>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Card tavolo LIBERO/PRENOTATO/DA-PULIRE ────────────────
-function TavoloCardLibero({ t, onAttiva, onModificaTavolo, onCoperti, onModificaPrenotazione, onPulito, onMore }) {
-  const isPrenotato = t.stato === 'prenotato';
-  const isDaPulire = t.stato === 'da-pulire';
-  const isLibero = !isPrenotato && !isDaPulire;
-  const isComposto = String(t.n).includes('-');
-  const imminente = isPrenotato && minutiPrenotazione(t) < 45;
-  const hasTags = isPrenotato && t.prenotazione.tags?.length > 0;
-  const hasNote = isPrenotato && !!t.prenotazione.note;
-
-  // Palette per stato
-  const PU = '#7C3AED';
-  const PU_BG = '#FAF5FF';
-  const PU_CHIP = '#EDE9FE';
-  const PU_CHIP_T = '#6D28D9';
-  const PU_BORDER = imminente ? '#A855F7' : '#DDD6FE';
-  const GR_BG = '#F8FAFC';
-  const GR_BORDER = '#CBD5E1';
-  const GR_SEP = '#E2E8F0';
-  const YE_BG = '#FFFBEB';      // giallo card da-pulire
-  const YE_BORDER = '#FCD34D';  // giallo bordo
-
-  const cardBg = isLibero ? GR_BG : isPrenotato ? PU_BG : isDaPulire ? YE_BG : '#fff';
-  const cardBorder = isLibero ? GR_BORDER : isPrenotato ? PU_BORDER : isDaPulire ? YE_BORDER : ST.BORDER_SOFT;
-  const nFont = String(t.n).length <= 6 ? 17 : String(t.n).length <= 12 ? 15 : 13;
-
-  return (
-    <div style={{
-      background: cardBg, borderRadius: ST.R_LG, overflow: 'hidden',
-      boxShadow: ST.SH_SM,
-      border: `${(isLibero || imminente) ? '1.5px' : '1px'} solid ${cardBorder}`,
-    }}>
-      {/* Banner viola imminente — tappabile per gestire la prenotazione */}
-      {imminente && (
-        <div onClick={onModificaPrenotazione} style={{
-          background: PU, color: '#fff', padding: '8px 14px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-        }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, minWidth: 0 }}>
-            <I.Clock s={14} c="#fff"/>
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Prenotazione tra {t.prenotazione.quando} · {t.prenotazione.nome}
-            </span>
-          </span>
-          <I.ChevRight s={16} c="#fff"/>
-        </div>
-      )}
-
-      <div style={{ padding: 14 }}>
-        {/* Numero + chip + tre-puntini */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <StatusDot stato={t.stato}/>
-          <span style={{
-            fontSize: nFont, fontWeight: 800, color: ST.TEXT, flex: 1, minWidth: 0,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            Tavolo {t.n}
-          </span>
-          {isDaPulire && <Chip color="#D97706" bg="#FEF3C7">Da pulire</Chip>}
-          {!isDaPulire && (
-            <button onClick={(e) => { e.stopPropagation(); onMore(); }} aria-label="Azioni" style={{
-              width: 34, height: 34, borderRadius: ST.R_PILL, flexShrink: 0,
-              border: `1.5px solid ${cardBorder}`, background: 'rgba(255,255,255,0.75)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          {/* Tassello = identità tavolo. Per 3+ tavoli il numero primario è centrato
+              e il "+N" è una pill agganciata FUORI dall'angolo (come una notifica):
+              porta l'icona-tavoli accanto al numero per dire che il "+N" sono TAVOLI. */}
+          {tantiUniti ? tileMain : nMostra}
+          {tantiUniti && (
+            <span style={{
+              position: 'absolute', top: -7, right: -9,
+              display: 'inline-flex', alignItems: 'center', gap: 2,
+              fontSize: 10, fontWeight: 800, lineHeight: '14px',
+              height: 14, padding: '0 4px',
+              borderRadius: 9, background: tone, color: '#fff',
+              border: '2px solid #fff',
             }}>
-              <I.More s={17}/>
-            </button>
+              +{partiN.length - 1}<I.Joined s={11} c="#fff"/>
+            </span>
           )}
         </div>
 
-        {/* Prenotato non imminente: chip orario viola */}
-        {isPrenotato && !imminente && (
-          <div style={{
-            marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '3px 9px', background: PU_CHIP, color: PU_CHIP_T,
-            borderRadius: ST.R_PILL, fontSize: 11.5, fontWeight: 600,
-          }}>
-            <I.Clock s={11} c={PU_CHIP_T}/> {t.prenotazione.nome} · tra {t.prenotazione.quando}
+        <div onClick={bodyTap} style={{ flex: 1, minWidth: 0, cursor: bodyTap ? 'pointer' : 'default' }}>
+          {/* Riga forte: icona (tono) + la SITUAZIONE che guida la mossa */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {showHeadIcon && <StateIcon s={14} c={tone}/>}
+            <span style={{
+              fontSize: 14, fontWeight: 800, letterSpacing: -0.1,
+              color: ST.TEXT,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>{head}</span>
           </div>
-        )}
-
-        {/* Tag evento + note */}
-        {(hasTags || hasNote) && (
-          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {hasTags && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {t.prenotazione.tags.map(tag => (
-                  <Chip key={tag} color={PU_CHIP_T} bg={PU_CHIP}>{tag}</Chip>
-                ))}
-              </div>
-            )}
-            {hasNote && (
-              <div style={{ fontSize: 11.5, color: ST.MUTED, fontStyle: 'italic', lineHeight: 1.4 }}>
-                {t.prenotazione.note}
-              </div>
-            )}
-          </div>
-        )}
-
-        {isDaPulire ? (
-          <button onClick={onPulito} style={{
-            width: '100%', height: 42, borderRadius: ST.R_PILL, marginTop: 12,
-            border: `1.5px solid ${YE_BORDER}`, background: '#fff', color: ST.TEXT,
-            fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          }}>
-            <I.Check s={16} c={ST.TEXT}/> Segna come pulito
-          </button>
-        ) : (
-          <>
-            {/* Posti: sfondo bianco + bordo cromatico per staccarsi dalla card */}
+          {/* Riga debole: dettaglio di supporto. Va a capo invece di troncare, così
+              info corte ma importanti (es. "Saldato · da liberare", "prenot. tra X")
+              non perdono pezzi accanto al bottone. La riga forte resta su una riga. */}
+          {(copertiSub != null || sub) && (
             <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '10px 14px', background: '#fff', borderRadius: ST.R_MD, marginTop: 12,
-              border: `1px solid ${isLibero ? GR_BORDER : PU_BORDER}`,
+              fontSize: 12, color: ST.MUTED, fontWeight: 600, marginTop: 2, lineHeight: 1.3,
+              display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
             }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 600, color: ST.TEXT }}>
-                <I.Chair s={15} c={ST.MUTED}/> Posti
-              </span>
-              <Stepper value={t.coperti} onChange={onCoperti}/>
-            </div>
-
-            {/* Separatore + CTA primaria unica */}
-            <div style={{
-              marginTop: 16, paddingTop: 14,
-              borderTop: `1px solid ${isLibero ? GR_SEP : PU_CHIP}`,
-            }}>
-              {isPrenotato && !imminente ? (
-                <Btn variant="secondary" full onClick={onModificaPrenotazione}>
-                  Modifica prenotazione
-                </Btn>
-              ) : (
-                <Btn variant="primary" full onClick={onAttiva}>
-                  <I.Walk s={16} c="#fff"/> Attiva tavolo
-                </Btn>
+              {copertiSub != null && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <CopIcon s={12} c={ST.MUTED}/>{copertiSub}
+                </span>
               )}
+              {sub && <span>{copertiSub != null ? `· ${sub}` : sub}</span>}
             </div>
-          </>
+          )}
+        </div>
+
+        {/* Azione: una sola (bersaglio comodo, md); due impilate solo sui prenotati */}
+        {actions.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'stretch' }}>
+            {actions.map((a, i) => (
+              <Btn key={i} variant={a.variant} size={actions.length === 1 ? 'md' : 'sm'} onClick={(e) => { e.stopPropagation(); a.onClick(); }} style={{ fontWeight: 700 }}>
+                {a.icon}{a.label}
+              </Btn>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Striscia "Da inviare": indipendente da "Aggiungi", in fondo alla card */}
+      {daInviareT && (
+        <button onClick={() => setAperto(o => !o)} style={{
+          width: '100%', border: 'none', borderTop: `1px solid ${ST.BORDER_SOFT}`,
+          background: aperto ? '#FFF7ED' : '#FFFBF5', cursor: 'pointer', fontFamily: 'inherit',
+          padding: '9px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#EA580C' }}>
+            <I.Receipt s={14} c="#EA580C"/> Da inviare {t.daInviare}
+          </span>
+          <I.ChevDown s={15} c="#EA580C" style={{ transform: aperto ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms' }}/>
+        </button>
+      )}
+
+      {/* Pannello espanso: stessa logica di "Da portare" — tap sulla riga per
+          selezionare; nessuna selezione = invia tutti. Senza lasciare la Sala. */}
+      {daInviareT && aperto && (() => {
+        const selCount = items.filter((_, i) => inviaSel[i]).length;
+        const toggle = (i) => setInviaSel({ ...inviaSel, [i]: !inviaSel[i] });
+        const invia = () => {
+          const idx = selCount > 0 ? items.map((_, i) => i).filter(i => inviaSel[i]) : items.map((_, i) => i);
+          onInvia(idx); setAperto(false); setInviaSel({});
+        };
+        return (
+          <div style={{
+            borderTop: `1px solid ${ST.BORDER_SOFT}`, background: ST.SURF,
+            padding: '8px 14px 12px',
+          }}>
+            {items.map((p, i) => {
+              const on = !!inviaSel[i];
+              return (
+                <div key={i} onClick={() => toggle(i)} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 10px', margin: '0 -4px', borderRadius: ST.R_SM,
+                  background: on ? '#FFF7ED' : 'transparent', cursor: 'pointer',
+                }}>
+                  <span style={{
+                    minWidth: 26, height: 22, padding: '0 6px', borderRadius: 6,
+                    background: on ? '#EA580C' : '#fff', color: on ? '#fff' : ST.TEXT,
+                    border: `1px solid ${on ? '#EA580C' : ST.BORDER}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 800, flexShrink: 0,
+                  }}>{p.qty}×</span>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: on ? 800 : 600, color: ST.TEXT }}>{p.nome}</span>
+                </div>
+              );
+            })}
+            <button onClick={invia} style={{
+              marginTop: 10, width: '100%', height: 42, borderRadius: ST.R_PILL, border: 'none',
+              background: '#EA580C', color: '#fff',
+              fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              <I.Receipt s={16} c="#fff"/> {selCount > 0 && selCount < items.length ? 'Invia selezionati' : 'Invia tutti'}
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -508,22 +493,26 @@ function TavoloCardLibero({ t, onAttiva, onModificaTavolo, onCoperti, onModifica
 // PROFILO
 // ═══════════════════════════════════════════════════════════
 function ScreenProfilo({ nav }) {
+  // Locale attivo + switch: se il cameriere è abilitato a più locali, sotto il
+  // ruolo c'è il locale corrente, tappabile per cambiarlo.
+  const [locale, setLocale] = useStateS(STAFF_USER.locale);
+  const [localePicker, setLocalePicker] = useStateS(false);
+  const locali = STAFF_USER.locali || [STAFF_USER.locale];
+  const multiLocale = locali.length > 1;
+  const scegliLocale = (l) => { setLocale(l); STAFF_USER.locale = l; setLocalePicker(false); };
+
+  // Solo voci che corrispondono a funzioni reali del prodotto (cross-check
+  // con il profilo del desktop sala / Byup Staff POS).
   const sections = [
-    { title: 'Informazioni account', items: [
-      { i: <I.Calendar s={18}/>, l: 'Visualizza turni', d: 'Oggi 17:00 – 23:30' },
-      { i: <I.Clock s={18}/>, l: 'Attività cameriere', d: '24 ordini oggi' },
-      { i: <I.Stats s={18}/>, l: 'Statistiche', d: '€42 medio scontrino' },
-      { i: <I.Refresh s={18}/>, l: 'Ripeti onboarding', d: null },
+    { title: 'Account', items: [
+      { i: <I.Settings s={18}/>, l: 'Gestione account', go: 'account' },
+      { i: <I.Refresh s={18}/>, l: 'Ripeti onboarding' },
     ]},
     { title: 'Regolamenti', items: [
       { i: <I.Note s={18}/>, l: 'Termini e condizioni' },
       { i: <I.Note s={18}/>, l: 'Privacy policy' },
-      { i: <I.Alert s={18} c={ST.MUTED}/>, l: 'Segnala un problema' },
     ]},
-    { title: 'Account', items: [
-      { i: <I.Bell s={18}/>, l: 'Impostazioni notifiche' },
-      { i: <I.Settings s={18}/>, l: 'Gestione account' },
-      { i: <I.Refresh s={18}/>, l: 'Cambia locale' },
+    { title: '', items: [
       { i: <I.Logout s={18} c="#DC2626"/>, l: 'Logout', danger: true },
     ]},
   ];
@@ -542,42 +531,59 @@ function ScreenProfilo({ nav }) {
             fontSize: 24, fontWeight: 800, color: '#fff',
             boxShadow: ST.SH_MD,
           }}>MR</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.3 }}>{STAFF_USER.nome}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.3 }}>{STAFF_USER.nome} {STAFF_USER.cognome}</div>
             <div style={{ fontSize: 12.5, color: ST.MUTED, marginTop: 2 }}>
-              {STAFF_USER.ruolo} · {STAFF_USER.account}
+              {STAFF_USER.ruolo}
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '3px 8px', background: ST.ST_BUSY_BG, color: ST.ST_BUSY, borderRadius: ST.R_PILL, fontSize: 10.5, fontWeight: 700 }}>
-              ● In turno · {STAFF_USER.turno}
-            </div>
+            {/* Locale attivo, sotto il ruolo. Con più locali è un chip tappabile
+                che apre la scelta; con uno solo è semplice testo. */}
+            {multiLocale ? (
+              <button onClick={() => setLocalePicker(v => !v)} style={{
+                marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px', borderRadius: ST.R_PILL,
+                background: ST.SURF_ALT, border: `1px solid ${ST.BORDER_SOFT}`,
+                cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 12.5, fontWeight: 700, color: ST.TEXT, maxWidth: '100%',
+              }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{locale}</span>
+                <I.ChevDown s={13} c={ST.MUTED} style={{ flexShrink: 0, transform: localePicker ? 'rotate(180deg)' : 'none', transition: 'transform 180ms' }}/>
+              </button>
+            ) : (
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: ST.TEXT, marginTop: 6 }}>{locale}</div>
+            )}
           </div>
         </div>
 
-        {/* Mini stats */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-          {[
-            { l: 'Ordini', v: STAFF_USER.oggi.ordini },
-            { l: 'Scontrino medio', v: '€'+STAFF_USER.oggi.scontrino },
-            { l: 'Mance', v: '€'+STAFF_USER.oggi.mance },
-          ].map(s => (
-            <div key={s.l} style={{
-              flex: 1, padding: '10px 12px', background: ST.SURF_ALT, borderRadius: ST.R_MD,
-            }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.3 }}>{s.v}</div>
-              <div style={{ fontSize: 10.5, color: ST.MUTED, marginTop: 2, fontWeight: 600 }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
+        {/* Picker locale: elenco dei locali abilitati, spunta su quello attivo. */}
+        {multiLocale && localePicker && (
+          <div style={{ marginTop: 14, border: `1px solid ${ST.BORDER_SOFT}`, borderRadius: ST.R_LG, overflow: 'hidden' }}>
+            {locali.map((l, i) => {
+              const attivo = l === locale;
+              return (
+                <button key={l} onClick={() => scegliLocale(l)} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '13px 14px', background: attivo ? ST.PINK_SOFT : '#fff',
+                  border: 'none', borderTop: i > 0 ? `1px solid ${ST.BORDER_SOFT}` : 'none',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                }}>
+                  <span style={{ flex: 1, fontSize: 14.5, fontWeight: attivo ? 700 : 500, color: attivo ? ST.PINK_DARK : ST.TEXT }}>{l}</span>
+                  {attivo && <I.Check s={16} c={ST.PINK_DARK}/>}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {sections.map((sec, i) => (
         <div key={i} style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', padding: '0 24px 8px' }}>
+          {sec.title && <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', padding: '0 24px 8px' }}>
             {sec.title}
-          </div>
+          </div>}
           <div style={{ background: '#fff', borderRadius: 0 }}>
             {sec.items.map((it, j) => (
-              <div key={j} style={{
+              <div key={j} onClick={it.go ? () => nav.push({ s: it.go }) : undefined} style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '14px 20px',
                 borderTop: j === 0 ? `1px solid ${ST.BORDER_SOFT}` : 'none',
@@ -596,18 +602,6 @@ function ScreenProfilo({ nav }) {
         </div>
       ))}
 
-      {/* Switch app cliente */}
-      <div style={{ marginTop: 24, padding: '0 24px 8px', fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-        Il mio byup
-      </div>
-      <div style={{ background: '#fff', padding: '14px 20px', borderTop: `1px solid ${ST.BORDER_SOFT}`, borderBottom: `1px solid ${ST.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 32, display: 'flex', justifyContent: 'center' }}><I.User s={18}/></div>
-        <div style={{ flex: 1, fontSize: 15, fontWeight: 500 }}>Switch app cliente</div>
-        <div style={{ width: 44, height: 26, borderRadius: ST.R_PILL, background: ST.MUTED_3, position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 2, left: 2, width: 22, height: 22, borderRadius: ST.R_PILL, background: '#fff', boxShadow: ST.SH_SM }}/>
-        </div>
-      </div>
-
       <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 11, color: ST.MUTED_2 }}>
         byup Staff · v1.0.0
       </div>
@@ -615,4 +609,164 @@ function ScreenProfilo({ nav }) {
   );
 }
 
-Object.assign(window, { ScreenSala, ScreenProfilo });
+// ═══════════════════════════════════════════════════════════
+// GESTIONE ACCOUNT — dati cameriere modificabili + modifica password
+// ═══════════════════════════════════════════════════════════
+function ScreenGestioneAccount({ nav }) {
+  const [nome, setNome] = useStateS(STAFF_USER.nome);
+  const [cognome, setCognome] = useStateS(STAFF_USER.cognome);
+  const [email, setEmail] = useStateS(STAFF_USER.email);
+  const [salvato, setSalvato] = useStateS(false);
+
+  const dirty = nome.trim() !== STAFF_USER.nome || cognome.trim() !== STAFF_USER.cognome || email.trim() !== STAFF_USER.email;
+
+  const salva = () => {
+    if (!nome.trim() || !cognome.trim() || !email.trim()) return;
+    STAFF_USER.nome = nome.trim();
+    STAFF_USER.cognome = cognome.trim();
+    STAFF_USER.email = email.trim();
+    setSalvato(true);
+    setTimeout(() => setSalvato(false), 2200);
+  };
+
+  const fld = { width: '100%', boxSizing: 'border-box', height: 52, background: '#fff', border: `1px solid ${ST.BORDER}`, borderRadius: ST.R_LG, padding: '0 14px', color: ST.TEXT, fontSize: 15.5, fontFamily: 'inherit', outline: 'none' };
+  const lbl = { display: 'block', fontSize: 13, fontWeight: 700, color: ST.TEXT, margin: '18px 0 8px' };
+  const ro = { ...fld, display: 'flex', alignItems: 'center', background: ST.SURF_ALT, color: ST.MUTED, border: `1px solid ${ST.BORDER_SOFT}` };
+
+  return (
+    <div style={{ background: ST.BG, minHeight: '100%', display: 'flex', flexDirection: 'column', paddingBottom: 'calc(100px + env(safe-area-inset-bottom))' }}>
+      <div style={{ background: '#fff', padding: 'calc(16px + env(safe-area-inset-top)) 16px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => nav.pop()} style={{
+            width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none',
+            background: ST.SURF_ALT, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><I.Back s={18}/></button>
+          <div style={{ fontSize: 19, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.3 }}>Gestione account</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '8px 20px 32px' }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <label style={lbl}>Nome</label>
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome" style={fld}/>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <label style={lbl}>Cognome</label>
+            <input value={cognome} onChange={e => setCognome(e.target.value)} placeholder="Cognome" style={fld}/>
+          </div>
+        </div>
+
+        <label style={lbl}>Email</label>
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="nome@esempio.it" style={fld}/>
+
+        <label style={lbl}>Ruolo</label>
+        <div style={ro}>{STAFF_USER.ruolo}</div>
+
+        <button onClick={() => nav.push({ s: 'account-password' })} style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12, marginTop: 22,
+          padding: '14px 14px', background: '#fff', border: `1px solid ${ST.BORDER_SOFT}`,
+          borderRadius: ST.R_LG, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}>
+          <div style={{ width: 32, display: 'flex', justifyContent: 'center' }}><I.Settings s={18}/></div>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: ST.TEXT }}>Modifica password</span>
+          <I.ChevRight s={16} c={ST.MUTED_2}/>
+        </button>
+
+        {salvato && (
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600, color: ST.ST_FREE }}>
+            <I.Check s={16} c={ST.ST_FREE}/> Modifiche salvate
+          </div>
+        )}
+
+        <button onClick={salva} disabled={!dirty} style={{
+          marginTop: salvato ? 14 : 28, height: 56, width: '100%', borderRadius: ST.R_PILL, border: 'none',
+          background: dirty ? ST.PINK_DARK : ST.MUTED_3, color: '#fff', fontSize: 16, fontWeight: 700,
+          fontFamily: 'inherit', cursor: dirty ? 'pointer' : 'default', boxShadow: dirty ? ST.SH_FAB : 'none',
+        }}>Salva modifiche</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODIFICA PASSWORD — attuale → nuova → conferma → esito
+// ═══════════════════════════════════════════════════════════
+function ScreenAccountPassword({ nav }) {
+  const [attuale, setAttuale] = useStateS('');
+  const [nuova, setNuova] = useStateS('');
+  const [conferma, setConferma] = useStateS('');
+  const [salvato, setSalvato] = useStateS(false);
+  const [errore, setErrore] = useStateS('');
+
+  const salva = () => {
+    if (!attuale) return setErrore('Inserisci la password attuale');
+    if (nuova.length < 8) return setErrore('La nuova password deve avere almeno 8 caratteri');
+    if (nuova === attuale) return setErrore('La nuova password deve essere diversa da quella attuale');
+    if (nuova !== conferma) return setErrore('Le due password non coincidono');
+    setErrore('');
+    setSalvato(true);
+  };
+
+  const fld = { width: '100%', boxSizing: 'border-box', height: 52, background: '#fff', border: `1px solid ${ST.BORDER}`, borderRadius: ST.R_LG, padding: '0 14px', color: ST.TEXT, fontSize: 15.5, fontFamily: 'inherit', outline: 'none' };
+  const lbl = { display: 'block', fontSize: 13, fontWeight: 700, color: ST.TEXT, margin: '18px 0 8px' };
+
+  return (
+    <div style={{ background: ST.BG, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: '#fff', padding: 'calc(16px + env(safe-area-inset-top)) 16px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => nav.pop()} style={{
+            width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none',
+            background: ST.SURF_ALT, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><I.Back s={18}/></button>
+          <div style={{ fontSize: 19, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.3 }}>Modifica password</div>
+        </div>
+      </div>
+
+      {salvato ? (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px 32px 80px' }}>
+          <div style={{
+            width: 76, height: 76, borderRadius: ST.R_PILL, background: ST.PINK_SOFT,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+          }}><I.Check s={36} c={ST.PINK_DARK}/></div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: ST.TEXT, marginBottom: 8 }}>Password aggiornata</div>
+          <div style={{ fontSize: 14.5, color: ST.MUTED, lineHeight: 1.5, maxWidth: 280 }}>
+            La tua password è stata modificata. Usala al prossimo accesso.
+          </div>
+          <button onClick={() => nav.pop()} style={{
+            marginTop: 28, height: 52, width: '100%', maxWidth: 300, borderRadius: ST.R_PILL, border: 'none',
+            background: ST.PINK_DARK, color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+            cursor: 'pointer', boxShadow: ST.SH_FAB,
+          }}>Fatto</button>
+        </div>
+      ) : (
+        <div style={{ padding: '8px 20px 32px' }}>
+          <p style={{ fontSize: 14.5, color: ST.MUTED, lineHeight: 1.5, margin: '4px 0 8px' }}>
+            Scegli una nuova password di almeno 8 caratteri.
+          </p>
+
+          <label style={lbl}>Password attuale</label>
+          <input type="password" value={attuale} onChange={e => setAttuale(e.target.value)} placeholder="Inserisci la password attuale" style={fld}/>
+
+          <label style={lbl}>Nuova password</label>
+          <input type="password" value={nuova} onChange={e => setNuova(e.target.value)} placeholder="Almeno 8 caratteri" style={fld}/>
+
+          <label style={lbl}>Conferma nuova password</label>
+          <input type="password" value={conferma} onChange={e => setConferma(e.target.value)} placeholder="Ripeti la nuova password" onKeyDown={e => { if (e.key === 'Enter') salva(); }} style={fld}/>
+
+          {errore && <div style={{ marginTop: 14, fontSize: 13.5, fontWeight: 600, color: '#DC2626' }}>{errore}</div>}
+
+          <button onClick={salva} style={{
+            marginTop: 24, height: 56, width: '100%', borderRadius: ST.R_PILL, border: 'none',
+            background: ST.PINK_DARK, color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+            cursor: 'pointer', boxShadow: ST.SH_FAB,
+          }}>Aggiorna password</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, { ScreenSala, ScreenProfilo, ScreenGestioneAccount, ScreenAccountPassword });

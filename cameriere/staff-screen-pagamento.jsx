@@ -3,30 +3,26 @@
 const { useState: useStateP, useEffect: useEffectP } = React;
 
 // ═══════════════════════════════════════════════════════════
-// PAGAMENTO STEP 1 — Selezione cosa pagare (split)
-// UX rivista: header compatto, selezione clienti con dropdown,
-// totale e CTA pinnati in basso.
+// CONTO — vista del conto del tavolo (sola consultazione)
+// Il pagamento NON si fa da qui: niente split, niente mancia,
+// niente metodi di incasso. Resta la lista voci e la "Modifica"
+// per correggere prezzi / cancellare voci.
 // ═══════════════════════════════════════════════════════════
 function ScreenPagamentoSplit({ nav, openModal, tavoloId }) {
   const t = TAVOLI.find(x => x.id === tavoloId) || TAVOLI[0];
-  const ordini = ORDINE_T23;
+  // Copia locale modificabile degli ordini: prezzo e cancellazione voci sono
+  // funzioni secondarie, vivono dietro la modalità "Modifica".
+  const [ordini, setOrdini] = useStateP(() => ORDINE_T23.map(o => ({ ...o })));
   const totale = ordini.reduce((s, o) => s + o.prezzo * o.qty, 0);
 
-  const [sel, setSel] = useStateP({});
   const [expanded, setExpanded] = useStateP({});
+  const [editMode, setEditMode] = useStateP(false);
 
-  const { n: selN, total: selTotal } = (() => {
-    let n = 0, total = 0;
-    ordini.forEach(o => { if (sel[o.id]) { n++; total += o.prezzo * o.qty; } });
-    return { n, total };
-  })();
-
-  const allSelected = ordini.length > 0 && ordini.every(o => sel[o.id]);
-
-  const toggleAll = () => {
-    if (allSelected) setSel({});
-    else setSel(Object.fromEntries(ordini.map(o => [o.id, true])));
-  };
+  const setPrezzo = (id, val) => setOrdini(prev => prev.map(o => o.id === id ? { ...o, prezzo: val } : o));
+  // Quantità editabile in modifica: togli/aggiungi singole unità (min 1; per
+  // azzerare la voce c'è il cestino).
+  const setQty = (id, q) => setOrdini(prev => prev.map(o => o.id === id ? { ...o, qty: Math.max(1, q) } : o));
+  const eliminaVoce = (id) => setOrdini(prev => prev.filter(o => o.id !== id));
 
   // Totale per cliente
   const totalForCliente = (c) => c.piatti.reduce((s, oid) => {
@@ -34,27 +30,92 @@ function ScreenPagamentoSplit({ nav, openModal, tavoloId }) {
     return s + (o ? o.prezzo * o.qty : 0);
   }, 0);
 
-  // Stato selezione di un cliente: 'all' | 'some' | 'none'
-  const clienteSelState = (c) => {
-    if (c.piatti.length === 0) return 'none';
-    const sels = c.piatti.filter(oid => sel[oid]);
-    if (sels.length === 0) return 'none';
-    if (sels.length === c.piatti.length) return 'all';
-    return 'some';
-  };
+  // Commensali digitali: tutti insieme, etichettati Guest 1..N (indifferente
+  // se app byup o webapp). In editMode i piatti mostrano prezzo editabile +
+  // cestino; altrimenti la sola lettura.
+  const clientiList = CLIENTI_T23.filter(c => c.piatti.length > 0);
 
-  const toggleCliente = (c) => {
-    const state = clienteSelState(c);
-    const next = { ...sel };
-    if (state === 'all') c.piatti.forEach(oid => { delete next[oid]; });
-    else c.piatti.forEach(oid => { next[oid] = true; });
-    setSel(next);
-  };
+  const ClientiCard = () => clientiList.length === 0 ? null : (
+    <div style={{ padding: '14px 16px 0' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, padding: '0 4px' }}>
+        Ordini clienti
+      </div>
+      <div style={{ background: '#fff', borderRadius: ST.R_LG, overflow: 'hidden', boxShadow: ST.SH_SM }}>
+        {clientiList.map((c, i, arr) => {
+          const exp = expanded[c.id];
+          const cTot = totalForCliente(c);
+          // App byup → nome reale (registrato). Webapp → ospite anonimo "Guest N", in grigio.
+          const isByup = c.kind === 'byup';
+          const guestNo = clientiList.slice(0, i + 1).filter(x => x.kind !== 'byup').length;
+          const label = isByup ? c.nome : `Guest ${guestNo}`;
+          return (
+            <div key={c.id} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${ST.BORDER_SOFT}` : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: ST.R_PILL,
+                  background: isByup ? `linear-gradient(135deg, ${ST.PINK} 0%, ${ST.PINK_DARK} 100%)` : ST.MUTED_3,
+                  color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 800, flexShrink: 0,
+                }}>{isByup ? c.nome[0] : guestNo}</div>
+                <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpanded({ ...expanded, [c.id]: !exp })}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: isByup ? ST.TEXT : ST.MUTED }}>{label}</div>
+                  <div style={{ fontSize: 11.5, color: ST.MUTED, marginTop: 2 }}>{c.piatti.length} piatti · €{cTot}</div>
+                </div>
+                <button onClick={() => setExpanded({ ...expanded, [c.id]: !exp })} style={{
+                  width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transform: exp ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 200ms',
+                }}><I.ChevDown s={16} c={ST.MUTED}/></button>
+              </div>
+
+              {exp && (
+                <div style={{ background: ST.SURF, padding: '6px 14px 12px 60px' }}>
+                  {c.piatti.map(oid => {
+                    const o = ordini.find(x => x.id === oid);
+                    if (!o) return null;
+                    return editMode ? (
+                      <div key={oid} style={{ padding: '10px 0', borderTop: `1px solid ${ST.BORDER_SOFT}` }}>
+                        {/* Riga 1: nome + cestino */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: ST.TEXT_SOFT, fontWeight: 600 }}>{o.nome}</span>
+                          <button onClick={() => eliminaVoce(o.id)} style={{
+                            width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', flexShrink: 0,
+                            background: '#FEE2E2', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}><I.Trash s={14} c="#DC2626"/></button>
+                        </div>
+                        {/* Riga 2: quantità (stepper) + prezzo unitario + subtotale */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                          <Stepper value={o.qty} onChange={q => setQty(o.id, q)}/>
+                          <PrezzoInput value={o.prezzo} onChange={v => setPrezzo(o.id, v)}/>
+                          <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: ST.TEXT }}>€{(o.prezzo * o.qty).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={oid} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
+                        borderTop: `1px solid ${ST.BORDER_SOFT}`,
+                      }}>
+                        <span style={{ width: 26, fontSize: 11.5, color: ST.MUTED, fontWeight: 700 }}>{o.qty}×</span>
+                        <span style={{ flex: 1, fontSize: 13, color: ST.TEXT_SOFT, fontWeight: 500 }}>{o.nome}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: ST.TEXT }}>€{o.prezzo * o.qty}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{ background: ST.BG, minHeight: '100%', paddingBottom: 160 }}>
-      {/* Header compatto */}
-      <div style={{ background: '#fff', padding: 'calc(16px + env(safe-area-inset-top)) 16px 16px', borderBottom: `1px solid ${ST.BORDER_SOFT}` }}>
+    <div style={{ background: ST.BG, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Header compatto — fisso */}
+      <div style={{ flexShrink: 0, background: '#fff', padding: 'calc(16px + env(safe-area-inset-top)) 16px 16px', borderBottom: `1px solid ${ST.BORDER_SOFT}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <button onClick={() => nav.pop()} style={{
             width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none',
@@ -63,173 +124,88 @@ function ScreenPagamentoSplit({ nav, openModal, tavoloId }) {
           }}><I.Close s={18}/></button>
           <div style={{ flex: 1, textAlign:'center', minWidth: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-              Tavolo {t.n} · Conto €{totale}
+              Tavolo {t.n}
             </div>
             <div style={{ fontSize: 17, fontWeight: 800, color: ST.TEXT, marginTop: 2 }}>
-              Cosa pagano?
+              Conto
             </div>
           </div>
           <div style={{ width: 40 }}/>
         </div>
       </div>
 
-      {/* ORDINI CLIENTI */}
-      <div style={{ padding: '14px 16px 0' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, padding: '0 4px' }}>
-          Ordini clienti
-        </div>
-        <div style={{ background: '#fff', borderRadius: ST.R_LG, overflow: 'hidden', boxShadow: ST.SH_SM }}>
-          {CLIENTI_T23.filter(c => c.piatti.length > 0 || !c.id.startsWith('g')).map((c, i, arr) => {
-            const state = clienteSelState(c);
-            const exp = expanded[c.id];
-            const cTot = totalForCliente(c);
-            return (
-              <div key={c.id} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${ST.BORDER_SOFT}` : 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
-                  {/* Checkbox cliente (tri-state) */}
-                  <span onClick={() => toggleCliente(c)} style={{
-                    width: 24, height: 24, borderRadius: 7,
-                    border: `2px solid ${state !== 'none' ? ST.PINK_DARK : ST.MUTED_3}`,
-                    background: state === 'all' ? ST.PINK_DARK
-                              : state === 'some' ? ST.PINK_SOFT
-                              : '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', flexShrink: 0,
-                  }}>
-                    {state === 'all' && <I.Check s={14} c="#fff"/>}
-                    {state === 'some' && <span style={{ width: 10, height: 2, background: ST.PINK_DARK, borderRadius: 1 }}/>}
-                  </span>
+      {/* AREA SCORREVOLE — solo le liste scrollano, header e footer restano fissi */}
+      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 20 }}>
 
-                  {/* Avatar/iniziale */}
-                  <div style={{
-                    width: 34, height: 34, borderRadius: ST.R_PILL,
-                    background: `linear-gradient(135deg, ${ST.PINK} 0%, ${ST.PINK_DARK} 100%)`,
-                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, fontWeight: 800, flexShrink: 0,
-                  }}>{c.nome[0]}</div>
-
-                  <div style={{ flex: 1, cursor: 'pointer' }}
-                       onClick={() => setExpanded({ ...expanded, [c.id]: !exp })}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: ST.TEXT }}>{c.nome}</div>
-                    <div style={{ fontSize: 11.5, color: ST.MUTED, marginTop: 2 }}>
-                      {c.piatti.length} piatti · €{cTot}
-                    </div>
-                  </div>
-
-                  <button onClick={() => setExpanded({ ...expanded, [c.id]: !exp })} style={{
-                    width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transform: exp ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 200ms',
-                  }}><I.ChevDown s={16} c={ST.MUTED}/></button>
-                </div>
-
-                {/* Dropdown piatti del cliente — selezione singola */}
-                {exp && (
-                  <div style={{ background: ST.SURF, padding: '6px 14px 12px 60px' }}>
-                    {c.piatti.length === 0 && (
-                      <div style={{ fontSize: 12, color: ST.MUTED, padding: '8px 0' }}>
-                        Nessun piatto associato
-                      </div>
-                    )}
-                    {c.piatti.map(oid => {
-                      const o = ordini.find(x => x.id === oid);
-                      if (!o) return null;
-                      const checked = !!sel[oid];
-                      return (
-                        <div key={oid} onClick={() => setSel({ ...sel, [oid]: !checked })} style={{
-                          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
-                          borderTop: `1px solid ${ST.BORDER_SOFT}`, cursor: 'pointer',
-                        }}>
-                          <span style={{
-                            width: 20, height: 20, borderRadius: 6,
-                            border: `2px solid ${checked ? ST.PINK_DARK : ST.MUTED_3}`,
-                            background: checked ? ST.PINK_DARK : '#fff',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                          }}>{checked && <I.Check s={11} c="#fff"/>}</span>
-                          <span style={{ width: 26, fontSize: 11.5, color: ST.MUTED, fontWeight: 700 }}>{o.qty}×</span>
-                          <span style={{ flex: 1, fontSize: 13, color: ST.TEXT_SOFT, fontWeight: 500 }}>{o.nome}</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: ST.TEXT }}>€{o.prezzo * o.qty}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {/* Toolbar: solo "Modifica" (correggi prezzi / cancella voci). */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '12px 20px 0' }}>
+        <button onClick={() => setEditMode(v => !v)} style={{
+          background: 'transparent', border: 'none',
+          color: editMode ? ST.PINK_DARK : ST.TEXT, fontSize: 13, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+        }}>
+          {editMode ? 'Fatto' : <React.Fragment><I.Edit s={14} c={ST.TEXT}/> Modifica</React.Fragment>}
+        </button>
       </div>
+
+      {/* ORDINI CLIENTI — tutti insieme, Guest 1..N */}
+      {ClientiCard()}
 
       {/* ORDINI TAVOLO */}
       <div style={{ padding: '18px 16px 0' }}>
-        <div style={{
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'0 4px 8px',
-        }}>
+        <div style={{ padding: '0 4px 8px' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase' }}>
             Ordini tavolo
           </div>
-          <button onClick={toggleAll} style={{
-            background: 'transparent', border: 'none',
-            color: ST.PINK_DARK, fontSize: 12, fontWeight: 700,
-            cursor: 'pointer', fontFamily:'inherit', padding: 0,
-          }}>
-            {allSelected ? 'Deseleziona tutti' : 'Seleziona tutti'}
-          </button>
         </div>
         <div style={{ background: '#fff', borderRadius: ST.R_LG, overflow: 'hidden', boxShadow: ST.SH_SM }}>
           {ordini.map((o, i) => (
-            <div key={o.id} onClick={() => setSel({ ...sel, [o.id]: !sel[o.id] })} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+            <div key={o.id} style={{
+              padding: '12px 14px',
               borderBottom: i < ordini.length - 1 ? `1px solid ${ST.BORDER_SOFT}` : 'none',
-              cursor: 'pointer',
-              background: sel[o.id] ? ST.PINK_BG : '#fff',
+              background: '#fff',
             }}>
-              <span style={{
-                width: 22, height: 22, borderRadius: 6,
-                border: `2px solid ${sel[o.id] ? ST.PINK_DARK : ST.MUTED_3}`,
-                background: sel[o.id] ? ST.PINK_DARK : '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>{sel[o.id] && <I.Check s={12} c="#fff"/>}</span>
-              <span style={{ width: 28, fontSize: 12, fontWeight: 800, color: ST.MUTED }}>{o.qty}×</span>
-              <span style={{ flex: 1, fontSize: 13.5, color: ST.TEXT, fontWeight: 600 }}>{o.nome}</span>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: ST.TEXT }}>€{o.prezzo * o.qty}</span>
+              {editMode ? (
+                <React.Fragment>
+                  {/* Riga 1: nome + cestino */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: ST.TEXT, fontWeight: 600 }}>{o.nome}</span>
+                    <button onClick={() => eliminaVoce(o.id)} style={{
+                      width: 30, height: 30, borderRadius: ST.R_PILL, border: 'none', flexShrink: 0,
+                      background: '#FEE2E2', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}><I.Trash s={15} c="#DC2626"/></button>
+                  </div>
+                  {/* Riga 2: quantità (stepper) + prezzo unitario + subtotale */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                    <Stepper value={o.qty} onChange={q => setQty(o.id, q)}/>
+                    <PrezzoInput value={o.prezzo} onChange={v => setPrezzo(o.id, v)}/>
+                    <span style={{ marginLeft: 'auto', fontSize: 13.5, fontWeight: 700, color: ST.TEXT }}>€{(o.prezzo * o.qty).toFixed(2)}</span>
+                  </div>
+                </React.Fragment>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ width: 28, fontSize: 12, fontWeight: 800, color: ST.MUTED }}>{o.qty}×</span>
+                  <span style={{ flex: 1, fontSize: 13.5, color: ST.TEXT, fontWeight: 600 }}>{o.nome}</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: ST.TEXT }}>€{o.prezzo * o.qty}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
+      </div>{/* fine area scorrevole */}
 
-      {/* Bottom CTA — Prosegui */}
+      {/* Footer — totale del conto in sola lettura (nessun incasso da qui). */}
       <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 34, zIndex: 30,
-        padding: '14px 16px',
-        background: 'linear-gradient(180deg, transparent 0%, #fff 30%)',
+        flexShrink: 0, zIndex: 30,
+        padding: '16px 16px calc(28px + env(safe-area-inset-bottom))',
+        background: '#fff', borderTop: `1px solid ${ST.BORDER_SOFT}`, boxShadow: ST.SH_LG,
       }}>
-        <div style={{
-          background: '#fff', borderRadius: ST.R_LG, padding: 14,
-          boxShadow: ST.SH_LG, border: `1px solid ${ST.BORDER_SOFT}`,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems:'baseline', marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, color: ST.MUTED, fontWeight: 600 }}>Da incassare</div>
-              <div style={{ fontSize: 11, color: ST.MUTED_2, marginTop: 2 }}>
-                {selN === 0 ? 'Nessun piatto' : `${selN} piatto${selN > 1 ? 'i' : ''} su ${ordini.length}`}
-              </div>
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.4 }}>€{selTotal.toFixed(2)}</div>
-          </div>
-          <button
-            onClick={() => nav.push({ s: 'pagamento-carta', tavoloId, importo: selTotal })}
-            disabled={selN === 0}
-            style={{
-              width: '100%', height: 52, borderRadius: ST.R_PILL, border: 'none',
-              background: selN === 0 ? ST.MUTED_3 : ST.PINK_DARK, color: '#fff',
-              fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
-              cursor: selN === 0 ? 'not-allowed' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: selN === 0 ? 'none' : ST.SH_FAB,
-            }}
-          ><I.Card s={18} c="#fff"/> Tap to Pay · €{selTotal.toFixed(2)}</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ fontSize: 12.5, color: ST.MUTED, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Totale conto</span>
+          <span style={{ fontSize: 24, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.4 }}>€{totale.toFixed(2)}</span>
         </div>
       </div>
     </div>
@@ -336,7 +312,7 @@ function ScreenPagamentoCarta({ nav, openModal, importo, tavoloId }) {
             color: '#fff', fontSize: 18, fontWeight: 800,
           }}>b</div>
           <div style={{ fontSize: 10.5, color: ST.MUTED, fontWeight: 600 }}>Trattoria del Borgo</div>
-          <div style={{ fontSize: 10.5, color: ST.MUTED }}>Tavolo {t?.n} · {STAFF_USER.nome}</div>
+          <div style={{ fontSize: 10.5, color: ST.MUTED }}>Tavolo {t?.n} · {STAFF_USER.nome} {STAFF_USER.cognome}</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.5, marginTop: 6 }}>
             €{importo?.toFixed(2)}
           </div>
@@ -428,6 +404,160 @@ function ScreenPagamentoCarta({ nav, openModal, importo, tavoloId }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// PAGAMENTO CONTANTI — importo ricevuto + resto
+// Lean: tagli rapidi (banconote ≥ dovuto) + tastierino, calcolo resto.
+// ═══════════════════════════════════════════════════════════
+function ScreenPagamentoContanti({ nav, openModal, importo, tavoloId, misto }) {
+  const t = TAVOLI.find(x => x.id === tavoloId);
+  const due = importo || 0;
+  const [ricevuto, setRicevuto] = useStateP(null); // euro interi digitati, o null
+  const [daChip, setDaChip] = useStateP(false);    // valore impostato da un taglio
+  const [done, setDone] = useStateP(false);
+
+  // MISTO: la cifra che digiti è la quota in contanti; il resto va su carta.
+  // Normale: la cifra è il ricevuto, e il resto è il cambio da dare.
+  const restoCarta = misto ? +Math.max(0, due - (ricevuto || 0)).toFixed(2) : 0;
+  const resto = ricevuto != null ? ricevuto - due : 0;
+  const ok = misto ? (ricevuto != null && ricevuto > 0) : (ricevuto != null && ricevuto >= due);
+
+  // Tagli rapidi: in misto le banconote SOTTO il totale (quota parziale), in
+  // contanti pieno quelle SOPRA il dovuto (per coprirlo e dare il resto).
+  const tagli = misto
+    ? [5, 10, 20, 50, 100].filter(v => v < due).slice(-3)
+    : [5, 10, 20, 50, 100, 200, 500].filter(v => v > due).slice(0, 3);
+  const clamp = (n) => (misto && n > due ? due : n);
+
+  const pickChip = (v) => { setRicevuto(v); setDaChip(true); };
+  const onKey = (d) => {
+    if (d === 'back') { setDaChip(false); setRicevuto(r => { const s = String(r ?? '').slice(0, -1); return s ? Number(s) : null; }); return; }
+    // Dopo un taglio, la prima cifra riparte da capo (deseleziona il chip).
+    setRicevuto(r => clamp(daChip ? Number(d) : Number(String(r ?? '') + d)));
+    setDaChip(false);
+  };
+
+  // Conferma: in misto con resto>0 prosegue al Tap to Pay del saldo; altrimenti
+  // (contanti pieno) mostra l'esito con resto + ricevuta.
+  const onConferma = () => {
+    if (misto && restoCarta > 0) nav.push({ s: 'pagamento-carta', tavoloId, importo: restoCarta });
+    else setDone(true);
+  };
+
+  return (
+    <div style={{ background: ST.BG, minHeight: '100%', position: 'relative', paddingBottom: 24 }}>
+      {/* Header */}
+      <div style={{ background: '#fff', padding: 'calc(16px + env(safe-area-inset-top)) 16px 16px', borderBottom: `1px solid ${ST.BORDER_SOFT}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => nav.pop()} style={{
+            width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none',
+            background: ST.SURF_ALT, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><I.Close s={18}/></button>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+              {misto ? 'Misto · contanti' : 'Contanti'}{t ? ` · Tavolo ${t.n}` : ''}
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: ST.TEXT, marginTop: 2 }}>Da incassare €{due.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+
+      {done ? (
+        /* Esito: resto + azioni */
+        <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: 20, margin: '0 auto 16px',
+            background: '#E8F1EC', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><I.Check s={32} c={ST.ST_OK || '#5E9C7B'}/></div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: ST.MUTED }}>Incasso registrato</div>
+          <div style={{ fontSize: 34, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.5, marginTop: 8 }}>
+            Resto €{resto.toFixed(2)}
+          </div>
+          <div style={{ fontSize: 12.5, color: ST.MUTED, marginTop: 6 }}>
+            Ricevuti €{(ricevuto || 0).toFixed(2)} · dovuto €{due.toFixed(2)}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 28, maxWidth: 300, margin: '28px auto 0' }}>
+            <Btn variant="primary" full onClick={() => openModal({
+              kind: 'invia-ricevuta', tavoloN: t?.n, importo: due,
+              guest: { hasApp: true, nome: 'Marco', email: 'marco@email.it', tel: '+39 333 1234567' },
+            })}><I.Receipt s={16} c="#fff"/> Invia ricevuta</Btn>
+            <Btn variant="secondary" full onClick={() => nav.reset({ s: 'sala' })}>Torna in sala</Btn>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: '16px' }}>
+          {/* Quota contante + (misto) resto su carta / (normale) cambio */}
+          <div style={{ background: '#fff', borderRadius: ST.R_LG, padding: 16, boxShadow: ST.SH_SM, marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 13, color: ST.MUTED, fontWeight: 600 }}>{misto ? 'In contanti' : 'Ricevuto'}</span>
+              <span style={{ fontSize: 26, fontWeight: 800, color: ricevuto != null ? ST.TEXT : ST.MUTED_3, letterSpacing: -0.4 }}>
+                €{(ricevuto || 0).toFixed(2)}
+              </span>
+            </div>
+            <div style={{ height: 1, background: ST.BORDER_SOFT, margin: '12px 0' }}/>
+            {misto ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: ST.MUTED, fontWeight: 600 }}>
+                  <I.Card s={15} c={ST.MUTED}/> Resto su carta
+                </span>
+                <span style={{ fontSize: 20, fontWeight: 800, color: restoCarta > 0 ? ST.PINK_DARK : ST.MUTED_3, letterSpacing: -0.3 }}>
+                  €{restoCarta.toFixed(2)}
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: 13, color: ST.MUTED, fontWeight: 600 }}>Resto</span>
+                <span style={{ fontSize: 20, fontWeight: 800, color: ok ? ST.PINK_DARK : ST.MUTED_3, letterSpacing: -0.3 }}>
+                  €{(ok ? resto : 0).toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Tagli rapidi */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            {!misto && <button onClick={() => pickChip(due)} style={chipTaglio(daChip && ricevuto === due)}>Esatto</button>}
+            {tagli.map(v => (
+              <button key={v} onClick={() => pickChip(v)} style={chipTaglio(daChip && ricevuto === v)}>€{v}</button>
+            ))}
+          </div>
+
+          {/* Tastierino (euro interi) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {['1','2','3','4','5','6','7','8','9','','0','back'].map((d, i) => {
+              if (d === '') return <div key={i}/>;
+              return (
+                <button key={i} onClick={() => onKey(d)} style={{
+                  height: 56, borderRadius: ST.R_MD, background: '#fff',
+                  border: `1px solid ${ST.BORDER_SOFT}`, color: ST.TEXT,
+                  fontSize: 22, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{d === 'back' ? '⌫' : d}</button>
+              );
+            })}
+          </div>
+
+          <Btn variant="primary" full disabled={!ok} onClick={onConferma}
+               style={{ marginTop: 14, height: 52 }}>
+            {misto && restoCarta > 0 ? `Continua · €${restoCarta.toFixed(2)} su carta` : 'Conferma incasso'}
+          </Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Stile chip taglio rapido contanti
+function chipTaglio(active) {
+  return {
+    flex: 1, minWidth: 64, height: 40, borderRadius: ST.R_PILL,
+    border: `1.5px solid ${active ? ST.PINK_DARK : ST.BORDER}`,
+    background: active ? ST.PINK_SOFT : '#fff',
+    color: active ? ST.PINK_DARK : ST.TEXT,
+    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+  };
+}
+
 // Legacy stubs (in caso di rotte residue dalla vecchia UX)
 function ScreenPagamentoMetodo({ nav, importo, tavoloId }) {
   // Salta direttamente a Tap to Pay
@@ -439,4 +569,4 @@ function ScreenPagamentoQR({ nav, importo, tavoloId }) {
   return null;
 }
 
-Object.assign(window, { ScreenPagamentoSplit, ScreenPagamentoMetodo, ScreenPagamentoCarta, ScreenPagamentoQR });
+Object.assign(window, { ScreenPagamentoSplit, ScreenPagamentoMetodo, ScreenPagamentoCarta, ScreenPagamentoQR, ScreenPagamentoContanti });

@@ -73,12 +73,19 @@ const ALLERGENI = {
 };
 
 // ─── Stato tavolo: helper per styling ─────────────────────────
+// Palette di stato DESATURATA e coerente: stesse hue di prima ma più tenui,
+// così il colore resta segnale leggibile senza gridare. Cambiare qui propaga
+// su accenti card e chip ovunque nell'app.
 function statoConfig(stato) {
+  // Colori di stato tenui e ben distinti (palette planimetria): lo stato si legge
+  // a colpo d'occhio senza gridare. Libero = verde (via libera), occupato =
+  // arancione/corallo (preso), prenotato = viola (stesso colore in ogni fase),
+  // da-pulire = ambra.
   const map = {
-    libero:      { color: ST.ST_FREE,   bg: ST.ST_FREE_BG,   label: 'Libero' },
-    occupato:    { color: ST.ST_BUSY,   bg: ST.ST_BUSY_BG,   label: 'Occupato' },
-    prenotato:   { color: '#7C3AED',    bg: '#EDE9FE',       label: 'Prenotato' },
-    'da-pulire': { color: '#D97706',    bg: '#FEF3C7',       label: 'Da pulire' },
+    libero:      { color: '#5BA877', bg: '#E6F5EC', label: 'Libero' },
+    occupato:    { color: '#E08A5C', bg: '#FBEDE3', label: 'Occupato' },
+    prenotato:   { color: '#9080BC', bg: '#EEEAF7', label: 'Prenotato' },
+    'da-pulire': { color: '#C49A55', bg: '#F7EFDD', label: 'Da pulire' },
   };
   return map[stato] || map.libero;
 }
@@ -101,6 +108,7 @@ const I = {
   Users: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
   Alert: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.PINK_DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg>,
   Card:  (p={}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>,
+  Cash:  (p={}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><line x1="6" y1="12" x2="6.01" y2="12"/><line x1="18" y1="12" x2="18.01" y2="12"/></svg>,
   Receipt:(p={})=> <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,
   Tables:(p={})=> <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="8" height="8" rx="1"/><rect x="13" y="4" width="8" height="8" rx="1"/><rect x="3" y="14" width="8" height="6" rx="1"/><rect x="13" y="14" width="8" height="6" rx="1"/></svg>,
   Kitchen:(p={})=> <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h16"/><path d="M5 12V8a7 7 0 0114 0v4"/><path d="M3 16h18"/><path d="M5 12v8a1 1 0 001 1h12a1 1 0 001-1v-8"/></svg>,
@@ -114,6 +122,9 @@ const I = {
   Logout:(p={})=> <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   Split: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>,
   Merge: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 7 12 3 16 7"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M5 21h14"/></svg>,
+  // Tavolo unito: due piani-tavolo accostati in un'unica superficie, con la
+  // giuntura al centro. Letterale e leggibile anche piccolo (badge).
+  Joined:(p={})=> <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="2.5"/><line x1="12" y1="7" x2="12" y2="17"/></svg>,
   Walk:  (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="13" cy="4" r="2"/><path d="M4 22l4-9 4 5v6"/><path d="M12 12l4-2 4 4-3 3"/><path d="M9 8l-2 4 4 2"/></svg>,
   QR:    (p={}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 32 32" fill="none" stroke={p.c||ST.TEXT} strokeWidth="2.2"><rect x="4" y="4" width="9" height="9"/><rect x="19" y="4" width="9" height="9"/><rect x="4" y="19" width="9" height="9"/><rect x="19" y="19" width="3" height="3"/><rect x="25" y="19" width="3" height="3"/><rect x="19" y="25" width="3" height="3"/><rect x="25" y="25" width="3" height="3"/></svg>,
   Stats: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
@@ -207,8 +218,31 @@ function Stepper({ value, onChange, min = 1, max = 99 }) {
   );
 }
 
+// ─── Prezzo unitario editabile (box bordato con € a sinistra) ─
+// Riutilizzato ovunque si corregga un prezzo (conto, riepilogo ordine).
+function PrezzoInput({ value, onChange, width = 52 }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 2,
+      border: `1px solid ${ST.BORDER}`, borderRadius: 8, padding: '5px 8px', background: '#fff',
+    }}>
+      <span style={{ fontSize: 13, color: ST.MUTED, fontWeight: 700 }}>€</span>
+      <input
+        type="number" inputMode="decimal" value={value}
+        onChange={e => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+        style={{
+          width, border: 'none', outline: 'none', background: 'transparent',
+          fontSize: 13.5, fontWeight: 700, color: ST.TEXT, fontFamily: 'inherit', textAlign: 'right',
+        }}/>
+    </div>
+  );
+}
+
 // ─── Image placeholder per piatto (gradient generato) ────────
-function DishImage({ name, kind = 'piatto', style }) {
+function DishImage({ name, img, kind = 'piatto', style }) {
+  // Se c'è una foto reale la mostriamo sopra; altrimenti (o se non carica) resta
+  // il gradiente deterministico col nome — così la UI non si rompe mai.
+  const [imgErr, setImgErr] = React.useState(false);
   // Gradient deterministico dal nome
   const hash = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const palettes = [
@@ -246,6 +280,11 @@ function DishImage({ name, kind = 'piatto', style }) {
         textTransform: 'uppercase', textAlign: 'center', padding: '0 8px',
         textShadow: '0 1px 2px rgba(0,0,0,0.2)',
       }}>{name}</span>
+      {img && !imgErr && (
+        <img src={img} alt={name} onError={() => setImgErr(true)} style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+        }}/>
+      )}
     </div>
   );
 }

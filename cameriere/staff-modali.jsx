@@ -27,25 +27,85 @@ function ModalShell({ onClose, children, sheet }) {
   );
 }
 
+// ─── Scanner QR — overlay scuro, stile app utente finale ──────
+// Il cameriere inquadra il QR sul tavolo e atterra dritto nel suo dettaglio.
+// Mock: dopo la "lettura" naviga al tavolo (tap = chiudi senza scansionare).
+function QrScanModal({ closeModal, nav }) {
+  const vaiAlTavolo = () => { closeModal(); nav.push({ s: 'tavolo', id: 23 }); };
+  // Lettura simulata: dopo un attimo "trova" il QR e apre il tavolo.
+  useEffectMo(() => {
+    const id = setTimeout(vaiAlTavolo, 1800);
+    return () => clearTimeout(id);
+  }, []);
+
+  return (
+    <div onClick={closeModal} style={{
+      position: 'absolute', inset: 0, zIndex: 100,
+      background: 'rgba(10,10,10,0.92)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', flexDirection: 'column',
+      animation: 'fadeIn 200ms ease-out',
+    }}>
+      <div style={{ color: '#fff', fontSize: 12.5, fontWeight: 600, letterSpacing: 1.5, marginBottom: 8, opacity: 0.7 }}>
+        BYUP · SCANNER TAVOLO
+      </div>
+      <div style={{ color: '#fff', fontSize: 21, fontWeight: 700, marginBottom: 28 }}>
+        Inquadra il QR sul tavolo
+      </div>
+      {/* Mirino con angoli + linea di scansione */}
+      <div style={{
+        width: 240, height: 240, borderRadius: 24, position: 'relative',
+        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+        overflow: 'hidden',
+      }}>
+        {[[0,0],[0,1],[1,0],[1,1]].map(([y, x], i) => (
+          <div key={i} style={{
+            position: 'absolute',
+            top: y ? 'auto' : 12, bottom: y ? 12 : 'auto',
+            left: x ? 'auto' : 12, right: x ? 12 : 'auto',
+            width: 32, height: 32,
+            borderTop: !y ? `3px solid ${ST.PINK}` : 'none',
+            borderBottom: y ? `3px solid ${ST.PINK}` : 'none',
+            borderLeft: !x ? `3px solid ${ST.PINK}` : 'none',
+            borderRight: x ? `3px solid ${ST.PINK}` : 'none',
+            borderRadius: !y && !x ? '12px 0 0 0' : y && !x ? '0 0 0 12px' : !y && x ? '0 12px 0 0' : '0 0 12px 0',
+          }}/>
+        ))}
+        <div style={{
+          position: 'absolute', left: 24, right: 24, height: 2,
+          background: `linear-gradient(90deg, transparent, ${ST.PINK}, transparent)`,
+          boxShadow: `0 0 12px ${ST.PINK}`,
+          animation: 'scanline 2.2s ease-in-out infinite',
+        }}/>
+      </div>
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 22 }}>
+        Lettura del QR del tavolo…
+      </div>
+      <style>{`
+        @keyframes scanline { 0%,100% { top: 24px } 50% { top: 214px } }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Attiva tavolo — componente proprio per evitare hook in if-block ──
 function AttivaTavoloModal({ modal, closeModal, openModal }) {
   const t = modal.tavolo;
-  const isPrenotato = t?.stato === 'prenotato';
+  // walkIn: il tavolo è prenotato ma ancora lontano (oltre la durata base), quindi
+  // trattato come libero. Si siede un walk-in, NON l'ospite della prenotazione →
+  // niente prefill dei coperti prenotati, ma un avviso che la prenotazione esiste.
+  const walkIn = !!modal.walkIn;
+  const ospitePrenotato = t?.stato === 'prenotato' && !walkIn; // attivo per l'ospite atteso
   const capacita = t?.coperti || 2;
-  const [n, setN] = useStateMo(isPrenotato ? (t?.prenotazione?.coperti || capacita) : capacita);
-  const [mergesel, setMergesel] = useStateMo({});
+  const [n, setN] = useStateMo(ospitePrenotato ? (t?.prenotazione?.coperti || capacita) : capacita);
 
-  const liberiDisp = TavoliStore.getLiberi().filter(x => x.stato === 'libero' && x.id !== t?.id);
-  const supera = n > capacita;
-  // chiavi = numeri tavolo (String), così combaciano con TavoliStore.unisci
-  const mergeNums = Object.entries(mergesel).filter(([, v]) => v).map(([k]) => k);
-  const mergeCount = mergeNums.length;
-  const label = mergeCount > 0
-    ? `Unisci ${mergeCount + 1} tavoli e attiva`
-    : `Attiva tavolo${t ? ` ${t.n}` : ''}`;
+  // Attivare = una sola decisione: quante persone si siedono. Unisci / sposta /
+  // disgiungi non vivono più qui ma nell'hub del tavolo (tap sulla card), così
+  // questa modale resta una conferma rapida con un unico controllo.
+  const personeTxt = `${n} ${n === 1 ? 'persona' : 'persone'}`;
+  const parti = String(t?.n || '').split('+').map(s => s.trim());
+  const isComposto = parti.length > 1;
 
   const onConferma = () => {
-    if (mergeCount > 0 && t) TavoliStore.unisci(t.id, mergeNums);
     closeModal();
     openModal({ kind: 'success', text: `Tavolo${t ? ` ${t.n}` : ''} attivato · ${n} persone` });
   };
@@ -53,62 +113,162 @@ function AttivaTavoloModal({ modal, closeModal, openModal }) {
   return (
     <ModalShell onClose={closeModal} sheet>
       <SheetHandle/>
-      <div style={{ padding: '8px 24px 32px' }}>
-        <div style={{ fontSize: 19, fontWeight: 800, color: ST.TEXT }}>Attiva tavolo</div>
-        {t && (
-          <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 3, marginBottom: 20 }}>
-            Tavolo {t.n}{isPrenotato ? ` · ${t.prenotazione.nome}` : ''}
+      <div style={{ padding: '4px 24px 32px', textAlign: 'center' }}>
+        {/* Intestazione: il tavolo è il soggetto; se è già un gruppo, l'icona-merge lo dice */}
+        <div style={{ fontSize: 22, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.4, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {isComposto && <I.Joined s={20} c={ST.TEXT}/>}Tavolo {t?.n}
+        </div>
+        <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 4 }}>
+          {ospitePrenotato ? t.prenotazione.nome : `Libero · ${capacita} posti`}
+        </div>
+
+        {/* Avviso walk-in: il tavolo ha una prenotazione più tardi */}
+        {walkIn && t?.prenotazione && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8, textAlign: 'left',
+            padding: '10px 14px', marginTop: 16,
+            background: '#EEEBF6', borderRadius: ST.R_MD, border: '1px solid #C9BEE6',
+          }}>
+            <I.Alert s={15} c="#6D5BA8"/>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#4C3F7A', lineHeight: 1.4 }}>
+              Prenotato da {t.prenotazione.nome} tra {t.prenotazione.quando}. Stai sedendo un walk-in: liberalo in tempo.
+            </span>
           </div>
         )}
 
-        {/* Stepper persone */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 16px', background: ST.SURF_ALT, borderRadius: ST.R_MD, marginBottom: 16,
-        }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>Persone</div>
-            {t && <div style={{ fontSize: 11.5, color: ST.MUTED, marginTop: 2 }}>Posti tavolo: {capacita}</div>}
-          </div>
+        {/* Persone — l'unico controllo: ampio e arioso */}
+        <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 28 }}>
+          Persone
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
           <Stepper value={n} onChange={setN}/>
         </div>
 
-        {/* Suggerimento unione — appare solo se persone > posti tavolo */}
-        {supera && liberiDisp.length > 0 && (
-          <div style={{ marginBottom: 18 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-              background: '#FEF3C7', borderRadius: ST.R_MD, marginBottom: 12,
-              border: '1px solid #FCD34D',
-            }}>
-              <I.Alert s={15} c="#D97706"/>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: '#92400E', lineHeight: 1.4 }}>
-                Il tavolo ha {capacita} posti. Seleziona tavoli da unire per {n} persone.
-              </span>
+        {/* CTA primaria: solo verbo + persone. */}
+        <Btn variant="primary" full onClick={onConferma} style={{ marginTop: 28 }}>
+          <I.Walk s={16} c="#fff"/>Attiva · {personeTxt}
+        </Btn>
+      </div>
+    </ModalShell>
+  );
+}
+
+// Personalizza piatto come BOTTOM SHEET: scorre su sopra il menu (fluido, leggero,
+// mantiene il contesto) invece di una schermata piena. Aggiunge via modal.onAdd.
+function PiattoSheet({ modal, closeModal }) {
+  const piatto = PIATTI.find(p => p.id === modal.piattoId) || PIATTI[0];
+  const [qty, setQty] = useStateMo(1);
+  const [extras, setExtras] = useStateMo({});
+  const [cottura, setCottura] = useStateMo(piatto.cottura?.[0] || piatto.livello?.[0]);
+  const [note, setNote] = useStateMo('');
+  const [showFull, setShowFull] = useStateMo(false);
+  const extrasTotal = (piatto.extras || []).reduce((s, e) => s + (extras[e.id] || 0) * e.prezzo, 0);
+  const total = (piatto.prezzo + extrasTotal) * qty;
+  const aggiungi = () => {
+    modal.onAdd({ piattoId: piatto.id, nome: piatto.nome, prezzo: piatto.prezzo, qty, extras: Object.entries(extras).filter(([_, v]) => v > 0), note, cottura });
+    closeModal();
+  };
+  return (
+    <ModalShell onClose={closeModal} sheet>
+      {/* Foto con chiusura (fallback gradiente se manca) */}
+      <div style={{ position: 'relative', width: '100%', height: 190 }}>
+        <DishImage name={piatto.nome} img={piatto.img}/>
+        <button onClick={closeModal} style={{
+          position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: ST.R_PILL,
+          background: 'rgba(255,255,255,0.95)', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: ST.SH_SM,
+        }}><I.Close s={16}/></button>
+      </div>
+
+      <div style={{ padding: '16px 20px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.4, lineHeight: 1.2 }}>{piatto.nome}</div>
+            {piatto.allergeni.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                {piatto.allergeni.map(a => <AllergeneIcon key={a} id={a} size={20}/>)}
+              </div>
+            )}
+          </div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: ST.TEXT }}>€{piatto.prezzo}</div>
+        </div>
+
+        <div style={{ fontSize: 13.5, color: ST.MUTED, marginTop: 12, lineHeight: 1.55 }}>
+          {showFull ? piatto.descr : piatto.descr.slice(0, 90) + (piatto.descr.length > 90 ? '…' : '')}
+          {piatto.descr.length > 90 && (
+            <span onClick={() => setShowFull(!showFull)} style={{ color: ST.PINK_DARK, fontWeight: 700, marginLeft: 4, cursor: 'pointer' }}>
+              {showFull ? 'nascondi' : 'altro'}
+            </span>
+          )}
+        </div>
+
+        {piatto.extras?.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Aggiunte</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {piatto.extras.map((e, i) => (
+                <div key={e.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0',
+                  borderTop: i === 0 ? `1px solid ${ST.BORDER_SOFT}` : 'none', borderBottom: `1px solid ${ST.BORDER_SOFT}`,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{e.nome}</div>
+                    <div style={{ fontSize: 12.5, color: ST.MUTED, marginTop: 2 }}>€{e.prezzo}</div>
+                  </div>
+                  <Stepper value={extras[e.id] || 0} onChange={v => setExtras({ ...extras, [e.id]: v })} min={0}/>
+                </div>
+              ))}
             </div>
+          </div>
+        )}
+
+        {(piatto.cottura || piatto.livello) && (
+          <div style={{ marginTop: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>
-              Tavoli liberi disponibili
+              {piatto.cottura ? 'Cottura' : 'Intensità'}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-              {liberiDisp.map(lt => {
-                const sel = !!mergesel[String(lt.n)];
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(piatto.cottura || piatto.livello).map(opt => {
+                const sel = cottura === opt;
                 return (
-                  <button key={lt.id}
-                    onClick={() => setMergesel(p => ({ ...p, [String(lt.n)]: !p[String(lt.n)] }))}
-                    style={{
-                      height: 38, padding: '0 14px', borderRadius: ST.R_PILL,
-                      border: `1.5px solid ${sel ? ST.PINK_DARK : ST.BORDER}`,
-                      background: sel ? ST.PINK_SOFT : '#fff',
-                      color: sel ? ST.PINK_DARK : ST.TEXT,
-                      fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                    }}>T {lt.n} · {lt.coperti}p</button>
+                  <button key={opt} onClick={() => setCottura(opt)} style={{
+                    flex: 1, height: 44, borderRadius: ST.R_MD,
+                    border: `1.5px solid ${sel ? ST.PINK_DARK : ST.BORDER}`,
+                    background: sel ? ST.PINK_SOFT : '#fff', color: sel ? ST.PINK_DARK : ST.TEXT,
+                    fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+                  }}>{opt}</button>
                 );
               })}
             </div>
           </div>
         )}
 
-        <Btn variant="primary" full onClick={onConferma}>{label}</Btn>
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Note per la cucina</div>
+          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Es. Senza glutine, poco sale..." rows={2}
+            style={{ width: '100%', padding: 12, borderRadius: ST.R_MD, border: `1.5px solid ${ST.BORDER}`, background: ST.SURF, fontSize: 14, fontFamily: 'inherit', resize: 'none', outline: 'none' }}/>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: ST.TEXT }}>Quanti aggiungerne?</div>
+          <Stepper value={qty} onChange={setQty}/>
+        </div>
+      </div>
+
+      {/* CTA ancorata in fondo allo sheet */}
+      <div style={{
+        position: 'sticky', bottom: 0, background: '#fff', borderTop: `1px solid ${ST.BORDER_SOFT}`,
+        padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+      }}>
+        <button onClick={aggiungi} style={{
+          width: '100%', height: 52, borderRadius: ST.R_PILL, border: 'none',
+          background: ST.PINK_DARK, color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        }}>
+          <span>Aggiungi {qty > 1 ? `${qty} ` : ''}all'ordine</span>
+          <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.3)' }}/>
+          <span style={{ fontWeight: 800 }}>€{total.toFixed(2)}</span>
+        </button>
       </div>
     </ModalShell>
   );
@@ -143,47 +303,18 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
     );
   }
 
-  // ─── Attiva tavolo ──────────────────────────────────────────
-  if (modal.kind === 'attiva-tavolo') {
-    return <AttivaTavoloModal modal={modal} closeModal={closeModal} openModal={openModal}/>;
+  // ─── Scansione QR → dritto al tavolo ────────────────────────
+  if (modal.kind === 'qr-scan') {
+    return <QrScanModal closeModal={closeModal} nav={nav}/>;
   }
 
-  // ─── Tavolo actions menu ────────────────────────────────────
-  if (modal.kind === 'tavolo-actions') {
-    const items = [
-      { i: <I.Edit s={18}/>, l: 'Modifica tavolo', d: 'Coperti, unisci o disgiungi tavoli', a: () => { closeModal(); openModal({ kind: 'modifica-tavolo', tavolo: modal.tavolo }); } },
-      { i: <I.User s={18}/>, l: 'Cambia cameriere', d: 'Riassegna a un collega' },
-      { i: <I.Close s={18} c="#DC2626"/>, l: 'Libera tavolo', d: 'Chiudi senza pagamento', danger: true, a: () => { closeModal(); openModal({ kind: 'conferma-libera', tavolo: modal.tavolo }); } },
-    ];
-    return (
-      <ModalShell onClose={closeModal} sheet>
-        <SheetHandle/>
-        <div style={{ padding: '8px 0 32px' }}>
-          <div style={{ padding: '0 24px 16px' }}>
-            <div style={{ fontSize: 19, fontWeight: 800, color: ST.TEXT }}>Tavolo {modal.tavolo?.n}</div>
-            <div style={{ fontSize: 12, color: ST.MUTED, marginTop: 2 }}>Azioni rapide</div>
-          </div>
-          {items.map((it, i) => (
-            <div key={i} onClick={it.a} style={{
-              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px',
-              borderTop: `1px solid ${ST.BORDER_SOFT}`,
-              cursor: 'pointer',
-            }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: ST.R_MD,
-                background: it.danger ? '#FEE2E2' : ST.SURF_ALT,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{it.i}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: it.danger ? '#DC2626' : ST.TEXT }}>{it.l}</div>
-                <div style={{ fontSize: 11.5, color: ST.MUTED, marginTop: 2 }}>{it.d}</div>
-              </div>
-              <I.ChevRight s={14} c={ST.MUTED}/>
-            </div>
-          ))}
-        </div>
-      </ModalShell>
-    );
+  // ─── Attiva tavolo ──────────────────────────────────────────
+  if (modal.kind === 'piatto') {
+    return <PiattoSheet modal={modal} closeModal={closeModal}/>;
+  }
+
+  if (modal.kind === 'attiva-tavolo') {
+    return <AttivaTavoloModal modal={modal} closeModal={closeModal} openModal={openModal}/>;
   }
 
   // ─── Azioni rapide card Liberi ──────────────────────────────
@@ -192,10 +323,10 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
     const items = t.stato === 'prenotato' ? [
       { i: <I.Edit s={18}/>, l: 'Modifica prenotazione', d: 'Aggiorna dati o cambia orario',
         a: () => { closeModal(); openModal({ kind: 'modifica-prenotazione', tavolo: t }); } },
-      { i: <I.Close s={18} c="#DC2626"/>, l: 'No show', d: 'La prenotazione non si è presentata',
-        danger: true, a: () => { closeModal(); openModal({ kind: 'conferma-no-show', tavolo: t }); } },
+      { i: <I.Close s={18} c="#DC2626"/>, l: 'Cancella prenotazione', d: 'Annulla e libera il tavolo',
+        danger: true, a: () => { closeModal(); openModal({ kind: 'conferma-cancella-prenotazione', tavolo: t, noShow: (t.prenotazione?.ritardo || 0) >= STAFF_SETTINGS.tolleranzaNoShow }); } },
     ] : [
-      { i: <I.Merge s={18}/>, l: 'Modifica tavolo', d: 'Unisci o disgiungi tavoli',
+      { i: <I.Merge s={18}/>, l: 'Modifica tavolo', d: 'Unisci o dividi tavoli',
         a: () => { closeModal(); openModal({ kind: 'modifica-tavolo', tavolo: t, scope: 'libero' }); } },
     ];
     return (
@@ -266,8 +397,8 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
     );
   }
 
-  // ─── Conferma: no show prenotazione ────────────────────────
-  if (modal.kind === 'conferma-no-show') {
+  // ─── Conferma: rimuovi prenotazione (cancellazione o no-show) ───
+  if (modal.kind === 'conferma-cancella-prenotazione') {
     const t = modal.tavolo || {};
     return (
       <ModalShell onClose={closeModal}>
@@ -278,17 +409,19 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
           }}>
             <I.Alert s={28} c="#DC2626"/>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>Segnare come no show?</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>Cancellare la prenotazione?</div>
           <div style={{ fontSize: 13.5, color: ST.MUTED, marginTop: 8, lineHeight: 1.5 }}>
-            La prenotazione di <strong style={{ color: ST.TEXT }}>{t.prenotazione?.nome}</strong> per il Tavolo {t.n} verrà rimossa e il tavolo sarà liberato.
+            La prenotazione di <strong style={{ color: ST.TEXT }}>{t.prenotazione?.nome}</strong> per il Tavolo {t.n} verrà annullata e il tavolo tornerà libero.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
             <Btn variant="secondary" full onClick={closeModal}>Annulla</Btn>
             <Btn variant="danger" full onClick={() => {
-              TavoliStore.noShow(t.id);
+              // Stesso gesto per il cameriere; il gestionale classifica da sé:
+              // oltre la tolleranza è un no-show, prima è una cancellazione.
+              (modal.noShow ? TavoliStore.noShow : TavoliStore.cancellaPrenotazione)(t.id);
               closeModal();
-              openModal({ kind: 'success', text: `No show · Tavolo ${t.n} liberato` });
-            }}>Sì, no show</Btn>
+              openModal({ kind: 'success', text: `Prenotazione rimossa · Tavolo ${t.n} libero` });
+            }}>Sì, cancella</Btn>
           </div>
         </div>
       </ModalShell>
@@ -298,28 +431,68 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
   // ─── Conferma: libera tavolo (chiusura forzata prima del saldo) ─
   if (modal.kind === 'conferma-libera') {
     const t = modal.tavolo || {};
+    // Tavolo SALDATO (conto a zero, già pagato) → liberare è una mossa di routine
+    // di fine pasto: copy calmo e neutro. Tavolo NON saldato → si chiude SENZA
+    // incassare: copy d'allarme (rosso) che lo dice chiaro.
+    const saldato = !(t.saldo > 0);
     return (
       <ModalShell onClose={closeModal}>
         <div style={{ padding: '28px 28px 24px', textAlign: 'center' }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
-            background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: saldato ? '#D1FAE5' : '#FEE2E2',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <I.Alert s={28} c="#DC2626"/>
+            {saldato ? <I.Refresh s={28} c="#059669"/> : <I.Alert s={28} c="#DC2626"/>}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>Forzare la chiusura?</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>
+            {saldato ? 'Liberare il tavolo?' : 'Forzare la chiusura?'}
+          </div>
           <div style={{ fontSize: 13.5, color: ST.MUTED, marginTop: 8, lineHeight: 1.5 }}>
-            Il Tavolo {t.n} non è ancora stato saldato. Vuoi davvero chiuderlo
-            senza pagamento? Passerà nello stato “Da pulire”.
+            {saldato
+              ? <>Il Tavolo {t.n} è saldato. Vuoi liberarlo? Passerà nello stato “Da pulire”.</>
+              : <>Il Tavolo {t.n} non è ancora stato saldato. Vuoi davvero chiuderlo senza pagamento? Passerà nello stato “Da pulire”.</>}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
             <Btn variant="secondary" full onClick={closeModal}>Annulla</Btn>
-            <Btn variant="danger" full onClick={() => {
+            <Btn variant={saldato ? 'primary' : 'danger'} full onClick={() => {
               TavoliStore.liberaTavolo(t.id);
               closeModal();
               nav.reset({ s: 'sala' });
-              openModal({ kind: 'success', text: `Tavolo ${t.n} chiuso · ora è Da pulire` });
-            }}>Sì, chiudi</Btn>
+              openModal({ kind: 'success', text: `Tavolo ${t.n} ${saldato ? 'liberato' : 'chiuso'} · ora è Da pulire` });
+            }}>{saldato ? 'Sì, libera' : 'Sì, chiudi'}</Btn>
+          </div>
+        </div>
+      </ModalShell>
+    );
+  }
+
+  // ─── Conferma: unione a un gruppo OCCUPATO (clienti seduti) ────
+  if (modal.kind === 'conferma-unione') {
+    const t = modal.tavolo || {};
+    const numeri = modal.numeri || [];
+    const occupati = numeri.filter(k => TavoliStore.getAttivi().some(a => String(a.n) === k));
+    return (
+      <ModalShell onClose={closeModal}>
+        <div style={{ padding: '28px 28px 24px', textAlign: 'center' }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
+            background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <I.Alert s={28} c="#D97706"/>
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>Unire a un tavolo in servizio?</div>
+          <div style={{ fontSize: 13.5, color: ST.MUTED, marginTop: 8, lineHeight: 1.5 }}>
+            Stai aggiungendo il Tavolo {t.n} a {occupati.length > 1 ? 'gruppi occupati' : `un gruppo occupato (${occupati.join(', ')})`}.
+            I clienti già seduti restano e il conto diventerà unico.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
+            <Btn variant="secondary" full onClick={closeModal}>Annulla</Btn>
+            <Btn variant="primary" full onClick={() => {
+              TavoliStore.unisci(t.id, numeri);
+              closeModal();
+              openModal({ kind: 'success', text: `${numeri.length + 1} tavoli uniti` });
+            }}>Sì, unisci</Btn>
           </div>
         </div>
       </ModalShell>
@@ -419,45 +592,6 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
   }
 
   // ─── Notifiche drawer ───────────────────────────────────────
-  if (modal.kind === 'notifiche') {
-    const notifs = [
-      { i: '🔔', t: 'Tavolo 23 · 2 piatti pronti', d: 'Da consegnare', minFa: 1, color: ST.PINK_DARK },
-      { i: '🍷', t: 'Tavolo 18 · Conto richiesto', d: 'Cliente ha chiesto il conto', minFa: 4, color: ST.TEXT },
-      { i: '⚠️', t: 'Tavolo 25 · Allergia segnalata', d: 'Lattosio + Frutta secca', minFa: 12, color: ST.ST_BOOKED },
-      { i: '✓', t: 'Ordine T23 inviato', d: 'In cucina', minFa: 18, color: ST.MUTED },
-    ];
-    return (
-      <ModalShell onClose={closeModal} sheet>
-        <SheetHandle/>
-        <div style={{ padding: '8px 0 32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px 16px' }}>
-            <div style={{ fontSize: 19, fontWeight: 800 }}>Notifiche</div>
-            <button style={{ fontSize: 12, fontWeight: 600, color: ST.PINK_DARK, background: 'none', border: 'none', cursor: 'pointer' }}>Segna tutte come lette</button>
-          </div>
-          {notifs.map((n, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'flex-start', gap: 12,
-              padding: '14px 24px',
-              borderTop: `1px solid ${ST.BORDER_SOFT}`,
-              cursor: 'pointer',
-            }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: ST.R_MD, background: ST.SURF_ALT,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-                flexShrink: 0,
-              }}>{n.i}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: ST.TEXT, lineHeight: 1.3 }}>{n.t}</div>
-                <div style={{ fontSize: 12, color: ST.MUTED, marginTop: 2 }}>{n.d} · {n.minFa}min fa</div>
-              </div>
-              {i === 0 && <span style={{ width: 8, height: 8, borderRadius: ST.R_PILL, background: ST.PINK_DARK, marginTop: 12 }}/>}
-            </div>
-          ))}
-        </div>
-      </ModalShell>
-    );
-  }
-
   // ─── Modifica prenotazione ──────────────────────────────────
   if (modal.kind === 'modifica-prenotazione') {
     const DEFAULT_TAGS = ['Anniversario', 'Azienda', 'Compleanno'];
@@ -596,20 +730,47 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
         <div style={{ padding: '8px 24px 32px' }}>
           <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>Riepilogo ordine</div>
           <div style={{ fontSize: 13, color: ST.MUTED, marginBottom: 16 }}>{modal.cart.length} articol{modal.cart.length === 1 ? 'o' : 'i'}</div>
-          {modal.cart.map((c, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
-              borderTop: `1px solid ${ST.BORDER_SOFT}`,
-            }}>
-              <span style={{ width: 28, fontSize: 12, fontWeight: 800, color: ST.MUTED }}>{c.qty}×</span>
-              <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600 }}>{c.nome}</span>
-              <span style={{ fontSize: 13.5, fontWeight: 700 }}>€{(c.prezzo * c.qty).toFixed(2)}</span>
-              <button onClick={() => modal.setCart(modal.cart.filter((_, j) => j !== i))} style={{
-                width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', background: 'transparent', cursor: 'pointer',
-              }}><I.Trash s={14}/></button>
-            </div>
-          ))}
-          <Btn variant="secondary" full onClick={closeModal} style={{ marginTop: 20 }}>Chiudi</Btn>
+          {modal.cart.map((c, i) => {
+            // Personalizzazione agganciata alla riga: cottura, aggiunte (nome dal
+            // catalogo), note. Quantità e prezzo unitario sono editabili qui: lo
+            // stepper toglie/aggiunge singole unità, il cestino rimuove la riga.
+            const piatto = PIATTI.find(p => p.id === c.piattoId);
+            const dettagli = [];
+            if (c.cottura) dettagli.push(c.cottura);
+            (c.extras || []).forEach(([eid, cnt]) => {
+              const ex = piatto?.extras?.find(e => e.id === eid);
+              if (ex) dettagli.push(`${cnt > 1 ? cnt + '× ' : ''}${ex.nome}`);
+            });
+            if (c.note) dettagli.push(`“${c.note}”`);
+            const setQty = (q) => modal.setCart(modal.cart.map((x, j) => j === i ? { ...x, qty: Math.max(1, q) } : x));
+            const setPrezzo = (v) => modal.setCart(modal.cart.map((x, j) => j === i ? { ...x, prezzo: v } : x));
+            return (
+              <div key={i} style={{ padding: '10px 0', borderTop: `1px solid ${ST.BORDER_SOFT}` }}>
+                {/* Riga 1: nome + dettagli + subtotale + cestino */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{c.nome}</div>
+                    {dettagli.length > 0 && (
+                      <div style={{ fontSize: 11.5, color: ST.MUTED, marginTop: 2, lineHeight: 1.4 }}>{dettagli.join(' · ')}</div>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, paddingTop: 1 }}>€{(c.prezzo * c.qty).toFixed(2)}</span>
+                  <button onClick={() => modal.setCart(modal.cart.filter((_, j) => j !== i))} style={{
+                    width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', background: 'transparent', cursor: 'pointer',
+                  }}><I.Trash s={14}/></button>
+                </div>
+                {/* Riga 2: quantità (stepper) + prezzo unitario editabile */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                  <Stepper value={c.qty} onChange={setQty}/>
+                  <PrezzoInput value={c.prezzo} onChange={setPrezzo}/>
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            <Btn variant="secondary" full onClick={closeModal}>Chiudi</Btn>
+            <Btn variant="primary" full onClick={() => openModal({ kind: 'send-success', tavoloId: modal.tavoloId })}>Crea ordine</Btn>
+          </div>
         </div>
       </ModalShell>
     );
@@ -822,33 +983,82 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
   // Dai Liberi i coperti si modificano già inline sulla card: qui la modale
   // serve solo a unire/disgiungere, quindi il tab "Coperti" viene nascosto.
   const isLibero = modal.scope === 'libero';
-  // Determina se è un tavolo "composto" (es. 25-32) leggendo il numero
-  const isComposto = String(tavolo.n || '').includes('-');
+  // Determina se è un tavolo "composto" (es. 25+32) leggendo il numero
+  const isComposto = String(tavolo.n || '').includes('+');
   const partiTavolo = isComposto
-    ? String(tavolo.n).split('-').map(s => s.trim())
+    ? String(tavolo.n).split('+').map(s => s.trim())
     : [String(tavolo.n)];
 
-  const [tab, setTab] = useStateMo(isComposto ? 'disgiungi' : isLibero ? 'unisci' : 'coperti');
+  // `only`: apre direttamente un singolo pannello (es. 'sposta'), senza il
+  // segmented control. Usato dal dettaglio tavolo, dove le azioni stanno in chiaro.
+  const only = modal.only || null;
+  const [tab, setTab] = useStateMo(only || (isComposto ? 'disgiungi' : isLibero ? 'unisci' : 'coperti'));
   const [coperti, setCoperti] = useStateMo(tavolo.coperti || 4);
   const [unisciSel, setUnisciSel] = useStateMo({});
   const [qUnisci, setQUnisci] = useStateMo('');
+  const [spostaSel, setSpostaSel] = useStateMo({}); // tavoli destinazione (multi-selezione)
+  const [qSposta, setQSposta] = useStateMo('');
   const [disgiuntiSel, setDisgiuntiSel] = useStateMo(
     Object.fromEntries(partiTavolo.map(p => [p, false]))
   );
 
   const tabs = [
     !isLibero && { id: 'coperti', label: 'Coperti', icon: <I.Users s={14}/> },
+    !isLibero && { id: 'sposta', label: 'Sposta', icon: <I.Walk s={14}/> },
     { id: 'unisci', label: 'Unisci', icon: <I.Merge s={14}/> },
-    isComposto && { id: 'disgiungi', label: 'Disgiungi', icon: <I.Split s={14}/> },
+    isComposto && { id: 'disgiungi', label: 'Dividi', icon: <I.Split s={14}/> },
   ].filter(Boolean);
 
   // Tavoli liberi da unire
   const tavoliLiberi = [27, 28, 29, 32, 33, 34, 35, 36, 38, 39]
     .filter(n => !TAVOLI.some(x => String(x.n) === String(n)) && !partiTavolo.includes(String(n)));
+  // Prenotazioni in arrivo su tavoli ora liberi (mock): per lo spostamento conta
+  // sapere se un tavolo è "impegnato più tardi", non che sia libero adesso.
+  const PRENOT_LIBERI = { 29: '45\'', 36: '1h 20\'', 38: '2h' };
+  // Posti (capienza) dei tavoli del picker — mostrati su Unisci e Sposta per
+  // scegliere in base allo spazio. Default 2 se non mappato.
+  const POSTI_LIBERI = { 27: 2, 28: 2, 29: 4, 32: 6, 33: 2, 34: 4, 35: 4, 36: 2, 38: 6, 39: 4 };
+  const postiOf = (n) => POSTI_LIBERI[n] || 2;
   const tavoliLiberiFiltrati = tavoliLiberi.filter(n => String(n).includes(qUnisci.trim()));
+
+  // Gruppi LIBERI già uniti (es. 33+34 libero): sono comunque tavoli liberi, quindi
+  // NON una sezione a parte — entrano fra i "Tavoli liberi", solo composti.
+  const gruppiLiberi = TavoliStore.getLiberi()
+    .filter(g => String(g.n).includes('+') && g.stato === 'libero' && String(g.n) !== String(tavolo.n))
+    .filter(g => String(g.n).includes(qUnisci.trim()));
+  // Tavoli OCCUPATI (in servizio), TUTTI — singoli e gruppi: caso speciale →
+  // sezione a parte, e unirvisi chiede conferma (clienti seduti, conto unico).
+  const tavoliOccupati = TavoliStore.getAttivi()
+    .filter(g => String(g.n) !== String(tavolo.n))
+    .filter(g => String(g.n).includes(qUnisci.trim()));
 
   const unisciCount = Object.values(unisciSel).filter(Boolean).length;
   const disgiuntiCount = Object.values(disgiuntiSel).filter(Boolean).length;
+  const spostaNumeri = Object.entries(spostaSel).filter(([_, v]) => v).map(([k]) => k);
+  const spostaCount = spostaNumeri.length;
+
+  // Card candidato UNICA, condivisa da Unisci e Sposta: stesso look ovunque.
+  // count + icona (🪑 posti per i liberi, 👥 coperti per gli occupati) e, se il
+  // tavolo è impegnato a breve, la riga "prenot. tra X".
+  const pickCell = ({ k, label, count, coperti = false, pren, sel, onClick }) => (
+    <div key={k} onClick={onClick} style={{
+      padding:'12px 8px', borderRadius: ST.R_MD,
+      border: `1.5px solid ${sel ? ST.PINK_DARK : pren ? '#C9BEE6' : ST.BORDER}`,
+      background: sel ? ST.PINK_SOFT : '#fff',
+      cursor:'pointer', textAlign:'center', position:'relative',
+    }}>
+      {sel && (
+        <span style={{position:'absolute', top:6, right:6, width:18, height:18, borderRadius: ST.R_PILL, background: ST.PINK_DARK, display:'flex', alignItems:'center', justifyContent:'center'}}>
+          <I.Check s={10} c="#fff"/>
+        </span>
+      )}
+      <div style={{fontSize:14, fontWeight:700, color: sel ? ST.PINK_DARK : ST.TEXT}}>{label}</div>
+      <div style={{fontSize:10.5, color:ST.MUTED, marginTop:3, display:'inline-flex', alignItems:'center', gap:3}}>
+        {coperti ? <I.Users s={11} c={ST.MUTED}/> : <I.Chair s={11} c={ST.MUTED}/>}{count}
+      </div>
+      {pren && <div style={{fontSize:10, color:'#6D28D9', fontWeight:700, marginTop:2}}>prenot. tra {pren}</div>}
+    </div>
+  );
 
   return (
     <ModalShell onClose={closeModal} sheet>
@@ -858,35 +1068,45 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
           <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase' }}>
             {isComposto ? `Tavolo ${tavolo.n}` : `Tavolo ${tavolo.n}`}
           </div>
-          <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2 }}>Modifica tavolo</div>
-          <div style={{ fontSize: 12.5, color: ST.MUTED, marginTop: 4, lineHeight: 1.45 }}>
-            {isComposto
-              ? `Tavolo composto da ${partiTavolo.length} tavoli. Puoi ${isLibero ? '' : 'cambiare i coperti, '}unirne altri o disgiungere.`
-              : isLibero
-                ? 'Unisci questo tavolo ad altri per accogliere un gruppo più grande.'
-                : 'Cambia i coperti oppure unisci a un altro tavolo.'}
+          <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2 }}>
+            {only === 'sposta' ? (isLibero ? 'Sposta prenotazione' : 'Sposta tavolo')
+              : only === 'unisci' ? 'Unisci tavolo'
+              : only === 'disgiungi' ? 'Dividi tavolo'
+              : 'Modifica tavolo'}
           </div>
+          {!only && (
+            <div style={{ fontSize: 12.5, color: ST.MUTED, marginTop: 4, lineHeight: 1.45 }}>
+              {isComposto
+                ? `Tavolo composto da ${partiTavolo.length} tavoli. Puoi ${isLibero ? '' : 'cambiare i coperti, '}unirne altri o dividere.`
+                : isLibero
+                  ? 'Unisci questo tavolo ad altri per accogliere un gruppo più grande.'
+                  : 'Cambia i coperti oppure unisci a un altro tavolo.'}
+            </div>
+          )}
         </div>
 
-        {/* Segmented control */}
-        <div style={{
-          margin: '12px 20px 16px',
-          display:'flex', background: ST.SURF_ALT,
-          borderRadius: ST.R_PILL, padding: 3,
-        }}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={()=>setTab(t.id)} style={{
-              flex:1, height: 36, border:'none',
-              background: tab === t.id ? '#fff' : 'transparent',
-              borderRadius: ST.R_PILL,
-              boxShadow: tab === t.id ? ST.SH_SM : 'none',
-              fontSize:12.5, fontWeight: tab === t.id ? 700 : 600,
-              color: tab === t.id ? ST.TEXT : ST.MUTED,
-              cursor:'pointer', fontFamily:'inherit',
-              display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
-            }}>{t.icon} {t.label}</button>
-          ))}
-        </div>
+        {/* Segmented control — nascosto quando si apre un singolo pannello (only) */}
+        {!only && (
+          <div style={{
+            margin: '12px 20px 16px',
+            display:'flex', background: ST.SURF_ALT,
+            borderRadius: ST.R_PILL, padding: 3,
+          }}>
+            {tabs.map(t => (
+              <button key={t.id} onClick={()=>setTab(t.id)} style={{
+                flex:1, height: 36, border:'none',
+                background: tab === t.id ? '#fff' : 'transparent',
+                borderRadius: ST.R_PILL,
+                boxShadow: tab === t.id ? ST.SH_SM : 'none',
+                fontSize:12.5, fontWeight: tab === t.id ? 700 : 600,
+                color: tab === t.id ? ST.TEXT : ST.MUTED,
+                cursor:'pointer', fontFamily:'inherit',
+                display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
+              }}>{t.icon} {t.label}</button>
+            ))}
+          </div>
+        )}
+        {only && <div style={{ height: 8 }}/>}
 
         {/* COPERTI */}
         {tab === 'coperti' && (
@@ -904,6 +1124,61 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
             <Btn variant="primary" full disabled={coperti === tavolo.coperti}
               onClick={()=>{ TavoliStore.setCoperti(tavolo.id, coperti); closeModal(); openModal({kind:'success', text:`Coperti aggiornati a ${coperti}`}); }}
             >Salva coperti</Btn>
+          </div>
+        )}
+
+        {/* SPOSTA — porta clienti/prenotazione su uno o PIÙ tavoli liberi (multi-selezione) */}
+        {tab === 'sposta' && (
+          <div style={{padding:'0 20px'}}>
+            {/* Search bar: cerca un tavolo per numero */}
+            <div style={{
+              display:'flex', alignItems:'center', gap:8, height:42, padding:'0 14px',
+              background: ST.SURF_ALT, borderRadius: ST.R_PILL, marginBottom:12,
+            }}>
+              <I.Search s={16} c={ST.MUTED}/>
+              <input value={qSposta} onChange={e=>setQSposta(e.target.value)} autoFocus
+                placeholder="Cerca tavolo per numero…"
+                style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:14, fontFamily:'inherit', color: ST.TEXT }}/>
+              {qSposta && (
+                <button onClick={()=>setQSposta('')} style={{
+                  width:24, height:24, borderRadius: ST.R_PILL, border:'none',
+                  background:'rgba(0,0,0,0.08)', cursor:'pointer',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }}><I.Close s={12}/></button>
+              )}
+            </div>
+            <div style={{fontSize:10.5, fontWeight:700, color:ST.MUTED, letterSpacing:0.5, textTransform:'uppercase', marginBottom:8}}>
+              Tavoli liberi
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16}}>
+              {tavoliLiberi.filter(n => String(n).includes(qSposta.trim())).map(n => pickCell({
+                k: n, label: `T ${n}`, count: postiOf(n), pren: PRENOT_LIBERI[n],
+                sel: !!spostaSel[n], onClick: () => setSpostaSel({...spostaSel, [n]: !spostaSel[n]}),
+              }))}
+            </div>
+            {tavoliLiberi.filter(n => String(n).includes(qSposta.trim())).length === 0 && (
+              <div style={{ textAlign:'center', padding:'8px 0 16px', color: ST.MUTED, fontSize:13 }}>
+                Nessun tavolo libero per “{qSposta}”.
+              </div>
+            )}
+            {/* Più tavoli selezionati → la destinazione è il gruppo unito (es. 29+36). */}
+            {spostaCount > 1 && (
+              <div style={{
+                padding:'10px 14px', background: ST.PINK_BG, borderRadius: ST.R_MD,
+                marginBottom:14, fontSize:12.5, color: ST.PINK_DARK, fontWeight:600,
+                display:'flex', alignItems:'center', gap:8,
+              }}>
+                <I.Joined s={15} c={ST.PINK_DARK}/>
+                Destinazione · tavolo unito {spostaNumeri.join('+')}
+              </div>
+            )}
+            <Btn variant="primary" full disabled={spostaCount === 0}
+              onClick={()=>{
+                const dest = spostaNumeri.join('+');
+                TavoliStore.spostaTavolo(tavolo.id, dest);
+                closeModal(); openModal({kind:'success', text: isLibero ? `Prenotazione spostata al Tavolo ${dest}` : `Clienti spostati al Tavolo ${dest}`});
+              }}
+            >{spostaCount === 0 ? 'Seleziona un tavolo' : spostaCount === 1 ? `Sposta al Tavolo ${spostaNumeri[0]}` : `Sposta su ${spostaCount} tavoli`}</Btn>
           </div>
         )}
 
@@ -931,27 +1206,37 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
               Tavoli liberi
             </div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16}}>
-              {tavoliLiberiFiltrati.map(n => (
-                <div key={n} onClick={()=>setUnisciSel({...unisciSel, [n]: !unisciSel[n]})} style={{
-                  padding:'14px 8px', borderRadius: ST.R_MD,
-                  border: `1.5px solid ${unisciSel[n] ? ST.PINK_DARK : ST.BORDER}`,
-                  background: unisciSel[n] ? ST.PINK_SOFT : '#fff',
-                  cursor:'pointer', textAlign:'center', position:'relative',
-                }}>
-                  {unisciSel[n] && (
-                    <span style={{position:'absolute', top:6, right:6, width:18, height:18, borderRadius: ST.R_PILL, background: ST.PINK_DARK, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                      <I.Check s={10} c="#fff"/>
-                    </span>
-                  )}
-                  <div style={{fontSize:14, fontWeight:700, color: unisciSel[n] ? ST.PINK_DARK : ST.TEXT}}>T {n}</div>
-                  <div style={{fontSize:10.5, color:ST.MUTED, marginTop:2}}>libero</div>
-                </div>
-              ))}
+              {/* Singoli liberi + gruppi liberi (es. 33+34): sono comunque liberi → stessa
+                  griglia. Niente etichetta "libero" (lo dice la sezione): solo "T n", e
+                  🪑 posti per i gruppi o "prenot. tra X" se il tavolo è impegnato a breve. */}
+              {[
+                ...tavoliLiberiFiltrati.map(n => ({ key:String(n), num:n, posti: postiOf(n), pren: PRENOT_LIBERI[n] })),
+                ...gruppiLiberi.map(g => ({ key:String(g.n), num:g.n, posti:g.coperti })),
+              ].map(c => pickCell({
+                k: c.key, label: `T ${c.num}`, count: c.posti, pren: c.pren,
+                sel: !!unisciSel[c.key], onClick: () => setUnisciSel({...unisciSel, [c.key]: !unisciSel[c.key]}),
+              }))}
             </div>
-            {tavoliLiberiFiltrati.length === 0 && (
+            {tavoliLiberiFiltrati.length === 0 && gruppiLiberi.length === 0 && (
               <div style={{ textAlign:'center', padding:'8px 0 16px', color: ST.MUTED, fontSize:13 }}>
                 Nessun tavolo libero per “{qUnisci}”.
               </div>
+            )}
+            {/* Tavoli OCCUPATI (tutti, singoli e gruppi): caso speciale (clienti seduti)
+                → sezione a parte; unirsi qui chiede conferma. "In servizio" lo dice la
+                sezione: nelle card solo "T n" e 👥 coperti. */}
+            {tavoliOccupati.length > 0 && (
+              <>
+                <div style={{fontSize:10.5, fontWeight:700, color:ST.MUTED, letterSpacing:0.5, textTransform:'uppercase', marginBottom:8}}>
+                  Tavoli occupati
+                </div>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16}}>
+                  {tavoliOccupati.map(g => pickCell({
+                    k: g.id, label: `T ${g.n}`, count: g.coperti, coperti: true,
+                    sel: !!unisciSel[String(g.n)], onClick: () => setUnisciSel({...unisciSel, [String(g.n)]: !unisciSel[String(g.n)]}),
+                  }))}
+                </div>
+              </>
             )}
             {unisciCount > 0 && (
               <div style={{
@@ -959,13 +1244,17 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
                 marginBottom:14, fontSize:12.5, color: ST.PINK_DARK, fontWeight:600,
                 display:'flex', alignItems:'center', gap:8,
               }}>
-                <I.Merge s={14} c={ST.PINK_DARK}/>
-                Nuovo tavolo: T{tavolo.n}-{Object.entries(unisciSel).filter(([_,v])=>v).map(([k])=>k).join('-')}
+                <I.Joined s={15} c={ST.PINK_DARK}/>
+                Tavolo unito · {tavolo.n}+{Object.entries(unisciSel).filter(([_,v])=>v).map(([k])=>k).join('+')}
               </div>
             )}
             <Btn variant="primary" full disabled={unisciCount === 0}
               onClick={()=>{
-                TavoliStore.unisci(tavolo.id, Object.entries(unisciSel).filter(([_,v])=>v).map(([k])=>k));
+                const numeri = Object.entries(unisciSel).filter(([_,v])=>v).map(([k])=>k);
+                // Unirsi a un gruppo OCCUPATO tocca un tavolo in servizio → conferma.
+                const conOccupati = numeri.some(k => TavoliStore.getAttivi().some(a => String(a.n) === k));
+                if (conOccupati) { openModal({ kind:'conferma-unione', tavolo, numeri }); return; }
+                TavoliStore.unisci(tavolo.id, numeri);
                 closeModal(); openModal({kind:'success', text:`${unisciCount + 1} tavoli uniti`});
               }}
             >{unisciCount === 0 ? 'Seleziona almeno un tavolo' : `Unisci ${unisciCount + 1} tavoli`}</Btn>
@@ -979,33 +1268,41 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
               Seleziona i tavoli da separare dal gruppo. I tavoli rimanenti continueranno ad operare insieme.
             </div>
             <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:16}}>
-              {partiTavolo.map(p => (
-                <div key={p} onClick={()=>setDisgiuntiSel({...disgiuntiSel, [p]: !disgiuntiSel[p]})} style={{
+              {partiTavolo.map((p, i) => {
+                // Su un gruppo ATTIVO il primo tavolo è il base: porta la comanda
+                // e l'id del gruppo, quindi non è staccabile. Sui liberi tutto è
+                // separabile (il gruppo si ri-ancora, vedi TavoliStore.dividi).
+                const lockBase = i === 0 && !isLibero;
+                const sel = !!disgiuntiSel[p];
+                return (
+                <div key={p} onClick={lockBase ? undefined : ()=>setDisgiuntiSel({...disgiuntiSel, [p]: !disgiuntiSel[p]})} style={{
                   padding:'14px 16px', borderRadius: ST.R_MD,
-                  border:`1.5px solid ${disgiuntiSel[p] ? ST.PINK_DARK : ST.BORDER}`,
-                  background: disgiuntiSel[p] ? ST.PINK_SOFT : '#fff',
-                  cursor:'pointer',
+                  border:`1.5px solid ${sel ? ST.PINK_DARK : ST.BORDER}`,
+                  background: lockBase ? ST.SURF : sel ? ST.PINK_SOFT : '#fff',
+                  cursor: lockBase ? 'default' : 'pointer',
+                  opacity: lockBase ? 0.6 : 1,
                   display:'flex', alignItems:'center', gap:12,
                 }}>
                   <span style={{
                     width:22, height:22, borderRadius:6,
-                    border:`2px solid ${disgiuntiSel[p] ? ST.PINK_DARK : ST.MUTED_3}`,
-                    background: disgiuntiSel[p] ? ST.PINK_DARK : '#fff',
+                    border:`2px solid ${sel ? ST.PINK_DARK : ST.MUTED_3}`,
+                    background: sel ? ST.PINK_DARK : '#fff',
                     display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-                  }}>{disgiuntiSel[p] && <I.Check s={12} c="#fff"/>}</span>
+                  }}>{sel && <I.Check s={12} c="#fff"/>}</span>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:14, fontWeight:700, color: disgiuntiSel[p] ? ST.PINK_DARK : ST.TEXT}}>Tavolo {p}</div>
-                    <div style={{fontSize:11.5, color: ST.MUTED, marginTop:2}}>{disgiuntiSel[p] ? 'Diventerà un tavolo separato' : 'Resta nel gruppo'}</div>
+                    <div style={{fontSize:14, fontWeight:700, color: sel ? ST.PINK_DARK : ST.TEXT}}>Tavolo {p}</div>
+                    <div style={{fontSize:11.5, color: ST.MUTED, marginTop:2}}>{lockBase ? 'Tavolo base · porta il conto, resta nel gruppo' : sel ? 'Diventerà un tavolo separato' : 'Resta nel gruppo'}</div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <Btn variant="primary" full disabled={disgiuntiCount === 0 || disgiuntiCount === partiTavolo.length}
               onClick={()=>{
                 TavoliStore.dividi(tavolo.id, Object.entries(disgiuntiSel).filter(([_,v])=>v).map(([k])=>k));
-                closeModal(); openModal({kind:'success', text:`Tavolo disgiunto in ${disgiuntiCount + 1} parti`});
+                closeModal(); openModal({kind:'success', text:`Tavolo diviso in ${disgiuntiCount + 1} parti`});
               }}
-            >{disgiuntiCount === 0 ? 'Seleziona almeno un tavolo' : `Disgiungi ${disgiuntiCount} tavolo${disgiuntiCount > 1 ? 'i' : ''}`}</Btn>
+            >{disgiuntiCount === 0 ? 'Seleziona almeno un tavolo' : `Dividi ${disgiuntiCount} tavol${disgiuntiCount > 1 ? 'i' : 'o'}`}</Btn>
           </div>
         )}
       </div>

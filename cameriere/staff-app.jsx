@@ -29,12 +29,12 @@ function StaffApp() {
   }, [modal]);
 
   // Determina se la bottom nav va mostrata (sulle schermate di pagamento carta no)
-  const hideNav = ['piatto', 'pagamento-carta', 'pagamento-qr', 'pagamento-metodo'].includes(top.s);
+  const hideNav = ['pagamento-split', 'pagamento-carta', 'pagamento-qr', 'pagamento-metodo', 'pagamento-contanti'].includes(top.s);
   const activeTab = (() => {
-    if (['sala', 'tavolo', 'menu', 'pagamento-split', 'pagamento-metodo', 'pagamento-carta', 'pagamento-qr'].includes(top.s)) return 'sala';
-    if (['ordini', 'ordini-passati'].includes(top.s)) return 'ordini';
+    if (['sala', 'tavolo', 'menu', 'pagamento-split', 'pagamento-metodo', 'pagamento-carta', 'pagamento-qr', 'pagamento-contanti'].includes(top.s)) return 'sala';
+    if (top.s === 'ordini') return 'ordini';
     if (['catalogo'].includes(top.s)) return 'catalogo';
-    if (top.s === 'profilo') return 'profilo';
+    if (['profilo', 'account', 'account-password'].includes(top.s)) return 'profilo';
     return 'sala';
   })();
 
@@ -43,15 +43,16 @@ function StaffApp() {
       <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden' }}>
         {top.s === 'sala' && <ScreenSala nav={nav} openModal={openModal}/>}
         {top.s === 'profilo' && <ScreenProfilo nav={nav}/>}
+        {top.s === 'account' && <ScreenGestioneAccount nav={nav}/>}
+        {top.s === 'account-password' && <ScreenAccountPassword nav={nav}/>}
         {top.s === 'tavolo' && <ScreenTavolo nav={nav} openModal={openModal} tavoloId={top.id}/>}
         {top.s === 'menu' && <ScreenMenu nav={nav} openModal={openModal} tavoloId={top.tavoloId} cart={cart} setCart={setCart}/>}
-        {top.s === 'piatto' && <ScreenPiatto nav={nav} tavoloId={top.tavoloId} piattoId={top.piattoId} cart={cart} setCart={setCart}/>}
-        {top.s === 'ordini' && <ScreenOrdini nav={nav} openModal={openModal}/>}
-        {top.s === 'ordini-passati' && <ScreenOrdiniPassati nav={nav} openModal={openModal}/>}
+        {top.s === 'ordini' && <ScreenDaPortare nav={nav} openModal={openModal}/>}
         {top.s === 'catalogo' && <ScreenMenu nav={nav} openModal={openModal} tavoloId={null} cart={cart} setCart={setCart}/>}
         {top.s === 'pagamento-split' && <ScreenPagamentoSplit nav={nav} openModal={openModal} tavoloId={top.id}/>}
         {top.s === 'pagamento-metodo' && <ScreenPagamentoMetodo nav={nav} importo={top.importo} tavoloId={top.tavoloId}/>}
         {top.s === 'pagamento-carta' && <ScreenPagamentoCarta nav={nav} openModal={openModal} importo={top.importo} tavoloId={top.tavoloId}/>}
+        {top.s === 'pagamento-contanti' && <ScreenPagamentoContanti nav={nav} openModal={openModal} importo={top.importo} tavoloId={top.tavoloId} misto={top.misto}/>}
         {top.s === 'pagamento-qr' && <ScreenPagamentoQR nav={nav} importo={top.importo} tavoloId={top.tavoloId}/>}
       </div>
 
@@ -65,9 +66,11 @@ function StaffApp() {
 }
 
 function BottomNav({ active, setTab }) {
+  // Badge "Da portare" = numero di tavoli con piatti pronti da consegnare.
+  const daPortare = CODA_CUCINA.filter(o => o.stato === 'pronto').length;
   const items = [
     { id: 'sala', label: 'Sala', icon: I.Tables },
-    { id: 'ordini', label: 'Ordini', icon: I.Kitchen, badge: 3 },
+    { id: 'ordini', label: 'Da consegnare', icon: I.Walk, badge: daPortare || null },
     { id: 'profilo', label: 'Profilo', icon: I.Profile },
   ];
   return (
