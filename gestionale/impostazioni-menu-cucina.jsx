@@ -2417,6 +2417,36 @@ function MCConfigura() {
 
   return (
     <div>
+      {/* Avviso sala disattivata — in cima alla tab: molte impostazioni
+          di questa pagina dipendono dal modulo Sala e tavoli */}
+      {!modules.sala && (
+        <div style={{
+          display:'flex', alignItems:'center', gap: 14,
+          padding: '16px 18px', borderRadius: 12, marginBottom: 18,
+          background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+          borderLeft: `3px solid ${PN.AMBER}`,
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+            background: PN.AMBER_SOFT, color: PN.AMBER,
+            display:'grid', placeItems:'center',
+          }}>
+            <PnI.Plate size={17}/>
+          </div>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>
+              Sembra che tu non abbia una sala
+            </div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>
+              Alcune operazioni sono collegate alla sala e ai tavoli: vuoi attivare ora la sala?
+            </div>
+          </div>
+          <ImpButton variant="primary" onClick={() => setModule('sala', true)} style={{flexShrink: 0}}>
+            Attiva ora
+          </ImpButton>
+        </div>
+      )}
+
       {/* === SEZIONE 1: SALA === */}
       <ImpCard
         title="Sala"

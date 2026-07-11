@@ -876,18 +876,18 @@ function ImpSalaTavoli() {
 
   return (
     <div>
-      {/* Toggle moduli Sala / Prenotazioni — speculari alla tab Operazioni
+      {/* Toggle modulo Sala — speculare alla tab Operazioni
           (stessa chiave localStorage, stesso pattern pill + ImpToggle).
-          Qui vive la "riattivazione" promessa dall'onboarding solo-asporto. */}
+          Qui vive la "riattivazione" promessa dall'onboarding solo-asporto.
+          Il toggle Prenotazioni vive solo in Operazioni. */}
       <ImpModuloSalaCard active={modules.sala} onToggle={(v) => setModule('sala', v)}/>
-      <ImpModuloPrenotazioniCard active={modules.prenotazioni} onToggle={(v) => setModule('prenotazioni', v)}/>
 
       {modules.sala && configGrid}
     </div>
   );
 }
 
-// ─── Card moduli — toggle di (ri)attivazione Sala e Prenotazioni ───
+// ─── Card modulo — toggle di (ri)attivazione Sala ───
 // Pattern identico alle sezioni della tab Operazioni (impostazioni-menu-cucina):
 // header con pill Attivo/Non attivo + ImpToggle, body con empty-state tratteggiato
 // quando il modulo è spento. Le impostazioni complete restano in Operazioni.
@@ -946,52 +946,6 @@ function ImpModuloSalaCard({ active, onToggle }) {
             La sezione Sala tornerà visibile nel gestionale.
           </div>
           <ImpButton variant="primary" onClick={() => onToggle(true)}>Attiva sala</ImpButton>
-        </div>
-      )}
-    </ImpCard>
-  );
-}
-
-function ImpModuloPrenotazioniCard({ active, onToggle }) {
-  return (
-    <ImpCard
-      title="Prenotazioni"
-      sub={active
-        ? "Il modulo è attivo: la sezione Prenotazioni è visibile nel gestionale"
-        : "Attiva per gestire agenda, slot orari e conferme"
-      }
-      action={
-        <div style={{display:'flex', alignItems:'center', gap: 10}}>
-          <ImpModuleStatusPill active={active}/>
-          <ImpToggle checked={active} onChange={() => onToggle(!active)}/>
-        </div>
-      }
-    >
-      {active ? (
-        <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>
-          Durata media dei servizi e regole di prenotazione si impostano nella
-          tab <strong style={{color: PN.TEXT}}>Operazioni</strong>.
-        </div>
-      ) : (
-        <div style={{
-          padding: '28px 20px', textAlign:'center',
-          background:'#FAFBFC', borderRadius: 11,
-          border: `1px dashed ${PN.BORDER}`,
-        }}>
-          <div style={{
-            width: 48, height: 48, margin:'0 auto 10px',
-            borderRadius: 12, background: PN.WHITE,
-            border: `1px solid ${PN.BORDER}`,
-            display:'grid', placeItems:'center', color: PN.MUTED,
-          }}>
-            {(BuIcons.calendar||BuIcons.user)({size: 22, color:'currentColor'})}
-          </div>
-          <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Prenotazioni disattivate</div>
-          <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 360, margin:'0 auto 14px'}}>
-            Attivando le prenotazioni potrai gestire agenda, slot orari e conferme dei clienti.
-            La sezione Prenotazioni tornerà visibile nel gestionale.
-          </div>
-          <ImpButton variant="primary" onClick={() => onToggle(true)}>Attiva prenotazioni</ImpButton>
         </div>
       )}
     </ImpCard>
