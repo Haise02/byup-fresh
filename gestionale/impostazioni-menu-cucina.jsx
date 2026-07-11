@@ -2414,6 +2414,8 @@ function MCConfigura() {
     setModules(next);
     if (window.byupWriteModules) window.byupWriteModules(next);
   };
+  // Popup post-attivazione sala: propone di andare a creare la sala o restare qui
+  const [salaAttivataPopup, setSalaAttivataPopup] = React.useState(false);
 
   return (
     <div>
@@ -2443,7 +2445,7 @@ function MCConfigura() {
           </div>
           <ImpButton variant="primary" onClick={() => {
             setModule('sala', true);
-            window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: 'sala' }));
+            setSalaAttivataPopup(true);
           }} style={{flexShrink: 0}}>
             Attiva ora
           </ImpButton>
@@ -2819,6 +2821,42 @@ function MCConfigura() {
             <div style={{display:'flex', gap: 8}}>
               <ImpButton variant="ghost" style={{flex:1, justifyContent:'center'}}><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.FileText size={14}/> PDF</span></ImpButton>
               <ImpButton variant="primary" style={{flex:1, justifyContent:'center'}}><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup post-attivazione sala: il modulo è già attivo, si sceglie se
+          andare a creare la sala (tab Sala e tavoli) o restare in Operazioni */}
+      {salaAttivataPopup && (
+        <div onClick={() => setSalaAttivataPopup(false)} style={{
+          position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 150, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG, borderRadius: 20, width: 400, maxWidth:'100%',
+            animation:'dialogIn 0.2s ease-out',
+          }}>
+            <div style={{padding: '24px 24px 18px'}}>
+              <div style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: PN.GREEN_SOFT, color: PN.GREEN,
+                display:'grid', placeItems:'center', marginBottom: 14,
+              }}><PnI.Plate size={20}/></div>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>
+                Sala attivata
+              </div>
+              <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>
+                Il modulo Sala e tavoli è ora attivo. Per iniziare a lavorare in sala
+                crea la tua prima sala e aggiungi i tavoli.
+              </div>
+            </div>
+            <div style={{padding: '14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setSalaAttivataPopup(false)}>Rimani qui</ImpButton>
+              <ImpButton variant="primary" onClick={() => {
+                setSalaAttivataPopup(false);
+                window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: 'sala' }));
+              }}>Crea una sala</ImpButton>
             </div>
           </div>
         </div>

@@ -113,7 +113,7 @@ function SalaVenditaDiretta() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14, height:'100%', minHeight: 0}}>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 400px', gap: 18, flex: 1, minHeight: 0}}>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 440px', gap: 18, flex: 1, minHeight: 0}}>
       {/* === GRID PIATTI === */}
       <section style={{
         background: PN.WHITE, borderRadius: 14,
@@ -685,12 +685,54 @@ function SaCustomModal({ onClose, onConfirm }) {
 
 function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }) {
   const [imgError, setImgError] = React.useState(false);
+  const cardRef = React.useRef(null);
   const cat = SALA_VENDITA_CATS[p.cat] || { color: PN.MUTED, bg: '#F4F5F7' };
   const inCart = qtyInCart > 0;
 
+  // Feedback aggiunta: una miniatura del piatto "vola" dalla card al riepilogo
+  // (ghost DOM + Web Animations API), poi il riepilogo fa un piccolo bump.
+  const flyToCart = () => {
+    const from = cardRef.current?.getBoundingClientRect();
+    const to = document.getElementById('sa-cart-panel')?.getBoundingClientRect();
+    if (!from || !to || !Element.prototype.animate) return;
+    const size = 44;
+    const startX = from.left + from.width / 2 - size / 2;
+    const startY = from.top + 28;
+    const dx = (to.left + 24) - startX;
+    const dy = (to.top + 18) - startY;
+    const ghost = document.createElement('div');
+    ghost.style.cssText =
+      `position:fixed; left:${startX}px; top:${startY}px; width:${size}px; height:${size}px;` +
+      `border-radius:12px; overflow:hidden; z-index:300; pointer-events:none;` +
+      `box-shadow:0 6px 18px rgba(15,17,21,0.25); border:2px solid #fff;` +
+      `background:${cat.bg}; color:${cat.color}; display:grid; place-items:center;` +
+      `font-size:20px; font-weight:700; font-family:inherit;`;
+    if (!imgError && p.img) {
+      const img = document.createElement('img');
+      img.src = p.img;
+      img.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block;';
+      ghost.appendChild(img);
+    } else {
+      ghost.textContent = p.name.charAt(0);
+    }
+    document.body.appendChild(ghost);
+    const anim = ghost.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 46}px) scale(0.85)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.3)`, opacity: 0.15 },
+    ], { duration: 560, easing: 'cubic-bezier(0.25, 0.1, 0.3, 1)' });
+    anim.onfinish = () => {
+      ghost.remove();
+      window.dispatchEvent(new CustomEvent('sa-cart-bump'));
+    };
+  };
+
+  const quickAddConFeedback = () => { flyToCart(); onQuickAdd(); };
+
   return (
     <div
-      onClick={customizable ? onPersonalizza : onQuickAdd}
+      ref={cardRef}
+      onClick={customizable ? onPersonalizza : quickAddConFeedback}
       title={customizable ? 'Personalizza e aggiungi' : 'Aggiungi al conto'}
       style={{
         background: PN.WHITE, borderRadius: 12,
@@ -732,12 +774,13 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
 
         {/* qty badge */}
         {inCart && (
-          <div style={{
+          <div key={qtyInCart} style={{
             position:'absolute', top: 8, left: 8,
             background: PN.PINK_DARK, color: PN.WHITE,
             padding:'3px 9px', borderRadius: 999,
             fontSize: 15, fontWeight: 700,
             boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+            animation: 'svCartBump 260ms ease-out',
           }}>×{qtyInCart}</div>
         )}
 
@@ -764,7 +807,7 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
               personalizza (se personalizzabile) o aggiunge direttamente. */}
           {(
             <button
-              onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
+              onClick={(e) => { e.stopPropagation(); quickAddConFeedback(); }}
               title="Aggiungi al conto"
               style={{
                 height: 30, padding:'0 12px', borderRadius: 8,
@@ -1017,8 +1060,15 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
   window.SALA_VENDITA_CLEAR = onClear;
   // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
   const [clearConfirm, setClearConfirm] = React.useState(false);
+  // Bump dell'icona quando la miniatura del piatto "atterra" (evento da SaPiattoCard)
+  const [bump, setBump] = React.useState(0);
+  React.useEffect(() => {
+    const b = () => setBump(x => x + 1);
+    window.addEventListener('sa-cart-bump', b);
+    return () => window.removeEventListener('sa-cart-bump', b);
+  }, []);
   return (
-    <aside style={{
+    <aside id="sa-cart-panel" style={{
       background: PN.WHITE, borderRadius: 14,
       border: `1px solid ${PN.BORDER_HAIR}`,
       boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 18px rgba(15,17,21,0.04)',
@@ -1030,15 +1080,16 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         borderBottom: `1px solid ${PN.BORDER_SOFT}`,
         display:'flex', alignItems:'center', gap: 10,
       }}>
-        <span style={{
+        <span key={bump} style={{
           width: 28, height: 28, borderRadius: 8, background: PN.PINK_SOFT,
           display:'grid', placeItems:'center', color: PN.PINK_DARK,
+          animation: bump ? 'svCartBump 320ms ease-out' : 'none',
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
         </span>
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2}}>Ordine</div>
-          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}{lines.length > 0 && ` · ${lines.length} righ${lines.length === 1 ? 'a' : 'e'}`}</div>
+          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</div>
         </div>
         <button
           onClick={() => setTakeaway(v => !v)}
@@ -1581,6 +1632,16 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
       </div>
     </div>
   );
+}
+
+// Animations
+if (typeof document !== 'undefined' && !document.getElementById('sv-anims')) {
+  const s = document.createElement('style');
+  s.id = 'sv-anims';
+  s.textContent = `
+    @keyframes svCartBump { 0% { transform: scale(1); } 40% { transform: scale(1.22); } 100% { transform: scale(1); } }
+  `;
+  document.head.appendChild(s);
 }
 
 window.SalaVenditaDiretta = SalaVenditaDiretta;

@@ -1615,8 +1615,18 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG, borderRadius: 20, width: 540, maxWidth:'100%',
-        animation:'dialogIn 0.2s ease-out',
+        animation:'dialogIn 0.2s ease-out', position:'relative',
       }}>
+        <button onClick={onClose} disabled={burning} title="Chiudi" style={{
+          position:'absolute', top: 16, right: 16,
+          width: 32, height: 32, borderRadius:'50%',
+          background:'rgba(15,17,21,0.05)', border:'none',
+          cursor: burning ? 'default' : 'pointer',
+          display:'grid', placeItems:'center', color: PN.MUTED,
+          opacity: burning ? 0.4 : 1,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
         <div style={{padding: '24px 24px 16px'}}>
           <div style={{
             width: 44, height: 44, borderRadius: '50%',
@@ -1682,7 +1692,6 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
         )}
 
         <div style={{padding: '14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
-          <ImpButton variant="ghost" onClick={onClose} disabled={burning}>Annulla</ImpButton>
           <button onClick={confirm} disabled={burning} style={{
             padding: '9px 16px', borderRadius: 8,
             background: PN.PINK_DARK, color: PN.WHITE,
