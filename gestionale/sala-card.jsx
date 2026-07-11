@@ -504,26 +504,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         )}
 
         <span style={{flex:1}}/>
-        {/* + Aggiungi articolo — in alto a destra sulla card espansa occupata */}
-        {expanded && t.state === 'occupato' && (
-          <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}}
-            title="Aggiungi articolo al conto" style={{
-            display:'inline-flex', alignItems:'center', gap: 5,
-            height: 32, padding:'0 12px', borderRadius: 8,
-            background: PN.BTN_NEUTRAL, color:'#0F1115',
-            border:`1px solid ${PN.BORDER_LIGHT}`,
-            fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            whiteSpace:'nowrap', flexShrink: 0,
-            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
-            transition:'background 150ms ease-out',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
-            Aggiungi articolo
-          </button>
-        )}
         {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
         {showAlertTriangle && (
           <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
@@ -542,6 +522,30 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           }}/>
         </Tip>
       </div>
+
+      {/* + Aggiungi articolo — riga dedicata sotto l'header, allineata a destra:
+          resta in alto ma non collide con la X di chiusura del popup mappa */}
+      {expanded && t.state === 'occupato' && (
+        <div style={{display:'flex', justifyContent:'flex-end', margin:'-4px 0 -6px'}}>
+          <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}}
+            title="Aggiungi articolo al conto" style={{
+            display:'inline-flex', alignItems:'center', gap: 5,
+            height: 32, padding:'0 12px', borderRadius: 8,
+            background: PN.BTN_NEUTRAL, color:'#0F1115',
+            border:`1px solid ${PN.BORDER_LIGHT}`,
+            fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            whiteSpace:'nowrap', flexShrink: 0,
+            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+            transition:'background 150ms ease-out',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+            Aggiungi articolo
+          </button>
+        </div>
+      )}
 
       {/* Allergia: SEMPRE visibile. Compatta = solo "Allergia". Espansa = "Allergia [testo] · [ospite]". */}
       {note && noteIsCritical && (
