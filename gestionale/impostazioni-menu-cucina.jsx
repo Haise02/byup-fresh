@@ -2448,48 +2448,26 @@ function MCConfigura() {
       )}
 
       {/* === SEZIONE 1: SALA === */}
+      {/* La card compare solo a modulo attivo: da spento c'è già il banner in alto */}
+      {modules.sala && (
       <ImpCard
         title="Sala"
-        sub={modules.sala
-          ? "Gestione tavoli, conti aperti, coperto e flusso ordini in cucina"
-          : "Attiva per gestire tavoli e conti in sala"
-        }
+        sub="Gestione tavoli, conti aperti, coperto e flusso ordini in cucina"
         action={
           <div style={{display:'flex', alignItems:'center', gap: 10}}>
             <span style={{
               fontSize: 13, fontWeight: 700, letterSpacing: 0.4,
               padding: '3px 9px', borderRadius: 999,
-              background: modules.sala ? PN.GREEN_SOFT : '#F4F5F7',
-              color: modules.sala ? PN.GREEN : PN.MUTED,
+              background: PN.GREEN_SOFT,
+              color: PN.GREEN,
               textTransform: 'uppercase',
             }}>
-              {modules.sala ? 'Attivo' : 'Non attivo'}
+              Attivo
             </span>
             <ImpToggle checked={modules.sala} onChange={() => setModule('sala', !modules.sala)}/>
           </div>
         }
       >
-        {!modules.sala ? (
-          <div style={{
-            padding: '28px 20px', textAlign:'center',
-            background:'#FAFBFC', borderRadius: 11,
-            border: `1px dashed ${PN.BORDER}`,
-          }}>
-            <div style={{
-              width: 48, height: 48, margin:'0 auto 10px',
-              borderRadius: 12, background: PN.WHITE,
-              border: `1px solid ${PN.BORDER}`,
-              display:'grid', placeItems:'center', color: PN.MUTED,
-            }}>
-              <PnI.Plate size={22}/>
-            </div>
-            <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Sala disattivata</div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 360, margin:'0 auto 14px'}}>
-              Attivando la sala potrai gestire tavoli, conti aperti, coperto e il flusso ordini in cucina.
-            </div>
-            <ImpButton variant="primary" onClick={() => setModule('sala', true)}>Attiva sala</ImpButton>
-          </div>
-        ) : (
         <div style={{display:'flex', flexDirection:'column', gap: 16}}>
         {/* --- Flusso ordini in cucina --- */}
         <div>
@@ -2679,8 +2657,8 @@ function MCConfigura() {
           </div>
         </div>
         </div>
-        )}
       </ImpCard>
+      )}
 
       {/* === SEZIONE 2: PRENOTAZIONI === */}
       <ImpCard
