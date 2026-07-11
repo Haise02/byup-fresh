@@ -36,6 +36,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   const [dropCol, setDropCol] = React.useState(null); // 'left' | 'right' — colonna evidenziata durante il drag
   const cardNodes = React.useRef(new Map());          // ticketId → nodo DOM card (per risolvere il drop)
   const colNodes  = React.useRef({});                 // { left, right } → nodi DOM colonne
+  const prontiNodes = React.useRef(new Map());        // ticketId → nodo DOM card nel pannello Pronti
 
   // FLIP: anima lo spostamento delle card tra le colonne (e i riordini).
   // A ogni render confronta la posizione di ogni card con quella precedente e,
@@ -60,8 +61,8 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
       node.style.transform = `translate(${dx}px, ${dy}px)`;
       node.style.zIndex = '5';
       node.getBoundingClientRect(); // reflow: fissa il punto di partenza
-      // Molto lenta di proposito: deve essere evidente che la card cambia colonna
-      node.style.transition = 'transform 2000ms cubic-bezier(0.4, 0.1, 0.25, 1)';
+      // Lenta di proposito: deve essere evidente che la card cambia colonna
+      node.style.transition = 'transform 1400ms cubic-bezier(0.4, 0.1, 0.25, 1)';
       node.style.transform = '';
       const clear = () => {
         node.style.transition = '';
@@ -69,7 +70,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
         node.removeEventListener('transitionend', clear);
       };
       node.addEventListener('transitionend', clear);
-      setTimeout(clear, 2200); // fallback se la transizione viene interrotta
+      setTimeout(clear, 1600); // fallback se la transizione viene interrotta
     });
     // Dimentica le card rimosse dal board
     Array.from(lastCardRects.current.keys()).forEach(id => {
@@ -278,7 +279,44 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     setReadyTickets(prev => [...done, ...prev]);
   }, [tickets]);
 
+  // Ritorno da Pronti: chip ambra che vola dalla card Pronti alla cima della
+  // colonna In preparazione (percorso inverso di flyToPronti).
+  function flyBackToPrep(ticketId) {
+    const t = readyTickets.find(x => x.id === ticketId);
+    const node = prontiNodes.current.get(ticketId);
+    const target = colNodes.current.right;
+    if (!t || !node || !target || !Element.prototype.animate) return;
+    const from = node.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.style.cssText =
+      `position:fixed; left:0; top:0;` +
+      `display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px;` +
+      `background:#FEF3C7; border:1.5px solid #FCD34D; color:#92400E;` +
+      `font-size:15px; font-weight:800; font-family:inherit; white-space:nowrap;` +
+      `box-shadow:0 8px 22px rgba(146,64,14,0.20); z-index:300; pointer-events:none;`;
+    ghost.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+    const label = document.createElement('span');
+    label.textContent = t.kind === 'sala' ? `Tavolo ${t.table}` : (t.customer || 'Ordine');
+    ghost.appendChild(label);
+    document.body.appendChild(ghost);
+    const gw = ghost.getBoundingClientRect().width;
+    const startX = from.left + from.width / 2 - gw / 2;
+    const startY = from.top + 14;
+    ghost.style.left = `${startX}px`;
+    ghost.style.top = `${startY}px`;
+    const dx = (to.left + to.width / 2 - gw / 2) - startX;
+    const dy = (to.top + 46) - startY;
+    const anim = ghost.animate([
+      { transform: 'translate(0, 0) scale(0.9)', opacity: 0.9 },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 42}px) scale(1)`, opacity: 1, offset: 0.5 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.7)`, opacity: 0.15 },
+    ], { duration: 700, easing: 'cubic-bezier(0.25, 0.1, 0.3, 1)' });
+    anim.onfinish = () => ghost.remove();
+  }
+
   function revertReadyItem(ticketId, itemIdx) {
+    flyBackToPrep(ticketId); // cattura la posizione prima che la card Pronti smonti
     const ticket = readyTickets.find(t => t.id === ticketId);
     if (!ticket) return;
     const updatedItems = ticket.items.map((it, i) => i === itemIdx ? {...it, state: 'doing'} : it);
@@ -288,6 +326,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   }
 
   function revertReadyCard(ticketId) {
+    flyBackToPrep(ticketId); // cattura la posizione prima che la card Pronti smonti
     const ticket = readyTickets.find(t => t.id === ticketId);
     if (!ticket) return;
     const updatedItems = ticket.items.map(it => ({...it, state: 'doing'}));
@@ -483,6 +522,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
         onToggle={() => setProntiCollapsed(c => !c)}
         onRevertItem={revertReadyItem}
         onRevertCard={revertReadyCard}
+        registerNode={(id, el) => { if (el) prontiNodes.current.set(id, el); else prontiNodes.current.delete(id); }}
       />
 
       {confirmCancel && (
@@ -530,7 +570,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
 }
 
 // ─── Pronti panel ────────────────────────────────────────────
-function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard }) {
+function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCard, registerNode }) {
   // Bump del contatore quando il chip "vola in Pronti" atterra (evento da flyToPronti)
   const [bump, setBump] = React.useState(0);
   React.useEffect(() => {
@@ -595,12 +635,13 @@ function KdsProntiPanel({ tickets, collapsed, onToggle, onRevertItem, onRevertCa
       </div>
       <div style={{flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 10}}>
         {tickets.map(ticket => (
-          <KdsProntiCard
-            key={ticket.id}
-            ticket={ticket}
-            onRevertItem={(idx) => onRevertItem(ticket.id, idx)}
-            onRevertCard={() => onRevertCard(ticket.id)}
-          />
+          <div key={ticket.id} ref={el => { registerNode && registerNode(ticket.id, el); }}>
+            <KdsProntiCard
+              ticket={ticket}
+              onRevertItem={(idx) => onRevertItem(ticket.id, idx)}
+              onRevertCard={() => onRevertCard(ticket.id)}
+            />
+          </div>
         ))}
       </div>
     </div>
