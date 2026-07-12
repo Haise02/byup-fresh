@@ -4,54 +4,54 @@ const PN_NOTIFICATIONS = [
   {
     id: 'n1',
     type: 'update',
-    icon: 'sparkles',
     title: 'Nuova versione di byup disponibile',
     body: 'Abbiamo migliorato la gestione del calendario prenotazioni e aggiunto i grafici predittivi.',
+    href: 'byup Sala.html?tab=calendar',
     time: '2 ore fa',
     unread: true,
   },
   {
     id: 'n2',
     type: 'payment',
-    icon: 'commerce-bank-cards',
     title: 'Pagamento ricevuto',
     body: 'Hai ricevuto €1.247,80 sul tuo conto Stripe. Disponibile entro 2 giorni lavorativi.',
+    href: 'byup Contabilita.html',
     time: 'Ieri',
     unread: true,
   },
   {
     id: 'n3',
     type: 'system',
-    icon: 'chart-bar',
     title: 'Report mensile pronto',
     body: 'Il riepilogo di aprile 2026 è disponibile in Statistiche. +12% vs marzo.',
+    href: 'byup Statistiche.html',
     time: '2 giorni fa',
     unread: true,
   },
   {
     id: 'n4',
     type: 'tip',
-    icon: 'status-tip',
     title: 'Suggerimento da byup',
     body: 'Aggiungi delle foto per aumentare gli ordini fino al 30%.',
+    href: 'byup Impostazioni.html',
     time: '4 giorni fa',
     unread: false,
   },
   {
     id: 'n5',
     type: 'billing',
-    icon: 'commerce-receipt',
     title: 'Fattura del piano Business',
     body: 'La fattura di aprile (€49,00) è disponibile in Contabilità → Fatture.',
+    href: 'byup Contabilita.html',
     time: '1 settimana fa',
     unread: false,
   },
   {
     id: 'n6',
     type: 'feature',
-    icon: 'status-feature',
     title: 'Promozioni: nuova funzione',
     body: 'Ora puoi creare promo a tempo che appaiono in vetrina. Provala in Statistiche.',
+    href: 'byup Statistiche.html',
     time: '2 settimane fa',
     unread: false,
   },
@@ -63,9 +63,8 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
   const ref = React.useRef(null);
   const menuRef = React.useRef(null);
   // Posizione fixed della tendina, dal rect della campanella: la tendina vive
-  // in un portal sul body. Serve per il vetro: dentro al .frame (che ha
-  // isolation:isolate) il backdrop-filter vedrebbe solo una parte della
-  // pagina; sul body sfoca davvero tutto ciò che c'è sotto il popup.
+  // in un portal sul body, così si distende sopra il frame (che è scalato con
+  // zoom) senza rischi di clipping o di stacking context.
   const [menuPos, setMenuPos] = React.useState(null);
   const unreadCount = items.filter(i => i.unread).length;
 
@@ -159,17 +158,18 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
       )}
 
       {open && menuPos && ReactDOM.createPortal(
-        // Glass menu Apple Sonoma — lo sfondo del popup è al 50% di opacità
-        // (override del token GLASS_MENU, che è 0.66): il contenuto dietro
-        // resta visibile ma blurrato dal backdrop-filter. Perché funzioni,
-        // anche le righe interne devono essere traslucide (vedi sotto),
-        // altrimenti coprono il vetro con bianco pieno.
+        // Popup su fondo BIANCO pieno (niente vetro): del token GLASS_MENU
+        // restano bordo, ombra e radius. Vive in un portal sul body per
+        // stare sopra al frame zoomato senza problemi di clipping.
         <div ref={menuRef} style={{
           position: 'fixed',
           ...menuPos,
           width: 380,
           ...PN.GLASS_MENU,
-          background: 'rgba(255, 255, 255, 0.50)',
+          background: '#fff',
+          backgroundImage: 'none',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
           zIndex: 9981,
           overflow: 'hidden',
           fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
@@ -184,11 +184,6 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                 {unreadCount > 0 ? `${unreadCount} non lette` : 'Tutto letto ✓'}
               </div>
             </div>
-            <button style={{
-              background:'transparent', border:'none',
-              color: PN.PINK, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
-              cursor:'pointer', padding: 0,
-            }}>Vedi tutte le notifiche →</button>
           </div>
 
           <div style={{maxHeight: 440, overflowY: 'auto'}} className="pn-scroll">
@@ -197,13 +192,12 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                 display:'flex', gap: 12,
                 padding: '12px 16px',
                 borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-                // Righe traslucide: il vetro del popup deve restare visibile.
-                background: n.unread ? 'rgba(255, 200, 220, 0.22)' : 'transparent',
+                background: n.unread ? '#fff7fa' : '#fff',
                 cursor:'pointer',
                 position:'relative',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = n.unread ? 'rgba(255, 200, 220, 0.38)' : 'rgba(15, 17, 21, 0.045)'}
-                onMouseLeave={e => e.currentTarget.style.background = n.unread ? 'rgba(255, 200, 220, 0.22)' : 'transparent'}
+                onMouseEnter={e => e.currentTarget.style.background = n.unread ? '#ffeef4' : '#fafafa'}
+                onMouseLeave={e => e.currentTarget.style.background = n.unread ? '#fff7fa' : '#fff'}
               >
                 {n.unread && (
                   <span style={{
@@ -216,6 +210,26 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                   <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, marginBottom: 4}}>{n.body}</div>
                   <div style={{fontSize: 13, color: '#a3a3ad', fontWeight: 500}}>{n.time}</div>
                 </div>
+                {/* Freccina → porta alla sezione relativa alla notifica */}
+                {n.href && (
+                  <button
+                    title="Vai alla sezione"
+                    onClick={(e) => { e.stopPropagation(); window.location.href = n.href; }}
+                    style={{
+                      alignSelf:'center', flexShrink: 0,
+                      width: 28, height: 28, borderRadius: 8,
+                      background:'transparent', border:'none', cursor:'pointer',
+                      color: PN.MUTED, display:'grid', placeItems:'center',
+                      transition:'background 140ms ease, color 140ms ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.06)'; e.currentTarget.style.color = PN.PINK; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+                  >
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none">
+                      <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -224,11 +238,11 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
             <div style={{
               padding: '10px 16px', textAlign:'center',
               borderTop: `1px solid ${PN.BORDER_SOFT}`,
-              background: 'rgba(255, 255, 255, 0.30)',
+              background: '#fafafa',
             }}>
               <button onClick={markAllRead} style={{
                 background:'transparent', border:'none',
-                color: PN.TEXT, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
+                color: PN.PINK, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
                 cursor:'pointer', padding: 0,
               }}>Segna come lette</button>
             </div>
