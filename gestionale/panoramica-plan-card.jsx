@@ -4,7 +4,7 @@
 // PianoEmoji — SVG custom per ogni piano Byup. 24×24, fill colorato.
 // Progressione coloristica = "scala del piano":
 //   Free      → verde menta  (germoglio: primi passi)
-//   Starter   → coral Byup   (pizza: piatto base popolare)
+//   Starter   → ambra dorata (boccale di birra: locale serale/pub)
 //   Plus      → pink-dark    (ciotola pasta: menu completo)
 //   Business  → wine + chef  (cappello chef: professionalità top)
 // Prop `monochrome` (es. "#fff"): rende tutto in un solo colore, per usi
@@ -36,14 +36,22 @@ function PianoEmoji({ planId, size = 24, monochrome }) {
   if (planId === 'starter') {
     return (
       <svg width={px} height={px} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 6 Q12 4 20 6 L12 22 Z"
-              fill={mono || '#F4C57E'}
+        {/* Manico */}
+        <path d="M16.5 10.5 H18.4 C19.8 10.5 20.5 11.3 20.5 12.6 V15.4 C20.5 16.7 19.8 17.5 18.4 17.5 H16.5"
+              fill="none"
+              stroke={mono || '#C9924C'} strokeWidth="1.6" strokeLinecap="round"/>
+        {/* Corpo del boccale con la birra */}
+        <path d="M6 8.5 H17 V19 C17 20.1 16.1 21 15 21 H8 C6.9 21 6 20.1 6 19 Z"
+              fill={mono || '#F4B942'}
               stroke={mono ? 'none' : '#C9924C'} strokeWidth="0.8" strokeLinejoin="round"/>
-        <path d="M5.4 7 Q12 5.4 18.6 7 L12 20 Z"
-              fill={mono || '#FF6066'}/>
-        <circle cx="9.5" cy="11" r="1.4" fill={mono ? 'rgba(255,255,255,0.65)' : '#8B2025'}/>
-        <circle cx="14.2" cy="10.7" r="1.4" fill={mono ? 'rgba(255,255,255,0.65)' : '#8B2025'}/>
-        <circle cx="12" cy="15.5" r="1.4" fill={mono ? 'rgba(255,255,255,0.65)' : '#8B2025'}/>
+        {/* Schiuma */}
+        <path d="M5.2 8.5 C4.6 6.6 6 5.2 7.6 5.7 C8 4 10 3.3 11.4 4.3 C12.6 3.2 14.8 3.6 15.4 5.2 C17 4.9 18.3 6.4 17.7 8.5 Z"
+              fill={mono || '#FFF7ED'}
+              stroke={mono ? 'none' : '#E8D5B5'} strokeWidth="0.6" strokeLinejoin="round"/>
+        {/* Bollicine */}
+        <circle cx="9" cy="13" r="1" fill={mono ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.75)'}/>
+        <circle cx="13" cy="15.5" r="0.8" fill={mono ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.75)'}/>
+        <circle cx="11" cy="18" r="0.7" fill={mono ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.75)'}/>
       </svg>
     );
   }
