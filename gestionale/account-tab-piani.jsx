@@ -47,6 +47,23 @@ function AccPianiAbbonamenti() {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 18}}>
+      {/* Feedback hover per card piani/pacchetti e i loro CTA. Solo transform
+          e filter (mai box-shadow: quello inline vincerebbe comunque). */}
+      <style>{`
+        .acc-plan-card {
+          transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+          will-change: transform;
+        }
+        .acc-plan-card:hover {
+          transform: translateY(-3px) scale(1.03);
+          z-index: 2;
+        }
+        .acc-plan-btn {
+          transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), filter 140ms ease;
+        }
+        .acc-plan-btn:hover  { transform: translateY(-1px) scale(1.04); filter: brightness(1.08); }
+        .acc-plan-btn:active { transform: translateY(0) scale(0.95); filter: brightness(0.92); }
+      `}</style>
 
       {/* Riga 1 — Risparmio + Utilizzo: 50/50 stessa riga, allineati alla stessa altezza.
           Gerarchia visiva: 2 card pari grado, immediatamente sotto il navbar. */}
@@ -167,7 +184,7 @@ function AccPianiAbbonamenti() {
             const isBest = p.etichetta.includes('miglior valore');
             const isPopular = p.etichetta.includes('più scelto');
             return (
-              <div key={p.id} style={{
+              <div key={p.id} className="acc-plan-card" style={{
                 padding: 16, borderRadius: 12,
                 border: isPopular ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
                 background: PN.WHITE,
@@ -193,6 +210,7 @@ function AccPianiAbbonamenti() {
                 </div>
                 <button
                   onClick={() => showDemoToast(`L'acquisto del ${p.nome} sarà disponibile al lancio`)}
+                  className="acc-plan-btn"
                   style={{
                   marginTop: 6, padding: '9px 12px', borderRadius: 999,
                   background: isPopular ? PN.BTN_BRAND : PN.BTN_DARK,
@@ -426,7 +444,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
       };
 
   return (
-    <div style={{
+    <div className="acc-plan-card" style={{
       borderRadius: 12, border: styles.border,
       padding: 16, position: 'relative',
       background: styles.bg,
@@ -470,7 +488,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
           </li>
         ))}
       </ul>
-      <button onClick={isCurrent ? undefined : onCta} style={{
+      <button onClick={isCurrent ? undefined : onCta} className={isCurrent ? undefined : 'acc-plan-btn'} style={{
         width: '100%',
         padding: '10px 14px', borderRadius: 999,
         background: styles.ctaBg,
