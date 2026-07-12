@@ -140,9 +140,8 @@ function TableTile({
   const body = ttBodySize(seats, shape, orientation, unit, pitch);
   const m = ttChairMetrics(unit);
   // Tipografia a dimensione QUASI fissa: non scala con la griglia — è ciò
-  // che tiene "T3" leggibile anche quando la mappa si adatta allo schermo.
+  // che tiene il numero leggibile anche quando la mappa si adatta allo schermo.
   const numSize = Math.round(Math.min(27, Math.max(17, unit * 0.34)));
-  const tSize = Math.round(numSize * 0.56);
   const labelSize = Math.min(12, Math.max(10, unit * 0.165));
   // Il wrapper coincide col CORPO: le sedie sporgono fuori (overflow visibile)
   // e vivono nel gutter riservato dalla griglia.
@@ -229,13 +228,8 @@ function TableTile({
         filter: dim ? 'grayscale(1)' : 'none',
         overflow: 'hidden',
       }}>
-        {/* "T3": prefisso più piccolo e muted, numero grande in bold */}
-        <div style={{display: 'flex', alignItems: 'baseline', gap: 1.5, lineHeight: 1}}>
-          <span style={{
-            fontSize: tSize, fontWeight: 700,
-            color: dim ? '#C5C8CE' : '#9CA3AF',
-            letterSpacing: '0.02em',
-          }}>T</span>
+        {/* Solo il numero, grande in bold — nessun prefisso */}
+        <div style={{display: 'flex', alignItems: 'baseline', lineHeight: 1}}>
           <span style={{
             fontSize: numSize, fontWeight: 800,
             color: dim ? '#9CA3AF' : '#0F1115',
