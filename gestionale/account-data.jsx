@@ -15,6 +15,10 @@ const ACC_DATI = {
 };
 
 // Piani byup ufficiali — 4 livelli con ordini inclusi, costo extra, supporto, menu, dispositivi
+// Nota struttura: `feat` contiene SOLO le voci mostrate come lista puntata
+// nelle card — ordini inclusi e costo extra vivono già nel chip dedicato.
+// `menuShort`/`staffShort` + i flag `sup*` alimentano la tabella di confronto
+// (fonte unica: niente valori duplicati hardcoded nella tabella).
 const ACC_PIANI = [
   {
     id: 'free', nome: 'Free', prezzo: 0, periodo: 'gratis',
@@ -22,13 +26,13 @@ const ACC_PIANI = [
     ordineExtra: 0.45,
     menu: '1 menu digitale',
     staff: '1 membro dello staff',
-    supporto: 'Chat bot · Tutorial · Ticket email',
+    supporto: 'Chat, tutorial, ticket email',
+    menuShort: '1', staffShort: '1',
+    supPhone: false, supCallback: false, supPriority: false,
     feat: [
-      '550 ordini inclusi/mese',
-      '+0,45 € + IVA per ordine extra',
       '1 menu digitale',
       '1 membro dello staff',
-      'Supporto: chat bot, tutorial, ticket email',
+      'Supporto: chat, tutorial, ticket email',
     ],
   },
   {
@@ -37,13 +41,13 @@ const ACC_PIANI = [
     ordineExtra: 0.34,
     menu: '3 menu digitali',
     staff: 'Fino a 3 membri dello staff',
-    supporto: 'Chat bot · Tutorial · Ticket email',
+    supporto: 'Chat, tutorial, ticket email',
+    menuShort: '3', staffShort: 'Fino a 3',
+    supPhone: false, supCallback: false, supPriority: false,
     feat: [
-      '1.850 ordini inclusi/mese',
-      '+0,34 € + IVA per ordine extra',
       'Fino a 3 menu digitali',
       'Fino a 3 membri dello staff',
-      'Supporto: chat bot, tutorial, ticket email',
+      'Supporto: chat, tutorial, ticket email',
     ],
   },
   {
@@ -54,9 +58,9 @@ const ACC_PIANI = [
     staff: 'Staff illimitato',
     supporto: 'Tutto Starter + supporto telefonico 24/7 · richiamata entro 30 min',
     highlight: true,
+    menuShort: 'Illimitati', staffShort: 'Illimitati',
+    supPhone: true, supCallback: true, supPriority: false,
     feat: [
-      '7.500 ordini inclusi/mese',
-      '+0,23 € + IVA per ordine extra',
       'Menu digitali illimitati',
       'Membri dello staff illimitati',
       'Supporto telefonico 24/7 con richiamata entro 30 min',
@@ -69,9 +73,9 @@ const ACC_PIANI = [
     menu: 'Menu illimitati',
     staff: 'Staff illimitato',
     supporto: 'Tutto Plus + canale prioritario',
+    menuShort: 'Illimitati', staffShort: 'Illimitati',
+    supPhone: true, supCallback: true, supPriority: true,
     feat: [
-      '15.000 ordini inclusi/mese',
-      '+0,12 € + IVA per ordine extra',
       'Menu digitali illimitati',
       'Membri dello staff illimitati',
       'Supporto telefonico 24/7 con richiamata entro 30 min · canale prioritario',

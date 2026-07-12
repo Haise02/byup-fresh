@@ -6,12 +6,25 @@ function AccPianiAbbonamenti() {
   const current = ACC_PIANI.find(p => p.current) || ACC_PIANI[0];
   const ordiniPos = 980;
   const ordiniApp = 880;
-  const ordiniUsati = ordiniPos + Math.round(ordiniApp * 0.5);   // 1420
-  const ordiniRisparmiati = Math.round(ordiniApp * 0.5);          // 440
+  // Stessa formula della sidebar plan card (panoramica-plan-card.jsx):
+  // gli ordini app pesano 0,5 → i "risparmiati" sono totale − pesati.
+  const ordiniAppPesati = Math.round(ordiniApp * 0.5);            // 440
+  const ordiniUsati = ordiniPos + ordiniAppPesati;                // 1420
+  const ordiniRisparmiati = ordiniApp - ordiniAppPesati;          // 440
   const euroRisparmiati = Math.round(ordiniRisparmiati * current.ordineExtra * 100) / 100;
   const pct = Math.min(100, Math.round((ordiniUsati / current.ordiniInclusi) * 100));
 
   const [billing, setBilling] = React.useState('annual');
+
+  // Toast demo: i CTA di questa pagina non hanno ancora un backend — il
+  // feedback evita la sensazione di bottone rotto.
+  const [toast, setToast] = React.useState(null);
+  const toastTimer = React.useRef(null);
+  const showDemoToast = (msg) => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2800);
+  };
 
   const fmtPrice = (n) => {
     if (n === 0) return '0';
@@ -97,16 +110,32 @@ function AccPianiAbbonamenti() {
           </div>
         </div>
 
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12}}>
-          {ACC_PIANI.map(p => (
+        {/* Free escluso dalla griglia: il downgrade non merita la stessa
+            prominenza degli upgrade — vive nella riga discreta qui sotto. */}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12}}>
+          {ACC_PIANI.filter(p => p.id !== 'free').map(p => (
             <PianoCard
               key={p.id}
               p={p}
               fmtPrice={fmtPrice}
               displayPrezzo={billedPrice(p)}
               periodo={p.prezzo === 0 ? 'gratis' : billedPeriodo}
+              onCta={() => showDemoToast(`Il passaggio al piano ${p.nome} sarà disponibile al lancio`)}
             />
           ))}
+        </div>
+
+        {/* Piano Free — downgrade come nota secondaria, non come card */}
+        <div style={{marginTop: 16, textAlign: 'center', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
+          Ti serve qualcosa di più semplice? C'è anche il piano <strong style={{color: PN.TEXT}}>Free</strong> —
+          {' '}550 ordini/mese, 1 menù digitale, 1 membro dello staff.{' '}
+          <button
+            onClick={() => showDemoToast('Il passaggio al piano Free sarà disponibile al lancio')}
+            style={{
+              background: 'none', border: 'none', padding: 0,
+              color: PN.PINK_DARK, fontWeight: 600, fontSize: 13.5,
+              cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
+            }}>Passa a Free</button>
         </div>
       </AcCard>
 
@@ -115,10 +144,11 @@ function AccPianiAbbonamenti() {
         title="Ordini aggiuntivi"
         subtitle="Aggiungi ordini per gestire i picchi senza cambiare piano: si sommano a quelli già inclusi."
       >
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12}}>
-          {ACC_PACCHETTI.map((p, i) => {
-            const isBest = i === 2;
-            const isPopular = i === 1;
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12}}>
+          {ACC_PACCHETTI.map((p) => {
+            // Badge dai dati (campo etichetta), non dalla posizione nell'array
+            const isBest = p.etichetta.includes('miglior valore');
+            const isPopular = p.etichetta.includes('più scelto');
             return (
               <div key={p.id} style={{
                 padding: 16, borderRadius: 12,
@@ -144,7 +174,9 @@ function AccPianiAbbonamenti() {
                 <div style={{fontSize: 13, color: PN.MUTED}}>
                   {fmtPrice(Math.round((p.prezzo / p.ordini) * 100) / 100)} € a ordine
                 </div>
-                <button style={{
+                <button
+                  onClick={() => showDemoToast(`L'acquisto del ${p.nome} sarà disponibile al lancio`)}
+                  style={{
                   marginTop: 6, padding: '9px 12px', borderRadius: 999,
                   background: isPopular ? PN.BTN_BRAND : PN.BTN_DARK,
                   color: PN.WHITE,
@@ -161,6 +193,18 @@ function AccPianiAbbonamenti() {
 
       {/* Confronto funzionalità — leggibilità migliorata */}
       <ConfrontoTable/>
+
+      {/* Toast demo — feedback per i CTA non ancora collegati al backend */}
+      {toast && (
+        <div role="status" aria-live="polite" style={{
+          position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(15, 17, 21, 0.92)', color: '#fff',
+          padding: '11px 20px', borderRadius: 999,
+          fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap',
+          boxShadow: '0 12px 32px rgba(15, 17, 21, 0.30)',
+          zIndex: 200,
+        }}>{toast}</div>
+      )}
     </div>
   );
 }
@@ -325,19 +369,21 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
 // (caricato in ogni pagina dashboard, condiviso col sidebar plan card).
 // ─────────────────────────────────────────────────────────────────────────
 
-function PianoCard({p, fmtPrice, displayPrezzo, periodo}) {
+function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
   const isCurrent = p.current;
   const isHighlight = p.highlight && !isCurrent;
   const prezzoMostrato = displayPrezzo !== undefined ? displayPrezzo : p.prezzo;
   const periodoMostrato = periodo !== undefined ? periodo : p.periodo;
 
-  // Stili per piano consigliato in negativo (filled BRAND, scritte bianche)
+  // Stili per piano consigliato in negativo (filled BRAND, scritte bianche).
+  // Gradient con coda più scura (#C9363B) e testi secondari a opacità piena:
+  // il bianco sul coral chiaro non reggeva il contrasto AA sui corpi piccoli.
   const styles = isHighlight
     ? {
-        bg: 'linear-gradient(135deg, #FF6A6F 0%, #E04347 100%)',
+        bg: 'linear-gradient(135deg, #F75B60 0%, #C9363B 100%)',
         border: `1px solid rgba(180, 30, 35, 0.45)`,
         textColor: PN.WHITE,
-        mutedColor: 'rgba(255, 255, 255, 0.78)',
+        mutedColor: 'rgba(255, 255, 255, 0.95)',
         priceColor: PN.WHITE,
         chipBg: 'rgba(255, 255, 255, 0.20)',
         chipText: PN.WHITE,
@@ -391,22 +437,23 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo}) {
         fontSize: 13.5,
       }}>
         <div style={{fontWeight: 600, color: styles.chipText}}>{p.ordiniInclusi.toLocaleString('it-IT')} ordini/mese</div>
-        <div style={{color: styles.chipText, marginTop: 2, opacity: 0.85}}>
+        <div style={{color: styles.chipText, marginTop: 2, opacity: isHighlight ? 1 : 0.85}}>
           +{fmtPrice(p.ordineExtra)} €/extra
         </div>
       </div>
 
+      {/* feat contiene solo le voci lista (ordini e prezzo extra sono nel chip) */}
       <ul style={{listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 14, flex: 1}}>
-        {p.feat.slice(2).map((f, i) => (
+        {p.feat.map((f, i) => (
           <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 14, color: styles.textColor, lineHeight: 1.4}}>
-            <span style={{color: styles.checkColor, marginTop: 2, flexShrink: 0}}>
+            <span aria-hidden="true" style={{color: styles.checkColor, marginTop: 2, flexShrink: 0}}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </span>
             {f}
           </li>
         ))}
       </ul>
-      <button style={{
+      <button onClick={isCurrent ? undefined : onCta} style={{
         width: '100%',
         padding: '10px 14px', borderRadius: 999,
         background: styles.ctaBg,
@@ -443,32 +490,36 @@ function PianoBadge({bg, fg, label}) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function ConfrontoTable() {
+  // Righe generate da ACC_PIANI: un solo posto da aggiornare quando cambiano
+  // prezzi o limiti (prima erano stringhe duplicate hardcoded qui).
+  const fmt = (n) => n.toFixed(2).replace('.', ',');
   const rows = [
-    ['Ordini inclusi/mese',          '550',          '1.850',         '7.500',          '15.000'],
-    ['Costo per ordine extra',       '0,45 €+IVA',   '0,34 €+IVA',    '0,23 €+IVA',     '0,12 €+IVA'],
-    ['Menù digitali',                '1',            '3',             'Illimitati',     'Illimitati'],
-    ['Membri del team',              '1',            'Fino a 3',      'Illimitati',     'Illimitati'],
-    ['Assistenza via ticket, chat e guide', '✓',     '✓',             '✓',              '✓'],
-    ['Supporto telefonico 24/7',     '—',            '—',             '✓',              '✓'],
-    ['Richiamata entro 30 minuti',   '—',            '—',             '✓',              '✓'],
-    ['Canale riservato prioritario', '—',            '—',             '—',              '✓'],
+    ['Ordini inclusi/mese',                    ...ACC_PIANI.map(p => p.ordiniInclusi.toLocaleString('it-IT'))],
+    ['Costo per ordine extra',                 ...ACC_PIANI.map(p => `${fmt(p.ordineExtra)} €+IVA`)],
+    ['Menù digitali',                          ...ACC_PIANI.map(p => p.menuShort)],
+    ['Membri del team',                        ...ACC_PIANI.map(p => p.staffShort)],
+    ['Assistenza via chat, tutorial e ticket', ...ACC_PIANI.map(() => '✓')],
+    ['Supporto telefonico 24/7',               ...ACC_PIANI.map(p => p.supPhone ? '✓' : '—')],
+    ['Richiamata entro 30 minuti',             ...ACC_PIANI.map(p => p.supCallback ? '✓' : '—')],
+    ['Canale riservato prioritario',           ...ACC_PIANI.map(p => p.supPriority ? '✓' : '—')],
   ];
 
-  // Render cella: ✓ → check verde su pillola, — → muted, altro → testo
+  // Render cella: ✓ → check verde su pillola, — → muted, altro → testo.
+  // aria-label su ✓/— : sono simboli puri, senza label lo screen reader tace.
   const renderCell = (c) => {
     if (c === '✓') {
       return (
-        <span style={{
+        <span role="img" aria-label="Incluso" style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 22, height: 22, borderRadius: 999,
           background: PN.GREEN_SOFT, color: PN.GREEN,
         }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </span>
       );
     }
     if (c === '—') {
-      return <span style={{color: PN.MUTED_LIGHT, fontSize: 16, fontWeight: 500}}>—</span>;
+      return <span role="img" aria-label="Non incluso" style={{color: PN.MUTED_LIGHT, fontSize: 16, fontWeight: 500}}>—</span>;
     }
     return <span style={{color: PN.TEXT, fontWeight: 500}}>{c}</span>;
   };
@@ -480,7 +531,8 @@ function ConfrontoTable() {
         borderRadius: 12, overflow: 'hidden',
         background: PN.WHITE,
       }}>
-        {/* Header — neutro WHITE_OFF, NIENTE pink_soft. Tipografia uppercase muted. */}
+        {/* Header — neutro WHITE_OFF, NIENTE pink_soft. Tipografia uppercase muted.
+            Il piano attuale è segnalato col chip "attuale"; il consigliato in rosa. */}
         <div style={{
           display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
           padding: '14px 18px',
@@ -490,10 +542,23 @@ function ConfrontoTable() {
           letterSpacing: 0.4, textTransform: 'uppercase',
         }}>
           <span>Funzionalità</span>
-          <span style={{textAlign: 'center'}}>Free</span>
-          <span style={{textAlign: 'center'}}>Starter</span>
-          <span style={{textAlign: 'center', color: PN.PINK_DARK}}>Plus</span>
-          <span style={{textAlign: 'center'}}>Business</span>
+          {ACC_PIANI.map(p => (
+            <span key={p.id} style={{
+              textAlign: 'center',
+              color: p.highlight ? PN.PINK_DARK : (p.current ? PN.TEXT : PN.MUTED),
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              {p.nome}
+              {p.current && (
+                <span style={{
+                  fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3,
+                  padding: '1px 6px', borderRadius: 999,
+                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                  textTransform: 'none',
+                }}>attuale</span>
+              )}
+            </span>
+          ))}
         </div>
         {rows.map((r, i) => (
           <div key={i} style={{
