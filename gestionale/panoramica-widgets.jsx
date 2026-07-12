@@ -450,18 +450,18 @@ function WidgetRiempimento({ size }) {
 
 function WidgetPrenotazioniOggi() {
   // Lista più lunga per giustificare l'auto-scroll continuo (overflow vero).
-  // tag: chip colorato che vivacizza la riga (compleanno/allergia/vip/walkin/finestra).
+  // tag: chip Compleanno/Aziendale, mostrato sotto il nome.
   // I tag prenotazione sono SOLO due: Compleanno e Aziendale.
   // Tutto il resto (allergie, preferenze tavolo…) vive come nota testuale.
   const items = [
     { time: '19:30', name: 'Famiglia Rossi',   covers: 4, table: 'Tavolo 7',  tag: 'compleanno', note: 'torta' },
     { time: '20:00', name: 'Bianchi M.',       covers: 2, table: 'Tavolo 3' },
-    { time: '20:15', name: 'Conte (regular)',  covers: 6, table: 'Tavolo 12', vip: true },
+    { time: '20:15', name: 'Conte (regular)',  covers: 6, table: 'Tavolo 12' },
     { time: '20:30', name: 'Walk-in attesa',   covers: 2, table: null },
     { time: '21:00', name: 'Greco',            covers: 3, table: 'Tavolo 5' },
     { time: '21:30', name: 'De Luca',          covers: 2, table: 'Tavolo 9',  note: 'allergia noci' },
     { time: '21:45', name: 'Marini',           covers: 4, table: 'Tavolo 2',  tag: 'aziendale' },
-    { time: '22:00', name: 'Rinaldi',          covers: 2, table: 'Tavolo 11', vip: true },
+    { time: '22:00', name: 'Rinaldi',          covers: 2, table: 'Tavolo 11' },
     { time: '22:15', name: 'Esposito',         covers: 5, table: 'Tavolo 4',  note: 'tavolo finestra' },
   ];
 
@@ -546,15 +546,8 @@ function WidgetPrenotazioniOggi() {
                   borderRadius: 8, padding: '5px 0', textAlign: 'center',
                 }}>{it.time}</div>
                 <div style={{minWidth: 0}}>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: PN.TEXT, minWidth: 0}}>
-                    <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{it.name}</span>
-                    {it.vip && (
-                      <span style={{
-                        fontSize: 11.5, fontWeight: 600, padding: '2px 6px', borderRadius: 999,
-                        background: PN.WINE_SOFT, color: PN.WINE,
-                        letterSpacing: 0.4, flexShrink: 0,
-                      }}>VIP</span>
-                    )}
+                  <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                    {it.name}
                   </div>
                   {/* Tag (Compleanno/Aziendale) SOTTO il nome, con la nota accanto */}
                   {(tag || it.note) && (
