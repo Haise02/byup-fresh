@@ -203,16 +203,21 @@ function SalaApp() {
       const COLS = 12, ROWS = 8, TILE = 1;
       const src = POS[source.id];
 
-      // 1) Ricompatta gli uniti rimanenti accanto al source
+      // 1) Ricompatta gli uniti rimanenti accanto al source, SEMPRE in linea
+      //    retta sulla stessa riga: prima a destra, poi a sinistra se la
+      //    griglia finisce (mai a capo su un'altra riga).
       const remaining = source.mergedTables || [];
-      let cx = src.x + TILE;
-      let cy = src.y;
+      let right = src.x + TILE;
+      let left = src.x;
       remaining.forEach(id => {
         if (!POS[id]) return;
-        if (cx + TILE > COLS) { cx = src.x; cy += TILE; }
-        if (cy + TILE > ROWS) { cy = Math.max(0, src.y - TILE); cx = src.x; }
-        POS[id] = { ...POS[id], x: cx, y: cy };
-        cx += TILE;
+        if (right + TILE <= COLS) {
+          POS[id] = { ...POS[id], x: right, y: src.y };
+          right += TILE;
+        } else {
+          left = Math.max(0, left - TILE);
+          POS[id] = { ...POS[id], x: left, y: src.y };
+        }
       });
 
       // 2) Riposiziona il tavolo separato nella prima cella libera vicina.
@@ -296,58 +301,66 @@ function SalaApp() {
     });
     sourceTavolo.coperti = (sourceTavolo.coperti || 0) + addedPosti;
     sourceTavolo.mergedTables = [...(sourceTavolo.mergedTables || []), ...selectedIds];
-    // Accorpamento fisico: OGNI tavolo unito viene accostato al gruppo, uno alla
-    // volta, nella cella adiacente libera più vicina alla sua posizione attuale.
-    // Se le celle adiacenti sono tutte occupate da tavoli estranei, quello più
-    // comodo viene spostato nella prima cella libera vicina per fare spazio.
+    // Accorpamento fisico SEMPRE in linea retta: ogni tavolo unito si accoda
+    // a un'estremità della fila del gruppo (orizzontale o verticale), mai a L.
+    // Se l'estremità è occupata da un tavolo estraneo, quello viene spostato
+    // nella prima cella libera vicina per fare spazio.
     const POS = window.SALA_POSITIONS;
     if (POS && POS[sourceTavolo.id]) {
       const COLS = 12, ROWS = 8, TILE = 1;
-      const clusterIds = new Set([sourceTavolo.id, ...existingMergedIds]);
-      const inBounds = (x, y) => x >= 0 && x <= COLS - TILE && y >= 0 && y <= ROWS - TILE;
-      const tilesOverlap = (ax, ay, bx, by) =>
-        !(ax + TILE <= bx || bx + TILE <= ax || ay + TILE <= by || by + TILE <= ay);
-      const occupantAt = (x, y, ignore) => {
-        for (const [k, p] of Object.entries(POS)) {
-          const id = parseInt(k, 10);
-          if (ignore.has(id)) continue;
-          if (tilesOverlap(x, y, p.x, p.y)) return id;
-        }
-        return null;
+      const clusterIds = [sourceTavolo.id, ...existingMergedIds];
+      const dimsOf = (id, orientation) => {
+        const tt = all.find(x => x.id === id);
+        const o = orientation || (POS[id] && POS[id].orientation);
+        return typeof getTableDims === 'function'
+          ? getTableDims(null, tt?.posti, o)
+          : { w: TILE, h: TILE };
       };
+      const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
       selectedIds.forEach(gid => {
+        if (!POS[gid]) { clusterIds.push(gid); return; }
+        const rects = clusterIds.filter(id => POS[id])
+          .map(id => ({ id, x: POS[id].x, y: POS[id].y, ...dimsOf(id) }));
+        // Asse della fila: verticale se il gruppo condivide la colonna, altrimenti orizzontale
+        const axis = (rects.length > 1 && rects.every(r => Math.abs(r.x - rects[0].x) < 0.26)) ? 'v' : 'h';
+        // Il nuovo membro si allinea alla fila (rettangolari girati lungo l'asse)
+        const newOrient = axis;
+        const gd = dimsOf(gid, newOrient);
+        let ends;
+        if (axis === 'h') {
+          const y = POS[sourceTavolo.id].y;
+          ends = [
+            { x: Math.max(...rects.map(r => r.x + r.w)), y },
+            { x: Math.min(...rects.map(r => r.x)) - gd.w, y },
+          ];
+        } else {
+          const x = POS[sourceTavolo.id].x;
+          ends = [
+            { x, y: Math.max(...rects.map(r => r.y + r.h)) },
+            { x, y: Math.min(...rects.map(r => r.y)) - gd.h },
+          ];
+        }
         const gp = POS[gid];
-        if (!gp) { clusterIds.add(gid); return; }
-        // Celle adiacenti (4 direzioni) a ogni tile del gruppo corrente
-        const candidates = [];
-        clusterIds.forEach(cid => {
-          const cp = POS[cid]; if (!cp) return;
-          [[TILE, 0], [-TILE, 0], [0, TILE], [0, -TILE]].forEach(([dx, dy]) => {
-            const x = cp.x + dx, y = cp.y + dy;
-            if (!inBounds(x, y)) return;
-            const onCluster = [...clusterIds].some(id => POS[id] && tilesOverlap(x, y, POS[id].x, POS[id].y));
-            if (onCluster) return;
-            candidates.push({ x, y });
-          });
-        });
-        if (candidates.length === 0) { clusterIds.add(gid); return; }
-        // Preferisci le celle libere; a parità, la più vicina al tavolo da unire
-        const ignoreForOcc = new Set([...clusterIds, gid]);
-        candidates.forEach(c => {
-          c.occupant = occupantAt(c.x, c.y, ignoreForOcc);
-          c.dist = Math.hypot(c.x - gp.x, c.y - gp.y);
-        });
-        candidates.sort((a, b) => ((a.occupant != null) - (b.occupant != null)) || (a.dist - b.dist));
+        const candidates = ends
+          .filter(e => e.x >= 0 && e.y >= 0 && e.x + gd.w <= COLS && e.y + gd.h <= ROWS)
+          .map(e => {
+            const rect = { ...e, w: gd.w, h: gd.h };
+            const occupant = Object.keys(POS).map(k => parseInt(k, 10))
+              .filter(id => id !== gid && !clusterIds.includes(id))
+              .find(id => overlap(rect, { x: POS[id].x, y: POS[id].y, ...dimsOf(id) }));
+            return { ...e, occupant, dist: Math.hypot(e.x - gp.x, e.y - gp.y) };
+          })
+          // Preferisci l'estremità libera; a parità, la più vicina al tavolo da unire
+          .sort((a, b) => ((a.occupant != null) - (b.occupant != null)) || (a.dist - b.dist));
         const target = candidates[0];
-        POS[gid] = { ...POS[gid], x: target.x, y: target.y };
-        // Cella occupata da un estraneo: spostalo nella prima cella libera vicina
-        // (il guest ora occupa la cella target, quindi la spiral non la ripropone)
+        if (!target) { clusterIds.push(gid); return; }
+        POS[gid] = { ...POS[gid], x: target.x, y: target.y, orientation: newOrient };
         if (target.occupant != null) {
           const spot = findFreeCellSpiral(POS, target.x, target.y, target.occupant, COLS, ROWS, TILE);
           if (spot) POS[target.occupant] = { ...POS[target.occupant], x: spot.x, y: spot.y };
         }
-        clusterIds.add(gid);
+        clusterIds.push(gid);
       });
       window.dispatchEvent(new Event('sala-positions-sync'));
     }

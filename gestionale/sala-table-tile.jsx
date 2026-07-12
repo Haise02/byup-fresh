@@ -129,6 +129,7 @@ function TableTile({
   badge = [],
   density = (window.SALA_TILE_DENSITY || 'comfort'),
   dim, hovered, selected, dragging, mergeHint, alertTone,
+  hideChairSides = [],        // lati senza sedie (es. lato di contatto nei tavoli uniti)
   left, top,                  // posizione assoluta opzionale (piantina)
   unit = TT_UNIT,             // lato corpo per 1 cella (la piantina lo deriva dal pitch+zoom)
   pitch = null,               // passo cella della griglia (per i rect multi-cella)
@@ -169,8 +170,11 @@ function TableTile({
   const lifted = !dragging && !dim && (hovered || selected);
   const spring = 'cubic-bezier(0.34, 1.45, 0.64, 1)';
 
-  // Posizioni sedie in px relative al corpo — FUORI dai suoi bordi
-  const chairs = ttChairs(seats, shape, orientation).map((c, i) => {
+  // Posizioni sedie in px relative al corpo — FUORI dai suoi bordi.
+  // I lati in hideChairSides restano senza sedie (lato unito di un gruppo).
+  const chairs = ttChairs(seats, shape, orientation)
+    .filter(c => !hideChairSides.includes(c.side))
+    .map((c, i) => {
     const horiz = c.side === 'top' || c.side === 'bottom';
     const along = horiz ? body.w : body.h;
     const center = c.frac * along;

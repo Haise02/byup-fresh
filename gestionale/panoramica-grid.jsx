@@ -71,14 +71,16 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
       style={{
         position: 'relative',
         borderRadius: 14,
-        padding: '18px 18px 16px',
+        // In edit mode il contenuto scende sotto la fila di pulsanti in alto
+        // a destra (26px + margini): senza, i pulsanti coprono le scritte.
+        padding: editMode ? '44px 18px 16px' : '18px 18px 16px',
         height: '100%',
         overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
         // Apple cubic-bezier "spring": entry rapido, settle morbido.
         transition: dragging
           ? 'transform 60ms ease-out'
-          : 'transform 280ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out',
+          : 'transform 280ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out, padding 200ms ease-out',
         ...dragStyle,
       }}
     >
