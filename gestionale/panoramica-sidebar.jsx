@@ -281,7 +281,8 @@ function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
       }}
     >
       <span style={{display: 'inline-flex', color: active ? PN.PINK : PN.MUTED, position: 'relative', zIndex: 3}}>
-        <Icon name={icon} size={22}/>
+        {/* Icone più grandi a menu esteso; 22px quando è contratto */}
+        <Icon name={icon} size={collapsed ? 22 : 26}/>
       </span>
       {!collapsed && <span style={{flex: 1, position: 'relative', zIndex: 3}}>{label}</span>}
       {!collapsed && badge != null && (
@@ -335,7 +336,7 @@ function PnSysItem({ label, icon, active, onClick, collapsed }) {
       onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; e.currentTarget.style.color = PN.TEXT; } }}
       onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
     >
-      <Icon name={icon} size={18}/>
+      <Icon name={icon} size={collapsed ? 18 : 21}/>
       {!collapsed && <span>{label}</span>}
     </button>
   );

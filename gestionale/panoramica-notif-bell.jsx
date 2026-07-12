@@ -116,7 +116,7 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
           onMouseLeave={e => { if (!open) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
         >
           <span style={{position:'relative', display:'inline-flex'}}>
-            <Icon name="bell" size={18}/>
+            <Icon name="bell" size={collapsed ? 18 : 21}/>
             {collapsed && unreadCount > 0 && (
               <span style={{
                 position:'absolute', top: -3, right: -3,
