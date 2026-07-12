@@ -241,7 +241,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   Salda conto
                 </div>
                 <div style={{fontSize: 22, fontWeight: 800, color:'#0F1115', marginTop: 1, letterSpacing:-0.2}}>
-                  T.{tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}
+                  Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}
                   <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', marginLeft:8}}>
                     · {tavolo.coperti || 1} coperti
                   </span>
@@ -1211,7 +1211,7 @@ function SaldaDoneV2({ tavolo, total, pay, invoice, onClose }) {
         €{total.toFixed(2)}
       </div>
       <div style={{fontSize: 17, color:'#6B7280', marginBottom: 24, textAlign:'center'}}>
-        T.{tavolo.id}
+        Tavolo {tavolo.id}
         {pay.contanti > 0 && pay.carta > 0
           ? ` · €${pay.contanti.toFixed(2)} contanti + €${pay.carta.toFixed(2)} carta`
           : pay.contanti > 0 ? ' · Contanti' : ' · Carta'}

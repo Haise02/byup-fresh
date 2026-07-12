@@ -95,7 +95,7 @@ function SalaApp() {
     const count = cart.items.reduce((s,i)=>s+i.qty,0);
     setCart({ tableId: null, items: [] });
     setArticoloSheet(null);
-    showToast(`✓ ${count} articol${count===1?'o':'i'} inviati alla cucina · T.${tableId}`);
+    showToast(`✓ ${count} articol${count===1?'o':'i'} inviati alla cucina · Tavolo ${tableId}`);
   }
 
   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -181,7 +181,7 @@ function SalaApp() {
       target[k] = tmp;
     });
     setModalSposta(null);
-    showToast(`✓ Tav.${sourceTavolo.id} ↔ Tav.${target.id} scambiati`);
+    showToast(`✓ Tavolo ${sourceTavolo.id} ↔ Tavolo ${target.id} scambiati`);
     forceUpdate();
   }
 
@@ -226,7 +226,7 @@ function SalaApp() {
     forceUpdate();
   }
   function handleEdit(t)        { setModalModifica(t); }
-  function handleAssignOther(t) { alert(`Assegna Tav.${t.id} ad altri (mock)`); }
+  function handleAssignOther(t) { alert(`Assegna Tavolo ${t.id} ad altri (mock)`); }
   function handleNoShow(t)      { t.state = 'libero'; t.nextReservation = null; t.minutiAllaPrenotazione = null; forceUpdate(); }
 
   function handleUnisciConfirm(sourceTavolo, selectedIds) {
@@ -250,7 +250,7 @@ function SalaApp() {
       if (!t) return;
       addedPosti += t.posti || 0;
       t.state = targetState;
-      t.party = dominant.party || sourceTavolo.party || `Tav.${sourceTavolo.id}`;
+      t.party = dominant.party || sourceTavolo.party || `Tavolo ${sourceTavolo.id}`;
       if (targetState === 'prenotato') {
         t.nextReservation = dominant.nextReservation;
         t.minutiAllaPrenotazione = dominant.minutiAllaPrenotazione ?? null;
@@ -352,7 +352,7 @@ function SalaApp() {
       window.dispatchEvent(new Event('sala-positions-sync'));
     }
     setModalUnisci(null);
-    showToast(`✓ ${selectedIds.length} tavol${selectedIds.length===1?'o unito':'i uniti'} a T.${sourceTavolo.id}`);
+    showToast(`✓ ${selectedIds.length} tavol${selectedIds.length===1?'o unito':'i uniti'} a Tavolo ${sourceTavolo.id}`);
     forceUpdate();
   }
   window.SALA_DO_MERGE = handleUnisciConfirm;

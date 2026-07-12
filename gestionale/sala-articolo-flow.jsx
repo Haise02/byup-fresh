@@ -102,7 +102,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
             </div>
             <div style={{fontSize: 21, fontWeight: 800, color:'#0F1115', marginTop: 2,
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-              {customizing ? customizing.item.nome : `T.${tavolo.id}${tavolo.party ? ` · ${tavolo.party}` : ''}`}
+              {customizing ? customizing.item.nome : `Tavolo ${tavolo.id}${tavolo.party ? ` · ${tavolo.party}` : ''}`}
             </div>
           </div>
           <button onClick={handleClose} style={{

@@ -64,9 +64,9 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
   const clampedCoperti = Math.min(20, Math.max(1, coperti));
 
   const unionLabels = [
-    `Tav.${tavolo.id}`,
-    ...keptMergedTavoli.map(t => `Tav.${t.id}`),
-    ...addTavoli.map(t => `Tav.${t.id}`),
+    `Tavolo ${tavolo.id}`,
+    ...keptMergedTavoli.map(t => `Tavolo ${t.id}`),
+    ...addTavoli.map(t => `Tavolo ${t.id}`),
   ];
   const summaryLabel = unionLabels.join(' + ');
 
@@ -122,7 +122,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
           <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
             <div style={{flex:1, minWidth:0}}>
               <div style={{fontSize:22, fontWeight:800, color:'#0F1115', letterSpacing:'-0.02em'}}>
-                Modifica Tav.{[tavolo.id, ...(tavolo.mergedTables || [])].sort((a, b) => a - b).join('-')}
+                Modifica Tavolo {[tavolo.id, ...(tavolo.mergedTables || [])].sort((a, b) => a - b).join('-')}
               </div>
               <div style={{fontSize:17, color:'#6B7280', marginTop:4}}>
                 Unisci o separa tavoli, e personalizza i coperti
@@ -180,7 +180,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
               background:'#fff', border:'1px solid #FDBA74',
               fontSize:16, fontWeight:700, color:'#9A3412',
             }}>
-              Tav.{tavolo.id}
+              Tavolo {tavolo.id}
               <span style={{fontSize:14, color:'#9A3412', opacity:0.7, fontWeight:600}}>principale</span>
             </div>
             {(tavolo.mergedTables || []).map(id => {
@@ -201,7 +201,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                     cursor:'pointer', fontFamily:'inherit',
                     transition:'background 120ms, border-color 120ms, color 120ms',
                   }}>
-                  Tav.{id}
+                  Tavolo {id}
                   <span style={{
                     width:18, height:18, borderRadius:'50%',
                     background: kept ? '#FED7AA' : 'transparent',
@@ -225,7 +225,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                   fontSize:16, fontWeight:700, color:'#15803D',
                   cursor:'pointer', fontFamily:'inherit',
                 }}>
-                Tav.{t.id}
+                Tavolo {t.id}
                 <span style={{
                   width:18, height:18, borderRadius:'50%',
                   background:'#DCFCE7', color:'#15803D',
@@ -295,7 +295,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                       </div>
                     )}
                     <div style={{fontSize:20, fontWeight:800, color:'#0F1115', letterSpacing:'-0.01em', paddingRight:24}}>
-                      Tav.{t.id}
+                      Tavolo {t.id}
                     </div>
                     <div style={{fontSize:15.5, color:'#6B7280', fontWeight:500}}>
                       {t.posti} posti
@@ -452,7 +452,7 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
   const target = selectedId != null ? all.find(t => t.id === selectedId) : null;
 
   function tavLabel(t) {
-    return `Tav.${[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}`;
+    return `Tavolo ${[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}`;
   }
 
   function stateDescription(t) {
@@ -641,7 +641,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
   if (!tavolo) return null;
 
   function tavLabel(t) {
-    return `Tav.${[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}`;
+    return `Tavolo ${[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}`;
   }
   function stateDescription(t) {
     if (t.state === 'libero') return t.nextReservation ? `Libero · prenotazione alle ${t.nextReservation.time}` : 'Libero';
@@ -690,7 +690,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
   const cta = (() => {
     if (op === 'sposta') {
       if (spostaId == null) return { label:'Scegli il tavolo di destinazione', disabled:true };
-      return { label:`Sposta a Tav.${spostaId}`, onClick: () => { onSposta && onSposta(tavolo, spostaId); onClose && onClose(); } };
+      return { label:`Sposta a Tavolo ${spostaId}`, onClick: () => { onSposta && onSposta(tavolo, spostaId); onClose && onClose(); } };
     }
     if (op === 'unisci') {
       if (daUnire.size === 0) return { label:'Seleziona i tavoli da unire', disabled:true };
@@ -733,7 +733,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
         onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = '#E5E7EB'; }}>
         <span style={{width:10, height:10, borderRadius:'50%', background: meta.dot, flexShrink:0}}/>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:18, fontWeight:800, color:'#0F1115'}}>Tav.{t.id}</div>
+          <div style={{fontSize:18, fontWeight:800, color:'#0F1115'}}>Tavolo {t.id}</div>
           <div style={{fontSize:15.5, color:'#6B7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
             {subLabel || stateDescription(t)}
           </div>
@@ -884,7 +884,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
                   {daStaccare.size === merged.length ? 'Deseleziona tutti' : 'Seleziona tutti'}
                 </button>
               </div>
-              {dividiCandidates.map(t => pickRow(t, daStaccare.has(t.id), toggleStacca, `${t.posti} posti · unito a Tav.${tavolo.id}`))}
+              {dividiCandidates.map(t => pickRow(t, daStaccare.has(t.id), toggleStacca, `${t.posti} posti · unito a Tavolo ${tavolo.id}`))}
               <div style={{fontSize:15, color:'#9CA3AF', marginTop:6, lineHeight:1.4}}>
                 I tavoli separati tornano liberi e alla configurazione originale.
               </div>

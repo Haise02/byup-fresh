@@ -168,11 +168,11 @@ const SALA_TAVOLI = [
 
 // Conti aperti
 const SALA_CONTI_APERTI = [
-  { tavolo: 'Tav.4',  liberato: '14:30', cliente: 'Mario Rossi',     totTavolo: 85.00,  daSaldare: 45.00, oreFa: 5.5 },
-  { tavolo: 'Tav.7',  liberato: '17:45', cliente: 'Andrea Bianchi',  totTavolo: 142.00, daSaldare: 22.00, oreFa: 3.5 },
-  { tavolo: 'Tav.2',  liberato: '18:10', cliente: 'Simone De Luca',  totTavolo: 64.50,  daSaldare: 64.50, oreFa: 2.0 },
-  { tavolo: 'Tav.11', liberato: '18:42', cliente: 'Famiglia Verdi',  totTavolo: 178.00, daSaldare: 38.00, oreFa: 1.25 },
-  { tavolo: 'Tav.5',  liberato: '19:20', cliente: 'Luca Greco',      totTavolo: 52.00,  daSaldare: 16.00, oreFa: 0.3666666666666667 },
+  { tavolo: 'Tavolo 4',  liberato: '14:30', cliente: 'Mario Rossi',     totTavolo: 85.00,  daSaldare: 45.00, oreFa: 5.5 },
+  { tavolo: 'Tavolo 7',  liberato: '17:45', cliente: 'Andrea Bianchi',  totTavolo: 142.00, daSaldare: 22.00, oreFa: 3.5 },
+  { tavolo: 'Tavolo 2',  liberato: '18:10', cliente: 'Simone De Luca',  totTavolo: 64.50,  daSaldare: 64.50, oreFa: 2.0 },
+  { tavolo: 'Tavolo 11', liberato: '18:42', cliente: 'Famiglia Verdi',  totTavolo: 178.00, daSaldare: 38.00, oreFa: 1.25 },
+  { tavolo: 'Tavolo 5',  liberato: '19:20', cliente: 'Luca Greco',      totTavolo: 52.00,  daSaldare: 16.00, oreFa: 0.3666666666666667 },
 ];
 
 // Soglie default (configurabili via tweaks)

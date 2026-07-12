@@ -1262,8 +1262,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const cy = gy((avg(srcRects, 'y') + avg(tgtRects, 'y')) / 2);
             const srcIds = [...mergeProposal.sourceGroupIds].sort((a, b) => a - b);
             const tgtIds = [...mergeProposal.targetGroupIds].sort((a, b) => a - b);
-            const srcLabel = srcIds.length > 1 ? `Tav.${srcIds.join('-')}` : `Tav.${srcIds[0]}`;
-            const tgtLabel = tgtIds.length > 1 ? `Tav.${tgtIds.join('-')}` : `Tav.${tgtIds[0]}`;
+            const srcLabel = srcIds.length > 1 ? `Tavolo ${srcIds.join('-')}` : `Tavolo ${srcIds[0]}`;
+            const tgtLabel = tgtIds.length > 1 ? `Tavolo ${tgtIds.join('-')}` : `Tavolo ${tgtIds[0]}`;
 
             const chipBorder = isBlocked ? '#DC2626' : (warningMsg ? '#D97706' : '#FF5A5F');
             const chipShadow = isBlocked ? 'rgba(220,38,38,0.22)' : (warningMsg ? 'rgba(217,119,6,0.18)' : 'rgba(255,90,95,0.22)');
@@ -1416,7 +1416,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 {/* Header */}
                 <div style={{display:'flex', alignItems:'center', padding:'9px 10px 8px', borderBottom:'1px solid #F0F2F5'}}>
                   <span style={{flex:1, fontSize:15.5, fontWeight:700, color:'#374151', letterSpacing:0.2}}>
-                    Unione T.{[...allIds].sort((a,b)=>a-b).join('-')}
+                    Unione Tavolo {[...allIds].sort((a,b)=>a-b).join('-')}
                   </span>
                   <button onClick={() => setSplitMenu(null)} style={{
                     width:20, height:20, borderRadius:5, background:'#F3F4F6',
@@ -1430,7 +1430,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 <div style={{padding:'5px 8px'}}>
                   {src.mergedTables.map(id => (
                     <div key={id} style={{display:'flex', alignItems:'center', padding:'4px 2px', gap:8}}>
-                      <span style={{flex:1, fontSize:17, fontWeight:600, color:'#0F1115'}}>Tav.{id}</span>
+                      <span style={{flex:1, fontSize:17, fontWeight:600, color:'#0F1115'}}>Tavolo {id}</span>
                       <button
                         onClick={() => {
                           if (window.SALA_DO_DETACH) window.SALA_DO_DETACH(src, id);

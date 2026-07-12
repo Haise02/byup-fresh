@@ -578,7 +578,7 @@ function FloorPlan({
                     fontSize: 12, fontWeight: 700, padding:'2px 7px', borderRadius: 4,
                     pointerEvents:'none', zIndex: 4,
                   }}>
-                    Tav.{[...g.tableIds].sort((a,b) => a-b).join('-')}
+                    Tavolo {[...g.tableIds].sort((a,b) => a-b).join('-')}
                   </div>
                 ))}
               </>
@@ -629,7 +629,7 @@ function FloorPlan({
                 ) : (
                   <div style={{display:'flex', flexDirection:'column', alignItems:'center', lineHeight:1, gap:3}}>
                     <span style={{fontSize:15, fontWeight:800, lineHeight:1}}>
-                      {t.name.replace(/^Tavolo/i, 'Tav.')}
+                      {t.name}
                     </span>
                     <span style={{display:'inline-flex', alignItems:'center', gap:2, fontSize:10, fontWeight:700, opacity:0.65, lineHeight:1}}>
                       <BuIcons.chair size={10}/> {t.coperti}

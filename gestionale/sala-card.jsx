@@ -481,12 +481,12 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         transition: 'opacity 200ms ease-out',
       }}/>
 
-      {/* === HEADER — Tav.X numero, posti, dot stato a dx (tooltip on hover) === */}
+      {/* === HEADER — Tavolo X numero, posti, dot stato a dx (tooltip on hover) === */}
       <div style={{display: 'flex', alignItems: 'center', gap: 8, marginTop: 2}}>
         <span style={{
           fontSize: 20, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1,
-        }}>Tav.{[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
+        }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
         {t.state === 'occupato' && (
           <Tip text={`Al tavolo da ${formatOpenDuration(t.sittingMin)}`}>
             <span style={{

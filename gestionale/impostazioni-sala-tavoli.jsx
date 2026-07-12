@@ -1,11 +1,11 @@
 // Impostazioni → Sala e tavoli (v4: undo, dialog conferma, sort numerico, skeleton, AI import, touch)
 
-// Sort numerico-aware: "Tav.2" prima di "Tav.10"
+// Sort numerico-aware: "Tavolo 2" prima di "Tavolo 10"
 function naturalCompare(a, b) {
   return String(a).localeCompare(String(b), 'it', { numeric: true, sensitivity: 'base' });
 }
 
-// I nomi tavolo seguono il formato "Tav.N" e sono univoci a livello globale (across sale).
+// I nomi tavolo seguono il formato "Tavolo N" e sono univoci a livello globale (across sale).
 // Il prossimo nome riempie il primo numero mancante crescente.
 function nextGlobalTavoloNames(sale, count = 1) {
   const used = new Set();
@@ -18,7 +18,7 @@ function nextGlobalTavoloNames(sale, count = 1) {
   while (names.length < count) {
     while (used.has(n)) n++;
     used.add(n);
-    names.push(`Tav.${n}`);
+    names.push(`Tavolo ${n}`);
   }
   return names;
 }
@@ -28,7 +28,7 @@ function nextGlobalTavoloName(sale) {
 
 const TAVOLI_INIT = Array.from({length: 8}).map((_, i) => ({
   id: i + 1,
-  name: `Tav.${i+1}`,
+  name: `Tavolo ${i+1}`,
   alias: '',
   coperti: [2,4,2,6,4,2,4,8][i],
   disabled: i === 1, // tavolo 2 disattivato
@@ -1155,7 +1155,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
   const [quantity, setQuantity] = React.useState(1);
   const [customOpen, setCustomOpen] = React.useState(false);
   if (!tavolo) return null;
-  const unionLabel = groupInfo ? `Tav.${[...groupInfo.tableIds].sort((a,b) => a-b).join('-')}` : null;
+  const unionLabel = groupInfo ? `Tavolo ${[...groupInfo.tableIds].sort((a,b) => a-b).join('-')}` : null;
   const handleConfirm = () => {
     if (isNew && quantity > 1 && onCreateMore) onCreateMore(quantity - 1);
     onClose();

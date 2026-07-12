@@ -619,7 +619,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
             <span style={{fontSize: NP_FS.sm, fontWeight:600, color: NP_T.textMuted, display:'inline-flex', alignItems:'center', gap:4, flexWrap:'wrap'}}>
               {initData.nome}
               {initData.time ? ` · ${initData.time}` : ''}
-              {initData.tableId ? ` · Tav. ${initData.tableId}` : ''}
+              {initData.tableId ? ` · Tavolo ${initData.tableId}` : ''}
               {initData.coperti ? <> · <NpCopertiLabel n={initData.coperti}/></> : ''}
               {initData.dur ? ` · ${npFmtDur(initData.dur)}` : ''}
             </span>
@@ -799,7 +799,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
                           border: sel ? '1px solid transparent' : `1px solid ${NP_T.border}`,
                           transition:'background 140ms ease, color 140ms ease, border-color 140ms ease',
                         }}>
-                          Tav. {t.id}
+                          Tavolo {t.id}
                           <span style={{display:'inline-flex', alignItems:'center', gap: 2, fontSize: NP_FS.xs, fontWeight: 600, opacity: sel ? 0.85 : 0.55}}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
