@@ -523,9 +523,10 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           fontSize: 20, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
-        {/* Capienza in header SOLO per card non occupate: sulle occupate la
-            dice già il denominatore del "4/4" accanto agli avatar. */}
-        {t.state !== 'occupato' && (
+        {/* Capienza in header SOLO per libero/da liberare: sulle occupate la
+            dice il denominatore del "4/4" accanto agli avatar; sulle prenotate
+            contano i coperti prenotati, mostrati nella riga della prenotazione. */}
+        {t.state !== 'occupato' && t.state !== 'prenotato' && (
           <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
         )}
 
@@ -624,6 +625,12 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
             {t.nextReservation.name}
           </span>
+          {/* Coperti prenotati — sempre leggibili anche a card contratta */}
+          {t.nextReservation.posti && (
+            <span style={{fontSize: 14.5, color: '#6B7280', fontWeight: 600, flexShrink: 0}}>
+              · {t.nextReservation.posti} coperti
+            </span>
+          )}
         </div>
       </div>
     );
