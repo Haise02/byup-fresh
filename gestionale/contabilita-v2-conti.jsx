@@ -983,11 +983,13 @@ function ContConti({ filter = 'all' }) {
               <span style={{textAlign:'center'}}>Da saldare</span>
               <span/>
             </div>
+            <MaxRowsScroll maxRows={10}>
             {filtered.map((conto, i) => {
               const isExpanded = expandedId === conto.id;
               return (
                 <React.Fragment key={conto.id}>
                   <div
+                    data-row
                     onClick={() => setExpandedId(isExpanded ? null : conto.id)}
                     style={{
                       display:'grid',
@@ -1076,6 +1078,7 @@ function ContConti({ filter = 'all' }) {
                 </React.Fragment>
               );
             })}
+            </MaxRowsScroll>
           </div>
         )}
       </div>

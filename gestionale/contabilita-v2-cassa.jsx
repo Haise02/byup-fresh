@@ -221,6 +221,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen }) {
             <span style={{textAlign:'right'}}>Contanti</span>
             <span style={{textAlign:'right'}}>Carta e digitale</span>
           </div>
+          <MaxRowsScroll maxRows={10}>
           {rows.map((r,i) => (
             <div key={r.id} style={{
               display:'grid', gridTemplateColumns: cols,
@@ -240,6 +241,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen }) {
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.nonContanti.toFixed(2)}</span>
             </div>
           ))}
+          </MaxRowsScroll>
         </div>
       </div>
     </div>

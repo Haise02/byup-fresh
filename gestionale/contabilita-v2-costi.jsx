@@ -201,6 +201,7 @@ function ContCosti({ openNewCost }) {
             <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 16, padding:'10px 18px', fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5, borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
               <span>Nome</span><span>Categoria</span><span>Tipo</span><span>Prossima scadenza</span><span>Importo</span>
             </div>
+            <MaxRowsScroll maxRows={10}>
             {grp.items.map((c,i) => {
               const m = catMeta[c.cat];
               const I = m.icon;
@@ -242,6 +243,7 @@ function ContCosti({ openNewCost }) {
                 </div>
               );
             })}
+            </MaxRowsScroll>
           </div>
         );
       })}

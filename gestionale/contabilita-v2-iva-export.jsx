@@ -82,6 +82,7 @@ function ContIva({ month, setMonth }) {
           <div style={{display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr', padding:'10px 16px', background: C.TH_BG, fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5}}>
             <span>Mese</span><span style={{textAlign:'right'}}>Debito</span><span style={{textAlign:'right'}}>Credito</span><span style={{textAlign:'right'}}>Saldo</span>
           </div>
+          <MaxRowsScroll maxRows={10}>
           {(month != null ? [IVA_MONTHLY[month]] : IVA_MONTHLY).map((m,i) => {
             const saldo = m.deb - m.cred;
             return (
@@ -98,6 +99,7 @@ function ContIva({ month, setMonth }) {
               </div>
             );
           })}
+          </MaxRowsScroll>
         </div>
       </div>
 
@@ -109,6 +111,7 @@ function ContIva({ month, setMonth }) {
           <div style={{display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr', padding:'10px 16px', background: C.TH_BG, fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5}}>
             <span>Aliquota</span><span style={{textAlign:'right'}}>Debito</span><span style={{textAlign:'right'}}>Credito</span><span style={{textAlign:'right'}}>Saldo</span>
           </div>
+          <MaxRowsScroll maxRows={10}>
           {filteredRates.map((r,i) => (
             <div key={r.rate} style={{
               display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr',
@@ -122,6 +125,7 @@ function ContIva({ month, setMonth }) {
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>€ {(r.deb-r.cred).toFixed(2)}</span>
             </div>
           ))}
+          </MaxRowsScroll>
         </div>
       </div>
     </div>
@@ -169,6 +173,7 @@ function ContExport({ openShare }) {
         <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 22}}>
           <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Export recenti</div>
           <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2, marginBottom: 14}}>Gli ultimi 5 export disponibili al download</div>
+          <MaxRowsScroll maxRows={10}>
           {EXPORT_HISTORY.map((f,i) => (
             <div key={i} style={{
               display:'flex', alignItems:'center', gap: 14,
@@ -188,6 +193,7 @@ function ContExport({ openShare }) {
               <button style={iconOnlyBtn}><Ic.download size={14}/></button>
             </div>
           ))}
+          </MaxRowsScroll>
         </div>
       </div>
 

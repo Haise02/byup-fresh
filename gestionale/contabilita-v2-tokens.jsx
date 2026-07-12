@@ -22,3 +22,44 @@ const C = {
 };
 
 window.C = C;
+
+// Contenitore che mostra al massimo `maxRows` righe, poi scrolla al suo
+// interno. Le righe sono gli elementi marcati con data-row, oppure i figli
+// diretti se nessun marker è presente (per liste senza pannelli espandibili).
+// L'altezza è misurata sul DOM reale — bottom dell'ultima riga visibile —
+// quindi funziona con altezze di riga diverse tra tabelle e si riadatta a
+// resize, filtri ed espansioni senza costanti hardcoded.
+function MaxRowsScroll({ maxRows = 10, className = '', style, children }) {
+  const ref = React.useRef(null);
+  const [maxH, setMaxH] = React.useState(null);
+
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const marked = el.querySelectorAll('[data-row]');
+      const items = marked.length ? marked : el.children;
+      if (items.length <= maxRows) { setMaxH(null); return; }
+      const last = items[maxRows - 1];
+      setMaxH(prev => {
+        const h = last.offsetTop + last.offsetHeight;
+        return prev === h ? prev : h;
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    Array.from(el.children).forEach(c => ro.observe(c));
+    return () => ro.disconnect();
+  });
+
+  return (
+    <div ref={ref} className={`pn-scroll ${className}`} style={{
+      position: 'relative', // offsetTop delle righe relativo a questo box
+      maxHeight: maxH == null ? 'none' : maxH,
+      overflowY: maxH == null ? 'visible' : 'auto',
+      ...style,
+    }}>{children}</div>
+  );
+}
+window.MaxRowsScroll = MaxRowsScroll;
