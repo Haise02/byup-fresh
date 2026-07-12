@@ -132,6 +132,7 @@ function TableTile({
   hideChairSides = [],        // lati senza sedie (es. lato di contatto nei tavoli uniti)
   bodyExtend = null,          // {left,right,top,bottom} px extra per lato (tavoli uniti attaccati)
   hideStatusLabel = false,    // true sui membri secondari di un gruppo: stato scritto solo sul source
+  hideNumber = false,         // true sui tavoli uniti: il nome del gruppo è centrato sull'insieme
   left, top,                  // posizione assoluta opzionale (piantina)
   unit = TT_UNIT,             // lato corpo per 1 cella (la piantina lo deriva dal pitch+zoom)
   pitch = null,               // passo cella della griglia (per i rect multi-cella)
@@ -255,13 +256,15 @@ function TableTile({
         overflow: 'hidden',
       }}>
         {/* Solo il numero, grande in bold — nessun prefisso */}
-        <div style={{display: 'flex', alignItems: 'baseline', lineHeight: 1}}>
-          <span style={{
-            fontSize: numSize, fontWeight: 800,
-            color: dim ? '#9CA3AF' : '#0F1115',
-            fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
-          }}>{numero}</span>
-        </div>
+        {!hideNumber && (
+          <div style={{display: 'flex', alignItems: 'baseline', lineHeight: 1}}>
+            <span style={{
+              fontSize: numSize, fontWeight: 800,
+              color: dim ? '#9CA3AF' : '#0F1115',
+              fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+            }}>{numero}</span>
+          </div>
+        )}
         {density === 'comfort' && !dim && !hideStatusLabel && (
           <div style={{
             fontSize: labelSize, fontWeight: 700, lineHeight: 1,

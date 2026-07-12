@@ -1147,7 +1147,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const alertTone = showTriangle ? 'alert' : (isAlerting ? 'warn' : null);
 
             const dim = isDimmed(t.id) || (sourceForMerged && isDimmed(sourceForMerged.id));
-            const isHovered = hovered === t.id;
+            const inGroup = !!(t.mergedWith || (t.mergedTables && t.mergedTables.length > 0));
+            // Gruppo = UN tavolo: l'hover su un membro solleva tutte le tile insieme
+            const isHovered = inGroup
+              ? (hovered != null && groupMatesOf(t.id).includes(hovered))
+              : hovered === t.id;
             const isDragging = drag?.id === t.id || (drag && groupMatesOf(drag.id).includes(t.id));
             // Tile selezionata = quella corrispondente al tavolo aperto nella card laterale
             // (anche i merged secondari si "illuminano" se il loro source è selezionato)
@@ -1167,7 +1171,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             // gruppo si legge come un tavolo unico.
             const hideChairSides = [];
             const bodyExtend = { left: 0, right: 0, top: 0, bottom: 0 };
-            if (t.mergedWith || (t.mergedTables && t.mergedTables.length > 0)) {
+            if (inGroup) {
               const EPS = 0.3;
               const allT = window.SALA_TAVOLI || tavoli;
               groupMatesOf(t.id).forEach(mid => {
@@ -1198,9 +1202,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 badge={isAllergia && !dim && showOwnBadges ? ['ALLERGIA'] : []}
                 hideChairSides={hideChairSides}
                 bodyExtend={bodyExtend}
-                // Lo stato del gruppo si scrive UNA volta sola (sul source):
-                // i membri secondari mostrano solo il numero.
-                hideStatusLabel={!!t.mergedWith}
+                // Il gruppo è UN tavolo: niente numero né stato sulle singole
+                // tile — nome unico (es. "3-7-2") e stato sono centrati
+                // sull'insieme (overlay dopo il loop).
+                hideStatusLabel={inGroup}
+                hideNumber={inGroup}
                 unit={bodyUnit} pitch={longPitch}
                 dim={dim} hovered={isHovered} selected={isSelected}
                 dragging={isDragging} mergeHint={isInMergeProposal} alertTone={alertTone}
@@ -1248,6 +1254,53 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             );
           })}
 
+          {/* Nome unico del gruppo — il gruppo È un tavolo: "3-7-2" + stato,
+              centrati sull'insieme delle tile (le singole tile sono mute). */}
+          {tavoli.filter(t => t.mergedTables && t.mergedTables.length > 0).map(src => {
+            const ids = [src.id, ...src.mergedTables];
+            const rects = ids.map(id => {
+              const r = tableRect(id);
+              return r ? { id, ...r } : null;
+            }).filter(Boolean);
+            if (rects.length === 0) return null;
+            const minX = Math.min(...rects.map(r => r.x));
+            const maxX = Math.max(...rects.map(r => r.x + r.w));
+            const minY = Math.min(...rects.map(r => r.y));
+            const maxY = Math.max(...rects.map(r => r.y + r.h));
+            // Numeri in ordine visivo lungo l'asse della fila
+            const horizontal = (maxX - minX) >= (maxY - minY);
+            const ordered = [...rects].sort((a, b) => horizontal ? a.x - b.x : a.y - b.y).map(r => r.id);
+            const cx = gx((minX + maxX) / 2);
+            const cyC = gy((minY + maxY) / 2);
+            const dim = isDimmed(src.id);
+            const acc = TT_ACCENTS[src.state] || TT_ACCENTS.libero;
+            const numSize = Math.round(Math.min(27, Math.max(17, bodyUnit * 0.34)));
+            const labelSize = Math.min(12, Math.max(10, bodyUnit * 0.165));
+            return (
+              <div key={`gname-${src.id}`} style={{
+                position: 'absolute', left: cx, top: cyC,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 7, pointerEvents: 'none',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                opacity: dim ? 0.45 : 1,
+                filter: dim ? 'grayscale(1)' : 'none',
+              }}>
+                <span style={{
+                  fontSize: numSize, fontWeight: 800, lineHeight: 1,
+                  color: dim ? '#9CA3AF' : '#0F1115',
+                  fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+                  whiteSpace: 'nowrap',
+                }}>{ordered.join('-')}</span>
+                {!dim && (
+                  <span style={{
+                    fontSize: labelSize, fontWeight: 700, lineHeight: 1,
+                    letterSpacing: 0.5, textTransform: 'uppercase',
+                    color: acc.ink, opacity: 0.85, whiteSpace: 'nowrap',
+                  }}>{TT_LABELS[src.state] || src.state}</span>
+                )}
+              </div>
+            );
+          })}
 
           {/* Chip di proposta unione — appare dopo un drop adiacente su un gruppo/tavolo libero */}
           {!mergeMode && mergeProposal && (() => {
@@ -1608,10 +1661,10 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             );
           })()}
 
-          {/* Barra ridimensionamento — [−] posti [+] e ruota, sul tavolo selezionato.
-              Scala posti: 2(round) → 4(square) → 6(rect 2u) → 8(rect 2u denso) → 10(rect 3u).
-              Per i tavoli uniti mostra solo "Ruota": gira l'intero gruppo di 90°. */}
-          {/* Regolatore posti/rotazione — segue l'HOVER: il click apre il popup di dettaglio */}
+          {/* Barra "Ruota" — segue l'HOVER (il click apre il popup di dettaglio).
+              Solo rotazione: singoli rettangolari girano il proprio footprint,
+              i gruppi girano l'intera fila di 90°. Il modificatore posti vive
+              nella card/modale, non più sulla mappa. */}
           {!mergeMode && hovered != null && positions[hovered] && (() => {
             const all = window.SALA_TAVOLI || tavoli;
             const t = all.find(x => x.id === hovered);
@@ -1619,24 +1672,22 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             if (!t || !p) return null;
             const isGroup = !!(t.mergedWith || (t.mergedTables && t.mergedTables.length > 0));
             const seats = t.posti || 4;
-            const fp = getTableDims(null, seats, p.orientation);
-            const LADDER = [2, 4, 6, 8, 10];
-            const plusTarget  = LADDER.find(v => v > seats);
-            const minusTarget = [...LADDER].reverse().find(v => v < seats);
             const isRect = ttSeatShape(seats) === 'rect';
-            const bodyW = (fp.w - 1) * PX + bodyUnit;
-            const bodyH = (fp.h - 1) * PY + bodyUnit;
-            const bodyLeft = gx(p.x) + (fp.w * PX - bodyW) / 2;
-            const bodyTop  = gy(p.y) + (fp.h * PY - bodyH) / 2;
-            const cx = bodyLeft + bodyW / 2;
-            const aboveTop = bodyTop - chairOut - 44;
-            const barTop = aboveTop >= 2 ? aboveTop : bodyTop + bodyH + chairOut + 8;
-
-            const applySeats = (n) => {
-              if (n == null) return;
-              if (onAdjustCoperti) onAdjustCoperti(t.id, n); else t.posti = n;
-              resolveFootprint(t.id);
-            };
+            // Solo "Ruota": per i singoli ha senso solo sui rettangolari
+            if (!isGroup && !isRect) return null;
+            // Ancoraggio: il gruppo È un tavolo — la barra sta sempre al
+            // centro del suo bounding box, ovunque sia l'hover. I singoli
+            // restano ancorati al proprio corpo.
+            const anchorIds = isGroup ? groupMatesOf(t.id) : [t.id];
+            const aRects = anchorIds.map(id => tableRect(id)).filter(Boolean);
+            if (aRects.length === 0) return null;
+            const aMinX = gx(Math.min(...aRects.map(r => r.x)));
+            const aMaxX = gx(Math.max(...aRects.map(r => r.x + r.w)));
+            const aMinY = gy(Math.min(...aRects.map(r => r.y)));
+            const aMaxY = gy(Math.max(...aRects.map(r => r.y + r.h)));
+            const cx = (aMinX + aMaxX) / 2;
+            const aboveTop = aMinY - chairOut - 44;
+            const barTop = aboveTop >= 2 ? aboveTop : aMaxY + chairOut + 8;
             const doRotate = () => {
               updatePositions(prev => ({
                 ...prev,
@@ -1737,38 +1788,76 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                   boxShadow: '0 12px 36px rgba(80,40,80,0.14), 0 2px 8px rgba(80,40,80,0.08)',
                   animation: 'mergeChipIn 200ms cubic-bezier(0.32,0.72,0,1)',
                 }}>
-                {isGroup ? (
-                  <button title="Ruota il gruppo di 90°" onClick={doRotateGroup} style={{
+                <button
+                  title={isGroup ? 'Ruota il gruppo di 90°' : 'Ruota 90°'}
+                  onClick={isGroup ? doRotateGroup : doRotate}
+                  style={{
                     ...btnStyle(true), width: 'auto', padding: '0 10px', height: 26,
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     fontSize: 13.5, fontWeight: 700,
                   }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/>
-                    </svg>
-                    Ruota
-                  </button>
-                ) : (
-                  <React.Fragment>
-                    <button style={btnStyle(!!minusTarget)} disabled={!minusTarget} onClick={() => applySeats(minusTarget)}>−</button>
-                    <span style={{
-                      fontSize: 14, fontWeight: 700, color: '#0F1115',
-                      minWidth: 46, textAlign: 'center',
-                      fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
-                    }}>{seats} posti</span>
-                    <button style={btnStyle(!!plusTarget)} disabled={!plusTarget} onClick={() => applySeats(plusTarget)}>+</button>
-                    {isRect && (
-                      <React.Fragment>
-                        <div style={{width: 1, height: 16, background: 'rgba(15,17,21,0.08)'}}/>
-                        <button title="Ruota 90°" style={btnStyle(true)} onClick={doRotate}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/>
-                          </svg>
-                        </button>
-                      </React.Fragment>
-                    )}
-                  </React.Fragment>
-                )}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/>
+                  </svg>
+                  Ruota
+                </button>
+              </div>
+            );
+          })()}
+          {/* Anteprima hover — CONTESTUALE al tavolo: si apre a fianco del
+              tavolo (o del gruppo), a destra se c'è spazio altrimenti a
+              sinistra, con clamp verticale per restare dentro la mappa. */}
+          {hoverPreview && (() => {
+            const mates = groupMatesOf(hoverPreview.id);
+            const rects = mates.map(id => tableRect(id)).filter(Boolean);
+            if (rects.length === 0) return null;
+            const pxL = gx(Math.min(...rects.map(r => r.x)));
+            const pxR = gx(Math.max(...rects.map(r => r.x + r.w)));
+            const pxT = gy(Math.min(...rects.map(r => r.y)));
+            const CARD_W = 380;
+            const canvasW = COLS * PX + 2 * PAD;
+            let cardLeft = pxR + 14;
+            if (cardLeft + CARD_W > canvasW - 6) cardLeft = pxL - CARD_W - 14;
+            cardLeft = Math.max(6, Math.min(cardLeft, canvasW - CARD_W - 6));
+            let cardTop = Math.max(6, pxT - 8);
+            // Se sotto resta poco spazio, alza la card per darle respiro
+            if (CANVAS_H - cardTop < 340) cardTop = Math.max(6, CANVAS_H - 340);
+            const cardMaxH = CANVAS_H - cardTop - 6;
+            return (
+              <div style={{
+                position: 'absolute', left: cardLeft, top: cardTop,
+                width: CARD_W, maxHeight: cardMaxH,
+                zIndex: 28,
+                animation: 'salaPanelIn 240ms cubic-bezier(0.32,0.72,0,1)',
+                pointerEvents: 'none',
+              }}>
+                <div className="pn-scroll"
+                  // Il pannello può comparire sotto il cursore: senza questi
+                  // handler ruba l'hover al tavolo e si smonta subito, in un
+                  // loop di flicker. Così invece tiene vivo l'hover.
+                  onMouseEnter={() => hoverTable(hoverPreview.id)}
+                  onMouseLeave={unhoverTable}
+                  style={{
+                    position: 'relative',
+                    background: '#fff',
+                    borderRadius: 14,
+                    border: '1px solid rgba(15,17,21,0.08)',
+                    boxShadow: '0 10px 30px rgba(15,17,21,0.18), 0 2px 6px rgba(15,17,21,0.10)',
+                    maxHeight: '100%', overflowY: 'auto',
+                    pointerEvents: 'auto',
+                  }}>
+                  <SalaCard t={hoverPreview}
+                    expanded={true}
+                    onToggle={()=>{}}
+                    onAdd={()=>onOpenAdd(hoverPreview)}
+                    onPay={()=>onOpenPay(hoverPreview)}
+                    onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
+                    onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(hoverPreview.id, n)}
+                    onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(hoverPreview.id, n)}
+                    onLibera={onLibera} onMove={onMove} onEdit={onEdit}
+                    onAssignOther={onAssignOther} onNoShow={onNoShow}
+                    onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
+                </div>
               </div>
             );
           })()}
@@ -1835,49 +1924,6 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
         </React.Fragment>
       )}
 
-      {/* Anteprima hover — pannello leggero ancorato a destra. Larghezza
-          sufficiente per la card espansa (a 288px il contenuto sbordava
-          fuori dallo schermo) e margini interni così resta SEMPRE dentro
-          il riquadro. z-index sopra la barra posti/ruota (26): per i tavoli
-          vicini al bordo destro le due UI si sovrapponevano. */}
-      {hoverPreview && (
-        <div style={{
-          position:'absolute',
-          top: 6, right: 6, bottom: 6,
-          width: 380, maxWidth: 'calc(100% - 12px)',
-          zIndex: 28,
-          animation: 'salaPanelIn 240ms cubic-bezier(0.32,0.72,0,1)',
-          pointerEvents: 'none',
-        }}>
-          <div className="pn-scroll"
-            // Il pannello può comparire sotto il cursore (tavoli a destra):
-            // senza questi handler ruba l'hover al tavolo e si smonta subito,
-            // in un loop di flicker. Così invece tiene vivo l'hover.
-            onMouseEnter={() => hoverTable(hoverPreview.id)}
-            onMouseLeave={unhoverTable}
-            style={{
-            position:'relative',
-            background:'#fff',
-            borderRadius: 14,
-            border: '1px solid rgba(15,17,21,0.08)',
-            boxShadow: '0 10px 30px rgba(15,17,21,0.18), 0 2px 6px rgba(15,17,21,0.10)',
-            maxHeight: '100%', overflowY: 'auto',
-            pointerEvents: 'auto',
-          }}>
-            <SalaCard t={hoverPreview}
-              expanded={true}
-              onToggle={()=>{}}
-              onAdd={()=>onOpenAdd(hoverPreview)}
-              onPay={()=>onOpenPay(hoverPreview)}
-              onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-              onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(hoverPreview.id, n)}
-              onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(hoverPreview.id, n)}
-              onLibera={onLibera} onMove={onMove} onEdit={onEdit}
-              onAssignOther={onAssignOther} onNoShow={onNoShow}
-              onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
-          </div>
-        </div>
-      )}
 
       {/* Dettaglio al click — popup grande centrato con sfondo sfocato.
           Portal sul frame: copre tutta l'app, scala coerente con lo zoom. */}
