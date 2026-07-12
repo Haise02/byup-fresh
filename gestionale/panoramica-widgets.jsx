@@ -451,23 +451,23 @@ function WidgetRiempimento({ size }) {
 function WidgetPrenotazioniOggi() {
   // Lista più lunga per giustificare l'auto-scroll continuo (overflow vero).
   // tag: chip colorato che vivacizza la riga (compleanno/allergia/vip/walkin/finestra).
+  // I tag prenotazione sono SOLO due: Compleanno e Aziendale.
+  // Tutto il resto (allergie, preferenze tavolo…) vive come nota testuale.
   const items = [
-    { time: '19:30', name: 'Famiglia Rossi',   covers: 4, table: 'Tavolo 7',  tag: 'compleanno', note: 'compleanno · torta' },
+    { time: '19:30', name: 'Famiglia Rossi',   covers: 4, table: 'Tavolo 7',  tag: 'compleanno', note: 'torta' },
     { time: '20:00', name: 'Bianchi M.',       covers: 2, table: 'Tavolo 3' },
     { time: '20:15', name: 'Conte (regular)',  covers: 6, table: 'Tavolo 12', vip: true },
-    { time: '20:30', name: 'Walk-in attesa',   covers: 2, table: null,        tag: 'walkin' },
+    { time: '20:30', name: 'Walk-in attesa',   covers: 2, table: null },
     { time: '21:00', name: 'Greco',            covers: 3, table: 'Tavolo 5' },
-    { time: '21:30', name: 'De Luca',          covers: 2, table: 'Tavolo 9',  tag: 'allergia', note: 'allergia noci' },
-    { time: '21:45', name: 'Marini',           covers: 4, table: 'Tavolo 2' },
+    { time: '21:30', name: 'De Luca',          covers: 2, table: 'Tavolo 9',  note: 'allergia noci' },
+    { time: '21:45', name: 'Marini',           covers: 4, table: 'Tavolo 2',  tag: 'aziendale' },
     { time: '22:00', name: 'Rinaldi',          covers: 2, table: 'Tavolo 11', vip: true },
-    { time: '22:15', name: 'Esposito',         covers: 5, table: 'Tavolo 4',  tag: 'finestra', note: 'tavolo finestra' },
+    { time: '22:15', name: 'Esposito',         covers: 5, table: 'Tavolo 4',  note: 'tavolo finestra' },
   ];
 
   const tagStyle = {
     compleanno: { bg: '#EDE9FE', fg: '#7C3AED', label: 'Compleanno' },
-    allergia:   { bg: '#FEE2E2', fg: '#DC2626', label: 'Allergia' },
-    walkin:     { bg: '#FEF3C7', fg: '#92400E', label: 'Walk-in' },
-    finestra:   { bg: '#DBEAFE', fg: '#1E40AF', label: 'Finestra' },
+    aziendale:  { bg: '#DBEAFE', fg: '#1E40AF', label: 'Aziendale' },
   };
 
   const [interacting, setInteracting] = React.useState(false);
@@ -555,15 +555,20 @@ function WidgetPrenotazioniOggi() {
                         letterSpacing: 0.4, flexShrink: 0,
                       }}>VIP</span>
                     )}
-                    {tag && (
-                      <span style={{
-                        fontSize: 11.5, fontWeight: 600, padding: '2px 7px', borderRadius: 999,
-                        background: tag.bg, color: tag.fg,
-                        letterSpacing: 0.2, flexShrink: 0,
-                      }}>{tag.label}</span>
-                    )}
                   </div>
-                  {it.note && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{it.note}</div>}
+                  {/* Tag (Compleanno/Aziendale) SOTTO il nome, con la nota accanto */}
+                  {(tag || it.note) && (
+                    <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, minWidth: 0}}>
+                      {tag && (
+                        <span style={{
+                          fontSize: 11.5, fontWeight: 600, padding: '2px 7px', borderRadius: 999,
+                          background: tag.bg, color: tag.fg,
+                          letterSpacing: 0.2, flexShrink: 0,
+                        }}>{tag.label}</span>
+                      )}
+                      {it.note && <span style={{fontSize: 13.5, color: PN.MUTED, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{it.note}</span>}
+                    </div>
+                  )}
                 </div>
                 {/* Colonna destra: tavolo assegnato sopra, coperti sotto */}
                 <div style={{textAlign: 'right', whiteSpace: 'nowrap'}}>
