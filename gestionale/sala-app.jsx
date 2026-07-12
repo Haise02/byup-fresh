@@ -433,13 +433,12 @@ function SalaApp() {
                 onCartChange={setCart}
                 onConfirmCart={handleConfirmCart}
                 onAdjustCoperti={(id, n) => {
-                  // Lo stepper ora modifica la capacità (posti). Coperti seduti e connessi byup
-                  // vengono clampati alla nuova capacità se necessario.
+                  // Lo stepper modifica i COPERTI seduti, mai la capacità:
+                  // il numero è clampato tra 1 e i posti del tavolo.
                   const t = SALA_TAVOLI.find(x => x.id === id);
                   if (t) {
-                    t.posti = n;
-                    if ((t.coperti || 0) > n) t.coperti = n;
-                    if ((t.byup || 0) > n) t.byup = n;
+                    t.coperti = Math.max(1, Math.min(t.posti || n, n));
+                    if ((t.byup || 0) > t.coperti) t.byup = t.coperti;
                     forceUpdate();
                   }
                 }}

@@ -41,10 +41,11 @@ function WSparkline({ data, color = PN.PINK, animated }) {
 
   // La linea è SEMPRE completa: niente ridisegno da zero a ogni cambio dati
   // (per il 60% del tempo si vedeva una linea mozzata a metà). I dati vengono
-  // ricampionati a N punti fissi così i path di periodi diversi hanno la
-  // stessa struttura e il cambio è un MORPH fluido (transition su `d`).
+  // ricampionati a N punti fissi e il cambio periodo è un MORPH animato in
+  // JS (rAF): i valori correnti si interpolano verso i nuovi — visibile e
+  // fluido su qualunque browser, senza dipendere dalla transition CSS su `d`.
   const N = 24;
-  const resampled = React.useMemo(() => {
+  const target = React.useMemo(() => {
     if (data.length === N) return data;
     return Array.from({ length: N }, (_, i) => {
       const t = (i / (N - 1)) * (data.length - 1);
@@ -52,10 +53,32 @@ function WSparkline({ data, color = PN.PINK, animated }) {
       return data[lo] + (data[hi] - data[lo]) * (t - lo);
     });
   }, [data]);
-  const max = Math.max(...resampled), min = Math.min(...resampled);
+  const [vals, setVals] = React.useState(target);
+  const valsRef = React.useRef(target);
+  const rafRef = React.useRef(null);
+  React.useEffect(() => {
+    const from = valsRef.current;
+    const to = target;
+    const t0 = performance.now();
+    const DUR = 900;
+    const ease = (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; // easeInOutCubic
+    cancelAnimationFrame(rafRef.current);
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / DUR);
+      const e = ease(k);
+      const cur = to.map((v, i) => from[i] + (v - from[i]) * e);
+      valsRef.current = cur;
+      setVals(cur);
+      if (k < 1) rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target]);
+
+  const max = Math.max(...vals), min = Math.min(...vals);
   const range = max - min || 1;
 
-  const pts = resampled.map((v, i) => {
+  const pts = vals.map((v, i) => {
     const x = PAD + (i / (N - 1)) * usableW;
     const y = PAD + usableH - ((v - min) / range) * usableH;
     return [x, y];
@@ -72,7 +95,6 @@ function WSparkline({ data, color = PN.PINK, animated }) {
   const fillPath = path + ` L ${(VB_W - PAD).toFixed(2)} ${(VB_H - PAD).toFixed(2)} L ${PAD} ${(VB_H - PAD).toFixed(2)} Z`;
   const gradId = `spark-grad-${color.replace('#', '')}`;
   const last = pts[pts.length - 1];
-  const MORPH = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
   return (
     <div style={{width: '100%', height: '100%', overflow: 'hidden', display: 'block'}}>
@@ -91,28 +113,18 @@ function WSparkline({ data, color = PN.PINK, animated }) {
           </clipPath>
         </defs>
         <g clipPath={`url(#spark-clip-${gradId})`}>
-          {/* d sia come attributo (primo paint/fallback) che in style: la
-              transition CSS su `d` produce il morphing tra i dataset. */}
-          <path
-            d={fillPath}
-            fill={`url(#${gradId})`}
-            style={{ d: `path("${fillPath}")`, transition: `d 700ms ${MORPH}` }}
-          />
+          <path d={fillPath} fill={`url(#${gradId})`}/>
           <path
             d={path} fill="none"
             stroke={color} strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round"
-            style={{ d: `path("${path}")`, transition: `d 700ms ${MORPH}` }}
             vectorEffect="non-scaling-stroke"
           />
           {animated && (
             <circle
               cx={last[0].toFixed(2)} cy={last[1].toFixed(2)}
               r="2.4" fill={color}
-              style={{
-                animation: 'spark-pulse 1.6s ease-in-out infinite',
-                transition: `cx 700ms ${MORPH}, cy 700ms ${MORPH}`,
-              }}
+              style={{ animation: 'spark-pulse 1.6s ease-in-out infinite' }}
             />
           )}
         </g>
@@ -440,15 +452,15 @@ function WidgetPrenotazioniOggi() {
   // Lista più lunga per giustificare l'auto-scroll continuo (overflow vero).
   // tag: chip colorato che vivacizza la riga (compleanno/allergia/vip/walkin/finestra).
   const items = [
-    { time: '19:30', name: 'Famiglia Rossi',   covers: 4, table: 'T7',  tag: 'compleanno', note: 'compleanno · torta' },
-    { time: '20:00', name: 'Bianchi M.',       covers: 2, table: 'T3' },
-    { time: '20:15', name: 'Conte (regular)',  covers: 6, table: 'T12', vip: true },
-    { time: '20:30', name: 'Walk-in attesa',   covers: 2, table: '—',   tag: 'walkin' },
-    { time: '21:00', name: 'Greco',            covers: 3, table: 'T5' },
-    { time: '21:30', name: 'De Luca',          covers: 2, table: 'T9',  tag: 'allergia', note: 'allergia noci' },
-    { time: '21:45', name: 'Marini',           covers: 4, table: 'T2' },
-    { time: '22:00', name: 'Rinaldi',          covers: 2, table: 'T11', vip: true },
-    { time: '22:15', name: 'Esposito',         covers: 5, table: 'T4',  tag: 'finestra', note: 'tavolo finestra' },
+    { time: '19:30', name: 'Famiglia Rossi',   covers: 4, table: 'Tavolo 7',  tag: 'compleanno', note: 'compleanno · torta' },
+    { time: '20:00', name: 'Bianchi M.',       covers: 2, table: 'Tavolo 3' },
+    { time: '20:15', name: 'Conte (regular)',  covers: 6, table: 'Tavolo 12', vip: true },
+    { time: '20:30', name: 'Walk-in attesa',   covers: 2, table: null,        tag: 'walkin' },
+    { time: '21:00', name: 'Greco',            covers: 3, table: 'Tavolo 5' },
+    { time: '21:30', name: 'De Luca',          covers: 2, table: 'Tavolo 9',  tag: 'allergia', note: 'allergia noci' },
+    { time: '21:45', name: 'Marini',           covers: 4, table: 'Tavolo 2' },
+    { time: '22:00', name: 'Rinaldi',          covers: 2, table: 'Tavolo 11', vip: true },
+    { time: '22:15', name: 'Esposito',         covers: 5, table: 'Tavolo 4',  tag: 'finestra', note: 'tavolo finestra' },
   ];
 
   const tagStyle = {
@@ -492,11 +504,8 @@ function WidgetPrenotazioniOggi() {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}>
-      {/* flexWrap: a w=1 titolo (24px) + meta non entrano su una riga sola —
-          senza wrap la meta sbordava oltre il bordo destro della card. */}
-      <div style={{display: 'flex', alignItems: 'baseline', gap: '2px 12px', marginBottom: 12, flexShrink: 0, flexWrap: 'wrap', minWidth: 0}}>
+      <div style={{marginBottom: 12, flexShrink: 0, minWidth: 0}}>
         <div style={{fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em', whiteSpace: 'nowrap'}}>23 prenotazioni</div>
-        <div style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>· 67 coperti · 84% riempimento</div>
       </div>
 
       {/* Auto-scroll wrapper — overflow:auto sempre attivo. Lista duplicata
@@ -522,37 +531,51 @@ function WidgetPrenotazioniOggi() {
             const tag = it.tag ? tagStyle[it.tag] : null;
             return (
               <div key={i} style={{
-                display: 'grid', gridTemplateColumns: '48px 1fr auto', gap: 12, alignItems: 'center',
-                padding: '10px 12px',
+                display: 'grid', gridTemplateColumns: '54px minmax(0, 1fr) auto', gap: 12, alignItems: 'center',
+                padding: '9px 12px',
                 borderRadius: 10,
                 background: PN.WHITE,
                 border: `1px solid ${PN.BORDER_HAIR}`,
                 boxShadow: '0 1px 0 rgba(15, 17, 21, 0.02)',
                 flexShrink: 0,
               }}>
-                <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, fontVariantNumeric: 'tabular-nums'}}>{it.time}</div>
+                {/* Orario in chip: colonna fissa, sempre allineata */}
+                <div style={{
+                  fontSize: 14, fontWeight: 700, color: PN.TEXT, fontVariantNumeric: 'tabular-nums',
+                  background: PN.WHITE_OFF, border: `1px solid ${PN.BORDER_HAIR}`,
+                  borderRadius: 8, padding: '5px 0', textAlign: 'center',
+                }}>{it.time}</div>
                 <div style={{minWidth: 0}}>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 500, color: PN.TEXT, flexWrap: 'wrap'}}>
-                    {it.name}
+                  <div style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: PN.TEXT, minWidth: 0}}>
+                    <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{it.name}</span>
                     {it.vip && (
                       <span style={{
                         fontSize: 11.5, fontWeight: 600, padding: '2px 6px', borderRadius: 999,
                         background: PN.WINE_SOFT, color: PN.WINE,
-                        letterSpacing: 0.4,
+                        letterSpacing: 0.4, flexShrink: 0,
                       }}>VIP</span>
                     )}
                     {tag && (
                       <span style={{
                         fontSize: 11.5, fontWeight: 600, padding: '2px 7px', borderRadius: 999,
                         background: tag.bg, color: tag.fg,
-                        letterSpacing: 0.2,
+                        letterSpacing: 0.2, flexShrink: 0,
                       }}>{tag.label}</span>
                     )}
                   </div>
-                  {it.note && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{it.note}</div>}
+                  {it.note && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{it.note}</div>}
                 </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, color: PN.MUTED, fontWeight: 600, whiteSpace: 'nowrap'}}>
-                  <Icon name="people-customer" size={12} color={PN.MUTED}/> {it.covers} · {it.table}
+                {/* Colonna destra: tavolo assegnato sopra, coperti sotto */}
+                <div style={{textAlign: 'right', whiteSpace: 'nowrap'}}>
+                  <div style={{fontSize: 14, fontWeight: 600, color: it.table ? PN.TEXT : PN.MUTED}}>
+                    {it.table || 'Da assegnare'}
+                  </div>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: 13, color: PN.MUTED, fontWeight: 600, marginTop: 2,
+                  }}>
+                    <Icon name="people-customer" size={11} color={PN.MUTED}/> {it.covers} coperti
+                  </div>
                 </div>
               </div>
             );
@@ -1115,20 +1138,42 @@ function WidgetFinancials({ size }) {
   );
 
   if (compact) {
+    // Layout "ambient": la sparkline è una FASCIA a tutta larghezza ancorata
+    // al fondo, dietro ai contenuti — niente più grafico mozzato che
+    // galleggia in alto a destra. Sopra: toggle a sinistra e contesto a
+    // destra; in basso: numero grande a sinistra, mini-card a destra.
     return (
       <div
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
-        style={{display: 'flex', height: '100%', minHeight: 0, gap: 16}}
+        style={{position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}
       >
-        {/* Sinistra: toggle + incasso totale */}
-        <div key={period + '-l'} style={{
-          flex: '0 1 auto', minWidth: 0,
-          display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center',
-          animation: 'fin-fade-in 320ms ease-out',
+        {/* Sparkline backdrop — sempre montata (il morph vive qui). Bassa
+            (40%) e ancorata al fondo: non deve attraversare numeri e card. */}
+        <div style={{
+          position: 'absolute', left: -10, right: -10, bottom: -10, height: '40%',
+          pointerEvents: 'none', opacity: 0.9,
         }}>
+          <WSparkline data={d.spark} color={PN.PINK} animated/>
+        </div>
+
+        {/* Riga alta: toggle + contesto */}
+        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, position: 'relative', zIndex: 1, flexShrink: 0, minWidth: 0}}>
           <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
-          <div style={{minWidth: 0}}>
+          <span key={period + '-sub'} style={{
+            fontSize: 13, color: PN.MUTED, minWidth: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            animation: 'fin-fade-in 320ms ease-out',
+          }}>{d.sub}</span>
+        </div>
+
+        {/* Riga bassa: incasso grande + mini-card, sopra la sparkline */}
+        <div style={{
+          marginTop: 'auto', display: 'flex', alignItems: 'flex-end',
+          justifyContent: 'space-between', gap: 12,
+          position: 'relative', zIndex: 1, minWidth: 0,
+        }}>
+          <div key={period + '-l'} style={{minWidth: 0, animation: 'fin-fade-in 320ms ease-out'}}>
             <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
               Incassi {period}
             </div>
@@ -1138,21 +1183,8 @@ function WidgetFinancials({ size }) {
               </span>
               <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
             </div>
-            <div style={{fontSize: 13, color: PN.MUTED, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</div>
           </div>
-        </div>
-
-        {/* Destra: sparkline (flex, si comprime) + mini-card sotto.
-            NIENTE key sul contenitore della sparkline: deve restare montata
-            tra i cambi periodo perché il morph del path possa avvenire. */}
-        <div style={{
-          flex: '1 1 auto', minWidth: 0, minHeight: 0,
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          <div style={{flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: 8}}>
-            <WSparkline data={d.spark} color={PN.PINK} animated/>
-          </div>
-          <div key={period + '-r'} style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, flexShrink: 0, animation: 'fin-fade-in 320ms ease-out 60ms both'}}>
+          <div key={period + '-r'} style={{display: 'flex', gap: 10, flexShrink: 0, animation: 'fin-fade-in 320ms ease-out 60ms both'}}>
             <FinMiniCard label="Scontrino" value={d.scontrino} delta={d.sDelta}/>
             <FinMiniCard label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta}/>
           </div>
@@ -1213,10 +1245,12 @@ function FinMiniCard({label, value, delta}) {
   return (
     <div style={{
       padding: '10px 12px',
-      background: PN.WHITE_OFF,
+      // Fondo pieno: la card può poggiare sulla sparkline backdrop del
+      // widget Incassi — la linea non deve trasparire attraverso.
+      background: '#FFFFFF',
       border: `1px solid ${PN.BORDER_HAIR}`,
       borderRadius: 10,
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 4px rgba(15,17,21,0.05)',
       minWidth: 0, overflow: 'hidden',
     }}>
       <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>

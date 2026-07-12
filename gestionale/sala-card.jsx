@@ -294,7 +294,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
   if (byup > 0)    conn.push(`${byup} app byup`);
   if (byupWeb > 0) conn.push(`${byupWeb} web app`);
   const tipText = editable
-    ? `${coperti}/${posti} coperti · tocca per modificare i posti`
+    ? `${coperti}/${posti} coperti · tocca per modificare i coperti`
     : `${coperti} ospiti su ${posti}${conn.length ? ' · ' + conn.join(', ') : ''}`;
   const Inner = (
     <div style={{display:'inline-flex', alignItems:'center', gap: expanded ? 8 : 6, cursor: editable ? 'pointer' : 'help'}}>
@@ -376,7 +376,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
         }}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10}}>
             <span style={{fontSize: 13.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
-              Posti del tavolo
+              Coperti del tavolo
             </span>
             <button onClick={() => setEditing(false)} aria-label="Chiudi" style={{
               width: 22, height: 22, borderRadius: 6,
@@ -386,37 +386,37 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
           </div>
+          {/* Stepper sui COPERTI seduti: da 1 fino ai posti del tavolo.
+              La capacità (posti) non si tocca da qui. */}
           <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 10}}>
-            <button onClick={() => onAdjust(Math.max(coperti || 1, posti - 1))} disabled={posti <= (coperti || 1)} style={{
+            <button onClick={() => onAdjust(Math.max(1, (coperti || 1) - 1))} disabled={(coperti || 1) <= 1} style={{
               width: 32, height: 32, borderRadius: 8,
-              border:'1px solid #E5E7EB', background: posti <= (coperti || 1) ? '#FAFBFC' : '#FFFFFF',
-              cursor: posti <= (coperti || 1) ? 'default' : 'pointer',
-              fontSize: 22, fontWeight: 600, color: posti <= (coperti || 1) ? '#D1D5DB' : '#0F1115',
+              border:'1px solid #E5E7EB', background: (coperti || 1) <= 1 ? '#FAFBFC' : '#FFFFFF',
+              cursor: (coperti || 1) <= 1 ? 'default' : 'pointer',
+              fontSize: 22, fontWeight: 600, color: (coperti || 1) <= 1 ? '#D1D5DB' : '#0F1115',
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               fontFamily:'inherit',
             }}>−</button>
             <div style={{flex: 1, textAlign:'center'}}>
               <span style={{fontSize: 26, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>
-                {posti}
+                {coperti}
               </span>
               <span style={{fontSize: 17, color:'#6B7280', fontWeight: 600, marginLeft: 4}}>
-                posti
+                coperti
               </span>
             </div>
-            <button onClick={() => onAdjust(Math.min(20, posti + 1))} disabled={posti >= 20} style={{
+            <button onClick={() => onAdjust(Math.min(posti, (coperti || 1) + 1))} disabled={(coperti || 1) >= posti} style={{
               width: 32, height: 32, borderRadius: 8,
-              border:'1px solid #E5E7EB', background: posti >= 20 ? '#FAFBFC' : '#FFFFFF',
-              cursor: posti >= 20 ? 'default' : 'pointer',
-              fontSize: 22, fontWeight: 600, color: posti >= 20 ? '#D1D5DB' : '#0F1115',
+              border:'1px solid #E5E7EB', background: (coperti || 1) >= posti ? '#FAFBFC' : '#FFFFFF',
+              cursor: (coperti || 1) >= posti ? 'default' : 'pointer',
+              fontSize: 22, fontWeight: 600, color: (coperti || 1) >= posti ? '#D1D5DB' : '#0F1115',
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               fontFamily:'inherit',
             }}>+</button>
           </div>
-          {coperti > 0 && (
-            <div style={{fontSize: 14.5, color:'#9CA3AF', marginBottom: 8, lineHeight: 1.4}}>
-              Coperti seduti: <b style={{color:'#0F1115', fontWeight: 700}}>{coperti}</b>
-            </div>
-          )}
+          <div style={{fontSize: 14.5, color:'#9CA3AF', marginBottom: 8, lineHeight: 1.4}}>
+            Capienza del tavolo: <b style={{color:'#0F1115', fontWeight: 700}}>{posti} posti</b>
+          </div>
           {byup > 0 && (
             <div style={{
               fontSize: 15, color:'#6B7280', lineHeight: 1.4,
@@ -550,11 +550,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       {/* Tempo al tavolo — solo a card espansa, in chiaro: "Seduti da 18 minuti" */}
       {expanded && t.state === 'occupato' && t.sittingMin != null && (
         <div style={{
-          display:'flex', alignItems:'center', gap: 6,
           fontSize: 14.5, color:'#6B7280', fontWeight: 600,
           marginTop: 4, lineHeight: 1,
         }}>
-          <ChairIcon size={13}/>
           {formatSeduti(t.sittingMin)}
         </div>
       )}

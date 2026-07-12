@@ -204,10 +204,29 @@ function PnGrid({ widgets, editMode, onRemove, onReorder, onResize }) {
     window.addEventListener('mouseup', onUp);
   };
 
+  // Colonne adattive: la griglia misura la propria larghezza reale e passa
+  // a 3/2/1 colonne quando lo spazio si stringe. minmax(0,1fr) impedisce ai
+  // contenuti larghi di sfondare la colonna; gli span sono clampati al
+  // numero di colonne disponibili — le card restano SEMPRE in ordine.
+  const gridRef = React.useRef(null);
+  const [cols, setCols] = React.useState(4);
+  React.useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.offsetWidth;
+      setCols(w < 620 ? 1 : w < 920 ? 2 : w < 1220 ? 3 : 4);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div style={{
+    <div ref={gridRef} style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
+      gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
       gap: 16,
       gridAutoRows: '142px',
       // Bento layout: dense permette al browser di riempire i gap retroattivamente
@@ -234,7 +253,7 @@ function PnGrid({ widgets, editMode, onRemove, onReorder, onResize }) {
             data-widget-id={w.id}
             onMouseDown={handleDragStart(w.id)}
             style={{
-              gridColumn: `span ${w.size.w}`,
+              gridColumn: `span ${Math.min(w.size.w, cols)}`,
               gridRow:    `span ${w.size.h}`,
               minHeight: 0,
               borderRadius: 14,
