@@ -649,7 +649,14 @@ function ConfrontoTable() {
     ['Ordini inclusi/mese',                    ...ACC_PIANI.map(p => p.ordiniInclusi.toLocaleString('it-IT'))],
     ['Costo per ordine extra',                 ...ACC_PIANI.map(p => `${fmt(p.ordineExtra)} €+IVA`)],
     ['Menù digitali',                          ...ACC_PIANI.map(p => p.menuShort)],
-    ['Membri del team',                        ...ACC_PIANI.map(p => p.staffShort)],
+    [
+      // Parentesi in peso/corpo ridotto: annotazione, non parte del nome riga
+      <React.Fragment key="disp">
+        Dispositivi collegabili{' '}
+        <span style={{fontWeight: 400, fontSize: 13, color: PN.MUTED}}>(staff, kitchen monitor)</span>
+      </React.Fragment>,
+      ...ACC_PIANI.map(p => p.staffShort),
+    ],
     ['Assistenza via chat, tutorial e ticket', ...ACC_PIANI.map(() => '✓')],
     ['Supporto telefonico 24/7',               ...ACC_PIANI.map(p => p.supPhone ? '✓' : '—')],
     ['Richiamata entro 30 minuti',             ...ACC_PIANI.map(p => p.supCallback ? '✓' : '—')],

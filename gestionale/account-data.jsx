@@ -42,7 +42,7 @@ const ACC_PIANI = [
     menu: '3 menu digitali',
     staff: 'Fino a 3 membri dello staff',
     supporto: 'Chat, tutorial, ticket email',
-    menuShort: '3', staffShort: 'Fino a 3',
+    menuShort: 'Fino a 3', staffShort: 'Fino a 3',
     supPhone: false, supCallback: false, supPriority: false,
     feat: [
       'Fino a 3 menu digitali',
