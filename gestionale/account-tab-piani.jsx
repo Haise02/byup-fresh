@@ -219,7 +219,7 @@ function AccPianiAbbonamenti() {
                   fontSize: 14.5, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
                   boxShadow: isPopular ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)` : PN.INSET_HIGHLIGHT_DARK,
-                }}>Aggiungi al piano</button>
+                }}>Acquista ora</button>
               </div>
             );
           })}
