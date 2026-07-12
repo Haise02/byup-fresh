@@ -623,7 +623,7 @@ function WidgetTavoliStato() {
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0}}>
       <div style={{display:'flex', alignItems:'baseline', gap: '2px 10px', marginBottom: 10, flexShrink: 0, flexWrap:'wrap', minWidth: 0}}>
-        <div style={{fontSize: 24, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4, whiteSpace:'nowrap'}}>{occupati}/{tables.length} occupati</div>
+        <div style={{fontSize: 24, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4, whiteSpace:'nowrap'}}>{occupati} tavoli su {tables.length} occupati</div>
         <div style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Sala principale</div>
       </div>
 

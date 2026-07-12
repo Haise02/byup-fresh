@@ -523,9 +523,11 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           fontSize: 20, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
-        {/* Il tempo "seduti" non vive più qui: a card contratta non si mostra,
-            a card espansa c'è la riga leggibile "Seduti da X minuti" sotto. */}
-        <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
+        {/* Capienza in header SOLO per card non occupate: sulle occupate la
+            dice già il denominatore del "4/4" accanto agli avatar. */}
+        {t.state !== 'occupato' && (
+          <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
+        )}
 
         <span style={{flex:1}}/>
         {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
