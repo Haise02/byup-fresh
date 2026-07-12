@@ -250,9 +250,20 @@ function SalaApp() {
       : 'dapulire';
     const dominant = allInGroup.find(t => t.state === targetState) || sourceTavolo;
     let addedPosti = 0;
+    // Fusione dei conti: se un tavolo che entra nel gruppo è occupato, il suo
+    // conto/ordini confluiscono nel conto unico del source (i campi del membro
+    // vengono azzerati più sotto, quindi la cattura avviene PRIMA del reset).
+    let mergedConto = 0, mergedByup = 0, mergedByupWeb = 0;
+    const mergedOrdini = [];
     selectedIds.forEach(id => {
       const t = all.find(x => x.id === id);
       if (!t) return;
+      if (t.state === 'occupato') {
+        mergedConto += t.conto || 0;
+        mergedByup += t.byup || 0;
+        mergedByupWeb += t.byupWeb || 0;
+        if (Array.isArray(t.ordini)) mergedOrdini.push(...t.ordini);
+      }
       addedPosti += t.posti || 0;
       t.state = targetState;
       t.party = dominant.party || sourceTavolo.party || `Tavolo ${sourceTavolo.id}`;
@@ -289,6 +300,14 @@ function SalaApp() {
         if (sourceTavolo[k] == null) sourceTavolo[k] = v;
       }
       sourceTavolo.party = sourceTavolo.party || dominant.party || null;
+      // Conto unico del gruppo: somma dei conti e concatenazione degli ordini
+      // dei tavoli occupati appena uniti.
+      if (mergedConto > 0 || mergedOrdini.length > 0) {
+        sourceTavolo.conto = (sourceTavolo.conto || 0) + mergedConto;
+        sourceTavolo.ordini = [...(sourceTavolo.ordini || []), ...mergedOrdini];
+        sourceTavolo.byup = (sourceTavolo.byup || 0) + mergedByup;
+        sourceTavolo.byupWeb = (sourceTavolo.byupWeb || 0) + mergedByupWeb;
+      }
     }
     (sourceTavolo.mergedTables || []).forEach(id => {
       const t = all.find(x => x.id === id);

@@ -130,6 +130,8 @@ function TableTile({
   density = (window.SALA_TILE_DENSITY || 'comfort'),
   dim, hovered, selected, dragging, mergeHint, alertTone,
   hideChairSides = [],        // lati senza sedie (es. lato di contatto nei tavoli uniti)
+  bodyExtend = null,          // {left,right,top,bottom} px extra per lato (tavoli uniti attaccati)
+  hideStatusLabel = false,    // true sui membri secondari di un gruppo: stato scritto solo sul source
   left, top,                  // posizione assoluta opzionale (piantina)
   unit = TT_UNIT,             // lato corpo per 1 cella (la piantina lo deriva dal pitch+zoom)
   pitch = null,               // passo cella della griglia (per i rect multi-cella)
@@ -138,7 +140,15 @@ function TableTile({
   style, children,
 }) {
   const acc = TT_ACCENTS[status] || TT_ACCENTS.libero;
-  const body = ttBodySize(seats, shape, orientation, unit, pitch);
+  const baseBody = ttBodySize(seats, shape, orientation, unit, pitch);
+  // Estensione per lato (tavoli uniti): il corpo arriva al bordo della cella
+  // sui lati di contatto, così i membri del gruppo si toccano visivamente.
+  const ext = { left: 0, right: 0, top: 0, bottom: 0, ...(bodyExtend || {}) };
+  const body = {
+    w: baseBody.w + ext.left + ext.right,
+    h: baseBody.h + ext.top + ext.bottom,
+  };
+  const isJoined = ext.left > 0 || ext.right > 0 || ext.top > 0 || ext.bottom > 0;
   const m = ttChairMetrics(unit);
   // Tipografia a dimensione QUASI fissa: non scala con la griglia — è ciò
   // che tiene il numero leggibile anche quando la mappa si adatta allo schermo.
@@ -148,6 +158,18 @@ function TableTile({
   // e vivono nel gutter riservato dalla griglia.
   const W = body.w;
   const H = body.h;
+
+  // Raggio per angolo: i lati uniti hanno angoli squadrati, così i corpi
+  // adiacenti si "saldano" senza fessure curve. I round diventano capsule.
+  const baseR = shape === 'round' ? Math.min(W, H) / 2 : TT_RADIUS;
+  const cornerRadius = isJoined
+    ? [
+        (ext.top || ext.left)     ? 0 : baseR,  // top-left
+        (ext.top || ext.right)    ? 0 : baseR,  // top-right
+        (ext.bottom || ext.right) ? 0 : baseR,  // bottom-right
+        (ext.bottom || ext.left)  ? 0 : baseR,  // bottom-left
+      ].map(r => `${r}px`).join(' ')
+    : (shape === 'round' ? '50%' : TT_RADIUS);
 
   // Hairline interna: accento di stato; vira su coral in merge, rosso/ambra in alert
   const hair = mergeHint ? 'rgba(255, 90, 95, 0.60)'
@@ -216,7 +238,7 @@ function TableTile({
         backdropFilter: 'blur(20px) saturate(140%)',
         WebkitBackdropFilter: 'blur(20px) saturate(140%)',
         border: `1px solid rgba(255, 255, 255, ${dim ? 0.6 : 0.8})`,
-        borderRadius: shape === 'round' ? '50%' : TT_RADIUS,
+        borderRadius: cornerRadius,
         boxShadow: shadow,
         transform: lifted ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
         transition: dragging ? 'none' : [
@@ -240,7 +262,7 @@ function TableTile({
             fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
           }}>{numero}</span>
         </div>
-        {density === 'comfort' && !dim && (
+        {density === 'comfort' && !dim && !hideStatusLabel && (
           <div style={{
             fontSize: labelSize, fontWeight: 700, lineHeight: 1,
             letterSpacing: 0.5, textTransform: 'uppercase',

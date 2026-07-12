@@ -315,22 +315,6 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             </button>
           )}
 
-          {/* Riempimento inline — metrica contestuale, non filtro */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-            padding: '4px 10px', borderRadius: 8,
-            background: PN.WHITE_HUSH, border: `1px solid ${PN.BORDER_HAIR}`,
-            boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
-          }}>
-            <span style={{
-              fontSize: 16.5, fontWeight: 700, color: PN.TEXT,
-              fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
-            }}>{occPct}%</span>
-            <span style={{fontSize: 15, color: PN.MUTED}}>
-              {/* Etichetta fedele al dato: coperti quando disponibili, tavoli nel fallback */}
-              {useCoperti ? 'Coperti attivi' : 'Tavoli occupati'}
-            </span>
-          </div>
         </div>
 
       </div>{/* /toolbar */}
@@ -556,6 +540,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
   const canvasRef = React.useRef(null);
   const justDraggedRef = React.useRef(false);
   const [mergeProposal, setMergeProposal] = React.useState(null);
+  // Conferma per l'unione di due tavoli OCCUPATI (fusione dei conti):
+  // { hostId, guestIds, totale } — il merge parte solo dal popup.
+  const [confirmMerge, setConfirmMerge] = React.useState(null);
   // Tavolo su cui si è MOLLATO il drag (max sovrapposizione): è lui il
   // target della proposta di unione, non il vicino dove il gruppo viene
   // ricollocato dopo la risoluzione delle collisioni.
@@ -1150,8 +1137,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const dims = getTableDims(p.shape, seats, orient);
             const longPitch = orient === 'v' ? PY : PX;
             const bw = ttBodySize(seats, shape, orient, bodyUnit, longPitch);
-            const left = gx(p.x) + (dims.w * PX - bw.w) / 2;
-            const top  = gy(p.y) + (dims.h * PY - bw.h) / 2;
+            let left = gx(p.x) + (dims.w * PX - bw.w) / 2;
+            let top  = gy(p.y) + (dims.h * PY - bw.h) / 2;
             const noteTipo = tDisplay.note?.tipo || tDisplay.note?.type;
             const isAllergia = noteTipo === 'allergia';
             const showTriangle = window.hasAlertTriangle && window.hasAlertTriangle(tDisplay);
@@ -1175,8 +1162,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const showOwnBadges = !t.mergedWith;
 
             // Tavoli uniti: niente sedie sui lati a contatto con gli altri
-            // membri del gruppo (lato "saldato").
+            // membri del gruppo (lato "saldato"), e corpo ESTESO fino al
+            // bordo della cella su quei lati — così i corpi si toccano e il
+            // gruppo si legge come un tavolo unico.
             const hideChairSides = [];
+            const bodyExtend = { left: 0, right: 0, top: 0, bottom: 0 };
             if (t.mergedWith || (t.mergedTables && t.mergedTables.length > 0)) {
               const EPS = 0.3;
               const allT = window.SALA_TAVOLI || tavoli;
@@ -1193,6 +1183,12 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 if (overlapX && Math.abs(pm.y - (p.y + dims.h)) < EPS) hideChairSides.push('bottom');
                 if (overlapX && Math.abs((pm.y + dm.h) - p.y) < EPS) hideChairSides.push('top');
               });
+              const gapX = (dims.w * PX - bw.w) / 2;
+              const gapY = (dims.h * PY - bw.h) / 2;
+              if (hideChairSides.includes('left'))   { bodyExtend.left = gapX;   left -= gapX; }
+              if (hideChairSides.includes('right'))  { bodyExtend.right = gapX; }
+              if (hideChairSides.includes('top'))    { bodyExtend.top = gapY;    top -= gapY; }
+              if (hideChairSides.includes('bottom')) { bodyExtend.bottom = gapY; }
             }
 
             return (
@@ -1201,6 +1197,10 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 seats={seats} shape={shape} orientation={orient}
                 badge={isAllergia && !dim && showOwnBadges ? ['ALLERGIA'] : []}
                 hideChairSides={hideChairSides}
+                bodyExtend={bodyExtend}
+                // Lo stato del gruppo si scrive UNA volta sola (sul source):
+                // i membri secondari mostrano solo il numero.
+                hideStatusLabel={!!t.mergedWith}
                 unit={bodyUnit} pitch={longPitch}
                 dim={dim} hovered={isHovered} selected={isSelected}
                 dragging={isDragging} mergeHint={isInMergeProposal} alertTone={alertTone}
@@ -1262,14 +1262,18 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const srcState = srcPrimary?.state || 'libero';
             const tgtState = tgtPrimary?.state || 'libero';
 
-            // Blocco hard: entrambi prenotati o entrambi occupati
+            // Blocco hard solo per doppia prenotazione. Due tavoli OCCUPATI
+            // si possono unire: i conti si fondono, previa conferma esplicita
+            // (popup "sei sicuro?") al click sulla spunta.
             const bothPrenotati = srcState === 'prenotato' && tgtState === 'prenotato';
             const bothOccupati  = srcState === 'occupato'  && tgtState === 'occupato';
-            const isBlocked = bothPrenotati || bothOccupati;
+            const isBlocked = bothPrenotati;
 
             // Avviso per stati misti
             let warningMsg = null;
-            if (!isBlocked) {
+            if (bothOccupati) {
+              warningMsg = 'Entrambi i tavoli sono occupati: i conti verranno uniti';
+            } else if (!isBlocked) {
               const hasOcc  = srcState === 'occupato'  || tgtState === 'occupato';
               const hasPren = srcState === 'prenotato' || tgtState === 'prenotato';
               const hasPul  = srcState === 'dapulire'  || tgtState === 'dapulire';
@@ -1370,6 +1374,15 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                           } else {
                             hostTable = srcPrim;
                             guestIds = mergeProposal.targetGroupIds;
+                          }
+                          // Entrambi occupati → serve la conferma esplicita:
+                          // i conti verranno fusi in un conto unico.
+                          if (bothOccupati) {
+                            const totale = [hostTable, ...guestIds.map(id => all.find(x => x.id === id))]
+                              .filter(Boolean)
+                              .reduce((s, x) => s + (x.conto || 0), 0);
+                            setConfirmMerge({ hostId: hostTable.id, guestIds, totale });
+                            return;
                           }
                           guestIds.forEach(id => {
                             const t = all.find(x => x.id === id);
@@ -1762,6 +1775,65 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
         </div>{/* /canvas */}
         </div>{/* /viewport */}
       </div>
+
+      {/* Conferma fusione conti — due tavoli occupati che si uniscono */}
+      {confirmMerge && (
+        <React.Fragment>
+          <div onClick={() => setConfirmMerge(null)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 80,
+          }}/>
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+            width: 420, maxWidth: '92vw', background: '#fff', borderRadius: 16,
+            boxShadow: '0 24px 70px rgba(0,0,0,0.28)', zIndex: 81, overflow: 'hidden', fontFamily: 'inherit',
+          }}>
+            <div style={{padding: '22px 22px 16px', display: 'flex', alignItems: 'flex-start', gap: 14}}>
+              <span style={{
+                width: 42, height: 42, borderRadius: '50%', background: '#FEF3C7', color: '#D97706',
+                display: 'grid', placeItems: 'center', flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
+              <div>
+                <div style={{fontSize: 17, fontWeight: 800, color: '#0F1115'}}>
+                  Unire due tavoli occupati?
+                </div>
+                <div style={{fontSize: 14.5, color: '#6B7280', marginTop: 4, lineHeight: 1.5}}>
+                  I conti dei tavoli verranno uniti in un unico conto
+                  {confirmMerge.totale > 0 && <> da <strong style={{color: '#0F1115'}}>€{confirmMerge.totale.toFixed(2)}</strong></>}.
+                  {' '}Sei sicuro di quello che stai facendo?
+                </div>
+              </div>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 22px',
+              background: '#F8F9FB', borderTop: '1px solid rgba(15,17,21,0.06)'}}>
+              <button onClick={() => setConfirmMerge(null)} style={{
+                padding: '9px 16px', background: '#fff', color: '#0F1115',
+                border: '1px solid rgba(15,17,21,0.12)', borderRadius: 9,
+                fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}>Annulla</button>
+              <button onClick={() => {
+                const all = window.SALA_TAVOLI || tavoli;
+                const hostTable = all.find(x => x.id === confirmMerge.hostId);
+                confirmMerge.guestIds.forEach(id => {
+                  const g = all.find(x => x.id === id);
+                  if (g && g.mergedTables) delete g.mergedTables;
+                });
+                setConfirmMerge(null);
+                setMergeProposal(null);
+                if (hostTable && window.SALA_DO_MERGE) window.SALA_DO_MERGE(hostTable, confirmMerge.guestIds);
+              }} style={{
+                padding: '9px 16px', background: '#D97706', color: '#fff',
+                border: 'none', borderRadius: 9,
+                fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}>Unisci i conti</button>
+            </div>
+          </div>
+        </React.Fragment>
+      )}
 
       {/* Anteprima hover — pannello leggero ancorato a destra. Larghezza
           sufficiente per la card espansa (a 288px il contenuto sbordava
