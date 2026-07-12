@@ -16,6 +16,10 @@ function AccPianiAbbonamenti() {
 
   const [billing, setBilling] = React.useState('annual');
 
+  // Modale downgrade a Free: confronto col piano attuale + recap delle perdite
+  const [freeModal, setFreeModal] = React.useState(false);
+  const freePlan = ACC_PIANI.find(p => p.id === 'free');
+
   // Toast demo: i CTA di questa pagina non hanno ancora un backend — il
   // feedback evita la sensazione di bottone rotto.
   const [toast, setToast] = React.useState(null);
@@ -125,12 +129,13 @@ function AccPianiAbbonamenti() {
           ))}
         </div>
 
-        {/* Piano Free — downgrade come nota secondaria, non come card */}
+        {/* Piano Free — downgrade come nota secondaria, non come card.
+            Il click apre il modale di confronto, non il cambio diretto. */}
         <div style={{marginTop: 16, textAlign: 'center', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
-          Ti serve qualcosa di più semplice? C'è anche il piano <strong style={{color: PN.TEXT}}>Free</strong> —
-          {' '}550 ordini/mese, 1 menù digitale, 1 membro dello staff.{' '}
+          Vuoi rinunciare ai vantaggi del tuo piano attuale? Valuta il piano <strong style={{color: PN.TEXT}}>Free</strong> —
+          {' '}{freePlan.ordiniInclusi} ordini/mese, poi {fmtPrice(freePlan.ordineExtra)} € a ordine.{' '}
           <button
-            onClick={() => showDemoToast('Il passaggio al piano Free sarà disponibile al lancio')}
+            onClick={() => setFreeModal(true)}
             style={{
               background: 'none', border: 'none', padding: 0,
               color: PN.PINK_DARK, fontWeight: 600, fontSize: 13.5,
@@ -138,6 +143,18 @@ function AccPianiAbbonamenti() {
             }}>Passa a Free</button>
         </div>
       </AcCard>
+
+      <FreeDowngradeModal
+        open={freeModal}
+        onClose={() => setFreeModal(false)}
+        current={current}
+        free={freePlan}
+        fmtPrice={fmtPrice}
+        onConfirm={() => {
+          setFreeModal(false);
+          showDemoToast('Il passaggio al piano Free sarà disponibile al lancio');
+        }}
+      />
 
       {/* Pacchetti ordini extra */}
       <AcCard
@@ -481,6 +498,141 @@ function PianoBadge({bg, fg, label}) {
       padding: '4px 10px', borderRadius: 6, letterSpacing: 0.5,
       boxShadow: '0 2px 6px rgba(15,17,21,0.10)',
     }}>{label}</div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FreeDowngradeModal — si apre da "Passa a Free": confronto fianco a fianco
+// col piano attuale (stile mini plan-card) + recap esplicito di cosa si perde.
+// La conferma resta demo (toast), come gli altri CTA della pagina.
+// ─────────────────────────────────────────────────────────────────────────
+
+function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm }) {
+  if (!open) return null;
+
+  const ordiniPersi = current.ordiniInclusi - free.ordiniInclusi;
+  const losses = [
+    `${ordiniPersi.toLocaleString('it-IT')} ordini inclusi in meno al mese (da ${current.ordiniInclusi.toLocaleString('it-IT')} a ${free.ordiniInclusi.toLocaleString('it-IT')})`,
+    `Ogni ordine extra costerà di più: da ${fmtPrice(current.ordineExtra)} € a ${fmtPrice(free.ordineExtra)} €`,
+    `Menù digitali: da ${current.menuShort.toLowerCase().replace(/^fino a /, '')} a un solo menù`,
+    `Membri dello staff: da ${current.staffShort.toLowerCase().replace(/^fino a /, '')} a un solo membro`,
+  ];
+
+  // Mini plan-card del confronto (colonna attuale vs colonna Free)
+  const MiniPiano = ({ nome, badge, badgeBg, badgeFg, prezzo, righe, bordered }) => (
+    <div style={{
+      position: 'relative', flex: 1, minWidth: 0,
+      border: bordered ? `2px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
+      borderRadius: 12, padding: '18px 16px 14px',
+      background: PN.WHITE,
+    }}>
+      <PianoBadge bg={badgeBg} fg={badgeFg} label={badge}/>
+      <div style={{display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6}}>
+        <PianoEmoji planId={nome.toLowerCase()} size={20}/>
+        <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{nome}</span>
+      </div>
+      <div style={{fontSize: 21, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em', marginBottom: 10}}>{prezzo}</div>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 5}}>
+        {righe.map((r, i) => (
+          <div key={i} style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.4}}>{r}</div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 150,
+      background: 'rgba(15, 17, 21, 0.45)',
+      display: 'grid', placeItems: 'center', padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 580, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto',
+        background: '#fff', borderRadius: 16,
+        boxShadow: '0 24px 70px rgba(0, 0, 0, 0.28)',
+        fontFamily: 'inherit',
+      }} className="pn-scroll">
+        {/* Header */}
+        <div style={{padding: '20px 22px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12}}>
+          <div>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>Passare al piano Free?</div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3}}>
+              Ecco cosa cambia rispetto al tuo piano {current.nome}.
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="Chiudi" style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: PN.MUTED, fontSize: 20, lineHeight: 1, padding: 4, fontFamily: 'inherit',
+          }}>×</button>
+        </div>
+
+        {/* Confronto fianco a fianco */}
+        <div style={{display: 'flex', gap: 12, padding: '10px 22px 4px'}}>
+          <MiniPiano
+            nome={current.nome}
+            badge="ATTUALE" badgeBg={PN.PINK} badgeFg={PN.WHITE}
+            prezzo={`€${fmtPrice(current.prezzo)}${current.periodo}`}
+            bordered
+            righe={[
+              `${current.ordiniInclusi.toLocaleString('it-IT')} ordini/mese`,
+              `+${fmtPrice(current.ordineExtra)} € a ordine extra`,
+              current.menu,
+              current.staff,
+            ]}
+          />
+          <MiniPiano
+            nome={free.nome}
+            badge="FREE" badgeBg={PN.WHITE_OFF} badgeFg={PN.MUTED}
+            prezzo="Gratis"
+            righe={[
+              `${free.ordiniInclusi.toLocaleString('it-IT')} ordini/mese`,
+              `+${fmtPrice(free.ordineExtra)} € a ordine extra`,
+              'Un solo menù digitale',
+              'Un solo membro dello staff',
+            ]}
+          />
+        </div>
+
+        {/* Recap di cosa si perde */}
+        <div style={{padding: '14px 22px 6px'}}>
+          <div style={{fontSize: 14, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Cosa perderai passando a Free</div>
+          <div style={{
+            background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
+            padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            {losses.map((l, i) => (
+              <div key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13.5, color: '#7F1D1D', lineHeight: 1.45}}>
+                <span aria-hidden="true" style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 16, height: 16, borderRadius: 999, flexShrink: 0, marginTop: 1,
+                  background: '#FECACA', color: '#B91C1C',
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round"><path d="M5 12h14"/></svg>
+                </span>
+                {l}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Azioni — mantieni (primaria) vs downgrade (secondaria) */}
+        <div style={{display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 22px 20px'}}>
+          <button onClick={onConfirm} style={{
+            padding: '10px 18px', borderRadius: 999,
+            background: 'transparent', color: '#B91C1C',
+            border: '1px solid #FECACA',
+            fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Passa a Free</button>
+          <button onClick={onClose} style={{
+            padding: '10px 20px', borderRadius: 999,
+            background: PN.BTN_DARK, color: PN.WHITE,
+            border: '1px solid rgba(0, 0, 0, 0.32)',
+            fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: PN.INSET_HIGHLIGHT_DARK,
+          }}>Mantieni {current.nome}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
