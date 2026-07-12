@@ -140,8 +140,14 @@ function PnSidebarPlanCard({ onOpenPlans }) {
         Piano Starter
       </div>
 
-      {/* Dato protagonista — percentuale + barra + tooltip on hover */}
-      <div>
+      {/* Dato protagonista — percentuale + barra + tooltip on hover.
+          L'hover copre TUTTO il blocco (anche "77% ordini usati"), non solo
+          la barra: stessa informazione, area di scoperta più generosa. */}
+      <div
+        onMouseEnter={() => setBarHover(true)}
+        onMouseLeave={() => setBarHover(false)}
+        style={{cursor: 'help'}}
+      >
         <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6}}>
           <span style={{
             fontSize: 24, fontWeight: 600, color: '#F5F5F7',
@@ -151,12 +157,8 @@ function PnSidebarPlanCard({ onOpenPlans }) {
           <span style={{fontSize: 13, color: 'rgba(255,255,255,0.60)'}}>ordini usati</span>
         </div>
 
-        {/* Track + fill — hover sulla barra mostra dettaglio "1420 di 1850" */}
-        <div
-          onMouseEnter={() => setBarHover(true)}
-          onMouseLeave={() => setBarHover(false)}
-          style={{position: 'relative', cursor: 'help'}}
-        >
+        {/* Track + fill — il tooltip resta ancorato alla barra */}
+        <div style={{position: 'relative'}}>
           <div style={{
             height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.28)',
             overflow: 'hidden', position: 'relative',
