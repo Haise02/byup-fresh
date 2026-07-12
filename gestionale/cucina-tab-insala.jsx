@@ -44,8 +44,11 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
   // Escluse: card in drag (seguono il puntatore) e card appena droppate
   // (data-kds-skip-flip: il rilascio deve essere immediato, non una scivolata).
   const lastCardRects = React.useRef(new Map());
+  const lastRightIds  = React.useRef(new Set()); // card in Preparazione al render precedente
   React.useLayoutEffect(() => {
     const nodes = cardNodes.current;
+    const rightIds = new Set(filteredRight.map(t => t.id));
+    const prevRight = lastRightIds.current;
     nodes.forEach((node, id) => {
       if (!node || !node.isConnected) return;
       if (node.dataset.kdsDragging) return;
@@ -61,8 +64,12 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
       node.style.transform = `translate(${dx}px, ${dy}px)`;
       node.style.zIndex = '5';
       node.getBoundingClientRect(); // reflow: fissa il punto di partenza
-      // Lenta di proposito: deve essere evidente che la card cambia colonna
-      node.style.transition = 'transform 1400ms cubic-bezier(0.4, 0.1, 0.25, 1)';
+      // Base rapida; l'ingresso in una Preparazione già affollata (più di 3
+      // card presenti) è extra-lento di proposito: deve saltare all'occhio
+      // che la coda di destra sta crescendo troppo.
+      const enteredRight = rightIds.has(id) && !prevRight.has(id);
+      const dur = enteredRight && prevRight.size > 3 ? 2000 : 800;
+      node.style.transition = `transform ${dur}ms cubic-bezier(0.4, 0.1, 0.25, 1)`;
       node.style.transform = '';
       const clear = () => {
         node.style.transition = '';
@@ -70,8 +77,9 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
         node.removeEventListener('transitionend', clear);
       };
       node.addEventListener('transitionend', clear);
-      setTimeout(clear, 1600); // fallback se la transizione viene interrotta
+      setTimeout(clear, dur + 200); // fallback se la transizione viene interrotta
     });
+    lastRightIds.current = rightIds;
     // Dimentica le card rimosse dal board
     Array.from(lastCardRects.current.keys()).forEach(id => {
       if (!nodes.has(id)) lastCardRects.current.delete(id);
@@ -212,7 +220,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
       { transform: 'translate(0, 0) scale(1)', opacity: 1 },
       { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 42}px) scale(0.9)`, opacity: 1, offset: 0.55 },
       { transform: `translate(${dx}px, ${dy}px) scale(0.4)`, opacity: 0.2 },
-    ], { duration: 700, easing: 'cubic-bezier(0.25, 0.1, 0.3, 1)' });
+    ], { duration: 450, easing: 'cubic-bezier(0.25, 0.1, 0.3, 1)' });
     anim.onfinish = () => {
       ghost.remove();
       window.dispatchEvent(new CustomEvent('kds-pronti-bump'));
@@ -311,7 +319,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
       { transform: 'translate(0, 0) scale(0.9)', opacity: 0.9 },
       { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 42}px) scale(1)`, opacity: 1, offset: 0.5 },
       { transform: `translate(${dx}px, ${dy}px) scale(0.7)`, opacity: 0.15 },
-    ], { duration: 700, easing: 'cubic-bezier(0.25, 0.1, 0.3, 1)' });
+    ], { duration: 450, easing: 'cubic-bezier(0.25, 0.1, 0.3, 1)' });
     anim.onfinish = () => ghost.remove();
   }
 
