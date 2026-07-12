@@ -572,10 +572,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
-  // In modalità unione niente card hover/dettaglio: il click serve a selezionare.
-  // Hover = anteprima leggera ancorata a destra; click = popup centrale grande.
-  const hoverPreview = mergeMode || expandedId ? null
-    : (hovered ? tavoli.find(t=>t.id===hovered) : null);
+  // In modalità unione niente card di dettaglio: il click serve a selezionare.
+  // L'anteprima hover è stata rimossa: il dettaglio si apre SOLO al click.
   const clickedTable = mergeMode ? null
     : (expandedId ? tavoli.find(t=>t.id===expandedId) : null);
 
@@ -1202,11 +1200,13 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 badge={isAllergia && !dim && showOwnBadges ? ['ALLERGIA'] : []}
                 hideChairSides={hideChairSides}
                 bodyExtend={bodyExtend}
-                // Il gruppo è UN tavolo: niente numero né stato sulle singole
-                // tile — nome unico (es. "3-7-2") e stato sono centrati
-                // sull'insieme (overlay dopo il loop).
+                // Il gruppo è UN tavolo: le tile non disegnano corpo, numero
+                // né stato — il corpo unico (senza linee interne), il nome
+                // "3-7-2" e lo stato sono renderizzati sull'insieme (overlay
+                // dopo il loop). Restano per-tile solo sedie, hit area e badge.
                 hideStatusLabel={inGroup}
                 hideNumber={inGroup}
+                hideBody={inGroup}
                 unit={bodyUnit} pitch={longPitch}
                 dim={dim} hovered={isHovered} selected={isSelected}
                 dragging={isDragging} mergeHint={isInMergeProposal} alertTone={alertTone}
@@ -1254,51 +1254,108 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             );
           })}
 
-          {/* Nome unico del gruppo — il gruppo È un tavolo: "3-7-2" + stato,
-              centrati sull'insieme delle tile (le singole tile sono mute). */}
+          {/* Gruppo unito = UN tavolo, anche visivamente: corpo UNICO glass
+              senza linee di giunzione, nome "3-7-2" e stato centrati. Le
+              singole tile disegnano solo sedie, hit area e badge. */}
           {tavoli.filter(t => t.mergedTables && t.mergedTables.length > 0).map(src => {
             const ids = [src.id, ...src.mergedTables];
-            const rects = ids.map(id => {
-              const r = tableRect(id);
-              return r ? { id, ...r } : null;
+            const allT = window.SALA_TAVOLI || tavoli;
+            // Corpo per membro (stessa metrica delle tile), poi unione dei rect
+            const bodies = ids.map(id => {
+              const p = positions[id];
+              const tt = allT.find(x => x.id === id);
+              if (!p || !tt) return null;
+              const seats = tt.posti || 4;
+              const shape = ttSeatShape(seats);
+              const orient = p.orientation || 'h';
+              const dims = getTableDims(p.shape, seats, orient);
+              const bw = ttBodySize(seats, shape, orient, bodyUnit, orient === 'v' ? PY : PX);
+              const bl = gx(p.x) + (dims.w * PX - bw.w) / 2;
+              const bt = gy(p.y) + (dims.h * PY - bw.h) / 2;
+              return { id, l: bl, t: bt, r: bl + bw.w, b: bt + bw.h };
             }).filter(Boolean);
-            if (rects.length === 0) return null;
-            const minX = Math.min(...rects.map(r => r.x));
-            const maxX = Math.max(...rects.map(r => r.x + r.w));
-            const minY = Math.min(...rects.map(r => r.y));
-            const maxY = Math.max(...rects.map(r => r.y + r.h));
-            // Numeri in ordine visivo lungo l'asse della fila
-            const horizontal = (maxX - minX) >= (maxY - minY);
-            const ordered = [...rects].sort((a, b) => horizontal ? a.x - b.x : a.y - b.y).map(r => r.id);
-            const cx = gx((minX + maxX) / 2);
-            const cyC = gy((minY + maxY) / 2);
+            if (bodies.length === 0) return null;
+            const L = Math.min(...bodies.map(b => b.l));
+            const T = Math.min(...bodies.map(b => b.t));
+            const R = Math.max(...bodies.map(b => b.r));
+            const B = Math.max(...bodies.map(b => b.b));
+            const horizontal = (R - L) >= (B - T);
+            const ordered = [...bodies].sort((a, b) => horizontal ? a.l - b.l : a.t - b.t).map(x => x.id);
+
             const dim = isDimmed(src.id);
+            const isHov = hovered != null && ids.includes(hovered);
+            const isSel = expandedId != null && ids.includes(expandedId);
+            const inProposal = (!!mergeProposal && (mergeProposal.sourceGroupIds.some(id => ids.includes(id)) || mergeProposal.targetGroupIds.some(id => ids.includes(id))))
+              || (mergeMode && mergeSel && mergeSel.has(src.id));
+            const isDrag = !!drag && groupMatesOf(drag.id).includes(src.id);
+            const showTri = window.hasAlertTriangle && window.hasAlertTriangle(src);
+            const gAlert = src.state === 'occupato' ? getOccupiedAlert(src) : null;
             const acc = TT_ACCENTS[src.state] || TT_ACCENTS.libero;
+            const hair = inProposal ? 'rgba(255, 90, 95, 0.60)'
+              : showTri ? 'rgba(220, 38, 38, 0.55)'
+              : gAlert?.tone === 'warn' ? 'rgba(161, 98, 7, 0.50)'
+              : acc.ring;
+            const shadow = dim
+              ? '0 1px 3px rgba(80, 40, 80, 0.06)'
+              : isSel
+                ? `inset 0 0 0 1.25px ${hair}, 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 4.5px rgba(255, 90, 95, 0.70), 0 18px 44px rgba(80, 40, 80, 0.20)`
+                : inProposal
+                  ? `inset 0 0 0 1.25px ${hair}, 0 0 0 3px rgba(255, 90, 95, 0.20), 0 12px 30px rgba(255, 90, 95, 0.16)`
+                  : isDrag
+                    ? `inset 0 0 0 1.25px ${hair}, 0 22px 48px rgba(80, 40, 80, 0.22)`
+                    : isHov
+                      ? `inset 0 0 0 1.25px ${hair}, 0 18px 44px rgba(80, 40, 80, 0.16), 0 4px 10px rgba(80, 40, 80, 0.08)`
+                      : `inset 0 0 0 1.25px ${hair}, 0 12px 36px rgba(80, 40, 80, 0.10)`;
+            const lifted = !isDrag && !dim && (isHov || isSel);
             const numSize = Math.round(Math.min(27, Math.max(17, bodyUnit * 0.34)));
             const labelSize = Math.min(12, Math.max(10, bodyUnit * 0.165));
             return (
-              <div key={`gname-${src.id}`} style={{
-                position: 'absolute', left: cx, top: cyC,
-                transform: 'translate(-50%, -50%)',
-                zIndex: 7, pointerEvents: 'none',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                opacity: dim ? 0.45 : 1,
-                filter: dim ? 'grayscale(1)' : 'none',
-              }}>
-                <span style={{
-                  fontSize: numSize, fontWeight: 800, lineHeight: 1,
-                  color: dim ? '#9CA3AF' : '#0F1115',
-                  fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
-                  whiteSpace: 'nowrap',
-                }}>{ordered.join('-')}</span>
-                {!dim && (
+              <React.Fragment key={`gbody-${src.id}`}>
+                {/* Corpo unico del gruppo */}
+                <div style={{
+                  position: 'absolute', left: L, top: T,
+                  width: R - L, height: B - T,
+                  backgroundColor: dim ? 'rgba(255, 255, 255, 0.48)' : 'rgba(255, 255, 255, 0.56)',
+                  backgroundImage: dim ? 'none' : [
+                    'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 55%, rgba(255,255,255,0) 100%)',
+                    `linear-gradient(0deg, ${acc.tint}, ${acc.tint})`,
+                  ].join(', '),
+                  backdropFilter: 'blur(20px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                  border: `1px solid rgba(255, 255, 255, ${dim ? 0.6 : 0.8})`,
+                  borderRadius: TT_RADIUS,
+                  boxShadow: shadow,
+                  transform: lifted ? 'translateY(-2px) scale(1.005)' : 'none',
+                  transition: isDrag ? 'none' : 'box-shadow 240ms cubic-bezier(0.22,1,0.36,1), transform 240ms cubic-bezier(0.22,1,0.36,1), opacity 180ms ease',
+                  opacity: dim ? (isHov ? 0.65 : 0.40) : 1,
+                  filter: dim ? 'grayscale(1)' : 'none',
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                }}/>
+                {/* Nome unico + stato, centrati sul corpo */}
+                <div style={{
+                  position: 'absolute', left: (L + R) / 2, top: (T + B) / 2,
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 7, pointerEvents: 'none',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  opacity: dim ? 0.45 : 1,
+                  filter: dim ? 'grayscale(1)' : 'none',
+                }}>
                   <span style={{
-                    fontSize: labelSize, fontWeight: 700, lineHeight: 1,
-                    letterSpacing: 0.5, textTransform: 'uppercase',
-                    color: acc.ink, opacity: 0.85, whiteSpace: 'nowrap',
-                  }}>{TT_LABELS[src.state] || src.state}</span>
-                )}
-              </div>
+                    fontSize: numSize, fontWeight: 800, lineHeight: 1,
+                    color: dim ? '#9CA3AF' : '#0F1115',
+                    fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+                    whiteSpace: 'nowrap',
+                  }}>{ordered.join('-')}</span>
+                  {!dim && (
+                    <span style={{
+                      fontSize: labelSize, fontWeight: 700, lineHeight: 1,
+                      letterSpacing: 0.5, textTransform: 'uppercase',
+                      color: acc.ink, opacity: 0.85, whiteSpace: 'nowrap',
+                    }}>{TT_LABELS[src.state] || src.state}</span>
+                  )}
+                </div>
+              </React.Fragment>
             );
           })}
 
@@ -1801,63 +1858,6 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                   </svg>
                   Ruota
                 </button>
-              </div>
-            );
-          })()}
-          {/* Anteprima hover — CONTESTUALE al tavolo: si apre a fianco del
-              tavolo (o del gruppo), a destra se c'è spazio altrimenti a
-              sinistra, con clamp verticale per restare dentro la mappa. */}
-          {hoverPreview && (() => {
-            const mates = groupMatesOf(hoverPreview.id);
-            const rects = mates.map(id => tableRect(id)).filter(Boolean);
-            if (rects.length === 0) return null;
-            const pxL = gx(Math.min(...rects.map(r => r.x)));
-            const pxR = gx(Math.max(...rects.map(r => r.x + r.w)));
-            const pxT = gy(Math.min(...rects.map(r => r.y)));
-            const CARD_W = 380;
-            const canvasW = COLS * PX + 2 * PAD;
-            let cardLeft = pxR + 14;
-            if (cardLeft + CARD_W > canvasW - 6) cardLeft = pxL - CARD_W - 14;
-            cardLeft = Math.max(6, Math.min(cardLeft, canvasW - CARD_W - 6));
-            let cardTop = Math.max(6, pxT - 8);
-            // Se sotto resta poco spazio, alza la card per darle respiro
-            if (CANVAS_H - cardTop < 340) cardTop = Math.max(6, CANVAS_H - 340);
-            const cardMaxH = CANVAS_H - cardTop - 6;
-            return (
-              <div style={{
-                position: 'absolute', left: cardLeft, top: cardTop,
-                width: CARD_W, maxHeight: cardMaxH,
-                zIndex: 28,
-                animation: 'salaPanelIn 240ms cubic-bezier(0.32,0.72,0,1)',
-                pointerEvents: 'none',
-              }}>
-                <div className="pn-scroll"
-                  // Il pannello può comparire sotto il cursore: senza questi
-                  // handler ruba l'hover al tavolo e si smonta subito, in un
-                  // loop di flicker. Così invece tiene vivo l'hover.
-                  onMouseEnter={() => hoverTable(hoverPreview.id)}
-                  onMouseLeave={unhoverTable}
-                  style={{
-                    position: 'relative',
-                    background: '#fff',
-                    borderRadius: 14,
-                    border: '1px solid rgba(15,17,21,0.08)',
-                    boxShadow: '0 10px 30px rgba(15,17,21,0.18), 0 2px 6px rgba(15,17,21,0.10)',
-                    maxHeight: '100%', overflowY: 'auto',
-                    pointerEvents: 'auto',
-                  }}>
-                  <SalaCard t={hoverPreview}
-                    expanded={true}
-                    onToggle={()=>{}}
-                    onAdd={()=>onOpenAdd(hoverPreview)}
-                    onPay={()=>onOpenPay(hoverPreview)}
-                    onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-                    onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(hoverPreview.id, n)}
-                    onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(hoverPreview.id, n)}
-                    onLibera={onLibera} onMove={onMove} onEdit={onEdit}
-                    onAssignOther={onAssignOther} onNoShow={onNoShow}
-                    onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
-                </div>
               </div>
             );
           })()}

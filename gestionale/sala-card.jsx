@@ -72,6 +72,14 @@ function formatOpenDuration(totalMinutes) {
   if (remainder === 0) return `${hours}h`;
   return `${hours}h${remainder}'`;
 }
+// Versione leggibile per la card espansa: "Seduti da 18 minuti" / "da 2 ore" / "da 1h 30min"
+function formatSeduti(totalMinutes) {
+  const m = Math.max(0, Math.round(totalMinutes));
+  if (m < 60) return `Seduti da ${m} minut${m === 1 ? 'o' : 'i'}`;
+  const h = Math.floor(m / 60), r = m % 60;
+  if (r === 0) return `Seduti da ${h} or${h === 1 ? 'a' : 'e'}`;
+  return `Seduti da ${h}h ${r}min`;
+}
 function getOpenDurationSeverity(totalMinutes) {
   if (totalMinutes > CRITICAL_DURATION_MIN) return 'critical';
   if (totalMinutes >= WARNING_DURATION_MIN) return 'warning';
@@ -250,10 +258,26 @@ function ByupB({ size = 11 }) {
 // Format "X/Y" = seduti / capacità massima del tavolo.
 function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust }) {
   const [editing, setEditing] = React.useState(false);
+  // Posizione fixed del popup: vive in un portal sul body, così nessun
+  // antenato con overflow:hidden (la card in lista) può tagliarlo.
+  const [popPos, setPopPos] = React.useState(null);
   const ref = React.useRef(null);
+  const popRef = React.useRef(null);
+  const POP_W = 268;
+  const openEditor = () => {
+    const r = ref.current.getBoundingClientRect();
+    const left = Math.max(8, Math.min(r.right - POP_W, window.innerWidth - POP_W - 8));
+    const top = Math.min(r.bottom + 8, window.innerHeight - 230);
+    setPopPos({ left, top });
+    setEditing(true);
+  };
   React.useEffect(() => {
     if (!editing) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setEditing(false); };
+    const onDoc = (e) => {
+      const inTrigger = ref.current && ref.current.contains(e.target);
+      const inPopup = popRef.current && popRef.current.contains(e.target);
+      if (!inTrigger && !inPopup) setEditing(false);
+    };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [editing]);
@@ -331,7 +355,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
   }
   return (
     <div ref={ref} style={{position:'relative', display:'inline-flex'}}>
-      <button onClick={(e) => { e.stopPropagation(); setEditing(v => !v); }} style={{
+      <button onClick={(e) => { e.stopPropagation(); editing ? setEditing(false) : openEditor(); }} style={{
         background: editing ? '#F4F5F7' : 'transparent',
         border:'none', padding: '2px 6px 2px 2px', margin:'-2px -6px -2px -2px',
         borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
@@ -340,16 +364,27 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
          onMouseLeave={(e)=>{ if(!editing) e.currentTarget.style.background='transparent'; }}>
         {Inner}
       </button>
-      {editing && (
-        <div onClick={(e)=>e.stopPropagation()} style={{
-          position:'absolute', top:'calc(100% + 6px)', right: 0, zIndex: 30,
+      {editing && popPos && ReactDOM.createPortal(
+        <div ref={popRef} onClick={(e)=>e.stopPropagation()} style={{
+          position:'fixed', left: popPos.left, top: popPos.top, zIndex: 9990,
+          width: POP_W,
           background:'#FFFFFF', border:'1px solid #E5E7EB',
-          borderRadius: 10, boxShadow:'0 12px 28px rgba(15,17,21,0.12), 0 2px 6px rgba(15,17,21,0.06)',
-          padding: 12, minWidth: 220,
-          fontFamily:'inherit',
+          borderRadius: 12, boxShadow:'0 16px 40px rgba(15,17,21,0.16), 0 2px 8px rgba(15,17,21,0.08)',
+          padding: 14,
+          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+          animation: 'mergeChipIn 160ms cubic-bezier(0.32,0.72,0,1)',
         }}>
-          <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
-            Posti del tavolo
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10}}>
+            <span style={{fontSize: 13.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
+              Posti del tavolo
+            </span>
+            <button onClick={() => setEditing(false)} aria-label="Chiudi" style={{
+              width: 22, height: 22, borderRadius: 6,
+              background:'#F3F4F6', border:'none', cursor:'pointer',
+              color:'#6B7280', display:'grid', placeItems:'center', fontFamily:'inherit',
+            }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
           </div>
           <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 10}}>
             <button onClick={() => onAdjust(Math.max(coperti || 1, posti - 1))} disabled={posti <= (coperti || 1)} style={{
@@ -395,7 +430,8 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
               <span>{byup} {byup === 1 ? 'connesso' : 'connessi'} a byup · gli altri non hanno ancora scansionato il QR</span>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -487,21 +523,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           fontSize: 20, fontWeight: 600, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
-        {t.state === 'occupato' && (
-          <Tip text={`Al tavolo da ${formatOpenDuration(t.sittingMin)}`}>
-            <span style={{
-              display:'inline-flex', alignItems:'center', gap: 3,
-              fontSize: 15, color:'#6B7280', fontWeight: 600, cursor:'help',
-              lineHeight: 1,
-            }}>
-              <ChairIcon size={12}/>
-              {formatOpenDuration(t.sittingMin)}
-            </span>
-          </Tip>
-        )}
-        {t.state !== 'occupato' && (
-          <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
-        )}
+        {/* Il tempo "seduti" non vive più qui: a card contratta non si mostra,
+            a card espansa c'è la riga leggibile "Seduti da X minuti" sotto. */}
+        <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
 
         <span style={{flex:1}}/>
         {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
@@ -522,6 +546,18 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           }}/>
         </Tip>
       </div>
+
+      {/* Tempo al tavolo — solo a card espansa, in chiaro: "Seduti da 18 minuti" */}
+      {expanded && t.state === 'occupato' && t.sittingMin != null && (
+        <div style={{
+          display:'flex', alignItems:'center', gap: 6,
+          fontSize: 14.5, color:'#6B7280', fontWeight: 600,
+          marginTop: 4, lineHeight: 1,
+        }}>
+          <ChairIcon size={13}/>
+          {formatSeduti(t.sittingMin)}
+        </div>
+      )}
 
 
       {/* Allergia: SEMPRE visibile. Compatta = solo "Allergia". Espansa = "Allergia [testo] · [ospite]". */}

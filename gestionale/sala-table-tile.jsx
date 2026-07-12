@@ -133,6 +133,7 @@ function TableTile({
   bodyExtend = null,          // {left,right,top,bottom} px extra per lato (tavoli uniti attaccati)
   hideStatusLabel = false,    // true sui membri secondari di un gruppo: stato scritto solo sul source
   hideNumber = false,         // true sui tavoli uniti: il nome del gruppo è centrato sull'insieme
+  hideBody = false,           // true sui tavoli uniti: il corpo UNICO del gruppo è disegnato dalla mappa
   left, top,                  // posizione assoluta opzionale (piantina)
   unit = TT_UNIT,             // lato corpo per 1 cella (la piantina lo deriva dal pitch+zoom)
   pitch = null,               // passo cella della griglia (per i rect multi-cella)
@@ -227,7 +228,10 @@ function TableTile({
         ...style,
       }}>
       {chairs}
-      {/* Corpo tavolo — tessera glass, riempie la cella */}
+      {/* Corpo tavolo — tessera glass, riempie la cella. Nei tavoli uniti
+          (hideBody) non si disegna: il corpo UNICO del gruppo, senza linee
+          interne, è renderizzato dalla mappa sopra il bounding box. */}
+      {!hideBody && (
       <div style={{
         position: 'absolute', left: 0, top: 0,
         width: body.w, height: body.h,
@@ -274,6 +278,7 @@ function TableTile({
           }}>{TT_LABELS[status] || status}</div>
         )}
       </div>
+      )}
       {/* Badge ALLERGIA — chip critico, a cavallo del bordo corpo */}
       {badge.includes('ALLERGIA') && !dim && (
         <div style={{

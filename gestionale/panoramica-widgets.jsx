@@ -38,11 +38,25 @@ function WSparkline({ data, color = PN.PINK, animated }) {
   const VB_W = 200, VB_H = 60, PAD = 4;
   const usableW = VB_W - PAD * 2;
   const usableH = VB_H - PAD * 2;
-  const max = Math.max(...data), min = Math.min(...data);
+
+  // La linea è SEMPRE completa: niente ridisegno da zero a ogni cambio dati
+  // (per il 60% del tempo si vedeva una linea mozzata a metà). I dati vengono
+  // ricampionati a N punti fissi così i path di periodi diversi hanno la
+  // stessa struttura e il cambio è un MORPH fluido (transition su `d`).
+  const N = 24;
+  const resampled = React.useMemo(() => {
+    if (data.length === N) return data;
+    return Array.from({ length: N }, (_, i) => {
+      const t = (i / (N - 1)) * (data.length - 1);
+      const lo = Math.floor(t), hi = Math.min(data.length - 1, Math.ceil(t));
+      return data[lo] + (data[hi] - data[lo]) * (t - lo);
+    });
+  }, [data]);
+  const max = Math.max(...resampled), min = Math.min(...resampled);
   const range = max - min || 1;
 
-  const pts = data.map((v, i) => {
-    const x = PAD + (i / (data.length - 1)) * usableW;
+  const pts = resampled.map((v, i) => {
+    const x = PAD + (i / (N - 1)) * usableW;
     const y = PAD + usableH - ((v - min) / range) * usableH;
     return [x, y];
   });
@@ -58,16 +72,13 @@ function WSparkline({ data, color = PN.PINK, animated }) {
   const fillPath = path + ` L ${(VB_W - PAD).toFixed(2)} ${(VB_H - PAD).toFixed(2)} L ${PAD} ${(VB_H - PAD).toFixed(2)} Z`;
   const gradId = `spark-grad-${color.replace('#', '')}`;
   const last = pts[pts.length - 1];
+  const MORPH = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
   return (
     <div style={{width: '100%', height: '100%', overflow: 'hidden', display: 'block'}}>
       <svg
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="none"
-        // overflow:hidden sul tag SVG impedisce a circle/path di sbordare:
-        // `preserveAspectRatio="none"` stira la geometria, ma elementi con
-        // raggio fisso (circle r=2.4) potevano "uscire" dai margini visuali.
-        // Combinato col wrapper overflow:hidden taglia in modo netto.
         style={{width: '100%', height: '100%', display: 'block', overflow: 'hidden'}}
       >
         <defs>
@@ -75,46 +86,37 @@ function WSparkline({ data, color = PN.PINK, animated }) {
             <stop offset="0%"   stopColor={color} stopOpacity="0.28"/>
             <stop offset="100%" stopColor={color} stopOpacity="0"/>
           </linearGradient>
-          {/* clipPath per garantire che TUTTO (linea + pallino) sia clippato
-              dentro l'area utile, anche durante l'animazione di drawing. */}
           <clipPath id={`spark-clip-${gradId}`}>
             <rect x="0" y="0" width={VB_W} height={VB_H}/>
           </clipPath>
         </defs>
         <g clipPath={`url(#spark-clip-${gradId})`}>
-          <path d={fillPath} fill={`url(#${gradId})`}/>
+          {/* d sia come attributo (primo paint/fallback) che in style: la
+              transition CSS su `d` produce il morphing tra i dataset. */}
+          <path
+            d={fillPath}
+            fill={`url(#${gradId})`}
+            style={{ d: `path("${fillPath}")`, transition: `d 700ms ${MORPH}` }}
+          />
           <path
             d={path} fill="none"
             stroke={color} strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round"
-            pathLength="1"
-            style={animated ? {
-              strokeDasharray: 1,
-              strokeDashoffset: 1,
-              animation: 'spark-draw 1.4s ease-out forwards',
-            } : undefined}
+            style={{ d: `path("${path}")`, transition: `d 700ms ${MORPH}` }}
             vectorEffect="non-scaling-stroke"
           />
           {animated && (
-            // Il pallino appare SOLO dopo che il draw del path è completato
-            // (delay 1.4s = durata di spark-draw). Senza, il punto sembrava
-            // "scollegato" alla fine della linea — la linea ancora si
-            // disegnava ma il pallino era già a destinazione → effetto
-            // "linea rotta con dot orfano".
             <circle
               cx={last[0].toFixed(2)} cy={last[1].toFixed(2)}
               r="2.4" fill={color}
               style={{
-                opacity: 0,
-                transformOrigin: `${last[0]}px ${last[1]}px`,
-                animation: 'spark-pulse 1.6s ease-in-out 1.4s infinite, spark-dot-in 240ms ease-out 1.30s forwards',
+                animation: 'spark-pulse 1.6s ease-in-out infinite',
+                transition: `cx 700ms ${MORPH}, cy 700ms ${MORPH}`,
               }}
             />
           )}
         </g>
         <style>{`
-          @keyframes spark-draw   { to { stroke-dashoffset: 0; } }
-          @keyframes spark-dot-in { from { opacity: 0; } to { opacity: 1; } }
           @keyframes spark-pulse  { 0%,100% { opacity: 1; r: 2.4; } 50% { opacity: 0.55; r: 3.4; } }
         `}</style>
       </svg>
@@ -1140,16 +1142,17 @@ function WidgetFinancials({ size }) {
           </div>
         </div>
 
-        {/* Destra: sparkline (flex, si comprime) + mini-card sotto */}
-        <div key={period + '-r'} style={{
+        {/* Destra: sparkline (flex, si comprime) + mini-card sotto.
+            NIENTE key sul contenitore della sparkline: deve restare montata
+            tra i cambi periodo perché il morph del path possa avvenire. */}
+        <div style={{
           flex: '1 1 auto', minWidth: 0, minHeight: 0,
           display: 'flex', flexDirection: 'column', gap: 8,
-          animation: 'fin-fade-in 320ms ease-out 60ms both',
         }}>
           <div style={{flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: 8}}>
             <WSparkline data={d.spark} color={PN.PINK} animated/>
           </div>
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, flexShrink: 0}}>
+          <div key={period + '-r'} style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, flexShrink: 0, animation: 'fin-fade-in 320ms ease-out 60ms both'}}>
             <FinMiniCard label="Scontrino" value={d.scontrino} delta={d.sDelta}/>
             <FinMiniCard label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta}/>
           </div>
@@ -1182,9 +1185,12 @@ function WidgetFinancials({ size }) {
           <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
           <span style={{fontSize: 13, color: PN.MUTED, marginLeft: 'auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</span>
         </div>
-        <div style={{marginTop: 8, height: 56, overflow: 'hidden', borderRadius: 8}}>
-          <WSparkline data={d.spark} color={PN.PINK} animated/>
-        </div>
+      </div>
+
+      {/* Sparkline FUORI dal blocco keyed: resta montata tra i cambi periodo
+          e il path fa il morphing invece di ridisegnarsi da zero. */}
+      <div style={{height: 56, overflow: 'hidden', borderRadius: 8, flexShrink: 0}}>
+        <WSparkline data={d.spark} color={PN.PINK} animated/>
       </div>
 
       {/* Bottom: 2 mini-card scontrino + coperti */}

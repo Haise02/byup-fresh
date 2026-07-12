@@ -71,98 +71,82 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
       style={{
         position: 'relative',
         borderRadius: 14,
-        // In edit mode il contenuto scende sotto la fila di pulsanti in alto
-        // a destra (26px + margini): senza, i pulsanti coprono le scritte.
-        padding: editMode ? '44px 18px 16px' : '18px 18px 16px',
+        padding: '18px 18px 16px',
         height: '100%',
-        overflow: 'hidden',
+        // I controlli edit-mode sono a cavallo dei bordi: niente clipping.
+        overflow: editMode ? 'visible' : 'hidden',
         display: 'flex', flexDirection: 'column',
         // Apple cubic-bezier "spring": entry rapido, settle morbido.
         transition: dragging
           ? 'transform 60ms ease-out'
-          : 'transform 280ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out, padding 200ms ease-out',
+          : 'transform 280ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out',
         ...dragStyle,
       }}
     >
       {editMode && (
         <>
-          <div style={{
-            position: 'absolute', top: 8, right: 8,
-            display: 'flex', gap: 4, zIndex: 2,
-            opacity: hover ? 1 : 0.6,
-            transition: 'opacity 0.15s',
-          }}>
-            {/* Resize buttons: nascosti per widget fixedSize (es. Azioni launcher).
-                Un solo ingrandimento per direzione rispetto alla misura base:
-                ↔ raddoppia la larghezza, ↕ raddoppia l'altezza; ricliccare torna
-                alla base. Max due passaggi totali. */}
-            {!fixedSize && (
-              <>
-                {canWide && <button
-                  onClick={toggleWide}
-                  title={isWide ? 'Riduci larghezza' : 'Allarga'}
-                  style={{
-                    width: 26, height: 26, borderRadius: 6,
-                    background: isWide ? PN.PINK : PN.WHITE,
-                    border: `1px solid ${isWide ? PN.PINK : PN.BORDER_LIGHT}`,
-                    cursor: 'pointer',
-                    display: 'grid', placeItems: 'center',
-                    color: isWide ? PN.WHITE : PN.MUTED,
-                    fontSize: 16, fontWeight: 700, lineHeight: 1,
-                    transition: 'background 150ms ease, color 150ms ease',
-                  }}>
-                  ↔
-                </button>}
-                {canTall && <button
-                  onClick={toggleTall}
-                  title={isTall ? 'Riduci altezza' : 'Alza'}
-                  style={{
-                    width: 26, height: 26, borderRadius: 6,
-                    background: isTall ? PN.PINK : PN.WHITE,
-                    border: `1px solid ${isTall ? PN.PINK : PN.BORDER_LIGHT}`,
-                    cursor: 'pointer',
-                    display: 'grid', placeItems: 'center',
-                    color: isTall ? PN.WHITE : PN.MUTED,
-                    fontSize: 16, fontWeight: 700, lineHeight: 1,
-                    transition: 'background 150ms ease, color 150ms ease',
-                  }}>
-                  ↕
-                </button>}
-              </>
-            )}
-            <button
-              onClick={onRemove}
-              title="Rimuovi"
-              style={{
-                width: 26, height: 26, borderRadius: 6,
-                background: PN.WHITE,
-                border: `1px solid ${PN.BORDER_LIGHT}`,
-                cursor: 'pointer',
-                display: 'grid', placeItems: 'center',
-                color: PN.RED,
-              }}>
-              <Icon name="trash" size={13}/>
-            </button>
-          </div>
+          {/* Rimuovi — cerchietto iOS-style a cavallo dell'angolo alto-sx:
+              non copre il contenuto della card, come le X delle app icon. */}
+          <button
+            onClick={onRemove}
+            title="Rimuovi"
+            style={{
+              position: 'absolute', top: -9, left: -9,
+              width: 26, height: 26, borderRadius: '50%',
+              background: PN.WHITE, color: PN.RED,
+              border: `1px solid ${PN.BORDER_LIGHT}`,
+              boxShadow: '0 3px 10px rgba(15,17,21,0.20)',
+              cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+              zIndex: 5,
+            }}>
+            <Icon name="trash" size={12}/>
+          </button>
 
-          {/* Corner resize indicator — segnale visivo che la card è ridimensionabile.
-              Tre puntini bianchi in basso a destra (pattern Mac classic per resize handle).
-              Nascosto per widget fixedSize. */}
-          {!fixedSize && (
-            <div aria-hidden="true" style={{
-              position: 'absolute',
-              right: 6, bottom: 6,
-              width: 14, height: 14,
-              opacity: hover ? 0.7 : 0.30,
-              transition: 'opacity 0.2s',
-              pointerEvents: 'none',
-              zIndex: 2,
-              background:
-                'radial-gradient(circle at 100% 100%, ' + PN.MUTED + ' 1.4px, transparent 2px) 0 0/4px 4px,' +
-                'radial-gradient(circle at 100% 100%, ' + PN.MUTED + ' 1.4px, transparent 2px) 4px 0/4px 4px,' +
-                'radial-gradient(circle at 100% 100%, ' + PN.MUTED + ' 1.4px, transparent 2px) 0 4px/4px 4px',
-              backgroundRepeat: 'no-repeat',
-            }}/>
+          {/* Ridimensiona — pill compatta a cavallo dell'angolo basso-dx
+              (il punto naturale del resize). Nascosta per widget fixedSize. */}
+          {!fixedSize && (canWide || canTall) && (
+            <div style={{
+              position: 'absolute', right: -8, bottom: -8, zIndex: 5,
+              display: 'flex', gap: 2, padding: 3,
+              background: PN.WHITE,
+              border: `1px solid ${PN.BORDER_LIGHT}`,
+              borderRadius: 999,
+              boxShadow: '0 3px 10px rgba(15,17,21,0.20)',
+            }}>
+              {canWide && <button
+                onClick={toggleWide}
+                title={isWide ? 'Riduci larghezza' : 'Allarga'}
+                style={{
+                  width: 22, height: 22, borderRadius: '50%',
+                  background: isWide ? PN.PINK : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'grid', placeItems: 'center',
+                  color: isWide ? PN.WHITE : PN.MUTED,
+                  fontSize: 14, fontWeight: 700, lineHeight: 1,
+                  fontFamily: 'inherit',
+                  transition: 'background 150ms ease, color 150ms ease',
+                }}>
+                ↔
+              </button>}
+              {canTall && <button
+                onClick={toggleTall}
+                title={isTall ? 'Riduci altezza' : 'Alza'}
+                style={{
+                  width: 22, height: 22, borderRadius: '50%',
+                  background: isTall ? PN.PINK : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'grid', placeItems: 'center',
+                  color: isTall ? PN.WHITE : PN.MUTED,
+                  fontSize: 14, fontWeight: 700, lineHeight: 1,
+                  fontFamily: 'inherit',
+                  transition: 'background 150ms ease, color 150ms ease',
+                }}>
+                ↕
+              </button>}
+            </div>
           )}
         </>
       )}
