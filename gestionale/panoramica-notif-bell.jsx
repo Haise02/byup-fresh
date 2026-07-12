@@ -62,8 +62,10 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
   const [items, setItems] = React.useState(PN_NOTIFICATIONS);
   const ref = React.useRef(null);
   const menuRef = React.useRef(null);
-  // Posizione fixed della tendina, calcolata dal rect della campanella:
-  // la tendina vive in un portal sul body (vedi sotto), non più annidata qui.
+  // Posizione fixed della tendina, dal rect della campanella: la tendina vive
+  // in un portal sul body. Serve per il vetro: dentro al .frame (che ha
+  // isolation:isolate) il backdrop-filter vedrebbe solo una parte della
+  // pagina; sul body sfoca davvero tutto ciò che c'è sotto il popup.
   const [menuPos, setMenuPos] = React.useState(null);
   const unreadCount = items.filter(i => i.unread).length;
 
@@ -157,35 +159,17 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
       )}
 
       {open && menuPos && ReactDOM.createPortal(
-        // Portal sul body (come il banner offline): il frame è scalato con
-        // zoom, quindi backdrop e tendina fixed al suo interno non coprirebbero
-        // l'intera finestra. Sul body coprono tutto, sempre.
-        <React.Fragment>
-          {/* Sfondo blurrato al 50% del massimo di design system
-              (PN.GLASS_MENU usa blur(24px) → qui blur(12px)). */}
-          <div
-            onMouseDown={() => setOpen(false)}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 9980,
-              background: 'rgba(15, 17, 21, 0.10)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              animation: 'pn-backdrop-in .18s ease-out',
-            }}/>
-          <style>{`
-            @keyframes pn-backdrop-in {
-              from { opacity: 0; }
-              to   { opacity: 1; }
-            }
-          `}</style>
-        {/* Glass menu Apple Sonoma — il dropdown si sovrappone al main e le card
-            dietro creano vibrancy. blur(24px) saturate(180%) è il setting massimo
-            del nostro design system (vedi PN.GLASS_MENU). */}
+        // Glass menu Apple Sonoma — lo sfondo del popup è al 50% di opacità
+        // (override del token GLASS_MENU, che è 0.66): il contenuto dietro
+        // resta visibile ma blurrato dal backdrop-filter. Perché funzioni,
+        // anche le righe interne devono essere traslucide (vedi sotto),
+        // altrimenti coprono il vetro con bianco pieno.
         <div ref={menuRef} style={{
           position: 'fixed',
           ...menuPos,
           width: 380,
           ...PN.GLASS_MENU,
+          background: 'rgba(255, 255, 255, 0.50)',
           zIndex: 9981,
           overflow: 'hidden',
           fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
@@ -200,13 +184,11 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                 {unreadCount > 0 ? `${unreadCount} non lette` : 'Tutto letto ✓'}
               </div>
             </div>
-            {unreadCount > 0 && (
-              <button onClick={markAllRead} style={{
-                background:'transparent', border:'none',
-                color: PN.PINK, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
-                cursor:'pointer', padding: 0,
-              }}>Segna come lette</button>
-            )}
+            <button style={{
+              background:'transparent', border:'none',
+              color: PN.PINK, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
+              cursor:'pointer', padding: 0,
+            }}>Vedi tutte le notifiche →</button>
           </div>
 
           <div style={{maxHeight: 440, overflowY: 'auto'}} className="pn-scroll">
@@ -215,12 +197,13 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                 display:'flex', gap: 12,
                 padding: '12px 16px',
                 borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-                background: n.unread ? '#fff7fa' : PN.WHITE,
+                // Righe traslucide: il vetro del popup deve restare visibile.
+                background: n.unread ? 'rgba(255, 200, 220, 0.22)' : 'transparent',
                 cursor:'pointer',
                 position:'relative',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = n.unread ? '#ffeef4' : '#fafafa'}
-                onMouseLeave={e => e.currentTarget.style.background = n.unread ? '#fff7fa' : PN.WHITE}
+                onMouseEnter={e => e.currentTarget.style.background = n.unread ? 'rgba(255, 200, 220, 0.38)' : 'rgba(15, 17, 21, 0.045)'}
+                onMouseLeave={e => e.currentTarget.style.background = n.unread ? 'rgba(255, 200, 220, 0.22)' : 'transparent'}
               >
                 {n.unread && (
                   <span style={{
@@ -228,11 +211,6 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                     width: 6, height: 6, borderRadius: '50%', background: PN.PINK,
                   }}/>
                 )}
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  background: '#f4f4f6', flexShrink: 0,
-                  display:'grid', placeItems:'center'
-                }}><Icon name={SfIcons[n.icon] ? n.icon : 'bell'} size={16} color="#6B7280"/></div>
                 <div style={{flex: 1, minWidth: 0}}>
                   <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, marginBottom: 2, lineHeight: 1.35}}>{n.title}</div>
                   <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, marginBottom: 4}}>{n.body}</div>
@@ -242,19 +220,20 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
             ))}
           </div>
 
-          <div style={{
-            padding: '10px 16px', textAlign:'center',
-            borderTop: `1px solid ${PN.BORDER_SOFT}`,
-            background: '#fafafa',
-          }}>
-            <button style={{
-              background:'transparent', border:'none',
-              color: PN.TEXT, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
-              cursor:'pointer', padding: 0,
-            }}>Vedi tutte le notifiche →</button>
-          </div>
-        </div>
-        </React.Fragment>,
+          {unreadCount > 0 && (
+            <div style={{
+              padding: '10px 16px', textAlign:'center',
+              borderTop: `1px solid ${PN.BORDER_SOFT}`,
+              background: 'rgba(255, 255, 255, 0.30)',
+            }}>
+              <button onClick={markAllRead} style={{
+                background:'transparent', border:'none',
+                color: PN.TEXT, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
+                cursor:'pointer', padding: 0,
+              }}>Segna come lette</button>
+            </div>
+          )}
+        </div>,
         document.body
       )}
     </div>
