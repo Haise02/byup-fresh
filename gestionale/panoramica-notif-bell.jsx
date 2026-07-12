@@ -61,12 +61,28 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState(PN_NOTIFICATIONS);
   const ref = React.useRef(null);
+  const menuRef = React.useRef(null);
+  // Posizione fixed della tendina, calcolata dal rect della campanella:
+  // la tendina vive in un portal sul body (vedi sotto), non più annidata qui.
+  const [menuPos, setMenuPos] = React.useState(null);
   const unreadCount = items.filter(i => i.unread).length;
+
+  React.useLayoutEffect(() => {
+    if (!open) { setMenuPos(null); return; }
+    const rect = ref.current.getBoundingClientRect();
+    // dropUp/sidebar: sopra la campanella, agganciata a sinistra;
+    // topbar: sotto la campanella, allineata a destra.
+    setMenuPos((dropUp || sidebar)
+      ? { bottom: window.innerHeight - rect.top + 8, left: rect.left }
+      : { top: rect.bottom + 8, right: window.innerWidth - rect.right });
+  }, [open, dropUp, sidebar]);
 
   React.useEffect(() => {
     if (!open) return;
     const onDoc = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      const inBell = ref.current && ref.current.contains(e.target);
+      const inMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!inBell && !inMenu) setOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
@@ -140,22 +156,39 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
       </button>
       )}
 
-      {open && (
-        // Glass menu Apple Sonoma — il dropdown si sovrappone al main e le card
-        // dietro creano vibrancy. blur(24px) saturate(180%) è il setting massimo
-        // del nostro design system (vedi PN.GLASS_MENU).
-        <div style={{
-          position: 'absolute',
-          // dropUp/sidebar: il menu si apre verso l'alto, agganciato a sinistra
-          // così si distende sopra il contenuto principale.
-          ...((dropUp || sidebar)
-            ? { bottom: 'calc(100% + 8px)', left: 0 }
-            : { top: 'calc(100% + 8px)', right: 0 }),
+      {open && menuPos && ReactDOM.createPortal(
+        // Portal sul body (come il banner offline): il frame è scalato con
+        // zoom, quindi backdrop e tendina fixed al suo interno non coprirebbero
+        // l'intera finestra. Sul body coprono tutto, sempre.
+        <React.Fragment>
+          {/* Sfondo blurrato al 50% del massimo di design system
+              (PN.GLASS_MENU usa blur(24px) → qui blur(12px)). */}
+          <div
+            onMouseDown={() => setOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9980,
+              background: 'rgba(15, 17, 21, 0.10)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              animation: 'pn-backdrop-in .18s ease-out',
+            }}/>
+          <style>{`
+            @keyframes pn-backdrop-in {
+              from { opacity: 0; }
+              to   { opacity: 1; }
+            }
+          `}</style>
+        {/* Glass menu Apple Sonoma — il dropdown si sovrappone al main e le card
+            dietro creano vibrancy. blur(24px) saturate(180%) è il setting massimo
+            del nostro design system (vedi PN.GLASS_MENU). */}
+        <div ref={menuRef} style={{
+          position: 'fixed',
+          ...menuPos,
           width: 380,
           ...PN.GLASS_MENU,
-          zIndex: 120,
+          zIndex: 9981,
           overflow: 'hidden',
-          fontFamily: 'inherit',
+          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
         }}>
           <div style={{
             display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -221,6 +254,8 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
             }}>Vedi tutte le notifiche →</button>
           </div>
         </div>
+        </React.Fragment>,
+        document.body
       )}
     </div>
   );
