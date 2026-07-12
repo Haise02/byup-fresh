@@ -402,18 +402,16 @@ const SfIcons = {
   ),
 
   'commerce-register': () => (
-    // Registratore di cassa: display in alto, corpo con tastierino, cassetto
+    // Registratore di cassa: display con riga di testo, corpo a trapezio
+    // inclinato col tastierino (la svasatura è ciò che lo fa leggere come
+    // cassa e non come stampante), cassetto largo alla base.
     <>
-      <path d="M5 2.5h14a1.2 1.2 0 0 1 1.2 1.2v1.6A1.2 1.2 0 0 1 19 6.5H5a1.2 1.2 0 0 1-1.2-1.2V3.7A1.2 1.2 0 0 1 5 2.5Z"/>
-      <rect x="5" y="8" width="14" height="8.2" rx="1.6"/>
-      <circle cx="9" cy="10.7" r="1" fill="#fff"/>
-      <circle cx="12" cy="10.7" r="1" fill="#fff"/>
-      <circle cx="15" cy="10.7" r="1" fill="#fff"/>
-      <circle cx="9" cy="13.6" r="1" fill="#fff"/>
-      <circle cx="12" cy="13.6" r="1" fill="#fff"/>
-      <circle cx="15" cy="13.6" r="1" fill="#fff"/>
-      <path d="M4.2 17.5h15.6a1.7 1.7 0 0 1 1.7 1.7v.6a1.7 1.7 0 0 1-1.7 1.7H4.2a1.7 1.7 0 0 1-1.7-1.7v-.6a1.7 1.7 0 0 1 1.7-1.7Z"/>
-      <rect x="9.8" y="18.8" width="4.4" height="1.4" rx=".7" fill="#fff"/>
+      {/* Display */}
+      <path fillRule="evenodd" clipRule="evenodd" d="M7.8 2.3h8.4a1.1 1.1 0 0 1 1.1 1.1v2a1.1 1.1 0 0 1-1.1 1.1H7.8a1.1 1.1 0 0 1-1.1-1.1v-2a1.1 1.1 0 0 1 1.1-1.1Zm1.2 1.7a.55.55 0 0 0 0 1.1h6a.55.55 0 0 0 0-1.1H9Z"/>
+      {/* Corpo inclinato con tastierino (fori a coordinate assolute) */}
+      <path fillRule="evenodd" clipRule="evenodd" d="M8.3 7.6h7.4a1.6 1.6 0 0 1 1.53 1.13l2.55 8.27H4.22l2.55-8.27A1.6 1.6 0 0 1 8.3 7.6ZM8.7 10.8a1 1 0 1 0 2 0 1 1 0 0 0-2 0ZM11 10.8a1 1 0 1 0 2 0 1 1 0 0 0-2 0ZM13.3 10.8a1 1 0 1 0 2 0 1 1 0 0 0-2 0ZM8.2 13.9a1 1 0 1 0 2 0 1 1 0 0 0-2 0ZM11 13.9a1 1 0 1 0 2 0 1 1 0 0 0-2 0ZM13.8 13.9a1 1 0 1 0 2 0 1 1 0 0 0-2 0Z"/>
+      {/* Cassetto */}
+      <path fillRule="evenodd" clipRule="evenodd" d="M3.6 18.2h16.8a1.6 1.6 0 0 1 1.6 1.6v.2a1.9 1.9 0 0 1-1.9 1.9H3.9A1.9 1.9 0 0 1 2 20v-.2a1.6 1.6 0 0 1 1.6-1.6Zm6.6 1.3a.65.65 0 0 0 0 1.3h3.6a.65.65 0 0 0 0-1.3h-3.6Z"/>
     </>
   ),
 
