@@ -85,7 +85,7 @@ function PnSidebar({ active = 'panoramica', onNav }) {
   const items = [
     { id: 'panoramica',   label: 'Panoramica',        icon: 'grid' },
     modules.sala         && { id: 'sala',         label: 'Sala',              icon: 'place-table' },
-    { id: 'vendita',      label: 'Vendita diretta',   icon: 'commerce-cart' },
+    { id: 'vendita',      label: 'Vendita diretta',   icon: 'commerce-register' },
     modules.prenotazioni && { id: 'prenotazioni', label: 'Prenotazioni',      icon: 'time-calendar' },
     { id: 'cucina',       label: 'Cucina',             icon: 'food-flame' },
     { id: 'statistiche',  label: 'Statistiche',        icon: 'chart-bar' },

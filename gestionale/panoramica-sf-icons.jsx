@@ -93,7 +93,11 @@ const SfIcons = {
   // ═══ Content · Food (15) ══════════════════════════════════════════════════
 
   'food-flame': () => (
-    <path fillRule="evenodd" clipRule="evenodd" d="M13 2.2c-.4-.5-1.2-.3-1.3.3-.5 2.5-2.3 4-3.7 5.7A6.8 6.8 0 0 0 5.2 13c0 3.8 3 6.8 6.8 6.8 3.8 0 6.8-3 6.8-6.8 0-2.7-1.7-4.5-3.3-6.5-1.1-1.4-2.3-2.8-2.5-4.3Zm-.7 11.5c.5 1 1.7 1.4 2.7.8.4-.2.7.1.5.5a3.3 3.3 0 0 1-3.2 2.3 3.3 3.3 0 0 1-3.2-3.2c0-.6.1-1.3.4-1.8.2-.4.6-.3.6.1 0 .7.4 1.3 1 1.4.4.1.6-.2.5-.5-.2-.4.3-.6.4-.2.1.3.2.5.3.6Z"/>
+    // Fiamma classica: lingua esterna con guizzo laterale + fiamma interna
+    // ritagliata (evenodd). Silhouette in stile bootstrap-icons "fire".
+    <g transform="translate(1.5 1.5) scale(1.3125)">
+      <path fillRule="evenodd" clipRule="evenodd" d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16Zm0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c-.375-1.25.5-3.25 2-3.5-.179 1-.25 2 1 3 .625.5 1 1.364 1 2.25C11 14 9.657 15 8 15Z"/>
+    </g>
   ),
 
   'food-meal': () => (
@@ -397,6 +401,22 @@ const SfIcons = {
     </>
   ),
 
+  'commerce-register': () => (
+    // Registratore di cassa: display in alto, corpo con tastierino, cassetto
+    <>
+      <path d="M5 2.5h14a1.2 1.2 0 0 1 1.2 1.2v1.6A1.2 1.2 0 0 1 19 6.5H5a1.2 1.2 0 0 1-1.2-1.2V3.7A1.2 1.2 0 0 1 5 2.5Z"/>
+      <rect x="5" y="8" width="14" height="8.2" rx="1.6"/>
+      <circle cx="9" cy="10.7" r="1" fill="#fff"/>
+      <circle cx="12" cy="10.7" r="1" fill="#fff"/>
+      <circle cx="15" cy="10.7" r="1" fill="#fff"/>
+      <circle cx="9" cy="13.6" r="1" fill="#fff"/>
+      <circle cx="12" cy="13.6" r="1" fill="#fff"/>
+      <circle cx="15" cy="13.6" r="1" fill="#fff"/>
+      <path d="M4.2 17.5h15.6a1.7 1.7 0 0 1 1.7 1.7v.6a1.7 1.7 0 0 1-1.7 1.7H4.2a1.7 1.7 0 0 1-1.7-1.7v-.6a1.7 1.7 0 0 1 1.7-1.7Z"/>
+      <rect x="9.8" y="18.8" width="4.4" height="1.4" rx=".7" fill="#fff"/>
+    </>
+  ),
+
   'commerce-bag': () => (
     <path d="M6 8V6a6 6 0 0 1 12 0v2h2a1 1 0 0 1 1 1l-.7 11a3 3 0 0 1-3 2.8H6.7a3 3 0 0 1-3-2.8L3 9a1 1 0 0 1 1-1h2Zm2 0h8V6a4 4 0 0 0-8 0v2Z" fillRule="evenodd" clipRule="evenodd"/>
   ),
@@ -613,7 +633,13 @@ const SfIcons = {
   // ═══ Content · Place (6) ══════════════════════════════════════════════════
 
   'place-table': () => (
-    <path d="M3.5 8c0-1.66 3.8-3 8.5-3s8.5 1.34 8.5 3-3.8 3-8.5 3S3.5 9.66 3.5 8Zm7.5 4.5v8a1 1 0 0 0 2 0v-8c-.33.01-.66.01-1 .01s-.67 0-1-.01Z"/>
+    // Tavolo visto di lato: piano orizzontale + due gambe. Molto più
+    // riconoscibile del vecchio tavolino a colonna centrale.
+    <>
+      <rect x="2.5" y="6.6" width="19" height="3.6" rx="1.4"/>
+      <rect x="4.7" y="10.6" width="2.5" height="9" rx="1.15"/>
+      <rect x="16.8" y="10.6" width="2.5" height="9" rx="1.15"/>
+    </>
   ),
 
   'place-restaurant': () => (
