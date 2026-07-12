@@ -196,6 +196,7 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                 cursor:'pointer',
                 position:'relative',
               }}
+                onClick={() => { if (n.href) window.location.href = n.href; }}
                 onMouseEnter={e => e.currentTarget.style.background = n.unread ? '#ffeef4' : '#fafafa'}
                 onMouseLeave={e => e.currentTarget.style.background = n.unread ? '#fff7fa' : '#fff'}
               >
@@ -210,26 +211,28 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                   <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, marginBottom: 4}}>{n.body}</div>
                   <div style={{fontSize: 13, color: '#a3a3ad', fontWeight: 500}}>{n.time}</div>
                 </div>
-                {/* Freccina → porta alla sezione relativa alla notifica */}
-                {n.href && (
-                  <button
-                    title="Vai alla sezione"
-                    onClick={(e) => { e.stopPropagation(); window.location.href = n.href; }}
-                    style={{
-                      alignSelf:'center', flexShrink: 0,
-                      width: 28, height: 28, borderRadius: 8,
-                      background:'transparent', border:'none', cursor:'pointer',
-                      color: PN.MUTED, display:'grid', placeItems:'center',
-                      transition:'background 140ms ease, color 140ms ease',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.06)'; e.currentTarget.style.color = PN.PINK; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
-                  >
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none">
-                      <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                )}
+                {/* Cestino → elimina la notifica (la navigazione è sul click
+                    della riga, quindi qui serve lo stopPropagation) */}
+                <button
+                  title="Elimina notifica"
+                  onClick={(e) => { e.stopPropagation(); setItems(prev => prev.filter(i => i.id !== n.id)); }}
+                  style={{
+                    alignSelf:'center', flexShrink: 0,
+                    width: 28, height: 28, borderRadius: 8,
+                    background:'transparent', border:'none', cursor:'pointer',
+                    color: PN.MUTED, display:'grid', placeItems:'center',
+                    transition:'background 140ms ease, color 140ms ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#DC2626'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+                >
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"/>
+                    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6M14 11v6"/>
+                  </svg>
+                </button>
               </div>
             ))}
           </div>
