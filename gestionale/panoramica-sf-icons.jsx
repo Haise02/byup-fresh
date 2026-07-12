@@ -401,6 +401,22 @@ const SfIcons = {
     </>
   ),
 
+  'commerce-piggy-bank': () => (
+    // Salvadanaio a maialino: corpo tondo con fessura per la moneta e occhio
+    // ritagliati (evenodd), muso sporgente, orecchio e zampe.
+    <>
+      {/* Zampe */}
+      <rect x="6.4" y="17" width="2.6" height="4.4" rx="1.2"/>
+      <rect x="13.4" y="17" width="2.6" height="4.4" rx="1.2"/>
+      {/* Muso */}
+      <rect x="19" y="10" width="3" height="4.6" rx="1.4"/>
+      {/* Orecchio */}
+      <path d="M13.8 5.5c.8-1.6 2.4-2.5 4-2.3.6.1.9.8.5 1.3l-2.5 3.2a9 9 0 0 0-2-2.2Z"/>
+      {/* Corpo con fessura moneta e occhio */}
+      <path fillRule="evenodd" clipRule="evenodd" d="M2.9 12.2a8.6 6.9 0 1 0 17.2 0 8.6 6.9 0 1 0-17.2 0ZM8.75 7.4h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5ZM15.85 10.4a.95.95 0 1 0 1.9 0 .95.95 0 1 0-1.9 0Z"/>
+    </>
+  ),
+
   'commerce-register': () => (
     // Registratore di cassa: display con riga di testo, corpo a trapezio
     // inclinato col tastierino (la svasatura è ciò che lo fa leggere come

@@ -89,7 +89,7 @@ function PnSidebar({ active = 'panoramica', onNav }) {
     modules.prenotazioni && { id: 'prenotazioni', label: 'Prenotazioni',      icon: 'time-calendar' },
     { id: 'cucina',       label: 'Cucina',             icon: 'food-flame' },
     { id: 'statistiche',  label: 'Statistiche',        icon: 'chart-bar' },
-    { id: 'contabilita',  label: 'Contabilità',        icon: 'commerce-wallet' },
+    { id: 'contabilita',  label: 'Contabilità',        icon: 'commerce-piggy-bank' },
   ].filter(Boolean);
 
   const sys = [
