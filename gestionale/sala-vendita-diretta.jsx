@@ -55,9 +55,13 @@ function SalaVenditaDiretta() {
   });
 
   const isCustomizable = (p) => (p.variants?.length || p.ingredients?.length || p.extras?.length);
+  // Opzione obbligatoria (variant required): niente aggiunta diretta, serve
+  // sempre il popup di personalizzazione — anche dal pulsante + Aggiungi.
+  const hasRequiredOptions = (p) => (p.variants || []).some(g => g.required);
 
   // Quick add: piatti senza personalizzazione, o aggiunge un'altra riga base
   const quickAdd = (p) => {
+    if (hasRequiredOptions(p)) { openPersonalizza(p); return; }
     setLines(prev => {
       // se esiste già una riga base senza mods, incrementa
       const idx = prev.findIndex(l => l.piatto.id === p.id && !l.mods);
@@ -223,6 +227,7 @@ function SalaVenditaDiretta() {
                 p={p}
                 qtyInCart={linesQty}
                 customizable={isCustomizable(p)}
+                requiresOptions={hasRequiredOptions(p)}
                 onQuickAdd={() => quickAdd(p)}
                 onPersonalizza={() => openPersonalizza(p)}
               />
@@ -686,7 +691,7 @@ function SaCustomModal({ onClose, onConfirm }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Card piatto
 
-function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }) {
+function SaPiattoCard({ p, qtyInCart, customizable, requiresOptions, onQuickAdd, onPersonalizza }) {
   const [imgError, setImgError] = React.useState(false);
   const cardRef = React.useRef(null);
   const cat = SALA_VENDITA_CATS[p.cat] || { color: PN.MUTED, bg: '#F4F5F7' };
@@ -803,10 +808,12 @@ function SaPiattoCard({ p, qtyInCart, customizable, onQuickAdd, onPersonalizza }
 
         <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, marginTop: 6}}>€{p.price.toFixed(2)}</div>
         {/* + Aggiungi: aggiunta rapida su OGNI card, a tutta larghezza; il click
-            sul piatto personalizza (se personalizzabile) o aggiunge direttamente. */}
+            sul piatto personalizza (se personalizzabile) o aggiunge direttamente.
+            Con opzioni obbligatorie apre il popup di personalizzazione (senza
+            fly-to-cart: non viene aggiunto nulla finché non si conferma). */}
         <button
-          onClick={(e) => { e.stopPropagation(); quickAddConFeedback(); }}
-          title="Aggiungi al conto"
+          onClick={(e) => { e.stopPropagation(); if (requiresOptions) { onPersonalizza(); return; } quickAddConFeedback(); }}
+          title={requiresOptions ? 'Scegli le opzioni e aggiungi' : 'Aggiungi al conto'}
           style={{
             marginTop: 9, width:'100%', height: 38, borderRadius: 10,
             background: PN.BTN_NEUTRAL, color: PN.TEXT, border:`1px solid ${PN.BORDER_LIGHT}`,
