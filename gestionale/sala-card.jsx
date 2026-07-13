@@ -547,10 +547,16 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         transition: 'opacity 200ms ease-out',
       }}/>
 
-      {/* === HEADER — Tavolo X numero, posti, dot stato a dx (tooltip on hover) === */}
-      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginTop: 2}}>
+      {/* === HEADER — Tavolo X numero, posti, dot stato a dx (tooltip on hover).
+          A card espansa è una sezione a sé, separata da un hairline; nella
+          contratta resta riga unica per non rubare altezza alla griglia. === */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginTop: 2,
+        paddingBottom: expanded ? 10 : 0,
+        borderBottom: expanded ? '1px solid rgba(15, 17, 21, 0.07)' : 'none',
+      }}>
         <span style={{
-          fontSize: 20, fontWeight: 600, color: '#0F1115',
+          fontSize: expanded ? 24 : 22, fontWeight: 700, color: '#0F1115',
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
         {/* Capienza in header SOLO per libero/da liberare: sulle occupate la
@@ -664,7 +670,9 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   }
   if (t.state === 'occupato') {
     return (
-      <div style={{display:'flex', alignItems:'center', gap: 8}}>
+      // marginTop auto: la riga si ancora al FONDO della card (minHeight 88),
+      // così i coperti stanno davvero in basso a destra rispetto alla card
+      <div style={{display:'flex', alignItems:'center', gap: 8, marginTop:'auto'}}>
         {alert && (
           <div style={{
             fontSize: 15, fontWeight: 700,
