@@ -500,7 +500,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   // nella modale "Modifica tavolo" aperta dal pulsante Modifica (onEdit).
 
   // Severity "Da pulire" progressiva
-  const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire) : 'normal';
+  const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire ?? t.freedMinAgo) : 'normal';
   const [hover, setHover] = React.useState(false);
   // Schiarisce (f>0) o scurisce (f<0) un colore hex — per il gradiente header
   const shade = (hex, f) => {
@@ -708,7 +708,8 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
     );
   }
   if (t.state === 'dapulire') {
-    const pulireColor = pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#475569');
+    // "Da liberare" è SEMPRE rosso, anche a card contratta (stesso colore dell'espansa)
+    const pulireColor = pulireSev === 'normal' ? '#475569' : '#DC2626';
     const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
     return (
       <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
@@ -880,7 +881,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         {t.state === 'dapulire' && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
             <div style={{fontSize: 18, fontWeight: 700,
-              color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#D97706' : '#0F1115'),
+              color: pulireSev === 'normal' ? '#0F1115' : '#DC2626',
               letterSpacing:'-0.01em'}}>
               {pulireSev === 'normal'
                 ? `Tavolo liberato ${t.minutiDaPulire ?? t.freedMinAgo} minuti fa`
