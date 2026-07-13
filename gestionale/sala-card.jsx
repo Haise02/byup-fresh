@@ -256,46 +256,20 @@ function ByupB({ size = 11 }) {
 // Avatar group — un colpo d'occhio sui coperti seduti e su chi è collegato a byup
 // Rosso brand con "b" = utente byup (ordina dall'app). Grigio chiaro = ospite tradizionale.
 // Format "X/Y" = seduti / capacità massima del tavolo.
-function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust }) {
-  const [editing, setEditing] = React.useState(false);
-  // Posizione fixed del popup: vive in un portal sul body, così nessun
-  // antenato con overflow:hidden (la card in lista) può tagliarlo.
-  const [popPos, setPopPos] = React.useState(null);
-  const ref = React.useRef(null);
-  const popRef = React.useRef(null);
-  const POP_W = 268;
-  const openEditor = () => {
-    const r = ref.current.getBoundingClientRect();
-    const left = Math.max(8, Math.min(r.right - POP_W, window.innerWidth - POP_W - 8));
-    const top = Math.min(r.bottom + 8, window.innerHeight - 230);
-    setPopPos({ left, top });
-    setEditing(true);
-  };
-  React.useEffect(() => {
-    if (!editing) return;
-    const onDoc = (e) => {
-      const inTrigger = ref.current && ref.current.contains(e.target);
-      const inPopup = popRef.current && popRef.current.contains(e.target);
-      if (!inTrigger && !inPopup) setEditing(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [editing]);
-  if (!coperti || coperti === 0) return null;
+// Avatar utenti CONNESSI (app byup + webapp): il numero accanto agli avatar
+// conta SOLO chi ha fatto accesso — è indifferente ai coperti seduti, che
+// vivono nel CopertiChip separato. Hover → breakdown byup/webapp/senza accesso.
+function GuestAvatars({ coperti = 0, byup = 0, byupWeb = 0, expanded }) {
+  const connected = byup + byupWeb;
+  if (!connected) return null;
   const sz = expanded ? 22 : 18;
   const overlap = expanded ? 6 : 5;
   const max = expanded ? 9 : 6;
-  const visible = Math.min(coperti, max);
-  const overflow = coperti - visible;
-  const avatars = Array.from({length: visible}).map((_, i) => i < byup);
-  const editable = expanded && typeof onAdjust === 'function';
-  // Tooltip compatto: "X ospiti su Y · Z app byup, W web app"
-  const conn = [];
-  if (byup > 0)    conn.push(`${byup} app byup`);
-  if (byupWeb > 0) conn.push(`${byupWeb} web app`);
-  const tipText = `${coperti} ospiti su ${posti}${conn.length ? ' · ' + conn.join(', ') : ''}`;
-  // Hover sul 4/4 espanso: breakdown accessi — app byup, webapp, resto coperti
-  const rest = Math.max(0, coperti - byup - byupWeb);
+  const visible = Math.min(connected, max);
+  const overflow = connected - visible;
+  // Prima gli utenti app byup (rossi), poi quelli da webapp (blu)
+  const avatars = Array.from({length: visible}).map((_, i) => i < byup ? 'byup' : 'web');
+  const rest = Math.max(0, coperti - connected);
   const BreakdownDot = ({ bg }) => (
     <span style={{width: 8, height: 8, borderRadius:'50%', background: bg, flexShrink: 0, display:'inline-block'}}/>
   );
@@ -321,36 +295,34 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
       )}
     </div>
   );
-  const Inner = (
-    <div style={{display:'inline-flex', alignItems:'center', gap: expanded ? 8 : 6, cursor: editable ? 'pointer' : 'help'}}>
+  return (
+    <Tip text={breakdown}>
+      <div style={{display:'inline-flex', alignItems:'center', gap: expanded ? 8 : 6, cursor:'help'}}>
         <div style={{display:'inline-flex', alignItems:'center'}}>
-          {avatars.map((isByup, i) => (
+          {avatars.map((kind, i) => (
             <div key={i} style={{
               width: sz, height: sz, borderRadius: '50%',
-              background: isByup ? 'linear-gradient(135deg, #FF5A5F, #B53338)' : '#E5E7EB',
+              background: kind === 'byup' ? 'linear-gradient(135deg, #FF5A5F, #B53338)' : 'linear-gradient(135deg, #60A5FA, #2563EB)',
               border: '2px solid #FFFFFF',
               marginLeft: i === 0 ? 0 : -overlap,
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               zIndex: visible - i,
-              boxShadow: isByup ? '0 1px 2px rgba(255,90,95,0.30)' : 'none',
+              boxShadow: kind === 'byup' ? '0 1px 2px rgba(255,90,95,0.30)' : '0 1px 2px rgba(37,99,235,0.28)',
             }}>
-              {isByup
+              {kind === 'byup'
                 ? <ByupB size={expanded ? 13 : 11}/>
-                : <span style={{width: expanded ? 7 : 6, height: expanded ? 7 : 6, borderRadius:'50%', background:'#9CA3AF'}}/>
+                : <span style={{width: expanded ? 7 : 6, height: expanded ? 7 : 6, borderRadius:'50%', background:'#FFFFFF'}}/>
               }
             </div>
           ))}
           {overflow > 0 && (
-            <Tip text={`${overflow} coperti in più`}>
-              <div style={{
-                width: sz, height: sz, borderRadius: '50%',
-                background: '#6B7280', border: '2px solid #FFFFFF',
-                marginLeft: -overlap,
-                display:'inline-flex', alignItems:'center', justifyContent:'center',
-                color: '#FFFFFF', fontSize: expanded ? 13.5 : 12, fontWeight: 700,
-                cursor:'help',
-              }}>+{overflow}</div>
-            </Tip>
+            <div style={{
+              width: sz, height: sz, borderRadius: '50%',
+              background: '#6B7280', border: '2px solid #FFFFFF',
+              marginLeft: -overlap,
+              display:'inline-flex', alignItems:'center', justifyContent:'center',
+              color: '#FFFFFF', fontSize: expanded ? 13.5 : 12, fontWeight: 700,
+            }}>+{overflow}</div>
           )}
         </div>
         <span style={{
@@ -360,37 +332,68 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
           fontVariantNumeric: 'tabular-nums',
           letterSpacing: -0.2,
         }}>
-          {coperti}<span style={{color:'#9CA3AF', fontWeight: 600, margin:'0 1px'}}>/</span>{posti}
+          {connected}
         </span>
-        {editable && (
-          <span style={{
-            display:'inline-flex', alignItems:'center', justifyContent:'center',
-            width: 16, height: 16, borderRadius: 4,
-            color:'#9CA3AF', marginLeft: -2,
-          }} aria-hidden>
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </span>
-        )}
       </div>
+    </Tip>
   );
-  if (!editable) {
-    return <Tip text={tipText}>{Inner}</Tip>;
-  }
+}
+
+// Chip coperti SEDUTI al tavolo: "6 coperti" + un più a fianco. Il click apre
+// lo stepper che aumenta/diminuisce i coperti (1..posti). Gli utenti connessi
+// (GuestAvatars) non c'entrano e non cambiano al variare dei coperti.
+function CopertiChip({ coperti, posti, onAdjust }) {
+  const [editing, setEditing] = React.useState(false);
+  // Posizione fixed del popup: vive in un portal sul body, così nessun
+  // antenato con overflow:hidden (la card in lista) può tagliarlo.
+  const [popPos, setPopPos] = React.useState(null);
+  const ref = React.useRef(null);
+  const popRef = React.useRef(null);
+  const POP_W = 268;
+  const openEditor = () => {
+    const r = ref.current.getBoundingClientRect();
+    const left = Math.max(8, Math.min(r.right - POP_W, window.innerWidth - POP_W - 8));
+    const top = Math.min(r.bottom + 8, window.innerHeight - 230);
+    setPopPos({ left, top });
+    setEditing(true);
+  };
+  React.useEffect(() => {
+    if (!editing) return;
+    const onDoc = (e) => {
+      const inTrigger = ref.current && ref.current.contains(e.target);
+      const inPopup = popRef.current && popRef.current.contains(e.target);
+      if (!inTrigger && !inPopup) setEditing(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [editing]);
+  if (!coperti || typeof onAdjust !== 'function') return null;
   return (
     <div ref={ref} style={{position:'relative', display:'inline-flex'}}>
-      <Tip text={breakdown} disabled={editing}>
-        <button onClick={(e) => { e.stopPropagation(); editing ? setEditing(false) : openEditor(); }} style={{
-          background: editing ? '#F4F5F7' : 'transparent',
-          border:'none', padding: '2px 6px 2px 2px', margin:'-2px -6px -2px -2px',
-          borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
-          transition:'background .12s',
-        }} onMouseEnter={(e)=>{ if(!editing) e.currentTarget.style.background='#FAFBFC'; }}
-           onMouseLeave={(e)=>{ if(!editing) e.currentTarget.style.background='transparent'; }}>
-          {Inner}
-        </button>
-      </Tip>
+      <button onClick={(e) => { e.stopPropagation(); editing ? setEditing(false) : openEditor(); }}
+        title="Coperti seduti al tavolo · tocca per modificare" style={{
+        display:'inline-flex', alignItems:'center', gap: 6,
+        height: 32, padding:'0 8px 0 10px', borderRadius: 8,
+        background: editing ? '#F4F5F7' : PN.BTN_NEUTRAL, color:'#0F1115',
+        border:`1px solid ${PN.BORDER_LIGHT}`,
+        fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        whiteSpace:'nowrap', flexShrink: 0,
+        boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+        transition:'background 150ms ease-out',
+      }}
+        onMouseEnter={e => { if (!editing) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+        onMouseLeave={e => { if (!editing) e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
+        <span style={{fontVariantNumeric:'tabular-nums'}}>{coperti} coperti</span>
+        <span style={{
+          display:'inline-flex', alignItems:'center', justifyContent:'center',
+          width: 16, height: 16, borderRadius: 4,
+          color:'#6B7280',
+        }} aria-hidden>
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+            <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </span>
+      </button>
       {editing && popPos && ReactDOM.createPortal(
         <div ref={popRef} onClick={(e)=>e.stopPropagation()} style={{
           position:'fixed', left: popPos.left, top: popPos.top, zIndex: 9990,
@@ -649,7 +652,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   if (t.state === 'occupato') {
     return (
       <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
-        <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti}/>
+        <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb}/>
         {alert && (
           <div style={{
             fontSize: 15, fontWeight: 700,
@@ -753,11 +756,13 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                   {t.party}
                 </div>
               )}
-              {/* Coperti/posti a sinistra, Modifica inline a destra
+              {/* Utenti connessi (avatar + numero, fisso) a sinistra; a destra
+                  i coperti seduti col "+" (stepper) e Modifica inline
                   (Aggiungi articolo sta sotto l'elenco degli ordini) */}
               <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti} expanded onAdjust={onAdjustCoperti}/>
+                <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} expanded/>
                 <span style={{flex:1}}/>
+                <CopertiChip coperti={t.coperti} posti={t.posti} onAdjust={onAdjustCoperti}/>
                 <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
                   title="Sposta, dividi o unisci il tavolo" style={{
                   display:'inline-flex', alignItems:'center', gap: 5,
