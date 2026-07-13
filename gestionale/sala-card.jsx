@@ -398,7 +398,6 @@ function CopertiChip({ coperti, posti, onAdjust }) {
       }}
         onMouseEnter={e => { if (editable) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.BORDER_HAIR; } }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}>
-        <ChairIcon size={13} color="#9CA3AF"/>
         <span style={{color: '#0F1115', fontWeight: 700, fontVariantNumeric: 'tabular-nums'}}>{coperti}</span>
         coperti
       </button>
@@ -439,7 +438,6 @@ function CopertiChip({ coperti, posti, onAdjust }) {
         borderLeft: `1px solid ${PN.BORDER_HAIR}`, borderRight: `1px solid ${PN.BORDER_HAIR}`,
         alignSelf: 'stretch',
       }}>
-        <ChairIcon size={13} color="#6B7280"/>
         {coperti}
       </span>
       <button aria-label="Un coperto in più" disabled={!canInc}
@@ -636,7 +634,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
           {/* Coperti prenotati — sempre leggibili anche a card contratta */}
           {t.nextReservation.posti && (
             <span style={{fontSize: 14.5, color: '#6B7280', fontWeight: 600, flexShrink: 0}}>
-              · {t.nextReservation.posti} coperti
+              {t.nextReservation.posti} coperti
             </span>
           )}
         </div>
@@ -650,7 +648,6 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
             (quelli stanno negli avatar della card espansa) */}
         {!!t.coperti && (
           <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0}}>
-            <ChairIcon size={13} color="#9CA3AF"/>
             <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.coperti}</span>
             <span style={{fontSize: 15, fontWeight: 600, color:'#6B7280'}}>coperti</span>
           </span>
