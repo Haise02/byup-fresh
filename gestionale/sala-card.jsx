@@ -562,7 +562,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
                 dicono i coperti; sulle prenotate i coperti prenotati in riga. */}
             {t.state !== 'occupato' && t.state !== 'prenotato' && (
               <span style={{display:'inline-flex', alignItems:'center', gap: 3, fontSize: 15, color: 'rgba(255,255,255,0.92)', fontWeight: 600, fontVariantNumeric:'tabular-nums'}}>
-                {t.posti} <ChairIcon size={13} color="rgba(255,255,255,0.8)"/>
+                {t.posti} <ChairIcon size={17} color="rgba(255,255,255,0.85)"/>
               </span>
             )}
           </div>
