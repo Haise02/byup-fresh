@@ -882,14 +882,13 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
 
         {t.state === 'dapulire' && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-            <div style={{fontSize: pulireSev === 'normal' ? 18 : 15, fontWeight: 700,
-              color: pulireSev === 'normal' ? '#0F1115' : '#DC2626',
-              letterSpacing: pulireSev === 'normal' ? '-0.01em' : '0.4px',
-              textTransform: pulireSev === 'normal' ? 'none' : 'uppercase'}}>
-              {pulireSev === 'normal'
-                ? `Tavolo liberato ${t.minutiDaPulire ?? t.freedMinAgo} minuti fa`
-                : 'Da liberare'}
-            </div>
+            {/* Niente "Tavolo liberato X minuti fa": compare solo l'urgenza */}
+            {pulireSev !== 'normal' && (
+              <div style={{fontSize: 15, fontWeight: 700, color: '#DC2626',
+                letterSpacing: '0.4px', textTransform: 'uppercase'}}>
+                Da liberare
+              </div>
+            )}
             {t.nextReservation && (
               <div style={{fontSize: 16.5, color:'#6B7280'}}>
                 Prossima prenotazione: <b style={{color:'#0F1115'}}>{t.nextReservation.time}</b>
