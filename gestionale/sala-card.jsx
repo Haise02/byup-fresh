@@ -289,13 +289,38 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
   const overflow = coperti - visible;
   const avatars = Array.from({length: visible}).map((_, i) => i < byup);
   const editable = expanded && typeof onAdjust === 'function';
-  // Tooltip: "X ospiti su Y · Z app byup, W web app"
+  // Tooltip compatto: "X ospiti su Y · Z app byup, W web app"
   const conn = [];
   if (byup > 0)    conn.push(`${byup} app byup`);
   if (byupWeb > 0) conn.push(`${byupWeb} web app`);
-  const tipText = editable
-    ? `${coperti}/${posti} coperti · tocca per modificare i coperti`
-    : `${coperti} ospiti su ${posti}${conn.length ? ' · ' + conn.join(', ') : ''}`;
+  const tipText = `${coperti} ospiti su ${posti}${conn.length ? ' · ' + conn.join(', ') : ''}`;
+  // Hover sul 4/4 espanso: breakdown accessi — app byup, webapp, resto coperti
+  const rest = Math.max(0, coperti - byup - byupWeb);
+  const BreakdownDot = ({ bg }) => (
+    <span style={{width: 8, height: 8, borderRadius:'50%', background: bg, flexShrink: 0, display:'inline-block'}}/>
+  );
+  const breakdown = (
+    <div style={{display:'flex', flexDirection:'column', gap: 4, textAlign:'left', padding:'1px 2px'}}>
+      {byup > 0 && (
+        <div style={{display:'flex', alignItems:'center', gap: 7, whiteSpace:'nowrap'}}>
+          <BreakdownDot bg="linear-gradient(135deg, #FF5A5F, #B53338)"/>
+          <span>{byup} con app byup</span>
+        </div>
+      )}
+      {byupWeb > 0 && (
+        <div style={{display:'flex', alignItems:'center', gap: 7, whiteSpace:'nowrap'}}>
+          <BreakdownDot bg="#3B82F6"/>
+          <span>{byupWeb} da webapp</span>
+        </div>
+      )}
+      {rest > 0 && (
+        <div style={{display:'flex', alignItems:'center', gap: 7, whiteSpace:'nowrap'}}>
+          <BreakdownDot bg="#9CA3AF"/>
+          <span>{rest} {rest === 1 ? 'coperto' : 'coperti'} senza accesso</span>
+        </div>
+      )}
+    </div>
+  );
   const Inner = (
     <div style={{display:'inline-flex', alignItems:'center', gap: expanded ? 8 : 6, cursor: editable ? 'pointer' : 'help'}}>
         <div style={{display:'inline-flex', alignItems:'center'}}>
@@ -343,8 +368,8 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
             width: 16, height: 16, borderRadius: 4,
             color:'#9CA3AF', marginLeft: -2,
           }} aria-hidden>
-            <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
-              <path d="M8.5 2.5l1 1-5.5 5.5H3v-1L8.5 2.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </span>
         )}
@@ -355,15 +380,17 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
   }
   return (
     <div ref={ref} style={{position:'relative', display:'inline-flex'}}>
-      <button onClick={(e) => { e.stopPropagation(); editing ? setEditing(false) : openEditor(); }} style={{
-        background: editing ? '#F4F5F7' : 'transparent',
-        border:'none', padding: '2px 6px 2px 2px', margin:'-2px -6px -2px -2px',
-        borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
-        transition:'background .12s',
-      }} onMouseEnter={(e)=>{ if(!editing) e.currentTarget.style.background='#FAFBFC'; }}
-         onMouseLeave={(e)=>{ if(!editing) e.currentTarget.style.background='transparent'; }}>
-        {Inner}
-      </button>
+      <Tip text={breakdown} disabled={editing}>
+        <button onClick={(e) => { e.stopPropagation(); editing ? setEditing(false) : openEditor(); }} style={{
+          background: editing ? '#F4F5F7' : 'transparent',
+          border:'none', padding: '2px 6px 2px 2px', margin:'-2px -6px -2px -2px',
+          borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
+          transition:'background .12s',
+        }} onMouseEnter={(e)=>{ if(!editing) e.currentTarget.style.background='#FAFBFC'; }}
+           onMouseLeave={(e)=>{ if(!editing) e.currentTarget.style.background='transparent'; }}>
+          {Inner}
+        </button>
+      </Tip>
       {editing && popPos && ReactDOM.createPortal(
         <div ref={popRef} onClick={(e)=>e.stopPropagation()} style={{
           position:'fixed', left: popPos.left, top: popPos.top, zIndex: 9990,
@@ -388,7 +415,7 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
           </div>
           {/* Stepper sui COPERTI seduti: da 1 fino ai posti del tavolo.
               La capacità (posti) non si tocca da qui. */}
-          <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 10}}>
+          <div style={{display:'flex', alignItems:'center', gap: 10}}>
             <button onClick={() => onAdjust(Math.max(1, (coperti || 1) - 1))} disabled={(coperti || 1) <= 1} style={{
               width: 32, height: 32, borderRadius: 8,
               border:'1px solid #E5E7EB', background: (coperti || 1) <= 1 ? '#FAFBFC' : '#FFFFFF',
@@ -414,22 +441,6 @@ function GuestAvatars({ coperti, byup, byupWeb = 0, posti, expanded, onAdjust })
               fontFamily:'inherit',
             }}>+</button>
           </div>
-          <div style={{fontSize: 14.5, color:'#9CA3AF', marginBottom: 8, lineHeight: 1.4}}>
-            Capienza del tavolo: <b style={{color:'#0F1115', fontWeight: 700}}>{posti} posti</b>
-          </div>
-          {byup > 0 && (
-            <div style={{
-              fontSize: 15, color:'#6B7280', lineHeight: 1.4,
-              padding:'8px 10px', background:'#FAFBFC', borderRadius: 6,
-              display:'flex', alignItems:'center', gap: 6,
-            }}>
-              <span style={{
-                width: 14, height: 14, borderRadius:'50%', background:'linear-gradient(135deg, #FF5A5F, #B53338)',
-                display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-              }}><ByupB size={9}/></span>
-              <span>{byup} {byup === 1 ? 'connesso' : 'connessi'} a byup · gli altri non hanno ancora scansionato il QR</span>
-            </div>
-          )}
         </div>,
         document.body
       )}
