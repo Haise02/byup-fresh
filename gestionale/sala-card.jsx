@@ -656,13 +656,10 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
         <div style={{fontSize: 15, fontWeight: 600, color: '#7C3AED'}}>Prenotato</div>
       );
     }
-    const label = isLate ? `In ritardo di ${lateMin} minuti` : `In arrivo fra ${t.minutiAllaPrenotazione ?? t.nextReservation?.inMin} minuti`;
-    const accentCol = isLate ? '#A16207' : (urgent ? '#7C3AED' : '#16A34A');
+    // Niente "In arrivo fra X minuti": la riga prenotazione basta; il
+    // ritardo (se c'è) compare SOTTO la prenotazione, invertito rispetto a prima.
     return (
       <div style={{display:'flex', flexDirection:'column', gap: 2}}>
-        <div style={{fontSize: 14.5, fontWeight: 700, color: accentCol, letterSpacing: 0.3, textTransform:'uppercase'}}>
-          {label}
-        </div>
         <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
           <span style={{fontSize: 18, fontWeight: 700, color: '#0F1115', flexShrink: 0}}>
             {t.nextReservation.time}
@@ -678,6 +675,11 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
             </span>
           )}
         </div>
+        {isLate && (
+          <div style={{fontSize: 14.5, fontWeight: 700, color: '#A16207', letterSpacing: 0.3, textTransform:'uppercase'}}>
+            In ritardo di {lateMin} minuti
+          </div>
+        )}
       </div>
     );
   }
@@ -711,7 +713,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
     return (
       <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
         <span style={{fontSize: 15.5, color: pulireColor, fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: 0.4}}>
-          {pulireSev === 'normal' ? `Liberato ${min} minuti fa` : `Da liberare da ${min} minuti`}
+          {pulireSev === 'normal' ? `Liberato ${min} minuti fa` : 'Da liberare'}
         </span>
         {t.nextReservation && (
           <span style={{color:'#9CA3AF', fontSize: 14.5, fontWeight: 500}}>
@@ -745,21 +747,17 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         {t.state === 'prenotato' && t.nextReservation && (
           <>
             <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-              {(() => {
-                const minAlla = t.minutiAllaPrenotazione ?? t.nextReservation.inMin;
-                const tag = isLate ? `In ritardo di ${lateMin} minuti` : `In arrivo fra ${minAlla} minuti`;
-                // In ritardo: SOLO il testo è giallo
-                const tagColor = isLate ? '#A16207' : (minAlla < PRENOTAZIONE_BLOCCO_MIN ? '#7C3AED' : '#16A34A');
-                return (
-                  <div style={{fontSize: 14.5, fontWeight: 700, color: tagColor, letterSpacing: 0.4, textTransform:'uppercase'}}>
-                    {tag}
-                  </div>
-                );
-              })()}
+              {/* Prima la prenotazione, poi (solo se in ritardo) il tag sotto:
+                  niente "In arrivo fra X minuti" */}
               <div style={{fontSize: 22, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                 {t.nextReservation.time} · {t.nextReservation.name}
               </div>
+              {isLate && (
+                <div style={{fontSize: 14.5, fontWeight: 700, color: '#A16207', letterSpacing: 0.4, textTransform:'uppercase'}}>
+                  In ritardo di {lateMin} minuti
+                </div>
+              )}
               <div style={{fontSize: 16.5, color:'#6B7280', display:'flex', alignItems:'baseline', gap: 6}}>
                 <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
               </div>
@@ -886,7 +884,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               letterSpacing:'-0.01em'}}>
               {pulireSev === 'normal'
                 ? `Tavolo liberato ${t.minutiDaPulire ?? t.freedMinAgo} minuti fa`
-                : `Da liberare da ${t.minutiDaPulire ?? t.freedMinAgo} minuti`}
+                : 'Da liberare'}
             </div>
             {t.nextReservation && (
               <div style={{fontSize: 16.5, color:'#6B7280'}}>
