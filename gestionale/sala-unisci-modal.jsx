@@ -35,11 +35,12 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
 
   if (!tavolo) return null;
 
-  // Solo i tavoli LIBERI e DA PULIRE possono essere uniti.
+  // Qualsiasi tavolo non già parte di un altro gruppo può essere unito —
+  // anche occupato o prenotato, come nel drag-merge sulla mappa (il conto
+  // dei tavoli occupati confluisce nel conto unico del gruppo).
   const candidates = all.filter(t => {
     if (t.id === tavolo.id) return false;
     const bypass = bypassFilter.has(t.id);
-    if (!bypass && (t.state !== 'libero' && t.state !== 'dapulire')) return false;
     if (!bypass && t.mergedWith) return false;
     if (!bypass && t.mergedTables && t.mergedTables.length > 0) return false;
     if (search.trim()) {
@@ -254,7 +255,7 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
             <div style={{
               padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:17,
             }}>
-              {search.trim() ? 'Nessun tavolo corrisponde alla ricerca.' : 'Nessun tavolo libero o da pulire disponibile.'}
+              {search.trim() ? 'Nessun tavolo corrisponde alla ricerca.' : 'Nessun tavolo disponibile.'}
             </div>
           ) : (
             <div style={{
@@ -318,6 +319,29 @@ function SalaUnisciModal({ tavolo, onClose, onConfirm, onDetach, onSetCoperti })
                         letterSpacing:0.2,
                       }}>
                         Prenotato alle {t.nextReservation.time}
+                      </div>
+                    )}
+                    {t.state === 'occupato' && (
+                      <div style={{
+                        marginTop:2, fontSize:14, fontWeight:700,
+                        color:'#B91C1C', background:'#FEE2E2',
+                        padding:'3px 7px', borderRadius:4,
+                        alignSelf:'flex-start',
+                        letterSpacing:0.2,
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%',
+                      }}>
+                        Occupato{t.party ? ` · ${t.party}` : ''}
+                      </div>
+                    )}
+                    {t.state === 'prenotato' && (
+                      <div style={{
+                        marginTop:2, fontSize:14, fontWeight:700,
+                        color:'#92400E', background:'#FEF3C7',
+                        padding:'3px 7px', borderRadius:4,
+                        alignSelf:'flex-start',
+                        letterSpacing:0.2,
+                      }}>
+                        Prenotato{t.nextReservation?.time ? ` · ${t.nextReservation.time}` : ''}
                       </div>
                     )}
                   </button>
@@ -660,9 +684,10 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
 
   // Candidati per operazione
   const spostaCandidates = all.filter(t => t.id !== tavolo.id && !t.mergedWith && matchSearch(t));
+  // Unisci: anche occupati o prenotati, come nel drag-merge sulla mappa
+  // (il conto dei tavoli occupati confluisce nel conto unico del gruppo).
   const unisciCandidates = all.filter(t =>
     t.id !== tavolo.id
-    && (t.state === 'libero' || t.state === 'dapulire')
     && !t.mergedWith && !(t.mergedTables && t.mergedTables.length > 0)
     && matchSearch(t));
   const dividiCandidates = merged.map(id => all.find(t => t.id === id)).filter(Boolean);
@@ -859,7 +884,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
           {op === 'unisci' && (
             unisciCandidates.length === 0 ? (
               <div style={{padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:17}}>
-                {search.trim() ? 'Nessun tavolo corrisponde alla ricerca.' : 'Nessun tavolo libero o da pulire disponibile.'}
+                {search.trim() ? 'Nessun tavolo corrisponde alla ricerca.' : 'Nessun tavolo disponibile.'}
               </div>
             ) : (
               <div style={{display:'flex', flexDirection:'column', gap:6}}>

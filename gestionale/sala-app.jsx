@@ -320,14 +320,16 @@ function SalaApp() {
     });
     sourceTavolo.coperti = (sourceTavolo.coperti || 0) + addedPosti;
     sourceTavolo.mergedTables = [...(sourceTavolo.mergedTables || []), ...selectedIds];
-    // Accorpamento fisico SEMPRE in linea retta: ogni tavolo unito si accoda
-    // a un'estremità della fila del gruppo (orizzontale o verticale), mai a L.
-    // Se l'estremità è occupata da un tavolo estraneo, quello viene spostato
-    // nella prima cella libera vicina per fare spazio.
+    // Accorpamento fisico SEMPRE in linea retta: l'intero gruppo viene
+    // ridisposto in un'unica fila (orizzontale o verticale) ancorata al
+    // source — anche unendo 4+ tavoli in un colpo solo, mai forme a L.
+    // L'accodamento incrementale alle estremità non basta: quando un capo
+    // della fila esce dalla griglia il tavolo resterebbe dov'era, spezzando
+    // la linea; qui invece si arretra l'origine e la fila resta intera.
     const POS = window.SALA_POSITIONS;
     if (POS && POS[sourceTavolo.id]) {
       const COLS = 12, ROWS = 8, TILE = 1;
-      const clusterIds = [sourceTavolo.id, ...existingMergedIds];
+      const memberIds = [sourceTavolo.id, ...sourceTavolo.mergedTables].filter(id => POS[id]);
       const dimsOf = (id, orientation) => {
         const tt = all.find(x => x.id === id);
         const o = orientation || (POS[id] && POS[id].orientation);
@@ -337,50 +339,46 @@ function SalaApp() {
       };
       const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
-      selectedIds.forEach(gid => {
-        if (!POS[gid]) { clusterIds.push(gid); return; }
-        const rects = clusterIds.filter(id => POS[id])
-          .map(id => ({ id, x: POS[id].x, y: POS[id].y, ...dimsOf(id) }));
-        // Asse della fila: verticale se il gruppo condivide la colonna, altrimenti orizzontale
-        const axis = (rects.length > 1 && rects.every(r => Math.abs(r.x - rects[0].x) < 0.26)) ? 'v' : 'h';
-        // Il nuovo membro si allinea alla fila (rettangolari girati lungo l'asse)
-        const newOrient = axis;
-        const gd = dimsOf(gid, newOrient);
-        let ends;
-        if (axis === 'h') {
-          const y = POS[sourceTavolo.id].y;
-          ends = [
-            { x: Math.max(...rects.map(r => r.x + r.w)), y },
-            { x: Math.min(...rects.map(r => r.x)) - gd.w, y },
-          ];
-        } else {
-          const x = POS[sourceTavolo.id].x;
-          ends = [
-            { x, y: Math.max(...rects.map(r => r.y + r.h)) },
-            { x, y: Math.min(...rects.map(r => r.y)) - gd.h },
-          ];
-        }
-        const gp = POS[gid];
-        const candidates = ends
-          .filter(e => e.x >= 0 && e.y >= 0 && e.x + gd.w <= COLS && e.y + gd.h <= ROWS)
-          .map(e => {
-            const rect = { ...e, w: gd.w, h: gd.h };
-            const occupant = Object.keys(POS).map(k => parseInt(k, 10))
-              .filter(id => id !== gid && !clusterIds.includes(id))
-              .find(id => overlap(rect, { x: POS[id].x, y: POS[id].y, ...dimsOf(id) }));
-            return { ...e, occupant, dist: Math.hypot(e.x - gp.x, e.y - gp.y) };
-          })
-          // Preferisci l'estremità libera; a parità, la più vicina al tavolo da unire
-          .sort((a, b) => ((a.occupant != null) - (b.occupant != null)) || (a.dist - b.dist));
-        const target = candidates[0];
-        if (!target) { clusterIds.push(gid); return; }
-        POS[gid] = { ...POS[gid], x: target.x, y: target.y, orientation: newOrient };
-        if (target.occupant != null) {
-          const spot = findFreeCellSpiral(POS, target.x, target.y, target.occupant, COLS, ROWS, TILE);
-          if (spot) POS[target.occupant] = { ...POS[target.occupant], x: spot.x, y: spot.y };
-        }
-        clusterIds.push(gid);
+      // Asse della fila: mantiene quello del gruppo esistente (verticale se
+      // condivide la colonna), poi passa all'altro asse se la fila non entra.
+      const prevIds = [sourceTavolo.id, ...existingMergedIds].filter(id => POS[id]);
+      let axis = (prevIds.length > 1 && prevIds.every(id => Math.abs(POS[id].x - POS[prevIds[0]].x) < 0.26)) ? 'v' : 'h';
+      const lenAlong = (a) => memberIds.reduce((s, id) => s + (a === 'h' ? dimsOf(id, a).w : dimsOf(id, a).h), 0);
+      if (axis === 'h' && lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
+      else if (axis === 'v' && lenAlong('v') > ROWS && lenAlong('h') <= COLS) axis = 'h';
+
+      // Origine ancorata al source, arretrata quanto basta perché tutta la
+      // fila stia nella griglia (i rettangolari si girano lungo l'asse).
+      const src = POS[sourceTavolo.id];
+      const total = lenAlong(axis);
+      let cursor = axis === 'h'
+        ? Math.max(0, Math.min(src.x, COLS - total))
+        : Math.max(0, Math.min(src.y, ROWS - total));
+      const crossMax = Math.max(...memberIds.map(id => axis === 'h' ? dimsOf(id, axis).h : dimsOf(id, axis).w));
+      const cross = axis === 'h'
+        ? Math.max(0, Math.min(src.y, ROWS - crossMax))
+        : Math.max(0, Math.min(src.x, COLS - crossMax));
+
+      const lineRects = [];
+      memberIds.forEach(id => {
+        const d = dimsOf(id, axis);
+        const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
+        const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
+        POS[id] = { ...POS[id], x, y, orientation: axis };
+        lineRects.push({ x, y, w: d.w, h: d.h });
+        cursor += axis === 'h' ? d.w : d.h;
       });
+
+      // Sgombera i tavoli estranei finiti sotto la fila: prima cella libera vicina.
+      Object.keys(POS).map(k => parseInt(k, 10))
+        .filter(id => !memberIds.includes(id))
+        .forEach(id => {
+          const r = { x: POS[id].x, y: POS[id].y, ...dimsOf(id) };
+          if (lineRects.some(mr => overlap(mr, r))) {
+            const spot = findFreeCellSpiral(POS, POS[id].x, POS[id].y, id, COLS, ROWS, TILE);
+            if (spot) POS[id] = { ...POS[id], x: spot.x, y: spot.y };
+          }
+        });
       window.dispatchEvent(new Event('sala-positions-sync'));
     }
     setModalUnisci(null);
