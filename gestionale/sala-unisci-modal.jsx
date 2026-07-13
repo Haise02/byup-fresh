@@ -641,7 +641,7 @@ function SalaSpostaModal({ tavolo, onClose, onConfirm }) {
 // SalaModificaModal — hub unico per le operazioni sul tavolo.
 // Tre operazioni selezionabili in alto (Sposta / Dividi / Unisci); il contenuto
 // e la CTA in basso cambiano dinamicamente con l'operazione e la selezione.
-function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetach, onLibera, onNoShow }) {
+function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetach, onLibera, onNoShow, onAdjustCoperti }) {
   const [op, setOp] = React.useState('sposta');
   const [spostaId, setSpostaId] = React.useState(null);   // sposta: destinazione singola
   const [daUnire, setDaUnire] = React.useState(new Set()); // unisci: tavoli da aggiungere
@@ -810,6 +810,35 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
               fontSize:22, color:'#6B7280', fontFamily:'inherit', flexShrink:0,
             }}>×</button>
           </div>
+
+          {/* COPERTI SEDUTI — modifica rapida anche da qui, stessa azione
+              del tap sul dato nella card (clamp 1..posti) */}
+          {tavolo.state === 'occupato' && !!tavolo.coperti && typeof onAdjustCoperti === 'function' && (() => {
+            const c = tavolo.coperti;
+            const maxP = tavolo.posti || c;
+            const stepBtn = (enabled) => ({
+              width: 30, height: 30, borderRadius: 8,
+              border:'1px solid #E5E7EB', background: enabled ? '#FFFFFF' : '#FAFBFC',
+              cursor: enabled ? 'pointer' : 'default',
+              fontSize: 19, fontWeight: 600, color: enabled ? '#0F1115' : '#D1D5DB',
+              display:'inline-flex', alignItems:'center', justifyContent:'center',
+              fontFamily:'inherit', padding: 0,
+            });
+            return (
+              <div style={{
+                marginTop: 12, padding:'8px 12px', borderRadius: 10,
+                border:'1px solid #E5E7EB', background:'#FAFBFC',
+                display:'flex', alignItems:'center', gap: 10,
+              }}>
+                <span style={{fontSize:15.5, fontWeight:700, color:'#374151'}}>Coperti seduti</span>
+                <span style={{fontSize:13.5, color:'#9CA3AF', fontWeight:500}}>max {maxP} posti</span>
+                <span style={{flex:1}}/>
+                <button disabled={c <= 1} onClick={() => c > 1 && onAdjustCoperti(c - 1)} style={stepBtn(c > 1)}>−</button>
+                <span style={{minWidth: 24, textAlign:'center', fontSize: 17, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{c}</span>
+                <button disabled={c >= maxP} onClick={() => c < maxP && onAdjustCoperti(c + 1)} style={stepBtn(c < maxP)}>+</button>
+              </div>
+            );
+          })()}
 
           {/* SELETTORE OPERAZIONE */}
           <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginTop:14}}>

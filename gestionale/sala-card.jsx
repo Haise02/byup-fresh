@@ -393,11 +393,54 @@ function GuestAvatars({ byup = 0, byupWeb = 0, expanded }) {
   );
 }
 
-// Stepper coperti SEDUTI al tavolo, inline: [−] 🪑6 [+]. Un tap = un coperto,
-// niente popup. Clamp 1..posti. Gli utenti connessi (GuestAvatars) non
-// c'entrano e non cambiano al variare dei coperti.
+// Coperti SEDUTI al tavolo: di default è un DATO quieto ("🪑 6 coperti",
+// nessun controllo armato); al tap si trasforma sul posto in [− 6 +] e si
+// richiude al click fuori o dopo qualche secondo senza interazioni.
+// Clamp 1..posti. Indipendente dagli utenti connessi (GuestAvatars).
 function CopertiChip({ coperti, posti, onAdjust }) {
-  if (!coperti || typeof onAdjust !== 'function') return null;
+  const [editing, setEditing] = React.useState(false);
+  const ref = React.useRef(null);
+  const idleTimer = React.useRef(null);
+  const armIdle = () => {
+    clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => setEditing(false), 4000);
+  };
+  React.useEffect(() => {
+    if (!editing) { clearTimeout(idleTimer.current); return; }
+    armIdle();
+    const onDoc = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setEditing(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => { document.removeEventListener('mousedown', onDoc); clearTimeout(idleTimer.current); };
+  }, [editing]);
+  if (!coperti) return null;
+  const editable = typeof onAdjust === 'function';
+
+  // Stato quieto: testo-dato, affordance solo in hover
+  if (!editing || !editable) {
+    return (
+      <button
+        onClick={editable ? (e) => { e.stopPropagation(); setEditing(true); } : undefined}
+        title={editable ? 'Tocca per modificare i coperti' : undefined} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        height: 32, padding: '0 8px', borderRadius: 8,
+        background: 'transparent', border: '1px solid transparent',
+        fontSize: 15.5, fontWeight: 600, color: '#6B7280',
+        cursor: editable ? 'pointer' : 'default', fontFamily: 'inherit',
+        whiteSpace: 'nowrap', flexShrink: 0,
+        transition: 'background 120ms ease-out, border-color 120ms ease-out',
+      }}
+        onMouseEnter={e => { if (editable) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.BORDER_HAIR; } }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}>
+        <ChairIcon size={13} color="#9CA3AF"/>
+        <span style={{color: '#0F1115', fontWeight: 700, fontVariantNumeric: 'tabular-nums'}}>{coperti}</span>
+        coperti
+      </button>
+    );
+  }
+
+  // Stato editing: lo stesso ingombro si trasforma in stepper [− 🪑6 +]
   const canDec = coperti > 1;
   const canInc = coperti < posti;
   const segBtn = (enabled) => ({
@@ -411,36 +454,34 @@ function CopertiChip({ coperti, posti, onAdjust }) {
     transition: 'background 120ms ease-out',
   });
   return (
-    <Tip text={`${coperti} coperti seduti su ${posti} posti`}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        display: 'inline-flex', alignItems: 'center',
-        height: 32, borderRadius: 999,
-        background: PN.BTN_NEUTRAL,
-        border: `1px solid ${PN.BORDER_LIGHT}`,
-        boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
-        overflow: 'hidden', flexShrink: 0,
+    <div ref={ref} onClick={(e) => e.stopPropagation()} style={{
+      display: 'inline-flex', alignItems: 'center',
+      height: 32, borderRadius: 8,
+      background: PN.WHITE,
+      border: `1px solid ${PN.BORDER_LIGHT}`,
+      boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+      overflow: 'hidden', flexShrink: 0,
+    }}>
+      <button aria-label="Un coperto in meno" disabled={!canDec}
+        onClick={() => { if (canDec) { onAdjust(coperti - 1); armIdle(); } }} style={segBtn(canDec)}
+        onMouseEnter={e => { if (canDec) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>−</button>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '0 4px', minWidth: 34, justifyContent: 'center',
+        fontSize: 15.5, fontWeight: 700, color: '#0F1115',
+        fontVariantNumeric: 'tabular-nums',
+        borderLeft: `1px solid ${PN.BORDER_HAIR}`, borderRight: `1px solid ${PN.BORDER_HAIR}`,
+        alignSelf: 'stretch',
       }}>
-        <button aria-label="Un coperto in meno" disabled={!canDec}
-          onClick={() => canDec && onAdjust(coperti - 1)} style={segBtn(canDec)}
-          onMouseEnter={e => { if (canDec) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>−</button>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '0 4px', minWidth: 34, justifyContent: 'center',
-          fontSize: 15.5, fontWeight: 700, color: '#0F1115',
-          fontVariantNumeric: 'tabular-nums',
-          borderLeft: `1px solid ${PN.BORDER_HAIR}`, borderRight: `1px solid ${PN.BORDER_HAIR}`,
-          alignSelf: 'stretch',
-        }}>
-          <ChairIcon size={13} color="#6B7280"/>
-          {coperti}
-        </span>
-        <button aria-label="Un coperto in più" disabled={!canInc}
-          onClick={() => canInc && onAdjust(coperti + 1)} style={segBtn(canInc)}
-          onMouseEnter={e => { if (canInc) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>+</button>
-      </div>
-    </Tip>
+        <ChairIcon size={13} color="#6B7280"/>
+        {coperti}
+      </span>
+      <button aria-label="Un coperto in più" disabled={!canInc}
+        onClick={() => { if (canInc) { onAdjust(coperti + 1); armIdle(); } }} style={segBtn(canInc)}
+        onMouseEnter={e => { if (canInc) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>+</button>
+    </div>
   );
 }
 
@@ -733,13 +774,13 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                   {t.party}
                 </div>
               )}
-              {/* Utenti connessi (avatar + numero, fisso) a sinistra; a destra
-                  i coperti seduti col "+" (stepper) e Modifica inline
-                  (Aggiungi articolo sta sotto l'elenco degli ordini) */}
+              {/* Dati a sinistra: utenti connessi (avatar + numero, fisso) e
+                  coperti seduti (testo quieto → stepper al tap); azione a
+                  destra: Modifica (Aggiungi articolo sta sotto gli ordini) */}
               <div style={{display:'flex', alignItems:'center', gap: 8}}>
                 <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
-                <span style={{flex:1}}/>
                 <CopertiChip coperti={t.coperti} posti={t.posti} onAdjust={onAdjustCoperti}/>
+                <span style={{flex:1}}/>
                 <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
                   title="Sposta, dividi o unisci il tavolo" style={{
                   display:'inline-flex', alignItems:'center', gap: 5,
@@ -797,32 +838,56 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               Aggiungi articolo
             </button>
 
-            <div style={{
-              display:'flex', flexDirection:'column', alignItems:'flex-start',
-              paddingTop: 12, marginTop: 2, gap: 2,
-              borderTop:'1px solid rgba(15, 17, 21, 0.08)',
-            }}>
-              <div style={{display:'flex', alignItems:'baseline', gap: 8}}>
-                <span style={{
-                  fontSize: 32, fontWeight: 700, lineHeight: 1,
-                  letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums',
-                  color: occupatoSaldato ? '#065F46' : '#0F1115',
-                }}>
-                  €{occupatoSaldato ? t.conto.toFixed(2) : (t.daIncassare != null ? t.daIncassare : t.conto).toFixed(2)}
-                </span>
-                <span style={{
-                  fontSize: 16, fontWeight: 700,
-                  color: occupatoSaldato ? '#16A34A' : '#6B7280',
-                }}>
-                  {occupatoSaldato ? 'saldato' : 'da incassare'}
-                </span>
-              </div>
-              {!occupatoSaldato && (
-                <div style={{fontSize: 15, color:'#9CA3AF', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
-                  Totale conto €{t.conto.toFixed(2)}
+            {/* Blocco conto a scontrino: etichette a sinistra, importi
+                incolonnati a destra (tabular); righe informative mute sopra,
+                separatore tratteggiato, riga operativa grande in chiusura,
+                adiacente alla CTA. Se non c'è nulla di pagato in app, resta
+                solo la riga grande (niente righe ridondanti). */}
+            {(() => {
+              const daInc = t.daIncassare != null ? t.daIncassare : (t.conto || 0);
+              const pagatoInApp = Math.max(0, (t.conto || 0) - daInc);
+              const row = {display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 12};
+              const label = {fontSize: 15, fontWeight: 600, color:'#9CA3AF'};
+              const amount = {fontSize: 15.5, fontWeight: 600, color:'#6B7280', fontVariantNumeric:'tabular-nums'};
+              if (occupatoSaldato) {
+                return (
+                  <div style={{paddingTop: 12, marginTop: 2, borderTop:'1px solid rgba(15, 17, 21, 0.08)'}}>
+                    <div style={row}>
+                      <span style={{fontSize: 16.5, fontWeight: 700, color:'#16A34A', display:'inline-flex', alignItems:'center', gap: 6}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13 L9 17 L19 7"/></svg>
+                        Conto saldato
+                      </span>
+                      <span style={{fontSize: 28, fontWeight: 700, lineHeight: 1, letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums', color:'#065F46'}}>
+                        €{(t.conto || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div style={{display:'flex', flexDirection:'column', gap: 5, paddingTop: 12, marginTop: 2, borderTop:'1px solid rgba(15, 17, 21, 0.08)'}}>
+                  {pagatoInApp > 0 && (
+                    <>
+                      <div style={row}>
+                        <span style={label}>Totale conto</span>
+                        <span style={amount}>€{(t.conto || 0).toFixed(2)}</span>
+                      </div>
+                      <div style={row}>
+                        <span style={label}>Pagato in app</span>
+                        <span style={amount}>−€{pagatoInApp.toFixed(2)}</span>
+                      </div>
+                      <div style={{borderTop:'1px dashed #D1D5DB', margin:'3px 0 2px'}}/>
+                    </>
+                  )}
+                  <div style={row}>
+                    <span style={{fontSize: 16, fontWeight: 700, color:'#6B7280'}}>Da incassare</span>
+                    <span style={{fontSize: 28, fontWeight: 700, lineHeight: 1, letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums', color:'#0F1115'}}>
+                      €{daInc.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </>
         )}
 

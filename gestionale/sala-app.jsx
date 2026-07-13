@@ -520,7 +520,17 @@ function SalaApp() {
           onUnisciConfirm={handleUnisciConfirm}
           onDetach={handleDetach}
           onLibera={handleLibera}
-          onNoShow={handleNoShow}/>
+          onNoShow={handleNoShow}
+          onAdjustCoperti={(n) => {
+            // Stessa regola dello stepper in card: coperti seduti, mai la
+            // capacità — clamp tra 1 e i posti del tavolo.
+            const t = modalModifica;
+            if (t) {
+              t.coperti = Math.max(1, Math.min(t.posti || n, n));
+              if ((t.byup || 0) > t.coperti) t.byup = t.coperti;
+              forceUpdate();
+            }
+          }}/>
 
         <SalaSaldaModal open={!!modalPay} onClose={() => setModalPay(null)} tavolo={modalPay}
           onConfirm={() => {
