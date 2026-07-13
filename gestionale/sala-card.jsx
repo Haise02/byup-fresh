@@ -531,44 +531,36 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         overflow: 'hidden',
         minHeight: expanded ? 'auto' : 88,
       }}>
-      {/* Top accent bar — color accent dello stato (mai rosso su contabili, ok rosso pulire critical) */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        height: 3,
-        background: `linear-gradient(90deg, ${accent} 0%, ${accent}59 100%)`,
-        opacity: hover || expanded ? 1 : 0.85,
-        transition: 'opacity 200ms ease-out',
-      }}/>
-
-      {/* === HEADER — banda col COLORE dello stato (meta.bg) a tutta
-          larghezza, corpo della card bianco. Dentro: Tavolo X ingrandito
+      {/* === HEADER — banda col colore PIENO dello stato (lo stesso accent
+          del vecchio bordo superiore, ora ridondante e rimosso), scritte
+          BIANCHE, corpo della card bianco. Dentro: Tavolo X ingrandito
           (+ "Seduti da" sotto, se occupato espanso), Modifica a destra
-          sull'occupato espanso, triangolo alert. Niente pallino di stato:
-          lo stato lo dicono la banda e la barra accent. === */}
+          sull'occupato espanso, triangolo alert. === */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
         padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
-        background: meta.bg,
+        background: accent,
         borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
       }}>
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{display:'flex', alignItems:'center', gap: 8}}>
             <span style={{
-              fontSize: expanded ? 27 : 24, fontWeight: 700, color: '#0F1115',
+              fontSize: expanded ? 27 : 24, fontWeight: 700, color: '#FFFFFF',
               letterSpacing: '-0.02em', lineHeight: 1,
+              textShadow: '0 1px 2px rgba(15,17,21,0.12)',
             }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
             {/* Capienza in header SOLO per libero/da liberare: sulle occupate la
                 dicono i coperti; sulle prenotate i coperti prenotati in riga. */}
             {t.state !== 'occupato' && t.state !== 'prenotato' && (
-              <span style={{display:'inline-flex', alignItems:'center', gap: 3, fontSize: 15, color: '#6B7280', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
-                {t.posti} <ChairIcon size={13} color="#9CA3AF"/>
+              <span style={{display:'inline-flex', alignItems:'center', gap: 3, fontSize: 15, color: 'rgba(255,255,255,0.92)', fontWeight: 600, fontVariantNumeric:'tabular-nums'}}>
+                {t.posti} <ChairIcon size={13} color="rgba(255,255,255,0.8)"/>
               </span>
             )}
           </div>
           {/* Tempo al tavolo — sotto il nome del tavolo */}
           {expanded && t.state === 'occupato' && t.sittingMin != null && (
-            <div style={{fontSize: 14.5, color:'#6B7280', fontWeight: 600, marginTop: 4, lineHeight: 1}}>
+            <div style={{fontSize: 14.5, color:'rgba(255,255,255,0.88)', fontWeight: 600, marginTop: 4, lineHeight: 1}}>
               {formatSeduti(t.sittingMin)}
             </div>
           )}
@@ -595,12 +587,13 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             Modifica
           </button>
         )}
-        {/* Triangolo rosso statico — prenotato in ritardo >20' OR da pulire >20' */}
+        {/* Triangolo alert — bianco con "!" rosso: contrasta sulla banda
+            colorata (prenotato in ritardo >20' OR da pulire >20') */}
         {showAlertTriangle && (
           <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="#DC2626" stroke="none" style={{display:'block', cursor:'help'}}>
-              <path d="M12 2 L22 20 H2 Z" fill="#DC2626"/>
-              <path d="M12 9 V14 M12 17 h0.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFFFFF" stroke="none" style={{display:'block', cursor:'help'}}>
+              <path d="M12 2 L22 20 H2 Z" fill="#FFFFFF"/>
+              <path d="M12 9 V14 M12 17 h0.01" stroke="#DC2626" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
             </svg>
           </Tip>
         )}
