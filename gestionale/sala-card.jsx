@@ -690,8 +690,6 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
           <div style={{
             fontSize: 15, fontWeight: 700,
             color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
-            background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
-            padding: '3px 7px', borderRadius: 6,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
           }}>{alert.label}</div>
         )}
@@ -793,14 +791,13 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
             </div>
 
-            {/* Segnali su UNA riga: alert operativo + tag evento + note */}
+            {/* Segnali su UNA riga: alert operativo (solo testo, senza
+                sfondo) + tag evento + note */}
             <NoteChipRow
               leading={alert && (
                 <div style={{
                   fontSize: 15.5, fontWeight: 700,
                   color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
-                  background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
-                  padding:'6px 10px', borderRadius: 8,
                   display:'inline-flex', alignItems:'center',
                 }}>{alert.label}</div>
               )}
@@ -1038,8 +1035,8 @@ function OrdiniList({ ordini }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 4,
-      background:'#FAFBFC', borderRadius: 8, padding: 8,
-      border: '1px solid #F0F2F5',
+      background:'#EFF1F4', borderRadius: 8, padding: 8,
+      border: '1px solid #E2E5EA',
     }}>
       <button onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }} style={{
         display:'flex', alignItems:'center', gap: 8,
