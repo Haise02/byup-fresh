@@ -335,8 +335,8 @@ function SalaVenditaDiretta() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Ritiri — ordini d'asporto in attesa di consegna: pagati in app (solo
-// Consegna) o da pagare al banco (Salda ora + Consegna).
+// Ritiri — ordini d'asporto in attesa di consegna: pagati in app (Consegna)
+// o da pagare al banco (solo Salda ora — la Consegna compare dopo l'incasso).
 // Drawer laterale con le card ordine + modale di consegna con codice ritiro.
 
 function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
@@ -424,8 +424,10 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
                   <span style={{fontVariantNumeric:'tabular-nums'}}>€{r.totale.toFixed(2)}</span>
                 </div>
               </div>
+              {/* CTA: mai Consegna su un ordine da saldare — prima l'incasso,
+                  poi (l'ordine resta in lista come pagato) la consegna */}
               <div style={{padding:'0 14px 14px', display:'flex', gap: 8}}>
-                {!r.pagato && (
+                {!r.pagato ? (
                   <button onClick={() => onSalda(r)} style={{
                     flex: 1, padding:'11px 16px', borderRadius: 999,
                     background: PN.WHITE, color: PN.TEXT,
@@ -437,19 +439,20 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
                     onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}>
                     Salda ora
                   </button>
+                ) : (
+                  <button onClick={() => onConsegna(r)} style={{
+                    flex: 1, padding:'11px 16px', borderRadius: 999,
+                    background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
+                    border:'1px solid transparent',
+                    fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                    boxShadow: SV_SUNSET_SHADOW,
+                    transition:'box-shadow 180ms ease-out, filter 150ms ease-out',
+                  }}
+                    onMouseEnter={svSunsetHoverIn}
+                    onMouseLeave={svSunsetHoverOut}>
+                    Consegna
+                  </button>
                 )}
-                <button onClick={() => onConsegna(r)} style={{
-                  flex: r.pagato ? 1 : 1.3, padding:'11px 16px', borderRadius: 999,
-                  background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
-                  border:'1px solid transparent',
-                  fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                  boxShadow: SV_SUNSET_SHADOW,
-                  transition:'box-shadow 180ms ease-out, filter 150ms ease-out',
-                }}
-                  onMouseEnter={svSunsetHoverIn}
-                  onMouseLeave={svSunsetHoverOut}>
-                  Consegna
-                </button>
               </div>
             </div>
           ))}
