@@ -646,7 +646,15 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   if (t.state === 'occupato') {
     return (
       <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
-        <GuestAvatars byup={t.byup} byupWeb={t.byupWeb}/>
+        {/* A card contratta contano i COPERTI seduti, non gli utenti connessi
+            (quelli stanno negli avatar della card espansa) */}
+        {!!t.coperti && (
+          <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0}}>
+            <ChairIcon size={13} color="#9CA3AF"/>
+            <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.coperti}</span>
+            <span style={{fontSize: 15, fontWeight: 600, color:'#6B7280'}}>coperti</span>
+          </span>
+        )}
         {alert && (
           <div style={{
             fontSize: 15, fontWeight: 700,
