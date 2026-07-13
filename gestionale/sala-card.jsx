@@ -708,14 +708,16 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
     );
   }
   if (t.state === 'dapulire') {
-    // "Da liberare" è SEMPRE rosso, anche a card contratta (stesso colore dell'espansa)
-    const pulireColor = pulireSev === 'normal' ? '#475569' : '#DC2626';
+    // A card CONTRATTA "Da liberare" non compare (lo dicono banda e
+    // triangolo): resta solo "Liberato X minuti fa" nel caso tranquillo.
     const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
     return (
       <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
-        <span style={{fontSize: 15.5, color: pulireColor, fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: 0.4}}>
-          {pulireSev === 'normal' ? `Liberato ${min} minuti fa` : 'Da liberare'}
-        </span>
+        {pulireSev === 'normal' ? (
+          <span style={{fontSize: 15.5, color: '#475569', fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: 0.4}}>
+            Liberato {min} minuti fa
+          </span>
+        ) : <span style={{flex: 1}}/>}
         {t.nextReservation && (
           <span style={{color:'#9CA3AF', fontSize: 14.5, fontWeight: 500}}>
             → {t.nextReservation.time}
@@ -882,7 +884,8 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
             <div style={{fontSize: 18, fontWeight: 700,
               color: pulireSev === 'normal' ? '#0F1115' : '#DC2626',
-              letterSpacing:'-0.01em'}}>
+              letterSpacing: pulireSev === 'normal' ? '-0.01em' : '0.4px',
+              textTransform: pulireSev === 'normal' ? 'none' : 'uppercase'}}>
               {pulireSev === 'normal'
                 ? `Tavolo liberato ${t.minutiDaPulire ?? t.freedMinAgo} minuti fa`
                 : 'Da liberare'}
