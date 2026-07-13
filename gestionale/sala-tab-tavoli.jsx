@@ -1625,54 +1625,28 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const prims = [...(mergeSel || [])].map(id => all.find(t => t.id === id)).filter(Boolean);
             const nOcc = prims.filter(t => t.state === 'occupato').length;
             const nPren = prims.filter(t => t.state === 'prenotato').length;
-            const blockMsg = nOcc > 1 ? 'Non si possono unire due tavoli occupati'
-              : nPren > 1 ? 'Non si possono unire due tavoli prenotati' : null;
+            // Blocco hard solo per doppia prenotazione (come nel drag-merge):
+            // più tavoli occupati si possono unire, previa conferma esplicita.
+            const blockMsg = nPren > 1 ? 'Non si possono unire due tavoli prenotati' : null;
+            const warnMsg = nOcc > 1 ? 'I conti dei tavoli occupati verranno uniti' : null;
             const canConfirm = prims.length >= 2 && !blockMsg;
 
-            const confirmMerge = () => {
+            const doMerge = () => {
               if (!canConfirm) return;
               let host = prims.find(t => t.mergedTables && t.mergedTables.length > 0) || prims[0];
               const guests = prims.filter(t => t.id !== host.id);
               const guestIds = guests.flatMap(t => [t.id, ...(t.mergedTables || [])]);
+              // 2+ occupati → popup "sei sicuro?": i conti verranno fusi.
+              if (nOcc > 1) {
+                const totale = prims.reduce((s, x) => s + (x.conto || 0), 0);
+                setConfirmMerge({ hostId: host.id, guestIds, totale, nOcc, exitMerge: true });
+                return;
+              }
               guests.forEach(t => { if (t.mergedTables) delete t.mergedTables; });
+              // Il posizionamento fisico lo fa SALA_DO_MERGE: fila retta ancorata
+              // all'host + sync delle posizioni. Niente riposizionamento a spirale
+              // qui, ammucchierebbe i tavoli attorno all'host invece di allungarli.
               if (window.SALA_DO_MERGE) window.SALA_DO_MERGE(host, guestIds);
-              // Riposiziona i tavoli uniti accanto all'host (spirale, niente overlap)
-              updatePositions(prev => {
-                const next = { ...prev };
-                const hostPos = next[host.id];
-                if (!hostPos) return next;
-                guestIds.forEach(gid => {
-                  const tg = all.find(x => x.id === gid);
-                  if (!tg || !next[gid]) return;
-                  const d = getTableDims(null, tg.posti, next[gid].orientation);
-                  const others = Object.keys(next).map(k => parseInt(k, 10))
-                    .filter(k => k !== gid)
-                    .map(k => {
-                      const tk = all.find(x => x.id === k);
-                      const pk = next[k];
-                      if (!tk || !pk) return null;
-                      const dk = getTableDims(null, tk.posti, pk.orientation);
-                      return { x: pk.x, y: pk.y, w: dk.w, h: dk.h };
-                    }).filter(Boolean)
-                    .concat(SALA_FIXTURES);
-                  outer:
-                  for (let r = 0.5; r <= 14; r += 0.5) {
-                    for (let dx = -r; dx <= r; dx += 0.5) {
-                      for (let dy = -r; dy <= r; dy += 0.5) {
-                        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-                        const nx = Math.max(0, Math.min(COLS - d.w, snap(hostPos.x + dx)));
-                        const ny = Math.max(0, Math.min(ROWS - d.h, snap(hostPos.y + dy)));
-                        const rect = { x: nx, y: ny, w: d.w, h: d.h };
-                        if (!others.some(o => rectsOverlap(rect, o))) {
-                          next[gid] = { ...next[gid], x: nx, y: ny };
-                          break outer;
-                        }
-                      }
-                    }
-                  }
-                });
-                return next;
-              });
               onExitMerge && onExitMerge();
             };
 
@@ -1695,12 +1669,12 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                   animation: 'mergeChipIn 200ms cubic-bezier(0.32,0.72,0,1)',
                   whiteSpace: 'nowrap',
                 }}>
-                <span style={{fontSize: 14.5, fontWeight: 700, color: blockMsg ? '#DC2626' : '#0F1115'}}>
-                  {blockMsg || (prims.length === 0
+                <span style={{fontSize: 14.5, fontWeight: 700, color: blockMsg ? '#DC2626' : warnMsg ? '#D97706' : '#0F1115'}}>
+                  {blockMsg || warnMsg || (prims.length === 0
                     ? 'Tocca i tavoli da unire'
                     : `${prims.length} tavol${prims.length === 1 ? 'o' : 'i'} selezionat${prims.length === 1 ? 'o' : 'i'}`)}
                 </span>
-                <button onClick={confirmMerge} disabled={!canConfirm} style={{
+                <button onClick={doMerge} disabled={!canConfirm} style={{
                   height: 28, padding: '0 12px', borderRadius: 8,
                   background: canConfirm ? '#0F1115' : 'rgba(15,17,21,0.08)',
                   color: canConfirm ? '#fff' : '#9CA3AF',
@@ -1888,7 +1862,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               </span>
               <div>
                 <div style={{fontSize: 17, fontWeight: 800, color: '#0F1115'}}>
-                  Unire due tavoli occupati?
+                  {(confirmMerge.nOcc || 2) > 2 ? `Unire ${confirmMerge.nOcc} tavoli occupati?` : 'Unire due tavoli occupati?'}
                 </div>
                 <div style={{fontSize: 14.5, color: '#6B7280', marginTop: 4, lineHeight: 1.5}}>
                   I conti dei tavoli verranno uniti in un unico conto
@@ -1914,6 +1888,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 setConfirmMerge(null);
                 setMergeProposal(null);
                 if (hostTable && window.SALA_DO_MERGE) window.SALA_DO_MERGE(hostTable, confirmMerge.guestIds);
+                if (confirmMerge.exitMerge && onExitMerge) onExitMerge();
               }} style={{
                 padding: '9px 16px', background: '#D97706', color: '#fff',
                 border: 'none', borderRadius: 9,
