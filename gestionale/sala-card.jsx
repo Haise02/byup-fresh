@@ -546,9 +546,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         display: 'flex', alignItems: 'center', gap: 8,
         margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
         padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
-        // Gradiente 135° sul colore di stato, in versione SCURA per tutti
-        // gli stati: parte già sotto il colore pieno e chiude molto scuro
-        background: `linear-gradient(135deg, ${shade(accent, -0.08)} 0%, ${shade(accent, -0.22)} 52%, ${shade(accent, -0.38)} 100%)`,
+        // Gradiente orizzontale sul colore di stato (versione scura):
+        // parte dal più SCURO a sinistra e sfuma verso il più chiaro a destra
+        background: `linear-gradient(90deg, ${shade(accent, -0.38)} 0%, ${shade(accent, -0.22)} 48%, ${shade(accent, -0.08)} 100%)`,
         borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
       }}>
         <div style={{flex: 1, minWidth: 0}}>
