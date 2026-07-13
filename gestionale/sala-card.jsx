@@ -179,15 +179,15 @@ function NoteChipRow({ notes, leading }) {
   );
 }
 
-// Icona sedia — usata nelle card occupate per indicare il tempo seduti (con tooltip on hover)
+// Icona sedia (vista laterale: schienale, seduta, gambe) — indica i POSTI
+// (capienza del tavolo); il gruppo di persone (PeopleIcon) indica i coperti.
 function ChairIcon({ size = 13, color = 'currentColor' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/>
-      <path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z"/>
-      <path d="M6 18v2"/>
-      <path d="M18 18v2"/>
+      <path d="M7 3v18"/>
+      <path d="M7 13h10"/>
+      <path d="M17 13v8"/>
     </svg>
   );
 }
@@ -663,23 +663,24 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   }
   if (t.state === 'occupato') {
     return (
-      <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
-        {/* A card contratta contano i COPERTI seduti, non gli utenti connessi
-            (quelli stanno negli avatar della card espansa) */}
-        {!!t.coperti && (
-          <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0}}>
-            <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.coperti}</span>
-            <PeopleIcon size={14} color="#9CA3AF"/>
-          </span>
-        )}
+      <div style={{display:'flex', alignItems:'center', gap: 8}}>
         {alert && (
           <div style={{
             fontSize: 15, fontWeight: 700,
             color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
             background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
             padding: '3px 7px', borderRadius: 6,
-            whiteSpace:'nowrap',
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
           }}>{alert.label}</div>
+        )}
+        <span style={{flex: 1}}/>
+        {/* Coperti seduti in basso a destra, come sulla card prenotata
+            (gli utenti connessi stanno negli avatar della card espansa) */}
+        {!!t.coperti && (
+          <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0}}>
+            <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.coperti}</span>
+            <PeopleIcon size={14} color="#9CA3AF"/>
+          </span>
         )}
       </div>
     );
