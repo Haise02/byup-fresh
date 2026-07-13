@@ -192,6 +192,20 @@ function ChairIcon({ size = 13, color = 'currentColor' }) {
   );
 }
 
+// Icona gruppo di persone — indica i COPERTI (chi è seduto);
+// la sedia (ChairIcon) indica i POSTI (capienza del tavolo).
+function PeopleIcon({ size = 13, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+
 // Pencil inline che apre un popover stepper per modificare i COPERTI della
 // prenotazione. Usato su libero/prenotato espansi (la capienza non si tocca).
 function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = false }) {
@@ -220,7 +234,11 @@ function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = fals
       }}
         onMouseEnter={e => { e.currentTarget.style.color = '#0F1115'; e.currentTarget.style.background = '#F4F5F7'; }}
         onMouseLeave={e => { e.currentTarget.style.color = withLabel ? '#6B7280' : '#9CA3AF'; e.currentTarget.style.background = 'transparent'; }}>
-        {withLabel && <span>{currentPosti} copert{currentPosti === 1 ? 'o' : 'i'}</span>}
+        {withLabel && (
+          <span style={{display:'inline-flex', alignItems:'center', gap: 4, fontVariantNumeric:'tabular-nums'}}>
+            {currentPosti} <PeopleIcon size={13} color="currentColor"/>
+          </span>
+        )}
         <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
           <path d="M8.5 2.5l1 1-5.5 5.5H3v-1L8.5 2.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -399,7 +417,7 @@ function CopertiChip({ coperti, posti, onAdjust }) {
         onMouseEnter={e => { if (editable) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.BORDER_HAIR; } }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}>
         <span style={{color: '#0F1115', fontWeight: 700, fontVariantNumeric: 'tabular-nums'}}>{coperti}</span>
-        coperti
+        <PeopleIcon size={14} color="#6B7280"/>
       </button>
     );
   }
@@ -538,7 +556,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             dicono i coperti (chip 🪑 in card, clamp/tooltip = posti); sulle
             prenotate contano i coperti prenotati, nella riga prenotazione. */}
         {t.state !== 'occupato' && t.state !== 'prenotato' && (
-          <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
+          <span style={{display:'inline-flex', alignItems:'center', gap: 3, fontSize: 15, color: '#6B7280', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
+            {t.posti} <ChairIcon size={13} color="#9CA3AF"/>
+          </span>
         )}
 
         <span style={{flex:1}}/>
@@ -633,8 +653,8 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
           </span>
           {/* Coperti prenotati — sempre leggibili anche a card contratta */}
           {t.nextReservation.posti && (
-            <span style={{fontSize: 14.5, color: '#6B7280', fontWeight: 600, flexShrink: 0}}>
-              {t.nextReservation.posti} coperti
+            <span style={{display:'inline-flex', alignItems:'center', gap: 4, fontSize: 14.5, color: '#6B7280', fontWeight: 600, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>
+              {t.nextReservation.posti} <PeopleIcon size={13} color="#9CA3AF"/>
             </span>
           )}
         </div>
@@ -649,7 +669,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
         {!!t.coperti && (
           <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0}}>
             <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.coperti}</span>
-            <span style={{fontSize: 15, fontWeight: 600, color:'#6B7280'}}>coperti</span>
+            <PeopleIcon size={14} color="#9CA3AF"/>
           </span>
         )}
         {alert && (
@@ -873,7 +893,11 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             {t.nextReservation && (
               <div style={{fontSize: 16.5, color:'#6B7280'}}>
                 Prossima prenotazione: <b style={{color:'#0F1115'}}>{t.nextReservation.time}</b>
-                {t.nextReservation.posti && <span> · {t.nextReservation.posti} coperti</span>}
+                {t.nextReservation.posti && (
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 4}}>
+                    {' '}· {t.nextReservation.posti} <PeopleIcon size={13} color="#9CA3AF"/>
+                  </span>
+                )}
               </div>
             )}
           </div>
