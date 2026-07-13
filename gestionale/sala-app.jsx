@@ -432,11 +432,11 @@ function SalaApp() {
                 onConfirmCart={handleConfirmCart}
                 onAdjustCoperti={(id, n) => {
                   // Lo stepper modifica i COPERTI seduti, mai la capacità:
-                  // il numero è clampato tra 1 e i posti del tavolo.
+                  // clamp tra 1 e i posti. Gli utenti connessi (byup/byupWeb)
+                  // NON si toccano: quel numero non dipende dai coperti.
                   const t = SALA_TAVOLI.find(x => x.id === id);
                   if (t) {
                     t.coperti = Math.max(1, Math.min(t.posti || n, n));
-                    if ((t.byup || 0) > t.coperti) t.byup = t.coperti;
                     forceUpdate();
                   }
                 }}
@@ -523,11 +523,10 @@ function SalaApp() {
           onNoShow={handleNoShow}
           onAdjustCoperti={(n) => {
             // Stessa regola dello stepper in card: coperti seduti, mai la
-            // capacità — clamp tra 1 e i posti del tavolo.
+            // capacità — clamp tra 1 e i posti. Gli utenti connessi non si toccano.
             const t = modalModifica;
             if (t) {
               t.coperti = Math.max(1, Math.min(t.posti || n, n));
-              if ((t.byup || 0) > t.coperti) t.byup = t.coperti;
               forceUpdate();
             }
           }}/>

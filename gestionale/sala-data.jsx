@@ -25,7 +25,9 @@ const SALA_TAVOLI = [
     nextReservation: { time: '22:00', name: 'Bianchi', posti: 2, inMin: 45 },
     minutiAllaPrenotazione: 45 },
 
-  { id: 3,  state: 'occupato', posti: 6, coperti: 5, byup: 3, byupWeb: 1, party: 'Verdi + amici', sittingMin: 18, conto: 42.50, contoSaldato: false,
+  // daIncassare < conto: la differenza è quanto già pagato in app (riga
+  // "Pagato in app" nel blocco conto a scontrino della card espansa)
+  { id: 3,  state: 'occupato', posti: 6, coperti: 5, byup: 3, byupWeb: 1, party: 'Verdi + amici', sittingMin: 18, conto: 42.50, daIncassare: 24.50, contoSaldato: false,
     guests: [
       { id:'g3a', name:'Luca V.',    source:'byup' },
       { id:'g3b', name:'Sara V.',    source:'byup' },
@@ -63,7 +65,7 @@ const SALA_TAVOLI = [
     nextReservation: { time: '21:30', name: 'Conti', posti: 4, inMin: 95 },
     minutiAllaPrenotazione: 95 },
 
-  { id: 7,  state: 'occupato', posti: 8, coperti: 7, byup: 4, byupWeb: 0, party: 'Tavolata Neri', sittingMin: 48, conto: 184.00, contoSaldato: false,
+  { id: 7,  state: 'occupato', posti: 8, coperti: 7, byup: 4, byupWeb: 0, party: 'Tavolata Neri', sittingMin: 48, conto: 184.00, daIncassare: 130.00, contoSaldato: false,
     guests: [
       { id:'g7a', name:'Paolo N.',  source:'byup' },
       { id:'g7b', name:'Elena N.',  source:'byup' },

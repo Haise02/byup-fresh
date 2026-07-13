@@ -153,63 +153,26 @@ function NoteIcon({ type, size = 14 }) {
   );
 }
 
-// Note della card espansa: il tag evento (es. Compleanno) resta in chiaro;
-// le altre note stanno CHIUSE in un chip "Nota" sulla stessa riga del tag
-// e si espandono verso il basso al click.
+// Note della card espansa: SEMPRE in chiaro, sulla stessa riga del tag
+// evento (es. Compleanno); vanno a capo solo se manca lo spazio.
 function NoteChipRow({ notes }) {
-  const [openIdx, setOpenIdx] = React.useState(null);
   const items = (notes || []).filter(Boolean);
   if (!items.length) return null;
-  const openNote = openIdx != null ? items[openIdx] : null;
-  const openMeta = openNote ? (NOTE_TYPE_META[openNote.tipo] || NOTE_TYPE_META.generica) : null;
   return (
-    <div style={{display:'flex', flexDirection:'column', gap: 6}}>
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6}}>
-        {items.map((n, i) => {
-          const m = NOTE_TYPE_META[n.tipo] || NOTE_TYPE_META.generica;
-          if (n.tipo === 'evento') {
-            return (
-              <div key={i} style={{
-                fontSize: 16, color: m.color, fontWeight: 600,
-                background: m.bg, padding:'6px 10px', borderRadius: 8,
-                display:'inline-flex', alignItems:'center', gap: 6,
-              }}>
-                <NoteIcon type={n.tipo} size={12}/>
-                {n.testo}
-              </div>
-            );
-          }
-          const open = openIdx === i;
-          return (
-            <button key={i}
-              onClick={(e) => { e.stopPropagation(); setOpenIdx(cur => cur === i ? null : i); }}
-              title={open ? 'Nascondi la nota' : 'Mostra la nota'} style={{
-              fontSize: 16, color: m.color, fontWeight: 600,
-              background: m.bg, padding:'6px 10px', borderRadius: 8,
-              display:'inline-flex', alignItems:'center', gap: 6,
-              border:'none', cursor:'pointer', fontFamily:'inherit',
-              boxShadow: open ? `inset 0 0 0 1.5px ${m.color}` : 'none',
-            }}>
-              <NoteIcon type={n.tipo} size={12}/>
-              {m.label}
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                style={{transform: open ? 'rotate(180deg)' : 'none', transition:'transform 160ms ease-out'}}>
-                <path d="m6 9 6 6 6-6"/>
-              </svg>
-            </button>
-          );
-        })}
-      </div>
-      {openNote && (
-        <div style={{
-          fontSize: 15.5, color: openMeta.color, fontWeight: 600,
-          background: openMeta.bg, padding:'8px 10px', borderRadius: 8,
-          lineHeight: 1.45,
-        }}>
-          {openNote.testo}
-        </div>
-      )}
+    <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6}}>
+      {items.map((n, i) => {
+        const m = NOTE_TYPE_META[n.tipo] || NOTE_TYPE_META.generica;
+        return (
+          <div key={i} style={{
+            fontSize: 16, color: m.color, fontWeight: 600,
+            background: m.bg, padding:'6px 10px', borderRadius: 8,
+            display:'inline-flex', alignItems:'center', gap: 6,
+          }}>
+            <NoteIcon type={n.tipo} size={12}/>
+            {n.testo}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -768,18 +731,22 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         {t.state === 'occupato' && (
           <>
             <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-              {t.party && (
-                <div style={{fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
-                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                  {t.party}
-                </div>
-              )}
-              {/* Dati a sinistra: utenti connessi (avatar + numero, fisso) e
-                  coperti seduti (testo quieto → stepper al tap); azione a
+              {/* Riga identità: nome party a sinistra, coperti seduti in alto
+                  a destra (testo quieto → stepper al tap) — lontani dal numero
+                  degli utenti connessi che sta nella riga sotto */}
+              <div style={{display:'flex', alignItems:'center', gap: 8}}>
+                {t.party ? (
+                  <div style={{flex: 1, minWidth: 0, fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                    {t.party}
+                  </div>
+                ) : <span style={{flex: 1}}/>}
+                <CopertiChip coperti={t.coperti} posti={t.posti} onAdjust={onAdjustCoperti}/>
+              </div>
+              {/* Utenti connessi (avatar + numero, fisso) a sinistra; azione a
                   destra: Modifica (Aggiungi articolo sta sotto gli ordini) */}
               <div style={{display:'flex', alignItems:'center', gap: 8}}>
                 <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
-                <CopertiChip coperti={t.coperti} posti={t.posti} onAdjust={onAdjustCoperti}/>
                 <span style={{flex:1}}/>
                 <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
                   title="Sposta, dividi o unisci il tavolo" style={{
@@ -819,20 +786,19 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
 
             {t.ordini && t.ordini.length > 0 && <OrdiniList ordini={t.ordini}/>}
 
-            {/* Aggiungi articolo — subito sotto l'elenco degli articoli ordinati */}
+            {/* Aggiungi articolo — link testuale sottolineato subito sotto
+                l'elenco degli ordini: niente sfondo, si ingrandisce in hover */}
             <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}}
               title="Aggiungi articolo al conto" style={{
-              display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
-              width:'100%', height: 36, borderRadius: 9,
-              background: PN.BTN_NEUTRAL, color:'#0F1115',
-              border:`1px solid ${PN.BORDER_LIGHT}`,
-              fontSize: 15.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-              whiteSpace:'nowrap',
-              boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
-              transition:'background 150ms ease-out',
+              display:'inline-flex', alignItems:'center', gap: 5, alignSelf:'center',
+              background:'transparent', border:'none', padding:'5px 8px',
+              fontSize: 15.5, fontWeight: 700, color:'#0F1115',
+              textDecoration:'underline', textUnderlineOffset: 3,
+              cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+              transition:'transform 140ms ease-out', transformOrigin:'center',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-              onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
               Aggiungi articolo
@@ -1040,8 +1006,6 @@ function OrdiniList({ ordini }) {
   const sorted = groupedList.sort((a, b) => order[a.stato] - order[b.stato]);
 
   const totQty = ordini.reduce((s, o) => s + (o.qty || 0), 0);
-  const countByStato = {};
-  ordini.forEach(o => { countByStato[o.stato] = (countByStato[o.stato] || 0) + (o.qty || 0); });
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 4,
@@ -1059,17 +1023,6 @@ function OrdiniList({ ordini }) {
           letterSpacing: 0.6, textTransform:'uppercase',
         }}>Ordini · {totQty}</span>
         <span style={{flex: 1}}/>
-        {/* Riepilogo per stato: pallino colorato + quantità */}
-        {['pronto', 'in_cottura', 'ordinato'].map(st => countByStato[st] ? (
-          <span key={st} title={ORDINE_STATO_META[st].label} style={{
-            display:'inline-flex', alignItems:'center', gap: 4,
-            fontSize: 14, fontWeight: 700, color:'#6B7280',
-            fontVariantNumeric:'tabular-nums',
-          }}>
-            <span style={{width: 7, height: 7, borderRadius:'50%', background: ORDINE_STATO_META[st].color, display:'inline-block'}}/>
-            {countByStato[st]}
-          </span>
-        ) : null)}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF"
           strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
           style={{transform: open ? 'rotate(180deg)' : 'none', transition:'transform 160ms ease-out', flexShrink: 0}}>
