@@ -179,15 +179,16 @@ function NoteChipRow({ notes, leading }) {
   );
 }
 
-// Icona sedia (vista laterale: schienale, seduta, gambe) — indica i POSTI
-// (capienza del tavolo); il gruppo di persone (PeopleIcon) indica i coperti.
+// Icona sedia (frontale: schienale arrotondato, seduta piena, due gambe) —
+// indica i POSTI (capienza); il gruppo di persone (PeopleIcon) i coperti.
 function ChairIcon({ size = 13, color = 'currentColor' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 3v18"/>
-      <path d="M7 13h10"/>
-      <path d="M17 13v8"/>
+      <path d="M7 13V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8"/>
+      <rect x="4" y="13" width="16" height="4" rx="1.5"/>
+      <path d="M6 17v4"/>
+      <path d="M18 17v4"/>
     </svg>
   );
 }
