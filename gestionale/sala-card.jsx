@@ -882,7 +882,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
 
         {t.state === 'dapulire' && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-            <div style={{fontSize: 18, fontWeight: 700,
+            <div style={{fontSize: pulireSev === 'normal' ? 18 : 15, fontWeight: 700,
               color: pulireSev === 'normal' ? '#0F1115' : '#DC2626',
               letterSpacing: pulireSev === 'normal' ? '-0.01em' : '0.4px',
               textTransform: pulireSev === 'normal' ? 'none' : 'uppercase'}}>
