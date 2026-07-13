@@ -501,18 +501,10 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
 
   // Severity "Da pulire" progressiva
   const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire) : 'normal';
-  // Sfumatura identica alle tessere della mappa: velo bianco sfumato verticale
-  // sopra la tinta di stato (SALA_STATE_META.bg), su base bianca.
-  const stateBg = `linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 55%, rgba(255,255,255,0) 100%), linear-gradient(0deg, ${meta.bg}, ${meta.bg}) #FFFFFF`;
   const [hover, setHover] = React.useState(false);
   // Accent (border + top bar) per stato. Da pulire: resta sempre grigio, anche in critical.
   let accent = meta.dot;
   if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
-  // Dot stato (header). Da pulire: resta grigio (#64748B) per qualsiasi severity.
-  let dotColor = meta.dot;
-  if (t.state === 'prenotato') {
-    dotColor = '#6D28D9'; // sempre viola (tono mappa) — lo stato è prenotazione, l'urgenza è nel triangolo
-  }
   const showAlertTriangle = hasAlertTriangle(t);
 
   return (
@@ -521,7 +513,8 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        background: stateBg,
+        // Corpo BIANCO: il colore di stato vive solo nella banda header
+        background: '#FFFFFF',
         borderRadius: 14,
         border: `1px solid ${hover ? accent + '66' : meta.border}`,
         padding: expanded ? '16px 18px' : '12px 14px',
@@ -547,35 +540,62 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         transition: 'opacity 200ms ease-out',
       }}/>
 
-      {/* === HEADER — Tavolo X numero, posti, dot stato a dx (tooltip on hover).
-          A card espansa è una sezione a sé, separata da un hairline; nella
-          contratta resta riga unica per non rubare altezza alla griglia. === */}
+      {/* === HEADER — banda col COLORE dello stato (meta.bg) a tutta
+          larghezza, corpo della card bianco. Dentro: Tavolo X ingrandito
+          (+ "Seduti da" sotto, se occupato espanso), Modifica a destra
+          sull'occupato espanso, triangolo alert. Niente pallino di stato:
+          lo stato lo dicono la banda e la barra accent. === */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, marginTop: 2,
-        paddingBottom: expanded ? 10 : 0,
-        borderBottom: expanded ? '1px solid rgba(15, 17, 21, 0.07)' : 'none',
+        display: 'flex', alignItems: 'center', gap: 8,
+        margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
+        padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
+        background: meta.bg,
+        borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
       }}>
-        <span style={{
-          fontSize: expanded ? 24 : 22, fontWeight: 700, color: '#0F1115',
-          letterSpacing: '-0.02em', lineHeight: 1,
-        }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
-        {/* Capienza in header SOLO per libero/da liberare: sulle occupate la
-            dicono i coperti (chip 🪑 in card, clamp/tooltip = posti); sulle
-            prenotate contano i coperti prenotati, nella riga prenotazione. */}
-        {t.state !== 'occupato' && t.state !== 'prenotato' && (
-          <span style={{display:'inline-flex', alignItems:'center', gap: 3, fontSize: 15, color: '#6B7280', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
-            {t.posti} <ChairIcon size={13} color="#9CA3AF"/>
-          </span>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{display:'flex', alignItems:'center', gap: 8}}>
+            <span style={{
+              fontSize: expanded ? 27 : 24, fontWeight: 700, color: '#0F1115',
+              letterSpacing: '-0.02em', lineHeight: 1,
+            }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
+            {/* Capienza in header SOLO per libero/da liberare: sulle occupate la
+                dicono i coperti; sulle prenotate i coperti prenotati in riga. */}
+            {t.state !== 'occupato' && t.state !== 'prenotato' && (
+              <span style={{display:'inline-flex', alignItems:'center', gap: 3, fontSize: 15, color: '#6B7280', fontWeight: 500, fontVariantNumeric:'tabular-nums'}}>
+                {t.posti} <ChairIcon size={13} color="#9CA3AF"/>
+              </span>
+            )}
+          </div>
+          {/* Tempo al tavolo — sotto il nome del tavolo */}
+          {expanded && t.state === 'occupato' && t.sittingMin != null && (
+            <div style={{fontSize: 14.5, color:'#6B7280', fontWeight: 600, marginTop: 4, lineHeight: 1}}>
+              {formatSeduti(t.sittingMin)}
+            </div>
+          )}
+        </div>
+        {/* Modifica — in header al posto del tempo, solo occupato espanso */}
+        {expanded && t.state === 'occupato' && (
+          <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
+            title="Sposta, dividi o unisci il tavolo" style={{
+            display:'inline-flex', alignItems:'center', gap: 5,
+            height: 32, padding:'0 12px', borderRadius: 8,
+            background: PN.BTN_NEUTRAL, color:'#0F1115',
+            border:`1px solid ${PN.BORDER_LIGHT}`,
+            fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            whiteSpace:'nowrap', flexShrink: 0,
+            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+            transition:'background 150ms ease-out',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            </svg>
+            Modifica
+          </button>
         )}
-
-        <span style={{flex:1}}/>
-        {/* Tempo al tavolo — in header, accanto allo stato: niente riga dedicata */}
-        {expanded && t.state === 'occupato' && t.sittingMin != null && (
-          <span style={{fontSize: 14.5, color:'#6B7280', fontWeight: 600, whiteSpace:'nowrap'}}>
-            {formatSeduti(t.sittingMin)}
-          </span>
-        )}
-        {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
+        {/* Triangolo rosso statico — prenotato in ritardo >20' OR da pulire >20' */}
         {showAlertTriangle && (
           <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="#DC2626" stroke="none" style={{display:'block', cursor:'help'}}>
@@ -584,14 +604,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             </svg>
           </Tip>
         )}
-        <Tip text={meta.label}>
-          <span style={{
-            width: 9, height: 9, borderRadius:'50%',
-            background: dotColor,
-            boxShadow: (urgent || isLate || isAlerting) ? `0 0 0 3px ${dotColor}33` : 'none',
-            cursor:'help',
-          }}/>
-        </Tip>
       </div>
 
       {/* Allergia: SEMPRE visibile. Compatta = solo "Allergia". Espansa = "Allergia [testo] · [ospite]". */}
@@ -775,31 +787,9 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                 ) : <span style={{flex: 1}}/>}
                 <CopertiChip coperti={t.coperti} posti={t.posti} onAdjust={onAdjustCoperti}/>
               </div>
-              {/* Utenti connessi (avatar + numero, fisso) a sinistra; azione a
-                  destra: Modifica (Aggiungi articolo sta sotto gli ordini) */}
-              <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
-                <span style={{flex:1}}/>
-                <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
-                  title="Sposta, dividi o unisci il tavolo" style={{
-                  display:'inline-flex', alignItems:'center', gap: 5,
-                  height: 32, padding:'0 12px', borderRadius: 8,
-                  background: PN.BTN_NEUTRAL, color:'#0F1115',
-                  border:`1px solid ${PN.BORDER_LIGHT}`,
-                  fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                  whiteSpace:'nowrap', flexShrink: 0,
-                  boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
-                  transition:'background 150ms ease-out',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                  </svg>
-                  Modifica
-                </button>
-              </div>
+              {/* Utenti connessi (avatar + numero, fisso) — Modifica è
+                  salito nell'header della card */}
+              <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
             </div>
 
             {/* Segnali su UNA riga: alert operativo + tag evento + note */}
