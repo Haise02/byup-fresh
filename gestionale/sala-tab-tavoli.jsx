@@ -1952,6 +1952,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             </button>
             <SalaCard t={clickedTable}
               expanded={true}
+              headerRightInset={34}
               onToggle={()=>{}}
               onAdd={closeAnd(()=>onOpenAdd(clickedTable))}
               onPay={closeAnd(()=>onOpenPay(clickedTable))}

@@ -468,7 +468,10 @@ function CopertiChip({ coperti, posti, onAdjust }) {
 }
 
 // ─────────────────────────────────────────────────────────
-function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
+// headerRightInset: px extra di padding a destra nell'header espanso — serve
+// quando la card vive in un popup con la X di chiusura sovrapposta all'angolo
+// (mappa): Modifica e triangolo alert rientrano e non finiscono sotto la X.
+function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti, headerRightInset = 0 }) {
   const meta = SALA_STATE_META[t.state];
   const alert = t.state === 'occupato' ? getOccupiedAlert(t) : null;
   const note = readNote(t.note);
@@ -545,7 +548,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
-        padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
+        padding: expanded ? `15px ${18 + headerRightInset}px 12px 18px` : '11px 14px 10px',
         // Gradiente orizzontale sul colore di stato (versione scura):
         // parte dal più SCURO a sinistra e sfuma verso il più chiaro a destra
         background: `linear-gradient(90deg, ${shade(accent, -0.38)} 0%, ${shade(accent, -0.22)} 48%, ${shade(accent, -0.08)} 100%)`,
