@@ -1928,31 +1928,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               boxShadow: '0 32px 80px rgba(15,17,21,0.30), 0 4px 12px rgba(15,17,21,0.12)',
               animation: 'salaDetailIn 220ms cubic-bezier(0.32,0.72,0,1)',
             }}>
-            {/* Pulsante chiusura */}
-            <button
-              onClick={() => setExpandedId(null)}
-              title="Chiudi dettaglio"
-              aria-label="Chiudi dettaglio tavolo"
-              style={{
-                position:'absolute', top: 10, right: 10, zIndex: 5,
-                width: 30, height: 30, borderRadius: '50%',
-                background: '#fff', color: '#6B7280',
-                border: '1px solid rgba(15,17,21,0.08)',
-                boxShadow: '0 1px 4px rgba(15,17,21,0.08)',
-                cursor:'pointer', fontFamily:'inherit',
-                display:'grid', placeItems:'center',
-                transition:'background 150ms, color 150ms',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.color = '#0F1115'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6B7280'; }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                <path d="M6 6l12 12 M18 6L6 18"/>
-              </svg>
-            </button>
             <SalaCard t={clickedTable}
               expanded={true}
-              headerRightInset={56}
+              onClose={() => setExpandedId(null)}
               onToggle={()=>{}}
               onAdd={closeAnd(()=>onOpenAdd(clickedTable))}
               onPay={closeAnd(()=>onOpenPay(clickedTable))}

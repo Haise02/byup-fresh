@@ -468,10 +468,11 @@ function CopertiChip({ coperti, posti, onAdjust }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// headerRightInset: px extra di padding a destra nell'header espanso — serve
-// quando la card vive in un popup con la X di chiusura sovrapposta all'angolo
-// (mappa): Modifica e triangolo alert rientrano e non finiscono sotto la X.
-function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti, headerRightInset = 0 }) {
+// onClose: se presente la card vive in un POPUP (dettaglio mappa) — la X di
+// chiusura entra nella riga dell'header come fratello di Modifica (niente
+// overlay in absolute) e la card diventa statica: cursore normale, nessun
+// hover di bordo, il click sul corpo non fa toggle.
+function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti, onClose }) {
   const meta = SALA_STATE_META[t.state];
   const alert = t.state === 'occupato' ? getOccupiedAlert(t) : null;
   const note = readNote(t.note);
@@ -504,6 +505,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
 
   // Severity "Da pulire" progressiva
   const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire ?? t.freedMinAgo) : 'normal';
+  const isPopup = !!onClose;
   const [hover, setHover] = React.useState(false);
   // Schiarisce (f>0) o scurisce (f<0) un colore hex — per il gradiente header
   const shade = (hex, f) => {
@@ -518,16 +520,16 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
 
   return (
     <div
-      onClick={onToggle}
+      onClick={isPopup ? undefined : onToggle}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         // Corpo BIANCO: il colore di stato vive solo nella banda header
         background: '#FFFFFF',
         borderRadius: 14,
-        border: `1px solid ${hover ? accent + '66' : meta.border}`,
+        border: `1px solid ${hover && !isPopup ? accent + '66' : meta.border}`,
         padding: expanded ? '16px 18px' : '12px 14px',
-        cursor: 'pointer',
+        cursor: isPopup ? 'default' : 'pointer',
         transition: 'transform 220ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 220ms ease-out, border-color 200ms ease-out',
         display: 'flex', flexDirection: 'column', gap: expanded ? 14 : 6,
         boxShadow: expanded
@@ -535,7 +537,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           : (hover
               ? `0 8px 20px ${accent}1F, 0 1px 2px rgba(15, 17, 21, 0.04)`
               : '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 12px rgba(15, 17, 21, 0.04)'),
-        transform: (expanded || hover) ? 'translateY(-2px)' : 'translateY(0)',
+        transform: !isPopup && (expanded || hover) ? 'translateY(-2px)' : 'translateY(0)',
         position: 'relative',
         overflow: 'hidden',
         minHeight: expanded ? 'auto' : 88,
@@ -548,7 +550,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
-        padding: expanded ? `15px ${18 + headerRightInset}px 12px 18px` : '11px 14px 10px',
+        padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
         // Gradiente orizzontale sul colore di stato (versione scura):
         // parte dal più SCURO a sinistra e sfuma verso il più chiaro a destra
         background: `linear-gradient(90deg, ${shade(accent, -0.38)} 0%, ${shade(accent, -0.22)} 48%, ${shade(accent, -0.08)} 100%)`,
@@ -600,6 +602,29 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
               <path d="M12 9 V14 M12 17 h0.01" stroke="#DC2626" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
             </svg>
           </Tip>
+        )}
+        {/* X di chiusura (solo popup) — ghost bianco traslucido SULLA banda
+            di stato, in riga con Modifica: mai sovrapposta al contenuto */}
+        {expanded && isPopup && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            title="Chiudi dettaglio"
+            aria-label="Chiudi dettaglio tavolo"
+            style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.18)', color: '#FFFFFF',
+              border: '1px solid rgba(255,255,255,0.35)',
+              cursor: 'pointer', fontFamily: 'inherit',
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+              transition: 'background 150ms ease-out',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.30)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <path d="M6 6l12 12 M18 6L6 18"/>
+            </svg>
+          </button>
         )}
       </div>
 
