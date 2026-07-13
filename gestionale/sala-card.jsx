@@ -546,9 +546,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         display: 'flex', alignItems: 'center', gap: 8,
         margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
         padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
-        // Gradiente 135° sul colore di stato: chiaro in alto a sx → pieno →
-        // scuro in basso a dx (stessa ricetta degli avatar byup)
-        background: `linear-gradient(135deg, ${shade(accent, 0.14)} 0%, ${accent} 52%, ${shade(accent, -0.18)} 100%)`,
+        // Gradiente 135° sul colore di stato, in versione SCURA per tutti
+        // gli stati: parte già sotto il colore pieno e chiude molto scuro
+        background: `linear-gradient(135deg, ${shade(accent, -0.08)} 0%, ${shade(accent, -0.22)} 52%, ${shade(accent, -0.38)} 100%)`,
         borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
       }}>
         <div style={{flex: 1, minWidth: 0}}>
