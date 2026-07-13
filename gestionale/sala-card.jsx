@@ -502,6 +502,12 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   // Severity "Da pulire" progressiva
   const pulireSev = t.state === 'dapulire' ? getPulireSeverity(t.minutiDaPulire) : 'normal';
   const [hover, setHover] = React.useState(false);
+  // Schiarisce (f>0) o scurisce (f<0) un colore hex — per il gradiente header
+  const shade = (hex, f) => {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v) => Math.max(0, Math.min(255, Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f))));
+    return `#${(((ch((n >> 16) & 255)) << 16) | ((ch((n >> 8) & 255)) << 8) | ch(n & 255)).toString(16).padStart(6, '0')}`;
+  };
   // Accent (border + top bar) per stato. Da pulire: resta sempre grigio, anche in critical.
   let accent = meta.dot;
   if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
@@ -540,7 +546,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         display: 'flex', alignItems: 'center', gap: 8,
         margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
         padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
-        background: accent,
+        // Gradiente 135° sul colore di stato: chiaro in alto a sx → pieno →
+        // scuro in basso a dx (stessa ricetta degli avatar byup)
+        background: `linear-gradient(135deg, ${shade(accent, 0.14)} 0%, ${accent} 52%, ${shade(accent, -0.18)} 100%)`,
         borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
       }}>
         <div style={{flex: 1, minWidth: 0}}>
