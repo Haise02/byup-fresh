@@ -153,13 +153,15 @@ function NoteIcon({ type, size = 14 }) {
   );
 }
 
-// Note della card espansa: SEMPRE in chiaro, sulla stessa riga del tag
-// evento (es. Compleanno); vanno a capo solo se manca lo spazio.
-function NoteChipRow({ notes }) {
+// Riga segnali della card espansa: alert operativo (leading) + tag evento
+// (es. Compleanno) + note, tutti chip SEMPRE in chiaro su un'unica riga;
+// vanno a capo solo se manca lo spazio.
+function NoteChipRow({ notes, leading }) {
   const items = (notes || []).filter(Boolean);
-  if (!items.length) return null;
+  if (!items.length && !leading) return null;
   return (
     <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6}}>
+      {leading}
       {items.map((n, i) => {
         const m = NOTE_TYPE_META[n.tipo] || NOTE_TYPE_META.generica;
         return (
@@ -535,13 +537,19 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           letterSpacing: '-0.02em', lineHeight: 1,
         }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
         {/* Capienza in header SOLO per libero/da liberare: sulle occupate la
-            dice il denominatore del "4/4" accanto agli avatar; sulle prenotate
-            contano i coperti prenotati, mostrati nella riga della prenotazione. */}
+            dicono i coperti (chip 🪑 in card, clamp/tooltip = posti); sulle
+            prenotate contano i coperti prenotati, nella riga prenotazione. */}
         {t.state !== 'occupato' && t.state !== 'prenotato' && (
           <span style={{fontSize: 15, color: '#6B7280', fontWeight: 500}}>· {t.posti}p</span>
         )}
 
         <span style={{flex:1}}/>
+        {/* Tempo al tavolo — in header, accanto allo stato: niente riga dedicata */}
+        {expanded && t.state === 'occupato' && t.sittingMin != null && (
+          <span style={{fontSize: 14.5, color:'#6B7280', fontWeight: 600, whiteSpace:'nowrap'}}>
+            {formatSeduti(t.sittingMin)}
+          </span>
+        )}
         {/* Triangolo rosso statico accanto al dot — prenotato in ritardo >20' OR da pulire >20' */}
         {showAlertTriangle && (
           <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
@@ -560,17 +568,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           }}/>
         </Tip>
       </div>
-
-      {/* Tempo al tavolo — solo a card espansa, in chiaro: "Seduti da 18 minuti" */}
-      {expanded && t.state === 'occupato' && t.sittingMin != null && (
-        <div style={{
-          fontSize: 14.5, color:'#6B7280', fontWeight: 600,
-          marginTop: 4, lineHeight: 1,
-        }}>
-          {formatSeduti(t.sittingMin)}
-        </div>
-      )}
-
 
       {/* Allergia: SEMPRE visibile. Compatta = solo "Allergia". Espansa = "Allergia [testo] · [ospite]". */}
       {note && noteIsCritical && (
@@ -770,19 +767,21 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               </div>
             </div>
 
-            {alert && (
-              <div style={{
-                fontSize: 15.5, fontWeight: 700,
-                color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
-                background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
-                padding:'6px 10px', borderRadius: 8, alignSelf:'flex-start',
-              }}>{alert.label}</div>
-            )}
-
-            <NoteChipRow notes={[
-              note && !noteMeta?.critical ? note : null,
-              extraNote && extraNoteMeta && !extraNoteMeta.critical ? extraNote : null,
-            ]}/>
+            {/* Segnali su UNA riga: alert operativo + tag evento + note */}
+            <NoteChipRow
+              leading={alert && (
+                <div style={{
+                  fontSize: 15.5, fontWeight: 700,
+                  color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
+                  background: alert.tone === 'warn' ? '#FEF3C7' : '#F3F4F6',
+                  padding:'6px 10px', borderRadius: 8,
+                  display:'inline-flex', alignItems:'center',
+                }}>{alert.label}</div>
+              )}
+              notes={[
+                note && !noteMeta?.critical ? note : null,
+                extraNote && extraNoteMeta && !extraNoteMeta.critical ? extraNote : null,
+              ]}/>
 
             {t.ordini && t.ordini.length > 0 && <OrdiniList ordini={t.ordini}/>}
 
