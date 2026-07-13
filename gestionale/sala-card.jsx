@@ -153,6 +153,67 @@ function NoteIcon({ type, size = 14 }) {
   );
 }
 
+// Note della card espansa: il tag evento (es. Compleanno) resta in chiaro;
+// le altre note stanno CHIUSE in un chip "Nota" sulla stessa riga del tag
+// e si espandono verso il basso al click.
+function NoteChipRow({ notes }) {
+  const [openIdx, setOpenIdx] = React.useState(null);
+  const items = (notes || []).filter(Boolean);
+  if (!items.length) return null;
+  const openNote = openIdx != null ? items[openIdx] : null;
+  const openMeta = openNote ? (NOTE_TYPE_META[openNote.tipo] || NOTE_TYPE_META.generica) : null;
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap: 6}}>
+      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6}}>
+        {items.map((n, i) => {
+          const m = NOTE_TYPE_META[n.tipo] || NOTE_TYPE_META.generica;
+          if (n.tipo === 'evento') {
+            return (
+              <div key={i} style={{
+                fontSize: 16, color: m.color, fontWeight: 600,
+                background: m.bg, padding:'6px 10px', borderRadius: 8,
+                display:'inline-flex', alignItems:'center', gap: 6,
+              }}>
+                <NoteIcon type={n.tipo} size={12}/>
+                {n.testo}
+              </div>
+            );
+          }
+          const open = openIdx === i;
+          return (
+            <button key={i}
+              onClick={(e) => { e.stopPropagation(); setOpenIdx(cur => cur === i ? null : i); }}
+              title={open ? 'Nascondi la nota' : 'Mostra la nota'} style={{
+              fontSize: 16, color: m.color, fontWeight: 600,
+              background: m.bg, padding:'6px 10px', borderRadius: 8,
+              display:'inline-flex', alignItems:'center', gap: 6,
+              border:'none', cursor:'pointer', fontFamily:'inherit',
+              boxShadow: open ? `inset 0 0 0 1.5px ${m.color}` : 'none',
+            }}>
+              <NoteIcon type={n.tipo} size={12}/>
+              {m.label}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{transform: open ? 'rotate(180deg)' : 'none', transition:'transform 160ms ease-out'}}>
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+          );
+        })}
+      </div>
+      {openNote && (
+        <div style={{
+          fontSize: 15.5, color: openMeta.color, fontWeight: 600,
+          background: openMeta.bg, padding:'8px 10px', borderRadius: 8,
+          lineHeight: 1.45,
+        }}>
+          {openNote.testo}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Icona sedia — usata nelle card occupate per indicare il tempo seduti (con tooltip on hover)
 function ChairIcon({ size = 13, color = 'currentColor' }) {
   return (
@@ -257,9 +318,9 @@ function ByupB({ size = 11 }) {
 // Rosso brand con "b" = utente byup (ordina dall'app). Grigio chiaro = ospite tradizionale.
 // Format "X/Y" = seduti / capacità massima del tavolo.
 // Avatar utenti CONNESSI (app byup + webapp): il numero accanto agli avatar
-// conta SOLO chi ha fatto accesso — è indifferente ai coperti seduti, che
-// vivono nel CopertiChip separato. Hover → breakdown byup/webapp/senza accesso.
-function GuestAvatars({ coperti = 0, byup = 0, byupWeb = 0, expanded }) {
+// conta SOLO chi ha fatto accesso — del tutto indipendente dai coperti seduti
+// (che vivono nel CopertiChip separato). Hover → breakdown byup/webapp.
+function GuestAvatars({ byup = 0, byupWeb = 0, expanded }) {
   const connected = byup + byupWeb;
   if (!connected) return null;
   const sz = expanded ? 22 : 18;
@@ -269,7 +330,6 @@ function GuestAvatars({ coperti = 0, byup = 0, byupWeb = 0, expanded }) {
   const overflow = connected - visible;
   // Prima gli utenti app byup (rossi), poi quelli da webapp (blu)
   const avatars = Array.from({length: visible}).map((_, i) => i < byup ? 'byup' : 'web');
-  const rest = Math.max(0, coperti - connected);
   const BreakdownDot = ({ bg }) => (
     <span style={{width: 8, height: 8, borderRadius:'50%', background: bg, flexShrink: 0, display:'inline-block'}}/>
   );
@@ -285,12 +345,6 @@ function GuestAvatars({ coperti = 0, byup = 0, byupWeb = 0, expanded }) {
         <div style={{display:'flex', alignItems:'center', gap: 7, whiteSpace:'nowrap'}}>
           <BreakdownDot bg="#3B82F6"/>
           <span>{byupWeb} da webapp</span>
-        </div>
-      )}
-      {rest > 0 && (
-        <div style={{display:'flex', alignItems:'center', gap: 7, whiteSpace:'nowrap'}}>
-          <BreakdownDot bg="#9CA3AF"/>
-          <span>{rest} {rest === 1 ? 'coperto' : 'coperti'} senza accesso</span>
         </div>
       )}
     </div>
@@ -339,115 +393,54 @@ function GuestAvatars({ coperti = 0, byup = 0, byupWeb = 0, expanded }) {
   );
 }
 
-// Chip coperti SEDUTI al tavolo: "6 coperti" + un più a fianco. Il click apre
-// lo stepper che aumenta/diminuisce i coperti (1..posti). Gli utenti connessi
-// (GuestAvatars) non c'entrano e non cambiano al variare dei coperti.
+// Stepper coperti SEDUTI al tavolo, inline: [−] 🪑6 [+]. Un tap = un coperto,
+// niente popup. Clamp 1..posti. Gli utenti connessi (GuestAvatars) non
+// c'entrano e non cambiano al variare dei coperti.
 function CopertiChip({ coperti, posti, onAdjust }) {
-  const [editing, setEditing] = React.useState(false);
-  // Posizione fixed del popup: vive in un portal sul body, così nessun
-  // antenato con overflow:hidden (la card in lista) può tagliarlo.
-  const [popPos, setPopPos] = React.useState(null);
-  const ref = React.useRef(null);
-  const popRef = React.useRef(null);
-  const POP_W = 268;
-  const openEditor = () => {
-    const r = ref.current.getBoundingClientRect();
-    const left = Math.max(8, Math.min(r.right - POP_W, window.innerWidth - POP_W - 8));
-    const top = Math.min(r.bottom + 8, window.innerHeight - 230);
-    setPopPos({ left, top });
-    setEditing(true);
-  };
-  React.useEffect(() => {
-    if (!editing) return;
-    const onDoc = (e) => {
-      const inTrigger = ref.current && ref.current.contains(e.target);
-      const inPopup = popRef.current && popRef.current.contains(e.target);
-      if (!inTrigger && !inPopup) setEditing(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [editing]);
   if (!coperti || typeof onAdjust !== 'function') return null;
+  const canDec = coperti > 1;
+  const canInc = coperti < posti;
+  const segBtn = (enabled) => ({
+    width: 30, height: 30, border: 'none',
+    background: 'transparent',
+    color: enabled ? '#0F1115' : '#D1D5DB',
+    fontSize: 19, fontWeight: 600, lineHeight: 1,
+    cursor: enabled ? 'pointer' : 'default',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    fontFamily: 'inherit', padding: 0,
+    transition: 'background 120ms ease-out',
+  });
   return (
-    <div ref={ref} style={{position:'relative', display:'inline-flex'}}>
-      <button onClick={(e) => { e.stopPropagation(); editing ? setEditing(false) : openEditor(); }}
-        title="Coperti seduti al tavolo · tocca per modificare" style={{
-        display:'inline-flex', alignItems:'center', gap: 6,
-        height: 32, padding:'0 8px 0 10px', borderRadius: 8,
-        background: editing ? '#F4F5F7' : PN.BTN_NEUTRAL, color:'#0F1115',
-        border:`1px solid ${PN.BORDER_LIGHT}`,
-        fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-        whiteSpace:'nowrap', flexShrink: 0,
+    <Tip text={`${coperti} coperti seduti su ${posti} posti`}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        display: 'inline-flex', alignItems: 'center',
+        height: 32, borderRadius: 999,
+        background: PN.BTN_NEUTRAL,
+        border: `1px solid ${PN.BORDER_LIGHT}`,
         boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
-        transition:'background 150ms ease-out',
-      }}
-        onMouseEnter={e => { if (!editing) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-        onMouseLeave={e => { if (!editing) e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
-        <span style={{fontVariantNumeric:'tabular-nums'}}>{coperti} coperti</span>
+        overflow: 'hidden', flexShrink: 0,
+      }}>
+        <button aria-label="Un coperto in meno" disabled={!canDec}
+          onClick={() => canDec && onAdjust(coperti - 1)} style={segBtn(canDec)}
+          onMouseEnter={e => { if (canDec) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>−</button>
         <span style={{
-          display:'inline-flex', alignItems:'center', justifyContent:'center',
-          width: 16, height: 16, borderRadius: 4,
-          color:'#6B7280',
-        }} aria-hidden>
-          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-            <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </span>
-      </button>
-      {editing && popPos && ReactDOM.createPortal(
-        <div ref={popRef} onClick={(e)=>e.stopPropagation()} style={{
-          position:'fixed', left: popPos.left, top: popPos.top, zIndex: 9990,
-          width: POP_W,
-          background:'#FFFFFF', border:'1px solid #E5E7EB',
-          borderRadius: 12, boxShadow:'0 16px 40px rgba(15,17,21,0.16), 0 2px 8px rgba(15,17,21,0.08)',
-          padding: 14,
-          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-          animation: 'mergeChipIn 160ms cubic-bezier(0.32,0.72,0,1)',
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '0 4px', minWidth: 34, justifyContent: 'center',
+          fontSize: 15.5, fontWeight: 700, color: '#0F1115',
+          fontVariantNumeric: 'tabular-nums',
+          borderLeft: `1px solid ${PN.BORDER_HAIR}`, borderRight: `1px solid ${PN.BORDER_HAIR}`,
+          alignSelf: 'stretch',
         }}>
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10}}>
-            <span style={{fontSize: 13.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
-              Coperti del tavolo
-            </span>
-            <button onClick={() => setEditing(false)} aria-label="Chiudi" style={{
-              width: 22, height: 22, borderRadius: 6,
-              background:'#F3F4F6', border:'none', cursor:'pointer',
-              color:'#6B7280', display:'grid', placeItems:'center', fontFamily:'inherit',
-            }}>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-          </div>
-          {/* Stepper sui COPERTI seduti: da 1 fino ai posti del tavolo.
-              La capacità (posti) non si tocca da qui. */}
-          <div style={{display:'flex', alignItems:'center', gap: 10}}>
-            <button onClick={() => onAdjust(Math.max(1, (coperti || 1) - 1))} disabled={(coperti || 1) <= 1} style={{
-              width: 32, height: 32, borderRadius: 8,
-              border:'1px solid #E5E7EB', background: (coperti || 1) <= 1 ? '#FAFBFC' : '#FFFFFF',
-              cursor: (coperti || 1) <= 1 ? 'default' : 'pointer',
-              fontSize: 22, fontWeight: 600, color: (coperti || 1) <= 1 ? '#D1D5DB' : '#0F1115',
-              display:'inline-flex', alignItems:'center', justifyContent:'center',
-              fontFamily:'inherit',
-            }}>−</button>
-            <div style={{flex: 1, textAlign:'center'}}>
-              <span style={{fontSize: 26, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>
-                {coperti}
-              </span>
-              <span style={{fontSize: 17, color:'#6B7280', fontWeight: 600, marginLeft: 4}}>
-                coperti
-              </span>
-            </div>
-            <button onClick={() => onAdjust(Math.min(posti, (coperti || 1) + 1))} disabled={(coperti || 1) >= posti} style={{
-              width: 32, height: 32, borderRadius: 8,
-              border:'1px solid #E5E7EB', background: (coperti || 1) >= posti ? '#FAFBFC' : '#FFFFFF',
-              cursor: (coperti || 1) >= posti ? 'default' : 'pointer',
-              fontSize: 22, fontWeight: 600, color: (coperti || 1) >= posti ? '#D1D5DB' : '#0F1115',
-              display:'inline-flex', alignItems:'center', justifyContent:'center',
-              fontFamily:'inherit',
-            }}>+</button>
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
+          <ChairIcon size={13} color="#6B7280"/>
+          {coperti}
+        </span>
+        <button aria-label="Un coperto in più" disabled={!canInc}
+          onClick={() => canInc && onAdjust(coperti + 1)} style={segBtn(canInc)}
+          onMouseEnter={e => { if (canInc) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>+</button>
+      </div>
+    </Tip>
   );
 }
 
@@ -652,7 +645,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   if (t.state === 'occupato') {
     return (
       <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
-        <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb}/>
+        <GuestAvatars byup={t.byup} byupWeb={t.byupWeb}/>
         {alert && (
           <div style={{
             fontSize: 15, fontWeight: 700,
@@ -724,26 +717,10 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                 <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
               </div>
             </div>
-            {note && !noteMeta?.critical && (
-              <div style={{
-                fontSize: 16, color: noteMeta.color, fontWeight: 600,
-                background: noteMeta.bg, padding:'6px 10px', borderRadius: 8,
-                display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
-              }}>
-                <NoteIcon type={note.tipo} size={12}/>
-                {note.testo}
-              </div>
-            )}
-            {extraNote && extraNoteMeta && !extraNoteMeta.critical && (
-              <div style={{
-                fontSize: 16, color: extraNoteMeta.color, fontWeight: 600,
-                background: extraNoteMeta.bg, padding:'6px 10px', borderRadius: 8,
-                display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
-              }}>
-                <NoteIcon type={extraNote.tipo} size={12}/>
-                {extraNote.testo}
-              </div>
-            )}
+            <NoteChipRow notes={[
+              note && !noteMeta?.critical ? note : null,
+              extraNote && extraNoteMeta && !extraNoteMeta.critical ? extraNote : null,
+            ]}/>
           </>
         )}
 
@@ -760,7 +737,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                   i coperti seduti col "+" (stepper) e Modifica inline
                   (Aggiungi articolo sta sotto l'elenco degli ordini) */}
               <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} expanded/>
+                <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
                 <span style={{flex:1}}/>
                 <CopertiChip coperti={t.coperti} posti={t.posti} onAdjust={onAdjustCoperti}/>
                 <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
@@ -794,26 +771,10 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               }}>{alert.label}</div>
             )}
 
-            {note && !noteMeta?.critical && (
-              <div style={{
-                fontSize: 16, color: noteMeta.color, fontWeight: 600,
-                background: noteMeta.bg, padding:'6px 10px', borderRadius: 8,
-                display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
-              }}>
-                <NoteIcon type={note.tipo} size={12}/>
-                {note.testo}
-              </div>
-            )}
-            {extraNote && extraNoteMeta && !extraNoteMeta.critical && (
-              <div style={{
-                fontSize: 16, color: extraNoteMeta.color, fontWeight: 600,
-                background: extraNoteMeta.bg, padding:'6px 10px', borderRadius: 8,
-                display:'inline-flex', alignItems:'center', gap: 6, alignSelf:'flex-start',
-              }}>
-                <NoteIcon type={extraNote.tipo} size={12}/>
-                {extraNote.testo}
-              </div>
-            )}
+            <NoteChipRow notes={[
+              note && !noteMeta?.critical ? note : null,
+              extraNote && extraNoteMeta && !extraNoteMeta.critical ? extraNote : null,
+            ]}/>
 
             {t.ordini && t.ordini.length > 0 && <OrdiniList ordini={t.ordini}/>}
 
@@ -990,8 +951,11 @@ function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
   );
 }
 
-// Lista articoli realistica con stato cucina
+// Lista articoli realistica con stato cucina — contraibile, chiusa di
+// default: l'header riepiloga i conteggi per stato (pallini colorati),
+// il click la espande/contrae.
 function OrdiniList({ ordini }) {
+  const [open, setOpen] = React.useState(false);
   // Raggruppa per nome + status, somma qty, prende max dei due timer
   const grouped = {};
   ordini.forEach(o => {
@@ -1010,16 +974,44 @@ function OrdiniList({ ordini }) {
   const order = { pronto: 0, in_cottura: 1, ordinato: 2 };
   const sorted = groupedList.sort((a, b) => order[a.stato] - order[b.stato]);
 
+  const totQty = ordini.reduce((s, o) => s + (o.qty || 0), 0);
+  const countByStato = {};
+  ordini.forEach(o => { countByStato[o.stato] = (countByStato[o.stato] || 0) + (o.qty || 0); });
+
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 4,
       background:'#FAFBFC', borderRadius: 8, padding: 8,
       border: '1px solid #F0F2F5',
     }}>
-      <div style={{
-        fontSize: 13.5, fontWeight: 700, color:'#6B7280',
-        letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 2,
-      }}>Ordini</div>
-      {sorted.map((o, idx) => {
+      <button onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }} style={{
+        display:'flex', alignItems:'center', gap: 8,
+        background:'transparent', border:'none', padding:'2px 2px',
+        cursor:'pointer', fontFamily:'inherit', width:'100%',
+        borderRadius: 6,
+      }}>
+        <span style={{
+          fontSize: 13.5, fontWeight: 700, color:'#6B7280',
+          letterSpacing: 0.6, textTransform:'uppercase',
+        }}>Ordini · {totQty}</span>
+        <span style={{flex: 1}}/>
+        {/* Riepilogo per stato: pallino colorato + quantità */}
+        {['pronto', 'in_cottura', 'ordinato'].map(st => countByStato[st] ? (
+          <span key={st} title={ORDINE_STATO_META[st].label} style={{
+            display:'inline-flex', alignItems:'center', gap: 4,
+            fontSize: 14, fontWeight: 700, color:'#6B7280',
+            fontVariantNumeric:'tabular-nums',
+          }}>
+            <span style={{width: 7, height: 7, borderRadius:'50%', background: ORDINE_STATO_META[st].color, display:'inline-block'}}/>
+            {countByStato[st]}
+          </span>
+        ) : null)}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF"
+          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{transform: open ? 'rotate(180deg)' : 'none', transition:'transform 160ms ease-out', flexShrink: 0}}>
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+      {open && sorted.map((o, idx) => {
         const s = ORDINE_STATO_META[o.stato];
         const isAlert = o.alert === 'allergia';
         // Pill state — label + minuti per stato
