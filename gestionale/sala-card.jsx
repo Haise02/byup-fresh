@@ -558,13 +558,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
               letterSpacing: '-0.02em', lineHeight: 1,
               textShadow: '0 1px 2px rgba(15,17,21,0.12)',
             }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
-            {/* Capienza in header SOLO per libero/da liberare: sulle occupate la
-                dicono i coperti; sulle prenotate i coperti prenotati in riga. */}
-            {t.state !== 'occupato' && t.state !== 'prenotato' && (
-              <span style={{display:'inline-flex', alignItems:'center', gap: 3, fontSize: 15, color: 'rgba(255,255,255,0.92)', fontWeight: 600, fontVariantNumeric:'tabular-nums'}}>
-                {t.posti} <ChairIcon size={17} color="rgba(255,255,255,0.85)"/>
-              </span>
-            )}
           </div>
           {/* Tempo al tavolo — sotto il nome del tavolo */}
           {expanded && t.state === 'occupato' && t.sittingMin != null && (
@@ -573,8 +566,8 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             </div>
           )}
         </div>
-        {/* Modifica — in header al posto del tempo, solo occupato espanso */}
-        {expanded && t.state === 'occupato' && (
+        {/* Modifica — in header per TUTTE le card espanse */}
+        {expanded && (
           <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
             title="Sposta, dividi o unisci il tavolo" style={{
             display:'inline-flex', alignItems:'center', gap: 5,
@@ -636,17 +629,27 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
 }
 
 function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) {
+  // Posti + sedia in basso a destra della card contratta (come i coperti
+  // sulla occupata) — l'header non mostra più la capienza
+  const postiTag = !!t.posti && (
+    <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0, marginLeft:'auto'}}>
+      <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.posti}</span>
+      <ChairIcon size={16} color="#9CA3AF"/>
+    </span>
+  );
   if (t.state === 'libero') {
-    if (!t.nextReservation) {
-      return null;
-    }
     return (
-      <div style={{display:'flex', alignItems:'baseline', gap: 6, fontSize: 15.5, color:'#6B7280'}}>
-        <span style={{color:'#9CA3AF', flexShrink: 0}}>→</span>
-        <span style={{fontWeight: 700, color:'#0F1115', flexShrink: 0}}>{t.nextReservation.time}</span>
-        <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-          {t.nextReservation.name}
-        </span>
+      <div style={{display:'flex', alignItems:'center', gap: 6, fontSize: 15.5, color:'#6B7280', marginTop:'auto'}}>
+        {t.nextReservation && (
+          <>
+            <span style={{color:'#9CA3AF', flexShrink: 0}}>→</span>
+            <span style={{fontWeight: 700, color:'#0F1115', flexShrink: 0}}>{t.nextReservation.time}</span>
+            <span style={{minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              {t.nextReservation.name}
+            </span>
+          </>
+        )}
+        {postiTag}
       </div>
     );
   }
@@ -708,21 +711,16 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
     );
   }
   if (t.state === 'dapulire') {
-    // A card CONTRATTA "Da liberare" non compare (lo dicono banda e
-    // triangolo): resta solo "Liberato X minuti fa" nel caso tranquillo.
-    const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
+    // A card CONTRATTA niente testi di stato ("Da liberare"/"Liberato…"):
+    // lo dicono banda e triangolo. Solo prossima prenotazione + posti.
     return (
-      <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
-        {pulireSev === 'normal' ? (
-          <span style={{fontSize: 15.5, color: '#475569', fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: 0.4}}>
-            Liberato {min} minuti fa
-          </span>
-        ) : <span style={{flex: 1}}/>}
+      <div style={{display:'flex', alignItems:'center', gap: 6, marginTop:'auto'}}>
         {t.nextReservation && (
-          <span style={{color:'#9CA3AF', fontSize: 14.5, fontWeight: 500}}>
+          <span style={{color:'#9CA3AF', fontSize: 14.5, fontWeight: 500, flexShrink: 0}}>
             → {t.nextReservation.time}
           </span>
         )}
+        {postiTag}
       </div>
     );
   }
@@ -903,15 +901,14 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         )}
       </div>
 
-      {/* CTA contestuali — primaria nera + Modifica (apre la modale sposta/
-          dividi/unisci). Sulla card occupata Modifica sta in alto, nella riga
-          degli avatar, al posto che aveva Aggiungi articolo. */}
-      <ExpandedCTARow t={t} cta={cta} onEdit={onEdit} showEdit={t.state !== 'occupato'}/>
+      {/* CTA contestuale — solo la primaria nera: Modifica sta nell'header
+          della card per tutti gli stati */}
+      <ExpandedCTARow t={t} cta={cta}/>
     </>
   );
 }
 
-function ExpandedCTARow({ t, cta, onEdit, showEdit = true }) {
+function ExpandedCTARow({ t, cta }) {
   return (
     <div style={{display:'flex', gap: 8, alignItems:'center'}}>
       <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
@@ -927,25 +924,6 @@ function ExpandedCTARow({ t, cta, onEdit, showEdit = true }) {
         onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
         onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
       >{cta.label}</button>
-      {showEdit && <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
-        title="Sposta, dividi o unisci il tavolo" style={{
-        padding:'11px 16px', minHeight: 42,
-        background: PN.BTN_NEUTRAL, color:'#0F1115',
-        border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10,
-        fontSize: 16.5, fontWeight: 700,
-        cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
-        display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
-        boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
-        transition:'background 150ms ease-out',
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-        onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-        </svg>
-        Modifica
-      </button>}
     </div>
   );
 }
