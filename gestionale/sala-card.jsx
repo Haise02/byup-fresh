@@ -742,12 +742,13 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                   {t.party}
                 </div>
               )}
-              {/* Coperti/posti a sinistra, + Aggiungi articolo inline a destra */}
+              {/* Coperti/posti a sinistra, Modifica inline a destra
+                  (Aggiungi articolo sta sotto l'elenco degli ordini) */}
               <div style={{display:'flex', alignItems:'center', gap: 8}}>
                 <GuestAvatars coperti={t.coperti} byup={t.byup} byupWeb={t.byupWeb} posti={t.posti} expanded onAdjust={onAdjustCoperti}/>
                 <span style={{flex:1}}/>
-                <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}}
-                  title="Aggiungi articolo al conto" style={{
+                <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
+                  title="Sposta, dividi o unisci il tavolo" style={{
                   display:'inline-flex', alignItems:'center', gap: 5,
                   height: 32, padding:'0 12px', borderRadius: 8,
                   background: PN.BTN_NEUTRAL, color:'#0F1115',
@@ -760,8 +761,10 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                   onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
                   onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
-                  Aggiungi articolo
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                  </svg>
+                  Modifica
                 </button>
               </div>
             </div>
@@ -797,6 +800,25 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             )}
 
             {t.ordini && t.ordini.length > 0 && <OrdiniList ordini={t.ordini}/>}
+
+            {/* Aggiungi articolo — subito sotto l'elenco degli articoli ordinati */}
+            <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}}
+              title="Aggiungi articolo al conto" style={{
+              display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+              width:'100%', height: 36, borderRadius: 9,
+              background: PN.BTN_NEUTRAL, color:'#0F1115',
+              border:`1px solid ${PN.BORDER_LIGHT}`,
+              fontSize: 15.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+              whiteSpace:'nowrap',
+              boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
+              transition:'background 150ms ease-out',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+              onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+              Aggiungi articolo
+            </button>
 
             <div style={{
               display:'flex', flexDirection:'column', alignItems:'flex-start',
@@ -846,13 +868,15 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         )}
       </div>
 
-      {/* CTA contestuali — primaria nera + Modifica (apre la modale sposta/dividi/unisci) */}
-      <ExpandedCTARow t={t} cta={cta} onEdit={onEdit}/>
+      {/* CTA contestuali — primaria nera + Modifica (apre la modale sposta/
+          dividi/unisci). Sulla card occupata Modifica sta in alto, nella riga
+          degli avatar, al posto che aveva Aggiungi articolo. */}
+      <ExpandedCTARow t={t} cta={cta} onEdit={onEdit} showEdit={t.state !== 'occupato'}/>
     </>
   );
 }
 
-function ExpandedCTARow({ t, cta, onEdit }) {
+function ExpandedCTARow({ t, cta, onEdit, showEdit = true }) {
   return (
     <div style={{display:'flex', gap: 8, alignItems:'center'}}>
       <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
@@ -868,7 +892,7 @@ function ExpandedCTARow({ t, cta, onEdit }) {
         onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
         onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
       >{cta.label}</button>
-      <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
+      {showEdit && <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
         title="Sposta, dividi o unisci il tavolo" style={{
         padding:'11px 16px', minHeight: 42,
         background: PN.BTN_NEUTRAL, color:'#0F1115',
@@ -886,7 +910,7 @@ function ExpandedCTARow({ t, cta, onEdit }) {
           <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
         </svg>
         Modifica
-      </button>
+      </button>}
     </div>
   );
 }
