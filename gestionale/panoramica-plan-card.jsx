@@ -101,6 +101,38 @@ function PianoEmoji({ planId, size = 24, monochrome }) {
 
 window.PianoEmoji = PianoEmoji;
 
+// Variante MINI per menu contratto: resta leggibile solo il dato chiave
+// (77%) su chip coral; il click riespande il menu (onExpand).
+function PnSidebarPlanCardMini({ onExpand }) {
+  const ordiniInclusi = 1850;
+  const ordiniCassa   = 980;
+  const utentiApp     = 880;
+  const ordiniUsati   = ordiniCassa + utentiApp * 0.5;
+  const pct = Math.min(100, Math.round((ordiniUsati / ordiniInclusi) * 100));
+  return (
+    <button
+      onClick={onExpand}
+      title={`Piano Starter · ${pct}% ordini usati — clicca per espandere il menu`}
+      style={{
+        width: '100%', padding: '10px 2px', margin: '14px 0 10px',
+        borderRadius: 10, border: 'none', cursor: 'pointer',
+        background: 'linear-gradient(135deg, #FF5A5F 0%, #E04347 55%, #B53338 100%)',
+        boxShadow: '0 8px 22px -10px rgba(181, 51, 56, 0.55), 0 2px 6px -2px rgba(181, 51, 56, 0.25)',
+        color: '#F5F5F7', fontFamily: 'inherit',
+        display: 'grid', placeItems: 'center',
+        transition: 'filter 150ms ease-out, transform 150ms ease-out',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}
+    >
+      <span style={{
+        fontSize: 14.5, fontWeight: 700, lineHeight: 1,
+        letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums',
+      }}>{pct}%</span>
+    </button>
+  );
+}
+
 // Compact version for sidebar — Apple-style con hover progressivo.
 // La barra mostra il dettaglio "1420 di 1850" SOLO in hover (tooltip dark).
 // CTA "Passa a Plus" cambia copy + colore in hover ("Ottienilo ora").
@@ -259,3 +291,4 @@ function PnSidebarPlanCard({ onOpenPlans }) {
 }
 
 window.PnSidebarPlanCard = PnSidebarPlanCard;
+window.PnSidebarPlanCardMini = PnSidebarPlanCardMini;

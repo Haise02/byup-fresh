@@ -187,7 +187,9 @@ function PnSidebar({ active = 'panoramica', onNav }) {
           (piano, Supporto, Impostazioni, Notifiche, profilo) resta immobile. */}
       {window.PnConnectionStatus && <window.PnConnectionStatus variant="mini" collapsed={collapsed}/>}
 
-      {!collapsed && <PnSidebarPlanCard/>}
+      {/* Piano: card completa a menu esteso; a menu contratto resta il 77%
+          leggibile su chip coral, e il click riespande il menu */}
+      {collapsed ? <PnSidebarPlanCardMini onExpand={toggle}/> : <PnSidebarPlanCard/>}
 
       {/* System actions */}
       <div style={{
