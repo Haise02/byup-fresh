@@ -929,10 +929,11 @@ function ExpandedCTARow({ t, cta, onEdit, showEdit = true }) {
 // ─────────────────────────────────────────────────────────
 // Badge stato + riga ordine — componenti CONDIVISI.
 // Contratto anti-overflow (vale per ogni card conto/ordini):
-//   riga = flex con wrap: [qty] [nome → ellissi] [badge];
-//   il badge non supera MAI il padding della card (maxWidth:100%
-//   + ellissi interna) e se non c'è spazio sulla riga va a capo
-//   sotto il piatto invece di sforare dal bordo.
+//   riga = flex SENZA wrap, SEMPRE su una sola riga per ogni
+//   articolo e stato: [qty] [nome → ellissi] [badge inline].
+//   A cedere è sempre il nome del piatto; il badge tiene la sua
+//   etichetta intera e solo in estremis si tronca (ellissi interna),
+//   mai a capo, mai oltre il bordo della card.
 // ─────────────────────────────────────────────────────────
 function StatoPill({ color, bg, label, tip }) {
   return (
@@ -953,8 +954,8 @@ function StatoPill({ color, bg, label, tip }) {
 function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', flexWrap: 'wrap',
-      columnGap: 8, rowGap: 3,
+      display: 'flex', alignItems: 'center',
+      columnGap: 8,
       padding: '5px 8px', borderRadius: 6,
       background: '#fff',
       border: alert ? '1.5px solid #DC2626' : '1px solid #F0F2F5',
@@ -964,17 +965,17 @@ function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
         fontSize: 15, fontWeight: 700, color: '#0F1115',
         minWidth: 28, textAlign: 'center', flexShrink: 0,
       }}>{qty}×</span>
-      {/* Il nome cede spazio fino al 45% della riga (ellissi); oltre,
-          è il badge a passare alla riga sotto, mai a sforare. */}
+      {/* È sempre il nome a cedere spazio (ellissi): il badge resta
+          inline sulla stessa riga, per ogni articolo e stato. */}
       <span style={{
-        flex: '1 1 0%', minWidth: '45%',
+        flex: '1 1 0%', minWidth: 0,
         fontSize: 15.5, color: '#0F1115', fontWeight: alert ? 700 : 500,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {nome}{nomeExtra}
       </span>
       <span style={{
-        flex: '0 0 auto', marginLeft: 'auto',
+        flex: '0 1 auto', marginLeft: 'auto',
         maxWidth: '100%', minWidth: 0,
         display: 'inline-flex',
       }}>
