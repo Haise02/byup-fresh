@@ -525,10 +525,10 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
 // Banda di categoria — full-bleed, icona kawaii che entra con spring, titolo Fredoka.
 const CAT_ART = {
   'Antipasti':      ['assets/cat-aperitivo.png', '#fae3de'],
-  'Primi piatti':   ['assets/cat-pizza.png',     '#FCE9EE'],
+  'Primi piatti':   ['assets/icon-pasta.png',     '#FCE9EE'],
   'Secondi piatti': ['assets/cat-burger.png',    '#FEF0E3'],
-  'Dolci':          ['assets/cat-dolce.png',     '#F9E3EE'],
-  'Bevande':        ['assets/cat-vino.png',      '#f4e5ef'],
+  'Dolci':          ['assets/icon-donut.png',    '#F9E3EE'],
+  'Bevande':        ['assets/icon-coffee.png',      '#f4e5ef'],
 };
 // Divisore-capitolo editoriale: numero-fantasma, dots di avanzamento sezione,
 // icona kawaii che entra in spring, sottolineatura brand che si "disegna".
@@ -1555,8 +1555,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
             transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           }}>
-            <span>Invio ordine</span>
-            {cartTotal > 0 && <span style={{ opacity: 0.9 }}>· {cartTotal}€</span>}
+            <span>Invia ordine</span>
           </button>
         </div>
       ) : (
@@ -1607,7 +1606,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
                       background: SURF, borderRadius: 999, padding: '3px 6px',
                     }}>
                       <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
-                      <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center' }}>{it.qty}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT }}>{it.qty}</span>
                       <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
                     </div>
                   </div>
@@ -1676,7 +1675,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
               boxShadow: cartCount === 0 ? 'none' : CTA_GLOW,
               cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
               transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
-            }}>Ordina ora · {cartTotal.toFixed(2)}€</button>
+            }}>Invia ordine</button>
           </div>
         </>
       )}
@@ -3068,8 +3067,6 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const [tipRound, setTipRound] = useState(false);
   // overlay di caricamento durante il pagamento
   const [paying, setPaying] = useState(false);
-  // fase "riuscito" dell'overlay: spunta animata prima del rientro in home
-  const [payDone, setPayDone] = useState(false);
   const [splitInfo, setSplitInfo] = useState(null);
   const [confirmRejectSplit, setConfirmRejectSplit] = useState(null);
   // Recap collassabile: tap sull'handle in alto al pannello di pagamento per nascondere
@@ -3256,14 +3253,8 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       payTip: tipAmount,
       payCover: cover,
     }));
-    // Se il saldo del tavolo è azzerato → successo; altrimenti breve spunta di
-    // conferma e rientro diretto in home ("Ordina ancora" / "Salda il resto").
-    if (remBefore - paidNow <= 0.01) {
-      goTo('success');
-    } else {
-      setPayDone(true);
-      setTimeout(() => goTo('home'), 1600);
-    }
+    // Se il saldo del tavolo è azzerato → successo; altrimenti vai alla schermata saldo.
+    goTo(remBefore - paidNow <= 0.01 ? 'success' : 'balance');
   };
 
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
@@ -4111,46 +4102,23 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       )}
 
       {/* Confirm sheet "stai offrendo" */}
-      {/* Overlay di caricamento durante il pagamento (~5s); a pagamento riuscito
-          con saldo residuo mostra la spunta di conferma e rientra in home. */}
+      {/* Overlay di caricamento durante il pagamento (~5s) */}
       {paying && (
         <div style={{
           position: 'absolute', inset: 0, background: WINE, zIndex: 200,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           gap: 20, animation: 'fade 0.2s ease',
         }}>
-          {payDone ? (
-            <>
-              <style>{`@keyframes payCheckDraw { to { stroke-dashoffset: 0; } }`}</style>
-              <div style={{
-                width: 76, height: 76, borderRadius: 999, background: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                animation: 'bkPopIn 0.5s cubic-bezier(.34,1.45,.64,1) backwards',
-              }}>
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" strokeDasharray="24" strokeDashoffset="24"
-                    style={{ animation: 'payCheckDraw 0.35s 0.3s ease forwards' }}/>
-                </svg>
-              </div>
-              <div style={{ textAlign: 'center', color: '#fff', animation: 'fade 0.3s ease 0.15s backwards' }}>
-                <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.2 }}>Pagamento riuscito</div>
-                <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>Hai pagato {(state.payTotal || 0).toFixed(2)}€</div>
-              </div>
-            </>
-          ) : (
-            <>
-              <svg width="48" height="48" viewBox="0 0 50 50">
-                <circle cx="25" cy="25" r="20" fill="none" stroke="#fff" strokeOpacity="0.25" strokeWidth="5"/>
-                <path d="M25 5 a20 20 0 0 1 20 20" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round">
-                  <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite"/>
-                </path>
-              </svg>
-              <div style={{ textAlign: 'center', color: '#fff' }}>
-                <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.2 }}>Pagamento in corso…</div>
-                <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>Non chiudere l'app</div>
-              </div>
-            </>
-          )}
+          <svg width="48" height="48" viewBox="0 0 50 50">
+            <circle cx="25" cy="25" r="20" fill="none" stroke="#fff" strokeOpacity="0.25" strokeWidth="5"/>
+            <path d="M25 5 a20 20 0 0 1 20 20" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round">
+              <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite"/>
+            </path>
+          </svg>
+          <div style={{ textAlign: 'center', color: '#fff' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.2 }}>Pagamento in corso…</div>
+            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>Non chiudere l'app</div>
+          </div>
         </div>
       )}
     </div>

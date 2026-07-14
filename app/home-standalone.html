@@ -63,7 +63,13 @@
       sleep: asset('mascot-sleep'),
       phone: asset('mascot-phone')
     },
-    cat: Object.fromEntries(['pizza', 'burger', 'dolce', 'vino', 'aperitivo', 'panini', 'birra', 'poke', 'taco', 'torta', 'brunch', 'cocktail'].map(k => [k, asset('cat-' + k)])),
+    cat: {
+      ...Object.fromEntries(['pizza', 'burger', 'dolce', 'vino', 'aperitivo', 'panini', 'birra', 'poke', 'taco', 'torta', 'brunch', 'cocktail'].map(k => [k, asset('cat-' + k)])),
+      // Nuove icone kawaii (sostituiscono le vecchie 3D)
+      cocktail: asset('icon-sushi'),
+      dolce: asset('icon-donut'),
+      brunch: asset('icon-coffee')
+    },
     hero: Object.fromEntries(['coffee', 'birra', 'spritz', 'froyo', 'sushi', 'burger', 'boba'].map(k => [k, asset('hero-' + k)])),
     bg: Object.fromEntries(['splash', 'coral', 'dark', 'light', 'neutral'].map(k => [k, asset('bg-' + k)]))
   };
@@ -16081,9 +16087,20 @@ function SearchScreen({
       fontFamily: BK.TYPE.display,
       fontSize: 17,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8
     }
-  }, "Esplora i locali"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "assets/icon-sushi.png",
+    alt: "",
+    width: "22",
+    height: "22",
+    style: {
+      filter: 'drop-shadow(0 3px 5px rgba(77,18,46,.2))'
+    }
+  }), "Esplora i locali"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
       gridTemplateColumns: 'repeat(3, 1fr)',
@@ -17148,10 +17165,10 @@ const MOMENT_DATA = {
 // Segmented control that drives the entire home — the "spine".
 // Icone byup (mai emoji) accanto alla label attiva.
 const MOMENT_ICON = {
-  ora: () => BK.ASSETS.hero.coffee,
+  ora: () => 'assets/icon-watermelon.png',
   pranzo: () => BK.ASSETS.cat.panini,
   cena: () => BK.ASSETS.cat.pizza,
-  notte: () => BK.ASSETS.cat.cocktail
+  notte: () => 'assets/icon-popcorn.png'
 };
 function MomentBar({
   moment,
@@ -19088,7 +19105,7 @@ function HomeSections({
     label: 'Brunch'
   }, {
     id: 'cocktail',
-    label: 'Cocktail'
+    label: 'Sushi'
   }, {
     id: 'torta',
     label: 'Torta'
@@ -21289,9 +21306,9 @@ function ByuppiniScreen({
       fontFamily: 'inherit',
       color: BYP.text,
       boxShadow: '0 16px 32px -18px rgba(227,36,89,.55)',
-      backgroundImage: 'linear-gradient(90deg, rgba(18,10,14,.9) 0%, rgba(18,10,14,.45) 55%, rgba(18,10,14,.12) 100%), url(assets/road-terrain.png)',
+      backgroundImage: 'linear-gradient(90deg, rgba(18,10,14,.9) 0%, rgba(18,10,14,.45) 55%, rgba(18,10,14,.12) 100%), url(assets/road-city.png)',
       backgroundSize: 'auto, 235% auto',
-      backgroundPosition: 'center, 68% 70%'
+      backgroundPosition: 'center, 72% 62%'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -21958,81 +21975,82 @@ function ByuppiniScreen({
 
 // ─── Roadmap · mappa-mondo livelli (portata da byuppini-roadmap.html) ───────
 const ROAD_CUR = 3;
+// Posizioni sulle piazzole vuote della nuova mappa food-city (864×1821)
 const ROAD_P = [{
   lvl: 1,
-  left: 0.5637,
-  top: 0.8095,
-  w: 0.3727,
-  pcx: 0.7373,
-  pcy: 0.8999,
-  pw: 0.3785
+  left: 0.5425,
+  top: 0.7753,
+  w: 0.343,
+  pcx: 0.714,
+  pcy: 0.878,
+  pw: 0.361
 }, {
   lvl: 2,
-  left: 0.1327,
-  top: 0.7226,
-  w: 0.2975,
-  pcx: 0.2808,
-  pcy: 0.7955,
-  pw: 0.3299
+  left: 0.142,
+  top: 0.6687,
+  w: 0.308,
+  pcx: 0.296,
+  pcy: 0.761,
+  pw: 0.324
 }, {
   lvl: 3,
-  left: 0.5984,
-  top: 0.6183,
-  w: 0.2789,
-  pcx: 0.7373,
-  pcy: 0.6932,
-  pw: 0.3067
+  left: 0.577,
+  top: 0.5343,
+  w: 0.286,
+  pcx: 0.720,
+  pcy: 0.620,
+  pw: 0.301
 }, {
   lvl: 4,
-  left: 0.1308,
-  top: 0.5166,
-  w: 0.3171,
-  pcx: 0.2888,
-  pcy: 0.6025,
-  pw: 0.3495
+  left: 0.2107,
+  top: 0.4883,
+  w: 0.2727,
+  pcx: 0.347,
+  pcy: 0.570,
+  pw: 0.287
 }, {
   lvl: 5,
-  left: 0.5745,
-  top: 0.4101,
-  w: 0.3264,
-  pcx: 0.7371,
-  pcy: 0.4925,
-  pw: 0.36
+  left: 0.5883,
+  top: 0.3239,
+  w: 0.2774,
+  pcx: 0.727,
+  pcy: 0.407,
+  pw: 0.292
 }, {
   lvl: 6,
-  left: 0.1677,
-  top: 0.3296,
-  w: 0.2998,
-  pcx: 0.317,
-  pcy: 0.4154,
-  pw: 0.331
+  left: 0.1888,
+  top: 0.2278,
+  w: 0.2945,
+  pcx: 0.336,
+  pcy: 0.316,
+  pw: 0.310
 }, {
   lvl: 7,
-  left: 0.5788,
-  top: 0.2167,
-  w: 0.3009,
-  pcx: 0.7286,
-  pcy: 0.3044,
-  pw: 0.331
+  left: 0.5691,
+  top: 0.0918,
+  w: 0.3078,
+  pcx: 0.723,
+  pcy: 0.184,
+  pw: 0.324
 }, {
   lvl: 8,
-  left: 0.1856,
-  top: 0.1122,
-  w: 0.2917,
-  pcx: 0.3303,
-  pcy: 0.2415,
-  pw: 0.3194
+  left: 0.2173,
+  top: 0.0259,
+  w: 0.2774,
+  pcx: 0.356,
+  pcy: 0.109,
+  pw: 0.292
 }];
-const ROAD_RA = 864 / 2161;
+const ROAD_RA = 864 / 1821;
 // Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta
 // brand, quelli futuri in grigio chiaro.
 const ROAD_PATHS = (() => {
   const pts = ROAD_P.slice().sort((a, b) => a.lvl - b.lvl);
   const seg = (a, b) => {
     const ax = a.pcx * 864,
-      ay = a.pcy * 2161,
+      ay = a.pcy * 1821,
       bx = b.pcx * 864,
-      by = b.pcy * 2161;
+      by = b.pcy * 1821;
     const my = (ay + by) / 2;
     return 'M ' + ax + ' ' + ay + ' Q ' + ax + ' ' + my + ' ' + (ax + bx) / 2 + ' ' + my + ' Q ' + bx + ' ' + my + ' ' + bx + ' ' + by + ' ';
   };
@@ -22174,7 +22192,7 @@ function RoadmapScreen({
       marginLeft: '-21.4%'
     }
   }, /*#__PURE__*/React.createElement("img", {
-    src: "assets/road-terrain.png",
+    src: "assets/road-city.png",
     alt: "",
     onLoad: () => setImgOk(true),
     style: {
@@ -22184,7 +22202,7 @@ function RoadmapScreen({
       userSelect: 'none'
     }
   }), /*#__PURE__*/React.createElement("svg", {
-    viewBox: "0 0 864 2161",
+    viewBox: "0 0 864 1821",
     preserveAspectRatio: "none",
     style: {
       position: 'absolute',
@@ -22346,7 +22364,7 @@ function RoadmapScreen({
       overflow: 'hidden'
     }
   }, /*#__PURE__*/React.createElement("img", {
-    src: "assets/road-terrain.png",
+    src: "assets/road-city.png",
     alt: "",
     style: {
       position: 'absolute',
@@ -25961,10 +25979,10 @@ function ModeSheet({
 // Banda di categoria — full-bleed, icona kawaii che entra con spring, titolo Fredoka.
 const CAT_ART = {
   'Antipasti': ['assets/cat-aperitivo.png', '#fae3de'],
-  'Primi piatti': ['assets/cat-pizza.png', '#FCE9EE'],
+  'Primi piatti': ['assets/icon-pasta.png', '#FCE9EE'],
   'Secondi piatti': ['assets/cat-burger.png', '#FEF0E3'],
-  'Dolci': ['assets/cat-dolce.png', '#F9E3EE'],
-  'Bevande': ['assets/cat-vino.png', '#f4e5ef']
+  'Dolci': ['assets/icon-donut.png', '#F9E3EE'],
+  'Bevande': ['assets/icon-coffee.png', '#f4e5ef']
 };
 // Divisore-capitolo editoriale: numero-fantasma, dots di avanzamento sezione,
 // icona kawaii che entra in spring, sottolineatura brand che si "disegna".
@@ -28000,11 +28018,7 @@ function OrderSheet({
       justifyContent: 'center',
       gap: 10
     }
-  }, /*#__PURE__*/React.createElement("span", null, "Invio ordine"), cartTotal > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      opacity: 0.9
-    }
-  }, "\xB7 ", cartTotal, "\u20AC"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, "Invia ordine"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -28123,7 +28137,8 @@ function OrderSheet({
       fontSize: 13,
       fontWeight: 700,
       minWidth: 14,
-      textAlign: 'center'
+      textAlign: 'center',
+      color: TEXT
     }
   }, it.qty), /*#__PURE__*/React.createElement("button", {
     onClick: () => setQty(it.lineId, it.qty + 1),
@@ -28278,7 +28293,7 @@ function OrderSheet({
       cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
       transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)'
     }
-  }, "Ordina ora \xB7 ", cartTotal.toFixed(2), "\u20AC"))));
+  }, "Invia ordine"))));
 }
 const qtyBtn = {
   width: 28,
@@ -30974,8 +30989,6 @@ function PaymentScreen({
   const [tipRound, setTipRound] = useState(false);
   // overlay di caricamento durante il pagamento
   const [paying, setPaying] = useState(false);
-  // fase "riuscito" dell'overlay: spunta animata prima del rientro in home
-  const [payDone, setPayDone] = useState(false);
   const [splitInfo, setSplitInfo] = useState(null);
   const [confirmRejectSplit, setConfirmRejectSplit] = useState(null);
   // Recap collassabile: tap sull'handle in alto al pannello di pagamento per nascondere
@@ -31215,14 +31228,8 @@ function PaymentScreen({
       payTip: tipAmount,
       payCover: cover
     }));
-    // Se il saldo del tavolo è azzerato → successo; altrimenti breve spunta di
-    // conferma e rientro diretto in home ("Ordina ancora" / "Salda il resto").
-    if (remBefore - paidNow <= 0.01) {
-      goTo('success');
-    } else {
-      setPayDone(true);
-      setTimeout(() => goTo('home'), 1600);
-    }
+    // Se il saldo del tavolo è azzerato → successo; altrimenti vai alla schermata saldo.
+    goTo(remBefore - paidNow <= 0.01 ? 'success' : 'balance');
   };
 
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
@@ -32924,52 +32931,7 @@ function PaymentScreen({
       gap: 20,
       animation: 'fade 0.2s ease'
     }
-  }, payDone ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, `@keyframes payCheckDraw { to { stroke-dashoffset: 0; } }`), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 76,
-      height: 76,
-      borderRadius: 999,
-      background: '#fff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      animation: 'bkPopIn 0.5s cubic-bezier(.34,1.45,.64,1) backwards'
-    }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "36",
-    height: "36",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: WINE,
-    strokeWidth: "3.2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "20 6 9 17 4 12",
-    strokeDasharray: "24",
-    strokeDashoffset: "24",
-    style: {
-      animation: 'payCheckDraw 0.35s 0.3s ease forwards'
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: 'center',
-      color: '#fff',
-      animation: 'fade 0.3s ease 0.15s backwards'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 800,
-      letterSpacing: -0.2
-    }
-  }, "Pagamento riuscito"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      opacity: 0.85,
-      marginTop: 4
-    }
-  }, "Hai pagato ", (state.payTotal || 0).toFixed(2), "\u20AC"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
     width: "48",
     height: "48",
     viewBox: "0 0 50 50"
@@ -33011,7 +32973,7 @@ function PaymentScreen({
       opacity: 0.85,
       marginTop: 4
     }
-  }, "Non chiudere l'app")))));
+  }, "Non chiudere l'app"))));
 }
 
 // ─── PAYMENT METHOD ────────────────────────────────────────

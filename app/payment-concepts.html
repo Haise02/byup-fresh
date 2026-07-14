@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>byup — Concept schermata Pagamento</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon-app.svg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Hanken+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#141216;font-family:'Hanken Grotesk',system-ui,sans-serif;color:#f6ece9;padding:34px 26px 60px}
+  h1{font-family:'Fredoka';font-weight:600;font-size:26px;margin:0 0 4px}
+  .sub{color:rgba(246,236,233,.6);font-size:14px;margin-bottom:28px}
+  .rowlab{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#ceff00;margin:26px 0 12px}
+  .grid{display:flex;gap:26px;overflow-x:auto;padding-bottom:14px}
+  .col{flex:none;width:330px}
+  .colname{font-family:'Fredoka';font-weight:600;font-size:17px;margin:0 0 2px}
+  .colnote{font-size:12px;color:rgba(246,236,233,.62);line-height:1.45;min-height:52px;margin-bottom:10px}
+  .frame{width:330px;height:640px;border-radius:34px;overflow:hidden;border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.8);position:relative;display:flex;flex-direction:column}
+  /* temi */
+  .light{--bg:#FBF4F1;--surf:#fff;--tint:#f6f1ea;--text:#1c0f15;--muted:#6d5a61;--line:#eddfda;--chip:#f6e9e4}
+  .dark{--bg:#161514;--surf:#211f22;--tint:#2b272c;--text:#f6ece9;--muted:rgba(246,236,233,.6);--line:rgba(246,236,233,.13);--chip:#2b272c}
+  .frame{background:var(--bg);color:var(--text)}
+  .ph{padding:18px 16px 0;display:flex;align-items:center;gap:10px}
+  .back{width:32px;height:32px;border-radius:999px;background:var(--tint);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text)}
+  .ph b{font-family:'Fredoka';font-weight:600;font-size:19px}
+  .body{flex:1;overflow:hidden;padding:12px 16px 0;display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:12px 13px}
+  .r{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:4px 0}
+  .r .m{color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;font-size:11px;font-weight:800;padding:5px 11px}
+  .pill.on{background:linear-gradient(122deg,#E32459,#B81C47);color:#fff}
+  .pill.off{background:var(--tint);color:var(--muted)}
+  .cta{margin:0 16px;height:48px;border-radius:999px;background:linear-gradient(122deg,#E32459,#B81C47);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;gap:8px;
+    box-shadow:0 14px 30px -12px rgba(227,36,89,.62)}
+  .ghost{margin:9px 16px 16px;height:40px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px}
+  .seg{display:flex;gap:4px;background:var(--tint);border-radius:12px;padding:4px}
+  .seg span{flex:1;text-align:center;font-size:12px;font-weight:700;padding:8px 0;border-radius:9px;color:var(--muted)}
+  .seg .on{background:var(--surf);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.14)}
+  .big{font-family:'Fredoka';font-weight:600;letter-spacing:-1px}
+  .method{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);font-size:12.5px;font-weight:700}
+  .method.on{border-color:#E32459;background:var(--surf)}
+  .mlogo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#E32459,#B81C47);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:'Fredoka';font-weight:700;font-size:14px}
+  .mlogo.apay{background:#111;border:1px solid rgba(255,255,255,.2)}
+  .mlogo.card{background:#2f3d8f}
+  .radio{width:16px;height:16px;border-radius:999px;border:2px solid var(--line);margin-left:auto}
+  .radio.on{border-color:#E32459;background:radial-gradient(circle at 50% 50%, #E32459 45%, transparent 50%)}
+  .receipt{background:var(--surf);border:1.5px dashed var(--line);border-radius:4px 4px 16px 16px;padding:13px;position:relative}
+  .receipt:before{content:"";position:absolute;top:-6px;left:0;right:0;height:6px;
+    background:radial-gradient(circle at 8px 0, transparent 5px, var(--surf) 5px);background-size:16px 6px}
+  .zig{border-top:1.5px dashed var(--line);margin:9px 0}
+  .slider{margin:0 16px;height:52px;border-radius:999px;background:var(--tint);position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:var(--muted)}
+  .knob{position:absolute;left:5px;width:44px;height:44px;border-radius:999px;background:linear-gradient(122deg,#E32459,#B81C47);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;box-shadow:0 8px 18px -6px rgba(227,36,89,.7)}
+  .avirow{display:flex;align-items:center}
+  .avi{width:26px;height:26px;border-radius:999px;border:2px solid var(--surf);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;margin-left:-6px}
+  .tag{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+  .fid{width:52px;height:52px;border-radius:18px;border:2.5px solid #E32459;display:flex;align-items:center;justify-content:center;font-size:22px}
+</style>
+</head>
+<body>
+<h1>Pagamento — Originale + 3 varianti</h1>
+<div class="sub">Stesso flusso ("Il tuo conto" → paga la tua parte o il tavolo), quattro modi diversi di raccontarlo. Ogni colonna in tema chiaro e scuro.</div>
+<div id="root"></div>
+
+<script>
+const NAMES = ['Originale', 'V1 · Focus sul totale', 'V2 · Scontrino', 'V3 · One-tap'];
+const NOTES = [
+  'Com\'è oggi: lista voci per persona, mancia inline, metodo con "Cambia", doppia CTA. Completa ma densa: tante decisioni sullo stesso piano.',
+  'Gerarchia rovesciata: prima QUANTO paghi (numero gigante), poi 3 scelte una per riga — mancia, metodo a card swipe, CTA con Face ID. Meno testo, decisioni sequenziali.',
+  'Metafora dello scontrino: tutto verificabile in una ricevuta compatta (voci, mancia, totale), toggle Io/Tavolo in alto, metodi a radio. Rassicura chi controlla prima di pagare.',
+  'Velocità estrema: saldo, chi ha pagato, metodo già scelto e uno swipe per chiudere. Mancia a +1€. Per utenti abituali: un gesto e via.',
+];
+
+function mockup(v, theme) {
+  const d = theme === 'dark';
+  const HEAD = `<div class="ph"><span class="back">‹</span><b>Il tuo conto</b><span style="margin-left:auto" class="tag">Tavolo 23</span></div>`;
+  if (v === 0) return `<div class="frame ${theme}">${HEAD}<div class="body">
+    <div class="card"><div class="r"><b style="font-size:13px">Tu</b><span class="m">2 piatti</span></div>
+      <div class="r"><span class="m">Cacio e pepe</span><span>14,00€</span></div>
+      <div class="r"><span class="m">Vino della casa · <u style="font-size:11px">Dividi</u></span><span>12,00€</span></div></div>
+    <div class="card"><div class="r"><b style="font-size:13px">Marco</b><span class="pill off" style="font-size:9.5px">ha pagato ✓</span></div></div>
+    <div class="card"><div class="r"><span class="m">Mancia</span><span><span class="pill off">0%</span> <span class="pill on">5%</span> <span class="pill off">10%</span></span></div></div>
+    <div class="card"><div class="r"><span style="display:flex;align-items:center;gap:8px"><span class="mlogo">b</span> byup pay</span><span style="color:#E32459;font-weight:800;font-size:11.5px">Cambia</span></div></div>
+    <div class="card"><div class="r"><b>Totale</b><b class="big" style="font-size:19px">27,30€</b></div></div>
+    <div style="flex:1"></div></div>
+    <div class="cta">Paga ora</div><div class="ghost">Paga per tutto il tavolo</div></div>`;
+
+  if (v === 1) return `<div class="frame ${theme}">${HEAD}<div class="body" style="align-items:center;text-align:center">
+    <div class="tag" style="margin-top:14px">La tua parte</div>
+    <div class="big" style="font-size:54px;line-height:1">27,30€</div>
+    <div style="font-size:11.5px;color:var(--muted)">di 209€ del tavolo · <b style="color:var(--text)">2 piatti</b></div>
+    <div style="display:flex;gap:6px;margin-top:12px"><span class="pill off">Niente</span><span class="pill on">Mancia 5%</span><span class="pill off">10%</span><span class="pill off">+1€</span></div>
+    <div style="display:flex;gap:8px;margin-top:14px;width:100%;overflow:hidden">
+      <div class="method on" style="flex:none;width:64%"><span class="mlogo">b</span> byup pay <span style="margin-left:auto;font-size:10px;color:#0a8a3a;font-weight:800">−3% cashback</span></div>
+      <div class="method" style="flex:none;width:46%;opacity:.6"><span class="mlogo apay"></span> Apple Pay</div>
+    </div>
+    <div style="flex:1"></div></div>
+    <div class="cta"><span style="font-size:16px">⿻</span> Paga 27,30€ con Face ID</div><div class="ghost">Altre opzioni · tavolo intero</div></div>`;
+
+  if (v === 2) return `<div class="frame ${theme}">${HEAD}<div class="body">
+    <div class="seg"><span class="on">Solo io</span><span>Tutto il tavolo</span></div>
+    <div class="receipt">
+      <div style="text-align:center" class="tag">Al Settembrini · 9 lug · 21:12</div>
+      <div class="zig"></div>
+      <div class="r"><span class="m">1× Cacio e pepe</span><span>14,00€</span></div>
+      <div class="r"><span class="m">½ Vino della casa</span><span>12,00€</span></div>
+      <div class="zig"></div>
+      <div class="r"><span class="m">Subtotale</span><span>26,00€</span></div>
+      <div class="r"><span class="m">Mancia 5%</span><span>1,30€</span></div>
+      <div class="r"><b>Totale</b><b class="big" style="font-size:18px">27,30€</b></div>
+    </div>
+    <div class="method on"><span class="mlogo">b</span> byup pay <span class="radio on"></span></div>
+    <div class="method"><span class="mlogo apay"></span> Apple Pay <span class="radio"></span></div>
+    <div class="method"><span class="mlogo card">V</span> •••• 4412 <span class="radio"></span></div>
+    <div style="flex:1"></div></div>
+    <div class="cta">Paga 27,30€</div><div style="height:16px"></div></div>`;
+
+  return `<div class="frame ${theme}">${HEAD}<div class="body" style="align-items:center;text-align:center">
+    <div style="display:flex;gap:14px;align-items:center;margin-top:10px">
+      <div><div class="tag">Da pagare</div><div class="big" style="font-size:40px">27,30€</div></div>
+      <div class="fid">⿻</div>
+    </div>
+    <div class="avirow" style="margin-top:6px">
+      <span class="avi" style="background:#E32459;margin-left:0">T</span><span class="avi" style="background:#0a8a3a">M✓</span><span class="avi" style="background:#8a6d0a">G</span><span class="avi" style="background:#555">?</span>
+      <span style="font-size:10.5px;color:var(--muted);margin-left:8px">Marco ha già pagato · Giulia sta pagando</span>
+    </div>
+    <div class="card" style="width:100%;box-sizing:border-box"><div class="r"><span style="display:flex;align-items:center;gap:8px"><span class="mlogo">b</span> byup pay · saldo 12€ + carta</span><span style="color:#E32459;font-weight:800;font-size:11.5px">⌄</span></div></div>
+    <div style="display:flex;gap:6px"><span class="pill on">Mancia +1€</span><span class="pill off">+2€</span><span class="pill off">Niente</span></div>
+    <div style="flex:1"></div></div>
+    <div class="slider"><span class="knob">➔</span>Scorri per pagare 28,30€</div><div class="ghost">Vedi il dettaglio · tavolo intero</div></div>`;
+}
+
+const root = document.getElementById('root');
+for (const theme of ['light', 'dark']) {
+  const lab = document.createElement('div');
+  lab.className = 'rowlab';
+  lab.textContent = theme === 'light' ? 'Tema chiaro' : 'Tema scuro';
+  root.appendChild(lab);
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  for (let v = 0; v < 4; v++) {
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.innerHTML = `<div class="colname">${NAMES[v]}</div><div class="colnote">${NOTES[v]}</div>${mockup(v, theme)}`;
+    grid.appendChild(col);
+  }
+  root.appendChild(grid);
+}
+</script>
+</body>
+</html>

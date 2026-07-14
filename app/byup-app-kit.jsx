@@ -24,8 +24,14 @@ const ASSETS = {
     sleep:     asset('mascot-sleep'),
     phone:     asset('mascot-phone'),
   },
-  cat: Object.fromEntries(['pizza','burger','dolce','vino','aperitivo','panini',
-    'birra','poke','taco','torta','brunch','cocktail'].map(k => [k, asset('cat-'+k)])),
+  cat: {
+    ...Object.fromEntries(['pizza','burger','dolce','vino','aperitivo','panini',
+      'birra','poke','taco','torta','brunch','cocktail'].map(k => [k, asset('cat-'+k)])),
+    // Nuove icone kawaii (sostituiscono le vecchie 3D)
+    cocktail: asset('icon-sushi'),
+    dolce:    asset('icon-donut'),
+    brunch:   asset('icon-coffee'),
+  },
   hero: Object.fromEntries(['coffee','birra','spritz','froyo','sushi','burger','boba']
     .map(k => [k, asset('hero-'+k)])),
   bg: Object.fromEntries(['splash','coral','dark','light','neutral']

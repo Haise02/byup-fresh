@@ -817,7 +817,9 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
 
         {q.trim().length === 0 && (
           <>
-            <div style={{ padding: '20px 22px 12px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT }}>
+            <div style={{ padding: '20px 22px 12px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT,
+              display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="assets/icon-sushi.png" alt="" width="22" height="22" style={{ filter: 'drop-shadow(0 3px 5px rgba(77,18,46,.2))' }}/>
               Esplora i locali
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: '124px', gap: 3, padding: '0 3px' }}>
@@ -1278,10 +1280,10 @@ const MOMENT_DATA = {
 // Segmented control that drives the entire home — the "spine".
 // Icone byup (mai emoji) accanto alla label attiva.
 const MOMENT_ICON = {
-  ora:    () => BK.ASSETS.hero.coffee,
+  ora:    () => 'assets/icon-watermelon.png',
   pranzo: () => BK.ASSETS.cat.panini,
   cena:   () => BK.ASSETS.cat.pizza,
-  notte:  () => BK.ASSETS.cat.cocktail,
+  notte:  () => 'assets/icon-popcorn.png',
 };
 function MomentBar({ moment, setMoment }) {
   const [T] = BK.useByupTheme();
@@ -2206,7 +2208,7 @@ function HomeSections({
     { id: 'vino',      label: 'Vino' },
     { id: 'taco',      label: 'Taco' },
     { id: 'brunch',    label: 'Brunch' },
-    { id: 'cocktail',  label: 'Cocktail' },
+    { id: 'cocktail',  label: 'Sushi' },
     { id: 'torta',     label: 'Torta' },
   ];
   const favorites = [
@@ -3127,8 +3129,8 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
               border: '1px solid rgba(255,90,130,.32)', cursor: 'pointer', padding: 0, margin: '4px 0 2px',
               display: 'block', textAlign: 'left', fontFamily: 'inherit', color: BYP.text,
               boxShadow: '0 16px 32px -18px rgba(227,36,89,.55)',
-              backgroundImage: 'linear-gradient(90deg, rgba(18,10,14,.9) 0%, rgba(18,10,14,.45) 55%, rgba(18,10,14,.12) 100%), url(assets/road-terrain.png)',
-              backgroundSize: 'auto, 235% auto', backgroundPosition: 'center, 68% 70%',
+              backgroundImage: 'linear-gradient(90deg, rgba(18,10,14,.9) 0%, rgba(18,10,14,.45) 55%, rgba(18,10,14,.12) 100%), url(assets/road-city.png)',
+              backgroundSize: 'auto, 235% auto', backgroundPosition: 'center, 72% 62%',
             }}>
               <span style={{ position: 'absolute', left: 14, top: 13, display: 'block' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13.5, color: '#fff' }}>
@@ -3357,23 +3359,24 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
 
 // ─── Roadmap · mappa-mondo livelli (portata da byuppini-roadmap.html) ───────
 const ROAD_CUR = 3;
+// Posizioni sulle piazzole vuote della nuova mappa food-city (864×1821)
 const ROAD_P = [
-  { lvl: 1, left: 0.5637, top: 0.8095, w: 0.3727, pcx: 0.7373, pcy: 0.8999, pw: 0.3785 },
-  { lvl: 2, left: 0.1327, top: 0.7226, w: 0.2975, pcx: 0.2808, pcy: 0.7955, pw: 0.3299 },
-  { lvl: 3, left: 0.5984, top: 0.6183, w: 0.2789, pcx: 0.7373, pcy: 0.6932, pw: 0.3067 },
-  { lvl: 4, left: 0.1308, top: 0.5166, w: 0.3171, pcx: 0.2888, pcy: 0.6025, pw: 0.3495 },
-  { lvl: 5, left: 0.5745, top: 0.4101, w: 0.3264, pcx: 0.7371, pcy: 0.4925, pw: 0.36 },
-  { lvl: 6, left: 0.1677, top: 0.3296, w: 0.2998, pcx: 0.317, pcy: 0.4154, pw: 0.331 },
-  { lvl: 7, left: 0.5788, top: 0.2167, w: 0.3009, pcx: 0.7286, pcy: 0.3044, pw: 0.331 },
-  { lvl: 8, left: 0.1856, top: 0.1122, w: 0.2917, pcx: 0.3303, pcy: 0.2415, pw: 0.3194 },
+  { lvl: 1, left: 0.5425, top: 0.7753, w: 0.343,  pcx: 0.714, pcy: 0.878, pw: 0.361 },
+  { lvl: 2, left: 0.142,  top: 0.6687, w: 0.308,  pcx: 0.296, pcy: 0.761, pw: 0.324 },
+  { lvl: 3, left: 0.577,  top: 0.5343, w: 0.286,  pcx: 0.720, pcy: 0.620, pw: 0.301 },
+  { lvl: 4, left: 0.2107, top: 0.4883, w: 0.2727, pcx: 0.347, pcy: 0.570, pw: 0.287 },
+  { lvl: 5, left: 0.5883, top: 0.3239, w: 0.2774, pcx: 0.727, pcy: 0.407, pw: 0.292 },
+  { lvl: 6, left: 0.1888, top: 0.2278, w: 0.2945, pcx: 0.336, pcy: 0.316, pw: 0.310 },
+  { lvl: 7, left: 0.5691, top: 0.0918, w: 0.3078, pcx: 0.723, pcy: 0.184, pw: 0.324 },
+  { lvl: 8, left: 0.2173, top: 0.0259, w: 0.2774, pcx: 0.356, pcy: 0.109, pw: 0.292 },
 ];
-const ROAD_RA = 864 / 2161;
+const ROAD_RA = 864 / 1821;
 // Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta
 // brand, quelli futuri in grigio chiaro.
 const ROAD_PATHS = (() => {
   const pts = ROAD_P.slice().sort((a, b) => a.lvl - b.lvl);
   const seg = (a, b) => {
-    const ax = a.pcx * 864, ay = a.pcy * 2161, bx = b.pcx * 864, by = b.pcy * 2161;
+    const ax = a.pcx * 864, ay = a.pcy * 1821, bx = b.pcx * 864, by = b.pcy * 1821;
     const my = (ay + by) / 2;
     return 'M ' + ax + ' ' + ay + ' Q ' + ax + ' ' + my + ' ' + ((ax + bx) / 2) + ' ' + my +
            ' Q ' + bx + ' ' + my + ' ' + bx + ' ' + by + ' ';
@@ -3429,9 +3432,9 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
       {/* Scena scrollabile */}
       <div ref={sceneRef} className="byp-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
         <div ref={worldRef} style={{ position: 'relative', width: '140%', marginLeft: '-21.4%' }}>
-          <img src="assets/road-terrain.png" alt="" onLoad={() => setImgOk(true)}
+          <img src="assets/road-city.png" alt="" onLoad={() => setImgOk(true)}
             style={{ display: 'block', width: '100%', height: 'auto', userSelect: 'none' }}/>
-          <svg viewBox="0 0 864 2161" preserveAspectRatio="none"
+          <svg viewBox="0 0 864 1821" preserveAspectRatio="none"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
             <path d={ROAD_PATHS.todo} fill="none" stroke="rgba(255,255,255,.42)" strokeWidth="9" strokeLinecap="round" strokeDasharray="2 26"/>
             <path d={ROAD_PATHS.done} fill="none" stroke="rgba(227,36,89,.35)" strokeWidth="17" strokeLinecap="round" strokeDasharray="2 26"/>
@@ -3492,7 +3495,7 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
         {/* Inset per goal card + bottom bar: terreno specchiato e sfumato,
             così la mappa sembra un'unica immagine continua */}
         <div aria-hidden style={{ position: 'relative', height: 236, overflow: 'hidden' }}>
-          <img src="assets/road-terrain.png" alt="" style={{
+          <img src="assets/road-city.png" alt="" style={{
             position: 'absolute', top: 0, left: '-21.4%', width: '140%',
             transform: 'scaleY(-1)', filter: 'blur(4px) brightness(.82) saturate(.95)',
           }}/>
