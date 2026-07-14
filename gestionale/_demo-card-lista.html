@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>byup — Card lista tavoli · 3 varianti</title>
+<style>
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #F5F6F8;
+    color: #0F1115;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ─── Palette di sistema (copiata dai token, file standalone) ───
+const META = {
+  libero:    { accent:'#15803D', label:'Libero',      tint:'rgba(22, 163, 74, 0.10)',  ring:'rgba(22, 163, 74, 0.40)',  ink:'#15803D' },
+  prenotato: { accent:'#6D28D9', label:'Prenotato',   tint:'rgba(124, 58, 237, 0.12)', ring:'rgba(124, 58, 237, 0.38)', ink:'#6D28D9' },
+  occupato:  { accent:'#E32459', label:'Occupato',    tint:'rgba(255, 90, 95, 0.18)',  ring:'rgba(227, 36, 89, 0.42)',  ink:'#E32459' },
+  dapulire:  { accent:'#B45309', label:'Da liberare', tint:'rgba(217, 119, 6, 0.14)',  ring:'rgba(217, 119, 6, 0.42)',  ink:'#B45309' },
+};
+
+// Dark sunset (D3) — per le urgenze nella V3, stessa ricetta dei ticket cucina late
+const SUNSET_BG = `radial-gradient(circle at 82% 12%, rgba(255, 96, 102, 0.20), transparent 60%),
+  linear-gradient(180deg, #2C0C10 0%, #1A0708 100%)`;
+
+// ─── Dati di esempio — stessi casi del live ───
+const TAVOLI = [
+  { id: 1,  state: 'occupato',  coperti: 4, posti: 4, sittingMin: 45 },
+  { id: 7,  state: 'occupato',  coperti: 7, posti: 8, sittingMin: 30, allergia: true },
+  { id: 13, state: 'occupato',  coperti: 2, posti: 4, sittingMin: 62, alert: "Non ordina da 28'" },
+  { id: 4,  state: 'prenotato', res: { time: '20:30', name: 'Martina Franco', posti: 4 }, minAlla: 25 },
+  { id: 10, state: 'prenotato', res: { time: '20:45', name: 'Bruno Bucciarati', posti: 6 }, minAlla: -18 },
+  { id: 6,  state: 'dapulire',  posti: 4, minutiDaPulire: 8,  res: { time: '21:30' } },
+  { id: 16, state: 'dapulire',  posti: 2, minutiDaPulire: 26 },
+  { id: 2,  state: 'libero',    posti: 2, res: { time: '22:00', name: 'Bianchi' } },
+];
+
+const isLate = t => t.state === 'prenotato' && t.minAlla != null && t.minAlla < 0;
+const lateMin = t => Math.abs(t.minAlla || 0);
+const hasTriangle = t =>
+  (isLate(t) && lateMin(t) > 20) ||
+  (t.state === 'dapulire' && (t.minutiDaPulire || 0) > 20);
+const isUrgent = t => hasTriangle(t);
+
+// ─── Pezzi condivisi ───
+function ChairIcon({ size = 14, color = '#9CA3AF' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 11V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v6"/>
+      <path d="M5 11h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z"/>
+      <path d="M6 15v6 M18 15v6"/>
+    </svg>
+  );
+}
+function PeopleIcon({ size = 13, color = '#9CA3AF' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+function Triangle({ light }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" style={{display:'block', flexShrink:0}}>
+      <path d="M12 2 L22 20 H2 Z" fill={light ? '#FFFFFF' : '#DC2626'}/>
+      <path d="M12 9 V14 M12 17 h0.01" stroke={light ? '#DC2626' : '#fff'} strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+    </svg>
+  );
+}
+// Pill di stato traslucida — linguaggio KDS light
+function StatePill({ t }) {
+  const m = META[t.state];
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap: 5,
+      padding:'3px 9px', borderRadius: 999,
+      background: m.tint, boxShadow: `inset 0 0 0 1px ${m.ring}`,
+      color: m.ink, fontSize: 12, fontWeight: 700, lineHeight: 1.3,
+      whiteSpace:'nowrap', flexShrink: 0,
+    }}>
+      <span style={{width: 5.5, height: 5.5, borderRadius:'50%', background: m.ink}}/>
+      {m.label}
+    </span>
+  );
+}
+// Contenuto della card — identico per tutte le varianti (dark per la V3 urgente)
+function CardBody({ t, dark }) {
+  const mut = dark ? 'rgba(255,255,255,0.55)' : '#6B7280';
+  const txt = dark ? '#F5F5F7' : '#0F1115';
+  const rows = [];
+  if (t.allergia) rows.push(
+    <div key="all" style={{fontSize: 13, fontWeight: 700, color: dark ? '#FF9A9E' : '#DC2626', textTransform:'uppercase', letterSpacing: 0.4}}>Allergia</div>
+  );
+  if (t.state === 'occupato' && t.alert) rows.push(
+    <div key="alert" style={{fontSize: 14, fontWeight: 700, color: dark ? '#FFC964' : '#92400E'}}>{t.alert}</div>
+  );
+  if ((t.state === 'prenotato' || t.state === 'libero') && t.res && t.res.name) rows.push(
+    <div key="res" style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
+      {t.state === 'libero' && <span style={{color: mut, flexShrink: 0}}>→</span>}
+      <span style={{fontSize: 16.5, fontWeight: 700, color: txt, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{t.res.time}</span>
+      <span style={{flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 600, color: t.state === 'libero' ? mut : txt, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{t.res.name}</span>
+    </div>
+  );
+  if (t.state === 'prenotato' && isLate(t)) rows.push(
+    <div key="late" style={{fontSize: 13, fontWeight: 700, color: dark ? '#FFC964' : '#A16207', textTransform:'uppercase', letterSpacing: 0.3}}>In ritardo di {lateMin(t)} minuti</div>
+  );
+  if (t.state === 'dapulire') rows.push(
+    <div key="pul" style={{display:'flex', alignItems:'center', gap: 6, fontSize: 13.5, fontWeight: 700,
+      color: (t.minutiDaPulire || 0) > 20 ? (dark ? '#FF9A9E' : '#DC2626') : mut,
+      textTransform:'uppercase', letterSpacing: 0.3}}>
+      Liberato {t.minutiDaPulire}' fa
+      {t.res && <span style={{color: mut, fontWeight: 500, textTransform:'none', letterSpacing: 0}}>· → {t.res.time}</span>}
+    </div>
+  );
+  return <div style={{display:'flex', flexDirection:'column', gap: 4, flex: 1, minWidth: 0}}>{rows}</div>;
+}
+// Footer coperti/posti — in basso a destra, uguale ovunque
+function SeatsTag({ t, dark }) {
+  const n = t.state === 'occupato' ? t.coperti : (t.res && t.res.posti) || t.posti;
+  if (!n) return null;
+  const IconCmp = t.state === 'occupato' || t.state === 'prenotato' ? PeopleIcon : ChairIcon;
+  return (
+    <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0, marginLeft: 'auto'}}>
+      <span style={{fontSize: 15, fontWeight: 700, color: dark ? '#F5F5F7' : '#0F1115', fontVariantNumeric:'tabular-nums'}}>{n}</span>
+      <IconCmp size={14} color={dark ? 'rgba(255,255,255,0.45)' : '#9CA3AF'}/>
+    </span>
+  );
+}
+
+// ═══ ATTUALE — banda satura piena (riferimento) ═══
+function CardAttuale({ t }) {
+  const m = META[t.state];
+  const shade = (hex, f) => {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = v => Math.max(0, Math.min(255, Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f))));
+    return `#${(((ch((n>>16)&255))<<16) | ((ch((n>>8)&255))<<8) | ch(n&255)).toString(16).padStart(6,'0')}`;
+  };
+  return (
+    <div style={{
+      background:'#fff', borderRadius: 14, border: `1px solid ${m.ring}`,
+      overflow:'hidden', minHeight: 96, display:'flex', flexDirection:'column',
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.04)',
+    }}>
+      <div style={{
+        display:'flex', alignItems:'center', gap: 8, padding:'11px 14px 10px',
+        background: `linear-gradient(90deg, ${shade(m.accent,-0.38)} 0%, ${shade(m.accent,-0.22)} 48%, ${shade(m.accent,-0.08)} 100%)`,
+      }}>
+        <span style={{fontSize: 22, fontWeight: 700, color:'#fff', letterSpacing:'-0.02em', lineHeight: 1, textShadow:'0 1px 2px rgba(15,17,21,0.12)'}}>Tavolo {t.id}</span>
+        <span style={{flex: 1}}/>
+        {hasTriangle(t) && <Triangle light/>}
+      </div>
+      <div style={{padding:'8px 14px 12px', display:'flex', flexDirection:'column', gap: 4, flex: 1}}>
+        <CardBody t={t}/>
+        <div style={{display:'flex', marginTop:'auto'}}><SeatsTag t={t}/></div>
+      </div>
+    </div>
+  );
+}
+
+// ═══ V1 — SPINA LATERALE: card bianca W1, colore di stato come spina 4px + pill ═══
+function CardV1({ t }) {
+  const m = META[t.state];
+  return (
+    <div style={{
+      background:'#fff', borderRadius: 14,
+      border: '1px solid rgba(15,17,21,0.07)',
+      overflow:'hidden', minHeight: 96, position:'relative',
+      display:'flex', flexDirection:'column',
+      padding:'12px 14px 12px 18px',
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.04)',
+    }}>
+      {/* Spina di stato */}
+      <div style={{position:'absolute', top: 8, bottom: 8, left: 0, width: 4, borderRadius:'0 4px 4px 0', background: m.accent}}/>
+      <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 6}}>
+        <span style={{fontSize: 21, fontWeight: 700, letterSpacing:'-0.02em', lineHeight: 1}}>
+          <span style={{fontSize: 13, fontWeight: 700, color:'#9CA3AF', letterSpacing:'0.02em'}}>T</span>{t.id}
+        </span>
+        {t.state === 'occupato' && t.sittingMin != null && (
+          <span style={{fontSize: 12.5, fontWeight: 600, color:'#6B7280'}}>· {t.sittingMin}'</span>
+        )}
+        <span style={{flex: 1}}/>
+        {hasTriangle(t) && <Triangle/>}
+        <StatePill t={t}/>
+      </div>
+      <CardBody t={t}/>
+      <div style={{display:'flex', marginTop:'auto', paddingTop: 4}}><SeatsTag t={t}/></div>
+    </div>
+  );
+}
+
+// ═══ V2 — TINTA DI STATO: come le tessere mappa, lavaggio traslucido + bordo tinto ═══
+function CardV2({ t }) {
+  const m = META[t.state];
+  return (
+    <div style={{
+      background: `linear-gradient(180deg, ${m.tint}, rgba(255,255,255,0)) , #fff`,
+      borderRadius: 14,
+      border: `1px solid ${m.ring}`,
+      minHeight: 96,
+      display:'flex', flexDirection:'column',
+      padding:'12px 14px',
+      boxShadow: '0 1px 0 rgba(15,17,21,0.03), 0 4px 12px rgba(15,17,21,0.04)',
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 6}}>
+        <span style={{fontSize: 21, fontWeight: 700, letterSpacing:'-0.02em', lineHeight: 1, color: m.ink}}>
+          <span style={{fontSize: 13, fontWeight: 700, opacity: 0.55, letterSpacing:'0.02em'}}>T</span>{t.id}
+        </span>
+        <span style={{fontSize: 12.5, fontWeight: 700, color: m.ink, opacity: 0.75, textTransform:'uppercase', letterSpacing: 0.5}}>{m.label}</span>
+        {t.state === 'occupato' && t.sittingMin != null && (
+          <span style={{fontSize: 12.5, fontWeight: 600, color:'#6B7280'}}>· {t.sittingMin}'</span>
+        )}
+        <span style={{flex: 1}}/>
+        {hasTriangle(t) && <Triangle/>}
+      </div>
+      <CardBody t={t}/>
+      <div style={{display:'flex', marginTop:'auto', paddingTop: 4}}><SeatsTag t={t}/></div>
+    </div>
+  );
+}
+
+// ═══ V3 — URGENZA SUNSET: card bianca calma; SOLO le urgenze vere diventano
+//        vetro scuro sunset, come i ticket cucina in ritardo ═══
+function CardV3({ t }) {
+  const m = META[t.state];
+  const dark = isUrgent(t);
+  return (
+    <div style={{
+      background: dark ? SUNSET_BG : '#fff',
+      borderRadius: 14,
+      border: dark ? 'none' : '1px solid rgba(15,17,21,0.07)',
+      minHeight: 96,
+      display:'flex', flexDirection:'column',
+      padding:'12px 14px',
+      boxShadow: dark
+        ? 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 0 0 3px rgba(255,90,95,0.16), 0 10px 26px -10px rgba(80,10,30,0.55)'
+        : '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.04)',
+      color: dark ? '#F5F5F7' : '#0F1115',
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 6}}>
+        <span style={{fontSize: 21, fontWeight: 700, letterSpacing:'-0.02em', lineHeight: 1}}>
+          <span style={{fontSize: 13, fontWeight: 700, color: dark ? 'rgba(255,255,255,0.45)' : '#9CA3AF', letterSpacing:'0.02em'}}>T</span>{t.id}
+        </span>
+        {t.state === 'occupato' && t.sittingMin != null && (
+          <span style={{fontSize: 12.5, fontWeight: 600, color: dark ? 'rgba(255,255,255,0.55)' : '#6B7280'}}>· {t.sittingMin}'</span>
+        )}
+        <span style={{flex: 1}}/>
+        {dark ? (
+          <span style={{
+            display:'inline-flex', alignItems:'center', gap: 5, padding:'3px 9px', borderRadius: 999,
+            background:'rgba(255, 90, 95, 0.18)', boxShadow:'inset 0 0 0 1px rgba(255, 90, 95, 0.48)',
+            color:'#FF9A9E', fontSize: 12, fontWeight: 700, whiteSpace:'nowrap',
+          }}>
+            {t.state === 'dapulire' ? `Da liberare · ${t.minutiDaPulire}'` : `Ritardo ${lateMin(t)}'`}
+          </span>
+        ) : <StatePill t={t}/>}
+      </div>
+      <CardBody t={t} dark={dark}/>
+      <div style={{display:'flex', marginTop:'auto', paddingTop: 4}}><SeatsTag t={t} dark={dark}/></div>
+    </div>
+  );
+}
+
+// ─── Pagina ───
+function Section({ title, desc, children }) {
+  return (
+    <section style={{marginBottom: 42}}>
+      <h2 style={{fontSize: 19, fontWeight: 700, margin:'0 0 2px', letterSpacing:'-0.01em'}}>{title}</h2>
+      <p style={{fontSize: 14, color:'#6B7280', margin:'0 0 14px', maxWidth: 720, lineHeight: 1.5}}>{desc}</p>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap: 12}}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function App() {
+  return (
+    <div style={{maxWidth: 1180, margin:'0 auto', padding:'36px 24px 80px'}}>
+      <h1 style={{fontSize: 26, fontWeight: 700, letterSpacing:'-0.02em', margin:'0 0 4px'}}>Card lista tavoli — 3 varianti</h1>
+      <p style={{fontSize: 15, color:'#6B7280', margin:'0 0 36px', maxWidth: 760, lineHeight: 1.55}}>
+        Stessi 8 tavoli in tutti i blocchi (occupato, con allergia, che non ordina, prenotato, in ritardo,
+        da liberare, da liberare da troppo, libero con prenotazione). Il primo blocco è com'è oggi, per confronto.
+      </p>
+
+      <Section title="Attuale" desc="Banda satura piena con gradiente scuro e titolo bianco. Riferimento.">
+        {TAVOLI.map(t => <CardAttuale key={t.id} t={t}/>)}
+      </Section>
+
+      <Section title="Variante 1 — Spina laterale"
+        desc="Card tutta bianca W1: il colore di stato è una spina sottile a sinistra + pill traslucida a destra (stesso linguaggio dei ticket cucina). La più calma e leggibile: la lista diventa uno strumento, non una bandiera.">
+        {TAVOLI.map(t => <CardV1 key={t.id} t={t}/>)}
+      </Section>
+
+      <Section title="Variante 2 — Tinta di stato"
+        desc="La card è lavata con la tinta traslucida dello stato, come le tessere della mappa: lista e mappa parlano la stessa lingua e lo stato si legge a colpo d'occhio anche da lontano. Numerazione T·n coerente con le tessere.">
+        {TAVOLI.map(t => <CardV2 key={t.id} t={t}/>)}
+      </Section>
+
+      <Section title="Variante 3 — Urgenza sunset"
+        desc="Tutte le card sono bianche e calme; solo le urgenze vere (ritardo >20', da liberare >20') si accendono in vetro scuro sunset, come i ticket in ritardo della Cucina. Massimo contrasto dove serve davvero.">
+        {TAVOLI.map(t => <CardV3 key={t.id} t={t}/>)}
+      </Section>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
