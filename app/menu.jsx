@@ -3048,6 +3048,12 @@ function applyPayments(setState, payments) {
       const lt = it.price * it.qty;
       if ((settled[it.lineId] || 0) >= lt - 0.001 && !paidLineIds[it.lineId]) paidLineIds[it.lineId] = 'me';
     });
+    try {
+      const rem = ord.items.reduce((t, it) => t + Math.max(0, it.price * it.qty - (settled[it.lineId] || 0)), 0);
+      if (rem > 0.01) sessionStorage.setItem('byup_table', JSON.stringify({
+        settled, paidLineIds, venue: ord.venue, table: ord.table, remaining: rem }));
+      else sessionStorage.removeItem('byup_table');
+    } catch {}
     return { ...s, activeOrder: { ...ord, settled, paidLineIds } };
   });
 }
@@ -5204,9 +5210,20 @@ function MenuApp({ initial = null }) {
     },
     participants: null,
   });
+  // Riprendi i pagamenti già fatti in questa sessione (la SPA smonta MenuApp
+  // quando torni in home: senza hydrate il conto tornerebbe tutto da pagare).
+  useEffect(() => {
+    try {
+      const t = JSON.parse(sessionStorage.getItem('byup_table') || 'null');
+      if (t && t.settled) setState(s => s.activeOrder ? {
+        ...s, activeOrder: { ...s.activeOrder, settled: { ...(s.activeOrder.settled || {}), ...t.settled },
+          paidLineIds: { ...(s.activeOrder.paidLineIds || {}), ...t.paidLineIds } },
+      } : s);
+    } catch {}
+  }, []);
   const [route, setRoute] = useState(() => {
     const valid = ['menu','home','pay','paymethod','balance','success','takeaway'];
-    if (initial && valid.includes(initial)) return { name: initial, ctx: null };
+    if (initial && valid.includes(initial)) return { name: initial, ctx: initial === 'paymethod' ? { from: 'app' } : null };
     try {
       const h = (window.location.hash || '').replace('#','');
       if (valid.includes(h)) return { name: h, ctx: null };
@@ -5228,7 +5245,7 @@ function MenuApp({ initial = null }) {
   } else if (route.name === 'pay') {
     screen = <PaymentScreen state={state} setState={setState} goTo={goTo} goBack={() => goTo('home')}/>;
   } else if (route.name === 'paymethod') {
-    screen = <PayMethodScreen state={state} setState={setState} goTo={goTo} goBack={() => goTo('pay')} ctx={route.ctx}/>;
+    screen = <PayMethodScreen state={state} setState={setState} goTo={goTo} goBack={() => (route.ctx && route.ctx.from === 'app') ? __goApp() : goTo('pay')} ctx={route.ctx}/>;
   } else if (route.name === 'balance') {
     screen = <BalanceScreen state={state} setState={setState} goTo={goTo}/>;
   } else if (route.name === 'success') {

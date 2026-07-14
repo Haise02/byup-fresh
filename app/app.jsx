@@ -2016,6 +2016,57 @@ function StackCarousel({ items, onCardClick }) {
   );
 }
 
+// ─── Tavolo aperto — card post-pagamento parziale in home ───
+// Appare solo se in sessione c'è un conto con residuo (byup_table).
+// Sparisce quando il tavolo è saldato del tutto.
+function OpenTableCard() {
+  let t = null;
+  try { t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); } catch {}
+  if (!t || !(t.remaining > 0.01)) return null;
+  const go = (route) => {
+    try { sessionStorage.setItem('byup_menu_route', route); sessionStorage.setItem('byup_menu_premium', '1'); } catch {}
+    window.__byupNav && window.__byupNav.go('menu');
+  };
+  return (
+    <div style={{ padding: '0 18px', marginBottom: 4 }}>
+      <div style={{
+        position: 'relative', borderRadius: 22, overflow: 'hidden',
+        background: 'linear-gradient(115deg, #4d122e 0%, #ae3152 55%, #e32459 100%)',
+        boxShadow: '0 22px 44px -18px rgba(77,18,46,.55)',
+        color: '#fff', padding: '16px 16px 14px', fontFamily: BK.TYPE.sans,
+      }}>
+        <div aria-hidden style={{ position: 'absolute', right: '-15%', top: '-40%', width: '70%', aspectRatio: '1',
+          background: 'radial-gradient(circle, rgba(250,227,222,.2) 0%, transparent 65%)', pointerEvents: 'none' }}/>
+        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', opacity: .85 }}>
+          {t.table} · {t.venue}
+        </div>
+        <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 11px', borderRadius: 999, background: 'rgba(255,255,255,0.18)',
+          backdropFilter: 'blur(6px)', fontSize: 11.5, fontWeight: 700 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9f6ca" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Hai saldato la tua parte
+        </div>
+        <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, opacity: .92 }}>Da pagare al tavolo</span>
+          <span style={{ fontFamily: BK.TYPE.display, fontSize: 21, fontWeight: 600 }}>{t.remaining.toFixed(2)}€</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <button className="bk-press" onClick={() => { BK.haptic.light(); go('menu'); }} style={{
+            flex: 1, height: 40, borderRadius: 999, border: '1.5px solid rgba(255,255,255,0.55)',
+            background: 'transparent', color: '#fff', fontSize: 13.5, fontWeight: 700,
+            fontFamily: 'inherit', cursor: 'pointer' }}>Ordina ancora</button>
+          <button className="bk-press" onClick={() => { BK.haptic.light(); go('pay'); }} style={{
+            flex: 1.15, height: 40, borderRadius: 999, border: 'none',
+            background: '#fff', color: '#7a1c3e', fontSize: 13.5, fontWeight: 700,
+            fontFamily: 'inherit', cursor: 'pointer' }}>Salda il resto</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── byup pay — carta di pagamento con CTA ───
 function PaymentCard({ onClick }) {
   const [T] = BK.useByupTheme();
@@ -2452,6 +2503,8 @@ function HomeSections({
           </AutoLoopScroll>
 
           {/* In evidenza — promo del momento */}
+          <OpenTableCard/>
+
           <SectionHeader title="In evidenza"/>
           <FeaturedCard onClick={() => click({ title: 'Trattoria Lucia', name: 'Trattoria Lucia' })}/>
 
@@ -2470,7 +2523,7 @@ function HomeSections({
 
           {/* byup pay — metodo di pagamento */}
           <SectionHeader title="Paga in un tap"/>
-          <PaymentCard onClick={() => { try { sessionStorage.setItem('byup_menu_route', 'paymethod'); sessionStorage.setItem('byup_menu_premium', '1'); } catch {} setPage('menu'); }}/>
+          <PaymentCard onClick={() => { try { sessionStorage.setItem('byup_menu_route', 'paymethod'); sessionStorage.setItem('byup_menu_premium', '1'); } catch {} window.__byupNav && window.__byupNav.go('menu'); }}/>
 
           {/* Mappa full-bleed — il secondo scroll a fine pagina la apre */}
           <SectionHeader title="Qui intorno"/>
@@ -3079,7 +3132,8 @@ function BypGameTitle({ parts }) {
   );
 }
 
-// Ruota dettagliata con etichette + puntatore giallo a sinistra (come reference)
+// Ruota v2: etichette RADIALI leggibili, lampadine sul bordo, hub rifinito.
+// Il puntatore giallo sta a sinistra (come reference) e "ticchetta" durante lo spin.
 function BypWheel({ size = 150, rot = 0, spinning = false }) {
   const SEGS = ['+100', '30 pts', '20% OFF', 'Ritenta', '+100', '+50'];
   const COLS = ['#CEFF00', '#fff', '#CEFF00', '#fff', '#CEFF00', '#fff'];
@@ -3088,36 +3142,76 @@ function BypWheel({ size = 150, rot = 0, spinning = false }) {
     const a0 = (i * 60 - 90) * Math.PI / 180, a1 = ((i + 1) * 60 - 90) * Math.PI / 180;
     return `M${r},${r} L${r + r * Math.cos(a0)},${r + r * Math.sin(a0)} A${r},${r} 0 0 1 ${r + r * Math.cos(a1)},${r + r * Math.sin(a1)} Z`;
   };
+  const mid = (i) => (i + 0.5) * 60; // gradi dal top, senso orario
   const labelPos = (i) => {
-    const a = ((i + 0.5) * 60 - 90) * Math.PI / 180;
-    return { x: r + r * 0.63 * Math.cos(a), y: r + r * 0.63 * Math.sin(a) };
+    const a = (mid(i) - 90) * Math.PI / 180;
+    return { x: r + r * 0.58 * Math.cos(a), y: r + r * 0.58 * Math.sin(a) };
   };
+  const bulbs = Array.from({ length: 12 }, (_, i) => {
+    const a = (i * 30 - 90) * Math.PI / 180;
+    return { x: r + r * 0.925 * Math.cos(a), y: r + r * 0.925 * Math.sin(a) };
+  });
   return (
     <div style={{ position: 'relative', width: size, height: size }}>
+      <style>{`@keyframes bypTick{0%{transform:translateY(-50%) rotate(0)}100%{transform:translateY(-50%) rotate(-14deg)}}`}</style>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{
         transform: `rotate(${rot}deg)`,
-        transition: spinning ? 'transform 3.3s cubic-bezier(.12,.8,.16,1)' : 'none',
+        transition: spinning ? 'transform 4s cubic-bezier(.16,.84,.14,1)' : 'none',
         filter: 'drop-shadow(0 10px 18px rgba(0,0,0,.4))' }}>
+        {/* cornice scura + lampadine */}
         <circle cx={r} cy={r} r={r} fill="#2b1a20"/>
-        {SEGS.map((s, i) => <path key={i} d={wedge(i)} fill={COLS[i]} stroke="#2b1a20" strokeWidth={size * 0.018} transform={`scale(0.965)`} style={{ transformOrigin: 'center' }}/>)}
-        {SEGS.map((s, i) => {
-          const p = labelPos(i);
-          return <text key={'t' + i} x={p.x} y={p.y} fill="#2b1a20" fontSize={size * 0.085} fontWeight="800"
-            fontFamily="'Hanken Grotesk', sans-serif" textAnchor="middle" dominantBaseline="central"
-            transform={`rotate(${i * 60 + 30}, ${p.x}, ${p.y}) scale(1)`}>{s}</text>;
-        })}
-        <circle cx={r} cy={r} r={r * 0.2} fill="#2b1a20"/>
-        <circle cx={r} cy={r} r={r * 0.075} fill="#fff"/>
+        <circle cx={r} cy={r} r={r * 0.985} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth={size * 0.008}/>
+        {bulbs.map((b, i) => (
+          <circle key={'b' + i} cx={b.x} cy={b.y} r={size * 0.016}
+            fill={i % 2 ? '#FFD84D' : '#fff'} opacity={i % 2 ? 1 : .85}/>
+        ))}
+        {/* spicchi */}
+        <g transform={`translate(${r},${r}) scale(0.855) translate(${-r},${-r})`}>
+          {SEGS.map((sg, i) => <path key={i} d={wedge(i)} fill={COLS[i]} stroke="#2b1a20" strokeWidth={size * 0.02}/>)}
+          {/* etichette radiali: si leggono dal centro verso fuori, mai storte */}
+          {SEGS.map((sg, i) => {
+            const p = labelPos(i);
+            const a = mid(i);
+            const flip = a > 180; // metà sinistra: ruota di 180° così il testo non è mai a testa in giù
+            return (
+              <text key={'t' + i} x={p.x} y={p.y} fill="#2b1a20"
+                fontSize={size * (sg.length > 5 ? 0.075 : 0.092)} fontWeight="800"
+                fontFamily="'Hanken Grotesk', sans-serif" textAnchor="middle" dominantBaseline="central"
+                letterSpacing={0.3}
+                transform={`rotate(${a - 90 + (flip ? 180 : 0)}, ${p.x}, ${p.y})`}>{sg}</text>
+            );
+          })}
+        </g>
+        {/* hub */}
+        <circle cx={r} cy={r} r={r * 0.21} fill="#2b1a20"/>
+        <circle cx={r} cy={r} r={r * 0.155} fill="none" stroke="rgba(255,255,255,.25)" strokeWidth={size * 0.008}/>
+        <circle cx={r} cy={r} r={r * 0.08} fill="#fff"/>
+        <circle cx={r - r * 0.03} cy={r - r * 0.03} r={r * 0.025} fill="rgba(43,26,32,.25)"/>
       </svg>
-      {/* puntatore giallo a sinistra come la reference */}
-      <span style={{ position: 'absolute', left: -7, top: '50%', transform: 'translateY(-50%)',
-        width: 0, height: 0, borderTop: '10px solid transparent', borderBottom: '10px solid transparent',
-        borderLeft: '16px solid #FFD84D', filter: 'drop-shadow(2px 0 2px rgba(0,0,0,.35))' }}/>
+      {/* puntatore giallo a sinistra, ticchetta mentre gira */}
+      <span style={{ position: 'absolute', left: -7, top: '50%', transformOrigin: 'left center',
+        transform: 'translateY(-50%)',
+        animation: spinning ? 'bypTick .11s linear infinite alternate' : 'none',
+        width: 0, height: 0, borderTop: '11px solid transparent', borderBottom: '11px solid transparent',
+        borderLeft: '18px solid #FFD84D', filter: 'drop-shadow(2px 0 2px rgba(0,0,0,.35))' }}/>
     </div>
   );
 }
 
-function BypGameCardArt({ id }) {
+function BypGameCardArt({ id, onPlay }) {
+  // Solo la CTA apre il gioco: bottone reale con pointerEvents auto
+  // (il wrapper della card ha pointerEvents none) e stopPropagation
+  // per non far partire il drag dello stack.
+  const Cta = ({ label }) => (
+    <button className="bk-press"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); BK.haptic.light(); onPlay && onPlay(); }}
+      style={{ position: 'absolute', left: '50%', bottom: 22, transform: 'translateX(-50%)',
+        pointerEvents: 'auto', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+        background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff', fontSize: 13, fontWeight: 800,
+        padding: '10px 28px', borderRadius: 999, whiteSpace: 'nowrap',
+        boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)' }}>{label}</button>
+  );
   if (id === 'wheel') return (
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 62 }}>
       {/* box scuro con la ruota incastonata, stile reference */}
@@ -3126,10 +3220,7 @@ function BypGameCardArt({ id }) {
       <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)' }}>
         <BypWheel size={148}/>
       </div>
-      <span style={{ position: 'absolute', left: '50%', bottom: 22, transform: 'translateX(-50%)',
-        background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff', fontSize: 13, fontWeight: 800,
-        padding: '9px 26px', borderRadius: 999, whiteSpace: 'nowrap',
-        boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)' }}>Gira ora</span>
+      <Cta label="Gira ora"/>
     </div>
   );
   if (id === 'slot') return (
@@ -3150,10 +3241,7 @@ function BypGameCardArt({ id }) {
           </span>
         ))}
       </div>
-      <span style={{ position: 'absolute', left: '50%', bottom: 22, transform: 'translateX(-50%)',
-        background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff', fontSize: 13, fontWeight: 800,
-        padding: '9px 26px', borderRadius: 999, whiteSpace: 'nowrap',
-        boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)' }}>Gioca</span>
+      <Cta label="Gioca"/>
     </div>
   );
   return (
@@ -3172,10 +3260,7 @@ function BypGameCardArt({ id }) {
       </div>
       <img src="assets/coin.png" alt="" style={{ position: 'absolute', right: 30, top: 26, width: 34,
         transform: 'rotate(14deg)', filter: 'drop-shadow(0 6px 8px rgba(0,0,0,.4))' }}/>
-      <span style={{ position: 'absolute', left: '50%', bottom: 22, transform: 'translateX(-50%)',
-        background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff', fontSize: 13, fontWeight: 800,
-        padding: '9px 26px', borderRadius: 999, whiteSpace: 'nowrap',
-        boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)' }}>Gratta ora</span>
+      <Cta label="Gratta ora"/>
     </div>
   );
 }
@@ -3212,7 +3297,7 @@ function BypGameStack({ onOpen }) {
     if (!dragRef.current) return;
     dragRef.current = false;
     setDragging(false);
-    if (!moved.current) { setDx(0); onOpen(BYP_GAMES[idx].id); return; }
+    if (!moved.current) { setDx(0); return; } // tap sulla card: non apre nulla, solo la CTA
     setDx(cur => {
       if (Math.abs(cur) > 70) {
         // la card vola via, poi passa la successiva davanti
@@ -3237,7 +3322,7 @@ function BypGameStack({ onOpen }) {
             style={{
               position: 'absolute', left: 0, right: 0, top: 0, height: 268,
               borderRadius: 26, background: g.bg, color: g.ink,
-              border: '1px solid rgba(20,8,12,.1)', cursor: front ? 'grab' : 'pointer',
+              border: '1px solid rgba(20,8,12,.1)', cursor: front ? 'grab' : 'default',
               overflow: 'hidden', touchAction: 'pan-y',
               transform: front
                 ? `translateX(${dx}px) rotate(${dx * 0.045}deg)`
@@ -3252,7 +3337,7 @@ function BypGameStack({ onOpen }) {
               <BypGameTitle parts={BYP_GAME_TITLES[g.id]}/>
             </div>
             <div style={{ pointerEvents: 'none', position: 'absolute', inset: 0 }}>
-              <BypGameCardArt id={g.id}/>
+              <BypGameCardArt id={g.id} onPlay={front ? () => onOpen(g.id) : undefined}/>
             </div>
           </div>
         );
@@ -3290,7 +3375,7 @@ function BypWheelSheet({ onClose, onWin }) {
       setSpinning(false);
       setResult(SEGS[target]);
       if (SEGS[target] !== 'Ritenta') onWin && onWin();
-    }, 3400);
+    }, 4100);
   };
   return (
     <BypSheet center onClose={onClose}>
@@ -3337,12 +3422,14 @@ function BypSlotSheet({ onClose, onWin }) {
   const [reels, setReels] = useState([0, 1, 2]);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
+  const [lockedUI, setLockedUI] = useState([false, false, false]); // per il rimbalzo al lock
   const timers = useRef([]);
   const lockedRef = useRef([true, true, true]);
   const spin = () => {
     if (spinning) return;
     setSpinning(true);
     setResult(null);
+    setLockedUI([false, false, false]);
     lockedRef.current = [false, false, false];
     const final = [0, 1, 2].map(() => Math.floor(Math.random() * ICONS.length));
     if (Math.random() < 0.35) { final[1] = final[0]; final[2] = final[0]; }
@@ -3352,6 +3439,8 @@ function BypSlotSheet({ onClose, onWin }) {
     [900, 1500, 2100].forEach((t, i) => {
       timers.current.push(setTimeout(() => {
         lockedRef.current[i] = true;
+        setLockedUI(u => u.map((v, k) => (k === i ? true : v)));
+        BK.haptic.light();
         setReels(rs => rs.map((v, k) => (k === i ? final[i] : v)));
         if (i === 2) {
           clearInterval(iv);
@@ -3372,12 +3461,15 @@ function BypSlotSheet({ onClose, onWin }) {
         background: '#EBDFFC', color: '#2c1a4d', border: '2px solid #2b1a20', borderRadius: 30,
         padding: '20px 16px 18px', boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
         animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
-        <style>{`@keyframes bypBlink{0%,100%{opacity:.2}50%{opacity:1}}`}</style>
+        <style>{`@keyframes bypBlink{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes bypReelPop{0%{transform:translateY(-16px) scale(1.06)}55%{transform:translateY(4px) scale(.97)}100%{transform:translateY(0) scale(1)}}
+@keyframes bypShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px) rotate(-.6deg)}30%{transform:translateX(6px) rotate(.6deg)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}90%{transform:translateX(3px)}}`}</style>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
           color: '#b0246a', marginBottom: 5 }}>✦ 3 uguali = 300 byuppini · 2 = 50 ✦</div>
         <BypGameTitle parts={BYP_GAME_TITLES.slot}/>
         <div style={{ position: 'relative', margin: '18px 0 0', background: '#241d22', borderRadius: 24,
-          padding: '14px 14px 20px' }}>
+          padding: '14px 14px 20px',
+          animation: result === 'jackpot' ? 'bypShake .55s ease' : 'none' }}>
           {/* luci */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 9, marginBottom: 12 }}>
             {[0, 1, 2, 3, 4, 5, 6].map(i => (
@@ -3389,11 +3481,14 @@ function BypSlotSheet({ onClose, onWin }) {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 9, background: '#fff',
             borderRadius: 18, padding: 12, margin: '0 4px', boxShadow: 'inset 0 4px 12px rgba(0,0,0,.18)' }}>
             {reels.map((v, i) => (
-              <div key={i} style={{ width: 78, height: 92, borderRadius: 12, background: '#f6efe5',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '1.5px solid rgba(43,26,32,.12)' }}>
+              <div key={`${i}-${lockedUI[i] ? 'stop' : 'run'}`} style={{ width: 78, height: 92, borderRadius: 12, background: '#f6efe5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                border: '1.5px solid rgba(43,26,32,.12)',
+                animation: lockedUI[i] ? 'bypReelPop .42s cubic-bezier(.2,.9,.3,1.45)' : 'none' }}>
                 <img src={ICONS[v]} alt="" style={{ width: 54, height: 54, objectFit: 'contain',
-                  filter: spinning ? 'blur(1.5px)' : 'none', transition: 'filter .15s' }}/>
+                  filter: spinning && !lockedUI[i] ? 'blur(2px)' : 'none',
+                  transform: spinning && !lockedUI[i] ? 'translateY(2px)' : 'none',
+                  transition: 'filter .15s' }}/>
               </div>
             ))}
           </div>
@@ -3430,8 +3525,8 @@ function BypScratchSheet({ onClose, onWin }) {
   const onMove = () => {
     if (done) return;
     setReveal(r => {
-      const n = Math.min(1, r + 0.05);
-      if (n >= 1) { setDone(true); onWin && onWin(); }
+      const n = Math.min(1, r + 0.035);
+      if (n >= 1) { setDone(true); BK.haptic.medium ? BK.haptic.medium() : BK.haptic.light(); onWin && onWin(); }
       return n;
     });
   };
@@ -3441,6 +3536,8 @@ function BypScratchSheet({ onClose, onWin }) {
         background: '#FFE0EA', color: '#4d1226', border: '2px solid #2b1a20', borderRadius: 30,
         padding: '20px 16px 18px', boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
         animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <style>{`@keyframes bypFoil{0%{background-position:0 0}100%{background-position:48px 48px}}
+@keyframes bypWinGlow{0%{box-shadow:0 12px 26px -10px rgba(0,0,0,.5)}100%{box-shadow:0 0 34px rgba(206,255,0,.55), 0 12px 26px -10px rgba(0,0,0,.5)}}`}</style>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
           color: '#b0246a', marginBottom: 5 }}>✦ Un gratta al giorno ✦</div>
         <BypGameTitle parts={BYP_GAME_TITLES.scratch}/>
@@ -3452,15 +3549,18 @@ function BypScratchSheet({ onClose, onWin }) {
             onPointerUp={() => { scratching.current = false; }}
             style={{ position: 'relative', width: 250, height: 150, margin: '0 auto', borderRadius: 16,
               overflow: 'hidden', touchAction: 'none', cursor: 'pointer', border: '3px solid #fff',
-              boxShadow: '0 12px 26px -10px rgba(0,0,0,.5)' }}>
+              boxShadow: '0 12px 26px -10px rgba(0,0,0,.5)',
+              animation: done ? 'bypWinGlow .8s ease forwards, bypPop .5s cubic-bezier(.2,.9,.3,1.3)' : 'none' }}>
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: 4,
               background: 'linear-gradient(150deg,#3b1420,#a01a49)' }}>
               <img src="assets/coin.png" alt="" style={{ width: 48, height: 48 }}/>
               <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 24, color: '#fff' }}>+50 byuppini</span>
             </div>
-            <div style={{ position: 'absolute', inset: 0, opacity: 1 - reveal, transition: 'opacity .12s',
+            <div style={{ position: 'absolute', inset: 0, opacity: 1 - reveal, transition: 'opacity .18s ease-out',
+              filter: `blur(${reveal * 2.5}px)`,
               background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
+              backgroundSize: '48px 48px', animation: 'bypFoil 2.6s linear infinite',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, pointerEvents: 'none' }}>
               <span style={{ fontSize: 18, color: 'rgba(43,26,32,.55)' }}>✦</span>
               <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 46, color: 'rgba(43,26,32,.6)' }}>?</span>
@@ -3879,7 +3979,7 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
     const scene = sceneRef.current, world = worldRef.current;
     if (!scene || !world) return;
     const cur = ROAD_P.find(p => p.lvl === ROAD_CUR);
-    const y = cur.pcy * world.getBoundingClientRect().height - scene.clientHeight * 0.48;
+    const y = world.offsetTop + cur.pcy * world.getBoundingClientRect().height - scene.clientHeight * 0.48;
     scene.scrollTop = Math.max(0, y);
   }, [imgOk]);
 
@@ -3910,6 +4010,16 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
 
       {/* Scena scrollabile */}
       <div ref={sceneRef} className="byp-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
+        {/* Inset alto per la topbar: cima della mappa specchiata e sfumata,
+            gemello del filler in basso — la mappa sembra continuare oltre l'header */}
+        <div aria-hidden style={{ position: 'relative', height: 178, overflow: 'hidden' }}>
+          <img src="assets/road-city.png" alt="" style={{
+            position: 'absolute', bottom: 0, left: '-21.4%', width: '140%',
+            transform: 'scaleY(-1)', filter: 'blur(4px) brightness(.82) saturate(.95)',
+          }}/>
+          <div style={{ position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(15,11,14,.88) 0%, rgba(15,11,14,.32) 50%, rgba(15,11,14,0) 100%)' }}/>
+        </div>
         <div ref={worldRef} style={{ position: 'relative', width: '140%', marginLeft: '-21.4%' }}>
           <img src="assets/road-city.png" alt="" onLoad={() => setImgOk(true)}
             style={{ display: 'block', width: '100%', height: 'auto', userSelect: 'none' }}/>
