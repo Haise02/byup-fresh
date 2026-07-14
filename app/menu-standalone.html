@@ -13475,38 +13475,64 @@ function EventCard({
   }, date.day)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
-      left: 13,
-      right: 13,
-      bottom: 12,
-      color: '#fff'
+      left: 8,
+      right: 8,
+      bottom: 8,
+      color: '#fff',
+      borderRadius: 15,
+      padding: '9px 11px',
+      background: 'rgba(255,255,255,0.14)',
+      border: '1px solid rgba(255,255,255,0.28)',
+      backdropFilter: 'blur(12px) saturate(170%)',
+      WebkitBackdropFilter: 'blur(12px) saturate(170%)',
+      boxShadow: '0 8px 20px -10px rgba(20,8,12,.45)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: BK.TYPE.display,
-      fontSize: 17,
+      fontSize: 16.5,
       fontWeight: 600,
-      lineHeight: 1.2
+      lineHeight: 1.15,
+      textShadow: '0 2px 8px rgba(20,8,12,.4)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     }
   }, title), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      opacity: 0.9,
-      marginTop: 2
-    }
-  }, place), time && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 500,
-      opacity: 0.85,
-      marginTop: 5,
       display: 'flex',
       alignItems: 'center',
-      gap: 4
+      gap: 5,
+      marginTop: 4,
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: 'rgba(255,255,255,.9)'
     }
-  }, /*#__PURE__*/React.createElement(Icon.Clock, {
-    size: 11,
-    color: "#fff"
-  }), " ", time)));
+  }, /*#__PURE__*/React.createElement(Icon.Pin, {
+    size: 10,
+    color: "#ffd3de"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, place), time && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 3,
+      height: 3,
+      borderRadius: 999,
+      background: 'rgba(255,255,255,.5)',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement(Icon.Clock, {
+    size: 10,
+    color: "#ffd3de"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0
+    }
+  }, time)))));
 }
 
 // ─── Promo card ──────────────────────────────────────────────
@@ -13571,37 +13597,61 @@ function PromoCard({
   }, discount)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
-      left: 13,
-      right: 13,
-      bottom: 13,
-      color: '#fff'
+      left: 8,
+      right: 8,
+      bottom: 8,
+      color: '#fff',
+      borderRadius: 15,
+      padding: '9px 11px',
+      background: 'rgba(255,255,255,0.14)',
+      border: '1px solid rgba(255,255,255,0.28)',
+      backdropFilter: 'blur(12px) saturate(170%)',
+      WebkitBackdropFilter: 'blur(12px) saturate(170%)',
+      boxShadow: '0 8px 20px -10px rgba(20,8,12,.45)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: BK.TYPE.display,
-      fontSize: 16,
+      fontSize: 15.5,
       fontWeight: 600,
-      lineHeight: 1.2
+      lineHeight: 1.15,
+      textShadow: '0 2px 8px rgba(20,8,12,.4)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     }
   }, title), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
-      opacity: 0.9,
-      marginTop: 2
-    }
-  }, place), hours && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 500,
-      opacity: 0.85,
-      marginTop: 5,
       display: 'flex',
       alignItems: 'center',
-      gap: 4
+      gap: 5,
+      marginTop: 4,
+      fontSize: 11,
+      fontWeight: 600,
+      color: 'rgba(255,255,255,.9)'
+    }
+  }, /*#__PURE__*/React.createElement(Icon.Pin, {
+    size: 10,
+    color: "#ffd3de"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, place)), hours && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 3,
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: 'rgba(255,255,255,.8)'
     }
   }, /*#__PURE__*/React.createElement(Icon.Clock, {
     size: 10,
-    color: "#fff"
+    color: "#ffd3de"
   }), " ", hours)));
 }
 
@@ -19187,265 +19237,56 @@ function BypChal({
   }, cta));
 }
 
-// ─── Byup Games — mini-giochi con stack "twitch" stile Da scoprire ───
+// ─── Byup Games — card stile arcade (reference-driven) + swipe manuale ───
 const BYP_GAMES = [{
   id: 'wheel',
-  title: 'Spin to Win!',
-  sub: 'Gira la ruota · premi ogni giorno',
-  cta: 'Gira ora',
-  bg: 'linear-gradient(160deg,#fff3d6,#ffe2ac)',
-  ink: '#4d2e00'
+  bg: '#FDF3CE',
+  ink: '#3b2a00'
 }, {
   id: 'slot',
-  title: 'Byup Slot',
-  sub: 'Tre coin uguali = jackpot',
-  cta: 'Gioca',
-  bg: 'linear-gradient(160deg,#eee0ff,#d9c4ff)',
-  ink: '#2e1a4d'
+  bg: '#EBDFFC',
+  ink: '#2c1a4d'
 }, {
   id: 'scratch',
-  title: 'Gratta & Vinci',
-  sub: 'Un gratta al giorno, sempre',
-  cta: 'Gratta',
-  bg: 'linear-gradient(160deg,#ffdce5,#ffc0d1)',
+  bg: '#FFE0EA',
   ink: '#4d1226'
 }];
-function BypMiniWheel({
-  size = 108
+
+// Titolo chunky multicolore stile "SPIN TO WIN!"
+function BypGameTitle({
+  parts
 }) {
-  const cols = ['#E32459', '#fff', '#CEFF00', '#fff', '#2b272c', '#fff'];
-  const r = size / 2;
-  const wedge = i => {
-    const a0 = (i * 60 - 90) * Math.PI / 180,
-      a1 = ((i + 1) * 60 - 90) * Math.PI / 180;
-    return `M${r},${r} L${r + r * Math.cos(a0)},${r + r * Math.sin(a0)} A${r},${r} 0 0 1 ${r + r * Math.cos(a1)},${r + r * Math.sin(a1)} Z`;
-  };
-  return /*#__PURE__*/React.createElement("svg", {
-    width: size,
-    height: size,
-    viewBox: `0 0 ${size} ${size}`,
-    style: {
-      filter: 'drop-shadow(0 8px 14px rgba(20,8,12,.3))'
-    }
-  }, cols.map((c, i) => /*#__PURE__*/React.createElement("path", {
-    key: i,
-    d: wedge(i),
-    fill: c,
-    stroke: "#2b272c",
-    strokeWidth: "1.5"
-  })), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: r * 0.22,
-    fill: "#2b272c"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: r * 0.09,
-    fill: "#fff"
-  }));
-}
-function BypGameStack({
-  onOpen
-}) {
-  const [idx, setIdx] = useState(0);
-  const [auto, setAuto] = useState(true);
-  useEffect(() => {
-    if (!auto) return;
-    const t = setInterval(() => setIdx(i => (i + 1) % BYP_GAMES.length), 2600);
-    return () => clearInterval(t);
-  }, [auto]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      position: 'relative',
-      height: 246
-    }
-  }, BYP_GAMES.map((g, i) => {
-    const pos = (i - idx + BYP_GAMES.length) % BYP_GAMES.length; // 0 fronte
-    return /*#__PURE__*/React.createElement("div", {
-      key: g.id,
-      onClick: () => {
-        setAuto(false);
-        if (pos === 0) onOpen(g.id);else setIdx(i);
-      },
-      style: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        height: 206,
-        borderRadius: 22,
-        padding: '16px 17px',
-        background: g.bg,
-        color: g.ink,
-        border: '1px solid rgba(20,8,12,.08)',
-        cursor: 'pointer',
-        overflow: 'hidden',
-        transform: pos === 0 ? 'translateY(0) scale(1)' : pos === 1 ? 'translateY(15px) scale(.955)' : 'translateY(28px) scale(.912)',
-        zIndex: BYP_GAMES.length - pos,
-        opacity: pos === 2 ? .8 : 1,
-        transition: 'transform .55s cubic-bezier(.22,1.2,.36,1), opacity .4s',
-        boxShadow: pos === 0 ? '0 20px 42px -18px rgba(20,8,12,.5)' : '0 8px 20px -14px rgba(20,8,12,.35)'
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        fontSize: 9.5,
-        fontWeight: 800,
-        letterSpacing: .8,
-        textTransform: 'uppercase',
-        background: 'rgba(20,8,12,.85)',
-        color: '#CEFF00',
-        padding: '4px 10px',
-        borderRadius: 999
-      }
-    }, "\uD83C\uDFAE Byup games"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: BK.TYPE.display,
-        fontWeight: 600,
-        fontSize: 24,
-        marginTop: 10,
-        letterSpacing: -.4
-      }
-    }, g.title), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        fontWeight: 600,
-        opacity: .75,
-        marginTop: 3,
-        maxWidth: '55%'
-      }
-    }, g.sub), /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        marginTop: 16,
-        background: '#2b272c',
-        color: '#fff',
-        fontSize: 12.5,
-        fontWeight: 800,
-        padding: '9px 18px',
-        borderRadius: 999,
-        boxShadow: '0 10px 22px -10px rgba(20,8,12,.6)'
-      }
-    }, g.cta, " \u2192"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        right: 6,
-        top: '50%',
-        transform: 'translateY(-46%)',
-        pointerEvents: 'none'
-      }
-    }, g.id === 'wheel' && /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'relative',
-        animation: 'bypBob 3.4s ease-in-out infinite'
-      }
-    }, /*#__PURE__*/React.createElement(BypMiniWheel, null), /*#__PURE__*/React.createElement("span", {
-      style: {
-        position: 'absolute',
-        left: '50%',
-        top: -7,
-        transform: 'translateX(-50%) rotate(180deg)',
-        width: 0,
-        height: 0,
-        borderLeft: '7px solid transparent',
-        borderRight: '7px solid transparent',
-        borderBottom: '11px solid #E32459'
-      }
-    })), g.id === 'slot' && /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        gap: 5,
-        background: '#2b272c',
-        borderRadius: 14,
-        padding: 8,
-        animation: 'bypBob 3.6s ease-in-out infinite',
-        boxShadow: '0 10px 20px -10px rgba(20,8,12,.6)'
-      }
-    }, [0, 1, 2].map(k => /*#__PURE__*/React.createElement("span", {
-      key: k,
-      style: {
-        width: 30,
-        height: 38,
-        borderRadius: 7,
-        background: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }
-    }, /*#__PURE__*/React.createElement("img", {
-      src: "assets/coin.png",
-      alt: "",
-      style: {
-        width: 22,
-        height: 22,
-        objectFit: 'contain'
-      }
-    })))), g.id === 'scratch' && /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 96,
-        height: 112,
-        borderRadius: 14,
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'repeating-linear-gradient(135deg, #b9aeb4 0 10px, #cfc4ca 10px 20px)',
-        border: '2px solid #fff',
-        animation: 'bypBob 3.2s ease-in-out infinite',
-        boxShadow: '0 10px 20px -10px rgba(20,8,12,.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: BK.TYPE.display,
-        fontWeight: 700,
-        fontSize: 40,
-        color: '#4d1226'
-      }
-    }, "?"))));
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      bottom: 0,
-      transform: 'translateX(-50%)',
       display: 'flex',
-      gap: 5
+      alignItems: 'baseline',
+      justifyContent: 'center',
+      gap: 5,
+      whiteSpace: 'nowrap'
     }
-  }, BYP_GAMES.map((_, i) => /*#__PURE__*/React.createElement("span", {
+  }, parts.map(([txt, color, small], i) => /*#__PURE__*/React.createElement("span", {
     key: i,
-    onClick: () => {
-      setAuto(false);
-      setIdx(i);
-    },
     style: {
-      width: i === idx ? 16 : 6,
-      height: 6,
-      borderRadius: 99,
-      cursor: 'pointer',
-      background: i === idx ? '#E32459' : 'rgba(246,236,233,.3)',
-      transition: 'width .25s'
+      fontFamily: BK.TYPE.display,
+      fontWeight: 700,
+      letterSpacing: -0.5,
+      fontSize: small ? 15 : 26,
+      color,
+      textShadow: '2px 2px 0 #2b1a20, -1px -1px 0 #2b1a20, 1px -1px 0 #2b1a20, -1px 1px 0 #2b1a20',
+      transform: i % 2 ? 'rotate(1.5deg)' : 'rotate(-1.5deg)'
     }
-  }))));
+  }, txt)));
 }
 
-// Ruota della fortuna giocabile
-function BypWheelSheet({
-  onClose,
-  onWin
+// Ruota dettagliata con etichette + puntatore giallo a sinistra (come reference)
+function BypWheel({
+  size = 150,
+  rot = 0,
+  spinning = false
 }) {
-  const [rot, setRot] = useState(0);
-  const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState(null);
-  const SEGS = ['+100', '20% OFF', '+30', 'Ritenta', '+100', '+50'];
-  const COLS = ['#E32459', '#2b272c', '#CEFF00', '#7a1c3e', '#f2a93b', '#E32459'];
-  const size = 240,
-    r = size / 2;
+  const SEGS = ['+100', '30 pts', '20% OFF', 'Ritenta', '+100', '+50'];
+  const COLS = ['#CEFF00', '#fff', '#CEFF00', '#fff', '#CEFF00', '#fff'];
+  const r = size / 2;
   const wedge = i => {
     const a0 = (i * 60 - 90) * Math.PI / 180,
       a1 = ((i + 1) * 60 - 90) * Math.PI / 180;
@@ -19454,16 +19295,444 @@ function BypWheelSheet({
   const labelPos = i => {
     const a = ((i + 0.5) * 60 - 90) * Math.PI / 180;
     return {
-      x: r + r * 0.64 * Math.cos(a),
-      y: r + r * 0.64 * Math.sin(a)
+      x: r + r * 0.63 * Math.cos(a),
+      y: r + r * 0.63 * Math.sin(a)
     };
   };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      width: size,
+      height: size
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: `0 0 ${size} ${size}`,
+    style: {
+      transform: `rotate(${rot}deg)`,
+      transition: spinning ? 'transform 3.3s cubic-bezier(.12,.8,.16,1)' : 'none',
+      filter: 'drop-shadow(0 10px 18px rgba(0,0,0,.4))'
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: r,
+    cy: r,
+    r: r,
+    fill: "#2b1a20"
+  }), SEGS.map((s, i) => /*#__PURE__*/React.createElement("path", {
+    key: i,
+    d: wedge(i),
+    fill: COLS[i],
+    stroke: "#2b1a20",
+    strokeWidth: size * 0.018,
+    transform: `scale(0.965)`,
+    style: {
+      transformOrigin: 'center'
+    }
+  })), SEGS.map((s, i) => {
+    const p = labelPos(i);
+    return /*#__PURE__*/React.createElement("text", {
+      key: 't' + i,
+      x: p.x,
+      y: p.y,
+      fill: "#2b1a20",
+      fontSize: size * 0.085,
+      fontWeight: "800",
+      fontFamily: "'Hanken Grotesk', sans-serif",
+      textAnchor: "middle",
+      dominantBaseline: "central",
+      transform: `rotate(${i * 60 + 30}, ${p.x}, ${p.y}) scale(1)`
+    }, s);
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: r,
+    cy: r,
+    r: r * 0.2,
+    fill: "#2b1a20"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: r,
+    cy: r,
+    r: r * 0.075,
+    fill: "#fff"
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: -7,
+      top: '50%',
+      transform: 'translateY(-50%)',
+      width: 0,
+      height: 0,
+      borderTop: '10px solid transparent',
+      borderBottom: '10px solid transparent',
+      borderLeft: '16px solid #FFD84D',
+      filter: 'drop-shadow(2px 0 2px rgba(0,0,0,.35))'
+    }
+  }));
+}
+function BypGameCardArt({
+  id
+}) {
+  if (id === 'wheel') return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      top: 62
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 14,
+      right: 14,
+      top: 34,
+      bottom: 12,
+      background: '#241d22',
+      borderRadius: 20
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      top: 0,
+      transform: 'translateX(-50%)'
+    }
+  }, /*#__PURE__*/React.createElement(BypWheel, {
+    size: 148
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 22,
+      transform: 'translateX(-50%)',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 800,
+      padding: '9px 26px',
+      borderRadius: 999,
+      whiteSpace: 'nowrap',
+      boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)'
+    }
+  }, "Gira ora"));
+  if (id === 'slot') return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      top: 62
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 14,
+      right: 14,
+      top: 26,
+      bottom: 12,
+      background: '#241d22',
+      borderRadius: 20
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      top: 12,
+      transform: 'translateX(-50%)',
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: '#2c1a4d',
+      letterSpacing: .4,
+      background: '#fff',
+      padding: '3px 12px',
+      borderRadius: 999,
+      whiteSpace: 'nowrap',
+      border: '1.5px solid #2b1a20'
+    }
+  }, "3 uguali = JACKPOT"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      top: 40,
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      gap: 6,
+      background: '#fff',
+      borderRadius: 14,
+      padding: 7,
+      boxShadow: 'inset 0 3px 8px rgba(0,0,0,.15)'
+    }
+  }, ['assets/hero-burger.png', 'assets/coin.png', 'assets/reward-tote.png'].map((s, k) => /*#__PURE__*/React.createElement("span", {
+    key: k,
+    style: {
+      width: 40,
+      height: 48,
+      borderRadius: 8,
+      background: '#f4eee6',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: s,
+    alt: "",
+    style: {
+      width: 30,
+      height: 30,
+      objectFit: 'contain'
+    }
+  })))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 22,
+      transform: 'translateX(-50%)',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 800,
+      padding: '9px 26px',
+      borderRadius: 999,
+      whiteSpace: 'nowrap',
+      boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)'
+    }
+  }, "Gioca"));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      top: 62
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 14,
+      right: 14,
+      top: 26,
+      bottom: 12,
+      background: '#241d22',
+      borderRadius: 20
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      top: 42,
+      transform: 'translateX(-50%) rotate(-3deg)',
+      width: 150,
+      height: 84,
+      borderRadius: 12,
+      overflow: 'hidden',
+      border: '2.5px solid #fff',
+      background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      boxShadow: '0 10px 20px -8px rgba(0,0,0,.5)'
+    }
+  }, ['✦', '?', '✦'].map((c, k) => /*#__PURE__*/React.createElement("span", {
+    key: k,
+    style: {
+      fontFamily: BK.TYPE.display,
+      fontWeight: 700,
+      fontSize: k === 1 ? 38 : 18,
+      color: 'rgba(43,26,32,.6)'
+    }
+  }, c))), /*#__PURE__*/React.createElement("img", {
+    src: "assets/coin.png",
+    alt: "",
+    style: {
+      position: 'absolute',
+      right: 30,
+      top: 26,
+      width: 34,
+      transform: 'rotate(14deg)',
+      filter: 'drop-shadow(0 6px 8px rgba(0,0,0,.4))'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 22,
+      transform: 'translateX(-50%)',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 800,
+      padding: '9px 26px',
+      borderRadius: 999,
+      whiteSpace: 'nowrap',
+      boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)'
+    }
+  }, "Gratta ora"));
+}
+const BYP_GAME_TITLES = {
+  wheel: [['SPIN', '#CEFF00'], ['TO', '#ff8fae', true], ['WIN!', '#fff']],
+  slot: [['BYUP', '#ff8fae'], ['SLOT', '#CEFF00']],
+  scratch: [['GRATTA', '#CEFF00'], ['&', '#ff8fae', true], ['VINCI', '#fff']]
+};
+
+// Stack con SWIPE MANUALE (pointer events): trascina per cambiare, tap per giocare
+function BypGameStack({
+  onOpen
+}) {
+  const [idx, setIdx] = useState(0);
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef(false);
+  const start = useRef(0);
+  const moved = useRef(false);
+  const N = BYP_GAMES.length;
+  const onDown = e => {
+    dragRef.current = true;
+    setDragging(true);
+    moved.current = false;
+    start.current = e.clientX;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+  };
+  const onMove = e => {
+    if (!dragRef.current) return;
+    const d = e.clientX - start.current;
+    if (Math.abs(d) > 8) moved.current = true;
+    setDx(d);
+  };
+  const onUp = () => {
+    if (!dragRef.current) return;
+    dragRef.current = false;
+    setDragging(false);
+    if (!moved.current) {
+      setDx(0);
+      onOpen(BYP_GAMES[idx].id);
+      return;
+    }
+    setDx(cur => {
+      if (Math.abs(cur) > 70) {
+        // la card vola via, poi passa la successiva davanti
+        const out = cur > 0 ? 460 : -460;
+        setTimeout(() => {
+          setIdx(i => (i + 1) % N);
+          setDx(0);
+        }, 210);
+        return out;
+      }
+      return 0;
+    });
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      height: 302,
+      touchAction: 'pan-y'
+    }
+  }, BYP_GAMES.map((g, i) => {
+    const pos = (i - idx + N) % N; // 0 = davanti
+    const front = pos === 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: g.id,
+      onPointerDown: front ? onDown : undefined,
+      onPointerMove: front ? onMove : undefined,
+      onPointerUp: front ? onUp : undefined,
+      onPointerCancel: front ? onUp : undefined,
+      style: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        height: 268,
+        borderRadius: 26,
+        background: g.bg,
+        color: g.ink,
+        border: '1px solid rgba(20,8,12,.1)',
+        cursor: front ? 'grab' : 'pointer',
+        overflow: 'hidden',
+        touchAction: 'pan-y',
+        transform: front ? `translateX(${dx}px) rotate(${dx * 0.045}deg)` : pos === 1 ? 'translateY(16px) scale(.955)' : 'translateY(30px) scale(.91)',
+        zIndex: N - pos,
+        opacity: pos === 2 ? .85 : 1,
+        transition: dragging && front ? 'none' : 'transform .45s cubic-bezier(.22,1.2,.36,1), opacity .4s',
+        boxShadow: front ? '0 22px 44px -18px rgba(20,8,12,.5)' : '0 8px 20px -14px rgba(20,8,12,.35)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        paddingTop: 16,
+        pointerEvents: 'none'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: 'center',
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        opacity: .55,
+        marginBottom: 4
+      }
+    }, "\uD83E\uDE99 Byup games \xB7 premi ogni giorno"), /*#__PURE__*/React.createElement(BypGameTitle, {
+      parts: BYP_GAME_TITLES[g.id]
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        pointerEvents: 'none',
+        position: 'absolute',
+        inset: 0
+      }
+    }, /*#__PURE__*/React.createElement(BypGameCardArt, {
+      id: g.id
+    })));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: '50%',
+      bottom: 6,
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      gap: 5
+    }
+  }, BYP_GAMES.map((_, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    onClick: () => setIdx(i),
+    style: {
+      width: i === idx ? 16 : 6,
+      height: 6,
+      borderRadius: 99,
+      cursor: 'pointer',
+      background: i === idx ? '#E32459' : 'rgba(246,236,233,.3)',
+      transition: 'width .25s'
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      right: 2,
+      bottom: 4,
+      fontSize: 10,
+      color: BYP.faint,
+      fontWeight: 700
+    }
+  }, "\u21C4 scorri per cambiare"));
+}
+
+// ── Pagina RUOTA: scenografia arcade completa ──
+function BypWheelSheet({
+  onClose,
+  onWin
+}) {
+  const [rot, setRot] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+  const SEGS = ['+100', '30 pts', '20% OFF', 'Ritenta', '+100', '+50'];
   const spin = () => {
     if (spinning) return;
     setSpinning(true);
     setResult(null);
     const target = Math.floor(Math.random() * 6);
-    setRot(cur => cur + 360 * 5 + (360 - (target * 60 + 30) - cur % 360 + 360) % 360);
+    // puntatore a SINISTRA (270° in senso orario dal top)
+    setRot(cur => {
+      const want = ((270 - (target * 60 + 30)) % 360 + 360) % 360;
+      return cur + 360 * 5 + ((want - cur % 360) % 360 + 360) % 360;
+    });
     setTimeout(() => {
       setSpinning(false);
       setResult(SEGS[target]);
@@ -19477,90 +19746,47 @@ function BypWheelSheet({
     style: {
       position: 'relative',
       width: '100%',
-      maxWidth: 330,
+      maxWidth: 340,
       textAlign: 'center',
-      background: `radial-gradient(90% 60% at 50% 0%, rgba(240,194,70,.25), transparent 60%), ${BYP.surf}`,
-      border: '1px solid rgba(255,207,74,.45)',
-      borderRadius: 28,
-      padding: '24px 20px 20px',
-      boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)',
+      background: '#FDF3CE',
+      color: '#3b2a00',
+      border: '2px solid #2b1a20',
+      borderRadius: 30,
+      padding: '20px 16px 18px',
+      boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
       animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 600,
-      fontSize: 21,
-      marginBottom: 2
+      fontSize: 10,
+      fontWeight: 800,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      color: '#b0246a',
+      marginBottom: 5
     }
-  }, "Spin to Win!"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: BYP.muted,
-      marginBottom: 14
-    }
-  }, "Un giro gratis al giorno \xB7 premi in byuppini"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2726 Win rewards everyday \u2726"), /*#__PURE__*/React.createElement(BypGameTitle, {
+    parts: BYP_GAME_TITLES.wheel
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
-      width: size,
-      height: size,
-      margin: '0 auto 6px'
+      margin: '18px 0 0',
+      background: '#241d22',
+      borderRadius: 24,
+      padding: '30px 0 20px'
     }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: size,
-    height: size,
-    viewBox: `0 0 ${size} ${size}`,
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      transform: `rotate(${rot}deg)`,
-      transition: spinning ? 'transform 3.3s cubic-bezier(.12,.8,.16,1)' : 'none',
-      filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.45))'
+      display: 'flex',
+      justifyContent: 'center'
     }
-  }, SEGS.map((s, i) => /*#__PURE__*/React.createElement("path", {
-    key: i,
-    d: wedge(i),
-    fill: COLS[i],
-    stroke: "#161514",
-    strokeWidth: "2"
-  })), SEGS.map((s, i) => {
-    const p = labelPos(i);
-    const dark = COLS[i] === '#CEFF00' || COLS[i] === '#f2a93b';
-    return /*#__PURE__*/React.createElement("text", {
-      key: 't' + i,
-      x: p.x,
-      y: p.y,
-      fill: dark ? '#161514' : '#fff',
-      fontSize: "14",
-      fontWeight: "800",
-      textAnchor: "middle",
-      dominantBaseline: "central",
-      transform: `rotate(${i * 60 + 30}, ${p.x}, ${p.y})`
-    }, s);
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: 26,
-    fill: "#161514"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: 10,
-    fill: "#fff"
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      top: -4,
-      transform: 'translateX(-50%)',
-      width: 0,
-      height: 0,
-      borderLeft: '11px solid transparent',
-      borderRight: '11px solid transparent',
-      borderTop: '18px solid #CEFF00',
-      filter: 'drop-shadow(0 3px 5px rgba(0,0,0,.5))'
-    }
+  }, /*#__PURE__*/React.createElement(BypWheel, {
+    size: 236,
+    rot: rot,
+    spinning: spinning
   })), result && /*#__PURE__*/React.createElement("div", {
     style: {
-      margin: '8px 0 4px',
+      margin: '16px 12px 2px',
       animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)'
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -19568,30 +19794,40 @@ function BypWheelSheet({
       display: 'inline-flex',
       alignItems: 'center',
       gap: 7,
-      background: result === 'Ritenta' ? 'rgba(246,236,233,.1)' : 'rgba(206,255,0,.14)',
-      border: result === 'Ritenta' ? `1px solid ${BYP.line}` : '1px solid rgba(206,255,0,.4)',
-      color: result === 'Ritenta' ? BYP.muted : BYP.lime,
+      background: result === 'Ritenta' ? 'rgba(255,255,255,.1)' : 'rgba(206,255,0,.16)',
+      border: result === 'Ritenta' ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(206,255,0,.5)',
+      color: result === 'Ritenta' ? 'rgba(255,255,255,.75)' : '#CEFF00',
       fontWeight: 800,
       fontSize: 15,
       padding: '9px 18px',
       borderRadius: 999
     }
-  }, result === 'Ritenta' ? 'Ritenta domani!' : `Hai vinto ${result.includes('OFF') ? result : result + ' byuppini'}!`)), /*#__PURE__*/React.createElement(BypCta, {
+  }, result === 'Ritenta' ? 'Ritenta domani!' : `🎉 Hai vinto ${result.includes('OFF') || result.includes('pts') ? result : result + ' byuppini'}!`)), /*#__PURE__*/React.createElement("button", {
+    onClick: spin,
     style: {
-      marginTop: 10
-    },
-    onClick: spin
-  }, spinning ? 'In giro…' : result ? 'Gira ancora (demo)' : 'Gira la ruota'), /*#__PURE__*/React.createElement("button", {
+      marginTop: 16,
+      border: '2px solid #2b1a20',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      color: '#fff',
+      fontSize: 15,
+      fontWeight: 800,
+      padding: '13px 44px',
+      borderRadius: 999,
+      boxShadow: '0 12px 26px -8px rgba(227,36,89,.7)'
+    }
+  }, spinning ? 'In giro…' : result ? 'Gira ancora' : 'Spin now!')), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: {
       display: 'block',
       width: '100%',
-      marginTop: 8,
+      marginTop: 10,
       background: 'none',
       border: 'none',
-      color: BYP.muted,
+      color: '#8a6d3b',
       fontSize: 13,
-      fontWeight: 700,
+      fontWeight: 800,
       cursor: 'pointer',
       fontFamily: 'inherit',
       padding: 6
@@ -19599,34 +19835,33 @@ function BypWheelSheet({
   }, "Chiudi")));
 }
 
-// Slot a 3 rulli
+// ── Pagina SLOT: macchinetta con luci ──
 function BypSlotSheet({
   onClose,
   onWin
 }) {
-  const ICONS = ['assets/coin.png', 'assets/reward-tote.png', 'assets/reward-spritz.png', 'assets/reward-dessert.png'];
+  const ICONS = ['assets/hero-burger.png', 'assets/coin.png', 'assets/reward-tote.png', 'assets/reward-spritz.png'];
   const [reels, setReels] = useState([0, 1, 2]);
-  const [locked, setLocked] = useState([true, true, true]);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
   const timers = useRef([]);
+  const lockedRef = useRef([true, true, true]);
   const spin = () => {
     if (spinning) return;
     setSpinning(true);
     setResult(null);
-    setLocked([false, false, false]);
+    lockedRef.current = [false, false, false];
     const final = [0, 1, 2].map(() => Math.floor(Math.random() * ICONS.length));
-    // jackpot facile in demo: 35% di probabilità di tripla
     if (Math.random() < 0.35) {
       final[1] = final[0];
       final[2] = final[0];
     }
     const iv = setInterval(() => {
-      setReels(rs => rs.map((v, i) => locked[i] ? v : Math.floor(Math.random() * ICONS.length)));
-    }, 90);
+      setReels(rs => rs.map((v, i) => lockedRef.current[i] ? v : Math.floor(Math.random() * ICONS.length)));
+    }, 85);
     [900, 1500, 2100].forEach((t, i) => {
       timers.current.push(setTimeout(() => {
-        setLocked(l => l.map((x, k) => k === i ? true : x));
+        lockedRef.current[i] = true;
         setReels(rs => rs.map((v, k) => k === i ? final[i] : v));
         if (i === 2) {
           clearInterval(iv);
@@ -19652,64 +19887,87 @@ function BypSlotSheet({
     style: {
       position: 'relative',
       width: '100%',
-      maxWidth: 330,
+      maxWidth: 340,
       textAlign: 'center',
-      background: `radial-gradient(90% 60% at 50% 0%, rgba(150,100,255,.22), transparent 60%), ${BYP.surf}`,
-      border: '1px solid rgba(180,140,255,.4)',
-      borderRadius: 28,
-      padding: '24px 20px 20px',
-      boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)',
+      background: '#EBDFFC',
+      color: '#2c1a4d',
+      border: '2px solid #2b1a20',
+      borderRadius: 30,
+      padding: '20px 16px 18px',
+      boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
       animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)'
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `@keyframes bypBlink{0%,100%{opacity:.2}50%{opacity:1}}`), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontWeight: 800,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      color: '#b0246a',
+      marginBottom: 5
+    }
+  }, "\u2726 3 uguali = 300 byuppini \xB7 2 = 50 \u2726"), /*#__PURE__*/React.createElement(BypGameTitle, {
+    parts: BYP_GAME_TITLES.slot
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      margin: '18px 0 0',
+      background: '#241d22',
+      borderRadius: 24,
+      padding: '14px 14px 20px'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 600,
-      fontSize: 21,
-      marginBottom: 2
+      display: 'flex',
+      justifyContent: 'center',
+      gap: 9,
+      marginBottom: 12
     }
-  }, "Byup Slot"), /*#__PURE__*/React.createElement("div", {
+  }, [0, 1, 2, 3, 4, 5, 6].map(i => /*#__PURE__*/React.createElement("span", {
+    key: i,
     style: {
-      fontSize: 12,
-      color: BYP.muted,
-      marginBottom: 16
+      width: 7,
+      height: 7,
+      borderRadius: 999,
+      background: i % 2 ? '#CEFF00' : '#ff8fae',
+      animation: `bypBlink ${spinning ? '.35s' : '1.4s'} ${i * 0.12}s ease-in-out infinite`
     }
-  }, "Tre uguali = 300 byuppini \xB7 due = 50"), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'center',
-      gap: 10,
-      background: '#161216',
-      borderRadius: 20,
-      padding: 16,
-      border: `1px solid ${BYP.line}`,
-      marginBottom: 14
+      gap: 9,
+      background: '#fff',
+      borderRadius: 18,
+      padding: 12,
+      margin: '0 4px',
+      boxShadow: 'inset 0 4px 12px rgba(0,0,0,.18)'
     }
   }, reels.map((v, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
-      width: 74,
-      height: 88,
-      borderRadius: 13,
-      background: '#fff',
+      width: 78,
+      height: 92,
+      borderRadius: 12,
+      background: '#f6efe5',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      boxShadow: locked[i] ? 'inset 0 0 0 3px rgba(227,36,89,.35)' : 'inset 0 -12px 18px rgba(0,0,0,.12)',
-      transition: 'box-shadow .2s'
+      border: '1.5px solid rgba(43,26,32,.12)'
     }
   }, /*#__PURE__*/React.createElement("img", {
     src: ICONS[v],
     alt: "",
     style: {
-      width: 52,
-      height: 52,
+      width: 54,
+      height: 54,
       objectFit: 'contain',
-      filter: spinning && !locked[i] ? 'blur(1.5px)' : 'none'
+      filter: spinning ? 'blur(1.5px)' : 'none',
+      transition: 'filter .15s'
     }
   })))), result && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 10,
+      margin: '14px 0 0',
       animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)'
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -19717,27 +19975,40 @@ function BypSlotSheet({
       display: 'inline-flex',
       alignItems: 'center',
       gap: 7,
-      background: result === 'niente' ? 'rgba(246,236,233,.1)' : 'rgba(206,255,0,.14)',
-      border: result === 'niente' ? `1px solid ${BYP.line}` : '1px solid rgba(206,255,0,.4)',
-      color: result === 'niente' ? BYP.muted : BYP.lime,
+      background: result === 'niente' ? 'rgba(255,255,255,.1)' : 'rgba(206,255,0,.16)',
+      border: result === 'niente' ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(206,255,0,.5)',
+      color: result === 'niente' ? 'rgba(255,255,255,.75)' : '#CEFF00',
       fontWeight: 800,
       fontSize: 15,
       padding: '9px 18px',
       borderRadius: 999
     }
-  }, result === 'jackpot' ? '🎰 JACKPOT! +300 byuppini' : result === 'coppia' ? 'Coppia! +50 byuppini' : 'Niente… ritenta domani!')), /*#__PURE__*/React.createElement(BypCta, {
-    onClick: spin
-  }, spinning ? 'In corsa…' : result ? 'Gioca ancora (demo)' : 'Gioca'), /*#__PURE__*/React.createElement("button", {
+  }, result === 'jackpot' ? '🎰 JACKPOT! +300 byuppini' : result === 'coppia' ? 'Coppia! +50 byuppini' : 'Niente… ritenta!')), /*#__PURE__*/React.createElement("button", {
+    onClick: spin,
+    style: {
+      marginTop: 16,
+      border: '2px solid #2b1a20',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      background: 'linear-gradient(122deg,#E32459,#B81C47)',
+      color: '#fff',
+      fontSize: 15,
+      fontWeight: 800,
+      padding: '13px 44px',
+      borderRadius: 999,
+      boxShadow: '0 12px 26px -8px rgba(227,36,89,.7)'
+    }
+  }, spinning ? 'In corsa…' : result ? 'Gioca ancora' : 'Gioca!')), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: {
       display: 'block',
       width: '100%',
-      marginTop: 8,
+      marginTop: 10,
       background: 'none',
       border: 'none',
-      color: BYP.muted,
+      color: '#6d5a8a',
       fontSize: 13,
-      fontWeight: 700,
+      fontWeight: 800,
       cursor: 'pointer',
       fontFamily: 'inherit',
       padding: 6
@@ -19745,18 +20016,18 @@ function BypSlotSheet({
   }, "Chiudi")));
 }
 
-// Gratta & Vinci — passa il dito per rivelare
+// ── Pagina GRATTA & VINCI ──
 function BypScratchSheet({
   onClose,
   onWin
 }) {
-  const [reveal, setReveal] = useState(0); // 0..1
+  const [reveal, setReveal] = useState(0);
   const [done, setDone] = useState(false);
   const scratching = useRef(false);
   const onMove = () => {
     if (done) return;
     setReveal(r => {
-      const n = Math.min(1, r + 0.045);
+      const n = Math.min(1, r + 0.05);
       if (n >= 1) {
         setDone(true);
         onWin && onWin();
@@ -19771,29 +20042,36 @@ function BypScratchSheet({
     style: {
       position: 'relative',
       width: '100%',
-      maxWidth: 330,
+      maxWidth: 340,
       textAlign: 'center',
-      background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.28), transparent 60%), ${BYP.surf}`,
-      border: '1px solid rgba(255,90,130,.4)',
-      borderRadius: 28,
-      padding: '24px 20px 20px',
-      boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)',
+      background: '#FFE0EA',
+      color: '#4d1226',
+      border: '2px solid #2b1a20',
+      borderRadius: 30,
+      padding: '20px 16px 18px',
+      boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
       animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 600,
-      fontSize: 21,
-      marginBottom: 2
+      fontSize: 10,
+      fontWeight: 800,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      color: '#b0246a',
+      marginBottom: 5
     }
-  }, "Gratta & Vinci"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2726 Un gratta al giorno \u2726"), /*#__PURE__*/React.createElement(BypGameTitle, {
+    parts: BYP_GAME_TITLES.scratch
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
-      color: BYP.muted,
-      marginBottom: 16
+      position: 'relative',
+      margin: '18px 0 0',
+      background: '#241d22',
+      borderRadius: 24,
+      padding: '22px 14px 20px'
     }
-  }, "Passa il dito sulla card per grattare"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     onPointerDown: e => {
       scratching.current = true;
       try {
@@ -19808,14 +20086,15 @@ function BypScratchSheet({
     },
     style: {
       position: 'relative',
-      width: 220,
-      height: 140,
-      margin: '0 auto 14px',
-      borderRadius: 18,
+      width: 250,
+      height: 150,
+      margin: '0 auto',
+      borderRadius: 16,
       overflow: 'hidden',
       touchAction: 'none',
       cursor: 'pointer',
-      border: '2px solid rgba(255,255,255,.25)'
+      border: '3px solid #fff',
+      boxShadow: '0 12px 26px -10px rgba(0,0,0,.5)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -19832,14 +20111,14 @@ function BypScratchSheet({
     src: "assets/coin.png",
     alt: "",
     style: {
-      width: 44,
-      height: 44
+      width: 48,
+      height: 48
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: BK.TYPE.display,
       fontWeight: 700,
-      fontSize: 22,
+      fontSize: 24,
       color: '#fff'
     }
   }, "+50 byuppini")), /*#__PURE__*/React.createElement("div", {
@@ -19848,22 +20127,40 @@ function BypScratchSheet({
       inset: 0,
       opacity: 1 - reveal,
       transition: 'opacity .12s',
-      background: 'repeating-linear-gradient(135deg, #9d939a 0 12px, #b8adb4 12px 24px)',
+      background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      gap: 14,
       pointerEvents: 'none'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
+      fontSize: 18,
+      color: 'rgba(43,26,32,.55)'
+    }
+  }, "\u2726"), /*#__PURE__*/React.createElement("span", {
+    style: {
       fontFamily: BK.TYPE.display,
       fontWeight: 700,
-      fontSize: 44,
-      color: 'rgba(40,20,30,.55)'
+      fontSize: 46,
+      color: 'rgba(43,26,32,.6)'
     }
-  }, "?"))), done && /*#__PURE__*/React.createElement("div", {
+  }, "?"), /*#__PURE__*/React.createElement("span", {
     style: {
-      marginBottom: 10,
+      fontSize: 18,
+      color: 'rgba(43,26,32,.55)'
+    }
+  }, "\u2726"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 12,
+      fontWeight: 700,
+      color: 'rgba(255,255,255,.7)'
+    }
+  }, done ? '' : reveal > 0 ? 'Continua a grattare…' : '☝️ Passa il dito sulla card'), done && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
       animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)'
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -19871,25 +20168,25 @@ function BypScratchSheet({
       display: 'inline-flex',
       alignItems: 'center',
       gap: 7,
-      background: 'rgba(206,255,0,.14)',
-      border: '1px solid rgba(206,255,0,.4)',
-      color: BYP.lime,
+      background: 'rgba(206,255,0,.16)',
+      border: '1px solid rgba(206,255,0,.5)',
+      color: '#CEFF00',
       fontWeight: 800,
       fontSize: 15,
       padding: '9px 18px',
       borderRadius: 999
     }
-  }, "Hai vinto +50 byuppini!")), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83C\uDF89 Hai vinto +50 byuppini!"))), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: {
       display: 'block',
       width: '100%',
-      marginTop: 4,
+      marginTop: 10,
       background: 'none',
       border: 'none',
-      color: BYP.muted,
+      color: '#a05a72',
       fontSize: 13,
-      fontWeight: 700,
+      fontWeight: 800,
       cursor: 'pointer',
       fontFamily: 'inherit',
       padding: 6
