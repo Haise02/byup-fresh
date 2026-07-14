@@ -3,136 +3,146 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>byup — Concept schermata Pagamento</title>
+<title>byup — Concept "Il tuo conto"</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon-app.svg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Hanken+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   body{margin:0;background:#141216;font-family:'Hanken Grotesk',system-ui,sans-serif;color:#f6ece9;padding:34px 26px 60px}
   h1{font-family:'Fredoka';font-weight:600;font-size:26px;margin:0 0 4px}
-  .sub{color:rgba(246,236,233,.6);font-size:14px;margin-bottom:28px}
+  .sub{color:rgba(246,236,233,.6);font-size:14px;margin-bottom:8px;max-width:900px;line-height:1.5}
   .rowlab{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#ceff00;margin:26px 0 12px}
   .grid{display:flex;gap:26px;overflow-x:auto;padding-bottom:14px}
-  .col{flex:none;width:330px}
+  .col{flex:none;width:340px}
   .colname{font-family:'Fredoka';font-weight:600;font-size:17px;margin:0 0 2px}
-  .colnote{font-size:12px;color:rgba(246,236,233,.62);line-height:1.45;min-height:52px;margin-bottom:10px}
-  .frame{width:330px;height:640px;border-radius:34px;overflow:hidden;border:1px solid rgba(255,255,255,.14);
+  .colnote{font-size:12px;color:rgba(246,236,233,.62);line-height:1.45;min-height:70px;margin-bottom:10px}
+  .frame{width:340px;height:660px;border-radius:34px;overflow:hidden;border:1px solid rgba(255,255,255,.14);
     box-shadow:0 30px 60px -30px rgba(0,0,0,.8);position:relative;display:flex;flex-direction:column}
-  /* temi */
-  .light{--bg:#FBF4F1;--surf:#fff;--tint:#f6f1ea;--text:#1c0f15;--muted:#6d5a61;--line:#eddfda;--chip:#f6e9e4}
-  .dark{--bg:#161514;--surf:#211f22;--tint:#2b272c;--text:#f6ece9;--muted:rgba(246,236,233,.6);--line:rgba(246,236,233,.13);--chip:#2b272c}
+  .light{--bg:#FBF4F1;--surf:#fff;--tint:#f6f1ea;--text:#1c0f15;--muted:#6d5a61;--line:#eddfda;--ok:#0a8a3a;--okbg:#e6f5e9}
+  .dark{--bg:#161514;--surf:#211f22;--tint:#2b272c;--text:#f6ece9;--muted:rgba(246,236,233,.6);--line:rgba(246,236,233,.13);--ok:#4ade80;--okbg:rgba(20,130,64,.18)}
   .frame{background:var(--bg);color:var(--text)}
-  .ph{padding:18px 16px 0;display:flex;align-items:center;gap:10px}
-  .back{width:32px;height:32px;border-radius:999px;background:var(--tint);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text)}
-  .ph b{font-family:'Fredoka';font-weight:600;font-size:19px}
-  .body{flex:1;overflow:hidden;padding:12px 16px 0;display:flex;flex-direction:column;gap:10px}
-  .card{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:12px 13px}
-  .r{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:4px 0}
-  .r .m{color:var(--muted)}
-  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;font-size:11px;font-weight:800;padding:5px 11px}
-  .pill.on{background:linear-gradient(122deg,#E32459,#B81C47);color:#fff}
-  .pill.off{background:var(--tint);color:var(--muted)}
-  .cta{margin:0 16px;height:48px;border-radius:999px;background:linear-gradient(122deg,#E32459,#B81C47);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;gap:8px;
-    box-shadow:0 14px 30px -12px rgba(227,36,89,.62)}
-  .ghost{margin:9px 16px 16px;height:40px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);
-    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px}
+  .ph{padding:16px 16px 8px;display:flex;align-items:center;gap:10px}
+  .back{width:32px;height:32px;border-radius:999px;background:var(--tint);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  .ph .t b{font-family:'Fredoka';font-weight:600;font-size:19px;display:block;line-height:1.1}
+  .ph .t span{font-size:11px;color:var(--muted)}
+  .body{flex:1;overflow:hidden;padding:4px 14px 0;display:flex;flex-direction:column;gap:8px}
+  .card{background:var(--surf);border:1px solid var(--line);border-radius:15px;padding:11px 12px}
+  .r{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:3px 0;gap:8px}
+  .m{color:var(--muted)}
+  .sect{font-family:'Fredoka';font-weight:600;font-size:15px;margin:6px 2px 2px;display:flex;justify-content:space-between;align-items:baseline}
+  .sect .a{font-size:11px;color:var(--muted);font-family:'Hanken Grotesk';font-weight:700}
+  .avi{width:26px;height:26px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex:none}
+  .chipmini{font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:4px}
+  .ok{color:var(--ok);background:var(--okbg)}
+  .wait{color:#b8860b;background:rgba(240,194,70,.16)}
+  .claim{color:#E32459;background:rgba(227,36,89,.1)}
+  .plus{width:24px;height:24px;border-radius:999px;background:linear-gradient(122deg,#E32459,#B81C47);color:#fff;
+    display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex:none}
+  .check{width:20px;height:20px;border-radius:7px;border:2px solid var(--line);flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .check.on{border-color:#E32459;background:#E32459;color:#fff}
+  .check.done{border-color:var(--ok);background:var(--ok);color:#fff}
+  .foot{background:var(--surf);border-top:1px solid var(--line);padding:10px 14px 14px}
+  .cta{height:44px;border-radius:999px;background:linear-gradient(122deg,#E32459,#B81C47);color:#fff;
+    display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-weight:800;font-size:13.5px;
+    box-shadow:0 12px 26px -10px rgba(227,36,89,.62)}
   .seg{display:flex;gap:4px;background:var(--tint);border-radius:12px;padding:4px}
   .seg span{flex:1;text-align:center;font-size:12px;font-weight:700;padding:8px 0;border-radius:9px;color:var(--muted)}
   .seg .on{background:var(--surf);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.14)}
-  .big{font-family:'Fredoka';font-weight:600;letter-spacing:-1px}
-  .method{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);font-size:12.5px;font-weight:700}
-  .method.on{border-color:#E32459;background:var(--surf)}
-  .mlogo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#E32459,#B81C47);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-family:'Fredoka';font-weight:700;font-size:14px}
-  .mlogo.apay{background:#111;border:1px solid rgba(255,255,255,.2)}
-  .mlogo.card{background:#2f3d8f}
-  .radio{width:16px;height:16px;border-radius:999px;border:2px solid var(--line);margin-left:auto}
-  .radio.on{border-color:#E32459;background:radial-gradient(circle at 50% 50%, #E32459 45%, transparent 50%)}
-  .receipt{background:var(--surf);border:1.5px dashed var(--line);border-radius:4px 4px 16px 16px;padding:13px;position:relative}
-  .receipt:before{content:"";position:absolute;top:-6px;left:0;right:0;height:6px;
-    background:radial-gradient(circle at 8px 0, transparent 5px, var(--surf) 5px);background-size:16px 6px}
-  .zig{border-top:1.5px dashed var(--line);margin:9px 0}
-  .slider{margin:0 16px;height:52px;border-radius:999px;background:var(--tint);position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:var(--muted)}
-  .knob{position:absolute;left:5px;width:44px;height:44px;border-radius:999px;background:linear-gradient(122deg,#E32459,#B81C47);
-    display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;box-shadow:0 8px 18px -6px rgba(227,36,89,.7)}
-  .avirow{display:flex;align-items:center}
-  .avi{width:26px;height:26px;border-radius:999px;border:2px solid var(--surf);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;margin-left:-6px}
-  .tag{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
-  .fid{width:52px;height:52px;border-radius:18px;border:2.5px solid #E32459;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .pbar{height:7px;border-radius:999px;background:var(--tint);overflow:hidden}
+  .pbar i{display:block;height:100%;width:62%;border-radius:999px;background:linear-gradient(90deg,#ceff00,#a6d400)}
+  .big{font-family:'Fredoka';font-weight:600;letter-spacing:-.5px}
+  .strike{text-decoration:line-through;opacity:.45}
+  .dashcard{border:1.5px dashed rgba(227,36,89,.5);border-radius:15px;padding:11px 12px;display:flex;align-items:center;gap:10px}
 </style>
 </head>
 <body>
-<h1>Pagamento — Originale + 3 varianti</h1>
-<div class="sub">Stesso flusso ("Il tuo conto" → paga la tua parte o il tavolo), quattro modi diversi di raccontarlo. Ogni colonna in tema chiaro e scuro.</div>
+<h1>"Il tuo conto" — Originale + 3 varianti</h1>
+<div class="sub">La schermata sopra il popup di pagamento: i tuoi piatti, i piatti del tavolo da reclamare, offrire agli altri. Obiettivo: più pulita e intuitiva, solo tap (niente gesture nuove). Il footer "Paga ora" resta quello attuale, qui è accennato solo per contesto.</div>
 <div id="root"></div>
 
 <script>
-const NAMES = ['Originale', 'V1 · Focus sul totale', 'V2 · Scontrino', 'V3 · One-tap'];
+const NAMES = ['Originale', 'V1 · La mia parte / Il tavolo', 'V2 · Persone al centro', 'V3 · Checklist del conto'];
 const NOTES = [
-  'Com\'è oggi: lista voci per persona, mancia inline, metodo con "Cambia", doppia CTA. Completa ma densa: tante decisioni sullo stesso piano.',
-  'Gerarchia rovesciata: prima QUANTO paghi (numero gigante), poi 3 scelte una per riga — mancia, metodo a card swipe, CTA con Face ID. Meno testo, decisioni sequenziali.',
-  'Metafora dello scontrino: tutto verificabile in una ricevuta compatta (voci, mancia, totale), toggle Io/Tavolo in alto, metodi a radio. Rassicura chi controlla prima di pagare.',
-  'Velocità estrema: saldo, chi ha pagato, metodo già scelto e uno swipe per chiudere. Mancia a +1€. Per utenti abituali: un gesto e via.',
+  'Com\'è oggi: 3 sezioni lunghe una dopo l\'altra (miei piatti, ordini del tavolo, offri agli altri) + card tratteggiata. Chiara ma tanto scroll e blocchi visivamente tutti uguali.',
+  'Due tab: "La mia parte" (i tuoi piatti, compatti in una card) e "Il tavolo" (persone + piatti del cameriere da reclamare col +). Dimezza lo scroll, separa "quanto pago io" da "cosa succede al tavolo". Solo tap.',
+  'Il conto raccontato per persone: Tu (espanso), Marco ✓, Giulia in corso, Ospite reclamabile, Cameriere. Ogni card = chi, stato, importo. "Offri tutto" è l\'ultima riga. Mental model immediato: chi paga cosa.',
+  'Un\'unica ricevuta interattiva: spunta = lo paghi tu. I tuoi piatti già spuntati, quelli pagati barrati in verde, quelli degli altri spuntabili per offrirli. Barra "quanto manca al tavolo" in alto. Zero sezioni, una sola lista.',
 ];
 
+const AV = (l, c, extra) => `<span class="avi" style="background:${c}">${l}${extra || ''}</span>`;
+
+function head() {
+  return `<div class="ph"><span class="back">‹</span><div class="t"><b>Il tuo conto</b><span>Tavolo 23 · Ristorante Maria Grazia</span></div>
+  <span style="margin-left:auto;display:flex">${AV('G','#8a5a0a')}${AV('M','#7a1c3e')}${AV('T','#E32459')}</span></div>`;
+}
+function foot(tot) {
+  return `<div class="foot"><div class="cta"><span>Paga ora</span><span>${tot}</span></div></div>`;
+}
+
 function mockup(v, theme) {
-  const d = theme === 'dark';
-  const HEAD = `<div class="ph"><span class="back">‹</span><b>Il tuo conto</b><span style="margin-left:auto" class="tag">Tavolo 23</span></div>`;
-  if (v === 0) return `<div class="frame ${theme}">${HEAD}<div class="body">
-    <div class="card"><div class="r"><b style="font-size:13px">Tu</b><span class="m">2 piatti</span></div>
-      <div class="r"><span class="m">Cacio e pepe</span><span>14,00€</span></div>
-      <div class="r"><span class="m">Vino della casa · <u style="font-size:11px">Dividi</u></span><span>12,00€</span></div></div>
-    <div class="card"><div class="r"><b style="font-size:13px">Marco</b><span class="pill off" style="font-size:9.5px">ha pagato ✓</span></div></div>
-    <div class="card"><div class="r"><span class="m">Mancia</span><span><span class="pill off">0%</span> <span class="pill on">5%</span> <span class="pill off">10%</span></span></div></div>
-    <div class="card"><div class="r"><span style="display:flex;align-items:center;gap:8px"><span class="mlogo">b</span> byup pay</span><span style="color:#E32459;font-weight:800;font-size:11.5px">Cambia</span></div></div>
-    <div class="card"><div class="r"><b>Totale</b><b class="big" style="font-size:19px">27,30€</b></div></div>
-    <div style="flex:1"></div></div>
-    <div class="cta">Paga ora</div><div class="ghost">Paga per tutto il tavolo</div></div>`;
+  if (v === 0) return `<div class="frame ${theme}">${head()}<div class="body">
+    <div class="sect">I miei piatti <span class="a">26,00€</span></div>
+    <div class="card"><div class="r"><b>Cacio e pepe</b><b>14,00€</b></div></div>
+    <div class="card"><div class="r"><span><b>Vino della casa</b><br><span class="chipmini claim">Diviso in 2</span></span><span style="text-align:right"><b>12,00€</b><br><span class="m" style="font-size:10px">(24€ tot)</span></span></div></div>
+    <div class="sect">Ordini del tavolo</div>
+    <div class="card"><div class="r"><span><b>Aggiunti dal cameriere</b> <span class="chipmini claim">8</span><br><span class="m">37,00€ totali</span></span><span class="m">›</span></div></div>
+    <div class="sect">Offri agli altri</div>
+    <div class="card"><div class="r"><span style="display:flex;gap:8px;align-items:center">${AV('M','#7a1c3e')}<span><b>Marco</b><br><span class="chipmini ok">Ha già pagato ✓</span></span></span></div></div>
+    <div class="card"><div class="r"><span style="display:flex;gap:8px;align-items:center">${AV('G','#8a5a0a')}<span><b>Giulia</b><br><span class="chipmini wait">Sta pagando…</span></span></span></div></div>
+    <div class="dashcard"><span style="font-size:16px">♥</span><span style="flex:1"><b style="font-size:12.5px">Offri tutto il tavolo</b><br><span class="m" style="font-size:10.5px">Paghi tu il conto intero</span></span><b class="big" style="color:#E32459">252€</b></div>
+    </div>${foot('46,00€')}</div>`;
 
-  if (v === 1) return `<div class="frame ${theme}">${HEAD}<div class="body" style="align-items:center;text-align:center">
-    <div class="tag" style="margin-top:14px">La tua parte</div>
-    <div class="big" style="font-size:54px;line-height:1">27,30€</div>
-    <div style="font-size:11.5px;color:var(--muted)">di 209€ del tavolo · <b style="color:var(--text)">2 piatti</b></div>
-    <div style="display:flex;gap:6px;margin-top:12px"><span class="pill off">Niente</span><span class="pill on">Mancia 5%</span><span class="pill off">10%</span><span class="pill off">+1€</span></div>
-    <div style="display:flex;gap:8px;margin-top:14px;width:100%;overflow:hidden">
-      <div class="method on" style="flex:none;width:64%"><span class="mlogo">b</span> byup pay <span style="margin-left:auto;font-size:10px;color:#0a8a3a;font-weight:800">−3% cashback</span></div>
-      <div class="method" style="flex:none;width:46%;opacity:.6"><span class="mlogo apay"></span> Apple Pay</div>
+  if (v === 1) return `<div class="frame ${theme}">${head()}<div class="body">
+    <div class="seg"><span class="on">La mia parte · 46€</span><span>Il tavolo · 209€</span></div>
+    <div class="card">
+      <div class="r"><b>Cacio e pepe</b><b>14,00€</b></div>
+      <div class="r" style="border-top:1px solid var(--line)"><span><b>Vino della casa</b> <span class="chipmini claim">½ con Marco</span></span><b>12,00€</b></div>
+      <div class="r" style="border-top:1px solid var(--line)"><span class="m">Coperto</span><span>2,00€</span></div>
+      <div class="r" style="border-top:1px solid var(--line)"><span class="m">Preso dal tavolo <span class="chipmini claim">2 caffè</span></span><span>3,00€</span></div>
     </div>
-    <div style="flex:1"></div></div>
-    <div class="cta"><span style="font-size:16px">⿻</span> Paga 27,30€ con Face ID</div><div class="ghost">Altre opzioni · tavolo intero</div></div>`;
+    <div class="card" style="background:var(--tint);border-style:dashed">
+      <div class="r"><span class="m" style="font-size:11.5px">💡 Nel tab <b style="color:var(--text)">Il tavolo</b> trovi i piatti del cameriere e degli altri: tocca <b style="color:#E32459">+</b> per pagarli tu.</span></div>
+    </div>
+    <div class="sect">Riepilogo</div>
+    <div class="card">
+      <div class="r"><span class="m">I miei piatti</span><span>44,00€</span></div>
+      <div class="r"><span class="m">Coperto</span><span>2,00€</span></div>
+      <div class="r" style="border-top:1px solid var(--line)"><b>Totale</b><b class="big" style="font-size:17px">46,00€</b></div>
+    </div>
+    </div>${foot('46,00€')}</div>`;
 
-  if (v === 2) return `<div class="frame ${theme}">${HEAD}<div class="body">
-    <div class="seg"><span class="on">Solo io</span><span>Tutto il tavolo</span></div>
-    <div class="receipt">
-      <div style="text-align:center" class="tag">Al Settembrini · 9 lug · 21:12</div>
-      <div class="zig"></div>
-      <div class="r"><span class="m">1× Cacio e pepe</span><span>14,00€</span></div>
-      <div class="r"><span class="m">½ Vino della casa</span><span>12,00€</span></div>
-      <div class="zig"></div>
-      <div class="r"><span class="m">Subtotale</span><span>26,00€</span></div>
-      <div class="r"><span class="m">Mancia 5%</span><span>1,30€</span></div>
-      <div class="r"><b>Totale</b><b class="big" style="font-size:18px">27,30€</b></div>
+  if (v === 2) return `<div class="frame ${theme}">${head()}<div class="body">
+    <div class="card" style="border-color:#E32459;border-width:1.5px">
+      <div class="r"><span style="display:flex;gap:8px;align-items:center">${AV('T','#E32459')}<b>Tu</b></span><b class="big" style="font-size:16px">46,00€</b></div>
+      <div class="r" style="padding-left:34px"><span class="m">Cacio e pepe</span><span>14,00€</span></div>
+      <div class="r" style="padding-left:34px"><span class="m">½ Vino della casa</span><span>12,00€</span></div>
+      <div class="r" style="padding-left:34px"><span class="m">Coperto + caffè</span><span>5,00€</span></div>
     </div>
-    <div class="method on"><span class="mlogo">b</span> byup pay <span class="radio on"></span></div>
-    <div class="method"><span class="mlogo apay"></span> Apple Pay <span class="radio"></span></div>
-    <div class="method"><span class="mlogo card">V</span> •••• 4412 <span class="radio"></span></div>
-    <div style="flex:1"></div></div>
-    <div class="cta">Paga 27,30€</div><div style="height:16px"></div></div>`;
+    <div class="card"><div class="r"><span style="display:flex;gap:8px;align-items:center">${AV('M','#7a1c3e','')}<span><b>Marco</b> <span class="chipmini ok">pagato ✓</span></span></span><span class="m strike">58,00€</span></div></div>
+    <div class="card"><div class="r"><span style="display:flex;gap:8px;align-items:center">${AV('G','#8a5a0a')}<span><b>Giulia</b> <span class="chipmini wait">sta pagando…</span></span></span><span class="m">72,00€</span></div></div>
+    <div class="card"><div class="r"><span style="display:flex;gap:8px;align-items:center">${AV('?','#777')}<span><b>Ospite 1</b><br><span class="m" style="font-size:10.5px">2 piatti · nessuno li ha presi</span></span></span><span style="display:flex;gap:6px;align-items:center"><b>20,00€</b><span class="plus">+</span></span></div></div>
+    <div class="card"><div class="r"><span style="display:flex;gap:8px;align-items:center">${AV('🍽','#4a4046')}<span><b>Cameriere</b><br><span class="m" style="font-size:10.5px">8 voci del tavolo · 37€</span></span></span><span class="m">›</span></div></div>
+    <div class="r" style="justify-content:center"><span class="m" style="font-size:11.5px">♥ <u>Offri tutto il tavolo · 252€</u></span></div>
+    </div>${foot('46,00€')}</div>`;
 
-  return `<div class="frame ${theme}">${HEAD}<div class="body" style="align-items:center;text-align:center">
-    <div style="display:flex;gap:14px;align-items:center;margin-top:10px">
-      <div><div class="tag">Da pagare</div><div class="big" style="font-size:40px">27,30€</div></div>
-      <div class="fid">⿻</div>
+  return `<div class="frame ${theme}">${head()}<div class="body">
+    <div class="card" style="padding:9px 12px">
+      <div class="r" style="padding:0 0 6px"><span class="m" style="font-size:11px">Pagato dal tavolo</span><b style="font-size:11.5px">156 di 252€</b></div>
+      <div class="pbar"><i></i></div>
     </div>
-    <div class="avirow" style="margin-top:6px">
-      <span class="avi" style="background:#E32459;margin-left:0">T</span><span class="avi" style="background:#0a8a3a">M✓</span><span class="avi" style="background:#8a6d0a">G</span><span class="avi" style="background:#555">?</span>
-      <span style="font-size:10.5px;color:var(--muted);margin-left:8px">Marco ha già pagato · Giulia sta pagando</span>
+    <div class="sect">Spunta ciò che paghi tu <span class="a">tap = tuo</span></div>
+    <div class="card">
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check on">✓</span><b>Cacio e pepe</b></span><b>14,00€</b></div>
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check on">✓</span><span><b>Vino della casa</b> <span class="chipmini claim">½</span></span></span><b>12,00€</b></div>
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check on">✓</span><span class="m">Coperto</span></span><span>2,00€</span></div>
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check"></span><span><b>Tagliere misto</b> <span class="chipmini claim">di Ospite 1</span></span></span><span>12,00€</span></div>
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check"></span><span><b>2× Caffè</b> <span class="chipmini claim">del tavolo</span></span></span><span>3,00€</span></div>
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check done">✓</span><span class="strike">Carbonara · Marco</span></span><span class="strike">15,00€</span></div>
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check done">✓</span><span class="strike">Tiramisù · Marco</span></span><span class="strike">8,00€</span></div>
+      <div class="r"><span style="display:flex;gap:8px;align-items:center"><span class="check wait" style="border-color:#b8860b;color:#b8860b">⏳</span><span class="m">Saltimbocca · Giulia</span></span><span class="m">22,00€</span></div>
     </div>
-    <div class="card" style="width:100%;box-sizing:border-box"><div class="r"><span style="display:flex;align-items:center;gap:8px"><span class="mlogo">b</span> byup pay · saldo 12€ + carta</span><span style="color:#E32459;font-weight:800;font-size:11.5px">⌄</span></div></div>
-    <div style="display:flex;gap:6px"><span class="pill on">Mancia +1€</span><span class="pill off">+2€</span><span class="pill off">Niente</span></div>
-    <div style="flex:1"></div></div>
-    <div class="slider"><span class="knob">➔</span>Scorri per pagare 28,30€</div><div class="ghost">Vedi il dettaglio · tavolo intero</div></div>`;
+    <div class="r" style="justify-content:center"><span class="m" style="font-size:11.5px">♥ <u>Spunta tutto · offri il tavolo</u></span></div>
+    </div>${foot('46,00€ · 3 voci')}</div>`;
 }
 
 const root = document.getElementById('root');
