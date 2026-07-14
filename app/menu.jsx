@@ -550,7 +550,9 @@ function CatBand({ name, count, index = 0, total = 5 }) {
   return (
     <div ref={ref} style={{
       margin: '32px -18px 18px', padding: '24px 18px 20px', position: 'relative', overflow: 'hidden',
-      background: `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`,
+      background: __BYUP_DARK
+        ? 'linear-gradient(115deg, rgba(246,236,233,.08) 0%, rgba(246,236,233,0) 82%)'
+        : `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`,
     }}>
       {/* numero-capitolo fantasma */}
       <div aria-hidden style={{
@@ -760,7 +762,7 @@ function MenuScreen({ state, setState, goTo }) {
   });
 
   // Quick add (no customization): merge with existing plain line, or create new
-  const addDish = (id) => { setState(s => { if (s.cart.length === 0) setSheetMode('expanded'); return s; }); setState(s => {
+  const addDish = (id) => { setState(s => {
     const existing = s.cart.find(i => i.dishId === id && !Object.keys(i.variants || {}).length && !Object.keys(i.extras || {}).length && !Object.keys(i.removed || {}).length);
     if (existing) return { ...s, cart: s.cart.map(i => i.lineId === existing.lineId ? { ...i, qty: i.qty + 1 } : i) };
     return { ...s, cart: [...s.cart, { lineId: id + '-' + Date.now(), dishId: id, qty: 1, variants: {}, extras: {}, removed: {} }] };
@@ -3050,6 +3052,79 @@ function applyPayments(setState, payments) {
   });
 }
 
+// CTA a scorrimento: trascina il pomello per pagare; TAP sul pomello per
+// ciclare la modalità (mia parte → alla romana → tutto il tavolo → mia parte).
+function SlideToPay({ mode, label, amount, disabled, onCycle, onPay }) {
+  const trackRef = useRef(null);
+  const [x, setX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
+  const moved = useRef(false);
+  const KNOB = 46;
+  const colors = {
+    mine:  { grad: CTA_GRAD, glow: '0 12px 26px -10px rgba(227,36,89,.62)', icon: 'arrow' },
+    split: { grad: 'linear-gradient(122deg,#f2a93b,#cf7d0f)', glow: '0 12px 26px -10px rgba(207,125,15,.6)', icon: 'split' },
+    all:   { grad: 'linear-gradient(122deg,#a92955,#4d122e)', glow: '0 12px 26px -10px rgba(77,18,46,.7)', icon: 'all' },
+  }[mode] || {};
+  const maxX = () => (trackRef.current ? trackRef.current.offsetWidth - KNOB - 10 : 220);
+  const onDown = (e) => {
+    if (disabled) return;
+    setDragging(true);
+    moved.current = false;
+    startX.current = (e.touches ? e.touches[0].clientX : e.clientX) - x;
+  };
+  useEffect(() => {
+    if (!dragging) return;
+    const mv = (e) => {
+      const cx = (e.touches ? e.touches[0].clientX : e.clientX) - startX.current;
+      const nx = Math.max(0, Math.min(maxX(), cx));
+      if (nx > 6) moved.current = true;
+      setX(nx);
+    };
+    const up = () => {
+      setDragging(false);
+      setX(cur => {
+        if (!moved.current) { onCycle && onCycle(); return 0; }
+        if (cur >= maxX() * 0.85) { onPay && onPay(); setTimeout(() => setX(0), 1400); return maxX(); }
+        return 0;
+      });
+    };
+    window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
+    window.addEventListener('touchmove', mv); window.addEventListener('touchend', up);
+    return () => {
+      window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up);
+      window.removeEventListener('touchmove', mv); window.removeEventListener('touchend', up);
+    };
+  }, [dragging]);
+  const icons = {
+    arrow: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>,
+    split: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="7.5" r="3"/><circle cx="16.5" cy="16.5" r="3"/><line x1="19" y1="5" x2="5" y2="19"/></svg>,
+    all: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/></svg>,
+  };
+  return (
+    <div ref={trackRef} style={{
+      position: 'relative', height: 56, borderRadius: 999, background: TINT,
+      border: `1.5px solid ${BORDER}`, overflow: 'hidden', userSelect: 'none',
+      opacity: disabled ? 0.55 : 1, touchAction: 'none',
+    }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: x + KNOB + 10,
+        background: colors.grad, opacity: 0.16, transition: dragging ? 'none' : 'width .3s' }}/>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', gap: 8, paddingLeft: 34, pointerEvents: 'none' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>{label}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>{amount.toFixed(2)}€</span>
+      </div>
+      <div onMouseDown={onDown} onTouchStart={onDown} style={{
+        position: 'absolute', left: 5 + x, top: 4, width: KNOB, height: KNOB, borderRadius: 999,
+        background: colors.grad, boxShadow: colors.glow,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: disabled ? 'default' : 'grab',
+        transition: dragging ? 'none' : 'left .3s cubic-bezier(.2,.9,.3,1), background .25s',
+      }}>{icons[colors.icon]}</div>
+    </div>
+  );
+}
+
 function PaymentScreen({ state, setState, goTo, goBack }) {
   const order = state.activeOrder;
   if (!order) return <div style={{padding: 80, textAlign: 'center', color: MUTED}}>Nessun ordine attivo.</div>;
@@ -3074,6 +3149,15 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const [recapCollapsed, setRecapCollapsed] = useState(false);
   // Sheet "Al tavolo": apre la lista commensali con badge ✓ ha l'app / ospite
   const [guestsOpen, setGuestsOpen] = useState(false);
+
+  // CTA a scorrimento: modalità ciclica e sheet "Dettagli pagamento"
+  const [ctaMode, setCtaMode] = useState('mine'); // 'mine' | 'split' | 'all'
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const cycleCtaMode = () => setCtaMode(m => {
+    const next = m === 'mine' ? 'split' : m === 'split' ? 'all' : 'mine';
+    setMode(next === 'all' ? 'all' : 'mine');
+    return next;
+  });
 
   const rejectSplit = (item) => {
     // Rimuove "me" da splitWith e cambia ownerId al proponente (primo dei splitWith)
@@ -3229,11 +3313,26 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const tipAmount = tipRound ? roundUpTip : baseForTip * tipPct;
   const total = baseForTip + tipAmount;
 
+  // "Alla romana": conto rimanente del tavolo diviso tra chi deve ancora pagare
+  const paidPeopleCount = new Set(Object.values(paidLineIds)).size;
+  const remainingPeople = Math.max(1, covers - paidPeopleCount);
+  const splitBase = (tableRemaining(order) + COVER * remainingPeople) / remainingPeople;
+  const splitRoundTip = Math.round((Math.ceil(splitBase) - splitBase) * 100) / 100;
+  const splitTip = tipRound ? splitRoundTip : splitBase * tipPct;
+  const splitTotal = splitBase + splitTip;
+  const ctaTotal = ctaMode === 'split' ? splitTotal : total;
+
   const proceed = () => {
     // Costruisco i pagamenti per-riga con l'importo effettivo (quota), non l'intero.
     const settled = seedSettled(order);
     const payments = [];
-    if (mode === 'all') {
+    if (ctaMode === 'split') {
+      // quota equa: pago 1/N di ogni riga ancora aperta
+      order.items.forEach(it => {
+        const rem = lineRemaining(order, it, settled);
+        if (rem > 0.001) payments.push({ lineId: it.lineId, amount: rem / remainingPeople });
+      });
+    } else if (mode === 'all') {
       order.items.forEach(it => {
         const rem = lineRemaining(order, it, settled);
         if (rem > 0.001) payments.push({ lineId: it.lineId, amount: rem });
@@ -3248,7 +3347,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     setState(s => ({
       ...s,
       payingExtras: selectedExtras,
-      payTotal: total,
+      payTotal: ctaTotal,
       payMode: mode,
       payTip: tipAmount,
       payCover: cover,
@@ -3259,7 +3358,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
   const payNow = () => {
-    if (paying || total <= 0) return;
+    if (paying || ctaTotal <= 0) return;
     setPaying(true);
     setTimeout(() => { proceed(); }, 5000);
   };
@@ -3326,175 +3425,98 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
       {/* Contenuto scrollabile */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 280 }}>
-        {/* I miei piatti — nascosta in rientro post-pagamento quando non c'è nulla di mio rimasto */}
+        {/* Card "Tu" — in bold solo nome e totale, righe piatti regular */}
         {!(mode === 'mine' && myItems.length === 0 && extraItems.length === 0 && tableItems.length > 0) && (
-        <div style={{ padding: '24px 22px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>
-              {mode === 'all' ? 'Tutto il tavolo' : 'I miei piatti'}
+        <div style={{ padding: '20px 22px 0' }}>
+          <div style={{ background: SURF, borderRadius: 18, padding: '14px 16px 4px',
+            border: `1.5px solid ${WINE}2e`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 11 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: BADGE, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14.5, fontWeight: 800, flexShrink: 0 }}>T</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, flex: 1, letterSpacing: -0.3 }}>
+                {mode === 'all' ? 'Tu · offri il tavolo' : 'Tu'}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>
+                {(subtotal + cover).toFixed(2)}€</div>
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: TEXT }}>
-              {(mode === 'all' ? tableTotal : myDishesTotal).toFixed(2)}€
-            </div>
-          </div>
-          <div style={{ fontSize: 13, color: MUTED, marginBottom: 14 }}>
-            {mode === 'all'
-              ? 'Stai offrendo tu il conto. Bel gesto.'
-              : (myItems.length === 0 && myCoverPaid
-                ? 'Hai già saldato i tuoi piatti.'
-                : `${myItems.length} ${myItems.length === 1 ? 'piatto che hai ordinato' : 'piatti che hai ordinato'}.`)}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(mode === 'all' ? order.items : myItems).map(it => {
               const paid = isPaid(it.lineId);
               const splitN = (it.splitWith?.length || 0) + 1;
               const isShared = splitN > 1;
-              const myShare = isShared ? (it.price * it.qty) / splitN : it.price * it.qty;
+              const myShare = isShared && mode === 'mine' ? (it.price * it.qty) / splitN : it.price * it.qty;
               const sharedNames = isShared
                 ? (it.splitWith || []).map(gid => order.guests.find(g => g.id === gid)?.name?.split(' ')[0] || '?').join(', ')
                 : '';
               return (
-                <div key={it.lineId} style={{
-                  background: paid ? TINT : SURF, borderRadius: 14, padding: '14px',
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  boxShadow: paid ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
-                  border: paid ? '1px solid #d4e9dc' : '1px solid transparent',
-                }}>
-                  {paid && (
-                    <div style={{
-                      width: 24, height: 24, borderRadius: 999, background: '#1c8c5b',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: paid ? MUTED : TEXT }}>{it.name}</div>
+                <div key={it.lineId} style={{ display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14.5, color: paid ? MUTED : TEXT,
+                      textDecoration: paid ? 'line-through' : 'none' }}>{it.name}</span>
+                    {it.qty > 1 && <span style={{ fontSize: 12, color: MUTED }}>×{it.qty}</span>}
                     {isShared && !paid && mode === 'mine' && (
-                      <div
-                        onClick={(e) => { e.stopPropagation(); setSplitInfo({ item: it, names: sharedNames, splitN, myShare }); }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          background: TINT, color: WINE,
-                          padding: '3px 9px', borderRadius: 999,
-                          fontSize: 11, fontWeight: 700, marginTop: 4,
-                          letterSpacing: 0.2, cursor: 'pointer',
-                        }}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                          <circle cx="9" cy="7" r="4"/>
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                        Diviso in {splitN}
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 1, opacity: 0.7 }}>
-                          <circle cx="12" cy="12" r="10"/>
-                          <line x1="12" y1="16" x2="12" y2="12"/>
-                          <line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
-                      </div>
+                      <span onClick={(e) => { e.stopPropagation(); setSplitInfo({ item: it, names: sharedNames, splitN, myShare }); }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: TINT, color: WINE,
+                          padding: '2.5px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        {splitN === 2 ? '½' : `1/${splitN}`} con {sharedNames}
+                      </span>
                     )}
-                    {!isShared && paid && (
-                      <div style={{ fontSize: 12, color: '#1c8c5b', marginTop: 3, fontWeight: 700 }}>
-                        ✓ già pagato
-                      </div>
-                    )}
-                    {!isShared && !paid && it.qty > 1 && (
-                      <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>
-                        {it.qty}× · {it.price}€ cad.
-                      </div>
-                    )}
-                    {isShared && paid && (
-                      <div style={{ fontSize: 12, color: '#1c8c5b', marginTop: 3, fontWeight: 700 }}>
-                        ✓ già pagato
-                      </div>
-                    )}
+                    {paid && <span style={{ fontSize: 11, color: '#1c8c5b', fontWeight: 700 }}>✓ pagato</span>}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: paid ? MUTED : TEXT }}>
-                      {(mode === 'mine' ? myShare : it.price * it.qty).toFixed(2)}€
-                    </div>
-                    {isShared && mode === 'mine' && !paid && (
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 1, fontWeight: 500 }}>
-                        ({(it.price * it.qty).toFixed(0)}€ tot)
-                      </div>
-                    )}
-                  </div>
+                  <span style={{ fontSize: 14.5, color: paid ? MUTED : TEXT, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                    {myShare.toFixed(2)}€</span>
                 </div>
               );
             })}
-            {myItems.length === 0 && tableItems.length === 0 && (
-              <div style={{
-                background: SURF, borderRadius: 14, padding: '28px 18px',
-                fontSize: 13.5, color: MUTED, textAlign: 'center',
-              }}>
-                <div style={{ fontSize: 30, color: '#1c8c5b', marginBottom: 6 }}>✓</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: TEXT, marginBottom: 4 }}>Niente da pagare</div>
-                <div>Non hai piatti tuoi sul conto.</div>
+            {mode === 'mine' && extraItems.map(it => {
+              const isTable = it.ownerId === 'table';
+              const sp = isTable ? tableSplits[it.lineId] : null;
+              const share = extraShareFor(it);
+              return (
+                <div key={'x-' + it.lineId} style={{ display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14.5, color: TEXT }}>{it.name}</span>
+                    <span style={{ background: TINT, color: WINE, padding: '2.5px 9px', borderRadius: 999,
+                      fontSize: 11, fontWeight: 700 }}>{isTable ? 'dal tavolo' : `di ${ownerLabel(it.ownerId)}`}</span>
+                    {isTable && (
+                      <span onClick={() => openSplitDish(it)} style={{ color: WINE, fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', textDecoration: 'underline' }}>
+                        {!sp ? 'dividi' : sp.kind === 'table' ? 'diviso col tavolo' : `diviso in ${(sp.people?.length || 0) + 1}`}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 14.5, color: TEXT, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{share.toFixed(2)}€</span>
+                  <button onClick={() => toggleExtra(it.lineId)} aria-label="Togli" style={{
+                    width: 22, height: 22, borderRadius: 999, border: 'none', background: TINT, color: WINE,
+                    fontSize: 14, lineHeight: 1, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                </div>
+              );
+            })}
+            {cover > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 14.5, color: MUTED }}>Coperto{mode === 'all' ? ` × ${covers}` : ''}</span>
+                <span style={{ fontSize: 14.5, color: MUTED, fontVariantNumeric: 'tabular-nums' }}>{cover.toFixed(2)}€</span>
               </div>
             )}
-                {extraItems.length > 0 && (
-                  <>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: 14, marginBottom: 4 }}>
-                      Aggiunti al tuo conto
-                    </div>
-                    {extraItems.map(it => {
-                      const isTable = it.ownerId === 'table';
-                      const sp = isTable ? tableSplits[it.lineId] : null;
-                      const lineTotal = it.price * it.qty;
-                      const share = extraShareFor(it);
-                      const splitLabel = !sp ? 'Dividi'
-                        : sp.kind === 'table' ? 'Diviso col tavolo'
-                        : `Diviso in ${(sp.people?.length || 0) + 1}`;
-                      return (
-                      <div key={'x-'+it.lineId} style={{
-                        background: SURF, borderRadius: 14, padding: '14px',
-                        border: `1px solid ${WINE}30`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                        display: 'flex', alignItems: 'center', gap: 12,
-                      }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{it.name}</div>
-                          <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-                            {isTable ? 'Dal tavolo' : `Da ${ownerLabel(it.ownerId)}`} · {lineTotal.toFixed(2)}€
-                            {sp && <span style={{ color: WINE, fontWeight: 700 }}> · tua quota {share.toFixed(2)}€</span>}
-                          </div>
-                          {isTable && (
-                            <button onClick={() => openSplitDish(it)} style={{
-                              marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5,
-                              padding: '5px 10px', borderRadius: 999,
-                              background: sp ? WINE : SURF,
-                              border: `1.5px solid ${WINE}`,
-                              color: sp ? '#fff' : WINE,
-                              fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-                            }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                              </svg>
-                              {splitLabel}
-                            </button>
-                          )}
-                        </div>
-                        <button onClick={() => toggleExtra(it.lineId)} aria-label="Togli dal mio conto" style={removeBtnStyle}>−</button>
-                      </div>
-                      );
-                    })}
-                  </>
-                )}
+            {myItems.length === 0 && extraItems.length === 0 && mode === 'mine' && (
+              <div style={{ padding: '14px 0', borderTop: `1px solid ${BORDER}`, fontSize: 13.5, color: MUTED, textAlign: 'center' }}>
+                ✓ Non hai piatti tuoi sul conto.
               </div>
-            </div>
             )}
+          </div>
+        </div>
+        )}
 
             {/* Ordini del tavolo — piatti aggiunti dal cameriere, da assegnare */}
             {mode === 'mine' && tablePending.length > 0 && (
               <div style={{ padding: '28px 22px 0' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 4 }}>
-                  Ordini del tavolo
+                  Il tavolo
                 </div>
                 <div style={{ fontSize: 13, color: MUTED, marginBottom: 14 }}>
-                  Tocca <span style={{ fontWeight: 700, color: WINE }}>+</span> sui piatti che vuoi pagare tu.
+                  Apri una card e tocca <span style={{ fontWeight: 700, color: WINE }}>+</span> sui piatti che offri tu.
                 </div>
                 <div style={{
                   background: SURF, borderRadius: 14, overflow: 'hidden',
@@ -3504,7 +3526,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                     padding: '14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                   }}>
                     <div style={{
-                      width: 36, height: 36, borderRadius: 999,
+                      width: 38, height: 38, borderRadius: 11,
                       background: TINT, color: WINE,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
@@ -3580,13 +3602,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
             {/* Aggiungi al mio conto */}
             {mode === 'mine' && Object.keys(groupByOwner).length > 0 && (
-              <div style={{ padding: '28px 22px 0' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 4 }}>
-                  Offri agli altri
-                </div>
-                <div style={{ fontSize: 13, color: MUTED, marginBottom: 14 }}>
-                  Vuoi offrire qualcosa? Scegli i piatti degli altri che paghi tu.
-                </div>
+              <div style={{ padding: '12px 22px 0' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {Object.entries(groupByOwner).map(([oid, items]) => {
                     const open = !!openOwners[oid];
@@ -3612,8 +3628,8 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                           cursor: frozen ? 'default' : 'pointer',
                         }}>
                           <div style={{
-                            width: 36, height: 36, borderRadius: 999,
-                            background: oid === 'table' ? TINT : (guest?.isGuest ? '#ebe3d6' : BADGE),
+                            width: 38, height: 38, borderRadius: 11,
+                            background: oid === 'table' ? TINT : (guest?.isGuest ? MUTESURF : BADGE),
                             color: oid === 'table' ? WINE : (guest?.isGuest ? MUTED : '#fff'),
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 13, fontWeight: 700, position: 'relative',
@@ -3716,99 +3732,46 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               </div>
             )}
 
-            {/* Offri tutto il tavolo */}
-            {mode === 'mine' && otherItems.length > 0 && (
-              <div style={{ padding: '24px 22px 0' }}>
-                <button onClick={() => setMode('all')} style={{
-                  width: '100%', background: SURF, borderRadius: 14,
-                  padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 14,
-                  border: `1.5px dashed ${WINE}40`, cursor: 'pointer',
-                  fontFamily: 'inherit', textAlign: 'left',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 12,
-                    background: TINT, color: WINE,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, letterSpacing: -0.2 }}>
-                      Offri tutto il tavolo
-                    </div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2, lineHeight: 1.4 }}>
-                      Paghi tu il conto intero per tutti
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: WINE }}>
-                      {tableTotal.toFixed(2)}€
-                    </div>
-                    <div style={{ fontSize: 11, color: MUTED, marginTop: 2, fontWeight: 600 }}>→</div>
-                  </div>
-                </button>
-              </div>
-            )}
-
-            {/* Torna a "la mia parte" se in mode all */}
-            {mode === 'all' && (
-              <div style={{ padding: '20px 22px 0', display: 'flex', justifyContent: 'center' }}>
-                <button onClick={() => setMode('mine')} style={{
-                  padding: '10px 20px', background: SURF, border: `1.5px solid ${BORDER}`,
-                  borderRadius: 999, fontSize: 13, color: TEXT, fontWeight: 600, fontFamily: 'inherit',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                  Torna a "La mia parte"
-                </button>
-              </div>
-            )}
       </div>
 
-      {/* Receipt sticky bottom */}
+            {/* Footer: CTA a scorrimento + dettagli pagamento */}
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
         background: SURF, borderTop: `1px solid ${BORDER}`,
         boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+        padding: '12px 16px calc(10px + env(safe-area-inset-bottom, 0px))',
       }}>
-        {/* Handle per collassare/espandere il pannello */}
-        <button onClick={() => setRecapCollapsed(c => !c)} style={{
-          width: '100%', padding: '8px 0 6px', background: 'transparent',
-          border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        }} aria-label={recapCollapsed ? 'Mostra dettagli' : 'Nascondi dettagli'}>
-          <span style={{
-            width: 40, height: 4, borderRadius: 999, background: '#d8d2c4',
-          }}/>
-          {recapCollapsed && (
-            <span style={{ fontSize: 10.5, color: MUTED, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase' }}>
-              Mostra dettagli
-            </span>
-          )}
-        </button>
+        <SlideToPay
+          mode={ctaMode}
+          label={ctaMode === 'mine' ? 'Scorri per pagare' : ctaMode === 'split' ? 'Alla romana · tua quota' : 'Paga tutto il tavolo'}
+          amount={ctaTotal}
+          disabled={paying || ctaTotal <= 0}
+          onCycle={cycleCtaMode}
+          onPay={payNow}
+        />
+        <button onClick={() => setDetailsOpen(true)} style={{
+          display: 'block', width: '100%', marginTop: 7, padding: '8px 0', background: 'none', border: 'none',
+          color: MUTED, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+        }}>Dettagli pagamento · mancia e metodo</button>
+      </div>
 
-        {/* Recap integrato con mancia inline */}
-        {!recapCollapsed && (
-        <>
-        <div style={{ padding: '6px 16px 8px', fontSize: 13 }}>
-          {(mode === 'all' || subtotal > 0) && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: MUTED, marginBottom: 6 }}>
-              <span>{mode === 'all' ? 'Tutto il tavolo' : (extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti')}</span>
-              <span style={{ fontWeight: 600, color: TEXT }}>{subtotal.toFixed(2)}€</span>
-            </div>
-          )}
-          {cover > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: MUTED, marginBottom: 6 }}>
-              <span>Coperto{mode === 'all' ? ` × ${covers}` : ''}</span>
-              <span style={{ fontWeight: 600, color: TEXT }}>{cover.toFixed(2)}€</span>
-            </div>
-          )}
-
+      {/* Sheet "Dettagli pagamento": riepilogo, mancia, metodo */}
+      {detailsOpen && (
+        <div onClick={() => setDetailsOpen(false)} style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 90,
+          display: 'flex', alignItems: 'flex-end',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            padding: '10px 0 calc(18px + env(safe-area-inset-bottom, 0px))',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: MUTESURF, margin: '0 auto 12px' }}/>
+            <div style={{ padding: '0 16px 8px', fontSize: 13 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: TEXT, marginBottom: 12 }}>Dettagli pagamento</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: MUTED, marginBottom: 6 }}>
+                <span>{ctaMode === 'split' ? `Alla romana (1/${remainingPeople} del rimanente)` : mode === 'all' ? 'Tutto il tavolo' : (extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti')}</span>
+                <span style={{ fontWeight: 600, color: TEXT }}>{(ctaMode === 'split' ? splitBase : subtotal + cover).toFixed(2)}€</span>
+              </div>
           {/* Mancia inline */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
             <span style={{ color: MUTED, flexShrink: 0 }}>Mancia</span>
@@ -3868,28 +3831,23 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: WINE }}>Cambia</span>
         </div>
-        </>
-        )}
 
-        {/* CTA con totale */}
-        <div style={{ padding: '4px 16px 8px' }}>
-          <button onClick={payNow} disabled={total <= 0 || paying} style={{
-            width: '100%', height: 54, borderRadius: 999, border: 'none',
-            background: total <= 0 ? CTA_DEAD : CTA_GRAD, color: '#fff',
-            fontSize: 15, fontWeight: 800, fontFamily: 'inherit', letterSpacing: '.01em',
-            cursor: total <= 0 ? 'default' : 'pointer',
-            boxShadow: total <= 0 ? 'none' : CTA_GLOW,
-            transition: 'transform 150ms cubic-bezier(.34,1.45,.64,1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 22px',
-          }}>
-            <span>{mode === 'all' ? 'Paga per il tavolo' : 'Paga ora'}</span>
-            <span style={{ fontSize: 17, fontWeight: 800 }}>{total.toFixed(2)}€</span>
-          </button>
+        <div style={{ padding: '4px 16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: TEXT }}>Totale</span>
+          <span style={{ fontSize: 19, fontWeight: 800, color: TEXT }}>{ctaTotal.toFixed(2)}€</span>
         </div>
-      </div>
+        <div style={{ padding: '10px 16px 0' }}>
+          <button onClick={() => setDetailsOpen(false)} style={{
+            width: '100%', height: 48, borderRadius: 999, border: `1.5px solid ${BORDER}`,
+            background: 'transparent', color: TEXT, fontSize: 14, fontWeight: 800,
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}>Fatto</button>
+        </div>
+          </div>
+        </div>
+      )}
 
-      {/* Sheet "Al tavolo" — chi è loggato e chi è ospite */}
+            {/* Sheet "Al tavolo" — chi è loggato e chi è ospite */}
       {guestsOpen && (
         <GuestsSheet
           order={order}
@@ -4221,10 +4179,10 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                 }}>
                   <div style={{
-                    width: 36, height: 36, borderRadius: 8,
+                    width: 36, height: 36, borderRadius: 10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: m.id === 'klarna' ? '#ffb3c7' : SURF,
-                    border: m.id === 'klarna' ? 'none' : 'none',
+                    background: m.id === 'klarna' ? '#ffb3c7' : (__BYUP_DARK ? '#f6f1ea' : TINT),
+                    border: 'none',
                   }}>{m.icon}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14.5, fontWeight: 700, color: TEXT }}>{m.name}</div>
@@ -4232,7 +4190,7 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
                   </div>
                   <div style={{
                     width: 22, height: 22, borderRadius: 999,
-                    border: sel ? `6px solid ${PINK}` : `1.5px solid ${BORDER}`,
+                    border: sel ? `6px solid ${PINK}` : `1.5px solid ${__BYUP_DARK ? 'rgba(246,236,233,.4)' : BORDER}`,
                     background: sel ? SURF : 'transparent',
                     boxSizing: 'border-box',
                     transition: 'border-color 160ms ease',

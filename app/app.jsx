@@ -2430,7 +2430,7 @@ function HomeSections({
 
           {/* byup pay — metodo di pagamento */}
           <SectionHeader title="Paga in un tap"/>
-          <PaymentCard onClick={() => { window.location.href = 'byup Menu.html#paymethod'; }}/>
+          <PaymentCard onClick={() => { try { sessionStorage.setItem('byup_menu_route', 'paymethod'); sessionStorage.setItem('byup_menu_premium', '1'); } catch {} setPage('menu'); }}/>
 
           {/* Mappa full-bleed — il secondo scroll a fine pagina la apre */}
           <SectionHeader title="Qui intorno"/>
@@ -3361,14 +3361,14 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
 const ROAD_CUR = 3;
 // Posizioni sulle piazzole vuote della nuova mappa food-city (864×1821)
 const ROAD_P = [
-  { lvl: 1, left: 0.5425, top: 0.7753, w: 0.343,  pcx: 0.714, pcy: 0.878, pw: 0.361 },
-  { lvl: 2, left: 0.142,  top: 0.6687, w: 0.308,  pcx: 0.296, pcy: 0.761, pw: 0.324 },
-  { lvl: 3, left: 0.577,  top: 0.5343, w: 0.286,  pcx: 0.720, pcy: 0.620, pw: 0.301 },
-  { lvl: 4, left: 0.2107, top: 0.4883, w: 0.2727, pcx: 0.347, pcy: 0.570, pw: 0.287 },
-  { lvl: 5, left: 0.5883, top: 0.3239, w: 0.2774, pcx: 0.727, pcy: 0.407, pw: 0.292 },
-  { lvl: 6, left: 0.1888, top: 0.2278, w: 0.2945, pcx: 0.336, pcy: 0.316, pw: 0.310 },
-  { lvl: 7, left: 0.5691, top: 0.0918, w: 0.3078, pcx: 0.723, pcy: 0.184, pw: 0.324 },
-  { lvl: 8, left: 0.2173, top: 0.0259, w: 0.2774, pcx: 0.356, pcy: 0.109, pw: 0.292 },
+  { lvl: 1, left: 0.5885, top: 0.8143, w: 0.2556, pcx: 0.7163, pcy: 0.8909, pw: 0.269 },
+  { lvl: 2, left: 0.1796, top: 0.6806, w: 0.2679, pcx: 0.3135, pcy: 0.7609, pw: 0.282 },
+  { lvl: 3, left: 0.5843, top: 0.5683, w: 0.2907, pcx: 0.7296, pcy: 0.6554, pw: 0.306 },
+  { lvl: 4, left: 0.196,  top: 0.465,  w: 0.2594, pcx: 0.3257, pcy: 0.5428, pw: 0.273 },
+  { lvl: 5, left: 0.5837, top: 0.3674, w: 0.2594, pcx: 0.7134, pcy: 0.4452, pw: 0.273 },
+  { lvl: 6, left: 0.1709, top: 0.2331, w: 0.3164, pcx: 0.3291, pcy: 0.3279, pw: 0.333 },
+  { lvl: 7, left: 0.5715, top: 0.1354, w: 0.3078, pcx: 0.7254, pcy: 0.2276, pw: 0.324 },
+  { lvl: 8, left: 0.1825, top: 0.0368, w: 0.2945, pcx: 0.3297, pcy: 0.125,  pw: 0.310 },
 ];
 const ROAD_RA = 864 / 1821;
 // Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta
@@ -3593,6 +3593,7 @@ function App({ recoveryArmed = false }) {
   });
   const [bookingOpen, setBookingOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [, setMenuTick] = useState(0); // retry render quando menu.jsx arriva
   // booking della sessione corrente: NON sopravvive al refresh.
   // Parte sempre da null e ripulisce eventuali residui in localStorage.
   const [savedBooking, setSavedBooking] = useState(null);
@@ -3676,7 +3677,14 @@ function App({ recoveryArmed = false }) {
 
   if (page === 'menu') {
     const MA = window.MenuApp;
-    return MA ? <MA/> : null;
+    if (!MA) {
+      // menu.jsx si carica dopo app.jsx: riprovo appena disponibile (deep-link)
+      setTimeout(() => setMenuTick(t => t + 1), 150);
+      return null;
+    }
+    let init = null;
+    try { init = sessionStorage.getItem('byup_menu_route'); if (init) sessionStorage.removeItem('byup_menu_route'); } catch {}
+    return <MA initial={init || undefined}/>;
   }
   if (page === 'byuppini') {
     return (
