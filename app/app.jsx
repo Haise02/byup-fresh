@@ -1905,15 +1905,47 @@ function StackCard({ item, dim }) {
           <div style={{ fontFamily: BK.TYPE.display, fontSize: 19, fontWeight: 600, lineHeight: 1 }}>{item.discount}</div>
         </div>
       )}
-      <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, color: '#fff' }}>
-        <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, lineHeight: 1.15 }}>{item.title}</div>
-        <div style={{ fontFamily: BK.TYPE.sans, fontSize: 12.5, opacity: .9, marginTop: 2 }}>{item.place}</div>
-        {(item.time || item.hours) && (
-          <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon.Clock size={11} color="#fff"/> {item.time || item.hours}
+      {(() => {
+        const st = item.status || (item.kind === 'promo'
+          ? { tone: 'live', label: 'Attiva ora' }
+          : { tone: 'soon', label: item.time ? `Dalle ${item.time}` : 'In arrivo' });
+        const dot = st.tone === 'live' ? '#3ddc7f' : st.tone === 'soon' ? '#ffc839' : '#ff6b6b';
+        return (
+          <div style={{
+            position: 'absolute', left: 9, right: 9, bottom: 9, color: '#fff',
+            borderRadius: 18, padding: '10px 12px 11px',
+            background: 'rgba(255,255,255,0.2)',
+            border: '1px solid rgba(255,255,255,0.34)',
+            backdropFilter: 'blur(18px) saturate(180%)', WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+            boxShadow: '0 10px 26px -12px rgba(20,8,12,.5)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0, fontFamily: BK.TYPE.display, fontSize: 18.5, fontWeight: 600,
+                lineHeight: 1.12, textShadow: '0 2px 10px rgba(20,8,12,.35)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
+              <div style={{
+                width: 32, height: 32, borderRadius: 999, background: '#fff', flexShrink: 0,
+                display: 'grid', placeItems: 'center', boxShadow: '0 6px 14px -6px rgba(20,8,12,.4)',
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PINK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/>
+                </svg>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6,
+              fontFamily: BK.TYPE.sans, fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,.95)' }}>
+              <span style={{ width: 7, height: 7, borderRadius: 999, background: dot, flexShrink: 0,
+                boxShadow: `0 0 8px ${dot}` }}/>
+              <span style={{ whiteSpace: 'nowrap' }}>{st.label}</span>
+              <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)', flexShrink: 0 }}/>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#FFC839" stroke="none" style={{ flexShrink: 0 }}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span style={{ whiteSpace: 'nowrap', color: 'rgba(255,255,255,.9)' }}>{item.rating || '4.6'}{item.reviews ? ` (${item.reviews})` : ''}</span>
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
       {dim && <div style={{ position: 'absolute', inset: 0, background: 'rgba(251,244,241,.16)' }}/>}
     </div>
   );
@@ -2228,12 +2260,16 @@ function HomeSections({
   // Eventi + promo fused into one carousel ("Da scoprire")
   const explore = [
     { kind: 'event', title: 'Live Jazz', place: 'Blue Note', date: { month: 'GEN', day: '07' }, time: '22:00',
+      rating: 4.5, reviews: 78, status: { tone: 'soon', label: 'Stasera · 22:00' },
       photo: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=600&q=70&auto=format&fit=crop' },
     { kind: 'promo', title: 'Aperitivo 2x1', place: 'Lounge 22', discount: '2x1', hours: 'Oggi · 18-21',
+      rating: 4.6, reviews: 132, status: { tone: 'live', label: 'Attiva · fino alle 21' },
       photo: 'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=600&q=70&auto=format&fit=crop' },
     { kind: 'event', title: 'Veglione', place: "All'Impronta", date: { month: 'DIC', day: '31' }, time: '20:30',
+      rating: 4.8, reviews: 210, status: { tone: 'soon', label: 'Il 31 · 20:30' },
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
     { kind: 'promo', title: 'Cena natalizia', place: 'Da Mario', discount: '-20%', hours: 'Oggi · 19-23:30',
+      rating: 4.4, reviews: 96, status: { tone: 'live', label: 'Attiva · 19-23:30' },
       photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=70&auto=format&fit=crop' },
   ];
   const click = (item) => onCardClick?.(item);
