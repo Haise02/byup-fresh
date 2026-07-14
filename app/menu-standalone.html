@@ -29191,8 +29191,9 @@ function applyPayments(setState, payments) {
   });
 }
 
-// CTA a scorrimento: trascina il pomello per pagare; TAP sul pomello per
-// ciclare la modalità (mia parte → alla romana → tutto il tavolo → mia parte).
+// CTA a scorrimento (v2, Pointer Events: niente doppi tap su mobile).
+// TAP sul pomello → cicla modalità con morphing di icona/colore.
+// DRAG → riempimento progressivo, rilascio elastico o pagamento con check.
 function SlideToPay({
   mode,
   label,
@@ -29204,69 +29205,68 @@ function SlideToPay({
   const trackRef = useRef(null);
   const [x, setX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [phase, setPhase] = useState('idle'); // 'idle' | 'success'
+  const [pulse, setPulse] = useState(0);
   const startX = useRef(0);
   const moved = useRef(false);
   const KNOB = 46;
-  const colors = {
+  const themes = {
     mine: {
       grad: CTA_GRAD,
-      glow: '0 12px 26px -10px rgba(227,36,89,.62)',
-      icon: 'arrow'
+      glow: '0 12px 26px -10px rgba(227,36,89,.65)'
     },
     split: {
       grad: 'linear-gradient(122deg,#f2a93b,#cf7d0f)',
-      glow: '0 12px 26px -10px rgba(207,125,15,.6)',
-      icon: 'split'
+      glow: '0 12px 26px -10px rgba(207,125,15,.65)'
     },
     all: {
       grad: 'linear-gradient(122deg,#a92955,#4d122e)',
-      glow: '0 12px 26px -10px rgba(77,18,46,.7)',
-      icon: 'all'
+      glow: '0 12px 26px -10px rgba(77,18,46,.75)'
     }
-  }[mode] || {};
+  };
+  const t = themes[mode] || themes.mine;
   const maxX = () => trackRef.current ? trackRef.current.offsetWidth - KNOB - 10 : 220;
-  const onDown = e => {
-    if (disabled) return;
+  const progress = Math.min(1, x / Math.max(1, maxX()));
+  const onPointerDown = e => {
+    if (disabled || phase === 'success') return;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
     setDragging(true);
     moved.current = false;
-    startX.current = (e.touches ? e.touches[0].clientX : e.clientX) - x;
+    startX.current = e.clientX - x;
   };
-  useEffect(() => {
+  const onPointerMove = e => {
     if (!dragging) return;
-    const mv = e => {
-      const cx = (e.touches ? e.touches[0].clientX : e.clientX) - startX.current;
-      const nx = Math.max(0, Math.min(maxX(), cx));
-      if (nx > 6) moved.current = true;
-      setX(nx);
-    };
-    const up = () => {
-      setDragging(false);
-      setX(cur => {
-        if (!moved.current) {
-          onCycle && onCycle();
-          return 0;
-        }
-        if (cur >= maxX() * 0.85) {
-          onPay && onPay();
-          setTimeout(() => setX(0), 1400);
-          return maxX();
-        }
-        return 0;
-      });
-    };
-    window.addEventListener('mousemove', mv);
-    window.addEventListener('mouseup', up);
-    window.addEventListener('touchmove', mv);
-    window.addEventListener('touchend', up);
-    return () => {
-      window.removeEventListener('mousemove', mv);
-      window.removeEventListener('mouseup', up);
-      window.removeEventListener('touchmove', mv);
-      window.removeEventListener('touchend', up);
-    };
-  }, [dragging]);
+    const nx = Math.max(0, Math.min(maxX(), e.clientX - startX.current));
+    if (nx > 8) moved.current = true;
+    setX(nx);
+  };
+  const onPointerUp = () => {
+    if (!dragging) return;
+    setDragging(false);
+    if (!moved.current) {
+      // TAP singolo: cicla la modalità (pointer events → mai doppio evento)
+      setX(0);
+      setPulse(p => p + 1);
+      onCycle && onCycle();
+      return;
+    }
+    setX(cur => {
+      if (cur >= maxX() * 0.82) {
+        setPhase('success');
+        onPay && onPay();
+        setTimeout(() => {
+          setPhase('idle');
+          setX(0);
+        }, 2800);
+        return maxX();
+      }
+      return 0; // rientro elastico via transition
+    });
+  };
   const icons = {
-    arrow: /*#__PURE__*/React.createElement("svg", {
+    mine: /*#__PURE__*/React.createElement("svg", {
       width: "20",
       height: "20",
       viewBox: "0 0 24 24",
@@ -29323,27 +29323,50 @@ function SlideToPay({
     ref: trackRef,
     style: {
       position: 'relative',
-      height: 56,
+      height: 58,
       borderRadius: 999,
       background: TINT,
       border: `1.5px solid ${BORDER}`,
       overflow: 'hidden',
       userSelect: 'none',
-      opacity: disabled ? 0.55 : 1,
-      touchAction: 'none'
+      touchAction: 'none',
+      opacity: disabled ? 0.55 : 1
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("style", null, `
+        @keyframes stpIconIn{0%{transform:scale(.25) rotate(-120deg);opacity:0}55%{transform:scale(1.22) rotate(10deg);opacity:1}80%{transform:scale(.94) rotate(-3deg)}100%{transform:scale(1) rotate(0)}}
+        @keyframes stpLabelIn{0%{transform:translateY(10px);opacity:0}100%{transform:none;opacity:1}}
+        @keyframes stpRing{0%{opacity:1;transform:scale(.6)}100%{opacity:0;transform:scale(2.1)}}
+        @keyframes stpShimmer{0%,55%{transform:translateX(-160%) skewX(-18deg)}100%{transform:translateX(380%) skewX(-18deg)}}
+        @keyframes stpChev{0%,100%{opacity:.15;transform:translateX(0)}50%{opacity:.85;transform:translateX(3px)}}
+        @keyframes stpDone{0%{transform:scale(.3) rotate(-40deg);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1) rotate(0);opacity:1}}
+        @keyframes stpBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+      `), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
     style: {
       position: 'absolute',
       left: 0,
       top: 0,
       bottom: 0,
       width: x + KNOB + 10,
-      background: colors.grad,
-      opacity: 0.16,
-      transition: dragging ? 'none' : 'width .3s'
+      background: t.grad,
+      opacity: phase === 'success' ? 0.96 : 0.12 + progress * 0.5,
+      transition: dragging ? 'opacity .1s' : 'width .5s cubic-bezier(.22,1.35,.36,1), opacity .35s, background .35s'
+    }
+  }), !dragging && phase === 'idle' && x === 0 && /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '34%',
+      height: '100%',
+      background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.10), transparent)',
+      animation: 'stpShimmer 3.4s ease-in-out infinite',
+      pointerEvents: 'none'
     }
   }), /*#__PURE__*/React.createElement("div", {
+    key: mode + phase,
+    "aria-hidden": true,
     style: {
       position: 'absolute',
       inset: 0,
@@ -29351,10 +29374,20 @@ function SlideToPay({
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      paddingLeft: 34,
-      pointerEvents: 'none'
+      paddingLeft: 38,
+      pointerEvents: 'none',
+      animation: 'stpLabelIn .32s cubic-bezier(.2,.9,.3,1.2) both',
+      opacity: dragging ? Math.max(0, 1 - progress * 1.7) : 1,
+      transition: 'opacity .12s'
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, phase === 'success' ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: '#fff',
+      letterSpacing: .2
+    }
+  }, "Pagamento in corso\u2026") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
       fontWeight: 700,
@@ -29367,25 +29400,76 @@ function SlideToPay({
       color: TEXT,
       fontVariantNumeric: 'tabular-nums'
     }
-  }, amount.toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("div", {
-    onMouseDown: onDown,
-    onTouchStart: onDown,
+  }, amount.toFixed(2), "\u20AC"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      marginLeft: 2
+    }
+  }, [0, 1, 2].map(i => /*#__PURE__*/React.createElement("svg", {
+    key: i,
+    width: "9",
+    height: "12",
+    viewBox: "0 0 8 12",
+    style: {
+      animation: `stpChev 1.7s ${i * 0.18}s ease-in-out infinite`
+    }
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M1.5 1.5 6 6l-4.5 4.5",
+    fill: "none",
+    stroke: MUTED,
+    strokeWidth: "2",
+    strokeLinecap: "round"
+  })))))), /*#__PURE__*/React.createElement("div", {
+    onPointerDown: onPointerDown,
+    onPointerMove: onPointerMove,
+    onPointerUp: onPointerUp,
+    onPointerCancel: onPointerUp,
     style: {
       position: 'absolute',
       left: 5 + x,
-      top: 4,
+      top: 4.5,
       width: KNOB,
       height: KNOB,
       borderRadius: 999,
-      background: colors.grad,
-      boxShadow: colors.glow,
+      background: t.grad,
+      boxShadow: t.glow,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      cursor: disabled ? 'default' : 'grab',
-      transition: dragging ? 'none' : 'left .3s cubic-bezier(.2,.9,.3,1), background .25s'
+      cursor: disabled ? 'default' : dragging ? 'grabbing' : 'grab',
+      touchAction: 'none',
+      transition: dragging ? 'none' : 'left .5s cubic-bezier(.22,1.35,.36,1), background .35s, box-shadow .35s',
+      animation: !dragging && phase === 'idle' ? 'stpBreath 3.2s ease-in-out infinite' : 'none'
     }
-  }, icons[colors.icon]));
+  }, pulse > 0 && phase === 'idle' && /*#__PURE__*/React.createElement("span", {
+    key: pulse,
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 999,
+      border: '2.5px solid rgba(255,255,255,.75)',
+      animation: 'stpRing .55s ease-out both',
+      pointerEvents: 'none'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    key: mode + phase,
+    style: {
+      display: 'flex',
+      animation: phase === 'success' ? 'stpDone .45s cubic-bezier(.2,.9,.3,1.4) both' : 'stpIconIn .5s cubic-bezier(.2,.9,.3,1.3) both'
+    }
+  }, phase === 'success' ? /*#__PURE__*/React.createElement("svg", {
+    width: "22",
+    height: "22",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12"
+  })) : icons[mode] || icons.mine)));
 }
 function PaymentScreen({
   state,
