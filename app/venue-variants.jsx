@@ -1123,9 +1123,12 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
         </div>
       )}
 
-      {/* CTA sticky */}
-      <div style={{ position: 'absolute', left: 14, right: 14, bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))',
-        zIndex: 25, display: 'flex', gap: 10 }}>
+      {/* CTA sticky — su box glass come la vetrina classica */}
+      <div style={{ position: 'absolute', left: 10, right: 10, bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
+        zIndex: 25, display: 'flex', gap: 8, padding: 8, borderRadius: 999,
+        background: 'rgba(253,249,243,.62)', border: '1px solid rgba(28,15,21,.09)',
+        backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+        boxShadow: '0 16px 38px -18px rgba(77,18,46,.45)' }}>
         <button className="bk-press" onClick={onBook} style={{ flex: 1.6, height: 54, border: 'none', borderRadius: 999,
           cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 15, color: '#fff',
           background: 'linear-gradient(122deg,#E32459,#B81C47)',

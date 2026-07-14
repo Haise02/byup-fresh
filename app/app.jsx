@@ -1409,83 +1409,84 @@ function HeroIntentCard({ data, photo, moment, onCta }) {
 function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slots, badge, premium, onClick, onSlotClick }) {
   const [T] = BK.useByupTheme();
   if (premium) return <PremiumBigCard {...{ name, cuisine, distance, rating, price, photo, slots, onClick, onSlotClick }}/>;
+  const hasSlots = slots && slots.length > 0;
   return (
     <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
-      display: 'block', width: '100%', borderRadius: BK.RADII.card, overflow: 'hidden',
-      border: premium ? '1.5px solid rgba(214,172,60,.75)' : `1px solid ${T.line}`,
-      padding: 0, background: T.surface,
-      boxShadow: premium ? '0 14px 34px -14px rgba(190,145,40,.45), 0 2px 8px rgba(77,18,46,.08)' : T.shadowSoft,
-      fontFamily: BK.TYPE.sans, textAlign: 'left', cursor: 'pointer',
+      position: 'relative', display: 'block', width: '100%', height: hasSlots ? 272 : 236,
+      borderRadius: BK.RADII.card, overflow: 'hidden', border: `1px solid ${T.line}`,
+      padding: 0, boxShadow: T.shadowSoft, textAlign: 'left', cursor: 'pointer', fontFamily: BK.TYPE.sans,
     }}>
-      <div style={{ height: 178, position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: 0 }}>
         <Photo src={photo} label={name}/>
-        {premium ? (
-          <div style={{
-            position: 'absolute', top: 12, left: 12,
-            background: 'linear-gradient(180deg,#ffe27a,#f0c246)', color: '#3d2c00',
-            fontSize: 10.5, fontWeight: 800, padding: '5px 11px', borderRadius: 999,
-            letterSpacing: .5, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5,
-            boxShadow: '0 6px 16px -6px rgba(190,145,40,.7)',
-          }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="#3d2c00"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Premium
-          </div>
-        ) : badge && (
-          <div style={{
-            position: 'absolute', top: 12, left: 12,
-            background: 'rgba(250,227,222,0.92)', color: '#4d122e',
-            fontSize: 11, fontWeight: 700, padding: '5px 10px', borderRadius: 999,
-            backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-          }}>{badge}</div>
-        )}
-        <div style={{
-          position: 'absolute', top: 12, right: 12,
-          background: 'rgba(28,6,16,0.55)',
-          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-          color: '#fff', fontSize: 12, fontWeight: 700,
-          padding: '5px 9px', borderRadius: 999,
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffb3c4">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-          {rating.toFixed(1)}
-        </div>
       </div>
-      <div style={{ padding: '14px 16px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ fontFamily: BK.TYPE.display, fontSize: 19, fontWeight: 600, color: T.text, letterSpacing: '-0.01em', lineHeight: 1.15 }}>{name}</div>
-          <div style={{ fontFamily: BK.TYPE.display, fontSize: 13.5, color: T.primary, fontWeight: 600, flexShrink: 0 }}>{price}</div>
-        </div>
-        <div style={{ fontSize: 13, color: T.textDim, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>{cuisine}</span>
-          <span style={{ width: 3, height: 3, borderRadius: 999, background: T.textFaint }}/>
-          <Icon.Pin size={11}/>
-          <span>{distance}</span>
-        </div>
-        {slots === false || slots?.length === 0 ? (
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textFaint} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <span style={{ fontSize: 12.5, color: T.textDim, fontStyle: 'italic' }}>Solo walk-in, prenotazione non disponibile</span>
+      <div style={{ position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(20,8,12,.34) 0%, rgba(20,8,12,0) 34%, rgba(20,8,12,.14) 66%, rgba(20,8,12,.4) 100%)' }}/>
+      {/* alto: etichetta promo/badge come prima */}
+      {badge && (
+        <div style={{
+          position: 'absolute', top: 12, left: 12,
+          background: 'rgba(250,227,222,0.92)', color: '#4d122e',
+          fontSize: 11, fontWeight: 700, padding: '5px 10px', borderRadius: 999,
+          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        }}>{badge}</div>
+      )}
+      {/* alto: rating come prima */}
+      <div style={{
+        position: 'absolute', top: 12, right: 12,
+        background: 'rgba(28,6,16,0.55)',
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        color: '#fff', fontSize: 12, fontWeight: 700,
+        padding: '5px 9px', borderRadius: 999,
+        display: 'flex', alignItems: 'center', gap: 4,
+      }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffb3c4">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        {rating.toFixed(1)}
+      </div>
+      {/* basso: pannello glass con tutte le info */}
+      <div style={{ position: 'absolute', left: 9, right: 9, bottom: 9, borderRadius: 20,
+        background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.3)',
+        backdropFilter: 'blur(14px) saturate(170%)', WebkitBackdropFilter: 'blur(14px) saturate(170%)',
+        padding: '12px 13px', boxShadow: '0 10px 26px -12px rgba(20,8,12,.5)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: BK.TYPE.display, fontSize: 20, fontWeight: 600, color: '#fff',
+              letterSpacing: '-0.01em', lineHeight: 1.15, textShadow: '0 2px 10px rgba(20,8,12,.45)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5,
+              fontSize: 12, color: 'rgba(255,255,255,.88)', fontWeight: 600 }}>
+              <Icon.Pin size={11} color="#ffd3de"/>
+              <span>{distance}</span>
+              <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)' }}/>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cuisine}</span>
+              <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)' }}/>
+              <span style={{ fontFamily: BK.TYPE.display, fontWeight: 600, flexShrink: 0 }}>{price}</span>
+            </div>
           </div>
-        ) : slots && slots.length > 0 ? (
-          <>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: T.textFaint, letterSpacing: 0.5, textTransform: 'uppercase', margin: '12px 0 8px' }}>
-              Prenotabile
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {slots.map((s, i) => (
-                <span key={i} className="bk-press"
-                  onClick={(e) => { e.stopPropagation(); BK.haptic.selection(); onSlotClick?.(s); }} style={{
-                  height: 34, padding: '0 13px', borderRadius: 999,
-                  border: `1.5px solid ${T.accentBorder}`,
-                  background: T.accentSoft, color: T.primary,
-                  fontSize: 13, fontWeight: 700,
-                  display: 'inline-flex', alignItems: 'center', cursor: 'pointer',
-                }}>{s.time}{s.last && <span style={{ marginLeft: 5, fontSize: 10, opacity: .75 }}>ultimo</span>}</span>
-              ))}
-            </div>
-          </>
+          <div style={{ width: 38, height: 38, borderRadius: 999, background: '#fff', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 6px 16px -6px rgba(20,8,12,.5)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={PINK} strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="9 6 18 6 18 15"/></svg>
+          </div>
+        </div>
+        {hasSlots ? (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+            {slots.map((s, i) => (
+              <span key={i} className="bk-press"
+                onClick={(e) => { e.stopPropagation(); BK.haptic.selection(); onSlotClick?.(s); }} style={{
+                height: 32, padding: '0 13px', borderRadius: 999,
+                background: 'rgba(255,255,255,0.94)', color: PINK,
+                fontSize: 12.5, fontWeight: 800,
+                display: 'inline-flex', alignItems: 'center', cursor: 'pointer',
+                boxShadow: '0 6px 14px -6px rgba(20,8,12,.45)',
+              }}>{s.time}{s.last && <span style={{ marginLeft: 5, fontSize: 10, opacity: .7 }}>ultimo</span>}</span>
+            ))}
+          </div>
+        ) : (slots === false || (slots && slots.length === 0)) ? (
+          <div style={{ marginTop: 9, fontSize: 11.5, color: 'rgba(255,255,255,.78)', fontStyle: 'italic' }}>
+            Solo walk-in, prenotazione non disponibile</div>
         ) : null}
       </div>
     </button>
@@ -1637,24 +1638,6 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
               <span style={{ opacity: 0.6 }}>·</span>
               <span>{md.sectionSubtitle}</span>
             </div>
-          </div>
-        </div>
-
-        {/* Sticky chips bar */}
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 5,
-          background: __BYUP_DARK ? 'rgba(22,21,20,.9)' : 'rgba(251,244,241,.88)', padding: '14px 0 12px',
-          backdropFilter: 'blur(18px) saturate(160%)', WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-          boxShadow: __BYUP_DARK ? '0 1px 0 rgba(246,236,233,.08)' : '0 1px 0 rgba(77,18,46,.08)',
-        }}>
-          <div className="hscroll" style={{
-            display: 'flex', gap: 8, padding: '0 22px',
-            overflowX: 'auto', scrollbarWidth: 'none',
-          }}>
-            {md.quickChips.map(c => (
-              <FilterChip key={c.id} label={c.label} active={!!quickFilters?.[c.id]}
-                onClick={() => setQuickFilters?.(f => ({ ...f, [c.id]: !f?.[c.id] }))}/>
-            ))}
           </div>
         </div>
 
@@ -2042,7 +2025,7 @@ function LeafletMini({ mapRef, zoom = 13 }) {
       dragging: false, scrollWheelZoom: false, touchZoom: false,
       doubleClickZoom: false, keyboard: false,
     });
-    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+    window.L.tileLayer(`https://{s}.basemaps.cartocdn.com/${__BYUP_DARK ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`, { subdomains: 'abcd', maxZoom: 20 }).addTo(map);
     const mk = (lat, lng) => window.L.marker([lat, lng], {
       icon: window.L.divIcon({ className: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:#E32459;border:3px solid #fff;box-shadow:0 2px 8px rgba(227,36,89,.55)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
     }).addTo(map);
@@ -2061,7 +2044,7 @@ function MapExpandOverlay({ from, T }) {
     <div style={{
       position: 'absolute', left: 0, right: 0, zIndex: 900,
       top: grown ? 0 : from.top, height: grown ? '100%' : from.height,
-      overflow: 'hidden', background: '#e9e4dd',
+      overflow: 'hidden', background: __BYUP_DARK ? '#141214' : '#e9e4dd',
       transition: 'top 560ms cubic-bezier(.22,.9,.35,1), height 560ms cubic-bezier(.22,.9,.35,1)',
     }}>
       <LeafletMini mapRef={mapRef} zoom={13}/>
@@ -3016,6 +2999,309 @@ function BypChal({ emo, title, desc, rew, pct, meta1, meta2, live, cta, onCta })
   );
 }
 
+// ─── Byup Games — mini-giochi con stack "twitch" stile Da scoprire ───
+const BYP_GAMES = [
+  { id: 'wheel', title: 'Spin to Win!', sub: 'Gira la ruota · premi ogni giorno', cta: 'Gira ora', bg: 'linear-gradient(160deg,#fff3d6,#ffe2ac)', ink: '#4d2e00' },
+  { id: 'slot', title: 'Byup Slot', sub: 'Tre coin uguali = jackpot', cta: 'Gioca', bg: 'linear-gradient(160deg,#eee0ff,#d9c4ff)', ink: '#2e1a4d' },
+  { id: 'scratch', title: 'Gratta & Vinci', sub: 'Un gratta al giorno, sempre', cta: 'Gratta', bg: 'linear-gradient(160deg,#ffdce5,#ffc0d1)', ink: '#4d1226' },
+];
+
+function BypMiniWheel({ size = 108 }) {
+  const cols = ['#E32459', '#fff', '#CEFF00', '#fff', '#2b272c', '#fff'];
+  const r = size / 2;
+  const wedge = (i) => {
+    const a0 = (i * 60 - 90) * Math.PI / 180, a1 = ((i + 1) * 60 - 90) * Math.PI / 180;
+    return `M${r},${r} L${r + r * Math.cos(a0)},${r + r * Math.sin(a0)} A${r},${r} 0 0 1 ${r + r * Math.cos(a1)},${r + r * Math.sin(a1)} Z`;
+  };
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ filter: 'drop-shadow(0 8px 14px rgba(20,8,12,.3))' }}>
+      {cols.map((c, i) => <path key={i} d={wedge(i)} fill={c} stroke="#2b272c" strokeWidth="1.5"/>)}
+      <circle cx={r} cy={r} r={r * 0.22} fill="#2b272c"/>
+      <circle cx={r} cy={r} r={r * 0.09} fill="#fff"/>
+    </svg>
+  );
+}
+
+function BypGameStack({ onOpen }) {
+  const [idx, setIdx] = useState(0);
+  const [auto, setAuto] = useState(true);
+  useEffect(() => {
+    if (!auto) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % BYP_GAMES.length), 2600);
+    return () => clearInterval(t);
+  }, [auto]);
+  return (
+    <div style={{ position: 'relative', height: 246 }}>
+      {BYP_GAMES.map((g, i) => {
+        const pos = (i - idx + BYP_GAMES.length) % BYP_GAMES.length; // 0 fronte
+        return (
+          <div key={g.id}
+            onClick={() => { setAuto(false); if (pos === 0) onOpen(g.id); else setIdx(i); }}
+            style={{
+              position: 'absolute', left: 0, right: 0, top: 0, height: 206,
+              borderRadius: 22, padding: '16px 17px', background: g.bg, color: g.ink,
+              border: '1px solid rgba(20,8,12,.08)', cursor: 'pointer', overflow: 'hidden',
+              transform: pos === 0 ? 'translateY(0) scale(1)' : pos === 1 ? 'translateY(15px) scale(.955)' : 'translateY(28px) scale(.912)',
+              zIndex: BYP_GAMES.length - pos, opacity: pos === 2 ? .8 : 1,
+              transition: 'transform .55s cubic-bezier(.22,1.2,.36,1), opacity .4s',
+              boxShadow: pos === 0 ? '0 20px 42px -18px rgba(20,8,12,.5)' : '0 8px 20px -14px rgba(20,8,12,.35)',
+            }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 9.5, fontWeight: 800,
+              letterSpacing: .8, textTransform: 'uppercase', background: 'rgba(20,8,12,.85)', color: '#CEFF00',
+              padding: '4px 10px', borderRadius: 999 }}>🎮 Byup games</span>
+            <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 24, marginTop: 10, letterSpacing: -.4 }}>{g.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, opacity: .75, marginTop: 3, maxWidth: '55%' }}>{g.sub}</div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 16,
+              background: '#2b272c', color: '#fff', fontSize: 12.5, fontWeight: 800,
+              padding: '9px 18px', borderRadius: 999, boxShadow: '0 10px 22px -10px rgba(20,8,12,.6)' }}>{g.cta} →</span>
+            {/* grafica a destra */}
+            <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-46%)', pointerEvents: 'none' }}>
+              {g.id === 'wheel' && (
+                <div style={{ position: 'relative', animation: 'bypBob 3.4s ease-in-out infinite' }}>
+                  <BypMiniWheel/>
+                  <span style={{ position: 'absolute', left: '50%', top: -7, transform: 'translateX(-50%) rotate(180deg)',
+                    width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent',
+                    borderBottom: '11px solid #E32459' }}/>
+                </div>
+              )}
+              {g.id === 'slot' && (
+                <div style={{ display: 'flex', gap: 5, background: '#2b272c', borderRadius: 14, padding: 8,
+                  animation: 'bypBob 3.6s ease-in-out infinite', boxShadow: '0 10px 20px -10px rgba(20,8,12,.6)' }}>
+                  {[0, 1, 2].map(k => (
+                    <span key={k} style={{ width: 30, height: 38, borderRadius: 7, background: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src="assets/coin.png" alt="" style={{ width: 22, height: 22, objectFit: 'contain' }}/>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {g.id === 'scratch' && (
+                <div style={{ width: 96, height: 112, borderRadius: 14, position: 'relative', overflow: 'hidden',
+                  background: 'repeating-linear-gradient(135deg, #b9aeb4 0 10px, #cfc4ca 10px 20px)',
+                  border: '2px solid #fff', animation: 'bypBob 3.2s ease-in-out infinite',
+                  boxShadow: '0 10px 20px -10px rgba(20,8,12,.5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 40, color: '#4d1226' }}>?</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      {/* dots */}
+      <div style={{ position: 'absolute', left: '50%', bottom: 0, transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
+        {BYP_GAMES.map((_, i) => (
+          <span key={i} onClick={() => { setAuto(false); setIdx(i); }} style={{
+            width: i === idx ? 16 : 6, height: 6, borderRadius: 99, cursor: 'pointer',
+            background: i === idx ? '#E32459' : 'rgba(246,236,233,.3)', transition: 'width .25s' }}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Ruota della fortuna giocabile
+function BypWheelSheet({ onClose, onWin }) {
+  const [rot, setRot] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+  const SEGS = ['+100', '20% OFF', '+30', 'Ritenta', '+100', '+50'];
+  const COLS = ['#E32459', '#2b272c', '#CEFF00', '#7a1c3e', '#f2a93b', '#E32459'];
+  const size = 240, r = size / 2;
+  const wedge = (i) => {
+    const a0 = (i * 60 - 90) * Math.PI / 180, a1 = ((i + 1) * 60 - 90) * Math.PI / 180;
+    return `M${r},${r} L${r + r * Math.cos(a0)},${r + r * Math.sin(a0)} A${r},${r} 0 0 1 ${r + r * Math.cos(a1)},${r + r * Math.sin(a1)} Z`;
+  };
+  const labelPos = (i) => {
+    const a = ((i + 0.5) * 60 - 90) * Math.PI / 180;
+    return { x: r + r * 0.64 * Math.cos(a), y: r + r * 0.64 * Math.sin(a) };
+  };
+  const spin = () => {
+    if (spinning) return;
+    setSpinning(true);
+    setResult(null);
+    const target = Math.floor(Math.random() * 6);
+    setRot(cur => cur + 360 * 5 + ((360 - (target * 60 + 30)) - (cur % 360) + 360) % 360);
+    setTimeout(() => {
+      setSpinning(false);
+      setResult(SEGS[target]);
+      if (SEGS[target] !== 'Ritenta') onWin && onWin();
+    }, 3400);
+  };
+  return (
+    <BypSheet center onClose={onClose}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 330, textAlign: 'center',
+        background: `radial-gradient(90% 60% at 50% 0%, rgba(240,194,70,.25), transparent 60%), ${BYP.surf}`,
+        border: '1px solid rgba(255,207,74,.45)', borderRadius: 28, padding: '24px 20px 20px',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 21, marginBottom: 2 }}>Spin to Win!</div>
+        <div style={{ fontSize: 12, color: BYP.muted, marginBottom: 14 }}>Un giro gratis al giorno · premi in byuppini</div>
+        <div style={{ position: 'relative', width: size, height: size, margin: '0 auto 6px' }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{
+            transform: `rotate(${rot}deg)`, transition: spinning ? 'transform 3.3s cubic-bezier(.12,.8,.16,1)' : 'none',
+            filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.45))' }}>
+            {SEGS.map((s, i) => <path key={i} d={wedge(i)} fill={COLS[i]} stroke="#161514" strokeWidth="2"/>)}
+            {SEGS.map((s, i) => {
+              const p = labelPos(i);
+              const dark = COLS[i] === '#CEFF00' || COLS[i] === '#f2a93b';
+              return <text key={'t' + i} x={p.x} y={p.y} fill={dark ? '#161514' : '#fff'} fontSize="14" fontWeight="800"
+                textAnchor="middle" dominantBaseline="central"
+                transform={`rotate(${i * 60 + 30}, ${p.x}, ${p.y})`}>{s}</text>;
+            })}
+            <circle cx={r} cy={r} r={26} fill="#161514"/>
+            <circle cx={r} cy={r} r={10} fill="#fff"/>
+          </svg>
+          <span style={{ position: 'absolute', left: '50%', top: -4, transform: 'translateX(-50%)',
+            width: 0, height: 0, borderLeft: '11px solid transparent', borderRight: '11px solid transparent',
+            borderTop: '18px solid #CEFF00', filter: 'drop-shadow(0 3px 5px rgba(0,0,0,.5))' }}/>
+        </div>
+        {result && (
+          <div style={{ margin: '8px 0 4px', animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: result === 'Ritenta' ? 'rgba(246,236,233,.1)' : 'rgba(206,255,0,.14)',
+              border: result === 'Ritenta' ? `1px solid ${BYP.line}` : '1px solid rgba(206,255,0,.4)',
+              color: result === 'Ritenta' ? BYP.muted : BYP.lime, fontWeight: 800, fontSize: 15,
+              padding: '9px 18px', borderRadius: 999 }}>
+              {result === 'Ritenta' ? 'Ritenta domani!' : `Hai vinto ${result.includes('OFF') ? result : result + ' byuppini'}!`}
+            </span>
+          </div>
+        )}
+        <BypCta style={{ marginTop: 10 }} onClick={spin}>{spinning ? 'In giro…' : result ? 'Gira ancora (demo)' : 'Gira la ruota'}</BypCta>
+        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 8, background: 'none', border: 'none',
+          color: BYP.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 6 }}>Chiudi</button>
+      </div>
+    </BypSheet>
+  );
+}
+
+// Slot a 3 rulli
+function BypSlotSheet({ onClose, onWin }) {
+  const ICONS = ['assets/coin.png', 'assets/reward-tote.png', 'assets/reward-spritz.png', 'assets/reward-dessert.png'];
+  const [reels, setReels] = useState([0, 1, 2]);
+  const [locked, setLocked] = useState([true, true, true]);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+  const timers = useRef([]);
+  const spin = () => {
+    if (spinning) return;
+    setSpinning(true);
+    setResult(null);
+    setLocked([false, false, false]);
+    const final = [0, 1, 2].map(() => Math.floor(Math.random() * ICONS.length));
+    // jackpot facile in demo: 35% di probabilità di tripla
+    if (Math.random() < 0.35) { final[1] = final[0]; final[2] = final[0]; }
+    const iv = setInterval(() => {
+      setReels(rs => rs.map((v, i) => (locked[i] ? v : Math.floor(Math.random() * ICONS.length))));
+    }, 90);
+    [900, 1500, 2100].forEach((t, i) => {
+      timers.current.push(setTimeout(() => {
+        setLocked(l => l.map((x, k) => (k === i ? true : x)));
+        setReels(rs => rs.map((v, k) => (k === i ? final[i] : v)));
+        if (i === 2) {
+          clearInterval(iv);
+          setSpinning(false);
+          const win = final[0] === final[1] && final[1] === final[2] ? 'jackpot'
+            : (final[0] === final[1] || final[1] === final[2] || final[0] === final[2]) ? 'coppia' : null;
+          setResult(win || 'niente');
+          if (win) onWin && onWin();
+        }
+      }, t));
+    });
+    timers.current.push(iv);
+  };
+  useEffect(() => () => { timers.current.forEach(t => { clearTimeout(t); clearInterval(t); }); }, []);
+  return (
+    <BypSheet center onClose={onClose}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 330, textAlign: 'center',
+        background: `radial-gradient(90% 60% at 50% 0%, rgba(150,100,255,.22), transparent 60%), ${BYP.surf}`,
+        border: '1px solid rgba(180,140,255,.4)', borderRadius: 28, padding: '24px 20px 20px',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 21, marginBottom: 2 }}>Byup Slot</div>
+        <div style={{ fontSize: 12, color: BYP.muted, marginBottom: 16 }}>Tre uguali = 300 byuppini · due = 50</div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, background: '#161216', borderRadius: 20,
+          padding: 16, border: `1px solid ${BYP.line}`, marginBottom: 14 }}>
+          {reels.map((v, i) => (
+            <div key={i} style={{ width: 74, height: 88, borderRadius: 13, background: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: locked[i] ? 'inset 0 0 0 3px rgba(227,36,89,.35)' : 'inset 0 -12px 18px rgba(0,0,0,.12)',
+              transition: 'box-shadow .2s' }}>
+              <img src={ICONS[v]} alt="" style={{ width: 52, height: 52, objectFit: 'contain',
+                filter: spinning && !locked[i] ? 'blur(1.5px)' : 'none' }}/>
+            </div>
+          ))}
+        </div>
+        {result && (
+          <div style={{ marginBottom: 10, animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
+              background: result === 'niente' ? 'rgba(246,236,233,.1)' : 'rgba(206,255,0,.14)',
+              border: result === 'niente' ? `1px solid ${BYP.line}` : '1px solid rgba(206,255,0,.4)',
+              color: result === 'niente' ? BYP.muted : BYP.lime, fontWeight: 800, fontSize: 15,
+              padding: '9px 18px', borderRadius: 999 }}>
+              {result === 'jackpot' ? '🎰 JACKPOT! +300 byuppini' : result === 'coppia' ? 'Coppia! +50 byuppini' : 'Niente… ritenta domani!'}
+            </span>
+          </div>
+        )}
+        <BypCta onClick={spin}>{spinning ? 'In corsa…' : result ? 'Gioca ancora (demo)' : 'Gioca'}</BypCta>
+        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 8, background: 'none', border: 'none',
+          color: BYP.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 6 }}>Chiudi</button>
+      </div>
+    </BypSheet>
+  );
+}
+
+// Gratta & Vinci — passa il dito per rivelare
+function BypScratchSheet({ onClose, onWin }) {
+  const [reveal, setReveal] = useState(0); // 0..1
+  const [done, setDone] = useState(false);
+  const scratching = useRef(false);
+  const onMove = () => {
+    if (done) return;
+    setReveal(r => {
+      const n = Math.min(1, r + 0.045);
+      if (n >= 1) { setDone(true); onWin && onWin(); }
+      return n;
+    });
+  };
+  return (
+    <BypSheet center onClose={onClose}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 330, textAlign: 'center',
+        background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.28), transparent 60%), ${BYP.surf}`,
+        border: '1px solid rgba(255,90,130,.4)', borderRadius: 28, padding: '24px 20px 20px',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 21, marginBottom: 2 }}>Gratta & Vinci</div>
+        <div style={{ fontSize: 12, color: BYP.muted, marginBottom: 16 }}>Passa il dito sulla card per grattare</div>
+        <div
+          onPointerDown={(e) => { scratching.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch {} }}
+          onPointerMove={() => { if (scratching.current) onMove(); }}
+          onPointerUp={() => { scratching.current = false; }}
+          style={{ position: 'relative', width: 220, height: 140, margin: '0 auto 14px', borderRadius: 18,
+            overflow: 'hidden', touchAction: 'none', cursor: 'pointer',
+            border: '2px solid rgba(255,255,255,.25)' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 4,
+            background: 'linear-gradient(150deg,#3b1420,#a01a49)' }}>
+            <img src="assets/coin.png" alt="" style={{ width: 44, height: 44 }}/>
+            <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 22, color: '#fff' }}>+50 byuppini</span>
+          </div>
+          <div style={{ position: 'absolute', inset: 0, opacity: 1 - reveal, transition: 'opacity .12s',
+            background: 'repeating-linear-gradient(135deg, #9d939a 0 12px, #b8adb4 12px 24px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+            <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 44, color: 'rgba(40,20,30,.55)' }}>?</span>
+          </div>
+        </div>
+        {done && (
+          <div style={{ marginBottom: 10, animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(206,255,0,.14)',
+              border: '1px solid rgba(206,255,0,.4)', color: BYP.lime, fontWeight: 800, fontSize: 15,
+              padding: '9px 18px', borderRadius: 999 }}>Hai vinto +50 byuppini!</span>
+          </div>
+        )}
+        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 4, background: 'none', border: 'none',
+          color: BYP.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 6 }}>Chiudi</button>
+      </div>
+    </BypSheet>
+  );
+}
+
 function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }) {
   const [seg, setSeg] = useState('wallet');
   const [bal, setBal] = useState(0);
@@ -3024,6 +3310,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
   const [ach, setAch] = useState(null);
   const [info, setInfo] = useState(false);
   const [refSheet, setRefSheet] = useState(null); // 'locale' | 'amico'
+  const [game, setGame] = useState(null); // 'wheel' | 'slot' | 'scratch'
   const [burst, setBurst] = useState(0);
   const scrollRef = useRef(null);
 
@@ -3148,6 +3435,16 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
               <img src="assets/mascot-wave.png" alt="" style={{ position: 'absolute', right: 8, bottom: -6, width: 72,
                 filter: 'drop-shadow(0 8px 12px rgba(0,0,0,.5))', animation: 'bypBob 3.2s ease-in-out infinite' }}/>
             </button>
+            <BypSect aside="premi veri, ogni giorno">Byup Games</BypSect>
+            <BypGameStack onOpen={setGame}/>
+            <BypCta style={{ margin: '18px 0 6px' }} onClick={() => goSeg('premi')}>Riscatta i tuoi byuppini</BypCta>
+            <BypCta ghost style={{ margin: '10px 0 6px' }} onClick={openLevelUp}>Cosa succede al prossimo livello?</BypCta>
+          </div>
+        )}
+
+        {/* SFIDE */}
+        {seg === 'sfide' && (
+          <div key="sfide" style={{ padding: '6px 16px 0', animation: 'bypFade .28s ease' }}>
             <BypSect>Guadagna oggi</BypSect>
             <div className="byp-hscroll" style={{ display: 'flex', gap: 10, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 6px' }}>
               {[
@@ -3168,6 +3465,17 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
                 </button>
               ))}
             </div>
+
+            <BypSect aside="↻ 3 giorni">Sfide della settimana</BypSect>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11, marginBottom: 14 }}>
+              <BypChalMini icon={BypIco.globe()} title="Esploratore" desc="Prova 3 cucine diverse" rew="+150" pct={66} meta="2 di 3 · 66%"/>
+              <BypChalMini icon={BypIco.repeat()} title="Habitué" desc="Ordina 2 volte in 7 giorni" rew="+100" pct={50} meta="1 di 2 · 50%"/>
+              <BypChalMini icon={BypIco.flame()} title="Streak ×4" desc="Un ordine a settimana per 4 settimane" rew="+400" pct={50} meta="Settimana 2 di 4"/>
+              <BypChalMini icon={BypIco.star()} title="Recensore" desc="Lascia 2 recensioni questa settimana" rew="+80" pct={50} meta="1 di 2 · 50%"/>
+            </div>
+            <BypSect aside="bonus speciali">Referral</BypSect>
+            <BypReferral variant="locale" onInvite={() => setRefSheet('locale')}/>
+            <BypReferral variant="amico" onInvite={() => setRefSheet('amico')}/>
             <BypSect>Attività recente</BypSect>
             <div style={{ background: BYP.surf, border: `1px solid ${BYP.line}`, borderRadius: 18, padding: 14 }}>
               {[
@@ -3188,24 +3496,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
                 </div>
               ))}
             </div>
-            <BypCta style={{ margin: '18px 0 6px' }} onClick={() => goSeg('premi')}>Riscatta i tuoi byuppini</BypCta>
-            <BypCta ghost style={{ margin: '10px 0 6px' }} onClick={openLevelUp}>Cosa succede al prossimo livello?</BypCta>
-          </div>
-        )}
 
-        {/* SFIDE */}
-        {seg === 'sfide' && (
-          <div key="sfide" style={{ padding: '6px 16px 0', animation: 'bypFade .28s ease' }}>
-            <BypSect aside="↻ 3 giorni">Sfide della settimana</BypSect>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11, marginBottom: 14 }}>
-              <BypChalMini icon={BypIco.globe()} title="Esploratore" desc="Prova 3 cucine diverse" rew="+150" pct={66} meta="2 di 3 · 66%"/>
-              <BypChalMini icon={BypIco.repeat()} title="Habitué" desc="Ordina 2 volte in 7 giorni" rew="+100" pct={50} meta="1 di 2 · 50%"/>
-              <BypChalMini icon={BypIco.flame()} title="Streak ×4" desc="Un ordine a settimana per 4 settimane" rew="+400" pct={50} meta="Settimana 2 di 4"/>
-              <BypChalMini icon={BypIco.star()} title="Recensore" desc="Lascia 2 recensioni questa settimana" rew="+80" pct={50} meta="1 di 2 · 50%"/>
-            </div>
-            <BypSect aside="bonus speciali">Referral</BypSect>
-            <BypReferral variant="locale" onInvite={() => setRefSheet('locale')}/>
-            <BypReferral variant="amico" onInvite={() => setRefSheet('amico')}/>
           </div>
         )}
 
@@ -3351,6 +3642,10 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
       )}
 
       {refSheet && <BypCodeSheet type={refSheet} onClose={() => setRefSheet(null)}/>}
+
+      {game === 'wheel' && <BypWheelSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
+      {game === 'slot' && <BypSlotSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
+      {game === 'scratch' && <BypScratchSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
 
       <BypConfetti burst={burst}/>
     </div>

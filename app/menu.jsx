@@ -858,7 +858,7 @@ function MenuScreen({ state, setState, goTo }) {
       }} style={{
         position: 'absolute', top: 56, left: 16, zIndex: 20,
         width: 38, height: 38, borderRadius: 999,
-        background: 'rgba(255,255,255,0.95)', border: 'none',
+        background: __BYUP_DARK ? 'rgba(43,39,44,0.95)' : 'rgba(255,255,255,0.95)', border: 'none',
         boxShadow: '0 2px 8px rgba(0,0,0,0.18)', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         backdropFilter: 'blur(8px)',
@@ -3424,7 +3424,9 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       payCover: cover,
     }));
     // Se il saldo del tavolo è azzerato → successo; altrimenti vai alla schermata saldo.
-    goTo(remBefore - paidNow <= 0.01 ? 'success' : 'balance');
+    // Anche con saldo residuo si va dritti al "fatto": il residuo resta
+    // visibile nella home con la card dell'ordine attivo.
+    goTo('success');
   };
 
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
@@ -4851,8 +4853,8 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                       <button key={a.id} onClick={() => toggleAspect(a.id)} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '8px 12px', borderRadius: 999,
-                        border: sel ? `1.5px solid ${accent}` : '1.5px solid #e6e0d8',
-                        background: sel ? `${accent}10` : '#fff',
+                        border: sel ? `1.5px solid ${accent}` : `1.5px solid ${BORDER}`,
+                        background: sel ? `${accent}10` : SURF,
                         color: sel ? accent : TEXT,
                         fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
                         cursor: 'pointer', transition: 'all 0.15s',
@@ -4876,7 +4878,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                   style={{
                     width: '100%', minHeight: 64, resize: 'none', marginTop: 14,
                     padding: '12px 14px', borderRadius: 14,
-                    border: '1.5px solid #e6e0d8', background: SURF,
+                    border: `1.5px solid ${BORDER}`, background: SURF,
                     fontSize: 13.5, fontFamily: 'inherit', color: TEXT,
                     outline: 'none', boxSizing: 'border-box', lineHeight: 1.4,
                   }}/>
@@ -4917,7 +4919,9 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
         padding: '22px 22px 26px',
-        background: 'linear-gradient(to top, #fafaf7 60%, rgba(250,250,247,0))',
+        background: __BYUP_DARK
+          ? 'linear-gradient(to top, #161514 60%, rgba(22,21,20,0))'
+          : 'linear-gradient(to top, #fafaf7 60%, rgba(250,250,247,0))',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
       }}>
         <a href="byup Home.html" onClick={(e) => { if (window.__byupNav) { e.preventDefault(); __goApp(); } }} style={{
