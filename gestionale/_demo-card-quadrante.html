@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>byup — Card Quadrante · reference + apertura fluida</title>
+<style>
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #F5F6F8;
+    color: #0F1115;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ─── Palette stati ───
+const META = {
+  libero:    { accent:'#15803D', label:'Libero',      tint:'rgba(22, 163, 74, 0.10)',  ring:'rgba(22, 163, 74, 0.40)'  },
+  prenotato: { accent:'#6D28D9', label:'Prenotato',   tint:'rgba(124, 58, 237, 0.12)', ring:'rgba(124, 58, 237, 0.38)' },
+  occupato:  { accent:'#E32459', label:'Occupato',    tint:'rgba(255, 90, 95, 0.18)',  ring:'rgba(227, 36, 89, 0.42)'  },
+  dapulire:  { accent:'#B45309', label:'Da liberare', tint:'rgba(217, 119, 6, 0.14)',  ring:'rgba(217, 119, 6, 0.42)'  },
+};
+
+const TAVOLI = [
+  { id: 1,  state: 'occupato',  coperti: 4, posti: 4, sittingMin: 45, conto: 86.50 },
+  { id: 7,  state: 'occupato',  coperti: 7, posti: 8, sittingMin: 30, allergia: true, conto: 142.00 },
+  { id: 13, state: 'occupato',  coperti: 2, posti: 4, sittingMin: 62, alert: "Non ordina da 28'", conto: 41.00 },
+  { id: 4,  state: 'prenotato', res: { time: '20:30', name: 'Martina Franco', posti: 4 }, minAlla: 25 },
+  { id: 10, state: 'prenotato', res: { time: '20:45', name: 'Bruno Bucciarati', posti: 6 }, minAlla: -18 },
+  { id: 6,  state: 'dapulire',  posti: 4, minutiDaPulire: 8,  res: { time: '21:30' } },
+  { id: 16, state: 'dapulire',  posti: 2, minutiDaPulire: 26 },
+  { id: 2,  state: 'libero',    posti: 2, res: { time: '22:00', name: 'Bianchi' } },
+];
+const isLate = t => t.state === 'prenotato' && t.minAlla != null && t.minAlla < 0;
+const lateMin = t => Math.abs(t.minAlla || 0);
+const urgent = t => (isLate(t) && lateMin(t) > 20) || (t.state === 'dapulire' && (t.minutiDaPulire || 0) > 20);
+
+// Easing "Apple spring" — la stessa curva delle tessere mappa (0.32, 0.72, 0, 1)
+const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+
+// ─── Cella del quadrante ───
+function Cell({ k, v, color, sub }) {
+  return (
+    <div style={{padding:'10px 14px', minWidth: 0}}>
+      <div style={{fontSize: 10, fontWeight: 800, letterSpacing:'0.12em', textTransform:'uppercase', color:'#9CA3AF', marginBottom: 4}}>{k}</div>
+      <div style={{fontSize: 16.5, fontWeight: 700, color: color || '#0F1115', lineHeight: 1.2,
+        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
+        {v}{sub && <span style={{fontSize: 13, fontWeight: 600, color:'#9CA3AF'}}> {sub}</span>}
+      </div>
+    </div>
+  );
+}
+
+// Celle per stato — STATO e COPERTI sempre; le altre due dipendono
+function cells(t) {
+  const m = META[t.state];
+  const stato = { k:'Stato', v: m.label, color: m.accent };
+  if (t.state === 'occupato') return [
+    stato,
+    { k:'Coperti', v: `${t.coperti} / ${t.posti}` },
+    { k:'Al tavolo', v: `${t.sittingMin}'`, color: t.sittingMin > 60 ? '#B45309' : undefined },
+    { k:'Nota', v: t.allergia ? 'Allergia' : (t.alert || '—'), color: t.allergia ? '#DC2626' : (t.alert ? '#B45309' : '#9CA3AF') },
+  ];
+  if (t.state === 'prenotato') return [
+    stato,
+    { k:'Coperti', v: `${t.res.posti}` },
+    { k:'Ore', v: t.res.time },
+    isLate(t)
+      ? { k:'Ritardo', v: `${lateMin(t)}'`, color: urgent(t) ? '#DC2626' : '#B45309' }
+      : { k:'Arriva fra', v: `${t.minAlla}'` },
+  ];
+  if (t.state === 'dapulire') return [
+    stato,
+    { k:'Posti', v: `${t.posti}` },
+    { k:'Liberato da', v: `${t.minutiDaPulire}'`, color: urgent(t) ? '#DC2626' : undefined },
+    { k:'Prossima', v: t.res ? t.res.time : '—', color: t.res ? undefined : '#9CA3AF' },
+  ];
+  return [
+    stato,
+    { k:'Posti', v: `${t.posti}` },
+    { k:'Prossima', v: t.res ? t.res.time : '—', color: t.res ? undefined : '#9CA3AF' },
+    { k:'Nome', v: t.res ? t.res.name : '—', color: t.res ? undefined : '#9CA3AF' },
+  ];
+}
+
+// Dettaglio espanso (mock rappresentativo per sentire l'animazione)
+function Expanded({ t }) {
+  const m = META[t.state];
+  const cta = t.state === 'occupato' ? 'Salda ora'
+    : t.state === 'dapulire' ? 'Segna come pronto'
+    : 'Apri tavolo';
+  return (
+    <div style={{padding:'4px 14px 14px'}}>
+      <div style={{height: 1, background:'rgba(15,17,21,0.06)', margin:'0 0 12px'}}/>
+      {t.state === 'occupato' && (
+        <div style={{display:'flex', flexDirection:'column', gap: 8, marginBottom: 14}}>
+          <div style={{display:'flex', justifyContent:'space-between', fontSize: 14.5}}>
+            <span style={{color:'#6B7280'}}>Conto parziale</span>
+            <span style={{fontWeight: 800, fontVariantNumeric:'tabular-nums'}}>€{t.conto.toFixed(2)}</span>
+          </div>
+          {t.allergia && (
+            <div style={{fontSize: 13.5, fontWeight: 700, color:'#DC2626'}}>Allergia glutine · 1 ospite</div>
+          )}
+          {t.alert && (
+            <div style={{fontSize: 13.5, fontWeight: 700, color:'#B45309'}}>{t.alert} — proponi il dolce?</div>
+          )}
+        </div>
+      )}
+      {t.state === 'prenotato' && (
+        <div style={{marginBottom: 14, fontSize: 15, fontWeight: 700}}>
+          {t.res.time} · {t.res.name}
+          <div style={{fontSize: 13.5, fontWeight: 500, color:'#6B7280', marginTop: 2}}>{t.res.posti} coperti · tel. +39 333 000 0000</div>
+        </div>
+      )}
+      {t.state === 'dapulire' && (
+        <div style={{marginBottom: 14, fontSize: 13.5, color:'#6B7280'}}>
+          Sbarazzo e riassetto{t.res ? ` — prossima prenotazione alle ${t.res.time}` : ''}.
+        </div>
+      )}
+      {t.state === 'libero' && t.res && (
+        <div style={{marginBottom: 14, fontSize: 13.5, color:'#6B7280'}}>
+          Tavolo pronto — prossima prenotazione {t.res.time} · {t.res.name}.
+        </div>
+      )}
+      <div style={{display:'flex', gap: 8}}>
+        <button style={{
+          flex: 1, padding:'10px 14px', borderRadius: 999, border:'none',
+          background: `
+            radial-gradient(circle at 82% 18%, rgba(255, 96, 102, 0.32), transparent 62%),
+            linear-gradient(180deg, rgba(58, 28, 22, 0.96) 0%, rgba(30, 12, 10, 0.98) 100%)
+          `,
+          color:'#FFE9E6', fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+          boxShadow:'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55)',
+          transition:`filter 150ms ease-out`,
+        }}
+          onMouseEnter={e => e.currentTarget.style.filter='brightness(1.15)'}
+          onMouseLeave={e => e.currentTarget.style.filter='none'}
+        >{cta}</button>
+        <button style={{
+          padding:'10px 16px', borderRadius: 999,
+          background:'rgba(15,17,21,0.04)', color:'#0F1115',
+          border:'none', boxShadow:'inset 0 0 0 1px rgba(15,17,21,0.10)',
+          fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        }}>Modifica</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Card Quadrante — reference: swatch di stato + Tavolo N, bento 2×2 ───
+function CardQuadrante({ t }) {
+  const m = META[t.state];
+  const [open, setOpen] = React.useState(false);
+  const [hover, setHover] = React.useState(false);
+  const cs = cells(t);
+  return (
+    <div
+      onClick={() => setOpen(o => !o)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background:'#fff', borderRadius: 16, overflow:'hidden', cursor:'pointer',
+        border: `1px solid ${open || hover ? m.ring : 'rgba(15,17,21,0.07)'}`,
+        boxShadow: open
+          ? `0 14px 34px -8px ${m.accent}30, 0 2px 6px rgba(15,17,21,0.05)`
+          : hover
+            ? `0 10px 24px -8px ${m.accent}26, 0 1px 3px rgba(15,17,21,0.04)`
+            : '0 1px 0 rgba(15,17,21,0.03), 0 5px 14px rgba(15,17,21,0.05)',
+        transform: open ? 'translateY(-3px)' : hover ? 'translateY(-2px)' : 'translateY(0)',
+        transition: `transform 340ms ${EASE}, box-shadow 340ms ${EASE}, border-color 240ms ease-out`,
+        alignSelf:'start',
+      }}>
+
+      {/* Header — swatch pieno arrotondato + Tavolo N (come reference) */}
+      <div style={{display:'flex', alignItems:'center', gap: 10, padding:'13px 14px 11px'}}>
+        <span style={{
+          width: 46, height: 22, borderRadius: 8, flexShrink: 0,
+          background: m.accent,
+          boxShadow: urgent(t) ? `0 0 0 3px ${m.accent}2E` : 'none',
+          transition: `box-shadow 240ms ease-out`,
+        }}/>
+        <span style={{fontSize: 19, fontWeight: 800, letterSpacing:'-0.02em', lineHeight: 1}}>Tavolo {t.id}</span>
+        {urgent(t) && (
+          <span style={{fontSize: 10.5, fontWeight: 800, color:'#DC2626', background:'rgba(220,38,38,0.08)',
+            boxShadow:'inset 0 0 0 1px rgba(220,38,38,0.35)', padding:'2px 8px', borderRadius: 999,
+            textTransform:'uppercase', letterSpacing:'0.05em'}}>oltre 20'</span>
+        )}
+        <span style={{flex: 1}}/>
+        {/* Chevron che ruota con la stessa curva */}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.4"
+          strokeLinecap="round" strokeLinejoin="round"
+          style={{transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition:`transform 340ms ${EASE}`, flexShrink: 0}}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+
+      {/* Bento 2×2 */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'1fr 1fr',
+        borderTop:'1px solid rgba(15,17,21,0.07)',
+      }}>
+        <div style={{borderRight:'1px solid rgba(15,17,21,0.06)', borderBottom:'1px solid rgba(15,17,21,0.06)'}}><Cell {...cs[0]}/></div>
+        <div style={{borderBottom:'1px solid rgba(15,17,21,0.06)'}}><Cell {...cs[1]}/></div>
+        <div style={{borderRight:'1px solid rgba(15,17,21,0.06)'}}><Cell {...cs[2]}/></div>
+        <Cell {...cs[3]}/>
+      </div>
+
+      {/* Dettaglio espandibile — grid-rows 0fr→1fr: altezza animata senza scatti */}
+      <div style={{
+        display:'grid',
+        gridTemplateRows: open ? '1fr' : '0fr',
+        transition: `grid-template-rows 380ms ${EASE}`,
+      }}>
+        <div style={{
+          overflow:'hidden', minHeight: 0,
+          opacity: open ? 1 : 0,
+          transform: open ? 'translateY(0)' : 'translateY(-6px)',
+          transition: `opacity 260ms ease-out ${open ? '90ms' : '0ms'}, transform 380ms ${EASE}`,
+        }}>
+          <Expanded t={t}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div style={{maxWidth: 1180, margin:'0 auto', padding:'36px 24px 80px'}}>
+      <h1 style={{fontSize: 26, fontWeight: 800, letterSpacing:'-0.02em', margin:'0 0 4px'}}>Quadrante — versione reference</h1>
+      <p style={{fontSize: 15, color:'#6B7280', margin:'0 0 28px', maxWidth: 780, lineHeight: 1.55}}>
+        Header con il campione di colore dello stato + «Tavolo N», bento 2×2 con celle adattive per stato.
+        <strong> Clicca una card</strong> per aprirla: l'altezza si distende con la stessa curva spring delle tessere mappa
+        (niente scatti), il dettaglio entra in dissolvenza e la card si solleva.
+      </p>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(272px, 1fr))', gap: 14, alignItems:'start'}}>
+        {TAVOLI.map(t => <CardQuadrante key={t.id} t={t}/>)}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
