@@ -472,6 +472,60 @@ function CopertiChip({ coperti, posti, onAdjust }) {
 // chiusura entra nella riga dell'header come fratello di Modifica (niente
 // overlay in absolute) e la card diventa statica: cursore normale, nessun
 // hover di bordo, il click sul corpo non fa toggle.
+// ─── Card "Quadrante" — curva spring condivisa (stessa delle tessere mappa) ───
+const SALA_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+
+// Cella del bento 2×2: etichetta muta maiuscola + valore forte
+function SalaBentoCell({ k, v, color }) {
+  return (
+    <div style={{padding:'10px 14px', minWidth: 0}}>
+      <div style={{fontSize: 10, fontWeight: 800, letterSpacing:'0.12em', textTransform:'uppercase', color:'#9CA3AF', marginBottom: 4}}>{k}</div>
+      <div style={{fontSize: 16.5, fontWeight: 700, color: color || '#0F1115', lineHeight: 1.2,
+        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>{v}</div>
+    </div>
+  );
+}
+
+// Le 4 celle per stato — STATO e COPERTI/POSTI sempre, le altre due contestuali
+function salaBentoCells(t, { meta, alert, isLate, lateMin, noteIsCritical, pulireSev }) {
+  const stato = { k:'Stato', v: meta.label, color: meta.accent };
+  if (t.state === 'occupato') return [
+    stato,
+    { k:'Coperti', v: `${t.coperti != null ? t.coperti : '—'} / ${t.posti != null ? t.posti : '—'}` },
+    { k:'Al tavolo', v: t.sittingMin != null ? formatOpenDuration(t.sittingMin) : '—', color: t.sittingMin != null ? getOpenDurationColor(t.sittingMin) : '#9CA3AF' },
+    noteIsCritical
+      ? { k:'Nota', v:'Allergia', color:'#DC2626' }
+      : (alert ? { k:'Nota', v: alert.label, color: alert.tone === 'warn' ? '#B45309' : '#6B7280' }
+               : { k:'Nota', v:'—', color:'#9CA3AF' }),
+  ];
+  if (t.state === 'prenotato') {
+    const res = t.nextReservation;
+    return [
+      stato,
+      { k:'Coperti', v: res && res.posti != null ? `${res.posti}` : '—' },
+      { k:'Ore', v: res ? res.time : '—', color: res ? undefined : '#9CA3AF' },
+      isLate
+        ? { k:'Ritardo', v: `${lateMin}'`, color: lateMin > ALERT_TRIANGLE_MIN ? '#DC2626' : '#B45309' }
+        : { k:'Arriva fra', v: t.minutiAllaPrenotazione != null ? `${t.minutiAllaPrenotazione}'` : '—', color: t.minutiAllaPrenotazione != null ? undefined : '#9CA3AF' },
+    ];
+  }
+  if (t.state === 'dapulire') {
+    const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
+    return [
+      stato,
+      { k:'Posti', v: t.posti != null ? `${t.posti}` : '—' },
+      { k:'Liberato da', v: min != null ? `${min}'` : '—', color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#B45309' : undefined) },
+      { k:'Prossima', v: t.nextReservation ? t.nextReservation.time : '—', color: t.nextReservation ? undefined : '#9CA3AF' },
+    ];
+  }
+  return [
+    stato,
+    { k:'Posti', v: t.posti != null ? `${t.posti}` : '—' },
+    { k:'Prossima', v: t.nextReservation ? t.nextReservation.time : '—', color: t.nextReservation ? undefined : '#9CA3AF' },
+    { k:'Nome', v: t.nextReservation ? t.nextReservation.name : '—', color: t.nextReservation ? undefined : '#9CA3AF' },
+  ];
+}
+
 function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti, onClose }) {
   const meta = SALA_STATE_META[t.state];
   const alert = t.state === 'occupato' ? getOccupiedAlert(t) : null;
@@ -518,74 +572,66 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
   const showAlertTriangle = hasAlertTriangle(t);
 
+  const bento = salaBentoCells(t, { meta, alert, isLate, lateMin, noteIsCritical, pulireSev });
+
   return (
     <div
       onClick={isPopup ? undefined : onToggle}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        // Corpo BIANCO: il colore di stato vive solo nella banda header
+        // Card "Quadrante": corpo bianco, swatch di stato nell'header,
+        // bento 2×2, dettaglio che si apre con curva spring.
         background: '#FFFFFF',
-        borderRadius: 14,
-        border: `1px solid ${hover && !isPopup ? accent + '66' : meta.border}`,
-        padding: expanded ? '16px 18px' : '12px 14px',
+        borderRadius: 16,
+        border: `1px solid ${(expanded || (hover && !isPopup)) ? meta.border : 'rgba(15, 17, 21, 0.07)'}`,
         cursor: isPopup ? 'default' : 'pointer',
-        transition: 'transform 220ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 220ms ease-out, border-color 200ms ease-out',
-        display: 'flex', flexDirection: 'column', gap: expanded ? 14 : 6,
-        boxShadow: expanded
-          ? `0 12px 28px ${accent}26, 0 1px 2px rgba(15, 17, 21, 0.04)`
-          : (hover
-              ? `0 8px 20px ${accent}1F, 0 1px 2px rgba(15, 17, 21, 0.04)`
-              : '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 12px rgba(15, 17, 21, 0.04)'),
-        transform: !isPopup && (expanded || hover) ? 'translateY(-2px)' : 'translateY(0)',
-        position: 'relative',
         overflow: 'hidden',
-        minHeight: expanded ? 'auto' : 88,
+        boxShadow: expanded
+          ? `0 14px 34px -8px ${accent}30, 0 2px 6px rgba(15, 17, 21, 0.05)`
+          : (hover && !isPopup
+              ? `0 10px 24px -8px ${accent}26, 0 1px 3px rgba(15, 17, 21, 0.04)`
+              : '0 1px 0 rgba(15, 17, 21, 0.03), 0 5px 14px rgba(15, 17, 21, 0.05)'),
+        transform: !isPopup && (expanded || hover) ? `translateY(${expanded ? -3 : -2}px)` : 'translateY(0)',
+        transition: `transform 340ms ${SALA_EASE}, box-shadow 340ms ${SALA_EASE}, border-color 240ms ease-out`,
+        position: 'relative',
       }}>
-      {/* === HEADER — banda col colore PIENO dello stato (lo stesso accent
-          del vecchio bordo superiore, ora ridondante e rimosso), scritte
-          BIANCHE, corpo della card bianco. Dentro: Tavolo X ingrandito
-          (+ "Seduti da" sotto, se occupato espanso), Modifica a destra
-          sull'occupato espanso, triangolo alert. === */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        margin: expanded ? '-16px -18px 0' : '-12px -14px 0',
-        padding: expanded ? '15px 18px 12px' : '11px 14px 10px',
-        // Gradiente orizzontale sul colore di stato (versione scura):
-        // parte dal più SCURO a sinistra e sfuma verso il più chiaro a destra
-        background: `linear-gradient(90deg, ${shade(accent, -0.38)} 0%, ${shade(accent, -0.22)} 48%, ${shade(accent, -0.08)} 100%)`,
-        borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
-      }}>
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{display:'flex', alignItems:'center', gap: 8}}>
-            <span style={{
-              fontSize: expanded ? 27 : 24, fontWeight: 700, color: '#FFFFFF',
-              letterSpacing: '-0.02em', lineHeight: 1,
-              textShadow: '0 1px 2px rgba(15,17,21,0.12)',
-            }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
-          </div>
-          {/* Tempo al tavolo — sotto il nome del tavolo */}
-          {expanded && t.state === 'occupato' && t.sittingMin != null && (
-            <div style={{fontSize: 14.5, color:'rgba(255,255,255,0.88)', fontWeight: 600, marginTop: 4, lineHeight: 1}}>
-              {formatSeduti(t.sittingMin)}
-            </div>
-          )}
-        </div>
-        {/* Modifica — in header per TUTTE le card espanse */}
+
+      {/* === HEADER — swatch pieno del colore di stato + Tavolo N,
+          badge urgenza (compatta), Modifica (espansa), chevron/X === */}
+      <div style={{display:'flex', alignItems:'center', gap: 10, padding:'13px 14px 11px'}}>
+        <span style={{
+          width: 46, height: 22, borderRadius: 8, flexShrink: 0,
+          background: accent,
+        }}/>
+        <span style={{
+          fontSize: 19, fontWeight: 800, color:'#0F1115',
+          letterSpacing:'-0.02em', lineHeight: 1, whiteSpace:'nowrap',
+          overflow:'hidden', textOverflow:'ellipsis',
+        }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
+        <span style={{flex: 1, minWidth: 8}}/>
+        {/* Badge urgenza — prenotato in ritardo >20' OR da pulire >20' */}
+        {showAlertTriangle && !expanded && (
+          <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
+            <span style={{fontSize: 10.5, fontWeight: 800, color:'#DC2626', background:'rgba(220,38,38,0.08)',
+              boxShadow:'inset 0 0 0 1px rgba(220,38,38,0.35)', padding:'2px 8px', borderRadius: 999,
+              textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', flexShrink: 0, cursor:'help'}}>+20'</span>
+          </Tip>
+        )}
+        {/* Modifica — compare quando la card è aperta */}
         {expanded && (
           <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
             title="Sposta, dividi o unisci il tavolo" style={{
             display:'inline-flex', alignItems:'center', gap: 5,
-            height: 32, padding:'0 12px', borderRadius: 8,
-            background: PN.BTN_NEUTRAL, color:'#0F1115',
-            border:`1px solid ${PN.BORDER_LIGHT}`,
-            fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            padding:'6px 12px', borderRadius: 999,
+            background:'#fff', color:'#0F1115',
+            border:'1px solid rgba(15,17,21,0.12)',
+            fontSize: 13.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             whiteSpace:'nowrap', flexShrink: 0,
-            boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.05)`,
             transition:'background 150ms ease-out',
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; }}>
+            onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F7'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -593,65 +639,82 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             Modifica
           </button>
         )}
-        {/* Triangolo alert — bianco con "!" rosso: contrasta sulla banda
-            colorata (prenotato in ritardo >20' OR da pulire >20') */}
-        {showAlertTriangle && (
-          <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFFFFF" stroke="none" style={{display:'block', cursor:'help'}}>
-              <path d="M12 2 L22 20 H2 Z" fill="#FFFFFF"/>
-              <path d="M12 9 V14 M12 17 h0.01" stroke="#DC2626" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
-            </svg>
-          </Tip>
-        )}
-        {/* X di chiusura (solo popup) — ghost bianco traslucido SULLA banda
-            di stato, in riga con Modifica: mai sovrapposta al contenuto */}
-        {expanded && isPopup && (
+        {/* X di chiusura (solo popup) / chevron (lista) */}
+        {isPopup ? (
           <button
             onClick={(e) => { e.stopPropagation(); onClose(); }}
             title="Chiudi dettaglio"
             aria-label="Chiudi dettaglio tavolo"
             style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.18)', color: '#FFFFFF',
-              border: '1px solid rgba(255,255,255,0.35)',
+              width: 30, height: 30, borderRadius: '50%',
+              background: 'rgba(15,17,21,0.04)', color: '#6B7280',
+              border: '1px solid rgba(15,17,21,0.10)',
               cursor: 'pointer', fontFamily: 'inherit',
               display: 'grid', placeItems: 'center', flexShrink: 0,
               transition: 'background 150ms ease-out',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.30)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.04)'; }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
               <path d="M6 6l12 12 M18 6L6 18"/>
             </svg>
           </button>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.4"
+            strokeLinecap="round" strokeLinejoin="round"
+            style={{transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition:`transform 340ms ${SALA_EASE}`, flexShrink: 0}}>
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         )}
       </div>
 
-      {/* Allergia: SEMPRE visibile. Compatta = solo "Allergia". Espansa = "Allergia [testo] · [ospite]". */}
-      {note && noteIsCritical && (
-        <div style={{
-          display:'flex', alignItems:'center', gap: 5,
-          fontSize: 15, fontWeight: 700, color: '#DC2626',
-          padding: '2px 0', lineHeight: 1.25, textTransform: 'uppercase', letterSpacing: 0.4,
-        }}>
-          <span style={{whiteSpace: expanded ? 'normal' : 'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-            {expanded
-              ? `${note.testo}${note.ospite ? ` · ${note.ospite}` : ' (1 ospite)'}`
-              : 'Allergia'}
-          </span>
-        </div>
-      )}
+      {/* === BENTO 2×2 — stato, coperti e i due dati contestuali === */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'1fr 1fr',
+        borderTop:'1px solid rgba(15,17,21,0.07)',
+      }}>
+        <div style={{borderRight:'1px solid rgba(15,17,21,0.06)', borderBottom:'1px solid rgba(15,17,21,0.06)'}}><SalaBentoCell {...bento[0]}/></div>
+        <div style={{borderBottom:'1px solid rgba(15,17,21,0.06)'}}><SalaBentoCell {...bento[1]}/></div>
+        <div style={{borderRight:'1px solid rgba(15,17,21,0.06)'}}><SalaBentoCell {...bento[2]}/></div>
+        <SalaBentoCell {...bento[3]}/>
+      </div>
 
-      {!expanded && <SalaCardCompact t={t} alert={alert} urgent={urgent} isLate={isLate} lateMin={lateMin} cta={cta} pulireSev={pulireSev}/>}
-      {expanded && <SalaCardExpanded t={t} alert={alert} cta={cta} note={note} noteMeta={noteMeta}
-        extraNote={extraNote} extraNoteMeta={extraNoteMeta}
-        onAddArticle={onAddArticle} onConfirmCart={onConfirmCart} cart={cart} onCartChange={onCartChange}
-        onAdjustCoperti={onAdjustCoperti}
-        onAdjustReservationPosti={onAdjustReservationPosti}
-        onEdit={onEdit} occupatoSaldato={occupatoSaldato}
-        isLate={isLate} lateMin={lateMin} isNoShow={isNoShow}
-        onAssignOther={onAssignOther} onNoShow={onNoShow} pulireSev={pulireSev}/>}
+      {/* === DETTAGLIO — apertura fluida: grid-rows 0fr→1fr, curva spring === */}
+      <div style={{
+        display:'grid',
+        gridTemplateRows: expanded ? '1fr' : '0fr',
+        transition: `grid-template-rows 380ms ${SALA_EASE}`,
+        borderTop: expanded ? '1px solid rgba(15,17,21,0.07)' : '1px solid rgba(15,17,21,0)',
+      }}>
+        <div style={{
+          overflow:'hidden', minHeight: 0,
+          opacity: expanded ? 1 : 0,
+          transform: expanded ? 'translateY(0)' : 'translateY(-6px)',
+          transition: `opacity 260ms ease-out ${expanded ? '90ms' : '0ms'}, transform 380ms ${SALA_EASE}`,
+        }}>
+          <div style={{padding:'12px 14px 14px', display:'flex', flexDirection:'column', gap: 14}}>
+            {/* Allergia — testo completo, solo nel dettaglio (in card chiusa
+                sta nella cella NOTA del bento) */}
+            {note && noteIsCritical && (
+              <div style={{
+                fontSize: 15, fontWeight: 700, color: '#DC2626',
+                lineHeight: 1.3, textTransform: 'uppercase', letterSpacing: 0.4,
+              }}>
+                {`${note.testo}${note.ospite ? ` · ${note.ospite}` : ' (1 ospite)'}`}
+              </div>
+            )}
+            <SalaCardExpanded t={t} alert={alert} cta={cta} note={note} noteMeta={noteMeta}
+              extraNote={extraNote} extraNoteMeta={extraNoteMeta}
+              onAddArticle={onAddArticle} onConfirmCart={onConfirmCart} cart={cart} onCartChange={onCartChange}
+              onAdjustCoperti={onAdjustCoperti}
+              onAdjustReservationPosti={onAdjustReservationPosti}
+              onEdit={onEdit} occupatoSaldato={occupatoSaldato}
+              isLate={isLate} lateMin={lateMin} isNoShow={isNoShow}
+              onAssignOther={onAssignOther} onNoShow={onNoShow} pulireSev={pulireSev}/>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
