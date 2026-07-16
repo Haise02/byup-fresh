@@ -659,48 +659,23 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           )}
         </div>
 
-        {/* Centro: stato + tempo + riga info — SOLO a card chiusa: da aperta
-            il badge acceso dice già lo stato e Modifica ha campo libero */}
+        {/* Centro: stato + tempo + riga info — sempre visibili
+            (Modifica vive nel dettaglio, accanto alla CTA) */}
         <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 4}}>
-          {!expanded && (
-            <React.Fragment>
-              <div style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
-                <span style={{fontSize: 15, fontWeight: 800, color: accent, whiteSpace:'nowrap'}}>{meta.label}</span>
-                {t.state === 'occupato' && t.sittingMin != null && (
-                  <span style={{fontSize: 12.5, fontWeight: 600, color: getOpenDurationColor(t.sittingMin) === '#0F1115' ? '#9CA3AF' : getOpenDurationColor(t.sittingMin), whiteSpace:'nowrap', flexShrink: 0}}>
-                    · {formatOpenDuration(t.sittingMin)}
-                  </span>
-                )}
-              </div>
-              <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
-                {info.text}
-              </div>
-            </React.Fragment>
-          )}
+          <div style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
+            <span style={{fontSize: 15, fontWeight: 800, color: accent, whiteSpace:'nowrap'}}>{meta.label}</span>
+            {t.state === 'occupato' && t.sittingMin != null && (
+              <span style={{fontSize: 12.5, fontWeight: 600, color: getOpenDurationColor(t.sittingMin) === '#0F1115' ? '#9CA3AF' : getOpenDurationColor(t.sittingMin), whiteSpace:'nowrap', flexShrink: 0}}>
+                · {formatOpenDuration(t.sittingMin)}
+              </span>
+            )}
+          </div>
+          <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+            {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
+            {info.text}
+          </div>
         </div>
-        {/* Modifica — compare quando la card è aperta */}
-        {expanded && (
-          <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
-            title="Sposta, dividi o unisci il tavolo" style={{
-            display:'inline-flex', alignItems:'center', gap: 5,
-            padding:'6px 12px', borderRadius: 999,
-            background:'#fff', color:'#0F1115',
-            border:'1px solid rgba(15,17,21,0.12)',
-            fontSize: 13.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            whiteSpace:'nowrap', flexShrink: 0,
-            transition:'background 150ms ease-out',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F7'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-            </svg>
-            Modifica
-          </button>
-        )}
         {/* Coperti — seduti (o prenotati) su capienza: "3 su 5" */}
         {(seduti != null || capienza != null) && (
           <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0}}>
@@ -1058,16 +1033,15 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         )}
       </div>
 
-      {/* CTA contestuale — solo la primaria nera: Modifica sta nell'header
-          della card per tutti gli stati */}
-      <ExpandedCTARow t={t} cta={cta}/>
+      {/* CTA contestuale — primaria nera + Modifica ghost accanto */}
+      <ExpandedCTARow t={t} cta={cta} onEdit={onEdit}/>
     </>
   );
 }
 
-function ExpandedCTARow({ t, cta }) {
+function ExpandedCTARow({ t, cta, onEdit }) {
   return (
-    <div style={{display:'flex', gap: 8, alignItems:'center'}}>
+    <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
       <button onClick={(e)=>{e.stopPropagation(); cta.onClick && cta.onClick();}} style={{
         flex: 1, padding:'11px 14px',
         background: PN.BTN_DARK, color:'#fff',
@@ -1081,6 +1055,25 @@ function ExpandedCTARow({ t, cta }) {
         onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
         onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
       >{cta.label}</button>
+      {/* Modifica — qui ha sempre spazio, mai sopra le scritte dell'header */}
+      <button onClick={(e)=>{e.stopPropagation(); onEdit && onEdit(t);}}
+        title="Sposta, dividi o unisci il tavolo" style={{
+        display:'inline-flex', alignItems:'center', gap: 5,
+        padding:'0 14px', borderRadius: 10,
+        background:'#fff', color:'#0F1115',
+        border:'1px solid rgba(15,17,21,0.12)',
+        fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        whiteSpace:'nowrap', flexShrink: 0,
+        transition:'background 150ms ease-out',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#F5F5F7'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+        </svg>
+        Modifica
+      </button>
     </div>
   );
 }
