@@ -659,24 +659,25 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           )}
         </div>
 
-        {/* Centro: stato + tempo, sotto la riga info */}
+        {/* Centro: stato + tempo + riga info — SOLO a card chiusa: da aperta
+            il badge acceso dice già lo stato e Modifica ha campo libero */}
         <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 4}}>
-          <div style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
-            <span style={{fontSize: 15, fontWeight: 800, color: accent, whiteSpace:'nowrap'}}>{meta.label}</span>
-            {t.state === 'occupato' && t.sittingMin != null && (
-              <span style={{fontSize: 12.5, fontWeight: 600, color: getOpenDurationColor(t.sittingMin) === '#0F1115' ? '#9CA3AF' : getOpenDurationColor(t.sittingMin), whiteSpace:'nowrap', flexShrink: 0}}>
-                · {formatOpenDuration(t.sittingMin)}
-              </span>
-            )}
-          </div>
-          {/* Riga info — solo a card chiusa: da aperta il dettaglio dice già
-              tutto e Modifica ha lo spazio suo (niente sovrapposizioni) */}
           {!expanded && (
-            <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
-              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-              {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
-              {info.text}
-            </div>
+            <React.Fragment>
+              <div style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
+                <span style={{fontSize: 15, fontWeight: 800, color: accent, whiteSpace:'nowrap'}}>{meta.label}</span>
+                {t.state === 'occupato' && t.sittingMin != null && (
+                  <span style={{fontSize: 12.5, fontWeight: 600, color: getOpenDurationColor(t.sittingMin) === '#0F1115' ? '#9CA3AF' : getOpenDurationColor(t.sittingMin), whiteSpace:'nowrap', flexShrink: 0}}>
+                    · {formatOpenDuration(t.sittingMin)}
+                  </span>
+                )}
+              </div>
+              <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
+                {info.text}
+              </div>
+            </React.Fragment>
           )}
         </div>
         {/* Modifica — compare quando la card è aperta */}
