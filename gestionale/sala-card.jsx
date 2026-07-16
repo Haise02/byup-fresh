@@ -528,7 +528,7 @@ function salaBentoCells(t, { meta, alert, isLate, lateMin, noteIsCritical, pulir
 }
 
 // Riga info della card "Costa colorata" — un solo testo per stato
-function salaInfoText(t, { alert, isLate, lateMin, pulireSev }) {
+function salaInfoText(t, { alert, isLate, lateMin, pulireSev, expanded }) {
   if (t.state === 'occupato') {
     if (alert) return { text: alert.label, color: alert.tone === 'warn' ? '#92400E' : '#6B7280' };
     return { text: t.sittingMin != null ? `Al tavolo da ${formatOpenDuration(t.sittingMin)}` : 'Al tavolo', color: '#6B7280' };
@@ -540,9 +540,14 @@ function salaInfoText(t, { alert, isLate, lateMin, pulireSev }) {
   }
   if (t.state === 'dapulire') {
     const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
+    const poi = t.nextReservation ? `poi ${t.nextReservation.time}` : '';
+    const color = pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#B45309' : '#6B7280');
+    // Da contratta il tempo trascorso non si mostra (si legge aprendo):
+    // resta solo la prossima prenotazione, che è ciò che detta la fretta.
+    if (!expanded) return { text: poi, color };
     return {
-      text: (min != null ? `Liberato ${min}' fa` : 'Da liberare') + (t.nextReservation ? ` · poi ${t.nextReservation.time}` : ''),
-      color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#B45309' : '#6B7280'),
+      text: (min != null ? `Liberato ${min}' fa` : 'Da liberare') + (poi ? ` · ${poi}` : ''),
+      color,
     };
   }
   const res = t.nextReservation;
@@ -595,7 +600,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
   const showAlertTriangle = hasAlertTriangle(t);
 
-  const info = salaInfoText(t, { alert, isLate, lateMin, pulireSev });
+  const info = salaInfoText(t, { alert, isLate, lateMin, pulireSev, expanded });
   // Seduti (o prenotati) su capienza totale del tavolo → "3 su 5"
   const capienza = t.posti;
   const seduti = t.state === 'occupato' ? t.coperti : (t.state === 'prenotato' ? (t.nextReservation && t.nextReservation.posti) : null);
@@ -665,11 +670,13 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           <div style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
             <span style={{fontSize: 15, fontWeight: 800, color: accent, whiteSpace:'nowrap'}}>{meta.label}</span>
           </div>
-          {/* Riga info — sull'occupato CONTRATTO il tempo al tavolo non si
-              mostra: si legge aprendo la card. Restano sempre l'allergia e
-              l'alert operativo, che è un'eccezione da vedere a colpo d'occhio. */}
+          {/* Riga info — sull'occupato CONTRATTO non si mostra nulla: né il
+              tempo al tavolo né l'alert operativo ("Non ordina da X'"), che
+              si leggono aprendo la card. Resta solo l'allergia, sempre.
+              (Il da liberare contratto si riduce da sé alla sola prossima
+              prenotazione: vedi salaInfoText.) */}
           {(() => {
-            const showInfo = t.state !== 'occupato' || expanded || !!alert;
+            const showInfo = (t.state !== 'occupato' || expanded) && !!info.text;
             if (!showInfo && !noteIsCritical) return null;
             return (
               <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
