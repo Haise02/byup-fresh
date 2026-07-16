@@ -656,10 +656,20 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
               }}>{ids}</span>
             ); })()}
           </div>
-          {/* Dot urgenza — prenotato in ritardo >20' OR da pulire >20' */}
+          {/* Triangolo urgenza — prenotato in ritardo >20' OR da pulire >20'.
+              Stessa sagoma dell'icona Alert del design system (PnI.Alert):
+              angoli arrotondati, mai spigoli. Qui pieno, col bordo bianco che
+              lo stacca dal badge come faceva il pallino. */}
           {showAlertTriangle && (
             <Tip text={t.state === 'dapulire' ? 'Tavolo non ancora liberato da oltre 20 minuti' : 'Prenotazione in ritardo di oltre 20 minuti'}>
-              <span style={{position:'absolute', top: -1, right: -1, width: 14, height: 14, borderRadius:'50%', background:'#DC2626', boxShadow:'0 0 0 2px #fff', cursor:'help', display:'block'}}/>
+              <span style={{position:'absolute', top: -4, right: -4, cursor:'help', display:'block', lineHeight: 0}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" style={{display:'block'}}>
+                  <path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    fill="#DC2626" stroke="#FFFFFF" strokeWidth="3" strokeLinejoin="round" paintOrder="stroke"/>
+                  <path d="M12 9.6 V13.4 M12 16.7 h0.01" stroke="#FFFFFF" strokeWidth="2.2"
+                    strokeLinecap="round" fill="none"/>
+                </svg>
+              </span>
             </Tip>
           )}
         </div>
