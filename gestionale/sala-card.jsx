@@ -664,17 +664,21 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 4}}>
           <div style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
             <span style={{fontSize: 15, fontWeight: 800, color: accent, whiteSpace:'nowrap'}}>{meta.label}</span>
-            {t.state === 'occupato' && t.sittingMin != null && (
-              <span style={{fontSize: 12.5, fontWeight: 600, color: getOpenDurationColor(t.sittingMin) === '#0F1115' ? '#9CA3AF' : getOpenDurationColor(t.sittingMin), whiteSpace:'nowrap', flexShrink: 0}}>
-                · {formatOpenDuration(t.sittingMin)}
-              </span>
-            )}
           </div>
-          <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
-            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-            {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
-            {info.text}
-          </div>
+          {/* Riga info — sull'occupato CONTRATTO il tempo al tavolo non si
+              mostra: si legge aprendo la card. Restano sempre l'allergia e
+              l'alert operativo, che è un'eccezione da vedere a colpo d'occhio. */}
+          {(() => {
+            const showInfo = t.state !== 'occupato' || expanded || !!alert;
+            if (!showInfo && !noteIsCritical) return null;
+            return (
+              <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia{showInfo ? ' · ' : ''}</strong>}
+                {showInfo && info.text}
+              </div>
+            );
+          })()}
         </div>
         {/* Coperti — seduti (o prenotati) su capienza: "3 su 5" */}
         {(seduti != null || capienza != null) && (
