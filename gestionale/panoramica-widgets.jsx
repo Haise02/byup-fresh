@@ -454,7 +454,7 @@ function WidgetPrenotazioniOggi() {
   // I tag prenotazione sono SOLO due: Compleanno e Aziendale.
   // Tutto il resto (allergie, preferenze tavolo…) vive come nota testuale.
   const items = [
-    { time: '19:30', name: 'Famiglia Rossi',   covers: 4, table: 'Tavolo 7',  tag: 'compleanno', note: 'torta' },
+    { time: '19:30', name: 'Famiglia Robinson',   covers: 4, table: 'Tavolo 7',  tag: 'compleanno', note: 'torta' },
     { time: '20:00', name: 'Bianchi M.',       covers: 2, table: 'Tavolo 3' },
     { time: '20:15', name: 'Conte (regular)',  covers: 6, table: 'Tavolo 12' },
     { time: '20:30', name: 'Walk-in attesa',   covers: 2, table: null },

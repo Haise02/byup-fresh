@@ -22,8 +22,8 @@ const TAVOLI = [
 ];
 
 const TAVOLI_LIBERI = [
-  { id: 40, n: 40, stato: 'prenotato', coperti: 4, prenotazione: { quando: '1h 25\'', nome: 'Famiglia Rossi', tel: '+39 333 ...' } },
-  { id: 12, n: 12, stato: 'prenotato', coperti: 2, prenotazione: { quando: '50\'', nome: 'Bianchi', tel: '+39 348 ...' } },
+  { id: 40, n: 40, stato: 'prenotato', coperti: 4, prenotazione: { quando: '1h 25\'', nome: 'Famiglia Robinson', tel: '+39 333 ...' } },
+  { id: 12, n: 12, stato: 'prenotato', coperti: 2, prenotazione: { quando: '50\'', nome: 'Stark', tel: '+39 348 ...' } },
   { id: 4,  n: 4,  stato: 'prenotato', coperti: 6, prenotazione: { quando: '3h 25\'', nome: 'Gruppo Conti', tel: '+39 320 ...' } },
   { id: 21, n: 21, stato: 'prenotato', coperti: 2, prenotazione: { quando: '5h 25\'', nome: 'Sig. Marini', tel: '+39 339 ...' } },
   { id: 30, n: 30, stato: 'libero',    coperti: 2, prenotazione: null },
