@@ -8,6 +8,16 @@ const PnI = {
     }}/>
   ),
 
+  // Solo il segno, senza lettering — per gli spazi stretti (sidebar chiusa).
+  // È il glifo ritagliato da Fresh.png, così logo esteso e segno restano lo
+  // stesso disegno. Corallo su trasparente: non va messo su fondo corallo.
+  LogoMark: (p) => (
+    <img src="Fresh-mark.png" alt="byup" style={{
+      height: p.size || 32, width: p.size || 32,
+      objectFit: 'contain', display: 'block', flexShrink: 0,
+    }}/>
+  ),
+
   Panoramica: (p) => (
     <svg width={p.size||18} height={p.size||18} viewBox="0 0 24 24" fill="none" stroke={p.color||'currentColor'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="9"/>

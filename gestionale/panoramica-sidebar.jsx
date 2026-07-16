@@ -135,13 +135,9 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         )}
         {collapsed && (
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8}}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 9,
-              background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
-            }}>
-              <span style={{color:'#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.03em'}}>B</span>
-            </div>
+            {/* Il segno del logo, non una "B": da chiusa la sidebar mostra
+                lo stesso disegno del logo esteso, solo senza lettering. */}
+            <PnI.LogoMark size={32}/>
             <button onClick={toggle} title="Espandi menu" style={{
               width: 26, height: 26, borderRadius: 7,
               border: `1px solid ${PN.BORDER_LIGHT}`,
