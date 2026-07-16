@@ -526,6 +526,28 @@ function salaBentoCells(t, { meta, alert, isLate, lateMin, noteIsCritical, pulir
   ];
 }
 
+// Riga info della card "Costa colorata" — un solo testo per stato
+function salaInfoText(t, { alert, isLate, lateMin, pulireSev }) {
+  if (t.state === 'occupato') {
+    if (alert) return { text: alert.label, color: alert.tone === 'warn' ? '#92400E' : '#6B7280' };
+    return { text: t.sittingMin != null ? `Al tavolo da ${formatOpenDuration(t.sittingMin)}` : 'Al tavolo', color: '#6B7280' };
+  }
+  if (t.state === 'prenotato') {
+    const res = t.nextReservation;
+    if (!res) return { text: 'Prenotato', color: '#6B7280' };
+    return { text: `${res.time} · ${res.name}` + (isLate ? ` · ritardo ${lateMin}'` : ''), color: isLate ? '#A16207' : '#4B5563' };
+  }
+  if (t.state === 'dapulire') {
+    const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
+    return {
+      text: (min != null ? `Liberato ${min}' fa` : 'Da liberare') + (t.nextReservation ? ` · poi ${t.nextReservation.time}` : ''),
+      color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#B45309' : '#6B7280'),
+    };
+  }
+  const res = t.nextReservation;
+  return { text: res ? `Prossima ${res.time} · ${res.name}` : 'Nessuna prenotazione', color: '#6B7280' };
+}
+
 function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti, onClose }) {
   const meta = SALA_STATE_META[t.state];
   const alert = t.state === 'occupato' ? getOccupiedAlert(t) : null;
@@ -572,7 +594,8 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
   const showAlertTriangle = hasAlertTriangle(t);
 
-  const bento = salaBentoCells(t, { meta, alert, isLate, lateMin, noteIsCritical, pulireSev });
+  const info = salaInfoText(t, { alert, isLate, lateMin, pulireSev });
+  const seatsN = t.state === 'occupato' ? t.coperti : ((t.nextReservation && t.nextReservation.posti) || t.posti);
 
   return (
     <div
@@ -580,35 +603,58 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        // Card "Quadrante": corpo bianco, swatch di stato nell'header,
-        // bento 2×2, dettaglio che si apre con curva spring.
+        // Card "Costa colorata": dorso verticale col colore di stato che si
+        // accende all'apertura, corpo bianco, dettaglio che si spiega con
+        // una piega 3D. Card chiuse con aria: minHeight 104.
         background: '#FFFFFF',
-        borderRadius: 16,
-        border: `1px solid ${(expanded || (hover && !isPopup)) ? meta.border : 'rgba(15, 17, 21, 0.07)'}`,
+        borderRadius: 14,
+        border: `1px solid ${expanded ? meta.border : 'rgba(15, 17, 21, 0.07)'}`,
         cursor: isPopup ? 'default' : 'pointer',
         overflow: 'hidden',
+        display: 'flex',
         boxShadow: expanded
-          ? `0 14px 34px -8px ${accent}30, 0 2px 6px rgba(15, 17, 21, 0.05)`
+          ? `0 16px 36px -10px ${accent}30, 0 2px 6px rgba(15, 17, 21, 0.05)`
           : (hover && !isPopup
-              ? `0 10px 24px -8px ${accent}26, 0 1px 3px rgba(15, 17, 21, 0.04)`
+              ? `0 8px 20px -6px ${accent}22, 0 1px 3px rgba(15, 17, 21, 0.04)`
               : '0 1px 0 rgba(15, 17, 21, 0.03), 0 5px 14px rgba(15, 17, 21, 0.05)'),
-        transform: !isPopup && (expanded || hover) ? `translateY(${expanded ? -3 : -2}px)` : 'translateY(0)',
-        transition: `transform 340ms ${SALA_EASE}, box-shadow 340ms ${SALA_EASE}, border-color 240ms ease-out`,
+        transform: !isPopup && hover && !expanded ? 'translateY(-2px)' : 'translateY(0)',
+        transition: `transform 300ms ${SALA_EASE}, box-shadow 380ms ${SALA_EASE}, border-color 260ms ease-out`,
         position: 'relative',
       }}>
 
-      {/* === HEADER — swatch pieno del colore di stato + Tavolo N,
-          badge urgenza (compatta), Modifica (espansa), chevron/X === */}
-      <div style={{display:'flex', alignItems:'center', gap: 10, padding:'13px 14px 11px'}}>
+      {/* === COSTA — si accende del colore pieno e si allarga quando apri === */}
+      <div style={{
+        width: expanded ? 42 : 34, flexShrink: 0, alignSelf: 'stretch',
+        background: expanded ? accent : meta.bg,
+        borderRight: `1px solid ${meta.border}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '12px 0',
+        transition: `width 420ms ${SALA_EASE}, background 320ms ease-out`,
+      }}>
         <span style={{
-          width: 46, height: 22, borderRadius: 8, flexShrink: 0,
-          background: accent,
-        }}/>
+          writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+          fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase',
+          color: expanded ? '#fff' : accent, whiteSpace: 'nowrap',
+          transition: 'color 320ms ease-out',
+        }}>{meta.label}</span>
+      </div>
+
+      {/* === CORPO === */}
+      <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column'}}>
+
+      {/* Riga titolo + riga info — aria verticale generosa */}
+      <div style={{padding: '16px 16px', minHeight: 104, display: 'flex', flexDirection: 'column', gap: 6, justifyContent: 'center'}}>
+      <div style={{display:'flex', alignItems:'center', gap: 8}}>
         <span style={{
-          fontSize: 19, fontWeight: 800, color:'#0F1115',
-          letterSpacing:'-0.02em', lineHeight: 1, whiteSpace:'nowrap',
+          fontSize: 18, fontWeight: 800, color:'#0F1115',
+          letterSpacing:'-0.02em', lineHeight: 1.15, whiteSpace:'nowrap',
           overflow:'hidden', textOverflow:'ellipsis',
         }}>Tavolo {[t.id, ...(t.mergedTables || [])].sort((a, b) => a - b).join('-')}</span>
+        {t.state === 'occupato' && t.sittingMin != null && (
+          <span style={{fontSize: 12.5, fontWeight: 600, color: getOpenDurationColor(t.sittingMin) === '#0F1115' ? '#9CA3AF' : getOpenDurationColor(t.sittingMin), whiteSpace:'nowrap', flexShrink: 0}}>
+            · {formatOpenDuration(t.sittingMin)}
+          </span>
+        )}
         <span style={{flex: 1, minWidth: 8}}/>
         {/* Badge urgenza — prenotato in ritardo >20' OR da pulire >20' */}
         {showAlertTriangle && !expanded && (
@@ -639,6 +685,12 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             Modifica
           </button>
         )}
+        {/* Coperti/posti — sempre visibili a destra */}
+        {seatsN != null && (
+          <span style={{fontSize: 14, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums', flexShrink: 0}}>
+            {seatsN}<span style={{fontSize: 11, color:'#9CA3AF', fontWeight: 600}}>p</span>
+          </span>
+        )}
         {/* X di chiusura (solo popup) / chevron (lista) */}
         {isPopup ? (
           <button
@@ -663,35 +715,34 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
         ) : (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.4"
             strokeLinecap="round" strokeLinejoin="round"
-            style={{transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition:`transform 340ms ${SALA_EASE}`, flexShrink: 0}}>
+            style={{transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition:`transform 420ms ${SALA_EASE}`, flexShrink: 0}}>
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         )}
       </div>
 
-      {/* === BENTO 2×2 — stato, coperti e i due dati contestuali === */}
-      <div style={{
-        display:'grid', gridTemplateColumns:'1fr 1fr',
-        borderTop:'1px solid rgba(15,17,21,0.07)',
-      }}>
-        <div style={{borderRight:'1px solid rgba(15,17,21,0.06)', borderBottom:'1px solid rgba(15,17,21,0.06)'}}><SalaBentoCell {...bento[0]}/></div>
-        <div style={{borderBottom:'1px solid rgba(15,17,21,0.06)'}}><SalaBentoCell {...bento[1]}/></div>
-        <div style={{borderRight:'1px solid rgba(15,17,21,0.06)'}}><SalaBentoCell {...bento[2]}/></div>
-        <SalaBentoCell {...bento[3]}/>
+      {/* Riga info — un solo testo per stato, mai a contatto coi bordi */}
+      <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
+        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+        {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
+        {info.text}
+      </div>
       </div>
 
-      {/* === DETTAGLIO — apertura fluida: grid-rows 0fr→1fr, curva spring === */}
+      {/* === DETTAGLIO — si "spiega" con una piega 3D dall'alto === */}
       <div style={{
         display:'grid',
         gridTemplateRows: expanded ? '1fr' : '0fr',
-        transition: `grid-template-rows 380ms ${SALA_EASE}`,
+        transition: `grid-template-rows 440ms ${SALA_EASE}`,
         borderTop: expanded ? '1px solid rgba(15,17,21,0.07)' : '1px solid rgba(15,17,21,0)',
+        perspective: 700,
       }}>
         <div style={{
           overflow:'hidden', minHeight: 0,
           opacity: expanded ? 1 : 0,
-          transform: expanded ? 'translateY(0)' : 'translateY(-6px)',
-          transition: `opacity 260ms ease-out ${expanded ? '90ms' : '0ms'}, transform 380ms ${SALA_EASE}`,
+          transform: expanded ? 'rotateX(0deg) translateY(0)' : 'rotateX(-14deg) translateY(-10px)',
+          transformOrigin: 'top center',
+          transition: `opacity 280ms ease-out ${expanded ? '90ms' : '0ms'}, transform 500ms ${SALA_EASE} ${expanded ? '40ms' : '0ms'}`,
         }}>
           <div style={{padding:'12px 14px 14px', display:'flex', flexDirection:'column', gap: 14}}>
             {/* Allergia — testo completo, solo nel dettaglio (in card chiusa
@@ -714,6 +765,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
               onAssignOther={onAssignOther} onNoShow={onNoShow} pulireSev={pulireSev}/>
           </div>
         </div>
+      </div>
+
+      {/* chiusura corpo */}
       </div>
     </div>
   );
