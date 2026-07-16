@@ -1050,14 +1050,23 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               </div>
             )}
             {t.nextReservation && (
-              <div style={{fontSize: 16.5, color:'#6B7280'}}>
-                Prossima prenotazione: <b style={{color:'#0F1115'}}>{t.nextReservation.time}</b>
-                {t.nextReservation.posti && (
-                  <span style={{display:'inline-flex', alignItems:'center', gap: 4}}>
-                    {' '}· {t.nextReservation.posti} <PeopleIcon size={13} color="#9CA3AF"/>
-                  </span>
-                )}
-              </div>
+              /* Stessa forma del libero: etichetta su una riga, ora · nome in
+                 grande e coperti modificabili a destra. La prossima
+                 prenotazione si aggiusta da qui, senza aspettare che il
+                 tavolo torni libero. */
+              <>
+                <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
+                  Prossima prenotazione
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
+                  <div style={{flex: 1, minWidth: 0, fontSize: 21, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                    {t.nextReservation.time} · {t.nextReservation.name}
+                  </div>
+                  {/* Stepper inline — niente popover che finisce tagliato */}
+                  <CopertiChip coperti={t.nextReservation.posti} posti={t.posti || 12} onAdjust={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)}/>
+                </div>
+              </>
             )}
           </div>
         )}
