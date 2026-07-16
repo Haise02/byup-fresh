@@ -536,7 +536,9 @@ function salaInfoText(t, { alert, isLate, lateMin }) {
   if (t.state === 'prenotato') {
     const res = t.nextReservation;
     if (!res) return { text: 'Prenotato', color: '#6B7280' };
-    return { text: `${res.time} · ${res.name}` + (isLate ? ` · ritardo ${lateMin}'` : ''), color: isLate ? '#A16207' : '#4B5563' };
+    // Ora e nome sono un dato quieto, sempre in nero: il ritardo lo dice il
+    // testo ("· ritardo X'"), non la tinta della riga.
+    return { text: `${res.time} · ${res.name}` + (isLate ? ` · ritardo ${lateMin}'` : ''), color: '#0F1115' };
   }
   if (t.state === 'dapulire') {
     // Il tempo trascorso dalla liberazione non si mostra mai, nemmeno da
