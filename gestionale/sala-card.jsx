@@ -688,7 +688,11 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
                 ? <>{seduti} <span style={{fontWeight: 600, color:'#9CA3AF'}}>su</span> {capienza}</>
                 : (seduti != null ? seduti : capienza)}
             </span>
-            <PeopleIcon size={14} color="#9CA3AF"/>
+            {/* Sedia dove non c'è nessuno seduto (libero / da liberare): lì il
+                numero è la CAPIENZA. Persone dove il numero sono i COPERTI. */}
+            {seduti == null
+              ? <ChairIcon size={14} color="#9CA3AF"/>
+              : <PeopleIcon size={14} color="#9CA3AF"/>}
           </span>
         )}
         {/* X di chiusura (solo popup) / chevron (lista) */}
