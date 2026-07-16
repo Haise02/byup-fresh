@@ -22,7 +22,7 @@ const SALA_TAVOLI = [
     nextReservation: null, minutiAllaPrenotazione: null },
 
   { id: 2,  state: 'libero',   posti: 2, ordini: [],
-    nextReservation: { time: '22:00', name: 'Bianchi', posti: 2, inMin: 45 },
+    nextReservation: { time: '22:00', name: 'Stark', posti: 2, inMin: 45 },
     minutiAllaPrenotazione: 45 },
 
   // daIncassare < conto: la differenza è quanto già pagato in app (riga
@@ -124,7 +124,7 @@ const SALA_TAVOLI = [
     minutiAllaPrenotazione: 165 },
 
   { id: 12, state: 'libero',   posti: 4, ordini: [],
-    nextReservation: { time: '22:00', name: 'Nardi', posti: 3, inMin: 40 },
+    nextReservation: { time: '22:00', name: 'Totti', posti: 3, inMin: 40 },
     minutiAllaPrenotazione: 40 },
 
   // ALERT: seduto da 28 min, mai ordinato, 0 byup → alert massimo
@@ -149,7 +149,7 @@ const SALA_TAVOLI = [
   { id: 16, state: 'dapulire', posti: 2, freedMinAgo: 26, minutiDaPulire: 26, ordini: [],
     nextReservation: null, minutiAllaPrenotazione: null },
 
-  { id: 17, state: 'occupato', posti: 4, coperti: 4, byup: 2, byupWeb: 0, party: 'Fontana', sittingMin: 22, conto: 38.00, contoSaldato: false,
+  { id: 17, state: 'occupato', posti: 4, coperti: 4, byup: 2, byupWeb: 0, party: 'Frodo Baggins', sittingMin: 22, conto: 38.00, contoSaldato: false,
     guests: [
       { id:'g17a', name:'Marco F.', source:'byup' },
       { id:'g17b', name:'Lara F.',  source:'byup' },
