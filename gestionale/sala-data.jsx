@@ -4,7 +4,7 @@
 // Origin: 'cameriere' | 'byup' (per distinguere chi ha mandato l'ordine)
 
 const SALA_TAVOLI = [
-  { id: 1,  state: 'occupato', posti: 4, coperti: 4, byup: 2, byupWeb: 0, party: 'Famiglia Rossi', sittingMin: 32, conto: 87.00, contoSaldato: false,
+  { id: 1,  state: 'occupato', posti: 4, coperti: 4, byup: 2, byupWeb: 0, party: 'Famiglia Robinson', sittingMin: 32, conto: 87.00, contoSaldato: false,
     guests: [
       { id:'g1', name:'Marco R.',     source:'byup' },
       { id:'g2', name:'Giulia R.',    source:'byup' },
@@ -27,7 +27,7 @@ const SALA_TAVOLI = [
 
   // daIncassare < conto: la differenza è quanto già pagato in app (riga
   // "Pagato in app" nel blocco conto a scontrino della card espansa)
-  { id: 3,  state: 'occupato', posti: 6, coperti: 5, byup: 3, byupWeb: 1, party: 'Verdi + amici', sittingMin: 18, conto: 42.50, daIncassare: 24.50, contoSaldato: false,
+  { id: 3,  state: 'occupato', posti: 6, coperti: 5, byup: 3, byupWeb: 1, party: 'Rachel Green + friends', sittingMin: 18, conto: 42.50, daIncassare: 24.50, contoSaldato: false,
     guests: [
       { id:'g3a', name:'Luca V.',    source:'byup' },
       { id:'g3b', name:'Sara V.',    source:'byup' },
@@ -49,7 +49,7 @@ const SALA_TAVOLI = [
     nextReservation: null, minutiAllaPrenotazione: null },
 
   { id: 4,  state: 'prenotato', posti: 4, ordini: [],
-    nextReservation: { time: '20:30', name: 'Martina Franco', posti: 4, inMin: 12 },
+    nextReservation: { time: '20:30', name: 'Annie Edison', posti: 4, inMin: 12 },
     minutiAllaPrenotazione: 12 },
 
   { id: 5,  state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: null, sittingMin: 65, conto: 56.00, contoSaldato: true,
@@ -65,7 +65,7 @@ const SALA_TAVOLI = [
     nextReservation: { time: '21:30', name: 'Conti', posti: 4, inMin: 95 },
     minutiAllaPrenotazione: 95 },
 
-  { id: 7,  state: 'occupato', posti: 8, coperti: 7, byup: 4, byupWeb: 0, party: 'Tavolata Neri', sittingMin: 48, conto: 184.00, daIncassare: 130.00, contoSaldato: false,
+  { id: 7,  state: 'occupato', posti: 8, coperti: 7, byup: 4, byupWeb: 0, party: 'Tommy Shelby', sittingMin: 48, conto: 184.00, daIncassare: 130.00, contoSaldato: false,
     guests: [
       { id:'g7a', name:'Paolo N.',  source:'byup' },
       { id:'g7b', name:'Elena N.',  source:'byup' },
@@ -87,7 +87,7 @@ const SALA_TAVOLI = [
 
   { id: 8,  state: 'libero',   posti: 2, ordini: [], nextReservation: null, minutiAllaPrenotazione: null },
 
-  { id: 9,  state: 'occupato', posti: 4, coperti: 3, byup: 0, byupWeb: 1, party: 'Gallo', sittingMin: 12, conto: 18.00, contoSaldato: false,
+  { id: 9,  state: 'occupato', posti: 4, coperti: 3, byup: 0, byupWeb: 1, party: 'Di Caprio', sittingMin: 12, conto: 18.00, contoSaldato: false,
     ordini: [
       { id:'o16', nome:'Aperitivo della casa', qty:3, prezzo:6, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup' },
     ],
@@ -100,7 +100,7 @@ const SALA_TAVOLI = [
     nextReservation: { time: '20:45', name: 'Bruno Bucciarati', posti: 6, inMin: -18 },
     minutiAllaPrenotazione: -18 },
 
-  { id: 11, state: 'occupato', posti: 4, coperti: 4, byup: 4, byupWeb: 0, party: 'Longo', sittingMin: 95, conto: 142.00, contoSaldato: false,
+  { id: 11, state: 'occupato', posti: 4, coperti: 4, byup: 4, byupWeb: 0, party: 'Usop', sittingMin: 95, conto: 142.00, contoSaldato: false,
     guests: [
       { id:'g11a', name:'Davide L.', source:'byup' },
       { id:'g11b', name:'Marta L.',  source:'byup' },
@@ -128,7 +128,7 @@ const SALA_TAVOLI = [
     minutiAllaPrenotazione: 40 },
 
   // ALERT: seduto da 28 min, mai ordinato, 0 byup → alert massimo
-  { id: 13, state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: 'Costa', sittingMin: 28, conto: 0, contoSaldato: false,
+  { id: 13, state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: 'Jesse Pinkman', sittingMin: 28, conto: 0, contoSaldato: false,
     ordini: [],
     minutiSenzaOrdine: 28, timeSinceLastOrder: 28, note: null,
     nextReservation: null, minutiAllaPrenotazione: null },
@@ -136,7 +136,7 @@ const SALA_TAVOLI = [
   { id: 14, state: 'dapulire', posti: 4, freedMinAgo: 14, minutiDaPulire: 14, ordini: [],
     nextReservation: { time: '20:30', name: 'Conti', posti: 4, inMin: 12 }, minutiAllaPrenotazione: 12 },
 
-  { id: 15, state: 'occupato', posti: 6, coperti: 6, byup: 0, byupWeb: 0, party: 'Fiori', sittingMin: 38, conto: 96.00, contoSaldato: false,
+  { id: 15, state: 'occupato', posti: 6, coperti: 6, byup: 0, byupWeb: 0, party: 'Margaery Tyrell', sittingMin: 38, conto: 96.00, contoSaldato: false,
     ordini: [
       { id:'o21', nome:'Tagliere salumi',  qty:1, prezzo:15, stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere' },
       { id:'o22', nome:'Lasagna',          qty:4, prezzo:12, stato:'in_cottura', minutiInPreparazione:4, minutiInCoda:0,  origin:'cameriere' },
@@ -164,7 +164,7 @@ const SALA_TAVOLI = [
 
   { id: 18, state: 'prenotato', posti: 8, ordini: [],
     note: { tipo:'evento', testo:'Aziendale' },
-    nextReservation: { time: '21:00', name: 'Matteo De Luca', posti: 8, inMin: 15 },
+    nextReservation: { time: '21:00', name: 'Rick Sanchez', posti: 8, inMin: 15 },
     minutiAllaPrenotazione: 15 },
 ];
 
