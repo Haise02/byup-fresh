@@ -687,11 +687,15 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
               prenotazione: vedi salaInfoText.) */}
           {(() => {
             const showInfo = (t.state !== 'occupato' || expanded) && !!info.text;
-            if (!showInfo && !noteIsCritical) return null;
+            // "Allergia" in testata serve solo a card CHIUSA: da aperta il
+            // testo completo (piatto · ospite) sta già in cima al dettaglio,
+            // e ripeterlo qui ruberebbe spazio alla riga info.
+            const showAllergia = noteIsCritical && !expanded;
+            if (!showInfo && !showAllergia) return null;
             return (
               <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia{showInfo ? ' · ' : ''}</strong>}
+                {showAllergia && <strong style={{color:'#DC2626'}}>Allergia{showInfo ? ' · ' : ''}</strong>}
                 {showInfo && info.text}
               </div>
             );
