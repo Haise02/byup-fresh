@@ -528,7 +528,7 @@ function salaBentoCells(t, { meta, alert, isLate, lateMin, noteIsCritical, pulir
 }
 
 // Riga info della card "Costa colorata" — un solo testo per stato
-function salaInfoText(t, { alert, isLate, lateMin, pulireSev }) {
+function salaInfoText(t, { alert, isLate, lateMin }) {
   if (t.state === 'occupato') {
     if (alert) return { text: alert.label, color: alert.tone === 'warn' ? '#92400E' : '#6B7280' };
     return { text: t.sittingMin != null ? `Al tavolo da ${formatOpenDuration(t.sittingMin)}` : 'Al tavolo', color: '#6B7280' };
@@ -541,10 +541,11 @@ function salaInfoText(t, { alert, isLate, lateMin, pulireSev }) {
   if (t.state === 'dapulire') {
     // Il tempo trascorso dalla liberazione non si mostra mai, nemmeno da
     // aperta: a dettare la fretta è la prossima prenotazione, non i minuti.
-    // L'urgenza la dicono già il colore e il triangolo sul badge.
+    // L'orario è un dato quieto e sta in nero: a segnalare l'urgenza sono
+    // l'etichetta di stato e il triangolo sul badge, non l'ora in sé.
     return {
       text: t.nextReservation ? `poi ${t.nextReservation.time}` : '',
-      color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#B45309' : '#6B7280'),
+      color: '#0F1115',
     };
   }
   const res = t.nextReservation;
@@ -597,7 +598,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
   const showAlertTriangle = hasAlertTriangle(t);
 
-  const info = salaInfoText(t, { alert, isLate, lateMin, pulireSev });
+  const info = salaInfoText(t, { alert, isLate, lateMin });
   // Seduti (o prenotati) su capienza totale del tavolo → "3 su 5"
   const capienza = t.posti;
   const seduti = t.state === 'occupato' ? t.coperti : (t.state === 'prenotato' ? (t.nextReservation && t.nextReservation.posti) : null);
