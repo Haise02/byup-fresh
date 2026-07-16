@@ -596,7 +596,9 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   const showAlertTriangle = hasAlertTriangle(t);
 
   const info = salaInfoText(t, { alert, isLate, lateMin, pulireSev });
-  const seatsN = t.state === 'occupato' ? t.coperti : ((t.nextReservation && t.nextReservation.posti) || t.posti);
+  // Seduti (o prenotati) su capienza totale del tavolo → "3 su 5"
+  const capienza = t.posti;
+  const seduti = t.state === 'occupato' ? t.coperti : (t.state === 'prenotato' ? (t.nextReservation && t.nextReservation.posti) : null);
 
   return (
     <div
@@ -667,11 +669,15 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
               </span>
             )}
           </div>
-          <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
-            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-            {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
-            {info.text}
-          </div>
+          {/* Riga info — solo a card chiusa: da aperta il dettaglio dice già
+              tutto e Modifica ha lo spazio suo (niente sovrapposizioni) */}
+          {!expanded && (
+            <div style={{fontSize: 13.5, fontWeight: 600, color: info.color, lineHeight: 1.4,
+              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              {noteIsCritical && <strong style={{color:'#DC2626'}}>Allergia · </strong>}
+              {info.text}
+            </div>
+          )}
         </div>
         {/* Modifica — compare quando la card è aperta */}
         {expanded && (
@@ -694,10 +700,14 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             Modifica
           </button>
         )}
-        {/* Coperti/posti — numero + icona persone */}
-        {seatsN != null && (
+        {/* Coperti — seduti (o prenotati) su capienza: "3 su 5" */}
+        {(seduti != null || capienza != null) && (
           <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0}}>
-            <span style={{fontSize: 15, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{seatsN}</span>
+            <span style={{fontSize: 14.5, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
+              {seduti != null && capienza != null
+                ? <>{seduti} <span style={{fontWeight: 600, color:'#9CA3AF'}}>su</span> {capienza}</>
+                : (seduti != null ? seduti : capienza)}
+            </span>
             <PeopleIcon size={14} color="#9CA3AF"/>
           </span>
         )}
@@ -883,8 +893,9 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             <div style={{fontSize: 21, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2}}>
               {t.nextReservation.time} · {t.nextReservation.name}
             </div>
-            <div style={{display:'flex', alignItems:'baseline', gap: 8, fontSize: 16.5, color:'#6B7280'}}>
-              <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
+            <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 16.5, color:'#6B7280'}}>
+              {/* Stepper inline — niente popover che finisce tagliato */}
+              <CopertiChip coperti={t.nextReservation.posti} posti={t.posti || 12} onAdjust={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)}/>
             </div>
           </div>
         )}
@@ -903,8 +914,9 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                   In ritardo di {lateMin} minuti
                 </div>
               )}
-              <div style={{fontSize: 16.5, color:'#6B7280', display:'flex', alignItems:'baseline', gap: 6}}>
-                <PostiPencil currentPosti={t.nextReservation.posti} onSave={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)} withLabel/>
+              <div style={{fontSize: 16.5, color:'#6B7280', display:'flex', alignItems:'center', gap: 6}}>
+                {/* Stepper inline — niente popover che finisce tagliato */}
+                <CopertiChip coperti={t.nextReservation.posti} posti={t.posti || 12} onAdjust={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)}/>
               </div>
             </div>
             <NoteChipRow notes={[
