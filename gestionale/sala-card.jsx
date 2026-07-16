@@ -891,10 +891,13 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
               Prossima prenotazione
             </div>
-            <div style={{fontSize: 21, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2}}>
-              {t.nextReservation.time} · {t.nextReservation.name}
-            </div>
-            <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 16.5, color:'#6B7280'}}>
+            {/* Ora · nome e coperti sulla STESSA riga: i coperti a destra del
+                nome, non su una riga propria sotto. A cedere è il nome. */}
+            <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
+              <div style={{flex: 1, minWidth: 0, fontSize: 21, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                {t.nextReservation.time} · {t.nextReservation.name}
+              </div>
               {/* Stepper inline — niente popover che finisce tagliato */}
               <CopertiChip coperti={t.nextReservation.posti} posti={t.posti || 12} onAdjust={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)}/>
             </div>
@@ -906,19 +909,21 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
             <div style={{display:'flex', flexDirection:'column', gap: 4}}>
               {/* Prima la prenotazione, poi (solo se in ritardo) il tag sotto:
                   niente "In arrivo fra X minuti" */}
-              <div style={{fontSize: 22, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                {t.nextReservation.time} · {t.nextReservation.name}
+              {/* Ora · nome e coperti sulla STESSA riga: i coperti a destra del
+                  nome, non su una riga propria sotto. A cedere è il nome. */}
+              <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
+                <div style={{flex: 1, minWidth: 0, fontSize: 22, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                  {t.nextReservation.time} · {t.nextReservation.name}
+                </div>
+                {/* Stepper inline — niente popover che finisce tagliato */}
+                <CopertiChip coperti={t.nextReservation.posti} posti={t.posti || 12} onAdjust={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)}/>
               </div>
               {isLate && (
                 <div style={{fontSize: 14.5, fontWeight: 700, color: '#A16207', letterSpacing: 0.4, textTransform:'uppercase'}}>
                   In ritardo di {lateMin} minuti
                 </div>
               )}
-              <div style={{fontSize: 16.5, color:'#6B7280', display:'flex', alignItems:'center', gap: 6}}>
-                {/* Stepper inline — niente popover che finisce tagliato */}
-                <CopertiChip coperti={t.nextReservation.posti} posti={t.posti || 12} onAdjust={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)}/>
-              </div>
             </div>
             <NoteChipRow notes={[
               note && !noteMeta?.critical ? note : null,
