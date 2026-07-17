@@ -1059,8 +1059,12 @@ function IngredientList({ ingredients, setIngredients }) {
     if (!trimmed) return;
     const found = window.findIngredient(trimmed);
     if (found) { addExisting(found); return; }
-    window.upsertIngredient(trimmed, []);
-    setIngredients(arr => [...arr, { name: trimmed, removable: false, allergens: [], qty: '', unit: 'g' }]);
+    // Ingrediente fuori libreria: se il nome contiene una base nota
+    // ("Mozzarella di bufala" → "Mozzarella") ne eredita gli allergeni, che
+    // restano poi modificabili a mano come tutti gli altri.
+    const inferred = window.inferAllergens(trimmed);
+    window.upsertIngredient(trimmed, inferred);
+    setIngredients(arr => [...arr, { name: trimmed, removable: false, allergens: inferred, qty: '', unit: 'g' }]);
     setQuery(''); setShowSuggest(false);
   };
   const toggleIngAllergen = (i, aid) => {
@@ -1878,6 +1882,30 @@ if (!window.__ingredientDB) {
     window.__ingredientDBSubs.forEach(fn => fn());
   };
   window.findIngredient = (name) => window.__ingredientDB.find(i => i.name.toLowerCase() === name.trim().toLowerCase());
+
+  // Allergeni di un ingrediente che la libreria non conosce alla lettera.
+  // "Mozzarella di bufala" non è in libreria, ma contiene "Mozzarella": eredita
+  // il suo latte, invece di nascere senza allergeni.
+  // Il confine di parola è quello che tiene onesto il match: senza, "Insalata"
+  // aggancerebbe "Sale". Nel dubbio non deduce — un allergene mancante si vede,
+  // uno inventato no.
+  window.inferAllergens = (name) => {
+    const norm = s => s.toLowerCase().trim().replace(/\s+/g, ' ');
+    const target = norm(name);
+    if (!target) return [];
+    const exact = window.__ingredientDB.find(i => norm(i.name) === target);
+    if (exact) return [...(exact.allergens || [])];
+    const out = new Set();
+    window.__ingredientDB.forEach(i => {
+      const base = norm(i.name);
+      if (!base || !(i.allergens || []).length) return;
+      const esc = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`(^|\\s)${esc}(\\s|$)`).test(target)) {
+        i.allergens.forEach(a => out.add(a));
+      }
+    });
+    return [...out];
+  };
 }
 
 function MCIngredienti() {
