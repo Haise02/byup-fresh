@@ -780,6 +780,137 @@ const EXPLORE_TILES = Array.from({ length: 30 }, (_, i) => {
   return { src: v[0], name: v[1], q: v[2] };
 });
 
+// ─── Schermata categoria: tutti i locali della categoria, 2 per riga ───
+const CAT_SCREEN_PHOTOS = {
+  pizza:     ['1565299624946-b28f40a0ae38', '1593560708920-61dd98c46a4e'],
+  burger:    ['1555949258-eb67b1ef0ceb', '1558030006-450675393462', '1504674900247-0877df9cc836'],
+  aperitivo: ['1470337458703-46ad1756a187', '1551024709-8f23befc6f87', '1510812431401-41d2bd2722f3'],
+  poke:      ['1546069901-ba9599a7e63c', '1504674900247-0877df9cc836', '1497034825429-c343d7c6a68f'],
+  panini:    ['1555949258-eb67b1ef0ceb', '1529042410759-befb1204b468', '1550507992-eb63ffee0847'],
+  birra:     ['1571877227200-a0d98ea607e9', '1546069901-ba9599a7e63c', '1470124182917-cc6e71b22ecc'],
+  dolce:     ['1488477181946-6428a0291777', '1621506289937-a8e4df240d0b', '1572695157366-5e585ab2b69f'],
+  vino:      ['1510812431401-41d2bd2722f3', '1414235077428-338989a2e8c0', '1555396273-367ea4eb4db5'],
+  taco:      ['1504674900247-0877df9cc836', '1546833999-b9f581a1996d', '1497034825429-c343d7c6a68f'],
+  brunch:    ['1621996346565-e3dbc646d9a9', '1572695157366-5e585ab2b69f', '1517248135467-4c7edcad34c4'],
+  cocktail:  ['1579584425555-c3ce17fd4351', '1553621042-f6e147245754', '1563379926898-05f4575a45d8'],
+  torta:     ['1621303837174-89787a7d4729', '1621506289937-a8e4df240d0b', '1488477181946-6428a0291777'],
+};
+const CAT_SCREEN_NAMES = {
+  pizza:     ['Da Michele', "L'Angolo della Pizza", 'Forno 900', 'La Ruota', 'Margherita Lab', 'Napule'],
+  burger:    ['Butcher & Bun', 'Smash Corner', 'Grill 22', 'Holy Burger', 'Officina Burger', 'Bun Appetit'],
+  aperitivo: ['Lounge 22', 'Terrazza Fiore', 'Spritzeria', 'Bar Duomo', 'Giardino 8', 'Aperolandia'],
+  poke:      ['Poke House', 'Aloha Bowl', 'Wave Poke', 'Isola Verde', 'Ohana', 'Tiki Bowl'],
+  panini:    ['Pane & Co', 'Schiaccia', 'Il Paninaro', 'Morso', 'Bottega 12', 'StreetBread'],
+  birra:     ['Hops & Co', 'Luppolo', 'Birrificio 21', 'La Spina', 'Craft Corner', 'Mastro Birraio'],
+  dolce:     ['Dolce Vita', 'Pasticceria Rosa', 'Zucchero', 'Cannolo Bar', 'Frolla', 'Tiramisù Lab'],
+  vino:      ['Vinaio', 'Enoteca 33', 'Calice', 'Barrique', 'Rosso di Sera', 'La Cantinetta'],
+  taco:      ['Taco Loco', 'Cantina Roja', 'El Paso', 'Frida', 'Azteca', 'Picante'],
+  brunch:    ['Morning Glory', 'Brunchetteria', 'Uovo', 'Le 11', 'Butter', 'Sunday Club'],
+  cocktail:  ['Sushi Zen', 'Kanpai', 'Sakura', 'Umami', 'Kaiten', 'Hokkaido'],
+  torta:     ['Torteria', 'La Fetta', 'Chiffon', 'Madame Gateau', 'Pan di Spagna', 'Crema & Cacao'],
+};
+function CategoryScreen({ cat, onBack, onOpenVenue }) {
+  const [T] = BK.useByupTheme();
+  const icon = BK.ASSETS.cat[cat.id];
+  const [chip, setChip] = useState(null); // null | 'open' | 'top' | 'near'
+  const names = CAT_SCREEN_NAMES[cat.id] || CAT_SCREEN_NAMES.pizza;
+  const photos = (CAT_SCREEN_PHOTOS[cat.id] || CAT_SCREEN_PHOTOS.pizza)
+    .map(id => `https://images.unsplash.com/photo-${id}?w=600&q=70&auto=format&fit=crop`);
+  const venues = names.map((n, i) => ({
+    name: n, photo: photos[i % photos.length], cuisine: cat.label,
+    distance: (0.3 + i * 0.4).toFixed(1) + ' km',
+    rating: (4.2 + ((i * 7) % 8) / 10).toFixed(1),
+    price: ['€€', '€', '€€€'][i % 3],
+    open: i % 4 !== 3,
+  }));
+  let list = venues;
+  if (chip === 'open') list = venues.filter(v => v.open);
+  if (chip === 'top') list = [...venues].sort((a, b) => b.rating - a.rating);
+  if (chip === 'near') list = [...venues].sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+
+  const Card = ({ v, i, tall }) => (
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onOpenVenue(v); }} style={{
+      position: 'relative', width: '100%', height: tall ? 236 : 188, borderRadius: 22, overflow: 'hidden',
+      border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: BK.TYPE.sans,
+      boxShadow: '0 16px 32px -18px rgba(227,36,89,.4)',
+      animation: `bkFadeUp 520ms ${i * 70}ms cubic-bezier(.22,.9,.35,1) backwards`,
+    }}>
+      <Photo src={v.photo} label={v.name}/>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(28,6,16,.02) 35%, rgba(28,6,16,.82) 100%)' }}/>
+      {/* rating pill */}
+      <div style={{ position: 'absolute', top: 9, right: 9, display: 'flex', alignItems: 'center', gap: 4,
+        background: 'rgba(255,255,255,.92)', borderRadius: 999, padding: '4px 9px',
+        fontSize: 11, fontWeight: 800, color: '#1c0f15' }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="#FFC839"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        {v.rating}
+      </div>
+      <div style={{ position: 'absolute', left: 11, right: 11, bottom: 10, color: '#fff' }}>
+        <div style={{ fontFamily: BK.TYPE.display, fontSize: 16, fontWeight: 600, lineHeight: 1.12,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          textShadow: '0 2px 8px rgba(20,8,12,.5)' }}>{v.name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3.5, fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,.92)' }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, flexShrink: 0,
+            background: v.open ? '#3ddc7f' : '#ff6b6b', boxShadow: `0 0 6px ${v.open ? '#3ddc7f' : '#ff6b6b'}` }}/>
+          <span style={{ flexShrink: 0 }}>{v.open ? 'Aperto' : 'Chiuso'}</span>
+          <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)', flexShrink: 0 }}/>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.distance} · {v.price}</span>
+        </div>
+      </div>
+    </button>
+  );
+  const colA = list.filter((_, i) => i % 2 === 0);
+  const colB = list.filter((_, i) => i % 2 === 1);
+  return (
+    <div style={{ width: '100%', height: '100%', background: T.bg, position: 'relative',
+      display: 'flex', flexDirection: 'column', fontFamily: BK.TYPE.sans, color: T.text, overflow: 'hidden' }}>
+      {/* blob decorativo */}
+      <div aria-hidden style={{ position: 'absolute', right: '-25%', top: '-10%', width: '75%', aspectRatio: '1',
+        background: 'radial-gradient(circle, rgba(227,36,89,.14) 0%, transparent 65%)', pointerEvents: 'none' }}/>
+      <div style={{ padding: '0 18px', paddingTop: 'calc(var(--byup-sat, 54px) + 6px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} className="bk-press" style={{ width: 40, height: 40, borderRadius: 999,
+            border: `1px solid ${T.line}`, background: T.surface, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.text} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 24, margin: 0, lineHeight: 1.05,
+              display: 'flex', alignItems: 'center', gap: 8 }}>
+              {cat.label}
+              {icon && <img src={icon} width="34" height="34" alt="" draggable={false}
+                style={{ animation: 'bkFadeUp 600ms 150ms cubic-bezier(.22,.9,.35,1) backwards' }}/>}
+            </h1>
+            <div style={{ fontSize: 12, color: T.textDim, fontWeight: 700, marginTop: 2 }}>{list.length} locali vicino a te</div>
+          </div>
+        </div>
+        {/* chips filtro */}
+        <div style={{ display: 'flex', gap: 7, marginTop: 14 }}>
+          {[['open', 'Aperti ora'], ['near', 'Più vicini'], ['top', 'Top rated']].map(([id, lb]) => (
+            <button key={id} onClick={() => { BK.haptic.selection(); setChip(c => c === id ? null : id); }} style={{
+              padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+              cursor: 'pointer', transition: 'all .25s',
+              background: chip === id ? T.primary : T.surface,
+              color: chip === id ? '#fff' : T.textDim,
+              border: `1px solid ${chip === id ? T.primary : T.line}`,
+            }}>{lb}</button>
+          ))}
+        </div>
+      </div>
+      {/* griglia 2 colonne sfalsate */}
+      <div className="byp-scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px calc(120px + env(safe-area-inset-bottom, 0px))' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {colA.map((v, i) => <Card key={v.name} v={v} i={i * 2} tall={i % 2 === 0}/>)}
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginTop: 26 }}>
+            {colB.map((v, i) => <Card key={v.name} v={v} i={i * 2 + 1} tall={i % 2 === 1}/>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
@@ -2265,6 +2396,7 @@ function HomeSections({
   moment: extMoment,
   setMoment: extSetMoment,
   activeCat, setActiveCat,
+  onCategory,
   quickFilters, setQuickFilters,
   activeFilterCount = 0,
   onMap, onPosta, onSearch, onFilters,
@@ -2498,7 +2630,7 @@ function HomeSections({
             {cats.map(c => (
               <Category key={c.id} id={c.id} emoji={c.emoji} label={c.label}
                 active={activeCat === c.id}
-                onClick={() => setActiveCat?.(activeCat === c.id ? null : c.id)}/>
+                onClick={() => onCategory ? onCategory(c) : setActiveCat?.(activeCat === c.id ? null : c.id)}/>
             ))}
           </AutoLoopScroll>
 
@@ -3947,7 +4079,7 @@ const ROAD_P = [
   { lvl: 5, left: 0.5837, top: 0.3674, w: 0.2594, pcx: 0.7134, pcy: 0.4452, pw: 0.273 },
   { lvl: 6, left: 0.1709, top: 0.2331, w: 0.3164, pcx: 0.3291, pcy: 0.3279, pw: 0.333 },
   { lvl: 7, left: 0.5715, top: 0.1354, w: 0.3078, pcx: 0.7254, pcy: 0.2276, pw: 0.324 },
-  { lvl: 8, left: 0.1825, top: 0.0368, w: 0.2945, pcx: 0.3297, pcy: 0.125,  pw: 0.310 },
+  { lvl: 8, left: 0.1825, top: 0.0368, w: 0.2945, pcx: 0.337, pcy: 0.150,  pw: 0.310 },
 ];
 const ROAD_RA = 864 / 1821;
 // Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta
@@ -4137,6 +4269,7 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
 function App({ recoveryArmed = false }) {
   const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
+  const [catSel, setCatSel] = useState(null); // categoria aperta a schermo intero
   const [activeTab, setActiveTab] = useState('home');
   const [search, setSearch] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
@@ -4297,6 +4430,12 @@ function App({ recoveryArmed = false }) {
         onSearch={() => setPage('search')}
         onQR={() => setQrOpen(true)}
       />
+    );
+  }
+  if (page === 'category' && catSel) {
+    return (
+      <CategoryScreen cat={catSel} onBack={goBack}
+        onOpenVenue={(v) => { setActiveVenue({ ...v, _from: 'category' }); setPage('venue'); }}/>
     );
   }
   if (page === 'search') {
@@ -4475,6 +4614,7 @@ function App({ recoveryArmed = false }) {
           ) : null}
           moment={moment} setMoment={setMoment}
           activeCat={activeCat} setActiveCat={setActiveCat}
+          onCategory={(c) => { setCatSel(c); setPage('category'); }}
           quickFilters={quickFilters} setQuickFilters={setQuickFilters}
           activeFilterCount={activeFilterCount}
           noVenues={page === 'home-empty'}

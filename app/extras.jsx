@@ -812,7 +812,7 @@ const PROFILE_TAGS = [
   { label: 'byup pay', img: 'assets/coin.png', bg: '#f4f7d4', c: '#5f7000' },
 ];
 const PROFILE_AVATARS = [
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&fit=facearea&facepad=2.5',
+  'assets/avatar-default.png',
   'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80&auto=format&fit=crop',
 ];
@@ -936,7 +936,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       <div aria-hidden style={{ position: 'absolute', right: -18, bottom: -18, width: 84, height: 84, borderRadius: 999, background: __BYUP_DK_X ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.5)' }}/>
       {img
         ? <img src={img} width="40" height="40" alt="" draggable={false} style={{ marginBottom: 9, filter: 'drop-shadow(0 6px 10px rgba(77,18,46,.18))', position: 'relative' }}/>
-        : <div style={{ width: 40, height: 40, borderRadius: 14, background: __BYUP_DK_X ? 'rgba(255,255,255,.09)' : 'rgba(255,255,255,.8)', display: 'grid', placeItems: 'center', marginBottom: 9, position: 'relative' }}>
+        : <div style={{ width: 40, height: 40, borderRadius: 14, background: __BYUP_DK_X ? (tint || 'rgba(255,255,255,.12)') : 'rgba(255,255,255,.8)', display: 'grid', placeItems: 'center', marginBottom: 9, position: 'relative' }}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={iconColor || PINK_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{iconSvg}</svg>
           </div>}
       <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 15.5, color: TEXT_X, fontWeight: 600, position: 'relative' }}>{label}</span>
@@ -1130,7 +1130,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'account' && (
-          <div style={{ animation: 'fade 0.2s ease', position: 'relative' }}>
+          <div style={{ animation: 'fade 0.2s ease', position: 'relative', minHeight: 'calc(100vh - 260px)' }}>
             <button onClick={() => setView('main')} style={{
               width: 36, height: 36, borderRadius: 999, background: TINT_X,
               border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1152,12 +1152,20 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 iconSvg={<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>}/>
             </RowGroup>
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
+            {/* Elimina account: staccato dal gruppo, entra dal fondo dello schermo */}
+            <div style={{
+              position: 'absolute', left: 0, right: 0,
+              bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+              display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+              animation: 'slideUpDanger .5s .15s cubic-bezier(.2,1.1,.3,1) backwards',
+            }}>
+              <style>{`@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
               <button onClick={() => setConfirmDeleteAccount(true)} style={{
-                padding: '8px 28px', background: MUTESURF_X,
-                border: '1px solid #000', borderRadius: 999,
+                pointerEvents: 'auto',
+                padding: '11px 30px', background: __BYUP_DK_X ? 'rgba(255,255,255,.07)' : MUTESURF_X,
+                border: `1px solid ${__BYUP_DK_X ? 'rgba(255,107,107,.5)' : 'rgba(180,30,30,.35)'}`, borderRadius: 999,
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13.5, fontWeight: 500, color: '#000',
+                fontSize: 13.5, fontWeight: 700, color: __BYUP_DK_X ? '#ff8a8a' : '#b42222',
               }}>Elimina account</button>
             </div>
 

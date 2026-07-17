@@ -694,6 +694,7 @@ function MenuScreen({ state, setState, goTo }) {
   const [allergenSheetOpen, setAllergenSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState('collapsed'); // 'collapsed' | 'expanded'
   const [sheetTab, setSheetTab] = useState('piatti'); // 'piatti' | 'divisione'
+  const [splitPickItem, setSplitPickItem] = useState(null); // piatto per il popup "con chi dividi?" (swipe ←)
   const [confirm, setConfirm] = useState(false);
   const [modeSheetOpen, setModeSheetOpen] = useState(false);
   // Prompt coperti: appare al primo ingresso al tavolo (non da Vetrina), una sola volta
@@ -1299,7 +1300,30 @@ function MenuScreen({ state, setState, goTo }) {
         dishes={dishes} setQty={setQty} clearCart={clearCart}
         onSubmit={handleSubmit}
         goTo={goTo}
+        onPickSplit={setSplitPickItem}
       />
+
+      {/* Popup "con chi dividi?" — aperto dallo swipe ← su un piatto del carrello */}
+      {splitPickItem && (
+        <SplitPickSheet
+          item={splitPickItem}
+          participants={state.participants || [
+            { id: 'me', name: 'Tu', initials: 'T', isMe: true },
+            { id: 'p1', name: 'Marco', initials: 'M' },
+            { id: 'p2', name: 'Margherita', initials: 'Mg' },
+            { id: 'p3', name: 'Roberto', initials: 'R' },
+          ]}
+          onConfirm={(ids) => {
+            const it = splitPickItem;
+            setState(st => {
+              const splits = { ...(st.splits || {}) };
+              for (let k = 0; k < it.qty; k++) splits[`${it.lineId}-${k}`] = { kind: 'people', people: ids };
+              return { ...st, splits };
+            });
+            setSplitPickItem(null);
+          }}
+          onClose={() => setSplitPickItem(null)}/>
+      )}
 
       {/* Confirm overlay */}
       {confirm && (
@@ -1498,7 +1522,201 @@ function MenuScreen({ state, setState, goTo }) {
 }
 
 // ─── Order bottom sheet (collapsed/expanded) ───────────────
-function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, sheetTab, setSheetTab, dishes, setQty, clearCart, onSubmit, goTo }) {
+// ─── Riga piatto con swipe stile chat ───────────────────────
+// → destra: il piatto si divide con TUTTO il tavolo
+// ← sinistra: apre il popup "con chi dividi?"
+// La riga molleggia al rilascio; oltre soglia scatta l'azione con flash.
+function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty }) {
+  const [dx, setDx] = useState(0);
+  const [drag, setDrag] = useState(false);
+  const [flash, setFlash] = useState(null); // 'table' | 'pick'
+  const start = useRef(0);
+  const active = useRef(false);
+  const moved = useRef(false);
+  const TH = 78;
+  const onDown = (e) => {
+    active.current = true; moved.current = false;
+    start.current = e.clientX; setDrag(true);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onMove = (e) => {
+    if (!active.current) return;
+    let d = e.clientX - start.current;
+    if (Math.abs(d) > 6) moved.current = true;
+    // resistenza oltre soglia, stile elastico
+    if (Math.abs(d) > TH) d = Math.sign(d) * (TH + (Math.abs(d) - TH) * 0.35);
+    setDx(d);
+  };
+  const onUp = () => {
+    if (!active.current) return;
+    active.current = false; setDrag(false);
+    setDx(cur => {
+      if (cur > TH * 0.92) {
+        setFlash('table'); setTimeout(() => setFlash(null), 520);
+        try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
+        setTimeout(onTable, 120);
+      } else if (cur < -TH * 0.92) {
+        try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
+        setTimeout(onPick, 140);
+      }
+      return 0;
+    });
+  };
+  const prog = Math.min(1, Math.abs(dx) / TH);
+  const splitChip = split && split.kind !== 'me'
+    ? (split.kind === 'tavolo' ? '🍽 Tavolo' : `⑂ ${(split.people?.length || 0) + 1} pers.`)
+    : null;
+  return (
+    <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', touchAction: 'pan-y' }}>
+      {/* fondo azione destra (swipe →): tutto il tavolo */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'flex-start', paddingLeft: 16, borderRadius: 12,
+        background: 'linear-gradient(90deg, #7fb800, #a4d400)',
+        opacity: dx > 0 ? Math.min(1, prog + .25) : 0, transition: drag ? 'none' : 'opacity .3s' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1c2500', fontWeight: 800,
+          fontSize: 12.5, transform: `scale(${0.8 + prog * 0.25})`, transformOrigin: 'left center',
+          transition: drag ? 'none' : 'transform .3s' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1c2500" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
+          </svg>
+          Tutto il tavolo
+        </div>
+      </div>
+      {/* fondo azione sinistra (swipe ←): dividi con… */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'flex-end', paddingRight: 16, borderRadius: 12,
+        background: 'linear-gradient(270deg, #E32459, #B81C47)',
+        opacity: dx < 0 ? Math.min(1, prog + .25) : 0, transition: drag ? 'none' : 'opacity .3s' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff', fontWeight: 800,
+          fontSize: 12.5, transform: `scale(${0.8 + prog * 0.25})`, transformOrigin: 'right center',
+          transition: drag ? 'none' : 'transform .3s' }}>
+          Dividi con…
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+      </div>
+      {/* riga in primo piano */}
+      <div
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        style={{
+          position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+          background: flash === 'table' ? '#eaf7cf' : BG_GRAY, borderRadius: 12, padding: '10px 12px',
+          transform: `translateX(${dx}px)`,
+          transition: drag ? 'none' : 'transform .5s cubic-bezier(.2,1.5,.35,1), background .35s',
+          cursor: 'grab',
+        }}>
+        <div onClick={() => { if (!moved.current) onOpenDish(); }} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</div>
+            {splitChip && (
+              <button onClick={(e) => { e.stopPropagation(); onReset(); }} title="Torna a 'per me'" style={{
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                fontSize: 10.5, fontWeight: 800, color: split.kind === 'tavolo' ? '#3d5200' : '#fff',
+                background: split.kind === 'tavolo' ? '#d9f29b' : WINE,
+                padding: '3px 8px', borderRadius: 999,
+              }}>{splitChip} ×</button>
+            )}
+          </div>
+          {it.summary && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+              {it.summary.split(', ').map((tag, i) => (
+                <span key={i} style={{
+                  fontSize: 11, fontWeight: 600, color: WINE,
+                  background: TINT, padding: '2px 7px', borderRadius: 999,
+                }}>{tag}</span>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 12.5, color: WINE, fontWeight: 700, marginTop: 5 }}>{it.unitPrice.toFixed(2)}€</div>
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: SURF, borderRadius: 999, padding: '3px 6px',
+        }}>
+          <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
+          <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT }}>{it.qty}</span>
+          <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Sheet "con chi dividi?" aperto dallo swipe ← su un piatto
+function SplitPickSheet({ item, participants, onConfirm, onClose }) {
+  const [sel, setSel] = useState({});
+  const people = participants.filter(pp => !pp.isMe && !pp.isGuest);
+  const n = Object.values(sel).filter(Boolean).length;
+  const per = item.unitPrice / (n + 1);
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 120,
+      display: 'flex', alignItems: 'flex-end', animation: 'fadeIn .2s',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: '100%', background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        padding: '14px 22px calc(24px + env(safe-area-inset-bottom, 0px))',
+        animation: 'slideUp .3s cubic-bezier(.2,1.1,.3,1)',
+      }}>
+        <div style={{ width: 40, height: 4, background: MUTESURF, borderRadius: 999, margin: '0 auto 14px' }}/>
+        <div style={{ fontSize: 17, fontWeight: 800, color: TEXT }}>Con chi dividi?</div>
+        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>
+          {item.name} · {item.unitPrice.toFixed(2)}€ — a testa {per.toFixed(2)}€
+        </div>
+        <div style={{ display: 'flex', gap: 9, marginTop: 16, flexWrap: 'wrap' }}>
+          {people.map(pp => {
+            const on = !!sel[pp.id];
+            return (
+              <button key={pp.id} onClick={() => setSel(x => ({ ...x, [pp.id]: !x[pp.id] }))} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 2,
+              }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: 16, position: 'relative',
+                  background: on ? WINE : MUTESURF, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 17, fontWeight: 800,
+                  transform: on ? 'scale(1.08)' : 'scale(1)',
+                  transition: 'transform .25s cubic-bezier(.2,1.6,.4,1), background .2s',
+                  boxShadow: on ? '0 8px 18px -8px rgba(184,28,71,.7)' : 'none',
+                }}>
+                  {pp.initials || pp.name[0]}
+                  {on && <span style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18,
+                    borderRadius: 999, background: '#7fb800', border: '2px solid ' + SURF,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>}
+                </div>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? TEXT : MUTED }}>{pp.name.split(' ')[0]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button disabled={n === 0} onClick={() => onConfirm(Object.keys(sel).filter(k => sel[k]))} style={{
+          width: '100%', height: 48, borderRadius: 999, border: 'none', marginTop: 18,
+          background: n === 0 ? CTA_DEAD : CTA_GRAD, color: '#fff',
+          fontSize: 14.5, fontWeight: 800, fontFamily: 'inherit',
+          cursor: n === 0 ? 'not-allowed' : 'pointer',
+          boxShadow: n === 0 ? 'none' : CTA_GLOW,
+        }}>{n === 0 ? 'Scegli con chi dividere' : `Dividi in ${n + 1} · ${per.toFixed(2)}€ a testa`}</button>
+      </div>
+    </div>
+  );
+}
+
+function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, sheetTab, setSheetTab, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit }) {
+  // applica la divisione a tutte le porzioni della riga
+  const applySplit = (it, sp) => {
+    setState(st => {
+      const splits = { ...(st.splits || {}) };
+      for (let k = 0; k < it.qty; k++) {
+        if (sp) splits[`${it.lineId}-${k}`] = sp; else delete splits[`${it.lineId}-${k}`];
+      }
+      return { ...st, splits };
+    });
+  };
   const expanded = mode === 'expanded';
   const allDishes = Object.values(dishes).flat();
   const cartItems = state.cart.map(li => {
@@ -1585,87 +1803,24 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {cartItems.map(it => (
-                  <div key={it.lineId} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-                    background: BG_GRAY, borderRadius: 12, padding: '10px 12px',
-                  }}>
-                    <div onClick={() => goTo('dish', { dishId: it.id, lineId: it.lineId })} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>{it.name}</div>
-                      {it.summary && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
-                          {it.summary.split(', ').map((tag, i) => (
-                            <span key={i} style={{
-                              fontSize: 11, fontWeight: 600, color: WINE,
-                              background: TINT, padding: '2px 7px', borderRadius: 999,
-                            }}>{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                      <div style={{ fontSize: 12.5, color: WINE, fontWeight: 700, marginTop: 5 }}>{it.unitPrice.toFixed(2)}€</div>
-                    </div>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      background: SURF, borderRadius: 999, padding: '3px 6px',
-                    }}>
-                      <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
-                      <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT }}>{it.qty}</span>
-                      <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
-                    </div>
-                  </div>
+                  <SwipeDishRow key={it.lineId} it={it}
+                    split={state.splits?.[`${it.lineId}-0`]}
+                    onTable={() => applySplit(it, { kind: 'tavolo', people: [] })}
+                    onPick={() => onPickSplit && onPickSplit(it)}
+                    onReset={() => applySplit(it, null)}
+                    onOpenDish={() => goTo('dish', { dishId: it.id, lineId: it.lineId })}
+                    setQty={setQty}/>
                 ))}
               </div>
             )}
-
-            {/* Dividi piatti — toggle azione secondaria */}
             {cartItems.length > 0 && (
-              <button onClick={() => setSheetTab(t => t === 'divisione' ? 'piatti' : 'divisione')} style={{
-                width: '100%', marginTop: 14, padding: '10px',
-                background: 'transparent', border: `1px solid ${BORDER}`,
-                borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13, fontWeight: 600, color: MUTED,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>
-                </svg>
-                Dividi piatti tra i commensali
-              </button>
-            )}
-
-            {/* Vista divisione (se attiva) */}
-            {sheetTab === 'divisione' && cartItems.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {cartItems.flatMap(it => Array.from({ length: it.qty }, (_, idx) => ({ ...it, idx }))).map((it, i) => {
-                    const splitKey = `${it.lineId}-${it.idx}`;
-                    const split = state.splits?.[splitKey];
-                    const splitLabel = split
-                      ? (split.kind === 'me' ? 'Per me' : split.kind === 'tavolo' ? 'Tavolo' : `${(split.people?.length || 0) + 1} pers.`)
-                      : 'Per me';
-                    return (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>
-                            {it.name}{it.qty > 1 && <span style={{ color: MUTED, fontSize: 11, marginLeft: 5 }}>porz. {it.idx + 1}/{it.qty}</span>}
-                          </div>
-                          {it.summary && <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{it.summary}</div>}
-                        </div>
-                        <button onClick={() => goTo('split', { item: it, splitKey })} style={{
-                          height: 32, padding: '0 12px', borderRadius: 999,
-                          border: `1.5px solid ${WINE}`, background: split ? WINE : TINT,
-                          fontSize: 12, fontWeight: 700, color: split ? '#fff' : WINE,
-                          fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
-                          display: 'flex', alignItems: 'center', gap: 4,
-                        }}>
-                          {!split && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>}
-                          {splitLabel}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div style={{ marginTop: 12, fontSize: 11.5, color: MUTED, fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                <span style={{ fontSize: 13 }}>⇄</span>
+                trascina un piatto: → tutto il tavolo · ← dividi con qualcuno
               </div>
             )}
+
           </div>
 
           <div style={{ padding: '0 22px 20px' }}>
@@ -2431,7 +2586,40 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
         </div>
 
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {(order.guests || []).map(g => (
+          {ospitiCount > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 4px', borderBottom: `1px solid ${BORDER}`,
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 999,
+                background: MUTESURF, color: MUTED,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 700 }}>{ospitiCount === 1 ? '1 Ospite' : `${ospitiCount} Ospiti`}</div>
+                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>senza app — ordinano dal cameriere</div>
+              </div>
+              {onRemoveGuest && (order.guests || []).some(g => g.isGuest) && (
+                <button onClick={() => { const last = [...(order.guests || [])].reverse().find(g => g.isGuest); last && onRemoveGuest(last.id); }}
+                  title="Rimuovi un ospite" style={{
+                  width: 28, height: 28, borderRadius: 999,
+                  background: 'transparent', border: `1px solid ${BORDER}`,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: MUTED, fontSize: 16, lineHeight: 1, padding: 0,
+                }}>−</button>
+              )}
+            </div>
+          )}
+          {(order.guests || []).filter(g => !g.isGuest).map(g => (
             <div key={g.id} style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '10px 4px', borderBottom: `1px solid ${BORDER}`,
@@ -3231,7 +3419,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const [ctaMode, setCtaMode] = useState('mine'); // 'mine' | 'split' | 'all'
   const [detailsOpen, setDetailsOpen] = useState(false);
   const cycleCtaMode = () => setCtaMode(m => {
-    const next = m === 'mine' ? 'split' : m === 'split' ? 'all' : 'mine';
+    const next = m === 'mine' ? 'all' : 'mine'; // niente "alla romana": solo mio ordine ↔ tutto il tavolo
     setMode(next === 'all' ? 'all' : 'mine');
     return next;
   });
@@ -3314,21 +3502,27 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const myItems = order.items.filter(i => i.ownerId === 'me' && !isPaid(i.lineId));
   const otherItems = order.items.filter(i => i.ownerId !== 'me' && i.ownerId !== 'table');
 
-  // Group other items by ownerId (no più table — gestito automaticamente)
+  // Group other items by ownerId; tutti gli ospiti senza app finiscono
+  // in un'unica voce collettiva 'guests' (niente Ospite 1/2/3 separati)
+  const isGuestOwner = (oid) => { const g = order.guests.find(x => x.id === oid); return !!(g && g.isGuest); };
+  const guestPeopleCount = order.guests.filter(g => g.isGuest).length || 1;
   const groupByOwner = {};
   otherItems.forEach(i => {
-    if (!groupByOwner[i.ownerId]) groupByOwner[i.ownerId] = [];
-    groupByOwner[i.ownerId].push(i);
+    const key = isGuestOwner(i.ownerId) ? 'guests' : i.ownerId;
+    if (!groupByOwner[key]) groupByOwner[key] = [];
+    groupByOwner[key].push(i);
   });
 
   const ownerLabel = (oid) => {
     if (oid === 'table') return 'Per il tavolo';
+    if (oid === 'guests') return guestPeopleCount === 1 ? '1 Ospite' : `${guestPeopleCount} Ospiti`;
     const g = order.guests.find(x => x.id === oid);
     if (!g) return 'Sconosciuto';
-    return g.isGuest ? g.name : g.name;
+    return g.name;
   };
   const ownerSub = (oid) => {
     if (oid === 'table') return 'Aggiunto dal cameriere';
+    if (oid === 'guests') return 'senza app';
     const g = order.guests.find(x => x.id === oid);
     if (!g) return '';
     return g.isApp ? "✓ ha l'app" : 'ospite — non loggato';
@@ -3695,7 +3889,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                     const allSelected = openItems.length > 0 && openItems.every(i => selectedExtras[i.lineId]);
                     const selectedCount = items.filter(i => selectedExtras[i.lineId] && !isPaid(i.lineId)).length;
                     const openTotal = openItems.reduce((s, i) => s + i.price * i.qty, 0);
-                    const guest = order.guests.find(g => g.id === oid);
+                    const guest = oid === 'guests' ? { isGuest: true } : order.guests.find(g => g.id === oid);
                     return (
                       <div key={oid} style={{
                         background: SURF, borderRadius: 14, overflow: 'hidden',
@@ -3716,6 +3910,13 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                             {oid === 'table' ? (
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
+                              </svg>
+                            ) : oid === 'guests' ? (
+                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                               </svg>
                             ) : (guest?.initial || '?')}
                             {allPaid && (
@@ -3818,7 +4019,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         position: 'absolute', left: 0, right: 0, bottom: 0,
         background: SURF, borderTop: `1px solid ${BORDER}`,
         boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
-        padding: '12px 16px calc(10px + env(safe-area-inset-bottom, 0px))',
+        padding: '12px 16px calc(26px + env(safe-area-inset-bottom, 0px))',
       }}>
         <SlideToPay
           mode={ctaMode}
@@ -5195,9 +5396,8 @@ function MenuApp({ initial = null }) {
       ],
       // stato live: Marco (g1) ha già pagato i suoi piatti
       paidLineIds: { 'g1-1': 'g1', 'g1-2': 'g1', 'g1-3': 'g1' },
-      // lock real-time: chi sta pagando ora congela righe (non apribili/selezionabili).
-      // Ospite 1 (g2) sta saldando tutto il suo ordine; di Ospite 2 (g3) il Filetto.
-      lockedLineIds: { 'g2-1': 'g2', 'g2-2': 'g2', 'g2-3': 'g2', 'g2-4': 'g2', 'g3-2': 'g3' },
+      // niente stati "sta pagando": ognuno è pagato o normale
+      lockedLineIds: {},
       total: 209,
       startedAt: new Date(Date.now() - 35 * 60 * 1000),
       covers: 4,

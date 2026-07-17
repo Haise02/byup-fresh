@@ -20,7 +20,7 @@ if (!files.length) { console.error('Uso: node build-standalone.js <file.jsx> ...
 const compiled = {};
 for (const f of files) {
   const src = fs.readFileSync(path.join(APP, f), 'utf8');
-  const out = Babel.transform(src, { presets: ['react'] }).code;
+  const out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
   if (out.includes('</script>')) throw new Error(f + ': output contiene </script>');
   compiled[f] = out;
   console.log('compilato', f, '->', out.length, 'chars');
