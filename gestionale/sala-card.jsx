@@ -601,7 +601,8 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   const showAlertTriangle = hasAlertTriangle(t);
 
   const info = salaInfoText(t, { alert, isLate, lateMin });
-  // Seduti (o prenotati) su capienza totale del tavolo → "3 su 5"
+  // Numero mostrato in testata: i seduti (o prenotati) dove ci sono, altrimenti
+  // la capienza come ripiego su libero / da liberare. Mai i due insieme.
   const capienza = t.posti;
   const seduti = t.state === 'occupato' ? t.coperti : (t.state === 'prenotato' ? (t.nextReservation && t.nextReservation.posti) : null);
 
@@ -701,15 +702,12 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             );
           })()}
         </div>
-        {/* Coperti — a card CONTRATTA solo il numero ("4"): a colpo d'occhio
-            conta chi è seduto, non la capienza. La capienza ("3 su 5") torna
-            da card APERTA, dove c'è spazio per il dettaglio. */}
+        {/* Coperti — SEMPRE solo il numero, contratta o aperta: a colpo d'occhio
+            conta chi è seduto, non su quanti posti. */}
         {(seduti != null || capienza != null) && (
           <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0}}>
             <span style={{fontSize: 14.5, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
-              {expanded && seduti != null && capienza != null
-                ? <>{seduti} <span style={{fontWeight: 600, color:'#9CA3AF'}}>su</span> {capienza}</>
-                : (seduti != null ? seduti : capienza)}
+              {seduti != null ? seduti : capienza}
             </span>
             {/* Sedia dove non c'è nessuno seduto (libero / da liberare): lì il
                 numero è la CAPIENZA. Persone dove il numero sono i COPERTI. */}
