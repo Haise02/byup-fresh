@@ -687,7 +687,14 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
               (Il da liberare contratto si riduce da sé alla sola prossima
               prenotazione: vedi salaInfoText.) */}
           {(() => {
-            const showInfo = (t.state !== 'occupato' || expanded) && !!info.text;
+            // Occupato: la riga info (tempo al tavolo / alert) si legge solo da
+            // APERTA. Prenotato: l'opposto — da aperta "ora · nome" sta già
+            // grande nel dettaglio, e ripeterla qui è solo rumore.
+            const showInfo = !!info.text && (
+              t.state === 'occupato'  ? expanded  :
+              t.state === 'prenotato' ? !expanded :
+              true
+            );
             // "Allergia" in testata serve solo a card CHIUSA: da aperta il
             // testo completo (piatto · ospite) sta già in cima al dettaglio,
             // e ripeterlo qui ruberebbe spazio alla riga info.
@@ -703,18 +710,24 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
           })()}
         </div>
         {/* Coperti — SEMPRE solo il numero, contratta o aperta: a colpo d'occhio
-            conta chi è seduto, non su quanti posti. */}
+            conta chi è seduto, non su quanti posti. A dire per esteso cosa sia
+            quel numero è il tooltip, che si apre senza attesa. */}
         {(seduti != null || capienza != null) && (
-          <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0}}>
-            <span style={{fontSize: 14.5, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
-              {seduti != null ? seduti : capienza}
+          <Tip delay={0} style={{flexShrink: 0}}
+            text={seduti != null
+              ? `${seduti} ${seduti === 1 ? 'coperto' : 'coperti'}`
+              : `${capienza} ${capienza === 1 ? 'posto' : 'posti'}`}>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0}}>
+              <span style={{fontSize: 14.5, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
+                {seduti != null ? seduti : capienza}
+              </span>
+              {/* Sedia dove non c'è nessuno seduto (libero / da liberare): lì il
+                  numero è la CAPIENZA. Persone dove il numero sono i COPERTI. */}
+              {seduti == null
+                ? <ChairIcon size={14} color="#9CA3AF"/>
+                : <PeopleIcon size={14} color="#9CA3AF"/>}
             </span>
-            {/* Sedia dove non c'è nessuno seduto (libero / da liberare): lì il
-                numero è la CAPIENZA. Persone dove il numero sono i COPERTI. */}
-            {seduti == null
-              ? <ChairIcon size={14} color="#9CA3AF"/>
-              : <PeopleIcon size={14} color="#9CA3AF"/>}
-          </span>
+          </Tip>
         )}
         {/* X di chiusura (solo popup) / chevron (lista) */}
         {isPopup ? (
@@ -774,7 +787,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             <SalaCardExpanded t={t} alert={alert} cta={cta} note={note} noteMeta={noteMeta}
               extraNote={extraNote} extraNoteMeta={extraNoteMeta}
               onAddArticle={onAddArticle} onConfirmCart={onConfirmCart} cart={cart} onCartChange={onCartChange}
-              onAdjustCoperti={onAdjustCoperti}
               onAdjustReservationPosti={onAdjustReservationPosti}
               onEdit={onEdit} occupatoSaldato={occupatoSaldato}
               isLate={isLate} lateMin={lateMin} isNoShow={isNoShow}
@@ -886,7 +898,7 @@ function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) 
   return null;
 }
 
-function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onEdit, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev }) {
+function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustReservationPosti, onEdit, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev }) {
   return (
     <>
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
@@ -939,18 +951,15 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
         {t.state === 'occupato' && (
           <>
             <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-              {/* Riga identità: nome party a sinistra, coperti seduti in alto
-                  a destra (testo quieto → stepper al tap) — lontani dal numero
-                  degli utenti connessi che sta nella riga sotto */}
-              <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                {t.party ? (
-                  <div style={{flex: 1, minWidth: 0, fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
-                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                    {t.party}
-                  </div>
-                ) : <span style={{flex: 1}}/>}
-                <CopertiChip coperti={t.coperti} posti={t.posti} onAdjust={onAdjustCoperti}/>
-              </div>
+              {/* Riga identità: solo il nome di chi è al tavolo. I coperti si
+                  leggono dal numero in testata; per cambiarli c'è lo stepper
+                  in Modifica, così qui niente controllo accanto al nome. */}
+              {t.party && (
+                <div style={{fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                  {t.party}
+                </div>
+              )}
               {/* Utenti connessi (avatar + numero, fisso) — Modifica è
                   salito nell'header della card */}
               <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
