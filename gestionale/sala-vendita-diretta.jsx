@@ -1223,20 +1223,6 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
           <span>Totale</span><span>€{total.toFixed(2)}</span>
         </div>
 
-        {/* Asporto: l'aliquota non è più quella della somministrazione per
-            tutte le categorie. Chi incassa se ne accorgerebbe solo a scontrino
-            battuto, quindi l'avviso sta qui, attaccato al totale e prima di
-            "Incassa" — non altrove nella pagina. */}
-        {takeaway && (
-          <div style={{
-            padding: '8px 10px', borderRadius: 8,
-            background: '#FEF6E7', border: '1px solid #F0C36D',
-            fontSize: 13, lineHeight: 1.45, color: '#8A5A00',
-          }}>
-            Alcuni articoli potrebbero vedersi applicata l'IVA al 22%.
-          </div>
-        )}
-
         <div style={{display:'flex', gap: 8, marginTop: 12}}>
           <button
             disabled={lines.length === 0}
