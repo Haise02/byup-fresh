@@ -162,8 +162,6 @@ function PiattoSheet({ modal, closeModal }) {
   const [cottura, setCottura] = useStateMo(piatto.cottura?.[0] || piatto.livello?.[0]);
   const [note, setNote] = useStateMo('');
   const [showFull, setShowFull] = useStateMo(false);
-  const extrasTotal = (piatto.extras || []).reduce((s, e) => s + (extras[e.id] || 0) * e.prezzo, 0);
-  const total = (piatto.prezzo + extrasTotal) * qty;
   const aggiungi = () => {
     modal.onAdd({ piattoId: piatto.id, nome: piatto.nome, prezzo: piatto.prezzo, qty, extras: Object.entries(extras).filter(([_, v]) => v > 0), note, cottura });
     closeModal();
@@ -266,8 +264,6 @@ function PiattoSheet({ modal, closeModal }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
         }}>
           <span>Aggiungi {qty > 1 ? `${qty} ` : ''}all'ordine</span>
-          <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.3)' }}/>
-          <span style={{ fontWeight: 800 }}>€{total.toFixed(2)}</span>
         </button>
       </div>
     </ModalShell>

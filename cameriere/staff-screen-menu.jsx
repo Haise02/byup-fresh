@@ -13,7 +13,6 @@ function ScreenMenu({ nav, openModal, tavoloId, cart, setCart }) {
   }, [cat, q]);
 
   const tavolo = TAVOLI.find(x => x.id === tavoloId);
-  const totale = cart.reduce((s, c) => s + c.prezzo * c.qty, 0);
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
 
   return (
@@ -187,11 +186,10 @@ function ScreenMenu({ nav, openModal, tavoloId, cart, setCart }) {
               flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.3, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT, letterSpacing: 0.2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 {cartCount} articol{cartCount === 1 ? 'o' : 'i'}
-                <I.ChevDown s={13} c={ST.MUTED} style={{ transform: 'rotate(180deg)' }}/>
+                <I.ChevDown s={15} c={ST.MUTED} style={{ transform: 'rotate(180deg)' }}/>
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT, marginTop: 1 }}>€{totale.toFixed(2)}</div>
             </button>
             <button onClick={() => openModal({ kind: 'send-success', tavoloId })} style={{
               flexShrink: 0, height: 46, padding: '0 18px', borderRadius: ST.R_PILL, border: 'none',
