@@ -643,7 +643,7 @@ function SaCustomModal({ onClose, onConfirm }) {
             <input
               ref={nameRef}
               value={name} onChange={e => setName(e.target.value)} onKeyDown={handleKey}
-              placeholder="es. Coperto, Acqua del rubinetto…"
+              placeholder="es. Servizio, Acqua del rubinetto…"
               style={inputStyle}
               onFocus={e => e.target.style.borderColor = 'rgba(15,17,21,0.45)'}
               onBlur={e => e.target.style.borderColor = 'rgba(15,17,21,0.14)'}

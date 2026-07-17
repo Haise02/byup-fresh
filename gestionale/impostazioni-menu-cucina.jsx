@@ -2459,7 +2459,7 @@ function MCConfigura() {
   const [cucina, setCucina] = React.useState('diretto');
   const [timeout, setTimeoutMin] = React.useState(5);
   const [timeoutAction, setTimeoutAction] = React.useState('auto');
-  const [coperto, setCoperto] = React.useState(0);
+  const [servizio, setServizio] = React.useState(0);
   const [showQr, setShowQr] = React.useState(false);
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true});
@@ -2674,22 +2674,22 @@ function MCConfigura() {
         )}
           </div>
 
-        {/* --- Coperto --- */}
+        {/* --- Servizio --- */}
         <div style={{
           padding: 16, borderRadius: 11,
           border: `1px solid ${PN.BORDER_SOFT}`,
         }}>
           <div style={{fontSize: 15, fontWeight: 700, marginBottom: 10, display:'inline-flex', alignItems:'center', gap: 7}}>
-            <PnI.Plate size={15}/> Coperto
+            <PnI.Plate size={15}/> Servizio
           </div>
           <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 12}}>
-            Importo per persona, applicato solo al servizio in sala (non all'asporto)
+            Importo per persona, applicato solo in sala (non all'asporto)
           </div>
           <div style={{display:'flex', gap: 6}}>
             {[0, 1.5, 2, 2.5, 3].map(v => {
-              const on = coperto === v;
+              const on = servizio === v;
               return (
-                <button key={v} onClick={() => setCoperto(v)} style={{
+                <button key={v} onClick={() => setServizio(v)} style={{
                   flex: 1, padding:'9px 6px', borderRadius: 7,
                   border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
                   background: on ? PN.TEXT : PN.WHITE,

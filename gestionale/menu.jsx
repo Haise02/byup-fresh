@@ -2093,7 +2093,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const extraTotal = extraItems.reduce((s, i) => s + i.price * i.qty, 0);
   const tableTotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
 
-  // coperto: 2€ per persona; in 'mine' paghi solo il tuo, in 'all' paghi per tutti
+  // servizio: 2€ per persona; in 'mine' paghi solo il tuo, in 'all' paghi per tutti
   const COVER = 2;
   const covers = order.covers || (order.guests?.length || 1);
   const myCover = COVER;
@@ -2543,7 +2543,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             <span>{subtotal.toFixed(2)}€</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: MUTED, marginBottom: 4 }}>
-            <span>Coperto{mode === 'all' ? ` × ${covers}` : ''}</span>
+            <span>Servizio{mode === 'all' ? ` × ${covers}` : ''}</span>
             <span>{cover.toFixed(2)}€</span>
           </div>
           {tipAmount > 0 && (

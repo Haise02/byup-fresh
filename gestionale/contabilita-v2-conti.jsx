@@ -13,7 +13,7 @@ const CONTI_MOCK = [
     ordini: [{id:'o11-1',nome:'Antipasto misto',qty:3,prezzo:11.00},{id:'o11-2',nome:'Risotto ai funghi',qty:2,prezzo:16.00},{id:'o11-3',nome:'Tagliata di manzo',qty:1,prezzo:24.00},{id:'o11-4',nome:'Vino al bicchiere',qty:3,prezzo:7.00},{id:'o11-5',nome:'Acqua minerale',qty:2,prezzo:3.00},{id:'o11-6',nome:'Caffè',qty:3,prezzo:1.50},{id:'o11-7',nome:'Dolce del giorno',qty:1,prezzo:7.50}],
     payments: [] },
   { id:'cnt-20', idOrdine:'#2511-0046', dataOra:'2025-11-16 13:45', tavolo:'Tavolo 12', cliente:'Compleanno Russo (8 ospiti)', riferimento:{nome:'Giulia Russo', tipo:'prenotazione'}, liberatoOre:0.5, totaleConto:312.00, daSaldare:42.00, stato:'non_saldato', note:'Conto diviso', operatore:'Marco',
-    ordini: [{id:'o20-1',nome:'Coperto',qty:8,prezzo:2.00},{id:'o20-2',nome:'Antipasto misto',qty:8,prezzo:12.00},{id:'o20-3',nome:'Pasta alla norma',qty:4,prezzo:13.00},{id:'o20-4',nome:'Pasta al ragù',qty:4,prezzo:13.00},{id:'o20-5',nome:'Secondo del giorno',qty:2,prezzo:22.00},{id:'o20-6',nome:'Bottiglia vino rosso',qty:2,prezzo:18.00},{id:'o20-7',nome:'Acqua minerale',qty:8,prezzo:2.00}],
+    ordini: [{id:'o20-1',nome:'Servizio',qty:8,prezzo:2.00},{id:'o20-2',nome:'Antipasto misto',qty:8,prezzo:12.00},{id:'o20-3',nome:'Pasta alla norma',qty:4,prezzo:13.00},{id:'o20-4',nome:'Pasta al ragù',qty:4,prezzo:13.00},{id:'o20-5',nome:'Secondo del giorno',qty:2,prezzo:22.00},{id:'o20-6',nome:'Bottiglia vino rosso',qty:2,prezzo:18.00},{id:'o20-7',nome:'Acqua minerale',qty:8,prezzo:2.00}],
     payments: [
       {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1'},
       {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2'},
@@ -64,7 +64,7 @@ const CONTI_MOCK = [
     payments: [{id:'p16a', method:'carta', amount:340.00, ora:'2025-11-11 23:00', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1'}] },
   { id:'cnt-17', idOrdine:'#2511-0030', dataOra:'2025-11-10 12:45', tavolo:'Tavolo 6',  cliente:'Coppia Neri',       riferimento:{nome:'Francesca Neri', tipo:'prenotazione'}, liberatoOre:144,   totaleConto:58.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [{id:'p17a', method:'carta', amount:58.00, ora:'2025-11-10 13:50', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1'}],
-    rimborso: {amount:12.00, ora:'2025-11-10 14:05', method:'carta', reason:'Coperto contestato'} },
+    rimborso: {amount:12.00, ora:'2025-11-10 14:05', method:'carta', reason:'Servizio contestato'} },
   { id:'cnt-7',  idOrdine:'#2509-0156', dataOra:'2025-08-17 22:15', tavolo:'Tavolo 6',  cliente:'Paolo Bianchi',     liberatoOre:2160,  totaleConto:110.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1'}],
     rimborso: {amount:25.00, ora:'2025-08-18 10:12', method:'carta', reason:'Piatto reso — pasta troppo cotta'} },

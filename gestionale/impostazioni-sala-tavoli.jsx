@@ -939,7 +939,7 @@ function ImpModuloSalaCard({ active, onToggle }) {
     >
       {active ? (
         <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>
-          Configura qui sotto sale, tavoli e mappa. Il flusso ordini in cucina e il coperto
+          Configura qui sotto sale, tavoli e mappa. Il flusso ordini in cucina e il servizio
           si impostano nella tab <strong style={{color: PN.TEXT}}>Operazioni</strong>.
         </div>
       ) : (
