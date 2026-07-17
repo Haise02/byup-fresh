@@ -15,6 +15,14 @@ const ALLERGENS = [
   { id: 'solfiti', name: 'Solfiti', icon: '🍷', color: '#7C2D12' },
 ];
 
+// Importi proposti per il servizio, per modalità. Lo 0 è "nessun servizio" e
+// c'è in entrambe: toglierlo obbligherebbe a passare da un'altra impostazione
+// solo per rinunciarci.
+const SERVIZIO_OPZIONI = {
+  fisso:       [0, 1.5, 2, 2.5, 3],
+  percentuale: [0, 5, 10, 12, 15],
+};
+
 function AllergenIcon({ id, size = 18 }) {
   const a = ALLERGENS.find(x => x.id === id);
   if (!a) return null;
@@ -2459,7 +2467,16 @@ function MCConfigura() {
   const [cucina, setCucina] = React.useState('diretto');
   const [timeout, setTimeoutMin] = React.useState(5);
   const [timeoutAction, setTimeoutAction] = React.useState('auto');
-  const [servizio, setServizio] = React.useState(0);
+  // Servizio: fisso a persona (€) oppure percentuale sul totale del conto.
+  // Un valore per modalità, non uno solo: passando da fisso a percentuale e
+  // tornando indietro l'importo di prima è ancora lì, e nessuno dei due può
+  // essere applicato con l'unità sbagliata.
+  const [servizioTipo, setServizioTipo] = React.useState('fisso');
+  const [servizioFisso, setServizioFisso] = React.useState(0);
+  const [servizioPerc, setServizioPerc] = React.useState(0);
+  const servizio = servizioTipo === 'fisso' ? servizioFisso : servizioPerc;
+  const setServizio = servizioTipo === 'fisso' ? setServizioFisso : setServizioPerc;
+  const servizioContestabile = servizioTipo === 'fisso' && servizio > 0;
   const [showQr, setShowQr] = React.useState(false);
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true});
@@ -2683,10 +2700,32 @@ function MCConfigura() {
             <PnI.Plate size={15}/> Servizio
           </div>
           <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 12}}>
-            Importo per persona, applicato solo in sala (non all'asporto)
+            {servizioTipo === 'fisso'
+              ? "Importo per persona, applicato solo in sala (non all'asporto)"
+              : "Percentuale sul totale del conto, applicata solo in sala (non all'asporto)"}
           </div>
+
+          {/* Tipo — pill chiare: è una scelta di natura, non l'importo.
+              Gli importi sotto restano scuri quando attivi, così le due file
+              non si confondono. */}
+          <div style={{display:'flex', gap: 6, marginBottom: 8}}>
+            {[{id:'fisso', label:'Fisso a persona'}, {id:'percentuale', label:'Percentuale sul conto'}].map(m => {
+              const on = servizioTipo === m.id;
+              return (
+                <button key={m.id} onClick={() => setServizioTipo(m.id)} style={{
+                  flex: 1, padding:'7px 6px', borderRadius: 999,
+                  border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                  background: on ? PN.PINK_SOFT : PN.WHITE,
+                  color: on ? PN.PINK_DARK : PN.MUTED,
+                  fontSize: 13.5, fontWeight: 700,
+                  cursor:'pointer', fontFamily:'inherit',
+                }}>{m.label}</button>
+              );
+            })}
+          </div>
+
           <div style={{display:'flex', gap: 6}}>
-            {[0, 1.5, 2, 2.5, 3].map(v => {
+            {SERVIZIO_OPZIONI[servizioTipo].map(v => {
               const on = servizio === v;
               return (
                 <button key={v} onClick={() => setServizio(v)} style={{
@@ -2696,9 +2735,26 @@ function MCConfigura() {
                   color: on ? PN.WHITE : PN.TEXT,
                   fontSize: 14.5, fontWeight: 700,
                   cursor:'pointer', fontFamily:'inherit',
-                }}>{v === 0 ? '—' : `€${v.toFixed(2)}`}</button>
+                }}>{v === 0 ? '—' : (servizioTipo === 'fisso' ? `€${v.toFixed(2)}` : `${v}%`)}</button>
               );
             })}
+          </div>
+
+          {/* L'avviso si accende solo quando la scelta attiva è proprio quella
+              contestabile: una quota fissa davvero applicata. A zero, o in
+              percentuale, resta una nota informativa. */}
+          <div style={{
+            marginTop: 12, padding: '9px 11px', borderRadius: 8,
+            background: servizioContestabile ? '#FEF6E7' : '#FAFBFC',
+            border: `1px solid ${servizioContestabile ? '#F0C36D' : PN.BORDER_SOFT}`,
+            fontSize: 12.5, lineHeight: 1.5,
+            color: servizioContestabile ? '#8A5A00' : PN.MUTED,
+          }}>
+            Nel Lazio (L.R. 21/2006) il “coperto” non è ammesso. È consentita la voce
+            “servizio”, ma se applicata come quota fissa a persona può essere contestata.{' '}
+            <strong style={{color: servizioContestabile ? '#7A4E00' : PN.TEXT}}>
+              Consigliato: servizio in percentuale.
+            </strong>
           </div>
         </div>
         </div>
