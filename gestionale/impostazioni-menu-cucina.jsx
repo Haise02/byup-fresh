@@ -1252,32 +1252,57 @@ function IngredientList({ ingredients, setIngredients }) {
   );
 }
 
+// Il max è per SINGOLA aggiunta: quante volte il cliente può ripeterla sullo
+// stesso piatto (l'ordine porta già extras{ extraId: qty }). Vuoto = nessun
+// limite, così gli extra creati prima di questo campo restano come sono.
+const parseExtraMax = (v) => {
+  const n = parseInt(v, 10);
+  return n > 0 ? n : null;
+};
+
 function ExtrasList({ extras, setExtras }) {
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
+  const [max, setMax] = React.useState('');
   const add = () => {
     if (!name.trim()) return;
-    setExtras(arr => [...arr, { name: name.trim(), price: parseFloat(price) || 0 }]);
-    setName(''); setPrice('');
+    setExtras(arr => [...arr, { name: name.trim(), price: parseFloat(price) || 0, max: parseExtraMax(max) }]);
+    setName(''); setPrice(''); setMax('');
   };
+  const setExtraMax = (i, v) => setExtras(arr => arr.map((ex, idx) =>
+    idx === i ? { ...ex, max: parseExtraMax(v) } : ex));
+  const maxInput = (value, onChange, extraStyle) => (
+    <input value={value} onChange={e => onChange(e.target.value.replace(/[^0-9]/g, ''))}
+      placeholder="∞" inputMode="numeric"
+      title="Quante volte il cliente può ripetere questa aggiunta sul piatto. Vuoto = nessun limite."
+      style={{border:`1px solid ${PN.BORDER}`, borderRadius:6, fontFamily:'inherit', textAlign:'center', outline:'none', ...extraStyle}}/>
+  );
   return (
     <div>
       {extras.length > 0 && (
         <div style={{display:'flex', flexDirection:'column', gap:6, marginBottom:12}}>
           {extras.map((ex, i) => (
-            <div key={i} style={{display:'grid', gridTemplateColumns:'1fr auto auto', gap:10, alignItems:'center', padding:'8px 10px 8px 12px', background:'#FAFBFC', borderRadius:8}}>
+            <div key={i} style={{display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:10, alignItems:'center', padding:'8px 10px 8px 12px', background:'#FAFBFC', borderRadius:8}}>
               <span style={{fontSize:16, color: PN.TEXT, fontWeight:600}}>{ex.name}</span>
               <span style={{fontSize:16, fontWeight:700, color: PN.PINK_DARK}}>+ € {ex.price.toFixed(2)}</span>
+              <label style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:14, color: PN.MUTED, fontWeight:600}}>
+                max
+                {maxInput(ex.max ?? '', v => setExtraMax(i, v), {width:42, padding:'4px 6px', fontSize:15})}
+              </label>
               <button onClick={() => setExtras(arr => arr.filter((_, idx) => idx !== i))} style={{width:26, height:26, background:'transparent', border:'none', borderRadius:6, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15}}>✕</button>
             </div>
           ))}
         </div>
       )}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 100px auto', gap:8}}>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 100px 74px auto', gap:8}}>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="es. Tartufo nero" style={{padding:'8px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none'}}/>
         <div style={{position:'relative'}}>
           <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', fontSize:16, color: PN.MUTED, fontWeight:600}}>+€</span>
           <input value={price} onChange={e => setPrice(e.target.value)} placeholder="4,00" style={{width:'100%', padding:'8px 12px 8px 30px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none'}}/>
+        </div>
+        <div style={{position:'relative'}}>
+          <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13.5, color: PN.MUTED, fontWeight:600, pointerEvents:'none'}}>max</span>
+          {maxInput(max, setMax, {width:'100%', padding:'8px 8px 8px 34px', fontSize:16, borderRadius:8, textAlign:'left'})}
         </div>
         <button onClick={add} style={{background: name.trim() ? PN.PINK : '#F4F5F7', color: name.trim() ? '#fff' : PN.MUTED, border:'none', padding:'0 14px', borderRadius:8, fontSize:16, fontWeight:700, cursor: name.trim()?'pointer':'default', fontFamily:'inherit'}}>Aggiungi</button>
       </div>
@@ -1696,6 +1721,8 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             >
               <div style={{fontSize:15, color:PN.MUTED, marginBottom:10, lineHeight:1.45}}>
                 Extra che il cliente può aggiungere al piatto (es. tartufo, doppia mozzarella).
+                Con <strong style={{color:PN.TEXT}}>max</strong> limiti quante volte può ripetere la
+                stessa aggiunta; lasciandolo vuoto non c'è limite.
               </div>
               <ExtrasList extras={extras} setExtras={setExtras}/>
             </CollapseSection>
