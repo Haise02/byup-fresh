@@ -701,11 +701,13 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             );
           })()}
         </div>
-        {/* Coperti — seduti (o prenotati) su capienza: "3 su 5" */}
+        {/* Coperti — a card CONTRATTA solo il numero ("4"): a colpo d'occhio
+            conta chi è seduto, non la capienza. La capienza ("3 su 5") torna
+            da card APERTA, dove c'è spazio per il dettaglio. */}
         {(seduti != null || capienza != null) && (
           <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0}}>
             <span style={{fontSize: 14.5, fontWeight: 800, color:'#0F1115', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
-              {seduti != null && capienza != null
+              {expanded && seduti != null && capienza != null
                 ? <>{seduti} <span style={{fontWeight: 600, color:'#9CA3AF'}}>su</span> {capienza}</>
                 : (seduti != null ? seduti : capienza)}
             </span>
