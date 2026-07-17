@@ -753,6 +753,10 @@ function KdsColumn({ title, toneKey = 'ok', count, empty, children, innerRef, hi
 // Pressione prolungata prima che il drag della card si attivi
 const KDS_HOLD_MS = 800;
 
+// Attesa fra il tap su un piatto e la partenza della preparazione: finestra
+// per selezionarne altri, o per cambiare idea, prima che parta la cottura.
+const KDS_AVVIO_S = 5;
+
 // ─── Ticket ────────────────────────────────────────────────
 function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems,
   registerNode, onDragHover, onDropAt, onDragCancel }) {
@@ -773,7 +777,9 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
   const [servedFlash, setServedFlash] = React.useState(false);
   const prevDoneLen = React.useRef(doneItems.length);
 
-  // Debounce 10s — accumula tap sui piatti in coda se ce ne sono più di uno
+  // Debounce — accumula tap sui piatti in coda se ce ne sono più di uno.
+  // La finestra è la stessa che il countdown mostra ("Avvio in Ns"): cambiala
+  // qui e restano allineati timer, conto alla rovescia ed etichetta.
   const [pendingTodo, setPendingTodo] = React.useState(new Set());
   const [pendingCountdown, setPendingCountdown] = React.useState(0);
   const pendingTimer = React.useRef(null);
@@ -799,11 +805,11 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
       next.has(idx) ? next.delete(idx) : next.add(idx);
       return next;
     });
-    // Reset timer debounce 10s
+    // Ogni tap fa ripartire l'attesa da capo
     clearTimeout(pendingTimer.current);
     clearInterval(countdownInterval.current);
-    setPendingCountdown(10);
-    let remaining = 10;
+    setPendingCountdown(KDS_AVVIO_S);
+    let remaining = KDS_AVVIO_S;
     countdownInterval.current = setInterval(() => {
       remaining -= 1;
       setPendingCountdown(remaining);
@@ -811,7 +817,7 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
     }, 1000);
     pendingTimer.current = setTimeout(() => {
       setPendingTodo(prev => { flushPending(prev); return new Set(); });
-    }, 10000);
+    }, KDS_AVVIO_S * 1000);
   };
 
   React.useEffect(() => () => {
