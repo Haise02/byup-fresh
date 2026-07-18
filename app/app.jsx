@@ -2155,10 +2155,21 @@ function OpenTableCard() {
   // con residuo restava in sessione per sempre e la home non tornava mai allo
   // stato di partenza.
   const [chiusa, setChiusa] = React.useState(false);
+  // Se la schermata del tavolo e' gia' montata (succede tornando indietro dal
+  // menu: le due home restano sovrapposte per un istante), la sua card basta
+  // e avanza — due card sullo stesso conto erano il bug ricorrente.
+  const [giaPresente, setGiaPresente] = React.useState(false);
+  React.useEffect(() => {
+    const verifica = () => setGiaPresente(!!document.querySelector('[data-byup-table-card]'));
+    verifica();
+    const obs = new MutationObserver(verifica);
+    obs.observe(document.body, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, []);
   let t = null;
   try { t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); } catch {}
   // Tavolo saldato per intero (o nessun ordine) = nessuna card.
-  if (chiusa || !t || !(t.remaining > 0.01)) return null;
+  if (chiusa || giaPresente || !t || !(t.remaining > 0.01)) return null;
   // Ho gia' pagato la mia parte? Allora la card invita a saldare il resto del
   // tavolo; altrimenti e' ancora un "Paga ora".
   const hoPagato = !!(t.paidLineIds && Object.keys(t.paidLineIds).length)

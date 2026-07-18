@@ -2265,7 +2265,9 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
   const title = postPay ? 'Da saldare al tavolo' : 'Il tuo ordine';
 
   return (
-    <div style={{
+    // Marcata cosi' la home della SPA sa che una card del tavolo c'e' gia' e
+    // non ne aggiunge una seconda quando le due schermate si sovrappongono.
+    <div data-byup-table-card style={{
       borderRadius: 22, overflow: 'hidden',
       background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 80%)`,
       color: '#fff', position: 'relative',
