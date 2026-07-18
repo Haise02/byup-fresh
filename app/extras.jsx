@@ -837,9 +837,16 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     setAvatarUrl(PROFILE_AVATARS[(i + 1) % PROFILE_AVATARS.length]);
     setAvatarSheet(false);
   };
-  const toggleTag = (l) => setMyTags(t => t.includes(l)
-    ? t.filter(x => x !== l)
-    : (t.length >= 2 ? [...t.slice(1), l] : [...t, l]));
+  // I selezionati restano nell'ordine di PROFILE_TAGS invece che in ordine di
+  // click: con la vecchia FIFO ([...t.slice(1), l]) i chip si riordinavano a
+  // ogni tap e, ripetendo i tap, la riga si ricomponeva in modo incoerente.
+  const toggleTag = (l) => setMyTags(t => {
+    const next = t.includes(l)
+      ? t.filter(x => x !== l)
+      : (t.length >= 2 ? [...t.slice(1), l] : [...t, l]);
+    const ordine = PROFILE_TAGS.map(x => x.label);
+    return next.slice().sort((a, b) => ordine.indexOf(a) - ordine.indexOf(b));
+  });
   // Consumato il deep-link, lo rimuovo dall'URL così riaprendo il Profilo dal
   // tab si torna a 'main' (il param non resta "incollato").
   useEffect(() => {
@@ -1160,12 +1167,15 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               animation: 'slideUpDanger .5s .15s cubic-bezier(.2,1.1,.3,1) backwards',
             }}>
               <style>{`@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+              {/* Link grigio sottolineato invece del bottone rosso: e' un'azione
+                  rara e irreversibile, non deve avere il peso visivo di una CTA. */}
               <button onClick={() => setConfirmDeleteAccount(true)} style={{
                 pointerEvents: 'auto',
-                padding: '11px 30px', background: __BYUP_DK_X ? 'rgba(255,255,255,.07)' : MUTESURF_X,
-                border: `1px solid ${__BYUP_DK_X ? 'rgba(255,107,107,.5)' : 'rgba(180,30,30,.35)'}`, borderRadius: 999,
+                padding: '8px 12px', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13.5, fontWeight: 700, color: __BYUP_DK_X ? '#ff8a8a' : '#b42222',
+                fontSize: 13, fontWeight: 500,
+                color: __BYUP_DK_X ? 'rgba(255,255,255,.45)' : MUTED_X,
+                textDecoration: 'underline', textUnderlineOffset: 3,
               }}>Elimina account</button>
             </div>
 

@@ -64,14 +64,20 @@ const PremFoodImg = ({ name, photo, style }) => {
   return photo ? <img src={photo} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', ...(style || {}) }}/> : null;
 };
 
-const __goApp = (page) => {
+const __goApp = (page, params) => {
   const nav = window.__byupNav;
+  const qs = params ? Object.keys(params).map(k => `${k}=${encodeURIComponent(params[k])}`).join('&') : '';
   if (nav) {
+    // I parametri servono al Profilo per aprire lo storico sull'ordine giusto:
+    // la nav interna non li porta con se', quindi li lascio in querystring.
+    if (qs) { try { history.replaceState(null, '', '?page=' + page + '&' + qs); } catch (e) {} }
     if (!page) nav.home();
     else if (page === 'venue' && nav.venue) nav.venue();
-    else nav.go(page);
+    else nav.go(page, params);
   } else {
-    window.location.href = page ? ('byup Home.html?page=' + page) : 'byup Home.html';
+    window.location.href = page
+      ? ('byup Home.html?page=' + page + (qs ? '&' + qs : ''))
+      : 'byup Home.html';
   }
 };
 
@@ -617,6 +623,73 @@ function CatBand({ name, count, index = 0, total = 5 }) {
   );
 }
 
+
+// ─── CopertiSheet ────────────────────────────────────────────────────────────
+// Chiesto al momento del pagamento, non all'ingresso al tavolo: prima compariva
+// appena aperto il menu, quando ancora non serviva, e veniva saltato. Qui e'
+// obbligatorio (niente skip ne' chiusura sul backdrop) perche' il numero lo
+// legge lo staff di sala.
+function CopertiSheet({ onConfirm }) {
+  return (
+        <div style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 45,
+          display: 'flex', alignItems: 'flex-end',
+          animation: 'fade 0.22s ease',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            padding: '10px 22px 32px',
+            animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
+          }}>
+            <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 18px' }}/>
+
+            <div style={{ textAlign: 'center', marginBottom: 22 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 6 }}>
+                Quanti siete al tavolo?
+              </div>
+              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.45 }}>
+                Serve per dividere il conto e per il servizio al tavolo.
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
+              {[1, 2, 3, 4, 5, 6].map(n => (
+                <button key={n} onClick={() => onConfirm(n === 6 ? 6 : n)} style={{
+                  height: 64, borderRadius: 14,
+                  border: `1.5px solid ${BORDER}`,
+                  background: SURF, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 20, fontWeight: 800, color: TEXT,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = WINE; e.currentTarget.style.background = '#fdf6f8'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.background = '#fff'; }}
+                >{n === 6 ? '6+' : n}</button>
+              ))}
+            </div>
+
+            {/* Disclaimer al posto dello skip: il dato non e' interno all'app,
+                lo vede il personale di sala. */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+              padding: '10px 12px', borderRadius: 12,
+              background: '#F6F7F9', border: `1px solid ${BORDER}`,
+            }}>
+              <span aria-hidden="true" style={{
+                width: 18, height: 18, borderRadius: 999, flexShrink: 0, marginTop: 1,
+                background: MUTESURF, color: MUTED,
+                display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800,
+              }}>i</span>
+              <span style={{ fontSize: 13, color: MUTED, lineHeight: 1.45 }}>
+                Il numero verrà visionato dallo staff di sala.
+              </span>
+            </div>
+          </div>
+        </div>
+  );
+}
+
 function MenuScreen({ state, setState, goTo }) {
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   // Tab di navigazione: "Byup" è una voce extra (non una categoria di piatti)
@@ -701,19 +774,20 @@ function MenuScreen({ state, setState, goTo }) {
   const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
-  useEffect(() => {
-    if (!fromVenue && !state.copertiSelected) {
-      const t = setTimeout(() => setCopertiSheetOpen(true), 600);
-      return () => clearTimeout(t);
-    }
-  }, []);
+  // Il numero di commensali non si chiede piu' all'ingresso al tavolo (dove
+  // l'utente non sa ancora se dividera' il conto e lo saltava): si chiede al
+  // "Paga ora", dove serve davvero. Li' e' obbligatorio — niente skip, niente
+  // chiusura sul backdrop — perche' lo staff di sala legge quel numero.
+  const [afterCoperti, setAfterCoperti] = useState(null);   // cosa fare dopo la conferma
+  const askCoperti = (then) => {
+    if (state.copertiSelected) { then && then(); return; }
+    setAfterCoperti(() => then || null);
+    setCopertiSheetOpen(true);
+  };
   const confirmCoperti = (n) => {
     setState(s => ({ ...s, coperti: n, copertiSelected: true }));
     setCopertiSheetOpen(false);
-  };
-  const skipCoperti = () => {
-    setState(s => ({ ...s, copertiSelected: true }));
-    setCopertiSheetOpen(false);
+    if (afterCoperti) { const f = afterCoperti; setAfterCoperti(null); setTimeout(f, 120); }
   };
 
   const dishes = DISHES_BY_CAT;
@@ -1363,56 +1437,7 @@ function MenuScreen({ state, setState, goTo }) {
         />
       )}
 
-      {/* Coperti prompt sheet — elegante, una sola volta */}
-      {copertiSheetOpen && (
-        <div onClick={skipCoperti} style={{
-          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 45,
-          display: 'flex', alignItems: 'flex-end',
-          animation: 'fade 0.22s ease',
-        }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-            padding: '10px 22px 32px',
-            animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
-          }}>
-            <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 18px' }}/>
-
-            <div style={{ textAlign: 'center', marginBottom: 22 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 6 }}>
-                Quanti siete al tavolo?
-              </div>
-              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.45 }}>
-                Ci servirà per dividere il conto, se vorrai farlo.
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
-              {[1, 2, 3, 4, 5, 6].map(n => (
-                <button key={n} onClick={() => confirmCoperti(n === 6 ? 6 : n)} style={{
-                  height: 64, borderRadius: 14,
-                  border: `1.5px solid ${BORDER}`,
-                  background: SURF, cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: 20, fontWeight: 800, color: TEXT,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = WINE; e.currentTarget.style.background = '#fdf6f8'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.background = '#fff'; }}
-                >{n === 6 ? '6+' : n}</button>
-              ))}
-            </div>
-
-            <button onClick={skipCoperti} style={{
-              width: '100%', padding: '12px', background: 'none', border: 'none',
-              cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13.5, color: MUTED, fontWeight: 500,
-            }}>
-              Lo deciderò più tardi
-            </button>
-          </div>
-        </div>
-      )}
+      {copertiSheetOpen && <CopertiSheet onConfirm={confirmCoperti}/>}
 
       {/* Sheet "Al tavolo" — stessa usata in Pagamento / Home: lista + share link */}
       {guestsOpen && (() => {
@@ -1551,7 +1576,12 @@ function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty 
     if (!active.current) return;
     active.current = false; setDrag(false);
     setDx(cur => {
+      // Se il piatto e' gia' assegnato a quel verso, lo swipe non fa nulla:
+      // ripeterlo riproponeva l'azione appena eseguita, che l'utente leggeva
+      // come "vuoi annullare?". Per togliere l'assegnazione c'e' il chip ×.
+      const giaTavolo = split && split.kind === 'tavolo';
       if (cur > TH * 0.92) {
+        if (giaTavolo) return 0;
         setFlash('table'); setTimeout(() => setFlash(null), 520);
         try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
         setTimeout(onTable, 120);
@@ -3394,6 +3424,8 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const order = state.activeOrder;
   if (!order) return <div style={{padding: 80, textAlign: 'center', color: MUTED}}>Nessun ordine attivo.</div>;
 
+  // Coperti: si chiedono qui, entrando dal "Paga ora". Obbligatori.
+  const [copertiOpen, setCopertiOpen] = useState(!state.copertiSelected);
   // mode: 'mine' (la mia parte) | 'all' (tutto il tavolo) — di default 'mine',
   // 'all' si attiva tappando la CTA secondaria "Paga per tutto il tavolo"
   const [mode, setMode] = useState('mine');
@@ -3630,8 +3662,17 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   };
 
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
+  // Pagare per tutti e' irreversibile e di importo ben diverso dalla propria
+  // quota: la slide da sola non basta come conferma.
+  const [confirmAll, setConfirmAll] = useState(false);
   const payNow = () => {
     if (paying || ctaTotal <= 0) return;
+    if (mode === 'all') { setConfirmAll(true); return; }   // conferma esplicita
+    setPaying(true);
+    setTimeout(() => { proceed(); }, 5000);
+  };
+  const payConfirmed = () => {
+    setConfirmAll(false);
     setPaying(true);
     setTimeout(() => { proceed(); }, 5000);
   };
@@ -4361,6 +4402,51 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       )}
     </div>
   );
+      {/* Coperti — obbligatori: si entra qui dal "Paga ora" */}
+      {copertiOpen && (
+        <CopertiSheet onConfirm={(n) => {
+          setState(st => ({ ...st, coperti: n, copertiSelected: true }));
+          setCopertiOpen(false);
+        }}/>
+      )}
+
+      {/* Conferma "tutto il tavolo" */}
+      {confirmAll && (
+        <div style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.42)', zIndex: 60,
+          display: 'flex', alignItems: 'flex-end', animation: 'fade 0.2s ease',
+        }}>
+          <div style={{
+            width: '100%', background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            padding: '10px 22px 26px', animation: 'slideUp 0.3s cubic-bezier(.2,.9,.3,1.05)',
+          }}>
+            <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 18px' }}/>
+            <div style={{ fontSize: 20, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginBottom: 6 }}>
+              Paghi per tutto il tavolo?
+            </div>
+            <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.5, marginBottom: 18 }}>
+              Saldi l'intero conto, comprese le consumazioni degli altri commensali.
+            </div>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              padding: '12px 14px', borderRadius: 14, background: '#F6F7F9', marginBottom: 16,
+            }}>
+              <span style={{ fontSize: 14, color: MUTED, fontWeight: 600 }}>Totale</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: TEXT }}>€ {ctaTotal.toFixed(2)}</span>
+            </div>
+            <button onClick={payConfirmed} style={{
+              width: '100%', padding: '15px', borderRadius: 16, border: 'none',
+              background: WINE, color: '#fff', fontSize: 16, fontWeight: 800,
+              fontFamily: 'inherit', cursor: 'pointer', marginBottom: 8,
+            }}>Sì, pago tutto</button>
+            <button onClick={() => setConfirmAll(false)} style={{
+              width: '100%', padding: '12px', background: 'none', border: 'none',
+              fontFamily: 'inherit', fontSize: 14.5, color: MUTED, fontWeight: 600, cursor: 'pointer',
+            }}>Torna indietro</button>
+          </div>
+        </div>
+      )}
+
 }
 
 // ─── PAYMENT METHOD ────────────────────────────────────────
@@ -4935,6 +5021,9 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
   // BRANCH DINE-IN — layout ridisegnato
   const paidAmount = state.payTotal || 0;
   const commensali = (state.activeOrder?.guests || []).filter(g => !g.isMe);
+  // Chi non ha ancora saldato: al posto del generico "Alla prossima", che non
+  // diceva nulla, la schermata chiude dicendo chi manca all'appello.
+  const daPagare = commensali.filter(g => !g.paid && !g.settled);
   // Sta scrivendo una recensione → la CTA primaria è "Invia recensione",
   // quindi "Torna alla home" passa in secondo piano (evita due bottoni gemelli).
   const reviewing = rating > 0 && !submitted;
@@ -4966,36 +5055,47 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
           </div>
           {/* Porta allo Storico ordini (Home app) con l'ordine appena pagato
               espanso. Cross-app: lo storico vive nel Profilo della Vetrina. */}
-          <button onClick={() => { __goApp('profile'); }} style={{
+          <button onClick={() => { __goApp('profile', { view: 'orders', order: 'recent' }); }} style={{
             background: 'transparent', border: 'none', color: WINE,
             fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
             marginTop: 12, padding: '4px 8px',
             display: 'inline-flex', alignItems: 'center', gap: 4,
           }}>Vedi scontrino <span style={{ fontSize: 15, lineHeight: 1 }}>›</span></button>
 
-          {commensali.length > 0 && (
+          {daPagare.length > 0 && (
             <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>
-                Alla prossima
+                Devono ancora pagare
               </div>
-              <div style={{ display: 'flex', flexDirection: 'row-reverse' }}>
-                {commensali.slice(0, 5).map((g, i) => (
+              {/* Nome accanto all'avatar: con i soli avatar sovrapposti non si
+                  capiva chi fosse rimasto scoperto. */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', maxWidth: 260 }}>
+                {daPagare.slice(0, 4).map((g, i) => (
                   <div key={g.id || i} style={{
-                    width: 34, height: 34, borderRadius: 999,
-                    background: (g.isApp || g.isWebApp) ? BADGE : '#c4b89f',
-                    color: '#fff',
-                    border: '2.5px solid #FBF4F1', marginLeft: -10,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12.5, fontWeight: 700,
-                  }}>{g.initial || '?'}</div>
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '7px 12px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.66)', border: `1px solid ${BORDER}`,
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 999, flexShrink: 0,
+                      background: (g.isApp || g.isWebApp) ? BADGE : '#c4b89f',
+                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700,
+                    }}>{g.initial || '?'}</div>
+                    <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 600, color: TEXT }}>
+                      {g.name || 'Ospite'}
+                    </span>
+                    {g.amount != null && (
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: MUTED }}>
+                        € {Number(g.amount).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
                 ))}
-                {commensali.length > 5 && (
-                  <div style={{
-                    width: 34, height: 34, borderRadius: 999, background: MUTESURF,
-                    color: MUTED, border: '2.5px solid #FBF4F1', marginLeft: -10,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700,
-                  }}>+{commensali.length - 5}</div>
+                {daPagare.length > 4 && (
+                  <div style={{ fontSize: 12.5, color: MUTED, fontWeight: 600 }}>
+                    e altri {daPagare.length - 4}
+                  </div>
                 )}
               </div>
             </div>

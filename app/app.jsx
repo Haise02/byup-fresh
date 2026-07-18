@@ -2625,6 +2625,10 @@ function HomeSections({
       {!noVenues && (
         <>
           {/* Categories — secondary discovery (smaller, scrollable) */}
+          {/* Sopra "Esplora per categoria": se ho un conto aperto o appena
+              saldato, e' l'informazione piu' urgente della home — sotto le
+              categorie non la vedeva nessuno. */}
+          <OpenTableCard/>
           <SectionHeader title="Esplora per categoria"/>
           <AutoLoopScroll speed={24}>
             {cats.map(c => (
@@ -2635,7 +2639,6 @@ function HomeSections({
           </AutoLoopScroll>
 
           {/* In evidenza — promo del momento */}
-          <OpenTableCard/>
 
           <SectionHeader title="In evidenza"/>
           <FeaturedCard onClick={() => click({ title: 'Trattoria Lucia', name: 'Trattoria Lucia' })}/>
@@ -3833,7 +3836,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
               display: 'block', textAlign: 'left', fontFamily: 'inherit', color: BYP.text,
               boxShadow: '0 16px 32px -18px rgba(227,36,89,.55)',
               backgroundImage: 'linear-gradient(90deg, rgba(18,10,14,.9) 0%, rgba(18,10,14,.45) 55%, rgba(18,10,14,.12) 100%), url(assets/road-city.png)',
-              backgroundSize: 'auto, 235% auto', backgroundPosition: 'center, 72% 62%',
+              backgroundSize: 'auto, 235% auto', backgroundPosition: 'center, 72% 0%',
             }}>
               <span style={{ position: 'absolute', left: 14, top: 13, display: 'block' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13.5, color: '#fff' }}>
