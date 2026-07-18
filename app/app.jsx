@@ -2469,14 +2469,6 @@ function HomeSections({
     <>
       {topBar}
 
-      {/* Card del tavolo: prima di tutto il resto della home — sopra il saluto
-          "Stasera, Mario" e sopra la località. Chi ha un conto ancora aperto
-          deve trovarla appena apre l'app, non dopo aver scorso. Nel flusso,
-          non agganciata: scorre via quando si esplora.
-          Quando c'e' un conto aperto questa card ha la precedenza sulla
-          prenotazione, che viene nascosta a monte: e' l'unica delle due che
-          porta il totale rimanente. */}
-      <OpenTableCard/>
 
 
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
@@ -2646,6 +2638,12 @@ function HomeSections({
       {!noVenues && (
         <>
           {/* Categories — secondary discovery (smaller, scrollable) */}
+          {/* Card del tavolo: dentro il flusso, non in cima. La testa della
+              home e' lo stato di partenza — saluto, localita' e ricerca — e
+              non deve essere occupata da una card di stato.
+              Quando c'e' un conto aperto ha comunque la precedenza sulla card
+              prenotazione, nascosta a monte: e' l'unica col totale rimanente. */}
+          <OpenTableCard/>
           <SectionHeader title="Esplora per categoria"/>
           <AutoLoopScroll speed={24}>
             {cats.map(c => (
