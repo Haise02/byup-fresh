@@ -1313,9 +1313,10 @@ function ExtrasList({ extras, setExtras }) {
                 background: PN.PINK_SOFT, padding:'3px 9px', borderRadius:999,
                 fontVariantNumeric:'tabular-nums',
               }}>+ € {ex.price.toFixed(2)}</span>
-              <label style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:14, color: PN.MUTED, fontWeight:600}}>
+              <label style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:14, color: PN.MUTED, fontWeight:600}}
+                title="Quante volte il cliente può ripetere questa aggiunta. Vuoto = illimitato.">
                 max
-                {maxInput(ex.max ?? '', v => setExtraMax(i, v), {width:46, padding:'5px 6px', fontSize:15, borderRadius:7})}
+                {maxInput(ex.max ?? '', v => setExtraMax(i, v), {width:52, padding:'5px 6px', fontSize:15, borderRadius:7, background:PN.WHITE})}
               </label>
               <button onClick={() => setExtras(arr => arr.filter((_, idx) => idx !== i))}
                 aria-label={`Rimuovi ${ex.name}`}
@@ -1327,22 +1328,57 @@ function ExtrasList({ extras, setExtras }) {
           ))}
         </div>
       )}
-      {/* Riga di inserimento su fondo tenue: si distingue dalle voci gia'
-          inserite, che sono card bianche. */}
+      {/* Riga di inserimento: ogni campo ha la sua etichetta e i simboli (€, max)
+          stanno in un riquadro a parte. Prima erano prefissi in overlay sopra
+          l'input: il cursore ci finiva sopra e non si capiva cosa scrivere. */}
       <div style={{
-        display:'grid', gridTemplateColumns:'1fr 104px 78px auto', gap:8,
-        padding:10, background:'#F8FAFC', borderRadius:10, border:`1px solid ${PN.BORDER_SOFT}`,
+        display:'grid', gridTemplateColumns:'1fr 128px 104px auto', gap:10, alignItems:'end',
+        padding:12, background:'#F8FAFC', borderRadius:10, border:`1px solid ${PN.BORDER_SOFT}`,
       }}>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="es. Tartufo nero" style={{padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE}}/>
-        <div style={{position:'relative'}}>
-          <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', fontSize:16, color: PN.MUTED, fontWeight:600}}>+€</span>
-          <input value={price} onChange={e => setPrice(e.target.value)} placeholder="4,00" style={{width:'100%', padding:'8px 12px 8px 30px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none'}}/>
-        </div>
-        <div style={{position:'relative'}}>
-          <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13.5, color: PN.MUTED, fontWeight:600, pointerEvents:'none'}}>max</span>
-          {maxInput(max, setMax, {width:'100%', padding:'8px 8px 8px 34px', fontSize:16, borderRadius:8, textAlign:'left'})}
-        </div>
-        <button onClick={add} style={{background: name.trim() ? PN.PINK : '#F4F5F7', color: name.trim() ? '#fff' : PN.MUTED, border:'none', padding:'0 14px', borderRadius:8, fontSize:16, fontWeight:700, cursor: name.trim()?'pointer':'default', fontFamily:'inherit'}}>Aggiungi</button>
+        <label style={{display:'block'}}>
+          <span style={{display:'block', fontSize:14, fontWeight:600, color:PN.MUTED, marginBottom:5}}>Aggiunta</span>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="es. Tartufo nero" style={{
+            width:'100%', padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8,
+            fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE,
+          }}/>
+        </label>
+
+        <label style={{display:'block'}}>
+          <span style={{display:'block', fontSize:14, fontWeight:600, color:PN.MUTED, marginBottom:5}}>Prezzo</span>
+          <div style={{display:'flex', border:`1px solid ${PN.BORDER}`, borderRadius:8, overflow:'hidden', background:PN.WHITE}}>
+            <span style={{
+              padding:'0 10px', display:'grid', placeItems:'center', flexShrink:0,
+              background:'#F4F5F7', borderRight:`1px solid ${PN.BORDER}`,
+              fontSize:15, fontWeight:700, color:PN.MUTED,
+            }}>+€</span>
+            <input value={price} onChange={e => setPrice(e.target.value.replace(/[^0-9,.]/g,''))} placeholder="4,00" inputMode="decimal" style={{
+              width:'100%', minWidth:0, padding:'9px 10px', border:'none', outline:'none',
+              fontSize:16, fontFamily:'inherit', textAlign:'right', background:'transparent',
+            }}/>
+          </div>
+        </label>
+
+        <label style={{display:'block'}}>
+          <span style={{display:'block', fontSize:14, fontWeight:600, color:PN.MUTED, marginBottom:5}}
+            title="Quante volte il cliente può ripetere questa aggiunta. Vuoto = illimitato.">
+            Max
+          </span>
+          <input value={max} onChange={e => setMax(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="illimitato" inputMode="numeric"
+            title="Quante volte il cliente può ripetere questa aggiunta. Vuoto = illimitato."
+            style={{
+              width:'100%', padding:'9px 10px', border:`1px solid ${PN.BORDER}`, borderRadius:8,
+              fontSize:15, fontFamily:'inherit', outline:'none', textAlign:'center', background:PN.WHITE,
+            }}/>
+        </label>
+
+        <button onClick={add} disabled={!name.trim()} style={{
+          height:40, padding:'0 18px', borderRadius:8, border:'none',
+          background: name.trim() ? PN.PINK : '#E9EBEF',
+          color: name.trim() ? '#fff' : PN.MUTED,
+          fontSize:16, fontWeight:700, cursor: name.trim() ? 'pointer' : 'default', fontFamily:'inherit',
+          transition:'background 150ms ease-out',
+        }}>Aggiungi</button>
       </div>
     </div>
   );
@@ -1840,15 +1876,37 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               <NutritionFields/>
             </CollapseSection>
 
-            {/* Avanzate — tutto ciò che la maggior parte dei piatti non usa */}
-            <CollapseSection
-              title="Avanzate"
-              subtitle="Versioni, aggiunte, varianti e ricetta"
-              icon="⚙"
-              open={openSection === 'avanzate'}
-              onToggle={() => setOpenSection(s => s === 'avanzate' ? null : 'avanzate')}
-            >
-              <div style={{display:'flex', flexDirection:'column', gap:16}}>
+            {/* Avanzate — non e' una sezione come le altre ma il contenitore di
+                tutto cio' che la maggior parte dei piatti non usa: niente card,
+                solo una riga di testo con un separatore. */}
+            <div style={{marginTop:6}}>
+              <div style={{display:'flex', alignItems:'center', gap:12, margin:'6px 0 0'}}>
+                <div style={{flex:1, height:1, background:PN.BORDER_SOFT}}/>
+                <button
+                  onClick={() => setOpenSection(s => s === 'avanzate' ? null : 'avanzate')}
+                  aria-expanded={openSection === 'avanzate'}
+                  style={{
+                    display:'inline-flex', alignItems:'center', gap:7,
+                    background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
+                    padding:'4px 6px', borderRadius:7,
+                    fontSize:15, fontWeight:600, color: openSection === 'avanzate' ? PN.TEXT : PN.MUTED,
+                    transition:'color 150ms ease-out',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = PN.TEXT}
+                  onMouseLeave={e => { if (openSection !== 'avanzate') e.currentTarget.style.color = PN.MUTED; }}
+                >
+                  {openSection === 'avanzate' ? 'Nascondi opzioni avanzate' : 'Opzioni avanzate'}
+                  <span style={{
+                    display:'inline-flex', fontSize:11,
+                    transform: openSection === 'avanzate' ? 'rotate(180deg)' : 'none',
+                    transition:'transform 200ms ease-out',
+                  }}>▼</span>
+                </button>
+                <div style={{flex:1, height:1, background:PN.BORDER_SOFT}}/>
+              </div>
+
+              {openSection === 'avanzate' && (
+              <div style={{display:'flex', flexDirection:'column', gap:20, paddingTop:16}}>
 
                 {/* Versioni */}
                 <div>
@@ -1958,7 +2016,8 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                   >+ Aggiungi passo</button>
                 </div>
               </div>
-            </CollapseSection>
+              )}
+            </div>
           </div>
         </div>
 
