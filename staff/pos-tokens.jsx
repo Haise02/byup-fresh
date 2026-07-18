@@ -1,39 +1,119 @@
-// Byup Staff — Design tokens
-// I COLORI sono ereditati dalla vecchia app (unica cosa conservata).
-// Tutto il resto (componenti, icone) è ripensato per un POS stile SumUp.
+// Byup Staff (POS) — Design tokens
+//
+// SORGENTE DI VERITÀ: `PN` (gestionale/panoramica-tokens.jsx), caricato PRIMA
+// di questo file da index.html. Qui NON si ridefiniscono brand, neutri o
+// materiali: si ereditano da PN e si adatta solo la SCALA al touch.
+// Stesso impianto di cameriere/staff-tokens.jsx — le due app staff devono
+// restare gemelle.
+//
+// Deroghe motivate del POS (non dimenticanze):
+//   · hit target 44pt — si incassa col telefono in mano
+//   · radius 10/14/18 — superfici grandi su schermo piccolo
+//   · CTA a pillola — bersaglio pollice-friendly
+//   · le due sfumature brand qui sotto, che il gestionale non ha
+
+if (!window.PN) {
+  throw new Error(
+    'pos-tokens.jsx richiede PN (gestionale/panoramica-tokens.jsx) caricato prima. ' +
+    'Controlla l\'ordine degli <script> in index.html.'
+  );
+}
 
 const ST = {
-  // Brand
-  PINK:       '#F26B7A',
-  PINK_DARK:  '#BE185D',
-  PINK_SOFT:  '#FFE0DD',
-  WINE:       '#7C2D3C',
+  // ─── Brand — ereditato, mai ridefinito ─────────────────────
+  PINK:       PN.PINK,          // #FF5A5F corallo byup
+  PINK_DARK:  PN.PINK_DARK,     // #E04347
+  PINK_SOFT:  PN.PINK_SOFT,     // #FFE0DD
+  PINK_BG:    PN.PINK_BG_SOFT,
+  WINE:       PN.WINE,
 
-  // Neutrals
-  TEXT:       '#0F1115',
+  // ─── Sfumature brand ───────────────────────────────────────
+  // Campionate dal logo "byup staff" di riferimento. Sono le UNICHE due
+  // sfumature ammesse, e hanno ruoli distinti — non sono intercambiabili:
+  //
+  //   GRAD_MARK  intensa, escursione lunga (lampone → salmone).
+  //              Solo superfici PICCOLE: logo, mark, badge, avatar.
+  //              Su area grande diventa pesante.
+  //
+  //   GRAD_HERO  tenue, escursione corta (rosa polvere → salmone).
+  //              Solo superfici GRANDI e SOLO con testo SCURO PIENO.
+  //              ATTENZIONE — oggi NON è applicata da nessuna parte, ed è
+  //              voluto: ogni superficie grande del POS porta testo pensato
+  //              per fondo neutro. Il titolo regge (6,0-8,8:1) ma il testo
+  //              secondario ST.MUTED crolla a 1,54:1, e nemmeno un nero al
+  //              75% arriva a 4,5:1 sul capo scuro. Per usarla va prima
+  //              ridisegnata la gerarchia del testo di quella superficie.
+  //              Non applicarla "perché c'è".
+  //
+  // NON usarle sui CTA: il pulsante d'azione resta quello del gestionale
+  // (BTN_BRAND). Su un POS l'unica cosa che deve gridare è "Incassa".
+  //
+  // VINCOLO DI CONTRASTO — misurato, non stimato. Col bianco:
+  //   #E01F5A 4,65:1 ok  ·  #DE6E88 3,14:1 solo testo grande
+  //   #EF938A 2,28:1 NO  ·  #EE9C8E 2,15:1 NO
+  // Quindi: mai testo bianco piccolo sopra il capo chiaro. Sulle superfici
+  // dense di testo (login, schermo pagamento) si usa un fondo pieno scuro,
+  // non queste sfumature.
+  GRAD_MARK: 'linear-gradient(135deg, #E01F5A 0%, #EF938A 100%)',
+  GRAD_HERO: 'linear-gradient(135deg, #DE6E88 0%, #EE9C8E 100%)',
+  // Estremi esposti per bordi/ombre coordinati e per il fallback su
+  // superfici che non possono portare un gradient (es. color di un'icona).
+  GRAD_MARK_FROM: '#E01F5A',
+  GRAD_MARK_TO:   '#EF938A',
+  GRAD_HERO_FROM: '#DE6E88',
+  GRAD_HERO_TO:   '#EE9C8E',
+
+  // ─── Neutrals — ereditati ──────────────────────────────────
+  TEXT:       PN.TEXT,
   TEXT_SOFT:  '#1F2937',
-  MUTED:      '#6B7280',
-  MUTED_2:    '#9CA3AF',
-  MUTED_3:    '#D1D5DB',
-  BG:         '#F7F8FA',
-  SURF_ALT:   '#F3F4F6',
-  BORDER:     '#E5E7EB',
-  BORDER_SOFT:'#F0F2F5',
+  MUTED:      PN.MUTED,
+  MUTED_2:    PN.MUTED_SOFT,
+  MUTED_3:    PN.MUTED_LIGHT,
+  WHITE:      PN.WHITE,
+  BG:         PN.BG,            // #F5F6F8 — stesso canvas del gestionale
+  SURF:       PN.WHITE_OFF,
+  SURF_ALT:   PN.WHITE_HUSH,
+  SURF_DEEP:  PN.WHITE_FROST,
 
-  // Stati transazione (semantici)
-  OK:        '#16A34A',
-  OK_BG:     '#DCFCE7',
-  FAIL:      '#DC2626',
-  FAIL_BG:   '#FEE2E2',
-  REFUND:    '#6B7280',
-  REFUND_BG: '#F3F4F6',
+  // ─── Bordi — hairline alpha, non grigi opachi ──────────────
+  BORDER:       PN.BORDER_SOFT_A,
+  BORDER_SOFT:  PN.BORDER_HAIR,
+  BORDER_STRONG:PN.BORDER_MED,
 
-  // Radius
+  // ─── Stati transazione (semantici, ereditati) ──────────────
+  OK:        PN.GREEN,
+  OK_BG:     PN.GREEN_SOFT,
+  FAIL:      PN.RED,
+  FAIL_BG:   PN.RED_SOFT,
+  REFUND:    PN.MUTED,
+  REFUND_BG: PN.WHITE_HUSH,
+
+  // ─── Materiali — CTA e vetro, ereditati da PN ──────────────
+  BTN_NEUTRAL:       PN.BTN_NEUTRAL,
+  BTN_NEUTRAL_PRESS: PN.BTN_NEUTRAL_PRESS,
+  BTN_BRAND:         PN.BTN_BRAND,
+  BTN_BRAND_PRESS:   PN.BTN_BRAND_PRESS,
+  BTN_DARK:          PN.BTN_DARK,
+  BTN_DARK_HOVER:    PN.BTN_DARK_HOVER,
+  INSET:             PN.INSET_HIGHLIGHT,
+  INSET_BRAND:       PN.INSET_HIGHLIGHT_BRAND,
+  INSET_DARK:        PN.INSET_HIGHLIGHT_DARK,
+
+  GLASS_BAR:    PN.GLASS_BAR,
+  GLASS_STRONG: PN.GLASS_STRONG,
+
+  // ─── Radius (deroga touch) ─────────────────────────────────
   R_SM: 10, R_MD: 14, R_LG: 18, R_PILL: 999,
 
-  // Shadows
-  SH_SM:  '0 1px 2px rgba(15,17,21,0.04), 0 1px 3px rgba(15,17,21,0.04)',
-  SH_FAB: '0 6px 18px rgba(190,24,93,0.30), 0 2px 6px rgba(190,24,93,0.18)',
+  // ─── Shadows — due livelli, senza tinta ────────────────────
+  SH_SM:  PN.CARD_SHADOW,
+  SH_MD:  PN.CARD_SHADOW_HOVER,
+  // FAB: ombra NEUTRA. Il gestionale vieta le ombre tinte di brand
+  // (era rgba(190,24,93,.30)) — l'elevazione si fa col nero, non col colore.
+  SH_FAB: '0 8px 24px rgba(15,17,21,0.16), 0 2px 6px rgba(15,17,21,0.08)',
+
+  // Hit target minimo (44pt iOS)
+  HIT: 44,
 };
 
 // ─── Stato transazione: helper per styling ────────────────────
@@ -74,28 +154,46 @@ const I = {
 };
 
 // ─── Componenti atomici ───────────────────────────────────────
+
+// Btn — geometria touch (pillola, 36/44/52), materiale del gestionale
+// (gradient verticale + inset highlight). Volutamente NON usa le sfumature
+// brand: il CTA deve leggersi identico qui e nel gestionale.
 function Btn({ variant='primary', children, onClick, disabled, style, full, size='md', ...rest }) {
-  const sizes = { sm: { h: 36, fs: 13, px: 14 }, md: { h: 44, fs: 14.5, px: 18 }, lg: { h: 52, fs: 15.5, px: 22 } };
+  const [press, setPress] = React.useState(false);
+  const sizes = { sm: { h: 36, fs: 13, px: 14 }, md: { h: ST.HIT, fs: 14.5, px: 18 }, lg: { h: 52, fs: 15.5, px: 22 } };
   const sz = sizes[size];
   const variants = {
-    primary: { bg: ST.PINK_DARK, c: '#fff', b: 'transparent' },
-    secondary:{ bg: '#fff', c: ST.TEXT, b: ST.BORDER },
-    danger:  { bg: '#fff', c: '#DC2626', b: '#FCA5A5' },
-    ghost:   { bg: 'transparent', c: ST.TEXT, b: 'transparent' },
+    primary:  { bg: ST.BTN_BRAND,   press: ST.BTN_BRAND_PRESS,   c: '#fff',  b: 'transparent',           inset: ST.INSET_BRAND },
+    dark:     { bg: ST.BTN_DARK,    press: ST.BTN_DARK_HOVER,    c: '#fff',  b: 'transparent',           inset: ST.INSET_DARK },
+    secondary:{ bg: ST.BTN_NEUTRAL, press: ST.BTN_NEUTRAL_PRESS, c: ST.TEXT, b: ST.BORDER,               inset: ST.INSET },
+    danger:   { bg: ST.BTN_NEUTRAL, press: ST.BTN_NEUTRAL_PRESS, c: ST.FAIL, b: 'rgba(220,38,38,0.28)',  inset: ST.INSET },
+    ghost:    { bg: 'transparent',  press: ST.SURF_ALT,          c: ST.TEXT, b: 'transparent',           inset: 'none' },
   };
   const v = variants[variant] || variants.primary;
+  const flat = v.bg === 'transparent';
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      height: sz.h, padding: `0 ${sz.px}px`, borderRadius: ST.R_PILL,
-      background: disabled ? ST.BORDER : v.bg, color: disabled ? ST.MUTED : v.c,
-      border: `1.5px solid ${disabled ? ST.BORDER : v.b}`,
-      fontSize: sz.fs, fontWeight: 600, fontFamily: 'inherit',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-      width: full ? '100%' : 'auto',
-      transition: 'background 120ms ease, transform 80ms',
-      ...style,
-    }} {...rest}>{children}</button>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onPointerDown={() => setPress(true)}
+      onPointerUp={() => setPress(false)}
+      onPointerLeave={() => setPress(false)}
+      style={{
+        height: sz.h, padding: `0 ${sz.px}px`, borderRadius: ST.R_PILL,
+        background: disabled ? ST.SURF_ALT : (press ? v.press : v.bg),
+        color: disabled ? ST.MUTED_2 : v.c,
+        border: `1px solid ${disabled ? ST.BORDER : v.b}`,
+        boxShadow: disabled || flat ? 'none' : `${v.inset}, ${ST.SH_SM}`,
+        fontSize: sz.fs, fontWeight: 700, fontFamily: 'inherit',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        width: full ? '100%' : 'auto',
+        WebkitTapHighlightColor: 'transparent',
+        transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
+        ...style,
+      }}
+      {...rest}
+    >{children}</button>
   );
 }
 
@@ -112,13 +210,18 @@ function Chip({ children, color, bg, style }) {
 }
 
 // ─── Logo byup (mark) ─────────────────────────────────────────
+// Superficie piccola → sfumatura intensa (GRAD_MARK).
+// NOTA: la lettera "b" è un segnaposto. Il mark vero (assets/byup-icon.png)
+// non è utilizzabile qui perché è un PNG col proprio fondo pieno: su un
+// gradient si vedrebbe il riquadro. Serve la versione SVG del mark.
 function Logo({ size = 40, radius }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: radius != null ? radius : ST.R_MD,
-      background: `linear-gradient(135deg, ${ST.PINK} 0%, ${ST.PINK_DARK} 100%)`,
+      background: ST.GRAD_MARK,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: '#fff', fontSize: size * 0.5, fontWeight: 800, flexShrink: 0,
+      boxShadow: ST.INSET_BRAND,
     }}>b</div>
   );
 }

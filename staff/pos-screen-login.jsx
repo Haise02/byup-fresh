@@ -3,9 +3,12 @@
 const { useState: useStateL, useEffect: useEffectL } = React;
 
 // ─── Stili condivisi (tema scuro) ─────────────────────────────
+// Resta un tema SCURO: il login è tutto testo bianco su fondo pieno, e le
+// sfumature brand chiare non reggono il bianco (2,2:1). Qui il brand entra
+// come tinta dei due aloni radiali, riportati sul nuovo corallo/lampone.
 const LOGIN_BG = `
-  radial-gradient(110% 55% at 50% -8%, rgba(190,24,93,0.32), transparent 60%),
-  radial-gradient(130% 80% at 50% 112%, rgba(124,45,60,0.55), transparent 62%),
+  radial-gradient(110% 55% at 50% -8%, rgba(224,31,90,0.32), transparent 60%),
+  radial-gradient(130% 80% at 50% 112%, rgba(181,51,56,0.55), transparent 62%),
   linear-gradient(180deg, #1e1216 0%, #150d10 100%)`;
 
 const dkLabel = { display: 'block', fontSize: 13.5, fontWeight: 700, color: '#fff', marginBottom: 8 };
@@ -29,7 +32,7 @@ const PinkBtn = ({ children, onClick, style }) => (
   <button onClick={onClick} style={{
     height: 56, width: '100%', borderRadius: ST.R_LG, border: 'none',
     background: ST.PINK, color: '#fff', fontSize: 16.5, fontWeight: 700, fontFamily: 'inherit',
-    cursor: 'pointer', boxShadow: '0 10px 30px rgba(242,107,122,0.35)',
+    cursor: 'pointer', boxShadow: ST.SH_FAB,  // ombra neutra: il gestionale vieta le ombre tinte di brand
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, ...style,
   }}>{children}</button>
 );
@@ -248,7 +251,7 @@ function ScreenRecupero({ nav }) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingBottom: 60 }}>
           <div style={{
             width: 76, height: 76, borderRadius: ST.R_PILL,
-            background: 'rgba(242,107,122,0.18)', border: '1px solid rgba(242,107,122,0.4)',
+            background: 'rgba(255,90,95,0.18)', border: '1px solid rgba(255,90,95,0.40)',  // corallo brand
             display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22,
           }}><I.Mail s={34} c={ST.PINK}/></div>
 

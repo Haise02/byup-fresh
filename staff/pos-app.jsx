@@ -77,8 +77,14 @@ function BottomNav({ active, setTab }) {
   ];
   return (
     <div style={{
+      // Vetro, come la tab bar del cameriere: sta sopra contenuto che scorre,
+      // quindi ha qualcosa da rifrangere. Il light-catch va in alto.
       position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50,
-      background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)',
+      background: ST.GLASS_BAR.background,
+      backgroundImage: 'linear-gradient(to top, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0) 100%)',
+      backdropFilter: ST.GLASS_BAR.backdropFilter,
+      WebkitBackdropFilter: ST.GLASS_BAR.WebkitBackdropFilter,
+      boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.70)',
       borderTop: `1px solid ${ST.BORDER_SOFT}`, padding: '8px 8px 28px', display: 'flex',
     }}>
       {items.map(it => {

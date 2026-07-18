@@ -63,6 +63,10 @@ function ScreenProfilo({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {
   return (
     <div style={{ background: ST.BG, minHeight: '100%', paddingBottom: 100 }}>
       {/* Header esercente */}
+      {/* Resta bianco: ci ho provato con GRAD_HERO, ma il testo secondario
+          (ST.MUTED su rosa) scende a 1,54:1 e non si legge. Perché questa
+          banda possa portare la sfumatura va prima ridisegnata la gerarchia
+          del testo — vedi la nota su GRAD_HERO in pos-tokens.jsx. */}
       <div style={{ padding: '54px 20px 20px', background: '#fff', borderBottom: `1px solid ${ST.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 14 }}>
         <Logo size={56} radius={ST.R_LG}/>
         <div>

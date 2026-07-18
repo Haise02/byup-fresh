@@ -53,6 +53,10 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
   const isWave = step === 'waiting' || step === 'reading' || step === 'success';
   const isProc = step === 'elaboro';
   const isFail = step === 'fail';
+  // NIENTE sfumatura brand qui, ed è una scelta: questa schermata è tutta
+  // testo bianco (importo, stato, istruzioni) su fondo pieno. Il capo chiaro
+  // delle sfumature sta a 2,2:1 col bianco — illeggibile. ST.WINE dà 6,0:1
+  // e resta comunque colore di brand ereditato dal gestionale.
   const bg = isFail ? '#7F1D1D' : ST.WINE;
 
   return (

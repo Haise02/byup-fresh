@@ -12,7 +12,7 @@ function ScreenTransazioni({ nav, openModal }) {
       <div style={{ padding: '54px 20px 18px', background: '#fff', borderBottom: `1px solid ${ST.BORDER_SOFT}` }}>
         <div style={{ fontSize: 26, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.5 }}>Transazioni</div>
         <div style={{
-          marginTop: 14, background: `linear-gradient(135deg, ${ST.PINK} 0%, ${ST.PINK_DARK} 100%)`,
+          marginTop: 14, background: ST.GRAD_MARK,
           borderRadius: ST.R_LG, padding: '16px 18px', color: '#fff', boxShadow: ST.SH_FAB,
         }}>
           <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Incassato oggi</div>
