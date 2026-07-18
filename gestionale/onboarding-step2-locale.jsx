@@ -32,7 +32,8 @@ function Step2Locale({
     <div style={{
       minHeight: '100%',
       background: ONB.BG_SOFT,
-      padding: '32px 80px',
+      /* bottom 28 e non 32: compensa il padding del footer sticky */
+      padding: '32px 80px 28px',
       display: 'flex', alignItems: 'flex-start',
     }}>
       {/* Stessa griglia dello step 1: promessa a sinistra, campi a destra.
@@ -90,11 +91,6 @@ function Step2Locale({
               il blocco di testo, invece che floating su un angolo del frame. */}
           <ProcessingBanner inline/>
 
-          {/* La promo di byup Staff sta in questa colonna e non fra le card dei
-              pagamenti: lì costava 132px e mandava la colonna fuori dal canvas
-              non appena "Altri metodi" veniva espansa. Qui riempie lo spazio che
-              il titolo corto "Pagamenti." lasciava vuoto. */}
-          {subStep === 'pagamenti' && <StaffAppPromo/>}
         </div>
 
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
@@ -102,11 +98,16 @@ function Step2Locale({
           {subStep === 'info'      && <SubStepInfo      venue={venue} v={v}/>}
           {subStep === 'pagamenti' && <SubStepPagamenti payments={payments} p={p}/>}
 
-          {/* Footer — 2 pulsanti, gerarchia chiara */}
+          {/* Footer — 2 pulsanti, gerarchia chiara.
+              Sticky: espandendo "Altri metodi" la colonna supera il canvas, e
+              senza ancoraggio "Continua" finiva sotto il bordo. Resta agganciato
+              al fondo mentre il contenuto scorre dietro. */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginTop: 20, paddingTop: 18,
+            position: 'sticky', bottom: 0, zIndex: 5,
+            marginTop: 20, paddingTop: 18, paddingBottom: 4,
             borderTop: '1px solid rgba(15, 17, 21, 0.08)',
+            background: ONB.BG_SOFT,
           }}>
             <SecondaryCta onClick={onBack}>
               <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
@@ -253,7 +254,7 @@ function SubStepPagamenti({payments, p}) {
   const activeCount = Object.values(methods).filter(Boolean).length;
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
       <OnbCard>
         <OnbSectionHeader
           number="1"
@@ -343,6 +344,8 @@ function SubStepPagamenti({payments, p}) {
           </div>
         )}
       </OnbCard>
+
+      <StaffAppPromo/>
     </div>
   );
 }
@@ -354,11 +357,22 @@ function SubStepPagamenti({payments, p}) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function StaffAppPromo() {
+  // TODO: sostituire con gli URL reali delle schede store di byup Staff.
+  const STORE_LINKS = {play: '#', app: '#'};
+
+  const storeLink = {
+    color: ONB.BRAND_DARK, fontWeight: 600, textDecoration: 'underline',
+    textUnderlineOffset: 2, cursor: 'pointer',
+  };
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 20,
-      padding: 20, marginTop: 20, maxWidth: 440,
-      background: ONB.BRAND_TINT,
+      padding: 18,
+      /* Gradiente interno: la promo è l'unico blocco non-obbligatorio della
+         schermata, e la superficie sfumata la stacca dalle card bianche dei
+         due passi senza aggiungere un bordo pesante. */
+      background: 'linear-gradient(120deg, #FFEFEC 0%, #FFF7F0 46%, #F9EEF8 100%)',
       border: '1px solid rgba(255, 90, 95, 0.20)',
       borderRadius: 12,
     }}>
@@ -378,7 +392,13 @@ function StaffAppPromo() {
           fontSize: 14, fontWeight: 500, color: ONB.BRAND_DARK, marginTop: 10,
         }}>
           <OnbIcon.Camera size={14} color={ONB.BRAND_DARK}/>
-          Inquadra il QR con il telefono
+          Inquadra il QR code per scaricare l’applicazione
+        </div>
+        <div style={{
+          fontSize: 14, color: ONB.MUTED, lineHeight: 1.45, marginTop: 4,
+        }}>
+          oppure vai su <a href={STORE_LINKS.play} style={storeLink}>Play Store</a>
+          {' '}o <a href={STORE_LINKS.app} style={storeLink}>App Store</a>
         </div>
       </div>
       <QrMock size={116}/>
@@ -517,7 +537,7 @@ function MethodRow({provider, label, desc, checked, onToggle}) {
   return (
     <label style={{
       display: 'flex', alignItems: 'center', gap: 14,
-      padding: '14px 0',
+      padding: '12px 0',
       borderBottom: '1px solid rgba(15, 17, 21, 0.04)',
       cursor: 'pointer',
     }}>
