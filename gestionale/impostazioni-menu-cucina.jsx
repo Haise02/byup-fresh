@@ -1298,20 +1298,42 @@ function ExtrasList({ extras, setExtras }) {
       {extras.length > 0 && (
         <div style={{display:'flex', flexDirection:'column', gap:6, marginBottom:12}}>
           {extras.map((ex, i) => (
-            <div key={i} style={{display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:10, alignItems:'center', padding:'8px 10px 8px 12px', background:'#FAFBFC', borderRadius:8}}>
+            <div key={i} className="extra-row" style={{
+              display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:12, alignItems:'center',
+              padding:'10px 10px 10px 14px', background:PN.WHITE,
+              border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:10,
+              transition:'border-color 150ms ease-out',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = PN.BORDER}
+            onMouseLeave={e => e.currentTarget.style.borderColor = PN.BORDER_SOFT}
+            >
               <span style={{fontSize:16, color: PN.TEXT, fontWeight:600}}>{ex.name}</span>
-              <span style={{fontSize:16, fontWeight:700, color: PN.PINK_DARK}}>+ € {ex.price.toFixed(2)}</span>
-              <label style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:14, color: PN.MUTED, fontWeight:600}}>
+              <span style={{
+                fontSize:15, fontWeight:700, color: PN.PINK_DARK,
+                background: PN.PINK_SOFT, padding:'3px 9px', borderRadius:999,
+                fontVariantNumeric:'tabular-nums',
+              }}>+ € {ex.price.toFixed(2)}</span>
+              <label style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:14, color: PN.MUTED, fontWeight:600}}>
                 max
-                {maxInput(ex.max ?? '', v => setExtraMax(i, v), {width:42, padding:'4px 6px', fontSize:15})}
+                {maxInput(ex.max ?? '', v => setExtraMax(i, v), {width:46, padding:'5px 6px', fontSize:15, borderRadius:7})}
               </label>
-              <button onClick={() => setExtras(arr => arr.filter((_, idx) => idx !== i))} style={{width:26, height:26, background:'transparent', border:'none', borderRadius:6, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15}}>✕</button>
+              <button onClick={() => setExtras(arr => arr.filter((_, idx) => idx !== i))}
+                aria-label={`Rimuovi ${ex.name}`}
+                style={{width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+              >✕</button>
             </div>
           ))}
         </div>
       )}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 100px 74px auto', gap:8}}>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="es. Tartufo nero" style={{padding:'8px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none'}}/>
+      {/* Riga di inserimento su fondo tenue: si distingue dalle voci gia'
+          inserite, che sono card bianche. */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'1fr 104px 78px auto', gap:8,
+        padding:10, background:'#F8FAFC', borderRadius:10, border:`1px solid ${PN.BORDER_SOFT}`,
+      }}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="es. Tartufo nero" style={{padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE}}/>
         <div style={{position:'relative'}}>
           <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', fontSize:16, color: PN.MUTED, fontWeight:600}}>+€</span>
           <input value={price} onChange={e => setPrice(e.target.value)} placeholder="4,00" style={{width:'100%', padding:'8px 12px 8px 30px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none'}}/>
@@ -1334,17 +1356,38 @@ function VariantsList({ variants, setVariants }) {
     <div>
       <div style={{display:'flex', flexDirection:'column', gap:10}}>
         {variants.map((v, i) => (
-          <div key={i} style={{border:`1px solid ${PN.BORDER}`, borderRadius:8, padding:12}}>
-            <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'center', marginBottom:10}}>
-              <input value={v.name} onChange={e => updateGroup(i, {name:e.target.value})} placeholder="Nome del gruppo (es. Cottura, Formato, Pane)" style={{padding:'7px 10px', border:`1px solid ${PN.BORDER}`, borderRadius:6, fontSize:16, fontFamily:'inherit', outline:'none', fontWeight:600}}/>
-              <button onClick={() => removeGroup(i)} style={{width:30, height:30, background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius:6, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15}}>✕</button>
+          <div key={i} style={{border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:12, overflow:'hidden', background:PN.WHITE}}>
+            {/* Header del gruppo su fondo tenue: separa il nome del gruppo
+                dalle sue opzioni, che prima erano tutti input uguali in fila */}
+            <div style={{
+              display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'center',
+              padding:'10px 10px 10px 12px', background:'#F8FAFC',
+              borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+            }}>
+              <input value={v.name} onChange={e => updateGroup(i, {name:e.target.value})} placeholder="Nome del gruppo (es. Cottura, Formato, Pane)" style={{padding:'8px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', fontWeight:600, background:PN.WHITE}}/>
+              <button onClick={() => removeGroup(i)} aria-label="Rimuovi gruppo"
+                style={{width:30, height:30, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+              >✕</button>
             </div>
+            <div style={{padding:12}}>
             <div style={{display:'flex', flexDirection:'column', gap:5, marginBottom:8}}>
               {v.options.map((opt, oi) => (
-                <div key={oi} style={{display:'flex', gap:6}}>
-                  <input value={opt} onChange={e => updateGroup(i, {options: v.options.map((x, idx) => idx===oi ? e.target.value : x)})} placeholder={`Opzione ${oi+1} (es. Al sangue)`} style={{flex:1, padding:'6px 10px', border:`1px solid ${PN.BORDER}`, borderRadius:6, fontSize:15.5, fontFamily:'inherit', outline:'none'}}/>
+                <div key={oi} style={{display:'flex', gap:8, alignItems:'center'}}>
+                  {/* pallino: rende evidente che sono alternative di una scelta */}
+                  <span aria-hidden="true" style={{
+                    width:14, height:14, borderRadius:'50%', flexShrink:0,
+                    border:`1.5px solid ${PN.BORDER_HOVER || '#D1D5DB'}`, background:PN.WHITE,
+                  }}/>
+                  <input value={opt} onChange={e => updateGroup(i, {options: v.options.map((x, idx) => idx===oi ? e.target.value : x)})} placeholder={`Opzione ${oi+1} (es. Al sangue)`} style={{flex:1, padding:'8px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none'}}/>
                   {v.options.length > 1 && (
-                    <button onClick={() => updateGroup(i, {options: v.options.filter((_, idx) => idx !== oi)})} style={{width:28, height:28, background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius:6, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:13}}>✕</button>
+                    <button onClick={() => updateGroup(i, {options: v.options.filter((_, idx) => idx !== oi)})}
+                      aria-label={`Rimuovi opzione ${oi+1}`}
+                      style={{width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:13, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+                    >✕</button>
                   )}
                 </div>
               ))}
@@ -1354,6 +1397,7 @@ function VariantsList({ variants, setVariants }) {
               <input type="checkbox" checked={v.required} onChange={() => updateGroup(i, {required: !v.required})} style={{margin:0, accentColor: PN.PINK}}/>
               Scelta obbligatoria — il cliente deve sceglierne una prima di aggiungere al carrello
             </label>
+            </div>
           </div>
         ))}
       </div>
@@ -1386,6 +1430,70 @@ function DishBlock({children, style}) {
       padding: 14,
       ...style,
     }}>{children}</div>
+  );
+}
+
+// Flag booleano del piatto (prodotto finito / surgelati): stessa forma per
+// entrambi, con tooltip opzionale ancorato via portale.
+function DishFlag({checked, onChange, label, accent, accentBg, accentBorder, info}) {
+  return (
+    <label onClick={onChange} style={{
+      display:'inline-flex', alignItems:'center', gap:8,
+      cursor:'pointer', userSelect:'none',
+      padding:'9px 13px', borderRadius:10,
+      background: checked ? accentBg : PN.WHITE,
+      border:`1px solid ${checked ? accentBorder : PN.BORDER}`,
+      transition:'background 150ms ease-out, border-color 150ms ease-out',
+    }}>
+      <div style={{
+        width:16, height:16, borderRadius:4, flexShrink:0,
+        border:`1.5px solid ${checked ? accent : '#94A3B8'}`,
+        background: checked ? accent : '#fff',
+        display:'grid', placeItems:'center',
+      }}>
+        {checked && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
+      </div>
+      <span style={{fontSize:14.5, color: checked ? accent : PN.TEXT, fontWeight:600, whiteSpace:'nowrap'}}>
+        {label}
+      </span>
+
+      {info && (
+        <span
+          onClick={e => {
+            e.stopPropagation();
+            const r = e.currentTarget.getBoundingClientRect();
+            info.setOpen(o => o ? null : {x: r.right + 10, y: r.top + r.height / 2});
+          }}
+          role="button" tabIndex={0} aria-expanded={!!info.open}
+          aria-label={`Cos'è: ${label}`}
+          style={{display:'inline-flex', flexShrink:0}}
+        >
+          <span style={{
+            width:16, height:16, borderRadius:'50%',
+            background: info.open ? '#475569' : '#E2E8F0',
+            color: info.open ? '#fff' : '#64748B',
+            fontSize:12, fontWeight:700, display:'inline-grid', placeItems:'center', cursor:'pointer',
+            transition:'background 150ms ease-out',
+          }}>i</span>
+        </span>
+      )}
+
+      {info && info.open && ReactDOM.createPortal(
+        <span onClick={e => e.stopPropagation()} style={{
+          position:'fixed', left: info.open.x, top: info.open.y, transform:'translateY(-50%)',
+          width:230, background:'#1E293B', color:'#F8FAFC', fontSize:13.5, lineHeight:1.5,
+          padding:'9px 11px', borderRadius:9, boxShadow:'0 8px 24px rgba(15,17,21,0.22)',
+          zIndex:1200,
+        }}>
+          <span style={{
+            position:'absolute', left:-4, top:'50%', marginTop:-4,
+            width:8, height:8, background:'#1E293B', transform:'rotate(45deg)',
+          }}/>
+          {info.text}
+        </span>,
+        document.body
+      )}
+    </label>
   );
 }
 
@@ -1438,6 +1546,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
   const effectiveAllergens = React.useMemo(() => {
     return Array.from(new Set([...allergens, ...ingredientAllergens]));
   }, [allergens, ingredientAllergens]);
+  // Contati per il sottotitolo della sezione: chiusa, deve comunque dire
+  // quanti allergeni sono indicati.
+  const allergenCount = effectiveAllergens.length;
 
   const toggleAllergen = id => {
     // Se l'allergene proviene da un ingrediente, non si può togliere manualmente — è derivato
@@ -1541,224 +1652,161 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           }}>✕</button>
         </div>
 
-        {/* Body — due colonne che scorrono in modo indipendente:
-            a sinistra l'identita' del piatto (cosa e' e quanto costa), a destra
-            tutto cio' che si configura (cliente, personalizzazioni, cucina). */}
-        <div style={{display:'grid', gridTemplateColumns:'360px 1fr', flex:1, minHeight:0}}>
+        {/* Body — l'identità del piatto è una fascia orizzontale in cima, il
+            resto sono sezioni contratte: si apre solo ciò che serve, invece di
+            scorrere sette blocchi sempre aperti. */}
+        <div style={{padding:'20px 24px 24px', overflowY:'auto', flex:1, display:'flex', flexDirection:'column', gap:18}}>
 
-          {/* ── COLONNA SX — IDENTITÀ ────────────────── */}
-          <div style={{
-            padding:'22px 24px 24px', display:'flex', flexDirection:'column', gap:16,
-            overflowY:'auto', background:'rgba(250,251,252,0.72)',
-            borderRight:`1px solid ${PN.BORDER_SOFT}`,
-          }}>
-            <DishSectionTitle>Il piatto</DishSectionTitle>
-            <div style={{display:'flex', flexDirection:'column', gap:10}}>
-              <ImpField label="Nome del piatto">
-                <input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="es. Spaghetti alle vongole" style={{
-                  width:'100%', padding:'13px 14px', border:`1.5px solid ${PN.BORDER}`, borderRadius:10,
-                  fontSize:19, fontWeight:600, fontFamily:'inherit', outline:'none', background:PN.WHITE,
-                  letterSpacing:'-0.01em',
-                }}
-                onFocus={e => e.currentTarget.style.borderColor = PN.PINK}
-                onBlur={e => e.currentTarget.style.borderColor = PN.BORDER}
-                />
-              </ImpField>
-              {/* Sotto al nome, non in fondo alla colonna: e' una proprieta'
-                  del piatto che si decide mentre lo si nomina. Il tooltip si
-                  apre al click e si posiziona a fianco, non sotto. */}
-              <label onClick={() => setNoPrep(v => !v)} style={{
-                display:'inline-flex', alignItems:'center', gap:8, alignSelf:'flex-start',
-                cursor:'pointer', userSelect:'none', position:'relative',
-                padding:'8px 12px', borderRadius:9,
-                background: noPrep ? '#F1F5F9' : PN.WHITE,
-                border:`1px solid ${noPrep ? '#94A3B8' : PN.BORDER}`,
-                transition:'background 150ms ease-out, border-color 150ms ease-out',
-              }}>
-                <div style={{
-                  width:16, height:16, borderRadius:4, flexShrink:0,
-                  border:`1.5px solid ${noPrep ? '#475569' : '#94A3B8'}`,
-                  background: noPrep ? '#475569' : '#fff',
-                  display:'grid', placeItems:'center',
-                }}>
-                  {noPrep && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
-                </div>
-                <span style={{fontSize:14.5, color: noPrep ? '#1E293B' : PN.TEXT, fontWeight:500, whiteSpace:'nowrap'}}>
-                  Prodotto finito
-                </span>
-                <span
-                  onClick={e => {
-                    e.stopPropagation();
-                    // Coordinate assolute dell'icona: il tooltip e' position:fixed
-                    // perche' la colonna ha overflow-y auto e, ancorato dentro,
-                    // veniva tagliato dal bordo.
-                    const r = e.currentTarget.getBoundingClientRect();
-                    setTipOpen(o => o ? null : {x: r.right + 10, y: r.top + r.height / 2});
+          {/* ── FASCIA IDENTITÀ ─────────────────────────────────────── */}
+          <div style={{display:'flex', flexDirection:'column', gap:12}}>
+
+            {/* riga 1 — nome, categoria, prezzo */}
+            <div style={{display:'flex', gap:12, alignItems:'flex-end', flexWrap:'wrap'}}>
+              <div style={{flex:'1 1 320px', minWidth:0}}>
+                <ImpField label="Nome del piatto">
+                  <input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="es. Spaghetti alle vongole" style={{
+                    width:'100%', padding:'12px 14px', border:`1.5px solid ${PN.BORDER}`, borderRadius:10,
+                    fontSize:19, fontWeight:600, fontFamily:'inherit', outline:'none', background:PN.WHITE,
+                    letterSpacing:'-0.01em',
                   }}
-                  role="button" tabIndex={0} aria-expanded={!!tipOpen}
-                  aria-label="Cos'è un prodotto finito"
-                  style={{display:'inline-flex', flexShrink:0}}
-                >
-                  <span style={{
-                    width:16, height:16, borderRadius:'50%',
-                    background: tipOpen ? '#475569' : '#E2E8F0',
-                    color: tipOpen ? '#fff' : '#64748B',
-                    fontSize:12, fontWeight:700, display:'inline-grid', placeItems:'center', cursor:'pointer',
-                    transition:'background 150ms ease-out',
-                  }}>i</span>
-                </span>
-
-                {tipOpen && ReactDOM.createPortal(
-                  <span onClick={e => e.stopPropagation()} style={{
-                    position:'fixed', left: tipOpen.x, top: tipOpen.y, transform:'translateY(-50%)',
-                    width:230, background:'#1E293B', color:'#F8FAFC', fontSize:13.5, lineHeight:1.5,
-                    padding:'9px 11px', borderRadius:9, boxShadow:'0 8px 24px rgba(15,17,21,0.22)',
-                    zIndex:1200,
-                  }}>
-                    {/* freccetta verso il bottone */}
-                    <span style={{
-                      position:'absolute', left:-4, top:'50%', marginTop:-4,
-                      width:8, height:8, background:'#1E293B', transform:'rotate(45deg)',
-                    }}/>
-                    Es. acqua, vino, birra in lattina. IVA 22% sull'asporto anziché 10%.
-                  </span>,
-                  document.body
-                )}
-              </label>
-
-              <ImpField label="Descrizione breve">
-                <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={2} placeholder="Ingredienti principali, breve descrizione…" style={{
-                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, background:'rgba(255,255,255,0.8)',
-                }}/>
-              </ImpField>
-            </div>
-
-            {/* Galleria foto — 3 slot sempre visibili: la griglia non balla piu'
-                a ogni caricamento e si vede a colpo d'occhio quante ne mancano.
-                Click su una foto = anteprima ingrandita. */}
-            <div>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7}}>
-                <span style={{fontSize:15, fontWeight:600, color:PN.TEXT}}>Foto</span>
-                <span style={{fontSize:14, color:PN.MUTED}}>{photos.length}/3</span>
+                  onFocus={e => e.currentTarget.style.borderColor = PN.PINK}
+                  onBlur={e => e.currentTarget.style.borderColor = PN.BORDER}
+                  />
+                </ImpField>
               </div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10}}>
-                {[0, 1, 2].map(i => {
-                  const piena = i < photos.length;
-                  const prossimoLibero = i === photos.length;
-                  return piena ? (
-                    <div key={i} style={{position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'4/3', background: PHOTO_MOCK_BG[i % PHOTO_MOCK_BG.length]}}>
-                      <button
-                        onClick={() => setPreview(i)}
-                        aria-label={`Apri anteprima foto ${i + 1}`}
-                        style={{
-                          position:'absolute', inset:0, width:'100%', height:'100%',
-                          background:'transparent', border:'none', cursor:'zoom-in', padding:0,
-                          transition:'background 150ms ease-out',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(15,17,21,0.12)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      />
-                      <button onClick={() => setPhotos(ps => ps.filter((_,idx)=>idx!==i))}
-                        aria-label={`Rimuovi foto ${i + 1}`}
-                        style={{
-                          position:'absolute', top:6, right:6, width:22, height:22,
-                          borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none',
-                          color:'#fff', fontSize:13, cursor:'pointer', display:'grid', placeItems:'center',
-                        }}>✕</button>
-                    </div>
-                  ) : (
-                    <button key={i}
-                      onClick={() => prossimoLibero && setPhotos(ps => ps.length < 3 ? [...ps, true] : ps)}
-                      disabled={!prossimoLibero}
-                      aria-label="Aggiungi foto"
-                      style={{
-                        aspectRatio:'4/3', borderRadius:10,
-                        border:`1.5px dashed ${PN.BORDER}`,
-                        background:'#FAFBFC', cursor: prossimoLibero ? 'pointer' : 'default',
-                        opacity: prossimoLibero ? 1 : 0.55,
-                        display:'flex', flexDirection:'column',
-                        alignItems:'center', justifyContent:'center', gap:4, fontFamily:'inherit',
-                        transition:'border-color 150ms ease-out, background 150ms ease-out',
-                      }}
-                      onMouseEnter={e=>{ if (prossimoLibero) { e.currentTarget.style.borderColor=PN.MUTED; e.currentTarget.style.background='#F4F5F7'; } }}
-                      onMouseLeave={e=>{ e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.background='#FAFBFC'; }}
-                    >
-                      <span style={{fontSize:26, color:PN.MUTED, lineHeight:1}}>+</span>
-                      <span style={{fontSize:13.5, color:PN.MUTED, fontWeight:600}}>JPG / PNG</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Categoria + Prezzo + Prodotto finito */}
-            <div style={{display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end'}}>
               {!fromLibrary && (
                 <ImpField label="Categoria" style={{flex:'0 0 160px'}}>
                   <select value={cat} onChange={e=>setCat(e.target.value)} style={{
-                    width:'100%', padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE,
+                    width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE,
                   }}>
                     {ALL_CATS.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </ImpField>
               )}
               {!fromLibrary && catName && (
-                <ImpField label={`Prezzo in "${catName}" (€, IVA escl.)`} style={{flex:'0 0 140px'}}>
+                <ImpField label={`Prezzo (€, IVA escl.)`} style={{flex:'0 0 130px'}}>
                   <input value={initialPrice} onChange={e=>setInitialPrice(e.target.value)} placeholder="0,00" style={{
-                    width:'100%', padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none',
+                    width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none',
                   }}/>
                 </ImpField>
               )}
+              <ImpField label="Food cost" style={{flex:'0 0 110px'}}>
+                <input value={foodCost} onChange={e=>setFoodCost(e.target.value)} placeholder="es. 4,50" style={{
+                  width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none',
+                }}/>
+              </ImpField>
+            </div>
+
+            {/* riga 2 — descrizione a sinistra, le 3 foto a destra */}
+            <div style={{display:'flex', gap:14, alignItems:'flex-start', flexWrap:'wrap'}}>
+              <div style={{flex:'1 1 340px', minWidth:0}}>
+                <ImpField label="Descrizione breve">
+                  <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={3} placeholder="Ingredienti principali, breve descrizione…" style={{
+                    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, background:PN.WHITE,
+                  }}/>
+                </ImpField>
+              </div>
+              <div style={{flex:'0 0 300px'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6}}>
+                  <span style={{fontSize:15, fontWeight:600, color:PN.TEXT}}>Foto</span>
+                  <span style={{fontSize:14, color:PN.MUTED}}>{photos.length}/3</span>
+                </div>
+                <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8}}>
+                  {[0, 1, 2].map(i => {
+                    const piena = i < photos.length;
+                    const prossimoLibero = i === photos.length;
+                    return piena ? (
+                      <div key={i} style={{position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'4/3', background: PHOTO_MOCK_BG[i % PHOTO_MOCK_BG.length]}}>
+                        <button onClick={() => setPreview(i)} aria-label={`Apri anteprima foto ${i + 1}`} style={{
+                          position:'absolute', inset:0, width:'100%', height:'100%',
+                          background:'transparent', border:'none', cursor:'zoom-in', padding:0,
+                          transition:'background 150ms ease-out',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(15,17,21,0.12)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        />
+                        <button onClick={() => setPhotos(ps => ps.filter((_,idx)=>idx!==i))} aria-label={`Rimuovi foto ${i + 1}`} style={{
+                          position:'absolute', top:5, right:5, width:20, height:20,
+                          borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none',
+                          color:'#fff', fontSize:12, cursor:'pointer', display:'grid', placeItems:'center',
+                        }}>✕</button>
+                      </div>
+                    ) : (
+                      <button key={i}
+                        onClick={() => prossimoLibero && setPhotos(ps => ps.length < 3 ? [...ps, true] : ps)}
+                        disabled={!prossimoLibero} aria-label="Aggiungi foto"
+                        style={{
+                          aspectRatio:'4/3', borderRadius:10, border:`1.5px dashed ${PN.BORDER}`,
+                          background:'#FAFBFC', cursor: prossimoLibero ? 'pointer' : 'default',
+                          opacity: prossimoLibero ? 1 : 0.55,
+                          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, fontFamily:'inherit',
+                          transition:'border-color 150ms ease-out, background 150ms ease-out',
+                        }}
+                        onMouseEnter={e=>{ if (prossimoLibero) { e.currentTarget.style.borderColor=PN.MUTED; e.currentTarget.style.background='#F4F5F7'; } }}
+                        onMouseLeave={e=>{ e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.background='#FAFBFC'; }}
+                      >
+                        <span style={{fontSize:22, color:PN.MUTED, lineHeight:1}}>+</span>
+                        <span style={{fontSize:12.5, color:PN.MUTED, fontWeight:600}}>JPG / PNG</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* riga 3 — i due flag obbligatori, sempre in chiaro e mai dentro un
+                collassabile: "surgelati" è una dicitura di legge (D.Lgs. 109/92)
+                e nasconderla dietro un accordion la fa dimenticare. */}
+            <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+              <DishFlag
+                checked={noPrep} onChange={() => setNoPrep(v => !v)}
+                label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
+                info={{
+                  open: tipOpen, setOpen: setTipOpen,
+                  text: "Es. acqua, vino, birra in lattina. IVA 22% sull'asporto anziché 10%.",
+                }}
+              />
+              <DishFlag
+                checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
+                label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"
+              />
             </div>
 
             {fromLibrary && (
-              <div style={{padding:'9px 12px', borderRadius:8, background:'#F8FAFC', border:`1px solid ${PN.BORDER_SOFT}`, fontSize:15.5, color:PN.MUTED, lineHeight:1.5}}>
+              <div style={{padding:'9px 12px', borderRadius:9, background:'#F8FAFC', border:`1px solid ${PN.BORDER_SOFT}`, fontSize:15.5, color:PN.MUTED, lineHeight:1.5}}>
                 💡 Prezzo e disponibilità si impostano nel singolo menù dove il piatto è inserito.
               </div>
             )}
-
-
-            {/* Food cost accanto al prezzo: insieme raccontano il margine, ed
-                era l'unica voce di "gestione interna" che non c'entrava con la
-                configurazione a destra. */}
-            <ImpField label="Food cost (opzionale)" style={{maxWidth:180}}>
-              <input value={foodCost} onChange={e=>setFoodCost(e.target.value)} placeholder="es. 4,50" style={{
-                width:'100%', padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none',
-              }}/>
-              <div style={{fontSize:14, color:PN.MUTED, marginTop:3}}>Per le analytics di marginalità</div>
-            </ImpField>
           </div>
 
-          {/* ── COLONNA DX — configurazione ──────────── */}
-          <div style={{padding:'22px 24px 24px', overflowY:'auto', display:'flex', flexDirection:'column', gap:20}}>
-
-          {/* ── PER IL CLIENTE ───────────────────────── */}
-          <div style={{display:'flex', flexDirection:'column', gap:12}}>
-            <DishSectionTitle>Per il cliente</DishSectionTitle>
-
-            {/* Allergeni */}
-            <DishBlock>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
-                <span style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>Allergeni</span>
-                {ingredientAllergens.size > 0 && (
-                  <span style={{fontSize:14, color:PN.MUTED, fontStyle:'italic'}}>
-                    <span style={{color:PN.PINK_DARK, fontWeight:700, fontStyle:'normal'}}>•</span> = derivati dagli ingredienti
-                  </span>
-                )}
-              </div>
-              <div style={{display:'flex', gap:5, flexWrap:'wrap'}}>
+          {/* ── SEZIONI CONTRATTE ───────────────────────────────────── */}
+          <div>
+            <CollapseSection
+              title="Allergeni"
+              subtitle={allergenCount === 0 ? 'Nessuno indicato' : `${allergenCount} indicati`}
+              icon="!"
+              open={openSection === 'allergeni'}
+              onToggle={() => setOpenSection(s => s === 'allergeni' ? null : 'allergeni')}
+            >
+              {ingredientAllergens.size > 0 && (
+                <div style={{fontSize:14, color:PN.MUTED, fontStyle:'italic', marginBottom:8}}>
+                  <span style={{color:PN.PINK_DARK, fontWeight:700, fontStyle:'normal'}}>•</span> = derivati dagli ingredienti
+                </div>
+              )}
+              <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
                 {ALLERGENS.map(a => {
                   const fromIng = ingredientAllergens.has(a.id);
                   const fromManual = allergens.includes(a.id);
                   const on = fromIng || fromManual;
                   return (
                     <button key={a.id} onClick={() => toggleAllergen(a.id)} disabled={fromIng && !fromManual} title={fromIng && !fromManual ? 'Derivato dagli ingredienti' : ''} style={{
-                      display:'inline-flex', alignItems:'center', gap:4,
-                      padding:'5px 10px', borderRadius:999,
+                      display:'inline-flex', alignItems:'center', gap:5,
+                      padding:'6px 11px', borderRadius:999,
                       border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER}`,
                       background: on ? PN.PINK_SOFT : '#FAFBFC',
                       color: on ? PN.PINK_DARK : PN.MUTED,
                       fontSize:15, fontWeight:600, cursor:(fromIng && !fromManual) ? 'not-allowed' : 'pointer', fontFamily:'inherit',
+                      transition:'background 150ms ease-out, border-color 150ms ease-out',
                     }}>
                       <AllergenIcon id={a.id} size={14}/>
                       {a.name}
@@ -1767,72 +1815,8 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                   );
                 })}
               </div>
-            </DishBlock>
+            </CollapseSection>
 
-            {/* Contiene surgelati — dicitura obbligatoria D.Lgs. 109/92 */}
-            <DishBlock>
-              <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Surgelati</div>
-              <label onClick={() => setHasFrozen(v => !v)} style={{
-                display:'inline-flex', alignItems:'center', gap:8,
-                cursor:'pointer', userSelect:'none',
-                padding:'7px 12px', borderRadius:8,
-                background: hasFrozen ? '#EFF6FF' : '#FAFBFC',
-                border:`1px solid ${hasFrozen ? '#60A5FA' : PN.BORDER}`,
-              }}>
-                <div style={{
-                  width:16, height:16, borderRadius:4, flexShrink:0,
-                  border:`1.5px solid ${hasFrozen ? '#2563EB' : '#94A3B8'}`,
-                  background: hasFrozen ? '#2563EB' : '#fff',
-                  display:'grid', placeItems:'center',
-                }}>
-                  {hasFrozen && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
-                </div>
-                <span style={{fontSize:15, color: hasFrozen ? '#1E3A8A' : PN.TEXT, fontWeight:600}}>
-                  Contiene alimenti surgelati
-                </span>
-              </label>
-            </DishBlock>
-
-            {/* Versioni disponibili */}
-            <DishBlock>
-              <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Disponibile anche in versione</div>
-              <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom: dietaryTags.length > 0 ? 10 : 0}}>
-                {['Vegana','Senza glutine','Vegetariana','Senza lattosio','Crudo','Bio','Halal','Kosher','Parve'].map(t => {
-                  const on = dietaryTags.some(x => x.name === t);
-                  return (
-                    <button key={t} onClick={() => toggleTag(t)} style={{
-                      padding:'5px 10px', borderRadius:999, fontSize:15, fontWeight:600,
-                      border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER}`,
-                      background: on ? PN.PINK_SOFT : '#FAFBFC',
-                      color: on ? PN.PINK_DARK : PN.MUTED,
-                      cursor:'pointer', fontFamily:'inherit',
-                    }}>{t}</button>
-                  );
-                })}
-              </div>
-              {dietaryTags.length > 0 && (
-                <div style={{background:'#F8FAFC', borderRadius:10, padding:'10px 12px', border:`1px solid ${PN.BORDER_SOFT}`}}>
-                  <div style={{fontSize:12.5, fontWeight:700, color:PN.MUTED, letterSpacing:0.3, textTransform:'uppercase', marginBottom:8}}>Sovrapprezzo per versione (opzionale)</div>
-                  <div style={{display:'flex', flexDirection:'column', gap:5}}>
-                    {dietaryTags.map(t => (
-                      <div key={t.name} style={{display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'center', padding:'5px 10px', background:'#fff', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:7}}>
-                        <span style={{fontSize:14.5, color:PN.TEXT, fontWeight:600}}>{t.name}</span>
-                        <div style={{display:'flex', alignItems:'center', gap:5}}>
-                          <span style={{fontSize:14, color:PN.MUTED, fontWeight:600}}>+€</span>
-                          <input value={t.surcharge} onChange={e => setTagSurcharge(t.name, e.target.value.replace(/[^0-9,.]/g,''))} placeholder="0,00"
-                            style={{width:60, padding:'4px 8px', border:`1px solid ${PN.BORDER}`, borderRadius:6, fontSize:15.5, fontFamily:'inherit', textAlign:'right', outline:'none'}}/>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </DishBlock>
-          </div>
-
-          {/* ── PERSONALIZZAZIONI ────────────────────── */}
-          <div style={{display:'flex', flexDirection:'column', gap:10}}>
-            <DishSectionTitle>Personalizzazioni cliente</DishSectionTitle>
             <CollapseSection
               title="Ingredienti"
               subtitle={`${ingredients.length} ingredienti · ${ingredients.filter(i=>i.removable).length} rimuovibili`}
@@ -1845,98 +1829,136 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </div>
               <IngredientList ingredients={ingredients} setIngredients={setIngredients}/>
             </CollapseSection>
-            <CollapseSection
-              title="Aggiunte a pagamento"
-              subtitle={extras.length === 0 ? 'Nessuna' : `${extras.length} extra`}
-              icon="+"
-              open={openSection === 'extras'}
-              onToggle={() => setOpenSection(s => s === 'extras' ? null : 'extras')}
-            >
-              <div style={{fontSize:15, color:PN.MUTED, marginBottom:10, lineHeight:1.45}}>
-                Extra che il cliente può aggiungere al piatto (es. tartufo, doppia mozzarella).
-                Con <strong style={{color:PN.TEXT}}>max</strong> limiti quante volte può ripetere la
-                stessa aggiunta; lasciandolo vuoto non c'è limite.
-              </div>
-              <ExtrasList extras={extras} setExtras={setExtras}/>
-            </CollapseSection>
-            <CollapseSection
-              title="Varianti"
-              subtitle={variants.length === 0 ? 'Nessuna' : `${variants.length} ${variants.length === 1 ? 'gruppo' : 'gruppi'}`}
-              icon="◐"
-              open={openSection === 'variants'}
-              onToggle={() => setOpenSection(s => s === 'variants' ? null : 'variants')}
-            >
-              <div style={{fontSize:15, color:PN.MUTED, marginBottom:10, lineHeight:1.45}}>
-                Scelte tra cui il cliente seleziona un'opzione (es. <em>Cottura: al sangue / ben cotta</em>).
-              </div>
-              <VariantsList variants={variants} setVariants={setVariants}/>
-            </CollapseSection>
-          </div>
 
-          {/* ── CUCINA & GESTIONE ────────────────────── */}
-          <div style={{display:'flex', flexDirection:'column', gap:12}}>
-            <DishSectionTitle>Cucina e gestione interna</DishSectionTitle>
+            <CollapseSection
+              title="Valori nutrizionali"
+              subtitle="Mostrati sul menù del cliente"
+              icon="◇"
+              open={openSection === 'nutrition'}
+              onToggle={() => setOpenSection(s => s === 'nutrition' ? null : 'nutrition')}
+            >
+              <NutritionFields/>
+            </CollapseSection>
 
-            {/* Ricetta — disabilitata quando "Prodotto finito" è attivo */}
-            <DishBlock style={{
-              opacity: noPrep ? 0.45 : 1,
-              pointerEvents: noPrep ? 'none' : 'auto',
-              transition: 'opacity 0.15s',
-            }}>
-              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
-                <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>Ricetta — procedimento</div>
-                {noPrep && (
-                  <span style={{fontSize:13.5, color:PN.MUTED, fontStyle:'italic', fontWeight:500}}>
-                    Non applicabile per prodotti finiti
-                  </span>
-                )}
-              </div>
-              <div style={{display:'flex', flexDirection:'column', gap:5}}>
-                {recipeSteps.map((step, i) => (
-                  <div key={i} style={{display:'flex', alignItems:'flex-start', gap:8}}>
-                    <span style={{
-                      flexShrink:0, width:22, height:22, borderRadius:'50%',
-                      background:'#F1F5F9', color:'#64748B', fontSize:14.5, fontWeight:700,
-                      display:'grid', placeItems:'center', marginTop:8,
-                    }}>{i+1}</span>
-                    <textarea value={step} disabled={noPrep}
-                      onChange={e => setRecipeSteps(s => s.map((x, idx) => idx===i ? e.target.value : x))}
-                      onKeyDown={e => {
-                        if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); setRecipeSteps(s => [...s.slice(0,i+1),'', ...s.slice(i+1)]); setTimeout(() => { const el = document.querySelectorAll('.recipe-step'); if(el[i+1]) el[i+1].focus(); },0); }
-                        if (e.key==='Backspace' && !step && recipeSteps.length>1) { e.preventDefault(); setRecipeSteps(s => s.filter((_,idx)=>idx!==i)); setTimeout(() => { const el = document.querySelectorAll('.recipe-step'); if(el[i-1]) el[i-1].focus(); },0); }
-                      }}
-                      placeholder={`Passo ${i+1}…`} rows={1} className="recipe-step"
-                      style={{flex:1, padding:'7px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, overflow:'hidden', background: step ? PN.WHITE : '#FAFBFC'}}
-                      onInput={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
-                    />
-                    {recipeSteps.length > 1 && (
-                      <button onClick={() => setRecipeSteps(s => s.filter((_,idx)=>idx!==i))} disabled={noPrep}
-                        style={{flexShrink:0, width:22, height:22, marginTop:8, background:'transparent', border:'none', cursor: noPrep ? 'default' : 'pointer', color:PN.MUTED, fontSize:16, display:'grid', placeItems:'center', borderRadius:4}}
-                        onMouseEnter={e=> { if (!noPrep) e.currentTarget.style.color=PN.RED; }}
-                        onMouseLeave={e=> { if (!noPrep) e.currentTarget.style.color=PN.MUTED; }}
-                      >✕</button>
+            {/* Avanzate — tutto ciò che la maggior parte dei piatti non usa */}
+            <CollapseSection
+              title="Avanzate"
+              subtitle="Versioni, aggiunte, varianti e ricetta"
+              icon="⚙"
+              open={openSection === 'avanzate'}
+              onToggle={() => setOpenSection(s => s === 'avanzate' ? null : 'avanzate')}
+            >
+              <div style={{display:'flex', flexDirection:'column', gap:16}}>
+
+                {/* Versioni */}
+                <div>
+                  <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Disponibile anche in versione</div>
+                  <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom: dietaryTags.length > 0 ? 10 : 0}}>
+                    {['Vegana','Senza glutine','Vegetariana','Senza lattosio','Crudo','Bio','Halal','Kosher','Parve'].map(t => {
+                      const on = dietaryTags.some(x => x.name === t);
+                      return (
+                        <button key={t} onClick={() => toggleTag(t)} style={{
+                          padding:'6px 11px', borderRadius:999, fontSize:15, fontWeight:600,
+                          border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER}`,
+                          background: on ? PN.PINK_SOFT : '#FAFBFC',
+                          color: on ? PN.PINK_DARK : PN.MUTED,
+                          cursor:'pointer', fontFamily:'inherit',
+                          transition:'background 150ms ease-out, border-color 150ms ease-out',
+                        }}>{t}</button>
+                      );
+                    })}
+                  </div>
+                  {dietaryTags.length > 0 && (
+                    <div style={{background:'#F8FAFC', borderRadius:10, padding:'10px 12px', border:`1px solid ${PN.BORDER_SOFT}`}}>
+                      <div style={{fontSize:13, fontWeight:700, color:PN.MUTED, letterSpacing:0.3, textTransform:'uppercase', marginBottom:8}}>Sovrapprezzo per versione (opzionale)</div>
+                      <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                        {dietaryTags.map(t => (
+                          <div key={t.name} style={{display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'center', padding:'6px 10px', background:'#fff', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:8}}>
+                            <span style={{fontSize:14.5, color:PN.TEXT, fontWeight:600}}>{t.name}</span>
+                            <div style={{display:'flex', alignItems:'center', gap:5}}>
+                              <span style={{fontSize:14, color:PN.MUTED, fontWeight:600}}>+€</span>
+                              <input value={t.surcharge} onChange={e => setTagSurcharge(t.name, e.target.value.replace(/[^0-9,.]/g,''))} placeholder="0,00"
+                                style={{width:64, padding:'5px 8px', border:`1px solid ${PN.BORDER}`, borderRadius:7, fontSize:15.5, fontFamily:'inherit', textAlign:'right', outline:'none'}}/>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Aggiunte a pagamento */}
+                <div>
+                  <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:4}}>Aggiunte a pagamento</div>
+                  <div style={{fontSize:15, color:PN.MUTED, marginBottom:10, lineHeight:1.45}}>
+                    Extra che il cliente può aggiungere (es. tartufo, doppia mozzarella).
+                    Con <strong style={{color:PN.TEXT}}>max</strong> limiti quante volte può ripeterla.
+                  </div>
+                  <ExtrasList extras={extras} setExtras={setExtras}/>
+                </div>
+
+                {/* Varianti */}
+                <div>
+                  <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:4}}>Varianti</div>
+                  <div style={{fontSize:15, color:PN.MUTED, marginBottom:10, lineHeight:1.45}}>
+                    Scelte tra cui il cliente seleziona un'opzione (es. <em>Cottura: al sangue / ben cotta</em>).
+                  </div>
+                  <VariantsList variants={variants} setVariants={setVariants}/>
+                </div>
+
+                {/* Ricetta */}
+                <div style={{
+                  opacity: noPrep ? 0.45 : 1,
+                  pointerEvents: noPrep ? 'none' : 'auto',
+                  transition: 'opacity 0.15s',
+                }}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
+                    <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>Ricetta — procedimento</div>
+                    {noPrep && (
+                      <span style={{fontSize:13.5, color:PN.MUTED, fontStyle:'italic', fontWeight:500}}>
+                        Non applicabile per prodotti finiti
+                      </span>
                     )}
                   </div>
-                ))}
+                  <div style={{display:'flex', flexDirection:'column', gap:5}}>
+                    {recipeSteps.map((step, i) => (
+                      <div key={i} style={{display:'flex', alignItems:'flex-start', gap:8}}>
+                        <span style={{
+                          flexShrink:0, width:22, height:22, borderRadius:'50%',
+                          background:'#F1F5F9', color:'#64748B', fontSize:14.5, fontWeight:700,
+                          display:'grid', placeItems:'center', marginTop:8,
+                        }}>{i+1}</span>
+                        <textarea value={step} disabled={noPrep}
+                          onChange={e => setRecipeSteps(s => s.map((x, idx) => idx===i ? e.target.value : x))}
+                          onKeyDown={e => {
+                            if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); setRecipeSteps(s => [...s.slice(0,i+1),'', ...s.slice(i+1)]); setTimeout(() => { const el = document.querySelectorAll('.recipe-step'); if(el[i+1]) el[i+1].focus(); },0); }
+                            if (e.key==='Backspace' && !step && recipeSteps.length>1) { e.preventDefault(); setRecipeSteps(s => s.filter((_,idx)=>idx!==i)); setTimeout(() => { const el = document.querySelectorAll('.recipe-step'); if(el[i-1]) el[i-1].focus(); },0); }
+                          }}
+                          placeholder={`Passo ${i+1}…`} rows={1} className="recipe-step"
+                          style={{flex:1, padding:'7px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, overflow:'hidden', background: step ? PN.WHITE : '#FAFBFC'}}
+                          onInput={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+                        />
+                        {recipeSteps.length > 1 && (
+                          <button onClick={() => setRecipeSteps(s => s.filter((_,idx)=>idx!==i))} disabled={noPrep}
+                            style={{flexShrink:0, width:22, height:22, marginTop:8, background:'transparent', border:'none', cursor: noPrep ? 'default' : 'pointer', color:PN.MUTED, fontSize:16, display:'grid', placeItems:'center', borderRadius:4}}
+                            onMouseEnter={e=> { if (!noPrep) e.currentTarget.style.color=PN.RED; }}
+                            onMouseLeave={e=> { if (!noPrep) e.currentTarget.style.color=PN.MUTED; }}
+                          >✕</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setRecipeSteps(s => [...s,''])} disabled={noPrep} style={{
+                    marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
+                    padding:'5px 10px', borderRadius:7, border:`1px dashed ${PN.BORDER}`,
+                    background:'transparent', color:PN.MUTED, fontSize:15, fontWeight:600, cursor: noPrep ? 'default' : 'pointer', fontFamily:'inherit',
+                  }}
+                  onMouseEnter={e=>{ if (!noPrep) { e.currentTarget.style.borderColor=PN.TEXT; e.currentTarget.style.color=PN.TEXT; } }}
+                  onMouseLeave={e=>{ if (!noPrep) { e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.color=PN.MUTED; } }}
+                  >+ Aggiungi passo</button>
+                </div>
               </div>
-              <button onClick={() => setRecipeSteps(s => [...s,''])} disabled={noPrep} style={{
-                marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
-                padding:'5px 10px', borderRadius:6, border:`1px dashed ${PN.BORDER}`,
-                background:'transparent', color:PN.MUTED, fontSize:15, fontWeight:600, cursor: noPrep ? 'default' : 'pointer', fontFamily:'inherit',
-              }}
-              onMouseEnter={e=>{ if (!noPrep) { e.currentTarget.style.borderColor=PN.TEXT; e.currentTarget.style.color=PN.TEXT; } }}
-              onMouseLeave={e=>{ if (!noPrep) { e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.color=PN.MUTED; } }}
-              >+ Aggiungi passo</button>
-            </DishBlock>
-
-            {/* Valori nutrizionali */}
-            <DishBlock>
-              <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Valori nutrizionali</div>
-              <NutritionFields/>
-              <div style={{fontSize:14.5, color:PN.MUTED, marginTop:7}}>I valori nutrizionali verranno mostrati sul menù.</div>
-            </DishBlock>
-
-          </div>
+            </CollapseSection>
           </div>
         </div>
 
