@@ -16,21 +16,24 @@ function Step1Upload({onAnalyze}) {
 
   return (
     <div style={{
-      padding: '40px 48px 44px',
-      background: ONB.BG_SOFT,
       minHeight: '100%',
-      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      background: ONB.BG_SOFT,
+      padding: '0 80px',
+      display: 'flex', alignItems: 'center',
     }}>
-      {/* Colonna più larga (1000 invece di 720): dentro il frame 1440 la vecchia
-          colonna stretta lasciava ~360px di vuoto per lato e faceva leggere tutta
-          la schermata come "rimpicciolita". Hero centrato + due opzioni affiancate
-          riempiono il canvas e accorciano la pagina di ~200px in verticale. */}
-      <div style={{maxWidth: 1000, width: '100%', margin: '0 auto'}}>
+      {/* Griglia a due colonne: a sinistra la promessa, a destra il pannello
+          d'azione. Sostituisce la colonna centrata stretta, che dentro un frame
+          da 1440 lasciava vuoti larghi ai lati e un blocco di spazio morto sotto
+          la CTA. Le colonne sono centrate fra loro sull'asse verticale e il
+          pannello detta l'altezza del blocco. */}
+      <div style={{
+        width: '100%', maxWidth: 1240, margin: '0 auto',
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 560px',
+        gap: 72, alignItems: 'center',
+      }}>
 
-        {/* Hero centrato — è la schermata di benvenuto: l'asse centrale allinea
-            eyebrow, titolo, dropzone e CTA su un'unica colonna ottica. */}
-        <div style={{textAlign: 'center', marginBottom: 32}}>
-
+        {/* ─── Colonna sinistra — la promessa ─────────────────────────── */}
+        <div>
           {/* Eyebrow chip BRAND_TINT — è il punto di "vivacità identitaria":
               mantiene il pattern small-caps Linear-style ma comunica brand subito.
               Coerente con i numbered badge nelle sezioni dei sub-step. */}
@@ -40,7 +43,7 @@ function Step1Upload({onAnalyze}) {
             background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
             fontSize: 14, fontWeight: 600,
             letterSpacing: '0.04em', textTransform: 'uppercase',
-            marginBottom: 14,
+            marginBottom: 20,
           }}>
             <span style={{
               width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
@@ -49,168 +52,184 @@ function Step1Upload({onAnalyze}) {
           </div>
 
           <h1 style={{
-            fontSize: 38, fontWeight: 600, lineHeight: 1.18,
-            letterSpacing: '-0.02em', margin: '0 auto 12px', color: ONB.TEXT,
-            /* 640 forza l'a-capo sul punto fermo — due righe bilanciate invece
-               di una riga lunga + "pensiamo noi." orfano. */
-            maxWidth: 640, textWrap: 'balance',
+            /* 46 è la misura massima a cui "Carica il menù del tuo locale."
+               resta su una riga nella colonna: sopra, il <br/> non basta e
+               "locale." resta orfano su una terza riga. */
+            fontSize: 46, fontWeight: 600, lineHeight: 1.14,
+            letterSpacing: '-0.025em', margin: '0 0 18px', color: ONB.TEXT,
           }}>
-            Carica il menù del tuo locale. Al resto ci pensiamo noi.
+            Carica il menù del tuo locale.<br/>Al resto ci pensiamo noi.
           </h1>
+
           <p style={{
-            fontSize: 17, fontWeight: 400, lineHeight: 1.5,
-            color: ONB.MUTED, margin: '0 auto', maxWidth: 640,
+            fontSize: 19, fontWeight: 400, lineHeight: 1.5,
+            color: ONB.MUTED, margin: '0 0 32px', maxWidth: 480,
           }}>
-            Bastano un PDF, delle foto o il link al sito.
-            Importeremo automaticamente piatti, prezzi, allergeni e sezioni:
-            potrai sempre modificare tutto prima di pubblicare.
+            Bastano un PDF, delle foto o il link al tuo sito.
           </p>
-        </div>
 
-        {/* Due strade affiancate: file a sinistra (primaria, più larga), link a
-            destra. Prima erano impilate con un divider orizzontale in mezzo —
-            costava altezza e faceva scorrere la pagina. */}
-        <div style={{display: 'flex', alignItems: 'stretch', gap: 0}}>
-        <div style={{flex: '1 1 0', minWidth: 0, display: 'flex'}}>
-
-        {/* Dropzone — singolo file slot. Stato "vuoto" usa un'animazione continua
-            in loop (glass-shimmer = sweep di luce orizzontale ogni 5.2s) per
-            comunicare che la zona è "viva e in attesa". L'icona dentro respira
-            (scale +1.2% ogni 4.8s) ed è circondata da un pulse-glow espansivo
-            che invita visivamente al click senza essere intrusivo.
-            Lift on hover preservato per feedback diretto. */}
-        <div
-          className={!file ? 'glass-shimmer' : ''}
-          onDragOver={(e) => {e.preventDefault(); setDragOver(true);}}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {e.preventDefault(); setDragOver(false); pickMockFile();}}
-          onClick={!file ? pickMockFile : undefined}
-          onMouseEnter={(e) => {
-            if (file) return;
-            e.currentTarget.style.transform = 'translateY(-3px)';
-            e.currentTarget.style.boxShadow = '0 16px 32px -8px rgba(15, 17, 21, 0.10), 0 4px 12px -4px rgba(190, 24, 93, 0.08)';
-            e.currentTarget.style.borderColor = ONB.BRAND;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 1px 0 rgba(15, 17, 21, 0.04)';
-            e.currentTarget.style.borderColor = dragOver ? ONB.BRAND : 'rgba(15, 17, 21, 0.16)';
-          }}
-          style={{
-            width: '100%',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            background: '#fff',
-            border: `1.5px dashed ${dragOver ? ONB.BRAND : 'rgba(15, 17, 21, 0.16)'}`,
-            borderRadius: 12,
-            padding: file ? 20 : 44,
-            cursor: file ? 'default' : 'pointer',
-            boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04)',
-            transition: 'border-color 200ms ease-out, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease-out',
-          }}
-        >
-          {!file ? (
-            <div style={{textAlign: 'center', position: 'relative', zIndex: 3}}>
-              {/* Icon container BRAND_TINT 64×64 — più presente del 48 grigio di prima.
-                  Il colore BRAND comunica "questo è il punto di azione" senza essere CTA.
-                  glass-breathe + glass-float-soft (sfasate) creano un movimento
-                  vivo ma calmo; il pulse-glow nello pseudo-elemento è il "richiamo". */}
-              <div
-                className="glass-breathe glass-float-soft"
-                style={{
-                  width: 64, height: 64, borderRadius: 12,
-                  background: ONB.BRAND_TINT, color: ONB.BRAND,
+          {/* I dettagli dell'import stanno in lista, non nel sottotitolo: sono
+              tre promesse distinte e in elenco si leggono come garanzie, oltre a
+              dare alla colonna l'altezza necessaria a reggere il pannello. */}
+          <ul style={{listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 18}}>
+            {[
+              'Piatti, prezzi e sezioni estratti dal documento',
+              'Allergeni e ingredienti riconosciuti in automatico',
+              'Rivedi e modifichi tutto prima di pubblicare',
+            ].map((t) => (
+              <li key={t} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 12,
+                fontSize: 17, lineHeight: 1.45, color: ONB.TEXT,
+              }}>
+                <span style={{
+                  width: 24, height: 24, borderRadius: 999, flexShrink: 0, marginTop: 1,
+                  background: ONB.GREEN_SOFT,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 18px',
-                  position: 'relative',
-                  zIndex: 1,
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 20px -6px rgba(242, 107, 122, 0.35)',
                 }}>
-                {/* Ring espansivo dietro l'icona, animato con glass-pulse-glow.
-                    Posizionato come absolute con z-index 0 così non altera il layout. */}
-                <span aria-hidden="true" className="glass-pulse-glow" style={{
-                  position:'absolute', inset: -6, borderRadius: 16,
-                  pointerEvents: 'none', zIndex: -1,
-                }}/>
-                <OnbIcon.Upload size={26} color={ONB.BRAND}/>
-              </div>
-              <div style={{
-                fontSize: 19, fontWeight: 600, color: ONB.TEXT,
-                marginBottom: 4, lineHeight: 1.4, letterSpacing: '-0.01em',
-              }}>
-                Trascina o carica qui PDF / foto del menù
-              </div>
-              <div style={{fontSize: 16, color: ONB.MUTED, lineHeight: 1.4}}>
-                Oppure clicca e carica il file
-              </div>
+                  <OnbIcon.Check size={13} color={ONB.GREEN}/>
+                </span>
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-              {/* Format tags — sotto, sobri, no pill colorati */}
-              <div style={{
-                display: 'flex', gap: 16, justifyContent: 'center',
-                marginTop: 20, paddingTop: 20,
-                borderTop: '1px solid rgba(15, 17, 21, 0.06)',
-              }}>
-                {[
-                  {Icon: OnbIcon.PDF,    label: 'PDF'},
-                  {Icon: OnbIcon.Image,  label: 'Foto / Screenshot'},
-                  {Icon: OnbIcon.Camera, label: 'Scatta foto'},
-                ].map(({Icon, label}) => (
-                  <div key={label} style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    fontSize: 14, fontWeight: 500, color: ONB.MUTED,
+        {/* ─── Colonna destra — pannello d'azione ─────────────────────── */}
+        {/* Un'unica superficie bianca raccoglie le tre cose che l'utente può
+            fare qui (file, link, continua): prima erano tre blocchi slegati su
+            canvas, ed è ciò che faceva leggere la schermata come disallineata. */}
+        <div style={{
+          background: '#fff',
+          border: '1px solid rgba(15, 17, 21, 0.08)',
+          borderRadius: 18,
+          padding: 32,
+          boxShadow: '0 1px 2px rgba(15, 17, 21, 0.04), 0 16px 40px -20px rgba(15, 17, 21, 0.14)',
+        }}>
+
+          {/* Dropzone — singolo file slot. Stato "vuoto" usa un'animazione continua
+              in loop (glass-shimmer = sweep di luce orizzontale ogni 5.2s) per
+              comunicare che la zona è "viva e in attesa". L'icona dentro respira
+              (scale +1.2% ogni 4.8s) ed è circondata da un pulse-glow espansivo
+              che invita visivamente al click senza essere intrusivo.
+              Lift on hover preservato per feedback diretto. */}
+          <div
+            className={!file ? 'glass-shimmer' : ''}
+            onDragOver={(e) => {e.preventDefault(); setDragOver(true);}}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {e.preventDefault(); setDragOver(false); pickMockFile();}}
+            onClick={!file ? pickMockFile : undefined}
+            onMouseEnter={(e) => {
+              if (file) return;
+              e.currentTarget.style.borderColor = ONB.BRAND;
+              e.currentTarget.style.background = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = dragOver ? ONB.BRAND : 'rgba(15, 17, 21, 0.16)';
+              e.currentTarget.style.background = file ? '#fff' : ONB.BG_SOFT;
+            }}
+            style={{
+              /* Dentro il pannello bianco la dropzone si distingue per fondo, non
+                 per ombra: niente lift on hover, che dentro una card sembrerebbe
+                 staccare un pezzo di pannello. */
+              background: file ? '#fff' : ONB.BG_SOFT,
+              border: `1.5px dashed ${dragOver ? ONB.BRAND : 'rgba(15, 17, 21, 0.16)'}`,
+              borderRadius: 12,
+              padding: file ? 18 : '48px 24px',
+              /* Altezza costante fra stato vuoto e file caricato: senza, il
+                 pannello si accorciava di ~200px al drop e l'intero blocco
+                 saltava (è centrato verticalmente). */
+              minHeight: 268,
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              cursor: file ? 'default' : 'pointer',
+              transition: 'border-color 200ms ease-out, background 200ms ease-out',
+            }}
+          >
+            {!file ? (
+              <div style={{textAlign: 'center', position: 'relative', zIndex: 3}}>
+                {/* Icon container BRAND_TINT — il colore BRAND comunica "questo è il
+                    punto di azione" senza essere CTA. glass-breathe + glass-float-soft
+                    (sfasate) creano un movimento vivo ma calmo; il pulse-glow nello
+                    pseudo-elemento è il "richiamo". */}
+                <div
+                  className="glass-breathe glass-float-soft"
+                  style={{
+                    width: 68, height: 68, borderRadius: 16,
+                    background: ONB.BRAND_TINT, color: ONB.BRAND,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 18px',
+                    position: 'relative',
+                    zIndex: 1,
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 20px -6px rgba(242, 107, 122, 0.35)',
                   }}>
-                    <Icon size={14} color={ONB.MUTED}/>
-                    {label}
-                  </div>
-                ))}
+                  {/* Ring espansivo dietro l'icona, animato con glass-pulse-glow.
+                      Posizionato come absolute con z-index 0 così non altera il layout. */}
+                  <span aria-hidden="true" className="glass-pulse-glow" style={{
+                    position:'absolute', inset: -6, borderRadius: 18,
+                    pointerEvents: 'none', zIndex: -1,
+                  }}/>
+                  <OnbIcon.Upload size={28} color={ONB.BRAND}/>
+                </div>
+                <div style={{
+                  fontSize: 18, fontWeight: 600, color: ONB.TEXT,
+                  marginBottom: 5, lineHeight: 1.4, letterSpacing: '-0.01em',
+                }}>
+                  Trascina qui il menù, o clicca per caricarlo
+                </div>
+                <div style={{fontSize: 16, color: ONB.MUTED, lineHeight: 1.4}}>
+                  Un PDF o le foto delle pagine
+                </div>
+
+                {/* Format tags — sotto, sobri, no pill colorati */}
+                <div style={{
+                  display: 'flex', gap: 18, justifyContent: 'center',
+                  marginTop: 22, paddingTop: 22,
+                  borderTop: '1px solid rgba(15, 17, 21, 0.06)',
+                }}>
+                  {[
+                    {Icon: OnbIcon.PDF,    label: 'PDF'},
+                    {Icon: OnbIcon.Image,  label: 'Foto'},
+                    {Icon: OnbIcon.Camera, label: 'Scatta foto'},
+                  ].map(({Icon, label}) => (
+                    <div key={label} style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 15, fontWeight: 500, color: ONB.MUTED,
+                    }}>
+                      <Icon size={15} color={ONB.MUTED}/>
+                      {label}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <FilePreview file={file} onRemove={() => setFile(null)}/>
-          )}
-        </div>
-        </div>
-
-        {/* Divider verticale — stessa gerarchia dell'orizzontale precedente,
-            ma separa due colonne invece di due blocchi impilati. */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          gap: 10, margin: '0 20px', alignSelf: 'stretch',
-        }}>
-          <div style={{flex: 1, width: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
-          <span style={{fontSize: 14, color: ONB.MUTED, fontWeight: 500}}>oppure</span>
-          <div style={{flex: 1, width: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
-        </div>
-
-        {/* Link import — colonna stretta a destra: campo e bottone impilati
-            perché a 340px la riga input+bottone starebbe stretta. */}
-        <div style={{
-          flex: '0 0 340px',
-          background: '#fff', border: '1px solid rgba(15, 17, 21, 0.08)',
-          borderRadius: 12, padding: 24,
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-        }}>
-          <div style={{
-            fontSize: 17, fontWeight: 600, color: ONB.TEXT, marginBottom: 4,
-            letterSpacing: '-0.01em',
-          }}>
-            Hai una pagina web?
+            ) : (
+              <FilePreview file={file} onRemove={() => setFile(null)}/>
+            )}
           </div>
+
+          {/* Divider — thin, label all-lower per non urlare */}
           <div style={{
-            fontSize: 15, color: ONB.MUTED, marginBottom: 16, lineHeight: 1.45,
+            display: 'flex', alignItems: 'center', gap: 12,
+            margin: '24px 0',
           }}>
-            Incolla il link: importeremo menù, orari e info del locale.
+            <div style={{flex: 1, height: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
+            <span style={{fontSize: 14, color: ONB.MUTED, fontWeight: 500}}>oppure</span>
+            <div style={{flex: 1, height: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
           </div>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-            {/* UrlInput ha flex:1 (pensato per una row): lo isolo in un contesto
-                flex orizzontale così cresce in larghezza e non in altezza. */}
-            <div style={{display: 'flex'}}>
-              <UrlInput value={url} onChange={setUrl}/>
-            </div>
+
+          {/* Import da link — riga singola: dentro un pannello da 520 l'input e il
+              bottone stanno comodi affiancati. */}
+          <label style={{
+            display: 'block',
+            fontSize: 16, fontWeight: 500, color: ONB.TEXT, marginBottom: 10,
+          }}>
+            Incolla il link della tua pagina web
+          </label>
+          <div style={{display: 'flex', gap: 8}}>
+            <UrlInput value={url} onChange={setUrl}/>
             <button
               onClick={url.length > 6 ? pickMockFile : undefined}
               disabled={url.length <= 6}
               style={{
-                height: 44, padding: '0 20px',
+                height: 44, padding: '0 20px', flexShrink: 0,
                 background: url.length > 6 ? ONB.ACTION_SECONDARY : 'rgba(15, 17, 21, 0.08)',
                 color: url.length > 6 ? '#fff' : ONB.MUTED_LIGHT,
                 border: 'none', borderRadius: 8,
@@ -222,23 +241,24 @@ function Step1Upload({onAnalyze}) {
               Importa
             </button>
           </div>
-        </div>
-        </div>
 
-        {/* Footer — solo CTA primaria centrata.
-            Niente link "configurazione manuale" né "salva e riprendi dopo": lo step 1
-            ha una sola decisione da prendere (carica e analizza), non distraibile. */}
-        <div style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          marginTop: 28,
-        }}>
-          <PrimaryCta
-            onClick={canSubmit ? onAnalyze : undefined}
-            disabled={!canSubmit}
-          >
-            Continua
-            <OnbIcon.ArrowRight size={14} color="#fff"/>
-          </PrimaryCta>
+          {/* CTA a piena larghezza del pannello: chiude la card come submit del
+              blocco, invece di fluttuare centrata su canvas.
+              Niente link "configurazione manuale" né "salva e riprendi dopo": lo
+              step 1 ha una sola decisione da prendere, non distraibile. */}
+          <div style={{
+            marginTop: 28, paddingTop: 28,
+            borderTop: '1px solid rgba(15, 17, 21, 0.06)',
+          }}>
+            <PrimaryCta
+              onClick={canSubmit ? onAnalyze : undefined}
+              disabled={!canSubmit}
+              full
+            >
+              Continua
+              <OnbIcon.ArrowRight size={14} color="#fff"/>
+            </PrimaryCta>
+          </div>
         </div>
       </div>
     </div>
@@ -327,7 +347,9 @@ function UrlInput({value, onChange}) {
 // è il primo a caricarsi e serve a tutti i successivi via window.PrimaryCta.
 // ─────────────────────────────────────────────────────────────────────────
 
-function PrimaryCta({onClick, disabled, children}) {
+// `full` = larghezza piena del contenitore, per le CTA che chiudono un pannello
+// (step 1). Omesso, il bottone resta hug-content come in tutti gli altri step.
+function PrimaryCta({onClick, disabled, children, full}) {
   const [hover, setHover] = React.useState(false);
   const bg = disabled
     ? 'rgba(15, 17, 21, 0.08)'
@@ -339,7 +361,8 @@ function PrimaryCta({onClick, disabled, children}) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        height: 44, padding: '0 20px',
+        height: full ? 48 : 44, padding: '0 20px',
+        width: full ? '100%' : undefined,
         background: bg,
         color: disabled ? ONB.MUTED_LIGHT : '#fff',
         border: 'none', borderRadius: 999,
@@ -347,6 +370,7 @@ function PrimaryCta({onClick, disabled, children}) {
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 150ms ease-out',
         display: 'flex', alignItems: 'center', gap: 8,
+        justifyContent: full ? 'center' : 'flex-start',
       }}
     >
       {children}
