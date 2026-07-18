@@ -380,25 +380,27 @@ function StaffAppPromo() {
        lettering crema. È l'unico blocco pieno della schermata — è anche l'unico
        che non chiede di completare un passo, ma di portarsi via qualcosa. */
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 14,
-      padding: '18px 20px', borderRadius: 14,
+      display: 'flex', alignItems: 'center', gap: 16,
+      padding: '18px 20px 0', borderRadius: 14,
+      overflow: 'hidden',   /* la mascotte poggia sul bordo inferiore */
       background: `linear-gradient(115deg, ${STAFF.RED} 0%, ${STAFF.MID} 52%, ${STAFF.ORANGE} 100%)`,
       boxShadow: '0 12px 32px -14px rgba(255, 76, 45, 0.55)',
     }}>
-      {/* Mascotte — se il file non c'è ancora, l'immagine si toglie da sola e
-          il box resta impaginato: nessun riquadro rotto in mezzo alla card. */}
+      {/* Mascotte — poggia sul bordo inferiore del box (overflow:hidden la
+          taglia netta a filo). Se il file manca si toglie da sola e il box
+          resta impaginato, senza riquadro rotto in mezzo alla card. */}
       <img
         src="mascot-staff.png"
-        alt=""
+        alt="La mascotte di Byup Staff con l'app aperta sul telefono"
         onError={(e) => { e.currentTarget.style.display = 'none'; }}
         style={{
-          width: 104, alignSelf: 'flex-end', flexShrink: 0,
-          marginBottom: -18,     /* poggia sul bordo inferiore interno della card */
-          filter: 'drop-shadow(0 8px 16px rgba(120, 20, 0, 0.28))',
+          width: 152, alignSelf: 'flex-end', flexShrink: 0,
+          marginBottom: -14,
+          filter: 'drop-shadow(0 10px 20px rgba(120, 20, 0, 0.30))',
         }}
       />
 
-      <div style={{flex: 1, minWidth: 0}}>
+      <div style={{flex: 1, minWidth: 0, paddingBottom: 18}}>
         <div style={{
           fontSize: 20, fontWeight: 700, color: STAFF.CREAM,
           letterSpacing: '-0.015em', lineHeight: 1.3, marginBottom: 6,
@@ -424,7 +426,9 @@ function StaffAppPromo() {
         </div>
       </div>
 
-      <QrMock size={112}/>
+      <div style={{paddingBottom: 18, flexShrink: 0}}>
+        <QrMock size={108}/>
+      </div>
     </div>
   );
 }

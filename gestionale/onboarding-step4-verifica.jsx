@@ -112,7 +112,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             </h1>
             <p style={{
               fontSize: 18, fontWeight: 400, lineHeight: 1.5,
-              color: ONB.MUTED, margin: '0 0 28px', maxWidth: 520,
+              color: ONB.MUTED, margin: '0 0 22px', maxWidth: 520,
               position: 'relative', zIndex: 1,
             }}>
               {/* Bold + italic combinato sulla parte clickable concettuale.
@@ -180,7 +180,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
                   l'utente si chiede se deve sistemare tutto adesso. */}
               <div style={{
                 display: 'flex', alignItems: 'flex-start', gap: 10,
-                fontSize: 14, lineHeight: 1.45, color: ONB.MUTED, marginTop: 12,
+                fontSize: 14, lineHeight: 1.45, color: ONB.MUTED, marginTop: 10,
               }}>
                 <span style={{
                   width: 20, height: 20, borderRadius: 999, flexShrink: 0, marginTop: 1,
@@ -196,8 +196,10 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
           </div>
 
           {/* ─── Colonna destra — telefono, e sotto il riepilogo ────────── */}
-          <div>
-            <PhoneMockup menu={menu} height={430}/>
+          {/* sticky: telefono e recap restano fissi a schermo mentre l'editor
+              del menù, che può crescere, scorre nella colonna a fianco. */}
+          <div style={{position: 'sticky', top: 0}}>
+            <PhoneMockup menu={menu} height={505}/>
             <div style={{marginTop: 16}}>
               <CompletionChecklist
                 venue={venue}
@@ -433,8 +435,8 @@ function CompletionChecklist({venue, rooms, totalDishes, totalCategories, totalT
     }}>
       {items.map((it, i) => (
         <div key={i} style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 16px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px',
           borderBottom: i < items.length - 1
             ? '1px solid rgba(15, 17, 21, 0.06)'
             : 'none',
@@ -451,13 +453,13 @@ function CompletionChecklist({venue, rooms, totalDishes, totalCategories, totalT
             <OnbIcon.Check size={12}/>
           </span>
           <span style={{
-            fontSize: 15, fontWeight: 500, color: ONB.MUTED,
-            width: 100, flexShrink: 0,
+            fontSize: 14, fontWeight: 500, color: ONB.MUTED,
+            width: 88, flexShrink: 0,
           }}>
             {it.label}
           </span>
           <span style={{
-            fontSize: 16, fontWeight: 500, color: ONB.TEXT, flex: 1,
+            fontSize: 15, fontWeight: 500, color: ONB.TEXT, flex: 1,
             lineHeight: 1.4,
           }}>
             {it.value}
@@ -698,13 +700,19 @@ function DishItem({dish, onUpdate, onRemove}) {
 // La lista è duplicata 2x per loop seamless con translateY 0 → -50%.
 // ─────────────────────────────────────────────────────────────────────────
 
+// Proporzioni reali di un iPhone moderno (9:19.5). La larghezza si ricava
+// dall'altezza invece di essere fissa: prima erano 272x430, cioè un rapporto
+// 0.63 contro lo 0.46 reale — da qui la sagoma schiacciata.
+const PHONE_RATIO = 9 / 19.5;
+
 function PhoneMockup({menu, height = 570}) {
+  const width = Math.round(height * PHONE_RATIO);
   return (
     /* Scocca: bordo scuro spesso + anello chiaro esterno (il riflesso del
        telaio) + tasti laterali. Prima era un rettangolo nero con gli angoli
        tondi, e infatti non leggeva come un telefono. */
     <div className="phone-mockup" style={{
-      width: 272, height, borderRadius: 42,
+      width, height, borderRadius: Math.round(width * 0.155),
       background: 'linear-gradient(150deg, #43464D 0%, #1B1D22 42%, #303338 100%)',
       padding: 3,
       boxShadow: [
@@ -733,12 +741,12 @@ function PhoneMockup({menu, height = 570}) {
       <div style={{
         width: '100%', height: '100%',
         background: '#0B0C0E',
-        borderRadius: 39, padding: 7,
+        borderRadius: Math.round(width * 0.145), padding: 6,
       }}>
       <div style={{
         width: '100%', height: '100%',
         background: ONB.BG_SOFT,
-        borderRadius: 32, overflow: 'hidden',
+        borderRadius: Math.round(width * 0.125), overflow: 'hidden',
         position: 'relative',
         display: 'flex', flexDirection: 'column',
       }}>
