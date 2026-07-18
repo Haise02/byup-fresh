@@ -2151,10 +2151,14 @@ function StackCarousel({ items, onCardClick }) {
 // Appare solo se in sessione c'è un conto con residuo (byup_table).
 // Sparisce quando il tavolo è saldato del tutto.
 function OpenTableCard() {
+  // Chiusa a mano = ho lasciato il locale. Senza questa via d'uscita il conto
+  // con residuo restava in sessione per sempre e la home non tornava mai allo
+  // stato di partenza.
+  const [chiusa, setChiusa] = React.useState(false);
   let t = null;
   try { t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); } catch {}
   // Tavolo saldato per intero (o nessun ordine) = nessuna card.
-  if (!t || !(t.remaining > 0.01)) return null;
+  if (chiusa || !t || !(t.remaining > 0.01)) return null;
   // Ho gia' pagato la mia parte? Allora la card invita a saldare il resto del
   // tavolo; altrimenti e' ancora un "Paga ora".
   const hoPagato = !!(t.paidLineIds && Object.keys(t.paidLineIds).length)
@@ -2173,8 +2177,24 @@ function OpenTableCard() {
       }}>
         <div aria-hidden style={{ position: 'absolute', right: '-15%', top: '-40%', width: '70%', aspectRatio: '1',
           background: 'radial-gradient(circle, rgba(250,227,222,.2) 0%, transparent 65%)', pointerEvents: 'none' }}/>
-        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', opacity: .85 }}>
-          {t.table} · {t.venue}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', opacity: .85 }}>
+            {t.table} · {t.venue}
+          </div>
+          <button
+            onClick={() => {
+              try { sessionStorage.removeItem('byup_table'); } catch (e) {}
+              setChiusa(true);
+            }}
+            aria-label="Ho lasciato il tavolo"
+            title="Ho lasciato il tavolo"
+            style={{
+              flexShrink: 0, width: 24, height: 24, marginTop: -2, marginRight: -2,
+              borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.16)',
+              color: '#fff', fontSize: 13, lineHeight: 1, cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+            }}
+          >✕</button>
         </div>
         {hoPagato && (
           <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 6,
