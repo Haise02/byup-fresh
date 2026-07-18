@@ -1,5 +1,7 @@
 // Impostazioni → Menù e cucina (rifatto: piatti per categoria, allergeni icone, filtri chip)
 
+const PHOTO_MOCK_BG = ['#F4D9A0', '#D0E8F4', '#E5D9F2'];
+
 const ALLERGENS = [
   { id: 'glutine', name: 'Glutine', icon: '🌾', color: '#D97706' },
   { id: 'latte', name: 'Latte', icon: '🥛', color: '#0EA5E9' },
@@ -1395,6 +1397,17 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
   const [allergens, setAllergens] = React.useState(dish?.allergens || []);
   const [photos, setPhotos] = React.useState(dish?.photos || []);
   const [openSection, setOpenSection] = React.useState(null);
+  const [tipOpen, setTipOpen] = React.useState(null);       // tooltip "Prodotto finito": {x,y} o null
+
+  // Il tooltip si chiude al primo click altrove: aperto, restava sopra a
+  // qualsiasi cosa (anche all'anteprima foto) finche' non si ricliccava l'icona.
+  React.useEffect(() => {
+    if (!tipOpen) return;
+    const chiudi = () => setTipOpen(null);
+    document.addEventListener('click', chiudi);
+    return () => document.removeEventListener('click', chiudi);
+  }, [tipOpen]);
+  const [preview, setPreview] = React.useState(null);       // indice foto in anteprima
   const [initialPrice, setInitialPrice] = React.useState(
     currentPrice !== undefined ? String(currentPrice.toFixed(2)).replace('.', ',') : ''
   );
@@ -1551,6 +1564,68 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                 onBlur={e => e.currentTarget.style.borderColor = PN.BORDER}
                 />
               </ImpField>
+              {/* Sotto al nome, non in fondo alla colonna: e' una proprieta'
+                  del piatto che si decide mentre lo si nomina. Il tooltip si
+                  apre al click e si posiziona a fianco, non sotto. */}
+              <label onClick={() => setNoPrep(v => !v)} style={{
+                display:'inline-flex', alignItems:'center', gap:8, alignSelf:'flex-start',
+                cursor:'pointer', userSelect:'none', position:'relative',
+                padding:'8px 12px', borderRadius:9,
+                background: noPrep ? '#F1F5F9' : PN.WHITE,
+                border:`1px solid ${noPrep ? '#94A3B8' : PN.BORDER}`,
+                transition:'background 150ms ease-out, border-color 150ms ease-out',
+              }}>
+                <div style={{
+                  width:16, height:16, borderRadius:4, flexShrink:0,
+                  border:`1.5px solid ${noPrep ? '#475569' : '#94A3B8'}`,
+                  background: noPrep ? '#475569' : '#fff',
+                  display:'grid', placeItems:'center',
+                }}>
+                  {noPrep && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
+                </div>
+                <span style={{fontSize:14.5, color: noPrep ? '#1E293B' : PN.TEXT, fontWeight:500, whiteSpace:'nowrap'}}>
+                  Prodotto finito
+                </span>
+                <span
+                  onClick={e => {
+                    e.stopPropagation();
+                    // Coordinate assolute dell'icona: il tooltip e' position:fixed
+                    // perche' la colonna ha overflow-y auto e, ancorato dentro,
+                    // veniva tagliato dal bordo.
+                    const r = e.currentTarget.getBoundingClientRect();
+                    setTipOpen(o => o ? null : {x: r.right + 10, y: r.top + r.height / 2});
+                  }}
+                  role="button" tabIndex={0} aria-expanded={!!tipOpen}
+                  aria-label="Cos'è un prodotto finito"
+                  style={{display:'inline-flex', flexShrink:0}}
+                >
+                  <span style={{
+                    width:16, height:16, borderRadius:'50%',
+                    background: tipOpen ? '#475569' : '#E2E8F0',
+                    color: tipOpen ? '#fff' : '#64748B',
+                    fontSize:12, fontWeight:700, display:'inline-grid', placeItems:'center', cursor:'pointer',
+                    transition:'background 150ms ease-out',
+                  }}>i</span>
+                </span>
+
+                {tipOpen && ReactDOM.createPortal(
+                  <span onClick={e => e.stopPropagation()} style={{
+                    position:'fixed', left: tipOpen.x, top: tipOpen.y, transform:'translateY(-50%)',
+                    width:230, background:'#1E293B', color:'#F8FAFC', fontSize:13.5, lineHeight:1.5,
+                    padding:'9px 11px', borderRadius:9, boxShadow:'0 8px 24px rgba(15,17,21,0.22)',
+                    zIndex:1200,
+                  }}>
+                    {/* freccetta verso il bottone */}
+                    <span style={{
+                      position:'absolute', left:-4, top:'50%', marginTop:-4,
+                      width:8, height:8, background:'#1E293B', transform:'rotate(45deg)',
+                    }}/>
+                    Es. acqua, vino, birra in lattina. IVA 22% sull'asporto anziché 10%.
+                  </span>,
+                  document.body
+                )}
+              </label>
+
               <ImpField label="Descrizione breve">
                 <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={2} placeholder="Ingredienti principali, breve descrizione…" style={{
                   width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, background:'rgba(255,255,255,0.8)',
@@ -1558,35 +1633,61 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </ImpField>
             </div>
 
-            {/* Galleria foto — max 3 */}
+            {/* Galleria foto — 3 slot sempre visibili: la griglia non balla piu'
+                a ogni caricamento e si vede a colpo d'occhio quante ne mancano.
+                Click su una foto = anteprima ingrandita. */}
             <div>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7}}>
                 <span style={{fontSize:15, fontWeight:600, color:PN.TEXT}}>Foto</span>
                 <span style={{fontSize:14, color:PN.MUTED}}>{photos.length}/3</span>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10}}>
-                {photos.map((p, i) => (
-                  <div key={i} style={{position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'4/3', background: i===0?'#F4D9A0':'#D0E8F4'}}>
-                    <button onClick={() => setPhotos(ps => ps.filter((_,idx)=>idx!==i))} style={{
-                      position:'absolute', top:6, right:6, width:22, height:22,
-                      borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none',
-                      color:'#fff', fontSize:13, cursor:'pointer', display:'grid', placeItems:'center',
-                    }}>✕</button>
-                  </div>
-                ))}
-                {photos.length < 3 && (
-                  <button onClick={() => setPhotos(ps => ps.length < 3 ? [...ps, true] : ps)} style={{
-                    aspectRatio:'4/3', borderRadius:10, border:`1.5px dashed ${PN.BORDER}`,
-                    background:'#FAFBFC', cursor:'pointer', display:'flex', flexDirection:'column',
-                    alignItems:'center', justifyContent:'center', gap:4, fontFamily:'inherit',
-                  }}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=PN.MUTED; e.currentTarget.style.background='#F4F5F7';}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.background='#FAFBFC';}}
-                  >
-                    <span style={{fontSize:28, color:PN.MUTED, lineHeight:1}}>+</span>
-                    <span style={{fontSize:13.5, color:PN.MUTED, fontWeight:600}}>JPG / PNG</span>
-                  </button>
-                )}
+                {[0, 1, 2].map(i => {
+                  const piena = i < photos.length;
+                  const prossimoLibero = i === photos.length;
+                  return piena ? (
+                    <div key={i} style={{position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'4/3', background: PHOTO_MOCK_BG[i % PHOTO_MOCK_BG.length]}}>
+                      <button
+                        onClick={() => setPreview(i)}
+                        aria-label={`Apri anteprima foto ${i + 1}`}
+                        style={{
+                          position:'absolute', inset:0, width:'100%', height:'100%',
+                          background:'transparent', border:'none', cursor:'zoom-in', padding:0,
+                          transition:'background 150ms ease-out',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(15,17,21,0.12)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      />
+                      <button onClick={() => setPhotos(ps => ps.filter((_,idx)=>idx!==i))}
+                        aria-label={`Rimuovi foto ${i + 1}`}
+                        style={{
+                          position:'absolute', top:6, right:6, width:22, height:22,
+                          borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none',
+                          color:'#fff', fontSize:13, cursor:'pointer', display:'grid', placeItems:'center',
+                        }}>✕</button>
+                    </div>
+                  ) : (
+                    <button key={i}
+                      onClick={() => prossimoLibero && setPhotos(ps => ps.length < 3 ? [...ps, true] : ps)}
+                      disabled={!prossimoLibero}
+                      aria-label="Aggiungi foto"
+                      style={{
+                        aspectRatio:'4/3', borderRadius:10,
+                        border:`1.5px dashed ${PN.BORDER}`,
+                        background:'#FAFBFC', cursor: prossimoLibero ? 'pointer' : 'default',
+                        opacity: prossimoLibero ? 1 : 0.55,
+                        display:'flex', flexDirection:'column',
+                        alignItems:'center', justifyContent:'center', gap:4, fontFamily:'inherit',
+                        transition:'border-color 150ms ease-out, background 150ms ease-out',
+                      }}
+                      onMouseEnter={e=>{ if (prossimoLibero) { e.currentTarget.style.borderColor=PN.MUTED; e.currentTarget.style.background='#F4F5F7'; } }}
+                      onMouseLeave={e=>{ e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.background='#FAFBFC'; }}
+                    >
+                      <span style={{fontSize:26, color:PN.MUTED, lineHeight:1}}>+</span>
+                      <span style={{fontSize:13.5, color:PN.MUTED, fontWeight:600}}>JPG / PNG</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1616,51 +1717,6 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </div>
             )}
 
-            {/* "Prodotto finito" vive qui e non di fianco al nome: e' una
-                proprieta' fiscale (IVA 22% sull'asporto invece del 10%), quindi
-                si legge insieme al prezzo. */}
-                <div>
-                  <label onClick={() => setNoPrep(v => !v)} style={{
-                    display:'inline-flex', alignItems:'center', gap:8,
-                    cursor:'pointer', userSelect:'none',
-                    padding:'9px 12px', borderRadius:8,
-                    background: noPrep ? '#F1F5F9' : '#F8FAFC',
-                    border:`1px solid ${noPrep ? '#94A3B8' : '#E2E8F0'}`,
-                  }}>
-                    <div style={{
-                      width:16, height:16, borderRadius:4, flexShrink:0,
-                      border:`1.5px solid ${noPrep ? '#475569' : '#94A3B8'}`,
-                      background: noPrep ? '#475569' : '#fff',
-                      display:'grid', placeItems:'center',
-                    }}>
-                      {noPrep && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
-                    </div>
-                    <span style={{fontSize:14.5, color: noPrep ? '#1E293B' : '#64748B', fontWeight:500, whiteSpace:'nowrap'}}>
-                      Prodotto finito
-                    </span>
-                    <span onClick={e => e.stopPropagation()} style={{display:'inline-flex', flexShrink:0}}
-                      onMouseEnter={e => {
-                        const t = e.currentTarget.querySelector('.np-tip');
-                        if(t) {
-                          const r = e.currentTarget.getBoundingClientRect();
-                          t.style.top = (r.bottom + 6) + 'px';
-                          t.style.left = (r.left + r.width / 2) + 'px';
-                          t.style.display = 'block';
-                        }
-                      }}
-                      onMouseLeave={e => { const t = e.currentTarget.querySelector('.np-tip'); if(t) t.style.display='none'; }}
-                    >
-                      <span style={{width:15, height:15, borderRadius:'50%', background:'#E2E8F0', color:'#64748B', fontSize:12, fontWeight:700, display:'inline-grid', placeItems:'center', cursor:'help'}}>i</span>
-                      <span className="np-tip" style={{
-                        display:'none', position:'fixed',
-                        transform:'translateX(-50%)', width:220,
-                        background:'#1E293B', color:'#F8FAFC', fontSize:13.5, lineHeight:1.5,
-                        padding:'8px 10px', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.18)',
-                        pointerEvents:'none', zIndex:9999,
-                      }}>Es. acqua, vino, birra in lattina. IVA 22% sull'asporto anziché 10%.</span>
-                    </span>
-                  </label>
-                </div>
 
             {/* Food cost accanto al prezzo: insieme raccontano il margine, ed
                 era l'unica voce di "gestione interna" che non c'entrava con la
@@ -1883,6 +1939,36 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           </div>
           </div>
         </div>
+
+        {/* Anteprima foto — sopra al modal, si chiude col click sullo sfondo */}
+        {preview !== null && (
+          <div onClick={() => setPreview(null)} style={{
+            position:'fixed', inset:0, zIndex:1100,
+            background:'rgba(15,17,21,0.72)',
+            backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
+            display:'grid', placeItems:'center', padding:40,
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:'min(560px, 100%)', aspectRatio:'4/3', borderRadius:16,
+              background: PHOTO_MOCK_BG[preview % PHOTO_MOCK_BG.length],
+              boxShadow:'0 32px 80px -20px rgba(0,0,0,0.6)', position:'relative',
+            }}>
+              <button onClick={() => setPreview(null)} aria-label="Chiudi anteprima" style={{
+                position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%',
+                background:'rgba(15,17,21,0.55)', border:'none', color:'#fff',
+                fontSize:16, cursor:'pointer', display:'grid', placeItems:'center',
+              }}>✕</button>
+              <div style={{
+                position:'absolute', left:0, right:0, bottom:0, padding:'10px 14px',
+                background:'linear-gradient(to top, rgba(15,17,21,0.55), transparent)',
+                color:'#fff', fontSize:14, fontWeight:600,
+                borderBottomLeftRadius:16, borderBottomRightRadius:16,
+              }}>
+                Foto {preview + 1} di {photos.length}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', background:'#FAFBFC'}}>
