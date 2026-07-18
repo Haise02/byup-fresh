@@ -2153,7 +2153,12 @@ function StackCarousel({ items, onCardClick }) {
 function OpenTableCard() {
   let t = null;
   try { t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); } catch {}
+  // Tavolo saldato per intero (o nessun ordine) = nessuna card.
   if (!t || !(t.remaining > 0.01)) return null;
+  // Ho gia' pagato la mia parte? Allora la card invita a saldare il resto del
+  // tavolo; altrimenti e' ancora un "Paga ora".
+  const hoPagato = !!(t.paidLineIds && Object.keys(t.paidLineIds).length)
+    || !!(t.settled && Object.keys(t.settled).length);
   const go = (route) => {
     try { sessionStorage.setItem('byup_menu_route', route); sessionStorage.setItem('byup_menu_premium', '1'); } catch {}
     window.__byupNav && window.__byupNav.go('menu');
@@ -2171,16 +2176,20 @@ function OpenTableCard() {
         <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', opacity: .85 }}>
           {t.table} · {t.venue}
         </div>
-        <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '6px 11px', borderRadius: 999, background: 'rgba(255,255,255,0.18)',
-          backdropFilter: 'blur(6px)', fontSize: 11.5, fontWeight: 700 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9f6ca" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          Hai saldato la tua parte
-        </div>
+        {hoPagato && (
+          <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 11px', borderRadius: 999, background: 'rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(6px)', fontSize: 11.5, fontWeight: 700 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9f6ca" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Hai saldato la tua parte
+          </div>
+        )}
         <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, opacity: .92 }}>Da pagare al tavolo</span>
+          <span style={{ fontSize: 13, fontWeight: 600, opacity: .92 }}>
+            {hoPagato ? 'Da pagare al tavolo' : 'Il tuo conto'}
+          </span>
           <span style={{ fontFamily: BK.TYPE.display, fontSize: 21, fontWeight: 600 }}>{t.remaining.toFixed(2)}€</span>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -2191,7 +2200,7 @@ function OpenTableCard() {
           <button className="bk-press" onClick={() => { BK.haptic.light(); go('pay'); }} style={{
             flex: 1.15, height: 40, borderRadius: 999, border: 'none',
             background: '#fff', color: '#7a1c3e', fontSize: 13.5, fontWeight: 700,
-            fontFamily: 'inherit', cursor: 'pointer' }}>Salda il resto</button>
+            fontFamily: 'inherit', cursor: 'pointer' }}>{hoPagato ? 'Salda il resto' : 'Paga ora'}</button>
         </div>
       </div>
     </div>
@@ -2469,6 +2478,10 @@ function HomeSections({
     <>
       {topBar}
 
+      {/* Card del conto: in testa alla home, ma solo se c'e' un ordine aperto.
+          Senza ordine la home parte pulita — saluto, localita', ricerca. */}
+      <OpenTableCard/>
+
 
 
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
@@ -2638,12 +2651,6 @@ function HomeSections({
       {!noVenues && (
         <>
           {/* Categories — secondary discovery (smaller, scrollable) */}
-          {/* Card del tavolo: dentro il flusso, non in cima. La testa della
-              home e' lo stato di partenza — saluto, localita' e ricerca — e
-              non deve essere occupata da una card di stato.
-              Quando c'e' un conto aperto ha comunque la precedenza sulla card
-              prenotazione, nascosta a monte: e' l'unica col totale rimanente. */}
-          <OpenTableCard/>
           <SectionHeader title="Esplora per categoria"/>
           <AutoLoopScroll speed={24}>
             {cats.map(c => (
