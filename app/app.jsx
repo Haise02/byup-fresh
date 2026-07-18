@@ -2403,6 +2403,12 @@ function HomeSections({
   onCardClick, onSlotClick, onDisponibili,
   noVenues = false,
 }) {
+  // C'e' un conto aperto al tavolo? Serve anche all'header qui sotto, che
+  // altrimenti risale di 24px e si sovrappone alla card.
+  const hasOpenTable = (() => {
+    try { const t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); return !!(t && t.remaining > 0.01); }
+    catch (e) { return false; }
+  })();
   // Allow internal moment management when parent doesn't provide it (legacy callers).
   const [intMoment, intSetMoment] = useState('ora');
   const moment = extMoment ?? intMoment;
@@ -2475,8 +2481,12 @@ function HomeSections({
         position: 'relative', zIndex: 5,
         background: T.dark ? 'rgba(24,22,20,0.74)' : 'rgba(251,244,241,0.74)',
         backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)',
-        paddingTop: topBar ? 12 : 24,
-        marginTop: topBar ? 0 : -24,
+        // Il -24 serve a far risalire l'header sotto l'hero quando la home
+        // parte "nuda". Con la card del tavolo in cima, pero', l'header le
+        // saliva sopra di 24px e il suo blur mangiava i pulsanti: sembrava
+        // che la card fosse tagliata.
+        paddingTop: (topBar || hasOpenTable) ? 12 : 24,
+        marginTop: (topBar || hasOpenTable) ? 0 : -24,
         paddingBottom: noVenues ? 18 : 0,
         boxShadow: noVenues ? 'none' : `0 1px 0 ${T.line}`,
       }}>
