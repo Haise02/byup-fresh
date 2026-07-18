@@ -89,6 +89,12 @@ function Step2Locale({
           {/* Il banner "menù in elaborazione" vive qui, in flusso subito sotto
               il blocco di testo, invece che floating su un angolo del frame. */}
           <ProcessingBanner inline/>
+
+          {/* La promo di byup Staff sta in questa colonna e non fra le card dei
+              pagamenti: lì costava 132px e mandava la colonna fuori dal canvas
+              non appena "Altri metodi" veniva espansa. Qui riempie lo spazio che
+              il titolo corto "Pagamenti." lasciava vuoto. */}
+          {subStep === 'pagamenti' && <StaffAppPromo/>}
         </div>
 
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
@@ -240,6 +246,12 @@ function SubStepPagamenti({payments, p}) {
   });
   const toggle = (k) => setMethods(m => ({...m, [k]: !m[k]}));
 
+  // Contratta di default: nessuno dei tre metodi è necessario per completare
+  // l'onboarding, quindi la sezione parte chiusa e non compete con Stripe —
+  // che è l'unica azione richiesta in questo sub-step.
+  const [openMethods, setOpenMethods] = React.useState(false);
+  const activeCount = Object.values(methods).filter(Boolean).length;
+
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
       <OnbCard>
@@ -256,29 +268,160 @@ function SubStepPagamenti({payments, p}) {
       </OnbCard>
 
       <OnbCard>
-        <OnbSectionHeader
-          number="2"
-          title="Altri metodi"
-          subtitle="Estendi le opzioni di pagamento offerte ai clienti — attivabili anche dopo l'onboarding."
-        />
-        <div style={{display: 'flex', flexDirection: 'column'}}>
-          <MethodRow
-            provider="paypal" label="PayPal"
-            desc="Conto PayPal o carta via PayPal · commissione 2,5% + 0,35 €"
-            checked={methods.paypal} onToggle={() => toggle('paypal')}
-          />
-          <MethodRow
-            provider="klarna" label="Klarna"
-            desc="Pagamento dilazionato fino a 30 giorni · zero rischio per il locale"
-            checked={methods.klarna} onToggle={() => toggle('klarna')}
-          />
-          <MethodRow
-            provider="satispay" label="Satispay"
-            desc="App di pagamento senza commissioni"
-            checked={methods.satispay} onToggle={() => toggle('satispay')}
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => setOpenMethods(o => !o)}
+          aria-expanded={openMethods}
+          style={{
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+            width: '100%', padding: 0, margin: 0,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontFamily: 'inherit', textAlign: 'left',
+            marginBottom: openMethods ? 16 : 0,
+          }}
+        >
+          <div style={{
+            width: 24, height: 24, borderRadius: 999,
+            background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, fontWeight: 600, flexShrink: 0,
+          }}>2</div>
+
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 18, fontWeight: 600, color: ONB.TEXT,
+              letterSpacing: '-0.01em', lineHeight: 1.4,
+            }}>
+              Altri metodi
+              {/* Il conteggio è l'unico modo di sapere cosa c'è dentro senza
+                  aprire: senza, una sezione chiusa nasconde anche il proprio stato. */}
+              <span style={{
+                fontSize: 14, fontWeight: 600,
+                padding: '1px 8px', borderRadius: 999,
+                background: activeCount ? ONB.GREEN_SOFT : 'rgba(15, 17, 21, 0.06)',
+                color: activeCount ? ONB.GREEN : ONB.MUTED,
+              }}>
+                {activeCount ? `${activeCount} ${activeCount === 1 ? 'attivo' : 'attivi'}` : 'nessuno'}
+              </span>
+            </div>
+            <div style={{
+              fontSize: 15, fontWeight: 400, color: ONB.MUTED,
+              marginTop: 2, lineHeight: 1.4,
+            }}>
+              PayPal, Klarna e Satispay — attivabili anche dopo l’onboarding.
+            </div>
+          </div>
+
+          <span style={{
+            flexShrink: 0, marginTop: 4,
+            display: 'flex',
+            transform: openMethods ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 180ms ease-out',
+          }}>
+            <OnbIcon.ChevronDown size={16} color={ONB.MUTED}/>
+          </span>
+        </button>
+
+        {openMethods && (
+          <div style={{display: 'flex', flexDirection: 'column'}}>
+            <MethodRow
+              provider="paypal" label="PayPal"
+              desc="Conto PayPal o carta via PayPal · commissione 2,5% + 0,35 €"
+              checked={methods.paypal} onToggle={() => toggle('paypal')}
+            />
+            <MethodRow
+              provider="klarna" label="Klarna"
+              desc="Pagamento dilazionato fino a 30 giorni · zero rischio per il locale"
+              checked={methods.klarna} onToggle={() => toggle('klarna')}
+            />
+            <MethodRow
+              provider="satispay" label="Satispay"
+              desc="App di pagamento senza commissioni"
+              checked={methods.satispay} onToggle={() => toggle('satispay')}
+            />
+          </div>
+        )}
       </OnbCard>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Promo "byup Staff" — il POS mobile. Callout tinto brand e senza numero:
+// non è un passo da completare come 1 e 2, è un suggerimento che l'utente può
+// ignorare senza restare indietro.
+// ─────────────────────────────────────────────────────────────────────────
+
+function StaffAppPromo() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 20,
+      padding: 20, marginTop: 20, maxWidth: 440,
+      background: ONB.BRAND_TINT,
+      border: '1px solid rgba(255, 90, 95, 0.20)',
+      borderRadius: 12,
+    }}>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{
+          fontSize: 17, fontWeight: 600, color: ONB.TEXT,
+          letterSpacing: '-0.01em', lineHeight: 1.4, marginBottom: 4,
+        }}>
+          Scarica byup Staff
+        </div>
+        <div style={{fontSize: 15, color: ONB.MUTED, lineHeight: 1.45}}>
+          Il nuovo POS totalmente digitale e gratuito, utilizzabile
+          su ogni dispositivo mobile.
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 14, fontWeight: 500, color: ONB.BRAND_DARK, marginTop: 10,
+        }}>
+          <OnbIcon.Camera size={14} color={ONB.BRAND_DARK}/>
+          Inquadra il QR con il telefono
+        </div>
+      </div>
+      <QrMock size={116}/>
+    </div>
+  );
+}
+
+// QR decorativo — stesso mock usato in impostazioni-integrazioni (trama a
+// scacchi + tre finder + logo al centro). Nel prototipo non c'è un URL reale
+// da codificare, e un QR finto ma leggibile come tale è preferibile a uno
+// scansionabile che porterebbe altrove.
+function QrMock({size = 116}) {
+  const cell = Math.max(6, Math.round(size / 16));
+  const finder = Math.round(size * 0.24);
+  return (
+    <div aria-label="QR code per scaricare byup Staff" role="img" style={{
+      width: size, height: size, flexShrink: 0,
+      background: `repeating-conic-gradient(${ONB.TEXT} 0% 25%, transparent 0% 50%) 0 0/${cell}px ${cell}px`,
+      border: '4px solid #fff',
+      borderRadius: 10,
+      boxShadow: '0 0 0 1px rgba(15, 17, 21, 0.10), 0 8px 20px -10px rgba(15, 17, 21, 0.25)',
+      position: 'relative',
+    }}>
+      {[{top: 6, left: 6}, {top: 6, right: 6}, {bottom: 6, left: 6}].map((pos, i) => (
+        <div key={i} style={{
+          position: 'absolute', ...pos,
+          width: finder, height: finder,
+          border: `3px solid ${ONB.TEXT}`,
+          background: '#fff', borderRadius: 3,
+        }}>
+          <div style={{position: 'absolute', inset: 3, background: ONB.TEXT, borderRadius: 1}}/>
+        </div>
+      ))}
+      <div style={{
+        position: 'absolute', top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: Math.round(size * 0.30), height: Math.round(size * 0.30),
+        borderRadius: 8,
+        background: ONB.BRAND, color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: Math.round(size * 0.19), fontWeight: 800, fontStyle: 'italic',
+        border: '3px solid #fff',
+      }}>b</div>
     </div>
   );
 }
