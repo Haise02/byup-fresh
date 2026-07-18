@@ -73,9 +73,12 @@ function OnboardingApp() {
         <GlassMeshSubstrate/>
         <OnbHeader step={step} subStep={subStep}/>
 
-        {/* Banner floating "menù in elaborazione" — visibile solo in step 2 e 3.
-            Sparisce quando arriva su step 4 (anteprima menu): la promessa è mantenuta. */}
-        {step >= 2 && step < 4 && <ProcessingBanner step={step}/>}
+        {/* Banner "menù in elaborazione" — visibile solo in step 2 e 3.
+            Sparisce quando arriva su step 4 (anteprima menu): la promessa è mantenuta.
+            Nello step 2 non è renderizzato qui ma in flusso, sotto il blocco di
+            testo della colonna sinistra (vedi Step2Locale); lo step 3 non ha
+            quella colonna, quindi lì resta floating. */}
+        {step === 3 && <ProcessingBanner/>}
 
         {/* step-stage wrapper con key={step}: forza remount alla cambio step,
             facendo ripartire la CSS animation di entrata (scale-up + fade) —
@@ -596,17 +599,23 @@ function StageNav({step, subStep, setStep, setSubStep, setProcessing}) {
 // Niente progress bar (richiesta esplicita): la promessa è la copy stessa.
 // ─────────────────────────────────────────────────────────────────────────
 
-function ProcessingBanner({step}) {
+// `inline` = renderizzato nel flusso della colonna di testo (step 2), invece
+// che floating sul frame (step 3, che non ha quella colonna).
+function ProcessingBanner({inline}) {
+  const placement = inline
+    ? {marginTop: 24, maxWidth: 440}
+    : {
+        position: 'absolute',
+        // Bottom-left, allineato al padding 80px del contenuto degli step.
+        // Era top-right, ma da quando gli step usano la griglia a due colonne
+        // quel punto è occupato dalla colonna dei campi e ci finiva sopra.
+        bottom: 32, left: 80,
+        maxWidth: 360,
+      };
+
   return (
     <div role="status" aria-live="polite" style={{
-      position: 'absolute',
-      // Bottom-left, allineato al padding 80px del contenuto degli step.
-      // Era top-right: da quando gli step usano la griglia a due colonne, quel
-      // punto è occupato dalla colonna dei campi e il banner ci finiva sopra.
-      // In basso a sinistra si appoggia allo spazio libero sotto la colonna di
-      // testo, e non collide con lo StageNav (fixed, bottom-right).
-      bottom: 32, left: 80,
-      maxWidth: 360,
+      ...placement,
       zIndex: 20,
       background: 'rgba(255, 245, 244, 0.96)',  // BRAND_TINT semi-traslucido
       backdropFilter: 'blur(12px)',

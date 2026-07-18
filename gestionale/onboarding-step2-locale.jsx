@@ -41,7 +41,9 @@ function Step2Locale({
       <div style={{
         width: '100%', maxWidth: 1240, margin: '0 auto',
         display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 620px',
-        gap: 72, alignItems: 'center',
+        /* start, non center: il blocco di testo parte alla stessa quota della
+           prima card, così le due colonne condividono la baseline superiore. */
+        gap: 72, alignItems: 'start',
       }}>
 
         {/* ─── Colonna sinistra — contesto ────────────────────────────── */}
@@ -83,6 +85,10 @@ function Step2Locale({
             }}>i</span>
             {t.note}
           </div>
+
+          {/* Il banner "menù in elaborazione" vive qui, in flusso subito sotto
+              il blocco di testo, invece che floating su un angolo del frame. */}
+          <ProcessingBanner inline/>
         </div>
 
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
