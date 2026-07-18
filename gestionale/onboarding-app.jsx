@@ -614,21 +614,22 @@ function ProcessingBanner({inline}) {
       };
 
   return (
-    <div role="status" aria-live="polite" style={{
-      ...placement,
-      zIndex: 20,
-      background: 'rgba(255, 245, 244, 0.96)',  // BRAND_TINT semi-traslucido
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      border: `1px solid rgba(255, 90, 95, 0.20)`,
-      borderRadius: 12,
-      padding: '12px 16px',
-      // Shadow leggera tinted brand — eccezione documentata: un floating element
-      // su canvas ha bisogno di "lift" e il tint lo lega al copy del banner.
-      boxShadow: '0 8px 24px rgba(255, 90, 95, 0.10), 0 1px 2px rgba(15, 17, 21, 0.04)',
-      display: 'flex', alignItems: 'center', gap: 12,
-      animation: 'banner-float-in 280ms ease-out',
-    }}>
+    // Superficie night + accento coral del sistema glass. NB: niente `background`
+    // inline, altrimenti sovrascriverebbe il mesh delle classi.
+    <div role="status" aria-live="polite"
+      className="glass-night-bg glass-night-coral"
+      style={{
+        ...placement,
+        zIndex: 20,
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 12,
+        padding: '12px 16px',
+        // Lift neutro scuro: su fondo night una shadow tinted brand sporcherebbe
+        // il mood invece di staccare il box dal canvas.
+        boxShadow: '0 10px 28px -8px rgba(10, 13, 20, 0.35), 0 1px 2px rgba(15, 17, 21, 0.10)',
+        display: 'flex', alignItems: 'center', gap: 12,
+        animation: 'banner-float-in 280ms ease-out',
+      }}>
       <span aria-hidden="true" style={{
         width: 8, height: 8, borderRadius: 999,
         background: ONB.BRAND,
@@ -637,14 +638,14 @@ function ProcessingBanner({inline}) {
       }}/>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{
-          fontSize: 15, fontWeight: 600, color: ONB.BRAND_DARK,
+          fontSize: 15, fontWeight: 600, color: '#F5F5F7',
           letterSpacing: '-0.01em', lineHeight: 1.3,
         }}>
           Il tuo menù è in elaborazione
         </div>
         <div style={{
-          fontSize: 14, fontWeight: 400, color: ONB.BRAND_DARK,
-          opacity: 0.72, lineHeight: 1.4, marginTop: 2,
+          fontSize: 14, fontWeight: 400, color: '#F5F5F7',
+          opacity: 0.68, lineHeight: 1.4, marginTop: 2,
         }}>
           Completa la configurazione per visualizzarlo
         </div>
