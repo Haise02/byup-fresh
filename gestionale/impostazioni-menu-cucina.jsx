@@ -6,9 +6,11 @@ const ALLERGENS = [
   { id: 'uova', name: 'Uova', icon: '🥚', color: '#F59E0B' },
   { id: 'pesce', name: 'Pesce', icon: '🐟', color: '#0891B2' },
   { id: 'crostacei', name: 'Crostacei', icon: '🦐', color: '#EA580C' },
+  { id: 'molluschi', name: 'Molluschi', icon: '🦪', color: '#0369A1' },
   { id: 'frutta-guscio', name: 'Frutta a guscio', icon: '🥜', color: '#92400E' },
   { id: 'arachidi', name: 'Arachidi', icon: '🥜', color: '#A16207' },
   { id: 'soia', name: 'Soia', icon: '🌱', color: '#65A30D' },
+  { id: 'lupini', name: 'Lupini', icon: '🫘', color: '#B45309' },
   { id: 'sedano', name: 'Sedano', icon: '🥬', color: '#16A34A' },
   { id: 'senape', name: 'Senape', icon: '🌾', color: '#CA8A04' },
   { id: 'sesamo', name: 'Sesamo', icon: '🌰', color: '#78350F' },
@@ -1362,6 +1364,29 @@ const INGREDIENT_LIBRARY = ['Pomodoro San Marzano','Mozzarella di bufala','Basil
 
 
 // ─── DishEditModal: modal completo (versione onboarding) ──────────────────────
+// Titolo di gruppo e card interna del modal piatto: un solo trattamento per
+// tutti i blocchi, invece di occhielli grigi e sottotitoli scuri mescolati.
+function DishSectionTitle({children}) {
+  return (
+    <div style={{
+      fontSize: 15, fontWeight: 700, color: PN.TEXT,
+      letterSpacing: '-0.01em', marginBottom: 2,
+    }}>{children}</div>
+  );
+}
+
+function DishBlock({children, style}) {
+  return (
+    <div style={{
+      background: PN.WHITE,
+      border: `1px solid ${PN.BORDER_SOFT}`,
+      borderRadius: 12,
+      padding: 14,
+      ...style,
+    }}>{children}</div>
+  );
+}
+
 function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onSave, onDelete, currentPrice }) {
   const isEdit = !!dish;
   const [name, setName] = React.useState(dish?.name || '');
@@ -1479,16 +1504,23 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               {name.trim() || (isEdit ? 'Modifica piatto' : 'Nuovo piatto')}
             </div>
           </div>
-          <button onClick={handleAiFill} disabled={aiLoading} style={{
+          {/* Senza un nome l'AI non ha su cosa lavorare: il bottone resta
+              visibile ma spento, cosi' si capisce che c'e' e cosa lo abilita. */}
+          <button onClick={handleAiFill} disabled={aiLoading || !name.trim()}
+            title={!name.trim() ? 'Scrivi prima il nome del piatto' : undefined}
+            style={{
             flexShrink:0, height:36, padding:'0 14px',
-            background: aiLoading ? '#F5F3FF' : 'linear-gradient(135deg,#7C3AED,#6D28D9)',
-            color: aiLoading ? '#7C3AED' : '#fff',
-            border: aiLoading ? '1.5px solid #C4B5FD' : 'none',
-            borderRadius:8, cursor: aiLoading ? 'default' : 'pointer',
+            background: !name.trim() ? '#EEF0F3' : (aiLoading ? '#F5F3FF' : 'linear-gradient(135deg,#7C3AED,#6D28D9)'),
+            color: !name.trim() ? PN.MUTED_LIGHT || '#9AA0A6' : (aiLoading ? '#7C3AED' : '#fff'),
+            border: !name.trim() ? '1.5px solid #E3E6EA' : (aiLoading ? '1.5px solid #C4B5FD' : 'none'),
+            borderRadius:8, cursor: (aiLoading || !name.trim()) ? 'default' : 'pointer',
             display:'inline-flex', alignItems:'center', gap:6,
             fontSize:15, fontWeight:700, fontFamily:'inherit',
+            transition:'background 150ms ease-out, color 150ms ease-out',
           }}>
-            {aiLoading ? <><span>⏳</span> Compilando…</> : <><BuAiSparkle size={13} color="#fff"/>Auto-compila</>}
+            {aiLoading
+              ? <><span>⏳</span> Compilando…</>
+              : <><BuAiSparkle size={13} color={!name.trim() ? '#9AA0A6' : '#fff'}/>Auto-compila</>}
           </button>
           <button onClick={onClose} style={{
             flexShrink:0, width:30, height:30, borderRadius:7, border:'none',
@@ -1507,60 +1539,18 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             overflowY:'auto', background:'rgba(250,251,252,0.72)',
             borderRight:`1px solid ${PN.BORDER_SOFT}`,
           }}>
-            <div style={{fontSize:13.5, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase'}}>Il piatto</div>
+            <DishSectionTitle>Il piatto</DishSectionTitle>
             <div style={{display:'flex', flexDirection:'column', gap:10}}>
-              <div style={{display:'flex', gap:10, alignItems:'flex-end'}}>
-                <div style={{flex:1}}>
-                  <ImpField label="Nome">
-                    <input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="es. Spaghetti alle vongole" style={{
-                      width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)',
-                    }}/>
-                  </ImpField>
-                </div>
-                <div style={{marginBottom:16}}>
-                  <div aria-hidden="true" style={{fontSize:15, fontWeight:600, marginBottom:6, lineHeight:1.4, color:'transparent', userSelect:'none', pointerEvents:'none'}}>·</div>
-                  <label onClick={() => setNoPrep(v => !v)} style={{
-                    display:'inline-flex', alignItems:'center', gap:8,
-                    cursor:'pointer', userSelect:'none',
-                    padding:'9px 12px', borderRadius:8,
-                    background: noPrep ? '#F1F5F9' : '#F8FAFC',
-                    border:`1px solid ${noPrep ? '#94A3B8' : '#E2E8F0'}`,
-                  }}>
-                    <div style={{
-                      width:16, height:16, borderRadius:4, flexShrink:0,
-                      border:`1.5px solid ${noPrep ? '#475569' : '#94A3B8'}`,
-                      background: noPrep ? '#475569' : '#fff',
-                      display:'grid', placeItems:'center',
-                    }}>
-                      {noPrep && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
-                    </div>
-                    <span style={{fontSize:14.5, color: noPrep ? '#1E293B' : '#64748B', fontWeight:500, whiteSpace:'nowrap'}}>
-                      Prodotto finito
-                    </span>
-                    <span onClick={e => e.stopPropagation()} style={{display:'inline-flex', flexShrink:0}}
-                      onMouseEnter={e => {
-                        const t = e.currentTarget.querySelector('.np-tip');
-                        if(t) {
-                          const r = e.currentTarget.getBoundingClientRect();
-                          t.style.top = (r.bottom + 6) + 'px';
-                          t.style.left = (r.left + r.width / 2) + 'px';
-                          t.style.display = 'block';
-                        }
-                      }}
-                      onMouseLeave={e => { const t = e.currentTarget.querySelector('.np-tip'); if(t) t.style.display='none'; }}
-                    >
-                      <span style={{width:15, height:15, borderRadius:'50%', background:'#E2E8F0', color:'#64748B', fontSize:12, fontWeight:700, display:'inline-grid', placeItems:'center', cursor:'help'}}>i</span>
-                      <span className="np-tip" style={{
-                        display:'none', position:'fixed',
-                        transform:'translateX(-50%)', width:220,
-                        background:'#1E293B', color:'#F8FAFC', fontSize:13.5, lineHeight:1.5,
-                        padding:'8px 10px', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.18)',
-                        pointerEvents:'none', zIndex:9999,
-                      }}>Es. acqua, vino, birra in lattina. IVA 22% sull'asporto anziché 10%.</span>
-                    </span>
-                  </label>
-                </div>
-              </div>
+              <ImpField label="Nome del piatto">
+                <input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="es. Spaghetti alle vongole" style={{
+                  width:'100%', padding:'13px 14px', border:`1.5px solid ${PN.BORDER}`, borderRadius:10,
+                  fontSize:19, fontWeight:600, fontFamily:'inherit', outline:'none', background:PN.WHITE,
+                  letterSpacing:'-0.01em',
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = PN.PINK}
+                onBlur={e => e.currentTarget.style.borderColor = PN.BORDER}
+                />
+              </ImpField>
               <ImpField label="Descrizione breve">
                 <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={2} placeholder="Ingredienti principali, breve descrizione…" style={{
                   width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, background:'rgba(255,255,255,0.8)',
@@ -1571,7 +1561,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             {/* Galleria foto — max 3 */}
             <div>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7}}>
-                <span style={{fontSize:14, fontWeight:700, color:PN.MUTED, letterSpacing:0.4, textTransform:'uppercase'}}>Foto</span>
+                <span style={{fontSize:15, fontWeight:600, color:PN.TEXT}}>Foto</span>
                 <span style={{fontSize:14, color:PN.MUTED}}>{photos.length}/3</span>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10}}>
@@ -1626,6 +1616,52 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </div>
             )}
 
+            {/* "Prodotto finito" vive qui e non di fianco al nome: e' una
+                proprieta' fiscale (IVA 22% sull'asporto invece del 10%), quindi
+                si legge insieme al prezzo. */}
+                <div>
+                  <label onClick={() => setNoPrep(v => !v)} style={{
+                    display:'inline-flex', alignItems:'center', gap:8,
+                    cursor:'pointer', userSelect:'none',
+                    padding:'9px 12px', borderRadius:8,
+                    background: noPrep ? '#F1F5F9' : '#F8FAFC',
+                    border:`1px solid ${noPrep ? '#94A3B8' : '#E2E8F0'}`,
+                  }}>
+                    <div style={{
+                      width:16, height:16, borderRadius:4, flexShrink:0,
+                      border:`1.5px solid ${noPrep ? '#475569' : '#94A3B8'}`,
+                      background: noPrep ? '#475569' : '#fff',
+                      display:'grid', placeItems:'center',
+                    }}>
+                      {noPrep && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
+                    </div>
+                    <span style={{fontSize:14.5, color: noPrep ? '#1E293B' : '#64748B', fontWeight:500, whiteSpace:'nowrap'}}>
+                      Prodotto finito
+                    </span>
+                    <span onClick={e => e.stopPropagation()} style={{display:'inline-flex', flexShrink:0}}
+                      onMouseEnter={e => {
+                        const t = e.currentTarget.querySelector('.np-tip');
+                        if(t) {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          t.style.top = (r.bottom + 6) + 'px';
+                          t.style.left = (r.left + r.width / 2) + 'px';
+                          t.style.display = 'block';
+                        }
+                      }}
+                      onMouseLeave={e => { const t = e.currentTarget.querySelector('.np-tip'); if(t) t.style.display='none'; }}
+                    >
+                      <span style={{width:15, height:15, borderRadius:'50%', background:'#E2E8F0', color:'#64748B', fontSize:12, fontWeight:700, display:'inline-grid', placeItems:'center', cursor:'help'}}>i</span>
+                      <span className="np-tip" style={{
+                        display:'none', position:'fixed',
+                        transform:'translateX(-50%)', width:220,
+                        background:'#1E293B', color:'#F8FAFC', fontSize:13.5, lineHeight:1.5,
+                        padding:'8px 10px', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.18)',
+                        pointerEvents:'none', zIndex:9999,
+                      }}>Es. acqua, vino, birra in lattina. IVA 22% sull'asporto anziché 10%.</span>
+                    </span>
+                  </label>
+                </div>
+
             {/* Food cost accanto al prezzo: insieme raccontano il margine, ed
                 era l'unica voce di "gestione interna" che non c'entrava con la
                 configurazione a destra. */}
@@ -1641,11 +1677,11 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           <div style={{padding:'22px 24px 24px', overflowY:'auto', display:'flex', flexDirection:'column', gap:20}}>
 
           {/* ── PER IL CLIENTE ───────────────────────── */}
-          <div style={{display:'flex', flexDirection:'column', gap:14}}>
-            <div style={{fontSize:14, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase'}}>Per il cliente</div>
+          <div style={{display:'flex', flexDirection:'column', gap:12}}>
+            <DishSectionTitle>Per il cliente</DishSectionTitle>
 
             {/* Allergeni */}
-            <div>
+            <DishBlock>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
                 <span style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>Allergeni</span>
                 {ingredientAllergens.size > 0 && (
@@ -1675,10 +1711,10 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                   );
                 })}
               </div>
-            </div>
+            </DishBlock>
 
             {/* Contiene surgelati — dicitura obbligatoria D.Lgs. 109/92 */}
-            <div>
+            <DishBlock>
               <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Surgelati</div>
               <label onClick={() => setHasFrozen(v => !v)} style={{
                 display:'inline-flex', alignItems:'center', gap:8,
@@ -1699,13 +1735,13 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                   Contiene alimenti surgelati
                 </span>
               </label>
-            </div>
+            </DishBlock>
 
             {/* Versioni disponibili */}
-            <div>
+            <DishBlock>
               <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Disponibile anche in versione</div>
               <div style={{display:'flex', gap:5, flexWrap:'wrap', marginBottom: dietaryTags.length > 0 ? 10 : 0}}>
-                {['Vegana','Senza glutine','Vegetariana','Senza lattosio','Crudo','Bio','Halal'].map(t => {
+                {['Vegana','Senza glutine','Vegetariana','Senza lattosio','Crudo','Bio','Halal','Kosher','Parve'].map(t => {
                   const on = dietaryTags.some(x => x.name === t);
                   return (
                     <button key={t} onClick={() => toggleTag(t)} style={{
@@ -1735,14 +1771,12 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                   </div>
                 </div>
               )}
-            </div>
+            </DishBlock>
           </div>
 
-          <div style={{borderTop:`1px solid ${PN.BORDER_SOFT}`}}/>
-
           {/* ── PERSONALIZZAZIONI ────────────────────── */}
-          <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            <div style={{fontSize:14, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase', marginBottom:4}}>Personalizzazioni cliente</div>
+          <div style={{display:'flex', flexDirection:'column', gap:10}}>
+            <DishSectionTitle>Personalizzazioni cliente</DishSectionTitle>
             <CollapseSection
               title="Ingredienti"
               subtitle={`${ingredients.length} ingredienti · ${ingredients.filter(i=>i.removable).length} rimuovibili`}
@@ -1783,14 +1817,12 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             </CollapseSection>
           </div>
 
-          <div style={{borderTop:`1px solid ${PN.BORDER_SOFT}`}}/>
-
           {/* ── CUCINA & GESTIONE ────────────────────── */}
-          <div style={{display:'flex', flexDirection:'column', gap:16}}>
-            <div style={{fontSize:14, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase'}}>Cucina &amp; gestione interna</div>
+          <div style={{display:'flex', flexDirection:'column', gap:12}}>
+            <DishSectionTitle>Cucina e gestione interna</DishSectionTitle>
 
             {/* Ricetta — disabilitata quando "Prodotto finito" è attivo */}
-            <div style={{
+            <DishBlock style={{
               opacity: noPrep ? 0.45 : 1,
               pointerEvents: noPrep ? 'none' : 'auto',
               transition: 'opacity 0.15s',
@@ -1839,14 +1871,14 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               onMouseEnter={e=>{ if (!noPrep) { e.currentTarget.style.borderColor=PN.TEXT; e.currentTarget.style.color=PN.TEXT; } }}
               onMouseLeave={e=>{ if (!noPrep) { e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.color=PN.MUTED; } }}
               >+ Aggiungi passo</button>
-            </div>
+            </DishBlock>
 
             {/* Valori nutrizionali */}
-            <div>
+            <DishBlock>
               <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Valori nutrizionali</div>
               <NutritionFields/>
               <div style={{fontSize:14.5, color:PN.MUTED, marginTop:7}}>I valori nutrizionali verranno mostrati sul menù.</div>
-            </div>
+            </DishBlock>
 
           </div>
           </div>
