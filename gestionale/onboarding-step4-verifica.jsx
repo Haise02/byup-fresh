@@ -43,9 +43,10 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
 
   return (
     <div style={{
-      padding: '40px 48px 64px',
+      padding: '28px 48px 24px',
       background: ONB.BG_SOFT,
-      minHeight: 760,
+      minHeight: '100%',
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
     }}>
       <div style={{maxWidth: 1080, margin: '0 auto'}}>
 
@@ -77,7 +78,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             </h1>
             <p style={{
               fontSize: 18, fontWeight: 400, lineHeight: 1.4,
-              color: ONB.MUTED, margin: '0 0 32px', maxWidth: 540,
+              color: ONB.MUTED, margin: '0 0 24px', maxWidth: 540,
               position: 'relative', zIndex: 1,
             }}>
               {/* Bold + italic combinato sulla parte clickable concettuale.
@@ -95,7 +96,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             />
 
             {/* Anteprima menu accordion */}
-            <div style={{marginTop: 24}}>
+            <div style={{marginTop: 20}}>
               <div style={{
                 display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
                 marginBottom: 12,
@@ -138,7 +139,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
         {/* Footer CTAs — full width sotto le due colonne */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginTop: 40, paddingTop: 24,
+          marginTop: 24, paddingTop: 20,
           borderTop: '1px solid rgba(15, 17, 21, 0.08)',
         }}>
           <SecondaryCta onClick={onBack}>

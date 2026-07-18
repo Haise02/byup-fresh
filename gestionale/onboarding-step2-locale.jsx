@@ -20,57 +20,91 @@ function Step2Locale({
 
   const SUBSTEP_TITLES = {
     info:      {title: 'Le informazioni del tuo locale.',
-                sub: 'Queste informazioni verranno pubblicate e visualizzate dagli utenti dell’applicazione Byup.'},
+                sub: 'Queste informazioni verranno pubblicate e visualizzate dagli utenti dell’applicazione Byup.',
+                note: 'Potrai modificarle in qualsiasi momento dalle Impostazioni.'},
     pagamenti: {title: 'Pagamenti.',
-                sub: 'Connetti Stripe e scegli quali metodi di pagamento accettare.'},
+                sub: 'Connetti Stripe e scegli quali metodi di pagamento accettare.',
+                note: 'I metodi alternativi restano attivabili anche dopo l’onboarding.'},
   };
   const t = SUBSTEP_TITLES[subStep];
 
   return (
     <div style={{
-      padding: '40px 48px 64px',
+      minHeight: '100%',
       background: ONB.BG_SOFT,
-      minHeight: 760,
+      padding: '32px 80px',
+      display: 'flex', alignItems: 'center',
     }}>
-      <div style={{maxWidth: 720, margin: '0 auto'}}>
-        {/* Eyebrow + headline */}
-        <div style={{
-          fontSize: 14, fontWeight: 500, color: ONB.MUTED,
-          letterSpacing: '0.04em', textTransform: 'uppercase',
-          marginBottom: 12,
-        }}>
-          Step 2 di 4 · Il tuo locale
+      {/* Stessa griglia dello step 1: promessa a sinistra, campi a destra.
+          Spostare l'hero fuori dal flusso verticale libera ~140px ed è ciò che
+          permette al form di stare nel canvas senza scroll. */}
+      <div style={{
+        width: '100%', maxWidth: 1240, margin: '0 auto',
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 620px',
+        gap: 72, alignItems: 'center',
+      }}>
+
+        {/* ─── Colonna sinistra — contesto ────────────────────────────── */}
+        <div>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 10px', borderRadius: 999,
+            background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
+            fontSize: 14, fontWeight: 600,
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            marginBottom: 20,
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
+            }}/>
+            Step 2 di 4
+          </div>
+          <h1 style={{
+            fontSize: 40, fontWeight: 600, lineHeight: 1.15,
+            letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
+          }}>
+            {t.title}
+          </h1>
+          <p style={{
+            fontSize: 18, fontWeight: 400, lineHeight: 1.5,
+            color: ONB.MUTED, margin: '0 0 20px', maxWidth: 460,
+          }}>
+            {t.sub}
+          </p>
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            fontSize: 15, lineHeight: 1.45, color: ONB.MUTED, maxWidth: 440,
+          }}>
+            <span style={{
+              width: 20, height: 20, borderRadius: 999, flexShrink: 0, marginTop: 1,
+              background: 'rgba(15, 17, 21, 0.05)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 600, color: ONB.MUTED,
+            }}>i</span>
+            {t.note}
+          </div>
         </div>
-        <h1 style={{
-          fontSize: 34, fontWeight: 600, lineHeight: 1.2,
-          letterSpacing: '-0.02em', margin: '0 0 12px', color: ONB.TEXT,
-        }}>
-          {t.title}
-        </h1>
-        <p style={{
-          fontSize: 18, fontWeight: 400, lineHeight: 1.4,
-          color: ONB.MUTED, margin: '0 0 32px', maxWidth: 560,
-        }}>
-          {t.sub}
-        </p>
 
-        {subStep === 'info'      && <SubStepInfo      venue={venue} v={v}/>}
-        {subStep === 'pagamenti' && <SubStepPagamenti payments={payments} p={p}/>}
+        {/* ─── Colonna destra — campi ─────────────────────────────────── */}
+        <div>
+          {subStep === 'info'      && <SubStepInfo      venue={venue} v={v}/>}
+          {subStep === 'pagamenti' && <SubStepPagamenti payments={payments} p={p}/>}
 
-        {/* Footer — 2 pulsanti, gerarchia chiara */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 32, paddingTop: 24,
-          borderTop: '1px solid rgba(15, 17, 21, 0.08)',
-        }}>
-          <SecondaryCta onClick={onBack}>
-            <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
-            Indietro
-          </SecondaryCta>
-          <PrimaryCta onClick={onNext}>
-            Continua
-            <OnbIcon.ArrowRight size={14} color="#fff"/>
-          </PrimaryCta>
+          {/* Footer — 2 pulsanti, gerarchia chiara */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginTop: 20, paddingTop: 18,
+            borderTop: '1px solid rgba(15, 17, 21, 0.08)',
+          }}>
+            <SecondaryCta onClick={onBack}>
+              <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
+              Indietro
+            </SecondaryCta>
+            <PrimaryCta onClick={onNext}>
+              Continua
+              <OnbIcon.ArrowRight size={14} color="#fff"/>
+            </PrimaryCta>
+          </div>
         </div>
       </div>
     </div>
@@ -83,7 +117,7 @@ function Step2Locale({
 
 function SubStepInfo({venue, v}) {
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
       {/* Anagrafica del locale: W1 white classic standard. Era marcata "glass"
           (alias di aurora L2) in passato — riportata a default per richiesta. */}
       <OnbCard>
@@ -144,9 +178,11 @@ function SubStepInfo({venue, v}) {
   );
 }
 
-// Regime fiscale — 3 radio card stacked. Tre opzioni semanticamente diverse
+// Regime fiscale — 3 radio card affiancate. Tre opzioni semanticamente diverse
 // (ordinario / forfettario / agricolo) → radio card con descrizione spiega la
 // scelta meglio di un dropdown muto.
+// Affiancate e non impilate: in colonna costavano ~100px di altezza in più ed
+// erano l'unico blocco che mandava il sub-step "info" fuori dal canvas.
 function RegimeRadioGroup({value, onChange}) {
   const options = [
     {id: 'ordinario',   label: 'Ordinario',          desc: 'IVA al 10% sui pasti, 22% sulle bevande alcoliche.'},
@@ -154,13 +190,13 @@ function RegimeRadioGroup({value, onChange}) {
     {id: 'agricolo',    label: 'Agricolo / Speciale', desc: 'Per agriturismo o attività agricole connesse.'},
   ];
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10}}>
       {options.map((o) => {
         const selected = value === o.id;
         return (
           <label key={o.id} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 12,
-            padding: '14px 16px',
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            padding: '14px 14px',
             background: selected ? ONB.BRAND_TINT : '#fff',
             border: `1px solid ${selected ? 'rgba(255, 90, 95, 0.30)' : 'rgba(15, 17, 21, 0.08)'}`,
             borderRadius: 10,
@@ -171,10 +207,10 @@ function RegimeRadioGroup({value, onChange}) {
               checked={selected} onChange={() => onChange(o.id)}
               style={{margin: 0, marginTop: 3, accentColor: ONB.BRAND}}/>
             <div style={{flex: 1}}>
-              <div style={{fontSize: 16, fontWeight: 500, color: ONB.TEXT, lineHeight: 1.4}}>
+              <div style={{fontSize: 16, fontWeight: 500, color: ONB.TEXT, lineHeight: 1.35}}>
                 {o.label}
               </div>
-              <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 2, lineHeight: 1.4}}>
+              <div style={{fontSize: 14, color: ONB.MUTED, marginTop: 3, lineHeight: 1.4}}>
                 {o.desc}
               </div>
             </div>
@@ -199,7 +235,7 @@ function SubStepPagamenti({payments, p}) {
   const toggle = (k) => setMethods(m => ({...m, [k]: !m[k]}));
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 16}}>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
       <OnbCard>
         <OnbSectionHeader
           number="1"

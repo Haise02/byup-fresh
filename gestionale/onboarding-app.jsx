@@ -597,15 +597,15 @@ function StageNav({step, subStep, setStep, setSubStep, setProcessing}) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function ProcessingBanner({step}) {
-  // Top dipende dalla presenza della sub-step bar dell'header (visibile solo in step 2).
-  // La banda sub-step aggiunge ~50px → spostiamo il banner più in basso lì,
-  // così resta sempre fuori dall'overlap col header.
-  const top = step === 2 ? 156 : 100;
-
   return (
     <div role="status" aria-live="polite" style={{
       position: 'absolute',
-      top, right: 32,
+      // Bottom-left, allineato al padding 80px del contenuto degli step.
+      // Era top-right: da quando gli step usano la griglia a due colonne, quel
+      // punto è occupato dalla colonna dei campi e il banner ci finiva sopra.
+      // In basso a sinistra si appoggia allo spazio libero sotto la colonna di
+      // testo, e non collide con lo StageNav (fixed, bottom-right).
+      bottom: 32, left: 80,
       maxWidth: 360,
       zIndex: 20,
       background: 'rgba(255, 245, 244, 0.96)',  // BRAND_TINT semi-traslucido

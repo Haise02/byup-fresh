@@ -517,7 +517,7 @@ function OnbSectionHeader({number, title, subtitle}) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 12,
-      marginBottom: 20,
+      marginBottom: 16,
     }}>
       {number != null && (
         <div style={{

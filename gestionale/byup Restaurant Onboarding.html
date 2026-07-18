@@ -41,7 +41,10 @@
   /* Stage controls: aiuto-demo per navigare tra step. Posizione bottom-right,
      molto neutro, sotto la soglia di attenzione. */
   .stage-controls {
-    position: fixed; bottom: 16px; right: 16px;
+    /* Top-right: ora che ogni step riempie il canvas, il bordo inferiore è
+       occupato dalle CTA su tutti e quattro. L'unica zona libera in comune è
+       la parte destra dell'header (che ha lì solo uno spacer). */
+    position: fixed; top: 16px; right: 16px;
     background: rgba(15, 17, 21, 0.92);
     color: #fff; padding: 6px 10px; border-radius: 8px;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
