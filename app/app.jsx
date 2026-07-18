@@ -2472,8 +2472,11 @@ function HomeSections({
       {/* Card del tavolo: prima di tutto il resto della home — sopra il saluto
           "Stasera, Mario" e sopra la località. Chi ha un conto ancora aperto
           deve trovarla appena apre l'app, non dopo aver scorso. Nel flusso,
-          non agganciata: scorre via quando si esplora. */}
-      <OpenTableCard/>
+          non agganciata: scorre via quando si esplora.
+          Non quando c'e' gia' una card in topBar (prenotazione o recupero
+          ordine): tornando dal pagamento comparivano entrambe, una sopra
+          l'altra, a dire la stessa cosa. */}
+      {!topBar && <OpenTableCard/>}
 
 
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
