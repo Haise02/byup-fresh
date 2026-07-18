@@ -2463,6 +2463,12 @@ function HomeSections({
     <>
       {topBar}
 
+      {/* Card del tavolo: prima di tutto il resto della home — sopra il saluto
+          "Stasera, Mario" e sopra la località. Chi ha un conto ancora aperto
+          deve trovarla appena apre l'app, non dopo aver scorso. Nel flusso,
+          non agganciata: scorre via quando si esplora. */}
+      <OpenTableCard/>
+
 
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
       <div style={{
@@ -2627,11 +2633,6 @@ function HomeSections({
       {!noVenues && (
         <>
           {/* Categories — secondary discovery (smaller, scrollable) */}
-          {/* Card del tavolo: alta nella home, subito sopra le categorie, ma
-              nel flusso — non agganciata come header. Mostra "Salda il resto",
-              cioe' un residuo del tavolo, non un'azione che l'utente deve avere
-              sempre sotto gli occhi mentre esplora. */}
-          <OpenTableCard/>
           <SectionHeader title="Esplora per categoria"/>
           <AutoLoopScroll speed={24}>
             {cats.map(c => (
