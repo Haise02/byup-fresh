@@ -83,7 +83,7 @@ function TavoloHubServizio({ t, nav, openModal }) {
                   <span key={tag} style={{
                     display: 'inline-flex', alignItems: 'center',
                     height: 26, padding: '0 12px', borderRadius: ST.R_PILL,
-                    background: '#EDE9FE', color: '#6D28D9', border: '1px solid #DDD6FE',
+                    background: ST.PURPLE_SOFT, color: statoConfig('prenotato').color, border: `1px solid ${statoConfig('prenotato').ring}`,
                     fontSize: 12, fontWeight: 700,
                   }}>{tag}</span>
                 ))}
@@ -123,7 +123,7 @@ function TavoloHubServizio({ t, nav, openModal }) {
             { i: <I.Walk s={18} c={ST.TEXT}/>, l: 'Sposta tavolo', d: 'Porta i clienti su un altro tavolo', a: () => openModal({ kind: 'modifica-tavolo', tavolo: t, only: 'sposta' }) },
             { i: <I.Merge s={18} c={ST.TEXT}/>, l: 'Unisci a un tavolo', d: 'Accorpa per un gruppo più grande', a: () => openModal({ kind: 'modifica-tavolo', tavolo: t, only: 'unisci' }) },
             isComposto && { i: <I.Split s={18} c={ST.TEXT}/>, l: 'Dividi', d: 'Separa i tavoli del gruppo', a: () => openModal({ kind: 'modifica-tavolo', tavolo: t, only: 'disgiungi' }) },
-            { i: <I.Close s={18} c="#DC2626"/>, l: 'Libera tavolo', d: 'Chiudi senza pagamento', danger: true, a: () => openModal({ kind: 'conferma-libera', tavolo: t }) },
+            { i: <I.Close s={18} c={ST.RED}/>, l: 'Libera tavolo', d: 'Chiudi senza pagamento', danger: true, a: () => openModal({ kind: 'conferma-libera', tavolo: t }) },
           ].filter(Boolean).map((it, i) => (
             <div key={i} onClick={it.a} style={{
               display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
@@ -131,11 +131,11 @@ function TavoloHubServizio({ t, nav, openModal }) {
             }}>
               <div style={{
                 width: 36, height: 36, borderRadius: ST.R_MD,
-                background: it.danger ? '#FEE2E2' : ST.SURF_ALT,
+                background: it.danger ? ST.RED_SOFT : ST.SURF_ALT,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>{it.i}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: it.danger ? '#DC2626' : ST.TEXT }}>{it.l}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: it.danger ? ST.RED : ST.TEXT }}>{it.l}</div>
                 <div style={{ fontSize: 11.5, color: ST.MUTED, marginTop: 2 }}>{it.d}</div>
               </div>
             </div>
@@ -297,8 +297,8 @@ function TavoloHubAttesa({ t, nav, openModal }) {
             {isPrenotato ? <I.Users s={13} c={ST.MUTED}/> : <I.Chair s={13} c={ST.MUTED}/>} {t.coperti}
           </span>
           {isPrenotato && pren && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: ritardo > 0 ? '#9080BC' : ST.MUTED, fontWeight: ritardo > 0 ? 700 : 600 }}>
-              <I.Clock s={13} c={ritardo > 0 ? '#9080BC' : ST.MUTED}/>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: ritardo > 0 ? statoConfig('prenotato').color : ST.MUTED, fontWeight: ritardo > 0 ? 700 : 600 }}>
+              <I.Clock s={13} c={ritardo > 0 ? statoConfig('prenotato').color : ST.MUTED}/>
               {pren.nome}{ritardo > 0 ? ` · in ritardo di ${ritardo}'` : ` · tra ${pren.quando}`}
             </span>
           )}
@@ -348,12 +348,12 @@ function TavoloHubAttesa({ t, nav, openModal }) {
           </button>
           {isPrenotato && (
             <button onClick={() => openModal({ kind: 'conferma-cancella-prenotazione', tavolo: t, noShow: ritardo >= STAFF_SETTINGS.tolleranzaNoShow })} style={{
-              height: 48, borderRadius: ST.R_PILL, border: `1px solid #FCA5A5`,
-              background: '#fff', color: '#DC2626',
+              height: 48, borderRadius: ST.R_PILL, border: `1px solid rgba(220, 38, 38, 0.35)`,
+              background: '#fff', color: ST.RED,
               fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              <I.Close s={16} c="#DC2626"/> Cancella prenotazione
+              <I.Close s={16} c={ST.RED}/> Cancella prenotazione
             </button>
           )}
         </div>

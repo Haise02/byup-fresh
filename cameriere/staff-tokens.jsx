@@ -1,41 +1,89 @@
 // byup Staff — Design tokens (mobile / waiter app)
-// Estende byup-tokens (BU) con token specifici del touch + stati tavolo.
+//
+// SORGENTE DI VERITÀ: `PN` (gestionale/panoramica-tokens.jsx), caricato PRIMA
+// di questo file da cameriereweb.html. Qui NON si ridefiniscono brand, neutri,
+// stati o materiali: si ereditano da PN e si adatta solo la SCALA al touch.
+//
+// Regola: se un colore cambia nel gestionale, deve cambiare qui da solo.
+// Se stai per scrivere un hex di brand in questo file, stai sbagliando —
+// aggiungilo a PN e referenzialo.
+//
+// Cosa resta specifico del cameriere (deroghe motivate, non dimenticanze):
+//   · scala tipografica maggiorata — si legge in sala, in piedi, di corsa
+//   · hit target 44pt (iOS HIG) — si tocca col pollice, non col mouse
+//   · radius più morbidi (10/14/18/24 vs 8/10/12) — superfici grandi su schermo piccolo
+//   · CTA a pillola — bersaglio pollice-friendly, non rettangolo desktop
+
+if (!window.PN) {
+  throw new Error(
+    'staff-tokens.jsx richiede PN (gestionale/panoramica-tokens.jsx) caricato prima. ' +
+    'Controlla l\'ordine degli <script> in cameriereweb.html.'
+  );
+}
 
 const ST = {
-  // Brand
-  PINK:       '#F26B7A',
-  PINK_DARK:  '#BE185D',
-  PINK_SOFT:  '#FFE0DD',
-  PINK_BG:    '#FFF5F8',
-  WINE:       '#7C2D3C',
-  WINE_SOFT:  '#FCE7F3',
+  // ─── Brand — ereditato, mai ridefinito ─────────────────────
+  PINK:       PN.PINK,          // #FF5A5F corallo byup
+  PINK_DARK:  PN.PINK_DARK,     // #E04347
+  PINK_SOFT:  PN.PINK_SOFT,     // #FFE0DD
+  PINK_BG:    PN.PINK_BG_SOFT,  // #FFF1EF
+  WINE:       PN.WINE,
+  WINE_SOFT:  PN.WINE_SOFT,
 
-  // Neutrals
-  TEXT:       '#0F1115',
+  // ─── Neutrals — ereditati ──────────────────────────────────
+  TEXT:       PN.TEXT,
   TEXT_SOFT:  '#1F2937',
-  MUTED:      '#6B7280',
-  MUTED_2:    '#9CA3AF',
-  MUTED_3:    '#D1D5DB',
-  WHITE:      '#FFFFFF',
-  BG:         '#F7F8FA',
-  SURF:       '#FAFBFC',
-  SURF_ALT:   '#F3F4F6',
-  BORDER:     '#E5E7EB',
-  BORDER_SOFT:'#F0F2F5',
+  MUTED:      PN.MUTED,
+  MUTED_2:    PN.MUTED_SOFT,
+  MUTED_3:    PN.MUTED_LIGHT,
+  WHITE:      PN.WHITE,
+  BG:         PN.BG,            // #F5F6F8 — stesso canvas del gestionale
+  SURF:       PN.WHITE_OFF,
+  SURF_ALT:   PN.WHITE_HUSH,
+  SURF_DEEP:  PN.WHITE_FROST,
 
-  // Stati tavolo (semantici)
-  ST_FREE:        '#9CA3AF',  // libero
-  ST_FREE_BG:     '#F3F4F6',
-  ST_BOOKED:      '#D97706',  // prenotato
-  ST_BOOKED_BG:   '#FEF3C7',
-  ST_BUSY:        '#16A34A',  // occupato in corso
-  ST_BUSY_BG:     '#DCFCE7',
-  ST_READY:       '#BE185D',  // pronto da servire (urgente)
-  ST_READY_BG:    '#FCE7F3',
-  ST_BILL:        '#0F1115',  // conto richiesto
-  ST_BILL_BG:     '#E5E7EB',
+  // ─── Bordi — hairline alpha, non grigi opachi ──────────────
+  // Il gestionale ha abbandonato i bordi solidi: su superficie bianca un
+  // rgba(15,17,21,.08) si legge uguale ma non "stacca" come una riga grigia.
+  BORDER:       PN.BORDER_SOFT_A,  // rgba(15,17,21,0.08) — default
+  BORDER_SOFT:  PN.BORDER_HAIR,    // rgba(15,17,21,0.06) — divider interni
+  BORDER_GHOST: PN.BORDER_GHOST,
+  BORDER_STRONG:PN.BORDER_MED,     // rgba(15,17,21,0.16) — input focus, selezione
 
-  // Tipografia mobile (più grande di desktop per touch)
+  // ─── Semantic — ereditati ──────────────────────────────────
+  GREEN:      PN.GREEN,
+  GREEN_SOFT: PN.GREEN_SOFT,
+  AMBER:      PN.AMBER,
+  AMBER_SOFT: PN.AMBER_SOFT,
+  RED:        PN.RED,
+  RED_SOFT:   PN.RED_SOFT,
+  BLUE:       PN.BLUE,
+  BLUE_SOFT:  PN.BLUE_SOFT,
+  PURPLE:     PN.PURPLE,
+  PURPLE_SOFT:PN.PURPLE_SOFT,
+
+  // ─── Materiali — CTA e vetro, ereditati da PN ──────────────
+  BTN_NEUTRAL:       PN.BTN_NEUTRAL,
+  BTN_NEUTRAL_HOVER: PN.BTN_NEUTRAL_HOVER,
+  BTN_NEUTRAL_PRESS: PN.BTN_NEUTRAL_PRESS,
+  BTN_BRAND:         PN.BTN_BRAND,
+  BTN_BRAND_HOVER:   PN.BTN_BRAND_HOVER,
+  BTN_BRAND_PRESS:   PN.BTN_BRAND_PRESS,
+  BTN_DARK:          PN.BTN_DARK,
+  BTN_DARK_HOVER:    PN.BTN_DARK_HOVER,
+  INSET:             PN.INSET_HIGHLIGHT,
+  INSET_BRAND:       PN.INSET_HIGHLIGHT_BRAND,
+  INSET_DARK:        PN.INSET_HIGHLIGHT_DARK,
+
+  // Vetro: ammesso su barre sticky, tab bar, sheet e modali — superfici che
+  // stanno SOPRA contenuto che scorre. Vietato su card statiche: senza niente
+  // da rifrangere il glass diventa una pillola grigina (vedi byup-glass.jsx).
+  GLASS_BAR:    PN.GLASS_BAR,
+  GLASS_STRONG: PN.GLASS_STRONG,
+  GLASS_MENU:   PN.GLASS_MENU,
+  GLASS_LIGHT:  PN.GLASS_LIGHT,
+
+  // ─── Tipografia mobile (deroga: più grande del desktop) ────
   T_XS:   12,
   T_SM:   14,
   T_BASE: 16,
@@ -44,20 +92,39 @@ const ST = {
   T_XL:   28,
   T_HERO: 36,
 
-  // Spacing
+  // ─── Spacing — stessa base 4px del gestionale ──────────────
   S_1: 4, S_2: 8, S_3: 12, S_4: 16, S_5: 20, S_6: 24, S_8: 32,
 
-  // Radius
+  // ─── Radius (deroga touch: più morbidi del desktop) ────────
   R_SM: 10, R_MD: 14, R_LG: 18, R_XL: 24, R_PILL: 999,
 
-  // Shadows (mobile, più morbide)
-  SH_SM:  '0 1px 2px rgba(15,17,21,0.04), 0 1px 3px rgba(15,17,21,0.04)',
-  SH_MD:  '0 2px 8px rgba(15,17,21,0.06), 0 4px 16px rgba(15,17,21,0.04)',
-  SH_LG:  '0 8px 24px rgba(15,17,21,0.10), 0 4px 12px rgba(15,17,21,0.06)',
-  SH_FAB: '0 6px 18px rgba(190,24,93,0.30), 0 2px 6px rgba(190,24,93,0.18)',
+  // ─── Shadows — allineate ai due livelli del gestionale ─────
+  // PN ne ammette due, senza tinta. Qui li ereditiamo e aggiungiamo solo
+  // il livello "sheet" per i pannelli che salgono dal basso.
+  SH_SM:  PN.CARD_SHADOW,
+  SH_MD:  PN.CARD_SHADOW_HOVER,
+  SH_LG:  '0 8px 24px rgba(15,17,21,0.08)',
+  SH_SHEET: '0 -8px 32px rgba(15,17,21,0.10)',
 
   // Hit target minimo (44pt iOS)
   HIT: 44,
+
+  // ─── Alias legacy — da ritirare ────────────────────────────
+  // Nomi ereditati dalla prima versione dell'app, ancora usati in giro.
+  // NON descrivono più lo stato tavolo (per quello c'è statoConfig): erano
+  // di fatto usati come colori semantici, e qui li rimappiamo su quelli veri.
+  // Non usarli in codice nuovo — usa GREEN / AMBER / PINK / statoConfig().
+  ST_FREE:      PN.GREEN,        // "salvato", conferma
+  ST_OK:        PN.GREEN,        // idem
+  ST_BUSY:      PN.GREEN,        // conferma positiva (non "occupato")
+  ST_BUSY_BG:   PN.GREEN_SOFT,
+  ST_BOOKED:    PN.AMBER,        // avviso "da inviare" (non "prenotato")
+  ST_BOOKED_BG: PN.AMBER_SOFT,
+  ST_READY:     PN.PINK,         // urgenza "pronto da consegnare"
+
+  // FAB: ombra NEUTRA. Il gestionale vieta le ombre tinte di brand
+  // (era rgba(190,24,93,.30)) — l'elevazione si fa col nero, non col colore.
+  SH_FAB: '0 8px 24px rgba(15,17,21,0.16), 0 2px 6px rgba(15,17,21,0.08)',
 };
 
 // ─── Allergeni: icone + nome standardizzati ──────────────────
@@ -72,20 +139,23 @@ const ALLERGENI = {
   sedano:   { name: 'Sedano',      color: '#16A34A', bg: '#DCFCE7', icon: '🌿' },
 };
 
-// ─── Stato tavolo: helper per styling ─────────────────────────
-// Palette di stato DESATURATA e coerente: stesse hue di prima ma più tenui,
-// così il colore resta segnale leggibile senza gridare. Cambiare qui propaga
-// su accenti card e chip ovunque nell'app.
+// ─── Stato tavolo: allineato 1:1 al gestionale ────────────────
+// Stessi valori di TT_ACCENTS (sala-table-tile.jsx) e SALA_STATI (sala-card.jsx):
+// chi passa dal tablet in sala al gestionale in cassa vede gli stessi colori
+// per lo stesso stato. Se cambiano di là, vanno cambiati anche qui.
+//
+//   libero    verde  #15803D    occupato   corallo #E32459
+//   prenotato viola  #6D28D9    da-pulire  ambra   #B45309
+//
+// Nota: 'occupato' è vicino al corallo del brand. È voluto — nel gestionale
+// occupato è lo stato "caldo". Per non confonderlo con le CTA, sulle card lo
+// stato si porta come tint+ring, mai come fill pieno di un pulsante.
 function statoConfig(stato) {
-  // Colori di stato tenui e ben distinti (palette planimetria): lo stato si legge
-  // a colpo d'occhio senza gridare. Libero = verde (via libera), occupato =
-  // arancione/corallo (preso), prenotato = viola (stesso colore in ogni fase),
-  // da-pulire = ambra.
   const map = {
-    libero:      { color: '#5BA877', bg: '#E6F5EC', label: 'Libero' },
-    occupato:    { color: '#E08A5C', bg: '#FBEDE3', label: 'Occupato' },
-    prenotato:   { color: '#9080BC', bg: '#EEEAF7', label: 'Prenotato' },
-    'da-pulire': { color: '#C49A55', bg: '#F7EFDD', label: 'Da pulire' },
+    libero:      { color: '#15803D', bg: 'rgba(22, 163, 74, 0.10)',  ring: 'rgba(22, 163, 74, 0.40)',  label: 'Libero' },
+    occupato:    { color: '#E32459', bg: 'rgba(255, 90, 95, 0.18)',  ring: 'rgba(227, 36, 89, 0.42)',  label: 'Occupato' },
+    prenotato:   { color: '#6D28D9', bg: 'rgba(124, 58, 237, 0.12)', ring: 'rgba(124, 58, 237, 0.38)', label: 'Prenotato' },
+    'da-pulire': { color: '#B45309', bg: 'rgba(217, 119, 6, 0.14)',  ring: 'rgba(217, 119, 6, 0.42)',  label: 'Da pulire' },
   };
   return map[stato] || map.libero;
 }
@@ -134,31 +204,49 @@ const I = {
 };
 
 // ─── Componenti atomici ───────────────────────────────────────
+
+// Btn — geometria touch (pillola, 36/44/52), materiale del gestionale
+// (gradient verticale + inset highlight). Il gradient non è decorazione:
+// è quello che fa leggere il pulsante come superficie premibile.
 function Btn({ variant='primary', children, onClick, disabled, style, full, size='md', ...rest }) {
-  const sizes = { sm: { h: 36, fs: 13, px: 14 }, md: { h: 44, fs: 14.5, px: 18 }, lg: { h: 52, fs: 15.5, px: 22 } };
+  const [press, setPress] = React.useState(false);
+  const sizes = { sm: { h: 36, fs: 13, px: 14 }, md: { h: ST.HIT, fs: 14.5, px: 18 }, lg: { h: 52, fs: 15.5, px: 22 } };
   const sz = sizes[size];
   const variants = {
-    primary: { bg: ST.PINK_DARK, c: '#fff', b: 'transparent' },
-    pink:    { bg: ST.PINK, c: '#fff', b: 'transparent' },
-    dark:    { bg: ST.TEXT, c: '#fff', b: 'transparent' },
-    secondary:{ bg: '#fff', c: ST.TEXT, b: ST.BORDER },
-    soft:    { bg: ST.SURF_ALT, c: ST.TEXT, b: 'transparent' },
-    danger:  { bg: '#fff', c: '#DC2626', b: '#FCA5A5' },
-    ghost:   { bg: 'transparent', c: ST.TEXT, b: 'transparent' },
+    // CTA principale = corallo brand. Una sola per schermata.
+    primary:  { bg: ST.BTN_BRAND,   press: ST.BTN_BRAND_PRESS,   c: '#fff',     b: 'transparent',      inset: ST.INSET_BRAND },
+    pink:     { bg: ST.BTN_BRAND,   press: ST.BTN_BRAND_PRESS,   c: '#fff',     b: 'transparent',      inset: ST.INSET_BRAND },
+    dark:     { bg: ST.BTN_DARK,    press: ST.BTN_DARK_HOVER,    c: '#fff',     b: 'transparent',      inset: ST.INSET_DARK },
+    secondary:{ bg: ST.BTN_NEUTRAL, press: ST.BTN_NEUTRAL_PRESS, c: ST.TEXT,    b: ST.BORDER,          inset: ST.INSET },
+    soft:     { bg: ST.SURF_ALT,    press: ST.SURF_DEEP,         c: ST.TEXT,    b: 'transparent',      inset: 'none' },
+    danger:   { bg: ST.BTN_NEUTRAL, press: ST.BTN_NEUTRAL_PRESS, c: ST.RED,     b: 'rgba(220,38,38,0.28)', inset: ST.INSET },
+    ghost:    { bg: 'transparent',  press: ST.SURF_ALT,          c: ST.TEXT,    b: 'transparent',      inset: 'none' },
   };
   const v = variants[variant] || variants.primary;
+  const flat = v.bg === 'transparent' || variant === 'soft';
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      height: sz.h, padding: `0 ${sz.px}px`, borderRadius: ST.R_PILL,
-      background: disabled ? ST.BORDER : v.bg, color: disabled ? ST.MUTED : v.c,
-      border: `1.5px solid ${disabled ? ST.BORDER : v.b}`,
-      fontSize: sz.fs, fontWeight: 600, fontFamily: 'inherit',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-      width: full ? '100%' : 'auto',
-      transition: 'background 120ms ease, transform 80ms',
-      ...style,
-    }} {...rest}>{children}</button>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onPointerDown={() => setPress(true)}
+      onPointerUp={() => setPress(false)}
+      onPointerLeave={() => setPress(false)}
+      style={{
+        height: sz.h, padding: `0 ${sz.px}px`, borderRadius: ST.R_PILL,
+        background: disabled ? ST.SURF_ALT : (press ? v.press : v.bg),
+        color: disabled ? ST.MUTED_2 : v.c,
+        border: `1px solid ${disabled ? ST.BORDER : v.b}`,
+        boxShadow: disabled || flat ? 'none' : `${v.inset}, ${ST.SH_SM}`,
+        fontSize: sz.fs, fontWeight: 700, fontFamily: 'inherit',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        width: full ? '100%' : 'auto',
+        WebkitTapHighlightColor: 'transparent',
+        transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
+        ...style,
+      }}
+      {...rest}
+    >{children}</button>
   );
 }
 
@@ -167,7 +255,7 @@ function Chip({ children, color, bg, style }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       height: 22, padding: '0 8px', borderRadius: ST.R_PILL,
-      fontSize: 11.5, fontWeight: 600,
+      fontSize: ST.T_XS, fontWeight: 600,
       background: bg || ST.SURF_ALT, color: color || ST.MUTED,
       ...style,
     }}>{children}</span>
@@ -202,14 +290,15 @@ function Stepper({ value, onChange, min = 1, max = 99 }) {
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center',
-      border: `1.5px solid ${ST.BORDER}`, borderRadius: ST.R_PILL,
-      height: 36, padding: '0 4px', background: '#fff',
+      border: `1px solid ${ST.BORDER}`, borderRadius: ST.R_PILL,
+      height: 36, padding: '0 4px', background: ST.BTN_NEUTRAL,
+      boxShadow: ST.INSET,
     }}>
       <button onClick={() => value > min && onChange(value - 1)} style={{
         width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', background: 'transparent',
         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}><I.Minus s={16} c={ST.TEXT}/></button>
-      <span style={{ minWidth: 24, textAlign: 'center', fontSize: 14, fontWeight: 700 }}>{value}</span>
+      <span style={{ minWidth: 24, textAlign: 'center', fontSize: ST.T_SM, fontWeight: 700 }}>{value}</span>
       <button onClick={() => value < max && onChange(value + 1)} style={{
         width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', background: 'transparent',
         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -224,7 +313,7 @@ function PrezzoInput({ value, onChange, width = 52 }) {
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 2,
-      border: `1px solid ${ST.BORDER}`, borderRadius: 8, padding: '5px 8px', background: '#fff',
+      border: `1px solid ${ST.BORDER}`, borderRadius: ST.R_SM, padding: '5px 8px', background: ST.WHITE,
     }}>
       <span style={{ fontSize: 13, color: ST.MUTED, fontWeight: 700 }}>€</span>
       <input
@@ -250,7 +339,7 @@ function DishImage({ name, img, kind = 'piatto', style }) {
     ['#FEE2E2', '#DC2626'],   // rosso
     ['#DCFCE7', '#16A34A'],   // verde
     ['#FEF3C7', '#D97706'],   // ambra
-    ['#FCE7F3', '#BE185D'],   // rosa
+    ['#FFE0DD', '#FF5A5F'],   // corallo brand
     ['#E0E7FF', '#6366F1'],   // viola
     ['#CFFAFE', '#0891B2'],   // ciano
   ];

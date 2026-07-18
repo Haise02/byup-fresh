@@ -12,7 +12,7 @@
   html, body { margin: 0; padding: 0; height: 100%; }
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #F7F8FA;
+    background: #F5F6F8;  /* PN.BG — stesso canvas del gestionale */
     color: #0F1115;
   }
   /* L'app riempie la finestra del browser e si adatta fino a mini iPad. */
@@ -39,6 +39,9 @@
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
+  <!-- PN = design tokens del gestionale. DEVE stare prima di staff-tokens.jsx:
+       il cameriere eredita da qui brand, neutri, stati e materiali. -->
+  <script type="text/babel" src="../gestionale/panoramica-tokens.jsx"></script>
   <script type="text/babel" src="staff-tokens.jsx"></script>
   <script type="text/babel" src="staff-data.jsx"></script>
   <script type="text/babel" src="staff-screen-sala.jsx"></script>
@@ -90,7 +93,7 @@
               width: 56, height: 56, borderRadius: 16, marginBottom: 20,
               background: '#FFE0DD', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F26B7A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF5A5F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="6" y="2" width="12" height="20" rx="3"/>
                 <line x1="11" y1="18" x2="13" y2="18"/>
               </svg>
@@ -122,7 +125,7 @@
           {/* cornice device con l'app dentro */}
           <div style={{
             width: dev.w, height: dev.h, flexShrink: 0,
-            borderRadius: 44, overflow: 'hidden', background: '#F7F8FA',
+            borderRadius: 44, overflow: 'hidden', background: '#F5F6F8',
             boxShadow: '0 30px 70px rgba(0,0,0,0.45), 0 0 0 11px #111, 0 0 0 12px rgba(255,255,255,0.08)',
           }}>
             <StaffApp/>

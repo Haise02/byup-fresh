@@ -81,9 +81,9 @@ function ScreenPagamentoSplit({ nav, openModal, tavoloId }) {
                           <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: ST.TEXT_SOFT, fontWeight: 600 }}>{o.nome}</span>
                           <button onClick={() => eliminaVoce(o.id)} style={{
                             width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', flexShrink: 0,
-                            background: '#FEE2E2', cursor: 'pointer',
+                            background: ST.RED_SOFT, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}><I.Trash s={14} c="#DC2626"/></button>
+                          }}><I.Trash s={14} c={ST.RED}/></button>
                         </div>
                         {/* Riga 2: quantità (stepper) + prezzo unitario + subtotale */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
@@ -173,9 +173,9 @@ function ScreenPagamentoSplit({ nav, openModal, tavoloId }) {
                     <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: ST.TEXT, fontWeight: 600 }}>{o.nome}</span>
                     <button onClick={() => eliminaVoce(o.id)} style={{
                       width: 30, height: 30, borderRadius: ST.R_PILL, border: 'none', flexShrink: 0,
-                      background: '#FEE2E2', cursor: 'pointer',
+                      background: ST.RED_SOFT, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}><I.Trash s={15} c="#DC2626"/></button>
+                    }}><I.Trash s={15} c={ST.RED}/></button>
                   </div>
                   {/* Riga 2: quantità (stepper) + prezzo unitario + subtotale */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
@@ -467,8 +467,8 @@ function ScreenPagamentoContanti({ nav, openModal, importo, tavoloId, misto }) {
         <div style={{ padding: '40px 24px', textAlign: 'center' }}>
           <div style={{
             width: 64, height: 64, borderRadius: 20, margin: '0 auto 16px',
-            background: '#E8F1EC', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}><I.Check s={32} c={ST.ST_OK || '#5E9C7B'}/></div>
+            background: ST.GREEN_SOFT, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><I.Check s={32} c={ST.ST_OK || ST.GREEN}/></div>
           <div style={{ fontSize: 15, fontWeight: 700, color: ST.MUTED }}>Incasso registrato</div>
           <div style={{ fontSize: 34, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.5, marginTop: 8 }}>
             Resto €{resto.toFixed(2)}

@@ -74,11 +74,17 @@ function BottomNav({ active, setTab }) {
     { id: 'profilo', label: 'Profilo', icon: I.Profile },
   ];
   return (
+    // Vetro: la tab bar sta sopra contenuto che scorre, quindi ha qualcosa da
+    // rifrangere. Stesso materiale delle barre del gestionale (PN.GLASS_BAR),
+    // ruotato verso l'alto — il bordo e il light-catch vanno sul lato superiore.
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50,
-      background: 'rgba(255,255,255,0.96)',
-      backdropFilter: 'blur(20px)',
+      background: ST.GLASS_BAR.background,
+      backgroundImage: 'linear-gradient(to top, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0) 100%)',
+      backdropFilter: ST.GLASS_BAR.backdropFilter,
+      WebkitBackdropFilter: ST.GLASS_BAR.WebkitBackdropFilter,
       borderTop: `1px solid ${ST.BORDER_SOFT}`,
+      boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.70)',
       padding: '8px 8px max(28px, calc(8px + env(safe-area-inset-bottom)))',
       display: 'flex',
     }}>
@@ -104,7 +110,7 @@ function BottomNav({ active, setTab }) {
                 <span style={{
                   position: 'absolute', top: 0, right: 4,
                   minWidth: 14, height: 14, padding: '0 4px', borderRadius: ST.R_PILL,
-                  background: ST.PINK_DARK, color: '#fff',
+                  background: ST.PINK, color: '#fff',
                   fontSize: 9, fontWeight: 800,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   border: '1.5px solid #fff',

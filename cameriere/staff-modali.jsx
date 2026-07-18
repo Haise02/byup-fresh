@@ -127,10 +127,10 @@ function AttivaTavoloModal({ modal, closeModal, openModal }) {
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 8, textAlign: 'left',
             padding: '10px 14px', marginTop: 16,
-            background: '#EEEBF6', borderRadius: ST.R_MD, border: '1px solid #C9BEE6',
+            background: ST.PURPLE_SOFT, borderRadius: ST.R_MD, border: `1px solid ${statoConfig('prenotato').ring}`,
           }}>
-            <I.Alert s={15} c="#6D5BA8"/>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#4C3F7A', lineHeight: 1.4 }}>
+            <I.Alert s={15} c={ST.PURPLE}/>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: ST.PURPLE, lineHeight: 1.4 }}>
               Prenotato da {t.prenotazione.nome} tra {t.prenotazione.quando}. Stai sedendo un walk-in: liberalo in tempo.
             </span>
           </div>
@@ -319,7 +319,7 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
     const items = t.stato === 'prenotato' ? [
       { i: <I.Edit s={18}/>, l: 'Modifica prenotazione', d: 'Aggiorna dati o cambia orario',
         a: () => { closeModal(); openModal({ kind: 'modifica-prenotazione', tavolo: t }); } },
-      { i: <I.Close s={18} c="#DC2626"/>, l: 'Cancella prenotazione', d: 'Annulla e libera il tavolo',
+      { i: <I.Close s={18} c={ST.RED}/>, l: 'Cancella prenotazione', d: 'Annulla e libera il tavolo',
         danger: true, a: () => { closeModal(); openModal({ kind: 'conferma-cancella-prenotazione', tavolo: t, noShow: (t.prenotazione?.ritardo || 0) >= STAFF_SETTINGS.tolleranzaNoShow }); } },
     ] : [
       { i: <I.Merge s={18}/>, l: 'Modifica tavolo', d: 'Unisci o dividi tavoli',
@@ -340,11 +340,11 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
             }}>
               <div style={{
                 width: 36, height: 36, borderRadius: ST.R_MD, flexShrink: 0,
-                background: it.danger ? '#FEE2E2' : ST.SURF_ALT,
+                background: it.danger ? ST.RED_SOFT : ST.SURF_ALT,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>{it.i}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: it.danger ? '#DC2626' : ST.TEXT }}>{it.l}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: it.danger ? ST.RED : ST.TEXT }}>{it.l}</div>
                 <div style={{ fontSize: 11.5, color: ST.MUTED, marginTop: 2 }}>{it.d}</div>
               </div>
               <I.ChevRight s={14} c={ST.MUTED}/>
@@ -401,9 +401,9 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
         <div style={{ padding: '28px 28px 24px', textAlign: 'center' }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
-            background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: ST.RED_SOFT, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <I.Alert s={28} c="#DC2626"/>
+            <I.Alert s={28} c={ST.RED}/>
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>Cancellare la prenotazione?</div>
           <div style={{ fontSize: 13.5, color: ST.MUTED, marginTop: 8, lineHeight: 1.5 }}>
@@ -436,10 +436,10 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
         <div style={{ padding: '28px 28px 24px', textAlign: 'center' }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
-            background: saldato ? '#D1FAE5' : '#FEE2E2',
+            background: saldato ? ST.GREEN_SOFT : ST.RED_SOFT,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            {saldato ? <I.Refresh s={28} c="#059669"/> : <I.Alert s={28} c="#DC2626"/>}
+            {saldato ? <I.Refresh s={28} c={ST.GREEN}/> : <I.Alert s={28} c={ST.RED}/>}
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>
             {saldato ? 'Liberare il tavolo?' : 'Forzare la chiusura?'}
@@ -473,9 +473,9 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
         <div style={{ padding: '28px 28px 24px', textAlign: 'center' }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16, margin: '0 auto 16px',
-            background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: ST.AMBER_SOFT, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <I.Alert s={28} c="#D97706"/>
+            <I.Alert s={28} c={ST.AMBER}/>
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT }}>Unire a un tavolo in servizio?</div>
           <div style={{ fontSize: 13.5, color: ST.MUTED, marginTop: 8, lineHeight: 1.5 }}>
@@ -629,9 +629,9 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
                 return (
                   <button key={tag} onClick={() => toggleTag(tag)} style={{
                     height: 32, padding: '0 14px', borderRadius: ST.R_PILL,
-                    border: `1.5px solid ${sel ? '#7C3AED' : ST.BORDER}`,
-                    background: sel ? '#EDE9FE' : '#fff',
-                    color: sel ? '#6D28D9' : ST.TEXT,
+                    border: `1.5px solid ${sel ? ST.PURPLE : ST.BORDER}`,
+                    background: sel ? ST.PURPLE_SOFT : '#fff',
+                    color: sel ? statoConfig('prenotato').color : ST.TEXT,
                     fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                   }}>{tag}</button>
                 );
@@ -639,7 +639,7 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
               {customTags.map(tag => (
                 <button key={tag} onClick={() => setTags(prev => prev.filter(t => t !== tag))} style={{
                   height: 32, padding: '0 12px', borderRadius: ST.R_PILL,
-                  border: '1.5px solid #7C3AED', background: '#EDE9FE', color: '#6D28D9',
+                  border: `1.5px solid ${ST.PURPLE}`, background: ST.PURPLE_SOFT, color: statoConfig('prenotato').color,
                   fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                 }}>
@@ -662,7 +662,7 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
               />
               <button onClick={addCustom} disabled={!newTag.trim()} style={{
                 height: 36, padding: '0 14px', borderRadius: ST.R_PILL, border: 'none',
-                background: newTag.trim() ? '#7C3AED' : ST.MUTED_3, color: '#fff',
+                background: newTag.trim() ? ST.PURPLE : ST.MUTED_3, color: '#fff',
                 fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
                 cursor: newTag.trim() ? 'pointer' : 'default',
               }}>Aggiungi</button>
@@ -831,7 +831,7 @@ function ModificaTavoliModal({ modal, closeModal, openModal }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 {occupato && (
-                  <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 9, color: ST.ST_BOOKED, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', padding: '1px 5px', background: ST.ST_BOOKED_BG, borderRadius: ST.R_PILL }}>Occupato</span>
+                  <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 9, color: statoConfig('occupato').color, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', padding: '1px 5px', background: statoConfig('occupato').bg, borderRadius: ST.R_PILL }}>Occupato</span>
                 )}
                 <span style={{ fontSize: 14, fontWeight: 700, marginTop: occupato ? 8 : 0 }}>N {t.n}</span>
                 <span style={{
@@ -926,7 +926,7 @@ function CircleCheck() {
   return (
     <div style={{
       width: 56, height: 56, borderRadius: ST.R_PILL,
-      background: '#16A34A',
+      background: ST.GREEN,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       animation: 'popIn 220ms ease-out',
     }}>
@@ -941,7 +941,7 @@ function CircleError() {
   return (
     <div style={{
       width: 56, height: 56, borderRadius: ST.R_PILL,
-      background: '#DC2626',
+      background: ST.RED,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       animation: 'popIn 220ms ease-out',
     }}>
@@ -1039,7 +1039,7 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
   const pickCell = ({ k, label, count, coperti = false, pren, sel, onClick }) => (
     <div key={k} onClick={onClick} style={{
       padding:'12px 8px', borderRadius: ST.R_MD,
-      border: `1.5px solid ${sel ? ST.PINK_DARK : pren ? '#C9BEE6' : ST.BORDER}`,
+      border: `1.5px solid ${sel ? ST.PINK_DARK : pren ? 'rgba(124, 58, 237, 0.38)' : ST.BORDER}`,
       background: sel ? ST.PINK_SOFT : '#fff',
       cursor:'pointer', textAlign:'center', position:'relative',
     }}>
@@ -1052,7 +1052,7 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
       <div style={{fontSize:10.5, color:ST.MUTED, marginTop:3, display:'inline-flex', alignItems:'center', gap:3}}>
         {coperti ? <I.Users s={11} c={ST.MUTED}/> : <I.Chair s={11} c={ST.MUTED}/>}{count}
       </div>
-      {pren && <div style={{fontSize:10, color:'#6D28D9', fontWeight:700, marginTop:2}}>prenot. tra {pren}</div>}
+      {pren && <div style={{fontSize:10, color: statoConfig('prenotato').color, fontWeight:700, marginTop:2}}>prenot. tra {pren}</div>}
     </div>
   );
 

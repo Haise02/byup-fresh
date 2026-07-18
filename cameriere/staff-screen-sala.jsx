@@ -160,7 +160,7 @@ function ScreenSala({ nav, openModal }) {
               <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 {[
                   { id: 'liberi', label: 'Liberi', count: contaLiberi, on: ST.PINK, onBg: ST.PINK_SOFT, onText: ST.PINK_DARK },
-                  { id: 'dainviare', label: 'Da inviare', count: contaDaInviare, on: '#EA580C', onBg: '#FFF7ED', onText: '#EA580C' },
+                  { id: 'dainviare', label: 'Da inviare', count: contaDaInviare, on: ST.AMBER, onBg: ST.AMBER_SOFT, onText: ST.AMBER },
                 ].map(f => {
                   const active = filtro === f.id;
                   return (
@@ -268,7 +268,7 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
   // tinta dello stato, l'urgenza la dicono testo e icona Alert, non il colore.
   const tone = noShow ? statoConfig('prenotato').color
     : ritardo ? statoConfig('prenotato').color
-    : senzaComanda ? '#D97706'
+    : senzaComanda ? ST.AMBER
     : saldato ? statoConfig('occupato').color
     : comeLibero ? statoConfig('libero').color
     : statoConfig(t.stato).color;
@@ -276,7 +276,7 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
   // un'eccezione accesa: ogni tavolo porta il suo colore, lo stato si legge subito.
   const toneBg = noShow ? statoConfig('prenotato').bg
     : ritardo ? statoConfig('prenotato').bg
-    : senzaComanda ? '#FBEBD2'
+    : senzaComanda ? ST.AMBER_SOFT
     : saldato ? statoConfig('occupato').bg
     : comeLibero ? statoConfig('libero').bg
     : statoConfig(t.stato).bg;
@@ -332,7 +332,7 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
     // del servizio: "Comanda" se non hanno ancora ordinato, "Aggiungi" poi. Il
     // Conto NON è in card — è azione di fine pasto, vive nell'hub (tap sulla card).
     saldato
-      ? { label: 'Libera', onClick: onChiudi, variant: 'danger', icon: <I.Close s={14} c="#DC2626"/> }
+      ? { label: 'Libera', onClick: onChiudi, variant: 'danger', icon: <I.Close s={14} c={ST.RED}/> }
       : { label: (t.ordini > 0 ? 'Aggiungi' : 'Comanda'), onClick: onAddOrder, variant: 'secondary', icon: <I.Plus s={15} c={ST.TEXT}/> },
   ];
   else if (comeLibero) actions = [{ label: 'Attiva', onClick: () => onAttiva({ walkIn: true }), variant: 'secondary', icon: <I.Walk s={15} c={ST.TEXT}/> }];
@@ -431,13 +431,13 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
       {daInviareT && (
         <button onClick={() => setAperto(o => !o)} style={{
           width: '100%', border: 'none', borderTop: `1px solid ${ST.BORDER_SOFT}`,
-          background: aperto ? '#FFF7ED' : '#FFFBF5', cursor: 'pointer', fontFamily: 'inherit',
+          background: aperto ? ST.AMBER_SOFT : ST.SURF, cursor: 'pointer', fontFamily: 'inherit',
           padding: '9px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#EA580C' }}>
-            <I.Receipt s={14} c="#EA580C"/> Da inviare {t.daInviare}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: ST.AMBER }}>
+            <I.Receipt s={14} c={ST.AMBER}/> Da inviare {t.daInviare}
           </span>
-          <I.ChevDown s={15} c="#EA580C" style={{ transform: aperto ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms' }}/>
+          <I.ChevDown s={15} c={ST.AMBER} style={{ transform: aperto ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms' }}/>
         </button>
       )}
 
@@ -461,12 +461,12 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
                 <div key={i} onClick={() => toggle(i)} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '7px 10px', margin: '0 -4px', borderRadius: ST.R_SM,
-                  background: on ? '#FFF7ED' : 'transparent', cursor: 'pointer',
+                  background: on ? ST.AMBER_SOFT : 'transparent', cursor: 'pointer',
                 }}>
                   <span style={{
                     minWidth: 26, height: 22, padding: '0 6px', borderRadius: 6,
-                    background: on ? '#EA580C' : '#fff', color: on ? '#fff' : ST.TEXT,
-                    border: `1px solid ${on ? '#EA580C' : ST.BORDER}`,
+                    background: on ? ST.AMBER : '#fff', color: on ? '#fff' : ST.TEXT,
+                    border: `1px solid ${on ? ST.AMBER : ST.BORDER}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 800, flexShrink: 0,
                   }}>{p.qty}×</span>
@@ -476,7 +476,7 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
             })}
             <button onClick={invia} style={{
               marginTop: 10, width: '100%', height: 42, borderRadius: ST.R_PILL, border: 'none',
-              background: '#EA580C', color: '#fff',
+              background: ST.AMBER, color: '#fff',
               fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
@@ -513,7 +513,7 @@ function ScreenProfilo({ nav }) {
       { i: <I.Note s={18}/>, l: 'Privacy policy' },
     ]},
     { title: '', items: [
-      { i: <I.Logout s={18} c="#DC2626"/>, l: 'Logout', danger: true },
+      { i: <I.Logout s={18} c={ST.RED}/>, l: 'Logout', danger: true },
     ]},
   ];
 
@@ -591,7 +591,7 @@ function ScreenProfilo({ nav }) {
                 cursor: 'pointer',
               }}>
                 <div style={{ width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{it.i}</div>
-                <div style={{ flex: 1, fontSize: 15, fontWeight: 500, color: it.danger ? '#DC2626' : ST.TEXT }}>
+                <div style={{ flex: 1, fontSize: 15, fontWeight: 500, color: it.danger ? ST.RED : ST.TEXT }}>
                   {it.l}
                   {it.d && <div style={{ fontSize: 12, color: ST.MUTED, marginTop: 2, fontWeight: 400 }}>{it.d}</div>}
                 </div>
@@ -756,7 +756,7 @@ function ScreenAccountPassword({ nav }) {
           <label style={lbl}>Conferma nuova password</label>
           <input type="password" value={conferma} onChange={e => setConferma(e.target.value)} placeholder="Ripeti la nuova password" onKeyDown={e => { if (e.key === 'Enter') salva(); }} style={fld}/>
 
-          {errore && <div style={{ marginTop: 14, fontSize: 13.5, fontWeight: 600, color: '#DC2626' }}>{errore}</div>}
+          {errore && <div style={{ marginTop: 14, fontSize: 13.5, fontWeight: 600, color: ST.RED }}>{errore}</div>}
 
           <button onClick={salva} style={{
             marginTop: 24, height: 56, width: '100%', borderRadius: ST.R_PILL, border: 'none',
