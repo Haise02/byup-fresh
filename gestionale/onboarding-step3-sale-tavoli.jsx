@@ -117,7 +117,10 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
           />
           <ServiceModeCard
             selected={mode === 'asporto'}
-            icon="commerce-bag"
+            /* Era commerce-bag: la borsa con il manico ad arco su fondo grigio
+               si leggeva come un lucchetto. Il carretto e' riconoscibile e
+               riprende il "food truck" della descrizione. */
+            icon="place-food-cart"
             title="Faccio solo asporto"
             desc="Ideale per chi lavora senza servizio al tavolo: pizzerie d'asporto, food truck e dark kitchen."
             onSelect={() => setMode('asporto')}
@@ -466,13 +469,12 @@ function RoomCard({room, index, accent, onUpdate, onRemove}) {
           onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(15, 17, 21, 0.10)'}
         />
 
-        {isEmpty ? (
-          <EmptyTablesState accent={accent} onAdd={() => onUpdate('tables', 1)}/>
-        ) : (
-          <TableGrid count={room.tables} accent={accent}/>
-        )}
       </div>
 
+      {/* Tavoli della sala — riga a piena larghezza sotto le tre colonne.
+          Stava dentro la colonna del nome: larga ~300px, ci spezzava "Ancora
+          nessun tavolo" una parola per riga e faceva uscire il pulsante
+          "Aggiungi tavolo" dal bordo della card. */}
       {/* Counter tavoli + micro-copy posti */}
       <div>
         <div style={{
@@ -502,6 +504,7 @@ function RoomCard({room, index, accent, onUpdate, onRemove}) {
         )}
       </div>
 
+
       {/* Remove */}
       <button
         onClick={onRemove}
@@ -524,6 +527,15 @@ function RoomCard({room, index, accent, onUpdate, onRemove}) {
       >
         <OnbIcon.Trash size={16} color={ONB.MUTED}/>
       </button>
+
+      {/* Tavoli / empty state — riga a piena larghezza sotto le tre colonne */}
+      <div style={{gridColumn: '1 / -1'}}>
+        {isEmpty ? (
+          <EmptyTablesState accent={accent} onAdd={() => onUpdate('tables', 1)}/>
+        ) : (
+          <TableGrid count={room.tables} accent={accent}/>
+        )}
+      </div>
     </div>
   );
 }

@@ -2481,8 +2481,13 @@ function MCConfigura() {
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true});
   const [modules, setModules] = React.useState(readMods);
+  // Sala e Prenotazioni si accendono insieme: il calendario prenotazioni
+  // lavora sui tavoli, quindi attivare la sala senza prenotazioni lascerebbe
+  // l'utente a metà. Spegnendo la sala si spengono anche le prenotazioni, che
+  // restano comunque disattivabili da sole col loro toggle.
   const setModule = (key, val) => {
     const next = {...modules, [key]: val};
+    if (key === 'sala') next.prenotazioni = val;
     setModules(next);
     if (window.byupWriteModules) window.byupWriteModules(next);
   };

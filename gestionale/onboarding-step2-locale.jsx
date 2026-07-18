@@ -380,79 +380,128 @@ function StaffAppPromo() {
        lettering crema. È l'unico blocco pieno della schermata — è anche l'unico
        che non chiede di completare un passo, ma di portarsi via qualcosa. */
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 20,
-      padding: 18, borderRadius: 12,
+      display: 'flex', alignItems: 'center', gap: 18,
+      padding: '20px 22px', borderRadius: 14,
       background: `linear-gradient(115deg, ${STAFF.RED} 0%, ${STAFF.MID} 52%, ${STAFF.ORANGE} 100%)`,
-      boxShadow: '0 10px 28px -12px rgba(255, 76, 45, 0.55)',
+      boxShadow: '0 12px 32px -14px rgba(255, 76, 45, 0.55)',
     }}>
+      {/* Mascotte — se il file non c'è ancora, l'immagine si toglie da sola e
+          il box resta impaginato: nessun riquadro rotto in mezzo alla card. */}
+      <img
+        src="mascot-staff.png"
+        alt=""
+        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        style={{
+          width: 116, alignSelf: 'flex-end', flexShrink: 0,
+          marginBottom: -20,     /* poggia sul bordo inferiore della card */
+          filter: 'drop-shadow(0 8px 16px rgba(120, 20, 0, 0.28))',
+        }}
+      />
+
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{
-          fontSize: 17, fontWeight: 600, color: STAFF.CREAM,
-          letterSpacing: '-0.01em', lineHeight: 1.4, marginBottom: 4,
+          fontSize: 20, fontWeight: 700, color: STAFF.CREAM,
+          letterSpacing: '-0.015em', lineHeight: 1.3, marginBottom: 6,
         }}>
-          Scarica byup Staff
+          Scarica Byup Staff
         </div>
-        <div style={{fontSize: 15, color: STAFF.CREAM, opacity: 0.88, lineHeight: 1.45}}>
+        <div style={{fontSize: 16, color: STAFF.CREAM, opacity: 0.92, lineHeight: 1.45}}>
           Il nuovo POS totalmente digitale e gratuito, utilizzabile
           su ogni dispositivo mobile.
         </div>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: 14, fontWeight: 600, color: STAFF.CREAM, marginTop: 10,
+          display: 'flex', alignItems: 'center', gap: 7,
+          fontSize: 15, fontWeight: 600, color: STAFF.CREAM, marginTop: 12,
         }}>
-          <OnbIcon.Camera size={14} color={STAFF.CREAM}/>
+          <OnbIcon.Camera size={15} color={STAFF.CREAM}/>
           Inquadra il QR code per scaricare l’applicazione
         </div>
         <div style={{
-          fontSize: 14, color: STAFF.CREAM, opacity: 0.88, lineHeight: 1.45, marginTop: 4,
+          fontSize: 15, color: STAFF.CREAM, opacity: 0.92, lineHeight: 1.45, marginTop: 4,
         }}>
           oppure vai su <a href={STORE_LINKS.play} style={storeLink}>Play Store</a>
           {' '}o <a href={STORE_LINKS.app} style={storeLink}>App Store</a>
         </div>
       </div>
-      <QrMock size={116}/>
+
+      <QrMock size={132}/>
     </div>
   );
 }
 
-// QR decorativo — stesso mock usato in impostazioni-integrazioni (trama a
-// scacchi + tre finder + logo al centro). Nel prototipo non c'è un URL reale
-// da codificare, e un QR finto ma leggibile come tale è preferibile a uno
-// scansionabile che porterebbe altrove.
-function QrMock({size = 116}) {
-  const cell = Math.max(6, Math.round(size / 16));
-  const finder = Math.round(size * 0.24);
+// ─────────────────────────────────────────────────────────────────────────
+// QR decorativo in SVG — moduli e finder arrotondati, trama deterministica.
+// Sostituisce il repeating-conic-gradient a scacchiera: quello era una griglia
+// regolare e si leggeva come una texture, non come un codice.
+// Nel prototipo non c'è un URL reale da codificare, e un QR dichiaratamente
+// finto è preferibile a uno scansionabile che porterebbe altrove.
+// ─────────────────────────────────────────────────────────────────────────
+
+function QrMock({size = 132}) {
+  const N = 25;                          // moduli per lato
+  const cell = size / N;
+  const r = cell * 0.34;                 // raggio: moduli a "pillola", non quadrati
+  const FG = '#17181C';
+
+  const inFinder = (row, col) =>
+    (row < 8 && col < 8) || (row < 8 && col >= N - 8) || (row >= N - 8 && col < 8);
+  // Riquadro centrale lasciato libero per il logo
+  const inLogo = (row, col) =>
+    row >= N / 2 - 3 && row <= N / 2 + 2 && col >= N / 2 - 3 && col <= N / 2 + 2;
+
+  // Rumore deterministico: stessa trama a ogni render, nessun Math.random
+  const acceso = (row, col) => {
+    const h = Math.sin(row * 12.9898 + col * 78.233) * 43758.5453;
+    return (h - Math.floor(h)) > 0.47;
+  };
+
+  const moduli = [];
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      if (inFinder(row, col) || inLogo(row, col) || !acceso(row, col)) continue;
+      moduli.push(
+        <rect key={`${row}-${col}`}
+          x={col * cell + cell * 0.1} y={row * cell + cell * 0.1}
+          width={cell * 0.8} height={cell * 0.8}
+          rx={r} fill={FG}/>
+      );
+    }
+  }
+
+  const Finder = ({row, col}) => (
+    <g transform={`translate(${col * cell}, ${row * cell})`}>
+      <rect x={cell * 0.35} y={cell * 0.35} width={cell * 6.3} height={cell * 6.3}
+        rx={cell * 2} fill="none" stroke={FG} strokeWidth={cell * 0.95}/>
+      <rect x={cell * 2.1} y={cell * 2.1} width={cell * 2.8} height={cell * 2.8}
+        rx={cell * 1} fill={FG}/>
+    </g>
+  );
+
   return (
-    <div aria-label="QR code per scaricare byup Staff" role="img" style={{
-      width: size, height: size, flexShrink: 0,
-      background: `repeating-conic-gradient(${ONB.TEXT} 0% 25%, transparent 0% 50%) 0 0/${cell}px ${cell}px`,
-      // I moduli "vuoti" della trama sono trasparenti: senza un fondo chiaro
-      // sotto, su una card piena il QR prende il colore della card e sparisce.
-      backgroundColor: STAFF.CREAM,
-      border: `4px solid ${STAFF.CREAM}`,
-      borderRadius: 10,
-      boxShadow: '0 0 0 1px rgba(15, 17, 21, 0.10), 0 8px 20px -10px rgba(15, 17, 21, 0.25)',
+    <div aria-label="QR code per scaricare Byup Staff" role="img" style={{
+      width: size + 20, height: size + 20, flexShrink: 0,
+      background: STAFF.CREAM,
+      borderRadius: 14, padding: 10,
+      boxShadow: '0 8px 20px -10px rgba(120, 20, 0, 0.45)',
       position: 'relative',
     }}>
-      {[{top: 6, left: 6}, {top: 6, right: 6}, {bottom: 6, left: 6}].map((pos, i) => (
-        <div key={i} style={{
-          position: 'absolute', ...pos,
-          width: finder, height: finder,
-          border: `3px solid ${ONB.TEXT}`,
-          background: STAFF.CREAM, borderRadius: 3,
-        }}>
-          <div style={{position: 'absolute', inset: 3, background: ONB.TEXT, borderRadius: 1}}/>
-        </div>
-      ))}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{display: 'block'}}>
+        {moduli}
+        <Finder row={0} col={0}/>
+        <Finder row={0} col={N - 7}/>
+        <Finder row={N - 7} col={0}/>
+      </svg>
+      {/* Logo al centro, nel riquadro lasciato libero dai moduli */}
       <div style={{
         position: 'absolute', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: Math.round(size * 0.30), height: Math.round(size * 0.30),
-        borderRadius: 8,
-        background: STAFF.RED, color: STAFF.CREAM,
+        width: size * 0.26, height: size * 0.26,
+        borderRadius: size * 0.075,
+        background: `linear-gradient(135deg, ${STAFF.RED}, ${STAFF.ORANGE})`,
+        color: STAFF.CREAM,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: Math.round(size * 0.19), fontWeight: 800, fontStyle: 'italic',
-        border: `3px solid ${STAFF.CREAM}`,
+        fontSize: size * 0.17, fontWeight: 800, fontStyle: 'italic',
+        border: `${Math.round(size * 0.028)}px solid ${STAFF.CREAM}`,
       }}>b</div>
     </div>
   );

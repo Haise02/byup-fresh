@@ -473,6 +473,64 @@ function CompletionChecklist({venue, rooms, totalDishes, totalCategories, totalT
 // Click sull'header espande l'intera lista piatti. Compattezza prima.
 // ─────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────
+// AutoWidthInput — campo inline largo quanto il testo che contiene.
+// Uno span gemello (stesso font, fuori flusso) misura il contenuto e detta la
+// width: senza, l'input si prende tutta la riga e il box di modifica arriva
+// fino al prezzo, ben oltre le lettere della voce.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Ingombro orizzontale della classe .inline-edit da sommare alla larghezza
+// misurata: padding 6px + bordo 1px per lato.
+const PAD_INLINE_EDIT = 14;
+
+function AutoWidthInput({value, onChange, placeholder, font, maxWidth, ...rest}) {
+  const ghost = React.useRef(null);
+  const [w, setW] = React.useState(0);
+
+  const misura = React.useCallback(() => {
+    if (ghost.current) setW(ghost.current.offsetWidth);
+  }, []);
+
+  React.useLayoutEffect(misura, [value, placeholder, font, misura]);
+
+  // I webfont arrivano dopo il primo layout: senza una seconda misura a font
+  // pronti, la width resta quella calcolata col fallback e il testo viene tagliato.
+  React.useEffect(() => {
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(misura);
+  }, [misura]);
+
+  return (
+    /* flexShrink:0 — lo span e' un flex item accanto allo spaziatore elastico:
+       senza, il flex lo comprimeva sotto la width calcolata e il nome veniva
+       tagliato comunque, indipendentemente dalla misura. */
+    <span style={{display: 'inline-flex', position: 'relative', flexShrink: 0}}>
+      <span ref={ghost} aria-hidden="true" style={{
+        ...font,
+        // width:max-content è il punto chiave: in posizione assoluta la larghezza
+        // sarebbe shrink-to-fit sullo spazio disponibile — che dipende a sua volta
+        // dall'input — e collassava, tagliando il nome a metà.
+        position: 'absolute', visibility: 'hidden', whiteSpace: 'pre',
+        width: 'max-content', maxWidth: 'none',
+        pointerEvents: 'none', left: 0, top: 0,
+      }}>
+        {value || placeholder || ''}
+      </span>
+      <input
+        {...rest}
+        className="inline-edit"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        /* +PAD_INLINE_EDIT: box-sizing è border-box su tutta la pagina, quindi la
+           width deve includere il padding della .inline-edit, altrimenti mangia
+           spazio al testo e il nome viene tagliato. */
+        style={{...font, width: Math.min(w + PAD_INLINE_EDIT + 4, maxWidth || 9999)}}
+      />
+    </span>
+  );
+}
+
 function MenuCategoryRow({cat, isLast, onRename, onRemove, onUpdateDish, onRemoveDish, onAddDish}) {
   const [expanded, setExpanded] = React.useState(false);
 
@@ -502,17 +560,24 @@ function MenuCategoryRow({cat, isLast, onRename, onRemove, onUpdateDish, onRemov
           <OnbIcon.ChevronDown size={14} color={ONB.MUTED}/>
         </button>
 
-        <input
-          className="inline-edit"
+        <AutoWidthInput
           value={cat.name}
-          onChange={(e) => onRename(e.target.value)}
+          onChange={onRename}
           placeholder="Nome categoria"
           aria-label="Nome categoria"
-          style={{
-            flex: 1, minWidth: 0,
-            fontSize: 16, fontWeight: 600, color: ONB.TEXT,
-            letterSpacing: '-0.01em',
+          maxWidth={340}
+          font={{
+            fontSize: 16, fontWeight: 700, color: ONB.TEXT,
+            letterSpacing: '-0.01em', fontFamily: 'inherit',
           }}
+        />
+
+        {/* Lo spazio fra il nome e il conteggio e' la zona di click piu' ampia
+            della riga: cliccandolo si apre/chiude la categoria. */}
+        <div
+          onClick={() => setExpanded(e => !e)}
+          style={{flex: 1, alignSelf: 'stretch', cursor: 'pointer', minWidth: 12}}
+          aria-hidden="true"
         />
 
         <span
@@ -586,17 +651,18 @@ function DishItem({dish, onUpdate, onRemove}) {
       padding: '5px 16px 5px 40px',
       transition: 'background 150ms ease-out',
     }}>
-      <input
-        className="inline-edit"
+      <AutoWidthInput
         value={dish.name}
-        onChange={(e) => onUpdate({name: e.target.value})}
+        onChange={(name) => onUpdate({name})}
         placeholder="Nome del piatto"
         aria-label="Nome del piatto"
-        style={{
-          flex: 1, minWidth: 0,
-          fontSize: 16, fontWeight: 400, color: ONB.TEXT, lineHeight: 1.4,
+        maxWidth={420}
+        font={{
+          fontSize: 16, fontWeight: 400, color: ONB.TEXT,
+          lineHeight: 1.4, fontFamily: 'inherit',
         }}
       />
+      <div style={{flex: 1, minWidth: 12}}/>
       <span style={{fontSize: 15, color: ONB.MUTED, flexShrink: 0}}>€</span>
       <input
         className="inline-edit"
@@ -634,34 +700,78 @@ function DishItem({dish, onUpdate, onRemove}) {
 
 function PhoneMockup({menu, height = 570}) {
   return (
+    /* Scocca: bordo scuro spesso + anello chiaro esterno (il riflesso del
+       telaio) + tasti laterali. Prima era un rettangolo nero con gli angoli
+       tondi, e infatti non leggeva come un telefono. */
     <div className="phone-mockup" style={{
-      width: 280, height, background: '#1a1a1a',
-      borderRadius: 38, padding: 8,
-      boxShadow: '0 12px 36px rgba(15, 17, 21, 0.16), 0 1px 2px rgba(15, 17, 21, 0.04)',
+      width: 272, height, borderRadius: 42,
+      background: 'linear-gradient(150deg, #43464D 0%, #1B1D22 42%, #303338 100%)',
+      padding: 3,
+      boxShadow: [
+        '0 22px 50px -18px rgba(15, 17, 21, 0.42)',
+        '0 4px 12px -4px rgba(15, 17, 21, 0.20)',
+        'inset 0 0 0 1px rgba(255,255,255,0.16)',
+      ].join(', '),
       margin: '0 auto',
       position: 'relative',
     }}>
+      {/* Tasti laterali */}
+      <span aria-hidden="true" style={{
+        position: 'absolute', left: -2, top: 96, width: 3, height: 26,
+        borderRadius: 3, background: '#2A2D33',
+      }}/>
+      <span aria-hidden="true" style={{
+        position: 'absolute', left: -2, top: 132, width: 3, height: 44,
+        borderRadius: 3, background: '#2A2D33',
+      }}/>
+      <span aria-hidden="true" style={{
+        position: 'absolute', right: -2, top: 118, width: 3, height: 60,
+        borderRadius: 3, background: '#2A2D33',
+      }}/>
+
+      {/* Cornice nera fra scocca e schermo */}
+      <div style={{
+        width: '100%', height: '100%',
+        background: '#0B0C0E',
+        borderRadius: 39, padding: 7,
+      }}>
       <div style={{
         width: '100%', height: '100%',
         background: ONB.BG_SOFT,
-        borderRadius: 30, overflow: 'hidden',
+        borderRadius: 32, overflow: 'hidden',
         position: 'relative',
         display: 'flex', flexDirection: 'column',
       }}>
-        {/* Notch */}
+        {/* Dynamic Island — pillola staccata dal bordo, non un notch attaccato */}
         <div style={{
-          position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-          width: 86, height: 22,
-          background: '#1a1a1a',
-          borderBottomLeftRadius: 14, borderBottomRightRadius: 14,
-          zIndex: 3,
+          position: 'absolute', top: 9, left: '50%', transform: 'translateX(-50%)',
+          width: 74, height: 20, borderRadius: 999,
+          background: '#0B0C0E',
+          zIndex: 4,
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+          paddingRight: 7,
+        }}>
+          {/* fotocamera */}
+          <span style={{
+            width: 8, height: 8, borderRadius: 999,
+            background: 'radial-gradient(circle at 32% 30%, #3A4150 0%, #0E1013 70%)',
+            boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.20)',
+          }}/>
+        </div>
+
+        {/* Home indicator */}
+        <div aria-hidden="true" style={{
+          position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)',
+          width: 92, height: 4, borderRadius: 999,
+          background: 'rgba(15, 17, 21, 0.30)',
+          zIndex: 5,
         }}/>
 
         {/* Status bar */}
         <div style={{
-          padding: '8px 22px 4px',
+          padding: '11px 20px 6px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          fontSize: 13, fontWeight: 600, color: ONB.TEXT,
+          fontSize: 12, fontWeight: 600, color: ONB.TEXT,
           flexShrink: 0, position: 'relative', zIndex: 2,
         }}>
           <span style={{fontVariantNumeric: 'tabular-nums'}}>9:41</span>
@@ -737,6 +847,7 @@ function PhoneMockup({menu, height = 570}) {
           <div style={{
             width: 36, height: 4, background: 'rgba(15, 17, 21, 0.12)',
             borderRadius: 999, margin: '0 auto 8px',
+            display: 'none',
           }}/>
           <button style={{
             width: '100%', height: 40, borderRadius: 999, border: 'none',
@@ -751,6 +862,7 @@ function PhoneMockup({menu, height = 570}) {
             </span>
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

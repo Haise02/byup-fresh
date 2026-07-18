@@ -612,46 +612,50 @@ function ProcessingBanner({inline}) {
       };
 
   return (
-    // Superficie night + accento coral del sistema glass. NB: niente `background`
-    // inline, altrimenti sovrascriverebbe il mesh delle classi.
+    // Viola AI, non coral: nel design system ONB.AI è il colore riservato alle
+    // feature di intelligenza artificiale, ed è esattamente ciò che il banner
+    // annuncia — il menù lo sta estraendo il modello. Il brand qui direbbe
+    // "Byup", il viola dice "AI al lavoro", che è l'informazione utile.
     <div role="status" aria-live="polite"
-      className="glass-night-bg glass-night-coral"
       style={{
         ...placement,
         zIndex: 20,
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        background: ONB.AI_TINT,
+        border: `1px solid ${ONB.AI_SOFT}`,
         borderRadius: 12,
         padding: '12px 16px',
-        // Lift neutro scuro: su fondo night una shadow tinted brand sporcherebbe
-        // il mood invece di staccare il box dal canvas.
-        boxShadow: '0 10px 28px -8px rgba(10, 13, 20, 0.35), 0 1px 2px rgba(15, 17, 21, 0.10)',
+        boxShadow: '0 8px 24px -12px rgba(124, 58, 237, 0.30), 0 1px 2px rgba(15, 17, 21, 0.04)',
         display: 'flex', alignItems: 'center', gap: 12,
         animation: 'banner-float-in 280ms ease-out',
       }}>
       <span aria-hidden="true" style={{
-        width: 8, height: 8, borderRadius: 999,
-        background: ONB.BRAND,
-        flexShrink: 0,
-        animation: 'banner-dot-pulse 1.5s ease-in-out infinite',
-      }}/>
+        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+        background: ONB.AI_SOFT, color: ONB.AI_DARK,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'banner-dot-pulse 1.8s ease-in-out infinite',
+      }}>
+        <OnbIcon.Sparkle size={15} color={ONB.AI_DARK}/>
+      </span>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{
-          fontSize: 15, fontWeight: 600, color: '#F5F5F7',
+          fontSize: 15, fontWeight: 600, color: ONB.AI_DARK,
           letterSpacing: '-0.01em', lineHeight: 1.3,
         }}>
           Il tuo menù è in elaborazione
         </div>
         <div style={{
-          fontSize: 14, fontWeight: 400, color: '#F5F5F7',
-          opacity: 0.68, lineHeight: 1.4, marginTop: 2,
+          fontSize: 14, fontWeight: 400, color: ONB.AI_DARK,
+          opacity: 0.72, lineHeight: 1.4, marginTop: 2,
         }}>
           Completa la configurazione per visualizzarlo
         </div>
       </div>
 
       <style>{`
+        /* Il pulse ora anima un badge con icona, non un dot da 8px: opacità
+           minima più alta, altrimenti l'icona sembra sfarfallare. */
         @keyframes banner-dot-pulse {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
+          0%, 100% { opacity: 0.78; transform: scale(1); }
           50%      { opacity: 1;   transform: scale(1.2); }
         }
         @keyframes banner-float-in {
