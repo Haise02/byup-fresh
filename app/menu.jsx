@@ -1555,6 +1555,7 @@ function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty 
   const [dx, setDx] = useState(0);
   const [drag, setDrag] = useState(false);
   const [flash, setFlash] = useState(null); // 'table' | 'pick'
+  const [askUndo, setAskUndo] = useState(false);   // conferma: togliere la divisione fra persone
   const start = useRef(0);
   const active = useRef(false);
   const moved = useRef(false);
@@ -1576,17 +1577,20 @@ function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty 
     if (!active.current) return;
     active.current = false; setDrag(false);
     setDx(cur => {
-      // Se il piatto e' gia' assegnato a quel verso, lo swipe non fa nulla:
-      // ripeterlo riproponeva l'azione appena eseguita, che l'utente leggeva
-      // come "vuoi annullare?". Per togliere l'assegnazione c'e' il chip ×.
-      const giaTavolo = split && split.kind === 'tavolo';
+      // Swipe ripetuto nel verso gia' applicato = disfare, non rifare.
+      // Col tavolo si annulla subito (nessun dato da perdere); con una
+      // divisione fra persone si chiede conferma, perche' si perde la scelta
+      // di chi paga cosa.
+      const giaTavolo   = split && split.kind === 'tavolo';
+      const giaDiviso   = split && split.kind && split.kind !== 'tavolo' && split.kind !== 'me';
       if (cur > TH * 0.92) {
-        if (giaTavolo) return 0;
-        setFlash('table'); setTimeout(() => setFlash(null), 520);
         try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
+        if (giaTavolo) { setTimeout(onReset, 120); return 0; }
+        setFlash('table'); setTimeout(() => setFlash(null), 520);
         setTimeout(onTable, 120);
       } else if (cur < -TH * 0.92) {
         try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
+        if (giaDiviso) { setAskUndo(true); return 0; }
         setTimeout(onPick, 140);
       }
       return 0;
@@ -1597,7 +1601,31 @@ function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty 
     ? (split.kind === 'tavolo' ? '🍽 Tavolo' : `⑂ ${(split.people?.length || 0) + 1} pers.`)
     : null;
   return (
-    <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', touchAction: 'pan-y' }}>
+    <div style={{ position: 'relative', borderRadius: 12, overflow: askUndo ? 'visible' : 'hidden', touchAction: 'pan-y' }}>
+      {/* Conferma "togli la divisione": copre la riga stessa, cosi' si vede
+          subito di quale piatto si parla. */}
+      {askUndo && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 4,
+          background: 'rgba(255,255,255,0.97)', borderRadius: 12,
+          border: `1px solid ${BORDER}`,
+          display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px',
+        }}>
+          <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: TEXT, lineHeight: 1.3 }}>
+            Togliere la divisione?
+          </span>
+          <button onClick={() => { setAskUndo(false); onReset && onReset(); }} style={{
+            padding: '6px 12px', borderRadius: 999, border: 'none',
+            background: WINE, color: '#fff', fontSize: 12.5, fontWeight: 800,
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}>Togli</button>
+          <button onClick={() => setAskUndo(false)} style={{
+            padding: '6px 10px', borderRadius: 999, border: `1px solid ${BORDER}`,
+            background: '#fff', color: MUTED, fontSize: 12.5, fontWeight: 700,
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}>Annulla</button>
+        </div>
+      )}
       {/* fondo azione destra (swipe →): tutto il tavolo */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
         justifyContent: 'flex-start', paddingLeft: 16, borderRadius: 12,
@@ -5067,35 +5095,41 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
               <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>
                 Devono ancora pagare
               </div>
-              {/* Nome accanto all'avatar: con i soli avatar sovrapposti non si
-                  capiva chi fosse rimasto scoperto. */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', maxWidth: 260 }}>
+              {/* Pill in riga: gli avatar sovrapposti non dicevano chi manca,
+                  la lista verticale rubava mezza schermata a una scheda che
+                  deve chiudersi in fretta. */}
+              <div style={{
+                display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
+                maxWidth: 320,
+              }}>
                 {daPagare.slice(0, 4).map((g, i) => (
                   <div key={g.id || i} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '7px 12px', borderRadius: 12,
-                    background: 'rgba(255,255,255,0.66)', border: `1px solid ${BORDER}`,
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '6px 12px 6px 6px', borderRadius: 999,
+                    background: 'rgba(255,255,255,0.7)', border: `1px solid ${BORDER}`,
                   }}>
                     <div style={{
-                      width: 28, height: 28, borderRadius: 999, flexShrink: 0,
+                      width: 24, height: 24, borderRadius: 999, flexShrink: 0,
                       background: (g.isApp || g.isWebApp) ? BADGE : '#c4b89f',
                       color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 700,
+                      fontSize: 11, fontWeight: 700,
                     }}>{g.initial || '?'}</div>
-                    <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 600, color: TEXT }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>
                       {g.name || 'Ospite'}
                     </span>
                     {g.amount != null && (
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: MUTED }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>
                         € {Number(g.amount).toFixed(2)}
                       </span>
                     )}
                   </div>
                 ))}
                 {daPagare.length > 4 && (
-                  <div style={{ fontSize: 12.5, color: MUTED, fontWeight: 600 }}>
-                    e altri {daPagare.length - 4}
-                  </div>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '6px 12px', borderRadius: 999,
+                    background: MUTESURF, fontSize: 13, fontWeight: 700, color: MUTED,
+                  }}>+{daPagare.length - 4}</div>
                 )}
               </div>
             </div>
