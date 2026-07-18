@@ -380,8 +380,8 @@ function StaffAppPromo() {
        lettering crema. È l'unico blocco pieno della schermata — è anche l'unico
        che non chiede di completare un passo, ma di portarsi via qualcosa. */
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 18,
-      padding: '20px 22px', borderRadius: 14,
+      display: 'flex', alignItems: 'center', gap: 14,
+      padding: '18px 20px', borderRadius: 14,
       background: `linear-gradient(115deg, ${STAFF.RED} 0%, ${STAFF.MID} 52%, ${STAFF.ORANGE} 100%)`,
       boxShadow: '0 12px 32px -14px rgba(255, 76, 45, 0.55)',
     }}>
@@ -392,8 +392,8 @@ function StaffAppPromo() {
         alt=""
         onError={(e) => { e.currentTarget.style.display = 'none'; }}
         style={{
-          width: 116, alignSelf: 'flex-end', flexShrink: 0,
-          marginBottom: -20,     /* poggia sul bordo inferiore della card */
+          width: 104, alignSelf: 'flex-end', flexShrink: 0,
+          marginBottom: -18,     /* poggia sul bordo inferiore interno della card */
           filter: 'drop-shadow(0 8px 16px rgba(120, 20, 0, 0.28))',
         }}
       />
@@ -424,7 +424,7 @@ function StaffAppPromo() {
         </div>
       </div>
 
-      <QrMock size={132}/>
+      <QrMock size={112}/>
     </div>
   );
 }
