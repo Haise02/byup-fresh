@@ -18,8 +18,10 @@ function Step1Upload({onAnalyze}) {
     <div style={{
       minHeight: '100%',
       background: ONB.BG_SOFT,
-      padding: '0 80px',
-      display: 'flex', alignItems: 'center',
+      /* Stesso padding-top e stesso ancoraggio in alto dello step 2, così i due
+         blocchi di testo partono esattamente alla stessa quota dello stage. */
+      padding: '32px 80px',
+      display: 'flex', alignItems: 'flex-start',
     }}>
       {/* Griglia a due colonne: a sinistra la promessa, a destra il pannello
           d'azione. Sostituisce la colonna centrata stretta, che dentro un frame
@@ -29,7 +31,7 @@ function Step1Upload({onAnalyze}) {
       <div style={{
         width: '100%', maxWidth: 1240, margin: '0 auto',
         display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 560px',
-        gap: 72, alignItems: 'center',
+        gap: 72, alignItems: 'start',
       }}>
 
         {/* ─── Colonna sinistra — la promessa ─────────────────────────── */}

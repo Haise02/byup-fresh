@@ -33,7 +33,7 @@ function Step2Locale({
       minHeight: '100%',
       background: ONB.BG_SOFT,
       padding: '32px 80px',
-      display: 'flex', alignItems: 'center',
+      display: 'flex', alignItems: 'flex-start',
     }}>
       {/* Stessa griglia dello step 1: promessa a sinistra, campi a destra.
           Spostare l'hero fuori dal flusso verticale libera ~140px ed è ciò che
