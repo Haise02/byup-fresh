@@ -4351,6 +4351,40 @@ function App({ recoveryArmed = false }) {
     setNavStack(s => s.length > 1 ? s.slice(0, -1) : ['home']);
   };
   const resetToHome = () => setNavStack(['home']);
+
+  // Swipe-back dal bordo sinistro, come su iOS: trascinare verso destra
+  // partendo dai primi 28px torna indietro, esattamente come la freccia.
+  // Parte solo dal bordo, cosi' non ruba il gesto alle righe con swipe
+  // (dividi/tavolo nel carrello) ne' ai caroselli orizzontali.
+  useEffect(() => {
+    const BORDO = 28, SOGLIA = 70;
+    let x0 = null, y0 = null, attivo = false;
+    const giu = (e) => {
+      // Il bordo e' quello dello schermo del telefono, non della finestra:
+      // nel prototipo desktop il device e' centrato nella pagina.
+      const scr = (e.target.closest && e.target.closest('[data-byup-screen]'))
+        || document.querySelector('[data-byup-screen]');
+      const left = scr ? scr.getBoundingClientRect().left : 0;
+      if (e.clientX - left > BORDO) { attivo = false; return; }
+      attivo = true; x0 = e.clientX; y0 = e.clientY;
+    };
+    const su = (e) => {
+      if (!attivo) return;
+      attivo = false;
+      const dx = e.clientX - x0, dy = Math.abs(e.clientY - y0);
+      // orizzontale e verso destra: altrimenti e' uno scroll
+      if (dx > SOGLIA && dy < dx * 0.7) {
+        setNavStack(st => st.length > 1 ? st.slice(0, -1) : st);
+        try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch (err) {}
+      }
+    };
+    document.addEventListener('pointerdown', giu, true);
+    document.addEventListener('pointerup', su, true);
+    return () => {
+      document.removeEventListener('pointerdown', giu, true);
+      document.removeEventListener('pointerup', su, true);
+    };
+  }, []);
   // Router globale: le BottomTabBar renderizzate da altri file (profile, map)
   // navigano via setPage senza reload. Riassegnato a ogni render.
   useEffect(() => {

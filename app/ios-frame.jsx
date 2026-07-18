@@ -146,7 +146,7 @@ function IOSDevice({
   }, []);
   if (isMobile) {
     return (
-      <div style={{
+      <div data-byup-screen style={{
         position: 'fixed', inset: 0, overflow: 'hidden',
         background: dark ? '#000' : '#F2F2F7',
         fontFamily: '-apple-system, system-ui, sans-serif',
@@ -171,7 +171,7 @@ function IOSDevice({
     );
   }
   return (
-    <div style={{
+    <div data-byup-screen style={{
       width, height, borderRadius: 48, overflow: 'hidden',
       position: 'relative', background: dark ? '#000' : '#F2F2F7',
       boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
