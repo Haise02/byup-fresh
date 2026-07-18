@@ -1,10 +1,18 @@
 # byup — Design System · App Consumer
 
-> Riferimento unico per lo sviluppo dell'app consumer byup (prototipo `app/`).
-> La fonte di verità dei token è **`byup-app-kit.jsx`** (`window.ByupKit`, alias `BK`):
+> Riferimento unico per lo sviluppo dell'app consumer byup (cartella `app/` di questo repo).
+> La fonte di verità dei token è **[`byup-app-kit.jsx`](./byup-app-kit.jsx)** (`window.ByupKit`, alias `BK`):
 > questo documento la descrive, non la sostituisce. Se tocchi un token, aggiornalo lì.
 
+**Repo:** `github.com/Haise02/byup-fresh` (cartella `app/`) · **Demo live:** [byup-fresh.vercel.app/app/byup%20Home.html](https://byup-fresh.vercel.app/app/byup%20Home.html)
 **Ultimo aggiornamento:** 17 lug 2026 · **Stack:** React no-build (Babel-standalone runtime) · **Lingue UI:** italiano
+
+### Quick start (per chi arriva da zero)
+1. Clona il repo, apri la cartella `app/` — non c'è build: i `.jsx` vengono compilati nel browser da Babel-standalone.
+2. Entry point: **`byup Home.html`** (SPA completa). Serve un server statico qualsiasi (`npx serve`, Live Server, o il deploy Vercel) perché gli asset usano percorsi relativi. In alternativa `home-standalone.html` funziona anche da `file://` (contiene i moduli già precompilati).
+3. Deploy: push su `main` → Vercel pubblica in automatico ([vercel.json](../vercel.json) serve i `.jsx` come `text/babel`).
+4. Dopo ogni modifica ai `.jsx`, rigenera gli standalone: `node build-standalone.js app.jsx menu.jsx …` (vedi §11).
+5. Scorciatoie utili in sviluppo: `?page=byuppini|roadmap|menu|search|profile|map` per aprire una pagina diretta; `localStorage byup.themeMode='dark'` per il tema scuro; `localStorage byup_auth='1'` e `byup_perms='1'` per saltare l'onboarding.
 
 ---
 
@@ -22,7 +30,7 @@
 
 | Cosa | Regola |
 |---|---|
-| Moduli | `<script type="text/babel">` compilati a runtime. Ordine di load: **byup-app-kit → ios-frame → extras → venue-variants → map → auth → app → dish-art → menu** |
+| Moduli | `<script type="text/babel">` compilati a runtime. Ordine di load: **[byup-app-kit](./byup-app-kit.jsx) → [ios-frame](./ios-frame.jsx) → [extras](./extras.jsx) → [venue-variants](./venue-variants.jsx) → [map](./map.jsx) → [auth](./auth.jsx) → [app](./app.jsx) → [dish-art](./dish-art.jsx) → [menu](./menu.jsx)** |
 | Global | Ogni file espone ciò che serve su `window` (`ByupKit`, `MenuApp`, `BottomTabBar`, `__byupNav`, …). Ogni file è un IIFE: niente const globali condivise |
 | Routing SPA | `window.__byupNav = { go(page), home(), venue() }` + deep-link `?page=…`. Il menu è una pagina della SPA (`page==='menu'` → `window.MenuApp`) |
 | Stato cross-schermata | `sessionStorage`: `byup_menu_route` (deep-route del menu), `byup_menu_premium`, `byup_table` (pagamenti fatti/residuo), `byup_menu_from` |
@@ -161,20 +169,20 @@ Feedback tattile: `.bk-press` (scale .97 al tap) + `BK.haptic` → `selection(8m
 | Componente | File | Contratto |
 |---|---|---|
 | `BottomTabBar` | (kit/global) | 4 tab + notch QR centrale, h 78px fissa, `active`, `onHome/onByuppini/onProfile`, `showQR`, `forceDark` |
-| `HomeSections` | app.jsx | Home componibile: header+search+moment bar sticky, sezioni; callback `onCategory`, `onMap`, `onCardClick`… |
+| `HomeSections` | [app.jsx](./app.jsx) | Home componibile: header+search+moment bar sticky, sezioni; callback `onCategory`, `onMap`, `onCardClick`… |
 | `StackCard`/`StackCarousel` | app.jsx | "Da scoprire": card con widget glass (nome + ↗ + stato dot + rating) |
 | `RestaurantBigCard` | app.jsx | Foto full-bleed + pannello glass basso |
 | `CategoryScreen` | app.jsx | Griglia 2 colonne sfalsate, chips filtro, card foto 188/236px |
 | `OpenTableCard` | app.jsx | Card home "tavolo aperto" da `sessionStorage byup_table` |
 | `RoadmapScreen` | app.jsx | Mappa 864×1821 (`assets/road-city.png`), overlay `venue-N.png` posizionati da `ROAD_P` (frazioni), filler specchiato+blur sopra e sotto |
 | Byup Games (`BypWheel`…) | app.jsx | Card arcade pastello + box scuro `#241D22`; **solo la CTA apre il gioco**, la card si trascina soltanto |
-| `OrderSheet` + `SwipeDishRow` | menu.jsx | Carrello con swipe → tavolo / ← dividi |
+| `OrderSheet` + `SwipeDishRow` | [menu.jsx](./menu.jsx) | Carrello con swipe → tavolo / ← dividi |
 | `SplitPickSheet` | menu.jsx | "Con chi dividi?" avatar selezionabili |
 | `PaymentScreen` + `SlideToPay` | menu.jsx | Conto: card "Tu", "Il tavolo" raggruppato, ospiti aggregati ("N Ospiti"), CTA slide |
 | `GuestsSheet` | menu.jsx | Al tavolo: app/web singoli + riga collettiva Ospiti |
-| `BookingSheet` | extras.jsx | Prenotazione single-screen a griglie |
+| `BookingSheet` | [extras.jsx](./extras.jsx) | Prenotazione single-screen a griglie |
 | `ProfileScreen` | extras.jsx | QuickCard 2×2 (in dark il box icona usa il tint pastello), avatar default `assets/avatar-default.png` |
-| `VenuePremium` | venue-variants.jsx | Vetrina oro/scura, menu reel-style con PNG ancorati dal basso |
+| `VenuePremium` | [venue-variants.jsx](./venue-variants.jsx) | Vetrina oro/scura, menu reel-style con PNG ancorati dal basso |
 
 ### Regole di comportamento
 - Il popup carrello **non si auto-espande** (si apre a tap/drag sull'handle).
@@ -230,6 +238,7 @@ Icone di sistema: SVG inline stroke 2–2.6, `strokeLinecap/Join round`, 11–17
 - **Babel 8 rompe gli standalone**: usare @babel/standalone **v7** o preset `[['react',{runtime:'classic'}]]` (già nel build script).
 - **IIFE obbligatorie** nei blocchi compilati degli standalone (collisioni di `const` globali).
 - `background` shorthand nei React style **resetta** `backgroundSize/Position`: metterlo prima delle proprietà specifiche.
-- `MascotMoment` intercetta i click (test Playwright: usare click via `evaluate`).
-- File grandi: editare via Python sul mount VM, non con gli edit host (troncamento).
-- Repo condiviso col team: gli upload GitHub web **sovrascrivono** — mai toccare `gestionale/`, `cameriere/`, `spot/`, `staff/`, `web/`.
+- `MascotMoment` intercetta i click (nei test E2E: usare click programmatici via `evaluate`).
+- Gli standalone (`home-standalone.html`, `menu-standalone.html`) sono **generati**: non editarli a mano, modificare i `.jsx` e rilanciare `build-standalone.js`.
+- Le foto dei locali/piatti demo sono URL Unsplash: prima di aggiungerne di nuove verificare che l'ID esista e che il soggetto sia coerente.
+- Repo condiviso: la cartella `app/` è dell'app consumer — non toccare `gestionale/`, `cameriere/`, `spot/`, `staff/`, `web/` (altri stream di lavoro).
