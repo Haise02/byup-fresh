@@ -366,16 +366,11 @@ function StaffAppPromo() {
   };
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 20,
-      padding: 18,
-      /* Gradiente interno: la promo è l'unico blocco non-obbligatorio della
-         schermata, e la superficie sfumata la stacca dalle card bianche dei
-         due passi senza aggiungere un bordo pesante. */
-      background: 'linear-gradient(120deg, #FFEFEC 0%, #FFF7F0 46%, #F9EEF8 100%)',
-      border: '1px solid rgba(255, 90, 95, 0.20)',
-      borderRadius: 12,
-    }}>
+    /* Superficie aurora — il mesh pink/lavender/cream del design system, non un
+       gradiente su misura: la promo è l'unico blocco non obbligatorio della
+       schermata e aurora la stacca dalle card bianche dei due passi. */
+    <OnbCard variant="aurora" padding={18}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{
           fontSize: 17, fontWeight: 600, color: ONB.TEXT,
@@ -402,7 +397,8 @@ function StaffAppPromo() {
         </div>
       </div>
       <QrMock size={116}/>
-    </div>
+      </div>
+    </OnbCard>
   );
 }
 
