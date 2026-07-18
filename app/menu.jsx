@@ -785,6 +785,7 @@ function MenuScreen({ state, setState, goTo }) {
     setCopertiSheetOpen(true);
   };
   const confirmCoperti = (n) => {
+    saveCoperti(n);
     setState(s => ({ ...s, coperti: n, copertiSelected: true }));
     setCopertiSheetOpen(false);
     if (afterCoperti) { const f = afterCoperti; setAfterCoperti(null); setTimeout(f, 120); }
@@ -3279,6 +3280,19 @@ function tableRemaining(order) {
   const settled = seedSettled(order);
   return order.items.reduce((s, it) => s + lineRemaining(order, it, settled), 0);
 }
+// I coperti valgono per tutta la serata al tavolo, ma la SPA smonta MenuApp
+// ogni volta che si torna in home: tenendoli nel solo state, "Salda il resto"
+// li richiedeva di nuovo.
+function loadCoperti() {
+  try {
+    const n = parseInt(sessionStorage.getItem('byup_coperti') || '', 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch (e) { return null; }
+}
+function saveCoperti(n) {
+  try { sessionStorage.setItem('byup_coperti', String(n)); } catch (e) {}
+}
+
 function applyPayments(setState, payments) {
   setState(s => {
     const ord = s.activeOrder;
@@ -4433,6 +4447,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       {/* Coperti — obbligatori: si entra qui dal "Paga ora" */}
       {copertiOpen && (
         <CopertiSheet onConfirm={(n) => {
+          saveCoperti(n);
           setState(st => ({ ...st, coperti: n, copertiSelected: true }));
           setCopertiOpen(false);
         }}/>
@@ -5494,9 +5509,11 @@ function MenuApp({ initial = null }) {
     pickupCode: '4729',
   } : null;
 
-  const [state, setState] = useState({
+  const [state, setState] = useState(() => ({
     cart: [],
     splits: {},
+    coperti: loadCoperti() || undefined,
+    copertiSelected: loadCoperti() != null,
     takeawayOrder: demoTakeaway,
     activeOrder: {
       venue: 'Ristorante Maria Grazia',
@@ -5544,7 +5561,7 @@ function MenuApp({ initial = null }) {
       ],
     },
     participants: null,
-  });
+  }));
   // Riprendi i pagamenti già fatti in questa sessione (la SPA smonta MenuApp
   // quando torni in home: senza hydrate il conto tornerebbe tutto da pagare).
   useEffect(() => {

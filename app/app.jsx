@@ -2463,12 +2463,6 @@ function HomeSections({
     <>
       {topBar}
 
-      {/* Conto aperto: resta agganciato in cima mentre la home scorre. E' lo
-          stato piu' urgente per chi e' seduto al tavolo — nel flusso, sotto le
-          categorie, spariva al primo scroll. */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 30 }}>
-        <OpenTableCard/>
-      </div>
 
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
       <div style={{
@@ -2633,6 +2627,11 @@ function HomeSections({
       {!noVenues && (
         <>
           {/* Categories — secondary discovery (smaller, scrollable) */}
+          {/* Card del tavolo: alta nella home, subito sopra le categorie, ma
+              nel flusso — non agganciata come header. Mostra "Salda il resto",
+              cioe' un residuo del tavolo, non un'azione che l'utente deve avere
+              sempre sotto gli occhi mentre esplora. */}
+          <OpenTableCard/>
           <SectionHeader title="Esplora per categoria"/>
           <AutoLoopScroll speed={24}>
             {cats.map(c => (
