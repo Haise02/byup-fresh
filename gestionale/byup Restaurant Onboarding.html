@@ -14,18 +14,29 @@
   html, body { margin:0; padding:0; }
   body {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    background: #FAFBFC;             /* off-white canvas, mai #fff puro */
+    /* Canvas allineato al resto del gestionale: stacca il frame dallo sfondo,
+       che con #FAFBFC su #FAFBFC risultava invisibile. */
+    background: #ECEEF1;
     color: #1A1D24;
     -webkit-font-smoothing: antialiased;
+    /* Centra il frame: zoom proporzionale via JS (fondo pagina) */
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .frame {
     width: 1440px;
+    height: 900px;                   /* canvas fisso come le altre schermate: abilita lo zoom-fit */
     margin: 24px auto;
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(15,17,21,0.04);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
     overflow: hidden;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
   }
   /* Stage controls: aiuto-demo per navigare tra step. Posizione bottom-right,
      molto neutro, sotto la soglia di attenzione. */
@@ -64,7 +75,16 @@
   .step-stage {
     animation: step-stage-enter 320ms ease-out;
     transform-origin: center top;
+    /* Riempie l'altezza residua del frame sotto l'header. Se un singolo step
+       eccede il canvas, scrolla al suo interno invece di sfondare il frame. */
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background: #FAFBFC;
   }
+  .step-stage::-webkit-scrollbar { width: 8px; }
+  .step-stage::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 999px; }
+  .step-stage::-webkit-scrollbar-track { background: transparent; }
 </style>
 </head>
 <body>
@@ -89,5 +109,29 @@
 <script type="text/babel" src="onboarding-step3-sale-tavoli.jsx"></script>
 <script type="text/babel" src="onboarding-step4-verifica.jsx"></script>
 <script type="text/babel" src="onboarding-app.jsx"></script>
+
+<!-- Zoom proporzionale: identico alle altre schermate del gestionale, così
+     l'onboarding non appare rimpicciolito rispetto al resto dell'app. -->
+<script>
+(function () {
+  var DESIGN_H = 900, MARGIN = 24, MIN_W = 1280;
+  var cur = { frame: null, zoom: null, width: null };
+  function fit() {
+    var frame = document.querySelector('.frame');
+    if (!frame) return;
+    var s = (window.innerHeight - MARGIN) / DESIGN_H;
+    s = Math.max(0.4, Math.min(2.2, s));
+    var w = Math.max(MIN_W, (window.innerWidth - MARGIN) / s);
+    if (frame !== cur.frame || s !== cur.zoom) frame.style.zoom = s;
+    if (frame !== cur.frame || w !== cur.width) frame.style.width = w + 'px';
+    cur = { frame: frame, zoom: s, width: w };
+  }
+  window.addEventListener('resize', fit);
+  // Il frame lo monta React dopo la compilazione Babel (async, da CDN):
+  // l'observer applica il fit appena compare, e a ogni remount.
+  new MutationObserver(fit).observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
+  fit();
+})();
+</script>
 </body>
 </html>

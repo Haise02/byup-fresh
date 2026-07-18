@@ -16,44 +16,62 @@ function Step1Upload({onAnalyze}) {
 
   return (
     <div style={{
-      padding: '48px 48px 64px',
+      padding: '40px 48px 44px',
       background: ONB.BG_SOFT,
-      minHeight: 760,
+      minHeight: '100%',
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
     }}>
-      <div style={{maxWidth: 720, margin: '0 auto'}}>
+      {/* Colonna più larga (1000 invece di 720): dentro il frame 1440 la vecchia
+          colonna stretta lasciava ~360px di vuoto per lato e faceva leggere tutta
+          la schermata come "rimpicciolita". Hero centrato + due opzioni affiancate
+          riempiono il canvas e accorciano la pagina di ~200px in verticale. */}
+      <div style={{maxWidth: 1000, width: '100%', margin: '0 auto'}}>
 
-        {/* Eyebrow chip BRAND_TINT — è il punto di "vivacità identitaria":
-            mantiene il pattern small-caps Linear-style ma comunica brand subito.
-            Coerente con i numbered badge nelle sezioni dei sub-step. */}
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '4px 10px', borderRadius: 999,
-          background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
-          fontSize: 14, fontWeight: 600,
-          letterSpacing: '0.04em', textTransform: 'uppercase',
-          marginBottom: 14,
-        }}>
-          <span style={{
-            width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
-          }}/>
-          Step 1 di 4
+        {/* Hero centrato — è la schermata di benvenuto: l'asse centrale allinea
+            eyebrow, titolo, dropzone e CTA su un'unica colonna ottica. */}
+        <div style={{textAlign: 'center', marginBottom: 32}}>
+
+          {/* Eyebrow chip BRAND_TINT — è il punto di "vivacità identitaria":
+              mantiene il pattern small-caps Linear-style ma comunica brand subito.
+              Coerente con i numbered badge nelle sezioni dei sub-step. */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 10px', borderRadius: 999,
+            background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
+            fontSize: 14, fontWeight: 600,
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            marginBottom: 14,
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
+            }}/>
+            Step 1 di 4
+          </div>
+
+          <h1 style={{
+            fontSize: 38, fontWeight: 600, lineHeight: 1.18,
+            letterSpacing: '-0.02em', margin: '0 auto 12px', color: ONB.TEXT,
+            /* 640 forza l'a-capo sul punto fermo — due righe bilanciate invece
+               di una riga lunga + "pensiamo noi." orfano. */
+            maxWidth: 640, textWrap: 'balance',
+          }}>
+            Carica il menù del tuo locale. Al resto ci pensiamo noi.
+          </h1>
+          <p style={{
+            fontSize: 17, fontWeight: 400, lineHeight: 1.5,
+            color: ONB.MUTED, margin: '0 auto', maxWidth: 640,
+          }}>
+            Bastano un PDF, delle foto o il link al sito.
+            Importeremo automaticamente piatti, prezzi, allergeni e sezioni:
+            potrai sempre modificare tutto prima di pubblicare.
+          </p>
         </div>
 
-        {/* Hero — left-aligned. Headline 32px coerente con scala. */}
-        <h1 style={{
-          fontSize: 34, fontWeight: 600, lineHeight: 1.2,
-          letterSpacing: '-0.02em', margin: '0 0 12px', color: ONB.TEXT,
-        }}>
-          Carica il menù del tuo locale. Al resto ci pensiamo noi.
-        </h1>
-        <p style={{
-          fontSize: 18, fontWeight: 400, lineHeight: 1.4,
-          color: ONB.MUTED, margin: '0 0 32px', maxWidth: 560,
-        }}>
-          Bastano un PDF, delle foto o il link al sito.
-          Importeremo automaticamente piatti, prezzi, allergeni e sezioni:
-          potrai sempre modificare tutto prima di pubblicare.
-        </p>
+        {/* Due strade affiancate: file a sinistra (primaria, più larga), link a
+            destra. Prima erano impilate con un divider orizzontale in mezzo —
+            costava altezza e faceva scorrere la pagina. */}
+        <div style={{display: 'flex', alignItems: 'stretch', gap: 0}}>
+        <div style={{flex: '1 1 0', minWidth: 0, display: 'flex'}}>
 
         {/* Dropzone — singolo file slot. Stato "vuoto" usa un'animazione continua
             in loop (glass-shimmer = sweep di luce orizzontale ogni 5.2s) per
@@ -79,6 +97,8 @@ function Step1Upload({onAnalyze}) {
             e.currentTarget.style.borderColor = dragOver ? ONB.BRAND : 'rgba(15, 17, 21, 0.16)';
           }}
           style={{
+            width: '100%',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
             background: '#fff',
             border: `1.5px dashed ${dragOver ? ONB.BRAND : 'rgba(15, 17, 21, 0.16)'}`,
             borderRadius: 12,
@@ -148,34 +168,44 @@ function Step1Upload({onAnalyze}) {
             <FilePreview file={file} onRemove={() => setFile(null)}/>
           )}
         </div>
-
-        {/* Divider — thin, label all-lower per non urlare */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          margin: '24px 0',
-        }}>
-          <div style={{flex: 1, height: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
-          <span style={{fontSize: 14, color: ONB.MUTED, fontWeight: 500}}>oppure</span>
-          <div style={{flex: 1, height: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
         </div>
 
-        {/* Link import — row compatta */}
+        {/* Divider verticale — stessa gerarchia dell'orizzontale precedente,
+            ma separa due colonne invece di due blocchi impilati. */}
         <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: 10, margin: '0 20px', alignSelf: 'stretch',
+        }}>
+          <div style={{flex: 1, width: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
+          <span style={{fontSize: 14, color: ONB.MUTED, fontWeight: 500}}>oppure</span>
+          <div style={{flex: 1, width: 1, background: 'rgba(15, 17, 21, 0.08)'}}/>
+        </div>
+
+        {/* Link import — colonna stretta a destra: campo e bottone impilati
+            perché a 340px la riga input+bottone starebbe stretta. */}
+        <div style={{
+          flex: '0 0 340px',
           background: '#fff', border: '1px solid rgba(15, 17, 21, 0.08)',
-          borderRadius: 10, padding: 20,
+          borderRadius: 12, padding: 24,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
         }}>
           <div style={{
-            fontSize: 16, fontWeight: 600, color: ONB.TEXT, marginBottom: 4,
+            fontSize: 17, fontWeight: 600, color: ONB.TEXT, marginBottom: 4,
+            letterSpacing: '-0.01em',
           }}>
             Hai una pagina web?
           </div>
           <div style={{
-            fontSize: 15, color: ONB.MUTED, marginBottom: 16, lineHeight: 1.4,
+            fontSize: 15, color: ONB.MUTED, marginBottom: 16, lineHeight: 1.45,
           }}>
             Incolla il link: importeremo menù, orari e info del locale.
           </div>
-          <div style={{display: 'flex', gap: 8}}>
-            <UrlInput value={url} onChange={setUrl}/>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+            {/* UrlInput ha flex:1 (pensato per una row): lo isolo in un contesto
+                flex orizzontale così cresce in larghezza e non in altezza. */}
+            <div style={{display: 'flex'}}>
+              <UrlInput value={url} onChange={setUrl}/>
+            </div>
             <button
               onClick={url.length > 6 ? pickMockFile : undefined}
               disabled={url.length <= 6}
@@ -193,13 +223,14 @@ function Step1Upload({onAnalyze}) {
             </button>
           </div>
         </div>
+        </div>
 
         {/* Footer — solo CTA primaria centrata.
             Niente link "configurazione manuale" né "salva e riprendi dopo": lo step 1
             ha una sola decisione da prendere (carica e analizza), non distraibile. */}
         <div style={{
           display: 'flex', justifyContent: 'center', alignItems: 'center',
-          marginTop: 32,
+          marginTop: 28,
         }}>
           <PrimaryCta
             onClick={canSubmit ? onAnalyze : undefined}
