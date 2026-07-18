@@ -390,7 +390,11 @@ function StaffAppPromo() {
           taglia netta a filo). Se il file manca si toglie da sola e il box
           resta impaginato, senza riquadro rotto in mezzo alla card. */}
       <img
-        src="mascot-staff.png"
+        /* ?v=2 — il primo deploy referenziava questo file prima che esistesse:
+           i client che hanno visitato allora si sono cachati il 404 (i .png
+           hanno max-age 86400 in vercel.json) e continuavano a non vedere la
+           mascotte. Cambiare l'URL aggira la cache negativa. */
+        src="mascot-staff.png?v=2"
         alt="La mascotte di Byup Staff con l'app aperta sul telefono"
         onError={(e) => { e.currentTarget.style.display = 'none'; }}
         style={{
