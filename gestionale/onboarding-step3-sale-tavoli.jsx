@@ -48,51 +48,65 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
 
   return (
     <div style={{
-      padding: '40px 48px 64px',
+      minHeight: '100%',
       background: ONB.BG_SOFT,
-      minHeight: 760,
+      padding: '32px 80px 28px',
+      display: 'flex', alignItems: 'flex-start',
     }}>
-      <div style={{maxWidth: 880, margin: '0 auto'}}>
+      {/* Stessa griglia di step 1 e 2: contesto a sinistra, scelte a destra. */}
+      <div style={{
+        width: '100%', maxWidth: 1240, margin: '0 auto',
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 620px',
+        gap: 72, alignItems: 'start',
+      }}>
 
-        {/* Hero — illustrazione + copy. Layout flex per integrare sala-illustration
-            (planimetria astratta) col headline. Il copy segue la modalità: prima
-            è una domanda ("Come lavora il tuo locale?"), poi — scelto "Ho sale e
-            tavoli" — torna il titolo del flusso di configurazione. */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 24,
-          marginBottom: 32,
-        }}>
-          <SalaHeroIllustration/>
-          <div>
-            <div style={{
-              fontSize: 14, fontWeight: 500, color: ONB.MUTED,
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-              marginBottom: 8,
-            }}>
-              Step 3 di 4
-            </div>
-            <h1 style={{
-              fontSize: 34, fontWeight: 600, lineHeight: 1.2,
-              letterSpacing: '-0.02em', margin: '0 0 8px', color: ONB.TEXT,
-            }}>
-              {mode === 'tavoli' ? 'Crea sale, tavoli e QR Code.' : 'Come lavora il tuo locale?'}
-            </h1>
-            <p style={{
-              fontSize: 18, fontWeight: 400, lineHeight: 1.4,
-              color: ONB.MUTED, margin: 0, maxWidth: 540,
-            }}>
-              {mode === 'tavoli'
-                ? <>Aggiungi le sale del locale e quanti tavoli ospitano: ogni tavolo avrà 4 coperti, potrai modificarli in seguito.
-                    Verrà generato un QR Code per ogni tavolo, stampali e applicali!</>
-                : <>Scegli la modalità più adatta al tuo servizio: potrai cambiarla in qualsiasi momento dalle Impostazioni.</>}
-            </p>
+        {/* ─── Colonna sinistra — contesto ────────────────────────────── */}
+        {/* Il copy segue la modalità: prima è una domanda ("Come lavora il tuo
+            locale?"), poi — scelto "Ho sale e tavoli" — diventa il titolo del
+            flusso di configurazione. */}
+        <div>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 10px', borderRadius: 999,
+            background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
+            fontSize: 14, fontWeight: 600,
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            marginBottom: 20,
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
+            }}/>
+            Step 3 di 4
           </div>
+          <h1 style={{
+            fontSize: 40, fontWeight: 600, lineHeight: 1.15,
+            letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
+          }}>
+            {mode === 'tavoli' ? 'Crea sale, tavoli e QR Code.' : 'Come lavora il tuo locale?'}
+          </h1>
+          <p style={{
+            fontSize: 18, fontWeight: 400, lineHeight: 1.5,
+            color: ONB.MUTED, margin: '0 0 24px', maxWidth: 460,
+          }}>
+            {mode === 'tavoli'
+              ? <>Aggiungi le sale del locale e quanti tavoli ospitano: ogni tavolo avrà 4 coperti, potrai modificarli in seguito.
+                  Verrà generato un QR Code per ogni tavolo, stampali e applicali!</>
+              : <>Scegli la modalità più adatta al tuo servizio: potrai cambiarla in qualsiasi momento dalle Impostazioni.</>}
+          </p>
+
+          {/* Planimetria astratta — decorativa, chiude la colonna di testo */}
+          <SalaHeroIllustration/>
+
+          <ProcessingBanner inline/>
         </div>
+
+        {/* ─── Colonna destra — scelte e configurazione ───────────────── */}
+        <div>
 
         {/* Scelta modalità — due radio card grandi affiancate */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
-          marginBottom: 24,
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+          marginBottom: 16,
         }}>
           <ServiceModeCard
             selected={mode === 'tavoli'}
@@ -165,11 +179,14 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
         {/* Solo asporto — info box calmo al posto della configurazione */}
         {mode === 'asporto' && <AsportoInfoBox/>}
 
-        {/* Footer */}
+        {/* Footer — sticky come nello step 2: aggiungendo sale la colonna supera
+            il canvas e "Continua" finirebbe sotto il bordo. */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 32, paddingTop: 24,
+          position: 'sticky', bottom: 0, zIndex: 5,
+          marginTop: 20, paddingTop: 18, paddingBottom: 4,
           borderTop: '1px solid rgba(15, 17, 21, 0.08)',
+          background: ONB.BG_SOFT,
         }}>
           <SecondaryCta onClick={onBack}>
             <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
@@ -179,6 +196,7 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
             Continua
             <OnbIcon.ArrowRight size={14} color="#fff"/>
           </PrimaryCta>
+        </div>
         </div>
       </div>
 
@@ -215,11 +233,12 @@ function ServiceModeCard({selected, icon, title, desc, onSelect}) {
       onClick={onSelect}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      className={selected ? 'aurora-soft-bg' : ''}
       style={{
         position: 'relative',
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14,
-        padding: '24px 24px 26px',
-        background: selected ? ONB.BRAND_TINT : '#fff',
+        padding: '20px 20px 22px',
+        ...(selected ? {} : {background: '#fff'}),
         border: `1px solid ${selected
           ? 'rgba(255, 90, 95, 0.30)'
           : hover ? 'rgba(15, 17, 21, 0.24)' : 'rgba(15, 17, 21, 0.08)'}`,

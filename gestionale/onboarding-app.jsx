@@ -73,12 +73,10 @@ function OnboardingApp() {
         <GlassMeshSubstrate/>
         <OnbHeader step={step} subStep={subStep}/>
 
-        {/* Banner "menù in elaborazione" — visibile solo in step 2 e 3.
-            Sparisce quando arriva su step 4 (anteprima menu): la promessa è mantenuta.
-            Nello step 2 non è renderizzato qui ma in flusso, sotto il blocco di
-            testo della colonna sinistra (vedi Step2Locale); lo step 3 non ha
-            quella colonna, quindi lì resta floating. */}
-        {step === 3 && <ProcessingBanner/>}
+        {/* Banner "menù in elaborazione" — visibile solo in step 2 e 3, sparisce
+            su step 4 (anteprima menu): la promessa è mantenuta.
+            Non è renderizzato qui: da quando entrambi gli step hanno la colonna
+            di testo, vive in flusso dentro di essa (vedi Step2Locale/Step3SaleTavoli). */}
 
         {/* step-stage wrapper con key={step}: forza remount alla cambio step,
             facendo ripartire la CSS animation di entrata (scale-up + fade) —

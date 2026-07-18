@@ -9,7 +9,7 @@
 //   • Accordion con primo item sempre visibile + reveal prezzo on hover
 //   • CTA primaria con freccia che si sposta on hover (translate 4px)
 
-const MENU_PREVIEW = [
+const MENU_INIZIALE = [
   {id: 'antipasti', name: 'Antipasti', count: 3, dishes: [
     {name: 'Bruschetta al pomodoro',          price: 6.00,  color: '#F4B860'},
     {name: 'Tagliere misto',                  price: 14.00, color: '#A87B5C'},
@@ -38,47 +38,81 @@ const MENU_PREVIEW = [
 ];
 
 function Step4Verifica({venue, rooms, onBack, onComplete}) {
-  const totalDishes = MENU_PREVIEW.reduce((s, c) => s + c.count, 0);
+  // Il menù è stato, non più una costante: nomi, prezzi e categorie si
+  // modificano qui. MENU_INIZIALE resta il seed dell'import AI.
+  const [menu, setMenu] = React.useState(MENU_INIZIALE);
+
+  const totalDishes = menu.reduce((s, c) => s + c.dishes.length, 0);
   const totalTables = rooms.reduce((s, r) => s + r.tables, 0);
+
+  const updateDish = (catId, idx, patch) =>
+    setMenu(m => m.map(c => c.id !== catId ? c : {
+      ...c, dishes: c.dishes.map((d, i) => i === idx ? {...d, ...patch} : d),
+    }));
+
+  const removeDish = (catId, idx) =>
+    setMenu(m => m.map(c => c.id !== catId ? c : {
+      ...c, dishes: c.dishes.filter((_, i) => i !== idx),
+    }));
+
+  const addDish = (catId) =>
+    setMenu(m => m.map(c => c.id !== catId ? c : {
+      ...c, dishes: [...c.dishes, {name: '', price: 0, color: '#E4E7EB'}],
+    }));
+
+  const renameCategory = (catId, name) =>
+    setMenu(m => m.map(c => c.id === catId ? {...c, name} : c));
+
+  const removeCategory = (catId) => setMenu(m => m.filter(c => c.id !== catId));
+
+  const addCategory = () =>
+    setMenu(m => [...m, {id: `cat-${Date.now()}`, name: '', dishes: []}]);
 
   return (
     <div style={{
-      padding: '28px 48px 24px',
-      background: ONB.BG_SOFT,
       minHeight: '100%',
-      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      background: ONB.BG_SOFT,
+      padding: '32px 80px 28px',
+      display: 'flex', alignItems: 'flex-start',
     }}>
-      <div style={{maxWidth: 1080, margin: '0 auto'}}>
+      <div style={{width: '100%', maxWidth: 1240, margin: '0 auto'}}>
 
-        {/* Two-column split 55/45 */}
+        {/* Stessa griglia degli altri step. La colonna stretta tiene il telefono
+            e, sotto, il riepilogo di quanto configurato. */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1.22fr 1fr',  /* ≈55/45 */
-          gap: 48, alignItems: 'flex-start',
+          display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px',
+          gap: 72, alignItems: 'start',
         }}>
-          {/* LEFT — celebration + content */}
+
+          {/* ─── Colonna sinistra — chiusura + editor del menù ─────────── */}
           <div style={{position: 'relative', minWidth: 0}}>
             {/* Confetti — canvas absolutely positioned su top dell'area sinistra */}
             <ConfettiCanvas/>
 
-            {/* Eyebrow */}
             <div style={{
-              fontSize: 14, fontWeight: 500, color: ONB.MUTED,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 10px', borderRadius: 999,
+              background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
+              fontSize: 14, fontWeight: 600,
               letterSpacing: '0.04em', textTransform: 'uppercase',
-              marginBottom: 12, position: 'relative', zIndex: 1,
+              marginBottom: 20, position: 'relative', zIndex: 1,
             }}>
+              <span style={{
+                width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
+              }}/>
               Step 4 di 4
             </div>
 
             <h1 style={{
-              fontSize: 34, fontWeight: 600, lineHeight: 1.2,
-              letterSpacing: '-0.02em', margin: '0 0 12px', color: ONB.TEXT,
+              fontSize: 40, fontWeight: 600, lineHeight: 1.15,
+              letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
               position: 'relative', zIndex: 1,
             }}>
               Il tuo locale è online.
             </h1>
             <p style={{
-              fontSize: 18, fontWeight: 400, lineHeight: 1.4,
-              color: ONB.MUTED, margin: '0 0 24px', maxWidth: 540,
+              fontSize: 18, fontWeight: 400, lineHeight: 1.5,
+              color: ONB.MUTED, margin: '0 0 28px', maxWidth: 520,
               position: 'relative', zIndex: 1,
             }}>
               {/* Bold + italic combinato sulla parte clickable concettuale.
@@ -87,28 +121,20 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
               Puoi modificare il tuo menù <b><i>dalle impostazioni locale</i></b> quando vuoi.
             </p>
 
-            {/* Checklist */}
-            <CompletionChecklist
-              venue={venue}
-              rooms={rooms}
-              totalDishes={totalDishes}
-              totalTables={totalTables}
-            />
-
-            {/* Anteprima menu accordion */}
-            <div style={{marginTop: 20}}>
+            {/* ── Anteprima del menù — editabile ── */}
+            <div style={{position: 'relative', zIndex: 1}}>
               <div style={{
                 display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
                 marginBottom: 12,
               }}>
                 <h2 style={{
-                  fontSize: 18, fontWeight: 600, color: ONB.TEXT,
+                  fontSize: 20, fontWeight: 600, color: ONB.TEXT,
                   letterSpacing: '-0.01em', margin: 0,
                 }}>
                   Anteprima del menù
                 </h2>
                 <span style={{fontSize: 15, color: ONB.MUTED, fontWeight: 500}}>
-                  {totalDishes} piatti · {MENU_PREVIEW.length} categorie
+                  {totalDishes} piatti · {menu.length} categorie
                 </span>
               </div>
 
@@ -119,28 +145,79 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
                 overflow: 'hidden',
                 boxShadow: '0 1px 2px rgba(15, 17, 21, 0.04)',
               }}>
-                {MENU_PREVIEW.map((cat, i) => (
+                {menu.map((cat, i) => (
                   <MenuCategoryRow
                     key={cat.id}
                     cat={cat}
-                    isLast={i === MENU_PREVIEW.length - 1}
+                    isLast={i === menu.length - 1}
+                    onRename={(name) => renameCategory(cat.id, name)}
+                    onRemove={() => removeCategory(cat.id)}
+                    onUpdateDish={(idx, patch) => updateDish(cat.id, idx, patch)}
+                    onRemoveDish={(idx) => removeDish(cat.id, idx)}
+                    onAddDish={() => addDish(cat.id)}
                   />
                 ))}
+              </div>
+
+              <button onClick={addCategory} style={{
+                marginTop: 10, width: '100%', padding: '11px 16px',
+                background: 'transparent',
+                border: '1.5px dashed rgba(15, 17, 21, 0.16)',
+                borderRadius: 10,
+                fontSize: 15, fontWeight: 500, color: ONB.TEXT, fontFamily: 'inherit',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'border-color 150ms ease-out',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(15, 17, 21, 0.32)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(15, 17, 21, 0.16)'}
+              >
+                <OnbIcon.Plus size={14} color={ONB.TEXT}/>
+                Aggiungi categoria
+              </button>
+
+              {/* Ribadito accanto all'editor e non solo nell'headline: è qui che
+                  l'utente si chiede se deve sistemare tutto adesso. */}
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+                fontSize: 14, lineHeight: 1.45, color: ONB.MUTED, marginTop: 12,
+              }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: 999, flexShrink: 0, marginTop: 1,
+                  background: 'rgba(15, 17, 21, 0.05)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 600, color: ONB.MUTED,
+                }}>i</span>
+                Qui puoi correggere al volo nomi e prezzi. Il menù completo —
+                foto, descrizioni, allergeni e disponibilità — si gestisce in
+                qualsiasi momento da Impostazioni → Menù.
               </div>
             </div>
           </div>
 
-          {/* RIGHT — phone mockup */}
-          <div style={{position: 'sticky', top: 24}}>
-            <PhoneMockup/>
+          {/* ─── Colonna destra — telefono, e sotto il riepilogo ────────── */}
+          <div>
+            <PhoneMockup menu={menu} height={430}/>
+            <div style={{marginTop: 16}}>
+              <CompletionChecklist
+                venue={venue}
+                rooms={rooms}
+                totalDishes={totalDishes}
+                totalCategories={menu.length}
+                totalTables={totalTables}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Footer CTAs — full width sotto le due colonne */}
+        {/* Footer CTAs — full width sotto le due colonne, sticky perché
+            l'editor del menù può far crescere la colonna oltre il canvas. */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginTop: 24, paddingTop: 20,
+          position: 'sticky', bottom: 0, zIndex: 6,
+          marginTop: 20, paddingTop: 18, paddingBottom: 4,
           borderTop: '1px solid rgba(15, 17, 21, 0.08)',
+          background: ONB.BG_SOFT,
         }}>
           <SecondaryCta onClick={onBack}>
             <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
@@ -185,13 +262,29 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
         }
         .phone-mockup:hover .phone-scroll-content { animation-play-state: paused; }
 
-        /* Menu accordion item hover state — reveal prezzo + tinted bg */
-        .accordion-dish-item:hover {
-          background: ${ONB.BG_SOFT};
+        .accordion-dish-item:hover { background: ${ONB.BG_SOFT}; }
+        /* Il pulsante elimina compare solo sulla riga sotto il cursore: la lista
+           a riposo resta pulita e non sembra un pannello di amministrazione. */
+        .accordion-dish-item .dish-remove { opacity: 0; transition: opacity 150ms ease-out; }
+        .accordion-dish-item:hover .dish-remove { opacity: 1; }
+
+        /* Campi inline: invisibili finché non li tocchi, così la lista si legge
+           come un menù e non come un form. */
+        .inline-edit {
+          font-family: inherit;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          padding: 3px 6px;
+          margin: -3px -6px;
+          outline: none;
+          transition: background 120ms ease-out, border-color 120ms ease-out;
         }
-        .accordion-dish-item:hover .dish-price {
-          color: ${ONB.TEXT};
-          opacity: 1;
+        .inline-edit:hover { background: rgba(15, 17, 21, 0.04); }
+        .inline-edit:focus {
+          background: #fff;
+          border-color: ${ONB.BRAND};
+          box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.12);
         }
 
         /* CTA arrow — translate on hover del wrapper */
@@ -315,9 +408,9 @@ function ConfettiCanvas() {
 // Check verde 20×20.
 // ─────────────────────────────────────────────────────────────────────────
 
-function CompletionChecklist({venue, rooms, totalDishes, totalTables}) {
+function CompletionChecklist({venue, rooms, totalDishes, totalCategories, totalTables}) {
   const items = [
-    {label: 'Menù',      value: `${totalDishes} piatti in ${MENU_PREVIEW.length} categorie`},
+    {label: 'Menù',      value: `${totalDishes} piatti in ${totalCategories} categorie`},
     {label: 'Locale',    value: [venue.name, venue.city].filter(Boolean).join(' · ') || 'Da completare'},
     {label: 'Pagamenti', value: 'Stripe connesso'},
     {label: 'Sale',      value: `${rooms.length} ${rooms.length === 1 ? 'sala' : 'sale'} · ${totalTables} tavoli`},
@@ -380,81 +473,156 @@ function CompletionChecklist({venue, rooms, totalDishes, totalTables}) {
 // Click sull'header espande l'intera lista piatti. Compattezza prima.
 // ─────────────────────────────────────────────────────────────────────────
 
-function MenuCategoryRow({cat, isLast}) {
+function MenuCategoryRow({cat, isLast, onRename, onRemove, onUpdateDish, onRemoveDish, onAddDish}) {
   const [expanded, setExpanded] = React.useState(false);
 
   return (
     <div style={{
       borderBottom: isLast ? 'none' : '1px solid rgba(15, 17, 21, 0.04)',
     }}>
-      <button
-        onClick={() => setExpanded(e => !e)}
-        style={{
-          width: '100%',
-          padding: '14px 20px',
-          display: 'flex', alignItems: 'center', gap: 12,
-          background: 'transparent', border: 'none',
-          cursor: 'pointer', fontFamily: 'inherit',
-          textAlign: 'left',
-          transition: 'background 150ms ease-out',
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.background = ONB.BG_SOFT}
-        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-      >
-        <div style={{
-          transform: expanded ? 'rotate(0)' : 'rotate(-90deg)',
-          transition: 'transform 150ms ease-out',
-          color: ONB.MUTED,
-          display: 'flex', alignItems: 'center',
-        }}>
+      {/* Header: non piu' un <button> unico, perche' il nome della categoria e'
+          un campo di testo e un input dentro un button non e' valido. Il toggle
+          resta sulla freccia e sul badge. */}
+      <div className="accordion-dish-item" style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '11px 16px',
+        transition: 'background 150ms ease-out',
+      }}>
+        <button
+          onClick={() => setExpanded(e => !e)}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Comprimi categoria' : 'Espandi categoria'}
+          style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0,
+            transform: expanded ? 'rotate(0)' : 'rotate(-90deg)',
+            transition: 'transform 150ms ease-out',
+          }}
+        >
           <OnbIcon.ChevronDown size={14} color={ONB.MUTED}/>
-        </div>
-        <span style={{
-          fontSize: 16, fontWeight: 600, color: ONB.TEXT, flex: 1,
-          letterSpacing: '-0.01em',
-        }}>
-          {cat.name}
-        </span>
-        <span style={{
-          padding: '2px 8px', borderRadius: 999,
-          background: ONB.BG, color: ONB.MUTED,
-          fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-        }}>
-          {cat.count} {cat.count === 1 ? 'piatto' : 'piatti'}
-        </span>
-      </button>
+        </button>
 
-      {/* Lista piatti — visibile solo on expand. Default chiuso → schermata
+        <input
+          className="inline-edit"
+          value={cat.name}
+          onChange={(e) => onRename(e.target.value)}
+          placeholder="Nome categoria"
+          aria-label="Nome categoria"
+          style={{
+            flex: 1, minWidth: 0,
+            fontSize: 16, fontWeight: 600, color: ONB.TEXT,
+            letterSpacing: '-0.01em',
+          }}
+        />
+
+        <span
+          onClick={() => setExpanded(e => !e)}
+          style={{
+            padding: '2px 8px', borderRadius: 999, cursor: 'pointer',
+            background: ONB.BG, color: ONB.MUTED,
+            fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+            flexShrink: 0,
+          }}>
+          {cat.dishes.length} {cat.dishes.length === 1 ? 'piatto' : 'piatti'}
+        </span>
+
+        <button
+          className="dish-remove"
+          onClick={onRemove}
+          aria-label={`Elimina categoria ${cat.name}`}
+          style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0,
+          }}
+        >
+          <OnbIcon.Trash size={14} color={ONB.MUTED}/>
+        </button>
+      </div>
+
+      {/* Lista piatti — visibile solo on expand. Default chiuso -> schermata
           compatta, l'utente decide cosa esplodere. */}
-      {expanded && cat.dishes.map((d, i) => (
-        <DishItem key={i} dish={d}/>
-      ))}
+      {expanded && <>
+        {cat.dishes.map((d, i) => (
+          <DishItem
+            key={i}
+            dish={d}
+            onUpdate={(patch) => onUpdateDish(i, patch)}
+            onRemove={() => onRemoveDish(i)}
+          />
+        ))}
+        <button onClick={onAddDish} style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          margin: '2px 0 10px 40px', padding: '4px 8px',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 14, fontWeight: 500, color: ONB.MUTED,
+          borderRadius: 6,
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = ONB.TEXT}
+        onMouseLeave={(e) => e.currentTarget.style.color = ONB.MUTED}
+        >
+          <OnbIcon.Plus size={12} color="currentColor"/>
+          Aggiungi piatto
+        </button>
+      </>}
     </div>
   );
 }
 
-function DishItem({dish}) {
+function DishItem({dish, onUpdate, onRemove}) {
+  // Il prezzo vive come stringa mentre lo si digita (stati intermedi come "12,"
+  // non sono numeri validi) e viene normalizzato a numero sul blur.
+  const [price, setPrice] = React.useState(dish.price.toFixed(2));
+
+  const commitPrice = () => {
+    const n = parseFloat(price.replace(',', '.'));
+    const val = isNaN(n) || n < 0 ? 0 : n;
+    onUpdate({price: val});
+    setPrice(val.toFixed(2));
+  };
+
   return (
     <div className="accordion-dish-item" style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-      padding: '8px 20px 8px 46px',
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '5px 16px 5px 40px',
       transition: 'background 150ms ease-out',
-      cursor: 'default',
     }}>
-      <span style={{fontSize: 16, fontWeight: 400, color: ONB.TEXT, lineHeight: 1.4}}>
-        {dish.name}
-      </span>
-      {/* Prezzo: opacità 0.5 a riposo, opacità 1 + colore TEXT su hover.
-          "Reveal prezzo" interpretato come emphasis-on-hover: la lista
-          a riposo legge come scansione veloce di nomi, l'hover comunica
-          dettaglio commerciale. */}
-      <span className="dish-price" style={{
-        fontSize: 16, fontWeight: 500, color: ONB.MUTED, opacity: 0.55,
-        fontVariantNumeric: 'tabular-nums', flexShrink: 0, marginLeft: 16,
-        transition: 'opacity 150ms ease-out, color 150ms ease-out',
-      }}>
-        € {dish.price.toFixed(2)}
-      </span>
+      <input
+        className="inline-edit"
+        value={dish.name}
+        onChange={(e) => onUpdate({name: e.target.value})}
+        placeholder="Nome del piatto"
+        aria-label="Nome del piatto"
+        style={{
+          flex: 1, minWidth: 0,
+          fontSize: 16, fontWeight: 400, color: ONB.TEXT, lineHeight: 1.4,
+        }}
+      />
+      <span style={{fontSize: 15, color: ONB.MUTED, flexShrink: 0}}>€</span>
+      <input
+        className="inline-edit"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        onBlur={commitPrice}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        inputMode="decimal"
+        aria-label="Prezzo del piatto"
+        style={{
+          width: 68, textAlign: 'right', flexShrink: 0,
+          fontSize: 16, fontWeight: 500, color: ONB.TEXT,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      />
+      <button
+        className="dish-remove"
+        onClick={onRemove}
+        aria-label={`Elimina ${dish.name || 'piatto'}`}
+        style={{
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0,
+        }}
+      >
+        <OnbIcon.Trash size={14} color={ONB.MUTED}/>
+      </button>
     </div>
   );
 }
@@ -464,10 +632,10 @@ function DishItem({dish}) {
 // La lista è duplicata 2x per loop seamless con translateY 0 → -50%.
 // ─────────────────────────────────────────────────────────────────────────
 
-function PhoneMockup() {
+function PhoneMockup({menu, height = 570}) {
   return (
     <div className="phone-mockup" style={{
-      width: 280, height: 570, background: '#1a1a1a',
+      width: 280, height, background: '#1a1a1a',
       borderRadius: 38, padding: 8,
       boxShadow: '0 12px 36px rgba(15, 17, 21, 0.16), 0 1px 2px rgba(15, 17, 21, 0.04)',
       margin: '0 auto',
@@ -552,8 +720,8 @@ function PhoneMockup() {
             animation: 'phone-scroll 25s linear infinite',
             willChange: 'transform',
           }}>
-            <PhoneMenuList/>
-            <PhoneMenuList/> {/* duplicata per loop seamless */}
+            <PhoneMenuList menu={menu}/>
+            <PhoneMenuList menu={menu}/> {/* duplicata per loop seamless */}
           </div>
         </div>
 
@@ -578,7 +746,9 @@ function PhoneMockup() {
           }}>
             Apri ordine
             <span style={{opacity: 0.5}}>·</span>
-            <span style={{fontWeight: 500, opacity: 0.8}}>15 piatti</span>
+            <span style={{fontWeight: 500, opacity: 0.8}}>
+              {menu.reduce((n, c) => n + c.dishes.length, 0)} piatti
+            </span>
           </button>
         </div>
       </div>
@@ -586,10 +756,10 @@ function PhoneMockup() {
   );
 }
 
-function PhoneMenuList() {
+function PhoneMenuList({menu}) {
   return (
     <div>
-      {MENU_PREVIEW.map(cat => (
+      {menu.map(cat => (
         <div key={cat.id}>
           {/* Categoria header dentro la lista scrollante */}
           <div style={{

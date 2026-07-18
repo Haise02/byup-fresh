@@ -207,10 +207,12 @@ function RegimeRadioGroup({value, onChange}) {
       {options.map((o) => {
         const selected = value === o.id;
         return (
-          <label key={o.id} style={{
+          <label key={o.id}
+            className={selected ? 'aurora-soft-bg' : ''}
+            style={{
             display: 'flex', alignItems: 'flex-start', gap: 10,
             padding: '14px 14px',
-            background: selected ? ONB.BRAND_TINT : '#fff',
+            ...(selected ? {} : {background: '#fff'}),
             border: `1px solid ${selected ? 'rgba(255, 90, 95, 0.30)' : 'rgba(15, 17, 21, 0.08)'}`,
             borderRadius: 10,
             cursor: 'pointer',
@@ -356,49 +358,60 @@ function SubStepPagamenti({payments, p}) {
 // ignorare senza restare indietro.
 // ─────────────────────────────────────────────────────────────────────────
 
+// Palette del marchio byup Staff (dal logo): rosso → arancio, lettering crema.
+const STAFF = {
+  RED:    '#FF3B2E',
+  MID:    '#FF6A3D',
+  ORANGE: '#FF9B52',
+  CREAM:  '#FFF2E7',
+};
+
 function StaffAppPromo() {
   // TODO: sostituire con gli URL reali delle schede store di byup Staff.
   const STORE_LINKS = {play: '#', app: '#'};
 
   const storeLink = {
-    color: ONB.BRAND_DARK, fontWeight: 600, textDecoration: 'underline',
+    color: STAFF.CREAM, fontWeight: 700, textDecoration: 'underline',
     textUnderlineOffset: 2, cursor: 'pointer',
   };
 
   return (
-    /* Superficie aurora — il mesh pink/lavender/cream del design system, non un
-       gradiente su misura: la promo è l'unico blocco non obbligatorio della
-       schermata e aurora la stacca dalle card bianche dei due passi. */
-    <OnbCard variant="aurora" padding={18}>
-      <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
+    /* Palette del marchio byup Staff: gradiente rosso→arancio in diagonale e
+       lettering crema. È l'unico blocco pieno della schermata — è anche l'unico
+       che non chiede di completare un passo, ma di portarsi via qualcosa. */
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 20,
+      padding: 18, borderRadius: 12,
+      background: `linear-gradient(115deg, ${STAFF.RED} 0%, ${STAFF.MID} 52%, ${STAFF.ORANGE} 100%)`,
+      boxShadow: '0 10px 28px -12px rgba(255, 76, 45, 0.55)',
+    }}>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{
-          fontSize: 17, fontWeight: 600, color: ONB.TEXT,
+          fontSize: 17, fontWeight: 600, color: STAFF.CREAM,
           letterSpacing: '-0.01em', lineHeight: 1.4, marginBottom: 4,
         }}>
           Scarica byup Staff
         </div>
-        <div style={{fontSize: 15, color: ONB.MUTED, lineHeight: 1.45}}>
+        <div style={{fontSize: 15, color: STAFF.CREAM, opacity: 0.88, lineHeight: 1.45}}>
           Il nuovo POS totalmente digitale e gratuito, utilizzabile
           su ogni dispositivo mobile.
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: 14, fontWeight: 500, color: ONB.BRAND_DARK, marginTop: 10,
+          fontSize: 14, fontWeight: 600, color: STAFF.CREAM, marginTop: 10,
         }}>
-          <OnbIcon.Camera size={14} color={ONB.BRAND_DARK}/>
+          <OnbIcon.Camera size={14} color={STAFF.CREAM}/>
           Inquadra il QR code per scaricare l’applicazione
         </div>
         <div style={{
-          fontSize: 14, color: ONB.MUTED, lineHeight: 1.45, marginTop: 4,
+          fontSize: 14, color: STAFF.CREAM, opacity: 0.88, lineHeight: 1.45, marginTop: 4,
         }}>
           oppure vai su <a href={STORE_LINKS.play} style={storeLink}>Play Store</a>
           {' '}o <a href={STORE_LINKS.app} style={storeLink}>App Store</a>
         </div>
       </div>
       <QrMock size={116}/>
-      </div>
-    </OnbCard>
+    </div>
   );
 }
 
@@ -413,7 +426,10 @@ function QrMock({size = 116}) {
     <div aria-label="QR code per scaricare byup Staff" role="img" style={{
       width: size, height: size, flexShrink: 0,
       background: `repeating-conic-gradient(${ONB.TEXT} 0% 25%, transparent 0% 50%) 0 0/${cell}px ${cell}px`,
-      border: '4px solid #fff',
+      // I moduli "vuoti" della trama sono trasparenti: senza un fondo chiaro
+      // sotto, su una card piena il QR prende il colore della card e sparisce.
+      backgroundColor: STAFF.CREAM,
+      border: `4px solid ${STAFF.CREAM}`,
       borderRadius: 10,
       boxShadow: '0 0 0 1px rgba(15, 17, 21, 0.10), 0 8px 20px -10px rgba(15, 17, 21, 0.25)',
       position: 'relative',
@@ -423,7 +439,7 @@ function QrMock({size = 116}) {
           position: 'absolute', ...pos,
           width: finder, height: finder,
           border: `3px solid ${ONB.TEXT}`,
-          background: '#fff', borderRadius: 3,
+          background: STAFF.CREAM, borderRadius: 3,
         }}>
           <div style={{position: 'absolute', inset: 3, background: ONB.TEXT, borderRadius: 1}}/>
         </div>
@@ -433,10 +449,10 @@ function QrMock({size = 116}) {
         transform: 'translate(-50%, -50%)',
         width: Math.round(size * 0.30), height: Math.round(size * 0.30),
         borderRadius: 8,
-        background: ONB.BRAND, color: '#fff',
+        background: STAFF.RED, color: STAFF.CREAM,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: Math.round(size * 0.19), fontWeight: 800, fontStyle: 'italic',
-        border: '3px solid #fff',
+        border: `3px solid ${STAFF.CREAM}`,
       }}>b</div>
     </div>
   );
