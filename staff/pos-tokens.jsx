@@ -58,6 +58,8 @@ const ST = {
   GRAD_HERO: 'linear-gradient(135deg, #DE6E88 0%, #EE9C8E 100%)',
   // Estremi esposti per bordi/ombre coordinati e per il fallback su
   // superfici che non possono portare un gradient (es. color di un'icona).
+  // Crema del mark: NON e' bianco puro, e' il colore ufficiale del logo.
+  MARK_INK: '#F9E3DE',
   GRAD_MARK_FROM: '#E01F5A',
   GRAD_MARK_TO:   '#EF938A',
   GRAD_HERO_FROM: '#DE6E88',
@@ -210,19 +212,27 @@ function Chip({ children, color, bg, style }) {
 }
 
 // ─── Logo byup (mark) ─────────────────────────────────────────
+// Il mark vero, vettorializzato da assets/byup-icon.png (IoU 0,983 con
+// l'originale). Il path e' nello spazio 512 del PNG, ma il viewBox e'
+// ritagliato sul bounding box del mark (144-367 x, 111-401 y) con il padding
+// del logo, non quello dell'icona app: il PNG e' un'icona iOS e ha margini
+// molto piu' larghi, che dentro la tile facevano sembrare il mark timido.
+// 403 = altezza mark / 0,72, la proporzione del logo di riferimento.
 // Superficie piccola → sfumatura intensa (GRAD_MARK).
-// NOTA: la lettera "b" è un segnaposto. Il mark vero (assets/byup-icon.png)
-// non è utilizzabile qui perché è un PNG col proprio fondo pieno: su un
-// gradient si vedrebbe il riquadro. Serve la versione SVG del mark.
+const BYUP_MARK_D = "M208 111C218.7 110.3 246 110.7 256 111C266 111.3 263.5 111.8 268 113C272.5 114.2 276.8 115 283 118C289.2 121 298.5 125.8 305 131C311.5 136.2 317 142 322 149C327 156 331.8 164.8 335 173C338.2 181.2 340.2 189 341 198C341.8 207 341 219.2 340 227C339 234.8 337.7 238.7 335 245C332.3 251.3 328.8 258.5 324 265C319.2 271.5 310.7 279.7 306 284C301.3 288.3 302 287.7 296 291C290 294.3 279.8 299.8 270 304C260.2 308.2 250.2 312.2 237 316C223.8 319.8 202.3 325 191 327C179.7 329 175.2 329.2 169 328C162.8 326.8 158 324.2 154 320C150 315.8 146.3 328.2 145 303C143.7 277.8 144.3 195.2 146 169C147.7 142.8 151.2 152.7 155 146C158.8 139.3 162.8 134.2 169 129C175.2 123.8 185.5 118 192 115C198.5 112 197.3 111.7 208 111Z M335 294C342.7 290.5 343.5 292.5 348 294C352.5 295.5 358.8 299.3 362 303C365.2 306.7 366.2 309.8 367 316C367.8 322.2 368 332.7 367 340C366 347.3 363.3 354.5 361 360C358.7 365.5 356.5 368.7 353 373C349.5 377.3 344.7 382.3 340 386C335.3 389.7 331.2 392.5 325 395C318.8 397.5 327.7 400 303 401C278.3 402 201.7 402.2 177 401C152.3 399.8 160.2 397 155 394C149.8 391 147.8 386.3 146 383C144.2 379.7 144.2 377.3 144 374C143.8 370.7 143.3 366.2 145 363C146.7 359.8 144.3 357.2 154 355C163.7 352.8 186.5 353.2 203 350C219.5 346.8 236.5 341.8 253 336C269.5 330.2 288.3 322 302 315C315.7 308 327.3 297.5 335 294Z M291 172C293.3 171.3 295.2 172 297 173C298.8 174 300.5 175.7 302 178C303.5 180.3 305.3 182.5 306 187C306.7 191.5 306.8 200.2 306 205C305.2 209.8 302.8 213.5 301 216C299.2 218.5 297 219.3 295 220C293 220.7 291.2 221 289 220C286.8 219 283.8 217 282 214C280.2 211 278.3 207.2 278 202C277.7 196.8 279.2 187.2 280 183C280.8 178.8 281.2 178.8 283 177C284.8 175.2 288.7 172.7 291 172Z";
+
 function Logo({ size = 40, radius }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: radius != null ? radius : ST.R_MD,
       background: ST.GRAD_MARK,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: '#fff', fontSize: size * 0.5, fontWeight: 800, flexShrink: 0,
-      boxShadow: ST.INSET_BRAND,
-    }}>b</div>
+      flexShrink: 0, overflow: 'hidden', boxShadow: ST.INSET_BRAND,
+    }}>
+      <svg width={size} height={size} viewBox="54 55 403 403" aria-label="byup" role="img">
+        <path fill={ST.MARK_INK} fillRule="evenodd" d={BYUP_MARK_D}/>
+      </svg>
+    </div>
   );
 }
 
