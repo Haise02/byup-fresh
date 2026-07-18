@@ -2473,10 +2473,10 @@ function HomeSections({
           "Stasera, Mario" e sopra la località. Chi ha un conto ancora aperto
           deve trovarla appena apre l'app, non dopo aver scorso. Nel flusso,
           non agganciata: scorre via quando si esplora.
-          Non quando c'e' gia' una card in topBar (prenotazione o recupero
-          ordine): tornando dal pagamento comparivano entrambe, una sopra
-          l'altra, a dire la stessa cosa. */}
-      {!topBar && <OpenTableCard/>}
+          Quando c'e' un conto aperto questa card ha la precedenza sulla
+          prenotazione, che viene nascosta a monte: e' l'unica delle due che
+          porta il totale rimanente. */}
+      <OpenTableCard/>
 
 
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
@@ -4339,6 +4339,12 @@ function App({ recoveryArmed = false }) {
   // booking della sessione corrente: NON sopravvive al refresh.
   // Parte sempre da null e ripulisce eventuali residui in localStorage.
   const [savedBooking, setSavedBooking] = useState(null);
+  // Con un conto aperto al tavolo la card della prenotazione non serve piu':
+  // quella del conto dice la stessa cosa e in piu' il totale rimanente.
+  const hasOpenTable = (() => {
+    try { const t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); return !!(t && t.remaining > 0.01); }
+    catch (e) { return false; }
+  })();
   const [bookingEdit, setBookingEdit] = useState(null); // prenotazione in modifica (apre BookingSheet precompilato)
   useEffect(() => {
     try { localStorage.removeItem('byup_booking'); } catch {}
@@ -4620,14 +4626,14 @@ function App({ recoveryArmed = false }) {
         paddingBottom: 'calc(126px + env(safe-area-inset-bottom, 0px))',
       }}>
         <HomeSections
-          topBar={(recoveryBannerOpen || savedBooking) ? (
+          topBar={(recoveryBannerOpen || (savedBooking && !hasOpenTable)) ? (
             <>
               {recoveryBannerOpen && (
                 <RecoveryOrderBanner
                   onOpen={() => { setRecoveryBannerOpen(false); setRecoveryModalOpen(true); }}
                   onClose={() => setRecoveryBannerOpen(false)}/>
               )}
-              {savedBooking && (
+              {savedBooking && !hasOpenTable && (
                 <BookingHomeCard booking={savedBooking} onModify={() => { setBookingEdit(savedBooking); setBookingOpen(true); }} onScanQr={() => setQrOpen(true)}/>
               )}
             </>
