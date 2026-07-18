@@ -3695,7 +3695,9 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const [confirmAll, setConfirmAll] = useState(false);
   const payNow = () => {
     if (paying || ctaTotal <= 0) return;
-    if (mode === 'all') { setConfirmAll(true); return; }   // conferma esplicita
+    // La modalita' della CTA e' ctaMode ('mine' | 'split' | 'all'), non `mode`:
+    // e' quella che decide cosa si paga davvero.
+    if (ctaMode === 'all') { setConfirmAll(true); return; }   // conferma esplicita
     setPaying(true);
     setTimeout(() => { proceed(); }, 5000);
   };
@@ -4428,8 +4430,6 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           </div>
         </div>
       )}
-    </div>
-  );
       {/* Coperti — obbligatori: si entra qui dal "Paga ora" */}
       {copertiOpen && (
         <CopertiSheet onConfirm={(n) => {
@@ -4474,7 +4474,8 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           </div>
         </div>
       )}
-
+    </div>
+  );
 }
 
 // ─── PAYMENT METHOD ────────────────────────────────────────
