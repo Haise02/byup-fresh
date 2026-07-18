@@ -1446,21 +1446,36 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 1000,
-      display:'grid', placeItems:'center', padding: 20,
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.50)', zIndex: 1000,
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      display:'grid', placeItems:'center', padding: 24,
     }}>
+      {/* 940px su due colonne invece di 560 in colonna singola: le sette sezioni
+          del piatto in una colonna sola facevano un modal stretto e lunghissimo,
+          da scorrere tutto anche solo per cambiare il prezzo. */}
       <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20, width: 560, maxWidth:'100%',
-        maxHeight: '90vh', display:'flex', flexDirection:'column',
+        ...PN.GLASS_STRONG, borderRadius: 20, width: 940, maxWidth:'100%',
+        /* 82vh e non 90: il frame del gestionale ha uno zoom > 1 su schermi
+           alti, e i vh non lo considerano — a 90 il modal arrivava a filo del
+           bordo del viewport. */
+        maxHeight: '82vh', display:'flex', flexDirection:'column',
         overflow: 'hidden',
+        boxShadow:'0 32px 80px -24px rgba(15,17,21,0.45), 0 2px 8px rgba(15,17,21,0.10)',
       }}>
         {/* Header */}
-        <div style={{padding:'16px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:12}}>
+        <div style={{padding:'18px 24px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:14}}>
+          {/* Badge: da' un punto di appoggio al titolo, che da solo galleggiava */}
+          <div style={{
+            width:40, height:40, borderRadius:11, flexShrink:0,
+            background:'linear-gradient(135deg, #FFE3DF, #FFF1E8)',
+            display:'grid', placeItems:'center', color: PN.PINK_DARK,
+          }}><PnI.Plate size={19}/></div>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14, color:PN.MUTED, textTransform:'uppercase', letterSpacing:0.5, fontWeight:700, marginBottom:2}}>
+            <div style={{fontSize:13.5, color:PN.MUTED, textTransform:'uppercase', letterSpacing:0.6, fontWeight:700, marginBottom:2}}>
               {fromLibrary ? 'Libreria piatti' : (catName || cat)}
             </div>
-            <div style={{fontSize:17, fontWeight:700, color:PN.TEXT, lineHeight:1.2}}>
+            <div style={{fontSize:20, fontWeight:700, color:PN.TEXT, lineHeight:1.2, letterSpacing:'-0.01em',
+              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
               {name.trim() || (isEdit ? 'Modifica piatto' : 'Nuovo piatto')}
             </div>
           </div>
@@ -1481,11 +1496,18 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           }}>✕</button>
         </div>
 
-        {/* Body */}
-        <div style={{padding:'0', display:'flex', flexDirection:'column', overflowY:'auto', flex:1}}>
+        {/* Body — due colonne che scorrono in modo indipendente:
+            a sinistra l'identita' del piatto (cosa e' e quanto costa), a destra
+            tutto cio' che si configura (cliente, personalizzazioni, cucina). */}
+        <div style={{display:'grid', gridTemplateColumns:'360px 1fr', flex:1, minHeight:0}}>
 
-          {/* ── IDENTITÀ ─────────────────────────────── */}
-          <div style={{padding:'20px 22px 0', display:'flex', flexDirection:'column', gap:12}}>
+          {/* ── COLONNA SX — IDENTITÀ ────────────────── */}
+          <div style={{
+            padding:'22px 24px 24px', display:'flex', flexDirection:'column', gap:16,
+            overflowY:'auto', background:'rgba(250,251,252,0.72)',
+            borderRight:`1px solid ${PN.BORDER_SOFT}`,
+          }}>
+            <div style={{fontSize:13.5, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase'}}>Il piatto</div>
             <div style={{display:'flex', flexDirection:'column', gap:10}}>
               <div style={{display:'flex', gap:10, alignItems:'flex-end'}}>
                 <div style={{flex:1}}>
@@ -1603,13 +1625,23 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                 💡 Prezzo e disponibilità si impostano nel singolo menù dove il piatto è inserito.
               </div>
             )}
+
+            {/* Food cost accanto al prezzo: insieme raccontano il margine, ed
+                era l'unica voce di "gestione interna" che non c'entrava con la
+                configurazione a destra. */}
+            <ImpField label="Food cost (opzionale)" style={{maxWidth:180}}>
+              <input value={foodCost} onChange={e=>setFoodCost(e.target.value)} placeholder="es. 4,50" style={{
+                width:'100%', padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none',
+              }}/>
+              <div style={{fontSize:14, color:PN.MUTED, marginTop:3}}>Per le analytics di marginalità</div>
+            </ImpField>
           </div>
 
-          {/* ── DIVIDER ── */}
-          <div style={{margin:'20px 22px 0', borderTop:`1px solid ${PN.BORDER_SOFT}`}}/>
+          {/* ── COLONNA DX — configurazione ──────────── */}
+          <div style={{padding:'22px 24px 24px', overflowY:'auto', display:'flex', flexDirection:'column', gap:20}}>
 
           {/* ── PER IL CLIENTE ───────────────────────── */}
-          <div style={{padding:'16px 22px 0', display:'flex', flexDirection:'column', gap:14}}>
+          <div style={{display:'flex', flexDirection:'column', gap:14}}>
             <div style={{fontSize:14, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase'}}>Per il cliente</div>
 
             {/* Allergeni */}
@@ -1706,11 +1738,10 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             </div>
           </div>
 
-          {/* ── DIVIDER ── */}
-          <div style={{margin:'20px 22px 0', borderTop:`1px solid ${PN.BORDER_SOFT}`}}/>
+          <div style={{borderTop:`1px solid ${PN.BORDER_SOFT}`}}/>
 
           {/* ── PERSONALIZZAZIONI ────────────────────── */}
-          <div style={{padding:'16px 22px 0', display:'flex', flexDirection:'column', gap:8}}>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
             <div style={{fontSize:14, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase', marginBottom:4}}>Personalizzazioni cliente</div>
             <CollapseSection
               title="Ingredienti"
@@ -1752,11 +1783,10 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             </CollapseSection>
           </div>
 
-          {/* ── DIVIDER ── */}
-          <div style={{margin:'20px 22px 0', borderTop:`1px solid ${PN.BORDER_SOFT}`}}/>
+          <div style={{borderTop:`1px solid ${PN.BORDER_SOFT}`}}/>
 
           {/* ── CUCINA & GESTIONE ────────────────────── */}
-          <div style={{padding:'16px 22px 20px', display:'flex', flexDirection:'column', gap:16}}>
+          <div style={{display:'flex', flexDirection:'column', gap:16}}>
             <div style={{fontSize:14, fontWeight:800, color:PN.MUTED, letterSpacing:0.8, textTransform:'uppercase'}}>Cucina &amp; gestione interna</div>
 
             {/* Ricetta — disabilitata quando "Prodotto finito" è attivo */}
@@ -1811,13 +1841,6 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               >+ Aggiungi passo</button>
             </div>
 
-            <ImpField label="Food cost (opzionale)" style={{maxWidth:200}}>
-              <input value={foodCost} onChange={e=>setFoodCost(e.target.value)} placeholder="es. 4,50" style={{
-                width:'100%', padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none',
-              }}/>
-              <div style={{fontSize:14, color:PN.MUTED, marginTop:3}}>Per le analytics di marginalità</div>
-            </ImpField>
-
             {/* Valori nutrizionali */}
             <div>
               <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:8}}>Valori nutrizionali</div>
@@ -1826,10 +1849,11 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             </div>
 
           </div>
+          </div>
         </div>
 
         {/* Footer */}
-        <div style={{padding:'12px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', background:'#FAFBFC'}}>
+        <div style={{padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', background:'#FAFBFC'}}>
           <div>
             {isEdit && onDelete && (
               <button onClick={() => { if (confirm('Eliminare questo piatto dalla libreria? Sarà rimosso anche da tutti i menù.')) onDelete(); }} style={{
