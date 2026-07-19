@@ -51,7 +51,7 @@ function AccPianiAbbonamenti() {
     <div style={{display: 'flex', flexDirection: 'column', gap: 18}}>
       {/* Feedback hover per card piani/pacchetti e i loro CTA.
           Si anima SOLO transform (il sollevamento). Il passaggio al negativo
-          — sfondo, testi, chip, spunte, CTA — avviene di scatto, tutto nello
+          — sfondo, testi, spunte, CTA — avviene di scatto, tutto nello
           stesso frame.
 
           Perche' niente transizione sui colori: lo sfondo e' un gradient, e il
@@ -446,8 +446,6 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         textColor: PN.WHITE,
         mutedColor: 'rgba(255, 255, 255, 0.95)',
         priceColor: PN.WHITE,
-        chipBg: 'rgba(255, 255, 255, 0.20)',
-        chipText: PN.WHITE,
         checkColor: '#86EFAC',
         ctaBg: PN.WHITE,
         ctaColor: PN.PINK_DARK,
@@ -465,8 +463,6 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         textColor: PN.TEXT,
         mutedColor: PN.MUTED,
         priceColor: PN.TEXT,
-        chipBg: PN.PINK_SOFT,
-        chipText: PN.PINK_DARK,
         checkColor: PN.GREEN,
         ctaBg: isCurrent ? PN.WHITE : PN.BTN_DARK,
         ctaColor: isCurrent ? PN.MUTED : PN.WHITE,
@@ -520,13 +516,13 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         </div>
       )}
 
-      <div style={{
-        padding: '8px 10px', borderRadius: 8,
-        background: styles.chipBg, marginBottom: 12,
-        fontSize: 13.5,
-      }}>
-        <div style={{fontWeight: 600, color: styles.chipText}}>{p.ordiniInclusi.toLocaleString('it-IT')} ordini/mese</div>
-        <div style={{color: styles.chipText, marginTop: 2, opacity: isNeg ? 1 : 0.85}}>
+      {/* Senza box: gli ordini inclusi sono un dato della card, non un badge.
+          I colori sono quelli del testo della card e non piu' il rosa: tolto
+          il fondo, il rosa su bianco sarebbe sceso a 4,15:1, sotto soglia per
+          un corpo da 13,5px. Cosi' sta a 18,9:1 e 4,8:1. */}
+      <div style={{marginBottom: 12, fontSize: 13.5}}>
+        <div style={{fontWeight: 600, color: styles.textColor}}>{p.ordiniInclusi.toLocaleString('it-IT')} ordini/mese</div>
+        <div style={{color: styles.mutedColor, marginTop: 2}}>
           +{fmtPrice(p.ordineExtra)} €/extra
         </div>
       </div>
