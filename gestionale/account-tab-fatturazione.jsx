@@ -1,5 +1,10 @@
 // Account — Tab Account e fatturazione
 
+// Inchiostro della riga "Prossima fattura". Stesso ambra scuro dell'accento
+// "da liberare" in sala-table-tile.jsx: PN.AMBER e' troppo chiaro per il
+// testo su AMBER_SOFT (2,86:1), questo tiene 4,51:1.
+const AC_FATTURA_INK = '#B45309';
+
 function AccFatturazione() {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
@@ -34,23 +39,28 @@ function AccFatturazione() {
 
       <AcCard title="Fatture" subtitle="Storico delle fatture mensili.">
         {/* Riga prossima fattura */}
+        {/* Ambra, non rosso: la prossima fattura e' un promemoria, non un
+            problema — il rosso qui suonava come "pagamento fallito".
+            L'inchiostro e' #B45309 e non PN.AMBER: su AMBER_SOFT il PN.AMBER
+            si ferma a 2,86:1, sotto il rosa che sostituisce. #B45309 da'
+            4,51:1 ed e' lo stesso ambra scuro di "da liberare" in sala. */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'12px 16px', borderRadius: 10,
-          background: PN.PINK_SOFT, border:`1px solid ${PN.PINK}33`,
+          background: PN.AMBER_SOFT, border:`1px solid ${PN.AMBER}33`,
           marginBottom: 14,
         }}>
           <div style={{display:'flex', alignItems:'center', gap: 10}}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PN.PINK_DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
             </svg>
-            <span style={{fontSize: 14.5, color: PN.PINK_DARK, fontWeight: 600}}>
+            <span style={{fontSize: 14.5, color: AC_FATTURA_INK, fontWeight: 600}}>
               Prossima fattura
             </span>
           </div>
           <div style={{display:'flex', alignItems:'baseline', gap: 8}}>
-            <span style={{fontSize: 18, fontWeight: 800, color: PN.PINK_DARK}}>€49,00</span>
-            <span style={{fontSize: 14, color: PN.PINK_DARK, opacity: 0.75}}>· 1 Gennaio 2026</span>
+            <span style={{fontSize: 18, fontWeight: 800, color: AC_FATTURA_INK}}>€49,00</span>
+            <span style={{fontSize: 14, color: AC_FATTURA_INK, opacity: 0.75}}>· 1 Gennaio 2026</span>
           </div>
         </div>
 
