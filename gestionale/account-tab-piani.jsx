@@ -36,11 +36,13 @@ function AccPianiAbbonamenti() {
     return n.toFixed(2).replace('.', ',');
   };
 
-  // Prezzi di listino = annuale scontato; il mensile costa il 15% in più.
+  // Due prezzi di listino distinti, presi dai dati — non piu' derivati da un
+  // moltiplicatore. `prezzo` e' il mensile con fatturazione annuale (scontato),
+  // `prezzoMensile` e' il mensile puro. Il vecchio +15% dava 54,04 / 155,24 /
+  // 287,50, che non sono i prezzi reali (54,99 / 155,99 / 290).
   const billedPrice = (p) => {
     if (p.prezzo === 0) return 0;
-    if (billing === 'monthly') return Math.round(p.prezzo * 1.15 * 100) / 100;
-    return p.prezzo;
+    return billing === 'monthly' ? p.prezzoMensile : p.prezzo;
   };
 
   const billedPeriodo = '/mese + IVA';
@@ -48,31 +50,27 @@ function AccPianiAbbonamenti() {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 18}}>
       {/* Feedback hover per card piani/pacchetti e i loro CTA.
-          Oltre a transform, qui transiscono anche colori e sfondo: al passaggio
-          del mouse la card va "in negativo" (vedi PianoCard), e senza
-          transizione il salto sarebbe uno scatto secco.
-          `.acc-plan-card *` copre i discendenti (chip, testi, spunte), che
-          cambiano colore insieme alla card. Deve stare PRIMA di .acc-plan-btn:
-          stessa specificita', vince l'ultima regola, e il bottone deve
-          conservare la sua transizione su transform/filter. */}
+          Si anima SOLO transform (il sollevamento). Il passaggio al negativo
+          — sfondo, testi, chip, spunte, CTA — avviene di scatto, tutto nello
+          stesso frame.
+
+          Perche' niente transizione sui colori: lo sfondo e' un gradient, e il
+          gradient NON si interpola (misurato: a 120ms era gia' al valore
+          finale). Mettere una transizione sul solo `color` faceva quindi
+          arrivare il testo ~240ms dopo lo sfondo — la card diventava rossa con
+          le scritte ancora scure, e si leggeva come un ritardo. O si anima
+          tutto o niente: siccome lo sfondo non puo', non anima nessuno. */}
       <style>{`
         .acc-plan-card {
-          transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
-                      background 200ms ease, border-color 200ms ease,
-                      box-shadow 200ms ease, color 200ms ease;
+          transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
           will-change: transform;
         }
         .acc-plan-card:hover {
           transform: translateY(-3px) scale(1.03);
           z-index: 2;
         }
-        .acc-plan-card * {
-          transition: background 200ms ease, color 200ms ease,
-                      border-color 200ms ease, box-shadow 200ms ease;
-        }
         .acc-plan-btn {
-          transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), filter 140ms ease,
-                      background 200ms ease, color 200ms ease, border-color 200ms ease;
+          transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), filter 140ms ease;
         }
         .acc-plan-btn:hover  { transform: translateY(-1px) scale(1.04); filter: brightness(1.08); }
         .acc-plan-btn:active { transform: translateY(0) scale(0.95); filter: brightness(0.92); }
@@ -457,11 +455,12 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         shadow: '0 8px 24px rgba(255, 90, 95, 0.28), inset 0 1px 0 rgba(255,255,255,0.30)',
       }
     : {
-        // Gradient bianco-su-bianco, non un colore pieno: il browser sa
-        // interpolare due linear-gradient con la stessa struttura, mentre da
-        // colore a gradient scatterebbe di netto. E' cio' che rende morbido
-        // il passaggio al negativo.
-        bg: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 100%)',
+        // Bianco pieno. Ci avevo provato con un gradient bianco-su-bianco per
+        // far interpolare il passaggio al negativo, ma misurando si vede che
+        // il gradient non si interpola affatto: scattava comunque. Trucco
+        // inutile, rimosso — il passaggio e' istantaneo per scelta (vedi il
+        // blocco <style> sopra).
+        bg: PN.WHITE,
         border: isCurrent ? `2px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
         textColor: PN.TEXT,
         mutedColor: PN.MUTED,
