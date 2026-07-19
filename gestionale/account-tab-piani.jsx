@@ -47,19 +47,32 @@ function AccPianiAbbonamenti() {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 18}}>
-      {/* Feedback hover per card piani/pacchetti e i loro CTA. Solo transform
-          e filter (mai box-shadow: quello inline vincerebbe comunque). */}
+      {/* Feedback hover per card piani/pacchetti e i loro CTA.
+          Oltre a transform, qui transiscono anche colori e sfondo: al passaggio
+          del mouse la card va "in negativo" (vedi PianoCard), e senza
+          transizione il salto sarebbe uno scatto secco.
+          `.acc-plan-card *` copre i discendenti (chip, testi, spunte), che
+          cambiano colore insieme alla card. Deve stare PRIMA di .acc-plan-btn:
+          stessa specificita', vince l'ultima regola, e il bottone deve
+          conservare la sua transizione su transform/filter. */}
       <style>{`
         .acc-plan-card {
-          transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                      background 200ms ease, border-color 200ms ease,
+                      box-shadow 200ms ease, color 200ms ease;
           will-change: transform;
         }
         .acc-plan-card:hover {
           transform: translateY(-3px) scale(1.03);
           z-index: 2;
         }
+        .acc-plan-card * {
+          transition: background 200ms ease, color 200ms ease,
+                      border-color 200ms ease, box-shadow 200ms ease;
+        }
         .acc-plan-btn {
-          transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), filter 140ms ease;
+          transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), filter 140ms ease,
+                      background 200ms ease, color 200ms ease, border-color 200ms ease;
         }
         .acc-plan-btn:hover  { transform: translateY(-1px) scale(1.04); filter: brightness(1.08); }
         .acc-plan-btn:active { transform: translateY(0) scale(0.95); filter: brightness(0.92); }
@@ -141,6 +154,7 @@ function AccPianiAbbonamenti() {
               fmtPrice={fmtPrice}
               displayPrezzo={billedPrice(p)}
               periodo={p.prezzo === 0 ? 'gratis' : billedPeriodo}
+              totaleAnnuo={billing === 'annual' && p.prezzo > 0 ? p.prezzo * 12 : undefined}
               onCta={() => showDemoToast(`Il passaggio al piano ${p.nome} sarà disponibile al lancio`)}
             />
           ))}
@@ -404,16 +418,30 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
 // (caricato in ogni pagina dashboard, condiviso col sidebar plan card).
 // ─────────────────────────────────────────────────────────────────────────
 
-function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
+// Totale annuo come importo di fattura: sempre 2 decimali e migliaia separate.
+// useGrouping esplicito perche' l'it-IT NON raggruppa i numeri a 4 cifre
+// (1619,88 e' corretto come numero, ma per un importo si scrive 1.619,88).
+const fmtTotaleAnnuo = (n) => new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true,
+}).format(n);
+
+function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
   const isCurrent = p.current;
-  const isHighlight = p.highlight && !isCurrent;
+  const [hover, setHover] = React.useState(false);
+
+  // Il negativo non e' piu' fisso sul piano consigliato: e' lo stato di hover
+  // di QUALSIASI piano, tranne quello attuale. Passarci sopra col mouse
+  // significa "sto valutando questo", ed e' li' che ha senso accenderlo.
+  // Il piano attuale resta chiaro: non e' un'opzione da valutare, e' dove sei.
+  const isNeg = hover && !isCurrent;
+
   const prezzoMostrato = displayPrezzo !== undefined ? displayPrezzo : p.prezzo;
   const periodoMostrato = periodo !== undefined ? periodo : p.periodo;
 
-  // Stili per piano consigliato in negativo (filled BRAND, scritte bianche).
+  // Stili del negativo (filled BRAND, scritte bianche).
   // Gradient con coda più scura (#C9363B) e testi secondari a opacità piena:
   // il bianco sul coral chiaro non reggeva il contrasto AA sui corpi piccoli.
-  const styles = isHighlight
+  const styles = isNeg
     ? {
         bg: 'linear-gradient(135deg, #F75B60 0%, #C9363B 100%)',
         border: `1px solid rgba(180, 30, 35, 0.45)`,
@@ -429,7 +457,11 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
         shadow: '0 8px 24px rgba(255, 90, 95, 0.28), inset 0 1px 0 rgba(255,255,255,0.30)',
       }
     : {
-        bg: PN.WHITE,
+        // Gradient bianco-su-bianco, non un colore pieno: il browser sa
+        // interpolare due linear-gradient con la stessa struttura, mentre da
+        // colore a gradient scatterebbe di netto. E' cio' che rende morbido
+        // il passaggio al negativo.
+        bg: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 100%)',
         border: isCurrent ? `2px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
         textColor: PN.TEXT,
         mutedColor: PN.MUTED,
@@ -444,27 +476,50 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
       };
 
   return (
-    <div className="acc-plan-card" style={{
-      borderRadius: 12, border: styles.border,
-      padding: 16, position: 'relative',
-      background: styles.bg,
-      boxShadow: styles.shadow,
-      display: 'flex', flexDirection: 'column',
-      color: styles.textColor,
-    }}>
+    <div
+      className="acc-plan-card"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        borderRadius: 12, border: styles.border,
+        padding: 16, position: 'relative',
+        background: styles.bg,
+        boxShadow: styles.shadow,
+        display: 'flex', flexDirection: 'column',
+        color: styles.textColor,
+      }}>
       {isCurrent && <PianoBadge bg={PN.PINK} fg={PN.WHITE} label="ATTUALE"/>}
-      {isHighlight && <PianoBadge bg={PN.WHITE} fg={PN.PINK_DARK} label="CONSIGLIATO"/>}
+      {/* Il badge resta sul piano consigliato anche a riposo — e' il consiglio,
+          non lo stato di hover. Ma si inverte insieme alla card: a riposo scuro
+          su bianco (distinto dal rosa di ATTUALE, che convive nella stessa
+          griglia), in negativo bianco su rosso. */}
+      {p.highlight && !isCurrent && (
+        <PianoBadge
+          bg={isNeg ? PN.WHITE : PN.TEXT}
+          fg={isNeg ? PN.PINK_DARK : PN.WHITE}
+          label="CONSIGLIATO"
+        />
+      )}
 
       <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4}}>
-        <PianoEmoji planId={p.id} size={22} monochrome={isHighlight ? '#FFFFFF' : undefined}/>
+        <PianoEmoji planId={p.id} size={22} monochrome={isNeg ? '#FFFFFF' : undefined}/>
         <div style={{fontSize: 16, fontWeight: 600, color: styles.textColor}}>{p.nome}</div>
       </div>
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 12, flexWrap: 'wrap'}}>
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: totaleAnnuo !== undefined ? 2 : 12, flexWrap: 'wrap'}}>
         <span style={{fontSize: 28, fontWeight: 600, color: styles.priceColor, lineHeight: 1, letterSpacing: '-0.02em'}}>
           {prezzoMostrato === 0 ? 'Gratis' : `€${fmtPrice(prezzoMostrato)}`}
         </span>
         <span style={{fontSize: 13, color: styles.mutedColor}}>{prezzoMostrato === 0 ? '' : periodoMostrato}</span>
       </div>
+
+      {/* Col piano annuale il prezzo grande resta il /mese (e' quello che si
+          confronta fra piani), ma qui sotto compare quanto si paga davvero in
+          una volta: senza, "Annuale" cambiava il numero senza mai dire il totale. */}
+      {totaleAnnuo !== undefined && (
+        <div style={{fontSize: 12.5, color: styles.mutedColor, marginBottom: 12}}>
+          €{fmtTotaleAnnuo(totaleAnnuo)} all'anno + IVA
+        </div>
+      )}
 
       <div style={{
         padding: '8px 10px', borderRadius: 8,
@@ -472,7 +527,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
         fontSize: 13.5,
       }}>
         <div style={{fontWeight: 600, color: styles.chipText}}>{p.ordiniInclusi.toLocaleString('it-IT')} ordini/mese</div>
-        <div style={{color: styles.chipText, marginTop: 2, opacity: isHighlight ? 1 : 0.85}}>
+        <div style={{color: styles.chipText, marginTop: 2, opacity: isNeg ? 1 : 0.85}}>
           +{fmtPrice(p.ordineExtra)} €/extra
         </div>
       </div>
@@ -497,7 +552,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, onCta}) {
         fontSize: 14.5, fontWeight: 600,
         cursor: isCurrent ? 'default' : 'pointer',
         fontFamily: 'inherit',
-        boxShadow: isHighlight
+        boxShadow: isNeg
           ? '0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)'
           : (isCurrent ? 'none' : PN.INSET_HIGHLIGHT_DARK),
       }}>
