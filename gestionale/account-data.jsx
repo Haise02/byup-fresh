@@ -21,7 +21,7 @@ const ACC_DATI = {
 // (fonte unica: niente valori duplicati hardcoded nella tabella).
 const ACC_PIANI = [
   {
-    id: 'free', nome: 'Free', prezzo: 0, prezzoMensile: 0, periodo: 'gratis',
+    id: 'free', nome: 'Gratuito', prezzo: 0, prezzoMensile: 0, periodo: 'gratis',
     ordiniInclusi: 550,
     ordineExtra: 0.45,
     menu: '1 menu digitale',

@@ -104,7 +104,7 @@ function AccFatturazione() {
       </AcCard>
 
       {/* Zona pericolosa — Annulla abbonamento */}
-      <AcCard title="Annulla abbonamento" subtitle="L'abbonamento resterà attivo fino alla fine del periodo già pagato. Dopo, il tuo account passerà al piano Free.">
+      <AcCard title="Annulla abbonamento" subtitle="L'abbonamento resterà attivo fino alla fine del periodo già pagato. Dopo, il tuo account passerà al piano Gratuito.">
         <div style={{
           // Warning ambra, non rosso: il rosso è il colore brand di Byup.
           display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14,

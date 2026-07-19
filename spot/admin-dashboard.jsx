@@ -1308,7 +1308,7 @@ function DashLocali({ onNav }) {
   // ── CHURN locali · mock realistico ──────────────────────────────────────
   // Annualized churn rate per piano (food-service SaaS benchmark: 5-8% annuo è ottimo, 15%+ è critico)
   const churnByPlan = [
-    { id:'free',     label:'Free',     rate:18.0, tenureMonths: 8.5, color:'PLAN_FREE',     n:124, bench:22 },
+    { id:'free',     label:'Gratuito',     rate:18.0, tenureMonths: 8.5, color:'PLAN_FREE',     n:124, bench:22 },
     { id:'starter',  label:'Starter',  rate: 9.2, tenureMonths:14.2, color:'PLAN_STARTER',  n: 86, bench:12 },
     { id:'plus',     label:'Plus',     rate: 4.5, tenureMonths:21.0, color:'PLAN_PLUS',     n: 42, bench: 8 },
     { id:'business', label:'Business', rate: 2.1, tenureMonths:28.4, color:'PLAN_BUSINESS', n: 18, bench: 5 },
@@ -1388,7 +1388,7 @@ function DashLocali({ onNav }) {
   // ── LTV / CAC per piano · economia per locale ──────────────────────────
   // LTV = MRR × tenure (mesi) · CAC: dati interni mock realistic
   const ltvByPlan = [
-    { id:'free',     label:'Free',     mrr:  0, tenure: 8.5, cac: 45, ltv:    0, color:'PLAN_FREE'     },
+    { id:'free',     label:'Gratuito',     mrr:  0, tenure: 8.5, cac: 45, ltv:    0, color:'PLAN_FREE'     },
     { id:'starter',  label:'Starter',  mrr: 49, tenure:14.2, cac:120, ltv:  696, color:'PLAN_STARTER'  },
     { id:'plus',     label:'Plus',     mrr: 99, tenure:21.0, cac:180, ltv: 2079, color:'PLAN_PLUS'     },
     { id:'business', label:'Business', mrr:249, tenure:28.4, cac:340, ltv: 7072, color:'PLAN_BUSINESS' },

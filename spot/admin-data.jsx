@@ -30,7 +30,7 @@ const REGIONI = [
 ];
 
 const PIANI = [
-  { id: 'free',     label: 'Free',     price: 0,   color: 'PLAN_FREE' },
+  { id: 'free',     label: 'Gratuito',     price: 0,   color: 'PLAN_FREE' },
   { id: 'starter',  label: 'Starter',  price: 49,  color: 'PLAN_STARTER' },
   { id: 'plus',     label: 'Plus',     price: 99,  color: 'PLAN_PLUS' },
   { id: 'business', label: 'Business', price: 249, color: 'PLAN_BUSINESS' },
