@@ -447,6 +447,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         mutedColor: 'rgba(255, 255, 255, 0.95)',
         priceColor: PN.WHITE,
         checkColor: '#86EFAC',
+        ordiniText: PN.WHITE,
         ctaBg: PN.WHITE,
         ctaColor: PN.PINK_DARK,
         ctaBorder: '1px solid rgba(255,255,255,0.4)',
@@ -464,6 +465,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         mutedColor: PN.MUTED,
         priceColor: PN.TEXT,
         checkColor: PN.GREEN,
+        ordiniText: PN.PINK_DARK,
         ctaBg: isCurrent ? PN.WHITE : PN.BTN_DARK,
         ctaColor: isCurrent ? PN.MUTED : PN.WHITE,
         ctaBorder: isCurrent ? `1px solid ${PN.BORDER_LIGHT}` : '1px solid rgba(0, 0, 0, 0.32)',
@@ -516,13 +518,15 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         </div>
       )}
 
-      {/* Senza box: gli ordini inclusi sono un dato della card, non un badge.
-          I colori sono quelli del testo della card e non piu' il rosa: tolto
-          il fondo, il rosa su bianco sarebbe sceso a 4,15:1, sotto soglia per
-          un corpo da 13,5px. Cosi' sta a 18,9:1 e 4,8:1. */}
+      {/* Senza box, ma col rosa di prima sul testo.
+          Nota: il rosa su bianco sta a 4,15:1, sotto il 4,5 richiesto da AA
+          per un corpo da 13,5px — prima non si notava perche' il contrasto lo
+          reggeva il fondo PINK_SOFT. Scelta voluta, non una svista: se un
+          giorno serve conformita' piena, basta scurire ordiniText a #D54043
+          (4,52:1) — stessa tinta, differenza quasi impercettibile. */}
       <div style={{marginBottom: 12, fontSize: 13.5}}>
-        <div style={{fontWeight: 600, color: styles.textColor}}>{p.ordiniInclusi.toLocaleString('it-IT')} ordini/mese</div>
-        <div style={{color: styles.mutedColor, marginTop: 2}}>
+        <div style={{fontWeight: 600, color: styles.ordiniText}}>{p.ordiniInclusi.toLocaleString('it-IT')} ordini/mese</div>
+        <div style={{color: styles.ordiniText, marginTop: 2, opacity: isNeg ? 1 : 0.85}}>
           +{fmtPrice(p.ordineExtra)} €/extra
         </div>
       </div>
