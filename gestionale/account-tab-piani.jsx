@@ -86,12 +86,14 @@ function AccPianiAbbonamenti() {
         .acc-plan-btn:active { transform: translateY(0) scale(0.95); filter: brightness(0.92); }
 
         /* Bordo aurora che gira attorno alla card in hover.
-           Il ring e' uno pseudo-elemento a inset -1.5px riempito da un conic
+           Il ring e' uno pseudo-elemento a inset -2px riempito da un conic
            gradient: il mask xor ne lascia visibile solo la cornice, cosi' il
            gradient non copre il contenuto. L'angolo e' una custom property
            registrata (@property) — senza registrazione un angolo in un
            gradient NON si interpola e l'animazione non parte. Dove @property
-           non c'e', il ring resta fermo ma acceso: degrada, non sparisce. */
+           non c'e', il ring resta fermo ma acceso: degrada, non sparisce.
+           v2 (feedback utente: "piu' marcato"): cornice 2.5px, stop piu'
+           saturi, glow lavanda in hover, giro piu' vivo (2.6s). */
         @property --acc-aurora-ang {
           syntax: '<angle>';
           initial-value: 0deg;
@@ -103,13 +105,13 @@ function AccPianiAbbonamenti() {
         .acc-plan-aurora::before {
           content: '';
           position: absolute;
-          inset: -1.5px;
+          inset: -2px;
           border-radius: inherit;
-          padding: 1.5px;
+          padding: 2.5px;
           background: conic-gradient(
             from var(--acc-aurora-ang),
-            #FF5A5F 0%, #F472B6 18%, #A78BFA 38%,
-            #60A5FA 56%, #34D399 72%, #FBBF24 86%, #FF5A5F 100%
+            #FF3B5C 0%, #F472B6 15%, #C084FC 32%, #818CF8 48%,
+            #38BDF8 62%, #34D399 76%, #FBBF24 88%, #FF3B5C 100%
           );
           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
                   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -121,7 +123,8 @@ function AccPianiAbbonamenti() {
         }
         .acc-plan-aurora:hover::before {
           opacity: 1;
-          animation: acc-aurora-spin 3.2s linear infinite;
+          animation: acc-aurora-spin 2.6s linear infinite;
+          filter: saturate(1.35) drop-shadow(0 0 6px rgba(167,139,250,0.55));
         }
         @media (prefers-reduced-motion: reduce) {
           .acc-plan-aurora:hover::before { animation: none; }
@@ -213,10 +216,10 @@ function AccPianiAbbonamenti() {
           ))}
         </div>
 
-        {/* Piano Free — downgrade come nota secondaria, non come card.
+        {/* Piano Gratuito — downgrade come nota secondaria, non come card.
             Il click apre il modale di confronto, non il cambio diretto. */}
         <div style={{marginTop: 16, textAlign: 'center', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
-          Vuoi rinunciare ai vantaggi del tuo piano attuale? Valuta il piano <strong style={{color: PN.TEXT}}>Free</strong> —
+          Vuoi rinunciare ai vantaggi del tuo piano attuale? Valuta il piano <strong style={{color: PN.TEXT}}>Gratuito</strong> —
           {' '}{freePlan.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini/mese, poi {fmtPrice(freePlan.ordineExtra)} € a ordine.{' '}
           <button
             onClick={() => setFreeModal(true)}
@@ -224,7 +227,7 @@ function AccPianiAbbonamenti() {
               background: 'none', border: 'none', padding: 0,
               color: PN.PINK_DARK, fontWeight: 600, fontSize: 13.5,
               cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
-            }}>Passa a Free</button>
+            }}>Passa al piano Gratuito</button>
         </div>
       </AcCard>
 
@@ -236,7 +239,7 @@ function AccPianiAbbonamenti() {
         fmtPrice={fmtPrice}
         onConfirm={() => {
           setFreeModal(false);
-          showDemoToast('Il passaggio al piano Free sarà disponibile al lancio');
+          showDemoToast('Il passaggio al piano Gratuito sarà disponibile al lancio');
         }}
       />
 
@@ -244,31 +247,43 @@ function AccPianiAbbonamenti() {
           scrollMarginTop tiene il titolo staccato dal bordo alto dopo lo scroll. */}
       <div ref={ordiniExtraRef} id="ordini-aggiuntivi" style={{scrollMarginTop: 16}}>
       <AcCard
-        title="Ordini aggiuntivi"
+        title="Più ordini con lo stesso piano"
         subtitle="Aggiungi ordini per gestire i picchi senza cambiare piano: si sommano a quelli già inclusi."
       >
+        {/* I pacchetti vivono nello stesso sistema visivo delle card piano
+            qui sopra: stesso fondo aurora, stessa ombra tinta viola, stesso
+            ring aurora in hover, stesso badge gradient sul piu' scelto,
+            stesso trattamento gradient sul numero e stessa CTA aurora. */}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12}}>
           {ACC_PACCHETTI.map((p) => {
             // Badge dai dati (campo etichetta), non dalla posizione nell'array
             const isBest = p.etichetta.includes('miglior valore');
             const isPopular = p.etichetta.includes('più scelto');
             return (
-              <div key={p.id} className="acc-plan-card" style={{
+              <div key={p.id} className="acc-plan-card acc-plan-aurora" style={{
                 padding: 16, borderRadius: 12,
-                border: isPopular ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
-                background: PN.WHITE,
-                boxShadow: '0 2px 4px rgba(15,17,21,0.05), 0 14px 30px -10px rgba(15,17,21,0.16)',
+                border: '1px solid rgba(190, 175, 220, 0.22)',
+                background: AURORA_CARD_BG,
+                boxShadow: '0 2px 4px rgba(15,17,21,0.05), 0 14px 32px -10px rgba(124, 58, 237, 0.16)',
                 display: 'flex', flexDirection: 'column', gap: 8,
                 position: 'relative',
               }}>
-                {isPopular && <PianoBadge bg={PN.PINK} fg={PN.WHITE} label="PIÙ SCELTO"/>}
+                {isPopular && (
+                  <PianoBadge
+                    bg="linear-gradient(120deg, #FF5A5F 0%, #A78BFA 100%)"
+                    fg={PN.WHITE}
+                    label="IL PIÙ SCELTO"
+                  />
+                )}
                 {isBest && <PianoBadge bg={PN.GREEN} fg={PN.WHITE} label="MIGLIOR VALORE"/>}
                 <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>{p.nome}</div>
-                <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
-                  <span style={{fontSize: 24, fontWeight: 600, color: PN.PINK_DARK, lineHeight: 1}}>
-                    +{p.ordini.toLocaleString('it-IT', {useGrouping: true})}
+                <div>
+                  <span style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, ...AURORA_TEXT_GRADIENT}}>
+                    <span style={{fontSize: 24, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.01em'}}>
+                      +{p.ordini.toLocaleString('it-IT', {useGrouping: true})}
+                    </span>
+                    <span style={{fontSize: 14, fontWeight: 600}}>ordini</span>
                   </span>
-                  <span style={{fontSize: 14, fontWeight: 600, color: PN.MUTED}}>ordini</span>
                 </div>
                 <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
                   <span style={{fontSize: 20, fontWeight: 600, color: PN.TEXT}}>€{fmtPrice(p.prezzo)}</span>
@@ -282,12 +297,9 @@ function AccPianiAbbonamenti() {
                   className="acc-plan-btn"
                   style={{
                   marginTop: 6, padding: '9px 12px', borderRadius: 999,
-                  background: isPopular ? PN.BTN_BRAND : PN.BTN_DARK,
-                  color: PN.WHITE,
-                  border: isPopular ? '1px solid rgba(180, 30, 35, 0.40)' : '1px solid rgba(0, 0, 0, 0.32)',
                   fontSize: 14.5, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: isPopular ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)` : PN.INSET_HIGHLIGHT_DARK,
+                  ...AURORA_CTA_STYLE,
                 }}>Acquista ora</button>
               </div>
             );
@@ -490,6 +502,27 @@ const AURORA_CARD_BG =
   'radial-gradient(circle at 55% 100%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
   'linear-gradient(135deg, #FFF8F6 0%, #FBF8FF 100%)';
 
+// "Aurora attiva" — l'accento della pagina e' il gradient coral→lavanda del
+// badge IL PIU' SCELTO, esteso a CTA e dato chiave. Un solo accento, tre usi.
+
+// CTA di upgrade/acquisto: mai nera — il gradient del badge come bottone.
+const AURORA_CTA_STYLE = {
+  background: 'linear-gradient(120deg, #FF5A5F 0%, #A78BFA 100%)',
+  color: PN.WHITE,
+  border: '1px solid rgba(124, 58, 237, 0.35)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 8px rgba(167,139,250,0.35)',
+};
+
+// Dato chiave (ordini/mese, +N ordini): testo in gradient magenta→viola.
+// background-clip:text clippa il fill al glifo — i figli non devono avere
+// background propri, e il colore vero e' il gradient, non `color`.
+const AURORA_TEXT_GRADIENT = {
+  background: 'linear-gradient(90deg, #DB2777, #7C3AED)',
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+};
+
 function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
   const isCurrent = p.current;
 
@@ -505,9 +538,11 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
   // nel blocco <style> in cima). Il piano attuale resta bianco e fermo —
   // non e' un'opzione da valutare, e' dove sei.
   //
-  // La subheadline e' viola (PN.PURPLE) e non rosa: il rosa e' il brand, e su
-  // un fondo aurora rosato spariva. Il viola appartiene alla stessa famiglia
-  // del wash e sta a 5,6:1 su bianco — sopra AA anche a 15px.
+  // La subheadline e' in gradient magenta→viola (AURORA_TEXT_GRADIENT), non
+  // rosa e non viola piatto: e' lo stesso accento del badge e delle CTA
+  // aurora — il dato chiave appartiene alla famiglia dell'accento, non al
+  // testo neutro. Entrambi gli estremi del gradient stanno sopra 4,5:1 su
+  // bianco (DB2777 4,9:1, 7C3AED 5,6:1) — AA anche nel punto piu' chiaro.
   const styles = isCurrent
     ? {
         bg: PN.WHITE,
@@ -548,12 +583,14 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{p.nome}</div>
       </div>
 
-      {/* Subheadline — ordini inclusi nel mese */}
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6}}>
-        <span style={{fontSize: 22, fontWeight: 700, color: PN.PURPLE, lineHeight: 1, letterSpacing: '-0.01em'}}>
-          {p.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})}
+      {/* Subheadline — ordini inclusi nel mese, in gradient aurora */}
+      <div style={{marginTop: 6}}>
+        <span style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, ...AURORA_TEXT_GRADIENT}}>
+          <span style={{fontSize: 22, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.01em'}}>
+            {p.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})}
+          </span>
+          <span style={{fontSize: 14, fontWeight: 600}}>ordini/mese</span>
         </span>
-        <span style={{fontSize: 14, fontWeight: 600, color: PN.PURPLE}}>ordini/mese</span>
       </div>
       <div style={{fontSize: 13, color: PN.MUTED, marginTop: 4, marginBottom: 14}}>
         poi {fmtPrice(p.ordineExtra)} € a ordine extra
@@ -590,19 +627,23 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
 
       {/* CTA. Sul piano attuale non ha senso "Passa a Starter": l'unico
           upgrade possibile senza cambiare piano sono gli ordini aggiuntivi,
-          quindi il bottone porta li'. */}
+          quindi il bottone porta li'. Gli upgrade non sono piu' neri: la CTA
+          e' il gradient aurora del badge (AURORA_CTA_STYLE), stesso accento
+          della subheadline. Il piano attuale resta brand rosso. */}
       <button onClick={onCta} className="acc-plan-btn" style={{
         width: '100%', marginTop: 14,
         padding: '10px 14px', borderRadius: 999,
-        background: isCurrent ? PN.BTN_BRAND : PN.BTN_DARK,
-        color: PN.WHITE,
-        border: isCurrent ? '1px solid rgba(180, 30, 35, 0.40)' : '1px solid rgba(0, 0, 0, 0.32)',
         fontSize: 14.5, fontWeight: 600,
         cursor: 'pointer',
         fontFamily: 'inherit',
-        boxShadow: isCurrent
-          ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)`
-          : PN.INSET_HIGHLIGHT_DARK,
+        ...(isCurrent
+          ? {
+              background: PN.BTN_BRAND,
+              color: PN.WHITE,
+              border: '1px solid rgba(180, 30, 35, 0.40)',
+              boxShadow: `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)`,
+            }
+          : AURORA_CTA_STYLE),
       }}>
         {isCurrent ? 'Voglio più ordini' : 'Passa a ' + p.nome}
       </button>
@@ -623,7 +664,7 @@ function PianoBadge({bg, fg, label}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// FreeDowngradeModal — si apre da "Passa a Free": confronto fianco a fianco
+// FreeDowngradeModal — si apre da "Passa al piano Gratuito": confronto fianco a fianco
 // col piano attuale (stile mini plan-card) + recap esplicito di cosa si perde.
 // La conferma resta demo (toast), come gli altri CTA della pagina.
 // ─────────────────────────────────────────────────────────────────────────
@@ -639,8 +680,10 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
     `Membri dello staff: da ${current.staffShort.toLowerCase().replace(/^fino a /, '')} a un solo membro`,
   ];
 
-  // Mini plan-card del confronto (colonna attuale vs colonna Free)
-  const MiniPiano = ({ nome, badge, badgeBg, badgeFg, prezzo, righe, bordered }) => (
+  // Mini plan-card del confronto (colonna attuale vs colonna Gratuito).
+  // planId esplicito: l'emoji non puo' derivare dal nome visibile — "Gratuito"
+  // non e' l'id tecnico del piano, che resta 'free'.
+  const MiniPiano = ({ planId, nome, badge, badgeBg, badgeFg, prezzo, righe, bordered }) => (
     <div style={{
       position: 'relative', flex: 1, minWidth: 0,
       border: `1px solid ${PN.BORDER_HAIR}`,
@@ -650,7 +693,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
     }}>
       <PianoBadge bg={badgeBg} fg={badgeFg} label={badge}/>
       <div style={{display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6}}>
-        <PianoEmoji planId={nome.toLowerCase()} size={20}/>
+        <PianoEmoji planId={planId} size={20}/>
         <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{nome}</span>
       </div>
       <div style={{fontSize: 21, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em', marginBottom: 10}}>{prezzo}</div>
@@ -677,7 +720,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
         {/* Header */}
         <div style={{padding: '20px 22px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12}}>
           <div>
-            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>Passare al piano Free?</div>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>Passare al piano Gratuito?</div>
             <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3}}>
               Ecco cosa cambia rispetto al tuo piano {current.nome}.
             </div>
@@ -691,6 +734,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
         {/* Confronto fianco a fianco */}
         <div style={{display: 'flex', gap: 12, padding: '10px 22px 4px'}}>
           <MiniPiano
+            planId={current.id}
             nome={current.nome}
             badge="PIANO ATTUALE" badgeBg={PN.TEXT} badgeFg={PN.WHITE}
             prezzo={`€${fmtPrice(current.prezzo)}${current.periodo}`}
@@ -703,8 +747,9 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
             ]}
           />
           <MiniPiano
+            planId={free.id}
             nome={free.nome}
-            badge="FREE" badgeBg={PN.WHITE_OFF} badgeFg={PN.MUTED}
+            badge="GRATUITO" badgeBg={PN.WHITE_OFF} badgeFg={PN.MUTED}
             prezzo="Gratis"
             righe={[
               `${free.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini/mese`,
@@ -717,7 +762,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
 
         {/* Recap di cosa si perde */}
         <div style={{padding: '14px 22px 6px'}}>
-          <div style={{fontSize: 14, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Cosa perderai passando a Free</div>
+          <div style={{fontSize: 14, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Cosa perderai passando al piano Gratuito</div>
           <div style={{
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
             padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8,
@@ -744,7 +789,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
             background: 'transparent', color: '#B91C1C',
             border: '1px solid #FECACA',
             fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>Passa a Free</button>
+          }}>Passa al piano Gratuito</button>
           <button onClick={onClose} style={{
             padding: '10px 20px', borderRadius: 999,
             background: PN.BTN_DARK, color: PN.WHITE,
@@ -812,21 +857,21 @@ function ConfrontoTable() {
         borderRadius: 12, overflow: 'hidden',
         background: PN.WHITE,
       }}>
-        {/* Header — neutro WHITE_OFF, NIENTE pink_soft. Tipografia uppercase muted.
-            Il piano attuale è segnalato col chip "attuale"; il consigliato in rosa. */}
+        {/* Header — neutro WHITE_OFF. Tutti i titoli uguali: nero, bold,
+            maiuscolo, stessa dimensione — niente gerarchie di colore. Il piano
+            attuale e' segnalato solo dal chip "attuale" accanto al nome. */}
         <div style={{
           display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
           padding: '14px 18px',
           background: PN.WHITE_OFF,
           borderBottom: `1px solid ${PN.BORDER_HAIR}`,
-          fontSize: 13, fontWeight: 600, color: PN.MUTED,
+          fontSize: 13, fontWeight: 700, color: PN.TEXT,
           letterSpacing: 0.4, textTransform: 'uppercase',
         }}>
           <span>Funzionalità</span>
           {ACC_PIANI.map(p => (
             <span key={p.id} style={{
               textAlign: 'center',
-              color: p.highlight ? PN.PINK_DARK : (p.current ? PN.TEXT : PN.MUTED),
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
               {p.nome}
@@ -834,7 +879,7 @@ function ConfrontoTable() {
                 <span style={{
                   fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3,
                   padding: '1px 6px', borderRadius: 999,
-                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                  background: PN.TEXT, color: PN.WHITE,
                   textTransform: 'none',
                 }}>attuale</span>
               )}
