@@ -70,10 +70,13 @@ function AccPasswordSicurezza() {
                 </div>
                 <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>{s.loc} · {s.when}</div>
               </div>
+              {/* Spento, non rosso: chiudere una sessione e' manutenzione
+                  ordinaria, non un'emergenza. Stesso trattamento del logout
+                  in account-tab-dati.jsx, che e' la stessa azione. */}
               {!s.current && (
                 <button style={{
                   padding:'7px 14px', borderRadius: 999,
-                  background:'transparent', color: PN.RED,
+                  background: PN.WHITE, color: PN.MUTED,
                   border:`1px solid ${PN.BORDER}`,
                   fontSize: 14, fontWeight: 600, cursor:'pointer',
                   fontFamily:'inherit',
@@ -85,8 +88,8 @@ function AccPasswordSicurezza() {
         <button style={{
           marginTop: 14,
           padding:'10px 18px', borderRadius: 999,
-          background: PN.WHITE, color: PN.RED,
-          border:`1px solid ${PN.RED}`,
+          background: PN.WHITE, color: PN.MUTED,
+          border:`1px solid ${PN.BORDER}`,
           fontSize: 14.5, fontWeight: 700, cursor:'pointer',
           fontFamily:'inherit',
         }}>Termina tutte le altre sessioni</button>
