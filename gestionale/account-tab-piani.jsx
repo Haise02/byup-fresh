@@ -30,6 +30,15 @@ function AccPianiAbbonamenti() {
     toastTimer.current = setTimeout(() => setToast(null), 2800);
   };
 
+  // CTA del piano attuale → sezione "Ordini aggiuntivi" qui sotto.
+  // Il contenitore che scrolla non e' window ma il .pn-scroll di account-app,
+  // quindi si usa scrollIntoView (che risale al primo antenato scrollabile)
+  // e non un calcolo su window.scrollTo, che non muoverebbe nulla.
+  const ordiniExtraRef = React.useRef(null);
+  const scrollToOrdiniExtra = () => {
+    ordiniExtraRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
+  };
+
   const fmtPrice = (n) => {
     if (n === 0) return '0';
     if (Number.isInteger(n)) return String(n);
@@ -62,7 +71,8 @@ function AccPianiAbbonamenti() {
           tutto o niente: siccome lo sfondo non puo', non anima nessuno. */}
       <style>{`
         .acc-plan-card {
-          transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+          transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                      box-shadow 200ms ease;
           will-change: transform;
         }
         .acc-plan-card:hover {
@@ -74,6 +84,49 @@ function AccPianiAbbonamenti() {
         }
         .acc-plan-btn:hover  { transform: translateY(-1px) scale(1.04); filter: brightness(1.08); }
         .acc-plan-btn:active { transform: translateY(0) scale(0.95); filter: brightness(0.92); }
+
+        /* Bordo aurora che gira attorno alla card in hover.
+           Il ring e' uno pseudo-elemento a inset -1.5px riempito da un conic
+           gradient: il mask xor ne lascia visibile solo la cornice, cosi' il
+           gradient non copre il contenuto. L'angolo e' una custom property
+           registrata (@property) — senza registrazione un angolo in un
+           gradient NON si interpola e l'animazione non parte. Dove @property
+           non c'e', il ring resta fermo ma acceso: degrada, non sparisce. */
+        @property --acc-aurora-ang {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes acc-aurora-spin {
+          to { --acc-aurora-ang: 360deg; }
+        }
+        .acc-plan-aurora::before {
+          content: '';
+          position: absolute;
+          inset: -1.5px;
+          border-radius: inherit;
+          padding: 1.5px;
+          background: conic-gradient(
+            from var(--acc-aurora-ang),
+            #FF5A5F 0%, #F472B6 18%, #A78BFA 38%,
+            #60A5FA 56%, #34D399 72%, #FBBF24 86%, #FF5A5F 100%
+          );
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+                  mask-composite: exclude;
+          opacity: 0;
+          transition: opacity 200ms ease;
+          pointer-events: none;
+        }
+        .acc-plan-aurora:hover::before {
+          opacity: 1;
+          animation: acc-aurora-spin 3.2s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .acc-plan-aurora:hover::before { animation: none; }
+          .acc-plan-card { transition: none; }
+        }
       `}</style>
 
       {/* Riga 1 — Risparmio + Utilizzo: 50/50 stessa riga, allineati alla stessa altezza.
@@ -153,7 +206,9 @@ function AccPianiAbbonamenti() {
               displayPrezzo={billedPrice(p)}
               periodo={p.prezzo === 0 ? 'gratis' : billedPeriodo}
               totaleAnnuo={billing === 'annual' && p.prezzo > 0 ? p.prezzo * 12 : undefined}
-              onCta={() => showDemoToast(`Il passaggio al piano ${p.nome} sarà disponibile al lancio`)}
+              onCta={p.current
+                ? scrollToOrdiniExtra
+                : () => showDemoToast(`Il passaggio al piano ${p.nome} sarà disponibile al lancio`)}
             />
           ))}
         </div>
@@ -185,7 +240,9 @@ function AccPianiAbbonamenti() {
         }}
       />
 
-      {/* Pacchetti ordini extra */}
+      {/* Pacchetti ordini extra — bersaglio del CTA "Voglio più ordini".
+          scrollMarginTop tiene il titolo staccato dal bordo alto dopo lo scroll. */}
+      <div ref={ordiniExtraRef} id="ordini-aggiuntivi" style={{scrollMarginTop: 16}}>
       <AcCard
         title="Ordini aggiuntivi"
         subtitle="Aggiungi ordini per gestire i picchi senza cambiare piano: si sommano a quelli già inclusi."
@@ -200,7 +257,7 @@ function AccPianiAbbonamenti() {
                 padding: 16, borderRadius: 12,
                 border: isPopular ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
                 background: PN.WHITE,
-                boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.03)',
+                boxShadow: '0 2px 4px rgba(15,17,21,0.05), 0 14px 30px -10px rgba(15,17,21,0.16)',
                 display: 'flex', flexDirection: 'column', gap: 8,
                 position: 'relative',
               }}>
@@ -237,6 +294,7 @@ function AccPianiAbbonamenti() {
           })}
         </div>
       </AcCard>
+      </div>
 
       {/* Confronto funzionalità — leggibilità migliorata */}
       <ConfrontoTable/>
@@ -423,151 +481,130 @@ const fmtTotaleAnnuo = (n) => new Intl.NumberFormat('it-IT', {
   minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true,
 }).format(n);
 
+// Mesh aurora delle card upgrade — stesso wash di AcCard aurora
+// (account-tab-dati.jsx), ma piu' tenue: qui il fondo deve reggere una lista di
+// testo, non fare da superficie decorativa.
+const AURORA_CARD_BG =
+  'radial-gradient(circle at 18% 12%, rgba(255, 217, 231, 0.60) 0%, transparent 62%), ' +
+  'radial-gradient(circle at 88% 22%, rgba(226, 217, 255, 0.55) 0%, transparent 60%), ' +
+  'radial-gradient(circle at 55% 100%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
+  'linear-gradient(135deg, #FFF8F6 0%, #FBF8FF 100%)';
+
 function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
   const isCurrent = p.current;
-  const [hover, setHover] = React.useState(false);
-
-  // Il negativo non e' piu' fisso sul piano consigliato: e' lo stato di hover
-  // di QUALSIASI piano, tranne quello attuale. Passarci sopra col mouse
-  // significa "sto valutando questo", ed e' li' che ha senso accenderlo.
-  // Il piano attuale resta chiaro: non e' un'opzione da valutare, e' dove sei.
-  const isNeg = hover && !isCurrent;
 
   const prezzoMostrato = displayPrezzo !== undefined ? displayPrezzo : p.prezzo;
   const periodoMostrato = periodo !== undefined ? periodo : p.periodo;
 
-  // Stili del negativo (filled BRAND, scritte bianche).
-  // Gradient con coda più scura (#C9363B) e testi secondari a opacità piena:
-  // il bianco sul coral chiaro non reggeva il contrasto AA sui corpi piccoli.
-  const styles = isNeg
+  // Ordine della card: icona+nome (headline) → ordini/mese (subheadline) →
+  // 3 bullet → prezzo → CTA. Il prezzo sta in fondo, appena sopra il bottone:
+  // prima si legge cosa si ottiene, poi quanto costa, poi si clicca.
+  //
+  // Il vecchio flip in negativo rosso su hover e' stato rimosso: gli upgrade
+  // ora sono aurora a riposo e in hover accendono il bordo (vedi .acc-plan-aurora
+  // nel blocco <style> in cima). Il piano attuale resta bianco e fermo —
+  // non e' un'opzione da valutare, e' dove sei.
+  //
+  // La subheadline e' viola (PN.PURPLE) e non rosa: il rosa e' il brand, e su
+  // un fondo aurora rosato spariva. Il viola appartiene alla stessa famiglia
+  // del wash e sta a 5,6:1 su bianco — sopra AA anche a 15px.
+  const styles = isCurrent
     ? {
-        bg: 'linear-gradient(135deg, #F75B60 0%, #C9363B 100%)',
-        border: `1px solid rgba(180, 30, 35, 0.45)`,
-        textColor: PN.WHITE,
-        mutedColor: 'rgba(255, 255, 255, 0.95)',
-        priceColor: PN.WHITE,
-        checkColor: '#86EFAC',
-        ordiniText: PN.WHITE,
-        ctaBg: PN.WHITE,
-        ctaColor: PN.PINK_DARK,
-        ctaBorder: '1px solid rgba(255,255,255,0.4)',
-        shadow: '0 8px 24px rgba(255, 90, 95, 0.28), inset 0 1px 0 rgba(255,255,255,0.30)',
+        bg: PN.WHITE,
+        border: `1px solid ${PN.BORDER_HAIR}`,
+        shadow: '0 2px 4px rgba(15,17,21,0.05), 0 14px 30px -10px rgba(15,17,21,0.16)',
       }
     : {
-        // Bianco pieno. Ci avevo provato con un gradient bianco-su-bianco per
-        // far interpolare il passaggio al negativo, ma misurando si vede che
-        // il gradient non si interpola affatto: scattava comunque. Trucco
-        // inutile, rimosso — il passaggio e' istantaneo per scelta (vedi il
-        // blocco <style> sopra).
-        bg: PN.WHITE,
-        border: isCurrent ? `2px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
-        textColor: PN.TEXT,
-        mutedColor: PN.MUTED,
-        priceColor: PN.TEXT,
-        checkColor: PN.GREEN,
-        ordiniText: PN.PINK_DARK,
-        ctaBg: isCurrent ? PN.WHITE : PN.BTN_DARK,
-        ctaColor: isCurrent ? PN.MUTED : PN.WHITE,
-        ctaBorder: isCurrent ? `1px solid ${PN.BORDER_LIGHT}` : '1px solid rgba(0, 0, 0, 0.32)',
-        shadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.03)',
+        bg: AURORA_CARD_BG,
+        border: '1px solid rgba(190, 175, 220, 0.22)',
+        shadow: '0 2px 4px rgba(15,17,21,0.05), 0 14px 32px -10px rgba(124, 58, 237, 0.16)',
       };
 
   return (
     <div
-      className="acc-plan-card"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      className={isCurrent ? 'acc-plan-card' : 'acc-plan-card acc-plan-aurora'}
       style={{
         borderRadius: 12, border: styles.border,
         padding: 16, position: 'relative',
         background: styles.bg,
         boxShadow: styles.shadow,
         display: 'flex', flexDirection: 'column',
-        color: styles.textColor,
+        color: PN.TEXT,
       }}>
-      {isCurrent && <PianoBadge bg={PN.PINK} fg={PN.WHITE} label="ATTUALE"/>}
-      {/* Il badge resta sul piano consigliato anche a riposo — e' il consiglio,
-          non lo stato di hover. Ma si inverte insieme alla card: a riposo scuro
-          su bianco (distinto dal rosa di ATTUALE, che convive nella stessa
-          griglia), in negativo bianco su rosso. */}
+      {/* Piano attuale: etichetta nera, non rosa. Non e' un'offerta da
+          spingere — e' uno stato, e va letta come tale. */}
+      {isCurrent && <PianoBadge bg={PN.TEXT} fg={PN.WHITE} label="PIANO ATTUALE"/>}
       {p.highlight && !isCurrent && (
         <PianoBadge
-          bg={isNeg ? PN.WHITE : PN.TEXT}
-          fg={isNeg ? PN.PINK_DARK : PN.WHITE}
-          label="CONSIGLIATO"
+          bg="linear-gradient(120deg, #FF5A5F 0%, #A78BFA 100%)"
+          fg={PN.WHITE}
+          label="IL PIÙ SCELTO"
         />
       )}
 
-      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4}}>
-        <PianoEmoji planId={p.id} size={22} monochrome={isNeg ? '#FFFFFF' : undefined}/>
-        <div style={{fontSize: 16, fontWeight: 600, color: styles.textColor}}>{p.nome}</div>
+      {/* Headline — icona + nome del piano */}
+      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <PianoEmoji planId={p.id} size={22}/>
+        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{p.nome}</div>
       </div>
-      {/* Stessa scala dei box "Ordini aggiuntivi" qui sotto: prezzo 20,
-          numero ordini 24. Gli ordini restano piu' grandi del prezzo — e' il
-          rapporto che hanno gia' i pacchetti, e mette davanti cosa ottieni
-          invece di quanto costa. */}
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: totaleAnnuo !== undefined ? 2 : 12, flexWrap: 'wrap'}}>
-        <span style={{fontSize: 20, fontWeight: 600, color: styles.priceColor, lineHeight: 1, letterSpacing: '-0.02em'}}>
-          {prezzoMostrato === 0 ? 'Gratis' : `€${fmtPrice(prezzoMostrato)}`}
+
+      {/* Subheadline — ordini inclusi nel mese */}
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6}}>
+        <span style={{fontSize: 22, fontWeight: 700, color: PN.PURPLE, lineHeight: 1, letterSpacing: '-0.01em'}}>
+          {p.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})}
         </span>
-        <span style={{fontSize: 13, color: styles.mutedColor}}>{prezzoMostrato === 0 ? '' : periodoMostrato}</span>
+        <span style={{fontSize: 14, fontWeight: 600, color: PN.PURPLE}}>ordini/mese</span>
+      </div>
+      <div style={{fontSize: 13, color: PN.MUTED, marginTop: 4, marginBottom: 14}}>
+        poi {fmtPrice(p.ordineExtra)} € a ordine extra
       </div>
 
-      {/* Col piano annuale il prezzo grande resta il /mese (e' quello che si
-          confronta fra piani), ma qui sotto compare quanto si paga davvero in
-          una volta: senza, "Annuale" cambiava il numero senza mai dire il totale. */}
-      {totaleAnnuo !== undefined && (
-        <div style={{fontSize: 12.5, color: styles.mutedColor, marginBottom: 12}}>
-          €{fmtTotaleAnnuo(totaleAnnuo)} all'anno + IVA
-        </div>
-      )}
-
-      {/* Senza box, ma col rosa di prima sul testo.
-          Nota: il rosa su bianco sta a 4,15:1, sotto il 4,5 richiesto da AA
-          per un corpo da 13,5px — prima non si notava perche' il contrasto lo
-          reggeva il fondo PINK_SOFT. Scelta voluta, non una svista: se un
-          giorno serve conformita' piena, basta scurire ordiniText a #D54043
-          (4,52:1) — stessa tinta, differenza quasi impercettibile. */}
-      <div style={{marginBottom: 12}}>
-        {/* Numero + unita' separati, come "+500 ordini" nei pacchetti. */}
-        <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
-          <span style={{fontSize: 24, fontWeight: 600, color: styles.ordiniText, lineHeight: 1}}>
-            {p.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})}
-          </span>
-          <span style={{fontSize: 14, fontWeight: 600, color: styles.ordiniText, opacity: isNeg ? 1 : 0.85}}>
-            ordini/mese
-          </span>
-        </div>
-        <div style={{fontSize: 13.5, color: styles.ordiniText, marginTop: 4, opacity: isNeg ? 1 : 0.85}}>
-          +{fmtPrice(p.ordineExtra)} €/extra
-        </div>
-      </div>
-
-      {/* feat contiene solo le voci lista (ordini e prezzo extra sono nel chip) */}
+      {/* I tre bullet point */}
       <ul style={{listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 14, flex: 1}}>
         {p.feat.map((f, i) => (
-          <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 14, color: styles.textColor, lineHeight: 1.4}}>
-            <span aria-hidden="true" style={{color: styles.checkColor, marginTop: 2, flexShrink: 0}}>
+          <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 14, color: PN.TEXT, lineHeight: 1.4}}>
+            <span aria-hidden="true" style={{color: PN.GREEN, marginTop: 2, flexShrink: 0}}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </span>
             {f}
           </li>
         ))}
       </ul>
-      <button onClick={isCurrent ? undefined : onCta} className={isCurrent ? undefined : 'acc-plan-btn'} style={{
-        width: '100%',
+
+      {/* Prezzo — ultimo dato prima della CTA */}
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 4, flexWrap: 'wrap'}}>
+        <span style={{fontSize: 22, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em'}}>
+          {prezzoMostrato === 0 ? 'Gratis' : `€${fmtPrice(prezzoMostrato)}`}
+        </span>
+        <span style={{fontSize: 13, color: PN.MUTED}}>{prezzoMostrato === 0 ? '' : periodoMostrato}</span>
+      </div>
+
+      {/* Col piano annuale il prezzo grande resta il /mese (e' quello che si
+          confronta fra piani), ma qui sotto compare quanto si paga davvero in
+          una volta: senza, "Annuale" cambiava il numero senza mai dire il totale. */}
+      {totaleAnnuo !== undefined && (
+        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 3}}>
+          €{fmtTotaleAnnuo(totaleAnnuo)} all'anno + IVA
+        </div>
+      )}
+
+      {/* CTA. Sul piano attuale non ha senso "Passa a Starter": l'unico
+          upgrade possibile senza cambiare piano sono gli ordini aggiuntivi,
+          quindi il bottone porta li'. */}
+      <button onClick={onCta} className="acc-plan-btn" style={{
+        width: '100%', marginTop: 14,
         padding: '10px 14px', borderRadius: 999,
-        background: styles.ctaBg,
-        color: styles.ctaColor,
-        border: styles.ctaBorder,
+        background: isCurrent ? PN.BTN_BRAND : PN.BTN_DARK,
+        color: PN.WHITE,
+        border: isCurrent ? '1px solid rgba(180, 30, 35, 0.40)' : '1px solid rgba(0, 0, 0, 0.32)',
         fontSize: 14.5, fontWeight: 600,
-        cursor: isCurrent ? 'default' : 'pointer',
+        cursor: 'pointer',
         fontFamily: 'inherit',
-        boxShadow: isNeg
-          ? '0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)'
-          : (isCurrent ? 'none' : PN.INSET_HIGHLIGHT_DARK),
+        boxShadow: isCurrent
+          ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)`
+          : PN.INSET_HIGHLIGHT_DARK,
       }}>
-        {isCurrent ? 'Piano attuale' : 'Passa a ' + p.nome}
+        {isCurrent ? 'Voglio più ordini' : 'Passa a ' + p.nome}
       </button>
     </div>
   );
@@ -606,7 +643,8 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
   const MiniPiano = ({ nome, badge, badgeBg, badgeFg, prezzo, righe, bordered }) => (
     <div style={{
       position: 'relative', flex: 1, minWidth: 0,
-      border: bordered ? `2px solid ${PN.PINK}` : `1px solid ${PN.BORDER_HAIR}`,
+      border: `1px solid ${PN.BORDER_HAIR}`,
+      boxShadow: bordered ? '0 2px 4px rgba(15,17,21,0.05), 0 10px 24px -10px rgba(15,17,21,0.18)' : 'none',
       borderRadius: 12, padding: '18px 16px 14px',
       background: PN.WHITE,
     }}>
@@ -654,7 +692,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
         <div style={{display: 'flex', gap: 12, padding: '10px 22px 4px'}}>
           <MiniPiano
             nome={current.nome}
-            badge="ATTUALE" badgeBg={PN.PINK} badgeFg={PN.WHITE}
+            badge="PIANO ATTUALE" badgeBg={PN.TEXT} badgeFg={PN.WHITE}
             prezzo={`€${fmtPrice(current.prezzo)}${current.periodo}`}
             bordered
             righe={[
