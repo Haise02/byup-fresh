@@ -85,15 +85,42 @@ function AccPianiAbbonamenti() {
         .acc-plan-btn:hover  { transform: translateY(-1px) scale(1.04); filter: brightness(1.08); }
         .acc-plan-btn:active { transform: translateY(0) scale(0.95); filter: brightness(0.92); }
 
+        /* CTA ghost dei pacchetti. Niente brightness in hover: sul bianco
+           sbiancava anche il bordo, che spariva proprio mentre il bottone
+           chiedeva attenzione. Qui il bordo vive nella classe (non inline,
+           altrimenti vincerebbe sempre lui) e in hover si SCURISCE. */
+        .acc-pack-btn {
+          background: #fff;
+          color: #0F1115;
+          border: 1px solid #D3D8DE;
+          transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
+                      border-color 140ms ease, box-shadow 140ms ease;
+        }
+        .acc-pack-btn:hover {
+          transform: translateY(-1px) scale(1.03);
+          border-color: #9AA1AB;
+          box-shadow: 0 2px 8px rgba(15,17,21,0.10);
+        }
+        .acc-pack-btn:active { transform: translateY(0) scale(0.96); }
+
         /* Bordo aurora che gira attorno alla card in hover.
-           Il ring e' uno pseudo-elemento a inset -2px riempito da un conic
-           gradient: il mask xor ne lascia visibile solo la cornice, cosi' il
-           gradient non copre il contenuto. L'angolo e' una custom property
-           registrata (@property) — senza registrazione un angolo in un
-           gradient NON si interpola e l'animazione non parte. Dove @property
-           non c'e', il ring resta fermo ma acceso: degrada, non sparisce.
-           v2 (feedback utente: "piu' marcato"): cornice 2.5px, stop piu'
-           saturi, glow lavanda in hover, giro piu' vivo (2.6s). */
+           Il ring e' uno pseudo-elemento a inset -2px riempito da gradient
+           conici mascherati a cornice (mask xor), cosi' il colore non copre
+           il contenuto. L'angolo e' una custom property registrata
+           (@property) — senza registrazione un angolo in un gradient NON si
+           interpola e l'animazione non parte. Dove @property non c'e', il
+           ring resta fermo ma acceso: degrada, non sparisce.
+           v3 (feedback utente: niente arcobaleno, "polvere di stelle"):
+           solo palette aurora — corallo, rosa, lavanda. Quattro layer sulla
+           stessa cornice: una cometa principale con coda lunga e testa
+           bianca, una scia lavanda sul lato opposto, e due giri di
+           scintille (repeating-conic con tick sottili) che ruotano a
+           velocita' diverse, uno in senso contrario — il luccichio non e'
+           mai in fase e la cornice sembra brace di fuoco d'artificio.
+           I moltiplicatori degli angoli non sono liberi: perche' il loop
+           0→360 chiuda senza scatto, la rotazione totale di ogni layer deve
+           essere multipla del proprio periodo (1.6×360 = 576 = 32×18deg;
+           2×360 = 720 = 24×30deg). */
         @property --acc-aurora-ang {
           syntax: '<angle>';
           initial-value: 0deg;
@@ -108,11 +135,34 @@ function AccPianiAbbonamenti() {
           inset: -2px;
           border-radius: inherit;
           padding: 2.5px;
-          background: conic-gradient(
-            from var(--acc-aurora-ang),
-            #FF3B5C 0%, #F472B6 15%, #C084FC 32%, #818CF8 48%,
-            #38BDF8 62%, #34D399 76%, #FBBF24 88%, #FF3B5C 100%
-          );
+          background:
+            repeating-conic-gradient(
+              from calc(var(--acc-aurora-ang) * -1.6),
+              rgba(255, 255, 255, 0) 0deg 17.4deg,
+              rgba(255, 214, 231, 0.80) 17.4deg 18deg
+            ),
+            repeating-conic-gradient(
+              from calc(var(--acc-aurora-ang) * 2 + 7deg),
+              rgba(255, 255, 255, 0) 0deg 29.2deg,
+              rgba(226, 217, 255, 0.70) 29.2deg 30deg
+            ),
+            conic-gradient(
+              from calc(var(--acc-aurora-ang) + 180deg),
+              transparent 0deg 300deg,
+              rgba(167, 139, 250, 0.55) 340deg,
+              rgba(240, 234, 255, 0.90) 356deg,
+              transparent 357deg 360deg
+            ),
+            conic-gradient(
+              from var(--acc-aurora-ang),
+              transparent 0deg 150deg,
+              rgba(167, 139, 250, 0.20) 210deg,
+              rgba(244, 114, 182, 0.45) 275deg,
+              rgba(255, 90, 95, 0.85) 330deg,
+              #FFE9F2 352deg,
+              #FFFFFF 356deg,
+              transparent 357deg 360deg
+            );
           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
                   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
           -webkit-mask-composite: xor;
@@ -124,7 +174,11 @@ function AccPianiAbbonamenti() {
         .acc-plan-aurora:hover::before {
           opacity: 1;
           animation: acc-aurora-spin 2.6s linear infinite;
-          filter: saturate(1.35) drop-shadow(0 0 6px rgba(167,139,250,0.55));
+          /* Doppio alone rosa+lavanda: e' il glow della scintilla, non un
+             bordo — segue solo i punti accesi grazie al drop-shadow. */
+          filter: saturate(1.15)
+                  drop-shadow(0 0 5px rgba(244, 114, 182, 0.55))
+                  drop-shadow(0 0 12px rgba(167, 139, 250, 0.45));
         }
         @media (prefers-reduced-motion: reduce) {
           .acc-plan-aurora:hover::before { animation: none; }
@@ -263,9 +317,11 @@ function AccPianiAbbonamenti() {
             return (
               <div key={p.id} className="acc-plan-card" style={{
                 padding: 14, borderRadius: 12,
-                border: `1px solid ${PN.BORDER_HAIR}`,
+                // BORDER pieno, non hairline: su card bianca dentro AcCard
+                // bianca il bordo e' l'unico confine, e deve vedersi.
+                border: `1px solid ${PN.BORDER}`,
                 background: PN.WHITE,
-                boxShadow: '0 1px 3px rgba(15,17,21,0.04), 0 8px 20px -12px rgba(15,17,21,0.10)',
+                boxShadow: '0 2px 5px rgba(15,17,21,0.06), 0 12px 26px -10px rgba(15,17,21,0.16)',
                 display: 'flex', flexDirection: 'column', gap: 7,
                 position: 'relative',
               }}>
@@ -291,11 +347,9 @@ function AccPianiAbbonamenti() {
                 </div>
                 <button
                   onClick={() => showDemoToast(`L'acquisto del ${p.nome} sarà disponibile al lancio`)}
-                  className="acc-plan-btn"
+                  className="acc-pack-btn"
                   style={{
                   marginTop: 5, padding: '8px 12px', borderRadius: 999,
-                  background: PN.WHITE, color: PN.TEXT,
-                  border: `1px solid ${PN.BORDER}`,
                   fontSize: 14, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>Acquista ora</button>
