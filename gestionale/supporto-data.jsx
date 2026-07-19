@@ -66,23 +66,25 @@ const SUP_TUTORIAL_CATS = [
     icon: 'plug',
     title: 'Integrazioni',
     tutorials: [
-      { id:'i1', title: 'Collegamento POS', desc: 'Sincronizza con SumUp, Square, iZettle.', mins: 8, read: 5 },
-      { id:'i2', title: 'Webhook ordini', desc: 'Ricevi notifiche su Slack o Telegram.', mins: 6, read: 4 },
-      { id:'i3', title: 'Esporta in gestionale', desc: 'TeamSystem, Fatture in Cloud, Aruba.', mins: 7, read: 5 },
+      { id:'i1', title: 'Incassare con Tap to Pay', desc: 'Lo smartphone dello staff diventa terminale con l\'App Staff POS.', mins: 8, read: 5 },
+      { id:'i2', title: 'Delivery di terze parti', desc: 'Collega le app di delivery al gestionale (add-on 10€ + IVA).', mins: 6, read: 4 },
+      { id:'i3', title: 'API e automazioni', desc: 'Zapier, Google, Claude e ChatGPT (add-on 22,90€ + IVA).', mins: 7, read: 5 },
     ],
   },
 ];
 
 const SUP_FAQS = [
   { id:'f1', cat:'account', q:'Come resetto la password?', a:'Vai in Account → Password e sicurezza → Cambia password. Se non ricordi la password attuale, usa "Password dimenticata?" nella schermata di login: riceverai un link via email entro 2 minuti.' },
-  { id:'f2', cat:'pagamenti', q:'Quali metodi di pagamento posso accettare?', a:'byup supporta carte (Visa, Mastercard, Amex), Apple Pay, Google Pay, Satispay e bonifico SEPA. Tutti i pagamenti passano da Stripe Connect — nessuna commissione aggiuntiva oltre quella standard di Stripe (1,5% + 0,25€).' },
+  { id:'f2', cat:'pagamenti', q:'Quali metodi di pagamento posso accettare?', a:'Tutti i pagamenti sono gestiti da Stripe: carte (Visa, Mastercard, Amex), Apple Pay e Google Pay. In presenza incassi con lo smartphone grazie a Tap to Pay (App Staff POS), dal tavolo i clienti pagano direttamente dalla Byup App con la carta salvata. byup non vede né conserva mai i dati delle carte: restano nel perimetro sicuro di Stripe.' },
   { id:'f3', cat:'account', q:'Come aggiungo membri del mio staff?', a:'Vai in Account → Staff e clicca "Invita membro". Scegli il ruolo (Admin, Cuoco, Cameriere, Sola lettura) e invia l\'invito via email. Il nuovo membro avrà accesso solo alle sezioni concesse dal suo ruolo.' },
-  { id:'f4', cat:'generale', q:'Posso avere più vetrine attive?', a:'Sì, con il piano Premium puoi gestire fino a 5 vetrine (es. ristorante + bar + pasticceria) sotto un unico account, con reportistica unificata.' },
+  { id:'f4', cat:'generale', q:'Posso gestire più locali con un solo account?', a:'Sì: ogni locale ha la sua vetrina pubblica, il suo menù e le sue statistiche. Dal tuo account puoi creare un nuovo locale oppure collegarne uno già presente su byup inviando una richiesta al proprietario.' },
   { id:'f5', cat:'menu', q:'Come funziona il sistema di prenotazioni?', a:'Le prenotazioni arrivano in tempo reale dalla vetrina e dall\'app cliente. Le vedi in Sala & Prenotazioni → Calendario, e puoi confermare/rifiutare entro 30 minuti. byup invia automaticamente promemoria 24h e 2h prima al cliente.' },
-  { id:'f6', cat:'pagamenti', q:'Quali sono i costi di commissione?', a:'Piano Gratuito: 3% su ogni ordine + commissione Stripe (1,5% + 0,25€). Piano Premium (49€/mese): 1,5% su ogni ordine + commissione Stripe. Piano Business: nessuna commissione byup, solo Stripe.' },
+  { id:'f6', cat:'pagamenti', q:'Quali sono i costi di commissione?', a:'byup non prende commissioni percentuali sugli ordini. Ogni piano include un numero di ordini al mese — 550 (Gratuito), 1.850 (Starter), 7.500 (Plus), 15.000 (Business) — e oltre la soglia paghi solo l\'ordine extra: 0,45 / 0,34 / 0,23 / 0,12 € + IVA a seconda del piano. Gli ordini fatti dai clienti tramite app contano 0,5: più i clienti ordinano da soli, meno paghi. Sui pagamenti resta solo la commissione standard di Stripe.' },
   { id:'f7', cat:'menu', q:'Come modifico il menù del ristorante?', a:'Vai in Cucina → Menù. Puoi aggiungere/modificare/disattivare piatti in tempo reale. Le modifiche sono visibili in vetrina entro 30 secondi.' },
   { id:'f8', cat:'tecnico', q:'Come esporto i report delle vendite?', a:'In Statistiche → tasto Esporta in alto a destra. Puoi scegliere il periodo, il formato (CSV, PDF, XLSX) e le metriche da includere. Il file viene generato in 1-2 minuti e ti arriva via email.' },
-  { id:'f9', cat:'tecnico', q:'L\'app è offline, cosa faccio?', a:'byup ha una modalità offline limitata: puoi continuare a battere ordini su Sala e Cucina, e si sincronizzeranno quando torni online. I pagamenti richiedono invece connessione attiva.' },
+  { id:'f9', cat:'tecnico', q:'La connessione del locale è instabile, cosa faccio?', a:'byup è interamente cloud: per ordini e incassi serve una connessione attiva. Se la linea del locale è debole, la soluzione consigliata è un hotspot 4G/5G dedicato. Non c\'è nulla da installare o sincronizzare in locale: i tuoi dati sono sempre al sicuro sui server.' },
+  { id:'f10', cat:'tecnico', q:'Serve hardware dedicato (POS, stampanti)?', a:'No. Lo smartphone del personale è il terminale di pagamento (Tap to Pay), la cucina lavora da browser su tablet o monitor, e il gestionale gira su qualsiasi dispositivo con un browser. L\'unica stampa prevista è lo scontrino di cortesia, via Wi-Fi, browser o Bluetooth.' },
+  { id:'f11', cat:'generale', q:'I miei clienti devono scaricare un\'app per ordinare?', a:'No: inquadrando il QR sul tavolo si apre la webapp e si ordina senza registrazione. Il pagamento dal tavolo però è esclusivo della Byup App — e conviene anche a te: gli ordini fatti dall\'app contano 0,5 nel conteggio del tuo piano.' },
 ];
 
 const SUP_FAQ_TABS = [
