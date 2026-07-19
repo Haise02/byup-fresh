@@ -250,56 +250,54 @@ function AccPianiAbbonamenti() {
         title="Più ordini con lo stesso piano"
         subtitle="Aggiungi ordini per gestire i picchi senza cambiare piano: si sommano a quelli già inclusi."
       >
-        {/* I pacchetti vivono nello stesso sistema visivo delle card piano
-            qui sopra: stesso fondo aurora, stessa ombra tinta viola, stesso
-            ring aurora in hover, stesso badge gradient sul piu' scelto,
-            stesso trattamento gradient sul numero e stessa CTA aurora. */}
+        {/* I pacchetti sono un gradino SOTTO i piani nella gerarchia della
+            pagina: card bianche (l'aurora e' la firma dei piani), tipografia
+            piu' piccola, ombra piu' leggera, niente ring in hover, CTA ghost.
+            Restano nella famiglia solo il numero in gradient (piu' piccolo)
+            e il badge del piu' scelto. */}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12}}>
           {ACC_PACCHETTI.map((p) => {
             // Badge dai dati (campo etichetta), non dalla posizione nell'array
             const isBest = p.etichetta.includes('miglior valore');
             const isPopular = p.etichetta.includes('più scelto');
             return (
-              <div key={p.id} className="acc-plan-card acc-plan-aurora" style={{
-                padding: 16, borderRadius: 12,
-                border: '1px solid rgba(190, 175, 220, 0.22)',
-                background: AURORA_CARD_BG,
-                boxShadow: '0 2px 4px rgba(15,17,21,0.05), 0 14px 32px -10px rgba(124, 58, 237, 0.16)',
-                display: 'flex', flexDirection: 'column', gap: 8,
+              <div key={p.id} className="acc-plan-card" style={{
+                padding: 14, borderRadius: 12,
+                border: `1px solid ${PN.BORDER_HAIR}`,
+                background: PN.WHITE,
+                boxShadow: '0 1px 3px rgba(15,17,21,0.04), 0 8px 20px -12px rgba(15,17,21,0.10)',
+                display: 'flex', flexDirection: 'column', gap: 7,
                 position: 'relative',
               }}>
-                {isPopular && (
-                  <PianoBadge
-                    bg="linear-gradient(120deg, #FF5A5F 0%, #A78BFA 100%)"
-                    fg={PN.WHITE}
-                    label="IL PIÙ SCELTO"
-                  />
-                )}
-                {isBest && <PianoBadge bg={PN.GREEN} fg={PN.WHITE} label="MIGLIOR VALORE"/>}
-                <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>{p.nome}</div>
+                {isPopular && <BadgePiuScelto/>}
+                {/* Verde soft, non pieno: sul gradino secondario anche i badge
+                    abbassano la voce. */}
+                {isBest && <PianoBadge bg={PN.GREEN_SOFT} fg={PN.GREEN} label="MIGLIOR VALORE"/>}
+                <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{p.nome}</div>
                 <div>
-                  <span style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, ...AURORA_TEXT_GRADIENT}}>
-                    <span style={{fontSize: 24, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.01em'}}>
+                  <span style={{display: 'inline-flex', alignItems: 'baseline', gap: 5, ...AURORA_TEXT_GRADIENT}}>
+                    <span style={{fontSize: 20, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.01em'}}>
                       +{p.ordini.toLocaleString('it-IT', {useGrouping: true})}
                     </span>
-                    <span style={{fontSize: 14, fontWeight: 600}}>ordini</span>
+                    <span style={{fontSize: 13, fontWeight: 600}}>ordini</span>
                   </span>
                 </div>
-                <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
-                  <span style={{fontSize: 20, fontWeight: 600, color: PN.TEXT}}>€{fmtPrice(p.prezzo)}</span>
-                  <span style={{fontSize: 13, color: PN.MUTED}}>pagamento unico + IVA</span>
+                <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 1}}>
+                  <span style={{fontSize: 17, fontWeight: 600, color: PN.TEXT}}>€{fmtPrice(p.prezzo)}</span>
+                  <span style={{fontSize: 12.5, color: PN.MUTED}}>pagamento unico + IVA</span>
                 </div>
-                <div style={{fontSize: 13, color: PN.MUTED}}>
+                <div style={{fontSize: 12.5, color: PN.MUTED}}>
                   {fmtPrice(Math.round((p.prezzo / p.ordini) * 100) / 100)} € a ordine
                 </div>
                 <button
                   onClick={() => showDemoToast(`L'acquisto del ${p.nome} sarà disponibile al lancio`)}
                   className="acc-plan-btn"
                   style={{
-                  marginTop: 6, padding: '9px 12px', borderRadius: 999,
-                  fontSize: 14.5, fontWeight: 600,
+                  marginTop: 5, padding: '8px 12px', borderRadius: 999,
+                  background: PN.WHITE, color: PN.TEXT,
+                  border: `1px solid ${PN.BORDER}`,
+                  fontSize: 14, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
-                  ...AURORA_CTA_STYLE,
                 }}>Acquista ora</button>
               </div>
             );
@@ -569,13 +567,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
       {/* Piano attuale: etichetta nera, non rosa. Non e' un'offerta da
           spingere — e' uno stato, e va letta come tale. */}
       {isCurrent && <PianoBadge bg={PN.TEXT} fg={PN.WHITE} label="PIANO ATTUALE"/>}
-      {p.highlight && !isCurrent && (
-        <PianoBadge
-          bg="linear-gradient(120deg, #FF5A5F 0%, #A78BFA 100%)"
-          fg={PN.WHITE}
-          label="IL PIÙ SCELTO"
-        />
-      )}
+      {p.highlight && !isCurrent && <BadgePiuScelto/>}
 
       {/* Headline — icona + nome del piano */}
       <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
@@ -660,6 +652,24 @@ function PianoBadge({bg, fg, label}) {
       padding: '4px 10px', borderRadius: 6, letterSpacing: 0.5,
       boxShadow: '0 2px 6px rgba(15,17,21,0.10)',
     }}>{label}</div>
+  );
+}
+
+// Badge "IL PIU' SCELTO" — chip bianco con testo in gradient e bordo lavanda.
+// NON riusa il gradient pieno della CTA: badge e bottone sono elementi
+// diversi e non devono leggersi come lo stesso blocco di colore. Il gradient
+// pieno resta all'azione; il badge lo cita solo nel testo.
+function BadgePiuScelto() {
+  return (
+    <div style={{
+      position: 'absolute', top: -10, right: 14,
+      background: PN.WHITE,
+      border: '1px solid rgba(167, 139, 250, 0.45)',
+      padding: '3px 10px', borderRadius: 6, letterSpacing: 0.5,
+      boxShadow: '0 2px 8px rgba(124, 58, 237, 0.14)',
+    }}>
+      <span style={{fontSize: 12, fontWeight: 700, ...AURORA_TEXT_GRADIENT}}>IL PIÙ SCELTO</span>
+    </div>
   );
 }
 
