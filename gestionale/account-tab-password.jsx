@@ -1,5 +1,29 @@
 // Account — Tab Password e sicurezza
 
+// Hover dei pulsanti "Termina". A riposo restano spenti; il rosso compare
+// solo quando ci passi sopra, cioe' nel momento in cui l'informazione serve
+// davvero — invece di gridare a ogni apertura della pagina.
+// scale(1.04) e' lo stesso ingrandimento dei pulsanti piano in
+// account-tab-piani.jsx, non un'animazione inventata qui.
+// L'inchiostro hover e' #B91C1C e non PN.RED: su RED_SOFT il PN.RED si ferma
+// a 3,95:1, questo tiene 5,30:1.
+const AC_TERM_REST  = { bg: PN.WHITE,    ink: PN.MUTED, bd: PN.BORDER };
+const AC_TERM_HOVER = { bg: PN.RED_SOFT, ink: '#B91C1C', bd: '#FCA5A5' };
+const AC_TERM_TRANSITION = 'color 150ms, border-color 150ms, background 150ms, transform 150ms ease-out';
+
+const acTerminaHover = {
+  onMouseEnter: e => {
+    const s = e.currentTarget.style;
+    s.background = AC_TERM_HOVER.bg; s.color = AC_TERM_HOVER.ink;
+    s.borderColor = AC_TERM_HOVER.bd; s.transform = 'scale(1.04)';
+  },
+  onMouseLeave: e => {
+    const s = e.currentTarget.style;
+    s.background = AC_TERM_REST.bg; s.color = AC_TERM_REST.ink;
+    s.borderColor = AC_TERM_REST.bd; s.transform = 'scale(1)';
+  },
+};
+
 function AccPasswordSicurezza() {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
@@ -47,9 +71,13 @@ function AccPasswordSicurezza() {
               padding:'14px 0',
               borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
             }}>
+              {/* Bianco e nero, non rosa brand: un dispositivo collegato e'
+                  un dato neutro. Il rosa qui accendeva ogni riga come se
+                  fosse notevole, e rubava l'occhio al badge verde della
+                  sessione corrente, che invece l'informazione ce l'ha. */}
               <span style={{
                 width: 36, height: 36, borderRadius: 8,
-                background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                background: PN.WHITE_HUSH, color: PN.TEXT,
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -74,24 +102,29 @@ function AccPasswordSicurezza() {
                   ordinaria, non un'emergenza. Stesso trattamento del logout
                   in account-tab-dati.jsx, che e' la stessa azione. */}
               {!s.current && (
-                <button style={{
+                <button {...acTerminaHover} style={{
                   padding:'7px 14px', borderRadius: 999,
-                  background: PN.WHITE, color: PN.MUTED,
-                  border:`1px solid ${PN.BORDER}`,
+                  background: AC_TERM_REST.bg, color: AC_TERM_REST.ink,
+                  border:`1px solid ${AC_TERM_REST.bd}`,
                   fontSize: 14, fontWeight: 600, cursor:'pointer',
                   fontFamily:'inherit',
+                  transform:'scale(1)',   // esplicito: cosi' riposo e post-hover sono lo stesso stato
+                  transition: AC_TERM_TRANSITION,
                 }}>Termina</button>
               )}
             </div>
           ))}
         </div>
-        <button style={{
+        <button {...acTerminaHover} style={{
           marginTop: 14,
           padding:'10px 18px', borderRadius: 999,
-          background: PN.WHITE, color: PN.MUTED,
-          border:`1px solid ${PN.BORDER}`,
+          background: AC_TERM_REST.bg, color: AC_TERM_REST.ink,
+          border:`1px solid ${AC_TERM_REST.bd}`,
           fontSize: 14.5, fontWeight: 700, cursor:'pointer',
           fontFamily:'inherit',
+          transform:'scale(1)',
+          transformOrigin: 'left center',   // e' allineato a sinistra: cresce verso destra, non "salta"
+          transition: AC_TERM_TRANSITION,
         }}>Termina tutte le altre sessioni</button>
       </AcCard>
 
