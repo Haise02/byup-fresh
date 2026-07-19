@@ -21,7 +21,7 @@ const ACC_DATI = {
 // (fonte unica: niente valori duplicati hardcoded nella tabella).
 const ACC_PIANI = [
   {
-    id: 'free', nome: 'Free', prezzo: 0, periodo: 'gratis',
+    id: 'free', nome: 'Free', prezzo: 0, prezzoMensile: 0, periodo: 'gratis',
     ordiniInclusi: 550,
     ordineExtra: 0.45,
     menu: '1 menu digitale',
@@ -36,7 +36,7 @@ const ACC_PIANI = [
     ],
   },
   {
-    id: 'starter', nome: 'Starter', prezzo: 46.99, periodo: '/mese + IVA', current: true,
+    id: 'starter', nome: 'Starter', prezzo: 46.99, prezzoMensile: 54.99, periodo: '/mese + IVA', current: true,
     ordiniInclusi: 1850,
     ordineExtra: 0.34,
     menu: '3 menu digitali',
@@ -51,7 +51,7 @@ const ACC_PIANI = [
     ],
   },
   {
-    id: 'plus', nome: 'Plus', prezzo: 134.99, periodo: '/mese + IVA',
+    id: 'plus', nome: 'Plus', prezzo: 134.99, prezzoMensile: 155.99, periodo: '/mese + IVA',
     ordiniInclusi: 7500,
     ordineExtra: 0.23,
     menu: 'Menu illimitati',
@@ -67,7 +67,7 @@ const ACC_PIANI = [
     ],
   },
   {
-    id: 'business', nome: 'Business', prezzo: 250, periodo: '/mese + IVA',
+    id: 'business', nome: 'Business', prezzo: 250, prezzoMensile: 290, periodo: '/mese + IVA',
     ordiniInclusi: 15000,
     ordineExtra: 0.12,
     menu: 'Menu illimitati',
