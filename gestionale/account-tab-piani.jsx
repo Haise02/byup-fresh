@@ -502,8 +502,12 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         <PianoEmoji planId={p.id} size={22} monochrome={isNeg ? '#FFFFFF' : undefined}/>
         <div style={{fontSize: 16, fontWeight: 600, color: styles.textColor}}>{p.nome}</div>
       </div>
+      {/* Stessa scala dei box "Ordini aggiuntivi" qui sotto: prezzo 20,
+          numero ordini 24. Gli ordini restano piu' grandi del prezzo — e' il
+          rapporto che hanno gia' i pacchetti, e mette davanti cosa ottieni
+          invece di quanto costa. */}
       <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: totaleAnnuo !== undefined ? 2 : 12, flexWrap: 'wrap'}}>
-        <span style={{fontSize: 28, fontWeight: 600, color: styles.priceColor, lineHeight: 1, letterSpacing: '-0.02em'}}>
+        <span style={{fontSize: 20, fontWeight: 600, color: styles.priceColor, lineHeight: 1, letterSpacing: '-0.02em'}}>
           {prezzoMostrato === 0 ? 'Gratis' : `€${fmtPrice(prezzoMostrato)}`}
         </span>
         <span style={{fontSize: 13, color: styles.mutedColor}}>{prezzoMostrato === 0 ? '' : periodoMostrato}</span>
@@ -524,9 +528,17 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
           reggeva il fondo PINK_SOFT. Scelta voluta, non una svista: se un
           giorno serve conformita' piena, basta scurire ordiniText a #D54043
           (4,52:1) — stessa tinta, differenza quasi impercettibile. */}
-      <div style={{marginBottom: 12, fontSize: 13.5}}>
-        <div style={{fontWeight: 600, color: styles.ordiniText}}>{p.ordiniInclusi.toLocaleString('it-IT')} ordini/mese</div>
-        <div style={{color: styles.ordiniText, marginTop: 2, opacity: isNeg ? 1 : 0.85}}>
+      <div style={{marginBottom: 12}}>
+        {/* Numero + unita' separati, come "+500 ordini" nei pacchetti. */}
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
+          <span style={{fontSize: 24, fontWeight: 600, color: styles.ordiniText, lineHeight: 1}}>
+            {p.ordiniInclusi.toLocaleString('it-IT')}
+          </span>
+          <span style={{fontSize: 14, fontWeight: 600, color: styles.ordiniText, opacity: isNeg ? 1 : 0.85}}>
+            ordini/mese
+          </span>
+        </div>
+        <div style={{fontSize: 13.5, color: styles.ordiniText, marginTop: 4, opacity: isNeg ? 1 : 0.85}}>
           +{fmtPrice(p.ordineExtra)} €/extra
         </div>
       </div>
