@@ -22,10 +22,10 @@ function StatApp() {
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       {/* KPI funnel */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <StatKpi label="Visite vetrina" value={totV.toLocaleString('it-IT')} delta={14.2} sub="Visualizzazioni totali della tua vetrina"/>
-        <StatKpi label="Pagamenti completati" value={last.toLocaleString('it-IT')} delta={9.6} sub="Ordini conclusi con successo"/>
+        <StatKpi label="Visite vetrina" value={totV.toLocaleString('it-IT', {useGrouping: true})} delta={14.2} sub="Visualizzazioni totali della tua vetrina"/>
+        <StatKpi label="Pagamenti completati" value={last.toLocaleString('it-IT', {useGrouping: true})} delta={9.6} sub="Ordini conclusi con successo"/>
         <StatKpi label="Tasso di conversione" value={`${((last/totV)*100).toFixed(1)}%`} delta={2.4} sub="Dalla vetrina al pagamento"/>
-        <StatKpi label="Abbandoni totali" value={dropTotal.toLocaleString('it-IT')} delta={-3.1} sub="Utenti che non completano il percorso"/>
+        <StatKpi label="Abbandoni totali" value={dropTotal.toLocaleString('it-IT', {useGrouping: true})} delta={-3.1} sub="Utenti che non completano il percorso"/>
       </div>
 
       {/* Funnel viz */}
@@ -50,7 +50,7 @@ function StatApp() {
                     {prev != null && dropPct > 0 && (
                       <span style={{fontSize: 14, color: PN.RED, fontWeight: 600}}>↓ {dropPct.toFixed(0)}% abbandoni</span>
                     )}
-                    <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 80, textAlign:'right'}}>{step.val.toLocaleString('it-IT')}</strong>
+                    <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 80, textAlign:'right'}}>{step.val.toLocaleString('it-IT', {useGrouping: true})}</strong>
                     <span style={{fontSize: 14.5, color: PN.MUTED, fontWeight: 600, minWidth: 44, textAlign:'right'}}>{step.pct}%</span>
                   </div>
                 </div>
@@ -97,8 +97,8 @@ function StatApp() {
               fontVariantNumeric:'tabular-nums',
             }}>
               <span style={{fontWeight: 600}}>{p.piatto}</span>
-              <span>{p.view.toLocaleString('it-IT')}</span>
-              <span>{p.ord.toLocaleString('it-IT')}</span>
+              <span>{p.view.toLocaleString('it-IT', {useGrouping: true})}</span>
+              <span>{p.ord.toLocaleString('it-IT', {useGrouping: true})}</span>
               <div style={{display:'flex', alignItems:'center', gap: 10}}>
                 <div style={{flex: 1}}><StatBar pct={p.conv} color={p.conv >= 60 ? '#16A34A' : (p.conv >= 40 ? PN.PINK : '#dc2626')} height={6}/></div>
                 <span style={{

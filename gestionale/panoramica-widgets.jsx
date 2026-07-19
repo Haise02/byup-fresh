@@ -725,7 +725,7 @@ function WidgetTopPiatti() {
               </div>
               <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 14, flexShrink: 0, whiteSpace:'nowrap'}}>
                 <span style={{color: 'rgba(255,255,255,0.55)'}}>{d.sales} ordini · </span>
-                <span style={{color: '#F5F5F7', fontWeight: 600}}>€{d.rev.toLocaleString('it')}</span>
+                <span style={{color: '#F5F5F7', fontWeight: 600}}>€{d.rev.toLocaleString('it-IT', {useGrouping: true})}</span>
                 <span style={{color: d.up ? '#86EFAC' : '#FCA5A5', fontWeight: 600, minWidth: 36, textAlign:'right'}}>{d.trend}</span>
               </div>
             </div>

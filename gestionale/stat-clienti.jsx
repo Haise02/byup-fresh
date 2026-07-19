@@ -8,8 +8,8 @@ function StatClienti() {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-        <StatKpi label="Clienti unici" value={d.unici.val.toLocaleString('it-IT')} delta={d.unici.delta} sub="Visitatori unici nel periodo selezionato"/>
-        <StatKpi label="Clienti abituali" value={d.abituali.val.toLocaleString('it-IT')} delta={d.abituali.delta} sub="Visite multiple registrate negli ultimi 90 giorni"/>
+        <StatKpi label="Clienti unici" value={d.unici.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.unici.delta} sub="Visitatori unici nel periodo selezionato"/>
+        <StatKpi label="Clienti abituali" value={d.abituali.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.abituali.delta} sub="Visite multiple registrate negli ultimi 90 giorni"/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap: 16}}>

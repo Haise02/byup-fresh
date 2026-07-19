@@ -162,7 +162,7 @@ function AccPianiAbbonamenti() {
             Il click apre il modale di confronto, non il cambio diretto. */}
         <div style={{marginTop: 16, textAlign: 'center', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
           Vuoi rinunciare ai vantaggi del tuo piano attuale? Valuta il piano <strong style={{color: PN.TEXT}}>Free</strong> —
-          {' '}{freePlan.ordiniInclusi} ordini/mese, poi {fmtPrice(freePlan.ordineExtra)} € a ordine.{' '}
+          {' '}{freePlan.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini/mese, poi {fmtPrice(freePlan.ordineExtra)} € a ordine.{' '}
           <button
             onClick={() => setFreeModal(true)}
             style={{
@@ -209,7 +209,7 @@ function AccPianiAbbonamenti() {
                 <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>{p.nome}</div>
                 <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
                   <span style={{fontSize: 24, fontWeight: 600, color: PN.PINK_DARK, lineHeight: 1}}>
-                    +{p.ordini.toLocaleString('it-IT')}
+                    +{p.ordini.toLocaleString('it-IT', {useGrouping: true})}
                   </span>
                   <span style={{fontSize: 14, fontWeight: 600, color: PN.MUTED}}>ordini</span>
                 </div>
@@ -312,7 +312,7 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
             </span>
           </div>
           <div style={{fontSize: 14.5, color: '#065F46', marginTop: 2, fontWeight: 500}}>
-            {ordiniRisparmiati.toLocaleString('it-IT')} ordini a metà prezzo
+            {ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})} ordini a metà prezzo
           </div>
         </div>
       </div>
@@ -357,10 +357,10 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
 
       <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, marginBottom: 8}}>
         <span style={{fontSize: 28, fontWeight: 600, color: '#F5F5F7', lineHeight: 1, letterSpacing: '-0.02em'}}>
-          {ordiniUsati.toLocaleString('it-IT')}
+          {ordiniUsati.toLocaleString('it-IT', {useGrouping: true})}
         </span>
         <span style={{fontSize: 15, color: 'rgba(255,255,255,0.60)', fontWeight: 500}}>
-          / {current.ordiniInclusi.toLocaleString('it-IT')} inclusi
+          / {current.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} inclusi
         </span>
       </div>
 
@@ -375,7 +375,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
       </div>
       <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.60)'}}>
         <span>{pct}% utilizzato</span>
-        <span>{(current.ordiniInclusi - ordiniUsati).toLocaleString('it-IT')} ancora disponibili</span>
+        <span>{(current.ordiniInclusi - ordiniUsati).toLocaleString('it-IT', {useGrouping: true})} ancora disponibili</span>
       </div>
 
       {/* Breakdown POS vs App — versione compatta inline (su dark) */}
@@ -386,7 +386,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
         <div style={{padding: '8px 10px', background: 'rgba(255,255,255,0.06)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)'}}>
           <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da cassa</div>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
-            <span style={{fontSize: 17, fontWeight: 600, color: '#F5F5F7'}}>{ordiniPos.toLocaleString('it-IT')}</span>
+            <span style={{fontSize: 17, fontWeight: 600, color: '#F5F5F7'}}>{ordiniPos.toLocaleString('it-IT', {useGrouping: true})}</span>
             <span style={{
               marginLeft: 'auto', fontSize: 11, fontWeight: 600,
               padding: '1px 6px', borderRadius: 4,
@@ -397,7 +397,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
         <div style={{padding: '8px 10px', background: 'rgba(255, 96, 102, 0.18)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255, 96, 102, 0.30)'}}>
           <div style={{fontSize: 12, color: '#FF8B90', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da app clienti</div>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
-            <span style={{fontSize: 17, fontWeight: 600, color: '#FFC8B0'}}>{ordiniApp.toLocaleString('it-IT')}</span>
+            <span style={{fontSize: 17, fontWeight: 600, color: '#FFC8B0'}}>{ordiniApp.toLocaleString('it-IT', {useGrouping: true})}</span>
             <span style={{
               marginLeft: 'auto', fontSize: 11, fontWeight: 600,
               padding: '1px 6px', borderRadius: 4,
@@ -532,7 +532,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
         {/* Numero + unita' separati, come "+500 ordini" nei pacchetti. */}
         <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
           <span style={{fontSize: 24, fontWeight: 600, color: styles.ordiniText, lineHeight: 1}}>
-            {p.ordiniInclusi.toLocaleString('it-IT')}
+            {p.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})}
           </span>
           <span style={{fontSize: 14, fontWeight: 600, color: styles.ordiniText, opacity: isNeg ? 1 : 0.85}}>
             ordini/mese
@@ -596,7 +596,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
 
   const ordiniPersi = current.ordiniInclusi - free.ordiniInclusi;
   const losses = [
-    `${ordiniPersi.toLocaleString('it-IT')} ordini inclusi in meno al mese (da ${current.ordiniInclusi.toLocaleString('it-IT')} a ${free.ordiniInclusi.toLocaleString('it-IT')})`,
+    `${ordiniPersi.toLocaleString('it-IT', {useGrouping: true})} ordini inclusi in meno al mese (da ${current.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} a ${free.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})})`,
     `Ogni ordine extra costerà di più: da ${fmtPrice(current.ordineExtra)} € a ${fmtPrice(free.ordineExtra)} €`,
     `Menù digitali: da ${current.menuShort.toLowerCase().replace(/^fino a /, '')} a un solo menù`,
     `Membri dello staff: da ${current.staffShort.toLowerCase().replace(/^fino a /, '')} a un solo membro`,
@@ -658,7 +658,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
             prezzo={`€${fmtPrice(current.prezzo)}${current.periodo}`}
             bordered
             righe={[
-              `${current.ordiniInclusi.toLocaleString('it-IT')} ordini/mese`,
+              `${current.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini/mese`,
               `+${fmtPrice(current.ordineExtra)} € a ordine extra`,
               current.menu,
               current.staff,
@@ -669,7 +669,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
             badge="FREE" badgeBg={PN.WHITE_OFF} badgeFg={PN.MUTED}
             prezzo="Gratis"
             righe={[
-              `${free.ordiniInclusi.toLocaleString('it-IT')} ordini/mese`,
+              `${free.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini/mese`,
               `+${fmtPrice(free.ordineExtra)} € a ordine extra`,
               'Un solo menù digitale',
               'Un solo membro dello staff',
@@ -730,7 +730,7 @@ function ConfrontoTable() {
   // prezzi o limiti (prima erano stringhe duplicate hardcoded qui).
   const fmt = (n) => n.toFixed(2).replace('.', ',');
   const rows = [
-    ['Ordini inclusi/mese',                    ...ACC_PIANI.map(p => p.ordiniInclusi.toLocaleString('it-IT'))],
+    ['Ordini inclusi/mese',                    ...ACC_PIANI.map(p => p.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true}))],
     ['Costo per ordine extra',                 ...ACC_PIANI.map(p => `${fmt(p.ordineExtra)} €+IVA`)],
     ['Menù digitali',                          ...ACC_PIANI.map(p => p.menuShort)],
     [

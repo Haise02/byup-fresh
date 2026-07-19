@@ -30,7 +30,7 @@ function StatOrdini() {
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
         <StatKpi label="Scontrino medio" value={`€ ${d.kpi.scontrino.val.toFixed(2)}`} delta={d.kpi.scontrino.delta} sub="Valore medio per ordine nel periodo selezionato"/>
-        <StatKpi label="Ordini completati" value={d.kpi.completati.val.toLocaleString('it-IT')} delta={d.kpi.completati.delta} sub="Totale ordini completati nel periodo selezionato"/>
+        <StatKpi label="Ordini completati" value={d.kpi.completati.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.kpi.completati.delta} sub="Totale ordini completati nel periodo selezionato"/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
@@ -143,7 +143,7 @@ function ChannelCard({ title, subtitle, data, iconKey, color }) {
         </div>
       </div>
       <div style={{display:'flex', gap: 10}}>
-        <Pill iconKey="check" label="Completati" value={data.completati.toLocaleString('it-IT')}/>
+        <Pill iconKey="check" label="Completati" value={data.completati.toLocaleString('it-IT', {useGrouping: true})}/>
         <Pill iconKey="clock" label="Tempo medio" value={data.tempoMedio}/>
       </div>
     </StatCard>

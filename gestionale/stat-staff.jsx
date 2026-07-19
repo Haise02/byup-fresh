@@ -28,15 +28,15 @@ function StatStaff() {
       {/* Insight narrativa */}
       <StatInsight items={[
         {tone:'positive', title:`Top performer · ${top.nome}`, desc:`Scontrino medio €${top.scontrino.toFixed(2)}, ${(((top.scontrino - teamAvg)/teamAvg)*100).toFixed(1)}% sopra la media team. ${top.ordini} ordini gestiti.`},
-        {tone:'neutral', title:'Mance in crescita', desc:`Il team ha raccolto €${totTip.toLocaleString('it-IT')} di mance, +14.1% rispetto al periodo precedente.`},
+        {tone:'neutral', title:'Mance in crescita', desc:`Il team ha raccolto €${totTip.toLocaleString('it-IT', {useGrouping: true})} di mance, +14.1% rispetto al periodo precedente.`},
       ]}/>
 
       {/* KPI riepilogo */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
         <StatKpi label="Membri attivi" value={STAFF.length} sub="Camerieri e maître nel periodo"/>
         <StatKpi label="Scontrino medio team" value={`€ ${teamAvg.toFixed(2)}`} delta={6.4} spark={[42,44,43,46,45,47,48]} sub="Media tra tutti i membri attivi"/>
-        <StatKpi label="Ordini gestiti" value={totOrdini.toLocaleString('it-IT')} delta={9.2} spark={[1820,1900,1880,1950,2010,2080,2129]} sub="Totale ordini gestiti dal team"/>
-        <StatKpi label="Mance raccolte" value={`€ ${totTip.toLocaleString('it-IT')}`} delta={14.1} spark={[2100,2200,2150,2300,2400,2500,2570]} sub="Totale mance del periodo"/>
+        <StatKpi label="Ordini gestiti" value={totOrdini.toLocaleString('it-IT', {useGrouping: true})} delta={9.2} spark={[1820,1900,1880,1950,2010,2080,2129]} sub="Totale ordini gestiti dal team"/>
+        <StatKpi label="Mance raccolte" value={`€ ${totTip.toLocaleString('it-IT', {useGrouping: true})}`} delta={14.1} spark={[2100,2200,2150,2300,2400,2500,2570]} sub="Totale mance del periodo"/>
       </div>
 
       <StatCard title="Rendimento personale" sub="Vendite ed efficacia dei membri del tuo team" action={
@@ -111,7 +111,7 @@ function StatStaff() {
                   </span>
                 </span>
                 <div>
-                  <div style={{fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{s.ordini}</div>
+                  <div style={{fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{s.ordini.toLocaleString('it-IT', {useGrouping: true})}</div>
                   <div style={{height: 4, background: PN.BORDER_SOFT, borderRadius: 999, marginTop: 4, overflow:'hidden'}}>
                     <div style={{height:'100%', width: `${(s.ordini / 320) * 100}%`, background: PN.PINK, borderRadius: 999}}/>
                   </div>

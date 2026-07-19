@@ -102,7 +102,7 @@ function ContabilitaApp() {
 
 function Kpi({ label, value, delta, up, down, icon: I, tooltip, divider }) {
   const formatted = (typeof value === 'number')
-    ? `€ ${value.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+    ? `€ ${value.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true})}`
     : value;
   // KPI tile interno del banner night. Testo chiaro per leggibilità sopra
   // lo slate scuro; delta in verde/rosso pastello (i toni saturi da light

@@ -236,23 +236,23 @@ function PnSidebarPlanCard({ onOpenPlans }) {
               zIndex: 50, textAlign: 'left', letterSpacing: 0,
             }}>
               <div style={{fontWeight: 600, marginBottom: 4}}>
-                {ordiniUsati.toLocaleString('it-IT')} di {ordiniInclusi.toLocaleString('it-IT')} ordini
+                {ordiniUsati.toLocaleString('it-IT', {useGrouping: true})} di {ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini
               </div>
               <div style={{display: 'flex', justifyContent: 'space-between', gap: 8}}>
-                <span style={{opacity: 0.75}}>Cassa · {ordiniCassa.toLocaleString('it-IT')} × 1</span>
-                <span>{ordiniCassa.toLocaleString('it-IT')}</span>
+                <span style={{opacity: 0.75}}>Cassa · {ordiniCassa.toLocaleString('it-IT', {useGrouping: true})} × 1</span>
+                <span>{ordiniCassa.toLocaleString('it-IT', {useGrouping: true})}</span>
               </div>
               <div style={{display: 'flex', justifyContent: 'space-between', gap: 8}}>
-                <span style={{opacity: 0.75}}>App · {utentiApp.toLocaleString('it-IT')} × 0,5</span>
-                <span>{ordiniApp.toLocaleString('it-IT')}</span>
+                <span style={{opacity: 0.75}}>App · {utentiApp.toLocaleString('it-IT', {useGrouping: true})} × 0,5</span>
+                <span>{ordiniApp.toLocaleString('it-IT', {useGrouping: true})}</span>
               </div>
               <div style={{height: 1, background: 'rgba(255,255,255,0.15)', margin: '6px 0'}}/>
               <div style={{display: 'flex', justifyContent: 'space-between', gap: 8, fontWeight: 600}}>
                 <span>Ne restano</span>
-                <span>{(ordiniInclusi - ordiniUsati).toLocaleString('it-IT')}</span>
+                <span>{(ordiniInclusi - ordiniUsati).toLocaleString('it-IT', {useGrouping: true})}</span>
               </div>
               <div style={{marginTop: 6, color: '#86EFAC', fontSize: 12}}>
-                Risparmiati <b>{ordiniRisparmiati.toLocaleString('it-IT')}</b> ordini grazie ai pagamenti app
+                Risparmiati <b>{ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})}</b> ordini grazie ai pagamenti app
               </div>
             </div>
           )}

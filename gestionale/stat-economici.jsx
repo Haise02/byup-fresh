@@ -51,9 +51,9 @@ function RicaviCosti({ d, months }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
         {/* Ricavi è la UNICA card Statistiche con il light-coral gradient
             (hero del sub-tab Economici). Le altre 21 restano white. */}
-        <StatKpi label="Ricavi" value={`€ ${d.ricavi.val.toLocaleString('it-IT')}`} delta={d.ricavi.delta} sub="Entrate del periodo" glass/>
-        <StatKpi label="Costi" value={`€ ${d.costi.val.toLocaleString('it-IT')}`} delta={d.costi.delta} sub="Uscite del periodo"/>
-        <StatKpi label="Utile" value={`€ ${d.utile.val.toLocaleString('it-IT')}`} delta={d.utile.delta} sub={`Margine ${((d.utile.val/d.ricavi.val)*100).toFixed(1)}% sui ricavi`}/>
+        <StatKpi label="Ricavi" value={`€ ${d.ricavi.val.toLocaleString('it-IT', {useGrouping: true})}`} delta={d.ricavi.delta} sub="Entrate del periodo" glass/>
+        <StatKpi label="Costi" value={`€ ${d.costi.val.toLocaleString('it-IT', {useGrouping: true})}`} delta={d.costi.delta} sub="Uscite del periodo"/>
+        <StatKpi label="Utile" value={`€ ${d.utile.val.toLocaleString('it-IT', {useGrouping: true})}`} delta={d.utile.delta} sub={`Margine ${((d.utile.val/d.ricavi.val)*100).toFixed(1)}% sui ricavi`}/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16}}>
@@ -101,7 +101,7 @@ function RicaviCosti({ d, months }) {
                   <span style={{width: 12, height: 12, background: s.color, borderRadius: 3}}/>
                   <span style={{flex: 1, color: PN.TEXT}}>{s.label}</span>
                   <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{Math.round((s.val/totRicavi)*100)}%</strong>
-                  <span style={{color: PN.MUTED, fontSize: 14, fontVariantNumeric:'tabular-nums', minWidth: 60, textAlign:'right'}}>€{s.val.toLocaleString('it-IT')}</span>
+                  <span style={{color: PN.MUTED, fontSize: 14, fontVariantNumeric:'tabular-nums', minWidth: 60, textAlign:'right'}}>€{s.val.toLocaleString('it-IT', {useGrouping: true})}</span>
                 </div>
               ))}
             </div>
@@ -156,7 +156,7 @@ function RicaviCosti({ d, months }) {
         <div style={{padding:'12px 16px', background: PN.WINE, borderRadius: 12, marginBottom: 16, color:'#fff', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <div>
             <div style={{fontSize: 14.5, opacity: 0.85}}>Costi totali del periodo</div>
-            <div style={{fontSize: 24, fontWeight: 700, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>€ {STAT_ECONOMICI.costi.val.toLocaleString('it-IT')}</div>
+            <div style={{fontSize: 24, fontWeight: 700, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>€ {STAT_ECONOMICI.costi.val.toLocaleString('it-IT', {useGrouping: true})}</div>
           </div>
           <span style={{
             padding:'5px 12px', background:'rgba(255,255,255,0.2)',
@@ -170,7 +170,7 @@ function RicaviCosti({ d, months }) {
                 <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{c.cat}</span>
                 <div style={{display:'flex', alignItems:'center', gap: 8}}>
                   <span style={{fontSize: 14, color: PN.MUTED}}>{c.fissi}% fissi · {c.var}% variabili</span>
-                  <strong style={{fontSize: 14.5, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 70, textAlign:'right'}}>€ {c.tot.toLocaleString('it-IT')}</strong>
+                  <strong style={{fontSize: 14.5, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 70, textAlign:'right'}}>€ {c.tot.toLocaleString('it-IT', {useGrouping: true})}</strong>
                   <span style={{
                     padding:'2px 7px', borderRadius: 999,
                     background: c.delta < 0 ? PN.GREEN_SOFT : (c.delta > 5 ? PN.RED_SOFT : '#f3f4f6'),
@@ -225,7 +225,7 @@ function VenditePiatti({ v }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
         <StatKpi label="N. articoli per ordine" value={v.kpi.articoli.val} delta={v.kpi.articoli.delta} sub={v.kpi.articoli.sub}/>
         <StatKpi label="Margine medio" value={v.kpi.margine.val} suffix="%" delta={v.kpi.margine.delta} sub={v.kpi.margine.sub}/>
-        <StatKpi label="Articoli totali venduti" value={v.kpi.venduti.val.toLocaleString('it-IT')} delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub}/>
+        <StatKpi label="Articoli totali venduti" value={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})} delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub}/>
       </div>
 
       <StatCard title="Performance piatti" sub="Ordina per qualsiasi colonna · margine, ricavo, n° venduti" action={

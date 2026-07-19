@@ -22,7 +22,7 @@ function StatPrenotazioni() {
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       {/* KPI */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <StatKpi label="Coperti serviti" value={d.kpi.coperti.val.toLocaleString('it-IT')} delta={d.kpi.coperti.delta} sub="Totale ospiti serviti nel periodo selezionato"/>
+        <StatKpi label="Coperti serviti" value={d.kpi.coperti.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.kpi.coperti.delta} sub="Totale ospiti serviti nel periodo selezionato"/>
         <StatKpi label="Tasso di occupazione" value={d.kpi.occupazione.val} suffix="%" delta={d.kpi.occupazione.delta} sub="Percentuale media di riempimento delle sale"/>
         <StatKpi label="Coperti per tavolo" value={d.kpi.perTavolo.val} delta={d.kpi.perTavolo.delta} sub="Media ospiti per prenotazione"/>
         <StatKpi label="Durata media al tavolo" value={d.kpi.durata.val} delta={d.kpi.durata.delta} sub="Tempo medio di permanenza al tavolo"/>
