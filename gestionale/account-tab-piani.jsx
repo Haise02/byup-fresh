@@ -382,12 +382,61 @@ function AccPianiAbbonamenti() {
 // Card "Risparmio del mese" — verde tenue, dato d'apertura
 // ─────────────────────────────────────────────────────────────────────────
 
+// Sparkline del trend di risparmio — mini area chart in alto a destra della
+// card. Stessa costruzione di WSparkline (cubic Bezier con control point a metà
+// segmento) ma statica, con due punti evidenziati come nel mock. I valori sono
+// un trend illustrativo su 8 settimane: non c'è ancora storico reale a backend,
+// coerente col resto della pagina (i CTA sono ancora in stato demo). Non
+// deforma i pallini: preserveAspectRatio meet, così restano cerchi perfetti.
+function RisparmioSpark({width = 150, height = 64, color = '#10B981'}) {
+  const data = [48, 42, 56, 64, 74, 74, 86, 100]; // lieve flessione iniziale → salita fino al picco
+  const PAD_X = 5, PAD_T = 8, PAD_B = 6;
+  const n = data.length;
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = PAD_X + (i / (n - 1)) * (width - PAD_X * 2);
+    const y = PAD_T + (1 - (v - min) / range) * (height - PAD_T - PAD_B);
+    return [x, y];
+  });
+  let line = `M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+    const cx = (x1 + x2) / 2;
+    line += ` C ${cx.toFixed(2)} ${y1.toFixed(2)}, ${cx.toFixed(2)} ${y2.toFixed(2)}, ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
+  const area = line + ` L ${(width - PAD_X).toFixed(2)} ${height} L ${PAD_X.toFixed(2)} ${height} Z`;
+  const dots = [pts[5], pts[n - 1]]; // spalla (~71%) + picco finale, come nell'immagine
+  const gid = 'risp-spark-grad';
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height}
+         preserveAspectRatio="xMidYMid meet"
+         style={{width: '100%', height: 'auto', display: 'block', overflow: 'visible'}} aria-hidden="true">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
+          <stop offset="100%" stopColor={color} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`}/>
+      <path d={line} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+      {dots.map(([x, y], i) => (
+        <g key={i}>
+          <circle cx={x} cy={y} r="4.5" fill="#fff"/>
+          <circle cx={x} cy={y} r="3" fill={color}/>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
-  // Card "Risparmio": ripristinato fondo verde chiaro (era stato passato a coral
-  // photo-glass nella vecchia tipizzazione, ma semanticamente il risparmio appartiene
-  // alla famiglia emerald — non al coral brand). Glass tinted emerald con inset ring
-  // verde e ombra emerald soft. Fuori dal sistema W1/L2/D3 perché è un'eccezione
-  // semantica (verde = soldi risparmiati), documentata qui.
+  // Card "Risparmio" (semantica emerald = soldi risparmiati, eccezione
+  // documentata al sistema W1/L2/D3). Layout allineato al mock: card chiara,
+  // icona tonda col $, trend sparkline in alto a destra, e la spiegazione
+  // "0,5 invece di 1" in un riquadro dedicato con icona sparkle. La coppia con
+  // UtilizzoCard resta chiara+scura, quindi lo schiarimento non la rompe.
+  const EMERALD = '#10B981';
   return (
     <div className="glass-lift-hover" style={{
       position: 'relative',
@@ -396,50 +445,58 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
       borderRadius: 14,
       minHeight: 200,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
-      backgroundImage:
-        'linear-gradient(to bottom, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.10) 45%, rgba(255,255,255,0) 100%), ' +
-        'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+      gap: 16,
+      background:
+        'linear-gradient(180deg, rgba(240,253,248,0.92) 0%, rgba(255,255,255,0.98) 58%), ' +
+        '#FFFFFF',
       border: 'none',
       boxShadow:
-        'inset 0 1px 0 rgba(255, 255, 255, 0.85), ' +
-        'inset 0 0 0 1px rgba(16, 185, 129, 0.20), ' +
-        '0 8px 24px -8px rgba(16, 185, 129, 0.22), ' +
-        '0 2px 6px -2px rgba(15, 17, 21, 0.04)',
+        'inset 0 1px 0 rgba(255, 255, 255, 0.90), ' +
+        'inset 0 0 0 1px rgba(16, 185, 129, 0.16), ' +
+        '0 8px 24px -10px rgba(16, 185, 129, 0.20), ' +
+        '0 2px 6px -2px rgba(15, 17, 21, 0.05)',
       color: '#064E3B',
     }}>
-      <div style={{
-        position: 'absolute', right: -40, top: -40,
-        width: 160, height: 160, borderRadius: '50%',
-        background: 'rgba(16, 185, 129, 0.18)',
-        zIndex: 0,
-      }}/>
-      <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: 14, zIndex: 1}}>
+      {/* Header: icona tonda · dato chiave · sparkline del trend */}
+      <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
         <div style={{
-          width: 48, height: 48, borderRadius: 12,
+          width: 48, height: 48, borderRadius: '50%',
           background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
           color: '#fff',
           display: 'grid', placeItems: 'center', flexShrink: 0,
-          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(255,255,255,0.30)',
+          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(255,255,255,0.35)',
         }}>
           <PnI.Money size={22} color="#fff"/>
         </div>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 13, color: 'rgba(6, 78, 59, 0.65)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5}}>
+          <div style={{fontSize: 12.5, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6}}>
             Risparmiato questo mese
           </div>
-          <div style={{display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4}}>
-            <span style={{fontSize: 32, fontWeight: 600, color: '#047857', lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums'}}>
-              {fmtPrice(euroRisparmiati)} €
-            </span>
+          <div style={{fontSize: 33, fontWeight: 700, color: '#064E3B', lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 2, whiteSpace: 'nowrap'}}>
+            {fmtPrice(euroRisparmiati)} €
           </div>
-          <div style={{fontSize: 14.5, color: '#065F46', marginTop: 2, fontWeight: 500}}>
+          <div style={{fontSize: 14, color: '#6B8578', marginTop: 1, fontWeight: 500}}>
             {ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})} ordini a metà prezzo
           </div>
         </div>
+        <div style={{flex: '0 1 150px', minWidth: 70}}>
+          <RisparmioSpark color={EMERALD}/>
+        </div>
       </div>
-      <div style={{position: 'relative', fontSize: 14.5, color: 'rgba(6, 78, 59, 0.85)', marginTop: 14, lineHeight: 1.45, zIndex: 1}}>
-        Gli ordini fatti dai clienti tramite app vengono contati come <strong style={{color: '#047857'}}>0,5 invece di 1</strong>: più i clienti ordinano da soli e meno paghi.
+
+      {/* Callout: perché si risparmia — nota separata con icona sparkle */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', gap: 11,
+        padding: '12px 14px', borderRadius: 11,
+        background: 'rgba(16, 185, 129, 0.06)',
+        border: '1px solid rgba(16, 185, 129, 0.16)',
+      }}>
+        <div style={{flexShrink: 0, marginTop: 1, lineHeight: 0}}>
+          <PnI.Sparkle size={16} color={EMERALD}/>
+        </div>
+        <div style={{fontSize: 14, color: '#0F5132', lineHeight: 1.45}}>
+          Gli ordini fatti dai clienti tramite app vengono contati come <strong style={{color: '#047857', fontWeight: 700}}>0,5 invece di 1</strong>: più i clienti ordinano da soli e meno paghi.
+        </div>
       </div>
     </div>
   );
