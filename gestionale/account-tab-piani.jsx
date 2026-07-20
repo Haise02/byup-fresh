@@ -442,11 +442,11 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
     <div className="glass-lift-hover" style={{
       position: 'relative',
       overflow: 'hidden',
-      padding: '20px 22px',
+      padding: '15px 17px',
       borderRadius: 14,
-      minHeight: 200,
+      minHeight: 168,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      gap: 16,
+      gap: 11,
       background:
         'linear-gradient(180deg, rgba(240,253,248,0.92) 0%, rgba(255,255,255,0.98) 58%), ' +
         '#FFFFFF',
@@ -461,22 +461,22 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
       {/* Header: icona tonda · dato chiave */}
       <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
         <div style={{
-          width: 48, height: 48, borderRadius: '50%',
+          width: 42, height: 42, borderRadius: '50%',
           background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
           color: '#fff',
           display: 'grid', placeItems: 'center', flexShrink: 0,
           boxShadow: '0 4px 14px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(255,255,255,0.35)',
         }}>
-          <PnI.Money size={22} color="#fff"/>
+          <PnI.Money size={19} color="#fff"/>
         </div>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 12.5, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6}}>
+          <div style={{fontSize: 12, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6}}>
             Risparmiato questo mese
           </div>
-          <div style={{fontSize: 34, fontWeight: 700, color: '#064E3B', lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 2, whiteSpace: 'nowrap'}}>
+          <div style={{fontSize: 28, fontWeight: 700, color: '#064E3B', lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 1, whiteSpace: 'nowrap'}}>
             {fmtPrice(euroRisparmiati)} €
           </div>
-          <div style={{fontSize: 14, color: '#6B8578', marginTop: 1, fontWeight: 500}}>
+          <div style={{fontSize: 13, color: '#6B8578', marginTop: 1, fontWeight: 500}}>
             {ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})} ordini a metà prezzo
           </div>
         </div>
@@ -484,21 +484,21 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
 
       {/* Trend del risparmio — fascia a tutta larghezza che riempie il centro
           della card e la mette in pari d'altezza con la Utilizzo accanto. */}
-      <div style={{flex: 1, display: 'flex', alignItems: 'center', minHeight: 64}}>
+      <div style={{flex: 1, display: 'flex', alignItems: 'center', minHeight: 40}}>
         <RisparmioSpark color={EMERALD}/>
       </div>
 
       {/* Callout: perché si risparmia — nota separata con icona sparkle */}
       <div style={{
-        display: 'flex', alignItems: 'flex-start', gap: 11,
-        padding: '12px 14px', borderRadius: 11,
+        display: 'flex', alignItems: 'flex-start', gap: 10,
+        padding: '9px 12px', borderRadius: 10,
         background: 'rgba(16, 185, 129, 0.06)',
         border: '1px solid rgba(16, 185, 129, 0.16)',
       }}>
         <div style={{flexShrink: 0, marginTop: 1, lineHeight: 0}}>
-          <PnI.Sparkle size={16} color={EMERALD}/>
+          <PnI.Sparkle size={15} color={EMERALD}/>
         </div>
-        <div style={{fontSize: 14, color: '#0F5132', lineHeight: 1.45}}>
+        <div style={{fontSize: 13, color: '#0F5132', lineHeight: 1.4}}>
           Gli ordini fatti dai clienti tramite app vengono contati come <strong style={{color: '#047857', fontWeight: 700}}>0,5 invece di 1</strong>: più i clienti ordinano da soli e meno paghi.
         </div>
       </div>
@@ -554,16 +554,16 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
   const barColor = pct >= 90 ? '#F59E0B' : CORAL;
 
   const label = {fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5};
-  const boxNum = {fontSize: 25, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums'};
-  const boxSub = {fontSize: 11.5, marginTop: 4, lineHeight: 1.3};
+  const boxNum = {fontSize: 20, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums'};
+  const boxSub = {fontSize: 11, marginTop: 3, lineHeight: 1.25};
 
   return (
     <div className="glass-lift-hover" style={{
       position: 'relative',
       overflow: 'hidden',
-      padding: '20px 22px',
+      padding: '15px 17px',
       borderRadius: 14,
-      minHeight: 200,
+      minHeight: 168,
       display: 'flex', flexDirection: 'column',
       background:
         'linear-gradient(180deg, rgba(255,246,246,0.92) 0%, rgba(255,255,255,0.98) 55%), ' +
@@ -579,42 +579,42 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
       {/* Header: icona · (label + pill rinnovo) · sottotitolo piano.
           Il sottotitolo sta su riga propria a tutta larghezza — così non si
           spezza in modo brutto competendo con la pill. */}
-      <div style={{display: 'flex', alignItems: 'flex-start', gap: 12}}>
-        <UsoIconTile size={44} radius={12}>
-          <PnI.Stats size={22} color={CORAL}/>
+      <div style={{display: 'flex', alignItems: 'flex-start', gap: 11}}>
+        <UsoIconTile size={38} radius={10}>
+          <PnI.Stats size={19} color={CORAL}/>
         </UsoIconTile>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', rowGap: 8}}>
-            <div style={{...label, fontSize: 13, color: CORAL_TEXT}}>Utilizzo ordini</div>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', rowGap: 6}}>
+            <div style={{...label, fontSize: 12.5, color: CORAL_TEXT}}>Utilizzo ordini</div>
             <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
-              padding: '6px 11px', borderRadius: 999,
+              display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+              padding: '4px 9px', borderRadius: 999,
               background: '#fff', border: '1px solid #E7E9ED',
-              fontSize: 13, fontWeight: 600, color: PN.TEXT,
+              fontSize: 12, fontWeight: 600, color: PN.TEXT,
               boxShadow: '0 1px 2px rgba(15,17,21,0.04)',
             }}>
-              <PnI.Calendar size={15} color={PN.MUTED}/>
+              <PnI.Calendar size={13} color={PN.MUTED}/>
               Si rinnova il {rinnovo}
             </div>
           </div>
-          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 4}}>
+          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>
             Piano {current.nome} · {fmtPrice(current.prezzo)}€ {current.periodo}
           </div>
         </div>
       </div>
 
       {/* Big number */}
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 14}}>
-        <span style={{fontSize: 38, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums'}}>
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 10}}>
+        <span style={{fontSize: 27, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums'}}>
           {nfmt(ordiniUsati)}
         </span>
-        <span style={{fontSize: 17, color: PN.MUTED, fontWeight: 500}}>
-          / {nfmt(current.ordiniInclusi)} <span style={{color: PN.MUTED}}>inclusi</span>
+        <span style={{fontSize: 14, color: PN.MUTED, fontWeight: 500}}>
+          / {nfmt(current.ordiniInclusi)} inclusi
         </span>
       </div>
 
       {/* Progress */}
-      <div style={{height: 9, background: '#EDEFF2', borderRadius: 99, overflow: 'hidden', marginTop: 12}}>
+      <div style={{height: 8, background: '#EDEFF2', borderRadius: 99, overflow: 'hidden', marginTop: 9}}>
         <div style={{
           width: `${pct}%`, height: '100%',
           background: `linear-gradient(90deg, ${barColor} 0%, #FF7A6B 100%)`,
@@ -623,59 +623,60 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
           boxShadow: `0 0 8px ${pct >= 90 ? 'rgba(245,158,11,0.45)' : 'rgba(255,90,95,0.45)'}`,
         }}/>
       </div>
-      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 13, color: PN.MUTED}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12.5, color: PN.MUTED}}>
         <span><strong style={{color: CORAL_TEXT, fontWeight: 700}}>{pct}%</strong> utilizzato</span>
         <span>{nfmt(disponibili)} ancora disponibili</span>
       </div>
 
       {/* Breakdown POS vs App */}
-      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16}}>
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 11}}>
         {/* Da cassa — neutro */}
-        <div style={{padding: '12px 14px', borderRadius: 12, background: '#FBFBFC', border: '1px solid #ECEEF1'}}>
+        <div style={{padding: '10px 12px', borderRadius: 11, background: '#FBFBFC', border: '1px solid #ECEEF1'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-            <UsoIconTile size={28}><PnI.Receipt size={14} color={CORAL}/></UsoIconTile>
-            <span style={{...label, fontSize: 11.5, letterSpacing: 0.3, color: PN.TEXT}}>Da cassa (POS)</span>
+            <UsoIconTile size={26} radius={8}><PnI.Receipt size={13} color={CORAL}/></UsoIconTile>
+            <span style={{...label, fontSize: 11, letterSpacing: 0.3, color: PN.TEXT}}>Da cassa (POS)</span>
           </div>
-          <div style={{...boxNum, marginTop: 10}}>{nfmt(ordiniPos)}</div>
-          <div style={{...boxSub, color: PN.MUTED}}>ordini conteggiati al 100%</div>
+          <div style={{...boxNum, marginTop: 8}}>{nfmt(ordiniPos)}</div>
+          <div style={{...boxSub, color: PN.MUTED}}>conteggiati al 100%</div>
         </div>
 
         {/* Da app clienti — coral, conversione ×0,5. Badge inline (non
             assoluto) così non finisce mai sopra la label. */}
-        <div style={{padding: '12px 14px', borderRadius: 12, background: 'rgba(255, 90, 95, 0.06)', border: '1px solid rgba(255, 90, 95, 0.22)'}}>
+        <div style={{padding: '10px 12px', borderRadius: 11, background: 'rgba(255, 90, 95, 0.06)', border: '1px solid rgba(255, 90, 95, 0.22)'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-            <UsoIconTile size={28}><PnI.Smartphone size={14} color={CORAL}/></UsoIconTile>
-            <span style={{...label, fontSize: 11.5, letterSpacing: 0.3, color: CORAL_TEXT, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Da app clienti</span>
+            <UsoIconTile size={26} radius={8}><PnI.Smartphone size={13} color={CORAL}/></UsoIconTile>
+            <span style={{...label, fontSize: 11, letterSpacing: 0.3, color: CORAL_TEXT, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Da app clienti</span>
             <span style={{
               flexShrink: 0,
-              fontSize: 10.5, fontWeight: 700, color: '#fff',
+              fontSize: 10, fontWeight: 700, color: '#fff',
               padding: '2px 6px', borderRadius: 6, background: CORAL,
               boxShadow: '0 1px 3px rgba(255,90,95,0.4)',
             }}>−50%</span>
           </div>
-          <div style={{display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10}}>
+          <div style={{display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 8}}>
             <div style={{minWidth: 0}}>
               <div style={boxNum}>{nfmt(ordiniApp)}</div>
-              <div style={{...boxSub, color: PN.MUTED, whiteSpace: 'nowrap'}}>ordini grezzi</div>
+              <div style={{...boxSub, color: PN.MUTED, whiteSpace: 'nowrap'}}>grezzi</div>
             </div>
-            <div style={{flexShrink: 0, height: 25, display: 'flex', alignItems: 'center'}}>
+            <div style={{flexShrink: 0, height: 20, display: 'flex', alignItems: 'center'}}>
               <UsoArrow color={CORAL}/>
             </div>
             <div style={{minWidth: 0}}>
               <div style={{...boxNum, color: CORAL_TEXT}}>{nfmt(ordiniAppPesati)}</div>
-              <div style={{...boxSub, color: CORAL_TEXT}}>ordini conteggiati (−50%)</div>
+              <div style={{...boxSub, color: CORAL_TEXT, whiteSpace: 'nowrap'}}>conteggiati</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer: costo ordine extra */}
+      {/* Footer: costo ordine extra. marginTop auto → resta a filo in basso
+          anche quando la card si stira all'altezza della Risparmio accanto. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12,
-        marginTop: 16, paddingTop: 14, borderTop: '1px solid #EEF0F2',
+        marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #EEF0F2',
       }}>
-        <div style={{fontSize: 13, color: PN.MUTED, flexShrink: 0}}>
-          Costo per ordine extra <strong style={{color: CORAL_TEXT, fontWeight: 700, fontSize: 14}}>{fmtPrice(current.ordineExtra)}€ + IVA</strong>
+        <div style={{fontSize: 12.5, color: PN.MUTED, flexShrink: 0}}>
+          Costo per ordine extra <strong style={{color: CORAL_TEXT, fontWeight: 700, fontSize: 13.5}}>{fmtPrice(current.ordineExtra)}€ + IVA</strong>
         </div>
       </div>
     </div>
