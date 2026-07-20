@@ -461,26 +461,26 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
       <div style={{flex: 1, display: 'flex', alignItems: 'center'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, width: '100%'}}>
           <div style={{
-            width: 42, height: 42, borderRadius: '50%',
+            width: 52, height: 52, borderRadius: '50%',
             background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
             color: '#fff',
             display: 'grid', placeItems: 'center', flexShrink: 0,
             boxShadow: '0 4px 14px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(255,255,255,0.35)',
           }}>
-            <PnI.Money size={20} color="#fff"/>
+            <PnI.Money size={24} color="#fff"/>
           </div>
           <div style={{flex: 1, minWidth: 0}}>
-            <div style={{fontSize: 12, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6}}>
+            <div style={{fontSize: 13.5, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7}}>
               Risparmiato questo mese
             </div>
-            <div style={{fontSize: 30, fontWeight: 700, color: '#064E3B', lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 1, whiteSpace: 'nowrap'}}>
+            <div style={{fontSize: 44, fontWeight: 700, color: '#064E3B', lineHeight: 1.05, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 3, whiteSpace: 'nowrap'}}>
               {fmtPrice(euroRisparmiati)} €
             </div>
-            <div style={{fontSize: 13.5, color: '#6B8578', marginTop: 1, fontWeight: 500}}>
+            <div style={{fontSize: 15.5, color: '#6B8578', marginTop: 3, fontWeight: 500}}>
               {ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})} ordini a metà prezzo
             </div>
           </div>
-          <div style={{flex: '0 1 130px', minWidth: 60, alignSelf: 'center'}}>
+          <div style={{flex: '0 1 120px', minWidth: 56, alignSelf: 'center'}}>
             <RisparmioSpark color={EMERALD}/>
           </div>
         </div>
