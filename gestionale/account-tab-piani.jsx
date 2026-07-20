@@ -671,13 +671,9 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
 
       {/* Footer: costo ordine extra */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', rowGap: 6,
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12,
         marginTop: 16, paddingTop: 14, borderTop: '1px solid #EEF0F2',
       }}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: PN.MUTED, minWidth: 0}}>
-          <PnI.Info size={15} color={CORAL}/>
-          <span><strong style={{color: PN.TEXT, fontWeight: 600}}>{nfmt(disponibili)} ancora disponibili</strong> · poi {fmtPrice(current.ordineExtra)}€ / ordine extra + IVA</span>
-        </div>
         <div style={{fontSize: 13, color: PN.MUTED, flexShrink: 0}}>
           Costo per ordine extra <strong style={{color: CORAL_TEXT, fontWeight: 700, fontSize: 14}}>{fmtPrice(current.ordineExtra)}€ + IVA</strong>
         </div>
