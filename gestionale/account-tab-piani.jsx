@@ -382,15 +382,16 @@ function AccPianiAbbonamenti() {
 // Card "Risparmio del mese" — verde tenue, dato d'apertura
 // ─────────────────────────────────────────────────────────────────────────
 
-// Sparkline del trend di risparmio — mini area chart in alto a destra della
-// card. Stessa costruzione di WSparkline (cubic Bezier con control point a metà
-// segmento) ma statica, con due punti evidenziati come nel mock. I valori sono
-// un trend illustrativo su 8 settimane: non c'è ancora storico reale a backend,
-// coerente col resto della pagina (i CTA sono ancora in stato demo). Non
-// deforma i pallini: preserveAspectRatio meet, così restano cerchi perfetti.
-function RisparmioSpark({width = 150, height = 64, color = '#10B981'}) {
+// Sparkline del trend di risparmio — fascia area chart a tutta larghezza che
+// riempie il centro della card. Stessa costruzione di WSparkline (cubic Bezier
+// con control point a metà segmento) ma statica, con due punti evidenziati.
+// I valori sono un trend illustrativo su 8 settimane: non c'è ancora storico
+// reale a backend, coerente col resto della pagina (i CTA sono in stato demo).
+// preserveAspectRatio meet + non-scaling-stroke: linea crisp e pallini tondi a
+// qualunque larghezza.
+function RisparmioSpark({width = 400, height = 130, color = '#10B981'}) {
   const data = [48, 42, 56, 64, 74, 74, 86, 100]; // lieve flessione iniziale → salita fino al picco
-  const PAD_X = 5, PAD_T = 8, PAD_B = 6;
+  const PAD_X = 8, PAD_T = 18, PAD_B = 16;
   const n = data.length;
   const max = Math.max(...data), min = Math.min(...data);
   const range = max - min || 1;
@@ -406,24 +407,24 @@ function RisparmioSpark({width = 150, height = 64, color = '#10B981'}) {
     line += ` C ${cx.toFixed(2)} ${y1.toFixed(2)}, ${cx.toFixed(2)} ${y2.toFixed(2)}, ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
   const area = line + ` L ${(width - PAD_X).toFixed(2)} ${height} L ${PAD_X.toFixed(2)} ${height} Z`;
-  const dots = [pts[5], pts[n - 1]]; // spalla (~71%) + picco finale, come nell'immagine
+  const dots = [pts[5], pts[n - 1]]; // spalla (~71%) + picco finale
+  const rO = Math.max(4, height * 0.05), rI = rO * 0.62;
   const gid = 'risp-spark-grad';
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height}
-         preserveAspectRatio="xMidYMid meet"
-         style={{width: '100%', height: 'auto', display: 'block', overflow: 'visible'}} aria-hidden="true">
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet"
+         style={{width: '100%', height: '100%', display: 'block', overflow: 'visible'}} aria-hidden="true">
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
+          <stop offset="0%" stopColor={color} stopOpacity="0.20"/>
           <stop offset="100%" stopColor={color} stopOpacity="0"/>
         </linearGradient>
       </defs>
       <path d={area} fill={`url(#${gid})`}/>
-      <path d={line} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
       {dots.map(([x, y], i) => (
         <g key={i}>
-          <circle cx={x} cy={y} r="4.5" fill="#fff"/>
-          <circle cx={x} cy={y} r="3" fill={color}/>
+          <circle cx={x} cy={y} r={rO} fill="#fff"/>
+          <circle cx={x} cy={y} r={rI} fill={color}/>
         </g>
       ))}
     </svg>
@@ -457,7 +458,7 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
         '0 2px 6px -2px rgba(15, 17, 21, 0.05)',
       color: '#064E3B',
     }}>
-      {/* Header: icona tonda · dato chiave · sparkline del trend */}
+      {/* Header: icona tonda · dato chiave */}
       <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
         <div style={{
           width: 48, height: 48, borderRadius: '50%',
@@ -472,16 +473,19 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
           <div style={{fontSize: 12.5, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6}}>
             Risparmiato questo mese
           </div>
-          <div style={{fontSize: 33, fontWeight: 700, color: '#064E3B', lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 2, whiteSpace: 'nowrap'}}>
+          <div style={{fontSize: 34, fontWeight: 700, color: '#064E3B', lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 2, whiteSpace: 'nowrap'}}>
             {fmtPrice(euroRisparmiati)} €
           </div>
           <div style={{fontSize: 14, color: '#6B8578', marginTop: 1, fontWeight: 500}}>
             {ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})} ordini a metà prezzo
           </div>
         </div>
-        <div style={{flex: '0 1 150px', minWidth: 70}}>
-          <RisparmioSpark color={EMERALD}/>
-        </div>
+      </div>
+
+      {/* Trend del risparmio — fascia a tutta larghezza che riempie il centro
+          della card e la mette in pari d'altezza con la Utilizzo accanto. */}
+      <div style={{flex: 1, display: 'flex', alignItems: 'center', minHeight: 64}}>
+        <RisparmioSpark color={EMERALD}/>
       </div>
 
       {/* Callout: perché si risparmia — nota separata con icona sparkle */}
@@ -506,86 +510,179 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
 // Card "Utilizzo ordini" — barra + breakdown POS / App
 // ─────────────────────────────────────────────────────────────────────────
 
-function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice}) {
-  // Sunset-theme (D3): pannello "ordini usati". Sostituito night+coralAccent con
-  // sunset puro per allinearsi al sistema 80/10/10 — i due upgrade/utilizzo card
-  // del prodotto (sidebar plan card + questo) sono le superfici D3 di riferimento.
+// Tile icona coral morbida — riquadro tinta brand con icona coral. Riusato da
+// header e dai due box POS/App.
+function UsoIconTile({children, size = 32, radius = 9}) {
   return (
-    <GlassDarkBox
-      theme="sunset"
-      padding={22}
-      borderRadius={14}
-      style={{
-        display: 'flex', flexDirection: 'column',
-        minHeight: 200,
-      }}>
-      <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10}}>
-        <div>
-          <div style={{fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5}}>
-            Utilizzo ordini
+    <div style={{
+      width: size, height: size, borderRadius: radius,
+      background: 'rgba(255, 90, 95, 0.10)',
+      display: 'grid', placeItems: 'center', flexShrink: 0,
+    }}>{children}</div>
+  );
+}
+
+// Freccia sottile 880 → 440 (conversione ordini app). Coral, stroke coerente
+// con le icone PnI.
+function UsoArrow({color}) {
+  return (
+    <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke={color}
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 7h13"/><path d="M11 2.5l5 4.5-5 4.5"/>
+    </svg>
+  );
+}
+
+function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice}) {
+  // Card "Utilizzo ordini" — riscritta chiara/coral come da mock (prima era una
+  // D3 sunset glass scura). La coppia con RisparmioCard resta coerente: emerald
+  // chiara (soldi) a sinistra, coral chiara (utilizzo/brand) a destra. Il coral
+  // qui è tema, non stato d'allarme — la soglia amber >=90% resta l'unico segnale
+  // di "quasi pieno".
+  const CORAL = '#FF5A5F';        // brand — fill barra, badge, tile icone
+  const CORAL_TEXT = '#E5484D';   // coral leggermente più profondo, per testo su bianco
+  const disponibili = current.ordiniInclusi - ordiniUsati;
+  const ordiniAppPesati = Math.round(ordiniApp * 0.5);
+
+  // Rinnovo: calcolato a runtime (primo del mese prossimo) così non si cabla una
+  // data che invecchia. Formato esteso it-IT → "1 agosto 2026".
+  const rin = new Date();
+  const rinnovo = new Date(rin.getFullYear(), rin.getMonth() + 1, 1)
+    .toLocaleDateString('it-IT', {day: 'numeric', month: 'long', year: 'numeric'});
+
+  const nfmt = (n) => n.toLocaleString('it-IT', {useGrouping: true});
+  const barColor = pct >= 90 ? '#F59E0B' : CORAL;
+
+  const label = {fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5};
+  const boxNum = {fontSize: 25, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums'};
+  const boxSub = {fontSize: 11.5, marginTop: 4, lineHeight: 1.3};
+
+  return (
+    <div className="glass-lift-hover" style={{
+      position: 'relative',
+      overflow: 'hidden',
+      padding: '20px 22px',
+      borderRadius: 14,
+      minHeight: 200,
+      display: 'flex', flexDirection: 'column',
+      background:
+        'linear-gradient(180deg, rgba(255,246,246,0.92) 0%, rgba(255,255,255,0.98) 55%), ' +
+        '#FFFFFF',
+      border: 'none',
+      boxShadow:
+        'inset 0 1px 0 rgba(255, 255, 255, 0.90), ' +
+        'inset 0 0 0 1px rgba(255, 90, 95, 0.15), ' +
+        '0 8px 24px -10px rgba(255, 90, 95, 0.20), ' +
+        '0 2px 6px -2px rgba(15, 17, 21, 0.05)',
+      color: PN.TEXT,
+    }}>
+      {/* Header: icona · (label + pill rinnovo) · sottotitolo piano.
+          Il sottotitolo sta su riga propria a tutta larghezza — così non si
+          spezza in modo brutto competendo con la pill. */}
+      <div style={{display: 'flex', alignItems: 'flex-start', gap: 12}}>
+        <UsoIconTile size={44} radius={12}>
+          <PnI.Stats size={22} color={CORAL}/>
+        </UsoIconTile>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', rowGap: 8}}>
+            <div style={{...label, fontSize: 13, color: CORAL_TEXT}}>Utilizzo ordini</div>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
+              padding: '6px 11px', borderRadius: 999,
+              background: '#fff', border: '1px solid #E7E9ED',
+              fontSize: 13, fontWeight: 600, color: PN.TEXT,
+              boxShadow: '0 1px 2px rgba(15,17,21,0.04)',
+            }}>
+              <PnI.Calendar size={15} color={PN.MUTED}/>
+              Si rinnova il {rinnovo}
+            </div>
           </div>
-          <div style={{fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 4}}>
-            Piano {current.nome} · €{fmtPrice(current.prezzo)}{current.periodo}
+          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 4}}>
+            Piano {current.nome} · {fmtPrice(current.prezzo)}€ {current.periodo}
           </div>
-        </div>
-        <div style={{textAlign: 'right'}}>
-          <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Costo per ordine extra</div>
-          <div style={{fontSize: 15, fontWeight: 600, color: '#F5F5F7'}}>+{fmtPrice(current.ordineExtra)} €</div>
         </div>
       </div>
 
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, marginBottom: 8}}>
-        <span style={{fontSize: 28, fontWeight: 600, color: '#F5F5F7', lineHeight: 1, letterSpacing: '-0.02em'}}>
-          {ordiniUsati.toLocaleString('it-IT', {useGrouping: true})}
+      {/* Big number */}
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 14}}>
+        <span style={{fontSize: 38, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums'}}>
+          {nfmt(ordiniUsati)}
         </span>
-        <span style={{fontSize: 15, color: 'rgba(255,255,255,0.60)', fontWeight: 500}}>
-          / {current.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} inclusi
+        <span style={{fontSize: 17, color: PN.MUTED, fontWeight: 500}}>
+          / {nfmt(current.ordiniInclusi)} <span style={{color: PN.MUTED}}>inclusi</span>
         </span>
       </div>
 
-      <div style={{height: 8, background: 'rgba(255,255,255,0.10)', borderRadius: 99, overflow: 'hidden'}}>
+      {/* Progress */}
+      <div style={{height: 9, background: '#EDEFF2', borderRadius: 99, overflow: 'hidden', marginTop: 12}}>
         <div style={{
           width: `${pct}%`, height: '100%',
-          background: pct >= 90 ? '#FBBF24' : '#FF6066',
+          background: `linear-gradient(90deg, ${barColor} 0%, #FF7A6B 100%)`,
           borderRadius: 99,
           transition: 'width 400ms',
-          boxShadow: pct >= 90 ? '0 0 8px rgba(251, 191, 36, 0.5)' : '0 0 8px rgba(255, 96, 102, 0.5)',
+          boxShadow: `0 0 8px ${pct >= 90 ? 'rgba(245,158,11,0.45)' : 'rgba(255,90,95,0.45)'}`,
         }}/>
       </div>
-      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.60)'}}>
-        <span>{pct}% utilizzato</span>
-        <span>{(current.ordiniInclusi - ordiniUsati).toLocaleString('it-IT', {useGrouping: true})} ancora disponibili</span>
+      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 13, color: PN.MUTED}}>
+        <span><strong style={{color: CORAL_TEXT, fontWeight: 700}}>{pct}%</strong> utilizzato</span>
+        <span>{nfmt(disponibili)} ancora disponibili</span>
       </div>
 
-      {/* Breakdown POS vs App — versione compatta inline (su dark) */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-        marginTop: 14, paddingTop: 12, borderTop: '1px dashed rgba(255,255,255,0.12)',
-      }}>
-        <div style={{padding: '8px 10px', background: 'rgba(255,255,255,0.06)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)'}}>
-          <div style={{fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da cassa</div>
-          <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
-            <span style={{fontSize: 17, fontWeight: 600, color: '#F5F5F7'}}>{ordiniPos.toLocaleString('it-IT', {useGrouping: true})}</span>
-            <span style={{
-              marginLeft: 'auto', fontSize: 11, fontWeight: 600,
-              padding: '1px 6px', borderRadius: 4,
-              background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.65)',
-            }}>×1</span>
+      {/* Breakdown POS vs App */}
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16}}>
+        {/* Da cassa — neutro */}
+        <div style={{padding: '12px 14px', borderRadius: 12, background: '#FBFBFC', border: '1px solid #ECEEF1'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <UsoIconTile size={28}><PnI.Receipt size={14} color={CORAL}/></UsoIconTile>
+            <span style={{...label, fontSize: 11.5, letterSpacing: 0.3, color: PN.TEXT}}>Da cassa (POS)</span>
           </div>
+          <div style={{...boxNum, marginTop: 10}}>{nfmt(ordiniPos)}</div>
+          <div style={{...boxSub, color: PN.MUTED}}>ordini conteggiati al 100%</div>
         </div>
-        <div style={{padding: '8px 10px', background: 'rgba(255, 96, 102, 0.18)', borderRadius: 8, boxShadow: 'inset 0 0 0 1px rgba(255, 96, 102, 0.30)'}}>
-          <div style={{fontSize: 12, color: '#FF8B90', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4}}>Da app clienti</div>
-          <div style={{display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2}}>
-            <span style={{fontSize: 17, fontWeight: 600, color: '#FFC8B0'}}>{ordiniApp.toLocaleString('it-IT', {useGrouping: true})}</span>
+
+        {/* Da app clienti — coral, conversione ×0,5. Badge inline (non
+            assoluto) così non finisce mai sopra la label. */}
+        <div style={{padding: '12px 14px', borderRadius: 12, background: 'rgba(255, 90, 95, 0.06)', border: '1px solid rgba(255, 90, 95, 0.22)'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <UsoIconTile size={28}><PnI.Smartphone size={14} color={CORAL}/></UsoIconTile>
+            <span style={{...label, fontSize: 11.5, letterSpacing: 0.3, color: CORAL_TEXT, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Da app clienti</span>
             <span style={{
-              marginLeft: 'auto', fontSize: 11, fontWeight: 600,
-              padding: '1px 6px', borderRadius: 4,
-              background: '#FF6066', color: '#fff',
-            }}>×0,5</span>
+              flexShrink: 0,
+              fontSize: 10.5, fontWeight: 700, color: '#fff',
+              padding: '2px 6px', borderRadius: 6, background: CORAL,
+              boxShadow: '0 1px 3px rgba(255,90,95,0.4)',
+            }}>−50%</span>
+          </div>
+          <div style={{display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10}}>
+            <div style={{minWidth: 0}}>
+              <div style={boxNum}>{nfmt(ordiniApp)}</div>
+              <div style={{...boxSub, color: PN.MUTED, whiteSpace: 'nowrap'}}>ordini grezzi</div>
+            </div>
+            <div style={{flexShrink: 0, height: 25, display: 'flex', alignItems: 'center'}}>
+              <UsoArrow color={CORAL}/>
+            </div>
+            <div style={{minWidth: 0}}>
+              <div style={{...boxNum, color: CORAL_TEXT}}>{nfmt(ordiniAppPesati)}</div>
+              <div style={{...boxSub, color: CORAL_TEXT}}>ordini conteggiati (−50%)</div>
+            </div>
           </div>
         </div>
       </div>
-    </GlassDarkBox>
+
+      {/* Footer: costo ordine extra */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', rowGap: 6,
+        marginTop: 16, paddingTop: 14, borderTop: '1px solid #EEF0F2',
+      }}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: PN.MUTED, minWidth: 0}}>
+          <PnI.Info size={15} color={CORAL}/>
+          <span><strong style={{color: PN.TEXT, fontWeight: 600}}>{nfmt(disponibili)} ancora disponibili</strong> · poi {fmtPrice(current.ordineExtra)}€ / ordine extra + IVA</span>
+        </div>
+        <div style={{fontSize: 13, color: PN.MUTED, flexShrink: 0}}>
+          Costo per ordine extra <strong style={{color: CORAL_TEXT, fontWeight: 700, fontSize: 14}}>{fmtPrice(current.ordineExtra)}€ + IVA</strong>
+        </div>
+      </div>
+    </div>
   );
 }
 
