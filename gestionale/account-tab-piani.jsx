@@ -382,55 +382,6 @@ function AccPianiAbbonamenti() {
 // Card "Risparmio del mese" — verde tenue, dato d'apertura
 // ─────────────────────────────────────────────────────────────────────────
 
-// Sparkline del trend di risparmio — fascia area chart a tutta larghezza che
-// riempie il centro della card. Stessa costruzione di WSparkline (cubic Bezier
-// con control point a metà segmento) ma statica, con due punti evidenziati.
-// I valori sono un trend illustrativo su 8 settimane: non c'è ancora storico
-// reale a backend, coerente col resto della pagina (i CTA sono in stato demo).
-// preserveAspectRatio meet + non-scaling-stroke: linea crisp e pallini tondi a
-// qualunque larghezza.
-function RisparmioSpark({width = 400, height = 130, color = '#10B981'}) {
-  const data = [48, 42, 56, 64, 74, 74, 86, 100]; // lieve flessione iniziale → salita fino al picco
-  const PAD_X = 8, PAD_T = 18, PAD_B = 16;
-  const n = data.length;
-  const max = Math.max(...data), min = Math.min(...data);
-  const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = PAD_X + (i / (n - 1)) * (width - PAD_X * 2);
-    const y = PAD_T + (1 - (v - min) / range) * (height - PAD_T - PAD_B);
-    return [x, y];
-  });
-  let line = `M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
-  for (let i = 0; i < n - 1; i++) {
-    const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
-    const cx = (x1 + x2) / 2;
-    line += ` C ${cx.toFixed(2)} ${y1.toFixed(2)}, ${cx.toFixed(2)} ${y2.toFixed(2)}, ${x2.toFixed(2)} ${y2.toFixed(2)}`;
-  }
-  const area = line + ` L ${(width - PAD_X).toFixed(2)} ${height} L ${PAD_X.toFixed(2)} ${height} Z`;
-  const dots = [pts[5], pts[n - 1]]; // spalla (~71%) + picco finale
-  const rO = Math.max(4, height * 0.05), rI = rO * 0.62;
-  const gid = 'risp-spark-grad';
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet"
-         style={{width: '100%', height: '100%', display: 'block', overflow: 'visible'}} aria-hidden="true">
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.20"/>
-          <stop offset="100%" stopColor={color} stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#${gid})`}/>
-      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-      {dots.map(([x, y], i) => (
-        <g key={i}>
-          <circle cx={x} cy={y} r={rO} fill="#fff"/>
-          <circle cx={x} cy={y} r={rI} fill={color}/>
-        </g>
-      ))}
-    </svg>
-  );
-}
-
 function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
   // Card "Risparmio" (semantica emerald = soldi risparmiati, eccezione
   // documentata al sistema W1/L2/D3). Layout allineato al mock: card chiara,
@@ -458,34 +409,32 @@ function RisparmioCard({euroRisparmiati, ordiniRisparmiati, fmtPrice}) {
         '0 2px 6px -2px rgba(15, 17, 21, 0.05)',
       color: '#064E3B',
     }}>
-      {/* Header: icona tonda · dato chiave */}
-      <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-        <div style={{
-          width: 42, height: 42, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
-          color: '#fff',
-          display: 'grid', placeItems: 'center', flexShrink: 0,
-          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(255,255,255,0.35)',
-        }}>
-          <PnI.Money size={19} color="#fff"/>
+      {/* Dato chiave come hero, centrato verticalmente. Senza grafico la card
+          resta pulita: il numero riempie lo spazio e resta in pari d'altezza
+          con la Utilizzo accanto senza vuoti né elementi ingombranti. */}
+      <div style={{flex: 1, display: 'flex', alignItems: 'center'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 15, width: '100%'}}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
+            color: '#fff',
+            display: 'grid', placeItems: 'center', flexShrink: 0,
+            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(255,255,255,0.35)',
+          }}>
+            <PnI.Money size={22} color="#fff"/>
+          </div>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 12, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6}}>
+              Risparmiato questo mese
+            </div>
+            <div style={{fontSize: 40, fontWeight: 700, color: '#064E3B', lineHeight: 1.05, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 2, whiteSpace: 'nowrap'}}>
+              {fmtPrice(euroRisparmiati)} €
+            </div>
+            <div style={{fontSize: 14, color: '#6B8578', marginTop: 2, fontWeight: 500}}>
+              {ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})} ordini a metà prezzo
+            </div>
+          </div>
         </div>
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 12, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6}}>
-            Risparmiato questo mese
-          </div>
-          <div style={{fontSize: 28, fontWeight: 700, color: '#064E3B', lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', marginTop: 1, whiteSpace: 'nowrap'}}>
-            {fmtPrice(euroRisparmiati)} €
-          </div>
-          <div style={{fontSize: 13, color: '#6B8578', marginTop: 1, fontWeight: 500}}>
-            {ordiniRisparmiati.toLocaleString('it-IT', {useGrouping: true})} ordini a metà prezzo
-          </div>
-        </div>
-      </div>
-
-      {/* Trend del risparmio — fascia a tutta larghezza che riempie il centro
-          della card e la mette in pari d'altezza con la Utilizzo accanto. */}
-      <div style={{flex: 1, display: 'flex', alignItems: 'center', minHeight: 40}}>
-        <RisparmioSpark color={EMERALD}/>
       </div>
 
       {/* Callout: perché si risparmia — nota separata con icona sparkle */}
