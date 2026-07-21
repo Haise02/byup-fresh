@@ -64,17 +64,18 @@ function ImpMenuCucina() {
 // ─── MENU COMPOSER: selettore menù + composizione ─────────────────────────────
 
 // LIBRERIA piatti: SENZA prezzo, SENZA stato. Solo dati "ricetta".
+const DISH_PHOTO = (id) => `https://images.unsplash.com/${id}?w=200&q=70&auto=format&fit=crop`;
 const DISH_LIBRARY = [
-  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', allergens: ['glutine'] },
-  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'] },
-  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'] },
-  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'] },
-  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', allergens: ['glutine','latte'] },
-  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'] },
-  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'] },
-  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'] },
-  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['glutine','uova','latte'] },
-  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['latte'] },
+  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') },
+  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') },
+  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') },
+  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') },
+  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') },
+  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') },
+  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') },
+  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') },
+  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') },
+  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['latte'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') },
 ];
 
 const CAT_ICON = { 'Antipasti':'food-salad', 'Primi':'food-pasta', 'Secondi':'food-steak', 'Contorni':'food-vegetables', 'Dolci':'food-dessert', 'Bevande':'drink-juice' };
@@ -596,6 +597,17 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
   );
 }
 
+// ─── Thumbnail piatto: foto reale, con fallback sull'icona di categoria ─────
+function DishThumb({ dish, size = 46 }) {
+  const [err, setErr] = React.useState(false);
+  if (!dish.photo || err) return (
+    <div style={{width: size, height: size, borderRadius: 10, background:'#F4F5F7', display:'grid', placeItems:'center', flexShrink: 0, color: PN.MUTED_SOFT}}>
+      <Icon name={CAT_ICON[dish.cat] || 'star'} size={20}/>
+    </div>
+  );
+  return <img src={dish.photo} alt="" onError={() => setErr(true)} style={{width: size, height: size, borderRadius: 10, objectFit:'cover', flexShrink: 0, display:'block', background:'#F4F5F7'}}/>;
+}
+
 // ─── Picker libreria: scegli uno o più piatti da aggiungere alla categoria ──
 function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, onPick, onCreateNew }) {
   const [search, setSearch] = React.useState('');
@@ -614,7 +626,7 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
   const count = Object.keys(selected).length;
   return (
     <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:1000, display:'grid', placeItems:'center', padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 22, width: 660, maxWidth:'100%', maxHeight:'88vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.22)'}}>
+      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 22, width: 660, maxWidth:'100%', maxHeight:'92vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.22)'}}>
 
         {/* Header: icona tonda + eyebrow categoria + titolo + sottotitolo */}
         <div style={{padding:'22px 24px 0', display:'flex', alignItems:'flex-start', gap: 14}}>
@@ -671,9 +683,7 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
               onMouseLeave={e => { e.currentTarget.style.background = on ? PN.PINK_BG_SOFT : 'transparent'; }}
               >
                 <input type="checkbox" checked={on} readOnly style={{accentColor: PN.PINK, pointerEvents:'none', width: 16, height: 16, flexShrink: 0, margin: 0}}/>
-                <div style={{width: 46, height: 46, borderRadius: 10, background:'#F4F5F7', display:'grid', placeItems:'center', flexShrink: 0, color: PN.MUTED_SOFT}}>
-                  <Icon name={CAT_ICON[d.cat] || 'star'} size={20}/>
-                </div>
+                <DishThumb dish={d}/>
                 <div style={{flex:1, minWidth:0}}>
                   <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>{d.name}</div>
                   <div style={{fontSize:13.5, lineHeight:1.4, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
