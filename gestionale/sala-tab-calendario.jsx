@@ -85,19 +85,22 @@ function timeToMin(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
 // (rosso/ambra/verde-successo restano riservati a now-line e stati di sistema).
 //  occupato → walk-in senza nome: priorità minima, neutro che arretra
 //  attivata → prenotazione con nome già seduta (in servizio): neutro
-//  byup     → tavolo aperto dalla Byup App: neutro
-//  futura   → prenotazione in arrivo (tavolo non ancora attivo): CORAL brand
+//  byup       → tavolo aperto dalla Byup App: neutro
+//  futura     → prenotazione in arrivo (tavolo non ancora attivo): VIOLA sala (stato "prenotato")
+//  futuraByup → prenotazione in arrivo dalla Byup App: CORAL brand
 // Tavoli già attivi (occupato / attivata / byup) → grigio neutro: arretrano.
-// Solo le prenotazioni in arrivo sono colorate, col coral del logo byup Fresh.
+// Solo le prenotazioni in arrivo sono colorate: viola come i tavoli prenotati
+// in sala, coral riservato a quelle che arrivano dalla Byup App (badge b).
 const SLOT_GREY = { bg:'#EDF0F4', border:'#D2D9E2', text:'#6B7685' };
 const SLOT_STYLE = {
-  occupato: SLOT_GREY,
-  attivata: SLOT_GREY,
-  byup:     SLOT_GREY,
-  futura:   { bg:'#FFECEA', border:'#FFA3A6', text:'#B4232F' },
+  occupato:   SLOT_GREY,
+  attivata:   SLOT_GREY,
+  byup:       SLOT_GREY,
+  futura:     { bg:'rgba(124, 58, 237, 0.12)', border:'rgba(124, 58, 237, 0.38)', text:'#6D28D9' },
+  futuraByup: { bg:'#FFECEA', border:'#FFA3A6', text:'#B4232F' },
 };
 function slotCategory(r) {
-  if (r.status !== 'arrivata') return 'futura';
+  if (r.status !== 'arrivata') return r.source === 'byup' ? 'futuraByup' : 'futura';
   if (r.source === 'byup') return 'byup';
   return r.name ? 'attivata' : 'occupato';
 }
@@ -902,7 +905,8 @@ function DayTimeline({ onNuova, onModifica }) {
       <div style={{padding:'10px 18px', borderTop:'1px solid #EDEEF2',
         display:'flex', alignItems:'center', gap:16, flexWrap:'wrap',
         fontSize:15, color:'#6B7280'}}>
-        <Legend label="In arrivo" bg="#FFECEA" border="#FFA3A6"/>
+        <Legend label="In arrivo" bg="rgba(124, 58, 237, 0.12)" border="rgba(124, 58, 237, 0.38)"/>
+        <Legend label="In arrivo da Byup App" bg="#FFECEA" border="#FFA3A6"/>
         <Legend label="Tavolo attivo" bg="#EDF0F4" border="#D2D9E2"/>
         <span style={{flex:1}}/>
         <span style={{fontSize:14.5, color:'#C4C9D4', fontWeight:600}}>Trascina per creare · Clicca per modificare</span>
