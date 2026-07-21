@@ -278,22 +278,55 @@ function FloorPlan({
           const cur = tavoli.find(t => t.id === drag.id);
           const target = dragOverTable != null ? tavoli.find(t => t.id === dragOverTable) : null;
           if (cur && target && onMergeTables) {
-            // Drop sopra un altro tavolo → unione: il trascinato si affianca
-            // al target (lato libero più vicino) così i corpi si saldano.
-            const dims = tableDims(cur);
-            const td = tableDims(target);
-            const occ = obstacles({ skipTableIds: [drag.id] });
-            const cands = [
-              { x: target.pos.x + td.w, y: target.pos.y },
-              { x: target.pos.x - dims.w, y: target.pos.y },
-              { x: target.pos.x, y: target.pos.y + td.h },
-              { x: target.pos.x, y: target.pos.y - dims.h },
-            ]
-              .filter(c => c.x >= 0 && c.y >= 0 && c.x + dims.w <= COLS && c.y + dims.h <= ROWS)
-              .sort((a, b) => Math.hypot(a.x - cur.pos.x, a.y - cur.pos.y) - Math.hypot(b.x - cur.pos.x, b.y - cur.pos.y));
-            const free = cands.find(c => !occ.some(o => overlapRects({ ...c, ...dims }, o)));
-            const spot = free || placeFree(cur.pos.x, cur.pos.y, dims.w, dims.h, occ);
-            onMoveTable(drag.id, { x: spot.x, y: spot.y });
+            // Unione come in sala (SALA_DO_MERGE): l'intero gruppo viene
+            // ridisposto in un'unica FILA ORIZZONTALE ancorata al gruppo
+            // target — mai forme a L. Verticale solo se la fila non entra
+            // in larghezza ma entra in altezza.
+            const existing = groupMates(target.id);
+            const memberIds = Array.from(new Set([...existing, drag.id]));
+            const members = memberIds.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+            const lenAlong = (a) => members.reduce((s, m) => s + (a === 'h' ? tableDims(m).w : tableDims(m).h), 0);
+            let axis = 'h';
+            if (lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
+            const exMembers = existing.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+            const anchorX = Math.min(...exMembers.map(m => m.pos.x));
+            const anchorY = Math.min(...exMembers.map(m => m.pos.y));
+            const total = lenAlong(axis);
+            const crossMax = Math.max(...members.map(m => axis === 'h' ? tableDims(m).h : tableDims(m).w));
+            let cursor = axis === 'h'
+              ? Math.max(0, Math.min(anchorX, COLS - total))
+              : Math.max(0, Math.min(anchorY, ROWS - total));
+            const cross = axis === 'h'
+              ? Math.max(0, Math.min(anchorY, ROWS - crossMax))
+              : Math.max(0, Math.min(anchorX, COLS - crossMax));
+            // In fila: i membri esistenti mantengono il loro ordine, il trascinato va in coda
+            const orderedMembers = [
+              ...members.filter(m => m.id !== drag.id).sort((a, b) => axis === 'h' ? a.pos.x - b.pos.x : a.pos.y - b.pos.y),
+              members.find(m => m.id === drag.id),
+            ].filter(Boolean);
+            const updates = {};
+            const lineRects = [];
+            orderedMembers.forEach(m => {
+              const d = tableDims(m);
+              const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
+              const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
+              updates[m.id] = { x, y };
+              lineRects.push({ x, y, w: d.w, h: d.h });
+              cursor += axis === 'h' ? d.w : d.h;
+            });
+            // Sgombera i tavoli estranei finiti sotto la fila
+            const memberSet = new Set(memberIds);
+            const occupied = [...lineRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
+            tavoli.filter(o => !memberSet.has(o.id)).forEach(o => {
+              const od = tableDims(o);
+              if (occupied.some(r => overlapRects(r, { x: o.pos.x, y: o.pos.y, ...od }))) {
+                const spot = placeFree(o.pos.x, o.pos.y, od.w, od.h, occupied);
+                updates[o.id] = { x: spot.x, y: spot.y };
+                occupied.push({ x: spot.x, y: spot.y, w: od.w, h: od.h });
+              }
+            });
+            if (onBulkMoveTables) onBulkMoveTables(updates);
+            else Object.entries(updates).forEach(([id, pos]) => onMoveTable(parseInt(id, 10), pos));
             onMergeTables(drag.id, target.id);
           } else if (cur) {
             // Tavolo singolo: se collide, riposizionalo nello spazio libero più vicino
