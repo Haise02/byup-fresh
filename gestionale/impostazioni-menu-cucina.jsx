@@ -1609,6 +1609,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
     return () => document.removeEventListener('click', chiudi);
   }, [tipOpen]);
   const [preview, setPreview] = React.useState(null);       // indice foto in anteprima
+  const [confirmDelete, setConfirmDelete] = React.useState(false); // popup conferma eliminazione
   const [initialPrice, setInitialPrice] = React.useState(
     currentPrice !== undefined ? String(currentPrice.toFixed(2)).replace('.', ',') : ''
   );
@@ -2116,6 +2117,52 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           </div>
         </div>
 
+        {/* Conferma eliminazione — sopra al modal */}
+        {confirmDelete && (
+          <div onClick={() => setConfirmDelete(false)} style={{
+            position:'fixed', inset:0, zIndex:1100,
+            background:'rgba(15,17,21,0.45)',
+            display:'grid', placeItems:'center', padding:24,
+            animation:'impOverlayIn 0.18s ease-out',
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background:'#fff', borderRadius:14, padding:'24px 24px 20px',
+              width:380, maxWidth:'100%', boxShadow:'0 20px 60px rgba(0,0,0,0.22)',
+              display:'flex', flexDirection:'column', gap:14,
+              animation:'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <div style={{width:36, height:36, borderRadius:10, background:'#FEF2F2',
+                  display:'grid', placeItems:'center', flexShrink:0, color:PN.RED}}>
+                  <PnI.Trash size={16}/>
+                </div>
+                <div style={{fontSize:18, fontWeight:700, color:PN.TEXT, letterSpacing:-0.3}}>
+                  Eliminare "{name.trim() || 'questo piatto'}"?
+                </div>
+              </div>
+              <div style={{fontSize:15.5, color:PN.MUTED, lineHeight:1.5}}>
+                Il piatto sarà eliminato dalla libreria e <strong style={{color:PN.TEXT}}>tolto da tutti i menù</strong> in cui è presente. L'operazione non si può annullare.
+              </div>
+              <div style={{display:'flex', gap:8}}>
+                <button onClick={() => setConfirmDelete(false)} style={{
+                  flex:1, padding:'10px 14px', borderRadius:8,
+                  background: PN.BTN_NEUTRAL, color: PN.TEXT,
+                  border:`1px solid ${PN.BORDER_LIGHT}`,
+                  fontSize:15.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                  boxShadow: PN.INSET_HIGHLIGHT,
+                }}>Annulla</button>
+                <button onClick={() => { setConfirmDelete(false); onDelete(); }} style={{
+                  flex:1, padding:'10px 14px', borderRadius:8,
+                  background:'linear-gradient(180deg, #E5484D 0%, #D93036 100%)', color:'#fff',
+                  border:'1px solid rgba(160, 20, 25, 0.45)',
+                  fontSize:15.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                  boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25)',
+                }}>Sì, elimina</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Anteprima foto — sopra al modal, si chiude col click sullo sfondo */}
         {preview !== null && (
           <div onClick={() => setPreview(null)} style={{
@@ -2150,7 +2197,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
         <div style={{padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', background:PN.WHITE}}>
           <div>
             {isEdit && onDelete && (
-              <button onClick={() => { if (confirm('Eliminare questo piatto dalla libreria? Sarà rimosso anche da tutti i menù.')) onDelete(); }} style={{
+              <button onClick={() => setConfirmDelete(true)} style={{
                 background:'transparent', border:'none', color:PN.MUTED, fontSize:14.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
                 display:'flex', alignItems:'center', gap:5, padding:'6px 0',
               }}>
