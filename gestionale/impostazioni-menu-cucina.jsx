@@ -614,7 +614,7 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
   const count = Object.keys(selected).length;
   return (
     <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:1000, display:'grid', placeItems:'center', padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 22, width: 520, maxWidth:'100%', maxHeight:'88vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.22)'}}>
+      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 22, width: 660, maxWidth:'100%', maxHeight:'88vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.22)'}}>
 
         {/* Header: icona tonda + eyebrow categoria + titolo + sottotitolo */}
         <div style={{padding:'22px 24px 0', display:'flex', alignItems:'flex-start', gap: 14}}>
