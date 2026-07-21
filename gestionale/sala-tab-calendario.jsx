@@ -44,10 +44,10 @@ const SALA_RES_DATA = (() => {
     {id:'r28', time:'13:30', dur:90,  name:'Caruso',         posti:2, table:6,    status:'confermata', phone:'+39 340 ...', note:null, notes:null, source:'tel'},
     {id:'r29', time:'12:30', dur:120, name:'Pellegrini', posti:4, table:12,   status:'confermata', phone:'+39 333 ...', note:{type:'allergia', text:'Allergia lattosio'}, notes:null, source:'tel'},
     // In arrivo (seconda parte del pranzo) — cognomi in B
-    {id:'r30', time:'13:30', dur:75,  name:'Bellini',        posti:2, table:4,    status:'confermata', phone:'+39 340 ...', note:null, notes:null, source:'tel'},
+    {id:'r30', time:'13:30', dur:75,  name:'Bellini',        posti:2, table:4,    status:'confermata', phone:'+39 340 ...', note:null, notes:null, source:'byup'},
     {id:'r31', time:'13:45', dur:90,  name:'Barbieri',       posti:4, table:2,    status:'confermata', phone:'+39 348 ...', note:null, notes:'Chiede tavolo tranquillo', source:'byup'},
-    {id:'r32', time:'13:45', dur:60,  name:'Battaglia',      posti:2, table:8,    status:'inattesa',   phone:'+39 333 ...', note:null, notes:null, source:'tel'},
-    {id:'r33', time:'14:00', dur:90,  name:'Bruni',          posti:6, table:1,    status:'confermata', phone:'+39 347 ...', note:{type:'compleanno', text:'Torta portata da loro'}, notes:null, source:'tel'},
+    {id:'r32', time:'13:45', dur:60,  name:'Battaglia',      posti:2, table:8,    status:'inattesa',   phone:'+39 333 ...', note:null, notes:null, source:'byup'},
+    {id:'r33', time:'14:00', dur:90,  name:'Bruni',          posti:6, table:1,    status:'confermata', phone:'+39 347 ...', note:{type:'compleanno', text:'Torta portata da loro'}, notes:null, source:'byup'},
   ];
   return data;
 })();
