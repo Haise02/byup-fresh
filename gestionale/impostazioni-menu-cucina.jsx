@@ -1873,7 +1873,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
 
             {fromLibrary && (
               <div style={{padding:'9px 12px', borderRadius:9, background:'#F8FAFC', border:`1px solid ${PN.BORDER_SOFT}`, fontSize:15.5, color:PN.MUTED, lineHeight:1.5}}>
-                💡 Prezzo e disponibilità si impostano nel singolo menù dove il piatto è inserito.
+                Prezzo e disponibilità si impostano nel singolo menù dove il piatto è inserito.
               </div>
             )}
           </div>
