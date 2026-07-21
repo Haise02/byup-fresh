@@ -134,11 +134,13 @@ function SalaCalendario({ tweaks, onNuova, onModifica }) {
         <div onClick={() => setByupWarn(null)} style={{
           position:'fixed', inset:0, background:'rgba(15,17,21,0.45)', zIndex:200,
           display:'grid', placeItems:'center',
+          animation:'calOverlayIn 0.18s ease-out',
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background:'#fff', borderRadius:14, padding:'24px 24px 20px',
             width:360, boxShadow:'0 20px 60px rgba(0,0,0,0.22)',
             display:'flex', flexDirection:'column', gap:14,
+            animation:'calPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
           }}>
             <div style={{display:'flex', alignItems:'center', gap:10}}>
               <div style={{width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg, #FF5A5F, #B53338)',
@@ -536,10 +538,20 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
   const resizeRef   = React.useRef(null);
   const [resizeDrag, setResizeDrag] = React.useState(null);
 
+  // Feedback di rifiuto sulle prenotazioni da App: lo slot fa una scossa
+  // (byupDeny) e SUBITO DOPO — a guizzo ancora visibile — si apre la
+  // conferma di annullamento.
+  const [byupShake, setByupShake] = React.useState(null);
+  function denyByup(r) {
+    setByupShake(r.id);
+    setTimeout(() => setByupShake(s => (s === r.id ? null : s)), 500);
+    if (onByupBlock) setTimeout(() => onByupBlock(r), 280);
+  }
+
   function handleResizeMouseDown(e, r, edge) {
     e.preventDefault(); e.stopPropagation();
     // Prenotazione da App: niente resize, chiedi conferma di annullamento
-    if (r.source === 'byup') { if (onByupBlock) onByupBlock(r); return; }
+    if (r.source === 'byup') { denyByup(r); return; }
     const rStartMin = timeToMin(r.time);
     const rEndMin = rStartMin + r.dur;
     const turno = turnoForMin(rStartMin);
@@ -552,8 +564,8 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
   function handleSlotMouseDown(e, r) {
     e.preventDefault(); e.stopPropagation();
     // Prenotazione da App: niente spostamento né modifica dal gestionale —
-    // qualsiasi tentativo apre la conferma di annullamento.
-    if (r.source === 'byup') { if (onByupBlock) onByupBlock(r); return; }
+    // scossa di rifiuto e conferma di annullamento.
+    if (r.source === 'byup') { denyByup(r); return; }
     const sMin = timeToMin(r.time);
     const turno = turnoForMin(sMin);
     if (!turno) return;
@@ -769,12 +781,13 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
                 display:'flex', alignItems:'flex-start', gap:4,
                 overflow:'hidden', whiteSpace:'nowrap',
                 opacity: (slotDrag && slotDrag.resId===r.id) || (resizeDrag && resizeDrag.resId===r.id) ? 0.3 : past ? 0.5 : 1,
-                cursor: isOccupato ? 'default' : isDragging ? 'grabbing' : 'grab',
+                cursor: isOccupato ? 'default' : r.source === 'byup' ? 'not-allowed' : isDragging ? 'grabbing' : 'grab',
                 zIndex:2,
                 transition: isDragging ? 'none' : 'opacity 150ms',
+                animation: byupShake === r.id ? 'byupDeny 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97)' : 'none',
               }}>
               {!isOccupato && <div onMouseDown={(e)=>handleResizeMouseDown(e,r,'left')}
-                style={{position:'absolute', left:0, top:0, bottom:0, width:8, cursor:'ew-resize', zIndex:5, borderRadius:'7px 0 0 7px'}}/>}
+                style={{position:'absolute', left:0, top:0, bottom:0, width:8, cursor: r.source === 'byup' ? 'not-allowed' : 'ew-resize', zIndex:5, borderRadius:'7px 0 0 7px'}}/>}
               {showLabel && (
                 <>
                   <span style={{overflow:'hidden', textOverflow:'ellipsis', flex:1, minWidth:0, paddingLeft:6, display:'flex', alignItems:'center', gap:4}}>
@@ -801,7 +814,7 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
                 </>
               )}
               {!isOccupato && <div onMouseDown={(e)=>handleResizeMouseDown(e,r,'right')}
-                style={{position:'absolute', right:0, top:0, bottom:0, width:8, cursor:'ew-resize', zIndex:5, borderRadius:'0 7px 7px 0'}}/>}
+                style={{position:'absolute', right:0, top:0, bottom:0, width:8, cursor: r.source === 'byup' ? 'not-allowed' : 'ew-resize', zIndex:5, borderRadius:'0 7px 7px 0'}}/>}
             </div>
           );
         })}
