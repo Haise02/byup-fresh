@@ -226,6 +226,20 @@ function FloorPlan({
           setDragOverTable(null);
         } else {
           onMoveTable(drag.id, { x: newX, y: newY });
+          // Sovrapposizione significativa con un altro tavolo → proposta di unione
+          const cur = tavoli.find(t => t.id === drag.id);
+          if (cur && onMergeTables) {
+            const dims = tableDims(cur);
+            const rect = { x: newX, y: newY, ...dims };
+            const over = tavoli.find(o => {
+              if (o.id === drag.id) return false;
+              const od = tableDims(o);
+              const w = Math.min(rect.x + rect.w, o.pos.x + od.w) - Math.max(rect.x, o.pos.x);
+              const h = Math.min(rect.y + rect.h, o.pos.y + od.h) - Math.max(rect.y, o.pos.y);
+              return w > 0 && h > 0 && w * h >= 0.3;
+            });
+            setDragOverTable(over ? over.id : null);
+          }
         }
       } else if (drag.kind === 'furniture') {
         onMoveFurniture(drag.id, { x: newX, y: newY });
@@ -261,9 +275,28 @@ function FloorPlan({
           });
           if (Object.keys(updates).length) onBulkMoveTables(updates);
         } else {
-          // Tavolo singolo: se collide, riposizionalo nello spazio libero più vicino
           const cur = tavoli.find(t => t.id === drag.id);
-          if (cur) {
+          const target = dragOverTable != null ? tavoli.find(t => t.id === dragOverTable) : null;
+          if (cur && target && onMergeTables) {
+            // Drop sopra un altro tavolo → unione: il trascinato si affianca
+            // al target (lato libero più vicino) così i corpi si saldano.
+            const dims = tableDims(cur);
+            const td = tableDims(target);
+            const occ = obstacles({ skipTableIds: [drag.id] });
+            const cands = [
+              { x: target.pos.x + td.w, y: target.pos.y },
+              { x: target.pos.x - dims.w, y: target.pos.y },
+              { x: target.pos.x, y: target.pos.y + td.h },
+              { x: target.pos.x, y: target.pos.y - dims.h },
+            ]
+              .filter(c => c.x >= 0 && c.y >= 0 && c.x + dims.w <= COLS && c.y + dims.h <= ROWS)
+              .sort((a, b) => Math.hypot(a.x - cur.pos.x, a.y - cur.pos.y) - Math.hypot(b.x - cur.pos.x, b.y - cur.pos.y));
+            const free = cands.find(c => !occ.some(o => overlapRects({ ...c, ...dims }, o)));
+            const spot = free || placeFree(cur.pos.x, cur.pos.y, dims.w, dims.h, occ);
+            onMoveTable(drag.id, { x: spot.x, y: spot.y });
+            onMergeTables(drag.id, target.id);
+          } else if (cur) {
+            // Tavolo singolo: se collide, riposizionalo nello spazio libero più vicino
             const occ = obstacles({ skipTableIds: [drag.id] });
             const dims = tableDims(cur);
             const me = { x: cur.pos.x, y: cur.pos.y, ...dims };
@@ -684,6 +717,7 @@ function FloorPlan({
                 selected={isSel}
                 hovered={hoverTable === t.id && !isDrag}
                 dragging={isDrag}
+                mergeHint={dragOverTable != null && (t.id === dragOverTable || isDrag)}
                 unit={bodyUnit}
                 pitch={CELL}
                 left={left}

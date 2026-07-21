@@ -67,11 +67,31 @@ function TavoloShape({ shape, size = 36, active = true, coperti }) {
 window.TavoloShape = TavoloShape;
 
 function ImpSalaTavoli() {
-  const [sale, setSale] = React.useState([
-    {id:1, name:'Sala principale', active: true, widthM: 12, depthM: 7.2, tavoli: TAVOLI_INIT, furniture: FURNITURE_INIT, groups: []},
-    {id:2, name:'Saletta riservata', active: false, widthM: 6, depthM: 4.8, tavoli: [], furniture: [], groups: []},
-    {id:3, name:'Terrazza estiva', active: false, widthM: 9, depthM: 6, tavoli: [], furniture: [], groups: []},
-  ]);
+  const [sale, setSale] = React.useState(() => {
+    // Riparte dall'ultima configurazione salvata (bottone "Salva")
+    try {
+      const saved = localStorage.getItem('byup-sala-config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length) {
+          return parsed.map(s => ({ tavoli: [], furniture: [], groups: [], ...s }));
+        }
+      }
+    } catch (e) { /* localStorage non disponibile o dato corrotto → default */ }
+    return [
+      {id:1, name:'Sala principale', active: true, widthM: 12, depthM: 7.2, tavoli: TAVOLI_INIT, furniture: FURNITURE_INIT, groups: []},
+      {id:2, name:'Saletta riservata', active: false, widthM: 6, depthM: 4.8, tavoli: [], furniture: [], groups: []},
+      {id:3, name:'Terrazza estiva', active: false, widthM: 9, depthM: 6, tavoli: [], furniture: [], groups: []},
+    ];
+  });
+  // Modifiche non salvate: confronto con l'ultimo snapshot salvato
+  const [dirty, setDirty] = React.useState(false);
+  const savedSnapRef = React.useRef(null);
+  React.useEffect(() => {
+    const cur = JSON.stringify(sale);
+    if (savedSnapRef.current === null) { savedSnapRef.current = cur; return; }
+    setDirty(cur !== savedSnapRef.current);
+  }, [sale]);
   const [activeId, setActiveId] = React.useState(1);
   const [editSala, setEditSala] = React.useState(null); // {id?, name, active} per nuova/edit
   const [salaMenu, setSalaMenu] = React.useState(null);
@@ -145,6 +165,14 @@ function ImpSalaTavoli() {
   // Toast con undo (auto-dismiss 5s)
   const showToast = (msg, undo) => {
     setToast({ msg, undo, id: Date.now() });
+  };
+
+  const saveConfig = () => {
+    const cur = JSON.stringify(sale);
+    try { localStorage.setItem('byup-sala-config', cur); } catch (e) { /* quota/privacy: salvataggio solo in sessione */ }
+    savedSnapRef.current = cur;
+    setDirty(false);
+    showToast('Configurazione della sala salvata');
   };
   React.useEffect(() => {
     if (!toast) return;
@@ -877,6 +905,30 @@ function ImpSalaTavoli() {
         }}
       />}
       {toast && <UndoToast toast={toast} onUndo={() => { toast.undo?.(); setToast(null); }} onClose={() => setToast(null)}/>}
+
+      {/* Barra Salva — compare quando la disposizione ha modifiche non salvate */}
+      {dirty && (
+        <div style={{
+          position:'fixed', right: 24, bottom: 24, zIndex: 210,
+          display:'flex', alignItems:'center', gap: 14,
+          padding:'10px 10px 10px 18px',
+          background:'rgba(21, 23, 28, 0.92)',
+          backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)',
+          borderRadius: 999,
+          border:'1px solid rgba(255,255,255,0.08)',
+          boxShadow:'0 12px 32px rgba(15,17,21,0.28)',
+          animation:'toastIn 0.25s ease-out',
+        }}>
+          <span style={{display:'inline-flex', width:8, height:8, borderRadius:'50%', background:'#FBBF24', flexShrink:0}}/>
+          <span style={{color:'#E5E7EB', fontSize:14.5, fontWeight:600}}>Modifiche non salvate</span>
+          <button onClick={saveConfig} style={{
+            padding:'8px 18px', borderRadius: 999, border:'1px solid rgba(180, 30, 35, 0.40)',
+            background: PN.BTN_BRAND, color:'#fff',
+            fontSize:14.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            boxShadow: PN.INSET_HIGHLIGHT_BRAND,
+          }}>Salva</button>
+        </div>
+      )}
     </div>
   );
 
