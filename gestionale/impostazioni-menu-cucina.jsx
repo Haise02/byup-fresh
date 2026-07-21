@@ -657,7 +657,9 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
             display:'flex', alignItems:'center', gap: 14, padding:'14px 17px', cursor:'pointer',
             background: PN.PINK_BG_SOFT, borderRadius: 12,
           }}>
-            <div style={{width: 36, height: 36, borderRadius:'50%', border:`1.5px solid ${PN.PINK}`, color: PN.PINK, display:'grid', placeItems:'center', fontSize: 20, fontWeight: 600, flexShrink: 0, lineHeight: 1}}>+</div>
+            <div style={{width: 36, height: 36, borderRadius:'50%', border:`1.5px solid ${PN.PINK}`, display:'grid', placeItems:'center', flexShrink: 0}}>
+              <PnI.Plus size={16} color={PN.PINK}/>
+            </div>
             <div style={{flex:1, minWidth:0}}>
               <div style={{fontSize:16, fontWeight:700, color: PN.TEXT}}>Crea nuovo piatto</div>
               <div style={{fontSize:14.5, color: PN.MUTED, marginTop: 1}}>Non lo trovi in libreria? Crealo ora: verrà aggiunto subito in "{catName}"</div>
