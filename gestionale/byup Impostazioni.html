@@ -46,6 +46,9 @@
     0% { opacity: 0; transform: scale(0.92) translateY(10px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
   }
+  /* Feedback di pressione: ogni bottone si comprime leggermente al click */
+  button { transition: transform 90ms ease-out; }
+  button:active:not(:disabled) { transform: scale(0.96); }
 </style>
 </head>
 <body>

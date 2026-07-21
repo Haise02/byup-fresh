@@ -60,6 +60,9 @@
     60% { transform: translateX(-3px); }
     80% { transform: translateX(3px); }
   }
+  /* Feedback di pressione: ogni bottone si comprime leggermente al click */
+  button { transition: transform 90ms ease-out; }
+  button:active:not(:disabled) { transform: scale(0.96); }
 </style>
 </head>
 <body>

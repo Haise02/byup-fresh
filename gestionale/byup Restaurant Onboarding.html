@@ -88,6 +88,9 @@
   .step-stage::-webkit-scrollbar { width: 8px; }
   .step-stage::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 999px; }
   .step-stage::-webkit-scrollbar-track { background: transparent; }
+  /* Feedback di pressione: ogni bottone si comprime leggermente al click */
+  button { transition: transform 90ms ease-out; }
+  button:active:not(:disabled) { transform: scale(0.96); }
 </style>
 </head>
 <body>
