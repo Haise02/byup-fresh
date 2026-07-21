@@ -2957,32 +2957,36 @@ function MCConfigura() {
           padding: 16, borderRadius: 11,
           border: `1px solid ${PN.BORDER_SOFT}`,
         }}>
-          <div style={{fontSize: 15, fontWeight: 700, marginBottom: 10, display:'inline-flex', alignItems:'center', gap: 7}}>
-            <PnI.Plate size={15}/> Servizio
+          {/* Titolo + tipo sulla stessa riga: il segmented compatto a destra
+              è una scelta di natura, non l'importo. Gli importi sotto restano
+              scuri quando attivi, così le due file non si confondono. */}
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, flexWrap:'wrap', marginBottom: 8}}>
+            <div style={{fontSize: 15, fontWeight: 700, display:'inline-flex', alignItems:'center', gap: 7}}>
+              <PnI.Plate size={15}/> Servizio
+            </div>
+            <div style={{display:'inline-flex', background: PN.WHITE, padding: 3, borderRadius: 999, gap: 2, border:`1px solid ${PN.BORDER}`}}>
+              {[{id:'fisso', label:'Fisso a persona'}, {id:'percentuale', label:'Percentuale sul conto'}].map(m => {
+                const on = servizioTipo === m.id;
+                return (
+                  <button key={m.id} onClick={() => setServizioTipo(m.id)} style={{
+                    padding:'5px 13px', borderRadius: 999,
+                    border:'none',
+                    background: on ? PN.PINK_SOFT : 'transparent',
+                    color: on ? PN.PINK_DARK : PN.MUTED,
+                    fontSize: 13, fontWeight: 700,
+                    cursor:'pointer', fontFamily:'inherit',
+                    boxShadow: on ? '0 1px 2px rgba(15,17,21,0.06)' : 'none',
+                    transition:'background 150ms ease-out, color 150ms ease-out',
+                    whiteSpace:'nowrap',
+                  }}>{m.label}</button>
+                );
+              })}
+            </div>
           </div>
           <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 12}}>
             {servizioTipo === 'fisso'
               ? "Importo per persona, applicato solo in sala (non all'asporto)"
               : "Percentuale sul totale del conto, applicata solo in sala (non all'asporto)"}
-          </div>
-
-          {/* Tipo — pill chiare: è una scelta di natura, non l'importo.
-              Gli importi sotto restano scuri quando attivi, così le due file
-              non si confondono. */}
-          <div style={{display:'flex', gap: 6, marginBottom: 8}}>
-            {[{id:'fisso', label:'Fisso a persona'}, {id:'percentuale', label:'Percentuale sul conto'}].map(m => {
-              const on = servizioTipo === m.id;
-              return (
-                <button key={m.id} onClick={() => setServizioTipo(m.id)} style={{
-                  flex: 1, padding:'7px 6px', borderRadius: 999,
-                  border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
-                  background: on ? PN.PINK_SOFT : PN.WHITE,
-                  color: on ? PN.PINK_DARK : PN.MUTED,
-                  fontSize: 13.5, fontWeight: 700,
-                  cursor:'pointer', fontFamily:'inherit',
-                }}>{m.label}</button>
-              );
-            })}
           </div>
 
           <div style={{display:'flex', gap: 6}}>
