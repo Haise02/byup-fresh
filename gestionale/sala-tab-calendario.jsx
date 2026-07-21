@@ -35,11 +35,11 @@ const SALA_RES_DATA = (() => {
     {id:'r14', time:'22:30', dur:60,  name:'Jesse Pinkman',           posti:2, table:1,  status:'inattesa',   phone:'+39 339 ...',       note:null, notes:null, source:'walkin'},
     // Cancellata: non conta nei conteggi ma resta in lista per il flusso "cancellate"
     {id:'r17', time:'22:30', dur:60,  name:'Conti',           posti:2, table:4,  status:'cancellata', phone:'+39 333 ...',       note:null, notes:null, source:'tel'},
-    // Tavolo 8 prenotato a pranzo dalle 12:00
-    {id:'r24', time:'12:00', dur:90, name:'Esposito', posti:2, table:8, status:'confermata', phone:'+39 347 ...', note:null, notes:'Cliente abituale — posto fisso', source:'tel'},
-    // Cluster imminenti 12:00 – 12:30
-    {id:'r25', time:'12:00', dur:90,  name:'Borrelli',       posti:3, table:2,    status:'confermata', phone:'+39 345 ...', note:null, notes:'Menu vegano', source:'tel'},
-    {id:'r26', time:'12:00', dur:75,  name:'Mele',           posti:2, table:4,    status:'inattesa',   phone:'+39 347 ...', note:null, notes:null, source:'tel'},
+    // Tavolo 8 prenotato a pranzo dalle 12:30
+    {id:'r24', time:'12:30', dur:75, name:'Esposito', posti:2, table:8, status:'confermata', phone:'+39 347 ...', note:null, notes:'Cliente abituale — posto fisso', source:'tel'},
+    // Cluster imminenti 12:30
+    {id:'r25', time:'12:30', dur:75,  name:'Borrelli',       posti:3, table:2,    status:'confermata', phone:'+39 345 ...', note:null, notes:'Menu vegano', source:'tel'},
+    {id:'r26', time:'12:30', dur:60,  name:'Mele',           posti:2, table:4,    status:'inattesa',   phone:'+39 347 ...', note:null, notes:null, source:'tel'},
     {id:'r27', time:'12:15', dur:90,  name:'Gallo azienda',  posti:6, table:11,   status:'confermata', phone:'+39 02 ...',  note:{type:'aziendale', text:'Menù fisso'}, notes:null, source:'tel'},
     {id:'r28', time:'13:30', dur:90,  name:'Caruso',         posti:2, table:6,    status:'confermata', phone:'+39 340 ...', note:null, notes:null, source:'tel'},
     {id:'r29', time:'12:30', dur:120, name:'Pellegrini', posti:4, table:12,   status:'confermata', phone:'+39 333 ...', note:{type:'allergia', text:'Allergia lattosio'}, notes:null, source:'tel'},
