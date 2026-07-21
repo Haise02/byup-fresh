@@ -588,12 +588,12 @@ function FloorPlan({
             );
           })}
 
-          {/* Gruppi tavoli — corpo unico edge-tracing come in sala: fill vetro,
-              ring verde "libero", nome del gruppo centrato sull'insieme. */}
+          {/* Cornice unione — IDENTICA alla sala: edge-tracing delle celle del
+              gruppo, fill bianco 0.45, stroke ring spesso 8, SOTTO le tile. */}
           {(() => {
             const activeGroups = groups.filter(g => tavoli.filter(t => g.tableIds.includes(t.id)).length >= 2);
             if (activeGroups.length === 0) return null;
-            const allPaths = activeGroups.flatMap(g => {
+            const paths = activeGroups.flatMap(g => {
               const ts = tavoli.filter(t => g.tableIds.includes(t.id));
               // Celle occupate = footprint reale di ogni membro (anche multi-cella)
               const occupied = new Set();
@@ -624,48 +624,34 @@ function FloorPlan({
                 }
                 if (pts.length > 2) polygons.push(pts);
               }
-              const xs = ts.flatMap(t => { const d = tableDims(t); return [t.pos.x, t.pos.x + d.w]; });
-              const ys = ts.flatMap(t => { const d = tableDims(t); return [t.pos.y, t.pos.y + d.h]; });
-              const cx = (Math.min(...xs) + Math.max(...xs)) / 2 * CELL;
-              const cy = (Math.min(...ys) + Math.max(...ys)) / 2 * CELL;
-              return { g, polygons, cx, cy };
+              return polygons.map((pts, pi) => (
+                <path key={`union-${g.id}-${pi}`}
+                  d={'M ' + pts.map(([x,y]) => `${x} ${y}`).join(' L ') + ' Z'}
+                  fill="rgba(255, 255, 255, 0.45)"
+                  stroke={TT_ACCENTS.libero.ring}
+                  strokeWidth="8"
+                  strokeLinejoin="round"
+                  style={{ pointerEvents: 'none' }}
+                />
+              ));
             });
+            if (paths.length === 0) return null;
             return (
-              <>
-                <svg style={{position:'absolute', left:0, top:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:1, overflow:'visible'}}>
-                  {allPaths.flatMap(({g, polygons}) => polygons.map((pts, pi) => (
-                    <path key={`union-${g.id}-${pi}`}
-                      d={'M ' + pts.map(([x,y]) => `${x} ${y}`).join(' L ') + ' Z'}
-                      fill="rgba(255, 255, 255, 0.45)"
-                      stroke="rgba(22, 163, 74, 0.40)"
-                      strokeWidth="1.5"
-                      strokeLinejoin="round"
-                    />
-                  )))}
-                </svg>
-                {allPaths.map(({g, cx, cy}) => (
-                  <div key={`label-${g.id}`} style={{
-                    position:'absolute', left: cx, top: cy,
-                    transform:'translate(-50%, -50%)',
-                    textAlign:'center', pointerEvents:'none', zIndex: 4,
-                    lineHeight: 1.15,
-                  }}>
-                    <div style={{fontSize: Math.round(Math.min(23, Math.max(15, bodyUnit * 0.3))), fontWeight: 800, color: '#0F1115', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em'}}>
-                      {[...g.tableIds].sort((a,b) => a-b).join('-')}
-                    </div>
-                    <div style={{fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform:'uppercase', color: '#15803D', opacity: 0.85}}>
-                      Uniti
-                    </div>
-                  </div>
-                ))}
-              </>
+              <svg style={{position:'absolute', inset:0, width:'100%', height:'100%', overflow:'visible', pointerEvents:'none', zIndex:0}}>
+                {paths}
+              </svg>
             );
           })()}
 
           {/* Tavoli */}
           {tavoli.map(t => {
             const isSel = selected.has(t.id);
-            const isDrag = drag?.kind === 'table' && drag?.id === t.id;
+            const inGroup = !!groupOf(t.id);
+            // Gruppo = UN tavolo: hover e drag su un membro coinvolgono tutti (come in sala)
+            const isDrag = drag?.kind === 'table' && (drag.id === t.id || (inGroup && groupMates(drag.id).includes(t.id)));
+            const isHov = inGroup
+              ? (hoverTable != null && groupMates(t.id).includes(hoverTable))
+              : hoverTable === t.id;
             const numero = (t.name.match(/\d+/) || [t.name])[0];
             const seats = t.coperti || 4;
             const shape = ttSeatShape(seats);
@@ -674,7 +660,6 @@ function FloorPlan({
             const bw = ttBodySize(seats, shape, orient, bodyUnit, CELL);
             let left = t.pos.x * CELL + (dims.w * CELL - bw.w) / 2;
             let top  = t.pos.y * CELL + (dims.h * CELL - bw.h) / 2;
-            const inGroup = !!groupOf(t.id);
             // Come in sala: sedie nascoste sui lati a contatto con gli altri
             // membri del gruppo, corpo esteso fino al bordo cella su quei lati.
             const hideChairSides = [];
@@ -715,7 +700,7 @@ function FloorPlan({
                 hideBody={inGroup}
                 dim={t.disabled}
                 selected={isSel}
-                hovered={hoverTable === t.id && !isDrag}
+                hovered={isHov && !isDrag}
                 dragging={isDrag}
                 mergeHint={dragOverTable != null && (t.id === dragOverTable || isDrag)}
                 unit={bodyUnit}
@@ -757,6 +742,103 @@ function FloorPlan({
                   }}>DISATTIVATO</div>
                 )}
               </TableTile>
+            );
+          })}
+
+          {/* Gruppo unito = UN tavolo, anche visivamente (identico alla sala):
+              corpo UNICO glass senza linee di giunzione sul bounding box dei
+              corpi, nome "3-4" e coperti centrati. Le tile membri disegnano
+              solo sedie e hit area. */}
+          {groups.filter(g => tavoli.filter(t => g.tableIds.includes(t.id)).length >= 2).map(g => {
+            const members = tavoli.filter(t => g.tableIds.includes(t.id));
+            const bodies = members.map(t => {
+              const seats = t.coperti || 4;
+              const shape = ttSeatShape(seats);
+              const orient = t.orientation || 'h';
+              const dims = tableDims(t);
+              const bw = ttBodySize(seats, shape, orient, bodyUnit, CELL);
+              const bl = t.pos.x * CELL + (dims.w * CELL - bw.w) / 2;
+              const bt = t.pos.y * CELL + (dims.h * CELL - bw.h) / 2;
+              return { id: t.id, l: bl, t: bt, r: bl + bw.w, b: bt + bw.h };
+            });
+            const L = Math.min(...bodies.map(b => b.l));
+            const T = Math.min(...bodies.map(b => b.t));
+            const R = Math.max(...bodies.map(b => b.r));
+            const B = Math.max(...bodies.map(b => b.b));
+            const horizontal = (R - L) >= (B - T);
+            const ordered = [...bodies]
+              .sort((a, b) => horizontal ? a.l - b.l : a.t - b.t)
+              .map(x => { const m = members.find(t => t.id === x.id); return (m.name.match(/\d+/) || [m.name])[0]; });
+            const ids = members.map(m => m.id);
+            const dim = members.every(m => m.disabled);
+            const isHov = hoverTable != null && ids.includes(hoverTable);
+            const isSel = ids.some(id => selected.has(id));
+            const isDrag = !!drag && drag.kind === 'table' && ids.includes(drag.id);
+            const inProposal = dragOverTable != null && ids.includes(dragOverTable);
+            const acc = TT_ACCENTS.libero;
+            const hair = inProposal ? 'rgba(255, 90, 95, 0.60)' : acc.ring;
+            const shadow = dim
+              ? '0 1px 3px rgba(80, 40, 80, 0.06)'
+              : isSel
+                ? `inset 0 0 0 1.25px ${hair}, 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 4.5px rgba(255, 90, 95, 0.70), 0 18px 44px rgba(80, 40, 80, 0.20)`
+                : inProposal
+                  ? `inset 0 0 0 1.25px ${hair}, 0 0 0 3px rgba(255, 90, 95, 0.20), 0 12px 30px rgba(255, 90, 95, 0.16)`
+                  : isDrag
+                    ? `inset 0 0 0 1.25px ${hair}, 0 22px 48px rgba(80, 40, 80, 0.22)`
+                    : isHov
+                      ? `inset 0 0 0 1.25px ${hair}, 0 18px 44px rgba(80, 40, 80, 0.16), 0 4px 10px rgba(80, 40, 80, 0.08)`
+                      : `inset 0 0 0 1.25px ${hair}, 0 12px 36px rgba(80, 40, 80, 0.10)`;
+            const lifted = !isDrag && !dim && (isHov || isSel);
+            const numSize = Math.round(Math.min(27, Math.max(17, bodyUnit * 0.34)));
+            const labelSize = Math.min(12, Math.max(10, bodyUnit * 0.165));
+            const cop = members.reduce((a, m) => a + (m.coperti || 0), 0);
+            return (
+              <React.Fragment key={`gbody-${g.id}`}>
+                {/* Corpo unico del gruppo */}
+                <div style={{
+                  position: 'absolute', left: L, top: T,
+                  width: R - L, height: B - T,
+                  backgroundColor: dim ? 'rgba(255, 255, 255, 0.48)' : 'rgba(255, 255, 255, 0.56)',
+                  backgroundImage: dim ? 'none' : [
+                    'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 55%, rgba(255,255,255,0) 100%)',
+                    `linear-gradient(0deg, ${acc.tint}, ${acc.tint})`,
+                  ].join(', '),
+                  backdropFilter: 'blur(20px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                  border: `1px solid rgba(255, 255, 255, ${dim ? 0.6 : 0.8})`,
+                  borderRadius: TT_RADIUS,
+                  boxShadow: shadow,
+                  transform: lifted ? 'translateY(-2px) scale(1.005)' : 'none',
+                  transition: isDrag ? 'none' : 'box-shadow 240ms cubic-bezier(0.22,1,0.36,1), transform 240ms cubic-bezier(0.22,1,0.36,1), opacity 180ms ease',
+                  opacity: dim ? (isHov ? 0.65 : 0.40) : 1,
+                  filter: dim ? 'grayscale(1)' : 'none',
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                }}/>
+                {/* Nome unico + coperti, centrati sul corpo */}
+                <div style={{
+                  position: 'absolute', left: (L + R) / 2, top: (T + B) / 2,
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 7, pointerEvents: 'none',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  opacity: dim ? 0.45 : 1,
+                  filter: dim ? 'grayscale(1)' : 'none',
+                }}>
+                  <span style={{
+                    fontSize: numSize, fontWeight: 800, lineHeight: 1,
+                    color: dim ? '#9CA3AF' : '#0F1115',
+                    fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+                    whiteSpace: 'nowrap',
+                  }}>{ordered.join('-')}</span>
+                  {!dim && (
+                    <span style={{
+                      fontSize: labelSize, fontWeight: 700, lineHeight: 1,
+                      letterSpacing: 0.5, textTransform: 'uppercase',
+                      color: acc.ink, opacity: 0.85, whiteSpace: 'nowrap',
+                    }}>{cop} posti</span>
+                  )}
+                </div>
+              </React.Fragment>
             );
           })}
 
