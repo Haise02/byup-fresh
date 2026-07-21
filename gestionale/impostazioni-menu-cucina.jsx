@@ -2151,13 +2151,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           <div>
             {isEdit && onDelete && (
               <button onClick={() => { if (confirm('Eliminare questo piatto dalla libreria? Sarà rimosso anche da tutti i menù.')) onDelete(); }} style={{
-                background:'transparent', border:'none', color:PN.MUTED_SOFT, fontSize:14.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                background:'transparent', border:'none', color:PN.TEXT, fontSize:14.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
                 display:'flex', alignItems:'center', gap:5, padding:'6px 0',
-                transition:'color 150ms ease-out',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = PN.MUTED}
-              onMouseLeave={e => e.currentTarget.style.color = PN.MUTED_SOFT}
-              >
+              }}>
                 <PnI.Trash size={13}/> Elimina piatto
               </button>
             )}
