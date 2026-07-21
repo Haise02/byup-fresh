@@ -586,6 +586,7 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
           library={library}
           excludeIds={(menu.categories.find(c => c.name === picker)?.items || []).map(i => i.dishId)}
           catName={picker}
+          menuName={menu.name}
           onClose={() => setPicker(null)}
           onPick={(id, price) => { onAddDish(picker, id, price); }}
           onCreateNew={() => { const cat = picker; setPicker(null); setEditingDish({dishId: null, catName: cat, isNew: true}); }}
@@ -596,7 +597,7 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
 }
 
 // ─── Picker libreria: scegli uno o più piatti da aggiungere alla categoria ──
-function DishLibraryPicker({ library, excludeIds, catName, onClose, onPick, onCreateNew }) {
+function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, onPick, onCreateNew }) {
   const [search, setSearch] = React.useState('');
   const [selected, setSelected] = React.useState({}); // id → price string
   const available = library.filter(d => !excludeIds.includes(d.id) && (!search || d.name.toLowerCase().includes(search.toLowerCase())));
@@ -613,36 +614,48 @@ function DishLibraryPicker({ library, excludeIds, catName, onClose, onPick, onCr
   const count = Object.keys(selected).length;
   return (
     <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:1000, display:'grid', placeItems:'center', padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...PN.GLASS_STRONG, borderRadius: 20, width: 480, maxWidth:'100%', maxHeight:'85vh', display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <div style={{padding:'18px 22px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:10}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:13, color:PN.MUTED, textTransform:'uppercase', letterSpacing:0.4, fontWeight:700}}>{catName}</div>
-            <div style={{fontSize:17, fontWeight:700, color:PN.TEXT}}>Aggiungi piatti dalla libreria</div>
+      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 22, width: 520, maxWidth:'100%', maxHeight:'88vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.22)'}}>
+
+        {/* Header: icona tonda + eyebrow categoria + titolo + sottotitolo */}
+        <div style={{padding:'22px 24px 0', display:'flex', alignItems:'flex-start', gap: 14}}>
+          <div style={{width: 46, height: 46, borderRadius:'50%', background: PN.PINK_BG_SOFT, display:'grid', placeItems:'center', flexShrink: 0}}>
+            <PnI.Plate size={21} color={PN.PINK}/>
           </div>
-          <button onClick={onClose} style={{width:30, height:30, borderRadius:7, border:'none', background:'#F4F5F7', cursor:'pointer', fontSize:18, color:PN.MUTED}}>✕</button>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:12, color:PN.PINK, textTransform:'uppercase', letterSpacing:0.8, fontWeight:800, marginBottom: 2}}>{catName}</div>
+            <div style={{fontSize:18, fontWeight:800, color:PN.TEXT, letterSpacing:-0.2}}>Aggiungi piatti dalla libreria</div>
+            <div style={{fontSize:14, color:PN.MUTED, marginTop: 3}}>Scegli i piatti da aggiungere al menù "{menuName}"</div>
+          </div>
+          <button onClick={onClose} style={{width:32, height:32, borderRadius:9, border:`1px solid ${PN.BORDER}`, background:PN.WHITE, cursor:'pointer', fontSize:16, color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>✕</button>
         </div>
-        <div style={{padding:'14px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
+
+        {/* Ricerca */}
+        <div style={{padding:'16px 24px 0'}}>
           <div style={{position:'relative'}}>
-            <span style={{position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:PN.MUTED, display: 'flex', alignItems: 'center'}}><PnI.Search size={13} color={PN.MUTED}/></span>
+            <span style={{position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', display:'flex', alignItems:'center'}}><PnI.Search size={14} color={PN.MUTED}/></span>
             <input autoFocus value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca nella libreria…" style={{
-              width:'100%', padding:'9px 12px 9px 34px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)',
+              width:'100%', padding:'10px 14px 10px 36px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:15.5, fontFamily:'inherit', outline:'none', background:PN.WHITE,
             }}/>
           </div>
         </div>
-        <div style={{flex:1, overflowY:'auto', padding: 0}}>
-          {/* Sticky: crea nuovo piatto */}
+
+        {/* Card: crea nuovo piatto */}
+        <div style={{padding:'14px 24px 0'}}>
           <div onClick={onCreateNew} style={{
-            position:'sticky', top: 0, zIndex: 2,
-            display:'flex', alignItems:'center', gap: 12, padding:'12px 22px', cursor:'pointer',
-            background: PN.PINK_SOFT, borderBottom: `1.5px dashed ${PN.PINK}`,
+            display:'flex', alignItems:'center', gap: 13, padding:'13px 16px', cursor:'pointer',
+            background: PN.PINK_BG_SOFT, borderRadius: 12,
           }}>
-            <div style={{width: 28, height: 28, borderRadius: 7, background: PN.PINK, color: PN.WHITE, display:'grid', placeItems:'center', fontSize: 18, fontWeight: 700}}>+</div>
+            <div style={{width: 32, height: 32, borderRadius:'50%', border:`1.5px solid ${PN.PINK}`, color: PN.PINK, display:'grid', placeItems:'center', fontSize: 18, fontWeight: 600, flexShrink: 0, lineHeight: 1}}>+</div>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:15.5, fontWeight:700, color: PN.PINK_DARK}}>Crea nuovo piatto</div>
-              <div style={{fontSize:13.5, color: PN.PINK_DARK, opacity: 0.75}}>Non lo trovi in libreria? Crealo ora — verrà aggiunto subito a "{catName}"</div>
+              <div style={{fontSize:15, fontWeight:700, color: PN.TEXT}}>Crea nuovo piatto</div>
+              <div style={{fontSize:13.5, color: PN.MUTED, marginTop: 1}}>Non lo trovi in libreria? Crealo ora: verrà aggiunto subito in "{catName}"</div>
             </div>
-            <span style={{fontSize: 16, color: PN.PINK_DARK}}>→</span>
+            <PnI.ChevronRight size={13} color={PN.PINK}/>
           </div>
+        </div>
+
+        {/* Lista piatti */}
+        <div style={{flex:1, overflowY:'auto', padding:'10px 14px 12px'}}>
           {available.length === 0 && (
             <div style={{padding:'40px 22px', textAlign:'center', color:PN.MUTED, fontSize: 15}}>Nessun piatto in libreria che corrisponda alla ricerca.</div>
           )}
@@ -650,32 +663,45 @@ function DishLibraryPicker({ library, excludeIds, catName, onClose, onPick, onCr
             const on = selected[d.id] !== undefined;
             return (
               <div key={d.id} onClick={() => togglePick(d.id)} style={{
-                display:'flex', alignItems:'center', gap: 12, padding:'10px 22px', cursor:'pointer',
-                background: on ? PN.PINK_SOFT : 'transparent',
-                borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-              }}>
-                <input type="checkbox" checked={on} readOnly style={{accentColor: PN.PINK, pointerEvents:'none'}}/>
+                display:'flex', alignItems:'center', gap: 13, padding:'9px 10px', cursor:'pointer',
+                background: on ? PN.PINK_BG_SOFT : 'transparent', borderRadius: 12,
+                transition:'background .12s',
+              }}
+              onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#FAFBFC'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = on ? PN.PINK_BG_SOFT : 'transparent'; }}
+              >
+                <input type="checkbox" checked={on} readOnly style={{accentColor: PN.PINK, pointerEvents:'none', width: 16, height: 16, flexShrink: 0, margin: 0}}/>
+                <div style={{width: 46, height: 46, borderRadius: 10, background:'#F4F5F7', display:'grid', placeItems:'center', flexShrink: 0, color: PN.MUTED_SOFT}}>
+                  <Icon name={CAT_ICON[d.cat] || 'star'} size={20}/>
+                </div>
                 <div style={{flex:1, minWidth:0}}>
                   <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>{d.name}</div>
-                  <div style={{fontSize:13.5, color:PN.MUTED, lineHeight:1.4}}>{d.cat} · {d.desc?.slice(0,60)}{d.desc?.length>60?'…':''}</div>
+                  <div style={{fontSize:13.5, lineHeight:1.4, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                    <span style={{fontWeight:700, color:PN.MUTED}}>{d.cat}</span>
+                    <span style={{color:PN.MUTED}}> • {d.desc}</span>
+                  </div>
                 </div>
-                {on && (
-                  <div onClick={e => e.stopPropagation()} style={{display:'flex', alignItems:'center', gap:4, background:PN.WHITE, padding:'4px 8px', borderRadius:6, border:`1px solid ${PN.PINK}`}}>
-                    <span style={{fontSize:14.5, color:PN.MUTED, fontWeight:700}}>€</span>
+                {on ? (
+                  <div onClick={e => e.stopPropagation()} style={{display:'flex', alignItems:'center', gap:4, background:PN.WHITE, padding:'5px 9px', borderRadius:9, border:`1px solid ${PN.PINK}`, flexShrink:0}}>
+                    <span style={{fontSize:14, color:PN.MUTED, fontWeight:700}}>€</span>
                     <input value={selected[d.id]} onChange={e => setPrice(d.id, e.target.value)} placeholder="0,00" style={{
-                      width: 56, fontSize:15, fontWeight:700, color:PN.TEXT, border:'none', outline:'none', textAlign:'right', fontFamily:'inherit', background:'transparent',
+                      width: 52, fontSize:15, fontWeight:700, color:PN.TEXT, border:'none', outline:'none', textAlign:'right', fontFamily:'inherit', background:'transparent',
                     }}/>
                   </div>
+                ) : (
+                  <div style={{width: 34, height: 34, borderRadius: 9, border:`1px solid ${PN.BORDER}`, background:PN.WHITE, display:'grid', placeItems:'center', fontSize: 17, color: PN.TEXT, flexShrink: 0, lineHeight: 1}}>+</div>
                 )}
               </div>
             );
           })}
         </div>
-        <div style={{padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+
+        {/* Footer */}
+        <div style={{padding:'15px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', justifyContent:'space-between', alignItems:'center', gap: 10}}>
           <div style={{fontSize:14.5, color:PN.MUTED}}>{count > 0 ? `${count} piatt${count===1?'o':'i'} selezionat${count===1?'o':'i'}` : 'Seleziona uno o più piatti'}</div>
           <div style={{display:'flex', gap:8}}>
             <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-            <ImpButton variant="primary" onClick={confirm}>Aggiungi al menù</ImpButton>
+            <ImpButton variant="pink" onClick={confirm}>Aggiungi al menù</ImpButton>
           </div>
         </div>
       </div>
