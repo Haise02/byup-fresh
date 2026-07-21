@@ -128,7 +128,12 @@ function FloorPlan({
   };
   const snap = v => Math.round(v * 2) / 2;
 
-  const tableDims = () => ({ w: TABLE_SCALE, h: TABLE_SCALE });
+  // Footprint in celle da posti+orientation, come in sala (getTableDims):
+  // 2-5 posti → 1×1, 6-8 → 2 celle, >8 → 3 celle.
+  const tableDims = (t) => {
+    const seats = t?.coperti || 4;
+    return ttFootprintUnits(seats, ttSeatShape(seats), t?.orientation || 'h');
+  };
   const overlapRects = (a, b) =>
     !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
   const groupOf = (id) => groups.find(g => g.tableIds.includes(id));
@@ -141,7 +146,7 @@ function FloorPlan({
   const obstacles = ({ skipTableIds, skipFurnId } = {}) => {
     const skip = skipTableIds instanceof Set ? skipTableIds : new Set(skipTableIds || []);
     return [
-      ...tavoli.filter(t => !skip.has(t.id)).map(t => ({ x: t.pos.x, y: t.pos.y, w: TABLE_SCALE, h: TABLE_SCALE })),
+      ...tavoli.filter(t => !skip.has(t.id)).map(t => ({ x: t.pos.x, y: t.pos.y, ...tableDims(t) })),
       ...furniture.filter(f => f.id !== skipFurnId).map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
     ];
   };
@@ -246,11 +251,12 @@ function FloorPlan({
           const updates = {};
           const occupied = [...movedRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
           others.forEach(o => {
-            const orect = { x: o.pos.x, y: o.pos.y, ...tableDims(o) };
+            const od = tableDims(o);
+            const orect = { x: o.pos.x, y: o.pos.y, ...od };
             if (occupied.some(mr => overlapRects(mr, orect))) {
-              const spot = placeFree(o.pos.x, o.pos.y, TABLE_SCALE, TABLE_SCALE, occupied);
+              const spot = placeFree(o.pos.x, o.pos.y, od.w, od.h, occupied);
               updates[o.id] = { x: spot.x, y: spot.y };
-              occupied.push({ x: spot.x, y: spot.y, w: TABLE_SCALE, h: TABLE_SCALE });
+              occupied.push({ x: spot.x, y: spot.y, w: od.w, h: od.h });
             }
           });
           if (Object.keys(updates).length) onBulkMoveTables(updates);
@@ -259,9 +265,10 @@ function FloorPlan({
           const cur = tavoli.find(t => t.id === drag.id);
           if (cur) {
             const occ = obstacles({ skipTableIds: [drag.id] });
-            const me = { x: cur.pos.x, y: cur.pos.y, w: TABLE_SCALE, h: TABLE_SCALE };
+            const dims = tableDims(cur);
+            const me = { x: cur.pos.x, y: cur.pos.y, ...dims };
             if (occ.some(o => overlapRects(me, o))) {
-              const spot = placeFree(cur.pos.x, cur.pos.y, TABLE_SCALE, TABLE_SCALE, occ);
+              const spot = placeFree(cur.pos.x, cur.pos.y, dims.w, dims.h, occ);
               onMoveTable(drag.id, spot);
             }
           }
@@ -383,7 +390,7 @@ function FloorPlan({
             // intersecare nessun tavolo esistente (t.pos) né arredo.
             const overlap = (ax, ay, aw, ah, bx, by, bw, bh) =>
               ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
-            const tableOverlap = (x, y) => tavoli.some(t => overlap(x, y, TABLE_SCALE, TABLE_SCALE, t.pos.x, t.pos.y, TABLE_SCALE, TABLE_SCALE));
+            const tableOverlap = (x, y) => tavoli.some(t => { const td = tableDims(t); return overlap(x, y, TABLE_SCALE, TABLE_SCALE, t.pos.x, t.pos.y, td.w, td.h); });
             const furnOverlap = (x, y) => furniture.some(f => overlap(x, y, TABLE_SCALE, TABLE_SCALE, f.x, f.y, f.w, f.h));
             const fits = (x, y) => x + TABLE_SCALE <= COLS && y + TABLE_SCALE <= ROWS && !tableOverlap(x, y) && !furnOverlap(x, y);
             let spot = null;
@@ -548,13 +555,19 @@ function FloorPlan({
             );
           })}
 
-          {/* Gruppi tavoli — contorno SVG edge-tracing (stesso approccio sala v3) */}
+          {/* Gruppi tavoli — corpo unico edge-tracing come in sala: fill vetro,
+              ring verde "libero", nome del gruppo centrato sull'insieme. */}
           {(() => {
             const activeGroups = groups.filter(g => tavoli.filter(t => g.tableIds.includes(t.id)).length >= 2);
             if (activeGroups.length === 0) return null;
             const allPaths = activeGroups.flatMap(g => {
               const ts = tavoli.filter(t => g.tableIds.includes(t.id));
-              const occupied = new Set(ts.map(t => `${t.pos.x},${t.pos.y}`));
+              // Celle occupate = footprint reale di ogni membro (anche multi-cella)
+              const occupied = new Set();
+              ts.forEach(t => {
+                const d = tableDims(t);
+                for (let i = 0; i < d.w; i++) for (let j = 0; j < d.h; j++) occupied.add(`${t.pos.x + i},${t.pos.y + j}`);
+              });
               const edges = [];
               for (const key of occupied) {
                 const [cx, cy] = key.split(',').map(Number);
@@ -578,32 +591,38 @@ function FloorPlan({
                 }
                 if (pts.length > 2) polygons.push(pts);
               }
-              const minX = Math.min(...ts.map(t => t.pos.x)) * CELL;
-              const minY = Math.min(...ts.map(t => t.pos.y)) * CELL;
-              return { g, polygons, minX, minY };
+              const xs = ts.flatMap(t => { const d = tableDims(t); return [t.pos.x, t.pos.x + d.w]; });
+              const ys = ts.flatMap(t => { const d = tableDims(t); return [t.pos.y, t.pos.y + d.h]; });
+              const cx = (Math.min(...xs) + Math.max(...xs)) / 2 * CELL;
+              const cy = (Math.min(...ys) + Math.max(...ys)) / 2 * CELL;
+              return { g, polygons, cx, cy };
             });
             return (
               <>
-                <svg style={{position:'absolute', left:0, top:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:3, overflow:'visible'}}>
+                <svg style={{position:'absolute', left:0, top:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:1, overflow:'visible'}}>
                   {allPaths.flatMap(({g, polygons}) => polygons.map((pts, pi) => (
                     <path key={`union-${g.id}-${pi}`}
                       d={'M ' + pts.map(([x,y]) => `${x} ${y}`).join(' L ') + ' Z'}
-                      fill="rgba(216,118,143,0.07)"
-                      stroke={PN.PINK}
-                      strokeWidth="3"
-                      strokeDasharray="6 4"
+                      fill="rgba(255, 255, 255, 0.45)"
+                      stroke="rgba(22, 163, 74, 0.40)"
+                      strokeWidth="1.5"
                       strokeLinejoin="round"
                     />
                   )))}
                 </svg>
-                {allPaths.map(({g, minX, minY}) => (
+                {allPaths.map(({g, cx, cy}) => (
                   <div key={`label-${g.id}`} style={{
-                    position:'absolute', left: minX + 6, top: minY - 11,
-                    background: PN.PINK, color: PN.WHITE,
-                    fontSize: 12, fontWeight: 700, padding:'2px 7px', borderRadius: 4,
-                    pointerEvents:'none', zIndex: 4,
+                    position:'absolute', left: cx, top: cy,
+                    transform:'translate(-50%, -50%)',
+                    textAlign:'center', pointerEvents:'none', zIndex: 4,
+                    lineHeight: 1.15,
                   }}>
-                    Tavolo {[...g.tableIds].sort((a,b) => a-b).join('-')}
+                    <div style={{fontSize: Math.round(Math.min(23, Math.max(15, bodyUnit * 0.3))), fontWeight: 800, color: '#0F1115', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em'}}>
+                      {[...g.tableIds].sort((a,b) => a-b).join('-')}
+                    </div>
+                    <div style={{fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform:'uppercase', color: '#15803D', opacity: 0.85}}>
+                      Uniti
+                    </div>
                   </div>
                 ))}
               </>
@@ -614,26 +633,64 @@ function FloorPlan({
           {tavoli.map(t => {
             const isSel = selected.has(t.id);
             const isDrag = drag?.kind === 'table' && drag?.id === t.id;
-            const { w: tw, h: th } = tableDims();
             const numero = (t.name.match(/\d+/) || [t.name])[0];
+            const seats = t.coperti || 4;
+            const shape = ttSeatShape(seats);
+            const orient = t.orientation || 'h';
+            const dims = tableDims(t);
+            const bw = ttBodySize(seats, shape, orient, bodyUnit, CELL);
+            let left = t.pos.x * CELL + (dims.w * CELL - bw.w) / 2;
+            let top  = t.pos.y * CELL + (dims.h * CELL - bw.h) / 2;
+            const inGroup = !!groupOf(t.id);
+            // Come in sala: sedie nascoste sui lati a contatto con gli altri
+            // membri del gruppo, corpo esteso fino al bordo cella su quei lati.
+            const hideChairSides = [];
+            const bodyExtend = { left: 0, right: 0, top: 0, bottom: 0 };
+            if (inGroup) {
+              const EPS = 0.3;
+              groupMates(t.id).forEach(mid => {
+                if (mid === t.id) return;
+                const m = tavoli.find(x => x.id === mid);
+                if (!m) return;
+                const dm = tableDims(m);
+                const overlapY = m.pos.y < t.pos.y + dims.h - EPS && t.pos.y < m.pos.y + dm.h - EPS;
+                const overlapX = m.pos.x < t.pos.x + dims.w - EPS && t.pos.x < m.pos.x + dm.w - EPS;
+                if (overlapY && Math.abs(m.pos.x - (t.pos.x + dims.w)) < EPS) hideChairSides.push('right');
+                if (overlapY && Math.abs((m.pos.x + dm.w) - t.pos.x) < EPS) hideChairSides.push('left');
+                if (overlapX && Math.abs(m.pos.y - (t.pos.y + dims.h)) < EPS) hideChairSides.push('bottom');
+                if (overlapX && Math.abs((m.pos.y + dm.h) - t.pos.y) < EPS) hideChairSides.push('top');
+              });
+              const gapX = (dims.w * CELL - bw.w) / 2;
+              const gapY = (dims.h * CELL - bw.h) / 2;
+              if (hideChairSides.includes('left'))   { bodyExtend.left = gapX;   left -= gapX; }
+              if (hideChairSides.includes('right'))  { bodyExtend.right = gapX; }
+              if (hideChairSides.includes('top'))    { bodyExtend.top = gapY;    top -= gapY; }
+              if (hideChairSides.includes('bottom')) { bodyExtend.bottom = gapY; }
+            }
             return (
               <TableTile
                 key={t.id}
                 numero={numero}
                 status="libero"
-                seats={t.coperti}
-                shape="square"
+                seats={seats}
+                shape={shape}
+                orientation={orient}
                 hideStatusLabel
+                hideChairSides={hideChairSides}
+                bodyExtend={bodyExtend}
+                hideNumber={inGroup}
+                hideBody={inGroup}
                 dim={t.disabled}
                 selected={isSel}
                 hovered={hoverTable === t.id && !isDrag}
                 dragging={isDrag}
                 unit={bodyUnit}
-                left={t.pos.x * CELL + bodyOff}
-                top={t.pos.y * CELL + bodyOff}
+                pitch={CELL}
+                left={left}
+                top={top}
                 onEnter={() => setHoverTable(t.id)}
                 onLeave={() => setHoverTable(h => (h === t.id ? null : h))}
-                onPointerDown={(e) => handleMouseDown(e, 'table', t.id, tw/2, th/2)}
+                onPointerDown={(e) => handleMouseDown(e, 'table', t.id, dims.w/2, dims.h/2)}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (justDraggedRef.current) { justDraggedRef.current = false; return; }
@@ -643,7 +700,7 @@ function FloorPlan({
                 }}
               >
                 {/* Coperti sotto il numero — al posto della label di stato della sala */}
-                {!t.disabled && (
+                {!t.disabled && !inGroup && (
                   <div style={{
                     position:'absolute', left:0, right:0, bottom: Math.max(6, bodyUnit * 0.12),
                     textAlign:'center', pointerEvents:'none', lineHeight:1,

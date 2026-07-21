@@ -579,7 +579,7 @@ function ImpSalaTavoli() {
             const cop = op.reduce((a, t) => a + t.coperti, 0);
             return (
               <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
-                <span>{op.length}/{tavoli.length} tavoli attivi</span>
+                <span>{op.length} su {tavoli.length} tavoli attivi</span>
                 <span style={{color: PN.BORDER}}>·</span>
                 <span
                   title={`${cop} ${cop === 1 ? 'posto' : 'posti'}`}

@@ -82,10 +82,16 @@ function ttChairs(seats, shape, orientation) {
     return [{ side: 'left', frac: 0.5 }, { side: 'right', frac: 0.5 }];
   }
   if (shape === 'square') {
-    return [
-      { side: 'top', frac: 0.5 }, { side: 'bottom', frac: 0.5 },
-      { side: 'left', frac: 0.5 }, { side: 'right', frac: 0.5 },
-    ];
+    // Tante sedie quanti sono i posti (cap 8), distribuite sui 4 lati:
+    // 2 posti → dirimpetto (top/bottom), 3 → +left, 4 → una per lato, 5 → 2 sul top.
+    const n = Math.max(1, Math.min(8, seats));
+    const per = [0, 0, 0, 0]; // top, bottom, left, right
+    for (let i = 0; i < n; i++) per[i % 4]++;
+    const chairs = [];
+    ['top', 'bottom', 'left', 'right'].forEach((side, si) => {
+      for (let i = 0; i < per[si]; i++) chairs.push({ side, frac: (i + 0.5) / per[si] });
+    });
+    return chairs;
   }
   // rect: lati corti 1 sedia, lati lunghi (seats-2)/2 a spaziatura uniforme
   const nLong = Math.max(1, Math.ceil((seats - 2) / 2));
