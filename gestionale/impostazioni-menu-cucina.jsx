@@ -1314,11 +1314,12 @@ const parseExtraMax = (v) => {
 function ExtrasList({ extras, setExtras }) {
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
-  const [max, setMax] = React.useState('');
+  // Max di default 3: svuotando il campo diventa illimitato
+  const [max, setMax] = React.useState('3');
   const add = () => {
     if (!name.trim()) return;
     setExtras(arr => [...arr, { name: name.trim(), price: parseFloat(price) || 0, max: parseExtraMax(max) }]);
-    setName(''); setPrice(''); setMax('');
+    setName(''); setPrice(''); setMax('3');
   };
   const setExtraMax = (i, v) => setExtras(arr => arr.map((ex, idx) =>
     idx === i ? { ...ex, max: parseExtraMax(v) } : ex));
