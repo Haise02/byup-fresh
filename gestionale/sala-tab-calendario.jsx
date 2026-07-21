@@ -110,6 +110,14 @@ function slotCategory(r) {
 // ─────────────────────────────────────────────────────────
 function SalaCalendario({ tweaks, onNuova, onModifica }) {
   const [dayView, setDayView] = React.useState('timeline'); // timeline | lista
+  // Prenotazioni fatte da Byup App (badge b): non si spostano né si
+  // modificano dal gestionale — qualsiasi tentativo apre la conferma di
+  // annullamento. byupWarn = la prenotazione che si sta tentando di toccare.
+  const [byupWarn, setByupWarn] = React.useState(null);
+  const guardModifica = (r) => {
+    if (r && r.source === 'byup') { setByupWarn(r); return; }
+    if (onModifica) onModifica(r);
+  };
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14, minWidth: 0, maxWidth:'100%', overflow:'hidden', position:'relative'}}>
@@ -118,8 +126,56 @@ function SalaCalendario({ tweaks, onNuova, onModifica }) {
         onNuova={onNuova}
       />
 
-      {dayView === 'timeline' && <DayTimeline onNuova={onNuova} onModifica={onModifica}/>}
-      {dayView === 'lista' && <DayList onModifica={onModifica}/>}
+      {dayView === 'timeline' && <DayTimeline onNuova={onNuova} onModifica={guardModifica} onByupBlock={setByupWarn}/>}
+      {dayView === 'lista' && <DayList onModifica={guardModifica}/>}
+
+      {/* Popup conferma annullamento prenotazione da App */}
+      {byupWarn && (
+        <div onClick={() => setByupWarn(null)} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.45)', zIndex:200,
+          display:'grid', placeItems:'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'#fff', borderRadius:14, padding:'24px 24px 20px',
+            width:360, boxShadow:'0 20px 60px rgba(0,0,0,0.22)',
+            display:'flex', flexDirection:'column', gap:14,
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <div style={{width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg, #FF5A5F, #B53338)',
+                display:'grid', placeItems:'center', flexShrink:0}}>
+                <span style={{fontSize:22, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
+                  fontFamily:'-apple-system,system-ui,sans-serif', display:'inline-block', transform:'translateY(-1px)',
+                }}>b</span>
+              </div>
+              <div style={{fontSize:19, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
+                Attenzione
+              </div>
+            </div>
+            <div style={{fontSize:17, color:'#6B7280', lineHeight:1.5}}>
+              Questa è una prenotazione fatta da App{byupWarn.name ? <> a nome <strong style={{color:'#0F1115'}}>{byupWarn.name}</strong></> : ''}: sei proprio sicuro di volerla eliminare?
+            </div>
+            <div style={{display:'flex', gap:8}}>
+              <button onClick={() => setByupWarn(null)} style={{
+                flex:1, padding:'10px 14px', borderRadius:8,
+                background: PN.BTN_NEUTRAL, color: PN.TEXT,
+                border:`1px solid ${PN.BORDER_LIGHT}`,
+                fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                boxShadow: PN.INSET_HIGHLIGHT,
+              }}>No, mantienila</button>
+              <button onClick={() => {
+                window.SALA_RES_UPDATE(byupWarn.id, { status:'cancellata' });
+                setByupWarn(null);
+              }} style={{
+                flex:1, padding:'10px 14px', borderRadius:8,
+                background:'linear-gradient(180deg, #E5484D 0%, #D93036 100%)', color:'#fff',
+                border:'1px solid rgba(160, 20, 25, 0.45)',
+                fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25)',
+              }}>Sì, elimina</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -305,7 +361,7 @@ const TURNI = [
 ];
 const T_PRANZO_DUR = TURNI[0].end - TURNI[0].start; // 210 min
 
-function DayTimeline({ onNuova, onModifica }) {
+function DayTimeline({ onNuova, onModifica, onByupBlock }) {
   const tables = ALL_TABLES;
 
   const [resData, setResData] = React.useState(() => SALA_RES_DATA);
@@ -482,6 +538,8 @@ function DayTimeline({ onNuova, onModifica }) {
 
   function handleResizeMouseDown(e, r, edge) {
     e.preventDefault(); e.stopPropagation();
+    // Prenotazione da App: niente resize, chiedi conferma di annullamento
+    if (r.source === 'byup') { if (onByupBlock) onByupBlock(r); return; }
     const rStartMin = timeToMin(r.time);
     const rEndMin = rStartMin + r.dur;
     const turno = turnoForMin(rStartMin);
@@ -493,6 +551,9 @@ function DayTimeline({ onNuova, onModifica }) {
 
   function handleSlotMouseDown(e, r) {
     e.preventDefault(); e.stopPropagation();
+    // Prenotazione da App: niente spostamento né modifica dal gestionale —
+    // qualsiasi tentativo apre la conferma di annullamento.
+    if (r.source === 'byup') { if (onByupBlock) onByupBlock(r); return; }
     const sMin = timeToMin(r.time);
     const turno = turnoForMin(sMin);
     if (!turno) return;
