@@ -3298,7 +3298,7 @@ function FlowDiagram({ active }) {
             <Arrow hi/>
           </>
         )}
-        <Step icon={<BuIcons.kitchen size={26} color="#FFF"/>} label="Cucina" hi/>
+        <Step icon={<Icon name="food-flame" size={26} color="#FFF"/>} label="Cucina" hi/>
       </div>
       <div style={{
         textAlign:'center', marginTop: 12,
