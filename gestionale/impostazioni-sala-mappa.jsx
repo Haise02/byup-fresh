@@ -65,6 +65,17 @@ const PaletteIcon = ({ kind, size = 22, color = PN.MUTED }) => {
 
 const TABLE_SCALE = 1.0;
 
+// Look dei fixture come nella mappa in Sala (sala-tab-tavoli.jsx):
+// bancone legno, cucina dark, bagno grigio chiaro — label uppercase spaziate.
+const FURN_LOOK = {
+  counter:  { box: { background: 'linear-gradient(180deg, #A0785A 0%, #8B6347 100%)', borderBottom: '3px solid #6B4C36', borderRadius: 8 },
+              label: { color: 'rgba(255,255,255,0.65)', letterSpacing: 1.4, textTransform: 'uppercase' } },
+  kitchen:  { box: { background: 'linear-gradient(180deg, #1E2128 0%, #252830 100%)', borderBottom: '3px solid #3A3D4A', borderRadius: 8 },
+              label: { color: 'rgba(255,255,255,0.5)', letterSpacing: 1.4, textTransform: 'uppercase' } },
+  bathroom: { box: { background: '#EAECF0', border: '2px solid #C8CDD8', borderRadius: 6 },
+              label: { color: '#6B7280', letterSpacing: 1.2, textTransform: 'uppercase' } },
+};
+
 function FloorPlan({
   cols, rows,
   tavoli, furniture, groups, selected,
@@ -81,8 +92,15 @@ function FloorPlan({
   const [dragOverTable, setDragOverTable] = React.useState(null);
   const [paletteDrag, setPaletteDrag] = React.useState(null); // {type: 'table' | 'furniture-X'}
   const [selectedFurniture, setSelectedFurniture] = React.useState(null);
+  const [hoverTable, setHoverTable] = React.useState(null);
   const justDraggedRef = React.useRef(false);
   const [fullscreen, setFullscreen] = React.useState(false);
+
+  // Corpo del tavolo dentro la cella: come in sala il corpo è più piccolo
+  // della cella e le sedie vivono nel margine (qui restano dentro la cella,
+  // così footprint e collisioni non cambiano).
+  const bodyUnit = Math.max(34, CELL - 2 * ttChairMetrics(CELL * 0.72).out);
+  const bodyOff = (CELL - bodyUnit) / 2;
 
   // ESC esce dalla modalità a tutto schermo
   React.useEffect(() => {
@@ -426,22 +444,28 @@ function FloorPlan({
           style={{
             position:'relative',
             width: '100%', height: ROWS * CELL,
+            // Stesso floor della mappa in Sala: griglia hairline su fondo warm
             background: `
-              linear-gradient(${PN.BORDER_SOFT} 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
-              linear-gradient(90deg, ${PN.BORDER_SOFT} 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
-              #FBF8F4
+              linear-gradient(rgba(15,17,21,0.06) 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
+              linear-gradient(90deg, rgba(15,17,21,0.06) 1px, transparent 1px) 0 0/${CELL}px ${CELL}px,
+              linear-gradient(180deg, #FAF6F4 0%, #F3EEEF 100%)
             `,
-            border: `1.5px solid ${PN.BORDER}`, borderRadius: 12,
+            border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 12,
+            boxShadow: 'inset 0 1px 2px rgba(15, 17, 21, 0.04)',
             cursor: paletteDrag ? 'crosshair' : 'default',
             overflow:'hidden',
           }}
           onClick={() => setSelectedFurniture(null)}
         >
+          {/* Pareti floor — stesso glow coral della sala */}
+          <div style={{position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: 'linear-gradient(90deg, transparent, rgba(255, 90, 95, 0.20), transparent)', pointerEvents:'none'}}/>
+          <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: 'linear-gradient(180deg, transparent, rgba(255, 90, 95, 0.20), transparent)', pointerEvents:'none'}}/>
           {/* Furniture (sotto i tavoli) */}
           {furniture.map(f => {
             const ft = FURNITURE_TYPES.find(x => x.kind === f.kind) || {};
             const isSelected = selectedFurniture === f.id;
             const canRotate = f.kind === 'pillar' || f.kind === 'wall' || f.kind === 'door';
+            const look = FURN_LOOK[f.kind];
             return (
               <div
                 key={f.id}
@@ -466,10 +490,11 @@ function FloorPlan({
                   userSelect:'none',
                   boxShadow: drag?.id === f.id ? '0 8px 20px rgba(0,0,0,0.18)' : 'none',
                   zIndex: 1,
+                  ...(look ? look.box : {}),
                 }}
               >
                 {f.h * CELL > 30 && f.w * CELL > 80 && (
-                  <span style={{fontSize: 13, fontWeight: 700, padding:'0 8px', textAlign:'center'}}>{f.label}</span>
+                  <span style={{fontSize: 13, fontWeight: 700, padding:'0 8px', textAlign:'center', ...(look ? look.label : {})}}>{f.label}</span>
                 )}
                 {isSelected && (
                   <>
@@ -590,10 +615,24 @@ function FloorPlan({
             const isSel = selected.has(t.id);
             const isDrag = drag?.kind === 'table' && drag?.id === t.id;
             const { w: tw, h: th } = tableDims();
-            const inGroup = !!groupOf(t.id);
+            const numero = (t.name.match(/\d+/) || [t.name])[0];
             return (
-              <div
+              <TableTile
                 key={t.id}
+                numero={numero}
+                status="libero"
+                seats={t.coperti}
+                shape="square"
+                hideStatusLabel
+                dim={t.disabled}
+                selected={isSel}
+                hovered={hoverTable === t.id && !isDrag}
+                dragging={isDrag}
+                unit={bodyUnit}
+                left={t.pos.x * CELL + bodyOff}
+                top={t.pos.y * CELL + bodyOff}
+                onEnter={() => setHoverTable(t.id)}
+                onLeave={() => setHoverTable(h => (h === t.id ? null : h))}
                 onPointerDown={(e) => handleMouseDown(e, 'table', t.id, tw/2, th/2)}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -602,37 +641,17 @@ function FloorPlan({
                   if (typeof onEditTable === 'function') onEditTable(t.id);
                   else onSelectTable(t.id);
                 }}
-                style={{
-                  position:'absolute',
-                  left: t.pos.x * CELL, top: t.pos.y * CELL,
-                  width: tw * CELL,
-                  height: th * CELL,
-                  background: t.disabled ? '#F4F5F7' : (isSel ? '#E5E8EC' : '#F4F5F7'),
-                  border: `2px solid ${isSel ? PN.TEXT : '#D5D9DF'}`,
-                  borderRadius: 8,
-                  display:'grid', placeItems:'center',
-                  cursor: isDrag ? 'grabbing' : 'grab',
-                  fontSize: 15, fontWeight: 800,
-                  color: t.disabled ? PN.MUTED : PN.TEXT,
-                  userSelect:'none',
-                  boxShadow: isDrag ? '0 10px 24px rgba(0,0,0,0.18)' : 'none',
-                  zIndex: isDrag ? 10 : 3,
-                  opacity: t.disabled ? 0.7 : 1,
-                  transition: isDrag ? 'none' : 'box-shadow 0.15s',
-                }}
               >
-                {tw * CELL < 46 ? (
-                  // Tavolo piccolo: solo il numero, dimensione adattata alla cella
-                  <span style={{fontSize: Math.max(8, Math.min(13, tw * CELL * 0.34)), fontWeight:800, lineHeight:1}}>
-                    {(t.name.match(/\d+/) || [t.name])[0]}
-                  </span>
-                ) : (
-                  <div style={{display:'flex', flexDirection:'column', alignItems:'center', lineHeight:1, gap:3}}>
-                    <span style={{fontSize:15, fontWeight:800, lineHeight:1}}>
-                      {t.name}
-                    </span>
-                    <span style={{display:'inline-flex', alignItems:'center', gap:2, fontSize:10, fontWeight:700, opacity:0.65, lineHeight:1}}>
-                      <BuIcons.chair size={10}/> {t.coperti}
+                {/* Coperti sotto il numero — al posto della label di stato della sala */}
+                {!t.disabled && (
+                  <div style={{
+                    position:'absolute', left:0, right:0, bottom: Math.max(6, bodyUnit * 0.12),
+                    textAlign:'center', pointerEvents:'none', lineHeight:1,
+                    fontSize: Math.min(11.5, Math.max(9.5, bodyUnit * 0.15)),
+                    fontWeight: 700, letterSpacing: 0.4, color: '#15803D', opacity: 0.85,
+                  }}>
+                    <span style={{display:'inline-flex', alignItems:'center', gap: 2}}>
+                      <BuIcons.chair size={Math.min(11, Math.max(9, bodyUnit * 0.14))}/> {t.coperti}
                     </span>
                   </div>
                 )}
@@ -646,7 +665,7 @@ function FloorPlan({
                     whiteSpace:'nowrap',
                   }}>DISATTIVATO</div>
                 )}
-              </div>
+              </TableTile>
             );
           })}
 
