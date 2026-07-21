@@ -621,61 +621,6 @@ function FloorPlan({
             );
           })}
 
-          {/* Cornice unione — IDENTICA alla sala: edge-tracing delle celle del
-              gruppo, fill bianco 0.45, stroke ring spesso 8, SOTTO le tile. */}
-          {(() => {
-            const activeGroups = groups.filter(g => tavoli.filter(t => g.tableIds.includes(t.id)).length >= 2);
-            if (activeGroups.length === 0) return null;
-            const paths = activeGroups.flatMap(g => {
-              const ts = tavoli.filter(t => g.tableIds.includes(t.id));
-              // Celle occupate = footprint reale di ogni membro (anche multi-cella)
-              const occupied = new Set();
-              ts.forEach(t => {
-                const d = tableDims(t);
-                for (let i = 0; i < d.w; i++) for (let j = 0; j < d.h; j++) occupied.add(`${t.pos.x + i},${t.pos.y + j}`);
-              });
-              const edges = [];
-              for (const key of occupied) {
-                const [cx, cy] = key.split(',').map(Number);
-                const px = cx * CELL, py = cy * CELL;
-                if (!occupied.has(`${cx},${cy-1}`)) edges.push([px, py, px+CELL, py]);
-                if (!occupied.has(`${cx+1},${cy}`)) edges.push([px+CELL, py, px+CELL, py+CELL]);
-                if (!occupied.has(`${cx},${cy+1}`)) edges.push([px+CELL, py+CELL, px, py+CELL]);
-                if (!occupied.has(`${cx-1},${cy}`)) edges.push([px, py+CELL, px, py]);
-              }
-              const startMap = new Map();
-              edges.forEach((e, i) => startMap.set(`${e[0]},${e[1]}`, i));
-              const used = new Uint8Array(edges.length);
-              const polygons = [];
-              for (let i = 0; i < edges.length; i++) {
-                if (used[i]) continue;
-                const pts = []; let idx = i;
-                while (!used[idx]) {
-                  used[idx] = 1; pts.push([edges[idx][0], edges[idx][1]]);
-                  const next = startMap.get(`${edges[idx][2]},${edges[idx][3]}`);
-                  if (next === undefined) break; idx = next;
-                }
-                if (pts.length > 2) polygons.push(pts);
-              }
-              return polygons.map((pts, pi) => (
-                <path key={`union-${g.id}-${pi}`}
-                  d={'M ' + pts.map(([x,y]) => `${x} ${y}`).join(' L ') + ' Z'}
-                  fill="rgba(255, 255, 255, 0.45)"
-                  stroke={TT_ACCENTS.libero.ring}
-                  strokeWidth="8"
-                  strokeLinejoin="round"
-                  style={{ pointerEvents: 'none' }}
-                />
-              ));
-            });
-            if (paths.length === 0) return null;
-            return (
-              <svg style={{position:'absolute', inset:0, width:'100%', height:'100%', overflow:'visible', pointerEvents:'none', zIndex:0}}>
-                {paths}
-              </svg>
-            );
-          })()}
-
           {/* Tavoli */}
           {tavoli.map(t => {
             const isSel = selected.has(t.id);
