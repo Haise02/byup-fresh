@@ -959,11 +959,6 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             background: `
               linear-gradient(rgba(15,17,21,0.06) 1px, transparent 1px) 0 ${PAD}px/100% ${PY}px,
               linear-gradient(90deg, rgba(15,17,21,0.06) 1px, transparent 1px) ${PAD}px 0/${PX}px 100%,
-              radial-gradient(circle at 10% 15%, rgba(242, 107, 122, 0.22), transparent 38%),
-              radial-gradient(circle at 78% 12%, rgba(167, 139, 250, 0.18), transparent 35%),
-              radial-gradient(circle at 90% 82%, rgba(124, 45, 60, 0.14), transparent 42%),
-              radial-gradient(circle at 45% 60%, rgba(37, 99, 235, 0.10), transparent 45%),
-              radial-gradient(circle at 22% 88%, rgba(251, 146, 60, 0.12), transparent 38%),
               linear-gradient(180deg, #FAF6F4 0%, #F3EEEF 100%)
             `,
             borderRadius: 12,
