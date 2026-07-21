@@ -1695,7 +1695,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
           del piatto in una colonna sola facevano un modal stretto e lunghissimo,
           da scorrere tutto anche solo per cambiare il prezzo. */}
       <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20, width: 940, maxWidth:'100%',
+        background: PN.WHITE, borderRadius: 22, width: 940, maxWidth:'100%',
         /* 82vh e non 90: il frame del gestionale ha uno zoom > 1 su schermi
            alti, e i vh non lo considerano — a 90 il modal arrivava a filo del
            bordo del viewport. */
@@ -1751,7 +1751,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
         {/* Body — l'identità del piatto è una fascia orizzontale in cima, il
             resto sono sezioni contratte: si apre solo ciò che serve, invece di
             scorrere sette blocchi sempre aperti. */}
-        <div style={{padding:'20px 24px 24px', overflowY:'auto', flex:1, display:'flex', flexDirection:'column', gap:18}}>
+        <div style={{padding:'20px 24px 24px', overflowY:'auto', flex:1, display:'flex', flexDirection:'column', gap:18, background:'#FAFBFC'}}>
 
           {/* ── FASCIA IDENTITÀ ─────────────────────────────────────── */}
           <div style={{display:'flex', flexDirection:'column', gap:12}}>
@@ -1836,13 +1836,13 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                         disabled={!prossimoLibero} aria-label="Aggiungi foto"
                         style={{
                           aspectRatio:'4/3', borderRadius:10, border:`1.5px dashed ${PN.BORDER}`,
-                          background:'#FAFBFC', cursor: prossimoLibero ? 'pointer' : 'default',
+                          background:'#F4F5F7', cursor: prossimoLibero ? 'pointer' : 'default',
                           opacity: prossimoLibero ? 1 : 0.55,
                           display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, fontFamily:'inherit',
                           transition:'border-color 150ms ease-out, background 150ms ease-out',
                         }}
-                        onMouseEnter={e=>{ if (prossimoLibero) { e.currentTarget.style.borderColor=PN.MUTED; e.currentTarget.style.background='#F4F5F7'; } }}
-                        onMouseLeave={e=>{ e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.background='#FAFBFC'; }}
+                        onMouseEnter={e=>{ if (prossimoLibero) { e.currentTarget.style.borderColor=PN.MUTED; e.currentTarget.style.background='#EFEFF1'; } }}
+                        onMouseLeave={e=>{ e.currentTarget.style.borderColor=PN.BORDER; e.currentTarget.style.background='#F4F5F7'; }}
                       >
                         <span style={{fontSize:22, color:PN.MUTED, lineHeight:1}}>+</span>
                         <span style={{fontSize:12.5, color:PN.MUTED, fontWeight:600}}>JPG / PNG</span>
@@ -2146,7 +2146,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
         )}
 
         {/* Footer */}
-        <div style={{padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', background:'#FAFBFC'}}>
+        <div style={{padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', background:PN.WHITE}}>
           <div>
             {isEdit && onDelete && (
               <button onClick={() => { if (confirm('Eliminare questo piatto dalla libreria? Sarà rimosso anche da tutti i menù.')) onDelete(); }} style={{
