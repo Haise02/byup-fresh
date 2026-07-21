@@ -401,7 +401,53 @@ function ImpSalaTavoli() {
       setTavoli(prev => prev.map(t => t.id === idDragged ? dragged : t));
     });
   };
-  const ungroupTables = (gid) => setGroups(prev => prev.filter(g => g.id !== gid));
+  // Dividendo, il tavolo torna alla SUA dimensione (footprint dai suoi posti)
+  // e si stacca fisicamente: spirale dalla posizione attuale fino alla prima
+  // posizione libera NON adiacente ai tavoli rimasti nel gruppo — così non
+  // continua a sembrare parte del tavolo unito.
+  const separateTables = (moveIds, groupIds) => {
+    const { cols, rows } = salaGrid(active);
+    const dimsOf = (t) => ttFootprintUnits(t.coperti || 4, ttSeatShape(t.coperti || 4), t.orientation || 'h');
+    setTavoli(prev => {
+      const next = prev.map(t => ({...t, pos: {...t.pos}}));
+      const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      const touches = (a, b) => a.x < b.x + b.w + 0.5 && b.x < a.x + a.w + 0.5 && a.y < b.y + b.h + 0.5 && b.y < a.y + a.h + 0.5;
+      const rectOf = (t) => ({ x: t.pos.x, y: t.pos.y, ...dimsOf(t) });
+      moveIds.forEach(id => {
+        const t = next.find(x => x.id === id);
+        if (!t) return;
+        const d = dimsOf(t);
+        const obstacles = [
+          ...next.filter(x => x.id !== id).map(rectOf),
+          ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+        ];
+        const anchors = next.filter(x => x.id !== id && groupIds.includes(x.id)).map(rectOf);
+        outer:
+        for (let r = 0.5; r <= Math.max(cols, rows); r += 0.5) {
+          for (let dx = -r; dx <= r; dx += 0.5) {
+            for (let dy = -r; dy <= r; dy += 0.5) {
+              if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+              const nx = Math.max(0, Math.min(cols - d.w, Math.round((t.pos.x + dx) * 2) / 2));
+              const ny = Math.max(0, Math.min(rows - d.h, Math.round((t.pos.y + dy) * 2) / 2));
+              const rect = { x: nx, y: ny, w: d.w, h: d.h };
+              if (obstacles.some(o => overlap(rect, o))) continue;
+              if (anchors.some(a => touches(rect, a))) continue;
+              t.pos = { x: nx, y: ny };
+              break outer;
+            }
+          }
+        }
+      });
+      return next;
+    });
+  };
+
+  const ungroupTables = (gid) => {
+    const group = groups.find(g => g.id === gid);
+    setGroups(prev => prev.filter(g => g.id !== gid));
+    // Sciogliendo tutto il gruppo, ogni tavolo dopo il primo si stacca dagli altri
+    if (group && group.tableIds.length > 1) separateTables(group.tableIds.slice(1), group.tableIds);
+  };
 
   const removeFromGroup = (tableId) => {
     const group = groups.find(g => g.tableIds.includes(tableId));
@@ -412,6 +458,9 @@ function ImpSalaTavoli() {
     } else {
       setGroups(prev => prev.map(g => g.id === group.id ? {...g, tableIds: remaining} : g));
     }
+    separateTables([tableId], remaining);
+    const divided = tavoli.find(t => t.id === tableId);
+    if (divided) showToast(`"${divided.name}" separato dall'unione`);
     setEditingTable(null);
   };
 
