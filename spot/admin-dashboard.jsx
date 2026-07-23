@@ -1,4 +1,9 @@
 // Dashboard byup — 4 tab: Generale · Locali · Utenti App · Camerieri
+// Guardia anti-cache: se il browser ha in cache una versione vecchia di
+// admin-tokens.jsx senza i token INK, i grafici diventerebbero invisibili
+// (colori undefined). Definiamo i fallback qui.
+if (!window.ADM.INK) { window.ADM.INK = '#31353D'; window.ADM.INK_SOFT = '#C9CDD4'; }
+
 
 const { useState: useStateDash, useMemo: useMemoDash } = React;
 
