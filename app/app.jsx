@@ -1932,78 +1932,59 @@ function AutoLoopScroll({ children, speed = 26, gap = 12 }) {
 
 // ─── In evidenza — card promo con reveal allo scroll ───
 function FeaturedCard({ onClick }) {
+  // v2 "cinematic" (concept approvato): vino profondo, foto inclinata in cornice,
+  // accento lime, marquee lento sul bordo basso.
   const [T] = BK.useByupTheme();
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return; }
-    const io = new IntersectionObserver((es) => {
-      if (es[0].isIntersecting) { setInView(true); io.disconnect(); }
-    }, { threshold: 0.35 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
   return (
-    <div ref={ref} className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
-      margin: '0 18px', height: 190, borderRadius: BK.RADII.card, overflow: 'hidden',
-      position: 'relative', cursor: 'pointer', boxShadow: T.shadow,
+    <div className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      margin: '0 18px', height: 200, borderRadius: BK.RADII.card, overflow: 'hidden',
+      position: 'relative', cursor: 'pointer',
+      background: 'linear-gradient(115deg, #2a0d1c 0%, #4d122e 60%, #6d1b3f 100%)',
+      boxShadow: '0 22px 46px -20px rgba(28,6,16,.65)',
     }}>
-      {/* foto ristorante di sfondo */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: 'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=900&q=75&auto=format&fit=crop")',
-        backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#2a1520',
-      }}/>
-      {/* mini overlay brand: pieno a sinistra, si dissolve per far vedere la foto */}
-      <div aria-hidden style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(95deg, rgba(227,36,89,.82) 0%, rgba(227,36,89,.42) 42%, rgba(227,36,89,0) 72%)',
-      }}/>
-      <div aria-hidden style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(28,6,16,0) 60%, rgba(28,6,16,.35) 100%)',
-      }}/>
-      {/* targhetta */}
-      <div style={{
-        position: 'absolute', top: 14, left: 14,
-        background: '#ceff00', color: '#141414',
-        fontFamily: BK.TYPE.sans, fontSize: 10.5, fontWeight: 800, letterSpacing: 1,
-        padding: '5px 11px', borderRadius: 999, textTransform: 'uppercase',
-        boxShadow: '0 6px 14px -4px rgba(20,20,20,.4)', transform: 'rotate(-2deg)',
-      }}>Promo</div>
-      <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14, color: '#fff' }}>
-        {/* titolo: entra quando la card arriva in viewport */}
-        <div style={{
-          fontFamily: BK.TYPE.display, fontSize: 22, fontWeight: 600, lineHeight: 1.12,
-          maxWidth: '72%', textShadow: '0 2px 12px rgba(28,6,16,.35)',
-          animation: inView ? `bkTitleIn 650ms ${BK.SPRING} both` : 'none',
-          opacity: inView ? undefined : 0,
-        }}>
-          Giovedì −30% sul menù
-        </div>
-        {/* body: semplice fade-in */}
-        <div style={{
-          fontFamily: BK.TYPE.sans, fontSize: 12.5, marginTop: 4, maxWidth: '60%', lineHeight: 1.35,
-          opacity: inView ? .94 : 0, transition: 'opacity 700ms ease 320ms',
-        }}>
-          Da Trattoria Lucia, solo questa settimana.
+      <style>{`@keyframes fcMarq{to{transform:translateX(-50%)}}
+@keyframes fcKen{from{transform:scale(1)}to{transform:scale(1.09)}}`}</style>
+      {/* foto inclinata in cornice */}
+      <div style={{ position: 'absolute', right: -24, top: -24, width: '58%', height: '130%',
+        borderRadius: 32, overflow: 'hidden', transform: 'rotate(6deg)',
+        border: '3px solid rgba(255,255,255,.1)' }}>
+        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=75&auto=format&fit=crop"
+          alt="" style={{ width: '100%', height: '100%', objectFit: 'cover',
+            animation: 'fcKen 12s ease-in-out infinite alternate' }}/>
+        <div style={{ position: 'absolute', inset: 0,
+          background: 'linear-gradient(115deg, rgba(77,18,46,.55), transparent 60%)' }}/>
+      </div>
+      {/* testo */}
+      <div style={{ position: 'absolute', left: 18, top: 20, maxWidth: '48%', color: '#fff', zIndex: 2 }}>
+        <span style={{ display: 'inline-block', background: '#ceff00', color: '#141414',
+          fontFamily: BK.TYPE.sans, fontSize: 9.5, fontWeight: 800, letterSpacing: 1.4,
+          textTransform: 'uppercase', padding: '5px 10px', borderRadius: 999, transform: 'rotate(-2deg)' }}>
+          In evidenza</span>
+        <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 24, lineHeight: 1.06,
+          marginTop: 10, letterSpacing: '-0.01em' }}>
+          Giovedì <span style={{ color: '#ceff00' }}>−30%</span> sul menù
         </div>
       </div>
-      {/* CTA con animazione continua: pulse + shine */}
-      <div style={{
-        position: 'absolute', right: 14, bottom: 14,
-        background: T.primary, color: '#fff',
-        fontFamily: BK.TYPE.sans, fontSize: 13, fontWeight: 700,
-        padding: '10px 18px', borderRadius: 999, overflow: 'hidden',
-        animation: 'bkCtaPulse 2.2s ease-in-out infinite',
-      }}>
-        <span aria-hidden style={{
-          position: 'absolute', top: 0, bottom: 0, left: 0, width: '45%',
-          background: 'linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.5) 50%, rgba(255,255,255,0) 100%)',
-          animation: 'bkShine 2.8s ease-in-out infinite',
-        }}/>
-        Approfittane
+      {/* CTA */}
+      <div style={{ position: 'absolute', left: 18, bottom: 38, zIndex: 2,
+        background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff',
+        fontFamily: BK.TYPE.sans, fontSize: 12.5, fontWeight: 800,
+        padding: '10px 18px', borderRadius: 999,
+        animation: 'bkCtaPulse 2.2s ease-in-out infinite' }}>
+        Scopri l'offerta
+      </div>
+      {/* marquee lento */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 26,
+        background: 'rgba(20,8,12,.55)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', overflow: 'hidden',
+        borderTop: '1px solid rgba(255,255,255,.08)' }}>
+        <div style={{ display: 'flex', gap: 26, whiteSpace: 'nowrap', paddingLeft: 10,
+          fontFamily: BK.TYPE.sans, fontSize: 9.5, fontWeight: 800, letterSpacing: 2,
+          color: 'rgba(255,255,255,.85)', textTransform: 'uppercase',
+          animation: 'fcMarq 30s linear infinite' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 26 }}>✦ Trattoria Lucia ✦ solo questa settimana ✦ posti limitati ✦ Trattoria Lucia ✦ solo questa settimana ✦ posti limitati</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 26 }}>✦ Trattoria Lucia ✦ solo questa settimana ✦ posti limitati ✦ Trattoria Lucia ✦ solo questa settimana ✦ posti limitati</span>
+        </div>
       </div>
     </div>
   );
@@ -2151,29 +2132,9 @@ function StackCarousel({ items, onCardClick }) {
 // Appare solo se in sessione c'è un conto con residuo (byup_table).
 // Sparisce quando il tavolo è saldato del tutto.
 function OpenTableCard() {
-  // Chiusa a mano = ho lasciato il locale. Senza questa via d'uscita il conto
-  // con residuo restava in sessione per sempre e la home non tornava mai allo
-  // stato di partenza.
-  const [chiusa, setChiusa] = React.useState(false);
-  // Se la schermata del tavolo e' gia' montata (succede tornando indietro dal
-  // menu: le due home restano sovrapposte per un istante), la sua card basta
-  // e avanza — due card sullo stesso conto erano il bug ricorrente.
-  const [giaPresente, setGiaPresente] = React.useState(false);
-  React.useEffect(() => {
-    const verifica = () => setGiaPresente(!!document.querySelector('[data-byup-table-card]'));
-    verifica();
-    const obs = new MutationObserver(verifica);
-    obs.observe(document.body, { childList: true, subtree: true });
-    return () => obs.disconnect();
-  }, []);
   let t = null;
   try { t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); } catch {}
-  // Tavolo saldato per intero (o nessun ordine) = nessuna card.
-  if (chiusa || giaPresente || !t || !(t.remaining > 0.01)) return null;
-  // Ho gia' pagato la mia parte? Allora la card invita a saldare il resto del
-  // tavolo; altrimenti e' ancora un "Paga ora".
-  const hoPagato = !!(t.paidLineIds && Object.keys(t.paidLineIds).length)
-    || !!(t.settled && Object.keys(t.settled).length);
+  if (!t || !(t.remaining > 0.01)) return null;
   const go = (route) => {
     try { sessionStorage.setItem('byup_menu_route', route); sessionStorage.setItem('byup_menu_premium', '1'); } catch {}
     window.__byupNav && window.__byupNav.go('menu');
@@ -2188,39 +2149,19 @@ function OpenTableCard() {
       }}>
         <div aria-hidden style={{ position: 'absolute', right: '-15%', top: '-40%', width: '70%', aspectRatio: '1',
           background: 'radial-gradient(circle, rgba(250,227,222,.2) 0%, transparent 65%)', pointerEvents: 'none' }}/>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', opacity: .85 }}>
-            {t.table} · {t.venue}
-          </div>
-          <button
-            onClick={() => {
-              try { sessionStorage.removeItem('byup_table'); } catch (e) {}
-              setChiusa(true);
-            }}
-            aria-label="Ho lasciato il tavolo"
-            title="Ho lasciato il tavolo"
-            style={{
-              flexShrink: 0, width: 24, height: 24, marginTop: -2, marginRight: -2,
-              borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.16)',
-              color: '#fff', fontSize: 13, lineHeight: 1, cursor: 'pointer',
-              display: 'grid', placeItems: 'center',
-            }}
-          >✕</button>
+        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', opacity: .85 }}>
+          {t.table} · {t.venue}
         </div>
-        {hoPagato && (
-          <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '6px 11px', borderRadius: 999, background: 'rgba(255,255,255,0.18)',
-            backdropFilter: 'blur(6px)', fontSize: 11.5, fontWeight: 700 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9f6ca" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            Hai saldato la tua parte
-          </div>
-        )}
+        <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 11px', borderRadius: 999, background: 'rgba(255,255,255,0.18)',
+          backdropFilter: 'blur(6px)', fontSize: 11.5, fontWeight: 700 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b9f6ca" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Hai saldato la tua parte
+        </div>
         <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, opacity: .92 }}>
-            {hoPagato ? 'Da pagare al tavolo' : 'Il tuo conto'}
-          </span>
+          <span style={{ fontSize: 13, fontWeight: 600, opacity: .92 }}>Da pagare al tavolo</span>
           <span style={{ fontFamily: BK.TYPE.display, fontSize: 21, fontWeight: 600 }}>{t.remaining.toFixed(2)}€</span>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -2231,7 +2172,7 @@ function OpenTableCard() {
           <button className="bk-press" onClick={() => { BK.haptic.light(); go('pay'); }} style={{
             flex: 1.15, height: 40, borderRadius: 999, border: 'none',
             background: '#fff', color: '#7a1c3e', fontSize: 13.5, fontWeight: 700,
-            fontFamily: 'inherit', cursor: 'pointer' }}>{hoPagato ? 'Salda il resto' : 'Paga ora'}</button>
+            fontFamily: 'inherit', cursor: 'pointer' }}>Salda il resto</button>
         </div>
       </div>
     </div>
@@ -2443,12 +2384,6 @@ function HomeSections({
   onCardClick, onSlotClick, onDisponibili,
   noVenues = false,
 }) {
-  // C'e' un conto aperto al tavolo? Serve anche all'header qui sotto, che
-  // altrimenti risale di 24px e si sovrappone alla card.
-  const hasOpenTable = (() => {
-    try { const t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); return !!(t && t.remaining > 0.01); }
-    catch (e) { return false; }
-  })();
   // Allow internal moment management when parent doesn't provide it (legacy callers).
   const [intMoment, intSetMoment] = useState('ora');
   const moment = extMoment ?? intMoment;
@@ -2508,24 +2443,13 @@ function HomeSections({
   return (
     <>
       {topBar}
-
-      {/* Card del conto: in testa alla home, ma solo se c'e' un ordine aperto.
-          Senza ordine la home parte pulita — saluto, localita', ricerca. */}
-      <OpenTableCard/>
-
-
-
       {/* Header + search + moment bar — scorre col contenuto (niente clip) */}
       <div style={{
         position: 'relative', zIndex: 5,
         background: T.dark ? 'rgba(24,22,20,0.74)' : 'rgba(251,244,241,0.74)',
         backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)',
-        // Il -24 serve a far risalire l'header sotto l'hero quando la home
-        // parte "nuda". Con la card del tavolo in cima, pero', l'header le
-        // saliva sopra di 24px e il suo blur mangiava i pulsanti: sembrava
-        // che la card fosse tagliata.
-        paddingTop: (topBar || hasOpenTable) ? 12 : 24,
-        marginTop: (topBar || hasOpenTable) ? 0 : -24,
+        paddingTop: topBar ? 12 : 24,
+        marginTop: topBar ? 0 : -24,
         paddingBottom: noVenues ? 18 : 0,
         boxShadow: noVenues ? 'none' : `0 1px 0 ${T.line}`,
       }}>
@@ -2692,6 +2616,7 @@ function HomeSections({
           </AutoLoopScroll>
 
           {/* In evidenza — promo del momento */}
+          <OpenTableCard/>
 
           <SectionHeader title="In evidenza"/>
           <FeaturedCard onClick={() => click({ title: 'Trattoria Lucia', name: 'Trattoria Lucia' })}/>
@@ -3889,7 +3814,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
               display: 'block', textAlign: 'left', fontFamily: 'inherit', color: BYP.text,
               boxShadow: '0 16px 32px -18px rgba(227,36,89,.55)',
               backgroundImage: 'linear-gradient(90deg, rgba(18,10,14,.9) 0%, rgba(18,10,14,.45) 55%, rgba(18,10,14,.12) 100%), url(assets/road-city.png)',
-              backgroundSize: 'auto, 235% auto', backgroundPosition: 'center, 72% 0%',
+              backgroundSize: 'auto, 235% auto', backgroundPosition: 'center, 72% 62%',
             }}>
               <span style={{ position: 'absolute', left: 14, top: 13, display: 'block' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13.5, color: '#fff' }}>
@@ -4351,40 +4276,6 @@ function App({ recoveryArmed = false }) {
     setNavStack(s => s.length > 1 ? s.slice(0, -1) : ['home']);
   };
   const resetToHome = () => setNavStack(['home']);
-
-  // Swipe-back dal bordo sinistro, come su iOS: trascinare verso destra
-  // partendo dai primi 28px torna indietro, esattamente come la freccia.
-  // Parte solo dal bordo, cosi' non ruba il gesto alle righe con swipe
-  // (dividi/tavolo nel carrello) ne' ai caroselli orizzontali.
-  useEffect(() => {
-    const BORDO = 28, SOGLIA = 70;
-    let x0 = null, y0 = null, attivo = false;
-    const giu = (e) => {
-      // Il bordo e' quello dello schermo del telefono, non della finestra:
-      // nel prototipo desktop il device e' centrato nella pagina.
-      const scr = (e.target.closest && e.target.closest('[data-byup-screen]'))
-        || document.querySelector('[data-byup-screen]');
-      const left = scr ? scr.getBoundingClientRect().left : 0;
-      if (e.clientX - left > BORDO) { attivo = false; return; }
-      attivo = true; x0 = e.clientX; y0 = e.clientY;
-    };
-    const su = (e) => {
-      if (!attivo) return;
-      attivo = false;
-      const dx = e.clientX - x0, dy = Math.abs(e.clientY - y0);
-      // orizzontale e verso destra: altrimenti e' uno scroll
-      if (dx > SOGLIA && dy < dx * 0.7) {
-        setNavStack(st => st.length > 1 ? st.slice(0, -1) : st);
-        try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch (err) {}
-      }
-    };
-    document.addEventListener('pointerdown', giu, true);
-    document.addEventListener('pointerup', su, true);
-    return () => {
-      document.removeEventListener('pointerdown', giu, true);
-      document.removeEventListener('pointerup', su, true);
-    };
-  }, []);
   // Router globale: le BottomTabBar renderizzate da altri file (profile, map)
   // navigano via setPage senza reload. Riassegnato a ogni render.
   useEffect(() => {
@@ -4409,12 +4300,6 @@ function App({ recoveryArmed = false }) {
   // booking della sessione corrente: NON sopravvive al refresh.
   // Parte sempre da null e ripulisce eventuali residui in localStorage.
   const [savedBooking, setSavedBooking] = useState(null);
-  // Con un conto aperto al tavolo la card della prenotazione non serve piu':
-  // quella del conto dice la stessa cosa e in piu' il totale rimanente.
-  const hasOpenTable = (() => {
-    try { const t = JSON.parse(sessionStorage.getItem('byup_table') || 'null'); return !!(t && t.remaining > 0.01); }
-    catch (e) { return false; }
-  })();
   const [bookingEdit, setBookingEdit] = useState(null); // prenotazione in modifica (apre BookingSheet precompilato)
   useEffect(() => {
     try { localStorage.removeItem('byup_booking'); } catch {}
@@ -4696,14 +4581,14 @@ function App({ recoveryArmed = false }) {
         paddingBottom: 'calc(126px + env(safe-area-inset-bottom, 0px))',
       }}>
         <HomeSections
-          topBar={(recoveryBannerOpen || (savedBooking && !hasOpenTable)) ? (
+          topBar={(recoveryBannerOpen || savedBooking) ? (
             <>
               {recoveryBannerOpen && (
                 <RecoveryOrderBanner
                   onOpen={() => { setRecoveryBannerOpen(false); setRecoveryModalOpen(true); }}
                   onClose={() => setRecoveryBannerOpen(false)}/>
               )}
-              {savedBooking && !hasOpenTable && (
+              {savedBooking && (
                 <BookingHomeCard booking={savedBooking} onModify={() => { setBookingEdit(savedBooking); setBookingOpen(true); }} onScanQr={() => setQrOpen(true)}/>
               )}
             </>
