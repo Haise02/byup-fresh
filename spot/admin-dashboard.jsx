@@ -449,7 +449,7 @@ function DashHero({ label, value, trend, trendLabel, sub, detail, data, accent, 
         <div style={{flex:'1 1 44%', padding:'20px 24px', display:'flex', flexDirection:'column', justifyContent:'center', gap:8}}>
           <div style={{display:'flex', alignItems:'center', gap:8}}>
             <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em', flex:1, minWidth:0}}>{label}</span>
-            {onClick && <span style={{color:ADM.MUTED_LIGHT, display:'inline-flex', flexShrink:0}}><BuIcons.chevronRight size={16}/></span>}
+            {onClick && <span className="adm-open-chip"><BuIcons.chevronRight size={14}/></span>}
           </div>
           <div style={{display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap'}}>
             <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{value}</span>
@@ -478,7 +478,7 @@ function DashStatCard({ label, value, trend, trendLabel, sub, alertText, data, r
       <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
         <div style={{display:'flex', alignItems:'center', gap:7}}>
           <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</span>
-          {onClick && <span style={{color:ADM.MUTED_LIGHT, display:'inline-flex', flexShrink:0}}><BuIcons.chevronRight size={15}/></span>}
+          {onClick && <span className="adm-open-chip" style={{width:22, height:22}}><BuIcons.chevronRight size={13}/></span>}
         </div>
         <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
           <span style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>{value}</span>
@@ -1369,12 +1369,14 @@ function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, tr
   const c = ADM[accent];
   const hasTrend = trend !== undefined && trend !== null;
   return (
-    <AdmCard padding={18} onClick={onClick}
+    <AdmCard padding={18} onClick={onClick} interactive={!!onClick}
       onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
       style={{
+        // Feedback SOLO se cliccabile: una card che reagisce all'hover senza
+        // azione è una falsa affordance.
         cursor: onClick ? 'pointer' : 'default',
-        borderColor: hover ? c : ADM.BORDER,
-        boxShadow: hover ? `0 6px 18px -10px ${c}66` : 'none',
+        borderColor: (onClick && hover) ? c : ADM.BORDER,
+        boxShadow: (onClick && hover) ? `0 6px 18px -10px ${c}66` : 'none',
         transition:'border-color 0.15s, box-shadow 0.15s',
       }}>
       <div style={{display:'flex', alignItems:'flex-start', gap:12, marginBottom: spark ? 10 : 0}}>
@@ -2771,6 +2773,7 @@ function AdozioneDigitaleCard({ onNav }) {
               return (
                 <button
                   key={l.id}
+                  className="adm-row-open"
                   onClick={()=>onNav && onNav('locali', { openLocale: l })}
                   style={{
                     all:'unset',
@@ -2807,7 +2810,7 @@ function AdozioneDigitaleCard({ onNav }) {
                     fontSize:12.6, fontWeight:700, whiteSpace:'nowrap',
                     textTransform:'uppercase', letterSpacing:'0.04em',
                   }}>{b.label}</span>
-                  <span style={{color:ADM.MUTED, flexShrink:0}}><BuIcons.chevronRight size={20}/></span>
+                  <span className="adm-row-chev" style={{color:ADM.MUTED, flexShrink:0}}><BuIcons.chevronRight size={20}/></span>
                 </button>
               );
             })}
@@ -2926,7 +2929,7 @@ function SottoMediaScanCard({ onNav }) {
             const gap = ratioAvg > 0 ? ((l._ratio - ratioAvg) / ratioAvg) * 100 : 0;
             const b = bandOf(l.qrAdoption);
             return (
-              <button key={l.id} onClick={()=>onNav && onNav('locali', { openLocale: l })} style={{
+              <button key={l.id} className="adm-row-open" onClick={()=>onNav && onNav('locali', { openLocale: l })} style={{
                 all:'unset', cursor:'pointer', width:'100%', boxSizing:'border-box',
                 display:'grid', gridTemplateColumns:'minmax(0, 2fr) 1fr 1fr 1.1fr 24px',
                 padding:'10px 14px', alignItems:'center',
@@ -2952,7 +2955,7 @@ function SottoMediaScanCard({ onNav }) {
                     {gap.toFixed(0)}% vs media
                   </div>
                 </div>
-                <span style={{color:ADM.MUTED, textAlign:'right'}}><BuIcons.chevronRight size={20}/></span>
+                <span className="adm-row-chev" style={{color:ADM.MUTED, textAlign:'right'}}><BuIcons.chevronRight size={20}/></span>
               </button>
             );
           })}

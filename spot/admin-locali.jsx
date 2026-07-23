@@ -255,7 +255,7 @@ function LocaleRow({ locale: l, onClick, striped }) {
   const tipText = `Piano ${piano.label}: ${fmtEur(l.mrr)}\nExtras ordini: ${fmtEur(l.extras)}\n────────────\nTotale mese: ${fmtEur(totMese)}`;
 
   return (
-    <div onClick={onClick}
+    <div onClick={onClick} className="adm-row-open"
       onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
       style={{
         display:'grid',
@@ -301,7 +301,7 @@ function LocaleRow({ locale: l, onClick, striped }) {
       </div>
 
       <div style={{textAlign:'right', color:ADM.MUTED}}>
-        <BuIcons.chevronRight size={20}/>
+        <span className="adm-row-chev"><BuIcons.chevronRight size={20}/></span>
       </div>
     </div>
   );

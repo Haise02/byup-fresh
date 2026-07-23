@@ -369,7 +369,7 @@ function StaffRow({ staff: s, onClick, striped, indented }) {
   const [hover, setHover] = useStateCam(false);
   const ruoloDef = RUOLI_STAFF.find(r => r.id === s.ruolo);
   return (
-    <div onClick={onClick}
+    <div onClick={onClick} className="adm-row-open"
       onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
       style={{
         display:'grid',
@@ -410,7 +410,7 @@ function StaffRow({ staff: s, onClick, striped, indented }) {
         <span style={{width:7, height:7, borderRadius:'50%', background: s.attivoOggi ? ADM.OK : ADM.MUTED_LIGHT}}/>
         <span style={{fontSize:13.3, color:ADM.MUTED}}>{fmtRelative(s.lastActive)}</span>
       </div>
-      <div style={{textAlign:'right', color:ADM.MUTED}}><BuIcons.chevronRight size={20}/></div>
+      <div style={{textAlign:'right', color:ADM.MUTED}}><span className="adm-row-chev"><BuIcons.chevronRight size={20}/></span></div>
     </div>
   );
 }

@@ -121,8 +121,38 @@
   .adm-actionrow:active { background: rgba(0,0,0,0.05); }
 
   /* Card hover lift */
-  .adm-card-interactive { transition: box-shadow 0.22s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1), border-color 0.18s ease; }
-  .adm-card-interactive:hover { transform: translateY(-1px); border-color: #DCDEE2 !important; box-shadow: 0 8px 24px -10px rgba(15,17,21,0.10), 0 2px 6px -2px rgba(15,17,21,0.04) !important; }
+  /* ═══ Stati di interazione — affordance sistematiche ═══════════════════
+     Ogni elemento cliccabile deve dichiararsi in 3 stati: rest (segnale
+     visibile: chip/freccia), hover (la superficie risponde: lift + coral),
+     active (feedback di pressione). Vale per card, righe e bottoni. */
+
+  /* Pressione: ogni bottone si comprime al click (come nel gestionale) */
+  button { transition: transform 90ms ease-out; }
+  button:active:not(:disabled) { transform: scale(0.96); }
+
+  /* Card cliccabile: cursore + lift con tinta brand + pressione */
+  .adm-card-interactive { cursor: pointer; transition: box-shadow 0.18s ease, transform 0.18s cubic-bezier(0.34,1.2,0.64,1), border-color 0.18s ease; }
+  .adm-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: #FFB3B5 !important;
+    box-shadow: 0 12px 28px -12px rgba(255,90,95,0.28), 0 2px 6px -2px rgba(15,17,21,0.05) !important;
+  }
+  .adm-card-interactive:active { transform: translateY(0) scale(0.99); }
+
+  /* Chip di apertura: cerchietto con freccia sulle card cliccabili.
+     A riposo è grigio tenue; in hover si riempie di coral e scivola → */
+  .adm-open-chip {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #F1F2F4; color: #8A8A90;
+    display: inline-grid; place-items: center; flex-shrink: 0;
+    transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  }
+  .adm-card-interactive:hover .adm-open-chip { background: #FF5A5F; color: #fff; transform: translateX(2px); }
+
+  /* Righe di lista cliccabili: la freccia si accende e scivola in hover */
+  .adm-row-chev { transition: color 0.15s ease, transform 0.15s ease; display: inline-flex; }
+  .adm-row-open { cursor: pointer; }
+  .adm-row-open:hover .adm-row-chev { color: #FF5A5F; transform: translateX(3px); }
 
   /* Inputs */
   input, textarea, select {

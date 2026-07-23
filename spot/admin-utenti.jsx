@@ -172,7 +172,7 @@ function SpesaMediaCard({ lifetime, anno, mese, horizonDays }) {
 function UtenteRow({ utente: u, onClick, striped }) {
   const [hover, setHover] = useStateUtn(false);
   return (
-    <div onClick={onClick}
+    <div onClick={onClick} className="adm-row-open"
       onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
       style={{
         display:'grid',
@@ -206,7 +206,7 @@ function UtenteRow({ utente: u, onClick, striped }) {
             </div>
           )}
       </div>
-      <div style={{textAlign:'right', color:ADM.MUTED}}><BuIcons.chevronRight size={20}/></div>
+      <div style={{textAlign:'right', color:ADM.MUTED}}><span className="adm-row-chev"><BuIcons.chevronRight size={20}/></span></div>
     </div>
   );
 }
