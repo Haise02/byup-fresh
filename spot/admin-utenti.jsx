@@ -221,19 +221,29 @@ function UtenteDrawer({ utente: u, onClose }) {
   const PREF_OPTS = ['Nessuna', 'Vegetariano', 'Vegano', 'Senza glutine', 'Senza lattosio', 'Pescetariano'];
   if (u.preferenze === undefined) u.preferenze = PREF_OPTS[seed % PREF_OPTS.length];
   if (u.byuppini === undefined) u.byuppini = 20 + (seed % 380);
+  if (u.dataNascita === undefined) {
+    const y = new Date().getFullYear() - u.eta;
+    u.dataNascita = `${y}-${String(1 + (seed % 12)).padStart(2,'0')}-${String(1 + (seed % 28)).padStart(2,'0')}`;
+  }
   if (u.verificato === undefined) u.verificato = seed % 3 !== 0;
 
   // ── Form anagrafica (editabile con salvataggio) ──
   const [form, setForm] = useStateUtn({
     nome: u.nome, email: u.email, tel: u.tel, citta: u.citta, regione: u.regione,
-    eta: u.eta, sesso: u.sesso, preferenze: u.preferenze, verificato: u.verificato,
+    dataNascita: u.dataNascita, sesso: u.sesso, preferenze: u.preferenze, verificato: u.verificato,
   });
   const dirty = form.nome !== u.nome || form.email !== u.email || form.tel !== u.tel
-    || form.citta !== u.citta || form.regione !== u.regione || String(form.eta) !== String(u.eta)
+    || form.citta !== u.citta || form.regione !== u.regione || form.dataNascita !== u.dataNascita
     || form.sesso !== u.sesso || form.preferenze !== u.preferenze || form.verificato !== u.verificato;
   const [saved, setSaved] = useStateUtn(false);
+  const etaCalcolata = (() => {
+    const d = new Date(form.dataNascita);
+    if (isNaN(d)) return null;
+    return Math.max(0, Math.floor((Date.now() - d.getTime()) / (365.25 * 86400000)));
+  })();
   const saveForm = () => {
-    Object.assign(u, { ...form, eta: Number(form.eta) || u.eta });
+    // L'età resta il campo derivato usato da lista e filtri: la teniamo in sync.
+    Object.assign(u, { ...form, eta: etaCalcolata ?? u.eta });
     setSaved(true); setTimeout(()=>setSaved(false), 2200);
   };
   const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target ? e.target.value : e })); };
@@ -364,8 +374,9 @@ function UtenteDrawer({ utente: u, onClose }) {
                   <input value={form.regione} onChange={F('regione')} style={inputStyle}/>
                 </div>
                 <div>
-                  <label style={labelStyle}>Età</label>
-                  <input type="number" min="16" max="110" value={form.eta} onChange={F('eta')} style={inputStyle}/>
+                  <label style={labelStyle}>Data di nascita</label>
+                  <input type="date" value={form.dataNascita} onChange={F('dataNascita')} style={inputStyle}/>
+                  {etaCalcolata !== null && <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:4}}>{etaCalcolata} anni</div>}
                 </div>
                 <div>
                   <label style={labelStyle}>Genere</label>
