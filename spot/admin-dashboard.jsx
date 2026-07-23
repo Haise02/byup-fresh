@@ -441,25 +441,23 @@ function AttentionStrip({ items }) {
 
 // Hero KPI (Tier 1) — numero grande a sinistra, area chart che riempie la
 // destra: la card usa finalmente tutta la sua larghezza.
-function DashHero({ label, value, trend, trendLabel, sub, data, popover, accent }) {
+function DashHero({ label, value, trend, trendLabel, sub, detail, data, accent }) {
   const c = accent || ADM.PINK;
   return (
-    <AdmCard padding={0} style={{overflow:'visible'}}>
-      <div style={{display:'flex', alignItems:'stretch', minHeight:132}}>
-        <div style={{flex:'1 1 44%', padding:'20px 24px', display:'flex', flexDirection:'column', justifyContent:'center', gap:9}}>
-          <div style={{display:'flex', alignItems:'center', gap:8}}>
-            <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</span>
-            {popover && <InfoPopover content={popover} width={520} align="left" accent={c}/>}
-          </div>
+    <AdmCard padding={0} style={{overflow:'hidden'}}>
+      <div style={{display:'flex', alignItems:'stretch', minHeight:138}}>
+        <div style={{flex:'1 1 44%', padding:'20px 24px', display:'flex', flexDirection:'column', justifyContent:'center', gap:8}}>
+          <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</span>
           <div style={{display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap'}}>
             <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{value}</span>
             {trend != null && <TrendBadge delta={trend} label={trendLabel} size="lg"/>}
           </div>
           {sub && <span style={{fontSize:13.5, color:ADM.MUTED}}>{sub}</span>}
+          {detail && <span style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>{detail}</span>}
         </div>
         <div style={{flex:'1 1 56%', minWidth:0, display:'flex', alignItems:'flex-end', borderLeft:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <div style={{width:'100%', overflow:'hidden', borderTopRightRadius:13, borderBottomRightRadius:13}}>
-            <AreaSpark data={data} color={c} height={132} gradId="grad-hero" strokeW={2}/>
+          <div style={{width:'100%'}}>
+            <AreaSpark data={data} color={c} height={138} gradId="grad-hero" strokeW={2}/>
           </div>
         </div>
       </div>
@@ -469,15 +467,15 @@ function DashHero({ label, value, trend, trendLabel, sub, data, popover, accent 
 
 // Stat compatta (Tier 2) — 4 in fila, uniformi. Sparkline integrata in basso
 // a tutta larghezza (o barra proporzione). Click = drill, ⓘ = dettaglio.
-function DashStatCard({ label, value, trend, trendLabel, sub, alertText, data, ratio, accent='PINK', gradId, onClick, popover, popAlign='left' }) {
+function DashStatCard({ label, value, trend, trendLabel, sub, alertText, data, ratio, accent='PINK', gradId, onClick }) {
   const c = ADM[accent] || ADM.PINK;
   return (
     <AdmCard padding={0} interactive={!!onClick} onClick={onClick}
-      style={{display:'flex', flexDirection:'column', cursor: onClick ? 'pointer' : 'default', overflow:'visible'}}>
+      style={{display:'flex', flexDirection:'column', cursor: onClick ? 'pointer' : 'default', overflow:'hidden'}}>
       <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
         <div style={{display:'flex', alignItems:'center', gap:7}}>
           <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</span>
-          {popover && <InfoPopover content={popover} width={330} align={popAlign} accent={c}/>}
+          {onClick && <span style={{color:ADM.MUTED_LIGHT, display:'inline-flex', flexShrink:0}}><BuIcons.chevronRight size={15}/></span>}
         </div>
         <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
           <span style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>{value}</span>
@@ -485,13 +483,13 @@ function DashStatCard({ label, value, trend, trendLabel, sub, alertText, data, r
         </div>
         {alertText
           ? <span style={{fontSize:12.5, fontWeight:700, color:ADM.WARN, display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:6, height:6, borderRadius:'50%', background:ADM.WARN, flexShrink:0}}/>{alertText}</span>
-          : sub ? <span style={{fontSize:12.5, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{sub}</span>
+          : sub ? <span style={{fontSize:12.5, color:ADM.MUTED, lineHeight:1.45}}>{sub}</span>
           : null}
       </div>
       {ratio
         ? <div style={{padding:'0 16px 14px'}}><MiniRatioBar {...ratio}/></div>
         : data
-        ? <div style={{overflow:'hidden', borderBottomLeftRadius:13, borderBottomRightRadius:13}}><AreaSpark data={data} color={c} height={38} gradId={gradId}/></div>
+        ? <AreaSpark data={data} color={c} height={38} gradId={gradId}/>
         : <div style={{height:14}}/>}
     </AdmCard>
   );
@@ -595,59 +593,36 @@ function DashGenerale({ onNav }) {
         trend={TS_RICAVI_MOM.delta}
         trendLabel="vs mese precedente"
         sub={`${fmtEur(mrrSubMese)} abbonamenti · ${fmtEur(mrrExtraMese)} extra ordini`}
+        detail={`Ultimi 12 mesi ${fmtEur(ricaviAnno)} · media ${fmtEur(Math.round(ricaviAnno/12))}/mese`}
         data={TS.ricaviDay.slice(-30)}
         accent={ADM.PINK}
-        popover={
-          <RevenueTooltip
-            sub={mrrSubMese} extra={mrrExtraMese}
-            subAnno={subAnno} extraAnno={extraAnno}
-            ricaviAnno={ricaviAnno}
-            mesePrec={MONTHLY_REVENUE[MONTHLY_REVENUE.length - 2]}
-          />
-        }
       />
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
         <DashStatCard
           label="Locali totali" value={fmtNum(totLocali)} accent="PINK"
+          sub={`${attivi} attivi · ${inattivi} inattivi`}
           ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.PINK }}
-          onClick={()=>onNav('locali')} popAlign="left"
-          popover={
-            <LocaliTotaliTooltip
-              total={totLocali} free={freeCount} freeActive={freeActive}
-              freeInactive={freeInactive} paying={paying} planCount={planCount}
-            />
-          }
+          onClick={()=>onNav('locali')}
         />
         <DashStatCard
           label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
           alertText={stuckOver7 > 0 ? `${stuckOver7} fermi da oltre 7gg` : `${setupIniziale} setup · ${onbIncompleto} da completare`}
           data={TS.inOnboardCount.slice(-30)} gradId="grad-onb"
-          onClick={()=>onNav('locali')} popAlign="left"
-          popover={
-            <OnboardingTooltip
-              setupIniziale={setupIniziale} onbIncompleto={onbIncompleto}
-              stuckOver7={stuckOver7} stuckOver14={stuckOver14} ageMedian={ageMedian}
-              detail={onbLocaliDetail} onNav={onNav}
-            />
-          }
+          onClick={()=>onNav('locali')}
         />
         <DashStatCard
           label="Utenti totali" value={fmtNum(totUtenti)} accent="INFO"
           trend={woW(TS.utentiTot).delta} trendLabel="7gg"
-          sub="Hanno scaricato l'app"
+          sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(attivi24)}</b> attivi oggi · <b style={{color:ADM.TEXT}}>{Math.round(attivi24/totUtenti*100)}%</b> dei registrati</span>}
           data={TS.utentiTot.slice(-30)} gradId="grad-ute"
-          onClick={()=>onNav('utenti')} popAlign="right"
-          popover={
-            <UtentiTooltip tot={totUtenti} attivi24={attivi24} attivi7g={attivi7g} attivi30g={attivi30g}/>
-          }
+          onClick={()=>onNav('utenti')}
         />
         <DashStatCard
           label="Accessi guest · 30gg" value={fmtNum(guestLog30g)} accent="PURPLE"
           trend={moM(TS.guestAccessi).delta} trendLabel="30gg"
-          sub="Utenti non registrati"
-          data={TS.guestAccessi.slice(-30)} gradId="grad-gue" popAlign="right"
-          popover={<GuestTooltip accessi={guestLog30g} ordini={ordiniGuest30g}/>}
+          sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(ordiniGuest30g)}</b> ordini · <b style={{color:ADM.TEXT}}>{Math.round(ordiniGuest30g/guestLog30g*100)}%</b> conversione</span>}
+          data={TS.guestAccessi.slice(-30)} gradId="grad-gue"
         />
       </div>
 
