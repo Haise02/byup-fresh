@@ -675,7 +675,6 @@ function DashGenerale({ onNav }) {
           label="Locali totali" value={fmtNum(totLocali)} accent="INK"
           sub={`${attivi} attivi · ${inattivi} inattivi`}
           ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.INK }}
-          onClick={()=>onNav('locali')}
         />
         <DashStatCard
           label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
@@ -1703,6 +1702,22 @@ function DashLocali({ onNav }) {
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <DashStatCard
+          label="MRR totale" value={fmtEur(mrrTot)} accent="INK"
+          sub="Locali attivi · piano + extra"
+        />
+        <DashStatCard
+          label="ARPA" value={`${fmtEur(arpa)}/mese`} accent="INK"
+          sub="Ricavo medio per locale pagante · piano + extra"
+        />
+        <DashStatCard
+          label="Scontrino medio" value={fmtEur(ticketMedio)} accent="INK"
+          sub="Per ordine · media locali attivi"
+        />
+        <DashStatCard
+          label="Copertura media" value={`${coperturaMedia}%`} accent="INK"
+          sub="Tavoli occupati sui locali attivi"
+        />
+        <DashStatCard
           label="Conversion onboarding" value={`${convRate}%`} accent="INK"
           sub={`${onbCompletati} completati su ${onbTentati} tentati`}
           ratio={{ a: onbCompletati, b: onbTentati - onbCompletati, aLabel:'completati', bLabel:'in corso', aColor: ADM.INK }}
@@ -1734,22 +1749,7 @@ function DashLocali({ onNav }) {
           label="Prenotazioni · 30gg" value={fmtNum(totPrenotMese)} accent="INK"
           sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(totPrenotAnno)}</b> negli ultimi 12 mesi</span>}
         />
-        <DashStatCard
-          label="MRR totale" value={fmtEur(mrrTot)} accent="INK"
-          sub="Locali attivi · piano + extra"
-        />
-        <DashStatCard
-          label="Scontrino medio" value={fmtEur(ticketMedio)} accent="INK"
-          sub="Per ordine · media locali attivi"
-        />
-        <DashStatCard
-          label="Copertura media" value={`${coperturaMedia}%`} accent="INK"
-          sub="Tavoli occupati sui locali attivi"
-        />
-        <DashStatCard
-          label="ARPA" value={`${fmtEur(arpa)}/mese`} accent="INK"
-          sub="Ricavo medio per locale pagante · piano + extra"
-        />
+
       </div>
 
       {detail && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
@@ -1870,6 +1870,110 @@ function DashLocali({ onNav }) {
       <AdozioneDigitaleCard onNav={onNav}/>
 
       <SottoMediaScanCard onNav={onNav}/>
+
+      {/* ═════ CANNIBALIZZAZIONE CANALI ═════ */}
+      <SectionLabel title="Mix canali d'ordine · 12 mesi" desc="Come si spostano gli ordini tra cameriere, QR-tavolo, app cliente"/>
+
+      <AdmCard padding={20}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
+          <div style={{display:'flex', gap:16}}>
+            {[
+              { l:'Cameriere', c:ADM.MUTED },
+              { l:'QR tavolo', c:ADM.INK },
+              { l:'App cliente', c:ADM.PINK },
+            ].map((s,i)=>(
+              <span key={i} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.7, fontWeight:600, color:ADM.TEXT}}>
+                <span style={{width:12, height:12, borderRadius:3, background:s.c}}/>
+                {s.l}
+              </span>
+            ))}
+          </div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
+            App <strong style={{color:ADM.PINK, fontWeight:800}}>+16pt</strong> in 12 mesi · Cameriere <strong style={{color:ADM.MUTED, fontWeight:800}}>−24pt</strong>
+          </div>
+        </div>
+        {/* Stacked area chart 12 mesi */}
+        {(() => {
+          const W = 1200, H = 200, padX = 30, padY = 22;
+          const plotW = W - padX*2, plotH = H - padY*2;
+          const xFor = (i) => padX + (i/(channelMix.length-1)) * plotW;
+          const yFor = (v) => padY + (1 - v/100) * plotH;
+          const cumApp = channelMix.map(m => m.app);
+          const cumAppQr = channelMix.map(m => m.app + m.qr);
+          const top = channelMix.map(() => 100);
+          const pathArea = (top, bottom, i) => {
+            const pts = [
+              ...top.map((v,j) => `${j===0?'M':'L'} ${xFor(j)} ${yFor(v)}`),
+              ...bottom.map((v,j) => `L ${xFor(channelMix.length-1-j)} ${yFor(bottom[channelMix.length-1-j])}`),
+              'Z',
+            ];
+            return pts.join(' ');
+          };
+          return (
+            <div style={{overflow:'hidden'}}>
+              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:230}}>
+                {/* Cameriere (bottom: 0 to cumAppQr inverted = top to cumAppQr) */}
+                <path d={pathArea(top, cumAppQr)} fill={ADM.MUTED} opacity={0.55}/>
+                {/* QR tavolo */}
+                <path d={pathArea(cumAppQr, cumApp)} fill={ADM.INK} opacity={0.85}/>
+                {/* App (bottom 0 to app) */}
+                <path d={pathArea(cumApp, channelMix.map(()=>0))} fill={ADM.PINK}/>
+                {/* x labels */}
+                {channelMix.map((m,i)=>(
+                  <text key={i} x={xFor(i)} y={H-4} textAnchor="middle" fontSize="10.5" fill={ADM.MUTED} fontWeight="600">{m.m}</text>
+                ))}
+              </svg>
+            </div>
+          );
+        })()}
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+          <strong style={{color:ADM.TEXT}}>Il modello funziona naturalmente</strong>: 12 mesi fa il cameriere faceva il 72% degli ordini, oggi il 48%. App ha quintuplicato (4% → 20%). Il modello B2B2C è confermato dai dati di adozione reale.
+        </div>
+      </AdmCard>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Top in transizione digitale</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali con la spinta digitale più rapida (% ordini app+QR · 6 mesi fa → oggi)</div>
+          <div style={{display:'flex', flexDirection:'column', gap:11}}>
+            {channelMovers.map((m,i) => (
+              <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
+                <span style={{fontSize:13.7, fontWeight:800, color:ADM.MUTED_SOFT, width:18}}>{i+1}</span>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta}</div>
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:6, fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
+                  <span style={{fontFamily:'ui-monospace,monospace'}}>{m.from}%</span>
+                  <BuIcons.chevronRight size={16}/>
+                  <span style={{fontFamily:'ui-monospace,monospace', color:ADM.TEXT, fontWeight:800}}>{m.to}%</span>
+                </div>
+                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.OK_SOFT, color:ADM.OK, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>+{m.delta}pt</span>
+              </div>
+            ))}
+          </div>
+        </AdmCard>
+
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Fermi a zero digitale</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali attivi da 5+ mesi ma con &lt; 5% ordini digitali · candidati a intervento formazione</div>
+          <div style={{display:'flex', flexDirection:'column', gap:11}}>
+            {channelStuck.map((m,i) => (
+              <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
+                <span style={{fontSize:13.7, fontWeight:800, color:ADM.DANGER, width:18}}>{i+1}</span>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta} · attivo da {m.daysActive}g</div>
+                </div>
+                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>{m.pct}%</span>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+            Su questi locali Byup non sta producendo valore aggiunto sul piano digitale. Drive: <strong style={{color:ADM.TEXT}}>onboarding ripetuto + visite di formazione</strong>.
+          </div>
+        </AdmCard>
+      </div>
 
       {/* ═══════════ Utilizzo del prodotto ═══════════ */}
       <SectionLabel title="Utilizzo del prodotto" desc="Dove sono i locali e cosa usano del gestionale"/>
@@ -2019,182 +2123,6 @@ function DashLocali({ onNav }) {
         </AdmCard>
       </div>
 
-      {/* ═════ TEMPO MEDIO DI SERVIZIO ═════ */}
-      <SectionLabel title="Tempo medio di servizio" desc="Dall'ordine confermato alla chiusura conto · media di settore"/>
-
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Distribuzione locali</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Per fascia di tempo medio</div>
-          <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:18}}>
-            <div style={{fontSize:32.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{serviceOverall}</div>
-            <div style={{fontSize:14.4, color:ADM.MUTED, fontWeight:600}}>min media piattaforma</div>
-          </div>
-          <div style={{display:'flex', flexDirection:'column', gap:9}}>
-            {serviceDist.map((d,i) => {
-              const tone = i < 2 ? ADM.OK : i < 4 ? ADM.WARN : ADM.DANGER;
-              return (
-                <div key={i}>
-                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
-                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600}}>{d.range} <span style={{color:ADM.MUTED, fontWeight:500}}>· {d.label}</span></span>
-                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{d.pct}%</span>
-                  </div>
-                  <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                    <div style={{width:`${d.pct*3.3}%`, height:'100%', background:tone, borderRadius:99}}/>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={20}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
-            <div>
-              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Per tipo locale</div>
-              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Mediana · P75 · campione di locali</div>
-            </div>
-            <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>min</div>
-          </div>
-          <div style={{display:'flex', flexDirection:'column', gap:14}}>
-            {serviceByType.map((t,i) => {
-              const maxV = Math.max(...serviceByType.map(x=>x.p75));
-              return (
-                <div key={i}>
-                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:6}}>
-                    <span style={{fontSize:14, color:ADM.TEXT, fontWeight:700}}>{t.tipo}</span>
-                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>n={t.n}</span>
-                  </div>
-                  {/* Box-plot-ish: line min-max, dot mediana, marker P75 */}
-                  <div style={{position:'relative', height:24, background:'#F4F5F7', borderRadius:8, overflow:'hidden'}}>
-                    <div style={{
-                      position:'absolute', left:0, top:0, bottom:0,
-                      width:`${(t.median/maxV)*100}%`,
-                      background:ADM.INK,
-                    }}/>
-                    <div style={{
-                      position:'absolute', left:`${(t.p75/maxV)*100}%`,
-                      top:'50%', transform:'translate(-50%, -50%)',
-                      width:3, height:18, background:'#0F1115', borderRadius:1, opacity:0.4,
-                    }}/>
-                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${ADM.INK}`}}/>
-                    <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
-                    <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:12.6, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
-            <strong style={{color:ADM.TEXT}}>Pizzeria è il tipo più efficiente</strong> (38 min media), Ristorante il più lento (92 min). I locali con tempi oltre 90 min hanno satisfaction più bassa del 18%. <strong>Dato vendibile</strong> come punto di riferimento di settore (oggi assente sul mercato IT).
-          </div>
-        </AdmCard>
-      </div>
-
-      {/* ═════ CANNIBALIZZAZIONE CANALI ═════ */}
-      <SectionLabel title="Mix canali d'ordine · 12 mesi" desc="Come si spostano gli ordini tra cameriere, QR-tavolo, app cliente"/>
-
-      <AdmCard padding={20}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
-          <div style={{display:'flex', gap:16}}>
-            {[
-              { l:'Cameriere', c:ADM.MUTED },
-              { l:'QR tavolo', c:ADM.INK },
-              { l:'App cliente', c:ADM.PINK },
-            ].map((s,i)=>(
-              <span key={i} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.7, fontWeight:600, color:ADM.TEXT}}>
-                <span style={{width:12, height:12, borderRadius:3, background:s.c}}/>
-                {s.l}
-              </span>
-            ))}
-          </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
-            App <strong style={{color:ADM.PINK, fontWeight:800}}>+16pt</strong> in 12 mesi · Cameriere <strong style={{color:ADM.MUTED, fontWeight:800}}>−24pt</strong>
-          </div>
-        </div>
-        {/* Stacked area chart 12 mesi */}
-        {(() => {
-          const W = 1200, H = 200, padX = 30, padY = 22;
-          const plotW = W - padX*2, plotH = H - padY*2;
-          const xFor = (i) => padX + (i/(channelMix.length-1)) * plotW;
-          const yFor = (v) => padY + (1 - v/100) * plotH;
-          const cumApp = channelMix.map(m => m.app);
-          const cumAppQr = channelMix.map(m => m.app + m.qr);
-          const top = channelMix.map(() => 100);
-          const pathArea = (top, bottom, i) => {
-            const pts = [
-              ...top.map((v,j) => `${j===0?'M':'L'} ${xFor(j)} ${yFor(v)}`),
-              ...bottom.map((v,j) => `L ${xFor(channelMix.length-1-j)} ${yFor(bottom[channelMix.length-1-j])}`),
-              'Z',
-            ];
-            return pts.join(' ');
-          };
-          return (
-            <div style={{overflow:'hidden'}}>
-              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:230}}>
-                {/* Cameriere (bottom: 0 to cumAppQr inverted = top to cumAppQr) */}
-                <path d={pathArea(top, cumAppQr)} fill={ADM.MUTED} opacity={0.55}/>
-                {/* QR tavolo */}
-                <path d={pathArea(cumAppQr, cumApp)} fill={ADM.INK} opacity={0.85}/>
-                {/* App (bottom 0 to app) */}
-                <path d={pathArea(cumApp, channelMix.map(()=>0))} fill={ADM.PINK}/>
-                {/* x labels */}
-                {channelMix.map((m,i)=>(
-                  <text key={i} x={xFor(i)} y={H-4} textAnchor="middle" fontSize="10.5" fill={ADM.MUTED} fontWeight="600">{m.m}</text>
-                ))}
-              </svg>
-            </div>
-          );
-        })()}
-        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
-          <strong style={{color:ADM.TEXT}}>Il modello funziona naturalmente</strong>: 12 mesi fa il cameriere faceva il 72% degli ordini, oggi il 48%. App ha quintuplicato (4% → 20%). Il modello B2B2C è confermato dai dati di adozione reale.
-        </div>
-      </AdmCard>
-
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Top in transizione digitale</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali con la spinta digitale più rapida (% ordini app+QR · 6 mesi fa → oggi)</div>
-          <div style={{display:'flex', flexDirection:'column', gap:11}}>
-            {channelMovers.map((m,i) => (
-              <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
-                <span style={{fontSize:13.7, fontWeight:800, color:ADM.MUTED_SOFT, width:18}}>{i+1}</span>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
-                  <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta}</div>
-                </div>
-                <div style={{display:'flex', alignItems:'center', gap:6, fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
-                  <span style={{fontFamily:'ui-monospace,monospace'}}>{m.from}%</span>
-                  <BuIcons.chevronRight size={16}/>
-                  <span style={{fontFamily:'ui-monospace,monospace', color:ADM.TEXT, fontWeight:800}}>{m.to}%</span>
-                </div>
-                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.OK_SOFT, color:ADM.OK, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>+{m.delta}pt</span>
-              </div>
-            ))}
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Fermi a zero digitale</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali attivi da 5+ mesi ma con &lt; 5% ordini digitali · candidati a intervento formazione</div>
-          <div style={{display:'flex', flexDirection:'column', gap:11}}>
-            {channelStuck.map((m,i) => (
-              <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
-                <span style={{fontSize:13.7, fontWeight:800, color:ADM.DANGER, width:18}}>{i+1}</span>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
-                  <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta} · attivo da {m.daysActive}g</div>
-                </div>
-                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>{m.pct}%</span>
-              </div>
-            ))}
-          </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
-            Su questi locali Byup non sta producendo valore aggiunto sul piano digitale. Drive: <strong style={{color:ADM.TEXT}}>onboarding ripetuto + visite di formazione</strong>.
-          </div>
-        </AdmCard>
-      </div>
-
       {/* ═════ LTV / CAC ═════ */}
       <SectionLabel title="LTV / CAC locale" desc="Economia per locale · la prima metrica che ti chiederà un investitore pre-seed"/>
 
@@ -2283,6 +2211,78 @@ function DashLocali({ onNav }) {
           <strong style={{color:ADM.TEXT}}>Business recupera il CAC in 1.4 mesi, Plus in 1.8</strong>. Da quel momento ogni mese è puro margine fino all'abbandono. LTV/CAC <strong style={{color:ADM.OK}}>{ratioLTVCAC.toFixed(1)}×</strong> è ampiamente sopra la soglia investitori del 3× → pronto per il pitch.
         </div>
       </AdmCard>
+
+      {/* ═════ TEMPO MEDIO DI SERVIZIO ═════ */}
+      <SectionLabel title="Tempo medio di servizio" desc="Dall'ordine confermato alla chiusura conto · media di settore"/>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Distribuzione locali</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Per fascia di tempo medio</div>
+          <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:18}}>
+            <div style={{fontSize:32.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{serviceOverall}</div>
+            <div style={{fontSize:14.4, color:ADM.MUTED, fontWeight:600}}>min media piattaforma</div>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:9}}>
+            {serviceDist.map((d,i) => {
+              const tone = i < 2 ? ADM.OK : i < 4 ? ADM.WARN : ADM.DANGER;
+              return (
+                <div key={i}>
+                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600}}>{d.range} <span style={{color:ADM.MUTED, fontWeight:500}}>· {d.label}</span></span>
+                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{d.pct}%</span>
+                  </div>
+                  <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                    <div style={{width:`${d.pct*3.3}%`, height:'100%', background:tone, borderRadius:99}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </AdmCard>
+
+        <AdmCard padding={20}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
+            <div>
+              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Per tipo locale</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Mediana · P75 · campione di locali</div>
+            </div>
+            <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>min</div>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:14}}>
+            {serviceByType.map((t,i) => {
+              const maxV = Math.max(...serviceByType.map(x=>x.p75));
+              return (
+                <div key={i}>
+                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:6}}>
+                    <span style={{fontSize:14, color:ADM.TEXT, fontWeight:700}}>{t.tipo}</span>
+                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>n={t.n}</span>
+                  </div>
+                  {/* Box-plot-ish: line min-max, dot mediana, marker P75 */}
+                  <div style={{position:'relative', height:24, background:'#F4F5F7', borderRadius:8, overflow:'hidden'}}>
+                    <div style={{
+                      position:'absolute', left:0, top:0, bottom:0,
+                      width:`${(t.median/maxV)*100}%`,
+                      background:ADM.INK,
+                    }}/>
+                    <div style={{
+                      position:'absolute', left:`${(t.p75/maxV)*100}%`,
+                      top:'50%', transform:'translate(-50%, -50%)',
+                      width:3, height:18, background:'#0F1115', borderRadius:1, opacity:0.4,
+                    }}/>
+                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${ADM.INK}`}}/>
+                    <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
+                    <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:12.6, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+            <strong style={{color:ADM.TEXT}}>Pizzeria è il tipo più efficiente</strong> (38 min media), Ristorante il più lento (92 min). I locali con tempi oltre 90 min hanno satisfaction più bassa del 18%. <strong>Dato vendibile</strong> come punto di riferimento di settore (oggi assente sul mercato IT).
+          </div>
+        </AdmCard>
+      </div>
 
       {/* ═════ PRENOTAZIONI NO-SHOW ═════ */}
       <SectionLabel title="No show prenotazioni" desc="Prima causa di sofferenza del ristoratore"/>
@@ -3323,6 +3323,108 @@ function DashUtentiApp() {
           trend={+0.6} trendLabel="vs mese prec."/>
       </div>
 
+      {/* ═══════════ Chi sono gli utenti ═══════════ */}
+      <SectionLabel title="Chi sono gli utenti" desc="Demografia della base installata"/>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+        <AdmCard padding={20}>
+          <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:14}}>
+            <span style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Distribuzione per età</span>
+            <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>media <b style={{color:ADM.TEXT}}>{Math.round(UTENTI.reduce((a,u)=>a+u.eta,0)/UTENTI.length)} anni</b></span>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {fasceEta.map((f, i) => (
+              <div key={i}>
+                <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                  <span style={{fontSize:14, color:ADM.TEXT}}>{f.label}</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{f.pct}%</span>
+                </div>
+                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                  <div style={{width:`${f.pct*2}%`, height:'100%', background:ADM.INK, borderRadius:99}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </AdmCard>
+
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Genere</div>
+          <AdmStackedBar segments={[
+            { label:'Donne', value: Math.round(genere.F*100), color: ADM.PINK },
+            { label:'Uomini', value: Math.round(genere.M*100), color: ADM.INFO },
+            { label:'Altro/N.D.', value: Math.round(genere.altro*100), color: ADM.MUTED_LIGHT },
+          ]} height={12}/>
+          <div style={{display:'flex', flexDirection:'column', gap:10, marginTop:18}}>
+            {[
+              { label:'Donne', val: Math.round(genere.F*100), c: ADM.PINK },
+              { label:'Uomini', val: Math.round(genere.M*100), c: ADM.INFO },
+              { label:'Altro / N.D.', val: Math.round(genere.altro*100), c: ADM.MUTED_LIGHT },
+            ].map((g,i)=>(
+              <div key={i} style={{display:'flex', alignItems:'center', gap:10}}>
+                <span style={{width:10, height:10, borderRadius:3, background:g.c}}/>
+                <span style={{fontSize:14, color:ADM.TEXT, flex:1}}>{g.label}</span>
+                <span style={{fontSize:14, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(g.val/100)))} · {g.val}%</span>
+              </div>
+            ))}
+          </div>
+        </AdmCard>
+
+        {/* Preferenze alimentari — distribuzione sul totale utenti */}
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Preferenze alimentari</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, marginBottom:14}}>Dichiarate dagli utenti nel profilo app</div>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {[
+              { label:'Nessuna preferenza', pct:62 },
+              { label:'Senza glutine',      pct:11 },
+              { label:'Vegetariano',        pct:10 },
+              { label:'Senza lattosio',     pct:8 },
+              { label:'Vegano',             pct:6 },
+              { label:'Pescetariano',       pct:3 },
+            ].map((f, i) => (
+              <div key={i}>
+                <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                  <span style={{fontSize:14, color:ADM.TEXT}}>{f.label}</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(f.pct/100)))} · {f.pct}%</span>
+                </div>
+                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                  <div style={{width:`${Math.max(f.pct, 1.5)}%`, height:'100%', background:ADM.INK, opacity: i === 0 ? 0.45 : 0.85, borderRadius:99}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </AdmCard>
+
+        {/* Lingua dell'app — con i territori dove è usata */}
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Lingua dell'app</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, marginBottom:14}}>Impostata dagli utenti · concentrazione territoriale</div>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {[
+              { label:'Italiano', pct:96.8, terr:'Tutta la rete' },
+              { label:'Inglese',  pct:1.8,  terr:'Milano · Roma · Firenze' },
+              { label:'Tedesco',  pct:0.9,  terr:'Trentino-Alto Adige' },
+              { label:'Francese', pct:0.3,  terr:'Valle d’Aosta · Torino' },
+              { label:'Spagnolo', pct:0.2,  terr:'Milano · Bologna' },
+            ].map((l, i) => (
+              <div key={i}>
+                <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:4}}>
+                  <span style={{fontSize:14, color:ADM.TEXT, fontWeight: i === 0 ? 600 : 400}}>{l.label}</span>
+                  <span style={{fontSize:12, color:ADM.MUTED_SOFT, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.terr}</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>{fmtNum(Math.round(totUtenti*(l.pct/100)))} · {l.pct}%</span>
+                </div>
+                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                  <div style={{width:`${Math.max(l.pct, 1.5)}%`, height:'100%', background:ADM.INK, opacity: i === 0 ? 0.85 : 0.6, borderRadius:99}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:12, lineHeight:1.5, padding:'9px 11px', background:ADM.PANEL_SOFT, borderRadius:8}}>
+            Al lancio la rete è quasi interamente in italiano: le altre lingue emergono nei territori turistici e bilingui — un segnale utile per future localizzazioni.
+          </div>
+        </AdmCard>
+      </div>
+
       {/* ═════ RITORNO UTENTI NEL TEMPO ═════ */}
       <SectionLabel title="Ritorno degli utenti nel tempo" desc="Quanti continuano a usare l'app dopo il primo ordine"/>
 
@@ -3436,108 +3538,6 @@ function DashUtentiApp() {
           </div>
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.55, padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9}}>
             <strong style={{color:ADM.TEXT}}>I gruppi più recenti (Mar/Apr 26)</strong> mostrano un ritorno a 1 settimana di 2-3 punti più alto del solito — possibile effetto del nuovo onboarding lanciato a febbraio.
-          </div>
-        </AdmCard>
-      </div>
-
-      {/* ═══════════ Chi sono gli utenti ═══════════ */}
-      <SectionLabel title="Chi sono gli utenti" desc="Demografia della base installata"/>
-
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
-        <AdmCard padding={20}>
-          <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:14}}>
-            <span style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Distribuzione per età</span>
-            <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>media <b style={{color:ADM.TEXT}}>{Math.round(UTENTI.reduce((a,u)=>a+u.eta,0)/UTENTI.length)} anni</b></span>
-          </div>
-          <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            {fasceEta.map((f, i) => (
-              <div key={i}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
-                  <span style={{fontSize:14, color:ADM.TEXT}}>{f.label}</span>
-                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{f.pct}%</span>
-                </div>
-                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                  <div style={{width:`${f.pct*2}%`, height:'100%', background:ADM.INK, borderRadius:99}}/>
-                </div>
-              </div>
-            ))}
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Genere</div>
-          <AdmStackedBar segments={[
-            { label:'Donne', value: Math.round(genere.F*100), color: ADM.PINK },
-            { label:'Uomini', value: Math.round(genere.M*100), color: ADM.INFO },
-            { label:'Altro/N.D.', value: Math.round(genere.altro*100), color: ADM.MUTED_LIGHT },
-          ]} height={12}/>
-          <div style={{display:'flex', flexDirection:'column', gap:10, marginTop:18}}>
-            {[
-              { label:'Donne', val: Math.round(genere.F*100), c: ADM.PINK },
-              { label:'Uomini', val: Math.round(genere.M*100), c: ADM.INFO },
-              { label:'Altro / N.D.', val: Math.round(genere.altro*100), c: ADM.MUTED_LIGHT },
-            ].map((g,i)=>(
-              <div key={i} style={{display:'flex', alignItems:'center', gap:10}}>
-                <span style={{width:10, height:10, borderRadius:3, background:g.c}}/>
-                <span style={{fontSize:14, color:ADM.TEXT, flex:1}}>{g.label}</span>
-                <span style={{fontSize:14, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(g.val/100)))} · {g.val}%</span>
-              </div>
-            ))}
-          </div>
-        </AdmCard>
-
-        {/* Preferenze alimentari — distribuzione sul totale utenti */}
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Preferenze alimentari</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, marginBottom:14}}>Dichiarate dagli utenti nel profilo app</div>
-          <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            {[
-              { label:'Nessuna preferenza', pct:62 },
-              { label:'Senza glutine',      pct:11 },
-              { label:'Vegetariano',        pct:10 },
-              { label:'Senza lattosio',     pct:8 },
-              { label:'Vegano',             pct:6 },
-              { label:'Pescetariano',       pct:3 },
-            ].map((f, i) => (
-              <div key={i}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
-                  <span style={{fontSize:14, color:ADM.TEXT}}>{f.label}</span>
-                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(f.pct/100)))} · {f.pct}%</span>
-                </div>
-                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                  <div style={{width:`${Math.max(f.pct, 1.5)}%`, height:'100%', background:ADM.INK, opacity: i === 0 ? 0.45 : 0.85, borderRadius:99}}/>
-                </div>
-              </div>
-            ))}
-          </div>
-        </AdmCard>
-
-        {/* Lingua dell'app — con i territori dove è usata */}
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Lingua dell'app</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, marginBottom:14}}>Impostata dagli utenti · concentrazione territoriale</div>
-          <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            {[
-              { label:'Italiano', pct:96.8, terr:'Tutta la rete' },
-              { label:'Inglese',  pct:1.8,  terr:'Milano · Roma · Firenze' },
-              { label:'Tedesco',  pct:0.9,  terr:'Trentino-Alto Adige' },
-              { label:'Francese', pct:0.3,  terr:'Valle d’Aosta · Torino' },
-              { label:'Spagnolo', pct:0.2,  terr:'Milano · Bologna' },
-            ].map((l, i) => (
-              <div key={i}>
-                <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:4}}>
-                  <span style={{fontSize:14, color:ADM.TEXT, fontWeight: i === 0 ? 600 : 400}}>{l.label}</span>
-                  <span style={{fontSize:12, color:ADM.MUTED_SOFT, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.terr}</span>
-                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>{fmtNum(Math.round(totUtenti*(l.pct/100)))} · {l.pct}%</span>
-                </div>
-                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                  <div style={{width:`${Math.max(l.pct, 1.5)}%`, height:'100%', background:ADM.INK, opacity: i === 0 ? 0.85 : 0.6, borderRadius:99}}/>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:12, lineHeight:1.5, padding:'9px 11px', background:ADM.PANEL_SOFT, borderRadius:8}}>
-            Al lancio la rete è quasi interamente in italiano: le altre lingue emergono nei territori turistici e bilingui — un segnale utile per future localizzazioni.
           </div>
         </AdmCard>
       </div>
