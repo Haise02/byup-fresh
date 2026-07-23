@@ -153,6 +153,18 @@ function PnSidebar({ active = 'panoramica', onNav }) {
           </div>
         )}
         {!collapsed && (
+          <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
+            {/* Cerca — discreta come il comprimi: icona sola, il ⌘K vive nel tooltip */}
+            <button onClick={() => window.dispatchEvent(new CustomEvent('byup-open-search'))} title="Cerca (⌘K)" style={{
+              width: 26, height: 26, borderRadius: 7,
+              border: `1px solid ${PN.BORDER_LIGHT}`,
+              background: PN.WHITE_HUSH,
+              color: PN.MUTED, cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </button>
           <button onClick={toggle} title="Comprimi menu" style={{
             width: 26, height: 26, borderRadius: 7,
             border: `1px solid ${PN.BORDER_LIGHT}`,
@@ -165,6 +177,7 @@ function PnSidebar({ active = 'panoramica', onNav }) {
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </button>
+          </div>
         )}
       </div>
 
@@ -193,32 +206,6 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         flexDirection: 'column',
         paddingTop: 10, marginBottom: 10,
       }}>
-        {/* Cerca — apre la ricerca globale ⌘K (montata da panoramica-notif-bell.jsx) */}
-        <button onClick={() => window.dispatchEvent(new CustomEvent('byup-open-search'))} title="Cerca (⌘K)"
-          style={{
-            width: '100%',
-            display: 'flex', alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: collapsed ? 0 : 12,
-            padding: collapsed ? '8px' : '9px 10px',
-            borderRadius: 10, border: 'none', background: 'transparent',
-            color: PN.MUTED, fontWeight: 500, fontSize: 17.5,
-            cursor: 'pointer', fontFamily: 'inherit',
-            transition: 'background 160ms ease, color 160ms ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; e.currentTarget.style.color = PN.TEXT; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
-        >
-          <svg width={collapsed ? 18 : 21} height={collapsed ? 18 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          {!collapsed && <span style={{flex: 1, textAlign: 'left'}}>Cerca</span>}
-          {!collapsed && (
-            <span style={{
-              padding: '2px 7px', borderRadius: 7,
-              background: 'rgba(15, 17, 21, 0.05)', color: PN.MUTED,
-              fontSize: 12.5, fontWeight: 700, flexShrink: 0,
-            }}>⌘K</span>
-          )}
-        </button>
         {sys.map(it => (
           <PnSysItem key={it.id} {...it} collapsed={collapsed} active={active === it.id} onClick={() => navTo(it.id)} />
         ))}
