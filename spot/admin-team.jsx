@@ -39,15 +39,12 @@ function AdmTeamPage({ search }) {
       <AdmCard padding={0}>
         <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
           <AdmTabBar tabs={[
-            { id:'membri',      label:'Membri team',     badge:members.length },
-            { id:'ruoli',       label:'Ruoli & Permessi',badge:Object.keys(RUOLI).length },
-            { id:'inviti',      label:'Inviti pendenti', badge:2 },
+            { id:'membri',      label:'Team',            badge:members.length },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
           ]} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
           {tab === 'membri' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
-          {tab === 'ruoli' && <AdmButton variant="secondary" size="sm" icon="plus">Nuovo ruolo</AdmButton>}
         </div>
 
         {tab === 'membri' && (
@@ -91,11 +88,19 @@ function AdmTeamPage({ search }) {
                 </div>
               );
             })}
+
+            <div style={{padding:'20px 22px 10px', borderTop:`1px solid ${ADM.BORDER}`, marginTop:-1, display:'flex', alignItems:'center', gap:8}}>
+              <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Inviti pendenti</span>
+              <span style={{fontSize:12.2, fontWeight:700, background:'rgba(120,120,128,0.15)', color:ADM.MUTED, padding:'1px 7px', borderRadius:999}}>2</span>
+            </div>
+            <InvitiPending/>
+
+            <div style={{padding:'20px 22px 0', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:8}}>
+              <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Ruoli & permessi</span>
+            </div>
+            <RuoliMatrix/>
           </>
         )}
-
-        {tab === 'ruoli' && <RuoliMatrix/>}
-        {tab === 'inviti' && <InvitiPending/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>
@@ -306,7 +311,7 @@ function InvitiPending() {
           </div>
           <div><AdmBadge color={RUOLI[inv.ruolo].color} size="xs">{RUOLI[inv.ruolo].label}</AdmBadge></div>
           <div style={{fontSize:13.7, color:ADM.MUTED}}>Inviato {fmtRelative(inv.inviato)}</div>
-          <div style={{fontSize:13.7, color:ADM.WARN, fontWeight:500}}>Scade {fmtRelative(inv.scade)}</div>
+          <div style={{fontSize:13.7, color:ADM.WARN, fontWeight:500}}>Scade tra {Math.max(1, Math.round((inv.scade - Date.now()) / 86400000))} giorni</div>
           <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
             <AdmButton variant="ghost" size="sm">Rinvia</AdmButton>
             <AdmButton variant="ghost" size="sm">Revoca</AdmButton>
