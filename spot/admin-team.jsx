@@ -4,6 +4,7 @@ const { useState: useStateTeam } = React;
 
 function AdmTeamPage({ search }) {
   const [tab, setTab] = useStateTeam('membri');
+  const [invitiOpen, setInvitiOpen] = useStateTeam(false);
   const [selectedId, setSelectedId] = useStateTeam(null);
   const [members, setMembers] = useStateTeam(TEAM);
   const [inviteOpen, setInviteOpen] = useStateTeam(false);
@@ -42,6 +43,7 @@ function AdmTeamPage({ search }) {
             { id:'membri',      label:'Team',            badge:members.length },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
+            { id:'diagnostica', label:'Diagnostica' },
           ]} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
           {tab === 'membri' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
@@ -89,11 +91,13 @@ function AdmTeamPage({ search }) {
               );
             })}
 
-            <div style={{padding:'20px 22px 10px', borderTop:`1px solid ${ADM.BORDER}`, marginTop:-1, display:'flex', alignItems:'center', gap:8}}>
+            <div className="adm-row-open" onClick={()=>setInvitiOpen(o=>!o)} style={{padding:'16px 22px', borderTop:`1px solid ${ADM.BORDER}`, marginTop:-1, display:'flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none'}}>
               <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Inviti pendenti</span>
               <span style={{fontSize:12.2, fontWeight:700, background:'rgba(120,120,128,0.15)', color:ADM.MUTED, padding:'1px 7px', borderRadius:999}}>2</span>
+              <span className="adm-row-chev" style={{display:'inline-flex', color:ADM.MUTED_SOFT, transform:invitiOpen?'rotate(90deg)':'none', transition:'transform 0.15s ease'}}><BuIcons.chevronRight size={16}/></span>
+              {!invitiOpen && <span style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>Sara Greco, Davide Conti · clicca per espandere</span>}
             </div>
-            <InvitiPending/>
+            {invitiOpen && <InvitiPending/>}
 
             <div style={{padding:'20px 22px 0', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:8}}>
               <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Ruoli & permessi</span>
@@ -102,6 +106,7 @@ function AdmTeamPage({ search }) {
           </>
         )}
         {tab === 'piattaforma' && <PlatformConfig/>}
+        {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>
 
@@ -509,6 +514,126 @@ function PlatformConfig() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Diagnostica piattaforma ─────────────────────────────────────────────────
+// Salute tecnica trasversale: uptime dei servizi, errori di pagamento aggregati,
+// code di elaborazione, ultimi incidenti. Dati mock. Colore solo per gli stati.
+function PlatformDiagnostica() {
+  const SERVIZI = [
+    { nome:'App cliente',       uptime:'99,98%', latenza:'142 ms', stato:'ok' },
+    { nome:'Gestionale',        uptime:'99,95%', latenza:'188 ms', stato:'ok' },
+    { nome:'API ordini',        uptime:'99,99%', latenza:'96 ms',  stato:'ok' },
+    { nome:'Pagamenti (Stripe)',uptime:'99,71%', latenza:'310 ms', stato:'warn', nota:'errori 3DS sopra la media da 2 giorni' },
+    { nome:'Notifiche push',    uptime:'99,92%', latenza:'—',      stato:'ok' },
+  ];
+  const ERRORI_PAG = [
+    { motivo:'Carta scaduta',          n:18 },
+    { motivo:'Fondi insufficienti',    n:14 },
+    { motivo:'3DS non completato',     n:9 },
+    { motivo:'Carta bloccata',         n:6 },
+  ];
+  const totErr = ERRORI_PAG.reduce((a,e)=>a+e.n,0);
+  const maxErr = Math.max(...ERRORI_PAG.map(e=>e.n));
+  const CODE = [
+    { nome:'Notifiche push',      inCoda:214, fallite:3 },
+    { nome:'Email transazionali', inCoda:12,  fallite:0 },
+    { nome:'Webhook gestionale',  inCoda:45,  fallite:1 },
+    { nome:'Export CSV',          inCoda:2,   fallite:0 },
+  ];
+  const INCIDENTI = [
+    { data:'14 lug 2026', servizio:'Pagamenti (Stripe)', durata:'23 min', desc:'Timeout sugli addebiti ricorrenti — riprocessati automaticamente' },
+    { data:'02 lug 2026', servizio:'Notifiche push',     durata:'1h 10m', desc:'Ritardo consegna su Android — coda smaltita' },
+    { data:'18 giu 2026', servizio:'API ordini',         durata:'8 min',  desc:'Picco 5xx durante il deploy — rollback immediato' },
+  ];
+  const dot = (stato) => (
+    <span style={{width:9, height:9, borderRadius:'50%', background: stato==='ok' ? ADM.OK : ADM.WARN, display:'inline-block', flexShrink:0}}/>
+  );
+  const degradati = SERVIZI.filter(x=>x.stato!=='ok').length;
+  const H = {fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10};
+
+  return (
+    <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20}}>
+      {/* Stato complessivo */}
+      <div style={{display:'flex', alignItems:'center', gap:10, padding:'13px 16px', borderRadius:10,
+        background: degradati ? '#FFF7E6' : ADM.OK_SOFT, border:`1px solid ${degradati ? '#FDE68A' : '#BBF7D0'}`}}>
+        {dot(degradati ? 'warn' : 'ok')}
+        <span style={{fontSize:14, fontWeight:700, color: degradati ? '#78350F' : '#065F46'}}>
+          {degradati ? `${degradati} servizio degradato` : 'Tutti i sistemi operativi'}
+        </span>
+        <span style={{fontSize:12.5, color:ADM.MUTED}}>· ultimo controllo 2 min fa · uptime rete ultimi 90 giorni</span>
+      </div>
+
+      {/* Servizi */}
+      <div>
+        <div style={H}>Servizi</div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:10}}>
+          {SERVIZI.map(sv => (
+            <div key={sv.nome} style={{border:`1px solid ${sv.stato==='ok' ? ADM.BORDER : '#FDE68A'}`, borderRadius:10, padding:'12px 14px', background: sv.stato==='ok' ? '#fff' : '#FFFBEB'}}>
+              <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:8}}>
+                {dot(sv.stato)}
+                <span style={{fontSize:12.7, fontWeight:700, color:ADM.TEXT, lineHeight:1.2}}>{sv.nome}</span>
+              </div>
+              <div style={{fontSize:21, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{sv.uptime}</div>
+              <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:3}}>latenza media {sv.latenza}</div>
+              {sv.nota && <div style={{fontSize:11.5, color:'#B45309', marginTop:6, lineHeight:1.35}}>{sv.nota}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap:14}}>
+        {/* Errori di pagamento aggregati */}
+        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, padding:'14px 16px'}}>
+          <div style={H}>Errori di pagamento · ultimi 30 giorni</div>
+          <div style={{fontSize:24, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginBottom:10}}>{totErr} <span style={{fontSize:13, fontWeight:600, color:ADM.MUTED}}>addebiti falliti</span></div>
+          {ERRORI_PAG.map(e => (
+            <div key={e.motivo} style={{display:'flex', alignItems:'center', gap:10, marginBottom:7}}>
+              <span style={{fontSize:12.8, color:ADM.TEXT, width:150, flexShrink:0}}>{e.motivo}</span>
+              <div style={{flex:1, height:8, background:ADM.PANEL_SOFT, borderRadius:99, overflow:'hidden'}}>
+                <div style={{width:`${(e.n/maxErr)*100}%`, height:'100%', background:ADM.INK, borderRadius:99}}/>
+              </div>
+              <span style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, width:24, textAlign:'right'}}>{e.n}</span>
+            </div>
+          ))}
+          <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, paddingTop:9, borderTop:`1px dashed ${ADM.BORDER_SOFT}`}}>
+            3 locali hanno ancora un addebito da recuperare — li trovi nella sezione <strong>Locali</strong> con il badge rosso.
+          </div>
+        </div>
+
+        {/* Code di elaborazione */}
+        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, padding:'14px 16px'}}>
+          <div style={H}>Code di elaborazione</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 90px 80px', padding:'6px 0', fontSize:11.8, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>
+            <div>Coda</div><div style={{textAlign:'right'}}>In coda</div><div style={{textAlign:'right'}}>Fallite</div>
+          </div>
+          {CODE.map((c,i) => (
+            <div key={c.nome} style={{display:'grid', gridTemplateColumns:'1fr 90px 80px', padding:'9px 0', borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.3, alignItems:'center'}}>
+              <div style={{display:'flex', alignItems:'center', gap:7, color:ADM.TEXT, fontWeight:600}}>{dot(c.fallite ? 'warn' : 'ok')}{c.nome}</div>
+              <div style={{textAlign:'right', color:ADM.TEXT}}>{c.inCoda}</div>
+              <div style={{textAlign:'right', fontWeight:700, color: c.fallite ? ADM.WARN : ADM.MUTED_SOFT}}>{c.fallite}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Ultimi incidenti */}
+      <div>
+        <div style={H}>Ultimi incidenti</div>
+        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
+          {INCIDENTI.map((inc, i) => (
+            <div key={i} style={{display:'flex', alignItems:'center', gap:14, padding:'11px 16px', borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none', flexWrap:'wrap'}}>
+              <span style={{fontSize:12.7, color:ADM.MUTED, width:88, flexShrink:0}}>{inc.data}</span>
+              <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, width:170, flexShrink:0}}>{inc.servizio}</span>
+              <span style={{fontSize:12.5, color:ADM.MUTED, flex:1, minWidth:200}}>{inc.desc}</span>
+              <span style={{fontSize:12.3, color:ADM.MUTED, fontWeight:600}}>{inc.durata}</span>
+              <AdmBadge color="OK" size="xs">Risolto</AdmBadge>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

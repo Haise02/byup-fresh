@@ -243,6 +243,13 @@ function UtenteDrawer({ utente: u, onClose }) {
   const [byupAmount, setByupAmount] = useStateUtn('');
   const [byupFeedback, setByupFeedback] = useStateUtn(null);
   const [deletePopup, setDeletePopup] = useStateUtn(false);
+  const [banPopup, setBanPopup] = useStateUtn(null); // 'ban' | 'unban' | null
+  const [banned, setBanned] = useStateUtn(!!u.bannato);
+  React.useEffect(() => { setBanned(!!u.bannato); setBanPopup(null); }, [u.id]);
+  const confirmBan = () => {
+    u.bannato = banPopup === 'ban';
+    setBanned(u.bannato); setBanPopup(null);
+  };
   const byupN = parseInt(byupAmount, 10) || 0;
   const byupValid = byupPopup === 'sub' ? (byupN > 0 && byupN <= u.byuppini) : byupN > 0;
   const confirmByup = () => {
@@ -309,7 +316,9 @@ function UtenteDrawer({ utente: u, onClose }) {
             <AdmAvatar name={form.nome} size={46} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
             <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
               <span style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{form.nome}</span>
-              {u.attivo
+              {banned
+                ? <AdmBadge color="DANGER" size="xs">⊘ Bannato</AdmBadge>
+                : u.attivo
                 ? <AdmBadge color="OK" size="xs">● Attivo</AdmBadge>
                 : <AdmBadge color="PLAN_FREE" size="xs">○ Inattivo</AdmBadge>}
               {form.verificato && (
@@ -432,6 +441,10 @@ function UtenteDrawer({ utente: u, onClose }) {
             <div style={{display:'flex', alignItems:'center', gap:10, padding:'4px 6px 10px'}}>
               <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Zona sensibile</span>
               <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
+              <button className="adm-textlink" onClick={()=>setBanPopup(banned ? 'unban' : 'ban')} style={{
+                background:'transparent', border:'none', color: banned ? ADM.MUTED : ADM.DANGER, fontSize:12.5, fontWeight:600,
+                cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+              }}>{banned ? 'Rimuovi ban…' : 'Banna utente…'}</button>
               <button className="adm-textlink" onClick={()=>setDeletePopup(true)} style={{
                 background:'transparent', border:'none', color:ADM.DANGER, fontSize:12.5, fontWeight:600,
                 cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
@@ -529,6 +542,33 @@ function UtenteDrawer({ utente: u, onClose }) {
                   ? <AdmButton variant="danger" size="md" icon="x" disabled={!byupValid} onClick={confirmByup}>Conferma storno</AdmButton>
                   : <AdmButton variant="primary" size="md" icon="check" disabled={!byupValid} onClick={confirmByup}>Conferma accredito</AdmButton>}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Popup conferma: ban / rimozione ban ═══ */}
+        {banPopup && (
+          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setBanPopup(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:410, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+              {banPopup === 'ban' ? (<>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Bannare {form.nome}?</div>
+                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+                  L'account <strong style={{fontFamily:'ui-monospace,monospace'}}>{u.id}</strong> viene <strong style={{color:ADM.DANGER}}>bloccato</strong>: niente più accesso all'app, ordini, prenotazioni o recensioni. L'azione è reversibile e viene registrata nell'audit log.
+                </div>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={()=>setBanPopup(null)}>Annulla</AdmButton>
+                  <AdmButton variant="danger" size="md" icon="lock" onClick={confirmBan}>Banna utente</AdmButton>
+                </div>
+              </>) : (<>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere il ban a {form.nome}?</div>
+                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+                  L'account torna pienamente operativo: accesso, ordini e recensioni. Anche questa azione viene registrata nell'audit log.
+                </div>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={()=>setBanPopup(null)}>Annulla</AdmButton>
+                  <AdmButton variant="primary" size="md" icon="check" onClick={confirmBan}>Rimuovi ban</AdmButton>
+                </div>
+              </>)}
             </div>
           </div>
         )}

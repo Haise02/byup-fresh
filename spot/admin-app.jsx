@@ -174,7 +174,7 @@ function AdminApp({ tweaks }) {
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
     comunicazioni: { t:'Comunicazioni', s:'Email, richieste e segnalazioni dai locali Byup Spot' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
-    team:         { t:'Impostazioni Admin', s:'Team, permessi e configurazione della piattaforma' },
+    team:         { t:'Impostazioni Admin', s:'Team, permessi, configurazione e diagnostica della piattaforma' },
     profilo:      { t:'Profilo', s:'Account e sicurezza' },
   };
 

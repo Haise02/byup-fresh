@@ -67,7 +67,12 @@ const COMUNICAZIONI = (() => {
     { id:'M103', localeId:'L1020', oggetto:'Vorrei programmare una demo del piano Plus', desc:'Buongiorno,\n\nstiamo valutando il passaggio al piano Plus. Possiamo fissare una call di 20 minuti per capire bene cosa cambia rispetto allo Starter e quali funzionalità aggiuntive avremmo a disposizione?\n\nDisponibilità preferita: pomeriggio dopo le 16.\n\nGrazie,', data:new Date(Date.now() - 18*3600000), tags:['lead-upgrade'] },
     { id:'M104', localeId:'L1029', oggetto:'Errore export contabilità maggio', desc:'Buongiorno,\n\nquando provo a esportare la contabilità di maggio dal gestionale, mi compare "errore 502" e il file non si scarica. Sto preparando i documenti per il commercialista.\n\nUrgente, grazie.', data:new Date(Date.now() - 8*3600000), tags:['contabilita'] },
     { id:'M105', localeId:'L1034', oggetto:'Aggiornamento stickers QR per la sala', desc:'Salve,\n\nabbiamo cambiato la disposizione dei tavoli e mi servirebbero nuovi sticker QR aggiornati con i nuovi numeri tavolo. Come posso richiederli?\n\nGrazie!', data:new Date(Date.now() - 26*3600000) },
-    { id:'M106', localeId:'L1041', oggetto:'Recensione offensiva da rimuovere', desc:'Buongiorno,\n\nieri sera abbiamo ricevuto una recensione contenente insulti personali al titolare. Vi chiedo gentilmente di valutarne la rimozione secondo le linee guida della community Byup. Allego screenshot.\n\nGrazie.', data:new Date(Date.now() - 4*3600000), allegati:[{name:'recensione_screenshot.png', size:'620 KB', kind:'image'}] },
+    { id:'M106', localeId:'L1041', oggetto:'Recensione offensiva da rimuovere', desc:'Buongiorno,\n\nieri sera abbiamo ricevuto una recensione contenente insulti personali al titolare. Vi chiedo gentilmente di valutarne la rimozione secondo le linee guida della community Byup.\n\nGrazie.', data:new Date(Date.now() - 4*3600000), tags:['moderazione'],
+      moderazione: { utenteId:'U2007', rating:1, dataRecensione:new Date(Date.now() - 26*3600000), segnalataDa:'locale', motivoSegnalazione:'Insulti personali al titolare',
+        testo:'Posto pessimo, il titolare è un incapace e pure maleducato, roba da denuncia. Cibo immangiabile, non andateci mai, gente del genere dovrebbe chiudere e sparire.' } },
+    { id:'M108', localeId:'L1014', oggetto:'Recensione che pubblica dati di terzi', desc:'Ciao,\n\nleggendo le recensioni del locale ho notato che una recensione fa nome e cognome di un\'altra persona presente quella sera, senza il suo consenso. Non mi sembra corretto, ve la segnalo.\n\nGrazie.', data:new Date(Date.now() - 6*3600000), tags:['moderazione'], senderName:'Giulia Ferraro', senderEmail:'giulia.ferraro@gmail.com',
+      moderazione: { utenteId:'U2015', rating:4, dataRecensione:new Date(Date.now() - 2*86400000), segnalataDa:'utente', motivoSegnalazione:'Contiene dati personali di terzi',
+        testo:'Serata fantastica! C\'era anche Marco Terlizzi al tavolo 12 che ha alzato un po\' il gomito ahah. Comunque carbonara top e servizio veloce, torneremo di sicuro.' } },
     { id:'M107', localeId:'L1006', oggetto:'Confermo risoluzione problema stampante', desc:'Confermo che, dopo aver seguito i passaggi indicati dal vostro tecnico, la stampante adesso stampa regolarmente. Grazie per la rapidità.\n\nA presto.', data:new Date(Date.now() - 86400000*4), stato:'risolta' },
   ];
   const extraItems = extras.map(e => {
@@ -76,10 +81,11 @@ const COMUNICAZIONI = (() => {
       id: e.id,
       certRequest: false,
       localeId: e.localeId,
-      senderName: locale?.titolare || '—',
-      senderEmail: locale?.email || '',
+      senderName: e.senderName || locale?.titolare || '—',
+      senderEmail: e.senderEmail || locale?.email || '',
       oggetto: e.oggetto,
-      desc: e.desc + (locale ? `\n\n${locale.titolare}\n${locale.nome}` : ''),
+      moderazione: e.moderazione,
+      desc: e.desc + (e.senderName ? `\n\n${e.senderName}` : locale ? `\n\n${locale.titolare}\n${locale.nome}` : ''),
       allegati: e.allegati || [],
       data: e.data,
       stato: e.stato || 'nuova',
@@ -477,6 +483,138 @@ function StatoChip({ stato }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// ─── Moderazione recensioni ─────────────────────────────────────────────────
+// La recensione incriminata + azioni: Rimuovi (con motivo) / Mantieni / Avvisa utente,
+// più le scorciatoie sull'autore (shadowban / ban). Tutto passa da conferma e audit log.
+function ModerationCard({ item, locale, onUpdate }) {
+  const mod = item.moderazione;
+  const autore = (typeof UTENTI !== 'undefined' && UTENTI.find(x => x.id === mod.utenteId)) || { id: mod.utenteId, nome: 'Utente ' + mod.utenteId };
+  const [popup, setPopup] = useStateCom(null); // 'rimuovi' | 'avvisa' | 'shadowban' | 'ban' | null
+  const [motivo, setMotivo] = useStateCom('');
+  React.useEffect(() => { setPopup(null); setMotivo(''); }, [item.id]);
+
+  const chiudi = (azione, extra) => {
+    onUpdate({ stato:'risolta', resolvedBy:MY_ID, resolvedAt:new Date(), modEsito:{ azione, motivo: extra || null, at:new Date() } });
+    if (azione === 'shadowban') autore.shadowban = true;
+    if (azione === 'ban') autore.bannato = true;
+    setPopup(null); setMotivo('');
+  };
+
+  const ESITI = {
+    rimossa:    { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'x',      bgIco:ADM.DANGER, label:'Recensione rimossa' },
+    mantenuta:  { bg:ADM.OK_SOFT,     bd:'#BBF7D0',          fg:'#065F46', icona:'check',  bgIco:ADM.OK,     label:'Recensione mantenuta' },
+    avvisato:   { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'mail',   bgIco:ADM.WARN,   label:'Utente avvisato, recensione mantenuta' },
+    shadowban:  { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'shield', bgIco:ADM.WARN,   label:'Utente in shadowban, recensione non più visibile' },
+    ban:        { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'lock',   bgIco:ADM.DANGER, label:'Utente bannato, recensione rimossa' },
+  };
+  const esito = item.modEsito ? ESITI[item.modEsito.azione] : null;
+
+  const azioneBtn = (onClick, colore, sfondo, bordo, icona, label) => (
+    <button onClick={onClick} style={{
+      display:'inline-flex', alignItems:'center', justifyContent:'center', gap:7,
+      padding:'10px 16px', background:sfondo, color:colore,
+      border:bordo, borderRadius:10, fontSize:13.7, fontWeight:700,
+      fontFamily:'inherit', cursor:'pointer', letterSpacing:'-0.005em',
+    }}>{icona}{label}</button>
+  );
+
+  return (
+    <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden', boxShadow:'0 1px 2px rgba(15,17,21,0.03)', position:'relative'}}>
+      {/* La recensione segnalata */}
+      <div style={{padding:'16px 18px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+        <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12, flexWrap:'wrap'}}>
+          <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Recensione segnalata</span>
+          <span style={{padding:'2px 9px', borderRadius:99, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:12, fontWeight:700}}>
+            {mod.segnalataDa === 'locale' ? 'Segnalata dal locale' : 'Segnalata da un utente app'} · {mod.motivoSegnalazione}
+          </span>
+        </div>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:10, flexWrap:'wrap'}}>
+          <AdmAvatar name={autore.nome} size={32}/>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>{autore.nome} <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED_SOFT, fontWeight:500}}>{autore.id}</span></div>
+            <div style={{fontSize:12.5, color:ADM.MUTED}}>su <strong style={{color:ADM.TEXT}}>{locale?.nome || '—'}</strong> · {fmtDate(mod.dataRecensione)}</div>
+          </div>
+          <div style={{flex:1}}/>
+          <span style={{fontSize:14.4, letterSpacing:1, color:'#F5A623'}}>{'★'.repeat(mod.rating)}<span style={{color:ADM.BORDER}}>{'★'.repeat(5 - mod.rating)}</span></span>
+        </div>
+        <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, borderLeft:`3px solid ${ADM.INK_SOFT}`, borderRadius:'0 8px 8px 0', fontSize:14, color:ADM.TEXT, lineHeight:1.55, fontStyle:'italic'}}>
+          “{mod.testo}”
+        </div>
+      </div>
+
+      {/* Esito o azioni */}
+      {esito ? (
+        <div style={{padding:'13px 16px', background:esito.bg, display:'flex', alignItems:'center', gap:10}}>
+          <div style={{width:30, height:30, borderRadius:8, background:esito.bgIco, color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}>{React.createElement(BuIcons[esito.icona], {size:19})}</div>
+          <div style={{flex:1, fontSize:13.7, color:esito.fg}}>
+            <strong>{esito.label}</strong>
+            {item.modEsito.motivo && <> · “{item.modEsito.motivo}”</>}
+            <span style={{opacity:0.75}}> · registrata nell'audit log</span>
+          </div>
+        </div>
+      ) : (
+        <div style={{padding:'14px 16px'}}>
+          <div style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10}}>Azioni di moderazione · registrate nell'audit log</div>
+          <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+            {azioneBtn(()=>setPopup('rimuovi'), '#fff', `linear-gradient(135deg, ${ADM.DANGER}, #B91C1C)`, 'none', <BuIcons.x size={17}/>, 'Rimuovi recensione…')}
+            {azioneBtn(()=>chiudi('mantenuta'), ADM.TEXT, '#fff', `1px solid ${ADM.BORDER}`, <BuIcons.check size={17}/>, 'Mantieni')}
+            {azioneBtn(()=>setPopup('avvisa'), ADM.TEXT, '#fff', `1px solid ${ADM.BORDER}`, <BuIcons.mail size={17}/>, 'Avvisa utente…')}
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:10, marginTop:12, paddingTop:11, borderTop:`1px dashed ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
+            <span style={{fontSize:12.5, color:ADM.MUTED}}>Autore recidivo o abusivo?</span>
+            <button className="adm-textlink" onClick={()=>setPopup('shadowban')} style={{background:'none', border:'none', color:ADM.WARN, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Shadowban…</button>
+            <button className="adm-textlink" onClick={()=>setPopup('ban')} style={{background:'none', border:'none', color:ADM.DANGER, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Banna account…</button>
+          </div>
+        </div>
+      )}
+
+      {/* Popup di conferma */}
+      {popup && (
+        <div style={{position:'fixed', inset:0, zIndex:70, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setPopup(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:430, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            {popup === 'rimuovi' && (<>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere la recensione?</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione sparisce dalla scheda di <strong>{locale?.nome}</strong>. {autore.nome} riceve una notifica con il motivo.</div>
+              <textarea autoFocus value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo della rimozione (obbligatorio) — es. viola le linee guida: insulti personali"
+                style={{width:'100%', minHeight:74, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.3, fontFamily:'inherit', outline:'none', resize:'vertical', boxSizing:'border-box', marginBottom:12}}/>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
+                <AdmButton variant="danger" size="md" icon="x" disabled={!motivo.trim()} onClick={()=>chiudi('rimossa', motivo.trim())}>Rimuovi recensione</AdmButton>
+              </div>
+            </>)}
+            {popup === 'avvisa' && (<>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Avvisare {autore.nome}?</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione resta pubblica, ma l'utente riceve un richiamo formale sulle linee guida della community.</div>
+              <textarea autoFocus value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Testo dell'avviso (obbligatorio) — es. il tono della tua recensione viola le nostre linee guida"
+                style={{width:'100%', minHeight:74, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.3, fontFamily:'inherit', outline:'none', resize:'vertical', boxSizing:'border-box', marginBottom:12}}/>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
+                <AdmButton variant="primary" size="md" icon="mail" disabled={!motivo.trim()} onClick={()=>chiudi('avvisato', motivo.trim())}>Invia avviso</AdmButton>
+              </div>
+            </>)}
+            {popup === 'shadowban' && (<>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Shadowban per {autore.nome}?</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>Le sue recensioni (questa inclusa) diventano <strong>invisibili a tutti tranne che a lui</strong>: non riceve alcuna notifica e non se ne accorge. Reversibile in qualsiasi momento dal dettaglio utente.</div>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
+                <AdmButton variant="primary" size="md" icon="shield" onClick={()=>chiudi('shadowban')}>Attiva shadowban</AdmButton>
+              </div>
+            </>)}
+            {popup === 'ban' && (<>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Bannare l'account di {autore.nome}?</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>L'account <strong style={{fontFamily:'ui-monospace,monospace'}}>{autore.id}</strong> viene <strong style={{color:ADM.DANGER}}>bloccato</strong>: niente più accesso all'app, ordini o recensioni. La recensione segnalata viene rimossa. Reversibile dal dettaglio utente.</div>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
+                <AdmButton variant="danger" size="md" icon="lock" onClick={()=>chiudi('ban')}>Banna account</AdmButton>
+              </div>
+            </>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
   const locale = LOCALI.find(l => l.id === item.localeId);
   const piano = locale ? PIANI.find(p => p.id === locale.piano) : null;
@@ -616,6 +754,8 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           ) : (
             <EmailBody item={item} locale={locale}/>
           )}
+
+          {item.moderazione && <ModerationCard item={item} locale={locale} onUpdate={onUpdate}/>}
 
           {/* Azioni cert */}
           {item.certRequest && item.stato === 'nuova' && (
