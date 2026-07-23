@@ -37,24 +37,15 @@ function AdmTeamPage({ search }) {
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
       <AdmCard padding={0}>
-        <div style={{padding:'14px 22px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
-          <div style={{display:'flex', gap:0, marginRight:'auto'}}>
-            {[{id:'membri',l:'Membri team',b:members.length},{id:'ruoli',l:'Ruoli & Permessi',b:Object.keys(RUOLI).length},{id:'inviti',l:'Inviti pendenti',b:2},{id:'audit',l:'Audit log'},{id:'piattaforma',l:'Piattaforma'}].map(t => (
-              <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
-                padding:'8px 14px',
-                background: tab===t.id ? ADM.TEXT : 'transparent',
-                color: tab===t.id ? '#fff' : ADM.TEXT,
-                border:`1px solid ${tab===t.id ? ADM.TEXT : ADM.BORDER}`,
-                borderRadius:8, marginRight:6,
-                fontSize:13.7, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-                display:'inline-flex', alignItems:'center', gap:6,
-              }}>{t.l} {t.b!==undefined && <span style={{
-                background: tab===t.id ? 'rgba(255,255,255,0.2)' : '#F0F1F3',
-                color: tab===t.id ? '#fff' : ADM.MUTED,
-                padding:'1px 6px', borderRadius:99, fontSize:12.6, fontWeight:700,
-              }}>{t.b}</span>}</button>
-            ))}
-          </div>
+        <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
+          <AdmTabBar tabs={[
+            { id:'membri',      label:'Membri team',     badge:members.length },
+            { id:'ruoli',       label:'Ruoli & Permessi',badge:Object.keys(RUOLI).length },
+            { id:'inviti',      label:'Inviti pendenti', badge:2 },
+            { id:'audit',       label:'Audit log' },
+            { id:'piattaforma', label:'Piattaforma' },
+          ]} active={tab} onChange={setTab}/>
+          <div style={{flex:1}}/>
           {tab === 'membri' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
           {tab === 'ruoli' && <AdmButton variant="secondary" size="sm" icon="plus">Nuovo ruolo</AdmButton>}
         </div>
