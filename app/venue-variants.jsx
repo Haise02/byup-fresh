@@ -1140,7 +1140,7 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
           boxShadow: '0 12px 28px -14px rgba(77,18,46,.4)' }}>Menu</button>
       </div>
 
-      {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={onHome} onProfile={onProfile} showQR={false}/> : null; })()}
+      {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={onHome} onProfile={onProfile}/> : null; })()}
     </div>
   );
 }

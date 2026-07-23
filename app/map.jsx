@@ -930,7 +930,7 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
         {!onlyNews && tab === 'promo' && promo.map(p => <PromoMessageCard key={p.id} item={p}/>)}
       </div>
 
-      {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={onBack} onProfile={() => onProfile && onProfile()} showQR={false}/> : null; })()}
+      {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={onBack} onProfile={() => onProfile && onProfile()}/> : null; })()}
     </div>
   );
 }

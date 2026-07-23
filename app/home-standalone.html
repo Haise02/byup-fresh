@@ -4750,8 +4750,7 @@ function ProfileScreen({
     return B ? /*#__PURE__*/React.createElement(B, {
       active: "profile",
       onHome: onTabHome,
-      onProfile: () => {},
-      showQR: false
+      onProfile: () => {}
     }) : null;
   })(), (() => {
     const K = window.ByupKit;
@@ -10097,8 +10096,7 @@ function VenuePremium({
     return B ? /*#__PURE__*/React.createElement(B, {
       active: "home",
       onHome: onHome,
-      onProfile: onProfile,
-      showQR: false
+      onProfile: onProfile
     }) : null;
   })());
 }
@@ -12264,8 +12262,7 @@ function PostaScreen({
     return B ? /*#__PURE__*/React.createElement(B, {
       active: "home",
       onHome: onBack,
-      onProfile: () => onProfile && onProfile(),
-      showQR: false
+      onProfile: () => onProfile && onProfile()
     }) : null;
   })());
 }
@@ -16368,9 +16365,7 @@ function SearchScreen({
 }) {
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  // niente autofocus: la tastiera si apre solo quando l'utente tocca il campo
   const submit = term => onSubmit(term);
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -23402,7 +23397,7 @@ function ByuppiniScreen({
   }))), /*#__PURE__*/React.createElement(BottomTabBar, {
     active: "byuppini",
     forceDark: true,
-    showQR: false,
+    onQR: onQR,
     onHome: onHome,
     onProfile: onProfile,
     onSearch: onSearch,
@@ -24205,7 +24200,7 @@ function RoadmapScreen({
   }))), /*#__PURE__*/React.createElement(BottomTabBar, {
     active: "byuppini",
     forceDark: true,
-    showQR: false,
+    onQR: onQR,
     onHome: onHome,
     onProfile: onProfile,
     onSearch: onSearch,
@@ -24246,6 +24241,7 @@ function App({
   // Router globale: le BottomTabBar renderizzate da altri file (profile, map)
   // navigano via setPage senza reload. Riassegnato a ogni render.
   useEffect(() => {
+    window.__byupQR = () => setQrOpen(true);
     window.__byupNav = {
       go: setPage,
       home: resetToHome,
@@ -24495,7 +24491,7 @@ function App({
       onHome: resetToHome,
       onProfile: () => setPage('profile'),
       onSearch: () => setPage('search'),
-      showQR: false
+      onQR: () => setQrOpen(true)
     }));
   }
   if (page === 'posta') {
@@ -25138,10 +25134,10 @@ function BottomTabBar({
     height: 60,
     borderRadius: 999,
     position: 'relative',
-    background: dark ? 'rgba(32,30,28,.78)' : 'rgba(255,255,255,.66)',
-    border: `1px solid ${dark ? 'rgba(246,236,233,.12)' : 'rgba(255,255,255,.9)'}`,
-    backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    background: dark ? 'rgba(32,30,28,.48)' : 'rgba(255,255,255,.34)',
+    border: `1px solid ${dark ? 'rgba(246,236,233,.14)' : 'rgba(255,255,255,.65)'}`,
+    backdropFilter: 'blur(13px) saturate(165%)',
+    WebkitBackdropFilter: 'blur(13px) saturate(165%)',
     boxShadow: dark ? '0 16px 34px -14px rgba(0,0,0,.6), inset 0 1px 0 rgba(246,236,233,.08)' : '0 16px 34px -16px rgba(77,18,46,.32), inset 0 1px 0 rgba(255,255,255,.9)',
     display: 'flex',
     alignItems: 'center',
@@ -25149,10 +25145,10 @@ function BottomTabBar({
   };
   const inactive = dark ? 'rgba(246,236,233,.5)' : 'rgba(77,18,46,.42)';
   const coral = forceDark ? '#ff3d6e' : T.primary;
-  // mattonella coral che scivola dentro l'isola (gooey, senza overshoot)
-  const Tile = ({
-    pos
-  }) => /*#__PURE__*/React.createElement("span", {
+  // mattonella coral che scivola dentro l'isola (gooey, senza overshoot).
+  // NB: funzioni render, NON componenti inline: un componente definito nel corpo
+  // cambia identità a ogni render e React lo rimonterebbe (animazione in loop).
+  const renderTile = pos => /*#__PURE__*/React.createElement("span", {
     "aria-hidden": true,
     style: {
       position: 'absolute',
@@ -25162,7 +25158,7 @@ function BottomTabBar({
       height: 48,
       zIndex: 1,
       transform: 'translate(-50%,-50%)',
-      transition: 'left .45s cubic-bezier(.3,.9,.3,1)' // slide fluido, zero overshoot
+      transition: 'left .45s cubic-bezier(.3,.9,.3,1)'
     }
   }, /*#__PURE__*/React.createElement("span", {
     key: pos,
@@ -25172,15 +25168,10 @@ function BottomTabBar({
       borderRadius: 17,
       background: dark ? 'rgba(255,61,110,.16)' : 'rgba(227,36,89,.12)',
       border: `1px solid ${dark ? 'rgba(255,61,110,.3)' : 'rgba(227,36,89,.2)'}`,
-      animation: 'tiGoo .45s cubic-bezier(.3,.9,.3,1)' // squash "gooey" al cambio
+      animation: 'tiGoo .45s cubic-bezier(.3,.9,.3,1)'
     }
   }));
-  const Btn = ({
-    icon: I,
-    act,
-    onClick,
-    size = 24
-  }) => /*#__PURE__*/React.createElement("button", {
+  const renderBtn = (I, act, onClick, size = 24) => /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       BK.haptic.selection();
       onClick?.();
@@ -25238,22 +25229,11 @@ function BottomTabBar({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: islandStyle
-  }, leftPos !== null && /*#__PURE__*/React.createElement(Tile, {
-    pos: leftPos
-  }), /*#__PURE__*/React.createElement(Btn, {
-    icon: Icon.Home,
-    act: active === 'home',
-    onClick: onHome
-  }), /*#__PURE__*/React.createElement(Btn, {
-    icon: Icon.Coin,
-    act: active === 'byuppini',
-    onClick: goByuppini,
-    size: 23
-  })), showQR && /*#__PURE__*/React.createElement("button", {
+  }, leftPos !== null && renderTile(leftPos), renderBtn(Icon.Home, active === 'home', onHome), renderBtn(Icon.Coin, active === 'byuppini', goByuppini, 23)), showQR && /*#__PURE__*/React.createElement("button", {
     className: "bk-press",
     onClick: () => {
       BK.haptic.light();
-      onQR?.();
+      (onQR || window.__byupQR)?.();
     },
     style: {
       position: 'absolute',
@@ -25281,18 +25261,7 @@ function BottomTabBar({
     size: 28
   }))), /*#__PURE__*/React.createElement("div", {
     style: islandStyle
-  }, rightPos !== null && /*#__PURE__*/React.createElement(Tile, {
-    pos: rightPos
-  }), /*#__PURE__*/React.createElement(Btn, {
-    icon: Icon.Search,
-    act: active === 'search',
-    onClick: goSearch,
-    size: 22
-  }), /*#__PURE__*/React.createElement(Btn, {
-    icon: Icon.User,
-    act: active === 'profile',
-    onClick: onProfile
-  }))));
+  }, rightPos !== null && renderTile(rightPos), renderBtn(Icon.Search, active === 'search', goSearch, 22), renderBtn(Icon.User, active === 'profile', onProfile))));
 }
 window.BottomTabBar = BottomTabBar;
 function HScroll({

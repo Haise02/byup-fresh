@@ -921,7 +921,7 @@ function CategoryScreen({ cat, onBack, onOpenVenue }) {
 function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  // niente autofocus: la tastiera si apre solo quando l'utente tocca il campo
   const submit = (term) => onSubmit(term);
   return (
     <div style={{
@@ -3966,7 +3966,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
         )}
       </div>
 
-      <BottomTabBar active="byuppini" forceDark showQR={false} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={() => {}}/>
+      <BottomTabBar active="byuppini" forceDark onQR={onQR} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={() => {}}/>
 
       {/* Level-up */}
       {levelUp && (
@@ -4249,7 +4249,7 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
           strokeLinecap="round" style={{ flex: 'none' }}><polyline points="9 6 15 12 9 18"/></svg>
       </button>
 
-      <BottomTabBar active="byuppini" forceDark showQR={false} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={onByuppini}/>
+      <BottomTabBar active="byuppini" forceDark onQR={onQR} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={onByuppini}/>
     </div>
   );
 }
@@ -4286,6 +4286,7 @@ function App({ recoveryArmed = false }) {
   // Router globale: le BottomTabBar renderizzate da altri file (profile, map)
   // navigano via setPage senza reload. Riassegnato a ogni render.
   useEffect(() => {
+    window.__byupQR = () => setQrOpen(true);
     window.__byupNav = {
       go: setPage, home: resetToHome,
       venue: () => { setActiveVenue(v => v || { premium: true, name: 'Al Settembrini', _from: 'menu' }); setPage('venue'); },
@@ -4468,7 +4469,7 @@ function App({ recoveryArmed = false }) {
         />}
         <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)}
           filters={filters} setFilters={setFilters}/>
-        <BottomTabBar active="home" onHome={resetToHome} onProfile={() => setPage('profile')} onSearch={() => setPage('search')} showQR={false}/>
+        <BottomTabBar active="home" onHome={resetToHome} onProfile={() => setPage('profile')} onSearch={() => setPage('search')} onQR={() => setQrOpen(true)}/>
       </>
     );
   }
@@ -4849,9 +4850,9 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
   });
   const islandStyle = {
     flex: 1, height: 60, borderRadius: 999, position: 'relative',
-    background: dark ? 'rgba(32,30,28,.78)' : 'rgba(255,255,255,.66)',
-    border: `1px solid ${dark ? 'rgba(246,236,233,.12)' : 'rgba(255,255,255,.9)'}`,
-    backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    background: dark ? 'rgba(32,30,28,.48)' : 'rgba(255,255,255,.34)',
+    border: `1px solid ${dark ? 'rgba(246,236,233,.14)' : 'rgba(255,255,255,.65)'}`,
+    backdropFilter: 'blur(13px) saturate(165%)', WebkitBackdropFilter: 'blur(13px) saturate(165%)',
     boxShadow: dark
       ? '0 16px 34px -14px rgba(0,0,0,.6), inset 0 1px 0 rgba(246,236,233,.08)'
       : '0 16px 34px -16px rgba(77,18,46,.32), inset 0 1px 0 rgba(255,255,255,.9)',
@@ -4859,23 +4860,25 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
   };
   const inactive = dark ? 'rgba(246,236,233,.5)' : 'rgba(77,18,46,.42)';
   const coral = forceDark ? '#ff3d6e' : T.primary;
-  // mattonella coral che scivola dentro l'isola (gooey, senza overshoot)
-  const Tile = ({ pos }) => (
+  // mattonella coral che scivola dentro l'isola (gooey, senza overshoot).
+  // NB: funzioni render, NON componenti inline: un componente definito nel corpo
+  // cambia identità a ogni render e React lo rimonterebbe (animazione in loop).
+  const renderTile = (pos) => (
     <span aria-hidden style={{
       position: 'absolute', top: '50%', left: pos === 0 ? '25%' : '75%',
       width: 48, height: 48, zIndex: 1,
       transform: 'translate(-50%,-50%)',
-      transition: 'left .45s cubic-bezier(.3,.9,.3,1)', // slide fluido, zero overshoot
+      transition: 'left .45s cubic-bezier(.3,.9,.3,1)',
     }}>
       <span key={pos} style={{
         position: 'absolute', inset: 0, borderRadius: 17,
         background: dark ? 'rgba(255,61,110,.16)' : 'rgba(227,36,89,.12)',
         border: `1px solid ${dark ? 'rgba(255,61,110,.3)' : 'rgba(227,36,89,.2)'}`,
-        animation: 'tiGoo .45s cubic-bezier(.3,.9,.3,1)', // squash "gooey" al cambio
+        animation: 'tiGoo .45s cubic-bezier(.3,.9,.3,1)',
       }}/>
     </span>
   );
-  const Btn = ({ icon: I, act, onClick, size = 24 }) => (
+  const renderBtn = (I, act, onClick, size = 24) => (
     <button onClick={() => { BK.haptic.selection(); onClick?.(); }} style={{
       position: 'relative', zIndex: 2, width: 52, height: 52,
       background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -4903,12 +4906,12 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
       }}/>
       <div style={{ position: 'relative', display: 'flex', gap: showQR ? 64 : 14, pointerEvents: 'auto' }}>
         <div style={islandStyle}>
-          {leftPos !== null && <Tile pos={leftPos}/>}
-          <Btn icon={Icon.Home} act={active === 'home'} onClick={onHome}/>
-          <Btn icon={Icon.Coin} act={active === 'byuppini'} onClick={goByuppini} size={23}/>
+          {leftPos !== null && renderTile(leftPos)}
+          {renderBtn(Icon.Home, active === 'home', onHome)}
+          {renderBtn(Icon.Coin, active === 'byuppini', goByuppini, 23)}
         </div>
         {showQR && (
-          <button className="bk-press" onClick={() => { BK.haptic.light(); onQR?.(); }} style={{
+          <button className="bk-press" onClick={() => { BK.haptic.light(); (onQR || window.__byupQR)?.(); }} style={{
             position: 'absolute', left: '50%', top: '50%',
             transform: 'translate(-50%, -56%)',
             width: 62, height: 62, borderRadius: 999, border: 'none', zIndex: 3,
@@ -4922,9 +4925,9 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
           </button>
         )}
         <div style={islandStyle}>
-          {rightPos !== null && <Tile pos={rightPos}/>}
-          <Btn icon={Icon.Search} act={active === 'search'} onClick={goSearch} size={22}/>
-          <Btn icon={Icon.User} act={active === 'profile'} onClick={onProfile}/>
+          {rightPos !== null && renderTile(rightPos)}
+          {renderBtn(Icon.Search, active === 'search', goSearch, 22)}
+          {renderBtn(Icon.User, active === 'profile', onProfile)}
         </div>
       </div>
     </div>
