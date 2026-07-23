@@ -243,12 +243,47 @@ function UtenteDrawer({ utente: u, onClose }) {
   const [byupAmount, setByupAmount] = useStateUtn('');
   const [byupFeedback, setByupFeedback] = useStateUtn(null);
   const [deletePopup, setDeletePopup] = useStateUtn(false);
-  const [banPopup, setBanPopup] = useStateUtn(null); // 'ban' | 'unban' | null
+  const [banPopup, setBanPopup] = useStateUtn(null); // 'ban' | 'unban' | 'shadow' | 'unshadow' | null
   const [banned, setBanned] = useStateUtn(!!u.bannato);
-  React.useEffect(() => { setBanned(!!u.bannato); setBanPopup(null); }, [u.id]);
+  const [shadow, setShadow] = useStateUtn(!!u.shadowban);
+  React.useEffect(() => { setBanned(!!u.bannato); setShadow(!!u.shadowban); setBanPopup(null); }, [u.id]);
   const confirmBan = () => {
-    u.bannato = banPopup === 'ban';
-    setBanned(u.bannato); setBanPopup(null);
+    if (banPopup === 'ban' || banPopup === 'unban') { u.bannato = banPopup === 'ban'; setBanned(u.bannato); }
+    if (banPopup === 'shadow' || banPopup === 'unshadow') { u.shadowban = banPopup === 'shadow'; setShadow(u.shadowban); }
+    setBanPopup(null);
+  };
+
+  // ── Recensioni dell'utente (mock deterministico) + rimozione con motivo ──
+  const REV_TESTI = [
+    'Esperienza ottima, servizio veloce e piatti curati. Torneremo di sicuro!',
+    'Buono ma non eccezionale: attesa un po\' lunga, però la qualità c\'è.',
+    'Location carina e personale gentile. Prezzi onesti per la zona.',
+    'Deludente: ordine sbagliato e tavolo prenotato non pronto all\'arrivo.',
+    'Il migliore della città per rapporto qualità/prezzo. Consigliato!',
+    'Menu ricco e ben spiegato nell\'app, il QR al tavolo funziona benissimo.',
+  ];
+  const [recensioni, setRecensioni] = useStateUtn([]);
+  React.useEffect(() => {
+    const attivi = LOCALI.filter(l => l.stato === 'active');
+    const n = 2 + Math.floor(rnd(31) * 3); // 2-4 recensioni
+    setRecensioni(Array.from({length: n}).map((_, i) => {
+      const l = attivi[Math.floor(rnd(40 + i) * attivi.length)] || attivi[0];
+      return {
+        id: u.id + '-R' + i,
+        locale: l,
+        rating: 2 + Math.floor(rnd(50 + i) * 4),
+        testo: REV_TESTI[Math.floor(rnd(60 + i) * REV_TESTI.length)],
+        data: new Date(Date.now() - Math.floor(rnd(70 + i) * 200 + 3) * 86400000),
+        rimossa: null,
+      };
+    }));
+  }, [u.id]);
+  const [revPopup, setRevPopup] = useStateUtn(null); // recensione da rimuovere
+  const [revMotivo, setRevMotivo] = useStateUtn('');
+  const confirmRimuoviRev = () => {
+    if (!revMotivo.trim()) return;
+    setRecensioni(prev => prev.map(r => r.id === revPopup.id ? { ...r, rimossa: revMotivo.trim() } : r));
+    setRevPopup(null); setRevMotivo('');
   };
   const byupN = parseInt(byupAmount, 10) || 0;
   const byupValid = byupPopup === 'sub' ? (byupN > 0 && byupN <= u.byuppini) : byupN > 0;
@@ -318,6 +353,8 @@ function UtenteDrawer({ utente: u, onClose }) {
               <span style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{form.nome}</span>
               {banned
                 ? <AdmBadge color="DANGER" size="xs">⊘ Bannato</AdmBadge>
+                : shadow
+                ? <AdmBadge color="WARN" size="xs">◐ Shadowban</AdmBadge>
                 : u.attivo
                 ? <AdmBadge color="OK" size="xs">● Attivo</AdmBadge>
                 : <AdmBadge color="PLAN_FREE" size="xs">○ Inattivo</AdmBadge>}
@@ -330,7 +367,7 @@ function UtenteDrawer({ utente: u, onClose }) {
           </div>
           {/* Tabs */}
           <div style={{display:'flex', gap:2}}>
-            {[{id:'anagrafica', label:'Anagrafica'},{id:'spese', label:'Spese e abitudini'}].map(t => (
+            {[{id:'anagrafica', label:'Anagrafica'},{id:'spese', label:'Spese e abitudini'},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
               <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'9px 14px', background:'transparent', border:'none',
                 borderBottom:`2px solid ${tab === t.id ? ADM.PINK : 'transparent'}`,
@@ -441,6 +478,10 @@ function UtenteDrawer({ utente: u, onClose }) {
             <div style={{display:'flex', alignItems:'center', gap:10, padding:'4px 6px 10px'}}>
               <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Zona sensibile</span>
               <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
+              <button className="adm-textlink" onClick={()=>setBanPopup(shadow ? 'unshadow' : 'shadow')} style={{
+                background:'transparent', border:'none', color: shadow ? ADM.MUTED : ADM.WARN, fontSize:12.5, fontWeight:600,
+                cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+              }}>{shadow ? 'Rimuovi shadowban…' : 'Shadowban…'}</button>
               <button className="adm-textlink" onClick={()=>setBanPopup(banned ? 'unban' : 'ban')} style={{
                 background:'transparent', border:'none', color: banned ? ADM.MUTED : ADM.DANGER, fontSize:12.5, fontWeight:600,
                 cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
@@ -521,6 +562,65 @@ function UtenteDrawer({ utente: u, onClose }) {
           </div>
         )}
 
+        {/* ═══ TAB RECENSIONI ═══ */}
+        {tab === 'recensioni' && (
+          <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:12, background:ADM.PANEL_SOFT}}>
+            {shadow && (
+              <div style={{padding:'11px 14px', background:'#FFF7E6', border:'1px solid #FDE68A', borderRadius:10, fontSize:13, color:'#78350F', display:'flex', alignItems:'center', gap:8}}>
+                <BuIcons.shield size={17}/>
+                <span><strong>Shadowban attivo</strong> — queste recensioni sono visibili solo all'utente, non compaiono sulle schede dei locali.</span>
+              </div>
+            )}
+            {recensioni.map(r => (
+              <AdmCard key={r.id} padding={16}>
+                <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:9, flexWrap:'wrap'}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>{r.locale.nome}</div>
+                    <div style={{fontSize:12.3, color:ADM.MUTED}}>{r.locale.citta} · {fmtDate(r.data)}</div>
+                  </div>
+                  <div style={{flex:1}}/>
+                  <span style={{fontSize:14.4, letterSpacing:1, color:'#F5A623'}}>{'★'.repeat(r.rating)}<span style={{color:ADM.BORDER}}>{'★'.repeat(5 - r.rating)}</span></span>
+                  {!r.rimossa && (
+                    <button className="adm-textlink" onClick={()=>{ setRevPopup(r); setRevMotivo(''); }} style={{
+                      background:'transparent', border:'none', color:ADM.DANGER, fontSize:12.5, fontWeight:600,
+                      cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+                    }}>Rimuovi…</button>
+                  )}
+                </div>
+                {r.rimossa ? (
+                  <div style={{padding:'10px 13px', background:ADM.DANGER_SOFT, borderRadius:8, fontSize:13, color:'#7F1D1D', display:'flex', alignItems:'center', gap:8}}>
+                    <BuIcons.x size={16}/>
+                    <span><strong>Recensione rimossa</strong> · “{r.rimossa}” · registrata nell'audit log</span>
+                  </div>
+                ) : (
+                  <div style={{padding:'10px 13px', background:ADM.PANEL_SOFT, borderLeft:`3px solid ${ADM.INK_SOFT}`, borderRadius:'0 8px 8px 0', fontSize:13.5, color:ADM.TEXT, lineHeight:1.5, fontStyle:'italic'}}>
+                    “{r.testo}”
+                  </div>
+                )}
+              </AdmCard>
+            ))}
+            {recensioni.length === 0 && (
+              <div style={{padding:'30px 0', textAlign:'center', fontSize:13.5, color:ADM.MUTED}}>Nessuna recensione pubblicata da questo utente.</div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ Popup conferma: rimozione recensione ═══ */}
+        {revPopup && (
+          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setRevPopup(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:430, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere la recensione su {revPopup.locale.nome}?</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione sparisce dalla scheda del locale. {form.nome} riceve una notifica con il motivo. L'azione viene registrata nell'audit log.</div>
+              <textarea autoFocus value={revMotivo} onChange={e=>setRevMotivo(e.target.value)} placeholder="Motivo della rimozione (obbligatorio) — es. viola le linee guida della community"
+                style={{width:'100%', minHeight:74, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.3, fontFamily:'inherit', outline:'none', resize:'vertical', boxSizing:'border-box', marginBottom:12}}/>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setRevPopup(null)}>Annulla</AdmButton>
+                <AdmButton variant="danger" size="md" icon="x" disabled={!revMotivo.trim()} onClick={confirmRimuoviRev}>Rimuovi recensione</AdmButton>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ═══ Popup conferma: carica / storna byuppini ═══ */}
         {byupPopup && (
           <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setByupPopup(null)}>
@@ -550,7 +650,25 @@ function UtenteDrawer({ utente: u, onClose }) {
         {banPopup && (
           <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setBanPopup(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:410, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-              {banPopup === 'ban' ? (<>
+              {banPopup === 'shadow' ? (<>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Shadowban per {form.nome}?</div>
+                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+                  Le sue recensioni diventano <strong>invisibili a tutti tranne che a lui</strong>: non riceve notifiche e non se ne accorge. Reversibile in qualsiasi momento. L'azione viene registrata nell'audit log.
+                </div>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={()=>setBanPopup(null)}>Annulla</AdmButton>
+                  <AdmButton variant="primary" size="md" icon="shield" onClick={confirmBan}>Attiva shadowban</AdmButton>
+                </div>
+              </>) : banPopup === 'unshadow' ? (<>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere lo shadowban a {form.nome}?</div>
+                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+                  Le sue recensioni tornano visibili a tutti. Anche questa azione viene registrata nell'audit log.
+                </div>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={()=>setBanPopup(null)}>Annulla</AdmButton>
+                  <AdmButton variant="primary" size="md" icon="check" onClick={confirmBan}>Rimuovi shadowban</AdmButton>
+                </div>
+              </>) : banPopup === 'ban' ? (<>
                 <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Bannare {form.nome}?</div>
                 <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
                   L'account <strong style={{fontFamily:'ui-monospace,monospace'}}>{u.id}</strong> viene <strong style={{color:ADM.DANGER}}>bloccato</strong>: niente più accesso all'app, ordini, prenotazioni o recensioni. L'azione è reversibile e viene registrata nell'audit log.
