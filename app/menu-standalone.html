@@ -12554,22 +12554,32 @@ const Icon = {
   }), /*#__PURE__*/React.createElement("path", {
     d: "M10.2 20.3a2 2 0 0 0 3.6 0"
   })),
-  Search: p => /*#__PURE__*/React.createElement("svg", {
-    width: p.size || 20,
-    height: p.size || 20,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: p.color || MUTED,
-    strokeWidth: "2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "11",
-    cy: "11",
-    r: "6.4"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M20.3 20.3l-4-4"
-  })),
+  Search: p => {
+    const filled = p.fill && p.fill !== 'none';
+    return /*#__PURE__*/React.createElement("svg", {
+      width: p.size || 20,
+      height: p.size || 20,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: p.color || MUTED,
+      strokeWidth: filled ? 2.4 : 2,
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "11",
+      cy: "11",
+      r: "6.4",
+      fill: filled ? p.fill : 'none'
+    }), filled && /*#__PURE__*/React.createElement("circle", {
+      cx: "11",
+      cy: "11",
+      r: "2.6",
+      fill: "#fff",
+      stroke: "none"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M20.3 20.3l-4-4"
+    }));
+  },
   Sliders: p => /*#__PURE__*/React.createElement("svg", {
     width: p.size || 20,
     height: p.size || 20,
@@ -12935,23 +12945,26 @@ const Icon = {
     d: "M12 15.1v2",
     stroke: p.fill && p.fill !== 'none' ? '#fff' : p.color || TEXT
   })),
-  User: p => /*#__PURE__*/React.createElement("svg", {
-    width: p.size || 24,
-    height: p.size || 24,
-    viewBox: "0 0 24 24",
-    fill: p.fill || 'none',
-    stroke: p.color || TEXT,
-    strokeWidth: "1.8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "12",
-    cy: "8.2",
-    r: "3.6"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M5.3 20.2a6.9 6.9 0 0 1 13.4 0",
-    fill: "none"
-  })),
+  User: p => {
+    const filled = p.fill && p.fill !== 'none';
+    return /*#__PURE__*/React.createElement("svg", {
+      width: p.size || 24,
+      height: p.size || 24,
+      viewBox: "0 0 24 24",
+      fill: p.fill || 'none',
+      stroke: p.color || TEXT,
+      strokeWidth: "1.8",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "12",
+      cy: "8.2",
+      r: "3.6"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M5.3 20.2a6.9 6.9 0 0 1 13.4 0v.9H5.3z",
+      fill: filled ? p.fill : 'none'
+    }));
+  },
   QR: p => /*#__PURE__*/React.createElement("svg", {
     width: p.size || 30,
     height: p.size || 30,
@@ -22502,20 +22515,6 @@ function App({
     } catch {}
     setSavedBooking(null);
   };
-  useEffect(() => {
-    if (!qrOpen) return;
-    const t = setTimeout(() => {
-      try {
-        sessionStorage.removeItem('byup_menu_from');
-      } catch {}
-      setQrOpen(false);
-      try {
-        sessionStorage.setItem('byup_menu_premium', '1');
-      } catch {}
-      setPage('menu');
-    }, 1400);
-    return () => clearTimeout(t);
-  }, [qrOpen]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   // Recupero ordine: armato da Root al primo accesso post-registrazione (dopo i
@@ -23015,79 +23014,19 @@ function App({
   }), /*#__PURE__*/React.createElement(NotifSheet, {
     open: notifOpen,
     onClose: () => setNotifOpen(false)
-  }), recoveryOverlays, qrOpen && /*#__PURE__*/React.createElement("div", {
-    onClick: () => setQrOpen(false),
-    style: {
-      position: 'absolute',
-      inset: 0,
-      zIndex: 60,
-      background: 'rgba(10,10,10,0.92)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'column',
-      animation: 'fade 0.2s ease'
+  }), recoveryOverlays, qrOpen && /*#__PURE__*/React.createElement(QRScanOverlay, {
+    onClose: () => setQrOpen(false),
+    onDone: () => {
+      try {
+        sessionStorage.removeItem('byup_menu_from');
+      } catch {}
+      setQrOpen(false);
+      try {
+        sessionStorage.setItem('byup_menu_premium', '1');
+      } catch {}
+      setPage('menu');
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: 600,
-      letterSpacing: 1.5,
-      marginBottom: 8,
-      opacity: 0.7
-    }
-  }, "BYUP \xB7 MENU SCANNER"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: BK.TYPE.display,
-      color: '#fff',
-      fontSize: 23,
-      fontWeight: 600,
-      marginBottom: 28
-    }
-  }, "Inquadra il menu del locale"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 240,
-      height: 240,
-      borderRadius: 24,
-      position: 'relative',
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      overflow: 'hidden'
-    }
-  }, [[0, 0, 'tl'], [0, 1, 'tr'], [1, 0, 'bl'], [1, 1, 'br']].map(([y, x, k]) => /*#__PURE__*/React.createElement("div", {
-    key: k,
-    style: {
-      position: 'absolute',
-      top: y ? 'auto' : 12,
-      bottom: y ? 12 : 'auto',
-      left: x ? 'auto' : 12,
-      right: x ? 12 : 'auto',
-      width: 32,
-      height: 32,
-      borderTop: !y ? `3px solid ${PINK}` : 'none',
-      borderBottom: y ? `3px solid ${PINK}` : 'none',
-      borderLeft: !x ? `3px solid ${PINK}` : 'none',
-      borderRight: x ? `3px solid ${PINK}` : 'none',
-      borderRadius: !y && !x ? '12px 0 0 0' : y && !x ? '0 0 0 12px' : !y && x ? '0 12px 0 0' : '0 0 12px 0'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 24,
-      right: 24,
-      height: 2,
-      background: `linear-gradient(90deg, transparent, ${PINK}, transparent)`,
-      boxShadow: `0 0 12px ${PINK}`,
-      animation: 'scanline 2.2s ease-in-out infinite'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: 'rgba(255,255,255,0.6)',
-      fontSize: 13,
-      marginTop: 22
-    }
-  }, "Lettura del QR del tavolo\u2026")));
+  }));
 }
 const iconBtn = {
   width: 40,
@@ -23136,6 +23075,253 @@ function SectionHeader({
   }, action));
 }
 
+// ─── Overlay scan QR v2: scan → "trovato" → ti unisci al tavolo ───
+// Fase 'scan' (~1.3s): mirino glass con scan line e angoli che respirano.
+// Fase 'found': il mirino si morpha in una card col tavolo, check animato,
+// avatar dei commensali che poppano e mascotte. Poi entra nel menu.
+function QRScanOverlay({
+  onDone,
+  onClose
+}) {
+  const [phase, setPhase] = useState('scan');
+  useEffect(() => {
+    const t1 = setTimeout(() => {
+      setPhase('found');
+      BK.haptic.success();
+    }, 1350);
+    const t2 = setTimeout(() => onDone && onDone(), 3100);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 60,
+      background: 'rgba(14,8,11,0.93)',
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      animation: 'fade 0.25s ease',
+      overflow: 'hidden',
+      fontFamily: BK.TYPE.sans
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
+@keyframes qrScan{0%{top:20px;opacity:0}12%{opacity:1}50%{top:calc(100% - 22px)}88%{opacity:1}100%{top:20px;opacity:0}}
+@keyframes qrCorner{0%,100%{opacity:.9}50%{opacity:.45}}
+@keyframes qrMorph{0%{transform:scale(1)}40%{transform:scale(.92)}70%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes qrPop{0%{opacity:0;transform:scale(.4) translateY(14px)}70%{transform:scale(1.08) translateY(-2px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes qrCheck{0%{stroke-dashoffset:34}100%{stroke-dashoffset:0}}
+@keyframes qrRing{0%{transform:scale(.5);opacity:.8}100%{transform:scale(1.9);opacity:0}}
+@keyframes qrGlow{0%,100%{opacity:.5}50%{opacity:1}}`), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      left: '50%',
+      top: '38%',
+      width: 380,
+      height: 380,
+      transform: 'translate(-50%,-50%)',
+      pointerEvents: 'none',
+      background: 'radial-gradient(circle, rgba(227,36,89,.22) 0%, transparent 65%)',
+      animation: 'qrGlow 2.6s ease-in-out infinite'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'rgba(255,255,255,.55)',
+      fontSize: 10.5,
+      fontWeight: 800,
+      letterSpacing: 2.4,
+      marginBottom: 8
+    }
+  }, "BYUP \xB7 SCANNER"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: BK.TYPE.display,
+      color: '#fff',
+      fontSize: 22,
+      fontWeight: 600,
+      marginBottom: 26,
+      transition: 'opacity .3s'
+    }
+  }, phase === 'scan' ? 'Inquadra il QR del tavolo' : 'Tavolo trovato!'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 250,
+      borderRadius: 28,
+      position: 'relative',
+      height: phase === 'scan' ? 250 : 190,
+      background: phase === 'scan' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+      border: `1px solid ${phase === 'scan' ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.28)'}`,
+      backdropFilter: 'blur(14px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+      overflow: 'hidden',
+      transition: 'all .5s cubic-bezier(.3,1.05,.35,1)',
+      animation: phase === 'found' ? 'qrMorph .55s cubic-bezier(.3,1.1,.35,1)' : 'none'
+    }
+  }, phase === 'scan' ? /*#__PURE__*/React.createElement(React.Fragment, null, [[0, 0], [0, 1], [1, 0], [1, 1]].map(([y, x]) => /*#__PURE__*/React.createElement("div", {
+    key: `${y}${x}`,
+    style: {
+      position: 'absolute',
+      top: y ? 'auto' : 14,
+      bottom: y ? 14 : 'auto',
+      left: x ? 'auto' : 14,
+      right: x ? 14 : 'auto',
+      width: 30,
+      height: 30,
+      animation: 'qrCorner 1.6s ease-in-out infinite',
+      borderTop: !y ? `3.5px solid ${PINK}` : 'none',
+      borderBottom: y ? `3.5px solid ${PINK}` : 'none',
+      borderLeft: !x ? `3.5px solid ${PINK}` : 'none',
+      borderRight: x ? `3.5px solid ${PINK}` : 'none',
+      borderRadius: !y && !x ? '14px 0 0 0' : y && !x ? '0 0 0 14px' : !y && x ? '0 14px 0 0' : '0 0 14px 0'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 22,
+      right: 22,
+      height: 3,
+      borderRadius: 999,
+      background: `linear-gradient(90deg, transparent, ${PINK}, transparent)`,
+      boxShadow: `0 0 16px ${PINK}, 0 0 40px rgba(227,36,89,.5)`,
+      animation: 'qrScan 2s cubic-bezier(.45,0,.55,1) infinite'
+    }
+  })) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '18px 18px 16px',
+      textAlign: 'center',
+      color: '#fff'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      width: 52,
+      height: 52,
+      margin: '0 auto'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 999,
+      border: `2.5px solid ${PINK}`,
+      animation: 'qrRing .9s ease-out .1s both'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 999,
+      background: 'linear-gradient(135deg, #E32459, #B81C47)',
+      display: 'grid',
+      placeItems: 'center',
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) both',
+      boxShadow: '0 12px 26px -8px rgba(227,36,89,.8)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "3.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12",
+    strokeDasharray: "34",
+    strokeDashoffset: "34",
+    style: {
+      animation: 'qrCheck .45s ease-out .25s forwards'
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: BK.TYPE.display,
+      fontSize: 18,
+      fontWeight: 600,
+      marginTop: 12,
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .15s both'
+    }
+  }, "Tavolo 23"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: 'rgba(255,255,255,.75)',
+      marginTop: 2,
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .22s both'
+    }
+  }, "Ristorante Maria Grazia"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginTop: 12
+    }
+  }, ['M', 'G', '?'].map((ch, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      marginLeft: i ? -8 : 0,
+      background: ch === '?' ? 'rgba(255,255,255,.25)' : 'linear-gradient(135deg,#E32459,#B81C47)',
+      border: '2px solid rgba(255,255,255,.85)',
+      color: '#fff',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 11.5,
+      fontWeight: 800,
+      animation: `qrPop .45s cubic-bezier(.3,1.4,.4,1) ${.35 + i * .09}s both`
+    }
+  }, ch)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      alignSelf: 'center',
+      marginLeft: 8,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: 'rgba(255,255,255,.8)',
+      animation: 'qrPop .45s ease .6s both'
+    }
+  }, "ti stanno aspettando")))), phase === 'scan' ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'rgba(255,255,255,0.55)',
+      fontSize: 12.5,
+      fontWeight: 600,
+      marginTop: 22
+    }
+  }, "Lettura del QR del tavolo\u2026") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 20,
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .45s both'
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "assets/mascot-wave.png",
+    alt: "",
+    style: {
+      width: 58,
+      filter: 'drop-shadow(0 8px 14px rgba(227,36,89,.4))',
+      animation: 'bkBob 2.6s ease-in-out infinite'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'rgba(255,255,255,.95)',
+      color: '#1c0f15',
+      fontSize: 12.5,
+      fontWeight: 700,
+      padding: '9px 14px',
+      borderRadius: '16px 16px 16px 4px'
+    }
+  }, "Ti porto al men\xF9!")));
+}
+
 // Reusable bottom tab bar — uses the provided 390×88 vector path.
 // The wrapper has `aspect-ratio: 390 / 88`, so its height auto-derives from the
 // width set by left/right insets. With matching aspect ratios on the wrapper and
@@ -23157,102 +23343,129 @@ function BottomTabBar({
 }) {
   const [T] = BK.useByupTheme();
   const dark = forceDark || T.dark;
-  // Fallback: dentro la SPA usa il router globale (__byupNav), fuori (menu app)
-  // torna alla Home con deep-link. Mai piu' pagine HTML separate.
   const goByuppini = onByuppini || (() => {
     if (window.__byupNav) window.__byupNav.go('byuppini');else window.location.href = 'byup Home.html?page=byuppini';
   });
   const goSearch = onSearch || (() => {
     if (window.__byupNav) window.__byupNav.go('search');else window.location.href = 'byup Home.html?page=search';
   });
+  const islandStyle = {
+    flex: 1,
+    height: 60,
+    borderRadius: 999,
+    position: 'relative',
+    background: dark ? 'rgba(32,30,28,.78)' : 'rgba(255,255,255,.66)',
+    border: `1px solid ${dark ? 'rgba(246,236,233,.12)' : 'rgba(255,255,255,.9)'}`,
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    boxShadow: dark ? '0 16px 34px -14px rgba(0,0,0,.6), inset 0 1px 0 rgba(246,236,233,.08)' : '0 16px 34px -16px rgba(77,18,46,.32), inset 0 1px 0 rgba(255,255,255,.9)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-around'
+  };
+  const inactive = dark ? 'rgba(246,236,233,.5)' : 'rgba(77,18,46,.42)';
+  const coral = forceDark ? '#ff3d6e' : T.primary;
+  // mattonella coral che scivola dentro l'isola (gooey, senza overshoot)
+  const Tile = ({
+    pos
+  }) => /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      top: '50%',
+      left: pos === 0 ? '25%' : '75%',
+      width: 48,
+      height: 48,
+      zIndex: 1,
+      transform: 'translate(-50%,-50%)',
+      transition: 'left .45s cubic-bezier(.3,.9,.3,1)' // slide fluido, zero overshoot
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    key: pos,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 17,
+      background: dark ? 'rgba(255,61,110,.16)' : 'rgba(227,36,89,.12)',
+      border: `1px solid ${dark ? 'rgba(255,61,110,.3)' : 'rgba(227,36,89,.2)'}`,
+      animation: 'tiGoo .45s cubic-bezier(.3,.9,.3,1)' // squash "gooey" al cambio
+    }
+  }));
+  const Btn = ({
+    icon: I,
+    act,
+    onClick,
+    size = 24
+  }) => /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      BK.haptic.selection();
+      onClick?.();
+    },
+    style: {
+      position: 'relative',
+      zIndex: 2,
+      width: 52,
+      height: 52,
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'transform .4s cubic-bezier(.3,1.1,.35,1)',
+      transform: act ? 'scale(1.06)' : 'scale(1)'
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    size: size,
+    color: act ? coral : inactive,
+    fill: act ? coral : 'none'
+  }));
+  const leftPos = active === 'home' ? 0 : active === 'byuppini' ? 1 : null;
+  const rightPos = active === 'search' ? 0 : active === 'profile' ? 1 : null;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       left: 0,
       right: 0,
-      bottom: 'env(safe-area-inset-bottom, 0px)',
-      height: 78,
+      bottom: 0,
       zIndex: 20,
-      filter: dark ? 'drop-shadow(0 -3px 14px rgba(0,0,0,0.4)) drop-shadow(0 12px 30px rgba(0,0,0,0.5))' : 'drop-shadow(0 -3px 14px rgba(227,36,89,0.07)) drop-shadow(0 12px 30px rgba(77,18,46,0.16))'
+      padding: '0 14px calc(env(safe-area-inset-bottom, 0px) + 10px)',
+      pointerEvents: 'none'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("style", null, `@keyframes tiGoo{0%{transform:scale(1)}45%{transform:scale(1.22,.84)}100%{transform:scale(1)}}
+@keyframes tiBreath{0%,100%{box-shadow:0 14px 30px -10px rgba(227,36,89,.6), 0 0 0 4px ${dark ? 'rgba(32,30,28,.9)' : 'rgba(255,255,255,.9)'}}50%{box-shadow:0 18px 40px -8px rgba(227,36,89,.85), 0 0 0 6px ${dark ? 'rgba(32,30,28,.95)' : 'rgba(255,255,255,.95)'}}}`), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: 'absolute',
       left: 0,
       right: 0,
-      top: '99%',
-      height: 'calc(env(safe-area-inset-bottom, 0px) + 2px)',
-      background: dark ? '#201e1c' : 'rgba(255,255,255,0.96)'
-    }
-  }), /*#__PURE__*/React.createElement("svg", {
-    width: "100%",
-    height: "100%",
-    viewBox: "0 0 390 88",
-    preserveAspectRatio: "none",
-    style: {
-      position: 'absolute',
-      inset: 0,
-      display: 'block'
-    }
-  }, /*#__PURE__*/React.createElement("path", {
-    d: TABBAR_PATH,
-    fill: dark ? '#201e1c' : 'rgba(255,255,255,0.96)'
-  }), /*#__PURE__*/React.createElement("path", {
-    d: TABBAR_PATH,
-    fill: "none",
-    stroke: dark ? 'rgba(251,234,230,0.10)' : 'rgba(255,255,255,0.9)',
-    strokeWidth: "1"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
       bottom: 0,
-      top: `calc(${TABBAR_NOTCH_DEPTH_PCT}% - 10px)`,
-      display: 'flex',
-      alignItems: 'flex-start'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      display: 'flex'
-    }
-  }, /*#__PURE__*/React.createElement(TabBtn, {
-    label: "Home",
-    icon: Icon.Home,
-    active: active === 'home',
-    onClick: onHome,
-    forceDark: forceDark
-  }), /*#__PURE__*/React.createElement(TabBtn, {
-    label: "Byuppini",
-    icon: Icon.Coin,
-    active: active === 'byuppini',
-    onClick: goByuppini,
-    forceDark: forceDark
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 88,
-      flex: 'none'
+      height: 108,
+      pointerEvents: 'none',
+      background: `linear-gradient(180deg, transparent 0%, ${dark ? 'rgba(15,11,14,.55)' : 'rgba(251,244,241,.72)'} 62%, ${dark ? 'rgba(15,11,14,.92)' : 'rgba(251,244,241,.96)'} 100%)`
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      flex: 1,
-      display: 'flex'
+      position: 'relative',
+      display: 'flex',
+      gap: showQR ? 64 : 14,
+      pointerEvents: 'auto'
     }
-  }, /*#__PURE__*/React.createElement(TabBtn, {
-    label: "Cerca",
-    icon: Icon.Search,
-    active: active === 'search',
-    onClick: goSearch,
-    forceDark: forceDark
-  }), /*#__PURE__*/React.createElement(TabBtn, {
-    label: "Profilo",
-    icon: Icon.User,
-    active: active === 'profile',
-    onClick: onProfile,
-    forceDark: forceDark
-  }))), showQR && /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: islandStyle
+  }, leftPos !== null && /*#__PURE__*/React.createElement(Tile, {
+    pos: leftPos
+  }), /*#__PURE__*/React.createElement(Btn, {
+    icon: Icon.Home,
+    act: active === 'home',
+    onClick: onHome
+  }), /*#__PURE__*/React.createElement(Btn, {
+    icon: Icon.Coin,
+    act: active === 'byuppini',
+    onClick: goByuppini,
+    size: 23
+  })), showQR && /*#__PURE__*/React.createElement("button", {
     className: "bk-press",
     onClick: () => {
       BK.haptic.light();
@@ -23261,19 +23474,19 @@ function BottomTabBar({
     style: {
       position: 'absolute',
       left: '50%',
-      top: `calc(${TABBAR_NOTCH_DEPTH_PCT}% - 70px)`,
-      transform: 'translateX(-50%)',
-      width: 60,
-      height: 60,
+      top: '50%',
+      transform: 'translate(-50%, -56%)',
+      width: 62,
+      height: 62,
       borderRadius: 999,
       border: 'none',
-      background: `linear-gradient(135deg, ${T.primary} 0%, ${PINK_DARK} 100%)`,
-      boxShadow: '0 14px 30px -6px rgba(227,36,89,0.6), 0 4px 10px rgba(28,6,16,0.22)',
+      zIndex: 3,
+      background: `linear-gradient(135deg, ${coral} 0%, ${PINK_DARK} 100%)`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       cursor: 'pointer',
-      zIndex: 2
+      animation: 'tiBreath 3.2s ease-in-out infinite'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -23282,46 +23495,22 @@ function BottomTabBar({
     }
   }, /*#__PURE__*/React.createElement(Icon.QR, {
     size: 28
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: islandStyle
+  }, rightPos !== null && /*#__PURE__*/React.createElement(Tile, {
+    pos: rightPos
+  }), /*#__PURE__*/React.createElement(Btn, {
+    icon: Icon.Search,
+    act: active === 'search',
+    onClick: goSearch,
+    size: 22
+  }), /*#__PURE__*/React.createElement(Btn, {
+    icon: Icon.User,
+    act: active === 'profile',
+    onClick: onProfile
   }))));
 }
 window.BottomTabBar = BottomTabBar;
-function TabBtn({
-  label,
-  icon: I,
-  active,
-  onClick,
-  forceDark = false
-}) {
-  const [T] = BK.useByupTheme();
-  const c = active ? forceDark ? '#ff3d6e' : T.primary : forceDark ? 'rgba(246,236,233,.55)' : T.textFaint;
-  return /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      BK.haptic.selection();
-      onClick?.();
-    },
-    style: {
-      flex: 1,
-      background: 'none',
-      border: 'none',
-      padding: '4px 0',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: 4,
-      cursor: 'pointer',
-      fontFamily: BK.TYPE.sans
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    color: c,
-    fill: active ? c : 'none'
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: c
-    }
-  }, label));
-}
 function HScroll({
   children
 }) {
