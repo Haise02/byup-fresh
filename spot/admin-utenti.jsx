@@ -288,12 +288,14 @@ function UtenteDrawer({ utente: u, onClose }) {
         </div>
 
         <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10}}>
-            <MiniStat label="Spesa" value={fmtEur(spesaP)} sub={periodLabels[period]}/>
-            <MiniStat label="Ordini delivery" value={ordiniP} sub={periodLabels[period]}/>
-            <MiniStat label="Asporto" value={Math.round(ordiniP*0.42)} sub={periodLabels[period]}/>
-            <MiniStat label="Prenotazioni" value={prenP} sub={periodLabels[period]}/>
-          </div>
+          <AdmCard padding={0}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
+              <MiniStat first label="Spesa" value={fmtEur(spesaP)} sub={periodLabels[period]}/>
+              <MiniStat label="Ordini delivery" value={ordiniP} sub={periodLabels[period]}/>
+              <MiniStat label="Asporto" value={Math.round(ordiniP*0.42)} sub={periodLabels[period]}/>
+              <MiniStat label="Prenotazioni" value={prenP} sub={periodLabels[period]}/>
+            </div>
+          </AdmCard>
 
           <AdmCard padding={20}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
@@ -320,7 +322,7 @@ function UtenteDrawer({ utente: u, onClose }) {
                       </div>
                     </div>
                     <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                      <div style={{width:`${pct}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`, borderRadius:99}}/>
+                      <div style={{width:`${pct}%`, height:'100%', background: i === 0 ? ADM.PINK : ADM.INK, opacity: i === 0 ? 1 : 0.55, borderRadius:99}}/>
                     </div>
                   </div>
                 );

@@ -452,11 +452,13 @@ function StaffDrawer({ staff: s, onClose }) {
         <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
           {/* Statistiche operative solo per i camerieri (prendono ordini al tavolo) */}
           {s.ruolo === 'cameriere' && (
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
-              <MiniStat label="Ordini mese" value={fmtNum(s.ordiniMese)} sub="Presi al tavolo"/>
-              <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)} sub="Mese corrente"/>
-              <MiniStat label="Scontrino medio" value={fmtEur(Math.round(s.ordiniMese * 0.6))} sub="Per ordine"/>
-            </div>
+            <AdmCard padding={0}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+                <MiniStat first label="Ordini mese" value={fmtNum(s.ordiniMese)} sub="Presi al tavolo"/>
+                <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)} sub="Mese corrente"/>
+                <MiniStat label="Scontrino medio" value={fmtEur(Math.round(s.ordiniMese * 0.6))} sub="Per ordine"/>
+              </div>
+            </AdmCard>
           )}
 
           {/* Aree del gestionale coperte — solo per i ruoli personalizzati */}

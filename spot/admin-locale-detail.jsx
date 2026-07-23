@@ -96,16 +96,18 @@ function DrwPanoramica({ locale: l }) {
         </div>
       )}
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-        <MiniStat label="Ordini/giorno" value={l.ordiniGiorno} sub={`${fmtNum(l.ordiniMese)}/mese`}/>
-        <MiniStat label="Prenotaz./giorno" value={l.prenotazioniGiorno} sub={`${l.copertura}% copertura`}/>
-        <MiniStat label="Scontrino medio" value={fmtEur(l.ticketMedio)} sub="per ordine"/>
-        <MiniStat label="Ultimo login" value={fmtRelative(l.lastLogin)} sub={fmtDate(l.lastLogin)}/>
-      </div>
+      <AdmCard padding={0}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
+          <MiniStat first label="Ordini/giorno" value={l.ordiniGiorno} sub={`${fmtNum(l.ordiniMese)}/mese`}/>
+          <MiniStat label="Prenotaz./giorno" value={l.prenotazioniGiorno} sub={`${l.copertura}% copertura`}/>
+          <MiniStat label="Scontrino medio" value={fmtEur(l.ticketMedio)} sub="per ordine"/>
+          <MiniStat label="Ultimo login" value={fmtRelative(l.lastLogin)} sub={fmtDate(l.lastLogin)}/>
+        </div>
+      </AdmCard>
 
       <AdmCard padding={18}>
         <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:12}}>Andamento ordini · 14 giorni</div>
-        <AdmBarChart data={[12,18,14,22,28,32,24,30,38,42,36,44,48,52].map(x=>x*(l.ordiniGiorno/30))} labels={Array(14).fill('')} color={ADM.PINK} height={140}/>
+        <AdmBarChart data={[12,18,14,22,28,32,24,30,38,42,36,44,48,52].map(x=>x*(l.ordiniGiorno/30))} labels={Array(14).fill('')} height={140}/>
       </AdmCard>
 
       <DrwAdozioneDigitale locale={l}/>
@@ -117,13 +119,14 @@ function DrwPanoramica({ locale: l }) {
   );
 }
 
-function MiniStat({ label, value, sub }) {
+function MiniStat({ label, value, sub, first }) {
+  // Cella di una striscia KPI unificata: hairline tra le colonne, non box.
   return (
-    <AdmCard padding={14}>
-      <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
-      <div style={{fontSize:19.4, fontWeight:700, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.01em'}}>{value}</div>
-      {sub && <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{sub}</div>}
-    </AdmCard>
+    <div style={{padding:'14px 18px', borderLeft: first ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+      <div style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+      <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1.1}}>{value}</div>
+      {sub && <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
+    </div>
   );
 }
 

@@ -283,24 +283,30 @@ function AdmSparkline({ data = [], color = '#FF5A5F', height = 36, width = 120 }
 }
 
 // BarChart semplice
-function AdmBarChart({ data = [], labels = [], color = '#FF5A5F', height = 160 }) {
+function AdmBarChart({ data = [], labels = [], color, height = 160 }) {
+  // Schema "inchiostro + un accento": barre snelle, periodi passati attenuati,
+  // l'ultimo pieno. Il colore di default è l'ink dei grafici.
+  const c = color || ADM.INK;
   const max = Math.max(...data, 1);
   return (
-    <div style={{display:'flex', alignItems:'flex-end', gap:6, height, padding:'0 4px'}}>
-      {data.map((v, i) => (
-        <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, height:'100%'}}>
-          <div style={{flex:1, width:'100%', display:'flex', alignItems:'flex-end'}}>
-            <div style={{
-              width:'100%',
-              height: `${(v/max)*100}%`,
-              background: color,
-              borderRadius:'4px 4px 0 0',
-              minHeight: 2,
-            }}/>
+    <div style={{display:'flex', alignItems:'flex-end', gap:8, height, padding:'0 4px'}}>
+      {data.map((v, i) => {
+        const last = i === data.length - 1;
+        return (
+          <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, height:'100%', minWidth:0}}>
+            <div style={{flex:1, width:'100%', maxWidth:34, display:'flex', alignItems:'flex-end', opacity: last ? 1 : 0.55, margin:'0 auto'}}>
+              <div style={{
+                width:'100%',
+                height: `${(v/max)*100}%`,
+                background: c,
+                borderRadius:'4px 4px 0 0',
+                minHeight: 2,
+              }}/>
+            </div>
+            {labels[i] && <div style={{fontSize:12, color: last ? ADM.TEXT : ADM.MUTED_SOFT, fontWeight: last ? 700 : 500}}>{labels[i]}</div>}
           </div>
-          {labels[i] && <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:500}}>{labels[i]}</div>}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
