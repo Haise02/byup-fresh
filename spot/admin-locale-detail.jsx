@@ -3,7 +3,7 @@
 const { useState: useStateDrw } = React;
 
 function LocaleDrawer({ locale: l, onClose }) {
-  const [tab, setTab] = useStateDrw('panoramica');
+  const [tab, setTab] = useStateDrw('anagrafica');
 
   return (
     <div style={{
@@ -21,9 +21,15 @@ function LocaleDrawer({ locale: l, onClose }) {
         display:'flex', flexDirection:'column',
         boxShadow:'0 32px 80px rgba(15,17,21,0.30)',
         animation:'admModalIn 0.22s cubic-bezier(0.22,0.9,0.35,1)',
+        position:'relative',
       }}>
         {/* Header */}
-        <div style={{padding:'20px 24px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
+        <div style={{padding:'16px 24px 14px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
+          <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Dettaglio locale</span>
+          <AdmIconBtn icon="x" onClick={onClose} label="Chiudi"/>
+        </div>
+        <div style={{display:'flex', alignItems:'center', gap:14}}>
           <div style={{
             width:48, height:48, borderRadius:10,
             background: `hsl(${(l.id.charCodeAt(1)+l.id.charCodeAt(3))*3 % 360}, 35%, 55%)`,
@@ -45,12 +51,12 @@ function LocaleDrawer({ locale: l, onClose }) {
             </div>
           </div>
           <AdmButton variant="secondary" icon="eye" size="sm">Visualizza come</AdmButton>
-          <AdmIconBtn icon="x" onClick={onClose} label="Chiudi"/>
+        </div>
         </div>
 
         <AdmTabBar tabs={[
+          { id:'anagrafica', label:'Anagrafica' },
           { id:'panoramica', label:'Panoramica' },
-          { id:'anagrafica', label:'Anagrafica & Fiscali' },
           { id:'attivita', label:'Attività' },
           { id:'fatturazione', label:'Fatturazione & Piano' },
         ]} active={tab} onChange={setTab}/>
@@ -444,28 +450,70 @@ function DrwFunnel({ locale: l }) {
 }
 
 function DrwAnagrafica({ locale: l }) {
+  const FIELDS = ['nome','tipo','indirizzo','cap','citta','regione','titolare','email','tel','coperti','piva','cf','sdi'];
+  const [form, setForm] = useStateDrw(Object.fromEntries(FIELDS.map(k => [k, l[k] ?? ''])));
+  const dirty = FIELDS.some(k => String(form[k]) !== String(l[k] ?? ''));
+  const [saved, setSaved] = useStateDrw(false);
+  const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target.value })); };
+  const saveForm = () => {
+    Object.assign(l, { ...form, coperti: Number(form.coperti) || l.coperti });
+    setSaved(true); setTimeout(()=>setSaved(false), 2200);
+  };
+  const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
+  const mono = {...inp, fontFamily:'ui-monospace,monospace', fontSize:12.5};
+  const lab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
+  const Fld = ({k, label, span, monoStyle, type}) => (
+    <div style={span ? {gridColumn:'1 / -1'} : undefined}>
+      <label style={lab}>{label}</label>
+      <input type={type || 'text'} value={form[k]} onChange={F(k)} style={monoStyle ? mono : inp}/>
+    </div>
+  );
   return (
     <div style={{padding:'20px 24px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
       <AdmCard padding={20}>
-        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Anagrafica locale</div>
-        <DataRow label="Ragione sociale" value={l.nome}/>
-        <DataRow label="Tipologia" value={l.tipo}/>
-        <DataRow label="Indirizzo" value={`${l.indirizzo}, ${l.cap} ${l.citta} (${l.regione})`}/>
-        <DataRow label="Titolare" value={l.titolare}/>
-        <DataRow label="Email" value={l.email} mono/>
-        <DataRow label="Telefono" value={l.tel} mono/>
-        <DataRow label="Coperti" value={`${l.coperti} posti`} last/>
+        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Anagrafica locale</div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
+          {Fld({k:'nome', label:'Ragione sociale', span:true})}
+          {Fld({k:'tipo', label:'Tipologia'})}
+          {Fld({k:'titolare', label:'Titolare'})}
+          {Fld({k:'indirizzo', label:'Indirizzo', span:true})}
+          {Fld({k:'cap', label:'CAP', monoStyle:true})}
+          {Fld({k:'citta', label:'Città'})}
+          {Fld({k:'regione', label:'Regione'})}
+          {Fld({k:'coperti', label:'Coperti', type:'number'})}
+          {Fld({k:'email', label:'Email', monoStyle:true, span:true})}
+          {Fld({k:'tel', label:'Telefono', monoStyle:true})}
+        </div>
       </AdmCard>
 
       <AdmCard padding={20}>
-        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Dati fiscali</div>
-        <DataRow label="P. IVA" value={l.piva} mono/>
-        <DataRow label="Codice fiscale" value={l.cf} mono/>
-        <DataRow label="Codice SDI / PEC" value={l.sdi} mono/>
-        <DataRow label="Regime fiscale" value="Ordinario"/>
-        <DataRow label="IBAN" value="IT60 X054 2811 1010 0000 ******78" mono/>
-        <DataRow label="Iscritto dal" value={fmtDate(l.dataIscrizione)} last/>
+        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Dati fiscali</div>
+        <div style={{display:'flex', flexDirection:'column', gap:12}}>
+          {Fld({k:'piva', label:'Partita IVA', monoStyle:true})}
+          {Fld({k:'cf', label:'Codice fiscale', monoStyle:true})}
+          <Fld k="sdi" label="Codice SDI / PEC" monoStyle/>
+          <div>
+            <label style={lab}>Regime fiscale</label>
+            <div style={{...inp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>Ordinario</div>
+          </div>
+          <div>
+            <label style={lab}>IBAN</label>
+            <div style={{...mono, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+              IT60 X054 2811 1010 0000 ******78
+              <span style={{fontSize:10.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:ADM.MUTED_SOFT}}>gestito da Stripe</span>
+            </div>
+          </div>
+          <div>
+            <label style={lab}>Iscritto dal</label>
+            <div style={{...inp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{fmtDate(l.dataIscrizione)}</div>
+          </div>
+        </div>
       </AdmCard>
+
+      <div style={{gridColumn:'span 2', display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10}}>
+        {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
+        <AdmButton variant="primary" size="md" icon="check" disabled={!dirty} onClick={saveForm}>Salva modifiche</AdmButton>
+      </div>
 
       <AdmCard padding={20} style={{gridColumn:'span 2'}}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
@@ -537,7 +585,37 @@ function DrwAttivita({ locale: l }) {
 }
 
 function DrwFatturazione({ locale: l }) {
+  const [, forceRender] = useStateDrw(0);
   const piano = PIANI.find(p => p.id === l.piano);
+  // Azioni di fatturazione: rimborso / accredito ordini extra / cambio piano.
+  const [popup, setPopup] = useStateDrw(null); // 'rimborso' | 'accredito' | 'piano' | null
+  const [amount, setAmount] = useStateDrw('');
+  const [reason, setReason] = useStateDrw('');
+  const [planSel, setPlanSel] = useStateDrw(l.piano);
+  const [feedback, setFeedback] = useStateDrw(null);
+  const flash = (msg) => { setFeedback(msg); setTimeout(()=>setFeedback(null), 3000); };
+  const closePopup = () => { setPopup(null); setAmount(''); setReason(''); setPlanSel(l.piano); };
+  const confirmRimborso = () => {
+    const n = parseFloat(amount);
+    if (!n || n <= 0) return;
+    flash(`Rimborso di ${fmtEur(n)} emesso verso ${l.nome}`);
+    closePopup();
+  };
+  const confirmAccredito = () => {
+    const n = parseInt(amount, 10);
+    if (!n || n <= 0) return;
+    flash(`${fmtNum(n)} ordini extra accreditati senza addebito`);
+    closePopup();
+  };
+  const confirmPiano = () => {
+    const nuovo = PIANI.find(p => p.id === planSel);
+    if (!nuovo || nuovo.id === l.piano) return;
+    l.piano = nuovo.id; l.mrr = nuovo.price;
+    flash(`Piano aggiornato a ${nuovo.label}`);
+    closePopup(); forceRender(x => x + 1);
+  };
+  const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
+  const lab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
   const fatture = [
     { num: '2025-0142', data: new Date(Date.now() - 86400000 * 5), importo: l.mrr, stato: 'paid' },
     { num: '2024-0118', data: new Date(Date.now() - 86400000 * 35), importo: l.mrr, stato: 'paid' },
@@ -559,10 +637,91 @@ function DrwFatturazione({ locale: l }) {
             <div style={{fontSize:19.4, fontWeight:700, color:ADM.TEXT, marginTop:2}}>{piano.label} · {fmtEur(piano.price)}/mese</div>
             {l.extras > 0 && <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:3, fontWeight:600}}>+ {fmtEur(l.extras)}/mese in extra</div>}
           </div>
-          <AdmButton variant="secondary" size="sm">Cambia piano</AdmButton>
+          <AdmButton variant="secondary" size="sm" onClick={()=>setPopup('piano')}>Cambia piano</AdmButton>
           <AdmButton variant="ghost" size="sm">Sospendi</AdmButton>
         </div>
+        {feedback && <div style={{marginTop:12, padding:'9px 12px', background:ADM.OK_SOFT, borderRadius:8, fontSize:13, color:'#065F46', fontWeight:600}}>✓ {feedback}</div>}
       </AdmCard>
+
+      {/* Azioni di fatturazione — rimborso / accredito ordini extra */}
+      <AdmCard padding={20}>
+        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Azioni di fatturazione</div>
+        <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:14}}>Operazioni manuali sul conto del locale · richiedono conferma</div>
+        <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+          <AdmButton variant="secondary" size="md" icon="money" onClick={()=>setPopup('rimborso')}>Emetti rimborso</AdmButton>
+          <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setPopup('accredito')}>Accredita ordini extra</AdmButton>
+        </div>
+      </AdmCard>
+
+      {/* ═══ Popup: rimborso ═══ */}
+      {popup === 'rimborso' && (
+        <div style={{position:'fixed', inset:0, zIndex:60, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={closePopup}>
+          <div onClick={e=>e.stopPropagation()} style={{width:400, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Emetti rimborso</div>
+            <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Rimborso manuale a {l.nome} via Stripe · ultimo addebito {fmtEur(l.mrr)}</div>
+            <label style={lab}>Importo (€)</label>
+            <input type="number" min="1" step="0.01" autoFocus value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Es. 49,00" style={{...inp, marginBottom:12}}/>
+            <label style={lab}>Motivo (obbligatorio)</label>
+            <input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Es. disservizio del 12/07, doppio addebito…" style={{...inp, marginBottom:14}}/>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="md" onClick={closePopup}>Annulla</AdmButton>
+              <AdmButton variant="danger" size="md" icon="check" disabled={!(parseFloat(amount) > 0) || !reason.trim()} onClick={confirmRimborso}>Conferma rimborso</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Popup: accredito ordini extra ═══ */}
+      {popup === 'accredito' && (
+        <div style={{position:'fixed', inset:0, zIndex:60, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={closePopup}>
+          <div onClick={e=>e.stopPropagation()} style={{width:400, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Accredita ordini extra</div>
+            <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Ordini aggiuntivi senza addebito per {l.nome} (piano {piano.label}, extra correnti {fmtEur(l.extras)}/mese)</div>
+            <label style={lab}>Numero di ordini da accreditare</label>
+            <input type="number" min="1" autoFocus value={amount} onChange={e=>setAmount(e.target.value)}
+              onKeyDown={e=>{ if (e.key === 'Enter') confirmAccredito(); }}
+              placeholder="Es. 200" style={{...inp, marginBottom:14}}/>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="md" onClick={closePopup}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="md" icon="check" disabled={!(parseInt(amount,10) > 0)} onClick={confirmAccredito}>Conferma accredito</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Popup: cambio piano ═══ */}
+      {popup === 'piano' && (
+        <div style={{position:'fixed', inset:0, zIndex:60, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={closePopup}>
+          <div onClick={e=>e.stopPropagation()} style={{width:560, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Cambia piano</div>
+            <div style={{fontSize:13, color:ADM.MUTED, marginBottom:16}}>Il nuovo piano si applica dal prossimo ciclo di fatturazione di {l.nome}</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:10, marginBottom:16}}>
+              {PIANI.map(p => {
+                const sel = planSel === p.id;
+                const current = l.piano === p.id;
+                return (
+                  <button key={p.id} onClick={()=>setPlanSel(p.id)} style={{
+                    textAlign:'left', padding:'14px 16px', borderRadius:12, cursor:'pointer', fontFamily:'inherit',
+                    background: sel ? ADM.PINK_BG_SOFT : '#fff',
+                    border: sel ? `2px solid ${ADM.PINK}` : `1px solid ${ADM.BORDER}`,
+                    position:'relative',
+                  }}>
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
+                      <span style={{fontSize:14.4, fontWeight:800, color:ADM.TEXT}}>{p.label}</span>
+                      {current && <span style={{fontSize:10.5, fontWeight:800, color:ADM.MUTED, background:ADM.NEUTRAL_SOFT, padding:'2px 7px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em'}}>attuale</span>}
+                    </div>
+                    <div style={{fontSize:13, color:ADM.MUTED}}>{p.price > 0 ? `${fmtEur(p.price)}/mese` : 'Gratuito'}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="md" onClick={closePopup}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="md" icon="check" disabled={planSel === l.piano} onClick={confirmPiano}>Conferma cambio piano</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AdmCard padding={20}>
         <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Ultime fatture</div>

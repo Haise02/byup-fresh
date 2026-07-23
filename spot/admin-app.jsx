@@ -155,17 +155,20 @@ function AdminApp({ tweaks }) {
           ))}
         </div>
 
-        {/* Profilo */}
-        <button onClick={()=>setRoute('profilo')} title="Profilo" className={`adm-nav-item${route==='profilo' ? ' is-active' : ''}`}
+        {/* Profilo — card a tutta larghezza: avatar a sinistra, testo che
+            riempie, freccia ancorata a destra. Niente contenuto "galleggiante". */}
+        <button onClick={()=>setRoute('profilo')} title="Profilo" className="adm-card-interactive"
           style={{
-            marginTop:6, padding: collapsed ? '14px 0 4px' : '14px 8px 4px',
+            marginTop:10, width:'100%', boxSizing:'border-box',
+            padding: collapsed ? '8px 0' : '9px 10px',
             display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start', gap:10,
-            background: route === 'profilo' ? ADM.PINK_SOFT : 'transparent',
-            border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-            borderTop:`1px solid ${ADM.BORDER}`, borderTopLeftRadius:0, borderTopRightRadius:0,
+            background: route === 'profilo' ? ADM.PINK_SOFT : '#fff',
+            border:`1px solid ${route === 'profilo' ? '#FFB3B5' : 'rgba(15,17,21,0.07)'}`,
+            borderRadius:12, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+            boxShadow:'0 1px 2px rgba(15,17,21,0.04)',
           }}>
           <div style={{
-            width:34, height:34, borderRadius:'50%',
+            width:36, height:36, borderRadius:'50%',
             background:'linear-gradient(135deg, #FF5A5F, #B53338)',
             color:'#fff', display:'grid', placeItems:'center',
             fontWeight:700, fontSize:14, flexShrink:0, letterSpacing:'0.01em',
@@ -173,10 +176,10 @@ function AdminApp({ tweaks }) {
           {!collapsed && (
             <React.Fragment>
               <div style={{flex:1, minWidth:0}}>
-                <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Marco Rinaldi</div>
-                <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>Super Admin</div>
+                <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.2}}>Marco Rinaldi</div>
+                <div style={{fontSize:12, color:ADM.MUTED, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Super Admin · byup</div>
               </div>
-              <span style={{color: ADM.MUTED_SOFT}}><BuIcons.chevronRight size={18}/></span>
+              <span className="adm-open-chip" style={{width:22, height:22}}><BuIcons.chevronRight size={13}/></span>
             </React.Fragment>
           )}
         </button>
