@@ -441,13 +441,16 @@ function AttentionStrip({ items }) {
 
 // Hero KPI (Tier 1) — numero grande a sinistra, area chart che riempie la
 // destra: la card usa finalmente tutta la sua larghezza.
-function DashHero({ label, value, trend, trendLabel, sub, detail, data, accent }) {
+function DashHero({ label, value, trend, trendLabel, sub, detail, data, accent, onClick }) {
   const c = accent || ADM.PINK;
   return (
-    <AdmCard padding={0} style={{overflow:'hidden'}}>
+    <AdmCard padding={0} interactive={!!onClick} onClick={onClick} style={{overflow:'hidden', cursor: onClick ? 'pointer' : 'default'}}>
       <div style={{display:'flex', alignItems:'stretch', minHeight:138}}>
         <div style={{flex:'1 1 44%', padding:'20px 24px', display:'flex', flexDirection:'column', justifyContent:'center', gap:8}}>
-          <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</span>
+          <div style={{display:'flex', alignItems:'center', gap:8}}>
+            <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em', flex:1, minWidth:0}}>{label}</span>
+            {onClick && <span style={{color:ADM.MUTED_LIGHT, display:'inline-flex', flexShrink:0}}><BuIcons.chevronRight size={16}/></span>}
+          </div>
           <div style={{display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap'}}>
             <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{value}</span>
             {trend != null && <TrendBadge delta={trend} label={trendLabel} size="lg"/>}
@@ -492,6 +495,49 @@ function DashStatCard({ label, value, trend, trendLabel, sub, alertText, data, r
         ? <AreaSpark data={data} color={c} height={38} gradId={gradId}/>
         : <div style={{height:14}}/>}
     </AdmCard>
+  );
+}
+
+// Drawer di dettaglio — click su TUTTA la card lo apre da destra col contenuto
+// ricco (grafici, breakdown). Sostituisce la ⓘ minuscola: bersaglio = la card.
+// Riusa i componenti *Tooltip esistenti come corpo → nessun dato perso.
+function DashDetailDrawer({ open, title, subtitle, accent, content, pageLabel, onPage, onClose }) {
+  if (!open) return null;
+  return (
+    <div style={{position:'fixed', inset:0, zIndex:80, display:'flex', justifyContent:'flex-end'}}>
+      <style>{`@keyframes admDrawerIn{from{transform:translateX(28px);opacity:.3}to{transform:translateX(0);opacity:1}}@keyframes admDrawerFade{from{opacity:0}to{opacity:1}}`}</style>
+      <div onClick={onClose} style={{position:'absolute', inset:0, background:'rgba(15,17,21,0.35)', animation:'admDrawerFade 0.2s ease'}}/>
+      <div style={{
+        position:'relative', width:480, maxWidth:'92vw', height:'100%',
+        background:ADM.PANEL, borderLeft:`1px solid ${ADM.BORDER}`,
+        boxShadow:'-16px 0 48px -12px rgba(15,17,21,0.28)',
+        display:'flex', flexDirection:'column',
+        animation:'admDrawerIn 0.26s cubic-bezier(0.22,0.9,0.35,1)',
+      }}>
+        <div style={{padding:'18px 22px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'flex-start', gap:12, flexShrink:0}}>
+          <div style={{flex:1, minWidth:0}}>
+            {accent && <div style={{width:26, height:3, borderRadius:3, background:accent, marginBottom:9}}/>}
+            <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{title}</div>
+            {subtitle && <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{subtitle}</div>}
+          </div>
+          <button onClick={onClose} className="adm-iconbtn" title="Chiudi" style={{width:30, height:30, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT, color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center', flexShrink:0}}>
+            <BuIcons.x size={18}/>
+          </button>
+        </div>
+        <div style={{flex:1, overflow:'auto', padding:'20px 22px'}}>{content}</div>
+        {onPage && (
+          <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+            <button onClick={onPage} className="adm-btn" style={{
+              width:'100%', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
+              padding:'11px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`,
+              cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:600, color:ADM.TEXT,
+            }}>
+              {pageLabel || 'Apri pagina completa'} <BuIcons.chevronRight size={16}/>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -579,6 +625,10 @@ function DashGenerale({ onNav }) {
     certPending > 0 && { label: `${certPending} certificazioni da validare`,        tone:'INFO',    onClick: ()=>onNav('comunicazioni') },
   ].filter(Boolean);
 
+  // Drawer di dettaglio aperto (o null). Click su una card → apre qui il ricco.
+  const [drawer, setDrawer] = React.useState(null);
+  const openDrawer = (cfg) => setDrawer(cfg);
+
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
 
@@ -596,6 +646,10 @@ function DashGenerale({ onNav }) {
         detail={`Ultimi 12 mesi ${fmtEur(ricaviAnno)} · media ${fmtEur(Math.round(ricaviAnno/12))}/mese`}
         data={TS.ricaviDay.slice(-30)}
         accent={ADM.PINK}
+        onClick={()=>openDrawer({
+          title:'Ricavi · dettaglio', subtitle:'Ultimo mese e ultimi 12 mesi', accent:ADM.PINK,
+          content:<RevenueTooltip sub={mrrSubMese} extra={mrrExtraMese} subAnno={subAnno} extraAnno={extraAnno} ricaviAnno={ricaviAnno} mesePrec={MONTHLY_REVENUE[MONTHLY_REVENUE.length - 2]}/>,
+        })}
       />
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
@@ -603,20 +657,32 @@ function DashGenerale({ onNav }) {
           label="Locali totali" value={fmtNum(totLocali)} accent="PINK"
           sub={`${attivi} attivi · ${inattivi} inattivi`}
           ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.PINK }}
-          onClick={()=>onNav('locali')}
+          onClick={()=>openDrawer({
+            title:'Locali · dettaglio', subtitle:`${totLocali} locali totali`, accent:ADM.PINK,
+            content:<LocaliTotaliTooltip total={totLocali} free={freeCount} freeActive={freeActive} freeInactive={freeInactive} paying={paying} planCount={planCount}/>,
+            pageLabel:'Apri elenco Locali', onPage:()=>onNav('locali'),
+          })}
         />
         <DashStatCard
           label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
           alertText={stuckOver7 > 0 ? `${stuckOver7} fermi da oltre 7gg` : `${setupIniziale} setup · ${onbIncompleto} da completare`}
           data={TS.inOnboardCount.slice(-30)} gradId="grad-onb"
-          onClick={()=>onNav('locali')}
+          onClick={()=>openDrawer({
+            title:'Onboarding · dettaglio', subtitle:`${inOnbTot} locali in onboarding`, accent:ADM.WARN,
+            content:<OnboardingTooltip setupIniziale={setupIniziale} onbIncompleto={onbIncompleto} stuckOver7={stuckOver7} stuckOver14={stuckOver14} ageMedian={ageMedian} detail={onbLocaliDetail} onNav={(r)=>{ setDrawer(null); onNav(r); }}/>,
+            pageLabel:'Apri elenco Locali', onPage:()=>onNav('locali'),
+          })}
         />
         <DashStatCard
           label="Utenti totali" value={fmtNum(totUtenti)} accent="INFO"
           trend={woW(TS.utentiTot).delta} trendLabel="7gg"
           sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(attivi24)}</b> attivi oggi · <b style={{color:ADM.TEXT}}>{Math.round(attivi24/totUtenti*100)}%</b> dei registrati</span>}
           data={TS.utentiTot.slice(-30)} gradId="grad-ute"
-          onClick={()=>onNav('utenti')}
+          onClick={()=>openDrawer({
+            title:'Utenti · dettaglio', subtitle:'Attività dell\'app', accent:ADM.INFO,
+            content:<UtentiTooltip tot={totUtenti} attivi24={attivi24} attivi7g={attivi7g} attivi30g={attivi30g}/>,
+            pageLabel:'Apri elenco Utenti', onPage:()=>onNav('utenti'),
+          })}
         />
         <DashStatCard
           label="Accessi guest · 30gg" value={fmtNum(guestLog30g)} accent="PURPLE"
@@ -625,6 +691,8 @@ function DashGenerale({ onNav }) {
           data={TS.guestAccessi.slice(-30)} gradId="grad-gue"
         />
       </div>
+
+      <DashDetailDrawer open={!!drawer} {...(drawer || {})} onClose={()=>setDrawer(null)}/>
 
       {/* ═══════════ Tier 3 · Esplora i dati — approfondimenti, nessuna azione ═══════════ */}
       <SectionLabel title="Esplora i dati" desc="Analisi di approfondimento · non richiede un'azione immediata" muted/>
