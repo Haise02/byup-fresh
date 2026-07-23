@@ -165,66 +165,53 @@ function AdmComunicazioniPage() {
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
-      {/* Filter cards (KPI + filtro in unico componente) */}
-      <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'20px 32px 18px', flexShrink:0}}>
-        <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:14, gap:14}}>
-          <div style={{fontSize:13.3, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Filtra per</div>
-          <button onClick={()=>setView('all')} style={{
-            display:'inline-flex', alignItems:'center', gap:6,
-            padding:'4px 10px',
-            background: view === 'all' ? ADM.PANEL_SOFT : 'transparent',
-            color: view === 'all' ? ADM.TEXT : ADM.MUTED,
-            border:`1px solid ${view === 'all' ? ADM.MUTED_LIGHT : ADM.BORDER}`,
-            borderRadius:99,
-            fontSize:13.3, fontWeight: view === 'all' ? 700 : 600,
-            fontFamily:'inherit', cursor:'pointer', letterSpacing:'-0.005em',
-            transition:'all 0.14s ease',
+      {/* Barra filtri compatta + striscia SLA — i filtri sono navigazione,
+          non KPI: lo spazio va all'inbox. */}
+      <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'14px 32px', flexShrink:0, display:'flex', flexDirection:'column', gap:10}}>
+        {(over48Open > 0 || certUrgent > 0) && (
+          <div style={{
+            display:'flex', alignItems:'center', gap:10, flexWrap:'wrap',
+            padding:'8px 12px', borderRadius:10,
+            background:'linear-gradient(180deg, #FFFBF3 0%, #FFF7EA 100%)',
+            border:`1px solid ${ADM.WARN}33`,
           }}>
-            <BuIcons.list size={16}/>
-            Tutte
-            <span style={{color: view === 'all' ? ADM.MUTED : ADM.MUTED_SOFT, fontWeight:600}}>{cAll}</span>
-          </button>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:12}}>
-          <FilterCard
-            icon="chat" tone="PINK"
-            label="Aperte" value={cOpen}
-            hint={over48Open > 0 ? `${over48Open} oltre 48h` : `${unreadOpen} non lette`}
-            hintTone={over48Open > 0 ? 'danger' : null}
-            active={view === 'open'}
-            onClick={()=>setViewToggle('open')}
-          />
-          <FilterCard
-            icon="shield" tone="WARN"
-            label="Da approvare" value={cCert}
-            hint={cCert === 0 ? 'Niente in coda' : `${CERT_TIPI ? 'Certificazioni alimentari' : ''}${certUrgent > 0 ? ` · ${certUrgent} urgenti` : ''}`}
-            hintTone={certUrgent > 0 ? 'warn' : (cCert === 0 ? 'ok' : null)}
-            active={view === 'cert'}
-            onClick={()=>setViewToggle('cert')}
-          />
-          <FilterCard
-            icon="user" tone="PURPLE"
-            label="Assegnate a me" value={cMine}
-            hint={cMine === 0 ? 'Niente in lavorazione' : `${mineUnread} non aperte`}
-            hintTone={mineUnread > 0 ? 'warn' : (cMine === 0 ? 'ok' : null)}
-            active={view === 'mine'}
-            onClick={()=>setViewToggle('mine')}
-          />
-          <FilterCard
-            icon="check" tone="OK"
-            label="Concluse" value={cResolved}
-            hint={resolvedWeek > 0 ? `${resolvedWeek} negli ultimi 7 g` : 'Storico'}
-            active={view === 'resolved'}
-            onClick={()=>setViewToggle('resolved')}
-          />
-        </div>
-        {/* Aging strip — micro-info che era nella vecchia card "Più vecchia" */}
-        {cOpen > 0 && (
-          <div style={{marginTop:12, display:'flex', alignItems:'center', gap:8, fontSize:13.3, color:ADM.MUTED, fontWeight:500}}>
-            <BuIcons.clock size={16} color={ADM.MUTED_SOFT}/>
-            <span>Più vecchia aperta da <strong style={{color: oldestH > 48 ? ADM.DANGER : ADM.TEXT, fontWeight:700}}>{oldestH}h</strong> · attesa media <strong style={{color:ADM.TEXT, fontWeight:700}}>{attesaMediaH}h</strong></span>
+            <span style={{width:7, height:7, borderRadius:'50%', background:ADM.WARN, boxShadow:`0 0 0 3px ${ADM.WARN}22`, flexShrink:0}}/>
+            <span style={{fontSize:11.5, fontWeight:700, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.05em'}}>Richiede attenzione</span>
+            {over48Open > 0 && (
+              <button onClick={()=>setView('open')} className="adm-btn" style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:99, background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:600, color:ADM.TEXT}}>
+                {over48Open} aperte da oltre 48h <BuIcons.chevronRight size={13} color={ADM.MUTED_SOFT}/>
+              </button>
+            )}
+            {certUrgent > 0 && (
+              <button onClick={()=>setView('cert')} className="adm-btn" style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:99, background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:600, color:ADM.TEXT}}>
+                {certUrgent} certificazioni urgenti <BuIcons.chevronRight size={13} color={ADM.MUTED_SOFT}/>
+              </button>
+            )}
+            <div style={{flex:1}}/>
+            <span style={{fontSize:12.5, color:ADM.MUTED}}>Più vecchia <strong style={{color: oldestH > 48 ? ADM.DANGER : ADM.TEXT}}>{oldestH}h</strong> · attesa media <strong style={{color:ADM.TEXT}}>{attesaMediaH}h</strong></span>
           </div>
         )}
+        <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+          {views.map(v => {
+            const active = view === v.id;
+            const urgent = v.id === 'cert' && certUrgent > 0;
+            return (
+              <button key={v.id} onClick={()=>setView(v.id)} style={{
+                display:'inline-flex', alignItems:'center', gap:7,
+                padding:'7px 13px', borderRadius:99,
+                background: active ? ADM.TEXT : '#fff',
+                color: active ? '#fff' : ADM.TEXT,
+                border:`1px solid ${active ? ADM.TEXT : ADM.BORDER}`,
+                fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+                transition:'background 0.14s ease, color 0.14s ease, border-color 0.14s ease',
+              }}>
+                {urgent && !active && <span style={{width:6, height:6, borderRadius:'50%', background:ADM.WARN}}/>}
+                {v.label}
+                <span style={{fontWeight:700, color: active ? 'rgba(255,255,255,0.75)' : ADM.MUTED_SOFT, fontSize:12.5}}>{v.count}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div style={{flex:1, display:'flex', minHeight:0}}>
@@ -250,7 +237,7 @@ function AdmComunicazioniPage() {
               {view !== 'all' && <span style={{color:ADM.MUTED_SOFT}}> · filtro: <strong style={{color:ADM.TEXT, fontWeight:600}}>{views.find(v=>v.id===view)?.label || 'Tutte'}</strong></span>}
             </span>
             {filtered.some(i=>i.stato==='nuova') && (
-              <span style={{color:ADM.PINK, fontWeight:600}}>{filtered.filter(i=>i.stato==='nuova').length} non lette</span>
+              <span style={{display:'inline-flex', alignItems:'center', gap:5, color:ADM.MUTED, fontWeight:600}}><span style={{width:6, height:6, borderRadius:'50%', background:ADM.PINK}}/>{filtered.filter(i=>i.stato==='nuova').length} non lette</span>
             )}
           </div>
           <div style={{flex:1, overflowY:'auto'}}>
@@ -371,7 +358,7 @@ function InboxItem({ item, active, onClick }) {
     <div onClick={onClick}
       onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
       style={{
-        padding:'14px 16px 14px 18px',
+        padding:'11px 16px 11px 18px',
         borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
         background: active ? ADM.PINK_BG_SOFT : (hover ? '#FAFBFC' : 'transparent'),
         cursor:'pointer', position:'relative',
@@ -380,7 +367,7 @@ function InboxItem({ item, active, onClick }) {
       <div style={{position:'absolute', left:0, top:10, bottom:10, width:3, borderRadius:'0 2px 2px 0', background: active ? ADM.PINK : railColor}}/>
 
       <div style={{display:'flex', gap:11}}>
-        <AdmAvatar name={item.senderName} size={37} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
+        <AdmAvatar name={item.senderName} size={32} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:'flex', alignItems:'baseline', gap:6, marginBottom:2}}>
             <span style={{fontSize:14.4, fontWeight: isUnread ? 700 : 600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0, flexShrink:1}}>
@@ -391,14 +378,13 @@ function InboxItem({ item, active, onClick }) {
             <span style={{fontSize:13, color:ADM.MUTED_SOFT, whiteSpace:'nowrap', flexShrink:0}}>{fmtRelative(item.data)}</span>
           </div>
 
-          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:5}}>
-            <span style={{fontSize:13.3, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0, flexShrink:1}}>{locale?.nome || '—'}</span>
-            {piano && <PlanPill piano={piano}/>}
+          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
+            <span style={{fontSize:12.5, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0, flexShrink:1}}>{locale?.nome || '—'}</span>
           </div>
 
-          <div style={{fontSize:14.8, fontWeight: isUnread ? 700 : 500, color:ADM.TEXT, marginBottom:4, lineHeight:1.35, letterSpacing:'-0.005em', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{item.oggetto}</div>
+          <div style={{fontSize:14, fontWeight: isUnread ? 700 : 500, color:ADM.TEXT, marginBottom:3, lineHeight:1.3, letterSpacing:'-0.005em', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{item.oggetto}</div>
           {preview && (
-            <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:8, lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{preview}</div>
+            <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:6, lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{preview}</div>
           )}
 
           <div style={{display:'flex', alignItems:'center', gap:5, flexWrap:'wrap'}}>
@@ -498,10 +484,12 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
   const [tagInput, setTagInput] = useStateCom('');
   const [rejectMode, setRejectMode] = useStateCom(false);
   const [rejectReason, setRejectReason] = useStateCom('');
+  const [composerOpen, setComposerOpen] = useStateCom(false);
 
   React.useEffect(() => {
     setReply(''); setShowInternal(false); setTagInput('');
     setRejectMode(false); setRejectReason('');
+    setComposerOpen(false);
   }, [item.id]);
 
   const submitTag = () => {
@@ -591,6 +579,17 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           {piano && <><span style={{color:ADM.MUTED_LIGHT}}>·</span><PlanPill piano={piano}/></>}
           <span style={{color:ADM.MUTED_LIGHT}}>·</span>
           <span>Arrivata {fmtDateTime(item.data)} <span style={{color:ADM.MUTED_SOFT}}>({fmtRelative(item.data)})</span></span>
+          <span style={{color:ADM.MUTED_LIGHT}}>·</span>
+          <span style={{display:'inline-flex', alignItems:'center', gap:5, flexWrap:'wrap'}}>
+            {item.tags.map(t => <CustomTag key={t} label={t} onRemove={()=>onRemoveTag(t)}/>)}
+            <input
+              value={tagInput}
+              onChange={e=>setTagInput(e.target.value)}
+              onKeyDown={e=>{ if (e.key === 'Enter') submitTag(); }}
+              placeholder="+ tag"
+              style={{width:64, padding:'2px 6px', border:'none', borderRadius:5, background:ADM.PANEL_SOFT, fontSize:12.5, fontFamily:'inherit', outline:'none', color:ADM.TEXT}}
+            />
+          </span>
           {ageH > 48 && (item.stato === 'nuova' || item.stato === 'in_corso') && (
             <span style={{color:ADM.DANGER, fontWeight:600}}>· in attesa da {ageH}h</span>
           )}
@@ -600,15 +599,6 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
       {/* Body scrollable */}
       <div style={{flex:1, overflowY:'auto', padding:'22px 32px', display:'flex', flexDirection:'column', gap:18}}>
         <div style={{maxWidth:920, width:'100%', alignSelf:'center', display:'flex', flexDirection:'column', gap:14}}>
-
-          {/* TAG bar — sopra il testo dell'email */}
-          <TagBar
-            tags={item.tags}
-            input={tagInput}
-            onInput={setTagInput}
-            onAdd={submitTag}
-            onRemove={onRemoveTag}
-          />
 
           {/* Email body o card cert */}
           {item.certRequest ? (
@@ -724,12 +714,35 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
         </div>
       </div>
 
-      {/* Composer (solo per email non-cert e non risolte) */}
-      {!item.certRequest && item.stato !== 'risolta' && (
+      {/* Composer — collassato finché non serve: il thread ha la priorità */}
+      {!item.certRequest && item.stato !== 'risolta' && !composerOpen && (
+        <div style={{flexShrink:0, padding:'12px 32px', background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', gap:8, alignItems:'center'}}>
+          <button onClick={()=>{ setComposerOpen(true); setShowInternal(false); }} style={{
+            flex:1, textAlign:'left', padding:'10px 16px', borderRadius:99,
+            border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT,
+            color:ADM.MUTED, fontSize:14, fontFamily:'inherit', cursor:'text',
+          }}>Rispondi a {item.senderName.split(' ')[0]}…</button>
+          <button onClick={()=>{ setComposerOpen(true); setShowInternal(true); }} style={{
+            display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px',
+            background:'#fff', color:ADM.MUTED, border:`1px solid ${ADM.BORDER}`, borderRadius:99,
+            fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+          }}><BuIcons.bell size={15}/> Nota interna</button>
+          <button onClick={()=>{ onUpdate({ stato:'risolta', resolvedBy: MY_ID, resolvedAt: new Date() }); }} style={{
+            display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px',
+            background:'#fff', color:ADM.MUTED, border:`1px solid ${ADM.BORDER}`, borderRadius:99,
+            fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+          }}><BuIcons.check size={15}/> Marca risolta</button>
+        </div>
+      )}
+      {!item.certRequest && item.stato !== 'risolta' && composerOpen && (
         <div style={{flexShrink:0, padding:'14px 32px 18px', background:'#fff', borderTop:`1px solid ${ADM.BORDER}`}}>
-          <div style={{display:'flex', gap:6, marginBottom:10}}>
+          <div style={{display:'flex', gap:6, marginBottom:10, alignItems:'center'}}>
             <ComposerTab active={!showInternal} onClick={()=>setShowInternal(false)} label={`Rispondi a ${item.senderName.split(' ')[0]}`} icon="send"/>
             <ComposerTab active={showInternal} onClick={()=>setShowInternal(true)} label="Nota interna" icon="bell" accent="WARN"/>
+            <div style={{flex:1}}/>
+            <button onClick={()=>setComposerOpen(false)} title="Chiudi" className="adm-iconbtn" style={{width:28, height:28, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT, color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center'}}>
+              <BuIcons.x size={16}/>
+            </button>
           </div>
 
           <div style={{
@@ -739,6 +752,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
             transition:'all 0.15s',
           }}>
             <textarea
+              autoFocus
               value={reply}
               onChange={e=>setReply(e.target.value)}
               placeholder={showInternal ? 'Nota visibile solo al team byup…' : `Rispondi a ${item.senderName.split(' ')[0]}…`}
@@ -834,13 +848,14 @@ function TagBar({ tags, input, onInput, onAdd, onRemove }) {
 // ─── Email body card ────────────────────────────────────────────────────────
 function EmailBody({ item, locale }) {
   return (
-    <div style={{display:'flex', gap:14}}>
-      <AdmAvatar name={item.senderName} size={41} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
+    // Il mittente è già nell'header del thread: qui basta un timbro leggero
+    // (utile quando i messaggi diventeranno più di uno).
+    <div style={{display:'flex', gap:12}}>
+      <AdmAvatar name={item.senderName} size={28} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
       <div style={{flex:1, minWidth:0}}>
-        <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:6, flexWrap:'wrap'}}>
-          <span style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>{item.senderName}</span>
-          <span style={{fontSize:13.3, color:ADM.MUTED}}>Titolare di {locale?.nome || '—'}</span>
-          <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>· {fmtRelative(item.data)}</span>
+        <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:5, flexWrap:'wrap'}}>
+          <span style={{fontSize:13, fontWeight:700, color:ADM.TEXT}}>{item.senderName}</span>
+          <span style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>{fmtRelative(item.data)}</span>
         </div>
         <div style={{
           padding:'14px 16px',
