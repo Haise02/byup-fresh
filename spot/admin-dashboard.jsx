@@ -646,7 +646,7 @@ function DashGenerale({ onNav }) {
 
       {detail && detail.key === 'ricavi' && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <DashStatCard
           label="Locali totali" value={fmtNum(totLocali)} accent="PINK"
           sub={`${attivi} attivi · ${inattivi} inattivi`}
@@ -1238,7 +1238,7 @@ function UtentiTooltip({ tot, attivi24, attivi7g, attivi30g }) {
   return (
     <div>
       <TooltipTitle>Utenti attivi sull'app</TooltipTitle>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
         <ActiveCell label="Attivi nelle ultime 24h" val={attivi24} tot={tot} color="PINK"/>
         <ActiveCell label="Attivi negli ultimi 7 giorni" val={attivi7g} tot={tot} color="INFO"/>
         <ActiveCell label="Attivi negli ultimi 30 giorni" val={attivi30g} tot={tot} color="OK"/>
@@ -1392,8 +1392,8 @@ function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, tr
         </div>
       </div>
       {spark && (
-        <div style={{marginTop:4, opacity:0.85}}>
-          <MicroSpark data={spark} color={c} width={260} height={26}/>
+        <div style={{marginTop:4}}>
+          <AreaSpark data={spark} color={c} height={30} gradId={'sp-' + String(label).replace(/[^a-zA-Z0-9]/g, '')}/>
         </div>
       )}
     </AdmCard>
@@ -1678,75 +1678,58 @@ function DashLocali({ onNav }) {
     return d.n.toLowerCase().includes(q) || d.cat.toLowerCase().includes(q);
   });
 
+  // Dettaglio in-linea (stesso pattern del Generale): click sulla card → fascia
+  // sotto la riga; ri-click chiude.
+  const [detail, setDetail] = useStateDash(null);
+  const toggleDetail = (cfg) => setDetail(d => (d && d.key === cfg.key) ? null : cfg);
+
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:18}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
-        <HoverStat
-          accent="OK" icon="trendUp"
-          label="Conversion onboarding"
-          value={`${convRate}%`}
-          sub={`${onbCompletati} di ${onbTentati}`}
-          tooltip={
-            <ConvOnboardingTooltip
-              tot={LOCALI.length}
-              completati={onbCompletati}
-              tentati={onbTentati}
-              convRate={convRate}
-              pending={stPending}
-              inOnboarding={stOnboarding}
-              skipped={stSkipped}
-            />
-          }
+    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
+
+      {/* ═══════════ Andamento — KPI commerciali e ricavi ═══════════ */}
+      <SectionLabel title="Andamento" desc="KPI commerciali e ricavi della rete locali" first/>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        <DashStatCard
+          label="Conversion onboarding" value={`${convRate}%`} accent="OK"
+          sub={`${onbCompletati} completati su ${onbTentati} tentati`}
+          ratio={{ a: onbCompletati, b: onbTentati - onbCompletati, aLabel:'completati', bLabel:'in corso', aColor: ADM.OK }}
+          selected={detail?.key === 'conv'}
+          onClick={()=>toggleDetail({
+            key:'conv', title:'Conversion onboarding · dettaglio', subtitle:`${LOCALI.length} locali totali`, accent:ADM.OK,
+            content:<ConvOnboardingTooltip tot={LOCALI.length} completati={onbCompletati} tentati={onbTentati} convRate={convRate} pending={stPending} inOnboarding={stOnboarding} skipped={stSkipped}/>,
+          })}
         />
-        <HoverStat
-          accent="PURPLE" icon="clock"
-          label="Tempo medio setup"
-          value={tempoMedioStr}
-          sub="Da iscrizione a Go-live"
-          tooltip={
-            <TempoMedioSetupTooltip
-              media={tempoMedioMin}
-              mediana={medianMin}
-              minV={minMin}
-              maxV={maxMin}
-              campione={tempiMedi.length}
-              buckets={tempiBuckets}
-              steps={stepTimings}
-              maxStepMin={maxStepMin}
-            />
-          }
+        <DashStatCard
+          label="Tempo medio setup" value={tempoMedioStr} accent="PURPLE"
+          sub={`Da iscrizione a Go-live · mediana ${medianMin < 60 ? `${medianMin} min` : `${Math.floor(medianMin/60)}h ${medianMin%60}m`}`}
+          selected={detail?.key === 'setup'}
+          onClick={()=>toggleDetail({
+            key:'setup', title:'Tempo di setup · dettaglio', subtitle:`Campione di ${tempiMedi.length} locali attivi`, accent:ADM.PURPLE,
+            content:<TempoMedioSetupTooltip media={tempoMedioMin} mediana={medianMin} minV={minMin} maxV={maxMin} campione={tempiMedi.length} buckets={tempiBuckets} steps={stepTimings} maxStepMin={maxStepMin}/>,
+          })}
         />
-        <HoverStat
-          accent="PINK" icon="qrCode"
-          label="Ordini · Scan QR"
-          value={<>{fmtPct(ratioMese)}</>}
-          sub={`${fmtNum(totOrdiniMese)} ordini · ${fmtNum(totScanQRMese)} scan · 30 giorni`}
-          tooltip={
-            <ScanOrdiniTooltip
-              scanMese={totScanQRMese} ordMese={totOrdiniMese} ratioMese={ratioMese}
-              scanAnno={totScanQRAnno} ordAnno={totOrdiniAnno} ratioAnno={ratioAnno}
-            />
-          }
+        <DashStatCard
+          label="Ordini · Scan QR" value={fmtPct(ratioMese)} accent="PINK"
+          sub={`${fmtNum(totOrdiniMese)} ordini · ${fmtNum(totScanQRMese)} scan · 30gg`}
+          selected={detail?.key === 'qr'}
+          onClick={()=>toggleDetail({
+            key:'qr', title:'Ordini da scan QR · dettaglio', subtitle:'Conversione scan → ordine, mese e anno', accent:ADM.PINK,
+            content:<ScanOrdiniTooltip scanMese={totScanQRMese} ordMese={totOrdiniMese} ratioMese={ratioMese} scanAnno={totScanQRAnno} ordAnno={totOrdiniAnno} ratioAnno={ratioAnno}/>,
+          })}
         />
-        <HoverStat
-          accent="INFO" icon="calendar"
-          label="Prenotazioni"
-          value={fmtNum(totPrenotMese)}
-          sub="Ultimi 30 giorni"
-          tooltip={
-            <MeseAnnoTooltip
-              titolo="Prenotazioni"
-              mese={totPrenotMese}
-              anno={totPrenotAnno}
-              meseLabel="Ultimi 30 giorni"
-              annoLabel="Ultimi 12 mesi"
-              accent={ADM.INFO}
-            />
-          }
+        <DashStatCard
+          label="Prenotazioni · 30gg" value={fmtNum(totPrenotMese)} accent="INFO"
+          sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(totPrenotAnno)}</b> negli ultimi 12 mesi</span>}
         />
       </div>
 
+      {detail && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
+
       <RevenueSection/>
+
+      {/* ═══════════ Onboarding e adozione ═══════════ */}
+      <SectionLabel title="Onboarding e adozione" desc="Dal funnel di attivazione all'uso reale dei QR"/>
 
       {(() => {
         // Identifica il collo di bottiglia: lo step OBBLIGATORIO con max drop-off relativo
@@ -1861,6 +1844,9 @@ function DashLocali({ onNav }) {
 
       <SottoMediaScanCard onNav={onNav}/>
 
+      {/* ═══════════ Utilizzo del prodotto ═══════════ */}
+      <SectionLabel title="Utilizzo del prodotto" desc="Dove sono i locali e cosa usano del gestionale"/>
+
       <AdmCard padding={20}>
         <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Top città</div>
         <div style={{display:'flex', flexDirection:'column', gap:9}}>
@@ -1882,10 +1868,7 @@ function DashLocali({ onNav }) {
       </div>
 
       {/* ═════ CHURN LOCALI ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Abbandono locali</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Quanti se ne vanno, quando, perché · metrica critica per investor reporting</div>
-      </div>
+      <SectionLabel title="Abbandono locali" desc="Quanti se ne vanno, quando, perché · metrica critica per investor reporting"/>
 
       {/* Churn rate per piano */}
       <AdmCard padding={20}>
@@ -1903,7 +1886,7 @@ function DashLocali({ onNav }) {
             </span>
           </div>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
           {churnByPlan.map(p => {
             const beats = p.rate < p.bench;
             const ratio = Math.max(p.rate, p.bench) > 0 ? p.rate / Math.max(p.rate, p.bench) * 100 : 0;
@@ -2009,10 +1992,7 @@ function DashLocali({ onNav }) {
       </div>
 
       {/* ═════ TEMPO MEDIO DI SERVIZIO ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Tempo medio di servizio</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Dall'ordine confermato alla chiusura conto · media di settore</div>
-      </div>
+      <SectionLabel title="Tempo medio di servizio" desc="Dall'ordine confermato alla chiusura conto · media di settore"/>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
         <AdmCard padding={20}>
@@ -2084,10 +2064,7 @@ function DashLocali({ onNav }) {
       </div>
 
       {/* ═════ CANNIBALIZZAZIONE CANALI ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Mix canali d'ordine · 12 mesi</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Come si spostano gli ordini tra cameriere, QR-tavolo, app cliente</div>
-      </div>
+      <SectionLabel title="Mix canali d'ordine · 12 mesi" desc="Come si spostano gli ordini tra cameriere, QR-tavolo, app cliente"/>
 
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
@@ -2191,12 +2168,9 @@ function DashLocali({ onNav }) {
       </div>
 
       {/* ═════ LTV / CAC ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>LTV / CAC locale</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Economia per locale · la prima metrica che ti chiederà un investitore pre-seed</div>
-      </div>
+      <SectionLabel title="LTV / CAC locale" desc="Economia per locale · la prima metrica che ti chiederà un investitore pre-seed"/>
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <AdmCard padding={18}>
           <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>LTV medio</div>
           <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{fmtEur(avgLTV)}</div>
@@ -2283,10 +2257,7 @@ function DashLocali({ onNav }) {
       </AdmCard>
 
       {/* ═════ PRENOTAZIONI NO-SHOW ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>No show prenotazioni</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Prima causa di sofferenza del ristoratore</div>
-      </div>
+      <SectionLabel title="No show prenotazioni" desc="Prima causa di sofferenza del ristoratore"/>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
         <AdmCard padding={20}>
@@ -2408,10 +2379,7 @@ function DashLocali({ onNav }) {
       </div>
 
       {/* ═════ PREZZO MEDIO PIATTO · POSIZIONAMENTO CITTÀ ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Posizionamento prezzi per città</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Listino medio dei locali partner · benchmark territoriale</div>
-      </div>
+      <SectionLabel title="Posizionamento prezzi per città" desc="Listino medio dei locali partner · benchmark territoriale"/>
 
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
@@ -2742,7 +2710,7 @@ function AdozioneDigitaleCard({ onNav }) {
       {/* Legenda */}
       <div style={{
         marginTop:16,
-        display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:10,
+        display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:10,
       }}>
         {ADOPTION_BANDS.map(b => (
           <div key={b.id} style={{
@@ -2923,7 +2891,7 @@ function SottoMediaScanCard({ onNav }) {
 
       {/* Riepilogo media */}
       <div style={{
-        display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10, marginBottom:14,
+        display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10, marginBottom:14,
       }}>
         <SottoMediaKpi label="Media piattaforma" value={fmtPct(ratioAvg)} sub={`${fmtNum(totOrd)} ordini su ${fmtNum(totScan)} scan`} highlight/>
         <SottoMediaKpi label="Locali sotto media" value={fmtNum(sottoMedia.length)} sub={`su ${fmtNum(eligible.length)} tracciati`}/>
@@ -3236,8 +3204,12 @@ function DashUtentiApp() {
   });
 
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:18}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
+    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
+
+      {/* ═══════════ Andamento — la base utenti in sintesi ═══════════ */}
+      <SectionLabel title="Andamento" desc="La base utenti e il suo utilizzo in sintesi" first/>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <SparkStat label="Utenti totali" value={fmtNum(totUtenti)}
           sub={`+${fmtNum(APP_METRICS.newRegistrazioni30g)} ultimi 30g`}
           accent="PINK" icon="users"
@@ -3255,7 +3227,7 @@ function DashUtentiApp() {
           trend={mauW.delta} trendLabel="vs 30gg" spark={TS.mau.slice(-30)}/>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <SparkStat label="Ordini da Guest (30g)" value={fmtNum(APP_METRICS.ordiniGuest30g)}
           accent="PINK" icon="receipt"
           trend={guestW.delta} trendLabel="vs 7gg" spark={TS.ordiniGuest.slice(-30)}/>
@@ -3271,10 +3243,7 @@ function DashUtentiApp() {
       </div>
 
       {/* ═════ RITORNO UTENTI NEL TEMPO ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Ritorno degli utenti nel tempo</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Quanti continuano a usare l'app dopo il primo ordine</div>
-      </div>
+      <SectionLabel title="Ritorno degli utenti nel tempo" desc="Quanti continuano a usare l'app dopo il primo ordine"/>
 
       <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:14}}>
         <AdmCard padding={22}>
@@ -3358,7 +3327,7 @@ function DashUtentiApp() {
           <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14, lineHeight:1.45}}>
             Ogni riga è il gruppo di utenti iscritti in quel mese · le colonne mostrano quanti tornavano dopo X tempo
           </div>
-          <div style={{display:'grid', gridTemplateColumns:'66px 32px repeat(5, 1fr)', gap:4, alignItems:'center'}}>
+          <div style={{display:'grid', gridTemplateColumns:'66px 32px repeat(5, minmax(0,1fr))', gap:4, alignItems:'center'}}>
             <div></div>
             <div style={{fontSize:11.9, fontWeight:700, color:ADM.MUTED, textAlign:'right', paddingRight:3, letterSpacing:'0.02em', textTransform:'uppercase'}}>utenti</div>
             {cohortPointLabels.map(d => (
@@ -3389,6 +3358,9 @@ function DashUtentiApp() {
           </div>
         </AdmCard>
       </div>
+
+      {/* ═══════════ Chi sono gli utenti ═══════════ */}
+      <SectionLabel title="Chi sono gli utenti" desc="Demografia della base installata"/>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <AdmCard padding={20}>
@@ -3432,10 +3404,7 @@ function DashUtentiApp() {
       </div>
 
       {/* ═════ SEZIONE: SEGMENTAZIONE COMPORTAMENTO ORDINI ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Comportamento d'ordine per cluster demografico</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Cluster = combinazione sesso × fascia d'età · chi spende quanto · quando · cosa</div>
-      </div>
+      <SectionLabel title="Comportamento d'ordine per cluster demografico" desc="Cluster = combinazione sesso × fascia d'età · chi spende quanto · quando · cosa"/>
 
       {/* MATRICE scontrino × cohort (sesso × età) */}
       <AdmCard padding={20}>
@@ -3450,7 +3419,7 @@ function DashUtentiApp() {
             <span>{fmtEur(aovMax)}</span>
           </div>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'80px repeat(5, 1fr)', gap:6}}>
+        <div style={{display:'grid', gridTemplateColumns:'80px repeat(5, minmax(0,1fr))', gap:6}}>
           <div></div>
           {ages.map(a => <div key={a} style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textAlign:'center', padding:'4px 0', letterSpacing:'0.04em', textTransform:'uppercase'}}>{a}</div>)}
           {['F','M'].map(sex => (
@@ -3586,7 +3555,7 @@ function DashUtentiApp() {
             <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Ogni colonna è un segmento di clientela <strong style={{color:ADM.TEXT}}>sesso × fascia d'età</strong>. Top 3 categorie più ordinate dal segmento, % sugli ordini del segmento.</div>
           </div>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:10}}>
           {topCatByCohort.map((row, i) => {
             const isF = row.cohort[0]==='F';
             const sexLabel = isF ? 'Donne' : 'Uomini';
@@ -3629,7 +3598,7 @@ function DashUtentiApp() {
             <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Intensità relativa per fascia oraria · trigger per workflow push/email</div>
           </div>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'80px repeat(6, 1fr)', gap:5}}>
+        <div style={{display:'grid', gridTemplateColumns:'80px repeat(6, minmax(0,1fr))', gap:5}}>
           <div></div>
           {hourBands.map(b => (
             <div key={b} style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textAlign:'center', padding:'2px 0', letterSpacing:'0.02em', lineHeight:1.3}}>{b}</div>
@@ -3658,10 +3627,7 @@ function DashUtentiApp() {
       </AdmCard>
 
       {/* ═════ SEZIONE: DISTRIBUZIONE GEOGRAFICA ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Geografia del consumo</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Dove si ordina cosa</div>
-      </div>
+      <SectionLabel title="Geografia del consumo" desc="Dove si ordina cosa"/>
 
       {/* Top città */}
       <AdmCard padding={0}>
@@ -3702,7 +3668,7 @@ function DashUtentiApp() {
       {/* Consumo per macro-regione */}
       <AdmCard padding={20}>
         <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Top piatti per macro-regione</div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:10}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:10}}>
           {regionFood.map((r,i) => (
             <div key={i} style={{padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9, border:`1px solid ${ADM.BORDER_SOFT}`}}>
               <div style={{fontSize:13, fontWeight:700, color:ADM.PINK, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>{r.regione}</div>
@@ -3872,10 +3838,7 @@ function DashUtentiApp() {
       </AdmCard>
 
       {/* ═════ SEZIONE: COMPOSIZIONE ALIMENTARE ═════ */}
-      <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Cosa si mangia</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>Piatti, ingredienti, macro-nutrienti</div>
-      </div>
+      <SectionLabel title="Cosa si mangia" desc="Piatti, ingredienti, macro-nutrienti"/>
 
       {/* Caveat dati */}
       <div style={{padding:'11px 14px', background:ADM.WARN_SOFT, border:`1px solid #FCD34D`, borderRadius:9, display:'flex', gap:10, alignItems:'flex-start'}}>
@@ -4019,7 +3982,7 @@ function DashUtentiApp() {
             <div key={i} style={{width:`${m.pct}%`, background:m.color, borderRight: i < macros.length-1 ? '1.5px solid #fff' : 'none'}}/>
           ))}
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
           {macros.map((m,i) => {
             const trendUp = m.trend > 0;
             const trendDn = m.trend < 0;
@@ -4137,9 +4100,13 @@ function DashCamerieri() {
   const totRegW = moM(TS.staffTot);
 
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:18}}>
+    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
+
+      {/* ═══════════ Andamento — la rete staff in sintesi ═══════════ */}
+      <SectionLabel title="Andamento" desc="La rete staff dei locali in sintesi" first/>
+
       {/* Riga 1 · KPI principali con trend e benchmark */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <SparkStat label="Staff registrati" value={fmtNum(STAFF_METRICS.totCamerieri)}
           sub={`+${Math.round(totRegW.last - totRegW.prev)} ultimi 30gg`}
           accent="PINK" icon="users"
@@ -4221,6 +4188,9 @@ function DashCamerieri() {
         </AdmCard>
       </div>
 
+      {/* ═══════════ Attività operativa ═══════════ */}
+      <SectionLabel title="Attività operativa" desc="Quando e come lo staff usa il gestionale"/>
+
       {/* Riga 3 · Heatmap settimanale · pattern di utilizzo */}
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, flexWrap:'wrap', gap:10}}>
@@ -4238,7 +4208,7 @@ function DashCamerieri() {
             <span>High</span>
           </div>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'48px repeat(7, 1fr)', gap:6, alignItems:'center'}}>
+        <div style={{display:'grid', gridTemplateColumns:'48px repeat(7, minmax(0,1fr))', gap:6, alignItems:'center'}}>
           <div/>
           {heatmap.map(d => (
             <div key={d.giorno} style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textAlign:'center', letterSpacing:'0.04em', textTransform:'uppercase'}}>{d.giorno}</div>
