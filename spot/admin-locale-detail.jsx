@@ -8,17 +8,19 @@ function LocaleDrawer({ locale: l, onClose }) {
   return (
     <div style={{
       position:'fixed', inset:0, zIndex:50,
-      display:'flex', justifyContent:'flex-end',
+      display:'grid', placeItems:'center', padding:24,
       background:'rgba(15,17,21,0.45)',
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
       animation:'fadeIn 0.15s ease',
     }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{
-        width: 820, maxWidth:'95%',
+        width: 880, maxWidth:'94%',
         background:'#fff',
-        height:'100%',
+        maxHeight:'88%',
+        borderRadius:18, overflow:'hidden',
         display:'flex', flexDirection:'column',
-        boxShadow:'-12px 0 32px rgba(0,0,0,0.12)',
-        animation:'slideIn 0.2s ease',
+        boxShadow:'0 32px 80px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.22s cubic-bezier(0.22,0.9,0.35,1)',
       }}>
         {/* Header */}
         <div style={{padding:'20px 24px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
