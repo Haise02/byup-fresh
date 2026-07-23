@@ -76,6 +76,31 @@ const CONTI_MOCK = [
     payments: [{id:'p8a', method:'contanti', amount:48.00, ora:'2024-11-14 19:45', scontrinoNum:'SC-2411-0004-1'}] },
 ];
 
+// Ri-ancoraggio date: il mock è scritto con "oggi" = 16 nov 2025. Trasliamo tutte
+// le date (conto, pagamenti, rimborsi) dello scarto con l'oggi reale e rigeneriamo
+// i codici ordine/scontrino (#YYMM-…): la storia resta coerente e sempre attuale.
+(() => {
+  const shiftDays = Math.floor((Date.now() - new Date('2025-11-16T12:00:00').getTime()) / 86400000);
+  const shiftStr = (str) => {
+    if (!str) return str;
+    const [date, time] = str.split(' ');
+    const d = new Date(date + 'T' + (time || '12:00') + ':00');
+    d.setDate(d.getDate() + shiftDays);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return time ? `${iso} ${time}` : iso;
+  };
+  CONTI_MOCK.forEach(c => {
+    c.dataOra = shiftStr(c.dataOra);
+    const code = c.dataOra.slice(2,4) + c.dataOra.slice(5,7);
+    c.idOrdine = c.idOrdine.replace(/#\d{4}-/, '#' + code + '-');
+    (c.payments || []).forEach(p => {
+      p.ora = shiftStr(p.ora);
+      if (p.scontrinoNum) p.scontrinoNum = p.scontrinoNum.replace(/SC-\d{4}-/, 'SC-' + code + '-');
+    });
+    if (c.rimborso) c.rimborso.ora = shiftStr(c.rimborso.ora);
+  });
+})();
+
 // Format "2025-11-15 19:42" → "15 nov · 19:42"
 function fmtDataOra(s) {
   if (!s) return '—';

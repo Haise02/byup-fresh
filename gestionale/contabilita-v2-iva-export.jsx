@@ -210,7 +210,7 @@ function ContExport({ openShare }) {
             </div>
           </div>
           <Row label="Frequenza" value="Mensile"/>
-          <Row label="Prossimo invio" value="1 Gen 2026"/>
+          <Row label="Prossimo invio" value={(() => { const d = new Date(); d.setMonth(d.getMonth()+1, 1); const M = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']; return `1 ${M[d.getMonth()]} ${d.getFullYear()}`; })()}/>
           <Row label="Destinatario" value="comm@email.it"/>
           <button onClick={openShare} style={{
             width:'100%', marginTop: 10,

@@ -46,7 +46,7 @@ const CASH_MOVEMENTS = Array.from({length: 12}).map((_, i) => {
   return {
     id: '0000'+(i+1).toString().padStart(2,'0'),
     amount: [54.20, 32.10, 78.40, 145.00, 28.50, 96.30, 42.00, 88.70, 12.50, 156.00, 64.30, 39.80][i] || 50,
-    date: '12/03/2025',
+    date: new Date().toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'}),
     time: ['11:42','12:08','12:34','13:02','13:18','13:45','14:12','14:30','14:48','15:02','15:20','15:48'][i],
     channel,
     channelLabel: channel === 'cassa' ? 'Cassa fisica' : (channel === 'cameriere' ? 'Da Cameriere' : 'Byup App'),
@@ -74,13 +74,29 @@ const IVA_RATES = [
   { rate:'22%', deb: 1966, cred: 1500 },
 ];
 
+// Export recenti: nomi e date derivano da "oggi", così la demo non invecchia mai.
+const _EXP_MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const _expMonth = (back) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - back); return d; };
+const _expDate = (d, day, hm) => `${String(day).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${hm}`;
 const EXPORT_HISTORY = [
-  { name:'incassi_dicembre.csv', size:'245KB', date:'03/12/2024 14:30' },
-  { name:'incassi_novembre.csv', size:'238KB', date:'03/11/2024 14:30' },
-  { name:'incassi_ottobre.csv',  size:'251KB', date:'03/10/2024 14:30' },
-  { name:'iva_q4_2024.pdf',       size:'180KB', date:'02/01/2025 09:12' },
-  { name:'costi_dicembre.xlsx',   size:'92KB',  date:'02/01/2025 08:50' },
+  { name:`incassi_${_EXP_MESI[_expMonth(1).getMonth()]}.csv`, size:'245KB', date:_expDate(_expMonth(0), 3, '14:30') },
+  { name:`incassi_${_EXP_MESI[_expMonth(2).getMonth()]}.csv`, size:'238KB', date:_expDate(_expMonth(1), 3, '14:30') },
+  { name:`incassi_${_EXP_MESI[_expMonth(3).getMonth()]}.csv`, size:'251KB', date:_expDate(_expMonth(2), 3, '14:30') },
+  { name:`iva_q${Math.floor(_expMonth(1).getMonth()/3)+1}_${_expMonth(1).getFullYear()}.pdf`, size:'180KB', date:_expDate(_expMonth(0), 2, '09:12') },
+  { name:`costi_${_EXP_MESI[_expMonth(1).getMonth()]}.xlsx`, size:'92KB', date:_expDate(_expMonth(0), 2, '08:50') },
 ];
+
+// Ri-ancoraggio scadenze costi: il mock è stato scritto con "oggi" ≈ 15 gen 2026.
+// Trasliamo ogni scadenza dello scarto con l'oggi reale: le distanze relative
+// (in ritardo, in arrivo, tra un mese) restano identiche e la demo resta attuale.
+(() => {
+  const shift = Math.floor((Date.now() - new Date('2026-01-15T12:00:00').getTime()) / 86400000);
+  COSTS_DATA.forEach(c => {
+    const d = new Date(c.next + 'T12:00:00');
+    d.setDate(d.getDate() + shift);
+    c.next = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  });
+})();
 
 window.COST_CATEGORIES = COST_CATEGORIES;
 window.COSTS_DATA = COSTS_DATA;

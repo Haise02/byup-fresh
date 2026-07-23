@@ -1,5 +1,9 @@
 // Notifiche dropdown — campanella + tendina condivisa cross-page
 
+// Mesi correnti per i testi delle notifiche: la demo non deve mai sembrare vecchia.
+const _PN_MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const _pnMese = (back) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - back); return _PN_MESI[d.getMonth()]; };
+
 const PN_NOTIFICATIONS = [
   {
     id: 'n1',
@@ -23,7 +27,7 @@ const PN_NOTIFICATIONS = [
     id: 'n3',
     type: 'system',
     title: 'Report mensile pronto',
-    body: 'Il riepilogo di aprile 2026 è disponibile in Statistiche. +12% vs marzo.',
+    body: `Il riepilogo di ${_pnMese(1)} è disponibile in Statistiche. +12% vs ${_pnMese(2)}.`,
     href: 'byup Statistiche.html',
     time: '2 giorni fa',
     unread: true,
@@ -41,7 +45,7 @@ const PN_NOTIFICATIONS = [
     id: 'n5',
     type: 'billing',
     title: 'Fattura del piano Business',
-    body: 'La fattura di aprile (€49,00) è disponibile in Contabilità → Fatture.',
+    body: `La fattura di ${_pnMese(1)} (€49,00) è disponibile in Contabilità → Fatture.`,
     href: 'byup Contabilita.html',
     time: '1 settimana fa',
     unread: false,
@@ -196,7 +200,10 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                 cursor:'pointer',
                 position:'relative',
               }}
-                onClick={() => { if (n.href) window.location.href = n.href; }}
+                onClick={() => {
+                  setItems(prev => prev.map(i => i.id === n.id ? {...i, unread: false} : i));
+                  if (n.href) window.location.href = n.href;
+                }}
                 onMouseEnter={e => e.currentTarget.style.background = n.unread ? '#ffeef4' : '#fafafa'}
                 onMouseLeave={e => e.currentTarget.style.background = n.unread ? '#fff7fa' : '#fff'}
               >
@@ -211,6 +218,10 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
                   <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, marginBottom: 4}}>{n.body}</div>
                   <div style={{fontSize: 13, color: '#a3a3ad', fontWeight: 500}}>{n.time}</div>
                 </div>
+                {/* Freccia → dice che la riga si apre (la navigazione è sul click della riga) */}
+                <span style={{alignSelf:'center', flexShrink:0, color:'#C4C9D4', display:'grid', placeItems:'center'}}>
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </span>
                 {/* Cestino → elimina la notifica (la navigazione è sul click
                     della riga, quindi qui serve lo stopPropagation) */}
                 <button
@@ -438,3 +449,144 @@ function PnConnectionStatus({ variant, collapsed = false }) {
 
 window.PnWifiIcon = PnWifiIcon;
 window.PnConnectionStatus = PnConnectionStatus;
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Ricerca globale ⌘K — cross-page: pagine, azioni rapide, prenotazioni, conti,
+// piatti. Vive in questo file perché è caricato da tutte le pagine desktop.
+// L'indice è statico e rispecchia i mock delle singole pagine.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PN_SEARCH_INDEX = [
+  // Pagine
+  { g:'Pagine', label:'Panoramica',       sub:'Dashboard del locale',             href:'byup Panoramica.html', keys:'home dashboard widget' },
+  { g:'Pagine', label:'Sala',             sub:'Tavoli, mappa e conti aperti',     href:'byup Sala.html', keys:'tavoli mappa sala' },
+  { g:'Pagine', label:'Vendita diretta',  sub:'Cassa e ordini da banco',          href:'byup Sala.html?tab=vendita', keys:'cassa banco pos vendita' },
+  { g:'Pagine', label:'Prenotazioni',     sub:'Timeline e calendario',            href:'byup Sala.html?tab=calendar', keys:'calendario timeline booking' },
+  { g:'Pagine', label:'Cucina',           sub:'Comande in tempo reale (KDS)',     href:'byup Cucina.html', keys:'kds comande cucina' },
+  { g:'Pagine', label:'Statistiche',      sub:'Operazioni, economici, app',       href:'byup Statistiche.html', keys:'analytics report kpi statistiche' },
+  { g:'Pagine', label:'Contabilità',      sub:'Cassa, conti, costi, IVA, export', href:'byup Contabilita.html', keys:'iva costi export fatture contabilita' },
+  { g:'Pagine', label:'Impostazioni',     sub:'Vetrina, menù, sala, personale, dati fiscali, POS', href:'byup Impostazioni.html', keys:'vetrina menu piatti personale operazioni fiscali pos integrazioni impostazioni' },
+  { g:'Pagine', label:'Supporto',         sub:'Chat, guide e assistenza',          href:'byup Supporto.html', keys:'aiuto help assistenza supporto' },
+  { g:'Pagine', label:'Profilo',          sub:'Account, piani e fatturazione',     href:'byup Profilo.html', keys:'account password piano abbonamento profilo' },
+  // Azioni rapide
+  { g:'Azioni rapide', label:'Apri cassa',              sub:'Vendita diretta',        href:'byup Sala.html?tab=vendita', keys:'cassa apri incasso' },
+  { g:'Azioni rapide', label:'Nuova prenotazione',      sub:'Prenotazioni · timeline', href:'byup Sala.html?tab=calendar', keys:'prenota nuovo tavolo' },
+  { g:'Azioni rapide', label:'Esporta dati contabili',  sub:'Contabilità · Export',   href:'byup Contabilita.html', keys:'export csv pdf commercialista' },
+  { g:'Azioni rapide', label:'Carica menu con AI',      sub:'Impostazioni · Menù',    href:'byup Impostazioni.html', keys:'menu ai importa pdf foto' },
+  // Prenotazioni (mock timeline Sala + Panoramica)
+  ...[['Bruni','Tavolo 1 · 6 coperti · 13:00'],['Borrelli','Tavolo 2 · 3 coperti · 12:45'],['Barbieri','Tavolo 2 · 4 coperti · 13:30'],['Martina Ciani','Tavolo 3 · 2 coperti · 13:15'],['Mele','Tavolo 4 · 2 coperti · 12:45'],['Bellini','Tavolo 4 · 2 coperti · 13:30'],['Famiglia Ferri','Tavolo 5 · 4 coperti · 12:00'],['Coppia Rossi','Tavolo 6 · 2 coperti · 12:00'],['Caruso','Tavolo 6 · 2 coperti · 13:00'],['Luca Bianchi','Tavolo 7 · 3 coperti · 12:00'],['Esposito','Tavolo 8 · 2 coperti · 12:45'],['Battaglia','Tavolo 8 · 2 coperti · 13:30'],['Pellegrini','Tavolo 9 · 3 coperti · 13:30'],['Gallo azienda','Tavolo 11 · 6 coperti · 12:15'],['Conte','Tavolo 12 · 6 coperti · 20:15'],['Greco','Tavolo 5 · 3 coperti · 21:00'],['De Luca','Tavolo 9 · 2 coperti · 21:30']]
+    .map(([n, d]) => ({ g:'Prenotazioni', label:n, sub:'Prenotazione · ' + d, href:'byup Sala.html?tab=calendar', keys:'prenotazione ' + n.toLowerCase() })),
+  // Conti (mock Contabilità)
+  ...[['Mario Rossi','Tavolo 4 · €85,00 · da saldare €45,00'],['Simone De Luca','Asporto · €64,50 · da saldare'],['Roberto Esposito','Tavolo 10 · €128,00 · da saldare'],['Giulia Russo','Tavolo 12 · €312,00 · da saldare €42,00'],['Lucia Marchesi','Tavolo 1 · €72,00 · saldato'],['Francesco Rossi','Tavolo 3 · €95,50 · saldato'],['Carlo Russo','Tavolo 8 · €215,00 · saldato'],['Andrea Mele','Tavolo 7 · €485,00 · saldato'],['Anna Costa','Asporto · €38,50 · saldato'],['Coppia Neri','Tavolo 6 · €58,00 · rimborso parziale']]
+    .map(([n, d]) => ({ g:'Conti', label:n, sub:'Conto · ' + d, href:'byup Contabilita.html', keys:'conto scontrino ' + n.toLowerCase() })),
+  // Piatti (mock Menù)
+  ...[['Bruschetta al pomodoro','Antipasti · €6,50'],['Carbonara','Primi · €13,00'],['Cacio e Pepe','Primi · €12,00'],['Amatriciana','Primi · €13,00'],['Lasagna','Primi · €13,50'],['Pizza Margherita','Pizze · €9,00'],['Pizza Diavola','Pizze · €11,00'],['Tagliata di manzo','Secondi · €18,00'],['Tagliere misto','Antipasti · €14,00'],['Tiramisù','Dolci · €6,50'],['Spritz','Bar · €6,50'],['Espresso','Bar · €1,50'],['Cappuccino','Bar · €1,80']]
+    .map(([n, d]) => ({ g:'Piatti', label:n, sub:'Piatto · ' + d, href:'byup Impostazioni.html', keys:'piatto menu ' + n.toLowerCase() })),
+];
+
+function PnGlobalSearch() {
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState('');
+  const inputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setOpen(o => !o); setQ(''); }
+      if (e.key === 'Escape') setOpen(false);
+    };
+    const onOpen = () => { setOpen(true); setQ(''); };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('byup-open-search', onOpen);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('byup-open-search', onOpen); };
+  }, []);
+
+  React.useEffect(() => { if (open && inputRef.current) inputRef.current.focus(); }, [open]);
+
+  if (!open) return null;
+
+  const query = q.trim().toLowerCase();
+  const matches = query.length >= 2
+    ? PN_SEARCH_INDEX.filter(it =>
+        it.label.toLowerCase().includes(query) ||
+        it.sub.toLowerCase().includes(query) ||
+        (it.keys || '').includes(query))
+    : [];
+  const groups = [];
+  matches.forEach(m => {
+    let g = groups.find(x => x.name === m.g);
+    if (!g) { g = { name: m.g, items: [] }; groups.push(g); }
+    if (g.items.length < 4) g.items.push(m);
+  });
+  const first = groups[0] && groups[0].items[0];
+  const go = (it) => { window.location.href = it.href; };
+
+  return ReactDOM.createPortal(
+    <div onClick={() => setOpen(false)} style={{
+      position:'fixed', inset:0, zIndex:9990,
+      background:'rgba(15,17,21,0.42)',
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
+      display:'flex', justifyContent:'center', alignItems:'flex-start', paddingTop:'11vh',
+      fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width:640, maxWidth:'92%', background:'#fff', borderRadius:16,
+        boxShadow:'0 32px 80px rgba(15,17,21,0.35)', overflow:'hidden',
+        animation:'pn-banner-in .18s ease-out',
+      }}>
+        <div style={{display:'flex', alignItems:'center', gap:11, padding:'15px 18px', borderBottom: matches.length ? '1px solid #ECEDF1' : 'none'}}>
+          <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && first) go(first); }}
+            placeholder="Cerca prenotazioni, conti, piatti, pagine…"
+            style={{flex:1, border:'none', outline:'none', fontSize:17, fontFamily:'inherit', color:'#16181D', background:'transparent'}}/>
+          <span style={{padding:'3px 8px', borderRadius:7, background:'#F3F4F6', color:'#6B7280', fontSize:12.5, fontWeight:700}}>ESC</span>
+        </div>
+        {query.length >= 2 && matches.length === 0 && (
+          <div style={{padding:'26px 18px', textAlign:'center', fontSize:14.5, color:'#9CA3AF'}}>Nessun risultato per “{q}”</div>
+        )}
+        {groups.length > 0 && (
+          <div style={{maxHeight:'54vh', overflowY:'auto', padding:'6px 0 8px'}}>
+            {groups.map(g => (
+              <div key={g.name}>
+                <div style={{padding:'10px 18px 5px', fontSize:11.5, fontWeight:800, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.07em'}}>{g.name}</div>
+                {g.items.map((it, i) => (
+                  <div key={it.g + it.label + i} onClick={() => go(it)}
+                    style={{display:'flex', alignItems:'center', gap:12, padding:'9px 18px', cursor:'pointer'}}
+                    onMouseEnter={e => e.currentTarget.style.background = '#FFF5F6'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontSize:15.5, fontWeight:600, color:'#16181D'}}>{it.label}
+                        {it === first && <span style={{marginLeft:9, padding:'2px 7px', borderRadius:6, background:'#F3F4F6', color:'#6B7280', fontSize:11.5, fontWeight:700}}>↵</span>}
+                      </div>
+                      <div style={{fontSize:13, color:'#8A8F98', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{it.sub}</div>
+                    </div>
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#C4C9D4" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+        {query.length < 2 && (
+          <div style={{padding:'12px 18px 14px', fontSize:13, color:'#9CA3AF'}}>
+            Almeno 2 caratteri · <strong style={{color:'#6B7280'}}>Invio</strong> apre il primo risultato
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+window.PnGlobalSearch = PnGlobalSearch;
+
+// Auto-mount su un root dedicato: il componente vive fuori dall'albero della
+// pagina, così la ricerca esiste su ogni schermata che carica questo file.
+(function () {
+  if (window.__pnSearchMounted || !document.body || !window.ReactDOM || !ReactDOM.createRoot) return;
+  window.__pnSearchMounted = true;
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  ReactDOM.createRoot(host).render(React.createElement(PnGlobalSearch));
+})();
