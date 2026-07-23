@@ -231,7 +231,7 @@ function ProfiloPage() {
   const pwdOk = pwd2.length >= 8 && pwd2 === pwd3 && pwd1.length > 0;
 
   return (
-    <div style={{padding:28, maxWidth: 860, margin:'0 auto', display:'flex', flexDirection:'column', gap:16}}>
+    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:14}}>
       {/* Header card */}
       <AdmCard padding={22}>
         <div style={{display:'flex', alignItems:'center', gap:18}}>
@@ -249,11 +249,12 @@ function ProfiloPage() {
         </div>
       </AdmCard>
 
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14, alignItems:'start'}}>
       {/* Password */}
       <AdmCard padding={22}>
         <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>Cambia password</div>
         <div style={{fontSize:13.7, color:ADM.MUTED, marginBottom:16}}>Usa almeno 8 caratteri, con lettere e numeri</div>
-        <div style={{display:'flex', flexDirection:'column', gap:12, maxWidth:420}}>
+        <div style={{display:'flex', flexDirection:'column', gap:12}}>
           <ProfField label="Password attuale" type="password" value={pwd1} onChange={setPwd1}/>
           <ProfField label="Nuova password" type="password" value={pwd2} onChange={setPwd2} hint={pwd2.length > 0 && pwd2.length < 8 ? 'Almeno 8 caratteri' : ''}/>
           <ProfField label="Conferma nuova password" type="password" value={pwd3} onChange={setPwd3} hint={pwd3.length > 0 && pwd2 !== pwd3 ? 'Le password non coincidono' : ''}/>
@@ -263,6 +264,7 @@ function ProfiloPage() {
         </div>
       </AdmCard>
 
+      <div style={{display:'flex', flexDirection:'column', gap:14, minWidth:0}}>
       {/* 2FA */}
       <AdmCard padding={22}>
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:18, marginBottom: twofa || showQr ? 16 : 0}}>
@@ -333,6 +335,8 @@ function ProfiloPage() {
           </div>
         ))}
       </AdmCard>
+      </div>{/* /colonna destra */}
+      </div>{/* /griglia */}
     </div>
   );
 }
