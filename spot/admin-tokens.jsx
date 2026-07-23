@@ -15,6 +15,11 @@ const ADM = {
   // neutral — base per tile/icone "calm" (il colore NON è decorativo)
   NEUTRAL:      '#6E6E73',
   NEUTRAL_SOFT: '#F1F2F4',
+  // ink — colore delle serie nei grafici (schema "inchiostro + un accento",
+  // stile Airbnb): la massa dei dati è quieta, il coral è riservato a hero,
+  // confronti Byup-vs-mercato, picchi critici e UI di brand.
+  INK:          '#31353D',
+  INK_SOFT:     '#C9CDD4',
   // border — softer
   BORDER:       '#E6E6EB',
   BORDER_SOFT:  '#F0F0F2',

@@ -444,7 +444,7 @@ function AttentionStrip({ items }) {
 function DashHero({ label, value, trend, trendLabel, sub, detail, data, accent, onClick, selected }) {
   const c = accent || ADM.PINK;
   return (
-    <AdmCard padding={0} interactive={!!onClick} onClick={onClick} style={{overflow:'hidden', cursor: onClick ? 'pointer' : 'default', ...(selected ? { border:`1px solid ${c}`, boxShadow:`0 0 0 3px ${c}38` } : {})}}>
+    <AdmCard padding={0} interactive={!!onClick} onClick={onClick} style={{overflow:'hidden', cursor: onClick ? 'pointer' : 'default', ...(selected ? { border:`1px solid ${ADM.PINK}`, boxShadow:`0 0 0 3px ${ADM.PINK}38` } : {})}}>
       <div style={{display:'flex', alignItems:'stretch', minHeight:138}}>
         <div style={{flex:'1 1 44%', padding:'20px 24px', display:'flex', flexDirection:'column', justifyContent:'center', gap:8}}>
           <div style={{display:'flex', alignItems:'center', gap:8}}>
@@ -474,7 +474,7 @@ function DashStatCard({ label, value, trend, trendLabel, sub, alertText, data, r
   const c = ADM[accent] || ADM.PINK;
   return (
     <AdmCard padding={0} interactive={!!onClick} onClick={onClick}
-      style={{display:'flex', flexDirection:'column', cursor: onClick ? 'pointer' : 'default', overflow:'hidden', ...(selected ? { border:`1px solid ${c}`, boxShadow:`0 0 0 3px ${c}38` } : {})}}>
+      style={{display:'flex', flexDirection:'column', cursor: onClick ? 'pointer' : 'default', overflow:'hidden', ...(selected ? { border:`1px solid ${ADM.PINK}`, boxShadow:`0 0 0 3px ${ADM.PINK}38` } : {})}}>
       <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
         <div style={{display:'flex', alignItems:'center', gap:7}}>
           <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</span>
@@ -648,9 +648,9 @@ function DashGenerale({ onNav }) {
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <DashStatCard
-          label="Locali totali" value={fmtNum(totLocali)} accent="PINK"
+          label="Locali totali" value={fmtNum(totLocali)} accent="INK"
           sub={`${attivi} attivi · ${inattivi} inattivi`}
-          ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.PINK }}
+          ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.INK }}
           selected={detail?.key === 'locali'}
           onClick={()=>toggleDetail({
             key:'locali', title:'Locali · dettaglio', subtitle:`${totLocali} locali totali`, accent:ADM.PINK,
@@ -670,7 +670,7 @@ function DashGenerale({ onNav }) {
           })}
         />
         <DashStatCard
-          label="Utenti totali" value={fmtNum(totUtenti)} accent="PINK"
+          label="Utenti totali" value={fmtNum(totUtenti)} accent="INK"
           trend={woW(TS.utentiTot).delta} trendLabel="7gg"
           sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(attivi24)}</b> attivi oggi · <b style={{color:ADM.TEXT}}>{Math.round(attivi24/totUtenti*100)}%</b> dei registrati</span>}
           data={TS.utentiTot.slice(-30)} gradId="grad-ute"
@@ -682,7 +682,7 @@ function DashGenerale({ onNav }) {
           })}
         />
         <DashStatCard
-          label="Accessi guest · 30gg" value={fmtNum(guestLog30g)} accent="PINK"
+          label="Accessi guest · 30gg" value={fmtNum(guestLog30g)} accent="INK"
           trend={moM(TS.guestAccessi).delta} trendLabel="30gg"
           sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(ordiniGuest30g)}</b> ordini · <b style={{color:ADM.TEXT}}>{Math.round(ordiniGuest30g/guestLog30g*100)}%</b> conversione</span>}
           data={TS.guestAccessi.slice(-30)} gradId="grad-gue"
@@ -869,8 +869,8 @@ function RevenueTooltip({ sub, extra, subAnno, extraAnno, ricaviAnno, mesePrec }
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:18, marginBottom:14}}>
         <div>
           <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Ultimo mese</div>
-          <RevRow color={ADM.PINK} label="Abbonamenti" val={fmtEur(sub)}/>
-          <RevRow color="#FFC2C4" label="Extra ordini" val={fmtEur(extra)}/>
+          <RevRow color={ADM.INK} label="Abbonamenti" val={fmtEur(sub)}/>
+          <RevRow color={ADM.INK_SOFT} label="Extra ordini" val={fmtEur(extra)}/>
           <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginTop:7, paddingTop:7, display:'flex', justifyContent:'space-between'}}>
             <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT}}>Totale</span>
             <span style={{fontSize:14.4, fontWeight:800, color:ADM.TEXT}}>{fmtEur(sub + extra)}</span>
@@ -883,8 +883,8 @@ function RevenueTooltip({ sub, extra, subAnno, extraAnno, ricaviAnno, mesePrec }
         </div>
         <div>
           <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Ultimo anno (12m)</div>
-          <RevRow color={ADM.PINK} label="Abbonamenti" val={fmtEur(subAnno)}/>
-          <RevRow color="#FFC2C4" label="Extra ordini" val={fmtEur(extraAnno)}/>
+          <RevRow color={ADM.INK} label="Abbonamenti" val={fmtEur(subAnno)}/>
+          <RevRow color={ADM.INK_SOFT} label="Extra ordini" val={fmtEur(extraAnno)}/>
           <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginTop:7, paddingTop:7, display:'flex', justifyContent:'space-between'}}>
             <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT}}>Totale</span>
             <span style={{fontSize:14.4, fontWeight:800, color:ADM.TEXT}}>{fmtEur(ricaviAnno)}</span>
@@ -910,8 +910,8 @@ function MiniRevBar() {
         const subH = (m.sub / (m.sub + m.extra)) * totH;
         return (
           <div key={i} style={{flex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end'}}>
-            <div style={{width:'100%', height:`${totH - subH}%`, background:'#FFC2C4', borderRadius:'3px 3px 0 0'}}/>
-            <div style={{width:'100%', height:`${subH}%`, background:ADM.PINK}}/>
+            <div style={{width:'100%', height:`${totH - subH}%`, background:ADM.INK_SOFT, borderRadius:'3px 3px 0 0'}}/>
+            <div style={{width:'100%', height:`${subH}%`, background:ADM.INK}}/>
             <div style={{fontSize:11, color:ADM.MUTED_SOFT, marginTop:3, textAlign:'center', fontWeight:600}}>{m.mese.slice(0,3)}</div>
           </div>
         );
@@ -1693,9 +1693,9 @@ function DashLocali({ onNav }) {
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <DashStatCard
-          label="Conversion onboarding" value={`${convRate}%`} accent="PINK"
+          label="Conversion onboarding" value={`${convRate}%`} accent="INK"
           sub={`${onbCompletati} completati su ${onbTentati} tentati`}
-          ratio={{ a: onbCompletati, b: onbTentati - onbCompletati, aLabel:'completati', bLabel:'in corso', aColor: ADM.OK }}
+          ratio={{ a: onbCompletati, b: onbTentati - onbCompletati, aLabel:'completati', bLabel:'in corso', aColor: ADM.INK }}
           selected={detail?.key === 'conv'}
           onClick={()=>toggleDetail({
             key:'conv', title:'Conversion onboarding · dettaglio', subtitle:`${LOCALI.length} locali totali`, accent:ADM.PINK,
@@ -1703,7 +1703,7 @@ function DashLocali({ onNav }) {
           })}
         />
         <DashStatCard
-          label="Tempo medio setup" value={tempoMedioStr} accent="PINK"
+          label="Tempo medio setup" value={tempoMedioStr} accent="INK"
           sub={`Da iscrizione a Go-live · mediana ${medianMin < 60 ? `${medianMin} min` : `${Math.floor(medianMin/60)}h ${medianMin%60}m`}`}
           selected={detail?.key === 'setup'}
           onClick={()=>toggleDetail({
@@ -1712,7 +1712,7 @@ function DashLocali({ onNav }) {
           })}
         />
         <DashStatCard
-          label="Ordini · Scan QR" value={fmtPct(ratioMese)} accent="PINK"
+          label="Ordini · Scan QR" value={fmtPct(ratioMese)} accent="INK"
           sub={`${fmtNum(totOrdiniMese)} ordini · ${fmtNum(totScanQRMese)} scan · 30gg`}
           selected={detail?.key === 'qr'}
           onClick={()=>toggleDetail({
@@ -1721,7 +1721,7 @@ function DashLocali({ onNav }) {
           })}
         />
         <DashStatCard
-          label="Prenotazioni · 30gg" value={fmtNum(totPrenotMese)} accent="PINK"
+          label="Prenotazioni · 30gg" value={fmtNum(totPrenotMese)} accent="INK"
           sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(totPrenotAnno)}</b> negli ultimi 12 mesi</span>}
         />
       </div>
@@ -1760,7 +1760,7 @@ function DashLocali({ onNav }) {
             <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Conversione da iscrizione a Go-live</div>
           </div>
           <div style={{display:'flex', gap:14, fontSize:13, color:ADM.MUTED, alignItems:'center', flexWrap:'wrap'}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.PINK}}/>Obbligatorio</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.INK}}/>Obbligatorio</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.OK}}/>Avvio</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:'#E4E6EA'}}/>Opzionale</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}`}}/>Bottleneck</span>
@@ -1805,7 +1805,7 @@ function DashLocali({ onNav }) {
             const barBg = isBottleneck ? ADM.DANGER
               : isOptional ? '#E4E6EA'
               : isAvvio ? ADM.OK
-              : ADM.PINK;
+              : ADM.INK;
             const textColor = isOptional ? ADM.MUTED : '#fff';
             return (
               <div key={step.id} style={{
@@ -1981,7 +1981,7 @@ function DashLocali({ onNav }) {
                     <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:800}}>{r.pct}%</span>
                   </div>
                   <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                    <div style={{width:`${r.pct*2.8}%`, height:'100%', background:ADM.PINK, borderRadius:99}}/>
+                    <div style={{width:`${r.pct*2.8}%`, height:'100%', background:ADM.INK, borderRadius:99}}/>
                   </div>
                 </div>
               );
@@ -2044,14 +2044,14 @@ function DashLocali({ onNav }) {
                     <div style={{
                       position:'absolute', left:0, top:0, bottom:0,
                       width:`${(t.median/maxV)*100}%`,
-                      background:ADM.PINK,
+                      background:ADM.INK,
                     }}/>
                     <div style={{
                       position:'absolute', left:`${(t.p75/maxV)*100}%`,
                       top:'50%', transform:'translate(-50%, -50%)',
                       width:3, height:18, background:'#0F1115', borderRadius:1, opacity:0.4,
                     }}/>
-                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${ADM.PINK_DARK}`}}/>
+                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${ADM.INK}`}}/>
                     <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
                     <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:12.6, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
                   </div>
@@ -2073,7 +2073,7 @@ function DashLocali({ onNav }) {
           <div style={{display:'flex', gap:16}}>
             {[
               { l:'Cameriere', c:ADM.MUTED },
-              { l:'QR tavolo', c:ADM.INFO },
+              { l:'QR tavolo', c:ADM.INK },
               { l:'App cliente', c:ADM.PINK },
             ].map((s,i)=>(
               <span key={i} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.7, fontWeight:600, color:ADM.TEXT}}>
@@ -2109,7 +2109,7 @@ function DashLocali({ onNav }) {
                 {/* Cameriere (bottom: 0 to cumAppQr inverted = top to cumAppQr) */}
                 <path d={pathArea(top, cumAppQr)} fill={ADM.MUTED} opacity={0.55}/>
                 {/* QR tavolo */}
-                <path d={pathArea(cumAppQr, cumApp)} fill={ADM.INFO} opacity={0.85}/>
+                <path d={pathArea(cumAppQr, cumApp)} fill={ADM.INK} opacity={0.85}/>
                 {/* App (bottom 0 to app) */}
                 <path d={pathArea(cumApp, channelMix.map(()=>0))} fill={ADM.PINK}/>
                 {/* x labels */}
@@ -2354,9 +2354,9 @@ function DashLocali({ onNav }) {
                     <div key={j} style={{
                       padding:'10px 4px', borderRadius:7, textAlign:'center',
                       // Ramp mono-hue coral, cap morbido: solo il picco è pieno.
-                      background: intensity < 0.1 ? '#F4F5F7' : `rgba(255,90,95,${(0.07 + intensity*0.78).toFixed(2)})`,
+                      background: intensity > 0.82 ? ADM.PINK : intensity < 0.1 ? '#F4F5F7' : `rgba(49,53,61,${(0.05 + intensity*0.42).toFixed(2)})`,
                     }}>
-                      <span style={{fontSize:13, fontWeight:700, color: intensity > 0.62 ? '#fff' : ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{v.toFixed(1)}</span>
+                      <span style={{fontSize:13, fontWeight:700, color: intensity > 0.55 ? '#fff' : ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{v.toFixed(1)}</span>
                     </div>
                   );
                 })}
@@ -3215,33 +3215,33 @@ function DashUtentiApp() {
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <SparkStat label="Utenti totali" value={fmtNum(totUtenti)}
           sub={`+${fmtNum(APP_METRICS.newRegistrazioni30g)} ultimi 30g`}
-          accent="PINK" icon="users"
+          accent="INK" icon="users"
           trend={totW.delta} trendLabel="vs 7gg" spark={TS.utentiTot.slice(-30)}/>
         <SparkStat label="DAU · giornalieri" value={fmtNum(APP_METRICS.dau)}
           sub={<><strong style={{color:ADM[stickinessTone]}}>{stickiness}%</strong> degli utenti mensili li usa ogni giorno <span style={{color:ADM.MUTED}}>· {stickinessLabel}</span></>}
-          accent="PINK" icon="trendUp"
+          accent="INK" icon="trendUp"
           trend={dauW.delta} trendLabel="vs 7gg" spark={TS.dau.slice(-30)}/>
         <SparkStat label="WAU · settimanali" value={fmtNum(APP_METRICS.wau)}
           sub={`${Math.round(APP_METRICS.wau/APP_METRICS.mau*100)}% del MAU`}
-          accent="PINK" icon="trendUp"
+          accent="INK" icon="trendUp"
           trend={wauW.delta} trendLabel="vs 7gg" spark={TS.wau.slice(-30)}/>
         <SparkStat label="MAU · mensili" value={fmtNum(APP_METRICS.mau)}
-          accent="PINK" icon="trendUp"
+          accent="INK" icon="trendUp"
           trend={mauW.delta} trendLabel="vs 30gg" spark={TS.mau.slice(-30)}/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <SparkStat label="Ordini da Guest (30g)" value={fmtNum(APP_METRICS.ordiniGuest30g)}
-          accent="PINK" icon="receipt"
+          accent="INK" icon="receipt"
           trend={guestW.delta} trendLabel="vs 7gg" spark={TS.ordiniGuest.slice(-30)}/>
         <SparkStat label="Prenotazioni da app (30g)" value={fmtNum(APP_METRICS.prenotazioniApp30g)}
-          accent="PINK" icon="calendar"
+          accent="INK" icon="calendar"
           trend={prenotW.delta} trendLabel="vs 7gg" spark={TS.prenotApp.slice(-30)}/>
         <SparkStat label="Scontrino medio" value={fmtEur(APP_METRICS.ticketMedioApp)}
-          sub="Per ordine via app" accent="PINK" icon="money"
+          sub="Per ordine via app" accent="INK" icon="money"
           trend={+2.4} trendLabel="vs mese prec."/>
         <SparkStat label="Sessione media" value={`${APP_METRICS.avgSessioneMin} min`}
-          accent="PINK" icon="clock"
+          accent="INK" icon="clock"
           trend={+0.6} trendLabel="vs mese prec."/>
       </div>
 
@@ -3346,7 +3346,7 @@ function DashUtentiApp() {
                   return (
                     <div key={j} style={{
                       padding:'9px 2px', borderRadius:5, textAlign:'center',
-                      background:`rgba(255,90,95,${0.10 + intensity*0.7})`,
+                      background:`rgba(49,53,61,${(0.06 + intensity*0.5).toFixed(2)})`,
                       fontSize:13.3, fontWeight:800,
                       color: intensity > 0.55 ? '#fff' : ADM.TEXT,
                       letterSpacing:'-0.01em',
@@ -3376,7 +3376,7 @@ function DashUtentiApp() {
                   <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{f.pct}%</span>
                 </div>
                 <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                  <div style={{width:`${f.pct*2}%`, height:'100%', background:ADM.PINK, borderRadius:99}}/>
+                  <div style={{width:`${f.pct*2}%`, height:'100%', background:ADM.INK, borderRadius:99}}/>
                 </div>
               </div>
             ))}
@@ -4112,19 +4112,19 @@ function DashCamerieri() {
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <SparkStat label="Staff registrati" value={fmtNum(STAFF_METRICS.totCamerieri)}
           sub={`+${Math.round(totRegW.last - totRegW.prev)} ultimi 30gg`}
-          accent="PINK" icon="users"
+          accent="INK" icon="users"
           trend={totRegW.delta} trendLabel="vs 30gg" spark={TS.staffTot.slice(-30)}/>
         <SparkStat label="Attivi oggi" value={fmtNum(STAFF_METRICS.activeOggi)}
           sub={`${activeRate}% del totale · ${benchText.split('·')[0]}`}
-          accent="PINK" icon="check"
+          accent="INK" icon="check"
           trend={totW.delta} trendLabel="vs 7gg" spark={TS.staffActive.slice(-30)}/>
         <SparkStat label="Locali con staff" value={`${coverageRate}%`}
           sub={`${configurati.length} su ${totLiveLocali} live · ${senzaStaff.length} ancora senza`}
-          accent="PINK" icon="store"
+          accent="INK" icon="store"
           trend={+2.1} trendLabel="vs mese prec."/>
         <SparkStat label="Staff per locale" value={ratioMedio.toFixed(1)}
           sub={`Media su ${configurati.length} locali · mediana ${Math.round(ratioMedio)}`}
-          accent="PINK" icon="users"/>
+          accent="INK" icon="users"/>
       </div>
 
       {/* Riga 2 · Benchmark detail + abbandono */}
@@ -4205,7 +4205,7 @@ function DashCamerieri() {
             <span>Low</span>
             <span style={{display:'inline-flex', gap:2}}>
               {[0.15, 0.35, 0.55, 0.75, 0.95].map((o, i) => (
-                <span key={i} style={{width:14, height:10, background:ADM.PINK, opacity:o, borderRadius:2}}/>
+                <span key={i} style={{width:14, height:10, background: o > 0.8 ? ADM.PINK : `rgba(49,53,61,${(o*0.5).toFixed(2)})`, borderRadius:2}}/>
               ))}
             </span>
             <span>High</span>
@@ -4222,18 +4222,18 @@ function DashCamerieri() {
               {heatmap.map((d, di) => {
                 const v = d.fasce[fi].v;
                 // Alpha solo sul fondo (non sull'intero div: il testo resta opaco).
-                const a = 0.07 + (v / heatMax) * 0.78;
+                const ratio = v / heatMax; const hot = ratio > 0.9; const a = 0.05 + ratio * 0.42;
                 return (
                   <div key={di} title={`${d.giorno} ${d.fasce[fi].f}: ${v}% intensità`}
                     style={{
                       height:34, borderRadius:7,
-                      background: `rgba(255,90,95,${a.toFixed(2)})`,
+                      background: hot ? ADM.PINK : `rgba(49,53,61,${a.toFixed(2)})`,
                       display:'grid', placeItems:'center',
                       transition:'transform 0.12s', cursor:'help',
                     }}
                     onMouseEnter={e=>{ e.currentTarget.style.transform='scale(1.04)'; }}
                     onMouseLeave={e=>{ e.currentTarget.style.transform='scale(1)'; }}>
-                    <span style={{fontSize:12.6, color: a > 0.6 ? '#fff' : ADM.TEXT, fontWeight:700, fontVariantNumeric:'tabular-nums'}}>{v}</span>
+                    <span style={{fontSize:12.6, color: (hot || a > 0.32) ? '#fff' : ADM.TEXT, fontWeight:700, fontVariantNumeric:'tabular-nums'}}>{v}</span>
                   </div>
                 );
               })}
@@ -4270,12 +4270,12 @@ function DashCamerieri() {
                 <div style={{minWidth:0}}>
                   <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600, marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.nome}</div>
                   <div style={{height:4, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                    <div style={{width:`${pctOfMax}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`, borderRadius:99}}/>
+                    <div style={{width:`${pctOfMax}%`, height:'100%', background:ADM.INK, borderRadius:99}}/>
                   </div>
                 </div>
                 <div style={{textAlign:'right', fontSize:14.4, color:ADM.TEXT, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>{fmtNum(a.usi)}</div>
                 <div style={{display:'flex', justifyContent:'flex-end'}}>
-                  <MicroSpark data={a.spark} color={ADM.PINK} width={84} height={20}/>
+                  <MicroSpark data={a.spark} color={ADM.INK} width={84} height={20}/>
                 </div>
                 <div style={{textAlign:'right'}}>
                   <TrendBadge delta={a.trend} hideLabel size="sm"/>
@@ -4321,8 +4321,8 @@ function RevenueSection() {
         </div>
 
         <div style={{display:'flex', gap:18, alignItems:'center'}}>
-          <Legend color={ADM.PINK} label="Abbonamenti" val={fmtEur(histSub)}/>
-          <Legend color="#FFC2C4" label="Extra ordini" val={fmtEur(histExtra)}/>
+          <Legend color={ADM.INK} label="Abbonamenti" val={fmtEur(histSub)}/>
+          <Legend color={ADM.INK_SOFT} label="Extra ordini" val={fmtEur(histExtra)}/>
           <div style={{paddingLeft:14, borderLeft:`1px solid ${ADM.BORDER}`}}>
             <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>Totale</div>
             <div style={{fontSize:22.3, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:2}}>{fmtEur(histSub+histExtra)}</div>
@@ -4360,10 +4360,10 @@ function RevenueSection() {
               <div key={i} data-tip={`${m.mese}\nAbbonamenti: ${fmtEur(m.sub)}\nExtra: ${fmtEur(m.extra)}\nTotale: ${fmtEur(m.sub + m.extra)}`} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, height:'100%', cursor:'help', minWidth:0}}>
                 <div style={{flex:1, width:'100%', maxWidth:40, display:'flex', flexDirection:'column', justifyContent:'flex-end', opacity: last ? 1 : 0.62, position:'relative'}}>
                   {last && (
-                    <span style={{position:'absolute', top:-17, left:'50%', transform:'translateX(-50%)', fontSize:11.5, fontWeight:800, color:ADM.PINK_DARK, whiteSpace:'nowrap'}}>{fmtEur(m.sub + m.extra)}</span>
+                    <span style={{position:'absolute', top:-17, left:'50%', transform:'translateX(-50%)', fontSize:11.5, fontWeight:800, color:ADM.TEXT, whiteSpace:'nowrap'}}>{fmtEur(m.sub + m.extra)}</span>
                   )}
-                  <div style={{width:'100%', height: `${hExtra}%`, background:'#FFC2C4', borderRadius:'5px 5px 0 0', minHeight: m.extra > 0 ? 2 : 0}}/>
-                  <div style={{width:'100%', height: `${hSub}%`, background: ADM.PINK, minHeight: 2, borderRadius: m.extra > 0 ? 0 : '5px 5px 0 0'}}/>
+                  <div style={{width:'100%', height: `${hExtra}%`, background:ADM.INK_SOFT, borderRadius:'5px 5px 0 0', minHeight: m.extra > 0 ? 2 : 0}}/>
+                  <div style={{width:'100%', height: `${hSub}%`, background: ADM.INK, minHeight: 2, borderRadius: m.extra > 0 ? 0 : '5px 5px 0 0'}}/>
                 </div>
                 <div style={{fontSize:12, color: last ? ADM.TEXT : ADM.MUTED_SOFT, fontWeight: last ? 700 : 500, whiteSpace:'nowrap'}}>{m.mese}</div>
               </div>
