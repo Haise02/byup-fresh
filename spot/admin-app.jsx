@@ -19,14 +19,17 @@ const NAV_SYSTEM = [
 
 // Nav item — stile gestionale: attivo = fondo pesca + testo/coral, icona
 // prominente. `muted` per il gruppo sistema (tono più tenue, icona più piccola).
-function AdmNavItem({ item, active, onClick, muted }) {
+function AdmNavItem({ item, active, onClick, muted, collapsed }) {
   const Icon = BuIcons[item.icon];
+  const hasBadge = item.badge !== undefined && item.badge > 0;
   return (
     <button onClick={onClick} className={`adm-nav-item${active ? ' is-active' : ''}`}
       title={item.label}
       style={{
-        width:'100%', display:'flex', alignItems:'center', gap:12,
-        padding:'9px 10px',
+        width:'100%', display:'flex', alignItems:'center',
+        gap: collapsed ? 0 : 12,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '9px' : '9px 10px',
         background: active ? ADM.PINK_SOFT : 'transparent',
         color: active ? ADM.PINK_DARK : (muted ? ADM.MUTED : ADM.TEXT),
         border:'none', borderRadius:10,
@@ -34,9 +37,14 @@ function AdmNavItem({ item, active, onClick, muted }) {
         fontWeight: active ? 600 : 500,
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
-      <Icon size={muted ? 21 : 26} color={active ? ADM.PINK : ADM.MUTED}/>
-      <span style={{flex:1}}>{item.label}</span>
-      {item.badge !== undefined && item.badge > 0 && (
+      <span style={{position:'relative', display:'inline-flex'}}>
+        <Icon size={muted ? 21 : 26} color={active ? ADM.PINK : ADM.MUTED}/>
+        {collapsed && hasBadge && (
+          <span style={{position:'absolute', top:-2, right:-3, width:8, height:8, borderRadius:'50%', background:ADM.PINK, boxShadow:'0 0 0 2px #F7F8FA'}}/>
+        )}
+      </span>
+      {!collapsed && <span style={{flex:1}}>{item.label}</span>}
+      {!collapsed && hasBadge && (
         <span style={{
           fontSize:12.5, fontWeight:700,
           background: ADM.PINK, color:'#fff',
@@ -52,6 +60,21 @@ function AdminApp({ tweaks }) {
   const [route, setRouteRaw] = useStateApp('dashboard');
   const [messageModal, setMessageModal] = useStateApp(null);
   const [localiOpenLocale, setLocaliOpenLocale] = useStateApp(null);
+
+  // Sidebar comprimi/espandi — stato persistito, come nel gestionale (68px).
+  const [collapsed, setCollapsed] = useStateApp(() => {
+    try { return localStorage.getItem('adm_sidebar_collapsed') === '1'; } catch(e) { return false; }
+  });
+  const toggleCollapsed = () => setCollapsed(c => {
+    const n = !c;
+    try { localStorage.setItem('adm_sidebar_collapsed', n ? '1' : '0'); } catch(e) {}
+    return n;
+  });
+  const sidebarToggleStyle = {
+    width:26, height:26, borderRadius:7, flexShrink:0, padding:0,
+    border:'1px solid rgba(15,17,21,0.10)', background:'#F5F5F7',
+    color: ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center',
+  };
 
   // setRoute esteso: setRoute('locali', { openLocale: l }) apre direttamente
   // il drawer di dettaglio sul locale passato. Navigando altrove o tornando
@@ -82,49 +105,61 @@ function AdminApp({ tweaks }) {
   const pt = pageTitles[route] || pageTitles.dashboard;
 
   return (
-    <div style={{
-      display:'flex', height:'100vh', width:'100vw', overflow:'hidden',
+    <div className="frame" style={{
+      display:'flex', overflow:'hidden',
       fontFamily: "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif",
       background: ADM.PANEL_SOFT, color: ADM.TEXT,
     }}>
       {/* Sidebar — vetro tenue, logo reale, nav piatta (come il gestionale) */}
       <aside style={{
-        width: 272, flexShrink:0,
+        width: collapsed ? 68 : 272, flexShrink:0,
         background:'linear-gradient(180deg, rgba(250,251,252,0.92) 0%, rgba(245,245,247,0.92) 100%)',
         backdropFilter:'saturate(180%) blur(24px)',
         WebkitBackdropFilter:'saturate(180%) blur(24px)',
         borderRight:'1px solid rgba(15,17,21,0.06)',
         boxShadow:'inset 0 1px 0 rgba(255,255,255,0.65)',
         display:'flex', flexDirection:'column',
-        padding:'20px 14px 56px',
+        padding: collapsed ? '20px 10px 56px' : '20px 14px 56px',
+        transition:'width 220ms cubic-bezier(0.4,0,0.2,1), padding 220ms cubic-bezier(0.4,0,0.2,1)',
       }}>
-        {/* Logo — marchio + wordmark byup coral (dal logo reale) + prodotto "Spot" */}
-        <div style={{display:'flex', alignItems:'baseline', gap:9, padding:'2px 6px 24px'}}>
-          <img src="byup.png" alt="byup" style={{height:31, width:'auto', display:'block', transform:'translateY(6px)'}}/>
-          <span style={{
-            fontSize:27, fontWeight:800, fontStyle:'italic',
-            color: ADM.PINK, letterSpacing:'-0.01em', lineHeight:1,
-          }}>Spot</span>
-        </div>
+        {/* Logo + pulsante comprimi/espandi (come il gestionale) */}
+        {!collapsed ? (
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 6px 24px'}}>
+            <div style={{display:'flex', alignItems:'baseline', gap:9}}>
+              <img src="byup.png" alt="byup" style={{height:31, width:'auto', display:'block', transform:'translateY(6px)'}}/>
+              <span style={{fontSize:27, fontWeight:800, fontStyle:'italic', color:ADM.PINK, letterSpacing:'-0.01em', lineHeight:1}}>Spot</span>
+            </div>
+            <button onClick={toggleCollapsed} title="Comprimi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          </div>
+        ) : (
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:10, paddingBottom:20}}>
+            <img src="byup-mark.png" alt="byup" style={{height:30, width:'auto', display:'block'}}/>
+            <button onClick={toggleCollapsed} title="Espandi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        )}
 
         <nav style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:2}}>
           {NAV_MAIN.map(item => (
-            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)}/>
+            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)} collapsed={collapsed}/>
           ))}
         </nav>
 
         {/* Gruppo sistema — staccato in basso, tono più tenue */}
         <div style={{display:'flex', flexDirection:'column', gap:2, paddingTop:10, marginTop:6, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
           {NAV_SYSTEM.map(item => (
-            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)} muted/>
+            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)} muted collapsed={collapsed}/>
           ))}
         </div>
 
         {/* Profilo */}
-        <button onClick={()=>setRoute('profilo')} className={`adm-nav-item${route==='profilo' ? ' is-active' : ''}`}
+        <button onClick={()=>setRoute('profilo')} title="Profilo" className={`adm-nav-item${route==='profilo' ? ' is-active' : ''}`}
           style={{
-            marginTop:6, padding:'14px 8px 4px',
-            display:'flex', alignItems:'center', gap:10,
+            marginTop:6, padding: collapsed ? '14px 0 4px' : '14px 8px 4px',
+            display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start', gap:10,
             background: route === 'profilo' ? ADM.PINK_SOFT : 'transparent',
             border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
             borderTop:`1px solid ${ADM.BORDER}`, borderTopLeftRadius:0, borderTopRightRadius:0,
@@ -135,11 +170,15 @@ function AdminApp({ tweaks }) {
             color:'#fff', display:'grid', placeItems:'center',
             fontWeight:700, fontSize:14, flexShrink:0, letterSpacing:'0.01em',
           }}>MR</div>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Marco Rinaldi</div>
-            <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>Super Admin</div>
-          </div>
-          <span style={{color: ADM.MUTED_SOFT}}><BuIcons.chevronRight size={18}/></span>
+          {!collapsed && (
+            <React.Fragment>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Marco Rinaldi</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>Super Admin</div>
+              </div>
+              <span style={{color: ADM.MUTED_SOFT}}><BuIcons.chevronRight size={18}/></span>
+            </React.Fragment>
+          )}
         </button>
       </aside>
 

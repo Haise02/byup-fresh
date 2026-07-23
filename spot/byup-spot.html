@@ -4,7 +4,7 @@
 <link rel="icon" type="image/png" href="/assets/byup-icon.png"/>
 <link rel="apple-touch-icon" href="/assets/byup-icon.png"/>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=1440"/>
 <title>byup · Spot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -12,7 +12,7 @@
 <style>
   * { box-sizing: border-box; }
   html, body {
-    margin: 0; padding: 0; background: #F5F5F7;
+    margin: 0; padding: 0; background: #ECEEF1;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -20,13 +20,25 @@
     font-feature-settings: 'ss01', 'cv11';
     letter-spacing: -0.005em;
   }
-  body { overflow: hidden; }
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(60,60,67,0.18); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(60,60,67,0.32); background-clip: padding-box; border: 2px solid transparent; }
   input, textarea, select, button { font-family: inherit; }
-  #root { height: 100vh; width: 100vw; }
+  /* Frame desktop 1440×900 — zoomata proporzionalmente alla finestra (script a
+     fondo pagina), come il gestionale: la UI scala con lo schermo, non resta a 1:1. */
+  .frame {
+    width: 1440px; height: 900px;
+    margin: 24px auto;
+    background: #FAFAFB;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
 
   /* Apple-style focus ring */
   *:focus { outline: none; }
@@ -286,6 +298,29 @@
 <script type="text/babel">
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(<AdminApp/>);
+</script>
+
+<!-- Zoom proporzionale: scala l'intero Spot in base alla finestra del desktop,
+     identico al gestionale (byup Panoramica.html). Guidato dall'altezza; la
+     larghezza del frame è fluida per riempire lo spazio disponibile. -->
+<script>
+(function () {
+  var DESIGN_H = 900, MARGIN = 24, MIN_W = 1280;
+  var cur = { frame: null, zoom: null, width: null };
+  function fit() {
+    var frame = document.querySelector('.frame');
+    if (!frame) return;
+    var s = (window.innerHeight - MARGIN) / DESIGN_H;
+    s = Math.max(0.4, Math.min(2.2, s));
+    var w = Math.max(MIN_W, (window.innerWidth - MARGIN) / s);
+    if (frame !== cur.frame || s !== cur.zoom) frame.style.zoom = s;
+    if (frame !== cur.frame || w !== cur.width) frame.style.width = w + 'px';
+    cur = { frame: frame, zoom: s, width: w };
+  }
+  window.addEventListener('resize', fit);
+  new MutationObserver(fit).observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
+  fit();
+})();
 </script>
 
 </body>
