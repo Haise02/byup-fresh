@@ -25,23 +25,22 @@ function AdmNavItem({ item, active, onClick, muted }) {
     <button onClick={onClick} className={`adm-nav-item${active ? ' is-active' : ''}`}
       title={item.label}
       style={{
-        width:'100%', display:'flex', alignItems:'center', gap:11,
-        padding:'9px 11px',
+        width:'100%', display:'flex', alignItems:'center', gap:12,
+        padding:'9px 10px',
         background: active ? ADM.PINK_SOFT : 'transparent',
         color: active ? ADM.PINK_DARK : (muted ? ADM.MUTED : ADM.TEXT),
         border:'none', borderRadius:10,
-        fontSize: muted ? 14 : 15,
+        fontSize: muted ? 17.5 : 19.5,
         fontWeight: active ? 600 : 500,
-        letterSpacing:'-0.01em',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
-      <Icon size={muted ? 19 : 21} color={active ? ADM.PINK : ADM.MUTED}/>
+      <Icon size={muted ? 21 : 26} color={active ? ADM.PINK : ADM.MUTED}/>
       <span style={{flex:1}}>{item.label}</span>
       {item.badge !== undefined && item.badge > 0 && (
         <span style={{
-          fontSize:12, fontWeight:700,
+          fontSize:12.5, fontWeight:700,
           background: ADM.PINK, color:'#fff',
-          padding:'1.5px 7px', borderRadius:99, minWidth:18, textAlign:'center',
+          padding:'2px 7px', borderRadius:99, minWidth:18, textAlign:'center',
           boxShadow:'0 1px 2px rgba(0,0,0,0.10)',
         }}>{item.badge}</span>
       )}
@@ -90,20 +89,20 @@ function AdminApp({ tweaks }) {
     }}>
       {/* Sidebar — vetro tenue, logo reale, nav piatta (come il gestionale) */}
       <aside style={{
-        width: 264, flexShrink:0,
+        width: 272, flexShrink:0,
         background:'linear-gradient(180deg, rgba(250,251,252,0.92) 0%, rgba(245,245,247,0.92) 100%)',
         backdropFilter:'saturate(180%) blur(24px)',
         WebkitBackdropFilter:'saturate(180%) blur(24px)',
         borderRight:'1px solid rgba(15,17,21,0.06)',
         boxShadow:'inset 0 1px 0 rgba(255,255,255,0.65)',
         display:'flex', flexDirection:'column',
-        padding:'18px 12px 56px',
+        padding:'20px 14px 56px',
       }}>
         {/* Logo — marchio + wordmark byup coral (dal logo reale) + prodotto "Spot" */}
-        <div style={{display:'flex', alignItems:'baseline', gap:8, padding:'2px 8px 20px'}}>
-          <img src="byup.png" alt="byup" style={{height:23, width:'auto', display:'block', transform:'translateY(4px)'}}/>
+        <div style={{display:'flex', alignItems:'baseline', gap:9, padding:'2px 6px 24px'}}>
+          <img src="byup.png" alt="byup" style={{height:31, width:'auto', display:'block', transform:'translateY(6px)'}}/>
           <span style={{
-            fontSize:20, fontWeight:800, fontStyle:'italic',
+            fontSize:27, fontWeight:800, fontStyle:'italic',
             color: ADM.PINK, letterSpacing:'-0.01em', lineHeight:1,
           }}>Spot</span>
         </div>
@@ -124,11 +123,11 @@ function AdminApp({ tweaks }) {
         {/* Profilo */}
         <button onClick={()=>setRoute('profilo')} className={`adm-nav-item${route==='profilo' ? ' is-active' : ''}`}
           style={{
-            marginTop:6, padding:'11px 8px 4px',
+            marginTop:6, padding:'14px 8px 4px',
             display:'flex', alignItems:'center', gap:10,
             background: route === 'profilo' ? ADM.PINK_SOFT : 'transparent',
             border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-            borderTop:`1px solid ${ADM.BORDER_SOFT}`, borderTopLeftRadius:0, borderTopRightRadius:0,
+            borderTop:`1px solid ${ADM.BORDER}`, borderTopLeftRadius:0, borderTopRightRadius:0,
           }}>
           <div style={{
             width:34, height:34, borderRadius:'50%',
@@ -137,10 +136,10 @@ function AdminApp({ tweaks }) {
             fontWeight:700, fontSize:14, flexShrink:0, letterSpacing:'0.01em',
           }}>MR</div>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14.5, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Marco Rinaldi</div>
-            <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>Super Admin</div>
+            <div style={{fontSize:15, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Marco Rinaldi</div>
+            <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>Super Admin</div>
           </div>
-          <span style={{color: ADM.MUTED_SOFT}}><BuIcons.chevronRight size={16}/></span>
+          <span style={{color: ADM.MUTED_SOFT}}><BuIcons.chevronRight size={18}/></span>
         </button>
       </aside>
 
