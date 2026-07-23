@@ -383,7 +383,7 @@ function CampRow({ camp: c, color, onClick, last }) {
   const speso = c.speso || 0;
   const pctBudget = budget > 0 ? Math.min(1, speso / budget) : 0;
   const overBudget = budget > 0 && speso > budget;
-  const barColor = overBudget ? ADM.WARN : (pctBudget > 0.85 ? ADM.WARN : color);
+  const barColor = overBudget ? ADM.DANGER : (pctBudget > 0.85 ? ADM.WARN : ADM.INK);
 
   return (
     <div onClick={onClick}
@@ -391,7 +391,7 @@ function CampRow({ camp: c, color, onClick, last }) {
       style={{
         padding:'14px 22px',
         borderBottom: last ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-        background: hover ? ADM.PINK_BG_SOFT : 'transparent',
+        background: hover ? '#FAFBFC' : 'transparent',
         cursor:'pointer',
         display:'grid', gridTemplateColumns: CAMP_COLS,
         alignItems:'center', gap:14,
@@ -415,7 +415,7 @@ function CampRow({ camp: c, color, onClick, last }) {
           {budget > 0 ? (
             <span style={{fontSize:13, color:ADM.MUTED, fontWeight:500}}>/ {fmtEur(budget)}</span>
           ) : (
-            <span style={{fontSize:12.6, color:ADM.MUTED_SOFT, fontWeight:500, fontStyle:'italic'}}>· nessun budget</span>
+            <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:500, whiteSpace:'nowrap'}}>senza budget</span>
           )}
         </div>
         {budget > 0 ? (
@@ -450,7 +450,7 @@ function CampRow({ camp: c, color, onClick, last }) {
         const pb = (c.mrr || 0) > 0 ? (c.speso || 0) / c.mrr : 0;
         const fast = pb > 0 && pb < 1;
         const slow = pb >= 6;
-        const tone = fast ? ADM.OK : slow ? ADM.WARN : ADM.TEXT;
+        const tone = slow ? ADM.WARN : ADM.TEXT;
         return (
           <div style={{textAlign:'right', minWidth:0}}>
             <div style={{fontSize:14.8, fontWeight:700, color: tone, lineHeight:1, letterSpacing:'-0.01em'}}>{fmtPaybackMonths(pb)}</div>
@@ -906,14 +906,12 @@ function BroadcastPane({ onNew }) {
 }
 
 function BroadKpi({ label, value, hint, color }) {
+  // Stile sistema: label uppercase, numero 29 — nessun ornamento.
   return (
     <AdmCard padding={16}>
-      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-        <span style={{width:6, height:18, borderRadius:3, background:ADM.MUTED_LIGHT}}/>
-        <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
-      </div>
-      <div style={{fontSize:22.3, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{value}</div>
-      <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>{hint}</div>
+      <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+      <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', marginTop:6, lineHeight:1}}>{value}</div>
+      <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:5}}>{hint}</div>
     </AdmCard>
   );
 }
@@ -966,11 +964,10 @@ function BroadCard({ item, onOpen }) {
             {item.canali.map(c => {
               const icons = {push:'bell', email:'mail', in_app:'phone', sms:'chat'};
               const Icon = BuIcons[icons[c]];
-              const colors = {push:ADM.PINK, email:ADM.INFO, in_app:ADM.PURPLE, sms:ADM.WARN};
               return (
                 <span key={c} style={{
                   width:22, height:22, borderRadius:5,
-                  background:`${colors[c]}1A`, color:colors[c],
+                  background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL,
                   display:'grid', placeItems:'center',
                 }}><Icon size={16}/></span>
               );
@@ -1007,9 +1004,9 @@ function BroadStat({ label, value, color, pct }) {
       {pct !== undefined && (
         <div style={{display:'flex', alignItems:'center', gap:5, marginTop:4}}>
           <div style={{flex:1, height:3, background:'#F0F1F3', borderRadius:99, overflow:'hidden'}}>
-            <div style={{width:`${Math.round(pct*100)}%`, height:'100%', background:color, borderRadius:99}}/>
+            <div style={{width:`${Math.round(pct*100)}%`, height:'100%', background:ADM.INK, opacity:0.75, borderRadius:99}}/>
           </div>
-          <span style={{fontSize:12.2, fontWeight:700, color, minWidth:28, textAlign:'right'}}>{Math.round(pct*100)}%</span>
+          <span style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, minWidth:28, textAlign:'right'}}>{Math.round(pct*100)}%</span>
         </div>
       )}
     </div>
@@ -1024,22 +1021,27 @@ function BroadDetailDrawer({ item, onClose }) {
   const unsubs = Math.round(item.destinatari * item.unsub);
 
   const funnel = [
-    { label:'Inviati',     count: item.destinatari, color: ADM.MUTED },
-    { label:'Aperti',      count: opens,             color: ADM.OK },
-    { label:'Click',       count: clicks,            color: ADM.INFO },
-    { label:'Conversioni', count: convs,             color: ADM.PURPLE },
+    // Funnel mono-hue: la profondità la dice l'intensità dell'ink, non un
+    // colore per riga (le righe sono già etichettate).
+    { label:'Inviati',     count: item.destinatari, color: ADM.MUTED_LIGHT },
+    { label:'Aperti',      count: opens,             color: 'rgba(49,53,61,0.45)' },
+    { label:'Click',       count: clicks,            color: 'rgba(49,53,61,0.70)' },
+    { label:'Conversioni', count: convs,             color: ADM.INK },
   ];
 
   return (
     <div onClick={onClose} style={{
       position:'fixed', inset:0, zIndex:50,
-      display:'flex', justifyContent:'flex-end',
+      display:'grid', placeItems:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
       background:'rgba(15,17,21,0.45)', animation:'fadeIn 0.15s ease',
     }}>
       <div onClick={e=>e.stopPropagation()} style={{
-        width:680, maxWidth:'95%', background:'#fff', height:'100%',
+        width:760, maxWidth:'94%', background:'#fff', maxHeight:'88%',
+        borderRadius:18, overflow:'hidden',
         display:'flex', flexDirection:'column',
-        animation:'slideIn 0.2s ease',
+        boxShadow:'0 32px 80px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.22s cubic-bezier(0.22,0.9,0.35,1)',
         boxShadow:'-12px 0 32px rgba(0,0,0,0.12)',
       }}>
         {/* Header */}

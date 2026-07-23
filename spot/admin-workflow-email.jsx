@@ -436,7 +436,7 @@ function WorkflowList({ workflows, onOpen, onNew, onDuplicate, onToggleState, on
         <div>
           <div style={{fontSize:19.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em'}}>Workflow email</div>
           <div style={{fontSize:14.4, color:ADM.MUTED, marginTop:5, maxWidth:680, lineHeight:1.55}}>
-            Automatismi di email marketing per i tuoi locali · trigger comportamentali, filtri ricchi,
+            Trigger comportamentali, filtri ricchi,
             sequenze multi-step con diramazioni e guardrails di sicurezza.
           </div>
         </div>
@@ -491,8 +491,8 @@ function WfKpi({ label, value, sub, accent='PINK', icon='trendUp' }) {
           <Icon size={21}/>
         </div>
         <div style={{minWidth:0}}>
-          <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
-          <div style={{fontSize:18.7, fontWeight:800, color:ADM.TEXT, marginTop:3, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
+          <div style={{fontSize:12, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+          <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
           {sub && <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
         </div>
       </div>
@@ -549,14 +549,21 @@ function WorkflowRow({ wf, last, onOpen, onDuplicate, onToggle, onRemove }) {
       <div style={{display:'flex', gap:14, alignItems:'baseline', flexWrap:'wrap', justifyContent:'flex-end', flex:'0 1 auto'}}>
         <InlineNum label="Iscritti" value={fmtNum(wf.stats.iscritti)}/>
         <InlineNum label="Inviate"  value={fmtNum(wf.stats.inviate)}/>
-        <InlineNum label="Open"     value={wf.stats.open ? `${Math.round(wf.stats.open*100)}%` : '—'} tone="OK"/>
+        <InlineNum label="Open"     value={wf.stats.open ? `${Math.round(wf.stats.open*100)}%` : '—'}/>
         <InlineNum label="Ordini"   value={fmtNum(wf.stats.ordini)} sub={wf.stats.ricavi ? fmtEur(wf.stats.ricavi) : null}/>
       </div>
 
       <div style={{display:'flex', gap:5, flexShrink:0}} onClick={e=>e.stopPropagation()}>
         <AdmIconBtn icon={wf.stato==='active' ? 'pause' : 'check'} label={wf.stato==='active' ? 'Metti in pausa' : 'Attiva'} onClick={onToggle}/>
         <AdmIconBtn icon="copy" label="Duplica" onClick={onDuplicate}/>
-        <AdmIconBtn icon="x" label="Elimina" onClick={() => { if (confirm(`Eliminare il workflow "${wf.nome}"?`)) onRemove(); }}/>
+        <span style={{width:1, alignSelf:'stretch', background:ADM.BORDER_SOFT, margin:'4px 3px'}}/>
+        <button title="Elimina" onClick={() => { if (confirm(`Eliminare il workflow "${wf.nome}"?`)) onRemove(); }}
+          className="adm-iconbtn"
+          style={{width:30, height:30, borderRadius:8, border:'none', background:'transparent', color:ADM.DANGER, cursor:'pointer', display:'grid', placeItems:'center'}}
+          onMouseEnter={e=>e.currentTarget.style.background=ADM.DANGER_SOFT}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <BuIcons.x size={17}/>
+        </button>
       </div>
     </div>
   );
