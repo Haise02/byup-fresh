@@ -263,7 +263,7 @@ function TrendBadge({ delta, label='vs 7gg', size='sm', tone, hideLabel=false })
   const negative = delta < -0.5;
   const c = tone || (positive ? ADM.OK : negative ? ADM.DANGER : ADM.MUTED);
   const arrow = positive ? '↑' : negative ? '↓' : '→';
-  const fs = size === 'lg' ? 13.5 : size === 'sm' ? 11.5 : 12;
+  const fs = size === 'lg' ? 17.5 : size === 'sm' ? 16 : 16.5;
   return (
     <span style={{
       display:'inline-flex', alignItems:'center', gap:4, whiteSpace:'nowrap',
@@ -331,169 +331,6 @@ function AdmDashboard({ onNav }) {
         {tab === 'camerieri' && <DashCamerieri/>}
       </div>
     </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Primitive del redesign Dashboard (Tier 1-3). Non toccano HoverStat, ancora
-// usato dagli altri tab (Locali/Utenti/Staff).
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Area chart responsive: riempie il contenitore, stroke costante (non-scaling),
-// fill a gradient verticale. Sostituisce le sparkline che galleggiavano.
-function AreaSpark({ data, color, height = 38, gradId, strokeW = 1.6 }) {
-  if (!data || data.length < 2) return null;
-  const W = 100, H = height, pad = 3;
-  const max = Math.max(...data), min = Math.min(...data), range = (max - min) || 1;
-  const xy = data.map((v, i) => [
-    (i / (data.length - 1)) * W,
-    pad + (H - pad * 2) * (1 - (v - min) / range),
-  ]);
-  const line = xy.map(p => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
-  const gid = gradId || 'as-grad';
-  return (
-    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{display:'block'}}>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
-          <stop offset="100%" stopColor={color} stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-      <polygon points={`0,${H} ${line} ${W},${H}`} fill={`url(#${gid})`}/>
-      <polyline points={line} fill="none" stroke={color} strokeWidth={strokeW} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-// Popover ⓘ — i dettagli ricchi si aprono al CLICK (non in hover), con
-// click-fuori per chiudere. `align` left/right per non uscire dal frame.
-function InfoPopover({ content, width = 320, align = 'left', accent }) {
-  const [open, setOpen] = React.useState(false);
-  const c = accent || ADM.PINK;
-  return (
-    <span style={{position:'relative', display:'inline-flex'}} onClick={e=>e.stopPropagation()}>
-      <button onClick={(e)=>{ e.stopPropagation(); setOpen(o=>!o); }}
-        title="Mostra dettagli" aria-label="Mostra dettagli"
-        style={{width:16, height:16, borderRadius:'50%', border:'none', padding:0, cursor:'pointer',
-          background: open ? c : '#E9EBEF', color: open ? '#fff' : ADM.MUTED,
-          display:'inline-grid', placeItems:'center', fontSize:11, fontWeight:700, fontFamily:'inherit', lineHeight:1, flexShrink:0}}>i</button>
-      {open && (
-        <React.Fragment>
-          <div onClick={(e)=>{ e.stopPropagation(); setOpen(false); }} style={{position:'fixed', inset:0, zIndex:39}}/>
-          <div style={{position:'absolute', top:'calc(100% + 8px)', [align]:0, zIndex:40, width,
-            background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12,
-            boxShadow:'0 16px 40px -8px rgba(15,17,21,0.18), 0 0 0 1px rgba(15,17,21,0.04)', padding:'16px 18px'}}>
-            {content}
-          </div>
-        </React.Fragment>
-      )}
-    </span>
-  );
-}
-
-// Barra proporzione (es. paganti vs free) — riempie il fondo di una stat card
-// quando non c'è una serie storica, invece di lasciare la card vuota.
-function MiniRatioBar({ a, b, aLabel, bLabel, aColor }) {
-  const tot = (a + b) || 1;
-  return (
-    <div>
-      <div style={{display:'flex', height:6, borderRadius:99, overflow:'hidden', background:ADM.BORDER_SOFT}}>
-        <div style={{width:`${a/tot*100}%`, background:aColor||ADM.PINK}}/>
-      </div>
-      <div style={{display:'flex', justifyContent:'space-between', marginTop:7, fontSize:12, color:ADM.MUTED}}>
-        <span><b style={{color:ADM.TEXT}}>{a}</b> {aLabel}</span>
-        <span><b style={{color:ADM.TEXT}}>{b}</b> {bLabel}</span>
-      </div>
-    </div>
-  );
-}
-
-// Striscia "richiede attenzione" — porta a galla i dati azionabili (onboarding
-// fermi, segnalazioni, certificazioni) che prima erano sepolti nei popup.
-function AttentionStrip({ items }) {
-  const toneCol = { WARN: ADM.WARN, DANGER: ADM.DANGER, INFO: ADM.INFO, NEUTRAL: ADM.MUTED };
-  return (
-    <div style={{
-      display:'flex', alignItems:'center', gap:12, flexWrap:'wrap',
-      padding:'10px 14px', borderRadius:12,
-      background:'linear-gradient(180deg, #FFFBF3 0%, #FFF7EA 100%)',
-      border:`1px solid ${ADM.WARN}33`,
-    }}>
-      <div style={{display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
-        <span style={{width:8, height:8, borderRadius:'50%', background:ADM.WARN, boxShadow:`0 0 0 4px ${ADM.WARN}22`}}/>
-        <span style={{fontSize:12, fontWeight:700, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.05em'}}>Richiede attenzione</span>
-      </div>
-      <div style={{display:'flex', gap:8, flexWrap:'wrap', flex:1}}>
-        {items.map((it, i) => (
-          <button key={i} onClick={it.onClick} className="adm-btn"
-            style={{display:'inline-flex', alignItems:'center', gap:8, padding:'6px 10px 6px 11px',
-              borderRadius:99, background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor:'pointer',
-              fontFamily:'inherit', fontSize:13, fontWeight:600, color:ADM.TEXT}}>
-            <span style={{width:7, height:7, borderRadius:'50%', background: toneCol[it.tone] || ADM.MUTED, flexShrink:0}}/>
-            <span>{it.label}</span>
-            <BuIcons.chevronRight size={14} color={ADM.MUTED_SOFT}/>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Hero KPI (Tier 1) — numero grande a sinistra, area chart che riempie la
-// destra: la card usa finalmente tutta la sua larghezza.
-function DashHero({ label, value, trend, trendLabel, sub, data, popover, accent }) {
-  const c = accent || ADM.PINK;
-  return (
-    <AdmCard padding={0} style={{overflow:'visible'}}>
-      <div style={{display:'flex', alignItems:'stretch', minHeight:132}}>
-        <div style={{flex:'1 1 44%', padding:'20px 24px', display:'flex', flexDirection:'column', justifyContent:'center', gap:9}}>
-          <div style={{display:'flex', alignItems:'center', gap:8}}>
-            <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</span>
-            {popover && <InfoPopover content={popover} width={520} align="left" accent={c}/>}
-          </div>
-          <div style={{display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap'}}>
-            <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{value}</span>
-            {trend != null && <TrendBadge delta={trend} label={trendLabel} size="lg"/>}
-          </div>
-          {sub && <span style={{fontSize:13.5, color:ADM.MUTED}}>{sub}</span>}
-        </div>
-        <div style={{flex:'1 1 56%', minWidth:0, display:'flex', alignItems:'flex-end', borderLeft:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <div style={{width:'100%', overflow:'hidden', borderTopRightRadius:13, borderBottomRightRadius:13}}>
-            <AreaSpark data={data} color={c} height={132} gradId="grad-hero" strokeW={2}/>
-          </div>
-        </div>
-      </div>
-    </AdmCard>
-  );
-}
-
-// Stat compatta (Tier 2) — 4 in fila, uniformi. Sparkline integrata in basso
-// a tutta larghezza (o barra proporzione). Click = drill, ⓘ = dettaglio.
-function DashStatCard({ label, value, trend, trendLabel, sub, alertText, data, ratio, accent='PINK', gradId, onClick, popover, popAlign='left' }) {
-  const c = ADM[accent] || ADM.PINK;
-  return (
-    <AdmCard padding={0} interactive={!!onClick} onClick={onClick}
-      style={{display:'flex', flexDirection:'column', cursor: onClick ? 'pointer' : 'default', overflow:'visible'}}>
-      <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
-        <div style={{display:'flex', alignItems:'center', gap:7}}>
-          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{label}</span>
-          {popover && <InfoPopover content={popover} width={330} align={popAlign} accent={c}/>}
-        </div>
-        <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
-          <span style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>{value}</span>
-          {trend != null && <TrendBadge delta={trend} label={trendLabel} size="sm"/>}
-        </div>
-        {alertText
-          ? <span style={{fontSize:12.5, fontWeight:700, color:ADM.WARN, display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:6, height:6, borderRadius:'50%', background:ADM.WARN, flexShrink:0}}/>{alertText}</span>
-          : sub ? <span style={{fontSize:12.5, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{sub}</span>
-          : null}
-      </div>
-      {ratio
-        ? <div style={{padding:'0 16px 14px'}}><MiniRatioBar {...ratio}/></div>
-        : data
-        ? <div style={{overflow:'hidden', borderBottomLeftRadius:13, borderBottomRightRadius:13}}><AreaSpark data={data} color={c} height={38} gradId={gradId}/></div>
-        : <div style={{height:14}}/>}
-    </AdmCard>
   );
 }
 
@@ -573,31 +410,21 @@ function DashGenerale({ onNav }) {
     ricavi: c.prezzo * c.ord,
   })).sort((a,b) => b.margine - a.margine);
 
-  // Tier 0 · richiede attenzione — dati azionabili prima nascosti nei popup.
-  const attentionItems = [
-    stuckOver7 > 0 && { label: `${stuckOver7} onboarding fermi da oltre 7 giorni`, tone:'WARN',    onClick: ()=>onNav('locali') },
-    segHi > 0       && { label: `${segHi} segnalazioni ad alta priorità`,          tone:'DANGER',  onClick: ()=>onNav('comunicazioni') },
-    (segOpen-segHi) > 0 && { label: `${segOpen-segHi} segnalazioni aperte`,          tone:'NEUTRAL', onClick: ()=>onNav('comunicazioni') },
-    certPending > 0 && { label: `${certPending} certificazioni da validare`,        tone:'INFO',    onClick: ()=>onNav('comunicazioni') },
-  ].filter(Boolean);
-
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
+    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:14}}>
 
-      {attentionItems.length > 0 && <AttentionStrip items={attentionItems}/>}
-
-      {/* ═══════════ Tier 1 · Andamento — il polso della piattaforma ═══════════ */}
+      {/* ═══════════ MONITORARE · Andamento ═══════════ */}
       <SectionLabel title="Andamento" desc="La salute della piattaforma in sintesi" first/>
 
-      <DashHero
+      <HoverStat
+        big icon="money"
         label="Ricavi · ultimo mese"
         value={fmtEur(mrrMese)}
+        sub={`${fmtEur(mrrSubMese)} abbonamenti · ${fmtEur(mrrExtraMese)} extra ordini`}
         trend={TS_RICAVI_MOM.delta}
         trendLabel="vs mese precedente"
-        sub={`${fmtEur(mrrSubMese)} abbonamenti · ${fmtEur(mrrExtraMese)} extra ordini`}
-        data={TS.ricaviDay.slice(-30)}
-        accent={ADM.PINK}
-        popover={
+        spark={TS.ricaviDay.slice(-30)}
+        tooltip={
           <RevenueTooltip
             sub={mrrSubMese} extra={mrrExtraMese}
             subAnno={subAnno} extraAnno={extraAnno}
@@ -607,61 +434,98 @@ function DashGenerale({ onNav }) {
         }
       />
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
-        <DashStatCard
-          label="Locali totali" value={fmtNum(totLocali)} accent="PINK"
-          ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.PINK }}
-          onClick={()=>onNav('locali')} popAlign="left"
-          popover={
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+        <HoverStat
+          icon="store"
+          label="Locali totali"
+          value={fmtNum(totLocali)}
+          sub={`${paying} paganti · ${freeCount} su piano free`}
+          onClick={()=>onNav('locali')}
+          tooltip={
             <LocaliTotaliTooltip
-              total={totLocali} free={freeCount} freeActive={freeActive}
-              freeInactive={freeInactive} paying={paying} planCount={planCount}
+              total={totLocali}
+              free={freeCount}
+              freeActive={freeActive}
+              freeInactive={freeInactive}
+              paying={paying}
+              planCount={planCount}
             />
           }
         />
-        <DashStatCard
-          label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
-          alertText={stuckOver7 > 0 ? `${stuckOver7} fermi da oltre 7gg` : `${setupIniziale} setup · ${onbIncompleto} da completare`}
-          data={TS.inOnboardCount.slice(-30)} gradId="grad-onb"
-          onClick={()=>onNav('locali')} popAlign="left"
-          popover={
+        <HoverStat
+          icon="clock"
+          label="Locali in onboarding"
+          value={fmtNum(inOnbTot)}
+          sub={`${setupIniziale} setup iniziale · ${onbIncompleto} attivi da completare`}
+          spark={TS.inOnboardCount.slice(-30)}
+          trend={(() => { const w = woW(TS.inOnboardCount); return -w.delta; })()}
+          trendLabel="riduzione 7gg"
+          onClick={()=>onNav('locali')}
+          tooltip={
             <OnboardingTooltip
-              setupIniziale={setupIniziale} onbIncompleto={onbIncompleto}
-              stuckOver7={stuckOver7} stuckOver14={stuckOver14} ageMedian={ageMedian}
-              detail={onbLocaliDetail} onNav={onNav}
+              setupIniziale={setupIniziale}
+              onbIncompleto={onbIncompleto}
+              stuckOver7={stuckOver7}
+              stuckOver14={stuckOver14}
+              ageMedian={ageMedian}
+              detail={onbLocaliDetail}
+              onNav={onNav}
             />
           }
-        />
-        <DashStatCard
-          label="Utenti totali" value={fmtNum(totUtenti)} accent="INFO"
-          trend={woW(TS.utentiTot).delta} trendLabel="7gg"
-          sub="Hanno scaricato l'app"
-          data={TS.utentiTot.slice(-30)} gradId="grad-ute"
-          onClick={()=>onNav('utenti')} popAlign="right"
-          popover={
-            <UtentiTooltip tot={totUtenti} attivi24={attivi24} attivi7g={attivi7g} attivi30g={attivi30g}/>
-          }
-        />
-        <DashStatCard
-          label="Accessi guest · 30gg" value={fmtNum(guestLog30g)} accent="PURPLE"
-          trend={moM(TS.guestAccessi).delta} trendLabel="30gg"
-          sub="Utenti non registrati"
-          data={TS.guestAccessi.slice(-30)} gradId="grad-gue" popAlign="right"
-          popover={<GuestTooltip accessi={guestLog30g} ordini={ordiniGuest30g}/>}
         />
       </div>
 
-      {/* ═══════════ Tier 3 · Esplora i dati — approfondimenti, nessuna azione ═══════════ */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+        <HoverStat
+          icon="users"
+          label="Utenti totali"
+          value={fmtNum(totUtenti)}
+          sub="Hanno scaricato l'app byup"
+          trend={woW(TS.utentiTot).delta}
+          trendLabel="vs 7gg"
+          spark={TS.utentiTot.slice(-30)}
+          onClick={()=>onNav('utenti')}
+          tooltip={
+            <UtentiTooltip
+              tot={totUtenti}
+              attivi24={attivi24}
+              attivi7g={attivi7g}
+              attivi30g={attivi30g}
+            />
+          }
+        />
+        <HoverStat
+          icon="user"
+          label="Accessi guest · ultimi 30 giorni"
+          value={fmtNum(guestLog30g)}
+          sub="Utenti non registrati che hanno effettuato un accesso"
+          trend={moM(TS.guestAccessi).delta}
+          trendLabel="vs 30gg precedenti"
+          spark={TS.guestAccessi.slice(-30)}
+          tooltip={
+            <GuestTooltip
+              accessi={guestLog30g}
+              ordini={ordiniGuest30g}
+            />
+          }
+        />
+      </div>
+
+      {/* ═══════════ ESPLORARE · Analisi avanzate ═══════════ */}
       <SectionLabel title="Esplora i dati" desc="Analisi di approfondimento · non richiede un'azione immediata" muted/>
+
+      {/* Caveat dati */}
+      <div style={{padding:'11px 14px', background:ADM.WARN_SOFT, border:`1px solid ${ADM.WARN}33`, borderRadius:9, display:'flex', gap:10, alignItems:'flex-start'}}>
+        <BuIcons.info size={19} color={ADM.WARN}/>
+        <div style={{flex:1, fontSize:13.3, color:'#7A4A0C', lineHeight:1.5}}>
+          Stima costruita su <strong>38% del catalogo</strong> con ingredient labeling completato, prezzo di vendita medio per categoria, e <strong>food-cost % di settore</strong> applicato come riferimento. Completare il labeling sul catalogo restante porterebbe accuratezza ±2-3 pt e abiliterebbe trattative dirette coi fornitori.
+        </div>
+      </div>
 
       <AdmCard padding={0}>
         <div style={{padding:'14px 22px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
           <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Food cost & marginalità per categoria</div>
           <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Margine lordo stimato · proxy del valore di un marketplace fornitori</div>
-          <div style={{fontSize:12, color:ADM.MUTED_SOFT, marginTop:7, display:'flex', alignItems:'center', gap:6}}>
-            <BuIcons.info size={13} color={ADM.MUTED_SOFT}/>
-            <span>Stima su <strong style={{color:ADM.MUTED, fontWeight:700}}>38% del catalogo</strong> · food-cost di settore come riferimento (±2-3 pt di accuratezza)</span>
-          </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18, padding:'12px 22px', background:ADM.PANEL_SOFT, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
           <div>Categoria</div>
