@@ -168,7 +168,7 @@ function AdmComunicazioniPage() {
       {/* Filter cards (KPI + filtro in unico componente) */}
       <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'20px 32px 18px', flexShrink:0}}>
         <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:14, gap:14}}>
-          <div style={{fontSize:18.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Filtra per</div>
+          <div style={{fontSize:13.3, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Filtra per</div>
           <button onClick={()=>setView('all')} style={{
             display:'inline-flex', alignItems:'center', gap:6,
             padding:'4px 10px',
@@ -176,7 +176,7 @@ function AdmComunicazioniPage() {
             color: view === 'all' ? ADM.TEXT : ADM.MUTED,
             border:`1px solid ${view === 'all' ? ADM.MUTED_LIGHT : ADM.BORDER}`,
             borderRadius:99,
-            fontSize:18.5, fontWeight: view === 'all' ? 700 : 600,
+            fontSize:13.3, fontWeight: view === 'all' ? 700 : 600,
             fontFamily:'inherit', cursor:'pointer', letterSpacing:'-0.005em',
             transition:'all 0.14s ease',
           }}>
@@ -220,7 +220,7 @@ function AdmComunicazioniPage() {
         </div>
         {/* Aging strip — micro-info che era nella vecchia card "Più vecchia" */}
         {cOpen > 0 && (
-          <div style={{marginTop:12, display:'flex', alignItems:'center', gap:8, fontSize:18.5, color:ADM.MUTED, fontWeight:500}}>
+          <div style={{marginTop:12, display:'flex', alignItems:'center', gap:8, fontSize:13.3, color:ADM.MUTED, fontWeight:500}}>
             <BuIcons.clock size={16} color={ADM.MUTED_SOFT}/>
             <span>Più vecchia aperta da <strong style={{color: oldestH > 48 ? ADM.DANGER : ADM.TEXT, fontWeight:700}}>{oldestH}h</strong> · attesa media <strong style={{color:ADM.TEXT, fontWeight:700}}>{attesaMediaH}h</strong></span>
           </div>
@@ -237,14 +237,14 @@ function AdmComunicazioniPage() {
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca mittente, locale, oggetto…" style={{
                 width:'100%', padding:'8px 12px 8px 32px',
                 border:'none', borderRadius:8,
-                fontSize:19.5, fontFamily:'inherit', outline:'none',
+                fontSize:14, fontFamily:'inherit', outline:'none',
                 background:ADM.PANEL_SOFT, boxSizing:'border-box',
                 color:ADM.TEXT,
               }}/>
             </div>
           </div>
 
-          <div style={{padding:'10px 18px 8px', fontSize:18.5, color:ADM.MUTED, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
+          <div style={{padding:'10px 18px 8px', fontSize:13.3, color:ADM.MUTED, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
             <span>
               {filtered.length} {filtered.length === 1 ? 'comunicazione' : 'comunicazioni'}
               {view !== 'all' && <span style={{color:ADM.MUTED_SOFT}}> · filtro: <strong style={{color:ADM.TEXT, fontWeight:600}}>{views.find(v=>v.id===view)?.label || 'Tutte'}</strong></span>}
@@ -329,18 +329,18 @@ function FilterCard({ icon, tone, label, value, hint, hintTone, active, onClick 
         }}>
           <Icon size={19}/>
         </div>
-        <span style={{fontSize:19.5, fontWeight:700, color: active ? ADM.TEXT : ADM.MUTED, letterSpacing:'-0.005em'}}>{label}</span>
+        <span style={{fontSize:14, fontWeight:700, color: active ? ADM.TEXT : ADM.MUTED, letterSpacing:'-0.005em'}}>{label}</span>
       </div>
 
       <div style={{
-        fontSize:41, fontWeight:800,
+        fontSize:29.5, fontWeight:800,
         color: active ? ADM.PINK : ADM.TEXT,
         letterSpacing:'-0.035em', lineHeight:1,
         fontVariantNumeric:'tabular-nums',
       }}>{value}</div>
 
       {hint && (
-        <div style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:18.5, color:hintColor, fontWeight:500, letterSpacing:'-0.005em'}}>
+        <div style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.3, color:hintColor, fontWeight:500, letterSpacing:'-0.005em'}}>
           <span style={{width:6, height:6, borderRadius:'50%', background:hintDot, flexShrink:0}}/>
           {hint}
         </div>
@@ -383,31 +383,31 @@ function InboxItem({ item, active, onClick }) {
         <AdmAvatar name={item.senderName} size={37} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:'flex', alignItems:'baseline', gap:6, marginBottom:2}}>
-            <span style={{fontSize:20, fontWeight: isUnread ? 700 : 600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0, flexShrink:1}}>
+            <span style={{fontSize:14.4, fontWeight: isUnread ? 700 : 600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0, flexShrink:1}}>
               {item.senderName}
             </span>
             <div style={{flex:1}}/>
             {isUnread && <span style={{width:7, height:7, background:ADM.PINK, borderRadius:'50%', flexShrink:0}}/>}
-            <span style={{fontSize:18, color:ADM.MUTED_SOFT, whiteSpace:'nowrap', flexShrink:0}}>{fmtRelative(item.data)}</span>
+            <span style={{fontSize:13, color:ADM.MUTED_SOFT, whiteSpace:'nowrap', flexShrink:0}}>{fmtRelative(item.data)}</span>
           </div>
 
           <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:5}}>
-            <span style={{fontSize:18.5, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0, flexShrink:1}}>{locale?.nome || '—'}</span>
+            <span style={{fontSize:13.3, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0, flexShrink:1}}>{locale?.nome || '—'}</span>
             {piano && <PlanPill piano={piano}/>}
           </div>
 
-          <div style={{fontSize:20.5, fontWeight: isUnread ? 700 : 500, color:ADM.TEXT, marginBottom:4, lineHeight:1.35, letterSpacing:'-0.005em', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{item.oggetto}</div>
+          <div style={{fontSize:14.8, fontWeight: isUnread ? 700 : 500, color:ADM.TEXT, marginBottom:4, lineHeight:1.35, letterSpacing:'-0.005em', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{item.oggetto}</div>
           {preview && (
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginBottom:8, lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{preview}</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:8, lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{preview}</div>
           )}
 
           <div style={{display:'flex', alignItems:'center', gap:5, flexWrap:'wrap'}}>
             {item.certRequest && <CertTag/>}
             {item.tags.slice(0, 3).map(t => <CustomTag key={t} label={t}/>)}
-            {item.tags.length > 3 && <span style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>+{item.tags.length - 3}</span>}
+            {item.tags.length > 3 && <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>+{item.tags.length - 3}</span>}
             <div style={{flex:1}}/>
             {item.allegati.length > 0 && (
-              <span style={{fontSize:17.5, color:ADM.MUTED, display:'inline-flex', alignItems:'center', gap:3}}>
+              <span style={{fontSize:12.6, color:ADM.MUTED, display:'inline-flex', alignItems:'center', gap:3}}>
                 <BuIcons.paperclip size={15}/>{item.allegati.length}
               </span>
             )}
@@ -429,7 +429,7 @@ function CertTag() {
       display:'inline-flex', alignItems:'center', gap:4,
       padding:'2px 8px', borderRadius:5,
       background:ADM.WARN_SOFT, color:'#92400E',
-      fontSize:17.5, fontWeight:700,
+      fontSize:12.6, fontWeight:700,
       letterSpacing:'-0.005em',
     }}>
       <BuIcons.shield size={14}/>
@@ -444,7 +444,7 @@ function CustomTag({ label, onRemove }) {
       display:'inline-flex', alignItems:'center', gap:4,
       padding:'2px 8px', borderRadius:5,
       background:'#EEF1F5', color:ADM.TEXT,
-      fontSize:17.5, fontWeight:600,
+      fontSize:12.6, fontWeight:600,
       letterSpacing:'-0.005em',
     }}>
       #{label}
@@ -466,7 +466,7 @@ function PlanPill({ piano }) {
     <span style={{
       padding:'1px 6px', borderRadius:4,
       background:ADM[piano.color+'_SOFT'], color:ADM[piano.color],
-      fontSize:18, fontWeight:700, letterSpacing:'0.02em', textTransform:'uppercase',
+      fontSize:13, fontWeight:700, letterSpacing:'0.02em', textTransform:'uppercase',
     }}>{piano.label}</span>
   );
 }
@@ -484,7 +484,7 @@ function StatoChip({ stato }) {
     <span style={{
       padding:'1.5px 7px', borderRadius:4,
       background:ADM[s.color+'_SOFT'], color:ADM[s.color],
-      fontSize:18, fontWeight:700, letterSpacing:'0.02em', textTransform:'uppercase',
+      fontSize:13, fontWeight:700, letterSpacing:'0.02em', textTransform:'uppercase',
     }}>{s.label}</span>
   );
 }
@@ -538,11 +538,11 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           {item.stato === 'approvata' && <StatoChip stato="approvata"/>}
           {item.stato === 'rifiutata' && <StatoChip stato="rifiutata"/>}
           {item.stato === 'risolta' && <StatoChip stato="risolta"/>}
-          <span style={{fontSize:18, color:ADM.MUTED, fontFamily:'ui-monospace,monospace', marginLeft:2}}>{item.id}</span>
+          <span style={{fontSize:13, color:ADM.MUTED, fontFamily:'ui-monospace,monospace', marginLeft:2}}>{item.id}</span>
           <div style={{flex:1}}/>
           {/* Assegnazione */}
           {isAssignedToMe && (
-            <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', background:ADM.PINK_BG_SOFT, color:ADM.PINK_DARK, borderRadius:99, fontSize:18.5, fontWeight:700, letterSpacing:'-0.005em'}}>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', background:ADM.PINK_BG_SOFT, color:ADM.PINK_DARK, borderRadius:99, fontSize:13.3, fontWeight:700, letterSpacing:'-0.005em'}}>
               <BuIcons.check size={16}/> Assegnata a te
             </span>
           )}
@@ -552,7 +552,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               padding:'5px 11px',
               background:'#fff', color:ADM.TEXT,
               border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:18.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+              fontSize:13.3, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
               letterSpacing:'-0.005em',
               transition:'all 0.14s ease',
             }}
@@ -562,7 +562,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
             </button>
           )}
           {canTakeOver && (
-            <span style={{display:'inline-flex', alignItems:'center', gap:8, fontSize:18.5, color:ADM.MUTED}}>
+            <span style={{display:'inline-flex', alignItems:'center', gap:8, fontSize:13.3, color:ADM.MUTED}}>
               <span style={{display:'inline-flex', alignItems:'center', gap:5}}>
                 <AdmAvatar name={assignedTeam?.nome || ''} size={23}/>
                 <span>{assignedTeam?.nome?.split(' ')[0]}</span>
@@ -570,21 +570,21 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               <button onClick={takeOver} style={{
                 padding:'4px 9px', background:'transparent', color:ADM.PINK,
                 border:`1px solid ${ADM.PINK}40`, borderRadius:7,
-                fontSize:18, fontWeight:600, fontFamily:'inherit', cursor:'pointer', letterSpacing:'-0.005em',
+                fontSize:13, fontWeight:600, fontFamily:'inherit', cursor:'pointer', letterSpacing:'-0.005em',
               }}>Subentra</button>
             </span>
           )}
         </div>
 
         {/* Oggetto */}
-        <div style={{fontSize:27, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.015em', lineHeight:1.25, marginBottom:8}}>{item.oggetto}</div>
+        <div style={{fontSize:19.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.015em', lineHeight:1.25, marginBottom:8}}>{item.oggetto}</div>
 
         {/* Identity row */}
-        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', fontSize:19.5, color:ADM.MUTED}}>
+        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', fontSize:14, color:ADM.MUTED}}>
           <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
             <AdmAvatar name={item.senderName} size={27} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
             <span style={{color:ADM.TEXT, fontWeight:600}}>{item.senderName}</span>
-            <span style={{color:ADM.MUTED_SOFT, fontSize:18.5}}>&lt;{item.senderEmail}&gt;</span>
+            <span style={{color:ADM.MUTED_SOFT, fontSize:13.3}}>&lt;{item.senderEmail}&gt;</span>
           </div>
           <span style={{color:ADM.MUTED_LIGHT}}>·</span>
           <span><strong style={{color:ADM.TEXT, fontWeight:600}}>{locale?.nome || '—'}</strong> · {locale?.citta || '—'}</span>
@@ -641,7 +641,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                     padding:'12px 18px',
                     background:'linear-gradient(135deg, #16A34A, #15803D)',
                     color:'#fff', border:'none', borderRadius:10,
-                    fontSize:20, fontWeight:700, fontFamily:'inherit', cursor:'pointer',
+                    fontSize:14.4, fontWeight:700, fontFamily:'inherit', cursor:'pointer',
                     boxShadow:'0 4px 14px -4px rgba(22,163,74,0.5)',
                     letterSpacing:'-0.005em',
                   }}>
@@ -653,7 +653,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                     padding:'12px 18px',
                     background:'#fff', color:ADM.DANGER,
                     border:`1px solid ${ADM.DANGER}40`, borderRadius:10,
-                    fontSize:20, fontWeight:700, fontFamily:'inherit', cursor:'pointer',
+                    fontSize:14.4, fontWeight:700, fontFamily:'inherit', cursor:'pointer',
                     letterSpacing:'-0.005em',
                   }}>
                     <BuIcons.x size={19}/>
@@ -663,7 +663,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               )}
               {rejectMode && (
                 <div>
-                  <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>Motivazione del rifiuto</div>
+                  <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>Motivazione del rifiuto</div>
                   <textarea
                     value={rejectReason}
                     onChange={e=>setRejectReason(e.target.value)}
@@ -671,7 +671,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                     style={{
                       width:'100%', minHeight:90, padding:'10px 12px',
                       border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-                      fontSize:20, fontFamily:'inherit', color:ADM.TEXT,
+                      fontSize:14.4, fontFamily:'inherit', color:ADM.TEXT,
                       background:'#fff', outline:'none', resize:'vertical', boxSizing:'border-box',
                       marginBottom:12,
                     }}
@@ -689,7 +689,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           {item.certRequest && item.stato === 'approvata' && (
             <div style={{padding:'14px 16px', background:ADM.OK_SOFT, border:`1px solid #BBF7D0`, borderRadius:10, display:'flex', alignItems:'center', gap:10}}>
               <div style={{width:32, height:32, borderRadius:8, background:ADM.OK, color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.check size={21}/></div>
-              <div style={{flex:1, fontSize:20, color:'#065F46'}}>
+              <div style={{flex:1, fontSize:14.4, color:'#065F46'}}>
                 <strong>Certificazione approvata</strong>
                 {item.revisedBy && <> da {TEAM.find(t=>t.id===item.revisedBy)?.nome || item.revisedBy}</>}
                 {item.revisedAt && <> · {fmtDate(item.revisedAt)}</>}
@@ -699,7 +699,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           {item.certRequest && item.stato === 'rifiutata' && (
             <div style={{padding:'14px 16px', background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40`, borderRadius:10, display:'flex', alignItems:'flex-start', gap:10}}>
               <div style={{width:32, height:32, borderRadius:8, background:ADM.DANGER, color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.x size={21}/></div>
-              <div style={{flex:1, fontSize:20, color:'#7F1D1D'}}>
+              <div style={{flex:1, fontSize:14.4, color:'#7F1D1D'}}>
                 <div style={{fontWeight:700, marginBottom:3}}>Certificazione rifiutata
                   {item.revisedBy && <> da {TEAM.find(t=>t.id===item.revisedBy)?.nome || item.revisedBy}</>}
                   {item.revisedAt && <> · {fmtDate(item.revisedAt)}</>}
@@ -713,7 +713,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           {!item.certRequest && item.stato === 'risolta' && (
             <div style={{padding:'14px 16px', background:ADM.OK_SOFT, border:`1px solid #BBF7D0`, borderRadius:10, display:'flex', alignItems:'center', gap:10}}>
               <div style={{width:32, height:32, borderRadius:8, background:ADM.OK, color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.check size={21}/></div>
-              <div style={{flex:1, fontSize:20, color:'#065F46'}}>
+              <div style={{flex:1, fontSize:14.4, color:'#065F46'}}>
                 <strong>Risolta</strong>
                 {item.resolvedBy && <> da {TEAM.find(t=>t.id===item.resolvedBy)?.nome || item.resolvedBy}</>}
                 {item.resolvedAt && <> · {fmtDate(item.resolvedAt)}</>}
@@ -746,7 +746,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                 width:'100%', minHeight:80, padding:'12px 14px',
                 border:'none', borderRadius:10,
                 background:'transparent',
-                fontSize:20, fontFamily:'inherit', color:ADM.TEXT,
+                fontSize:14.4, fontFamily:'inherit', color:ADM.TEXT,
                 resize:'vertical', outline:'none', boxSizing:'border-box',
               }}
             />
@@ -777,7 +777,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                                 showInternal ? ADM.WARN :
                                 'linear-gradient(135deg, #FF5A5F, #E04347)',
                     color:'#fff', border:'none', borderRadius:8,
-                    fontSize:19.5, fontWeight:700,
+                    fontSize:14, fontWeight:700,
                     cursor: !reply.trim() ? 'not-allowed' : 'pointer',
                     fontFamily:'inherit', letterSpacing:'-0.005em',
                     whiteSpace:'nowrap',
@@ -807,8 +807,8 @@ function TagBar({ tags, input, onInput, onAdd, onRemove }) {
       padding:'10px 14px',
       display:'flex', alignItems:'center', gap:8, flexWrap:'wrap',
     }}>
-      <span style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tag</span>
-      {tags.length === 0 && <span style={{fontSize:18.5, color:ADM.MUTED_SOFT}}>Nessuno</span>}
+      <span style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tag</span>
+      {tags.length === 0 && <span style={{fontSize:13.3, color:ADM.MUTED_SOFT}}>Nessuno</span>}
       {tags.map(t => <CustomTag key={t} label={t} onRemove={()=>onRemove(t)}/>)}
       <input
         value={input}
@@ -824,7 +824,7 @@ function TagBar({ tags, input, onInput, onAdd, onRemove }) {
           flex:'1 1 140px', minWidth:120,
           padding:'4px 6px',
           border:'none', background:'transparent',
-          fontSize:19, fontFamily:'inherit', color:ADM.TEXT, outline:'none',
+          fontSize:13.7, fontFamily:'inherit', color:ADM.TEXT, outline:'none',
         }}
       />
     </div>
@@ -838,16 +838,16 @@ function EmailBody({ item, locale }) {
       <AdmAvatar name={item.senderName} size={41} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
       <div style={{flex:1, minWidth:0}}>
         <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:6, flexWrap:'wrap'}}>
-          <span style={{fontSize:20, fontWeight:700, color:ADM.TEXT}}>{item.senderName}</span>
-          <span style={{fontSize:18.5, color:ADM.MUTED}}>Titolare di {locale?.nome || '—'}</span>
-          <span style={{fontSize:18, color:ADM.MUTED_SOFT}}>· {fmtRelative(item.data)}</span>
+          <span style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>{item.senderName}</span>
+          <span style={{fontSize:13.3, color:ADM.MUTED}}>Titolare di {locale?.nome || '—'}</span>
+          <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>· {fmtRelative(item.data)}</span>
         </div>
         <div style={{
           padding:'14px 16px',
           background:'#fff',
           border:`1px solid ${ADM.BORDER}`,
           borderRadius:10,
-          fontSize:20.5, color:ADM.TEXT, lineHeight:1.6,
+          fontSize:14.8, color:ADM.TEXT, lineHeight:1.6,
           whiteSpace:'pre-wrap',
         }}>{item.desc}</div>
         {item.allegati.length > 0 && (
@@ -874,10 +874,10 @@ function CertCard({ certTipo, scadenza, senderName, senderEmail, localeId, local
           <BuIcons.shield size={23}/>
         </div>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:20.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>
+          <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>
             {certTipo?.label || '—'}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>
             Ente {certTipo?.ente || '—'}
             {scadenza && <> · scadenza {fmtDate(scadenza)}</>}
             <> · inviata {fmtRelative(data)}</>
@@ -888,20 +888,20 @@ function CertCard({ certTipo, scadenza, senderName, senderEmail, localeId, local
       {/* Locale di riferimento (non selezionabile: è del mittente) */}
       <div style={{padding:'14px 18px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <div>
-          <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4}}>Locale</div>
-          <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>{localeName || '—'}</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace,monospace'}}>{localeId}</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4}}>Locale</div>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{localeName || '—'}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace,monospace'}}>{localeId}</div>
         </div>
         <div>
-          <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4}}>Profilo</div>
-          <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>{senderName}</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:1}}>{senderEmail}</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4}}>Profilo</div>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{senderName}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:1}}>{senderEmail}</div>
         </div>
       </div>
 
       {/* Allegati */}
       <div style={{padding:'14px 18px'}}>
-        <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10}}>
+        <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10}}>
           {allegati.length === 1 ? 'Documento allegato' : `${allegati.length} documenti allegati`}
         </div>
         <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
@@ -922,7 +922,7 @@ function ComposerTab({ active, onClick, label, icon, accent }) {
       background: active ? (accent ? `${c}1A` : ADM.PINK_BG_SOFT) : 'transparent',
       color: active ? c : ADM.MUTED,
       border:`1px solid ${active ? c : ADM.BORDER}`,
-      borderRadius:7, fontSize:18.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+      borderRadius:7, fontSize:13.3, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
       transition:'all 0.15s',
     }}>
       <Icon size={16}/>
@@ -954,8 +954,8 @@ function Attachment({ a }) {
         <Icon size={19}/>
       </div>
       <div style={{minWidth:0}}>
-        <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{a.name}</div>
-        <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:1}}>{a.size}</div>
+        <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{a.name}</div>
+        <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{a.size}</div>
       </div>
       <BuIcons.download size={18} color={ADM.MUTED}/>
     </button>

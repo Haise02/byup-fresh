@@ -194,19 +194,24 @@ function ProfiloPage() {
       {/* Header card */}
       <AdmCard padding={22}>
         <div style={{display:'flex', alignItems:'center', gap:18}}>
-          <AdmAvatar name="Marco Rinaldi" size={69}/>
+          <div style={{
+            width:52, height:52, borderRadius:'50%',
+            background:'linear-gradient(135deg, #FF5A5F, #B53338)',
+            color:'#fff', display:'grid', placeItems:'center',
+            fontWeight:700, fontSize:20, flexShrink:0, letterSpacing:'0.01em',
+          }}>MR</div>
           <div style={{flex:1}}>
-            <div style={{fontSize:27, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Marco Rinaldi</div>
-            <div style={{fontSize:19.5, color:ADM.MUTED, marginTop:3}}>marco.rinaldi@byup.it · Super Admin</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED_SOFT, marginTop:4}}>Account creato il 14 gen 2024 · Ultimo accesso oggi alle 09:42</div>
+            <div style={{fontSize:19.4, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Marco Rinaldi</div>
+            <div style={{fontSize:14, color:ADM.MUTED, marginTop:3}}>marco.rinaldi@byup.it · Super Admin</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED_SOFT, marginTop:4}}>Account creato il 14 gen 2024 · Ultimo accesso oggi alle 09:42</div>
           </div>
         </div>
       </AdmCard>
 
       {/* Password */}
       <AdmCard padding={22}>
-        <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>Cambia password</div>
-        <div style={{fontSize:19, color:ADM.MUTED, marginBottom:16}}>Usa almeno 8 caratteri, con lettere e numeri</div>
+        <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>Cambia password</div>
+        <div style={{fontSize:13.7, color:ADM.MUTED, marginBottom:16}}>Usa almeno 8 caratteri, con lettere e numeri</div>
         <div style={{display:'flex', flexDirection:'column', gap:12, maxWidth:420}}>
           <ProfField label="Password attuale" type="password" value={pwd1} onChange={setPwd1}/>
           <ProfField label="Nuova password" type="password" value={pwd2} onChange={setPwd2} hint={pwd2.length > 0 && pwd2.length < 8 ? 'Almeno 8 caratteri' : ''}/>
@@ -222,10 +227,10 @@ function ProfiloPage() {
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:18, marginBottom: twofa || showQr ? 16 : 0}}>
           <div style={{flex:1}}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT}}>Autenticazione a due fattori (2FA)</div>
+              <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Autenticazione a due fattori (2FA)</div>
               {twofa && <AdmBadge color="OK" size="xs">Attiva</AdmBadge>}
             </div>
-            <div style={{fontSize:19, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
               Aggiungi un secondo livello di sicurezza al tuo account. Ad ogni accesso ti verrà richiesto un codice generato da un'app come Google Authenticator o Authy.
             </div>
           </div>
@@ -242,16 +247,16 @@ function ProfiloPage() {
               <QrPlaceholder/>
             </div>
             <div style={{flex:1}}>
-              <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>1 · Scansiona il QR code</div>
-              <div style={{fontSize:19, color:ADM.MUTED, lineHeight:1.5, marginBottom:14}}>
+              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>1 · Scansiona il QR code</div>
+              <div style={{fontSize:13.7, color:ADM.MUTED, lineHeight:1.5, marginBottom:14}}>
                 Apri la tua app di autenticazione (Google Authenticator, Authy, 1Password) e scansiona il codice qui a sinistra. Oppure inserisci la chiave manualmente:
-                <div style={{marginTop:8, padding:'8px 10px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:6, fontFamily:'ui-monospace,monospace', fontSize:18.5, color:ADM.TEXT, letterSpacing:'0.06em'}}>JBSW Y3DP EHPK 3PXP</div>
+                <div style={{marginTop:8, padding:'8px 10px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:6, fontFamily:'ui-monospace,monospace', fontSize:13.3, color:ADM.TEXT, letterSpacing:'0.06em'}}>JBSW Y3DP EHPK 3PXP</div>
               </div>
-              <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>2 · Inserisci il codice a 6 cifre</div>
+              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>2 · Inserisci il codice a 6 cifre</div>
               <div style={{display:'flex', gap:8}}>
                 <input maxLength={6} placeholder="123 456" style={{
                   flex:1, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
-                  fontSize:21, fontFamily:'ui-monospace,monospace', letterSpacing:'0.2em', textAlign:'center', outline:'none',
+                  fontSize:15.1, fontFamily:'ui-monospace,monospace', letterSpacing:'0.2em', textAlign:'center', outline:'none',
                 }}/>
                 <AdmButton variant="primary" size="md" onClick={()=>{ setTwofa(true); setShowQr(false); }}>Attiva 2FA</AdmButton>
                 <AdmButton variant="ghost" size="md" onClick={()=>setShowQr(false)}>Annulla</AdmButton>
@@ -263,7 +268,7 @@ function ProfiloPage() {
         {twofa && (
           <div style={{padding:14, background:ADM.OK_SOFT, borderRadius:8, border:`1px solid #BBF7D0`, display:'flex', gap:10, alignItems:'center'}}>
             <BuIcons.check size={21} color={ADM.OK}/>
-            <div style={{flex:1, fontSize:19.5, color:'#065F46'}}>2FA configurata con app Authenticator. Conserva i codici di recupero in un posto sicuro.</div>
+            <div style={{flex:1, fontSize:14, color:'#065F46'}}>2FA configurata con app Authenticator. Conserva i codici di recupero in un posto sicuro.</div>
             <AdmButton variant="ghost" size="sm">Codici di recupero</AdmButton>
           </div>
         )}
@@ -271,7 +276,7 @@ function ProfiloPage() {
 
       {/* Sessioni attive */}
       <AdmCard padding={22}>
-        <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Sessioni attive</div>
+        <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Sessioni attive</div>
         {[
           { device:'Mac · Chrome', loc:'Milano', when:'In uso ora', current:true },
           { device:'iPhone · Safari', loc:'Milano', when:'2 ore fa', current:false },
@@ -280,10 +285,10 @@ function ProfiloPage() {
           <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderBottom: i === a.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
             <div style={{width:32, height:32, borderRadius:7, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'grid', placeItems:'center'}}><BuIcons.user size={19}/></div>
             <div style={{flex:1}}>
-              <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT}}>{s.device}</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED}}>{s.loc} · {s.when}</div>
+              <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>{s.device}</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED}}>{s.loc} · {s.when}</div>
             </div>
-            {s.current ? <AdmBadge color="OK" size="xs">Sessione attuale</AdmBadge> : <button style={{background:'transparent', border:'none', color:ADM.DANGER, fontSize:18.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Termina</button>}
+            {s.current ? <AdmBadge color="OK" size="xs">Sessione attuale</AdmBadge> : <button style={{background:'transparent', border:'none', color:ADM.DANGER, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Termina</button>}
           </div>
         ))}
       </AdmCard>
@@ -294,15 +299,15 @@ function ProfiloPage() {
 function ProfField({ label, type='text', value, onChange, hint }) {
   return (
     <div>
-      <label style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600, display:'block', marginBottom:6, letterSpacing:'-0.005em'}}>{label}</label>
+      <label style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, display:'block', marginBottom:6, letterSpacing:'-0.005em'}}>{label}</label>
       <input type={type} value={value} onChange={e=>onChange(e.target.value)} style={{
         width:'100%', padding:'10px 13px',
         border:`1px solid ${ADM.BORDER}`,
         background:'#fff',
-        borderRadius:9, fontSize:20.5, fontFamily:'inherit', outline:'none', boxSizing:'border-box',
+        borderRadius:9, fontSize:14.8, fontFamily:'inherit', outline:'none', boxSizing:'border-box',
         color:ADM.TEXT, letterSpacing:'-0.005em',
       }}/>
-      {hint && <div style={{fontSize:18.5, color:ADM.DANGER, marginTop:5, fontWeight:500}}>{hint}</div>}
+      {hint && <div style={{fontSize:13.3, color:ADM.DANGER, marginTop:5, fontWeight:500}}>{hint}</div>}
     </div>
   );
 }

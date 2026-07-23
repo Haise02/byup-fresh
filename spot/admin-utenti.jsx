@@ -60,7 +60,7 @@ function AdmUtentiPage({ search: searchProp }) {
             <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={19}/></span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca per nome o città…" style={{
               width:'100%', padding:'7px 10px 7px 32px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
-              fontSize:19.5, fontFamily:'inherit', outline:'none', background:'#fff',
+              fontSize:14, fontFamily:'inherit', outline:'none', background:'#fff',
             }}/>
           </div>
           <FilterDropdown label="Stato" value={statoFiltro} onChange={setStatoFiltro} options={[
@@ -77,7 +77,7 @@ function AdmUtentiPage({ search: searchProp }) {
             ...REGIONI.map(r => ({value:r, label:r})),
           ]}/>
           <div style={{flex:1}}/>
-          <span style={{fontSize:19, color:ADM.MUTED}}>{filtered.length} di {totUtenti}</span>
+          <span style={{fontSize:13.7, color:ADM.MUTED}}>{filtered.length} di {totUtenti}</span>
         </div>
 
         <div style={{
@@ -85,7 +85,7 @@ function AdmUtentiPage({ search: searchProp }) {
           gridTemplateColumns:'minmax(0,2.4fr) 0.7fr 0.6fr 1.3fr 1.1fr 60px',
           padding:'10px 18px',
           borderBottom:`1px solid ${ADM.BORDER}`,
-          fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
+          fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
         }}>
           <div>Utente</div>
           <div>Sesso</div>
@@ -124,16 +124,16 @@ function SpesaMediaCard({ lifetime, anno, mese, horizonDays }) {
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10}}>
         <div style={{minWidth:0, flex:1}}>
           <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
-            <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em'}}>Spesa media / utente</div>
+            <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em'}}>Spesa media / utente</div>
             <span style={{
-              fontSize:18, fontWeight:800, color:ADM.OK, background:ADM.OK_SOFT,
+              fontSize:13, fontWeight:800, color:ADM.OK, background:ADM.OK_SOFT,
               padding:'2px 6px', borderRadius:4, letterSpacing:'0.06em', textTransform:'uppercase',
             }}>{cur.label}</span>
           </div>
-          <div style={{fontSize:37, fontWeight:700, color:ADM.TEXT, marginTop:8, letterSpacing:'-0.03em', lineHeight:1.05}}>
+          <div style={{fontSize:26.6, fontWeight:700, color:ADM.TEXT, marginTop:8, letterSpacing:'-0.03em', lineHeight:1.05}}>
             {fmtEur(cur.value)}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:8}}>Da ordini in app · {cur.shortHelp}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:8}}>Da ordini in app · {cur.shortHelp}</div>
         </div>
         <div style={{
           width:38, height:38, borderRadius:11,
@@ -154,7 +154,7 @@ function SpesaMediaCard({ lifetime, anno, mese, horizonDays }) {
           const active = o.id === periodo;
           return (
             <button key={o.id} onClick={()=>setPeriodo(o.id)} style={{
-              padding:'4px 10px', fontSize:17.5, fontWeight:700,
+              padding:'4px 10px', fontSize:12.6, fontWeight:700,
               background: active ? '#fff' : 'transparent',
               color: active ? ADM.OK : ADM.MUTED,
               border:'none', borderRadius:5, cursor:'pointer',
@@ -186,15 +186,15 @@ function UtenteRow({ utente: u, onClick, striped }) {
       <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
         <AdmAvatar name={u.nome} size={39} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
         <div style={{minWidth:0}}>
-          <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>{u.nome}</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:1}}>{u.email}</div>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{u.nome}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:1}}>{u.email}</div>
         </div>
       </div>
-      <div style={{fontSize:19.5, color:ADM.TEXT}}>{u.sesso === 'F' ? 'Donna' : 'Uomo'}</div>
-      <div style={{fontSize:19.5, color:ADM.TEXT}}>{u.eta}</div>
+      <div style={{fontSize:14, color:ADM.TEXT}}>{u.sesso === 'F' ? 'Donna' : 'Uomo'}</div>
+      <div style={{fontSize:14, color:ADM.TEXT}}>{u.eta}</div>
       <div>
-        <div style={{fontSize:19.5, color:ADM.TEXT, fontWeight:500}}>{u.citta}</div>
-        <div style={{fontSize:18, color:ADM.MUTED}}>{u.regione}</div>
+        <div style={{fontSize:14, color:ADM.TEXT, fontWeight:500}}>{u.citta}</div>
+        <div style={{fontSize:13, color:ADM.MUTED}}>{u.regione}</div>
       </div>
       <div>
         {u.attivo
@@ -202,7 +202,7 @@ function UtenteRow({ utente: u, onClick, striped }) {
           : (
             <div>
               <AdmBadge color="PLAN_FREE" size="xs">○ Inattivo</AdmBadge>
-              <div style={{fontSize:17.5, color:ADM.MUTED_SOFT, marginTop:3}}>Ultima: {fmtRelative(u.lastSession)}</div>
+              <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, marginTop:3}}>Ultima: {fmtRelative(u.lastSession)}</div>
             </div>
           )}
       </div>
@@ -254,13 +254,13 @@ function UtenteDrawer({ utente: u, onClose }) {
           <AdmAvatar name={u.nome} size={53} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
           <div style={{flex:1}}>
             <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3}}>
-              <div style={{fontSize:25, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{u.nome}</div>
+              <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{u.nome}</div>
               {u.attivo
                 ? <AdmBadge color="OK" size="xs">● Attivo</AdmBadge>
                 : <AdmBadge color="PLAN_FREE" size="xs">○ Inattivo</AdmBadge>}
               {cluster && <AdmBadge color={cluster.color} size="xs">{cluster.label}</AdmBadge>}
             </div>
-            <div style={{fontSize:19, color:ADM.MUTED, display:'flex', gap:8}}>
+            <div style={{fontSize:13.7, color:ADM.MUTED, display:'flex', gap:8}}>
               <span style={{fontFamily:'ui-monospace,monospace'}}>{u.id}</span>
               <span>·</span><span>{u.sesso === 'F' ? 'Donna' : 'Uomo'}, {u.eta} anni</span>
               <span>·</span><span>{u.citta}</span>
@@ -270,7 +270,7 @@ function UtenteDrawer({ utente: u, onClose }) {
         </div>
 
         <div style={{padding:'14px 24px 0', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, background:'#fff'}}>
-          <span style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>Periodo</span>
+          <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>Periodo</span>
           <div style={{display:'flex', gap:4, paddingBottom:14}}>
             {Object.entries(periodLabels).map(([k, label]) => (
               <button key={k} onClick={()=>setPeriod(k)} style={{
@@ -278,7 +278,7 @@ function UtenteDrawer({ utente: u, onClose }) {
                 background: period === k ? ADM.TEXT : 'transparent',
                 color: period === k ? '#fff' : ADM.MUTED,
                 border: period === k ? 'none' : `1px solid ${ADM.BORDER}`,
-                borderRadius:7, fontSize:18.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                borderRadius:7, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
               }}>{label}</button>
             ))}
           </div>
@@ -295,12 +295,12 @@ function UtenteDrawer({ utente: u, onClose }) {
           <AdmCard padding={20}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
               <div>
-                <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>Spesa storica per locale</div>
-                <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>{periodLabels[period]} · ordinato per spesa</div>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Spesa storica per locale</div>
+                <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>{periodLabels[period]} · ordinato per spesa</div>
               </div>
-              <div style={{fontSize:18.5, color:ADM.MUTED}}>Totale: <span style={{fontWeight:700, color:ADM.TEXT}}>{fmtEur(spesaP)}</span></div>
+              <div style={{fontSize:13.3, color:ADM.MUTED}}>Totale: <span style={{fontWeight:700, color:ADM.TEXT}}>{fmtEur(spesaP)}</span></div>
             </div>
-            {localiP.length === 0 && <div style={{fontSize:19, color:ADM.MUTED, padding:'18px 0', textAlign:'center'}}>Nessuna spesa registrata nel periodo selezionato</div>}
+            {localiP.length === 0 && <div style={{fontSize:13.7, color:ADM.MUTED, padding:'18px 0', textAlign:'center'}}>Nessuna spesa registrata nel periodo selezionato</div>}
             <div style={{display:'flex', flexDirection:'column', gap:11}}>
               {localiP.map((l, i) => {
                 const pct = (l.spesaTotale / maxSpesa) * 100;
@@ -308,12 +308,12 @@ function UtenteDrawer({ utente: u, onClose }) {
                   <div key={l.id}>
                     <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:5}}>
                       <div style={{flex:1, minWidth:0}}>
-                        <div style={{fontSize:19.5, color:ADM.TEXT, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
-                        <div style={{fontSize:18, color:ADM.MUTED, marginTop:1}}>{l.tipo} · {l.citta} · ultimo ordine {fmtRelative(l.ultimoOrdine)}</div>
+                        <div style={{fontSize:14, color:ADM.TEXT, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
+                        <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.tipo} · {l.citta} · ultimo ordine {fmtRelative(l.ultimoOrdine)}</div>
                       </div>
                       <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:20, color:ADM.TEXT, fontWeight:700}}>{fmtEur(l.spesaTotale)}</div>
-                        <div style={{fontSize:18, color:ADM.MUTED, marginTop:1}}>{l.ordini} ordini</div>
+                        <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:700}}>{fmtEur(l.spesaTotale)}</div>
+                        <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.ordini} ordini</div>
                       </div>
                     </div>
                     <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
@@ -326,7 +326,7 @@ function UtenteDrawer({ utente: u, onClose }) {
           </AdmCard>
 
           <AdmCard padding={20}>
-            <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Dati anagrafici</div>
+            <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Dati anagrafici</div>
             <DataRow label="Email" value={u.email} mono/>
             <DataRow label="Telefono" value={u.tel} mono/>
             <DataRow label="Indirizzo" value={`${u.citta}, ${u.regione}`}/>

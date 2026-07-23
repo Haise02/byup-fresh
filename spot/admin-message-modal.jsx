@@ -59,8 +59,8 @@ function MessageModal({ open, onClose, audienceType, presetIds = [], audienceLab
             <BuIcons.megaphone size={22}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontSize:22.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Invia messaggio</div>
-            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>
+            <div style={{fontSize:16.2, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Invia messaggio</div>
+            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>
               Step {step} di 3 · {step===1 ? 'Destinatari' : step===2 ? 'Contenuto & canali' : 'Riepilogo & invio'}
             </div>
           </div>
@@ -89,10 +89,10 @@ function MessageModal({ open, onClose, audienceType, presetIds = [], audienceLab
                 </div>
 
                 {audience.presetIds.length > 0 && (
-                  <div style={{padding:'12px 14px', background:ADM.INFO_SOFT, border:`1px solid #BFDBFE`, borderRadius:8, marginBottom:18, fontSize:19.5, color:'#1E40AF', display:'flex', alignItems:'center', gap:8}}>
+                  <div style={{padding:'12px 14px', background:ADM.INFO_SOFT, border:`1px solid #BFDBFE`, borderRadius:8, marginBottom:18, fontSize:14, color:'#1E40AF', display:'flex', alignItems:'center', gap:8}}>
                     <BuIcons.filter size={18}/>
                     Stai partendo da un <strong>filtro pre-selezionato</strong> di {audience.presetIds.length} {audience.type}. Puoi affinare ulteriormente sotto.
-                    <button onClick={()=>setAudience({...audience, presetIds:[]})} style={{marginLeft:'auto', background:'none', border:'none', color:ADM.INFO, fontSize:19, fontWeight:600, cursor:'pointer', textDecoration:'underline'}}>Rimuovi</button>
+                    <button onClick={()=>setAudience({...audience, presetIds:[]})} style={{marginLeft:'auto', background:'none', border:'none', color:ADM.INFO, fontSize:13.7, fontWeight:600, cursor:'pointer', textDecoration:'underline'}}>Rimuovi</button>
                   </div>
                 )}
 
@@ -134,12 +134,12 @@ function MessageModal({ open, onClose, audienceType, presetIds = [], audienceLab
                 </div>
 
                 <div style={{padding:'16px 18px', background:`linear-gradient(135deg, ${ADM.PINK_BG_SOFT}, #fff)`, border:`1px solid ${ADM.BORDER}`, borderRadius:10}}>
-                  <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>Destinatari stimati</div>
-                  <div style={{fontSize:39, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', display:'flex', alignItems:'baseline', gap:8}}>
+                  <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>Destinatari stimati</div>
+                  <div style={{fontSize:28.1, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', display:'flex', alignItems:'baseline', gap:8}}>
                     {fmtNum(total)}
-                    <span style={{fontSize:20, fontWeight:500, color:ADM.MUTED}}>{audience.type === 'utenti' ? 'utenti' : 'locali'}</span>
+                    <span style={{fontSize:14.4, fontWeight:500, color:ADM.MUTED}}>{audience.type === 'utenti' ? 'utenti' : 'locali'}</span>
                   </div>
-                  <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:4}}>
+                  <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:4}}>
                     {audience.type === 'utenti' && total > 0 && `Su ${fmtNum(UTENTI.length * 312)} totali — ${Math.round(total/(UTENTI.length*312)*100)}% della base`}
                     {audience.type === 'locali' && total > 0 && `Su ${LOCALI.length} totali`}
                   </div>
@@ -200,7 +200,7 @@ function MessageModal({ open, onClose, audienceType, presetIds = [], audienceLab
                 </AdmCard>
 
                 {channels.sms && (
-                  <div style={{marginTop:14, padding:'12px 14px', background:ADM.WARN_SOFT, border:`1px solid #FCD34D`, borderRadius:8, fontSize:19.5, color:'#92400E', display:'flex', gap:10, alignItems:'flex-start'}}>
+                  <div style={{marginTop:14, padding:'12px 14px', background:ADM.WARN_SOFT, border:`1px solid #FCD34D`, borderRadius:8, fontSize:14, color:'#92400E', display:'flex', gap:10, alignItems:'flex-start'}}>
                     <BuIcons.alertTriangle size={19} color={ADM.WARN}/>
                     <div>L'invio SMS comporta un costo di <strong>{fmtEur(total * 0.04)}</strong> ({fmtEur(0.04)} × {fmtNum(total)} SMS). Verrà addebitato sul wallet aziendale.</div>
                   </div>
@@ -211,14 +211,14 @@ function MessageModal({ open, onClose, audienceType, presetIds = [], audienceLab
 
           {/* Preview */}
           <div style={{padding:'22px 22px', background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:12}}>
-            <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Anteprima</div>
+            <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Anteprima</div>
             <PhonePreview channels={channels} title={title} body={body} cta={cta} audience={audience}/>
           </div>
         </div>
 
         {/* Footer */}
         <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:10, background:'#fff'}}>
-          <div style={{fontSize:19, color:ADM.MUTED}}>Bozza salvata automaticamente</div>
+          <div style={{fontSize:13.7, color:ADM.MUTED}}>Bozza salvata automaticamente</div>
           <div style={{flex:1}}/>
           {step > 1 && <AdmButton variant="ghost" size="sm" onClick={()=>setStep(step-1)}>Indietro</AdmButton>}
           <AdmButton variant="secondary" size="sm" onClick={onClose}>Annulla</AdmButton>
@@ -235,20 +235,20 @@ function MessageModal({ open, onClose, audienceType, presetIds = [], audienceLab
 const inputStyle = {
   width:'100%', padding:'9px 12px',
   border:`1px solid ${ADM.BORDER}`, borderRadius:7,
-  fontSize:20, fontFamily:'inherit', color:ADM.TEXT,
+  fontSize:14.4, fontFamily:'inherit', color:ADM.TEXT,
   outline:'none', boxSizing:'border-box',
 };
 
 function SectionTitle({ children }) {
-  return <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:11, marginTop:6}}>{children}</div>;
+  return <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:11, marginTop:6}}>{children}</div>;
 }
 
 function FormField({ label, hint, children }) {
   return (
     <div style={{marginBottom:14}}>
       <div style={{display:'flex', justifyContent:'space-between', marginBottom:6}}>
-        <label style={{fontSize:18.5, fontWeight:600, color:ADM.TEXT}}>{label}</label>
-        {hint && <span style={{fontSize:18, color:ADM.MUTED_SOFT}}>{hint}</span>}
+        <label style={{fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>{label}</label>
+        {hint && <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>{hint}</span>}
       </div>
       {children}
     </div>
@@ -269,8 +269,8 @@ function AudienceCard({ icon, label, desc, selected, onClick }) {
         <Icon size={20}/>
       </div>
       <div>
-        <div style={{fontSize:20.5, fontWeight:600, color:ADM.TEXT}}>{label}</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{desc}</div>
+        <div style={{fontSize:14.8, fontWeight:600, color:ADM.TEXT}}>{label}</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{desc}</div>
       </div>
     </button>
   );
@@ -290,8 +290,8 @@ function ChannelToggle({ icon, label, desc, active, onClick }) {
         <Icon size={19}/>
       </div>
       <div style={{flex:1}}>
-        <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT}}>{label}</div>
-        <div style={{fontSize:18, color:ADM.MUTED, marginTop:1}}>{desc}</div>
+        <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>{label}</div>
+        <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{desc}</div>
       </div>
       <div style={{
         width:18, height:18, borderRadius:5,
@@ -315,8 +315,8 @@ function ScheduleCard({ icon, label, desc, active, onClick }) {
     }}>
       <Icon size={20} color={active ? ADM.PINK : ADM.MUTED}/>
       <div>
-        <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT}}>{label}</div>
-        <div style={{fontSize:18, color:ADM.MUTED, marginTop:1}}>{desc}</div>
+        <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>{label}</div>
+        <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{desc}</div>
       </div>
     </button>
   );
@@ -325,8 +325,8 @@ function ScheduleCard({ icon, label, desc, active, onClick }) {
 function ReviewRow({ label, value, last }) {
   return (
     <div style={{display:'flex', padding:'10px 0', borderBottom: last ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-      <div style={{width:140, fontSize:19, color:ADM.MUTED, fontWeight:500}}>{label}</div>
-      <div style={{flex:1, fontSize:19.5, color:ADM.TEXT, fontWeight:500}}>{value}</div>
+      <div style={{width:140, fontSize:13.7, color:ADM.MUTED, fontWeight:500}}>{label}</div>
+      <div style={{flex:1, fontSize:14, color:ADM.TEXT, fontWeight:500}}>{value}</div>
     </div>
   );
 }
@@ -349,12 +349,12 @@ function PhonePreview({ channels, title, body, cta, audience }) {
               <BuIcons.utensils size={19}/>
             </div>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{display:'flex', justifyContent:'space-between', fontSize:18, color:'#666', marginBottom:2}}>
+              <div style={{display:'flex', justifyContent:'space-between', fontSize:13, color:'#666', marginBottom:2}}>
                 <span style={{fontWeight:600}}>{audience.type==='utenti' ? 'BYUP' : 'BYUP SPOT'}</span>
                 <span>ora</span>
               </div>
-              <div style={{fontSize:18.5, fontWeight:700, color:'#000', lineHeight:1.3}}>{renderedTitle}</div>
-              <div style={{fontSize:17.5, color:'#444', marginTop:2, lineHeight:1.3, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{renderedBody}</div>
+              <div style={{fontSize:13.3, fontWeight:700, color:'#000', lineHeight:1.3}}>{renderedTitle}</div>
+              <div style={{fontSize:12.6, color:'#444', marginTop:2, lineHeight:1.3, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{renderedBody}</div>
             </div>
           </div>
         </PreviewCard>
@@ -362,16 +362,16 @@ function PhonePreview({ channels, title, body, cta, audience }) {
       {channels.email && (
         <PreviewCard kind="email">
           <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:8, overflow:'hidden'}}>
-            <div style={{padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:17, color:ADM.MUTED}}>
+            <div style={{padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.2, color:ADM.MUTED}}>
               <div><strong>Da:</strong> byup &lt;hello@byup.it&gt;</div>
               <div style={{marginTop:2}}><strong>Oggetto:</strong> {renderedTitle}</div>
             </div>
-            <div style={{padding:'16px', fontSize:18.5, color:ADM.TEXT, lineHeight:1.5}}>
-              <div style={{fontSize:20, fontWeight:700, marginBottom:8}}>Ciao {sampleName},</div>
+            <div style={{padding:'16px', fontSize:13.3, color:ADM.TEXT, lineHeight:1.5}}>
+              <div style={{fontSize:14.4, fontWeight:700, marginBottom:8}}>Ciao {sampleName},</div>
               <div>{renderedBody}</div>
               {cta && (
                 <div style={{marginTop:14}}>
-                  <button style={{padding:'8px 14px', background:ADM.PINK, color:'#fff', border:'none', borderRadius:7, fontSize:18, fontWeight:600}}>{cta.split('→')[0].trim() || 'Vedi di più'}</button>
+                  <button style={{padding:'8px 14px', background:ADM.PINK, color:'#fff', border:'none', borderRadius:7, fontSize:13, fontWeight:600}}>{cta.split('→')[0].trim() || 'Vedi di più'}</button>
                 </div>
               )}
             </div>
@@ -384,22 +384,22 @@ function PhonePreview({ channels, title, body, cta, audience }) {
             background:`linear-gradient(135deg, ${ADM.PINK}, ${ADM.PINK_DARK})`,
             color:'#fff', padding:'14px 16px', borderRadius:10, position:'relative',
           }}>
-            <div style={{fontSize:16, fontWeight:700, opacity:0.8, textTransform:'uppercase', letterSpacing:'0.06em'}}>Novità</div>
-            <div style={{fontSize:20, fontWeight:700, marginTop:4, lineHeight:1.3}}>{renderedTitle}</div>
-            <div style={{fontSize:18, marginTop:4, opacity:0.92, lineHeight:1.4}}>{renderedBody.slice(0,120)}{renderedBody.length>120?'…':''}</div>
-            {cta && <div style={{marginTop:8, fontSize:18, fontWeight:600, textDecoration:'underline'}}>{cta.split('→')[0].trim() || 'Scopri'} →</div>}
+            <div style={{fontSize:11.5, fontWeight:700, opacity:0.8, textTransform:'uppercase', letterSpacing:'0.06em'}}>Novità</div>
+            <div style={{fontSize:14.4, fontWeight:700, marginTop:4, lineHeight:1.3}}>{renderedTitle}</div>
+            <div style={{fontSize:13, marginTop:4, opacity:0.92, lineHeight:1.4}}>{renderedBody.slice(0,120)}{renderedBody.length>120?'…':''}</div>
+            {cta && <div style={{marginTop:8, fontSize:13, fontWeight:600, textDecoration:'underline'}}>{cta.split('→')[0].trim() || 'Scopri'} →</div>}
           </div>
         </PreviewCard>
       )}
       {channels.sms && (
         <PreviewCard kind="sms">
-          <div style={{background:'#E5F0FF', padding:'10px 12px', borderRadius:12, borderTopLeftRadius:4, fontSize:18.5, color:'#000', lineHeight:1.4}}>
+          <div style={{background:'#E5F0FF', padding:'10px 12px', borderRadius:12, borderTopLeftRadius:4, fontSize:13.3, color:'#000', lineHeight:1.4}}>
             <strong>byup:</strong> {renderedBody.slice(0,140)}{renderedBody.length>140?'…':''}
           </div>
         </PreviewCard>
       )}
       {!channels.push && !channels.email && !channels.in_app && !channels.sms && (
-        <div style={{padding:'40px 20px', textAlign:'center', color:ADM.MUTED_SOFT, fontSize:19}}>
+        <div style={{padding:'40px 20px', textAlign:'center', color:ADM.MUTED_SOFT, fontSize:13.7}}>
           Seleziona almeno un canale per vedere l'anteprima.
         </div>
       )}
@@ -411,7 +411,7 @@ function PreviewCard({ kind, children }) {
   const labels = { push: 'Push notification', email: 'Email', in_app: 'In-app banner', sms: 'SMS' };
   return (
     <div>
-      <div style={{fontSize:17, color:ADM.MUTED_SOFT, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6}}>{labels[kind]}</div>
+      <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6}}>{labels[kind]}</div>
       {children}
     </div>
   );

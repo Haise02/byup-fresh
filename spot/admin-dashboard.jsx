@@ -517,17 +517,17 @@ function DashGenerale({ onNav }) {
       {/* Caveat dati */}
       <div style={{padding:'11px 14px', background:ADM.WARN_SOFT, border:`1px solid ${ADM.WARN}33`, borderRadius:9, display:'flex', gap:10, alignItems:'flex-start'}}>
         <BuIcons.info size={19} color={ADM.WARN}/>
-        <div style={{flex:1, fontSize:18.5, color:'#7A4A0C', lineHeight:1.5}}>
+        <div style={{flex:1, fontSize:13.3, color:'#7A4A0C', lineHeight:1.5}}>
           Stima costruita su <strong>38% del catalogo</strong> con ingredient labeling completato, prezzo di vendita medio per categoria, e <strong>food-cost % di settore</strong> applicato come riferimento. Completare il labeling sul catalogo restante porterebbe accuratezza ±2-3 pt e abiliterebbe trattative dirette coi fornitori.
         </div>
       </div>
 
       <AdmCard padding={0}>
         <div style={{padding:'14px 22px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div style={{fontSize:20.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Food cost & marginalità per categoria</div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:2}}>Margine lordo stimato · proxy del valore di un marketplace fornitori</div>
+          <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Food cost & marginalità per categoria</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Margine lordo stimato · proxy del valore di un marketplace fornitori</div>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', padding:'12px 22px', background:ADM.PANEL_SOFT, fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
+        <div style={{display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18, padding:'12px 22px', background:ADM.PANEL_SOFT, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
           <div>Categoria</div>
           <div style={{textAlign:'right'}}>Prezzo vendita</div>
           <div style={{textAlign:'right'}}>Food cost</div>
@@ -538,30 +538,30 @@ function DashGenerale({ onNav }) {
           const marginTone = c.margine >= 80 ? ADM.OK : c.margine >= 70 ? ADM.WARN : ADM.DANGER;
           return (
             <div key={c.cat} style={{
-              display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr',
+              display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18,
               padding:'14px 22px', alignItems:'center',
               borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
             }}>
               <div style={{display:'flex', alignItems:'center', gap:10}}>
                 <span style={{width:8, height:30, borderRadius:3, background:marginTone, flexShrink:0}}/>
                 <div>
-                  <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT}}>{c.cat}</div>
-                  <div style={{fontSize:17.5, color:ADM.MUTED}}>Ricavi/mese {fmtEur(Math.round(c.ricavi))}</div>
+                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>{c.cat}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>Ricavi/mese {fmtEur(Math.round(c.ricavi))}</div>
                 </div>
               </div>
-              <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtEur(c.prezzo)}</div>
-              <div style={{fontSize:20, fontWeight:700, color:ADM.DANGER, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.foodCost}%</div>
+              <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtEur(c.prezzo)}</div>
+              <div style={{fontSize:14.4, fontWeight:700, color:ADM.DANGER, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.foodCost}%</div>
               <div style={{display:'flex', alignItems:'center', gap:10}}>
                 <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden', maxWidth:180}}>
                   <div style={{width:`${c.margine}%`, height:'100%', background:`linear-gradient(90deg, ${marginTone}, ${marginTone}DD)`, borderRadius:99}}/>
                 </div>
-                <span style={{fontSize:20, fontWeight:800, color:marginTone, minWidth:42, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.margine}%</span>
+                <span style={{fontSize:14.4, fontWeight:800, color:marginTone, minWidth:42, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.margine}%</span>
               </div>
-              <div style={{fontSize:20, color:ADM.TEXT, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtNum(c.ord)}</div>
+              <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtNum(c.ord)}</div>
             </div>
           );
         })}
-        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, fontSize:18.5, color:ADM.MUTED, lineHeight:1.5}}>
+        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Insight:</strong> Drinks ha il margine lordo più alto (84%) ma volume medio basso · Pizza è il <strong>sweet spot</strong> con margine 76% e oltre 48k ordini/mese · Secondi di pesce sono i meno marginali (58%) ma a prezzo unitario più alto. Drive opportunità marketplace fornitori: chi rifornisce gli ingredienti chiave delle prime due categorie controlla il 70% del valore.
         </div>
       </AdmCard>
@@ -574,8 +574,8 @@ function DashGenerale({ onNav }) {
 function SectionLabel({ title, desc, muted, first }) {
   return (
     <div style={{display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap', marginTop: first ? 6 : 14, marginBottom:2}}>
-      <div style={{fontSize:18, fontWeight:700, color: muted ? ADM.MUTED : ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.07em'}}>{title}</div>
-      {desc && <div style={{fontSize:18, color:ADM.MUTED_SOFT, fontWeight:500}}>{desc}</div>}
+      <div style={{fontSize:13, fontWeight:700, color: muted ? ADM.MUTED : ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.07em'}}>{title}</div>
+      {desc && <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:500}}>{desc}</div>}
     </div>
   );
 }
@@ -583,6 +583,11 @@ function SectionLabel({ title, desc, muted, first }) {
 // ─── Hoverable stat card con tooltip ricco ───────────────────────────────────
 function HoverStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, tooltip, big, size='md', trend, trendLabel, spark, alert }) {
   const [hover, setHover] = React.useState(false);
+  // I dettagli extra si aprono al CLICK (popup), non al passaggio del mouse:
+  // niente più informazioni che spariscono appena sposti il cursore.
+  const [open, setOpen] = React.useState(false);
+  const clickable = !!onClick || !!tooltip;
+  const handleCard = () => { if (onClick) onClick(); else if (tooltip) setOpen(o => !o); };
   const Icon = BuIcons[icon] || BuIcons.trendUp;
   // Calm: tile neutra, accento di hover = brand (coral); il colore di severità compare solo in stato di alert
   const c = alert ? ADM.WARN : ADM.PINK;
@@ -601,11 +606,11 @@ function HoverStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, 
       onMouseLeave={()=>setHover(false)}
       style={{position:'relative'}}
     >
-      <AdmCard padding={padd} onClick={onClick} style={{
-        cursor: onClick ? 'pointer' : (tooltip ? 'help' : 'default'),
-        borderColor: hover ? c : ADM.BORDER,
+      <AdmCard padding={padd} onClick={clickable ? handleCard : undefined} style={{
+        cursor: clickable ? 'pointer' : 'default',
+        borderColor: (hover || open) ? c : ADM.BORDER,
         transition: 'border-color 0.15s, box-shadow 0.15s',
-        boxShadow: hover ? `0 6px 20px -8px ${c}66` : 'none',
+        boxShadow: (hover || open) ? `0 6px 20px -8px ${c}66` : 'none',
       }}>
         <div style={{display:'flex', alignItems:'center', gap:14}}>
           <div style={{
@@ -617,15 +622,18 @@ function HoverStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, 
           </div>
           <div style={{flex:1, minWidth:0}}>
             <div style={{display:'flex', alignItems:'center', gap:7}}>
-              <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
               {tooltip && (
-                <span style={{
-                  width:14, height:14, borderRadius:'50%',
-                  background: hover ? c : '#F0F1F3',
-                  color: hover ? '#fff' : ADM.MUTED,
-                  display:'inline-grid', placeItems:'center',
-                  fontSize:16, fontWeight:700, transition:'all 0.15s',
-                }}>i</span>
+                <button onClick={(e)=>{ e.stopPropagation(); setOpen(o=>!o); }}
+                  title="Mostra dettagli" aria-label="Mostra dettagli"
+                  style={{
+                    width:16, height:16, borderRadius:'50%', border:'none', padding:0, cursor:'pointer',
+                    background: (hover || open) ? c : '#E9EBEF',
+                    color: (hover || open) ? '#fff' : ADM.MUTED,
+                    display:'inline-grid', placeItems:'center',
+                    fontSize:11.5, fontWeight:700, fontFamily:'inherit', lineHeight:1,
+                    transition:'all 0.15s',
+                  }}>i</button>
               )}
             </div>
             <div style={{display:'flex', alignItems:'baseline', gap:10, marginTop:5, flexWrap:'wrap'}}>
@@ -634,7 +642,7 @@ function HoverStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, 
             </div>
             {(sub || spark || alert) && (
               <div style={{display:'flex', alignItems:'center', gap:10, marginTop:6, flexWrap:'wrap'}}>
-                {sub && <div style={{fontSize:19, color:alert ? ADM.WARN : ADM.MUTED, fontWeight:alert ? 600 : 500, flex:1, minWidth:0}}>
+                {sub && <div style={{fontSize:13.7, color:alert ? ADM.WARN : ADM.MUTED, fontWeight:alert ? 600 : 500, flex:1, minWidth:0}}>
                   {alert && <span style={{display:'inline-block', width:6, height:6, borderRadius:'50%', background:ADM.WARN, marginRight:6, verticalAlign:'middle'}}/>}
                   {sub}
                 </div>}
@@ -645,24 +653,27 @@ function HoverStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, 
         </div>
       </AdmCard>
 
-      {/* Rich tooltip overlay */}
-      {tooltip && hover && (
-        <div style={{
-          position:'absolute', top:'calc(100% + 8px)', left:0, right:0, zIndex:30,
-          background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12,
-          boxShadow:'0 16px 40px -8px rgba(15,17,21,0.18), 0 0 0 1px rgba(15,17,21,0.04)',
-          padding:'18px 20px',
-          animation:'hoverstatIn 0.16s ease',
-        }}>
-          {/* Arrow */}
-          <span style={{
-            position:'absolute', top:-6, left:38,
-            width:11, height:11, background:'#fff',
-            borderLeft:`1px solid ${ADM.BORDER}`, borderTop:`1px solid ${ADM.BORDER}`,
-            transform:'rotate(45deg)',
-          }}/>
-          {tooltip}
-        </div>
+      {/* Popup dettagli — si apre al click, si chiude cliccando fuori */}
+      {tooltip && open && (
+        <React.Fragment>
+          <div onClick={()=>setOpen(false)} style={{position:'fixed', inset:0, zIndex:29}}/>
+          <div style={{
+            position:'absolute', top:'calc(100% + 8px)', left:0, right:0, zIndex:30,
+            background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12,
+            boxShadow:'0 16px 40px -8px rgba(15,17,21,0.18), 0 0 0 1px rgba(15,17,21,0.04)',
+            padding:'18px 20px',
+            animation:'hoverstatIn 0.16s ease',
+          }}>
+            {/* Arrow */}
+            <span style={{
+              position:'absolute', top:-6, left:38,
+              width:11, height:11, background:'#fff',
+              borderLeft:`1px solid ${ADM.BORDER}`, borderTop:`1px solid ${ADM.BORDER}`,
+              transform:'rotate(45deg)',
+            }}/>
+            {tooltip}
+          </div>
+        </React.Fragment>
       )}
       <style>{`@keyframes hoverstatIn { from { opacity:0; transform: translateY(-4px);} to { opacity:1; transform: translateY(0);} }`}</style>
     </div>
@@ -681,33 +692,33 @@ function RevenueTooltip({ sub, extra, subAnno, extraAnno, ricaviAnno, mesePrec }
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:18, marginBottom:14}}>
         <div>
-          <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Ultimo mese</div>
+          <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Ultimo mese</div>
           <RevRow color={ADM.PINK} label="Abbonamenti" val={fmtEur(sub)}/>
           <RevRow color={ADM.PURPLE} label="Extra ordini" val={fmtEur(extra)}/>
           <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginTop:7, paddingTop:7, display:'flex', justifyContent:'space-between'}}>
-            <span style={{fontSize:18.5, fontWeight:700, color:ADM.TEXT}}>Totale</span>
-            <span style={{fontSize:20, fontWeight:800, color:ADM.TEXT}}>{fmtEur(sub + extra)}</span>
+            <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT}}>Totale</span>
+            <span style={{fontSize:14.4, fontWeight:800, color:ADM.TEXT}}>{fmtEur(sub + extra)}</span>
           </div>
           {Math.abs(delta) > 0.5 && (
-            <div style={{fontSize:18, color: delta >= 0 ? ADM.OK : ADM.DANGER, marginTop:5, fontWeight:600}}>
+            <div style={{fontSize:13, color: delta >= 0 ? ADM.OK : ADM.DANGER, marginTop:5, fontWeight:600}}>
               {delta >= 0 ? '↑' : '↓'} {Math.abs(delta).toFixed(1)}% vs mese precedente
             </div>
           )}
         </div>
         <div>
-          <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Ultimo anno (12m)</div>
+          <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Ultimo anno (12m)</div>
           <RevRow color={ADM.PINK} label="Abbonamenti" val={fmtEur(subAnno)}/>
           <RevRow color={ADM.PURPLE} label="Extra ordini" val={fmtEur(extraAnno)}/>
           <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginTop:7, paddingTop:7, display:'flex', justifyContent:'space-between'}}>
-            <span style={{fontSize:18.5, fontWeight:700, color:ADM.TEXT}}>Totale</span>
-            <span style={{fontSize:20, fontWeight:800, color:ADM.TEXT}}>{fmtEur(ricaviAnno)}</span>
+            <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT}}>Totale</span>
+            <span style={{fontSize:14.4, fontWeight:800, color:ADM.TEXT}}>{fmtEur(ricaviAnno)}</span>
           </div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:5}}>Media mensile {fmtEur(Math.round(ricaviAnno/12))}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:5}}>Media mensile {fmtEur(Math.round(ricaviAnno/12))}</div>
         </div>
       </div>
 
       {/* Mini stacked bar mensile (12m) */}
-      <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6}}>Andamento 12 mesi</div>
+      <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6}}>Andamento 12 mesi</div>
       <MiniRevBar/>
     </div>
   );
@@ -725,7 +736,7 @@ function MiniRevBar() {
           <div key={i} style={{flex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end'}}>
             <div style={{width:'100%', height:`${totH - subH}%`, background:ADM.PURPLE, borderRadius:'2px 2px 0 0'}}/>
             <div style={{width:'100%', height:`${subH}%`, background:ADM.PINK}}/>
-            <div style={{fontSize:15, color:ADM.MUTED_SOFT, marginTop:3, textAlign:'center', fontWeight:600}}>{m.mese.slice(0,3)}</div>
+            <div style={{fontSize:11, color:ADM.MUTED_SOFT, marginTop:3, textAlign:'center', fontWeight:600}}>{m.mese.slice(0,3)}</div>
           </div>
         );
       })}
@@ -737,8 +748,8 @@ function RevRow({ color, label, val }) {
   return (
     <div style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0'}}>
       <span style={{width:8, height:8, borderRadius:2, background:color}}/>
-      <span style={{fontSize:19, color:ADM.TEXT, flex:1}}>{label}</span>
-      <span style={{fontSize:19.5, fontWeight:700, color:ADM.TEXT}}>{val}</span>
+      <span style={{fontSize:13.7, color:ADM.TEXT, flex:1}}>{label}</span>
+      <span style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>{val}</span>
     </div>
   );
 }
@@ -768,32 +779,32 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
 
       {/* Free attivi vs inattivi */}
       <div style={{paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginBottom:14}}>
-        <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>
+        <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>
           Suddivisione piano free
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
           <span style={{width:9, height:9, borderRadius:2, background:ADM.OK}}/>
-          <span style={{fontSize:19, color:ADM.TEXT, flex:1, fontWeight:500}}>Free attivi</span>
+          <span style={{fontSize:13.7, color:ADM.TEXT, flex:1, fontWeight:500}}>Free attivi</span>
           <div style={{width:60, height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
             <div style={{width:`${freeActPct}%`, height:'100%', background:ADM.OK}}/>
           </div>
-          <span style={{fontSize:19, color:ADM.TEXT, fontWeight:700, width:32, textAlign:'right'}}>{freeActive}</span>
-          <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{freeActPct}%</span>
+          <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:700, width:32, textAlign:'right'}}>{freeActive}</span>
+          <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{freeActPct}%</span>
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10}}>
           <span style={{width:9, height:9, borderRadius:2, background:ADM.MUTED_LIGHT}}/>
-          <span style={{fontSize:19, color:ADM.TEXT, flex:1, fontWeight:500}}>Free inattivi</span>
+          <span style={{fontSize:13.7, color:ADM.TEXT, flex:1, fontWeight:500}}>Free inattivi</span>
           <div style={{width:60, height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
             <div style={{width:`${freeInactPct}%`, height:'100%', background:ADM.MUTED_LIGHT}}/>
           </div>
-          <span style={{fontSize:19, color:ADM.TEXT, fontWeight:700, width:32, textAlign:'right'}}>{freeInactive}</span>
-          <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{freeInactPct}%</span>
+          <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:700, width:32, textAlign:'right'}}>{freeInactive}</span>
+          <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{freeInactPct}%</span>
         </div>
       </div>
 
       {/* Solo paganti — breakdown */}
       <div style={{paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-        <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>
+        <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>
           Distribuzione tra paganti
         </div>
         {paidPlans.map(p => {
@@ -802,12 +813,12 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
           return (
             <div key={p.id} style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
               <span style={{width:9, height:9, borderRadius:2, background:ADM[p.color]}}/>
-              <span style={{fontSize:19, color:ADM.TEXT, flex:1, fontWeight:500}}>{p.label}</span>
+              <span style={{fontSize:13.7, color:ADM.TEXT, flex:1, fontWeight:500}}>{p.label}</span>
               <div style={{width:60, height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                 <div style={{width:`${pct}%`, height:'100%', background:ADM[p.color]}}/>
               </div>
-              <span style={{fontSize:19, color:ADM.TEXT, fontWeight:700, width:32, textAlign:'right'}}>{c}</span>
-              <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{pct}%</span>
+              <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:700, width:32, textAlign:'right'}}>{c}</span>
+              <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{pct}%</span>
             </div>
           );
         })}
@@ -821,8 +832,8 @@ function SplitRow({ color, label, val, pct }) {
     <div style={{display:'flex', alignItems:'center', gap:8}}>
       <span style={{width:9, height:9, borderRadius:2, background:color, flexShrink:0}}/>
       <div style={{flex:1, minWidth:0}}>
-        <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>{label}</div>
-        <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{val} <span style={{fontSize:18, color:ADM.MUTED_SOFT, fontWeight:500}}>· {pct}%</span></div>
+        <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{label}</div>
+        <div style={{fontSize:15.8, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{val} <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:500}}>· {pct}%</span></div>
       </div>
     </div>
   );
@@ -850,11 +861,11 @@ function OnboardingTooltip({ setupIniziale, onbIncompleto, stuckOver7=0, stuckOv
             <BuIcons.clock size={20}/>
           </span>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:19.5, fontWeight:700, color:ADM.TEXT}}>
+            <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>
               {stuckOver7} fermi da oltre 7 giorni
               {stuckOver14 > 0 && <span style={{color:ADM.DANGER, fontWeight:800}}> · {stuckOver14} oltre 14gg</span>}
             </div>
-            <div style={{fontSize:18, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>
+            <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>
               Tempo mediano in onboarding: <strong style={{color:ADM.TEXT}}>{ageMedian} giorni</strong>. Candidati per contatto commerciale.
             </div>
           </div>
@@ -864,7 +875,7 @@ function OnboardingTooltip({ setupIniziale, onbIncompleto, stuckOver7=0, stuckOv
       {/* Top più vecchi · lista azionabile */}
       {stuck.length > 0 && (
         <div style={{marginBottom:14}}>
-          <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:7}}>Top più vecchi</div>
+          <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:7}}>Top più vecchi</div>
           <div style={{display:'flex', flexDirection:'column', gap:1, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:8, overflow:'hidden'}}>
             {stuck.map(({l, age}, i) => {
               const tone = age >= 14 ? ADM.DANGER : age >= 7 ? ADM.WARN : ADM.MUTED;
@@ -879,10 +890,10 @@ function OnboardingTooltip({ setupIniziale, onbIncompleto, stuckOver7=0, stuckOv
                 onMouseLeave={e=>e.currentTarget.style.background = '#fff'}>
                   <span style={{width:6, height:6, borderRadius:'50%', background:tone, flexShrink:0}}/>
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontSize:19, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
-                    <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:1}}>{l.citta} · {l.stato === 'pending' ? 'Setup iniziale' : 'Onboarding'}</div>
+                    <div style={{fontSize:13.7, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
+                    <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{l.citta} · {l.stato === 'pending' ? 'Setup iniziale' : 'Onboarding'}</div>
                   </div>
-                  <span style={{fontSize:19, fontWeight:800, color:tone, fontFamily:'ui-monospace, monospace', whiteSpace:'nowrap'}}>{age}gg</span>
+                  <span style={{fontSize:13.7, fontWeight:800, color:tone, fontFamily:'ui-monospace, monospace', whiteSpace:'nowrap'}}>{age}gg</span>
                   <span style={{color:ADM.MUTED}}><BuIcons.chevronRight size={17}/></span>
                 </button>
               );
@@ -915,11 +926,11 @@ function OnbRow({ count, label, desc, color }) {
         width:46, height:46, borderRadius:10,
         background:ADM[color+'_SOFT'], color:ADM[color],
         display:'grid', placeItems:'center', flexShrink:0,
-        fontSize:27, fontWeight:800, letterSpacing:'-0.02em',
+        fontSize:19.4, fontWeight:800, letterSpacing:'-0.02em',
       }}>{count}</div>
       <div>
-        <div style={{fontSize:19.5, fontWeight:700, color:ADM.TEXT}}>{label}</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{desc}</div>
+        <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>{label}</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{desc}</div>
       </div>
     </div>
   );
@@ -939,19 +950,19 @@ function ConvOnboardingTooltip({ tot, completati, tentati, convRate, pending, in
       {/* Box riepilogo */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14}}>
         <div style={{padding:'12px 14px', background:`${ADM.OK}10`, border:`1px solid ${ADM.OK}40`, borderRadius:9}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Conversion rate</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.OK, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{convRate}%</div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:4}}>{completati} di {tentati} iscritti</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Conversion rate</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.OK, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{convRate}%</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:4}}>{completati} di {tentati} iscritti</div>
         </div>
         <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:9}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Iscritti totali</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(tot)}</div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:4}}>{pending} in attesa di iniziare</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Iscritti totali</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(tot)}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:4}}>{pending} in attesa di iniziare</div>
         </div>
       </div>
 
       {/* Stacked bar */}
-      <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Stato dell'onboarding</div>
+      <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Stato dell'onboarding</div>
       <div style={{display:'flex', height:8, borderRadius:99, overflow:'hidden', background:'#F0F1F3', marginBottom:12}}>
         <div style={{width:`${tentati>0 ? (completati/tentati)*100 : 0}%`,  background:ADM.OK}}/>
         <div style={{width:`${tentati>0 ? (inOnboarding/tentati)*100 : 0}%`, background:ADM.WARN}}/>
@@ -966,17 +977,17 @@ function ConvOnboardingTooltip({ tot, completati, tentati, convRate, pending, in
             <div key={i} style={{display:'flex', alignItems:'center', gap:10}}>
               <span style={{width:9, height:9, borderRadius:2, background:ADM[r.color], flexShrink:0}}/>
               <div style={{flex:1, minWidth:0}}>
-                <div style={{fontSize:19, color:ADM.TEXT, fontWeight:600}}>{r.label}</div>
-                <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:1}}>{r.desc}</div>
+                <div style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600}}>{r.label}</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{r.desc}</div>
               </div>
-              <span style={{fontSize:20, color:ADM.TEXT, fontWeight:800, width:32, textAlign:'right'}}>{r.count}</span>
-              <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{pct}%</span>
+              <span style={{fontSize:14.4, color:ADM.TEXT, fontWeight:800, width:32, textAlign:'right'}}>{r.count}</span>
+              <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{pct}%</span>
             </div>
           );
         })}
       </div>
 
-      <div style={{marginTop:12, paddingTop:11, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:18, color:ADM.MUTED, lineHeight:1.5}}>
+      <div style={{marginTop:12, paddingTop:11, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13, color:ADM.MUTED, lineHeight:1.5}}>
         Il <strong style={{color:ADM.TEXT}}>conversion rate</strong> esclude i pending: misura quanti, una volta iniziato, completano davvero l'onboarding obbligatorio.
       </div>
     </div>
@@ -994,31 +1005,31 @@ function TempoMedioSetupTooltip({ media, mediana, minV, maxV, campione, buckets,
       {/* Media / Mediana */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14}}>
         <div style={{padding:'12px 14px', background:`${ADM.PURPLE}10`, border:`1px solid ${ADM.PURPLE}40`, borderRadius:9}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Media</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.PURPLE, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtMin(media)}</div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:4}}>su {campione} locali</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Media</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.PURPLE, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtMin(media)}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:4}}>su {campione} locali</div>
         </div>
         <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:9}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Mediana</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtMin(mediana)}</div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:4}}>min {fmtMin(minV)} · max {fmtMin(maxV)}</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Mediana</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtMin(mediana)}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:4}}>min {fmtMin(minV)} · max {fmtMin(maxV)}</div>
         </div>
       </div>
 
       {/* Distribuzione */}
-      <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Distribuzione</div>
+      <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Distribuzione</div>
       <div style={{display:'flex', flexDirection:'column', gap:6, marginBottom:14}}>
         {buckets.map((b, i) => {
           const pct = Math.round((b.count / totBuckets) * 100);
           return (
             <div key={i} style={{display:'flex', alignItems:'center', gap:10}}>
               <span style={{width:9, height:9, borderRadius:2, background:ADM[b.color], flexShrink:0}}/>
-              <span style={{fontSize:19, color:ADM.TEXT, fontWeight:500, width:88, flexShrink:0}}>{b.range}</span>
+              <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:500, width:88, flexShrink:0}}>{b.range}</span>
               <div style={{flex:1, height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                 <div style={{width:`${pct}%`, height:'100%', background:ADM[b.color], borderRadius:99}}/>
               </div>
-              <span style={{fontSize:19, color:ADM.TEXT, fontWeight:700, width:28, textAlign:'right'}}>{b.count}</span>
-              <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{pct}%</span>
+              <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:700, width:28, textAlign:'right'}}>{b.count}</span>
+              <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, width:36, textAlign:'right'}}>{pct}%</span>
             </div>
           );
         })}
@@ -1026,18 +1037,18 @@ function TempoMedioSetupTooltip({ media, mediana, minV, maxV, campione, buckets,
 
       {/* Tempo medio per step */}
       <div style={{paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-        <div style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Tempo medio per step</div>
+        <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>Tempo medio per step</div>
         <div style={{display:'flex', flexDirection:'column', gap:5}}>
           {steps.map((s, i) => {
             const w = Math.round((s.minutes / maxStepMin) * 100);
             const isSlow = s.minutes === maxStepMin && maxStepMin > 0;
             return (
               <div key={i} style={{display:'flex', alignItems:'center', gap:10}}>
-                <span style={{fontSize:18.5, color:ADM.TEXT, fontWeight:500, width:138, flexShrink:0}}>{s.label}</span>
+                <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:500, width:138, flexShrink:0}}>{s.label}</span>
                 <div style={{flex:1, height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                   <div style={{width:`${w}%`, height:'100%', background: isSlow ? ADM.WARN : ADM.PURPLE, borderRadius:99}}/>
                 </div>
-                <span style={{fontSize:18.5, color: isSlow ? ADM.WARN : ADM.TEXT, fontWeight:700, width:54, textAlign:'right'}}>{fmtMin(s.minutes)}</span>
+                <span style={{fontSize:13.3, color: isSlow ? ADM.WARN : ADM.TEXT, fontWeight:700, width:54, textAlign:'right'}}>{fmtMin(s.minutes)}</span>
               </div>
             );
           })}
@@ -1056,7 +1067,7 @@ function UtentiTooltip({ tot, attivi24, attivi7g, attivi30g }) {
         <ActiveCell label="Attivi negli ultimi 7 giorni" val={attivi7g} tot={tot} color="INFO"/>
         <ActiveCell label="Attivi negli ultimi 30 giorni" val={attivi30g} tot={tot} color="OK"/>
       </div>
-      <div style={{marginTop:12, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:18.5, color:ADM.MUTED, lineHeight:1.5}}>
+      <div style={{marginTop:12, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5}}>
         <strong style={{color:ADM.TEXT}}>Fedeltà.</strong> {Math.round((attivi24/attivi30g)*100)}% degli utenti attivi nel mese ha usato l'app anche oggi.
       </div>
     </div>
@@ -1067,9 +1078,9 @@ function ActiveCell({ label, val, tot, color }) {
   const pct = tot > 0 ? Math.round((val / tot) * 100) : 0;
   return (
     <div style={{padding:'10px 12px', background:ADM[color+'_SOFT'], borderRadius:8}}>
-      <div style={{fontSize:17, fontWeight:700, color:ADM[color], textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
-      <div style={{fontSize:25, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(val)}</div>
-      <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, marginTop:2}}>{pct}% del totale</div>
+      <div style={{fontSize:12.2, fontWeight:700, color:ADM[color], textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+      <div style={{fontSize:18, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(val)}</div>
+      <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, marginTop:2}}>{pct}% del totale</div>
     </div>
   );
 }
@@ -1081,14 +1092,14 @@ function GuestTooltip({ accessi, ordini }) {
       <TooltipTitle>Attività guest · ultimi 30 giorni</TooltipTitle>
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
         <div style={{padding:'12px 14px', background:ADM.INFO_SOFT, borderRadius:8}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.05em'}}>Accessi guest</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(accessi)}</div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:3}}>Utenti senza account che hanno avviato l'app</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.05em'}}>Accessi guest</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(accessi)}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>Utenti senza account che hanno avviato l'app</div>
         </div>
         <div style={{padding:'12px 14px', background:ADM.OK_SOFT, borderRadius:8}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.05em'}}>Ordini effettuati</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(ordini)}</div>
-          <div style={{fontSize:18, color:ADM.MUTED, marginTop:3}}>Senza login ({conv.toFixed(1)}% conversione)</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.05em'}}>Ordini effettuati</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(ordini)}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>Senza login ({conv.toFixed(1)}% conversione)</div>
         </div>
       </div>
     </div>
@@ -1096,7 +1107,7 @@ function GuestTooltip({ accessi, ordini }) {
 }
 
 function TooltipTitle({ children }) {
-  return <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:12}}>{children}</div>;
+  return <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:12}}>{children}</div>;
 }
 
 // Tooltip generico Mese / Anno (single metric)
@@ -1107,12 +1118,12 @@ function MeseAnnoTooltip({ titolo, mese, anno, meseLabel, annoLabel, accent }) {
       <TooltipTitle>{titolo} · spaccato temporale</TooltipTitle>
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <div style={{padding:'12px 14px', background:`${c}10`, border:`1px solid ${c}40`, borderRadius:9}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{meseLabel || 'Ultimi 30 giorni'}</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(mese)}</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{meseLabel || 'Ultimi 30 giorni'}</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(mese)}</div>
         </div>
         <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:9}}>
-          <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{annoLabel || 'Ultimi 12 mesi'}</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(anno)}</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{annoLabel || 'Ultimi 12 mesi'}</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(anno)}</div>
         </div>
       </div>
     </div>
@@ -1128,7 +1139,7 @@ function ScanOrdiniTooltip({ scanMese, ordMese, ratioMese, scanAnno, ordAnno, ra
         <ScanOrdiniBox label="Ultimi 30 giorni" scan={scanMese} ord={ordMese} ratio={ratioMese} primary/>
         <ScanOrdiniBox label="Ultimi 12 mesi"   scan={scanAnno} ord={ordAnno} ratio={ratioAnno}/>
       </div>
-      <div style={{marginTop:11, fontSize:18, color:ADM.MUTED, lineHeight:1.5}}>
+      <div style={{marginTop:11, fontSize:13, color:ADM.MUTED, lineHeight:1.5}}>
         La % indica il tasso di conversione: quanti scan QR diventano un ordine completato.
         Valori più alti significano migliore esperienza post-scan.
       </div>
@@ -1145,18 +1156,18 @@ function ScanOrdiniBox({ label, scan, ord, ratio, primary }) {
       border:`1px solid ${primary ? ADM.PINK_SOFT : ADM.BORDER_SOFT}`,
       borderRadius:9,
     }}>
-      <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:7}}>{label}</div>
+      <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:7}}>{label}</div>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:12, marginBottom:4}}>
-        <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Ordini</span>
-        <span style={{fontSize:21, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtNum(ord)}</span>
+        <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Ordini</span>
+        <span style={{fontSize:15.1, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtNum(ord)}</span>
       </div>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:12, marginBottom:7}}>
-        <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Scan QR</span>
-        <span style={{fontSize:21, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtNum(scan)}</span>
+        <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Scan QR</span>
+        <span style={{fontSize:15.1, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtNum(scan)}</span>
       </div>
       <div style={{borderTop:`1px solid ${primary ? ADM.PINK_SOFT : ADM.BORDER_SOFT}`, paddingTop:7, display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:12}}>
-        <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Conversione</span>
-        <span style={{fontSize:23, fontWeight:800, color: c, letterSpacing:'-0.01em'}}>
+        <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Conversione</span>
+        <span style={{fontSize:16.6, fontWeight:800, color: c, letterSpacing:'-0.01em'}}>
           {scan > 0 ? `${(ratio * 100).toFixed(1).replace('.', ',')}%` : '—'}
         </span>
       </div>
@@ -1168,8 +1179,8 @@ function SectionTitle({ title, desc }) {
   return (
     <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginTop:6, marginBottom:-4}}>
       <div>
-        <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{title}</div>
-        <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>{desc}</div>
+        <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{title}</div>
+        <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>{desc}</div>
       </div>
     </div>
   );
@@ -1196,12 +1207,12 @@ function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, tr
           <Icon size={21}/>
         </div>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginTop:4, flexWrap:'wrap'}}>
-            <div style={{fontSize:31, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
+            <div style={{fontSize:22.3, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
             {hasTrend && <TrendBadge delta={trend} label={trendLabel} hideLabel/>}
           </div>
-          {sub && <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:5, lineHeight:1.4}}>{sub}</div>}
+          {sub && <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:5, lineHeight:1.4}}>{sub}</div>}
         </div>
       </div>
       {spark && (
@@ -1224,9 +1235,9 @@ function BigStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, bi
           <Icon size={big ? 19 : 16}/>
         </div>
         <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
           <div style={{fontSize: big ? 33 : 27, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{value}</div>
-          {sub && <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
+          {sub && <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
         </div>
       </div>
     </AdmCard>
@@ -1239,15 +1250,15 @@ function PlanCount({ piano, count, totalActive }) {
     <AdmCard padding={16}>
       <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
         <span style={{width:10, height:10, borderRadius:3, background:ADM[piano.color]}}/>
-        <div style={{fontSize:19, fontWeight:600, color:ADM.TEXT}}>Piano {piano.label}</div>
+        <div style={{fontSize:13.7, fontWeight:600, color:ADM.TEXT}}>Piano {piano.label}</div>
         <div style={{flex:1}}/>
-        <div style={{fontSize:17.5, color:ADM.MUTED_SOFT, fontWeight:600}}>{pct}%</div>
+        <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, fontWeight:600}}>{pct}%</div>
       </div>
-      <div style={{fontSize:31, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginBottom:6}}>{fmtNum(count)}</div>
+      <div style={{fontSize:22.3, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginBottom:6}}>{fmtNum(count)}</div>
       <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
         <div style={{width:`${pct}%`, height:'100%', background:ADM[piano.color], borderRadius:99}}/>
       </div>
-      <div style={{fontSize:18, color:ADM.MUTED, marginTop:8}}>{piano.price > 0 ? `${fmtEur(piano.price)}/mese` : 'Gratuito'}</div>
+      <div style={{fontSize:13, color:ADM.MUTED, marginTop:8}}>{piano.price > 0 ? `${fmtEur(piano.price)}/mese` : 'Gratuito'}</div>
     </AdmCard>
   );
 }
@@ -1584,10 +1595,10 @@ function DashLocali({ onNav }) {
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Funnel di onboarding</div>
-            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Conversione da iscrizione a Go-live</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Funnel di onboarding</div>
+            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Conversione da iscrizione a Go-live</div>
           </div>
-          <div style={{display:'flex', gap:14, fontSize:18, color:ADM.MUTED, alignItems:'center', flexWrap:'wrap'}}>
+          <div style={{display:'flex', gap:14, fontSize:13, color:ADM.MUTED, alignItems:'center', flexWrap:'wrap'}}>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.PINK}}/>Obbligatorio</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.OK}}/>Avvio</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.INFO_SOFT, border:`1px solid ${ADM.INFO}`}}/>Opzionale</span>
@@ -1607,11 +1618,11 @@ function DashLocali({ onNav }) {
               <BuIcons.alertTriangle size={19}/>
             </span>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:19, color:ADM.TEXT, fontWeight:600, lineHeight:1.45}}>
+              <div style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, lineHeight:1.45}}>
                 <span style={{color:ADM.DANGER, fontWeight:800}}>Collo di bottiglia · {bottleneckStep.label}</span>
                 <span style={{color:ADM.MUTED, fontWeight:500}}> · {worst.drop} locali persi ({bottleneckPct}%) tra <strong style={{color:ADM.TEXT}}>{ONB_STEPS[bottleneckIdx-1].label}</strong> e <strong style={{color:ADM.TEXT}}>{bottleneckStep.label}</strong>.</span>
               </div>
-              <div style={{fontSize:18, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
+              <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
                 Soglia di anomalia superata (drop ≥ 10%). Verifica copy, UX o gestionale di quello step.
               </div>
             </div>
@@ -1646,18 +1657,18 @@ function DashLocali({ onNav }) {
                 borderRadius: isBottleneck ? 7 : 0,
                 transition:'background 0.15s',
               }}>
-                <div style={{width:24, fontSize:18, color:isBottleneck ? ADM.DANGER : ADM.MUTED_SOFT, fontWeight: isBottleneck ? 800 : 600, textAlign:'right'}}>{i+1}</div>
-                <div style={{width:170, fontSize:19.5, color:ADM.TEXT, fontWeight: isAvvio || isBottleneck ? 700 : 500, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
+                <div style={{width:24, fontSize:13, color:isBottleneck ? ADM.DANGER : ADM.MUTED_SOFT, fontWeight: isBottleneck ? 800 : 600, textAlign:'right'}}>{i+1}</div>
+                <div style={{width:170, fontSize:14, color:ADM.TEXT, fontWeight: isAvvio || isBottleneck ? 700 : 500, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
                   {step.label}
-                  {isAvvio && <span style={{fontSize:18, fontWeight:800, color:ADM.OK, padding:'1px 6px', borderRadius:4, background:ADM.OK_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>avvio</span>}
-                  {isOptional && <span style={{fontSize:18, fontWeight:700, color:ADM.INFO, padding:'1px 6px', borderRadius:4, background:ADM.INFO_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>opz.</span>}
-                  {isBottleneck && <span style={{fontSize:18, fontWeight:800, color:'#fff', padding:'1px 6px', borderRadius:4, background:ADM.DANGER, textTransform:'uppercase', letterSpacing:'0.04em'}}>bottleneck</span>}
+                  {isAvvio && <span style={{fontSize:13, fontWeight:800, color:ADM.OK, padding:'1px 6px', borderRadius:4, background:ADM.OK_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>avvio</span>}
+                  {isOptional && <span style={{fontSize:13, fontWeight:700, color:ADM.INFO, padding:'1px 6px', borderRadius:4, background:ADM.INFO_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>opz.</span>}
+                  {isBottleneck && <span style={{fontSize:13, fontWeight:800, color:'#fff', padding:'1px 6px', borderRadius:4, background:ADM.DANGER, textTransform:'uppercase', letterSpacing:'0.04em'}}>bottleneck</span>}
                 </div>
                 <div style={{flex:1, height:22, background:'#F4F5F7', borderRadius:5, position:'relative', overflow:'hidden'}}>
                   <div style={{width:`${pct}%`, height:'100%', background: barBg, borderRadius:5, transition:'width 0.4s cubic-bezier(0.2,0.7,0.3,1)'}}/>
-                  <div style={{position:'absolute', left:8, top:0, bottom:0, display:'flex', alignItems:'center', fontSize:18, fontWeight:700, color:textColor}}>{count}</div>
+                  <div style={{position:'absolute', left:8, top:0, bottom:0, display:'flex', alignItems:'center', fontSize:13, fontWeight:700, color:textColor}}>{count}</div>
                 </div>
-                <div style={{width:96, textAlign:'right', fontSize:18.5, color: isBottleneck ? ADM.DANGER : (dropoff > 0 && !isOptional ? ADM.DANGER : ADM.MUTED), fontWeight: isBottleneck ? 800 : 600}}>
+                <div style={{width:96, textAlign:'right', fontSize:13.3, color: isBottleneck ? ADM.DANGER : (dropoff > 0 && !isOptional ? ADM.DANGER : ADM.MUTED), fontWeight: isBottleneck ? 800 : 600}}>
                   {i > 0 && dropoff > 0 ? (
                     <span>−{dropoff} <span style={{opacity:0.6, fontWeight:600}}>({Math.round(relDrop*100)}%)</span></span>
                   ) : ''}
@@ -1675,15 +1686,15 @@ function DashLocali({ onNav }) {
       <SottoMediaScanCard onNav={onNav}/>
 
       <AdmCard padding={20}>
-        <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Top città</div>
+        <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Top città</div>
         <div style={{display:'flex', flexDirection:'column', gap:9}}>
           {TOP_CITTA.map((c, i) => (
             <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'4px 0'}}>
-              <div style={{fontSize:20, color:ADM.MUTED_SOFT, fontWeight:700, width:18}}>{i+1}</div>
-              <div style={{fontSize:20, color:ADM.TEXT, fontWeight:500, flex:1}}>{c.citta}</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED}}>{c.locali} locali</div>
-              <div style={{fontSize:19, color:ADM.TEXT, fontWeight:600, width:80, textAlign:'right'}}>{fmtNum(c.ordini)} ord</div>
-              <div style={{fontSize:18.5, color:ADM.OK, fontWeight:600, width:70, textAlign:'right'}}>{fmtEur(c.mrr)}</div>
+              <div style={{fontSize:14.4, color:ADM.MUTED_SOFT, fontWeight:700, width:18}}>{i+1}</div>
+              <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:500, flex:1}}>{c.citta}</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED}}>{c.locali} locali</div>
+              <div style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, width:80, textAlign:'right'}}>{fmtNum(c.ordini)} ord</div>
+              <div style={{fontSize:13.3, color:ADM.OK, fontWeight:600, width:70, textAlign:'right'}}>{fmtEur(c.mrr)}</div>
             </div>
           ))}
         </div>
@@ -1696,18 +1707,18 @@ function DashLocali({ onNav }) {
 
       {/* ═════ CHURN LOCALI ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Abbandono locali</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Quanti se ne vanno, quando, perché · metrica critica per investor reporting</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Abbandono locali</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Quanti se ne vanno, quando, perché · metrica critica per investor reporting</div>
       </div>
 
       {/* Churn rate per piano */}
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Tasso di abbandono per piano</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Annualizzato · vs media di settore food-service · tempo medio di permanenza prima dell'abbandono</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Tasso di abbandono per piano</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Annualizzato · vs media di settore food-service · tempo medio di permanenza prima dell'abbandono</div>
           </div>
-          <div style={{display:'flex', alignItems:'center', gap:6, fontSize:18, color:ADM.MUTED, fontWeight:600}}>
+          <div style={{display:'flex', alignItems:'center', gap:6, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
             <span style={{display:'inline-flex', alignItems:'center', gap:5}}>
               <span style={{width:10, height:10, borderRadius:3, background:ADM.PINK}}/> Byup
             </span>
@@ -1726,15 +1737,15 @@ function DashLocali({ onNav }) {
                   <span style={{
                     padding:'3px 9px', borderRadius:5,
                     background:ADM[p.color+'_SOFT'], color:ADM[p.color],
-                    fontSize:17.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase',
+                    fontSize:12.6, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase',
                   }}>{p.label}</span>
-                  <span style={{fontSize:18, color: beats ? ADM.OK : ADM.DANGER, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>
+                  <span style={{fontSize:13, color: beats ? ADM.OK : ADM.DANGER, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>
                     {beats ? '◀' : '▶'} {Math.abs(p.rate - p.bench).toFixed(1)}pt
                   </span>
                 </div>
                 <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:8}}>
-                  <div style={{fontSize:37, fontWeight:800, color: p.rate > 15 ? ADM.DANGER : p.rate > 8 ? ADM.WARN : ADM.OK, letterSpacing:'-0.03em', lineHeight:1}}>{p.rate.toFixed(1)}%</div>
-                  <span style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>/ anno</span>
+                  <div style={{fontSize:26.6, fontWeight:800, color: p.rate > 15 ? ADM.DANGER : p.rate > 8 ? ADM.WARN : ADM.OK, letterSpacing:'-0.03em', lineHeight:1}}>{p.rate.toFixed(1)}%</div>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>/ anno</span>
                 </div>
                 {/* mini compare bar Byup vs bench */}
                 <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:10}}>
@@ -1745,7 +1756,7 @@ function DashLocali({ onNav }) {
                     <div style={{width:`${(p.bench/Math.max(p.rate,p.bench))*100}%`, height:'100%', background:ADM.MUTED_LIGHT, borderRadius:99}}/>
                   </div>
                 </div>
-                <div style={{fontSize:18, color:ADM.MUTED, lineHeight:1.4}}>
+                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.4}}>
                   Tenure media <strong style={{color:ADM.TEXT, fontWeight:700}}>{p.tenureMonths.toFixed(1)} mesi</strong>
                   <br/>
                   {p.n} locali persi · media settore {p.bench}%
@@ -1754,7 +1765,7 @@ function DashLocali({ onNav }) {
             );
           })}
         </div>
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Andamento netto:</strong> l'abbandono è inversamente proporzionale al piano. Free al 18% (4pt sotto la media) è l'imbuto di acquisition, fisiologico. Plus e Business sotto la media di settore = product-market fit confermato sulle fasce paganti.
         </div>
       </AdmCard>
@@ -1764,10 +1775,10 @@ function DashLocali({ onNav }) {
         <AdmCard padding={20}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
             <div>
-              <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Locali persi al mese · ultimi 12 mesi</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Numero locali che hanno disdetto · picco a fine anno fiscale</div>
+              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Locali persi al mese · ultimi 12 mesi</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Numero locali che hanno disdetto · picco a fine anno fiscale</div>
             </div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>
+            <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
               Totale <strong style={{color:ADM.TEXT, fontWeight:800}}>{churnedTot}</strong> locali
             </div>
           </div>
@@ -1776,7 +1787,7 @@ function DashLocali({ onNav }) {
               const peak = m.n === churnMaxMonth;
               return (
                 <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6}}>
-                  <div style={{fontSize:17.5, fontWeight:700, color: peak ? ADM.DANGER : ADM.MUTED}}>{m.n}</div>
+                  <div style={{fontSize:12.6, fontWeight:700, color: peak ? ADM.DANGER : ADM.MUTED}}>{m.n}</div>
                   <div style={{
                     width:'100%',
                     height:`${(m.n/churnMaxMonth)*100}%`,
@@ -1784,18 +1795,18 @@ function DashLocali({ onNav }) {
                     borderRadius:'5px 5px 2px 2px',
                     minHeight:8,
                   }}/>
-                  <div style={{fontSize:16.5, fontWeight:600, color:ADM.MUTED_SOFT, letterSpacing:'0.02em'}}>{m.m}</div>
+                  <div style={{fontSize:11.9, fontWeight:600, color:ADM.MUTED_SOFT, letterSpacing:'0.02em'}}>{m.m}</div>
                 </div>
               );
             })}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:8, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:8, lineHeight:1.5}}>
             <strong style={{color:ADM.TEXT}}>Picco a gennaio</strong> (rinnovi annuali) e a fine anno (chiusure attività stagionali). Anticipa con campagne di fidelizzazione in dicembre.
           </div>
         </AdmCard>
 
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Motivi di abbandono</div>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Motivi di abbandono</div>
           <div style={{display:'flex', flexDirection:'column', gap:11}}>
             {churnReasons.map((r,i) => {
               const Icon = BuIcons[r.icon];
@@ -1805,8 +1816,8 @@ function DashLocali({ onNav }) {
                     <span style={{width:22, height:22, borderRadius:6, background:`${r.color}1A`, color:r.color, display:'grid', placeItems:'center', flexShrink:0}}>
                       <Icon size={16}/>
                     </span>
-                    <span style={{fontSize:19, color:ADM.TEXT, fontWeight:600, flex:1, lineHeight:1.3}}>{r.n}</span>
-                    <span style={{fontSize:19, color:ADM.TEXT, fontWeight:800}}>{r.pct}%</span>
+                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, flex:1, lineHeight:1.3}}>{r.n}</span>
+                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:800}}>{r.pct}%</span>
                   </div>
                   <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                     <div style={{width:`${r.pct*2.8}%`, height:'100%', background:r.color, borderRadius:99}}/>
@@ -1815,7 +1826,7 @@ function DashLocali({ onNav }) {
               );
             })}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
             <strong style={{color:ADM.TEXT}}>Il 56% degli abbandoni è legato al prodotto</strong> (prenotazioni scarse + prezzo). Funzionalità da spingere: aumentare conversion app → ordine = ridurre l'abbandono alla radice.
           </div>
         </AdmCard>
@@ -1823,17 +1834,17 @@ function DashLocali({ onNav }) {
 
       {/* ═════ TEMPO MEDIO DI SERVIZIO ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Tempo medio di servizio</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Dall'ordine confermato alla chiusura conto · media di settore</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Tempo medio di servizio</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Dall'ordine confermato alla chiusura conto · media di settore</div>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Distribuzione locali</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginBottom:14}}>Per fascia di tempo medio</div>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Distribuzione locali</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Per fascia di tempo medio</div>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:18}}>
-            <div style={{fontSize:45, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{serviceOverall}</div>
-            <div style={{fontSize:20, color:ADM.MUTED, fontWeight:600}}>min media piattaforma</div>
+            <div style={{fontSize:32.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{serviceOverall}</div>
+            <div style={{fontSize:14.4, color:ADM.MUTED, fontWeight:600}}>min media piattaforma</div>
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:9}}>
             {serviceDist.map((d,i) => {
@@ -1841,8 +1852,8 @@ function DashLocali({ onNav }) {
               return (
                 <div key={i}>
                   <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
-                    <span style={{fontSize:19, color:ADM.TEXT, fontWeight:600}}>{d.range} <span style={{color:ADM.MUTED, fontWeight:500}}>· {d.label}</span></span>
-                    <span style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>{d.pct}%</span>
+                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600}}>{d.range} <span style={{color:ADM.MUTED, fontWeight:500}}>· {d.label}</span></span>
+                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{d.pct}%</span>
                   </div>
                   <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                     <div style={{width:`${d.pct*3.3}%`, height:'100%', background:tone, borderRadius:99}}/>
@@ -1856,10 +1867,10 @@ function DashLocali({ onNav }) {
         <AdmCard padding={20}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
             <div>
-              <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Per tipo locale</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Mediana · P75 · campione di locali</div>
+              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Per tipo locale</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Mediana · P75 · campione di locali</div>
             </div>
-            <div style={{fontSize:18, color:ADM.MUTED_SOFT, fontWeight:600}}>min</div>
+            <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>min</div>
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:14}}>
             {serviceByType.map((t,i) => {
@@ -1867,8 +1878,8 @@ function DashLocali({ onNav }) {
               return (
                 <div key={i}>
                   <div style={{display:'flex', justifyContent:'space-between', marginBottom:6}}>
-                    <span style={{fontSize:19.5, color:ADM.TEXT, fontWeight:700}}>{t.tipo}</span>
-                    <span style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>n={t.n}</span>
+                    <span style={{fontSize:14, color:ADM.TEXT, fontWeight:700}}>{t.tipo}</span>
+                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>n={t.n}</span>
                   </div>
                   {/* Box-plot-ish: line min-max, dot mediana, marker P75 */}
                   <div style={{position:'relative', height:24, background:'#F4F5F7', borderRadius:8, overflow:'hidden'}}>
@@ -1883,14 +1894,14 @@ function DashLocali({ onNav }) {
                       width:3, height:18, background:'#0F1115', borderRadius:1, opacity:0.4,
                     }}/>
                     <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${t.color}`}}/>
-                    <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:18, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
-                    <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:17.5, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
+                    <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
+                    <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:12.6, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
                   </div>
                 </div>
               );
             })}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
             <strong style={{color:ADM.TEXT}}>Pizzeria è il tipo più efficiente</strong> (38 min media), Ristorante il più lento (92 min). I locali con tempi oltre 90 min hanno satisfaction più bassa del 18%. <strong>Dato vendibile</strong> come punto di riferimento di settore (oggi assente sul mercato IT).
           </div>
         </AdmCard>
@@ -1898,8 +1909,8 @@ function DashLocali({ onNav }) {
 
       {/* ═════ CANNIBALIZZAZIONE CANALI ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Mix canali d'ordine · 12 mesi</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Come si spostano gli ordini tra cameriere, QR-tavolo, app cliente</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Mix canali d'ordine · 12 mesi</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Come si spostano gli ordini tra cameriere, QR-tavolo, app cliente</div>
       </div>
 
       <AdmCard padding={20}>
@@ -1910,13 +1921,13 @@ function DashLocali({ onNav }) {
               { l:'QR tavolo', c:ADM.INFO },
               { l:'App cliente', c:ADM.PINK },
             ].map((s,i)=>(
-              <span key={i} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:19, fontWeight:600, color:ADM.TEXT}}>
+              <span key={i} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.7, fontWeight:600, color:ADM.TEXT}}>
                 <span style={{width:12, height:12, borderRadius:3, background:s.c}}/>
                 {s.l}
               </span>
             ))}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
             App <strong style={{color:ADM.PINK, fontWeight:800}}>+16pt</strong> in 12 mesi · Cameriere <strong style={{color:ADM.MUTED, fontWeight:800}}>−24pt</strong>
           </div>
         </div>
@@ -1954,50 +1965,50 @@ function DashLocali({ onNav }) {
             </div>
           );
         })()}
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Il modello funziona naturalmente</strong>: 12 mesi fa il cameriere faceva il 72% degli ordini, oggi il 48%. App ha quintuplicato (4% → 20%). Il modello B2B2C è confermato dai dati di adozione reale.
         </div>
       </AdmCard>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Top in transizione digitale</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginBottom:14}}>Locali con la spinta digitale più rapida (% ordini app+QR · 6 mesi fa → oggi)</div>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Top in transizione digitale</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali con la spinta digitale più rapida (% ordini app+QR · 6 mesi fa → oggi)</div>
           <div style={{display:'flex', flexDirection:'column', gap:11}}>
             {channelMovers.map((m,i) => (
               <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
-                <span style={{fontSize:19, fontWeight:800, color:ADM.OK, width:18}}>{i+1}</span>
+                <span style={{fontSize:13.7, fontWeight:800, color:ADM.OK, width:18}}>{i+1}</span>
                 <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
-                  <div style={{fontSize:17.5, color:ADM.MUTED}}>{m.citta}</div>
+                  <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta}</div>
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:6, fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>
+                <div style={{display:'flex', alignItems:'center', gap:6, fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
                   <span style={{fontFamily:'ui-monospace,monospace'}}>{m.from}%</span>
                   <BuIcons.chevronRight size={16}/>
                   <span style={{fontFamily:'ui-monospace,monospace', color:ADM.TEXT, fontWeight:800}}>{m.to}%</span>
                 </div>
-                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.OK_SOFT, color:ADM.OK, fontSize:18, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>+{m.delta}pt</span>
+                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.OK_SOFT, color:ADM.OK, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>+{m.delta}pt</span>
               </div>
             ))}
           </div>
         </AdmCard>
 
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Fermi a zero digitale</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginBottom:14}}>Locali attivi da 5+ mesi ma con &lt; 5% ordini digitali · candidati a intervento formazione</div>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Fermi a zero digitale</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali attivi da 5+ mesi ma con &lt; 5% ordini digitali · candidati a intervento formazione</div>
           <div style={{display:'flex', flexDirection:'column', gap:11}}>
             {channelStuck.map((m,i) => (
               <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
-                <span style={{fontSize:19, fontWeight:800, color:ADM.DANGER, width:18}}>{i+1}</span>
+                <span style={{fontSize:13.7, fontWeight:800, color:ADM.DANGER, width:18}}>{i+1}</span>
                 <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
-                  <div style={{fontSize:17.5, color:ADM.MUTED}}>{m.citta} · attivo da {m.daysActive}g</div>
+                  <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta} · attivo da {m.daysActive}g</div>
                 </div>
-                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:18, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>{m.pct}%</span>
+                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>{m.pct}%</span>
               </div>
             ))}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
             Su questi locali Byup non sta producendo valore aggiunto sul piano digitale. Drive: <strong style={{color:ADM.TEXT}}>onboarding ripetuto + visite di formazione</strong>.
           </div>
         </AdmCard>
@@ -2005,43 +2016,43 @@ function DashLocali({ onNav }) {
 
       {/* ═════ LTV / CAC ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>LTV / CAC locale</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Economia per locale · la prima metrica che ti chiederà un investitore pre-seed</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>LTV / CAC locale</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Economia per locale · la prima metrica che ti chiederà un investitore pre-seed</div>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
         <AdmCard padding={18}>
-          <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>LTV medio</div>
-          <div style={{fontSize:37, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{fmtEur(avgLTV)}</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Media paganti · MRR × tenure</div>
+          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>LTV medio</div>
+          <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{fmtEur(avgLTV)}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Media paganti · MRR × tenure</div>
         </AdmCard>
         <AdmCard padding={18}>
-          <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>CAC medio</div>
-          <div style={{fontSize:37, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{fmtEur(avgCAC)}</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Marketing + sales / locali acquisiti</div>
+          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>CAC medio</div>
+          <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{fmtEur(avgCAC)}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Marketing + sales / locali acquisiti</div>
         </AdmCard>
         <AdmCard padding={18}>
-          <div style={{fontSize:18, fontWeight:700, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.06em'}}>Rapporto LTV / CAC</div>
+          <div style={{fontSize:13, fontWeight:700, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.06em'}}>Rapporto LTV / CAC</div>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginTop:6}}>
-            <div style={{fontSize:37, fontWeight:800, color:ADM.OK, letterSpacing:'-0.03em', lineHeight:1}}>{ratioLTVCAC.toFixed(1)}×</div>
-            <span style={{fontSize:18, color:ADM.OK, fontWeight:700, padding:'2px 7px', background:ADM.OK_SOFT, borderRadius:5}}>health</span>
+            <div style={{fontSize:26.6, fontWeight:800, color:ADM.OK, letterSpacing:'-0.03em', lineHeight:1}}>{ratioLTVCAC.toFixed(1)}×</div>
+            <span style={{fontSize:13, color:ADM.OK, fontWeight:700, padding:'2px 7px', background:ADM.OK_SOFT, borderRadius:5}}>health</span>
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Soglia investitori: ≥ 3× sano · ≥ 5× eccellente</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Soglia investitori: ≥ 3× sano · ≥ 5× eccellente</div>
         </AdmCard>
         <AdmCard padding={18}>
-          <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tempo di rientro medio</div>
-          <div style={{fontSize:37, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{avgPayback.toFixed(1)} <span style={{fontSize:21, fontWeight:600, color:ADM.MUTED}}>mesi</span></div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Tempo per recuperare il CAC</div>
+          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tempo di rientro medio</div>
+          <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{avgPayback.toFixed(1)} <span style={{fontSize:15.1, fontWeight:600, color:ADM.MUTED}}>mesi</span></div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Tempo per recuperare il CAC</div>
         </AdmCard>
       </div>
 
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>LTV cumulativo per piano</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Ricavo cumulativo netto dal mese di attivazione · LTV - CAC</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>LTV cumulativo per piano</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Ricavo cumulativo netto dal mese di attivazione · LTV - CAC</div>
           </div>
-          <div style={{display:'flex', gap:14, fontSize:18.5, color:ADM.TEXT, fontWeight:600}}>
+          <div style={{display:'flex', gap:14, fontSize:13.3, color:ADM.TEXT, fontWeight:600}}>
             {ltvCurveByPlan.map(c => (
               <span key={c.plan} style={{display:'inline-flex', alignItems:'center', gap:6}}>
                 <span style={{width:12, height:3, borderRadius:2, background:c.color}}/>
@@ -2090,15 +2101,15 @@ function DashLocali({ onNav }) {
             </div>
           );
         })()}
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Business recupera il CAC in 1.4 mesi, Plus in 1.8</strong>. Da quel momento ogni mese è puro margine fino all'abbandono. LTV/CAC <strong style={{color:ADM.OK}}>{ratioLTVCAC.toFixed(1)}×</strong> è ampiamente sopra la soglia investitori del 3× → pronto per il pitch.
         </div>
       </AdmCard>
 
       {/* ═════ PRENOTAZIONI NO-SHOW ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>No show prenotazioni</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Prima causa di sofferenza del ristoratore</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>No show prenotazioni</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Prima causa di sofferenza del ristoratore</div>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
@@ -2108,26 +2119,26 @@ function DashLocali({ onNav }) {
               <BuIcons.alertTriangle size={23}/>
             </div>
             <div>
-              <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tasso di no show · 30g</div>
+              <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tasso di no show · 30g</div>
               <div style={{display:'flex', alignItems:'baseline', gap:6, marginTop:3}}>
-                <div style={{fontSize:39, fontWeight:800, color:ADM.DANGER, letterSpacing:'-0.025em', lineHeight:1}}>{noShowRate}%</div>
-                <span style={{fontSize:19, color:ADM.MUTED, fontWeight:600}}>≈ {fmtNum(noShowCount30g)} prenotazioni</span>
+                <div style={{fontSize:28.1, fontWeight:800, color:ADM.DANGER, letterSpacing:'-0.025em', lineHeight:1}}>{noShowRate}%</div>
+                <span style={{fontSize:13.7, color:ADM.MUTED, fontWeight:600}}>≈ {fmtNum(noShowCount30g)} prenotazioni</span>
               </div>
             </div>
           </div>
-          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9, fontSize:18.5, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
             <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}><span>Media di settore IT</span><strong style={{color:ADM.TEXT}}>8-12%</strong></div>
             <div style={{display:'flex', justifyContent:'space-between'}}><span>Posizione Byup</span><strong style={{color:ADM.OK}}>↓ sotto la media</strong></div>
           </div>
           {/* Line chart 12 mesi con banda benchmark di settore */}
           <div>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8}}>
-              <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Andamento ultimi 12 mesi</div>
+              <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Andamento ultimi 12 mesi</div>
               {(() => {
                 const last = noShowTrend[noShowTrend.length-1].pct;
                 const prev = noShowTrend[noShowTrend.length-2].pct;
                 const d = last - prev;
-                return <span style={{fontSize:18, fontWeight:700, color: d > 0 ? ADM.DANGER : d < 0 ? ADM.OK : ADM.MUTED, fontVariantNumeric:'tabular-nums'}}>{d>=0?'+':''}{d.toFixed(1)}pp vs mese prec.</span>;
+                return <span style={{fontSize:13, fontWeight:700, color: d > 0 ? ADM.DANGER : d < 0 ? ADM.OK : ADM.MUTED, fontVariantNumeric:'tabular-nums'}}>{d>=0?'+':''}{d.toFixed(1)}pp vs mese prec.</span>;
               })()}
             </div>
             {(() => {
@@ -2167,7 +2178,7 @@ function DashLocali({ onNav }) {
                 </svg>
               );
             })()}
-            <div style={{display:'flex', justifyContent:'space-between', fontSize:17.5, color:ADM.MUTED, marginTop:6, fontWeight:600}}>
+            <div style={{display:'flex', justifyContent:'space-between', fontSize:12.6, color:ADM.MUTED, marginTop:6, fontWeight:600}}>
               <span><span style={{display:'inline-block', width:10, height:2, background:ADM.DANGER, verticalAlign:'middle', marginRight:5}}/>Byup</span>
               <span><span style={{display:'inline-block', width:10, height:8, background:ADM.WARN, opacity:0.25, verticalAlign:'middle', marginRight:5}}/>Banda settore</span>
             </div>
@@ -2175,19 +2186,19 @@ function DashLocali({ onNav }) {
         </AdmCard>
 
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Dove succede di più</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginBottom:14}}>% di no show per <strong style={{color:ADM.TEXT}}>giorno della settimana</strong> × <strong style={{color:ADM.TEXT}}>fascia oraria del giorno</strong></div>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Dove succede di più</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>% di no show per <strong style={{color:ADM.TEXT}}>giorno della settimana</strong> × <strong style={{color:ADM.TEXT}}>fascia oraria del giorno</strong></div>
           <div style={{display:'grid', gridTemplateColumns:`66px repeat(${noShowSlots.length}, 1fr)`, gap:4}}>
-            <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'flex-end', paddingBottom:6}}>Giorno</div>
+            <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'flex-end', paddingBottom:6}}>Giorno</div>
             {noShowSlots.map(s => (
               <div key={s.label} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'4px 0'}}>
-                <span style={{fontSize:16.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>{s.label}</span>
-                <span style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums'}}>{s.range}</span>
+                <span style={{fontSize:11.9, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>{s.label}</span>
+                <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums'}}>{s.range}</span>
               </div>
             ))}
             {noShowHeat.map(row => (
               <React.Fragment key={row.g}>
-                <div style={{fontSize:18.5, fontWeight:700, color:ADM.TEXT, display:'flex', alignItems:'center'}}>{row.g}</div>
+                <div style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, display:'flex', alignItems:'center'}}>{row.g}</div>
                 {row.vals.map((v,j) => {
                   const intensity = v / noShowMax;
                   return (
@@ -2196,7 +2207,7 @@ function DashLocali({ onNav }) {
                       background: intensity < 0.1 ? '#F4F5F7' : `rgba(220,38,38,${0.10 + intensity*0.80})`,
                       border: intensity > 0.85 ? `1px solid ${ADM.DANGER}` : '1px solid transparent',
                     }}>
-                      <span style={{fontSize:18, fontWeight:800, color: intensity > 0.55 ? '#fff' : ADM.TEXT}}>{v.toFixed(1)}</span>
+                      <span style={{fontSize:13, fontWeight:800, color: intensity > 0.55 ? '#fff' : ADM.TEXT}}>{v.toFixed(1)}</span>
                     </div>
                   );
                 })}
@@ -2205,16 +2216,16 @@ function DashLocali({ onNav }) {
           </div>
           {/* Legenda scala */}
           <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:8, marginTop:10}}>
-            <span style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Intensità no show</span>
-            <span style={{fontSize:17, color:ADM.MUTED, fontWeight:600}}>basso</span>
+            <span style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Intensità no show</span>
+            <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>basso</span>
             <span style={{display:'inline-flex', borderRadius:99, overflow:'hidden', border:`1px solid ${ADM.BORDER_SOFT}`}}>
               {[0.1,0.3,0.5,0.7,0.9].map((t,i) => (
                 <span key={i} style={{width:18, height:10, background:`rgba(220,38,38,${0.10 + t*0.80})`}}/>
               ))}
             </span>
-            <span style={{fontSize:17, color:ADM.MUTED, fontWeight:600}}>alto</span>
+            <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>alto</span>
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
             <strong style={{color:ADM.TEXT}}>Sabato sera 21-23 è il punto critico (12.8%)</strong>. Andamento weekend serale comune all'intero settore. Servono <strong>conferma automatica 24h prima</strong>, deposito, waitlist intelligente.
           </div>
         </AdmCard>
@@ -2222,22 +2233,22 @@ function DashLocali({ onNav }) {
 
       {/* ═════ PREZZO MEDIO PIATTO · POSIZIONAMENTO CITTÀ ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Posizionamento prezzi per città</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Listino medio dei locali partner · benchmark territoriale</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Posizionamento prezzi per città</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Listino medio dei locali partner · benchmark territoriale</div>
       </div>
 
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
           <div style={{minWidth:0, flex:'1 1 300px'}}>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Prezzo medio per città · andamento 12 mesi</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Prezzo medio del piatto sui menù dei locali partner. Confronta fino a {priceMaxPick} piatti e osserva il trend nel tempo.</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Prezzo medio per città · andamento 12 mesi</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Prezzo medio del piatto sui menù dei locali partner. Confronta fino a {priceMaxPick} piatti e osserva il trend nel tempo.</div>
           </div>
           {/* Region selector */}
           <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
-            <span style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
+            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
             <select value={priceRegion} onChange={(e)=>setPriceRegion(e.target.value)} style={{
               padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:19, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
+              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
               appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
               backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
             }}>
@@ -2249,17 +2260,17 @@ function DashLocali({ onNav }) {
         {/* Multi-select piatti — searchable, max 10 su catalogo completo */}
         <div style={{marginBottom:18}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8}}>
-            <span style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Piatti da confrontare</span>
-            <span style={{fontSize:18, color:ADM.MUTED_SOFT, fontWeight:600}}>{priceSel.length} / {priceMaxPick}</span>
+            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Piatti da confrontare</span>
+            <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>{priceSel.length} / {priceMaxPick}</span>
           </div>
           <div style={{display:'flex', flexWrap:'wrap', gap:6, padding:'8px 8px', border:`1px solid ${ADM.BORDER}`, borderRadius:9, background:'#fff', minHeight:42, alignItems:'center', cursor:'text', position:'relative'}} onClick={()=>setPricePickerOpen(true)}>
             {priceSel.map((name, i) => {
               const c = pricePalette[i % pricePalette.length];
               return (
-                <span key={name} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px 4px 10px', background:`${c}14`, border:`1px solid ${c}40`, borderRadius:99, fontSize:18.5, fontWeight:600, color:ADM.TEXT}}>
+                <span key={name} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px 4px 10px', background:`${c}14`, border:`1px solid ${c}40`, borderRadius:99, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
                   <span style={{width:8, height:8, borderRadius:'50%', background:c}}/>
                   {name}
-                  <button onClick={(e)=>{e.stopPropagation(); if (priceSel.length > 1) setPriceSel(priceSel.filter(x=>x!==name));}} style={{background:'transparent', border:'none', padding:0, margin:'0 0 0 2px', cursor:'pointer', color:ADM.MUTED, fontSize:21, lineHeight:1, fontFamily:'inherit', width:16, height:16, display:'inline-grid', placeItems:'center'}} aria-label={`Rimuovi ${name}`}>×</button>
+                  <button onClick={(e)=>{e.stopPropagation(); if (priceSel.length > 1) setPriceSel(priceSel.filter(x=>x!==name));}} style={{background:'transparent', border:'none', padding:0, margin:'0 0 0 2px', cursor:'pointer', color:ADM.MUTED, fontSize:15.1, lineHeight:1, fontFamily:'inherit', width:16, height:16, display:'inline-grid', placeItems:'center'}} aria-label={`Rimuovi ${name}`}>×</button>
                 </span>
               );
             })}
@@ -2271,17 +2282,17 @@ function DashLocali({ onNav }) {
               onBlur={()=>setTimeout(()=>setPricePickerOpen(false), 180)}
               placeholder={priceSel.length === 0 ? 'Cerca tra centinaia di piatti…' : priceSel.length >= priceMaxPick ? `Massimo ${priceMaxPick} piatti — rimuovine uno per aggiungerne altri` : 'Aggiungi piatto…'}
               disabled={priceSel.length >= priceMaxPick}
-              style={{flex:'1 1 160px', minWidth:140, border:'none', outline:'none', fontSize:19, color:ADM.TEXT, fontFamily:'inherit', padding:'4px 6px', background:'transparent'}}
+              style={{flex:'1 1 160px', minWidth:140, border:'none', outline:'none', fontSize:13.7, color:ADM.TEXT, fontFamily:'inherit', padding:'4px 6px', background:'transparent'}}
             />
             {pricePickerOpen && (
               <div style={{position:'absolute', top:'100%', left:0, right:0, marginTop:6, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:9, boxShadow:'0 8px 24px rgba(15,17,21,0.10)', maxHeight:280, overflowY:'auto', zIndex:30}}>
                 {priceFiltered.length === 0 ? (
-                  <div style={{padding:'12px 14px', fontSize:19, color:ADM.MUTED}}>Nessun piatto corrisponde a "{priceQuery}"</div>
+                  <div style={{padding:'12px 14px', fontSize:13.7, color:ADM.MUTED}}>Nessun piatto corrisponde a "{priceQuery}"</div>
                 ) : (() => {
                   const byCat = priceFiltered.reduce((acc, d) => { (acc[d.cat] = acc[d.cat] || []).push(d); return acc; }, {});
                   return Object.entries(byCat).map(([cat, items]) => (
                     <div key={cat}>
-                      <div style={{padding:'8px 14px 4px', fontSize:17.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', background:ADM.PANEL_SOFT, position:'sticky', top:0}}>{cat}</div>
+                      <div style={{padding:'8px 14px 4px', fontSize:12.6, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', background:ADM.PANEL_SOFT, position:'sticky', top:0}}>{cat}</div>
                       {items.map(d => {
                         const selected = priceSel.includes(d.n);
                         const disabled = !selected && priceSel.length >= priceMaxPick;
@@ -2298,11 +2309,11 @@ function DashLocali({ onNav }) {
                               width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
                               padding:'8px 14px', border:'none', background: selected ? ADM.PINK_BG_SOFT : 'transparent',
                               cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'inherit',
-                              opacity: disabled ? 0.4 : 1, color: ADM.TEXT, fontSize:19, fontWeight: selected ? 700 : 500,
+                              opacity: disabled ? 0.4 : 1, color: ADM.TEXT, fontSize:13.7, fontWeight: selected ? 700 : 500,
                             }}>
-                            <span style={{width:14, height:14, borderRadius:4, border:`1.5px solid ${selected ? ADM.PINK_DARK : ADM.BORDER}`, background: selected ? ADM.PINK_DARK : '#fff', display:'inline-grid', placeItems:'center', color:'#fff', fontSize:17, fontWeight:800}}>{selected?'✓':''}</span>
+                            <span style={{width:14, height:14, borderRadius:4, border:`1.5px solid ${selected ? ADM.PINK_DARK : ADM.BORDER}`, background: selected ? ADM.PINK_DARK : '#fff', display:'inline-grid', placeItems:'center', color:'#fff', fontSize:12.2, fontWeight:800}}>{selected?'✓':''}</span>
                             <span style={{flex:1}}>{d.n}</span>
-                            <span style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>{fmtEur(dishBasePrice(d.n).toFixed(2))}</span>
+                            <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>{fmtEur(dishBasePrice(d.n).toFixed(2))}</span>
                           </button>
                         );
                       })}
@@ -2356,10 +2367,10 @@ function DashLocali({ onNav }) {
                   const first = d.vals[0], last = d.vals[11];
                   const deltaPct = ((last - first) / first) * 100;
                   return (
-                    <span key={d.name} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:18.5, fontWeight:600, color:ADM.TEXT}}>
+                    <span key={d.name} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
                       <span style={{width:16, height:3, borderRadius:2, background:c}}/>
                       {d.name}
-                      <span style={{fontSize:17.5, color: deltaPct >= 1 ? ADM.DANGER : deltaPct <= -1 ? ADM.OK : ADM.MUTED, fontWeight:700, fontVariantNumeric:'tabular-nums'}}>
+                      <span style={{fontSize:12.6, color: deltaPct >= 1 ? ADM.DANGER : deltaPct <= -1 ? ADM.OK : ADM.MUTED, fontWeight:700, fontVariantNumeric:'tabular-nums'}}>
                         {deltaPct>=0?'+':''}{deltaPct.toFixed(1)}% / 12m
                       </span>
                     </span>
@@ -2384,9 +2395,9 @@ function DashLocali({ onNav }) {
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10, marginBottom:12}}>
                   <div style={{display:'flex', alignItems:'center', gap:8}}>
                     <span style={{width:9, height:9, borderRadius:'50%', background:c}}/>
-                    <span style={{fontSize:20, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{dish}</span>
+                    <span style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{dish}</span>
                   </div>
-                  <div style={{display:'flex', gap:14, alignItems:'baseline', fontSize:18.5, color:ADM.MUTED}}>
+                  <div style={{display:'flex', gap:14, alignItems:'baseline', fontSize:13.3, color:ADM.MUTED}}>
                     <span>Più bassa <strong style={{color:ADM.OK}}>{fmtEur(mn)}</strong> {snap[snap.length-1].city}</span>
                     <span>Media <strong style={{color:ADM.TEXT}}>{fmtEur(avg.toFixed(2))}</strong></span>
                     <span>Più alta <strong style={{color:ADM.DANGER}}>{fmtEur(mx)}</strong> {snap[0].city}</span>
@@ -2400,13 +2411,13 @@ function DashLocali({ onNav }) {
                     const delta = ((r.price - avg) / avg) * 100;
                     return (
                       <div key={r.city} style={{display:'flex', alignItems:'center', gap:10}}>
-                        <span style={{fontSize:17, fontWeight:800, color:ADM.MUTED_SOFT, width:14, textAlign:'right'}}>{i+1}</span>
-                        <span style={{fontSize:18.5, fontWeight:600, color:ADM.TEXT, width:78}}>{r.city}</span>
+                        <span style={{fontSize:12.2, fontWeight:800, color:ADM.MUTED_SOFT, width:14, textAlign:'right'}}>{i+1}</span>
+                        <span style={{fontSize:13.3, fontWeight:600, color:ADM.TEXT, width:78}}>{r.city}</span>
                         <div style={{flex:1, height:7, background:ADM.PANEL_SOFT, borderRadius:99, overflow:'hidden'}}>
                           <div style={{width:`${20 + ratio*80}%`, height:'100%', background:`linear-gradient(90deg, ${tone}AA, ${tone})`, borderRadius:99}}/>
                         </div>
-                        <span style={{fontSize:19, fontWeight:800, color:ADM.TEXT, width:54, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtEur(r.price)}</span>
-                        <span style={{fontSize:17.5, fontWeight:700, color: delta > 5 ? ADM.DANGER : delta < -5 ? ADM.OK : ADM.MUTED, width:46, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{delta >= 0 ? '+' : ''}{delta.toFixed(0)}%</span>
+                        <span style={{fontSize:13.7, fontWeight:800, color:ADM.TEXT, width:54, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtEur(r.price)}</span>
+                        <span style={{fontSize:12.6, fontWeight:700, color: delta > 5 ? ADM.DANGER : delta < -5 ? ADM.OK : ADM.MUTED, width:46, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{delta >= 0 ? '+' : ''}{delta.toFixed(0)}%</span>
                       </div>
                     );
                   })}
@@ -2416,7 +2427,7 @@ function DashLocali({ onNav }) {
           })}
         </div>
 
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Come leggere:</strong> il grafico in alto mostra il prezzo medio nel tempo per i piatti selezionati (Giu 25 → Mag 26). Cambia <strong style={{color:ADM.TEXT}}>area</strong> per vedere la curva di una singola città. Sotto, per ogni piatto, lo snapshot per città al mese corrente (Mag 26) con spread vs media. <strong>Dato vendibile</strong> a brand alimentari, consulenti di pricing e media.
         </div>
       </AdmCard>
@@ -2455,15 +2466,15 @@ function AdozioneDigitaleCard({ onNav }) {
     <AdmCard padding={20}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16, gap:14}}>
         <div>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Adozione digitale</div>
-          <div style={{fontSize:19, color:ADM.MUTED, marginTop:3, maxWidth:560, lineHeight:1.5}}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Adozione digitale</div>
+          <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:3, maxWidth:560, lineHeight:1.5}}>
             Distribuzione dei locali attivi per tasso di utilizzo dei QR byup
             (% di ordini/coperti che passano dal QR). Calcolato sugli ultimi 30 giorni.
           </div>
         </div>
         <div style={{textAlign:'right', flexShrink:0}}>
-          <div style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Locali tracciati</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:2}}>{fmtNum(total)}</div>
+          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Locali tracciati</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:2}}>{fmtNum(total)}</div>
         </div>
       </div>
 
@@ -2484,16 +2495,16 @@ function AdozioneDigitaleCard({ onNav }) {
             <BuIcons.alertTriangle size={23} color="#fff"/>
           </span>
           <div style={{flex:1, minWidth:0, textAlign:'left'}}>
-            <div style={{fontSize:21, fontWeight:800, letterSpacing:'-0.01em'}}>
+            <div style={{fontSize:15.1, fontWeight:800, letterSpacing:'-0.01em'}}>
               {daAttivare.length} locali ({daAttivarePct.toFixed(0)}%) sotto la soglia minima
             </div>
-            <div style={{fontSize:18.5, color:'rgba(255,255,255,0.88)', marginTop:3, lineHeight:1.45}}>
+            <div style={{fontSize:13.3, color:'rgba(255,255,255,0.88)', marginTop:3, lineHeight:1.45}}>
               Più di 1 locale su 4 non sta usando i QR. Intervento commerciale o tecnico necessario.
             </div>
           </div>
           <span style={{
             padding:'7px 12px', background:'rgba(255,255,255,0.2)', borderRadius:8,
-            fontSize:19, fontWeight:700, display:'inline-flex', alignItems:'center', gap:6,
+            fontSize:13.7, fontWeight:700, display:'inline-flex', alignItems:'center', gap:6,
             boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25)',
           }}>
             Vai alla lista <BuIcons.chevronRight size={18} color="#fff"/>
@@ -2521,15 +2532,15 @@ function AdozioneDigitaleCard({ onNav }) {
                 display:'flex', alignItems:'center', justifyContent:'center',
                 flexDirection: showText ? 'row' : 'column',
                 gap: showText ? 8 : 0,
-                fontSize:20, fontWeight: 700,
+                fontSize:14.4, fontWeight: 700,
                 padding: showText ? '0 10px' : 0,
                 minWidth:0, overflow:'hidden',
                 borderRight: '1px solid rgba(255,255,255,0.12)',
               }}>
               {showText && (
                 <>
-                  <span style={{fontSize:22, fontWeight:800, letterSpacing:'-0.01em'}}>{b.locali.length}</span>
-                  <span style={{fontSize:18.5, fontWeight:600, opacity:0.92}}>{pct.toFixed(0)}%</span>
+                  <span style={{fontSize:15.8, fontWeight:800, letterSpacing:'-0.01em'}}>{b.locali.length}</span>
+                  <span style={{fontSize:13.3, fontWeight:600, opacity:0.92}}>{pct.toFixed(0)}%</span>
                 </>
               )}
             </div>
@@ -2539,7 +2550,7 @@ function AdozioneDigitaleCard({ onNav }) {
 
       {/* Range axis (etichette di soglia sotto la barra) */}
       <div style={{
-        display:'flex', marginTop:8, fontSize:17.5, color:ADM.MUTED_SOFT, fontWeight:600,
+        display:'flex', marginTop:8, fontSize:12.6, color:ADM.MUTED_SOFT, fontWeight:600,
         fontFamily:'ui-monospace, monospace',
       }}>
         {buckets.map(b => {
@@ -2566,10 +2577,10 @@ function AdozioneDigitaleCard({ onNav }) {
           }}>
             <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:5}}>
               <span style={{width:10, height:10, borderRadius:3, background:b.color, flexShrink:0}}/>
-              <span style={{fontSize:19, fontWeight:700, color:ADM.TEXT}}>{b.label}</span>
-              <span style={{fontSize:17.5, color:ADM.MUTED, fontFamily:'ui-monospace, monospace', marginLeft:'auto'}}>{b.range}</span>
+              <span style={{fontSize:13.7, fontWeight:700, color:ADM.TEXT}}>{b.label}</span>
+              <span style={{fontSize:12.6, color:ADM.MUTED, fontFamily:'ui-monospace, monospace', marginLeft:'auto'}}>{b.range}</span>
             </div>
-            <div style={{fontSize:18, color:ADM.MUTED, lineHeight:1.4}}>{b.hint}</div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.4}}>{b.hint}</div>
           </div>
         ))}
       </div>
@@ -2590,20 +2601,20 @@ function AdozioneDigitaleCard({ onNav }) {
               <BuIcons.alert size={18}/>
             </span>
             <div>
-              <div style={{fontSize:20, fontWeight:700, color:'#7C2D12'}}>Da attivare</div>
-              <div style={{fontSize:18, color:'#9A3412', marginTop:1}}>
+              <div style={{fontSize:14.4, fontWeight:700, color:'#7C2D12'}}>Da attivare</div>
+              <div style={{fontSize:13, color:'#9A3412', marginTop:1}}>
                 Locali in fascia <strong>Non attivato</strong> e <strong>Critico</strong> — richiedono intervento commerciale o tecnico
               </div>
             </div>
           </div>
           <span style={{
             padding:'4px 10px', background:ADM.DANGER, color:'#fff',
-            borderRadius:99, fontSize:18.5, fontWeight:800,
+            borderRadius:99, fontSize:13.3, fontWeight:800,
           }}>{daAttivare.length}</span>
         </div>
 
         {daAttivare.length === 0 ? (
-          <div style={{padding:'14px 8px', fontSize:19.5, color:'#9A3412', fontStyle:'italic', textAlign:'center'}}>
+          <div style={{padding:'14px 8px', fontSize:14, color:'#9A3412', fontStyle:'italic', textAlign:'center'}}>
             Nessun locale problematico — ottimo lavoro 🎉
           </div>
         ) : (
@@ -2632,15 +2643,15 @@ function AdozioneDigitaleCard({ onNav }) {
                     width:8, height:8, borderRadius:2, background:b.color, flexShrink:0,
                   }}/>
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                    <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                       {l.nome} <span style={{color:ADM.MUTED, fontWeight:400}}>· {l.tipo}</span>
                     </div>
-                    <div style={{fontSize:18, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace, monospace'}}>
+                    <div style={{fontSize:13, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace, monospace'}}>
                       {l.id} · {l.citta}
                     </div>
                   </div>
                   <div style={{
-                    fontSize:20, fontWeight:800, color: b.color,
+                    fontSize:14.4, fontWeight:800, color: b.color,
                     fontFamily:'ui-monospace, monospace',
                     minWidth:48, textAlign:'right',
                   }}>
@@ -2649,7 +2660,7 @@ function AdozioneDigitaleCard({ onNav }) {
                   <span style={{
                     padding:'3px 9px', borderRadius:99,
                     background: b.color, color: b.textOn,
-                    fontSize:17.5, fontWeight:700, whiteSpace:'nowrap',
+                    fontSize:12.6, fontWeight:700, whiteSpace:'nowrap',
                     textTransform:'uppercase', letterSpacing:'0.04em',
                   }}>{b.label}</span>
                   <span style={{color:ADM.MUTED, flexShrink:0}}><BuIcons.chevronRight size={20}/></span>
@@ -2659,7 +2670,7 @@ function AdozioneDigitaleCard({ onNav }) {
             {daAttivare.length > 12 && (
               <div style={{
                 padding:'10px 14px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
-                fontSize:18.5, color:ADM.MUTED, textAlign:'center', fontStyle:'italic',
+                fontSize:13.3, color:ADM.MUTED, textAlign:'center', fontStyle:'italic',
                 background:'#FFFBF6',
               }}>
                 e altri {daAttivare.length - 12} locali · usa la sezione Operatività per la lista completa
@@ -2704,8 +2715,8 @@ function SottoMediaScanCard({ onNav }) {
     <AdmCard padding={20}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
         <div>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Locali sotto la media · Conversione QR</div>
-          <div style={{fontSize:19, color:ADM.MUTED, marginTop:3, maxWidth:540, lineHeight:1.5}}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Locali sotto la media · Conversione QR</div>
+          <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:3, maxWidth:540, lineHeight:1.5}}>
             % di scan QR che diventano un ordine completato.
             Locali con tasso di conversione inferiore alla media della piattaforma — candidati per intervento.
           </div>
@@ -2724,7 +2735,7 @@ function SottoMediaScanCard({ onNav }) {
                 padding:'6px 14px', border:'none',
                 background: periodo === p.id ? '#fff' : 'transparent',
                 color: periodo === p.id ? ADM.TEXT : ADM.MUTED,
-                fontSize:19, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                fontSize:13.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
                 borderRadius:6,
                 boxShadow: periodo === p.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 transition:'all 0.15s',
@@ -2745,7 +2756,7 @@ function SottoMediaScanCard({ onNav }) {
 
       {/* Lista */}
       {sottoMedia.length === 0 ? (
-        <div style={{padding:'24px 16px', textAlign:'center', fontSize:20, color:ADM.MUTED, fontStyle:'italic'}}>
+        <div style={{padding:'24px 16px', textAlign:'center', fontSize:14.4, color:ADM.MUTED, fontStyle:'italic'}}>
           Tutti i locali sono in linea o sopra la media 🎉
         </div>
       ) : (
@@ -2758,7 +2769,7 @@ function SottoMediaScanCard({ onNav }) {
             display:'grid', gridTemplateColumns:'minmax(0, 2fr) 1fr 1fr 1.1fr 24px',
             padding:'8px 14px', background:ADM.PANEL_SOFT,
             borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-            fontSize:17, fontWeight:700, color:ADM.MUTED,
+            fontSize:12.2, fontWeight:700, color:ADM.MUTED,
             textTransform:'uppercase', letterSpacing:'0.06em',
           }}>
             <div>Locale</div>
@@ -2783,17 +2794,17 @@ function SottoMediaScanCard({ onNav }) {
                 <div style={{display:'flex', alignItems:'center', gap:9, minWidth:0}}>
                   {b && <span style={{width:8, height:8, borderRadius:2, background:b.color, flexShrink:0}}/>}
                   <div style={{minWidth:0}}>
-                    <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                    <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                       {l.nome} <span style={{color:ADM.MUTED, fontWeight:400}}>· {l.tipo}</span>
                     </div>
-                    <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace, monospace'}}>{l.id} · {l.citta}</div>
+                    <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace, monospace'}}>{l.id} · {l.citta}</div>
                   </div>
                 </div>
-                <div style={{textAlign:'right', fontSize:19.5, color:ADM.TEXT, fontWeight:600, fontFamily:'ui-monospace, monospace'}}>{fmtNum(l._ord)}</div>
-                <div style={{textAlign:'right', fontSize:19.5, color:ADM.TEXT, fontWeight:600, fontFamily:'ui-monospace, monospace'}}>{fmtNum(l._scan)}</div>
+                <div style={{textAlign:'right', fontSize:14, color:ADM.TEXT, fontWeight:600, fontFamily:'ui-monospace, monospace'}}>{fmtNum(l._ord)}</div>
+                <div style={{textAlign:'right', fontSize:14, color:ADM.TEXT, fontWeight:600, fontFamily:'ui-monospace, monospace'}}>{fmtNum(l._scan)}</div>
                 <div style={{textAlign:'right'}}>
-                  <div style={{fontSize:20, fontWeight:800, color:ADM.DANGER, letterSpacing:'-0.01em'}}>{fmtPct(l._ratio)}</div>
-                  <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:1, fontWeight:600}}>
+                  <div style={{fontSize:14.4, fontWeight:800, color:ADM.DANGER, letterSpacing:'-0.01em'}}>{fmtPct(l._ratio)}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1, fontWeight:600}}>
                     {gap.toFixed(0)}% vs media
                   </div>
                 </div>
@@ -2804,7 +2815,7 @@ function SottoMediaScanCard({ onNav }) {
           {sottoMedia.length > visible.length && (
             <div style={{
               padding:'10px 14px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
-              fontSize:18.5, color:ADM.MUTED, textAlign:'center', fontStyle:'italic',
+              fontSize:13.3, color:ADM.MUTED, textAlign:'center', fontStyle:'italic',
               background:ADM.PANEL_SOFT,
             }}>
               e altri {sottoMedia.length - visible.length} locali sotto la media
@@ -2824,9 +2835,9 @@ function SottoMediaKpi({ label, value, sub, highlight }) {
       border:`1px solid ${highlight ? ADM.PINK_SOFT : ADM.BORDER_SOFT}`,
       borderRadius:9,
     }}>
-      <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
-      <div style={{fontSize:27, fontWeight:800, color: highlight ? ADM.PINK_DARK : ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{value}</div>
-      {sub && <div style={{fontSize:18, color:ADM.MUTED, marginTop:4, fontWeight:500}}>{sub}</div>}
+      <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+      <div style={{fontSize:19.4, fontWeight:800, color: highlight ? ADM.PINK_DARK : ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{value}</div>
+      {sub && <div style={{fontSize:13, color:ADM.MUTED, marginTop:4, fontWeight:500}}>{sub}</div>}
     </div>
   );
 }
@@ -3085,20 +3096,20 @@ function DashUtentiApp() {
 
       {/* ═════ RITORNO UTENTI NEL TEMPO ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Ritorno degli utenti nel tempo</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Quanti continuano a usare l'app dopo il primo ordine</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Ritorno degli utenti nel tempo</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Quanti continuano a usare l'app dopo il primo ordine</div>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:14}}>
         <AdmCard padding={22}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
             <div style={{minWidth:0, flex:'1 1 240px'}}>
-              <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Quanti tornano dopo il primo ordine</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>
+              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Quanti tornano dopo il primo ordine</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>
                 Su 100 utenti che fanno il primo ordine, quanti aprono ancora l'app dopo X giorni · confronto con la media di settore food app
               </div>
             </div>
-            <div style={{display:'flex', gap:14, fontSize:18.5, color:ADM.TEXT, fontWeight:600}}>
+            <div style={{display:'flex', gap:14, fontSize:13.3, color:ADM.TEXT, fontWeight:600}}>
               <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
                 <span style={{width:14, height:3, borderRadius:2, background:ADM.PINK}}/>
                 Byup
@@ -3161,34 +3172,34 @@ function DashUtentiApp() {
             );
           })()}
 
-          <div style={{fontSize:19, color:ADM.MUTED, marginTop:14, lineHeight:1.55, padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9}}>
+          <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:14, lineHeight:1.55, padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9}}>
             <strong style={{color:ADM.OK}}>Byup è sopra la media in tutte le fasi.</strong> A 1 mese il 12% degli utenti torna ancora (la media del settore è 8%). A 3 mesi siamo al 6% contro il 3,5% della media: chi resta fino a quel punto è fidelizzato e genera valore alto nel tempo. È la prova che l'app non è solo traffico di passaggio.
           </div>
         </AdmCard>
 
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Per mese di iscrizione</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginBottom:14, lineHeight:1.45}}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Per mese di iscrizione</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14, lineHeight:1.45}}>
             Ogni riga è il gruppo di utenti iscritti in quel mese · le colonne mostrano quanti tornavano dopo X tempo
           </div>
           <div style={{display:'grid', gridTemplateColumns:'66px 32px repeat(5, 1fr)', gap:4, alignItems:'center'}}>
             <div></div>
-            <div style={{fontSize:16.5, fontWeight:700, color:ADM.MUTED, textAlign:'right', paddingRight:3, letterSpacing:'0.02em', textTransform:'uppercase'}}>utenti</div>
+            <div style={{fontSize:11.9, fontWeight:700, color:ADM.MUTED, textAlign:'right', paddingRight:3, letterSpacing:'0.02em', textTransform:'uppercase'}}>utenti</div>
             {cohortPointLabels.map(d => (
-              <div key={d} style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textAlign:'center', lineHeight:1.2}}>{d}</div>
+              <div key={d} style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textAlign:'center', lineHeight:1.2}}>{d}</div>
             ))}
             {retentionCohorts.map(row => (
               <React.Fragment key={row.coh}>
-                <div style={{fontSize:18.5, fontWeight:700, color:ADM.TEXT}}>{row.coh}</div>
-                <div style={{fontSize:17.5, color:ADM.MUTED_SOFT, textAlign:'right', paddingRight:3, fontFamily:'ui-monospace, monospace'}}>{row.size}</div>
+                <div style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT}}>{row.coh}</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, textAlign:'right', paddingRight:3, fontFamily:'ui-monospace, monospace'}}>{row.size}</div>
                 {row.points.map((v,j) => {
-                  if (v === null) return <div key={j} style={{padding:'9px 2px', textAlign:'center', fontSize:17, color:ADM.MUTED_SOFT}}>—</div>;
+                  if (v === null) return <div key={j} style={{padding:'9px 2px', textAlign:'center', fontSize:12.2, color:ADM.MUTED_SOFT}}>—</div>;
                   const intensity = Math.min(1, v/35);
                   return (
                     <div key={j} style={{
                       padding:'9px 2px', borderRadius:5, textAlign:'center',
                       background:`rgba(255,90,95,${0.10 + intensity*0.7})`,
-                      fontSize:18.5, fontWeight:800,
+                      fontSize:13.3, fontWeight:800,
                       color: intensity > 0.55 ? '#fff' : ADM.TEXT,
                       letterSpacing:'-0.01em',
                     }}>{v}%</div>
@@ -3197,7 +3208,7 @@ function DashUtentiApp() {
               </React.Fragment>
             ))}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:16, lineHeight:1.55, padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.55, padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9}}>
             <strong style={{color:ADM.TEXT}}>I gruppi più recenti (Mar/Apr 26)</strong> mostrano un ritorno a 1 settimana di 2-3 punti più alto del solito — possibile effetto del nuovo onboarding lanciato a febbraio.
           </div>
         </AdmCard>
@@ -3205,13 +3216,13 @@ function DashUtentiApp() {
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Distribuzione per età</div>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Distribuzione per età</div>
           <div style={{display:'flex', flexDirection:'column', gap:8}}>
             {fasceEta.map((f, i) => (
               <div key={i}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
-                  <span style={{fontSize:19.5, color:ADM.TEXT}}>{f.label}</span>
-                  <span style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>{f.pct}%</span>
+                  <span style={{fontSize:14, color:ADM.TEXT}}>{f.label}</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{f.pct}%</span>
                 </div>
                 <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                   <div style={{width:`${f.pct*2}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.PURPLE}, ${ADM.PINK})`, borderRadius:99}}/>
@@ -3222,7 +3233,7 @@ function DashUtentiApp() {
         </AdmCard>
 
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Genere</div>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Genere</div>
           <AdmStackedBar segments={[
             { label:'Donne', value: Math.round(genere.F*100), color: ADM.PINK },
             { label:'Uomini', value: Math.round(genere.M*100), color: ADM.INFO },
@@ -3236,8 +3247,8 @@ function DashUtentiApp() {
             ].map((g,i)=>(
               <div key={i} style={{display:'flex', alignItems:'center', gap:10}}>
                 <span style={{width:10, height:10, borderRadius:3, background:g.c}}/>
-                <span style={{fontSize:19.5, color:ADM.TEXT, flex:1}}>{g.label}</span>
-                <span style={{fontSize:19.5, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(g.val/100)))} · {g.val}%</span>
+                <span style={{fontSize:14, color:ADM.TEXT, flex:1}}>{g.label}</span>
+                <span style={{fontSize:14, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(g.val/100)))} · {g.val}%</span>
               </div>
             ))}
           </div>
@@ -3246,18 +3257,18 @@ function DashUtentiApp() {
 
       {/* ═════ SEZIONE: SEGMENTAZIONE COMPORTAMENTO ORDINI ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Comportamento d'ordine per cluster demografico</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Cluster = combinazione sesso × fascia d'età · chi spende quanto · quando · cosa</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Comportamento d'ordine per cluster demografico</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Cluster = combinazione sesso × fascia d'età · chi spende quanto · quando · cosa</div>
       </div>
 
       {/* MATRICE scontrino × cohort (sesso × età) */}
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Scontrino medio per sesso × età</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Scontrino medio per gruppo · ultimi 30 giorni</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Scontrino medio per sesso × età</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Scontrino medio per gruppo · ultimi 30 giorni</div>
           </div>
-          <div style={{display:'flex', alignItems:'center', gap:6, fontSize:18, color:ADM.MUTED, fontWeight:600}}>
+          <div style={{display:'flex', alignItems:'center', gap:6, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
             <span>{fmtEur(aovMin)}</span>
             <div style={{width:80, height:8, borderRadius:99, background:`linear-gradient(90deg, ${ADM.PANEL_SOFT}, ${ADM.PINK})`}}/>
             <span>{fmtEur(aovMax)}</span>
@@ -3265,10 +3276,10 @@ function DashUtentiApp() {
         </div>
         <div style={{display:'grid', gridTemplateColumns:'80px repeat(5, 1fr)', gap:6}}>
           <div></div>
-          {ages.map(a => <div key={a} style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textAlign:'center', padding:'4px 0', letterSpacing:'0.04em', textTransform:'uppercase'}}>{a}</div>)}
+          {ages.map(a => <div key={a} style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textAlign:'center', padding:'4px 0', letterSpacing:'0.04em', textTransform:'uppercase'}}>{a}</div>)}
           {['F','M'].map(sex => (
             <React.Fragment key={sex}>
-              <div style={{display:'flex', alignItems:'center', gap:8, fontSize:19, fontWeight:700, color:sex==='F'?ADM.PINK:ADM.INFO}}>
+              <div style={{display:'flex', alignItems:'center', gap:8, fontSize:13.7, fontWeight:700, color:sex==='F'?ADM.PINK:ADM.INFO}}>
                 <span style={{width:8, height:8, borderRadius:'50%', background:sex==='F'?ADM.PINK:ADM.INFO}}/>
                 {sex==='F'?'Donne':'Uomini'}
               </div>
@@ -3281,14 +3292,14 @@ function DashUtentiApp() {
                     background:`hsl(${sex==='F'?345:215}, ${50+intensity*30}%, ${94-intensity*30}%)`,
                     border:`1px solid ${intensity > 0.7 ? (sex==='F'?ADM.PINK:ADM.INFO) : 'transparent'}`,
                   }}>
-                    <div style={{fontSize:23, fontWeight:800, color:intensity > 0.55 ? '#fff' : ADM.TEXT, letterSpacing:'-0.015em'}}>{fmtEur(v)}</div>
+                    <div style={{fontSize:16.6, fontWeight:800, color:intensity > 0.55 ? '#fff' : ADM.TEXT, letterSpacing:'-0.015em'}}>{fmtEur(v)}</div>
                   </div>
                 );
               })}
             </React.Fragment>
           ))}
         </div>
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Insight:</strong> il valore-cliente cresce con l'età sugli uomini (+121% da 18-25 a 56+), più piatto sulle donne (+59%). Le donne 26-35 spendono il 12% in più degli uomini stessa fascia.
         </div>
       </AdmCard>
@@ -3296,13 +3307,13 @@ function DashUtentiApp() {
       {/* Distribuzione scontrino in fasce + Frequenza ordini per cohort */}
       <div style={{display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:14}}>
         <AdmCard padding={20}>
-          <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Distribuzione scontrino</div>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Distribuzione scontrino</div>
           <div style={{display:'flex', flexDirection:'column', gap:10}}>
             {ticketBuckets.map((b,i) => (
               <div key={i}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:5}}>
-                  <span style={{fontSize:19.5, color:ADM.TEXT, fontWeight:600}}>{b.range}</span>
-                  <span style={{fontSize:19, color:ADM.MUTED, fontWeight:600}}>{b.pct}% utenti</span>
+                  <span style={{fontSize:14, color:ADM.TEXT, fontWeight:600}}>{b.range}</span>
+                  <span style={{fontSize:13.7, color:ADM.MUTED, fontWeight:600}}>{b.pct}% utenti</span>
                 </div>
                 <div style={{height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                   <div style={{width:`${b.pct*2.5}%`, height:'100%', background:b.color, borderRadius:99}}/>
@@ -3310,7 +3321,7 @@ function DashUtentiApp() {
               </div>
             ))}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
             La maggior parte (52%) ordina tra €15-40. Il 7% sono <strong style={{color:ADM.TEXT}}>grandi spendenti</strong> oltre €60 — target ideale per campagne fidelizzazione premium.
           </div>
         </AdmCard>
@@ -3318,8 +3329,8 @@ function DashUtentiApp() {
         <AdmCard padding={20}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:10}}>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Frequenza ordini</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Ordini al mese per utente · per fascia d'età</div>
+              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Frequenza ordini</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Ordini al mese per utente · per fascia d'età</div>
             </div>
           </div>
           {(() => {
@@ -3338,13 +3349,13 @@ function DashUtentiApp() {
                 {/* Hero: segmento più attivo */}
                 <div style={{padding:'14px 16px', background:`linear-gradient(135deg, ${ADM.PINK_BG_SOFT}, #fff)`, border:`1px solid ${ADM.PINK_SOFT}`, borderRadius:10, display:'flex', alignItems:'center', gap:14, marginBottom:14}}>
                   <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', minWidth:84}}>
-                    <div style={{fontSize:43, fontWeight:800, color:ADM.PINK_DARK, letterSpacing:'-0.03em', lineHeight:1}}>{peak.orders.toFixed(1)}</div>
-                    <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginTop:4}}>ord / mese</div>
+                    <div style={{fontSize:31, fontWeight:800, color:ADM.PINK_DARK, letterSpacing:'-0.03em', lineHeight:1}}>{peak.orders.toFixed(1)}</div>
+                    <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginTop:4}}>ord / mese</div>
                   </div>
                   <div style={{flex:1, minWidth:0, borderLeft:`1px solid ${ADM.PINK_SOFT}`, paddingLeft:14}}>
-                    <div style={{fontSize:17.5, fontWeight:700, color:ADM.PINK_DARK, textTransform:'uppercase', letterSpacing:'0.06em'}}>Segmento più attivo</div>
-                    <div style={{fontSize:22, fontWeight:700, color:ADM.TEXT, marginTop:3, letterSpacing:'-0.01em'}}>{peak.age} anni</div>
-                    <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:3, lineHeight:1.4}}>Ordinano ogni <strong style={{color:ADM.TEXT}}>~{Math.round(30/peak.orders)} giorni</strong> · +{Math.round((peak.orders/freqAvg-1)*100)}% rispetto alla media app</div>
+                    <div style={{fontSize:12.6, fontWeight:700, color:ADM.PINK_DARK, textTransform:'uppercase', letterSpacing:'0.06em'}}>Segmento più attivo</div>
+                    <div style={{fontSize:15.8, fontWeight:700, color:ADM.TEXT, marginTop:3, letterSpacing:'-0.01em'}}>{peak.age} anni</div>
+                    <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:3, lineHeight:1.4}}>Ordinano ogni <strong style={{color:ADM.TEXT}}>~{Math.round(30/peak.orders)} giorni</strong> · +{Math.round((peak.orders/freqAvg-1)*100)}% rispetto alla media app</div>
                   </div>
                 </div>
 
@@ -3356,25 +3367,25 @@ function DashUtentiApp() {
                     const isPeak = f.age === peak.age;
                     return (
                       <div key={f.age} style={{display:'grid', gridTemplateColumns:'52px 1fr auto', alignItems:'center', columnGap:12}}>
-                        <span style={{fontSize:19, fontWeight:700, color: isPeak ? ADM.TEXT : ADM.MUTED, letterSpacing:'-0.005em'}}>{f.age}</span>
+                        <span style={{fontSize:13.7, fontWeight:700, color: isPeak ? ADM.TEXT : ADM.MUTED, letterSpacing:'-0.005em'}}>{f.age}</span>
                         <div style={{display:'flex', alignItems:'center', gap:10, minWidth:0}}>
                           <div style={{flex:1, height:10, background:'#F4F5F7', borderRadius:99, overflow:'hidden', position:'relative'}}>
                             {/* benchmark marker */}
                             <div style={{position:'absolute', left:`${(benchmark/freqMax)*100}%`, top:-3, bottom:-3, width:2, background:ADM.MUTED_SOFT, opacity:0.55}}/>
                             <div style={{width:`${(f.orders/freqMax)*100}%`, height:'100%', background: isPeak ? `linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})` : cls.tone, borderRadius:99}}/>
                           </div>
-                          <span style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', minWidth:34, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{f.orders.toFixed(1)}</span>
+                          <span style={{fontSize:15.8, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', minWidth:34, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{f.orders.toFixed(1)}</span>
                         </div>
                         <div style={{display:'flex', alignItems:'center', gap:6, justifyContent:'flex-end'}}>
-                          <span style={{fontSize:17.5, fontWeight:700, color: delta > 0 ? ADM.OK : ADM.DANGER, minWidth:36, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{delta>=0?'+':''}{delta.toFixed(0)}%</span>
-                          <span style={{fontSize:17, fontWeight:700, padding:'3px 8px', background:cls.bg, color:cls.tone, borderRadius:99, letterSpacing:'0.02em', minWidth:72, textAlign:'center'}}>{cls.label}</span>
+                          <span style={{fontSize:12.6, fontWeight:700, color: delta > 0 ? ADM.OK : ADM.DANGER, minWidth:36, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{delta>=0?'+':''}{delta.toFixed(0)}%</span>
+                          <span style={{fontSize:12.2, fontWeight:700, padding:'3px 8px', background:cls.bg, color:cls.tone, borderRadius:99, letterSpacing:'0.02em', minWidth:72, textAlign:'center'}}>{cls.label}</span>
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                <div style={{display:'flex', alignItems:'center', gap:14, marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:18, color:ADM.MUTED, fontWeight:600}}>
+                <div style={{display:'flex', alignItems:'center', gap:14, marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
                   <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
                     <span style={{width:2, height:12, background:ADM.MUTED_SOFT, opacity:0.7}}/>
                     Benchmark settore <strong style={{color:ADM.TEXT}}>{benchmark.toFixed(1)}</strong>
@@ -3382,7 +3393,7 @@ function DashUtentiApp() {
                   <span style={{color:ADM.BORDER}}>·</span>
                   <span>Media app <strong style={{color:ADM.TEXT}}>{freqAvg.toFixed(1)}</strong></span>
                 </div>
-                <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:10, lineHeight:1.5}}>
+                <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:10, lineHeight:1.5}}>
                   Picco sul segmento <strong style={{color:ADM.TEXT}}>26-35 · assidui</strong>. Over 56 sotto 1 ordine/mese = <strong style={{color:ADM.DANGER}}>a rischio abbandono</strong>: attivare workflow di riattivazione dopo 45gg senza ordine.
                 </div>
               </React.Fragment>
@@ -3395,8 +3406,8 @@ function DashUtentiApp() {
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Top categorie ordinate · per cluster demografico</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Ogni colonna è un segmento di clientela <strong style={{color:ADM.TEXT}}>sesso × fascia d'età</strong>. Top 3 categorie più ordinate dal segmento, % sugli ordini del segmento.</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Top categorie ordinate · per cluster demografico</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Ogni colonna è un segmento di clientela <strong style={{color:ADM.TEXT}}>sesso × fascia d'età</strong>. Top 3 categorie più ordinate dal segmento, % sugli ordini del segmento.</div>
           </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10}}>
@@ -3408,17 +3419,17 @@ function DashUtentiApp() {
             return (
               <div key={i} style={{padding:'14px 14px 12px', background:ADM.PANEL_SOFT, borderRadius:9, border:`1px solid ${ADM.BORDER_SOFT}`}}>
                 <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
-                  <span style={{width:26, height:26, borderRadius:'50%', background:isF?ADM.PINK_BG_SOFT:'#E0EFFE', color:tone, fontSize:18, fontWeight:800, display:'grid', placeItems:'center', letterSpacing:'-0.02em'}}>{isF?'♀':'♂'}</span>
+                  <span style={{width:26, height:26, borderRadius:'50%', background:isF?ADM.PINK_BG_SOFT:'#E0EFFE', color:tone, fontSize:13, fontWeight:800, display:'grid', placeItems:'center', letterSpacing:'-0.02em'}}>{isF?'♀':'♂'}</span>
                   <div style={{display:'flex', flexDirection:'column', gap:1, minWidth:0}}>
-                    <span style={{fontSize:19, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', lineHeight:1.1}}>{sexLabel}</span>
-                    <span style={{fontSize:17.5, fontWeight:600, color:ADM.MUTED, letterSpacing:'0.02em'}}>{ageLabel} anni</span>
+                    <span style={{fontSize:13.7, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', lineHeight:1.1}}>{sexLabel}</span>
+                    <span style={{fontSize:12.6, fontWeight:600, color:ADM.MUTED, letterSpacing:'0.02em'}}>{ageLabel} anni</span>
                   </div>
                 </div>
                 {row.cats.map((c,j) => (
                   <div key={j} style={{marginBottom: j < row.cats.length-1 ? 8 : 0}}>
                     <div style={{display:'flex', justifyContent:'space-between', marginBottom:3}}>
-                      <span style={{fontSize:18.5, color:ADM.TEXT, fontWeight:600}}>{c.n}</span>
-                      <span style={{fontSize:18, color:ADM.MUTED, fontWeight:700}}>{c.p}%</span>
+                      <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:600}}>{c.n}</span>
+                      <span style={{fontSize:13, color:ADM.MUTED, fontWeight:700}}>{c.p}%</span>
                     </div>
                     <div style={{height:4, background:'#fff', borderRadius:99, overflow:'hidden'}}>
                       <div style={{width:`${c.p*2.5}%`, height:'100%', background:catColors[c.n] || ADM.MUTED, borderRadius:99}}/>
@@ -3429,7 +3440,7 @@ function DashUtentiApp() {
             );
           })}
         </div>
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
           Andamento netto: <strong style={{color:ADM.TEXT}}>Pizza domina i giovani</strong>, <strong style={{color:ADM.TEXT}}>Primi/Secondi crescono con l'età</strong>. Sushi & Poke è quasi solo femminile 18-35. Burger è quasi solo maschile under-35.
         </div>
       </AdmCard>
@@ -3438,18 +3449,18 @@ function DashUtentiApp() {
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Fasce orarie di ordine per età</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Intensità relativa per fascia oraria · trigger per workflow push/email</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Fasce orarie di ordine per età</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Intensità relativa per fascia oraria · trigger per workflow push/email</div>
           </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'80px repeat(6, 1fr)', gap:5}}>
           <div></div>
           {hourBands.map(b => (
-            <div key={b} style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textAlign:'center', padding:'2px 0', letterSpacing:'0.02em', lineHeight:1.3}}>{b}</div>
+            <div key={b} style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textAlign:'center', padding:'2px 0', letterSpacing:'0.02em', lineHeight:1.3}}>{b}</div>
           ))}
           {hourCohorts.map(row => (
             <React.Fragment key={row.c}>
-              <div style={{fontSize:19, fontWeight:700, color:ADM.TEXT, display:'flex', alignItems:'center'}}>{row.c}</div>
+              <div style={{fontSize:13.7, fontWeight:700, color:ADM.TEXT, display:'flex', alignItems:'center'}}>{row.c}</div>
               {row.vals.map((v,j) => {
                 const intensity = v / 100;
                 return (
@@ -3458,33 +3469,33 @@ function DashUtentiApp() {
                     background: intensity < 0.05 ? '#F4F5F7' : `rgba(255,90,95,${0.08 + intensity*0.85})`,
                     border: intensity > 0.8 ? `1px solid ${ADM.PINK_DARK}` : '1px solid transparent',
                   }}>
-                    <span style={{fontSize:18.5, fontWeight:700, color: intensity > 0.5 ? '#fff' : ADM.TEXT}}>{v}</span>
+                    <span style={{fontSize:13.3, fontWeight:700, color: intensity > 0.5 ? '#fff' : ADM.TEXT}}>{v}</span>
                   </div>
                 );
               })}
             </React.Fragment>
           ))}
         </div>
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Cena è il prime time per tutti</strong>. I 18-25 dominano dopocena (22-01), gli over 36 sono concentrati su pranzo e cena classica. Manda push pranzo alle 11:30 sui 36-55 e dopocena alle 22 sui 18-25.
         </div>
       </AdmCard>
 
       {/* ═════ SEZIONE: DISTRIBUZIONE GEOGRAFICA ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Geografia del consumo</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Dove si ordina cosa</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Geografia del consumo</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Dove si ordina cosa</div>
       </div>
 
       {/* Top città */}
       <AdmCard padding={0}>
         <div style={{padding:'16px 20px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Top città · volume ordini & scontrino</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Ordini mensili aggregati e scontrino medio</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Top città · volume ordini & scontrino</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Ordini mensili aggregati e scontrino medio</div>
           </div>
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'2fr 0.8fr 2fr 1.1fr', columnGap:28, padding:'10px 20px', background:ADM.PANEL_SOFT, fontSize:18, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>
+        <div style={{display:'grid', gridTemplateColumns:'2fr 0.8fr 2fr 1.1fr', columnGap:28, padding:'10px 20px', background:ADM.PANEL_SOFT, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>
           <div>Città</div>
           <div style={{textAlign:'right'}}>Locali</div>
           <div>Ordini / mese</div>
@@ -3497,32 +3508,32 @@ function DashUtentiApp() {
             borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
           }}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <span style={{width:22, height:22, borderRadius:6, background:`hsl(${(c.citta.charCodeAt(0)*7)%360}, 45%, 55%)`, color:'#fff', fontSize:17, fontWeight:800, display:'grid', placeItems:'center'}}>{i+1}</span>
-              <span style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>{c.citta}</span>
+              <span style={{width:22, height:22, borderRadius:6, background:`hsl(${(c.citta.charCodeAt(0)*7)%360}, 45%, 55%)`, color:'#fff', fontSize:12.2, fontWeight:800, display:'grid', placeItems:'center'}}>{i+1}</span>
+              <span style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{c.citta}</span>
             </div>
-            <div style={{fontSize:19.5, color:ADM.MUTED, textAlign:'right', fontWeight:600}}>{c.locali}</div>
+            <div style={{fontSize:14, color:ADM.MUTED, textAlign:'right', fontWeight:600}}>{c.locali}</div>
             <div style={{display:'flex', alignItems:'center', gap:10}}>
               <div style={{flex:1, height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden', maxWidth:180}}>
                 <div style={{width:`${(c.ordiniMese/cityMaxOrdini)*100}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.INFO}, ${ADM.PURPLE})`, borderRadius:99}}/>
               </div>
-              <span style={{fontSize:19.5, color:ADM.TEXT, fontWeight:700, minWidth:60, textAlign:'right'}}>{fmtNum(c.ordiniMese)}</span>
+              <span style={{fontSize:14, color:ADM.TEXT, fontWeight:700, minWidth:60, textAlign:'right'}}>{fmtNum(c.ordiniMese)}</span>
             </div>
-            <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, textAlign:'right'}}>{fmtEur(c.aov)}</div>
+            <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, textAlign:'right'}}>{fmtEur(c.aov)}</div>
           </div>
         ))}
       </AdmCard>
 
       {/* Consumo per macro-regione */}
       <AdmCard padding={20}>
-        <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Top piatti per macro-regione</div>
+        <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Top piatti per macro-regione</div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:10}}>
           {regionFood.map((r,i) => (
             <div key={i} style={{padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9, border:`1px solid ${ADM.BORDER_SOFT}`}}>
-              <div style={{fontSize:18, fontWeight:700, color:ADM.PINK, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>{r.regione}</div>
+              <div style={{fontSize:13, fontWeight:700, color:ADM.PINK, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>{r.regione}</div>
               {r.top.map((t,j) => (
                 <div key={j} style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: j < r.top.length-1 ? 6 : 0}}>
-                  <span style={{fontSize:18.5, color:ADM.TEXT, fontWeight:j===0?700:500, lineHeight:1.3}}>{t.n}</span>
-                  <span style={{fontSize:18, color:ADM.MUTED, fontWeight:700, marginLeft:6}}>{t.pct}%</span>
+                  <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:j===0?700:500, lineHeight:1.3}}>{t.n}</span>
+                  <span style={{fontSize:13, color:ADM.MUTED, fontWeight:700, marginLeft:6}}>{t.pct}%</span>
                 </div>
               ))}
             </div>
@@ -3534,15 +3545,15 @@ function DashUtentiApp() {
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16, gap:14, flexWrap:'wrap'}}>
           <div style={{minWidth:0, flex:'1 1 320px'}}>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Stagionalità · confronto piatti su 12 mesi</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Indice di ordini · <strong style={{color:ADM.TEXT}}>100 = media annuale del piatto</strong>. Confronta fino a {seasonalMaxPick} piatti dello stesso o di diversi catering pattern. Dato monetizzabile verso fornitori horeca.</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Stagionalità · confronto piatti su 12 mesi</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Indice di ordini · <strong style={{color:ADM.TEXT}}>100 = media annuale del piatto</strong>. Confronta fino a {seasonalMaxPick} piatti dello stesso o di diversi catering pattern. Dato monetizzabile verso fornitori horeca.</div>
           </div>
           {/* Region selector */}
           <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
-            <span style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
+            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
             <select value={seasonalRegion} onChange={(e)=>setSeasonalRegion(e.target.value)} style={{
               padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:19, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
+              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
               appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
               backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
             }}>
@@ -3554,18 +3565,18 @@ function DashUtentiApp() {
         {/* Multi-select dish picker */}
         <div style={{marginBottom:16}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8}}>
-            <span style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Piatti da confrontare</span>
-            <span style={{fontSize:18, color:ADM.MUTED_SOFT, fontWeight:600}}>{seasonalSel.length} / {seasonalMaxPick}</span>
+            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Piatti da confrontare</span>
+            <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>{seasonalSel.length} / {seasonalMaxPick}</span>
           </div>
           {/* Chips selezionati */}
           <div style={{display:'flex', flexWrap:'wrap', gap:6, marginBottom:8, padding:'8px 8px', border:`1px solid ${ADM.BORDER}`, borderRadius:9, background:'#fff', minHeight:42, alignItems:'center', cursor:'text', position:'relative'}} onClick={()=>setSeasonalPickerOpen(true)}>
             {seasonalSel.map((name, i) => {
               const c = dishPalette[i % dishPalette.length];
               return (
-                <span key={name} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px 4px 10px', background:`${c}14`, border:`1px solid ${c}40`, borderRadius:99, fontSize:18.5, fontWeight:600, color:ADM.TEXT}}>
+                <span key={name} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px 4px 10px', background:`${c}14`, border:`1px solid ${c}40`, borderRadius:99, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
                   <span style={{width:8, height:8, borderRadius:'50%', background:c}}/>
                   {name}
-                  <button onClick={(e)=>{e.stopPropagation(); setSeasonalSel(seasonalSel.filter(x=>x!==name));}} style={{background:'transparent', border:'none', padding:0, margin:'0 0 0 2px', cursor:'pointer', color:ADM.MUTED, fontSize:21, lineHeight:1, fontFamily:'inherit', width:16, height:16, display:'inline-grid', placeItems:'center'}} aria-label={`Rimuovi ${name}`}>×</button>
+                  <button onClick={(e)=>{e.stopPropagation(); setSeasonalSel(seasonalSel.filter(x=>x!==name));}} style={{background:'transparent', border:'none', padding:0, margin:'0 0 0 2px', cursor:'pointer', color:ADM.MUTED, fontSize:15.1, lineHeight:1, fontFamily:'inherit', width:16, height:16, display:'inline-grid', placeItems:'center'}} aria-label={`Rimuovi ${name}`}>×</button>
                 </span>
               );
             })}
@@ -3577,18 +3588,18 @@ function DashUtentiApp() {
               onBlur={()=>setTimeout(()=>setSeasonalPickerOpen(false), 180)}
               placeholder={seasonalSel.length === 0 ? 'Cerca tra centinaia di piatti…' : seasonalSel.length >= seasonalMaxPick ? `Massimo ${seasonalMaxPick} piatti — rimuovine uno per aggiungerne altri` : 'Aggiungi piatto…'}
               disabled={seasonalSel.length >= seasonalMaxPick}
-              style={{flex:'1 1 160px', minWidth:140, border:'none', outline:'none', fontSize:19, color:ADM.TEXT, fontFamily:'inherit', padding:'4px 6px', background:'transparent'}}
+              style={{flex:'1 1 160px', minWidth:140, border:'none', outline:'none', fontSize:13.7, color:ADM.TEXT, fontFamily:'inherit', padding:'4px 6px', background:'transparent'}}
             />
             {seasonalPickerOpen && (
               <div style={{position:'absolute', top:'100%', left:0, right:0, marginTop:6, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:9, boxShadow:'0 8px 24px rgba(15,17,21,0.10)', maxHeight:280, overflowY:'auto', zIndex:30}}>
                 {seasonalFiltered.length === 0 ? (
-                  <div style={{padding:'12px 14px', fontSize:19, color:ADM.MUTED}}>Nessun piatto corrisponde a "{seasonalQuery}"</div>
+                  <div style={{padding:'12px 14px', fontSize:13.7, color:ADM.MUTED}}>Nessun piatto corrisponde a "{seasonalQuery}"</div>
                 ) : (() => {
                   // raggruppa per categoria
                   const byCat = seasonalFiltered.reduce((acc, d) => { (acc[d.cat] = acc[d.cat] || []).push(d); return acc; }, {});
                   return Object.entries(byCat).map(([cat, items]) => (
                     <div key={cat}>
-                      <div style={{padding:'8px 14px 4px', fontSize:17.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', background:ADM.PANEL_SOFT, position:'sticky', top:0}}>{cat}</div>
+                      <div style={{padding:'8px 14px 4px', fontSize:12.6, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', background:ADM.PANEL_SOFT, position:'sticky', top:0}}>{cat}</div>
                       {items.map(d => {
                         const selected = seasonalSel.includes(d.n);
                         const disabled = !selected && seasonalSel.length >= seasonalMaxPick;
@@ -3605,9 +3616,9 @@ function DashUtentiApp() {
                               width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
                               padding:'8px 14px', border:'none', background: selected ? ADM.PINK_BG_SOFT : 'transparent',
                               cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'inherit',
-                              opacity: disabled ? 0.4 : 1, color: ADM.TEXT, fontSize:19, fontWeight: selected ? 700 : 500,
+                              opacity: disabled ? 0.4 : 1, color: ADM.TEXT, fontSize:13.7, fontWeight: selected ? 700 : 500,
                             }}>
-                            <span style={{width:14, height:14, borderRadius:4, border:`1.5px solid ${selected ? ADM.PINK_DARK : ADM.BORDER}`, background: selected ? ADM.PINK_DARK : '#fff', display:'inline-grid', placeItems:'center', color:'#fff', fontSize:17, fontWeight:800}}>{selected?'✓':''}</span>
+                            <span style={{width:14, height:14, borderRadius:4, border:`1.5px solid ${selected ? ADM.PINK_DARK : ADM.BORDER}`, background: selected ? ADM.PINK_DARK : '#fff', display:'inline-grid', placeItems:'center', color:'#fff', fontSize:12.2, fontWeight:800}}>{selected?'✓':''}</span>
                             <span style={{flex:1}}>{d.n}</span>
                           </button>
                         );
@@ -3623,7 +3634,7 @@ function DashUtentiApp() {
         {/* Line chart 12 mesi × N piatti */}
         {(() => {
           if (seasonalSeriesByDish.length === 0) {
-            return <div style={{padding:'48px 20px', textAlign:'center', color:ADM.MUTED, fontSize:19.5}}>Seleziona almeno un piatto per visualizzare la curva di stagionalità</div>;
+            return <div style={{padding:'48px 20px', textAlign:'center', color:ADM.MUTED, fontSize:14}}>Seleziona almeno un piatto per visualizzare la curva di stagionalità</div>;
           }
           const W = 1200, H = 240, padX = 40, padY = 28;
           const plotW = W - padX*2, plotH = H - padY*2;
@@ -3668,10 +3679,10 @@ function DashUtentiApp() {
                   const c = dishPalette[di % dishPalette.length];
                   const peakIdx = d.vals.indexOf(Math.max(...d.vals));
                   return (
-                    <span key={d.name} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:18.5, fontWeight:600, color:ADM.TEXT}}>
+                    <span key={d.name} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
                       <span style={{width:16, height:3, borderRadius:2, background:c}}/>
                       {d.name}
-                      <span style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>· picco {monthsLabel[peakIdx]}</span>
+                      <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>· picco {monthsLabel[peakIdx]}</span>
                     </span>
                   );
                 })}
@@ -3679,21 +3690,21 @@ function DashUtentiApp() {
             </div>
           );
         })()}
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:18, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:18, lineHeight:1.5}}>
           <strong style={{color:ADM.TEXT}}>Come leggere:</strong> linea sopra 100 = mese sopra la media annuale del piatto · sotto 100 = sotto media. Cambia <strong style={{color:ADM.TEXT}}>area</strong> per vedere come la stessa categoria si comporta in geografie diverse. <strong>Dato vendibile</strong> a fornitori horeca per calibrare logistica e listini regionali stagionali.
         </div>
       </AdmCard>
 
       {/* ═════ SEZIONE: COMPOSIZIONE ALIMENTARE ═════ */}
       <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 12px', marginTop:18, paddingLeft:12, borderLeft:`3px solid ${ADM.PINK_DARK}`}}>
-        <div style={{fontSize:23.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Cosa si mangia</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>Piatti, ingredienti, macro-nutrienti</div>
+        <div style={{fontSize:16.9, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>Cosa si mangia</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>Piatti, ingredienti, macro-nutrienti</div>
       </div>
 
       {/* Caveat dati */}
       <div style={{padding:'11px 14px', background:ADM.WARN_SOFT, border:`1px solid #FCD34D`, borderRadius:9, display:'flex', gap:10, alignItems:'flex-start'}}>
         <BuIcons.info size={19} color={ADM.WARN}/>
-        <div style={{flex:1, fontSize:18.5, color:'#92400E', lineHeight:1.5}}>
+        <div style={{flex:1, fontSize:13.3, color:'#92400E', lineHeight:1.5}}>
           <strong>Macro-nutrienti e ingredienti</strong> sono derivati su un campione di piatti pre-labellati (~38% del catalogo Byup). Per portarli al 100% serve completare il labeling nutrizionale del menu di ogni locale partner.
         </div>
       </div>
@@ -3702,8 +3713,8 @@ function DashUtentiApp() {
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <AdmCard padding={20}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:14, gap:10}}>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Top piatti più ordinati in Italia</div>
-            <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>Sparkline = ultimi 12 mesi · Δ% vs 12m fa</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Top piatti più ordinati in Italia</div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>Sparkline = ultimi 12 mesi · Δ% vs 12m fa</div>
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:10}}>
             {topPiattiTrend.map((p, i) => {
@@ -3713,13 +3724,13 @@ function DashUtentiApp() {
                 <div key={i}>
                   <div style={{display:'flex', justifyContent:'space-between', marginBottom:4, alignItems:'center', gap:10}}>
                     <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1}}>
-                      <span style={{fontSize:17.5, fontWeight:800, color:ADM.MUTED_SOFT, minWidth:14}}>{i+1}</span>
-                      <span style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
-                      <span style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>· {p.categoria}</span>
+                      <span style={{fontSize:12.6, fontWeight:800, color:ADM.MUTED_SOFT, minWidth:14}}>{i+1}</span>
+                      <span style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
+                      <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>· {p.categoria}</span>
                     </div>
                     <MicroSpark data={p.spark} color={trendUp ? ADM.OK : ADM.DANGER} width={62} height={20}/>
-                    <span style={{fontSize:17.5, fontWeight:700, color: trendUp ? ADM.OK : ADM.DANGER, minWidth:38, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{trendUp?'+':''}{p.trend}%</span>
-                    <span style={{fontSize:19, color:ADM.TEXT, fontWeight:700, minWidth:50, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtNum(p.ordini)}</span>
+                    <span style={{fontSize:12.6, fontWeight:700, color: trendUp ? ADM.OK : ADM.DANGER, minWidth:38, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{trendUp?'+':''}{p.trend}%</span>
+                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:700, minWidth:50, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtNum(p.ordini)}</span>
                   </div>
                   <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                     <div style={{width:`${(p.ordini/maxOrd)*100}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`, borderRadius:99}}/>
@@ -3728,15 +3739,15 @@ function DashUtentiApp() {
               );
             })}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
             <strong style={{color:ADM.OK}}>Spritz Aperol +20%</strong>, <strong style={{color:ADM.OK}}>Tiramisù +15%</strong> e <strong style={{color:ADM.OK}}>Margherita +12%</strong> sono i piatti in maggior crescita anno su anno. <strong style={{color:ADM.DANGER}}>Cacio e Pepe -2%</strong>: unico in calo, da indagare insieme ai locali partner.
           </div>
         </AdmCard>
 
         <AdmCard padding={20}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:14, gap:10}}>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Top ingredienti più ordinati</div>
-            <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>Sparkline = ultimi 12 mesi · Δ% vs 12m fa</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Top ingredienti più ordinati</div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>Sparkline = ultimi 12 mesi · Δ% vs 12m fa</div>
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:10}}>
             {topIngrTrend.map((ing, i) => {
@@ -3746,13 +3757,13 @@ function DashUtentiApp() {
                 <div key={i}>
                   <div style={{display:'flex', justifyContent:'space-between', marginBottom:4, alignItems:'center', gap:10}}>
                     <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1}}>
-                      <span style={{fontSize:17.5, fontWeight:800, color:ADM.MUTED_SOFT, minWidth:14}}>{i+1}</span>
-                      <span style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{ing.n}</span>
-                      <span style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>· {ing.cat}</span>
+                      <span style={{fontSize:12.6, fontWeight:800, color:ADM.MUTED_SOFT, minWidth:14}}>{i+1}</span>
+                      <span style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{ing.n}</span>
+                      <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>· {ing.cat}</span>
                     </div>
                     <MicroSpark data={ing.spark} color={trendUp ? ADM.OK : ADM.DANGER} width={62} height={20}/>
-                    <span style={{fontSize:17.5, fontWeight:700, color: trendUp ? ADM.OK : ADM.DANGER, minWidth:38, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{trendUp?'+':''}{ing.trend}%</span>
-                    <span style={{fontSize:19, color:ADM.TEXT, fontWeight:700, minWidth:50, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtNum(ing.ord)}</span>
+                    <span style={{fontSize:12.6, fontWeight:700, color: trendUp ? ADM.OK : ADM.DANGER, minWidth:38, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{trendUp?'+':''}{ing.trend}%</span>
+                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:700, minWidth:50, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtNum(ing.ord)}</span>
                   </div>
                   <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                     <div style={{width:`${(ing.ord/maxOrd)*100}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.OK}, #15803D)`, borderRadius:99}}/>
@@ -3761,7 +3772,7 @@ function DashUtentiApp() {
               );
             })}
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
             Forte crescita su <strong style={{color:ADM.OK}}>Avocado +28%</strong> e <strong style={{color:ADM.OK}}>Salmone +22%</strong> — trend health-food in linea col mercato. <strong style={{color:ADM.DANGER}}>Uovo -3%</strong>: lieve calo, da monitorare.
           </div>
         </AdmCard>
@@ -3771,14 +3782,14 @@ function DashUtentiApp() {
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
           <div style={{minWidth:0, flex:'1 1 300px'}}>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Distribuzione macro-nutrienti · andamento 12 mesi</div>
-            <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>% calorie medie per ordine · come la dieta si manifesta nelle diverse aree geografiche</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Distribuzione macro-nutrienti · andamento 12 mesi</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>% calorie medie per ordine · come la dieta si manifesta nelle diverse aree geografiche</div>
           </div>
           <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
-            <span style={{fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
+            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
             <select value={macroRegion} onChange={(e)=>setMacroRegion(e.target.value)} style={{
               padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:19, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
+              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
               appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
               backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
             }}>
@@ -3842,24 +3853,24 @@ function DashUtentiApp() {
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
                   <div style={{display:'flex', alignItems:'center', gap:7}}>
                     <span style={{width:10, height:10, borderRadius:3, background:m.color}}/>
-                    <span style={{fontSize:18.5, color:ADM.TEXT, fontWeight:700}}>{m.n}</span>
+                    <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:700}}>{m.n}</span>
                   </div>
                   {m.trend !== 0 && (
-                    <span style={{fontSize:17.5, fontWeight:700, color:toneColor, fontVariantNumeric:'tabular-nums'}}>
+                    <span style={{fontSize:12.6, fontWeight:700, color:toneColor, fontVariantNumeric:'tabular-nums'}}>
                       {trendUp?'+':''}{m.trend}pp
                     </span>
                   )}
                 </div>
                 <div style={{display:'flex', alignItems:'baseline', gap:8}}>
-                  <div style={{fontSize:33, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', lineHeight:1}}>{m.pct}%</div>
-                  <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600}}>vs {macrosTime[i].series[0]}% un anno fa</div>
+                  <div style={{fontSize:23.8, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', lineHeight:1}}>{m.pct}%</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>vs {macrosTime[i].series[0]}% un anno fa</div>
                 </div>
-                <div style={{fontSize:18, color:ADM.MUTED, marginTop:5, lineHeight:1.4}}>{m.desc}</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:5, lineHeight:1.4}}>{m.desc}</div>
               </div>
             );
           })}
         </div>
-        <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
           {(() => {
             const carb = macros.find(m=>m.n==='Carboidrati');
             const prot = macros.find(m=>m.n==='Proteine');
@@ -3978,8 +3989,8 @@ function DashCamerieri() {
               <BuIcons.shield size={23}/>
             </div>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Tasso di attivazione staff · giornaliero</div>
-              <div style={{fontSize:19, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
+              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Tasso di attivazione staff · giornaliero</div>
+              <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
                 {benchText}
               </div>
             </div>
@@ -3989,12 +4000,12 @@ function DashCamerieri() {
             <div style={{position:'absolute', inset:0, background:'#F4F5F7', borderRadius:6}}/>
             {/* benchmark band 30-40% */}
             <div style={{position:'absolute', left:'30%', width:'10%', top:0, bottom:0, background:`${ADM.OK}22`, borderLeft:`1px dashed ${ADM.OK}`, borderRight:`1px dashed ${ADM.OK}`}}/>
-            <div style={{position:'absolute', left:'30%', top:-16, fontSize:18, color:ADM.OK, fontWeight:700, letterSpacing:'0.05em'}}>BENCHMARK 30–40%</div>
+            <div style={{position:'absolute', left:'30%', top:-16, fontSize:13, color:ADM.OK, fontWeight:700, letterSpacing:'0.05em'}}>BENCHMARK 30–40%</div>
             {/* current marker */}
             <div style={{position:'absolute', left:`calc(${activeRate}% - 2px)`, top:-4, bottom:-4, width:4, background:ADM[benchTone], borderRadius:2, boxShadow:`0 0 0 2px #fff, 0 0 8px ${ADM[benchTone]}66`}}/>
-            <div style={{position:'absolute', left:`${activeRate}%`, transform:'translateX(-50%)', bottom:-22, fontSize:18, fontWeight:800, color:ADM[benchTone]}}>{activeRate}%</div>
+            <div style={{position:'absolute', left:`${activeRate}%`, transform:'translateX(-50%)', bottom:-22, fontSize:13, fontWeight:800, color:ADM[benchTone]}}>{activeRate}%</div>
           </div>
-          <div style={{display:'flex', justifyContent:'space-between', fontSize:17.5, color:ADM.MUTED_SOFT, fontWeight:600, fontFamily:'ui-monospace, monospace', marginTop:18}}>
+          <div style={{display:'flex', justifyContent:'space-between', fontSize:12.6, color:ADM.MUTED_SOFT, fontWeight:600, fontFamily:'ui-monospace, monospace', marginTop:18}}>
             <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
           </div>
         </AdmCard>
@@ -4005,9 +4016,9 @@ function DashCamerieri() {
               <BuIcons.alertTriangle size={23}/>
             </div>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:18, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em'}}>Possibile abbandono</div>
-              <div style={{fontSize:35, fontWeight:800, color: staffAbbandono.length > 0 ? ADM.DANGER : ADM.OK, marginTop:4, letterSpacing:'-0.025em', lineHeight:1}}>{staffAbbandono.length}</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:5, lineHeight:1.45}}>
+              <div style={{fontSize:13, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em'}}>Possibile abbandono</div>
+              <div style={{fontSize:25.2, fontWeight:800, color: staffAbbandono.length > 0 ? ADM.DANGER : ADM.OK, marginTop:4, letterSpacing:'-0.025em', lineHeight:1}}>{staffAbbandono.length}</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:5, lineHeight:1.45}}>
                 {staffAbbandono.length > 0
                   ? `Locali con staff registrato ma inattivo da oltre 21 giorni · candidati a churn`
                   : 'Tutti i locali con staff attivo · nessun segnale di abbandono'}
@@ -4019,7 +4030,7 @@ function DashCamerieri() {
               {staffAbbandono.slice(0, 3).map((l, i) => {
                 const days = Math.floor((Date.now() - new Date(l.lastLogin).getTime()) / 86400000);
                 return (
-                  <div key={l.id} style={{display:'flex', alignItems:'center', gap:8, fontSize:18.5}}>
+                  <div key={l.id} style={{display:'flex', alignItems:'center', gap:8, fontSize:13.3}}>
                     <span style={{width:5, height:5, borderRadius:'50%', background:ADM.DANGER}}/>
                     <span style={{color:ADM.TEXT, fontWeight:600, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{l.nome}</span>
                     <span style={{color:ADM.DANGER, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>{days}gg</span>
@@ -4027,7 +4038,7 @@ function DashCamerieri() {
                 );
               })}
               {staffAbbandono.length > 3 && (
-                <div style={{fontSize:17.5, color:ADM.MUTED, fontStyle:'italic', marginTop:2}}>e altri {staffAbbandono.length - 3}…</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED, fontStyle:'italic', marginTop:2}}>e altri {staffAbbandono.length - 3}…</div>
               )}
             </div>
           )}
@@ -4038,10 +4049,10 @@ function DashCamerieri() {
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, flexWrap:'wrap', gap:10}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Distribuzione attività staff</div>
-            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Azioni eseguite per giorno × fascia oraria · ultime 4 settimane</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Distribuzione attività staff</div>
+            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Azioni eseguite per giorno × fascia oraria · ultime 4 settimane</div>
           </div>
-          <div style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:18, color:ADM.MUTED, fontWeight:600}}>
+          <div style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
             <span>Low</span>
             <span style={{display:'inline-flex', gap:2}}>
               {[0.15, 0.35, 0.55, 0.75, 0.95].map((o, i) => (
@@ -4054,11 +4065,11 @@ function DashCamerieri() {
         <div style={{display:'grid', gridTemplateColumns:'48px repeat(7, 1fr)', gap:6, alignItems:'center'}}>
           <div/>
           {heatmap.map(d => (
-            <div key={d.giorno} style={{fontSize:18, fontWeight:700, color:ADM.MUTED, textAlign:'center', letterSpacing:'0.04em', textTransform:'uppercase'}}>{d.giorno}</div>
+            <div key={d.giorno} style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textAlign:'center', letterSpacing:'0.04em', textTransform:'uppercase'}}>{d.giorno}</div>
           ))}
           {heatmap[0].fasce.map((_, fi) => (
             <React.Fragment key={fi}>
-              <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{heatmap[0].fasce[fi].f}</div>
+              <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{heatmap[0].fasce[fi].f}</div>
               {heatmap.map((d, di) => {
                 const v = d.fasce[fi].v;
                 const opacity = 0.12 + (v / heatMax) * 0.85;
@@ -4072,14 +4083,14 @@ function DashCamerieri() {
                     }}
                     onMouseEnter={e=>{ e.currentTarget.style.transform='scale(1.04)'; e.currentTarget.style.opacity=String(Math.min(1, opacity+0.1)); }}
                     onMouseLeave={e=>{ e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.opacity=String(opacity); }}>
-                    <span style={{fontSize:17.5, color: opacity > 0.55 ? '#fff' : ADM.TEXT, fontWeight:700, letterSpacing:'-0.005em'}}>{v}</span>
+                    <span style={{fontSize:12.6, color: opacity > 0.55 ? '#fff' : ADM.TEXT, fontWeight:700, letterSpacing:'-0.005em'}}>{v}</span>
                   </div>
                 );
               })}
             </React.Fragment>
           ))}
         </div>
-        <div style={{marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', gap:18, fontSize:18.5, color:ADM.MUTED, flexWrap:'wrap'}}>
+        <div style={{marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', gap:18, fontSize:13.3, color:ADM.MUTED, flexWrap:'wrap'}}>
           <span><strong style={{color:ADM.TEXT}}>Picco:</strong> Sab/Dom 19–23 · cena weekend</span>
           <span><strong style={{color:ADM.TEXT}}>Min:</strong> Lun-Mar 15–19 · pomeriggio infrasettimanale</span>
           <span><strong style={{color:ADM.TEXT}}>Insight:</strong> staffare con priorità weekend serali</span>
@@ -4090,10 +4101,10 @@ function DashCamerieri() {
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, flexWrap:'wrap', gap:10}}>
           <div>
-            <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT}}>Azioni più frequenti</div>
-            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Ordinate per volume · ultimi 30 giorni + trend WoW</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Azioni più frequenti</div>
+            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Ordinate per volume · ultimi 30 giorni + trend WoW</div>
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>{fmtNum(topActions.reduce((s,a)=>s+a.usi, 0))} azioni totali</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{fmtNum(topActions.reduce((s,a)=>s+a.usi, 0))} azioni totali</div>
         </div>
         <div style={{display:'flex', flexDirection:'column'}}>
           {topActions.map((a,i,arr)=>{
@@ -4105,14 +4116,14 @@ function DashCamerieri() {
                 padding:'12px 0',
                 borderBottom: i === arr.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
               }}>
-                <div style={{fontSize:18, color:ADM.MUTED_SOFT, fontWeight:700, textAlign:'right'}}>{i+1}</div>
+                <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:700, textAlign:'right'}}>{i+1}</div>
                 <div style={{minWidth:0}}>
-                  <div style={{fontSize:20, color:ADM.TEXT, fontWeight:600, marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.nome}</div>
+                  <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600, marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.nome}</div>
                   <div style={{height:4, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                     <div style={{width:`${pctOfMax}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`, borderRadius:99}}/>
                   </div>
                 </div>
-                <div style={{textAlign:'right', fontSize:20, color:ADM.TEXT, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>{fmtNum(a.usi)}</div>
+                <div style={{textAlign:'right', fontSize:14.4, color:ADM.TEXT, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>{fmtNum(a.usi)}</div>
                 <div style={{display:'flex', justifyContent:'flex-end'}}>
                   <MicroSpark data={a.spark} color={a.trend >= 0 ? ADM.OK : ADM.DANGER} width={84} height={20}/>
                 </div>
@@ -4151,8 +4162,8 @@ function RevenueSection() {
     <AdmCard padding={22}>
       <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:18, marginBottom:18, flexWrap:'wrap'}}>
         <div>
-          <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT}}>Ricavi nel periodo</div>
-          <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Ricavi nel periodo</div>
+          <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>
             {periodo === 'tot' ? `Da ${TOTAL_REVENUE_HISTORICAL.meseAvvio} ad oggi` :
              periodo === '6m' ? 'Ultimi 6 mesi' :
              periodo === '12m' ? 'Ultimi 12 mesi' : `Anno ${anno}`}
@@ -4163,8 +4174,8 @@ function RevenueSection() {
           <Legend color={ADM.PINK} label="Abbonamenti" val={fmtEur(histSub)}/>
           <Legend color={ADM.PURPLE} label="Extra ordini" val={fmtEur(histExtra)}/>
           <div style={{paddingLeft:14, borderLeft:`1px solid ${ADM.BORDER}`}}>
-            <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>Totale</div>
-            <div style={{fontSize:31, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:2}}>{fmtEur(histSub+histExtra)}</div>
+            <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>Totale</div>
+            <div style={{fontSize:22.3, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:2}}>{fmtEur(histSub+histExtra)}</div>
           </div>
         </div>
 
@@ -4175,7 +4186,7 @@ function RevenueSection() {
               background: periodo===p.id ? ADM.TEXT : '#fff',
               color: periodo===p.id ? '#fff' : ADM.MUTED,
               border: periodo===p.id ? 'none' : `1px solid ${ADM.BORDER}`,
-              borderRadius:7, fontSize:18.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+              borderRadius:7, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
             }}>{p.label}</button>
           ))}
         </div>
@@ -4191,7 +4202,7 @@ function RevenueSection() {
                 <div style={{width:'100%', height: `${hExtra}%`, background: ADM.PURPLE, borderRadius: '4px 4px 0 0', minHeight: m.extra > 0 ? 2 : 0}}/>
                 <div style={{width:'100%', height: `${hSub}%`, background: `linear-gradient(180deg, ${ADM.PINK}, ${ADM.PINK_DARK})`, minHeight: 2}}/>
               </div>
-              <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:500, whiteSpace:'nowrap'}}>{m.mese}</div>
+              <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:500, whiteSpace:'nowrap'}}>{m.mese}</div>
             </div>
           );
         })}
@@ -4203,8 +4214,8 @@ function RevenueSection() {
 function Legend({ color, label, val }) {
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
-      <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
-      <div style={{fontSize:25, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:2, display:'flex', alignItems:'center', gap:7}}>
+      <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
+      <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:2, display:'flex', alignItems:'center', gap:7}}>
         <span style={{width:10, height:10, background:color, borderRadius:3}}/>
         {val}
       </div>
@@ -4219,10 +4230,10 @@ function ScreensCard() {
     <AdmCard padding={20}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
         <div>
-          <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT}}>Schermate più usate</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Clicca per vedere le tab interne</div>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Schermate più usate</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Clicca per vedere le tab interne</div>
         </div>
-        <span style={{fontSize:17.5, color:ADM.MUTED_SOFT}}>% locali che la visita</span>
+        <span style={{fontSize:12.6, color:ADM.MUTED_SOFT}}>% locali che la visita</span>
       </div>
       <div style={{display:'flex', flexDirection:'column', gap:8}}>
         {SCREENS_USAGE.map((s, i) => {
@@ -4235,11 +4246,11 @@ function ScreensCard() {
                 cursor: hasTabs ? 'pointer' : 'default', fontFamily:'inherit', textAlign:'left',
               }}>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5}}>
-                  <span style={{display:'flex', alignItems:'center', gap:6, fontSize:19.5, color:ADM.TEXT, fontWeight:500}}>
+                  <span style={{display:'flex', alignItems:'center', gap:6, fontSize:14, color:ADM.TEXT, fontWeight:500}}>
                     {hasTabs ? <span style={{display:'inline-flex', color:ADM.MUTED, transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition:'transform 0.15s'}}><BuIcons.chevronRight size={16}/></span> : <span style={{width:11}}/>}
                     {s.nome}
                   </span>
-                  <span style={{fontSize:18.5, color:ADM.MUTED, fontWeight:600}}>{fmtNum(s.visite)} · {s.pct}%</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{fmtNum(s.visite)} · {s.pct}%</span>
                 </div>
                 <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                   <div style={{width:`${s.pct}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`, borderRadius:99}}/>
@@ -4250,8 +4261,8 @@ function ScreensCard() {
                   {s.tabs.map((t, ti) => (
                     <div key={ti} style={{paddingLeft:10}}>
                       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3}}>
-                        <span style={{fontSize:18.5, color:ADM.TEXT}}>{t.nome}</span>
-                        <span style={{fontSize:18, color:ADM.MUTED, fontWeight:600}}>{t.pct}%</span>
+                        <span style={{fontSize:13.3, color:ADM.TEXT}}>{t.nome}</span>
+                        <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>{t.pct}%</span>
                       </div>
                       <div style={{height:3, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                         <div style={{width:`${t.pct}%`, height:'100%', background:ADM.PURPLE, borderRadius:99}}/>
@@ -4273,22 +4284,22 @@ function FeaturesCard() {
     <AdmCard padding={20}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
         <div>
-          <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT}}>Funzionalità più usate</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>Azioni dei gestori</div>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Funzionalità più usate</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Azioni dei gestori</div>
         </div>
-        <span style={{fontSize:17.5, color:ADM.MUTED_SOFT}}>Ultimi 30 giorni</span>
+        <span style={{fontSize:12.6, color:ADM.MUTED_SOFT}}>Ultimi 30 giorni</span>
       </div>
       <div style={{display:'flex', flexDirection:'column'}}>
         {FEATURES_USAGE.slice(0, 9).map((f, i) => (
           <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'7.5px 0', borderBottom: i === 8 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-            <div style={{fontSize:18, color:ADM.MUTED_SOFT, fontWeight:700, width:18}}>{i+1}</div>
+            <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:700, width:18}}>{i+1}</div>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:19.5, color:ADM.TEXT, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{f.nome}</div>
-              <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:1}}>{f.modulo}</div>
+              <div style={{fontSize:14, color:ADM.TEXT, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{f.nome}</div>
+              <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{f.modulo}</div>
             </div>
-            <div style={{fontSize:19, color:ADM.TEXT, fontWeight:600, width:74, textAlign:'right'}}>{fmtNum(f.usi)}</div>
+            <div style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, width:74, textAlign:'right'}}>{fmtNum(f.usi)}</div>
             <div style={{width:36, textAlign:'right'}}>
-              <span style={{fontSize:17.5, fontWeight:600, color: f.trend >= 0 ? ADM.OK : ADM.DANGER}}>{f.trend >= 0 ? '↑' : '↓'} {Math.abs(f.trend)}%</span>
+              <span style={{fontSize:12.6, fontWeight:600, color: f.trend >= 0 ? ADM.OK : ADM.DANGER}}>{f.trend >= 0 ? '↑' : '↓'} {Math.abs(f.trend)}%</span>
             </div>
           </div>
         ))}

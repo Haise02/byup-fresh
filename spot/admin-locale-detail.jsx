@@ -26,15 +26,15 @@ function LocaleDrawer({ locale: l, onClose }) {
             width:48, height:48, borderRadius:10,
             background: `hsl(${(l.id.charCodeAt(1)+l.id.charCodeAt(3))*3 % 360}, 35%, 55%)`,
             color:'#fff', display:'grid', placeItems:'center',
-            fontWeight:700, fontSize:23, flexShrink:0,
+            fontWeight:700, fontSize:16.6, flexShrink:0,
           }}>{l.nome.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase()}</div>
           <div style={{flex:1, minWidth:0}}>
             <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3}}>
-              <div style={{fontSize:25, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{l.nome}</div>
+              <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{l.nome}</div>
               <AdmPlanBadge piano={l.piano}/>
               <AdmStatoBadge stato={l.stato}/>
             </div>
-            <div style={{fontSize:19, color:ADM.MUTED, display:'flex', gap:10}}>
+            <div style={{fontSize:13.7, color:ADM.MUTED, display:'flex', gap:10}}>
               <span style={{fontFamily:'ui-monospace,monospace'}}>{l.id}</span>
               <span style={{color:ADM.MUTED_LIGHT}}>·</span>
               <span>{l.tipo}, {l.citta}</span>
@@ -78,8 +78,8 @@ function DrwPanoramica({ locale: l }) {
         <div style={{padding:'14px 16px', background: ADM.WARN_SOFT, border:`1px solid #FCD34D`, borderRadius:10, display:'flex', gap:12, alignItems:'flex-start'}}>
           <div style={{color: ADM.WARN, marginTop:1}}><BuIcons.pause size={23}/></div>
           <div style={{flex:1}}>
-            <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT}}>Fermo da {fmtRelative(l.lastLogin)} su "{stoppedStep.label}"</div>
-            <div style={{fontSize:19, color:'#92400E', marginTop:3}}>Considera di inviare un reminder o assistenza dedicata per sbloccarlo.</div>
+            <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Fermo da {fmtRelative(l.lastLogin)} su "{stoppedStep.label}"</div>
+            <div style={{fontSize:13.7, color:'#92400E', marginTop:3}}>Considera di inviare un reminder o assistenza dedicata per sbloccarlo.</div>
           </div>
           <AdmButton variant="secondary" size="sm" icon="mail">Invia reminder</AdmButton>
         </div>
@@ -88,8 +88,8 @@ function DrwPanoramica({ locale: l }) {
         <div style={{padding:'14px 16px', background: ADM.INFO_SOFT, border:`1px solid #BFDBFE`, borderRadius:10, display:'flex', gap:12, alignItems:'flex-start'}}>
           <div style={{color: ADM.INFO, marginTop:1}}><BuIcons.info size={23}/></div>
           <div style={{flex:1}}>
-            <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT}}>Onboarding saltato</div>
-            <div style={{fontSize:19, color:'#1E40AF', marginTop:3}}>Il locale è andato direttamente in Panoramica senza completare il setup guidato.</div>
+            <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Onboarding saltato</div>
+            <div style={{fontSize:13.7, color:'#1E40AF', marginTop:3}}>Il locale è andato direttamente in Panoramica senza completare il setup guidato.</div>
           </div>
         </div>
       )}
@@ -102,7 +102,7 @@ function DrwPanoramica({ locale: l }) {
       </div>
 
       <AdmCard padding={18}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:12}}>Andamento ordini · 14 giorni</div>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:12}}>Andamento ordini · 14 giorni</div>
         <AdmBarChart data={[12,18,14,22,28,32,24,30,38,42,36,44,48,52].map(x=>x*(l.ordiniGiorno/30))} labels={Array(14).fill('')} color={ADM.PINK} height={140}/>
       </AdmCard>
 
@@ -118,9 +118,9 @@ function DrwPanoramica({ locale: l }) {
 function MiniStat({ label, value, sub }) {
   return (
     <AdmCard padding={14}>
-      <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
-      <div style={{fontSize:27, fontWeight:700, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.01em'}}>{value}</div>
-      {sub && <div style={{fontSize:18, color:ADM.MUTED, marginTop:2}}>{sub}</div>}
+      <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
+      <div style={{fontSize:19.4, fontWeight:700, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.01em'}}>{value}</div>
+      {sub && <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{sub}</div>}
     </AdmCard>
   );
 }
@@ -134,8 +134,8 @@ function DrwAdozioneDigitale({ locale: l }) {
   if (qr == null) {
     return (
       <AdmCard padding={18}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>Adozione digitale</div>
-        <div style={{fontSize:19, color:ADM.MUTED, lineHeight:1.5}}>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>Adozione digitale</div>
+        <div style={{fontSize:13.7, color:ADM.MUTED, lineHeight:1.5}}>
           {stato === 'pending' || stato === 'onboarding'
             ? 'Il locale non ha ancora completato l\'onboarding: il tasso QR sarà disponibile dal Go-live.'
             : 'Locale non più operativo: tasso QR non rilevato.'}
@@ -152,22 +152,22 @@ function DrwAdozioneDigitale({ locale: l }) {
     <AdmCard padding={18}>
       <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12, gap:12}}>
         <div>
-          <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>Adozione digitale</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>% di ordini/coperti che passano dal QR byup · ultimi 30 giorni</div>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Adozione digitale</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>% di ordini/coperti che passano dal QR byup · ultimi 30 giorni</div>
         </div>
         <span style={{
           padding:'4px 10px', borderRadius:99,
           background: band.color, color: band.textOn,
-          fontSize:18, fontWeight:800, whiteSpace:'nowrap',
+          fontSize:13, fontWeight:800, whiteSpace:'nowrap',
           textTransform:'uppercase', letterSpacing:'0.04em',
         }}>{band.label}</span>
       </div>
 
       <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:12}}>
-        <div style={{fontSize:41, fontWeight:800, color: band.color, letterSpacing:'-0.02em', lineHeight:1}}>
+        <div style={{fontSize:29.5, fontWeight:800, color: band.color, letterSpacing:'-0.02em', lineHeight:1}}>
           {qr === 0 ? '0%' : `${qr.toFixed(1)}%`}
         </div>
-        <div style={{fontSize:19, color:ADM.MUTED, lineHeight:1.4}}>fascia <strong style={{color:ADM.TEXT}}>{band.range}</strong></div>
+        <div style={{fontSize:13.7, color:ADM.MUTED, lineHeight:1.4}}>fascia <strong style={{color:ADM.TEXT}}>{band.range}</strong></div>
       </div>
 
       {/* Scala segmentata con marker */}
@@ -193,7 +193,7 @@ function DrwAdozioneDigitale({ locale: l }) {
           borderTop:`7px solid ${ADM.TEXT}`,
         }}/>
       </div>
-      <div style={{display:'flex', justifyContent:'space-between', fontSize:17, color:ADM.MUTED_SOFT, fontFamily:'ui-monospace, monospace'}}>
+      <div style={{display:'flex', justifyContent:'space-between', fontSize:12.2, color:ADM.MUTED_SOFT, fontFamily:'ui-monospace, monospace'}}>
         <span>0%</span><span>5%</span><span>15%</span><span>30%</span><span>50%+</span>
       </div>
 
@@ -201,7 +201,7 @@ function DrwAdozioneDigitale({ locale: l }) {
       <div style={{
         marginTop:14, padding:'10px 12px',
         background: `${band.color}10`, border:`1px solid ${band.color}40`, borderRadius:8,
-        fontSize:19, color:ADM.TEXT, lineHeight:1.5,
+        fontSize:13.7, color:ADM.TEXT, lineHeight:1.5,
       }}>
         <strong style={{color:band.color}}>{band.label}.</strong> {band.hint}
       </div>
@@ -244,8 +244,8 @@ function DrwScanOrdini({ locale: l }) {
   if (l.qrAdoption == null) {
     return (
       <AdmCard padding={18}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>Ordini · Scan QR</div>
-        <div style={{fontSize:19, color:ADM.MUTED, lineHeight:1.5}}>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>Ordini · Scan QR</div>
+        <div style={{fontSize:13.7, color:ADM.MUTED, lineHeight:1.5}}>
           Disponibile dopo il Go-live, quando il locale inizia a tracciare scan e ordini.
         </div>
       </AdmCard>
@@ -257,7 +257,7 @@ function DrwScanOrdini({ locale: l }) {
       <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12, gap:12}}>
         <div style={{minWidth:0}}>
           <div style={{display:'flex', alignItems:'center', gap:8}}>
-            <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>Ordini · Scan QR</div>
+            <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Ordini · Scan QR</div>
             <span
               onMouseEnter={()=>setHoverInfo(true)}
               onMouseLeave={()=>setHoverInfo(false)}
@@ -267,7 +267,7 @@ function DrwScanOrdini({ locale: l }) {
                 background: hoverInfo ? ADM.TEXT : '#F0F1F3',
                 color: hoverInfo ? '#fff' : ADM.MUTED,
                 display:'inline-grid', placeItems:'center',
-                fontSize:18, fontWeight:700, cursor:'help',
+                fontSize:13, fontWeight:700, cursor:'help',
                 transition:'all 0.15s',
               }}>i
               {hoverInfo && (
@@ -278,18 +278,18 @@ function DrwScanOrdini({ locale: l }) {
                   padding:'12px 14px', zIndex:30, textAlign:'left',
                   fontFamily:'inherit',
                 }}>
-                  <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6}}>
+                  <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6}}>
                     Ultimi {opp.label}
                   </div>
-                  <div style={{display:'flex', justifyContent:'space-between', fontSize:18.5, color:ADM.TEXT, marginBottom:3}}>
+                  <div style={{display:'flex', justifyContent:'space-between', fontSize:13.3, color:ADM.TEXT, marginBottom:3}}>
                     <span style={{color:ADM.MUTED}}>Ordini</span>
                     <span style={{fontWeight:700}}>{fmtNum(opp.ord)}</span>
                   </div>
-                  <div style={{display:'flex', justifyContent:'space-between', fontSize:18.5, color:ADM.TEXT, marginBottom:6}}>
+                  <div style={{display:'flex', justifyContent:'space-between', fontSize:13.3, color:ADM.TEXT, marginBottom:6}}>
                     <span style={{color:ADM.MUTED}}>Scan QR</span>
                     <span style={{fontWeight:700}}>{fmtNum(opp.scan)}</span>
                   </div>
-                  <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, paddingTop:6, display:'flex', justifyContent:'space-between', fontSize:19.5, color:ADM.TEXT, fontWeight:700}}>
+                  <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, paddingTop:6, display:'flex', justifyContent:'space-between', fontSize:14, color:ADM.TEXT, fontWeight:700}}>
                     <span>Conversione</span>
                     <span>{opp.scan > 0 ? fmtP(oppRatio) : '—'}</span>
                   </div>
@@ -297,7 +297,7 @@ function DrwScanOrdini({ locale: l }) {
               )}
             </span>
           </div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:2}}>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>
             Filtra per mese · hover sull'icona per vedere il dato annuale
           </div>
         </div>
@@ -312,7 +312,7 @@ function DrwScanOrdini({ locale: l }) {
               padding:'4px 11px', border:'none',
               background: periodo === p.id ? '#fff' : 'transparent',
               color: periodo === p.id ? ADM.TEXT : ADM.MUTED,
-              fontSize:18.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+              fontSize:13.3, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
               borderRadius:6,
               boxShadow: periodo === p.id ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
               transition:'all 0.15s',
@@ -335,7 +335,7 @@ function DrwScanOrdini({ locale: l }) {
         border:`1px solid ${aboveAvg ? '#86EFAC' : '#FCA5A5'}`,
         display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
       }}>
-        <div style={{fontSize:19, color: aboveAvg ? '#065F46' : '#7F1D1D', lineHeight:1.4, minWidth:0}}>
+        <div style={{fontSize:13.7, color: aboveAvg ? '#065F46' : '#7F1D1D', lineHeight:1.4, minWidth:0}}>
           <strong>Media piattaforma:</strong> {fmtP(ratioAvg)} ({isAnno ? '12 mesi' : '30 giorni'}).{' '}
           {scan > 0
             ? aboveAvg
@@ -346,7 +346,7 @@ function DrwScanOrdini({ locale: l }) {
         <span style={{
           padding:'3px 9px', borderRadius:99,
           background: accent, color:'#fff',
-          fontSize:17.5, fontWeight:700, whiteSpace:'nowrap',
+          fontSize:12.6, fontWeight:700, whiteSpace:'nowrap',
           textTransform:'uppercase', letterSpacing:'0.04em',
         }}>{aboveAvg ? 'Sopra' : 'Sotto'} media</span>
       </div>
@@ -357,8 +357,8 @@ function DrwScanOrdini({ locale: l }) {
 function DrwMetricBox({ label, value, tone }) {
   return (
     <div style={{padding:'10px 12px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:8}}>
-      <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:3}}>{label}</div>
-      <div style={{fontSize:25, fontWeight:800, color: tone || ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.1, fontFamily:'ui-monospace, monospace'}}>{value}</div>
+      <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:3}}>{label}</div>
+      <div style={{fontSize:18, fontWeight:800, color: tone || ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.1, fontFamily:'ui-monospace, monospace'}}>{value}</div>
     </div>
   );
 }
@@ -367,8 +367,8 @@ function DrwFunnelCompact({ locale: l }) {
   return (
     <AdmCard padding={18}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>Funnel onboarding</div>
-        <div style={{fontSize:18.5, color:ADM.MUTED}}>{l.completedSteps.length} di {ONB_STEPS.length} step completati</div>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Funnel onboarding</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>{l.completedSteps.length} di {ONB_STEPS.length} step completati</div>
       </div>
       <FunnelStepper locale={l} variant="compact"/>
     </AdmCard>
@@ -393,7 +393,7 @@ function FunnelStepper({ locale: l, variant = 'full' }) {
                 border: stuck ? `2.5px solid ${ADM.WARN}` : done ? 'none' : `2px solid ${ADM.BORDER}`,
                 color: done ? '#fff' : stuck ? ADM.WARN : ADM.MUTED_LIGHT,
                 display:'grid', placeItems:'center',
-                fontSize:19, fontWeight:700,
+                fontSize:13.7, fontWeight:700,
                 flexShrink:0,
                 boxShadow: stuck ? `0 0 0 5px ${ADM.WARN_SOFT}` : 'none',
               }}>
@@ -401,15 +401,15 @@ function FunnelStepper({ locale: l, variant = 'full' }) {
               </div>
               <div style={{textAlign:'center', minWidth:0}}>
                 <div style={{
-                  fontSize:18, fontWeight: stuck ? 700 : 500,
+                  fontSize:13, fontWeight: stuck ? 700 : 500,
                   color: stuck ? ADM.WARN : done ? ADM.TEXT : ADM.MUTED,
                   whiteSpace:'nowrap',
                 }}>{s.label}</div>
                 {time && variant !== 'compact' && (
-                  <div style={{fontSize:17, color:ADM.MUTED_SOFT, marginTop:1}}>{fmtDate(time)}</div>
+                  <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:1}}>{fmtDate(time)}</div>
                 )}
                 {stuck && variant !== 'compact' && (
-                  <div style={{fontSize:17, color:ADM.WARN, marginTop:1, fontWeight:600}}>Fermo qui</div>
+                  <div style={{fontSize:12.2, color:ADM.WARN, marginTop:1, fontWeight:600}}>Fermo qui</div>
                 )}
               </div>
             </div>
@@ -429,8 +429,8 @@ function DrwFunnel({ locale: l }) {
       <AdmCard padding={24}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
           <div>
-            <div style={{fontSize:21, fontWeight:600, color:ADM.TEXT}}>Stato del funnel di onboarding</div>
-            <div style={{fontSize:19, color:ADM.MUTED, marginTop:2}}>Timeline da iscrizione a Go-live</div>
+            <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Stato del funnel di onboarding</div>
+            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Timeline da iscrizione a Go-live</div>
           </div>
           <AdmBadge color={l.stato === 'active' ? 'OK' : l.stato === 'onboarding' ? 'WARN' : l.stato === 'skipped' ? 'INFO' : 'PLAN_FREE'} size="md">
             {l.stato === 'active' ? 'Completato' : l.stato === 'onboarding' ? 'In corso' : l.stato === 'skipped' ? 'Saltato' : l.stato === 'pending' ? 'Non iniziato' : 'Completato'}
@@ -441,7 +441,7 @@ function DrwFunnel({ locale: l }) {
 
       {/* Timeline verticale */}
       <AdmCard padding={20}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Cronologia step</div>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Cronologia step</div>
         <div style={{display:'flex', flexDirection:'column'}}>
           {ONB_STEPS.map((s, i) => {
             const done = l.completedSteps.includes(s.id);
@@ -456,12 +456,12 @@ function DrwFunnel({ locale: l }) {
                   border: stuck ? `2px solid ${ADM.WARN}` : 'none',
                   color: done ? '#fff' : stuck ? ADM.WARN : ADM.MUTED_LIGHT,
                   display:'grid', placeItems:'center',
-                  fontSize:18, fontWeight:700,
+                  fontSize:13, fontWeight:700,
                   flexShrink:0, position:'relative', zIndex:1,
                 }}>{done ? <BuIcons.check size={17}/> : i+1}</div>
                 <div style={{flex:1, paddingTop:1}}>
-                  <div style={{fontSize:20.5, fontWeight:600, color:ADM.TEXT}}>{s.label}</div>
-                  <div style={{fontSize:18.5, color: stuck ? ADM.WARN : ADM.MUTED, marginTop:2, fontWeight: stuck ? 600 : 400}}>
+                  <div style={{fontSize:14.8, fontWeight:600, color:ADM.TEXT}}>{s.label}</div>
+                  <div style={{fontSize:13.3, color: stuck ? ADM.WARN : ADM.MUTED, marginTop:2, fontWeight: stuck ? 600 : 400}}>
                     {done && time ? `Completato ${fmtDateTime(time)}` :
                      stuck ? `In attesa da ${fmtRelative(l.lastLogin)}` :
                      'In attesa'}
@@ -480,7 +480,7 @@ function DrwAnagrafica({ locale: l }) {
   return (
     <div style={{padding:'20px 24px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
       <AdmCard padding={20}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Anagrafica locale</div>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Anagrafica locale</div>
         <DataRow label="Ragione sociale" value={l.nome}/>
         <DataRow label="Tipologia" value={l.tipo}/>
         <DataRow label="Indirizzo" value={`${l.indirizzo}, ${l.cap} ${l.citta} (${l.regione})`}/>
@@ -491,7 +491,7 @@ function DrwAnagrafica({ locale: l }) {
       </AdmCard>
 
       <AdmCard padding={20}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Dati fiscali</div>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Dati fiscali</div>
         <DataRow label="P. IVA" value={l.piva} mono/>
         <DataRow label="Codice fiscale" value={l.cf} mono/>
         <DataRow label="Codice SDI / PEC" value={l.sdi} mono/>
@@ -502,7 +502,7 @@ function DrwAnagrafica({ locale: l }) {
 
       <AdmCard padding={20} style={{gridColumn:'span 2'}}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
-          <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>Certificazioni</div>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Certificazioni</div>
           <AdmButton variant="secondary" size="sm" icon="plus">Richiedi documento</AdmButton>
         </div>
         <div style={{display:'flex', flexDirection:'column', gap:8}}>
@@ -513,8 +513,8 @@ function DrwAnagrafica({ locale: l }) {
           ].map((c, i) => (
             <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'10px 12px', background:ADM.PANEL_SOFT, borderRadius:8, border:`1px solid ${ADM.BORDER_SOFT}`}}>
               <BuIcons.filePdf size={21} color={ADM.MUTED}/>
-              <div style={{flex:1, fontSize:19.5, color:ADM.TEXT, fontWeight:500}}>{c.tipo}</div>
-              <div style={{fontSize:18.5, color:ADM.MUTED}}>{c.data}</div>
+              <div style={{flex:1, fontSize:14, color:ADM.TEXT, fontWeight:500}}>{c.tipo}</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED}}>{c.data}</div>
               <AdmBadge color={c.stato==='approvata' ? 'OK' : 'WARN'} size="xs">
                 {c.stato === 'approvata' ? 'Approvata' : 'In revisione'}
               </AdmBadge>
@@ -529,8 +529,8 @@ function DrwAnagrafica({ locale: l }) {
 function DataRow({ label, value, mono, last }) {
   return (
     <div style={{display:'flex', padding:'10px 0', borderBottom: last ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-      <div style={{width:140, fontSize:18.5, color:ADM.MUTED, fontWeight:500}}>{label}</div>
-      <div style={{flex:1, fontSize:19.5, color:ADM.TEXT, fontWeight:500, fontFamily: mono ? 'ui-monospace, monospace' : 'inherit'}}>{value}</div>
+      <div style={{width:140, fontSize:13.3, color:ADM.MUTED, fontWeight:500}}>{label}</div>
+      <div style={{flex:1, fontSize:14, color:ADM.TEXT, fontWeight:500, fontFamily: mono ? 'ui-monospace, monospace' : 'inherit'}}>{value}</div>
     </div>
   );
 }
@@ -549,7 +549,7 @@ function DrwAttivita({ locale: l }) {
   return (
     <div style={{padding:'20px 24px'}}>
       <AdmCard padding={20}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Log attività</div>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Log attività</div>
         <div style={{display:'flex', flexDirection:'column'}}>
           {events.map((e, i) => {
             const Icon = BuIcons[icons[e.type]];
@@ -558,8 +558,8 @@ function DrwAttivita({ locale: l }) {
                 <div style={{width:30, height:30, borderRadius:7, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>
                   <Icon size={19}/>
                 </div>
-                <div style={{flex:1, fontSize:19.5, color:ADM.TEXT}}>{e.text}</div>
-                <div style={{fontSize:18, color:ADM.MUTED_SOFT}}>{fmtRelative(e.when)}</div>
+                <div style={{flex:1, fontSize:14, color:ADM.TEXT}}>{e.text}</div>
+                <div style={{fontSize:13, color:ADM.MUTED_SOFT}}>{fmtRelative(e.when)}</div>
               </div>
             );
           })}
@@ -588,9 +588,9 @@ function DrwFatturazione({ locale: l }) {
             display:'grid', placeItems:'center',
           }}><BuIcons.crown size={27}/></div>
           <div style={{flex:1}}>
-            <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Piano attivo</div>
-            <div style={{fontSize:27, fontWeight:700, color:ADM.TEXT, marginTop:2}}>{piano.label} · {fmtEur(piano.price)}/mese</div>
-            {l.extras > 0 && <div style={{fontSize:19, color:ADM.PURPLE, marginTop:3, fontWeight:600}}>+ {fmtEur(l.extras)}/mese in extra</div>}
+            <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Piano attivo</div>
+            <div style={{fontSize:19.4, fontWeight:700, color:ADM.TEXT, marginTop:2}}>{piano.label} · {fmtEur(piano.price)}/mese</div>
+            {l.extras > 0 && <div style={{fontSize:13.7, color:ADM.PURPLE, marginTop:3, fontWeight:600}}>+ {fmtEur(l.extras)}/mese in extra</div>}
           </div>
           <AdmButton variant="secondary" size="sm">Cambia piano</AdmButton>
           <AdmButton variant="ghost" size="sm">Sospendi</AdmButton>
@@ -598,16 +598,16 @@ function DrwFatturazione({ locale: l }) {
       </AdmCard>
 
       <AdmCard padding={20}>
-        <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Ultime fatture</div>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Ultime fatture</div>
         <div>
           {fatture.map((f, i) => (
             <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 0', borderBottom: i === fatture.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
               <BuIcons.receipt size={20} color={ADM.MUTED}/>
               <div style={{flex:1}}>
-                <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT}}>Fattura #{f.num}</div>
-                <div style={{fontSize:18.5, color:ADM.MUTED}}>{fmtDate(f.data)}</div>
+                <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>Fattura #{f.num}</div>
+                <div style={{fontSize:13.3, color:ADM.MUTED}}>{fmtDate(f.data)}</div>
               </div>
-              <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT}}>{fmtEur(f.importo)}</div>
+              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{fmtEur(f.importo)}</div>
               <AdmBadge color="OK" size="xs">Pagata</AdmBadge>
               <AdmIconBtn icon="download" label="Scarica"/>
             </div>

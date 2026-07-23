@@ -42,7 +42,7 @@ function AdmStatoBadge({ stato }) {
   return (
     <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
       <AdmDot color={s.color}/>
-      <span style={{fontSize:19, color:ADM.TEXT, fontWeight:500}}>{s.label}</span>
+      <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:500}}>{s.label}</span>
     </span>
   );
 }
@@ -66,14 +66,14 @@ function AdmKpiCard({ label, value, sub, trend, icon, accent = 'PINK' }) {
     <AdmCard padding={20}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
         <div>
-          <div style={{fontSize:18, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
-          <div style={{fontSize:37, fontWeight:700, color:ADM.TEXT, marginTop:8, letterSpacing:'-0.03em', lineHeight:1.05}}>{value}</div>
+          <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
+          <div style={{fontSize:26.6, fontWeight:700, color:ADM.TEXT, marginTop:8, letterSpacing:'-0.03em', lineHeight:1.05}}>{value}</div>
           {(sub || trend != null) && (
             <div style={{display:'flex', alignItems:'center', gap:8, marginTop:8}}>
               {trend != null && (
                 <span style={{
                   display:'inline-flex', alignItems:'center', gap:3,
-                  fontSize:18.5, fontWeight:600,
+                  fontSize:13.3, fontWeight:600,
                   padding:'2px 7px',
                   borderRadius:99,
                   background: trend >= 0 ? ADM.OK_SOFT : ADM.DANGER_SOFT,
@@ -83,7 +83,7 @@ function AdmKpiCard({ label, value, sub, trend, icon, accent = 'PINK' }) {
                   {Math.abs(trend)}%
                 </span>
               )}
-              {sub && <span style={{fontSize:18.5, color:ADM.MUTED}}>{sub}</span>}
+              {sub && <span style={{fontSize:13.3, color:ADM.MUTED}}>{sub}</span>}
             </div>
           )}
         </div>
@@ -133,7 +133,7 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
               background: isActive ? '#fff' : 'transparent',
               border:'none', borderRadius:8,
               color: isActive ? ADM.TEXT : ADM.MUTED,
-              fontWeight: 600, fontSize:19.5,
+              fontWeight: 600, fontSize:14,
               cursor:'pointer', fontFamily:'inherit',
               boxShadow: isActive ? '0 1px 3px rgba(15,17,21,0.10), 0 1px 0 rgba(255,255,255,0.5) inset' : 'none',
               transition:'background 0.2s, color 0.2s, box-shadow 0.2s',
@@ -142,7 +142,7 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
               {t.label}
               {t.badge != null && t.badge > 0 && (
                 <span style={{
-                  fontSize:17, fontWeight:700,
+                  fontSize:12.2, fontWeight:700,
                   background: isActive ? ADM.PINK : 'rgba(120,120,128,0.2)',
                   color: isActive ? '#fff' : ADM.MUTED,
                   padding:'1px 6px', borderRadius:99, minWidth:14, textAlign:'center',
@@ -172,7 +172,7 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
               marginBottom:-1,
               color: isActive ? ADM.TEXT : ADM.MUTED,
               fontWeight: isActive ? 600 : 500,
-              fontSize:20,
+              fontSize:14.4,
               letterSpacing:'-0.005em',
               cursor:'pointer',
               fontFamily:'inherit',
@@ -181,7 +181,7 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
             {t.label}
             {t.badge != null && t.badge > 0 && (
               <span style={{
-                fontSize:17, fontWeight:700,
+                fontSize:12.2, fontWeight:700,
                 background: isActive ? ADM.PINK : 'rgba(120,120,128,0.15)',
                 color: isActive ? '#fff' : ADM.MUTED,
                 padding:'1px 7px', borderRadius:999, minWidth:16, textAlign:'center',
@@ -201,8 +201,8 @@ function AdmEmpty({ icon = 'eye', title, desc }) {
       <div style={{display:'inline-grid', placeItems:'center', width:48, height:48, background:'#F3F4F6', borderRadius:12, marginBottom:14}}>
         <Icon size={27}/>
       </div>
-      <div style={{fontSize:22, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>{title}</div>
-      <div style={{fontSize:20, color:ADM.MUTED}}>{desc}</div>
+      <div style={{fontSize:15.8, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>{title}</div>
+      <div style={{fontSize:14.4, color:ADM.MUTED}}>{desc}</div>
     </div>
   );
 }
@@ -298,7 +298,7 @@ function AdmBarChart({ data = [], labels = [], color = '#FF5A5F', height = 160 }
               minHeight: 2,
             }}/>
           </div>
-          {labels[i] && <div style={{fontSize:17.5, color:ADM.MUTED, fontWeight:500}}>{labels[i]}</div>}
+          {labels[i] && <div style={{fontSize:12.6, color:ADM.MUTED, fontWeight:500}}>{labels[i]}</div>}
         </div>
       ))}
     </div>
@@ -333,7 +333,7 @@ function AdmCheckbox({ checked, onChange, label, size = 'sm' }) {
       }}>
         {checked && <BuIcons.check size={sz*0.7} color="#fff"/>}
       </span>
-      {label && <span style={{fontSize:19.5, color:ADM.TEXT}}>{label}</span>}
+      {label && <span style={{fontSize:14, color:ADM.TEXT}}>{label}</span>}
     </label>
   );
 }

@@ -157,7 +157,7 @@ function AdmLocaliPage({ search, openLocale }) {
               style={{
                 padding:'7px 12px 7px 30px',
                 border:`1px solid ${ADM.BORDER}`, borderRadius:7,
-                fontSize:19.5, fontFamily:'inherit',
+                fontSize:14, fontFamily:'inherit',
                 width: 260, color: ADM.TEXT, background:'#fff',
                 outline:'none',
               }}
@@ -183,7 +183,7 @@ function AdmLocaliPage({ search, openLocale }) {
             ...REGIONI.map(r => ({value:r, label:r})),
           ]}/>
           <div style={{flex:1}}/>
-          <span style={{fontSize:19, color:ADM.MUTED}}>{filtered.length} risultati</span>
+          <span style={{fontSize:13.7, color:ADM.MUTED}}>{filtered.length} risultati</span>
           <FilterDropdown label="Ordina" value={sort} onChange={setSort} options={[
             {value:'mrr_desc',        label:'MRR maggiore'},
             {value:'ordini_desc',     label:'Più ordini/giorno'},
@@ -203,7 +203,7 @@ function AdmLocaliPage({ search, openLocale }) {
             gap:0,
             padding:'10px 18px',
             borderBottom:`1px solid ${ADM.BORDER}`,
-            fontSize:17.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
+            fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
           }}>
             <div>Locale</div>
             <div>Città</div>
@@ -231,7 +231,7 @@ function FilterDropdown({ label, value, onChange, options }) {
         padding:'7px 30px 7px 12px',
         border:`1px solid ${ADM.BORDER}`,
         borderRadius:7,
-        fontSize:19, fontWeight:500, color:ADM.TEXT,
+        fontSize:13.7, fontWeight:500, color:ADM.TEXT,
         background:'#fff',
         appearance:'none',
         cursor:'pointer',
@@ -273,21 +273,21 @@ function LocaleRow({ locale: l, onClick, striped }) {
           width:34, height:34, borderRadius:8,
           background: `hsl(${(l.id.charCodeAt(1)+l.id.charCodeAt(3))*3 % 360}, 35%, 55%)`,
           color:'#fff', display:'grid', placeItems:'center',
-          fontWeight:700, fontSize:19, flexShrink:0,
+          fontWeight:700, fontSize:13.7, flexShrink:0,
         }}>{l.nome.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase()}</div>
         <div style={{minWidth:0}}>
-          <div style={{fontSize:20, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
-          <div style={{fontSize:18.5, color:ADM.MUTED, marginTop:1, display:'flex', gap:6, alignItems:'center'}}>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:1, display:'flex', gap:6, alignItems:'center'}}>
             <span>{l.tipo}</span>
             <span style={{color:ADM.MUTED_LIGHT}}>·</span>
-            <span style={{fontFamily:'ui-monospace,monospace', fontSize:17.5}}>{l.id}</span>
+            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.6}}>{l.id}</span>
           </div>
         </div>
       </div>
 
       <div>
-        <div style={{fontSize:20, color:ADM.TEXT, fontWeight:500}}>{l.citta}</div>
-        <div style={{fontSize:18, color:ADM.MUTED, marginTop:1}}>{l.regione}</div>
+        <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:500}}>{l.citta}</div>
+        <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.regione}</div>
       </div>
 
       <div><AdmStatoBadge stato={l.stato}/></div>
@@ -295,9 +295,9 @@ function LocaleRow({ locale: l, onClick, striped }) {
       <div><AdmPlanBadge piano={l.piano}/></div>
 
       <div data-tip={tipText} data-tip-pos="below" style={{cursor:'help'}} onClick={e=>e.stopPropagation()}>
-        <div style={{fontSize:20.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtEur(totMese)}</div>
-        {l.extras > 0 && <div style={{fontSize:18, color:ADM.MUTED, marginTop:1}}>{fmtEur(l.mrr)} + <span style={{color:ADM.PURPLE, fontWeight:600}}>{fmtEur(l.extras)}</span></div>}
-        {l.extras === 0 && <div style={{fontSize:18, color:ADM.MUTED_LIGHT, marginTop:1}}>nessun extra</div>}
+        <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtEur(totMese)}</div>
+        {l.extras > 0 && <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{fmtEur(l.mrr)} + <span style={{color:ADM.PURPLE, fontWeight:600}}>{fmtEur(l.extras)}</span></div>}
+        {l.extras === 0 && <div style={{fontSize:13, color:ADM.MUTED_LIGHT, marginTop:1}}>nessun extra</div>}
       </div>
 
       <div style={{textAlign:'right', color:ADM.MUTED}}>
