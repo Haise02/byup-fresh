@@ -212,11 +212,48 @@ function UtenteRow({ utente: u, onClick, striped }) {
 }
 
 function UtenteDrawer({ utente: u, onClose }) {
+  const [tab, setTab] = useStateUtn('anagrafica');
   const [period, setPeriod] = useStateUtn('total');
 
-  // Mock: spesa storica per locale (basata su id utente per essere stabile)
+  // ── Mock stabili derivati dal seed utente (campi non ancora nel dataset) ──
   const seed = (u.id.charCodeAt(1) * 31 + u.id.charCodeAt(3)) % 1000;
   const rnd = (n) => ((seed * (n+1) * 9301 + 49297) % 233280) / 233280;
+  const PREF_OPTS = ['Nessuna', 'Vegetariano', 'Vegano', 'Senza glutine', 'Senza lattosio', 'Pescetariano'];
+  if (u.preferenze === undefined) u.preferenze = PREF_OPTS[seed % PREF_OPTS.length];
+  if (u.byuppini === undefined) u.byuppini = 20 + (seed % 380);
+  if (u.verificato === undefined) u.verificato = seed % 3 !== 0;
+
+  // ── Form anagrafica (editabile con salvataggio) ──
+  const [form, setForm] = useStateUtn({
+    nome: u.nome, email: u.email, tel: u.tel, citta: u.citta, regione: u.regione,
+    eta: u.eta, sesso: u.sesso, preferenze: u.preferenze, verificato: u.verificato,
+  });
+  const dirty = form.nome !== u.nome || form.email !== u.email || form.tel !== u.tel
+    || form.citta !== u.citta || form.regione !== u.regione || String(form.eta) !== String(u.eta)
+    || form.sesso !== u.sesso || form.preferenze !== u.preferenze || form.verificato !== u.verificato;
+  const [saved, setSaved] = useStateUtn(false);
+  const saveForm = () => {
+    Object.assign(u, { ...form, eta: Number(form.eta) || u.eta });
+    setSaved(true); setTimeout(()=>setSaved(false), 2200);
+  };
+  const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target ? e.target.value : e })); };
+
+  // ── Azioni sensibili / byuppini / reset password ──
+  const [resetSent, setResetSent] = useStateUtn(false);
+  const [byupPopup, setByupPopup] = useStateUtn(false);
+  const [byupAmount, setByupAmount] = useStateUtn('');
+  const [byupFeedback, setByupFeedback] = useStateUtn(null);
+  const [deletePopup, setDeletePopup] = useStateUtn(false);
+  const confirmByup = () => {
+    const n = parseInt(byupAmount, 10);
+    if (!n || n <= 0) return;
+    u.byuppini += n;
+    setByupFeedback(`+${n} byuppini caricati`);
+    setByupPopup(false); setByupAmount('');
+    setTimeout(()=>setByupFeedback(null), 2500);
+  };
+
+  // ── Spese (tab 2) ──
   const localiPreferiti = LOCALI.filter(l => l.stato === 'active').slice(0, 6).map((l, i) => {
     const baseSpesa = Math.round(u.spesaTotale * (0.3 - i*0.04) * (0.7 + rnd(i)*0.6));
     return {
@@ -226,18 +263,21 @@ function UtenteDrawer({ utente: u, onClose }) {
       ultimoOrdine: new Date(Date.now() - Math.floor(rnd(i+20) * 90) * 86400000),
     };
   }).sort((a,b) => b.spesaTotale - a.spesaTotale);
-
   const periodFactors = { '30d': 0.18, '90d': 0.35, '12m': 0.78, 'total': 1.0 };
   const periodLabels = { '30d': 'Ultimi 30g', '90d': 'Ultimi 90g', '12m': 'Ultimi 12 mesi', 'total': 'Totale' };
   const factor = periodFactors[period];
-
   const spesaP = Math.round(u.spesaTotale * factor);
   const ordiniP = Math.round(u.ordini * factor);
   const prenP = Math.round(u.prenotazioni * factor);
   const localiP = localiPreferiti.map(l => ({...l, spesaTotale: Math.round(l.spesaTotale * factor), ordini: Math.max(1, Math.round(l.ordini * factor))})).filter(l => l.ordini > 0);
   const maxSpesa = Math.max(...localiP.map(l => l.spesaTotale), 1);
 
-  const cluster = UTILIZZO_CLUSTER[u.utilizzo];
+  const inputStyle = {
+    width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
+    fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff',
+    outline:'none', boxSizing:'border-box',
+  };
+  const labelStyle = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
 
   return (
     <div style={{
@@ -247,98 +287,253 @@ function UtenteDrawer({ utente: u, onClose }) {
       backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
     }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{
-        width:720, maxWidth:'94%', background:'#fff', maxHeight:'88%',
+        width:760, maxWidth:'94%', background:'#fff', maxHeight:'88%',
         borderRadius:18, overflow:'hidden',
         display:'flex', flexDirection:'column',
         boxShadow:'0 32px 80px rgba(15,17,21,0.30)',
         animation:'admModalIn 0.22s cubic-bezier(0.22,0.9,0.35,1)',
+        position:'relative',
       }}>
-        <div style={{padding:'20px 24px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
-          <AdmAvatar name={u.nome} size={53} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
-          <div style={{flex:1}}>
-            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3}}>
-              <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{u.nome}</div>
+        {/* Header — titolo popup + identità essenziale (la meta vive in Anagrafica) */}
+        <div style={{padding:'16px 24px 0', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
+            <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Dettaglio utente</span>
+            <AdmIconBtn icon="x" onClick={onClose}/>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
+            <AdmAvatar name={form.nome} size={46} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
+            <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+              <span style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{form.nome}</span>
               {u.attivo
                 ? <AdmBadge color="OK" size="xs">● Attivo</AdmBadge>
                 : <AdmBadge color="PLAN_FREE" size="xs">○ Inattivo</AdmBadge>}
-              {cluster && <AdmBadge color={cluster.color} size="xs">{cluster.label}</AdmBadge>}
-            </div>
-            <div style={{fontSize:13.7, color:ADM.MUTED, display:'flex', gap:8}}>
-              <span style={{fontFamily:'ui-monospace,monospace'}}>{u.id}</span>
-              <span>·</span><span>{u.sesso === 'F' ? 'Donna' : 'Uomo'}, {u.eta} anni</span>
-              <span>·</span><span>{u.citta}</span>
+              {form.verificato && (
+                <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:99, background:ADM.INFO_SOFT, color:ADM.INFO, fontSize:12, fontWeight:700}}>
+                  <BuIcons.check size={13}/> Verificato
+                </span>
+              )}
             </div>
           </div>
-          <AdmIconBtn icon="x" onClick={onClose}/>
-        </div>
-
-        <div style={{padding:'14px 24px 0', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, background:'#fff'}}>
-          <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>Periodo</span>
-          <div style={{display:'flex', gap:4, paddingBottom:14}}>
-            {Object.entries(periodLabels).map(([k, label]) => (
-              <button key={k} onClick={()=>setPeriod(k)} style={{
-                padding:'6px 12px',
-                background: period === k ? ADM.TEXT : 'transparent',
-                color: period === k ? '#fff' : ADM.MUTED,
-                border: period === k ? 'none' : `1px solid ${ADM.BORDER}`,
-                borderRadius:7, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-              }}>{label}</button>
+          {/* Tabs */}
+          <div style={{display:'flex', gap:2}}>
+            {[{id:'anagrafica', label:'Anagrafica'},{id:'spese', label:'Spese e abitudini'}].map(t => (
+              <button key={t.id} onClick={()=>setTab(t.id)} style={{
+                padding:'9px 14px', background:'transparent', border:'none',
+                borderBottom:`2px solid ${tab === t.id ? ADM.PINK : 'transparent'}`,
+                color: tab === t.id ? ADM.TEXT : ADM.MUTED,
+                fontSize:13.5, fontWeight: tab === t.id ? 700 : 500,
+                cursor:'pointer', fontFamily:'inherit', marginBottom:-1,
+              }}>{t.label}</button>
             ))}
           </div>
         </div>
 
-        <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
-          <AdmCard padding={0}>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
-              <MiniStat first label="Spesa" value={fmtEur(spesaP)} sub={periodLabels[period]}/>
-              <MiniStat label="Ordini delivery" value={ordiniP} sub={periodLabels[period]}/>
-              <MiniStat label="Asporto" value={Math.round(ordiniP*0.42)} sub={periodLabels[period]}/>
-              <MiniStat label="Prenotazioni" value={prenP} sub={periodLabels[period]}/>
-            </div>
-          </AdmCard>
-
-          <AdmCard padding={20}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
-              <div>
-                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Spesa storica per locale</div>
-                <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>{periodLabels[period]} · ordinato per spesa</div>
+        {/* ═══ TAB ANAGRAFICA ═══ */}
+        {tab === 'anagrafica' && (
+          <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
+            <AdmCard padding={20}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+                <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Informazioni account</div>
+                {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
               </div>
-              <div style={{fontSize:13.3, color:ADM.MUTED}}>Totale: <span style={{fontWeight:700, color:ADM.TEXT}}>{fmtEur(spesaP)}</span></div>
-            </div>
-            {localiP.length === 0 && <div style={{fontSize:13.7, color:ADM.MUTED, padding:'18px 0', textAlign:'center'}}>Nessuna spesa registrata nel periodo selezionato</div>}
-            <div style={{display:'flex', flexDirection:'column', gap:11}}>
-              {localiP.map((l, i) => {
-                const pct = (l.spesaTotale / maxSpesa) * 100;
-                return (
-                  <div key={l.id}>
-                    <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:5}}>
-                      <div style={{flex:1, minWidth:0}}>
-                        <div style={{fontSize:14, color:ADM.TEXT, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
-                        <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.tipo} · {l.citta} · ultimo ordine {fmtRelative(l.ultimoOrdine)}</div>
-                      </div>
-                      <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:700}}>{fmtEur(l.spesaTotale)}</div>
-                        <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.ordini} ordini</div>
-                      </div>
-                    </div>
-                    <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                      <div style={{width:`${pct}%`, height:'100%', background: i === 0 ? ADM.PINK : ADM.INK, opacity: i === 0 ? 1 : 0.55, borderRadius:99}}/>
-                    </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
+                <div style={{gridColumn:'1 / -1'}}>
+                  <label style={labelStyle}>Nome e cognome</label>
+                  <input value={form.nome} onChange={F('nome')} style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Email</label>
+                  <input value={form.email} onChange={F('email')} style={{...inputStyle, fontFamily:'ui-monospace,monospace', fontSize:12.5}}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Telefono</label>
+                  <input value={form.tel} onChange={F('tel')} style={{...inputStyle, fontFamily:'ui-monospace,monospace', fontSize:12.5}}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Luogo principale</label>
+                  <input value={form.citta} onChange={F('citta')} style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Regione</label>
+                  <input value={form.regione} onChange={F('regione')} style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Età</label>
+                  <input type="number" min="16" max="110" value={form.eta} onChange={F('eta')} style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Genere</label>
+                  <select value={form.sesso} onChange={F('sesso')} style={{...inputStyle, cursor:'pointer'}}>
+                    <option value="F">Donna</option>
+                    <option value="M">Uomo</option>
+                    <option value="X">Altro / N.D.</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Preferenze alimentari</label>
+                  <select value={form.preferenze} onChange={F('preferenze')} style={{...inputStyle, cursor:'pointer'}}>
+                    {PREF_OPTS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Codice utente</label>
+                  <div style={{...inputStyle, background:ADM.PANEL_SOFT, color:ADM.MUTED, fontFamily:'ui-monospace,monospace', fontSize:12.5, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                    {u.id}
+                    <span style={{fontSize:10.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:ADM.MUTED_SOFT}}>non modificabile</span>
                   </div>
-                );
-              })}
-            </div>
-          </AdmCard>
+                </div>
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap:10, marginTop:14, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13.5, fontWeight:600, color:ADM.TEXT}}>Account verificato</div>
+                  <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>Identità confermata via documento o pagamento</div>
+                </div>
+                <AdmSwitch checked={form.verificato} onChange={(v)=>{ setSaved(false); setForm(prev=>({...prev, verificato:v})); }}/>
+              </div>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:14}}>
+                <AdmButton variant="primary" size="md" icon="check" disabled={!dirty} onClick={saveForm}>Salva modifiche</AdmButton>
+              </div>
+            </AdmCard>
 
-          <AdmCard padding={20}>
-            <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Dati anagrafici</div>
-            <DataRow label="Email" value={u.email} mono/>
-            <DataRow label="Telefono" value={u.tel} mono/>
-            <DataRow label="Indirizzo" value={`${u.citta}, ${u.regione}`}/>
-            <DataRow label="Registrato il" value={fmtDate(u.dataRegistrazione)}/>
-            <DataRow label="Ultima sessione" value={fmtRelative(u.lastSession)} last/>
-          </AdmCard>
-        </div>
+            {/* Byuppini */}
+            <AdmCard padding={20}>
+              <div style={{display:'flex', alignItems:'center', gap:14}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Byuppini</div>
+                  <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2}}>Saldo attuale del programma fedeltà</div>
+                  {byupFeedback && <div style={{fontSize:12.5, color:ADM.OK, fontWeight:700, marginTop:4}}>✓ {byupFeedback}</div>}
+                </div>
+                <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{fmtNum(u.byuppini)}</div>
+                <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setByupPopup(true)}>Carica byuppini</AdmButton>
+              </div>
+            </AdmCard>
+
+            {/* Sicurezza */}
+            <AdmCard padding={20}>
+              <div style={{display:'flex', alignItems:'center', gap:14}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Reset password</div>
+                  <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2}}>
+                    {resetSent ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Email di reset inviata a {form.email}</span> : `Invia un link di reimpostazione a ${form.email}`}
+                  </div>
+                </div>
+                <AdmButton variant="secondary" size="md" icon="mail" disabled={resetSent} onClick={()=>setResetSent(true)}>Invia email di reset</AdmButton>
+              </div>
+            </AdmCard>
+
+            {/* Zona sensibile — volutamente sobria e in fondo */}
+            <div style={{display:'flex', alignItems:'center', gap:10, padding:'4px 6px 10px'}}>
+              <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Zona sensibile</span>
+              <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
+              <button onClick={()=>setDeletePopup(true)} style={{
+                background:'transparent', border:'none', color:ADM.DANGER, fontSize:12.5, fontWeight:600,
+                cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+              }}>Elimina account…</button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ TAB SPESE E ABITUDINI ═══ */}
+        {tab === 'spese' && (
+          <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Periodo</span>
+              <div style={{display:'flex', gap:4}}>
+                {Object.entries(periodLabels).map(([k, label]) => (
+                  <button key={k} onClick={()=>setPeriod(k)} style={{
+                    padding:'6px 12px',
+                    background: period === k ? ADM.TEXT : '#fff',
+                    color: period === k ? '#fff' : ADM.MUTED,
+                    border: period === k ? 'none' : `1px solid ${ADM.BORDER}`,
+                    borderRadius:7, fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                  }}>{label}</button>
+                ))}
+              </div>
+            </div>
+
+            <AdmCard padding={0}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
+                <MiniStat first label="Spesa" value={fmtEur(spesaP)} sub={periodLabels[period]}/>
+                <MiniStat label="Ordini delivery" value={ordiniP} sub={periodLabels[period]}/>
+                <MiniStat label="Asporto" value={Math.round(ordiniP*0.42)} sub={periodLabels[period]}/>
+                <MiniStat label="Prenotazioni" value={prenP} sub={periodLabels[period]}/>
+              </div>
+            </AdmCard>
+
+            <AdmCard padding={20}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Spesa storica per locale</div>
+                  <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>{periodLabels[period]} · ordinato per spesa</div>
+                </div>
+                <div style={{fontSize:13.3, color:ADM.MUTED}}>Totale: <span style={{fontWeight:700, color:ADM.TEXT}}>{fmtEur(spesaP)}</span></div>
+              </div>
+              {localiP.length === 0 && <div style={{fontSize:13.7, color:ADM.MUTED, padding:'18px 0', textAlign:'center'}}>Nessuna spesa registrata nel periodo selezionato</div>}
+              <div style={{display:'flex', flexDirection:'column', gap:11}}>
+                {localiP.map((l, i) => {
+                  const pct = (l.spesaTotale / maxSpesa) * 100;
+                  return (
+                    <div key={l.id}>
+                      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:5}}>
+                        <div style={{flex:1, minWidth:0}}>
+                          <div style={{fontSize:14, color:ADM.TEXT, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
+                          <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.tipo} · {l.citta} · ultimo ordine {fmtRelative(l.ultimoOrdine)}</div>
+                        </div>
+                        <div style={{textAlign:'right'}}>
+                          <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:700}}>{fmtEur(l.spesaTotale)}</div>
+                          <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.ordini} ordini</div>
+                        </div>
+                      </div>
+                      <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                        <div style={{width:`${pct}%`, height:'100%', background: i === 0 ? ADM.PINK : ADM.INK, opacity: i === 0 ? 1 : 0.55, borderRadius:99}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </AdmCard>
+
+            <AdmCard padding={20}>
+              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Attività account</div>
+              <DataRow label="Registrato il" value={fmtDate(u.dataRegistrazione)}/>
+              <DataRow label="Ultima sessione" value={fmtRelative(u.lastSession)} last/>
+            </AdmCard>
+          </div>
+        )}
+
+        {/* ═══ Popup conferma: carica byuppini ═══ */}
+        {byupPopup && (
+          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setByupPopup(false)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:380, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Carica byuppini</div>
+              <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Accredito manuale sul saldo di {form.nome} (attuale: <strong style={{color:ADM.TEXT}}>{fmtNum(u.byuppini)}</strong>)</div>
+              <label style={labelStyle}>Quantità da accreditare</label>
+              <input type="number" min="1" autoFocus value={byupAmount} onChange={e=>setByupAmount(e.target.value)}
+                onKeyDown={e=>{ if (e.key === 'Enter') confirmByup(); }}
+                placeholder="Es. 100" style={{...inputStyle, marginBottom:14}}/>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>{ setByupPopup(false); setByupAmount(''); }}>Annulla</AdmButton>
+                <AdmButton variant="primary" size="md" icon="check" disabled={!parseInt(byupAmount,10)} onClick={confirmByup}>Conferma accredito</AdmButton>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Popup conferma: eliminazione account ═══ */}
+        {deletePopup && (
+          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setDeletePopup(false)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:400, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Eliminare l'account di {form.nome}?</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+                L'account <strong style={{fontFamily:'ui-monospace,monospace'}}>{u.id}</strong> e tutti i suoi dati (ordini, byuppini, preferenze) verranno rimossi in modo <strong style={{color:ADM.DANGER}}>irreversibile</strong>.
+              </div>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setDeletePopup(false)}>Annulla</AdmButton>
+                <AdmButton variant="danger" size="md" icon="x" onClick={()=>{ setDeletePopup(false); onClose(); }}>Elimina definitivamente</AdmButton>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
