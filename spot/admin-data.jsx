@@ -405,9 +405,10 @@ const PERMESSI = [
 
 const RUOLI = {
   super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni','messaggi','team'] },
-  operations:  { label: 'Operations', desc: 'Gestione locali e utenti', color: 'PURPLE',                permessi: ['dashboard','locali','utenti'] },
   support:     { label: 'Support',    desc: 'Segnalazioni e certificazioni', color: 'INFO',            permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni'] },
-  marketing:   { label: 'Marketing',  desc: 'Campagne, broadcast e analisi utenti', color: 'WARN',      permessi: ['dashboard','locali','utenti','messaggi'] },
+  marketing:   { label: 'Marketing',  desc: 'Campagne e broadcast', color: 'WARN',                      permessi: ['dashboard','messaggi'] },
+  // Ultimo = ultima colonna nella matrice Ruoli & Permessi. Sola visualizzazione.
+  operations:  { label: 'Viewer',     desc: 'Sola visualizzazione della dashboard', color: 'PURPLE',    permessi: ['dashboard'] },
 };
 
 const TEAM = [

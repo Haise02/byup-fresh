@@ -1127,7 +1127,7 @@ function ConvOnboardingTooltip({ tot, completati, tentati, convRate, pending, in
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14}}>
         <div style={{padding:'12px 14px', background:`${ADM.OK}10`, border:`1px solid ${ADM.OK}40`, borderRadius:9}}>
           <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Conversion rate</div>
-          <div style={{fontSize:20.9, fontWeight:800, color:ADM.OK, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{convRate}%</div>
+          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{convRate}%</div>
           <div style={{fontSize:13, color:ADM.MUTED, marginTop:4}}>{completati} di {tentati} iscritti</div>
         </div>
         <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:9}}>
@@ -1273,7 +1273,7 @@ function GuestTooltip({ accessi, ordini }) {
           <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>Utenti senza account che hanno avviato l'app</div>
         </div>
         <div style={{padding:'12px 14px', background:ADM.OK_SOFT, borderRadius:8}}>
-          <div style={{fontSize:12.2, fontWeight:700, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.05em'}}>Ordini effettuati</div>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Ordini effettuati</div>
           <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(ordini)}</div>
           <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>Senza login ({conv.toFixed(1)}% conversione)</div>
         </div>
@@ -1855,7 +1855,7 @@ function DashLocali({ onNav }) {
               <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:500, flex:1}}>{c.citta}</div>
               <div style={{fontSize:13.3, color:ADM.MUTED}}>{c.locali} locali</div>
               <div style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, width:80, textAlign:'right'}}>{fmtNum(c.ordini)} ord</div>
-              <div style={{fontSize:13.3, color:ADM.OK, fontWeight:600, width:70, textAlign:'right'}}>{fmtEur(c.mrr)}</div>
+              <div style={{fontSize:13.3, color:ADM.TEXT, fontWeight:600, width:70, textAlign:'right'}}>{fmtEur(c.mrr)}</div>
             </div>
           ))}
         </div>
@@ -1971,14 +1971,15 @@ function DashLocali({ onNav }) {
               return (
                 <div key={i}>
                   <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
-                    <span style={{width:22, height:22, borderRadius:6, background:`${r.color}1A`, color:r.color, display:'grid', placeItems:'center', flexShrink:0}}>
+                    {/* Chip neutro + barra coral: i motivi sono categorie, non stati. */}
+                    <span style={{width:22, height:22, borderRadius:6, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}>
                       <Icon size={16}/>
                     </span>
                     <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, flex:1, lineHeight:1.3}}>{r.n}</span>
                     <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:800}}>{r.pct}%</span>
                   </div>
                   <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                    <div style={{width:`${r.pct*2.8}%`, height:'100%', background:r.color, borderRadius:99}}/>
+                    <div style={{width:`${r.pct*2.8}%`, height:'100%', background:ADM.PINK, borderRadius:99}}/>
                   </div>
                 </div>
               );
@@ -2041,14 +2042,14 @@ function DashLocali({ onNav }) {
                     <div style={{
                       position:'absolute', left:0, top:0, bottom:0,
                       width:`${(t.median/maxV)*100}%`,
-                      background:`linear-gradient(90deg, ${t.color}AA, ${t.color})`,
+                      background:ADM.PINK,
                     }}/>
                     <div style={{
                       position:'absolute', left:`${(t.p75/maxV)*100}%`,
                       top:'50%', transform:'translate(-50%, -50%)',
                       width:3, height:18, background:'#0F1115', borderRadius:1, opacity:0.4,
                     }}/>
-                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${t.color}`}}/>
+                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${ADM.PINK_DARK}`}}/>
                     <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
                     <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:12.6, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
                   </div>
@@ -2129,7 +2130,7 @@ function DashLocali({ onNav }) {
           <div style={{display:'flex', flexDirection:'column', gap:11}}>
             {channelMovers.map((m,i) => (
               <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
-                <span style={{fontSize:13.7, fontWeight:800, color:ADM.OK, width:18}}>{i+1}</span>
+                <span style={{fontSize:13.7, fontWeight:800, color:ADM.MUTED_SOFT, width:18}}>{i+1}</span>
                 <div style={{flex:1, minWidth:0}}>
                   <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
                   <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta}</div>
@@ -4111,8 +4112,8 @@ function DashCamerieri() {
           accent="PINK" icon="users"
           trend={totRegW.delta} trendLabel="vs 30gg" spark={TS.staffTot.slice(-30)}/>
         <SparkStat label="Attivi oggi" value={fmtNum(STAFF_METRICS.activeOggi)}
-          sub={<span style={{color:ADM[benchTone]}}>{activeRate}% del totale · {benchText.split('·')[0]}</span>}
-          accent={benchTone} icon="check"
+          sub={`${activeRate}% del totale · ${benchText.split('·')[0]}`}
+          accent="PINK" icon="check"
           trend={totW.delta} trendLabel="vs 7gg" spark={TS.staffActive.slice(-30)}/>
         <SparkStat label="Locali con staff" value={`${coverageRate}%`}
           sub={`${configurati.length} su ${totLiveLocali} live · ${senzaStaff.length} ancora senza`}
@@ -4271,7 +4272,7 @@ function DashCamerieri() {
                 </div>
                 <div style={{textAlign:'right', fontSize:14.4, color:ADM.TEXT, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>{fmtNum(a.usi)}</div>
                 <div style={{display:'flex', justifyContent:'flex-end'}}>
-                  <MicroSpark data={a.spark} color={a.trend >= 0 ? ADM.OK : ADM.DANGER} width={84} height={20}/>
+                  <MicroSpark data={a.spark} color={ADM.PINK} width={84} height={20}/>
                 </div>
                 <div style={{textAlign:'right'}}>
                   <TrendBadge delta={a.trend} hideLabel size="sm"/>
