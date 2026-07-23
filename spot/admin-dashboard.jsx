@@ -2956,7 +2956,7 @@ function SottoMediaScanCard({ onNav }) {
               { id:'mese', label:'Mese' },
               { id:'anno', label:'Anno' },
             ].map(p => (
-              <button key={p.id} onClick={()=>setPeriodo(p.id)} style={{
+              <button key={p.id} className="adm-pill" onClick={()=>setPeriodo(p.id)} style={{
                 padding:'6px 14px', border:'none',
                 background: periodo === p.id ? '#fff' : 'transparent',
                 color: periodo === p.id ? ADM.TEXT : ADM.MUTED,
@@ -4474,7 +4474,7 @@ function RevenueSection() {
 
         <div style={{display:'flex', gap:6}}>
           {[{id:'6m', label:'6m'},{id:'12m', label:'12m'},{id:'anno', label:`${anno}`},{id:'tot', label:'Dall\'inizio'}].map(p => (
-            <button key={p.id} onClick={()=>setPeriodo(p.id)} style={{
+            <button key={p.id} className="adm-pill" onClick={()=>setPeriodo(p.id)} style={{
               padding:'6px 11px',
               background: periodo===p.id ? ADM.TEXT : '#fff',
               color: periodo===p.id ? '#fff' : ADM.MUTED,

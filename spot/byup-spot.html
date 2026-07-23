@@ -152,6 +152,14 @@
   /* Modale centrale — ingresso morbido (dettaglio entità: locali/staff/utenti) */
   @keyframes admModalIn { from { opacity:0; transform: translateY(10px) scale(0.97); } to { opacity:1; transform: translateY(0) scale(1); } }
 
+  /* Pill/chip/toggle: hover universale — leggero scurimento di qualunque fondo */
+  .adm-pill { transition: filter 0.14s ease, background 0.14s ease, border-color 0.14s ease, color 0.14s ease; }
+  .adm-pill:hover { filter: brightness(0.95); }
+
+  /* Link testuali d'azione */
+  .adm-textlink { transition: opacity 0.12s ease; }
+  .adm-textlink:hover { opacity: 0.65; }
+
   /* Righe di lista cliccabili: la freccia si accende e scivola in hover */
   .adm-row-chev { transition: color 0.15s ease, transform 0.15s ease; display: inline-flex; }
   .adm-row-open { cursor: pointer; }
@@ -311,22 +319,22 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-<script type="text/babel" src="admin-tokens.jsx?v=20"></script>
-<script type="text/babel" src="admin-icons.jsx?v=20"></script>
-<script type="text/babel" src="admin-data.jsx?v=20"></script>
-<script type="text/babel" src="admin-atoms.jsx?v=20"></script>
-<script type="text/babel" src="admin-dashboard.jsx?v=20"></script>
-<script type="text/babel" src="admin-locale-detail.jsx?v=20"></script>
-<script type="text/babel" src="admin-locali.jsx?v=20"></script>
-<script type="text/babel" src="admin-utenti.jsx?v=20"></script>
-<script type="text/babel" src="admin-camerieri.jsx?v=20"></script>
-<script type="text/babel" src="admin-comunicazioni.jsx?v=20"></script>
-<script type="text/babel" src="admin-promozioni.jsx?v=20"></script>
-<script type="text/babel" src="admin-workflow-email.jsx?v=20"></script>
-<script type="text/babel" src="admin-statistiche.jsx?v=20"></script>
-<script type="text/babel" src="admin-team.jsx?v=20"></script>
-<script type="text/babel" src="admin-message-modal.jsx?v=20"></script>
-<script type="text/babel" src="admin-app.jsx?v=20"></script>
+<script type="text/babel" src="admin-tokens.jsx?v=21"></script>
+<script type="text/babel" src="admin-icons.jsx?v=21"></script>
+<script type="text/babel" src="admin-data.jsx?v=21"></script>
+<script type="text/babel" src="admin-atoms.jsx?v=21"></script>
+<script type="text/babel" src="admin-dashboard.jsx?v=21"></script>
+<script type="text/babel" src="admin-locale-detail.jsx?v=21"></script>
+<script type="text/babel" src="admin-locali.jsx?v=21"></script>
+<script type="text/babel" src="admin-utenti.jsx?v=21"></script>
+<script type="text/babel" src="admin-camerieri.jsx?v=21"></script>
+<script type="text/babel" src="admin-comunicazioni.jsx?v=21"></script>
+<script type="text/babel" src="admin-promozioni.jsx?v=21"></script>
+<script type="text/babel" src="admin-workflow-email.jsx?v=21"></script>
+<script type="text/babel" src="admin-statistiche.jsx?v=21"></script>
+<script type="text/babel" src="admin-team.jsx?v=21"></script>
+<script type="text/babel" src="admin-message-modal.jsx?v=21"></script>
+<script type="text/babel" src="admin-app.jsx?v=21"></script>
 
 <script type="text/babel">
   const root = ReactDOM.createRoot(document.getElementById('root'));

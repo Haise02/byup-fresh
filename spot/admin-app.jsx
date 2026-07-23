@@ -331,7 +331,7 @@ function ProfiloPage() {
               <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>{s.device}</div>
               <div style={{fontSize:13.3, color:ADM.MUTED}}>{s.loc} · {s.when}</div>
             </div>
-            {s.current ? <AdmBadge color="OK" size="xs">Sessione attuale</AdmBadge> : <button style={{background:'transparent', border:'none', color:ADM.DANGER, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Termina</button>}
+            {s.current ? <AdmBadge color="OK" size="xs">Sessione attuale</AdmBadge> : <button className="adm-textlink" style={{background:'transparent', border:'none', color:ADM.DANGER, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Termina</button>}
           </div>
         ))}
       </AdmCard>

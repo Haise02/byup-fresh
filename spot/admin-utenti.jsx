@@ -321,7 +321,7 @@ function UtenteDrawer({ utente: u, onClose }) {
           {/* Tabs */}
           <div style={{display:'flex', gap:2}}>
             {[{id:'anagrafica', label:'Anagrafica'},{id:'spese', label:'Spese e abitudini'}].map(t => (
-              <button key={t.id} onClick={()=>setTab(t.id)} style={{
+              <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'9px 14px', background:'transparent', border:'none',
                 borderBottom:`2px solid ${tab === t.id ? ADM.PINK : 'transparent'}`,
                 color: tab === t.id ? ADM.TEXT : ADM.MUTED,
@@ -431,7 +431,7 @@ function UtenteDrawer({ utente: u, onClose }) {
             <div style={{display:'flex', alignItems:'center', gap:10, padding:'4px 6px 10px'}}>
               <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Zona sensibile</span>
               <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
-              <button onClick={()=>setDeletePopup(true)} style={{
+              <button className="adm-textlink" onClick={()=>setDeletePopup(true)} style={{
                 background:'transparent', border:'none', color:ADM.DANGER, fontSize:12.5, fontWeight:600,
                 cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
               }}>Elimina account…</button>
@@ -446,7 +446,7 @@ function UtenteDrawer({ utente: u, onClose }) {
               <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Periodo</span>
               <div style={{display:'flex', gap:4}}>
                 {Object.entries(periodLabels).map(([k, label]) => (
-                  <button key={k} onClick={()=>setPeriod(k)} style={{
+                  <button key={k} className="adm-pill" onClick={()=>setPeriod(k)} style={{
                     padding:'6px 12px',
                     background: period === k ? ADM.TEXT : '#fff',
                     color: period === k ? '#fff' : ADM.MUTED,

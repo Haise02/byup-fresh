@@ -281,7 +281,7 @@ function DrwScanOrdini({ locale: l }) {
             { id:'mese', label:'Mese' },
             { id:'anno', label:'Anno' },
           ].map(p => (
-            <button key={p.id} onClick={()=>setPeriodo(p.id)} style={{
+            <button key={p.id} className="adm-pill" onClick={()=>setPeriodo(p.id)} style={{
               padding:'4px 11px', border:'none',
               background: periodo === p.id ? '#fff' : 'transparent',
               color: periodo === p.id ? ADM.TEXT : ADM.MUTED,
@@ -700,7 +700,7 @@ function DrwFatturazione({ locale: l }) {
                 const sel = planSel === p.id;
                 const current = l.piano === p.id;
                 return (
-                  <button key={p.id} onClick={()=>setPlanSel(p.id)} style={{
+                  <button key={p.id} className="adm-pill" onClick={()=>setPlanSel(p.id)} style={{
                     textAlign:'left', padding:'14px 16px', borderRadius:12, cursor:'pointer', fontFamily:'inherit',
                     background: sel ? ADM.PINK_BG_SOFT : '#fff',
                     border: sel ? `2px solid ${ADM.PINK}` : `1px solid ${ADM.BORDER}`,

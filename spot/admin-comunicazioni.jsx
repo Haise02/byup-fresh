@@ -196,7 +196,7 @@ function AdmComunicazioniPage() {
             const active = view === v.id;
             const urgent = v.id === 'cert' && certUrgent > 0;
             return (
-              <button key={v.id} onClick={()=>setView(v.id)} style={{
+              <button key={v.id} className="adm-pill" onClick={()=>setView(v.id)} style={{
                 display:'inline-flex', alignItems:'center', gap:7,
                 padding:'7px 13px', borderRadius:99,
                 background: active ? ADM.TEXT : '#fff',
@@ -931,7 +931,7 @@ function ComposerTab({ active, onClick, label, icon, accent }) {
   const Icon = BuIcons[icon];
   const c = accent ? ADM[accent] : ADM.PINK;
   return (
-    <button onClick={onClick} style={{
+    <button className="adm-pill" onClick={onClick} style={{
       display:'inline-flex', alignItems:'center', gap:6,
       padding:'6px 11px',
       background: active ? (accent ? `${c}1A` : ADM.PINK_BG_SOFT) : 'transparent',

@@ -17,7 +17,7 @@ function AdmStatistichePage() {
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
         <div style={{display:'flex', gap:6, background:'#fff', padding:4, borderRadius:9, border:`1px solid ${ADM.BORDER}`}}>
           {periodi.map(p => (
-            <button key={p.id} onClick={()=>setPeriodo(p.id)} style={{
+            <button key={p.id} className="adm-pill" onClick={()=>setPeriodo(p.id)} style={{
               padding:'6px 14px',
               background: periodo===p.id ? ADM.TEXT : 'transparent',
               color: periodo===p.id ? '#fff' : ADM.MUTED,

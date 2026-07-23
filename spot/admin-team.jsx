@@ -40,7 +40,7 @@ function AdmTeamPage({ search }) {
         <div style={{padding:'14px 22px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
           <div style={{display:'flex', gap:0, marginRight:'auto'}}>
             {[{id:'membri',l:'Membri team',b:members.length},{id:'ruoli',l:'Ruoli & Permessi',b:Object.keys(RUOLI).length},{id:'inviti',l:'Inviti pendenti',b:2},{id:'audit',l:'Audit log'}].map(t => (
-              <button key={t.id} onClick={()=>setTab(t.id)} style={{
+              <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'8px 14px',
                 background: tab===t.id ? ADM.TEXT : 'transparent',
                 color: tab===t.id ? '#fff' : ADM.TEXT,

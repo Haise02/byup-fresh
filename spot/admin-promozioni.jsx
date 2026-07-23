@@ -919,7 +919,7 @@ function BroadKpi({ label, value, hint, color }) {
 function PromoChip({ label, icon, active, onClick }) {
   const Icon = icon ? BuIcons[icon] : null;
   return (
-    <button onClick={onClick} style={{
+    <button className="adm-pill" onClick={onClick} style={{
       display:'inline-flex', alignItems:'center', gap:6,
       padding:'6px 12px',
       background: active ? ADM.TEXT : '#fff',
