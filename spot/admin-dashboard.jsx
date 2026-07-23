@@ -1685,6 +1685,12 @@ function DashLocali({ onNav }) {
     return d.n.toLowerCase().includes(q) || d.cat.toLowerCase().includes(q);
   });
 
+  // KPI spostate qui dalla pagina-lista Locali (le liste restano operative).
+  const activeLocali = LOCALI.filter(l => l.stato === 'active');
+  const mrrTot = activeLocali.reduce((s2,l)=>s2+l.mrr+l.extras,0);
+  const ticketMedio = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.ticketMedio,0)/activeLocali.length) : 0;
+  const coperturaMedia = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.copertura,0)/activeLocali.length) : 0;
+
   // Dettaglio in-linea (stesso pattern del Generale): click sulla card → fascia
   // sotto la riga; ri-click chiude.
   const [detail, setDetail] = useStateDash(null);
@@ -1728,6 +1734,18 @@ function DashLocali({ onNav }) {
         <DashStatCard
           label="Prenotazioni · 30gg" value={fmtNum(totPrenotMese)} accent="INK"
           sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(totPrenotAnno)}</b> negli ultimi 12 mesi</span>}
+        />
+        <DashStatCard
+          label="MRR totale" value={fmtEur(mrrTot)} accent="INK"
+          sub="Locali attivi · piano + extra"
+        />
+        <DashStatCard
+          label="Scontrino medio" value={fmtEur(ticketMedio)} accent="INK"
+          sub="Per ordine · media locali attivi"
+        />
+        <DashStatCard
+          label="Copertura media" value={`${coperturaMedia}%`} accent="INK"
+          sub="Tavoli occupati sui locali attivi"
         />
       </div>
 
@@ -3372,7 +3390,10 @@ function DashUtentiApp() {
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Distribuzione per età</div>
+          <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:14}}>
+            <span style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Distribuzione per età</span>
+            <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>media <b style={{color:ADM.TEXT}}>{Math.round(UTENTI.reduce((a,u)=>a+u.eta,0)/UTENTI.length)} anni</b></span>
+          </div>
           <div style={{display:'flex', flexDirection:'column', gap:8}}>
             {fasceEta.map((f, i) => (
               <div key={i}>
@@ -3512,8 +3533,15 @@ function DashUtentiApp() {
         </div>
       </AdmCard>
 
-      {/* Distribuzione scontrino in fasce + Frequenza ordini per cohort */}
-      <div style={{display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:14}}>
+      {/* Spesa media/utente + Distribuzione scontrino + Frequenza ordini:
+          tre tagli complementari sulla spesa, in una riga bilanciata. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
+        {(() => {
+          const totalSpesa = UTENTI.reduce((a, u) => a + u.spesaTotale, 0);
+          const lifetime = Math.round(totalSpesa / UTENTI.length);
+          const horizon = UTENTI.reduce((a, u) => a + Math.max(1, Math.floor((Date.now() - new Date(u.dataRegistrazione).getTime()) / 86400000)), 0) / UTENTI.length;
+          return <SpesaMediaCard lifetime={lifetime} anno={Math.round(lifetime*(365/horizon))} mese={Math.round(lifetime*(30/horizon))} horizonDays={Math.round(horizon)}/>;
+        })()}
         <AdmCard padding={20}>
           <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Distribuzione scontrino</div>
           <div style={{display:'flex', flexDirection:'column', gap:10}}>

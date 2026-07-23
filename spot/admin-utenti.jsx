@@ -42,18 +42,6 @@ function AdmUtentiPage({ search: searchProp }) {
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-        <AdmKpiCard label="Utenti totali" value={fmtNum(totUtenti * 312)} sub={`${fmtNum(totUtenti*8)} questa settimana`} trend={+18} icon="users" accent="INFO"/>
-        <AdmKpiCard label="Utenti attivi" value={fmtNum(attiviN * 312)} sub={`${Math.round(attiviN/totUtenti*100)}% del totale (30g)`} icon="fire" accent="PINK"/>
-        <SpesaMediaCard
-          lifetime={spesaMediaLifetime}
-          anno={spesaMediaAnno}
-          mese={spesaMedia30g}
-          horizonDays={Math.round(avgHorizonDays)}
-        />
-        <AdmKpiCard label="Età media" value={`${mediaEta} anni`} sub={`${Math.round(UTENTI.filter(u=>u.sesso==='F').length/totUtenti*100)}% F · ${Math.round(UTENTI.filter(u=>u.sesso==='M').length/totUtenti*100)}% M`} icon="user" accent="PURPLE"/>
-      </div>
-
       <AdmCard padding={0}>
         <div style={{padding:'14px 18px', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, flexWrap:'wrap'}}>
           <div style={{position:'relative', flex:'0 0 240px'}}>

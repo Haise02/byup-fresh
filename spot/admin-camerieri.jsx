@@ -140,12 +140,6 @@ function AdmCamerieriPage({ search: searchProp }) {
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
       {/* Quick stats */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
-        <AdmKpiCard label="Staff registrati" value={fmtNum(totStaff)} sub="Su tutti i locali" icon="users" accent="PINK"/>
-        <AdmKpiCard label="Attivi oggi" value={fmtNum(attiviOggi)} sub={`${Math.round(attiviOggi/totStaff*100)}% del totale`} icon="check" accent="OK"/>
-        <AdmKpiCard label="Locali coperti" value={fmtNum(localiCoperti)} sub="Con almeno 1 membro staff" icon="store" accent="PURPLE"/>
-      </div>
-
       <AdmCard padding={0}>
         <div style={{padding:'14px 18px', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, flexWrap:'wrap'}}>
           <div style={{position:'relative', flex:'0 0 240px'}}>

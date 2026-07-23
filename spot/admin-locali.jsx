@@ -132,14 +132,6 @@ function AdmLocaliPage({ search, openLocale }) {
 
   return (
     <div style={{padding: 28, display:'flex', flexDirection:'column', gap: 16}}>
-      {/* Quick stats */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-        <AdmKpiCard label="Conversion onboarding" value={`${convRate}%`} sub={`${onbCompletati} su ${onbTentati}`} icon="trendUp" accent="OK"/>
-        <AdmKpiCard label="MRR totale" value={fmtEur(mrrTot)} sub="Locali attivi (piano + extra)" icon="money" accent="PURPLE"/>
-        <AdmKpiCard label="Scontrino medio" value={fmtEur(ticketMedio)} sub="Per ordine, media attivi" icon="receipt" accent="INFO"/>
-        <AdmKpiCard label="Copertura media" value={`${copertura}%`} sub="Tavoli occupati" icon="table" accent="PINK"/>
-      </div>
-
       {/* Filters bar */}
       <AdmCard padding={0}>
         <AdmTabBar tabs={tabsList} active={stato} onChange={setStato}/>
