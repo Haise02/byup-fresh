@@ -536,6 +536,34 @@ function InlineDetail({ detail, onClose }) {
   );
 }
 
+// Card "Ordini processati" — il volume che guida il modello di business
+// (piani a ordini inclusi + extra fatturati). Confronto mese/media/anno,
+// stessa terna per gli extra, mini-barre 12 mesi in ink.
+function DashOrdiniCard({ mese, media, anno, extraMese, extraMedia, extraAnno, serie, trend }) {
+  const maxV = Math.max(...serie, 1);
+  return (
+    <AdmCard padding={0} style={{overflow:'hidden', display:'flex', flexDirection:'column'}}>
+      <div style={{padding:'20px 24px 12px', flex:1, display:'flex', flexDirection:'column', gap:8}}>
+        <span style={{fontSize:12.5, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Ordini processati · ultimo mese</span>
+        <div style={{display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap'}}>
+          <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{fmtNum(mese)}</span>
+          {trend != null && <TrendBadge delta={trend} label="vs mese precedente" size="lg"/>}
+        </div>
+        <span style={{fontSize:13.5, color:ADM.MUTED}}>media <b style={{color:ADM.TEXT}}>{fmtNum(media)}</b>/mese · <b style={{color:ADM.TEXT}}>{fmtNum(anno)}</b> negli ultimi 12 mesi</span>
+        <div style={{fontSize:12.5, color:ADM.MUTED, paddingTop:8, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+          Di cui <b style={{color:ADM.TEXT}}>extra</b> oltre piano: <b style={{color:ADM.TEXT}}>{fmtNum(extraMese)}</b> mese · media <b style={{color:ADM.TEXT}}>{fmtNum(extraMedia)}</b> · <b style={{color:ADM.TEXT}}>{fmtNum(extraAnno)}</b> anno
+        </div>
+      </div>
+      <div style={{display:'flex', alignItems:'flex-end', gap:4, height:40, padding:'0 24px'}}>
+        {serie.map((v, i) => {
+          const last = i === serie.length - 1;
+          return <div key={i} style={{flex:1, height:`${Math.max((v/maxV)*100, 4)}%`, background:ADM.INK, opacity: last ? 1 : 0.35, borderRadius:'3px 3px 0 0'}}/>;
+        })}
+      </div>
+    </AdmCard>
+  );
+}
+
 // ---------- GENERALE ----------
 function DashGenerale({ onNav }) {
   // === LOCALI ===
@@ -591,6 +619,18 @@ function DashGenerale({ onNav }) {
   const ordiniGuest30g = APP_METRICS.ordiniGuest30g;
 
 
+  // Ordini processati — serie 12 mesi derivata (mock) in proporzione ai ricavi.
+  const totOrdiniMese = LOCALI.reduce((s2,l)=>s2+(l.ordiniMese||0),0);
+  const totOrdiniAnno = LOCALI.reduce((s2,l)=>s2+(l.ordiniAnno||0),0);
+  const mediaOrdiniMese = Math.round(totOrdiniAnno/12);
+  const lastRevTot = mese.sub + mese.extra;
+  const ordiniSerie12 = last12.map(m => Math.round((m.sub+m.extra) * totOrdiniMese / lastRevTot));
+  const ordiniMoM = (() => { const a=ordiniSerie12[ordiniSerie12.length-1]||0, b=ordiniSerie12[ordiniSerie12.length-2]||a; return b ? ((a-b)/b*100) : 0; })();
+  // Extra come conteggio: derivato dai € extra (≈€0,30/ordine extra medio — mock).
+  const extraOrdMese = Math.round(mrrExtraMese / 0.30);
+  const extraOrdAnno = Math.round(extraAnno / 0.30);
+  const extraOrdMedia = Math.round(extraOrdAnno / 12);
+
   // Tier 0 · richiede attenzione — dati azionabili prima nascosti nei popup.
   const attentionItems = [
     stuckOver7 > 0 && { label: `${stuckOver7} onboarding fermi da oltre 7 giorni`, tone:'WARN',    onClick: ()=>onNav('locali') },
@@ -612,35 +652,30 @@ function DashGenerale({ onNav }) {
       {/* ═══════════ Tier 1 · Andamento — il polso della piattaforma ═══════════ */}
       <SectionLabel title="Andamento" desc="La salute della piattaforma in sintesi" first/>
 
-      <DashHero
-        label="Ricavi · ultimo mese"
-        value={fmtEur(mrrMese)}
-        trend={TS_RICAVI_MOM.delta}
-        trendLabel="vs mese precedente"
-        sub={`${fmtEur(mrrSubMese)} abbonamenti · ${fmtEur(mrrExtraMese)} extra ordini`}
-        detail={`Ultimi 12 mesi ${fmtEur(ricaviAnno)} · media ${fmtEur(Math.round(ricaviAnno/12))}/mese`}
-        data={TS.ricaviDay.slice(-30)}
-        accent={ADM.PINK}
-        selected={detail?.key === 'ricavi'}
-        onClick={()=>toggleDetail({
-          key:'ricavi', title:'Ricavi · dettaglio', subtitle:'Ultimo mese e ultimi 12 mesi', accent:ADM.PINK,
-          content:<RevenueTooltip sub={mrrSubMese} extra={mrrExtraMese} subAnno={subAnno} extraAnno={extraAnno} ricaviAnno={ricaviAnno} mesePrec={MONTHLY_REVENUE[MONTHLY_REVENUE.length - 2]}/>,
-        })}
-      />
-
-      {detail && detail.key === 'ricavi' && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
+        <DashHero
+          label="Ricavi · ultimo mese"
+          value={fmtEur(mrrMese)}
+          trend={TS_RICAVI_MOM.delta}
+          trendLabel="vs mese precedente"
+          sub={`${fmtEur(mrrSubMese)} abbonamenti · ${fmtEur(mrrExtraMese)} extra ordini`}
+          detail={`Ultimi 12 mesi ${fmtEur(ricaviAnno)} · media ${fmtEur(Math.round(ricaviAnno/12))}/mese`}
+          data={TS.ricaviDay.slice(-30)}
+          accent={ADM.PINK}
+        />
+        <DashOrdiniCard
+          mese={totOrdiniMese} media={mediaOrdiniMese} anno={totOrdiniAnno}
+          extraMese={extraOrdMese} extraMedia={extraOrdMedia} extraAnno={extraOrdAnno}
+          serie={ordiniSerie12} trend={ordiniMoM}
+        />
+      </div>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <DashStatCard
           label="Locali totali" value={fmtNum(totLocali)} accent="INK"
           sub={`${attivi} attivi · ${inattivi} inattivi`}
           ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.INK }}
-          selected={detail?.key === 'locali'}
-          onClick={()=>toggleDetail({
-            key:'locali', title:'Locali · dettaglio', subtitle:`${totLocali} locali totali`, accent:ADM.PINK,
-            content:<LocaliTotaliTooltip total={totLocali} free={freeCount} freeActive={freeActive} freeInactive={freeInactive} paying={paying} planCount={planCount}/>,
-            pageLabel:'Apri elenco Locali', onPage:()=>onNav('locali'),
-          })}
+          onClick={()=>onNav('locali')}
         />
         <DashStatCard
           label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
@@ -673,7 +708,18 @@ function DashGenerale({ onNav }) {
         />
       </div>
 
-      {detail && detail.key !== 'ricavi' && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
+      {detail && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
+
+      {/* ═══════════ In dettaglio — gli approfondimenti chiave, a vista ═══════════ */}
+      <SectionLabel title="In dettaglio" desc="Gli approfondimenti chiave, sempre visibili"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14, alignItems:'start'}}>
+        <AdmCard padding={20}>
+          <RevenueTooltip sub={mrrSubMese} extra={mrrExtraMese} subAnno={subAnno} extraAnno={extraAnno} ricaviAnno={ricaviAnno} mesePrec={MONTHLY_REVENUE[MONTHLY_REVENUE.length - 2]}/>
+        </AdmCard>
+        <AdmCard padding={20}>
+          <LocaliTotaliTooltip total={totLocali} free={freeCount} freeActive={freeActive} freeInactive={freeInactive} paying={paying} planCount={planCount}/>
+        </AdmCard>
+      </div>
 
 
     </div>
@@ -1619,6 +1665,8 @@ function DashLocali({ onNav }) {
   const mrrTot = activeLocali.reduce((s2,l)=>s2+l.mrr+l.extras,0);
   const ticketMedio = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.ticketMedio,0)/activeLocali.length) : 0;
   const coperturaMedia = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.copertura,0)/activeLocali.length) : 0;
+  const pagantiAttivi = activeLocali.filter(l => l.piano !== 'free').length;
+  const arpa = pagantiAttivi ? Math.round(mrrTot / pagantiAttivi) : 0;
 
   // ── FOOD COST / MARGINALITÀ per categoria ──────────────────────────────
   // Stimato sul ~38% del catalogo Byup con ingredient labeling completato.
@@ -1697,6 +1745,10 @@ function DashLocali({ onNav }) {
         <DashStatCard
           label="Copertura media" value={`${coperturaMedia}%`} accent="INK"
           sub="Tavoli occupati sui locali attivi"
+        />
+        <DashStatCard
+          label="ARPA" value={`${fmtEur(arpa)}/mese`} accent="INK"
+          sub="Ricavo medio per locale pagante · piano + extra"
         />
       </div>
 
