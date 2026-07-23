@@ -3031,12 +3031,12 @@ function DashUtentiApp() {
 
   // Distribuzione scontrino in fasce (% utenti)
   const ticketBuckets = [
-    { range: '€ 0-15',    pct: 18, color: ADM.MUTED_LIGHT },
-    { range: '€ 15-25',   pct: 34, color: ADM.INFO },
-    { range: '€ 25-40',   pct: 28, color: ADM.PURPLE },
-    { range: '€ 40-60',   pct: 13, color: ADM.PINK },
-    { range: '€ 60-100',  pct:  5, color: ADM.WARN },
-    { range: '€ 100+',    pct:  2, color: ADM.DANGER },
+    { range: '€ 0-15',    pct: 18, color: 'rgba(49,53,61,0.30)' },
+    { range: '€ 15-25',   pct: 34, color: 'rgba(49,53,61,0.45)' },
+    { range: '€ 25-40',   pct: 28, color: 'rgba(49,53,61,0.60)' },
+    { range: '€ 40-60',   pct: 13, color: 'rgba(49,53,61,0.75)' },
+    { range: '€ 60-100',  pct:  5, color: 'rgba(49,53,61,0.88)' },
+    { range: '€ 100+',    pct:  2, color: '#31353D' },
   ];
 
   // Frequenza ordini/utente/mese per fascia età
@@ -3407,6 +3407,61 @@ function DashUtentiApp() {
                 <span style={{fontSize:14, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(g.val/100)))} · {g.val}%</span>
               </div>
             ))}
+          </div>
+        </AdmCard>
+
+        {/* Preferenze alimentari — distribuzione sul totale utenti */}
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Preferenze alimentari</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, marginBottom:14}}>Dichiarate dagli utenti nel profilo app</div>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {[
+              { label:'Nessuna preferenza', pct:62 },
+              { label:'Senza glutine',      pct:11 },
+              { label:'Vegetariano',        pct:10 },
+              { label:'Senza lattosio',     pct:8 },
+              { label:'Vegano',             pct:6 },
+              { label:'Pescetariano',       pct:3 },
+            ].map((f, i) => (
+              <div key={i}>
+                <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                  <span style={{fontSize:14, color:ADM.TEXT}}>{f.label}</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(f.pct/100)))} · {f.pct}%</span>
+                </div>
+                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                  <div style={{width:`${Math.max(f.pct, 1.5)}%`, height:'100%', background:ADM.INK, opacity: i === 0 ? 0.45 : 0.85, borderRadius:99}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </AdmCard>
+
+        {/* Lingua dell'app — con i territori dove è usata */}
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Lingua dell'app</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, marginBottom:14}}>Impostata dagli utenti · concentrazione territoriale</div>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {[
+              { label:'Italiano', pct:96.8, terr:'Tutta la rete' },
+              { label:'Inglese',  pct:1.8,  terr:'Milano · Roma · Firenze' },
+              { label:'Tedesco',  pct:0.9,  terr:'Trentino-Alto Adige' },
+              { label:'Francese', pct:0.3,  terr:'Valle d’Aosta · Torino' },
+              { label:'Spagnolo', pct:0.2,  terr:'Milano · Bologna' },
+            ].map((l, i) => (
+              <div key={i}>
+                <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:4}}>
+                  <span style={{fontSize:14, color:ADM.TEXT, fontWeight: i === 0 ? 600 : 400}}>{l.label}</span>
+                  <span style={{fontSize:12, color:ADM.MUTED_SOFT, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.terr}</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>{fmtNum(Math.round(totUtenti*(l.pct/100)))} · {l.pct}%</span>
+                </div>
+                <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                  <div style={{width:`${Math.max(l.pct, 1.5)}%`, height:'100%', background:ADM.INK, opacity: i === 0 ? 0.85 : 0.6, borderRadius:99}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:12, lineHeight:1.5, padding:'9px 11px', background:ADM.PANEL_SOFT, borderRadius:8}}>
+            Al lancio la rete è quasi interamente in italiano: le altre lingue emergono nei territori turistici e bilingui — un segnale utile per future localizzazioni.
           </div>
         </AdmCard>
       </div>
