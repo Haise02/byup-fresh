@@ -318,16 +318,21 @@ function ageDaysInOnboarding(locale) {
 
 function AdmDashboard({ onNav }) {
   const [tab, setTab] = useStateDash('generale');
+  const [reportSent, setReportSent] = useStateDash(false);
 
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
-      <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`}}>
+      <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
         <AdmTabBar tabs={[
           { id:'generale', label:'Generale' },
           { id:'locali',   label:'Locali' },
           { id:'utentiapp',label:'Utenti App' },
           { id:'camerieri',label:'Staff' },
         ]} active={tab} onChange={setTab}/>
+        <div style={{flex:1}}/>
+        {reportSent
+          ? <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700, whiteSpace:'nowrap'}}>✓ Report inviato a marco.rinaldi@byup.it</span>
+          : <AdmButton variant="ghost" size="sm" icon="download" onClick={()=>{ setReportSent(true); setTimeout(()=>setReportSent(false), 3500); }}>Report mensile</AdmButton>}
       </div>
       <div>
         {tab === 'generale'  && <DashGenerale onNav={onNav}/>}
@@ -632,7 +637,9 @@ function DashGenerale({ onNav }) {
   const extraOrdMedia = Math.round(extraOrdAnno / 12);
 
   // Tier 0 · richiede attenzione — dati azionabili prima nascosti nei popup.
+  const pagFalliti = LOCALI.filter(l => l.pagamentoFallito).length;
   const attentionItems = [
+    pagFalliti > 0 && { label: `${pagFalliti} addebiti falliti da recuperare`, tone:'DANGER', onClick: ()=>onNav('locali') },
     stuckOver7 > 0 && { label: `${stuckOver7} onboarding fermi da oltre 7 giorni`, tone:'WARN',    onClick: ()=>onNav('locali') },
     segHi > 0       && { label: `${segHi} segnalazioni ad alta priorità`,          tone:'DANGER',  onClick: ()=>onNav('comunicazioni') },
     (segOpen-segHi) > 0 && { label: `${segOpen-segHi} segnalazioni aperte`,          tone:'NEUTRAL', onClick: ()=>onNav('comunicazioni') },

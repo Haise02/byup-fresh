@@ -39,7 +39,7 @@ function AdmTeamPage({ search }) {
       <AdmCard padding={0}>
         <div style={{padding:'14px 22px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
           <div style={{display:'flex', gap:0, marginRight:'auto'}}>
-            {[{id:'membri',l:'Membri team',b:members.length},{id:'ruoli',l:'Ruoli & Permessi',b:Object.keys(RUOLI).length},{id:'inviti',l:'Inviti pendenti',b:2},{id:'audit',l:'Audit log'}].map(t => (
+            {[{id:'membri',l:'Membri team',b:members.length},{id:'ruoli',l:'Ruoli & Permessi',b:Object.keys(RUOLI).length},{id:'inviti',l:'Inviti pendenti',b:2},{id:'audit',l:'Audit log'},{id:'piattaforma',l:'Piattaforma'}].map(t => (
               <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'8px 14px',
                 background: tab===t.id ? ADM.TEXT : 'transparent',
@@ -105,6 +105,7 @@ function AdmTeamPage({ search }) {
 
         {tab === 'ruoli' && <RuoliMatrix/>}
         {tab === 'inviti' && <InvitiPending/>}
+        {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>
 
@@ -431,6 +432,87 @@ function AuditLog() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Configurazione piattaforma — le leve commerciali, senza deploy ─────────
+// Solo Super Admin · ogni salvataggio richiede conferma e finisce in audit.
+function PlatformConfig() {
+  const DEFAULTS = {
+    free:     { label:'Gratuito', prezzo:0,      ordini:550,   extra:0.45 },
+    starter:  { label:'Starter',  prezzo:46.99,  ordini:1850,  extra:0.34 },
+    plus:     { label:'Plus',     prezzo:134.99, ordini:7500,  extra:0.23 },
+    business: { label:'Business', prezzo:250,    ordini:15000, extra:0.12 },
+  };
+  const [cfg, setCfg] = React.useState(() => JSON.parse(JSON.stringify(DEFAULTS)));
+  const [pesoApp, setPesoApp] = React.useState('0.5');
+  const [sogliaCitta, setSogliaCitta] = React.useState('125');
+  const [sogliaRegione, setSogliaRegione] = React.useState('150');
+  const [confirm, setConfirm] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const set = (piano, k) => (e) => { setSaved(false); setCfg(prev => ({ ...prev, [piano]: { ...prev[piano], [k]: e.target.value } })); };
+  const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
+  const lab = {fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
+  const doSave = () => { setConfirm(false); setSaved(true); setTimeout(()=>setSaved(false), 3000); };
+  return (
+    <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:14, position:'relative'}}>
+      <div style={{padding:'10px 14px', background:ADM.WARN_SOFT, border:`1px solid ${ADM.WARN}33`, borderRadius:10, fontSize:12.5, color:'#7A4A0C', lineHeight:1.5}}>
+        Queste sono le <strong>leve commerciali della piattaforma</strong>: le modifiche si applicano dal prossimo ciclo di fatturazione, sono riservate ai Super Admin e vengono registrate nell'audit log.
+      </div>
+
+      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Piani e prezzi</div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
+        {Object.entries(cfg).map(([id, p]) => (
+          <div key={id} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+            <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT, marginBottom:12}}>{p.label}</div>
+            <div style={{display:'flex', flexDirection:'column', gap:10}}>
+              <div><label style={lab}>Prezzo €/mese</label><input type="number" step="0.01" value={p.prezzo} onChange={set(id,'prezzo')} style={inp} disabled={id==='free'}/></div>
+              <div><label style={lab}>Ordini inclusi</label><input type="number" value={p.ordini} onChange={set(id,'ordini')} style={inp}/></div>
+              <div><label style={lab}>€ / ordine extra</label><input type="number" step="0.01" value={p.extra} onChange={set(id,'extra')} style={inp}/></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginTop:6}}>Pesi e soglie</div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
+        <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+          <label style={lab}>Peso ordine da app</label>
+          <input type="number" step="0.1" min="0.1" max="1" value={pesoApp} onChange={e=>{setSaved(false); setPesoApp(e.target.value);}} style={inp}/>
+          <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6}}>Cassa e cameriere pesano sempre 1 · l'app pesa meno per incentivarne l'adozione</div>
+        </div>
+        <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+          <label style={lab}>Soglia discovery · città</label>
+          <input type="number" value={sogliaCitta} onChange={e=>{setSaved(false); setSogliaCitta(e.target.value);}} style={inp}/>
+          <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6}}>Locali minimi in città per attivare la discovery nell'app</div>
+        </div>
+        <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+          <label style={lab}>Soglia discovery · regione</label>
+          <input type="number" value={sogliaRegione} onChange={e=>{setSaved(false); setSogliaRegione(e.target.value);}} style={inp}/>
+          <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6}}>Fallback regionale quando la città non raggiunge la soglia</div>
+        </div>
+      </div>
+
+      <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10}}>
+        {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Configurazione salvata e registrata in audit</span>}
+        <AdmButton variant="primary" size="md" icon="check" onClick={()=>setConfirm(true)}>Salva configurazione</AdmButton>
+      </div>
+
+      {confirm && (
+        <div style={{position:'fixed', inset:0, zIndex:80, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setConfirm(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:420, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Applicare la nuova configurazione?</div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+              Prezzi, soglie e pesi verranno applicati a <strong style={{color:ADM.TEXT}}>tutti i locali</strong> dal prossimo ciclo di fatturazione. L'azione viene registrata nell'audit log con il tuo nome.
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="md" onClick={()=>setConfirm(false)}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="md" icon="check" onClick={doSave}>Conferma e applica</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

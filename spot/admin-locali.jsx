@@ -2,7 +2,7 @@
 
 const { useState: useStateLoc, useMemo: useMemoLoc, useEffect: useEffectLoc } = React;
 
-function AdmLocaliPage({ search, openLocale }) {
+function AdmLocaliPage({ search, openLocale, openMessageModal }) {
   const [stato, setStato] = useStateLoc('active'); // default → Attivi
   const [piano, setPiano] = useStateLoc('all');
   const [regione, setRegione] = useStateLoc('all');
@@ -10,6 +10,21 @@ function AdmLocaliPage({ search, openLocale }) {
   const [selected, setSelected] = useStateLoc(null);
   const [sort, setSort] = useStateLoc('mrr_desc');
   const [localSearch, setLocalSearch] = useStateLoc('');
+  // Bulk: selezione multipla per messaggi/export
+  const [sel, setSel] = useStateLoc(() => new Set());
+  const toggleSel = (id) => setSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  // Viste salvate (filtri correnti con nome, in localStorage)
+  const [viste, setViste] = useStateLoc(() => { try { return JSON.parse(localStorage.getItem('adm_locali_viste') || '[]'); } catch(e) { return []; } });
+  const [salvaVistaOpen, setSalvaVistaOpen] = useStateLoc(false);
+  const [vistaNome, setVistaNome] = useStateLoc('');
+  const persistViste = (v) => { setViste(v); try { localStorage.setItem('adm_locali_viste', JSON.stringify(v)); } catch(e) {} };
+  const salvaVista = () => {
+    const nome = vistaNome.trim();
+    if (!nome) return;
+    persistViste([...viste.filter(v => v.nome !== nome), { nome, stato, piano, regione, citta, sort }]);
+    setSalvaVistaOpen(false); setVistaNome('');
+  };
+  const applicaVista = (v) => { setStato(v.stato); setPiano(v.piano); setRegione(v.regione); setCitta(v.citta); setSort(v.sort); };
 
   // Apertura diretta del drawer dalla Dashboard (sezione Adozione digitale, ecc.)
   useEffectLoc(() => {
@@ -69,7 +84,7 @@ function AdmLocaliPage({ search, openLocale }) {
   const cittaList = useMemoLoc(() => [...new Set(LOCALI.map(l => l.citta))].sort(), []);
 
   // CSV export — solo schermata Locali (Operatività)
-  const downloadCSV = () => {
+  const downloadCSV = (rowsOverride) => {
     const cols = [
       { k: 'id',           label: 'ID' },
       { k: 'nome',         label: 'Nome' },
@@ -99,7 +114,7 @@ function AdmLocaliPage({ search, openLocale }) {
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const fmtDate = (d) => d ? new Date(d).toISOString().slice(0,10) : '';
-    const rows = filtered.map(l => {
+    const rows = (rowsOverride || filtered).map(l => {
       const tot = (l.mrr || 0) + (l.extras || 0);
       const map = {
         ...l,
@@ -136,6 +151,17 @@ function AdmLocaliPage({ search, openLocale }) {
       <AdmCard padding={0}>
         <AdmTabBar tabs={tabsList} active={stato} onChange={setStato}/>
 
+        {viste.length > 0 && (
+          <div style={{padding:'10px 18px 0', display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
+            <span style={{fontSize:11, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>Viste salvate</span>
+            {viste.map(v => (
+              <span key={v.nome} className="adm-pill" style={{display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:99, background:'#fff', border:`1px solid ${ADM.BORDER}`, fontSize:12.5, fontWeight:600, color:ADM.TEXT, cursor:'pointer'}} onClick={()=>applicaVista(v)}>
+                {v.nome}
+                <button className="adm-textlink" onClick={(e)=>{ e.stopPropagation(); persistViste(viste.filter(x => x.nome !== v.nome)); }} style={{background:'none', border:'none', color:ADM.MUTED_SOFT, cursor:'pointer', padding:0, display:'inline-flex'}}><BuIcons.x size={13}/></button>
+              </span>
+            ))}
+          </div>
+        )}
         <div style={{padding:'14px 18px', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, flexWrap:'wrap'}}>
           {/* Local search */}
           <div style={{position:'relative', display:'flex', alignItems:'center'}}>
@@ -184,8 +210,19 @@ function AdmLocaliPage({ search, openLocale }) {
             {value:'nome_asc',        label:'Nome A→Z'},
             {value:'citta_asc',       label:'Città A→Z'},
           ]}/>
-          <AdmButton variant="secondary" icon="download" size="sm" onClick={downloadCSV}>Scarica CSV</AdmButton>
+          <AdmButton variant="secondary" icon="download" size="sm" onClick={()=>downloadCSV()}>Scarica CSV</AdmButton>
+          <AdmButton variant="ghost" size="sm" icon="star" onClick={()=>setSalvaVistaOpen(true)}>Salva vista</AdmButton>
         </div>
+
+        {sel.size > 0 && (
+          <div style={{padding:'10px 18px', display:'flex', alignItems:'center', gap:10, background:ADM.PINK_BG_SOFT, borderBottom:`1px solid ${ADM.PINK_SOFT}`, flexWrap:'wrap'}}>
+            <span style={{fontSize:13, fontWeight:700, color:ADM.PINK_DARK}}>{sel.size} {sel.size === 1 ? 'locale selezionato' : 'locali selezionati'}</span>
+            <div style={{flex:1}}/>
+            <AdmButton variant="secondary" size="sm" icon="send" onClick={()=>openMessageModal && openMessageModal('locali', [...sel])}>Invia messaggio</AdmButton>
+            <AdmButton variant="secondary" size="sm" icon="download" onClick={()=>downloadCSV(filtered.filter(l => sel.has(l.id)))}>Esporta selezione</AdmButton>
+            <AdmButton variant="ghost" size="sm" icon="x" onClick={()=>setSel(new Set())}>Deseleziona</AdmButton>
+          </div>
+        )}
 
         {/* Table */}
         <div>
@@ -206,10 +243,27 @@ function AdmLocaliPage({ search, openLocale }) {
           </div>
           <div>
             {filtered.length === 0 && <AdmEmpty title="Nessun locale trovato" desc="Modifica i filtri o cancella la ricerca"/>}
-            {filtered.map((l, i) => <LocaleRow key={l.id} locale={l} onClick={()=>setSelected(l)} striped={i%2===1}/>)}
+            {filtered.map((l, i) => <LocaleRow key={l.id} locale={l} onClick={()=>setSelected(l)} striped={i%2===1} checked={sel.has(l.id)} onCheck={()=>toggleSel(l.id)}/>)}
           </div>
         </div>
       </AdmCard>
+
+      {salvaVistaOpen && (
+        <div style={{position:'fixed', inset:0, zIndex:60, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setSalvaVistaOpen(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:360, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Salva vista corrente</div>
+            <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:12}}>Filtri e ordinamento attuali, richiamabili con un click</div>
+            <input autoFocus value={vistaNome} onChange={e=>setVistaNome(e.target.value)}
+              onKeyDown={e=>{ if (e.key === 'Enter') salvaVista(); }}
+              placeholder='Es. "Business in ritardo"'
+              style={{width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', outline:'none', boxSizing:'border-box', marginBottom:14}}/>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="md" onClick={()=>setSalvaVistaOpen(false)}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="md" icon="check" disabled={!vistaNome.trim()} onClick={salvaVista}>Salva vista</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selected && <LocaleDrawer locale={selected} onClose={()=>setSelected(null)}/>}
     </div>
@@ -239,7 +293,7 @@ function FilterDropdown({ label, value, onChange, options }) {
   );
 }
 
-function LocaleRow({ locale: l, onClick, striped }) {
+function LocaleRow({ locale: l, onClick, striped, checked, onCheck }) {
   const [hover, setHover] = useStateLoc(false);
   const piano = PIANI.find(p => p.id === l.piano);
   const totMese = l.mrr + l.extras;
@@ -261,6 +315,8 @@ function LocaleRow({ locale: l, onClick, striped }) {
         transition:'background 0.08s',
       }}>
       <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
+        <input type="checkbox" checked={!!checked} onChange={onCheck} onClick={e=>e.stopPropagation()}
+          style={{width:15, height:15, accentColor:'#FF5A5F', cursor:'pointer', flexShrink:0}}/>
         <div style={{
           width:34, height:34, borderRadius:8,
           background: `hsl(${(l.id.charCodeAt(1)+l.id.charCodeAt(3))*3 % 360}, 35%, 55%)`,
@@ -282,7 +338,16 @@ function LocaleRow({ locale: l, onClick, striped }) {
         <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.regione}</div>
       </div>
 
-      <div><AdmStatoBadge stato={l.stato}/></div>
+      <div>
+        <AdmStatoBadge stato={l.stato}/>
+        {l.pagamentoFallito && (
+          <div style={{marginTop:4}}>
+            <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'1.5px 7px', borderRadius:4, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:11.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.03em'}}>
+              <span style={{width:5, height:5, borderRadius:'50%', background:ADM.DANGER}}/> Addebito fallito
+            </span>
+          </div>
+        )}
+      </div>
 
       <div><AdmPlanBadge piano={l.piano}/></div>
 

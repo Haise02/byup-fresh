@@ -92,9 +92,10 @@ const COMUNICAZIONI = (() => {
 })();
 
 // ═════════════════════════════════════════════════════════════════════════════
-function AdmComunicazioniPage() {
+function AdmComunicazioniPage({ openId }) {
   const [items, setItems] = useStateCom(COMUNICAZIONI);
   const [view, setView] = useStateCom('open');
+  React.useEffect(() => { if (openId) { setSelectedId(openId); setView('all'); } }, [openId]);
   const [search, setSearch] = useStateCom('');
   const [selectedId, setSelectedId] = useStateCom(items[0]?.id || null);
 

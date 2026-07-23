@@ -69,12 +69,13 @@ const STAFF = (() => {
   });
 })();
 
-function AdmCamerieriPage({ search: searchProp }) {
+function AdmCamerieriPage({ search: searchProp, openStaff }) {
   const [search, setSearch] = useStateCam(searchProp || '');
   const [ruolo, setRuolo] = useStateCam('all');
   const [locale, setLocale] = useStateCam('all');
   const [statoFiltro, setStatoFiltro] = useStateCam('all');
   const [selected, setSelected] = useStateCam(null);
+  React.useEffect(() => { if (openStaff) setSelected(openStaff); }, [openStaff && openStaff.id]);
   const [sort, setSort] = useStateCam('lastActive_desc');
   const [viewMode, setViewMode] = useStateCam('flat'); // 'flat' | 'byLocale'
 

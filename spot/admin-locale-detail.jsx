@@ -4,6 +4,7 @@ const { useState: useStateDrw } = React;
 
 function LocaleDrawer({ locale: l, onClose }) {
   const [tab, setTab] = useStateDrw('anagrafica');
+  const [viewAs, setViewAs] = useStateDrw(false);
 
   return (
     <div style={{
@@ -50,7 +51,7 @@ function LocaleDrawer({ locale: l, onClose }) {
               <span>Iscritto {fmtDate(l.dataIscrizione)}</span>
             </div>
           </div>
-          <AdmButton variant="secondary" icon="eye" size="sm">Visualizza come</AdmButton>
+          <AdmButton variant="secondary" icon="eye" size="sm" onClick={()=>setViewAs(true)}>Visualizza come</AdmButton>
         </div>
         </div>
 
@@ -69,6 +70,20 @@ function LocaleDrawer({ locale: l, onClose }) {
         </div>
       </div>
 
+      {viewAs && (
+        <div onClick={e=>{e.stopPropagation(); setViewAs(false);}} style={{position:'fixed', inset:0, zIndex:70, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:420, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Aprire il gestionale come {l.nome}?</div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+              Vedrai il gestionale con gli occhi del titolare, in <strong style={{color:ADM.TEXT}}>sola lettura</strong>. La sessione di impersonificazione viene registrata nell'audit log.
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="md" onClick={()=>setViewAs(false)}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="md" icon="eye" onClick={()=>{ setViewAs(false); window.open('/gestionale/byup%20Panoramica.html', '_blank'); }}>Apri gestionale</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
@@ -622,8 +637,22 @@ function DrwFatturazione({ locale: l }) {
     { num: '2024-0094', data: new Date(Date.now() - 86400000 * 65), importo: l.mrr, stato: 'paid' },
     { num: '2024-0071', data: new Date(Date.now() - 86400000 * 95), importo: l.mrr, stato: 'paid' },
   ];
+  const [dunningFeedback, setDunningFeedback] = useStateDrw(null);
+  const pf = l.pagamentoFallito;
   return (
     <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      {pf && (
+        <div style={{padding:'14px 16px', background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40`, borderRadius:12, display:'flex', gap:12, alignItems:'center', flexWrap:'wrap'}}>
+          <div style={{width:34, height:34, borderRadius:9, background:ADM.DANGER, color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.alertTriangle size={19}/></div>
+          <div style={{flex:1, minWidth:200}}>
+            <div style={{fontSize:14, fontWeight:700, color:'#7F1D1D'}}>Ultimo addebito fallito · {pf.motivo}</div>
+            <div style={{fontSize:12.5, color:'#7F1D1D', marginTop:2, opacity:0.85}}>{pf.tentativi} {pf.tentativi === 1 ? 'tentativo' : 'tentativi'} · dal {fmtDate(pf.data)} · rischio sospensione tra {14 - Math.floor((Date.now()-pf.data.getTime())/86400000)} giorni</div>
+            {dunningFeedback && <div style={{fontSize:12.5, color:ADM.OK, fontWeight:700, marginTop:4}}>✓ {dunningFeedback}</div>}
+          </div>
+          <AdmButton variant="danger" size="sm" icon="card" onClick={()=>setDunningFeedback('Nuovo tentativo di addebito avviato via Stripe')}>Riprova addebito</AdmButton>
+          <AdmButton variant="secondary" size="sm" icon="mail" onClick={()=>setDunningFeedback(`Promemoria inviato a ${l.email}`)}>Invia promemoria</AdmButton>
+        </div>
+      )}
       <AdmCard padding={20}>
         <div style={{display:'flex', alignItems:'center', gap:16}}>
           <div style={{

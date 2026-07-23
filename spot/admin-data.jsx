@@ -551,6 +551,15 @@ window.ONB_STEPS = ONB_STEPS;
 window.REGIONI = REGIONI;
 window.PIANI = PIANI;
 window.TIPI_LOCALE = TIPI_LOCALE;
+// ── Dunning (mock): addebiti falliti su 3 locali attivi paganti ──────────
+LOCALI.filter(l => l.stato === 'active' && l.piano !== 'free').slice(3, 6).forEach((l, i) => {
+  l.pagamentoFallito = {
+    motivo: ['Carta scaduta', 'Fondi insufficienti', 'Carta bloccata dall\'emittente'][i % 3],
+    tentativi: 1 + (i % 3),
+    data: new Date(Date.now() - (2 + i * 3) * 86400000),
+  };
+});
+
 window.LOCALI = LOCALI;
 window.UTENTI = UTENTI;
 window.UTILIZZO_CLUSTER = UTILIZZO_CLUSTER;

@@ -2,13 +2,14 @@
 
 const { useState: useStateUtn, useMemo: useMemoUtn } = React;
 
-function AdmUtentiPage({ search: searchProp }) {
+function AdmUtentiPage({ search: searchProp, openUtente }) {
   const [search, setSearch] = useStateUtn(searchProp || '');
   const [sesso, setSesso] = useStateUtn('all');
   const [fascia, setFascia] = useStateUtn('all');
   const [regione, setRegione] = useStateUtn('all');
   const [statoFiltro, setStatoFiltro] = useStateUtn('all');
   const [selected, setSelected] = useStateUtn(null);
+  React.useEffect(() => { if (openUtente) setSelected(openUtente); }, [openUtente && openUtente.id]);
 
   const filtered = useMemoUtn(() => {
     let r = UTENTI;

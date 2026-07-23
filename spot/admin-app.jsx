@@ -14,7 +14,7 @@ const NAV_MAIN = [
   { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphoneFill' },
 ];
 const NAV_SYSTEM = [
-  { id: 'team',         label: 'Team admin',   icon: 'shieldUserFill' },
+  { id: 'team',         label: 'Impostazioni Admin', icon: 'shieldUserFill' },
 ];
 
 // Nav item — stile gestionale: attivo = fondo pesca + testo/coral, icona
@@ -56,10 +56,87 @@ function AdmNavItem({ item, active, onClick, muted, collapsed }) {
   );
 }
 
+// ─── Ricerca globale (⌘K): locali, utenti, staff, comunicazioni ─────────────
+function GlobalSearch({ onClose, go }) {
+  const [q, setQ] = useStateApp('');
+  const query = q.trim().toLowerCase();
+  const match = (...fields) => fields.some(x => String(x || '').toLowerCase().includes(query));
+  const results = query.length < 2 ? [] : [
+    { group:'Locali', icon:'storeFill', items: LOCALI.filter(l => match(l.nome, l.citta, l.id, l.titolare)).slice(0,5)
+        .map(l => ({ key:l.id, title:l.nome, sub:`${l.tipo} · ${l.citta} · ${l.id}`, go:()=>go('locali',{openLocale:l}) })) },
+    { group:'Utenti App', icon:'phoneFill', items: (window.UTENTI||[]).filter(u => match(u.nome, u.citta, u.id, u.email)).slice(0,5)
+        .map(u => ({ key:u.id, title:u.nome, sub:`${u.citta} · ${u.id}`, go:()=>go('utenti',{openUtente:u}) })) },
+    { group:'Staff', icon:'staffFill', items: (typeof STAFF !== 'undefined' ? STAFF : []).filter(st => match(st.nome, st.localeNome, st.id)).slice(0,5)
+        .map(st => ({ key:st.id, title:st.nome, sub:`${st.localeNome} · ${st.id}`, go:()=>go('camerieri',{openStaff:st}) })) },
+    { group:'Comunicazioni', icon:'chatFill', items: (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : []).filter(c => match(c.oggetto, c.senderName, c.id)).slice(0,5)
+        .map(c => ({ key:c.id, title:c.oggetto, sub:`${c.senderName} · ${c.id}`, go:()=>go('comunicazioni',{openComm:c.id}) })) },
+  ].filter(g => g.items.length > 0);
+  const flat = results.flatMap(g => g.items);
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, zIndex:90, background:'rgba(15,17,21,0.40)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', display:'flex', justifyContent:'center', alignItems:'flex-start', paddingTop:110}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:620, maxWidth:'92%', background:'#fff', borderRadius:16, boxShadow:'0 32px 80px rgba(15,17,21,0.35)', overflow:'hidden', animation:'admModalIn 0.18s ease'}}>
+        <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 18px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+          <BuIcons.search size={19} color={ADM.MUTED}/>
+          <input autoFocus value={q} onChange={e=>setQ(e.target.value)}
+            onKeyDown={e=>{ if (e.key === 'Enter' && flat[0]) { flat[0].go(); onClose(); } }}
+            placeholder="Cerca locali, utenti, staff, comunicazioni…"
+            style={{flex:1, border:'none', outline:'none', fontSize:15.5, fontFamily:'inherit', color:ADM.TEXT, background:'transparent'}}/>
+          <span style={{fontSize:11, fontWeight:700, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, borderRadius:5, padding:'2px 6px', color:ADM.MUTED_SOFT}}>ESC</span>
+        </div>
+        <div style={{maxHeight:420, overflowY:'auto'}}>
+          {query.length < 2 && (
+            <div style={{padding:'26px 18px', textAlign:'center', fontSize:13, color:ADM.MUTED}}>Digita almeno 2 caratteri · Invio apre il primo risultato</div>
+          )}
+          {query.length >= 2 && results.length === 0 && (
+            <div style={{padding:'26px 18px', textAlign:'center', fontSize:13, color:ADM.MUTED}}>Nessun risultato per "{q}"</div>
+          )}
+          {results.map(g => {
+            const GIcon = BuIcons[g.icon];
+            return (
+              <div key={g.group}>
+                <div style={{padding:'9px 18px 5px', fontSize:11, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em'}}>{g.group}</div>
+                {g.items.map(it => (
+                  <button key={it.key} className="adm-actionrow" onClick={()=>{ it.go(); onClose(); }} style={{
+                    display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left',
+                    padding:'9px 18px', background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
+                  }}>
+                    <span style={{width:28, height:28, borderRadius:7, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}><GIcon size={15}/></span>
+                    <span style={{flex:1, minWidth:0}}>
+                      <span style={{display:'block', fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{it.title}</span>
+                      <span style={{display:'block', fontSize:12, color:ADM.MUTED, marginTop:1}}>{it.sub}</span>
+                    </span>
+                    <BuIcons.chevronRight size={14} color={ADM.MUTED_LIGHT}/>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminApp({ tweaks }) {
   const [route, setRouteRaw] = useStateApp('dashboard');
   const [messageModal, setMessageModal] = useStateApp(null);
   const [localiOpenLocale, setLocaliOpenLocale] = useStateApp(null);
+  const [utentiOpen, setUtentiOpen] = useStateApp(null);
+  const [staffOpen, setStaffOpen] = useStateApp(null);
+  const [commOpen, setCommOpen] = useStateApp(null);
+  const [searchOpen, setSearchOpen] = useStateApp(false);
+  const [notifOpen, setNotifOpen] = useStateApp(false);
+  const [notifRead, setNotifRead] = useStateApp(false);
+
+  // ⌘K / Ctrl+K apre la ricerca globale ovunque
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(o => !o); }
+      if (e.key === 'Escape') { setSearchOpen(false); setNotifOpen(false); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Sidebar comprimi/espandi — stato persistito, come nel gestionale (68px).
   const [collapsed, setCollapsed] = useStateApp(() => {
@@ -80,11 +157,10 @@ function AdminApp({ tweaks }) {
   // il drawer di dettaglio sul locale passato. Navigando altrove o tornando
   // su 'locali' senza opts, il prefill è azzerato.
   const setRoute = (next, opts) => {
-    if (next === 'locali' && opts && opts.openLocale) {
-      setLocaliOpenLocale(opts.openLocale);
-    } else {
-      setLocaliOpenLocale(null);
-    }
+    setLocaliOpenLocale(next === 'locali' && opts?.openLocale ? opts.openLocale : null);
+    setUtentiOpen(next === 'utenti' && opts?.openUtente ? opts.openUtente : null);
+    setStaffOpen(next === 'camerieri' && opts?.openStaff ? opts.openStaff : null);
+    setCommOpen(next === 'comunicazioni' && opts?.openComm ? opts.openComm : null);
     setRouteRaw(next);
   };
 
@@ -98,7 +174,7 @@ function AdminApp({ tweaks }) {
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
     comunicazioni: { t:'Comunicazioni', s:'Email, richieste e segnalazioni dai locali Byup Spot' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
-    team:         { t:'Team admin', s:'Membri dello staff byup e relativi permessi' },
+    team:         { t:'Impostazioni Admin', s:'Team, permessi e configurazione della piattaforma' },
     profilo:      { t:'Profilo', s:'Account e sicurezza' },
   };
 
@@ -197,19 +273,73 @@ function AdminApp({ tweaks }) {
             <div style={{fontSize:22, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.2}}>{pt.t}</div>
             <div style={{fontSize:14, color:ADM.MUTED, marginTop:2, letterSpacing:'-0.005em'}}>{pt.s}</div>
           </div>
+          {/* Ricerca globale */}
+          <button onClick={()=>setSearchOpen(true)} className="adm-pill" style={{
+            display:'inline-flex', alignItems:'center', gap:8, padding:'8px 14px',
+            background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, borderRadius:99,
+            color:ADM.MUTED, fontSize:13.5, fontFamily:'inherit', cursor:'pointer', flexShrink:0,
+          }}>
+            <BuIcons.search size={16}/> Cerca…
+            <span style={{fontSize:11, fontWeight:700, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:5, padding:'1px 5px', color:ADM.MUTED_SOFT}}>⌘K</span>
+          </button>
+          {/* Notifiche */}
+          <div style={{position:'relative', flexShrink:0}}>
+            <button onClick={()=>setNotifOpen(o=>!o)} className="adm-iconbtn" style={{
+              width:38, height:38, borderRadius:10, border:`1px solid ${ADM.BORDER}`, background:'#fff',
+              color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center', position:'relative',
+            }}>
+              <BuIcons.bell size={19}/>
+              {!notifRead && <span style={{position:'absolute', top:7, right:8, width:8, height:8, borderRadius:'50%', background:ADM.PINK, boxShadow:'0 0 0 2px #fff'}}/>}
+            </button>
+            {notifOpen && (
+              <React.Fragment>
+                <div onClick={()=>setNotifOpen(false)} style={{position:'fixed', inset:0, zIndex:69}}/>
+                <div style={{position:'absolute', top:'calc(100% + 8px)', right:0, width:360, zIndex:70,
+                  background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14,
+                  boxShadow:'0 24px 56px -12px rgba(15,17,21,0.25)', overflow:'hidden'}}>
+                  <div style={{padding:'12px 16px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                    <span style={{fontSize:13.5, fontWeight:700, color:ADM.TEXT}}>Notifiche</span>
+                    <button className="adm-textlink" onClick={()=>setNotifRead(true)} style={{background:'none', border:'none', color:ADM.PINK_DARK, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Segna tutte come lette</button>
+                  </div>
+                  {[
+                    { icon:'card', tone:ADM.DANGER, text:`${LOCALI.filter(l=>l.pagamentoFallito).length} addebiti falliti da recuperare`, when:'2 g fa', go:()=>setRoute('locali') },
+                    { icon:'shield', tone:ADM.WARN, text:`${CERTIFICAZIONI.filter(c=>c.stato==='pending').length} certificazioni in attesa di revisione`, when:'oggi', go:()=>setRoute('comunicazioni') },
+                    { icon:'chat', tone:ADM.PINK, text:`${SEGNALAZIONI.filter(x=>x.stato==='nuova').length} nuove segnalazioni dai locali`, when:'35 min fa', go:()=>setRoute('comunicazioni') },
+                    { icon:'clock', tone:ADM.WARN, text:'13 onboarding fermi da oltre 7 giorni', when:'ieri', go:()=>setRoute('locali') },
+                  ].map((n, i) => {
+                    const NIcon = BuIcons[n.icon];
+                    return (
+                      <button key={i} className="adm-actionrow" onClick={()=>{ setNotifOpen(false); n.go(); }} style={{
+                        display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left',
+                        padding:'11px 16px', background:'transparent', border:'none',
+                        borderBottom: i === 3 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+                        cursor:'pointer', fontFamily:'inherit',
+                      }}>
+                        <span style={{width:30, height:30, borderRadius:8, background:`${n.tone}18`, color:n.tone, display:'grid', placeItems:'center', flexShrink:0}}><NIcon size={16}/></span>
+                        <span style={{flex:1, fontSize:13, color:ADM.TEXT, lineHeight:1.35}}>{n.text}</span>
+                        <span style={{fontSize:11.5, color:ADM.MUTED_SOFT, flexShrink:0}}>{n.when}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </React.Fragment>
+            )}
+          </div>
         </header>
 
         <div style={{flex:1, overflow:'auto'}}>
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
-          {route === 'locali'       && <AdmLocaliPage search={''} openLocale={localiOpenLocale}/>}
-          {route === 'camerieri'    && <AdmCamerieriPage search={''}/>}
-          {route === 'utenti'       && <AdmUtentiPage search={''}/>}
-          {route === 'comunicazioni' && <AdmComunicazioniPage search={''}/>}
+          {route === 'locali'       && <AdmLocaliPage search={''} openLocale={localiOpenLocale} openMessageModal={openMessageModal}/>}
+          {route === 'camerieri'    && <AdmCamerieriPage search={''} openStaff={staffOpen}/>}
+          {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
+          {route === 'comunicazioni' && <AdmComunicazioniPage openId={commOpen}/>}
           {route === 'team'         && <AdmTeamPage search={''}/>}
           {route === 'promozioni'   && <AdmPromozioniPage onNew={()=>openMessageModal('utenti', [])}/>}
           {route === 'profilo'      && <ProfiloPage/>}
         </div>
       </main>
+
+      {searchOpen && <GlobalSearch onClose={()=>setSearchOpen(false)} go={(r, opts)=>setRoute(r, opts)}/>}
 
       <MessageModal
         open={!!messageModal} onClose={closeMessageModal}
@@ -271,6 +401,7 @@ function ProfiloPage() {
           <div style={{flex:1}}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
               <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Autenticazione a due fattori (2FA)</div>
+              <span style={{padding:'2px 8px', borderRadius:99, background:ADM.WARN_SOFT, color:'#92400E', fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.04em'}}>obbligatoria per gli admin</span>
               {twofa && <AdmBadge color="OK" size="xs">Attiva</AdmBadge>}
             </div>
             <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
