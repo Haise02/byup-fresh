@@ -24,7 +24,7 @@ function AdmNavItem({ item, active, onClick, muted, collapsed }) {
   const hasBadge = item.badge !== undefined && item.badge > 0;
   return (
     <button onClick={onClick} className={`adm-nav-item${active ? ' is-active' : ''}`}
-      title={item.label}
+      title={collapsed ? item.label : undefined}
       style={{
         width:'100%', display:'flex', alignItems:'center',
         gap: collapsed ? 0 : 12,
@@ -157,7 +157,7 @@ function AdminApp({ tweaks }) {
 
         {/* Profilo — card a tutta larghezza: avatar a sinistra, testo che
             riempie, freccia ancorata a destra. Niente contenuto "galleggiante". */}
-        <button onClick={()=>setRoute('profilo')} title="Profilo" className="adm-card-interactive"
+        <button onClick={()=>setRoute('profilo')} title={collapsed ? "Profilo" : undefined} className="adm-card-interactive"
           style={{
             marginTop:10, width:'100%', boxSizing:'border-box',
             padding: collapsed ? '8px 0' : '9px 10px',
