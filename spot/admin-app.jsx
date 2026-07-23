@@ -2,25 +2,52 @@
 
 const { useState: useStateApp } = React;
 
-const NAV_GROUPS = [
-  { title: null, items: [
-    { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-  ]},
-  { title: 'Operatività', items: [
-    { id: 'locali', label: 'Locali', icon: 'store', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
-    { id: 'camerieri', label: 'Staff', icon: 'waiter' },
-    { id: 'utenti', label: 'Utenti App', icon: 'users' },
-  ]},
-  { title: 'Supporto', items: [
-    { id: 'comunicazioni', label: 'Comunicazioni', icon: 'chat', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length), badgeColor: 'PINK' },
-  ]},
-  { title: 'Marketing', items: [
-    { id: 'promozioni', label: 'Promozioni', icon: 'megaphone' },
-  ]},
-  { title: 'Amministrazione', items: [
-    { id: 'team', label: 'Team admin', icon: 'shieldUser' },
-  ]},
+// Nav piatta come nel gestionale: una lista principale + un gruppo "sistema"
+// staccato in basso. Niente micro-header maiuscoli (Operatività/Marketing…):
+// le icone + label bastano, e la sidebar respira.
+const NAV_MAIN = [
+  { id: 'dashboard',    label: 'Dashboard',    icon: 'home' },
+  { id: 'locali',       label: 'Locali',       icon: 'store', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
+  { id: 'camerieri',    label: 'Staff',        icon: 'waiter' },
+  { id: 'utenti',       label: 'Utenti App',   icon: 'users' },
+  { id: 'comunicazioni', label: 'Comunicazioni', icon: 'chat', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length) },
+  { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphone' },
 ];
+const NAV_SYSTEM = [
+  { id: 'team',         label: 'Team admin',   icon: 'shieldUser' },
+];
+
+// Nav item — stile gestionale: attivo = fondo pesca + testo/coral, icona
+// prominente. `muted` per il gruppo sistema (tono più tenue, icona più piccola).
+function AdmNavItem({ item, active, onClick, muted }) {
+  const Icon = BuIcons[item.icon];
+  return (
+    <button onClick={onClick} className={`adm-nav-item${active ? ' is-active' : ''}`}
+      title={item.label}
+      style={{
+        width:'100%', display:'flex', alignItems:'center', gap:11,
+        padding:'9px 11px',
+        background: active ? ADM.PINK_SOFT : 'transparent',
+        color: active ? ADM.PINK_DARK : (muted ? ADM.MUTED : ADM.TEXT),
+        border:'none', borderRadius:10,
+        fontSize: muted ? 14 : 15,
+        fontWeight: active ? 600 : 500,
+        letterSpacing:'-0.01em',
+        cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+      }}>
+      <Icon size={muted ? 19 : 21} color={active ? ADM.PINK : ADM.MUTED}/>
+      <span style={{flex:1}}>{item.label}</span>
+      {item.badge !== undefined && item.badge > 0 && (
+        <span style={{
+          fontSize:12, fontWeight:700,
+          background: ADM.PINK, color:'#fff',
+          padding:'1.5px 7px', borderRadius:99, minWidth:18, textAlign:'center',
+          boxShadow:'0 1px 2px rgba(0,0,0,0.10)',
+        }}>{item.badge}</span>
+      )}
+    </button>
+  );
+}
 
 function AdminApp({ tweaks }) {
   const [route, setRouteRaw] = useStateApp('dashboard');
@@ -58,103 +85,76 @@ function AdminApp({ tweaks }) {
   return (
     <div style={{
       display:'flex', height:'100vh', width:'100vw', overflow:'hidden',
-      fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif',
+      fontFamily: "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif",
       background: ADM.PANEL_SOFT, color: ADM.TEXT,
     }}>
-      {/* Sidebar */}
+      {/* Sidebar — vetro tenue, logo reale, nav piatta (come il gestionale) */}
       <aside style={{
-        width: 288, flexShrink:0,
-        background:'rgba(250,250,251,0.85)',
-        backdropFilter:'saturate(180%) blur(20px)',
-        WebkitBackdropFilter:'saturate(180%) blur(20px)',
-        borderRight:`1px solid ${ADM.BORDER}`,
+        width: 264, flexShrink:0,
+        background:'linear-gradient(180deg, rgba(250,251,252,0.92) 0%, rgba(245,245,247,0.92) 100%)',
+        backdropFilter:'saturate(180%) blur(24px)',
+        WebkitBackdropFilter:'saturate(180%) blur(24px)',
+        borderRight:'1px solid rgba(15,17,21,0.06)',
+        boxShadow:'inset 0 1px 0 rgba(255,255,255,0.65)',
         display:'flex', flexDirection:'column',
+        padding:'18px 12px 56px',
       }}>
-        <div style={{padding:'18px 18px 14px', display:'flex', alignItems:'center', gap:11}}>
-          <div style={{
-            width:34, height:34, borderRadius:10,
-            background: `linear-gradient(135deg, #FF7074, ${ADM.PINK_DARK})`,
-            color:'#fff', display:'grid', placeItems:'center',
-            fontWeight:800, fontSize:23, letterSpacing:'-0.04em',
-            boxShadow:'0 4px 10px -3px rgba(255,90,95,0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
-          }}>B</div>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:21.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em'}}>byup</div>
-            <div style={{fontSize:17, color:ADM.MUTED, fontWeight:600, marginTop:0, letterSpacing:'0.08em', textTransform:'uppercase'}}>Spot</div>
-          </div>
+        {/* Logo — marchio + wordmark byup coral (dal logo reale) + prodotto "Spot" */}
+        <div style={{display:'flex', alignItems:'baseline', gap:8, padding:'2px 8px 20px'}}>
+          <img src="byup.png" alt="byup" style={{height:23, width:'auto', display:'block', transform:'translateY(4px)'}}/>
+          <span style={{
+            fontSize:20, fontWeight:800, fontStyle:'italic',
+            color: ADM.PINK, letterSpacing:'-0.01em', lineHeight:1,
+          }}>Spot</span>
         </div>
 
-        <nav style={{flex:1, overflowY:'auto', padding:'6px 10px 14px'}}>
-          {NAV_GROUPS.map((group, gi) => (
-            <div key={gi} style={{marginTop: gi === 0 ? 0 : 16}}>
-              {group.title && (
-                <div style={{fontSize:17, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.08em', padding:'8px 10px 6px'}}>{group.title}</div>
-              )}
-              {group.items.map(item => {
-                const Icon = BuIcons[item.icon];
-                const active = route === item.id;
-                return (
-                  <button key={item.id} onClick={()=>setRoute(item.id)}
-                    className={`adm-nav-item${active ? ' is-active' : ''}`}
-                    style={{
-                      width:'100%', display:'flex', alignItems:'center', gap:10,
-                      padding:'8px 10px',
-                      background: active ? '#fff' : 'transparent',
-                      color: active ? ADM.TEXT : ADM.TEXT,
-                      border:'none', borderRadius:8,
-                      fontSize:20, fontWeight: active ? 600 : 500,
-                      letterSpacing:'-0.01em',
-                      cursor:'pointer', fontFamily:'inherit', marginBottom:2, textAlign:'left',
-                      boxShadow: active ? '0 1px 2px rgba(15,17,21,0.06), 0 0 0 0.5px rgba(15,17,21,0.04)' : 'none',
-                    }}>
-                    <Icon size={20} color={active ? ADM.PINK : ADM.MUTED}/>
-                    <span style={{flex:1}}>{item.label}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span style={{
-                        fontSize:17, fontWeight:700,
-                        background: item.badgeColor ? ADM[item.badgeColor] : 'rgba(120,120,128,0.18)',
-                        color: item.badgeColor ? '#fff' : ADM.MUTED,
-                        padding:'1.5px 6px', borderRadius:99, minWidth: 18, textAlign:'center',
-                        boxShadow: item.badgeColor ? '0 1px 2px rgba(0,0,0,0.10)' : 'none',
-                      }}>{item.badge}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+        <nav style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:2}}>
+          {NAV_MAIN.map(item => (
+            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)}/>
           ))}
         </nav>
 
-        <button onClick={()=>setRoute('profilo')}
-          className="adm-nav-item"
+        {/* Gruppo sistema — staccato in basso, tono più tenue */}
+        <div style={{display:'flex', flexDirection:'column', gap:2, paddingTop:10, marginTop:6, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+          {NAV_SYSTEM.map(item => (
+            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)} muted/>
+          ))}
+        </div>
+
+        {/* Profilo */}
+        <button onClick={()=>setRoute('profilo')} className={`adm-nav-item${route==='profilo' ? ' is-active' : ''}`}
           style={{
-            margin:'8px 10px 10px', padding:'10px 10px',
-            borderTop:'none',
+            marginTop:6, padding:'11px 8px 4px',
             display:'flex', alignItems:'center', gap:10,
-            background: route === 'profilo' ? '#fff' : 'transparent',
+            background: route === 'profilo' ? ADM.PINK_SOFT : 'transparent',
             border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-            boxShadow: route === 'profilo' ? '0 1px 2px rgba(15,17,21,0.06), 0 0 0 0.5px rgba(15,17,21,0.04)' : 'none',
+            borderTop:`1px solid ${ADM.BORDER_SOFT}`, borderTopLeftRadius:0, borderTopRightRadius:0,
           }}>
-          <AdmAvatar name="Marco Rinaldi" size={37}/>
+          <div style={{
+            width:34, height:34, borderRadius:'50%',
+            background:'linear-gradient(135deg, #FF5A5F, #B53338)',
+            color:'#fff', display:'grid', placeItems:'center',
+            fontWeight:700, fontSize:14, flexShrink:0, letterSpacing:'0.01em',
+          }}>MR</div>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:19.5, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Marco Rinaldi</div>
-            <div style={{fontSize:17.5, color:ADM.MUTED, marginTop:1}}>Super Admin</div>
+            <div style={{fontSize:14.5, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Marco Rinaldi</div>
+            <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>Super Admin</div>
           </div>
-          <span style={{color: ADM.MUTED_SOFT}}><BuIcons.chevronRight size={18}/></span>
+          <span style={{color: ADM.MUTED_SOFT}}><BuIcons.chevronRight size={16}/></span>
         </button>
       </aside>
 
       {/* Main */}
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
         <header style={{
-          padding:'18px 32px',
+          padding:'15px 28px',
           background:'#ffffff',
           borderBottom:`1px solid ${ADM.BORDER}`,
           display:'flex', alignItems:'center', gap:14, flexShrink:0,
         }}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:27, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.025em', lineHeight:1.15}}>{pt.t}</div>
-            <div style={{fontSize:19.5, color:ADM.MUTED, marginTop:3, letterSpacing:'-0.005em'}}>{pt.s}</div>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:22, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.2}}>{pt.t}</div>
+            <div style={{fontSize:14, color:ADM.MUTED, marginTop:2, letterSpacing:'-0.005em'}}>{pt.s}</div>
           </div>
         </header>
 
