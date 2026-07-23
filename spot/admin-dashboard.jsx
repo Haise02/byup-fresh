@@ -590,27 +590,6 @@ function DashGenerale({ onNav }) {
   const guestLog30g = Math.round(APP_METRICS.ordiniGuest30g * 1.85);
   const ordiniGuest30g = APP_METRICS.ordiniGuest30g;
 
-  // ── FOOD COST / MARGINALITÀ per categoria ──────────────────────────────
-  // Stimato sul ~38% del catalogo Byup con ingredient labeling completato.
-  // Food cost % = costo materie prime / prezzo di vendita medio (standard horeca).
-  // Industria: pizza 22-28%, primi 20-25%, secondi 30-40%, drinks 12-18%.
-  const foodCostCats = [
-    { cat:'Pizza',         prezzo:11.50, foodCost:24, ord:48200, color:ADM.PINK },
-    { cat:'Primi',         prezzo:12.80, foodCost:22, ord:38400, color:ADM.WARN },
-    { cat:'Secondi carne', prezzo:18.40, foodCost:36, ord:22600, color:ADM.DANGER },
-    { cat:'Secondi pesce', prezzo:22.80, foodCost:42, ord:14800, color:ADM.INFO },
-    { cat:'Antipasti',     prezzo: 8.20, foodCost:28, ord:18200, color:ADM.OK },
-    { cat:'Dolci',         prezzo: 6.40, foodCost:21, ord:14200, color:ADM.PURPLE },
-    { cat:'Drinks',        prezzo: 7.20, foodCost:16, ord:32800, color:'#0EA5E9' },
-  ];
-  // Margine lordo % (semplice: prezzo - food cost - 0 altri costi qui)
-  // GP = (1 - foodCost%/100)
-  const foodCostEnriched = foodCostCats.map(c => ({
-    ...c,
-    margine: 100 - c.foodCost,
-    margineEur: c.prezzo * (100 - c.foodCost)/100,
-    ricavi: c.prezzo * c.ord,
-  })).sort((a,b) => b.margine - a.margine);
 
   // Tier 0 · richiede attenzione — dati azionabili prima nascosti nei popup.
   const attentionItems = [
@@ -696,56 +675,6 @@ function DashGenerale({ onNav }) {
 
       {detail && detail.key !== 'ricavi' && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
 
-      {/* ═══════════ Tier 3 · Esplora i dati — approfondimenti, nessuna azione ═══════════ */}
-      <SectionLabel title="Esplora i dati" desc="Analisi di approfondimento · non richiede un'azione immediata" muted/>
-
-      <AdmCard padding={0}>
-        <div style={{padding:'14px 22px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Food cost & marginalità per categoria</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Margine lordo stimato · proxy del valore di un marketplace fornitori</div>
-          <div style={{fontSize:12, color:ADM.MUTED_SOFT, marginTop:7, display:'flex', alignItems:'center', gap:6}}>
-            <BuIcons.info size={13} color={ADM.MUTED_SOFT}/>
-            <span>Stima su <strong style={{color:ADM.MUTED, fontWeight:700}}>38% del catalogo</strong> · food-cost di settore come riferimento (±2-3 pt di accuratezza)</span>
-          </div>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18, padding:'12px 22px', background:ADM.PANEL_SOFT, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div>Categoria</div>
-          <div style={{textAlign:'right'}}>Prezzo vendita</div>
-          <div style={{textAlign:'right'}}>Food cost</div>
-          <div>Margine lordo</div>
-          <div style={{textAlign:'right'}}>Ordini / mese</div>
-        </div>
-        {foodCostEnriched.map((c, i) => {
-          const marginTone = c.margine >= 80 ? ADM.OK : c.margine >= 70 ? ADM.WARN : ADM.DANGER;
-          return (
-            <div key={c.cat} style={{
-              display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18,
-              padding:'14px 22px', alignItems:'center',
-              borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-            }}>
-              <div style={{display:'flex', alignItems:'center', gap:10}}>
-                <span style={{width:8, height:30, borderRadius:3, background:marginTone, flexShrink:0}}/>
-                <div>
-                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>{c.cat}</div>
-                  <div style={{fontSize:12.6, color:ADM.MUTED}}>Ricavi/mese {fmtEur(Math.round(c.ricavi))}</div>
-                </div>
-              </div>
-              <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtEur(c.prezzo)}</div>
-              <div style={{fontSize:14.4, fontWeight:700, color:ADM.DANGER, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.foodCost}%</div>
-              <div style={{display:'flex', alignItems:'center', gap:10}}>
-                <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden', maxWidth:180}}>
-                  <div style={{width:`${c.margine}%`, height:'100%', background:`linear-gradient(90deg, ${marginTone}, ${marginTone}DD)`, borderRadius:99}}/>
-                </div>
-                <span style={{fontSize:14.4, fontWeight:800, color:marginTone, minWidth:42, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.margine}%</span>
-              </div>
-              <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtNum(c.ord)}</div>
-            </div>
-          );
-        })}
-        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5}}>
-          <strong style={{color:ADM.TEXT}}>Insight:</strong> Drinks ha il margine lordo più alto (84%) ma volume medio basso · Pizza è il <strong>sweet spot</strong> con margine 76% e oltre 48k ordini/mese · Secondi di pesce sono i meno marginali (58%) ma a prezzo unitario più alto. Drive opportunità marketplace fornitori: chi rifornisce gli ingredienti chiave delle prime due categorie controlla il 70% del valore.
-        </div>
-      </AdmCard>
 
     </div>
   );
@@ -1691,6 +1620,28 @@ function DashLocali({ onNav }) {
   const ticketMedio = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.ticketMedio,0)/activeLocali.length) : 0;
   const coperturaMedia = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.copertura,0)/activeLocali.length) : 0;
 
+  // ── FOOD COST / MARGINALITÀ per categoria ──────────────────────────────
+  // Stimato sul ~38% del catalogo Byup con ingredient labeling completato.
+  // Food cost % = costo materie prime / prezzo di vendita medio (standard horeca).
+  // Industria: pizza 22-28%, primi 20-25%, secondi 30-40%, drinks 12-18%.
+  const foodCostCats = [
+    { cat:'Pizza',         prezzo:11.50, foodCost:24, ord:48200, color:ADM.PINK },
+    { cat:'Primi',         prezzo:12.80, foodCost:22, ord:38400, color:ADM.WARN },
+    { cat:'Secondi carne', prezzo:18.40, foodCost:36, ord:22600, color:ADM.DANGER },
+    { cat:'Secondi pesce', prezzo:22.80, foodCost:42, ord:14800, color:ADM.INFO },
+    { cat:'Antipasti',     prezzo: 8.20, foodCost:28, ord:18200, color:ADM.OK },
+    { cat:'Dolci',         prezzo: 6.40, foodCost:21, ord:14200, color:ADM.PURPLE },
+    { cat:'Drinks',        prezzo: 7.20, foodCost:16, ord:32800, color:'#0EA5E9' },
+  ];
+  // Margine lordo % (semplice: prezzo - food cost - 0 altri costi qui)
+  // GP = (1 - foodCost%/100)
+  const foodCostEnriched = foodCostCats.map(c => ({
+    ...c,
+    margine: 100 - c.foodCost,
+    margineEur: c.prezzo * (100 - c.foodCost)/100,
+    ricavi: c.prezzo * c.ord,
+  })).sort((a,b) => b.margine - a.margine);
+
   // Dettaglio in-linea (stesso pattern del Generale): click sulla card → fascia
   // sotto la riga; ri-click chiude.
   const [detail, setDetail] = useStateDash(null);
@@ -2404,6 +2355,58 @@ function DashLocali({ onNav }) {
       </div>
 
       {/* ═════ PREZZO MEDIO PIATTO · POSIZIONAMENTO CITTÀ ═════ */}
+      {/* ═══════════ Economia del menu (spostata dal Generale) ═══════════ */}
+      <SectionLabel title="Economia del menu" desc="Food cost e marginalità stimati sul catalogo della rete"/>
+
+
+      <AdmCard padding={0}>
+        <div style={{padding:'14px 22px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Food cost & marginalità per categoria</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Margine lordo stimato · proxy del valore di un marketplace fornitori</div>
+          <div style={{fontSize:12, color:ADM.MUTED_SOFT, marginTop:7, display:'flex', alignItems:'center', gap:6}}>
+            <BuIcons.info size={13} color={ADM.MUTED_SOFT}/>
+            <span>Stima su <strong style={{color:ADM.MUTED, fontWeight:700}}>38% del catalogo</strong> · food-cost di settore come riferimento (±2-3 pt di accuratezza)</span>
+          </div>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18, padding:'12px 22px', background:ADM.PANEL_SOFT, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div>Categoria</div>
+          <div style={{textAlign:'right'}}>Prezzo vendita</div>
+          <div style={{textAlign:'right'}}>Food cost</div>
+          <div>Margine lordo</div>
+          <div style={{textAlign:'right'}}>Ordini / mese</div>
+        </div>
+        {foodCostEnriched.map((c, i) => {
+          const marginTone = c.margine >= 80 ? ADM.OK : c.margine >= 70 ? ADM.WARN : ADM.DANGER;
+          return (
+            <div key={c.cat} style={{
+              display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18,
+              padding:'14px 22px', alignItems:'center',
+              borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <span style={{width:8, height:30, borderRadius:3, background:marginTone, flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>{c.cat}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>Ricavi/mese {fmtEur(Math.round(c.ricavi))}</div>
+                </div>
+              </div>
+              <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtEur(c.prezzo)}</div>
+              <div style={{fontSize:14.4, fontWeight:700, color:ADM.DANGER, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.foodCost}%</div>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden', maxWidth:180}}>
+                  <div style={{width:`${c.margine}%`, height:'100%', background:`linear-gradient(90deg, ${marginTone}, ${marginTone}DD)`, borderRadius:99}}/>
+                </div>
+                <span style={{fontSize:14.4, fontWeight:800, color:marginTone, minWidth:42, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.margine}%</span>
+              </div>
+              <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtNum(c.ord)}</div>
+            </div>
+          );
+        })}
+        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5}}>
+          <strong style={{color:ADM.TEXT}}>Insight:</strong> Drinks ha il margine lordo più alto (84%) ma volume medio basso · Pizza è il <strong>sweet spot</strong> con margine 76% e oltre 48k ordini/mese · Secondi di pesce sono i meno marginali (58%) ma a prezzo unitario più alto. Drive opportunità marketplace fornitori: chi rifornisce gli ingredienti chiave delle prime due categorie controlla il 70% del valore.
+        </div>
+      </AdmCard>
+
       <SectionLabel title="Posizionamento prezzi per città" desc="Listino medio dei locali partner · benchmark territoriale"/>
 
       <AdmCard padding={20}>
