@@ -240,16 +240,22 @@ function UtenteDrawer({ utente: u, onClose }) {
 
   // ── Azioni sensibili / byuppini / reset password ──
   const [resetSent, setResetSent] = useStateUtn(false);
-  const [byupPopup, setByupPopup] = useStateUtn(false);
+  const [byupPopup, setByupPopup] = useStateUtn(null); // 'add' | 'sub' | null
   const [byupAmount, setByupAmount] = useStateUtn('');
   const [byupFeedback, setByupFeedback] = useStateUtn(null);
   const [deletePopup, setDeletePopup] = useStateUtn(false);
+  const byupN = parseInt(byupAmount, 10) || 0;
+  const byupValid = byupPopup === 'sub' ? (byupN > 0 && byupN <= u.byuppini) : byupN > 0;
   const confirmByup = () => {
-    const n = parseInt(byupAmount, 10);
-    if (!n || n <= 0) return;
-    u.byuppini += n;
-    setByupFeedback(`+${n} byuppini caricati`);
-    setByupPopup(false); setByupAmount('');
+    if (!byupValid) return;
+    if (byupPopup === 'sub') {
+      u.byuppini -= byupN;
+      setByupFeedback(`−${byupN} byuppini stornati`);
+    } else {
+      u.byuppini += byupN;
+      setByupFeedback(`+${byupN} byuppini caricati`);
+    }
+    setByupPopup(null); setByupAmount('');
     setTimeout(()=>setByupFeedback(null), 2500);
   };
 
@@ -401,10 +407,11 @@ function UtenteDrawer({ utente: u, onClose }) {
                 <div style={{flex:1}}>
                   <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Byuppini</div>
                   <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2}}>Saldo attuale del programma fedeltà</div>
-                  {byupFeedback && <div style={{fontSize:12.5, color:ADM.OK, fontWeight:700, marginTop:4}}>✓ {byupFeedback}</div>}
+                  {byupFeedback && <div style={{fontSize:12.5, color: byupFeedback.startsWith('−') ? ADM.DANGER : ADM.OK, fontWeight:700, marginTop:4}}>✓ {byupFeedback}</div>}
                 </div>
                 <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{fmtNum(u.byuppini)}</div>
-                <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setByupPopup(true)}>Carica byuppini</AdmButton>
+                <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setByupPopup('add')}>Carica</AdmButton>
+                <AdmButton variant="ghost" size="md" onClick={()=>setByupPopup('sub')}>Storna…</AdmButton>
               </div>
             </AdmCard>
 
@@ -501,19 +508,26 @@ function UtenteDrawer({ utente: u, onClose }) {
           </div>
         )}
 
-        {/* ═══ Popup conferma: carica byuppini ═══ */}
+        {/* ═══ Popup conferma: carica / storna byuppini ═══ */}
         {byupPopup && (
-          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setByupPopup(false)}>
+          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setByupPopup(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:380, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Carica byuppini</div>
-              <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Accredito manuale sul saldo di {form.nome} (attuale: <strong style={{color:ADM.TEXT}}>{fmtNum(u.byuppini)}</strong>)</div>
-              <label style={labelStyle}>Quantità da accreditare</label>
-              <input type="number" min="1" autoFocus value={byupAmount} onChange={e=>setByupAmount(e.target.value)}
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>{byupPopup === 'sub' ? 'Storna byuppini' : 'Carica byuppini'}</div>
+              <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>
+                {byupPopup === 'sub' ? 'Storno manuale dal saldo di ' : 'Accredito manuale sul saldo di '}{form.nome} (attuale: <strong style={{color:ADM.TEXT}}>{fmtNum(u.byuppini)}</strong>)
+              </div>
+              <label style={labelStyle}>{byupPopup === 'sub' ? 'Quantità da stornare' : 'Quantità da accreditare'}</label>
+              <input type="number" min="1" max={byupPopup === 'sub' ? u.byuppini : undefined} autoFocus value={byupAmount} onChange={e=>setByupAmount(e.target.value)}
                 onKeyDown={e=>{ if (e.key === 'Enter') confirmByup(); }}
-                placeholder="Es. 100" style={{...inputStyle, marginBottom:14}}/>
+                placeholder="Es. 100" style={{...inputStyle, marginBottom: byupPopup === 'sub' && byupN > u.byuppini ? 6 : 14}}/>
+              {byupPopup === 'sub' && byupN > u.byuppini && (
+                <div style={{fontSize:12.5, color:ADM.DANGER, fontWeight:600, marginBottom:10}}>Massimo stornabile: {fmtNum(u.byuppini)} (il saldo non può andare sotto zero)</div>
+              )}
               <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-                <AdmButton variant="ghost" size="md" onClick={()=>{ setByupPopup(false); setByupAmount(''); }}>Annulla</AdmButton>
-                <AdmButton variant="primary" size="md" icon="check" disabled={!parseInt(byupAmount,10)} onClick={confirmByup}>Conferma accredito</AdmButton>
+                <AdmButton variant="ghost" size="md" onClick={()=>{ setByupPopup(null); setByupAmount(''); }}>Annulla</AdmButton>
+                {byupPopup === 'sub'
+                  ? <AdmButton variant="danger" size="md" icon="x" disabled={!byupValid} onClick={confirmByup}>Conferma storno</AdmButton>
+                  : <AdmButton variant="primary" size="md" icon="check" disabled={!byupValid} onClick={confirmByup}>Conferma accredito</AdmButton>}
               </div>
             </div>
           </div>
