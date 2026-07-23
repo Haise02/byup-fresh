@@ -55,6 +55,18 @@ const ICON_PATHS = {
   star:          'M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 17l-5.4 2.7 1-6L3.4 9.4l6-.9L12 3z',
 };
 
+// ─── Icone PIENE per la sidebar (stile gestionale). fill=colore, niente stroke;
+// i sotto-path con fillRule evenodd creano i "fori" (schermo, persona, ecc.).
+const ICON_FILLED = {
+  homeFill: 'M11.34 2.6a1 1 0 0 1 1.32 0l8 6.93c.22.19.34.46.34.75V20a2 2 0 0 1-2 2h-4.4a.6.6 0 0 1-.6-.6v-4.9a2 2 0 0 0-4 0v4.9a.6.6 0 0 1-.6.6H5a2 2 0 0 1-2-2v-9.72c0-.29.12-.56.34-.75l8-6.93z',
+  storeFill: 'M4.1 3h15.8a1 1 0 0 1 .97.75l.98 3.8a3.1 3.1 0 0 1-3 3.85 3.1 3.1 0 0 1-2.44-1.18 3.1 3.1 0 0 1-4.82.01A3.1 3.1 0 0 1 6.8 11.4a3.1 3.1 0 0 1-3.67-3.65l.98-3.8A1 1 0 0 1 4.1 3z|M5 12.9V20a2 2 0 0 0 2 2h2.6v-5.4a1 1 0 0 1 1-1h2.8a1 1 0 0 1 1 1V22H17a2 2 0 0 0 2-2v-7.1c-.44.13-.9.2-1.4.2-1.06 0-2.04-.35-2.83-.94a4.68 4.68 0 0 1-5.54 0c-.79.59-1.77.94-2.83.94-.49 0-.96-.07-1.4-.2z',
+  staffFill: 'M9.2 11.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z|M2 19.3c0-3.3 3.22-5.9 7.2-5.9s7.2 2.6 7.2 5.9c0 .7-.55 1.2-1.22 1.2H3.22A1.21 1.21 0 0 1 2 19.3z|M16.6 11a3.1 3.1 0 0 0 0-6.2c-.34 0-.66.05-.97.15a5.2 5.2 0 0 1 .02 5.9c.3.1.62.15.95.15z|M17.5 13.7c1.4 1.14 2.3 2.76 2.3 4.6 0 .44-.1.85-.3 1.2h1.44c.58 0 1.06-.47 1.06-1.05 0-2.4-1.87-4.34-4.5-4.75z',
+  phoneFill: 'M8 1.5h8A2.5 2.5 0 0 1 18.5 4v16a2.5 2.5 0 0 1-2.5 2.5H8A2.5 2.5 0 0 1 5.5 20V4A2.5 2.5 0 0 1 8 1.5zm2.2 17.2a.85.85 0 0 0 0 1.7h3.6a.85.85 0 0 0 0-1.7h-3.6z',
+  chatFill: 'M12 2.5c5.52 0 10 3.8 10 8.5s-4.48 8.5-10 8.5c-1.2 0-2.35-.18-3.41-.5-1.35.9-3 1.5-4.84 1.5a.66.66 0 0 1-.48-1.12c.83-.86 1.44-1.93 1.68-3.1A8.06 8.06 0 0 1 2 11c0-4.7 4.48-8.5 10-8.5z',
+  megaphoneFill: 'M19.8 2.7a1.2 1.2 0 0 1 1.7 1.1v13.4a1.2 1.2 0 0 1-1.7 1.1l-7.3-3.3H6.3A3.3 3.3 0 0 1 3 11.7v-2.4A3.3 3.3 0 0 1 6.3 6h6.2l7.3-3.3z|M6.2 16.3h3.4l.75 3.9a1.2 1.2 0 0 1-1.18 1.4H8a1.2 1.2 0 0 1-1.18-.97l-.62-4.33z',
+  shieldUserFill: 'M11.6 1.9a1.2 1.2 0 0 1 .8 0l7.2 2.6c.48.17.8.62.8 1.13V11c0 5.13-3.44 9.36-8.06 10.9a1.2 1.2 0 0 1-.68 0C7.04 20.36 3.6 16.13 3.6 11V5.63c0-.51.32-.96.8-1.13l7.2-2.6zM12 7a2.4 2.4 0 1 0 0 4.8A2.4 2.4 0 0 0 12 7zm0 6.2c-2.16 0-4 1.3-4.67 3.13a8.55 8.55 0 0 0 4.67 2.96 8.55 8.55 0 0 0 4.67-2.96C16 14.5 14.16 13.2 12 13.2z',
+};
+
 function renderIconParts(spec) {
   return spec.split('|').map((seg, i) => {
     if (seg.startsWith('circle:')) {
@@ -71,6 +83,14 @@ function renderIconParts(spec) {
 
 const BuIcons = new Proxy({}, {
   get(_, name) {
+    const fspec = ICON_FILLED[name];
+    if (fspec) {
+      return ({ size = 21, color = 'currentColor' }) => (
+        <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{display:'inline-block', flexShrink:0, verticalAlign:'middle'}}>
+          {fspec.split('|').map((d, i) => <path key={i} d={d} fillRule="evenodd" clipRule="evenodd"/>)}
+        </svg>
+      );
+    }
     const spec = ICON_PATHS[name];
     if (!spec) return () => null;
     return ({ size = 21, color = 'currentColor', strokeWidth = 1.7 }) => (

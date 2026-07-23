@@ -6,15 +6,15 @@ const { useState: useStateApp } = React;
 // staccato in basso. Niente micro-header maiuscoli (Operatività/Marketing…):
 // le icone + label bastano, e la sidebar respira.
 const NAV_MAIN = [
-  { id: 'dashboard',    label: 'Dashboard',    icon: 'home' },
-  { id: 'locali',       label: 'Locali',       icon: 'store', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
-  { id: 'camerieri',    label: 'Staff',        icon: 'waiter' },
-  { id: 'utenti',       label: 'Utenti App',   icon: 'users' },
-  { id: 'comunicazioni', label: 'Comunicazioni', icon: 'chat', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length) },
-  { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphone' },
+  { id: 'dashboard',    label: 'Dashboard',    icon: 'homeFill' },
+  { id: 'locali',       label: 'Locali',       icon: 'storeFill', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
+  { id: 'camerieri',    label: 'Staff',        icon: 'staffFill' },
+  { id: 'utenti',       label: 'Utenti App',   icon: 'phoneFill' },
+  { id: 'comunicazioni', label: 'Comunicazioni', icon: 'chatFill', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length) },
+  { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphoneFill' },
 ];
 const NAV_SYSTEM = [
-  { id: 'team',         label: 'Team admin',   icon: 'shieldUser' },
+  { id: 'team',         label: 'Team admin',   icon: 'shieldUserFill' },
 ];
 
 // Nav item — stile gestionale: attivo = fondo pesca + testo/coral, icona
