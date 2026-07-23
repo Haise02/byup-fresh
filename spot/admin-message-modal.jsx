@@ -92,7 +92,7 @@ function MessageModal({ open, onClose, audienceType, presetIds = [], audienceLab
                   <div style={{padding:'12px 14px', background:ADM.INFO_SOFT, border:`1px solid #BFDBFE`, borderRadius:8, marginBottom:18, fontSize:14, color:'#1E40AF', display:'flex', alignItems:'center', gap:8}}>
                     <BuIcons.filter size={18}/>
                     Stai partendo da un <strong>filtro pre-selezionato</strong> di {audience.presetIds.length} {audience.type}. Puoi affinare ulteriormente sotto.
-                    <button onClick={()=>setAudience({...audience, presetIds:[]})} style={{marginLeft:'auto', background:'none', border:'none', color:ADM.INFO, fontSize:13.7, fontWeight:600, cursor:'pointer', textDecoration:'underline'}}>Rimuovi</button>
+                    <button onClick={()=>setAudience({...audience, presetIds:[]})} style={{marginLeft:'auto', background:'none', border:'none', color:ADM.PINK_DARK, fontSize:13.7, fontWeight:600, cursor:'pointer', textDecoration:'underline'}}>Rimuovi</button>
                   </div>
                 )}
 

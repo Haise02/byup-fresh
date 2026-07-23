@@ -140,7 +140,7 @@ function AdmCamerieriPage({ search: searchProp }) {
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
       {/* Quick stats */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
         <AdmKpiCard label="Staff registrati" value={fmtNum(totStaff)} sub="Su tutti i locali" icon="users" accent="PINK"/>
         <AdmKpiCard label="Attivi oggi" value={fmtNum(attiviOggi)} sub={`${Math.round(attiviOggi/totStaff*100)}% del totale`} icon="check" accent="OK"/>
         <AdmKpiCard label="Locali coperti" value={fmtNum(localiCoperti)} sub="Con almeno 1 membro staff" icon="store" accent="PURPLE"/>
@@ -448,7 +448,7 @@ function StaffDrawer({ staff: s, onClose }) {
         <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
           {/* Statistiche operative solo per i camerieri (prendono ordini al tavolo) */}
           {s.ruolo === 'cameriere' && (
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
               <MiniStat label="Ordini mese" value={fmtNum(s.ordiniMese)} sub="Presi al tavolo"/>
               <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)} sub="Mese corrente"/>
               <MiniStat label="Scontrino medio" value={fmtEur(Math.round(s.ordiniMese * 0.6))} sub="Per ordine"/>

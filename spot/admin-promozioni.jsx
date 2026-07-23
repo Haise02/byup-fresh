@@ -112,21 +112,18 @@ function CampagnePane({ onNew }) {
       {/* ───── HEADER STRIP ───── */}
       <div style={{display:'grid', gridTemplateColumns:'2.2fr 1fr 1fr 1fr', gap:14}}>
         {/* Totale */}
-        <AdmCard padding={20} style={{
-          background:'linear-gradient(135deg, #FF5A5F 0%, #E04347 100%)',
-          border:'none', color:'#fff', position:'relative', overflow:'hidden',
-        }}>
-          <div style={{position:'absolute', right:-30, top:-30, width:140, height:140, borderRadius:'50%', background:'rgba(255,255,255,0.08)'}}/>
-          <div style={{position:'absolute', right:24, bottom:-20, width:80, height:80, borderRadius:'50%', background:'rgba(255,255,255,0.08)'}}/>
-          <div style={{position:'relative', zIndex:1}}>
-            <div style={{fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.85)', textTransform:'uppercase', letterSpacing:'0.08em'}}>Nuovi utenti · ultimi 30 giorni</div>
-            <div style={{fontSize:35.3, fontWeight:800, letterSpacing:'-0.03em', marginTop:8, lineHeight:1}}>{fmtNum(tot)}</div>
-            <div style={{fontSize:14, color:'rgba(255,255,255,0.85)', marginTop:8}}>Aggregato dei 3 canali · CAC medio Paid <strong style={{color:'#fff'}}>{fmtEur(cac)}</strong> · MRR generato <strong style={{color:'#fff'}}>{fmtEur(totMrr)}/mese</strong> · Payback <strong style={{color:'#fff'}}>{totMrr > 0 ? fmtPaybackMonths(totSpeso/totMrr) : '—'}</strong></div>
+        <AdmCard padding={20}>
+          {/* Hero di pagina — stile sistema: bianco, numero grande, dettagli a vista */}
+          <div style={{fontSize:12.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Nuovi utenti · ultimi 30 giorni</div>
+          <div style={{display:'flex', alignItems:'baseline', gap:12, marginTop:8}}>
+            <div style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{fmtNum(tot)}</div>
+            <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>aggregato dei 3 canali</span>
           </div>
+          <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:10}}>CAC medio Paid <strong style={{color:ADM.TEXT}}>{fmtEur(cac)}</strong> · MRR generato <strong style={{color:ADM.TEXT}}>{fmtEur(totMrr)}/mese</strong> · Payback <strong style={{color:ADM.TEXT}}>{totMrr > 0 ? fmtPaybackMonths(totSpeso/totMrr) : '—'}</strong></div>
         </AdmCard>
         <ChannelKpi label="Paid"     value={totPaid} pct={tot ? Math.round(totPaid/tot*100) : 0} trend={-2.8} color={ADM.PINK}    icon="megaphone"/>
-        <ChannelKpi label="Organico" value={totOrg}  pct={tot ? Math.round(totOrg/tot*100) : 0}  trend={+6.4} color={ADM.OK}      icon="trendUp"/>
-        <ChannelKpi label="Referral" value={totRef}  pct={tot ? Math.round(totRef/tot*100) : 0}  trend={+12.1} color={ADM.PURPLE}  icon="users"/>
+        <ChannelKpi label="Organico" value={totOrg}  pct={tot ? Math.round(totOrg/tot*100) : 0}  trend={+6.4} color={ADM.INK}     icon="trendUp"/>
+        <ChannelKpi label="Referral" value={totRef}  pct={tot ? Math.round(totRef/tot*100) : 0}  trend={+12.1} color={ADM.MUTED}   icon="users"/>
       </div>
 
       {/* ───── BREAKDOWN BAR ───── */}
@@ -141,7 +138,7 @@ function CampagnePane({ onNew }) {
         <div style={{display:'flex', height:34, borderRadius:8, overflow:'hidden', background:'#F0F1F3', cursor:'default'}}>
           <div onClick={()=>setPaidExpanded(!paidExpanded)} style={{
             width:`${tot ? totPaid/tot*100 : 0}%`,
-            background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`,
+            background:ADM.PINK,
             color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
             fontSize:14, fontWeight:700, cursor:'pointer', position:'relative',
             transition:'opacity 0.15s', userSelect:'none',
@@ -152,13 +149,13 @@ function CampagnePane({ onNew }) {
           </div>
           <div style={{
             width:`${tot ? totOrg/tot*100 : 0}%`,
-            background:ADM.OK, color:'#fff',
+            background:ADM.INK, color:'#fff',
             display:'flex', alignItems:'center', justifyContent:'center',
             fontSize:14, fontWeight:700,
           }}>Organico · {fmtNum(totOrg)}</div>
           <div style={{
             width:`${tot ? totRef/tot*100 : 0}%`,
-            background:ADM.PURPLE, color:'#fff',
+            background:ADM.MUTED, color:'#fff',
             display:'flex', alignItems:'center', justifyContent:'center',
             fontSize:14, fontWeight:700,
           }}>Referral · {fmtNum(totRef)}</div>
@@ -174,15 +171,15 @@ function CampagnePane({ onNew }) {
             <div style={{display:'flex', height:14, borderRadius:6, overflow:'hidden', background:'rgba(255,255,255,0.5)', marginBottom:10}}>
               {paid.map((c, i) => {
                 const w = (c.utentiAcquisiti / totPaid) * 100;
-                const hue = 350 + (i * 12);
+                const alpha = Math.max(0.35, 1 - i * 0.2);
                 return <div key={c.id} title={`${c.nome} · ${c.utentiAcquisiti}`}
-                  style={{width:`${w}%`, background:`hsl(${hue}, 78%, ${52 - i*3}%)`}}/>;
+                  style={{width:`${w}%`, background:`rgba(255,90,95,${alpha.toFixed(2)})`}}/>;
               })}
             </div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:8}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:8}}>
               {paid.map((c, i) => {
                 const pct = Math.round((c.utentiAcquisiti / totPaid) * 100);
-                const hue = 350 + (i * 12);
+                const alpha = Math.max(0.35, 1 - i * 0.2);
                 return (
                   <div key={c.id} onClick={()=>setOpenCamp(c)} style={{
                     display:'flex', alignItems:'center', gap:8,
@@ -190,7 +187,7 @@ function CampagnePane({ onNew }) {
                     cursor:'pointer', border:`1px solid transparent`,
                     transition:'border-color 0.15s',
                   }} onMouseEnter={e=>e.currentTarget.style.borderColor=ADM.PINK} onMouseLeave={e=>e.currentTarget.style.borderColor='transparent'}>
-                    <span style={{width:8, height:8, borderRadius:2, background:`hsl(${hue}, 78%, ${52 - i*3}%)`, flexShrink:0}}/>
+                    <span style={{width:8, height:8, borderRadius:2, background:`rgba(255,90,95,${alpha.toFixed(2)})`, flexShrink:0}}/>
                     <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:500, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.nome}</span>
                     <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:700}}>{fmtNum(c.utentiAcquisiti)}</span>
                     <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, width:30, textAlign:'right'}}>{pct}%</span>
@@ -236,13 +233,13 @@ function CampagnePane({ onNew }) {
         <CampSection
           title="Referral"
           desc="Link condivisibili per programmi di passaparola"
-          color={ADM.PURPLE}
+          color={ADM.MUTED}
           campaigns={referral}
           onOpen={setOpenCamp}
         />
         {/* Organico (generico, non-cliccabile, niente link da copiare) */}
         <div style={{padding:'18px 22px', display:'flex', alignItems:'center', gap:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <div style={{width:38, height:38, borderRadius:9, background:ADM.OK_SOFT, color:ADM.OK, display:'grid', placeItems:'center'}}>
+          <div style={{width:38, height:38, borderRadius:9, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center'}}>
             <BuIcons.trendUp size={22}/>
           </div>
           <div style={{flex:1}}>
@@ -439,12 +436,12 @@ function CampRow({ camp: c, color, onClick, last }) {
       {/* Iscritti */}
       <MetricCell value={fmtNum(c.iscritti)} sub={c.click > 0 ? `${(c.iscritti/c.click*100).toFixed(1)}% conv.` : null}/>
       {/* Paganti */}
-      <MetricCell value={fmtNum(c.paganti)} sub={c.iscritti > 0 ? `${(c.paganti/c.iscritti*100).toFixed(0)}% iscritti` : null} tone={c.paganti > 0 ? ADM.OK : ADM.MUTED}/>
+      <MetricCell value={fmtNum(c.paganti)} sub={c.iscritti > 0 ? `${(c.paganti/c.iscritti*100).toFixed(0)}% iscritti` : null} tone={c.paganti > 0 ? ADM.TEXT : ADM.MUTED}/>
       {/* CAC */}
       <MetricCell value={c.paganti > 0 ? fmtEur(Math.round(cac)) : '—'} tone={ADM.TEXT}/>
       {/* MRR */}
       <div style={{textAlign:'right', minWidth:0}}>
-        <div style={{fontSize:14.8, fontWeight:800, color: ADM.OK, lineHeight:1, letterSpacing:'-0.01em'}}>{fmtEur(c.mrr||0)}</div>
+        <div style={{fontSize:14.8, fontWeight:800, color: ADM.TEXT, lineHeight:1, letterSpacing:'-0.01em'}}>{fmtEur(c.mrr||0)}</div>
         <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:3, fontWeight:600}}>/ mese</div>
       </div>
 
@@ -554,7 +551,7 @@ function NewCampaignModal({ onClose, onCreate }) {
           <label style={{display:'block', fontSize:13.3, color:ADM.TEXT, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>Tipo</label>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
             <TipoTile id="paid" label="Paid" desc="Investimento media (ads, sponsored)" icon="megaphone" color={ADM.PINK} active={tipo==='paid'} onClick={()=>setTipo('paid')}/>
-            <TipoTile id="referral" label="Referral" desc="Programma passaparola, ambassador" icon="users" color={ADM.PURPLE} active={tipo==='referral'} onClick={()=>setTipo('referral')}/>
+            <TipoTile id="referral" label="Referral" desc="Programma passaparola, ambassador" icon="users" color={ADM.MUTED} active={tipo==='referral'} onClick={()=>setTipo('referral')}/>
           </div>
         </div>
 
@@ -752,14 +749,14 @@ function CampaignLinkModal({ camp, onClose }) {
           </div>
 
           {/* Funnel metriche */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8, marginBottom:10}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:8, marginBottom:10}}>
             <PromoMiniStat label="Click" value={fmtNum(click)} hint="tracciati dal link"/>
             <PromoMiniStat label="Iscritti" value={fmtNum(iscritti)} hint={click > 0 ? `${(iscritti/click*100).toFixed(1)}% dei click` : 'al signup'}/>
             <PromoMiniStat label="Paganti" value={fmtNum(paganti)} hint={iscritti > 0 ? `${(paganti/iscritti*100).toFixed(0)}% degli iscritti` : 'al 1° pagamento'} tone={ADM.OK}/>
           </div>
 
           {/* Derivate */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:8}}>
             <div style={{padding:'12px 14px', background:'linear-gradient(135deg, #FEE2E2, #FECACA)', border:`1px solid #FCA5A5`, borderRadius:10}}>
               <div style={{fontSize:12.2, fontWeight:700, color:'#991B1B', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4}}>CAC</div>
               <div style={{fontSize:19.4, fontWeight:800, color:'#7F1D1D', letterSpacing:'-0.02em', lineHeight:1.1}}>
@@ -867,7 +864,7 @@ function BroadcastPane({ onNew }) {
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:18}}>
       {/* KPI strip */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         <BroadKpi label="Broadcast (30g)" value={recent.length} hint={`${BROADCAST_ITEMS.length} totali`} color={ADM.PINK}/>
         <BroadKpi label="Utenti raggiunti" value={fmtNum(totDest)} hint="Ultimi 30 giorni" color={ADM.INFO}/>
         <BroadKpi label="Tasso di apertura medio" value={`${Math.round(avgOpen*100)}%`} hint={`Click ${Math.round(avgClick*100)}%`} color={ADM.OK}/>
@@ -899,7 +896,7 @@ function BroadcastPane({ onNew }) {
       </div>
 
       {/* Cards grid */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
         {filtered.map(it => <BroadCard key={it.id} item={it} onOpen={()=>setOpenId(it.id)}/>)}
       </div>
 
@@ -992,7 +989,7 @@ function BroadCard({ item, onOpen }) {
       </div>
 
       {/* Stats grid */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:10, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
         <BroadStat label="Inviati"  value={fmtNum(item.destinatari)} color={ADM.MUTED}/>
         <BroadStat label="Aperti"   value={fmtNum(opens)}    color={ADM.OK}      pct={item.aperti}/>
         <BroadStat label="Click"    value={fmtNum(clicks)}   color={ADM.INFO}    pct={item.click}/>

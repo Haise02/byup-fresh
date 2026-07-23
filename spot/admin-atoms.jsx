@@ -66,20 +66,20 @@ function AdmKpiCard({ label, value, sub, trend, icon, accent = 'PINK' }) {
     <AdmCard padding={20}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
         <div>
-          <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em'}}>{label}</div>
-          <div style={{fontSize:26.6, fontWeight:700, color:ADM.TEXT, marginTop:8, letterSpacing:'-0.03em', lineHeight:1.05}}>{value}</div>
+          <div style={{fontSize:12, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
+          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:8, letterSpacing:'-0.025em', lineHeight:1.05}}>{value}</div>
           {(sub || trend != null) && (
             <div style={{display:'flex', alignItems:'center', gap:8, marginTop:8}}>
               {trend != null && (
                 <span style={{
                   display:'inline-flex', alignItems:'center', gap:3,
-                  fontSize:13.3, fontWeight:600,
+                  fontSize:12, fontWeight:700,
                   padding:'2px 7px',
                   borderRadius:99,
                   background: trend >= 0 ? ADM.OK_SOFT : ADM.DANGER_SOFT,
                   color: trend >= 0 ? ADM.OK : ADM.DANGER,
                 }}>
-                  {trend >= 0 ? <BuIcons.trendUp size={16}/> : <BuIcons.trendDown size={16}/>}
+                  {trend >= 0 ? <BuIcons.trendUp size={14}/> : <BuIcons.trendDown size={14}/>}
                   {Math.abs(trend)}%
                 </span>
               )}

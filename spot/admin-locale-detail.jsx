@@ -94,7 +94,7 @@ function DrwPanoramica({ locale: l }) {
         </div>
       )}
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         <MiniStat label="Ordini/giorno" value={l.ordiniGiorno} sub={`${fmtNum(l.ordiniMese)}/mese`}/>
         <MiniStat label="Prenotaz./giorno" value={l.prenotazioniGiorno} sub={`${l.copertura}% copertura`}/>
         <MiniStat label="Scontrino medio" value={fmtEur(l.ticketMedio)} sub="per ordine"/>
@@ -258,47 +258,9 @@ function DrwScanOrdini({ locale: l }) {
         <div style={{minWidth:0}}>
           <div style={{display:'flex', alignItems:'center', gap:8}}>
             <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Ordini · Scan QR</div>
-            <span
-              onMouseEnter={()=>setHoverInfo(true)}
-              onMouseLeave={()=>setHoverInfo(false)}
-              style={{
-                position:'relative',
-                width:15, height:15, borderRadius:'50%',
-                background: hoverInfo ? ADM.TEXT : '#F0F1F3',
-                color: hoverInfo ? '#fff' : ADM.MUTED,
-                display:'inline-grid', placeItems:'center',
-                fontSize:13, fontWeight:700, cursor:'help',
-                transition:'all 0.15s',
-              }}>i
-              {hoverInfo && (
-                <span style={{
-                  position:'absolute', top:'calc(100% + 8px)', right:0, minWidth:240,
-                  background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:10,
-                  boxShadow:'0 12px 28px -8px rgba(15,17,21,0.18)',
-                  padding:'12px 14px', zIndex:30, textAlign:'left',
-                  fontFamily:'inherit',
-                }}>
-                  <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6}}>
-                    Ultimi {opp.label}
-                  </div>
-                  <div style={{display:'flex', justifyContent:'space-between', fontSize:13.3, color:ADM.TEXT, marginBottom:3}}>
-                    <span style={{color:ADM.MUTED}}>Ordini</span>
-                    <span style={{fontWeight:700}}>{fmtNum(opp.ord)}</span>
-                  </div>
-                  <div style={{display:'flex', justifyContent:'space-between', fontSize:13.3, color:ADM.TEXT, marginBottom:6}}>
-                    <span style={{color:ADM.MUTED}}>Scan QR</span>
-                    <span style={{fontWeight:700}}>{fmtNum(opp.scan)}</span>
-                  </div>
-                  <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, paddingTop:6, display:'flex', justifyContent:'space-between', fontSize:14, color:ADM.TEXT, fontWeight:700}}>
-                    <span>Conversione</span>
-                    <span>{opp.scan > 0 ? fmtP(oppRatio) : '—'}</span>
-                  </div>
-                </span>
-              )}
-            </span>
           </div>
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>
-            Filtra per mese · hover sull'icona per vedere il dato annuale
+            Ordini completati partendo da uno scan QR · usa il selettore per il periodo
           </div>
         </div>
 
@@ -590,7 +552,7 @@ function DrwFatturazione({ locale: l }) {
           <div style={{flex:1}}>
             <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Piano attivo</div>
             <div style={{fontSize:19.4, fontWeight:700, color:ADM.TEXT, marginTop:2}}>{piano.label} · {fmtEur(piano.price)}/mese</div>
-            {l.extras > 0 && <div style={{fontSize:13.7, color:ADM.PURPLE, marginTop:3, fontWeight:600}}>+ {fmtEur(l.extras)}/mese in extra</div>}
+            {l.extras > 0 && <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:3, fontWeight:600}}>+ {fmtEur(l.extras)}/mese in extra</div>}
           </div>
           <AdmButton variant="secondary" size="sm">Cambia piano</AdmButton>
           <AdmButton variant="ghost" size="sm">Sospendi</AdmButton>

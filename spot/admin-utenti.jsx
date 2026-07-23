@@ -42,7 +42,7 @@ function AdmUtentiPage({ search: searchProp }) {
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         <AdmKpiCard label="Utenti totali" value={fmtNum(totUtenti * 312)} sub={`${fmtNum(totUtenti*8)} questa settimana`} trend={+18} icon="users" accent="INFO"/>
         <AdmKpiCard label="Utenti attivi" value={fmtNum(attiviN * 312)} sub={`${Math.round(attiviN/totUtenti*100)}% del totale (30g)`} icon="fire" accent="PINK"/>
         <SpesaMediaCard

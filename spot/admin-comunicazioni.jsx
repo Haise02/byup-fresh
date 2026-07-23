@@ -934,7 +934,7 @@ function ComposerTab({ active, onClick, label, icon, accent }) {
 function Attachment({ a }) {
   const isPdf = a.kind === 'pdf' || /\.pdf$/i.test(a.name);
   const Icon = BuIcons[isPdf ? 'filePdf' : 'image'];
-  const color = isPdf ? ADM.DANGER : ADM.PURPLE;
+  const color = isPdf ? ADM.DANGER : ADM.NEUTRAL;
   return (
     <button style={{
       display:'inline-flex', alignItems:'center', gap:10,

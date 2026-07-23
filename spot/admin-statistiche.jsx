@@ -33,7 +33,7 @@ function AdmStatistichePage() {
       </div>
 
       {/* KPIs */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <AdmKpiCard label="Ordini" value={fmtNum(totOrdini)} sub={`${fmtNum(Math.round(totOrdini/30))}/giorno`} trend={+14} icon="receipt" accent="PINK"/>
         <AdmKpiCard label="Prenotazioni" value={fmtNum(totPreno)} sub={`${fmtNum(Math.round(totPreno/30))}/giorno`} trend={+8} icon="calendar" accent="INFO"/>
         <AdmKpiCard label="Fatturato totale" value={fmtEur(totFatturato)} sub={fmtEur(Math.round(totFatturato/30)) + '/giorno'} trend={+11} icon="money" accent="OK"/>

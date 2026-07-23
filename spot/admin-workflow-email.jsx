@@ -443,7 +443,7 @@ function WorkflowList({ workflows, onOpen, onNew, onDuplicate, onToggleState, on
         <AdmButton variant="cta" icon="plus" onClick={onNew}>Nuovo workflow</AdmButton>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         <WfKpi label="Workflow attivi" value={`${attivi}/${workflows.length}`} accent="OK" icon="check"/>
         <WfKpi label="Iscritti totali" value={fmtNum(tot.iscritti)} accent="PINK"   icon="users"   sub="Clienti in almeno 1 workflow"/>
         <WfKpi label="Email inviate"   value={fmtNum(tot.inviate)}  accent="INFO"   icon="mail"    sub="Ultimi 30 giorni"/>
