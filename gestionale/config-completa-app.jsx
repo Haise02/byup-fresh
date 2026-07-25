@@ -39,6 +39,23 @@ function ConfigCompletaApp() {
 
   const goPanoramica = () => { window.location.href = 'byup Panoramica.html'; };
 
+  // Feedback loop: toast di conferma alla pubblicazione della vetrina.
+  const [toast, setToast] = React.useState(null);
+  const publish = () => {
+    setDirty(false);
+    setToast('Vetrina aggiornata ✓');
+    setTimeout(() => setToast(null), 2400);
+  };
+  // Peak-End: la chiusura del flusso è un momento positivo, non un redirect
+  // secco — overlay celebrativo breve, poi la Panoramica.
+  const [finishing, setFinishing] = React.useState(false);
+  const complete = () => {
+    if (finishing) return;
+    setFinishing(true);
+    setTimeout(goPanoramica, 1300);
+  };
+  const donePct = Math.round(completion.filter(c => c.done).length / completion.length * 100);
+
   return (
     <div style={{display:'flex', flex:1, minHeight:0, background: PN.BG}}>
       {/* ─── Colonna sinistra: contenuto che scrolla + barra azioni fissa ── */}
@@ -110,8 +127,15 @@ function ConfigCompletaApp() {
               borderRadius: 14, padding: '12px 16px', marginBottom: 20,
               boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
             }}>
-              <span style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginRight: 4}}>
+              <span style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginRight: 2}}>
                 Completamento
+              </span>
+              {/* Progresso in forma standard: barra + percento (Jakob) */}
+              <span style={{display: 'inline-flex', alignItems: 'center', gap: 8, marginRight: 6}}>
+                <span style={{width: 90, height: 6, borderRadius: 999, background: '#F1F2F5', overflow: 'hidden'}}>
+                  <span style={{display: 'block', height: '100%', width: `${donePct}%`, borderRadius: 999, background: `linear-gradient(90deg, ${PN.PINK}, #FF7A7E)`, transition: 'width 400ms ease'}}/>
+                </span>
+                <span style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>{donePct}%</span>
               </span>
               {completion.map((c, i) => (
                 <span key={i} title={c.sub} style={{
@@ -215,9 +239,53 @@ function ConfigCompletaApp() {
           : <ApBtn variant="neutral" onClick={goPanoramica}>← Indietro</ApBtn>}
         {step === 'vetrina'
           ? <ApBtn variant="brand" onClick={() => setStep('personale')}>Continua a Personale →</ApBtn>
-          : <ApBtn variant="brand" onClick={goPanoramica}>Completa e vai alla Panoramica →</ApBtn>}
+          : <ApBtn variant="brand" onClick={complete}>Completa e vai alla Panoramica →</ApBtn>}
       </div>
+
+      {/* Toast di conferma pubblicazione */}
+      {toast && (
+        <div style={{
+          position: 'absolute', bottom: 76, left: '50%', transform: 'translateX(-50%)',
+          background: '#16A34A', color: '#fff',
+          padding: '10px 18px', borderRadius: 999,
+          fontSize: 14, fontWeight: 700, zIndex: 60,
+          boxShadow: '0 10px 26px rgba(22, 163, 74, 0.35)',
+          animation: 'cfg-toast-in 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+        }}>{toast}</div>
+      )}
       </div>
+
+      {/* Peak-End: overlay celebrativo alla chiusura del flusso */}
+      {finishing && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 90,
+          background: 'rgba(255, 255, 255, 0.92)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          animation: 'cfg-fade-in 200ms ease-out',
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #FF6A6F, #FF5A5F)',
+            display: 'grid', placeItems: 'center',
+            boxShadow: '0 16px 40px rgba(255, 90, 95, 0.40)',
+            animation: 'cfg-check-pop 460ms cubic-bezier(0.34, 1.6, 0.64, 1)',
+          }}>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style={{fontSize: 22, fontWeight: 700, color: PN.TEXT, marginTop: 18, letterSpacing: '-0.01em'}}>
+            La tua presenza su byup è pronta.
+          </div>
+          <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 6}}>
+            Ti portiamo in Panoramica…
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes cfg-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        @keyframes cfg-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cfg-check-pop { 0% { transform: scale(0); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
+      `}</style>
 
       {/* ─── Rail destra FISSA: solo il telefono, grande — non scrolla ──── */}
       {step === 'vetrina' && (
@@ -236,7 +304,7 @@ function ConfigCompletaApp() {
               <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Anteprima vetrina</div>
               <div style={{fontSize: 13, color: PN.MUTED}}>Cosa vedranno i clienti</div>
             </div>
-            <PublishButton dirty={dirty} onPublish={() => setDirty(false)}/>
+            <PublishButton dirty={dirty} onPublish={publish}/>
 
             {/* Telefono grande: riempie la rail — larghezza calibrata perché
                 header + publish + phone chiudano nei 900px del canvas. */}

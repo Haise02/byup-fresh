@@ -118,6 +118,9 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
   };
   // Popup certificazioni: null | {mode:'new'} | {mode:'rifiutata', name, reason}
   const [certModal, setCertModal] = React.useState(null);
+  // Eccezioni orario per giorno: chiuse di default (Hick — prima 6 righe
+  // di input duplicate sempre visibili).
+  const [customHoursOpen, setCustomHoursOpen] = React.useState(false);
 
   return (
     <div>
@@ -161,7 +164,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard title="Orari di apertura" sub="Configura settimana e date speciali">
+      <ImpCard title="Orari di apertura" sub="Scegli i giorni e un orario standard; personalizza solo se serve">
         {/* Mini-calendario settimanale visuale */}
         <div style={{
           display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 6,
@@ -175,6 +178,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
                 border:`1.5px solid ${open ? PN.PINK : PN.BORDER_SOFT}`,
                 background: open ? PN.PINK_SOFT : PN.WHITE,
                 cursor:'pointer', fontFamily:'inherit',
+                transition: 'border-color 150ms ease, background 150ms ease',
               }}>
                 <div style={{fontSize:13, fontWeight:700, color: open ? PN.PINK_DARK : PN.MUTED, marginBottom: 4}}>{d}</div>
                 <div style={{fontSize:12.5, color: open ? PN.TEXT : PN.MUTED, fontWeight: 600}}>
@@ -185,27 +189,57 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           })}
         </div>
 
-        {/* Dettaglio orari per giorno */}
-        <div style={{display:'flex', flexDirection:'column', gap: 6}}>
-          {days.filter(d => openDays[d]).map(d => (
-            <div key={d} style={{
-              display:'grid', gridTemplateColumns: '60px 1fr',
-              alignItems:'center', gap: 12,
-              padding: '8px 12px',
-              border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
-            }}>
-              <span style={{fontSize:14.5, fontWeight:700}}>{d}</span>
-              <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                <ImpInput defaultValue="09:00" style={{width:74, padding:'7px 10px'}}/>
-                <span style={{color:PN.MUTED}}>—</span>
-                <ImpInput defaultValue="23:00" style={{width:74, padding:'7px 10px'}}/>
-                <button style={{
-                  background:'transparent', border:'none', color:PN.PINK,
-                  fontSize:13.5, fontWeight:600, cursor:'pointer',
-                }}>+ Aggiungi turno</button>
-              </div>
+        {/* Un solo orario standard per tutti i giorni aperti: tre decisioni
+            (giorni, apre, chiude) invece di sei righe di input duplicate. */}
+        <div style={{
+          display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap',
+          padding: '10px 12px', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
+          background: '#FAFBFC',
+        }}>
+          <span style={{fontSize:14, fontWeight:700}}>Orario standard</span>
+          <span style={{fontSize:13, color:PN.MUTED}}>per tutti i giorni aperti</span>
+          <span style={{flex:1}}/>
+          <ImpInput defaultValue="09:00" style={{width:74, padding:'7px 10px'}} onChange={onChange}/>
+          <span style={{color:PN.MUTED}}>—</span>
+          <ImpInput defaultValue="23:00" style={{width:74, padding:'7px 10px'}} onChange={onChange}/>
+        </div>
+
+        {/* Eccezioni per giorno: nascoste finché non servono */}
+        <div style={{marginTop: 10}}>
+          <button onClick={() => setCustomHoursOpen(o => !o)} style={{
+            display:'flex', alignItems:'center', gap: 6,
+            background:'transparent', border:'none', padding: '4px 2px',
+            fontSize: 13.5, fontWeight: 600, color: PN.PINK, cursor:'pointer', fontFamily:'inherit',
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PN.PINK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+              style={{transform: customHoursOpen ? 'rotate(180deg)' : 'none', transition:'transform 200ms ease'}}>
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+            Personalizza per giorno
+          </button>
+          {customHoursOpen && (
+            <div style={{display:'flex', flexDirection:'column', gap: 6, marginTop: 8, animation:'coll-open 200ms ease'}}>
+              {days.filter(d => openDays[d]).map(d => (
+                <div key={d} style={{
+                  display:'grid', gridTemplateColumns: '60px 1fr',
+                  alignItems:'center', gap: 12,
+                  padding: '8px 12px',
+                  border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
+                }}>
+                  <span style={{fontSize:14.5, fontWeight:700}}>{d}</span>
+                  <div style={{display:'flex', alignItems:'center', gap: 8}}>
+                    <ImpInput defaultValue="09:00" style={{width:74, padding:'7px 10px'}}/>
+                    <span style={{color:PN.MUTED}}>—</span>
+                    <ImpInput defaultValue="23:00" style={{width:74, padding:'7px 10px'}}/>
+                    <button style={{
+                      background:'transparent', border:'none', color:PN.PINK,
+                      fontSize:13.5, fontWeight:600, cursor:'pointer',
+                    }}>+ Aggiungi turno</button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
 
         <div style={{marginTop: 14, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
@@ -555,6 +589,47 @@ function CertUploadModal({ ctx, onClose }) {
   const rejected = ctx.mode === 'rifiutata';
   // Per cosa è la certificazione: dal rifiuto arriva già selezionata.
   const [tipo, setTipo] = React.useState(rejected ? ctx.name : null);
+  // Feedback loop: idle → sending (spinner) → done (check) → chiusura.
+  const [phase, setPhase] = React.useState('idle');
+  const send = () => {
+    if (!tipo || phase !== 'idle') return;
+    setPhase('sending');
+    setTimeout(() => {
+      setPhase('done');
+      setTimeout(onClose, 1000);
+    }, 900);
+  };
+  if (phase === 'done') {
+    return (
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 80,
+        background: 'rgba(15, 17, 21, 0.32)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: 300, background: PN.WHITE, borderRadius: 16, padding: '28px 22px',
+          textAlign: 'center', boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+          animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+        }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: '50%', margin: '0 auto 12px',
+            background: '#DCFCE7', display: 'grid', placeItems: 'center',
+            animation: 'cert-check-pop 380ms cubic-bezier(0.34, 1.6, 0.64, 1)',
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Certificazione inviata</div>
+          <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 4}}>
+            {tipo} · in verifica, ti avvisiamo noi.
+          </div>
+        </div>
+        <style>{`
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+          @keyframes cert-check-pop { 0% { transform: scale(0); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        `}</style>
+      </div>
+    );
+  }
   return (
     <div onClick={onClose} style={{
       position: 'absolute', inset: 0, zIndex: 80,
@@ -632,10 +707,20 @@ function CertUploadModal({ ctx, onClose }) {
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
           <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-          <ImpButton variant="primary" onClick={onClose} disabled={!tipo}>
-            {rejected ? 'Invia di nuovo' : 'Carica'}
+          <ImpButton variant="primary" onClick={send} disabled={!tipo || phase === 'sending'}>
+            {phase === 'sending' ? (
+              <span style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+                <span style={{
+                  width: 13, height: 13, borderRadius: '50%',
+                  border: '2px solid rgba(255,255,255,0.45)', borderTopColor: '#fff',
+                  animation: 'cert-spin 700ms linear infinite', display: 'inline-block',
+                }}/>
+                Invio…
+              </span>
+            ) : (rejected ? 'Invia di nuovo' : 'Carica')}
           </ImpButton>
         </div>
+        <style>{`@keyframes cert-spin { to { transform: rotate(360deg); } }`}</style>
       </div>
       <style>{`
         @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
@@ -688,7 +773,9 @@ function CollapsibleCard({ title, sub, action, children, defaultOpen = false }) 
 function VetrinaAspetto({ onChange }) {
   return (
     <div>
-      <ImpCard aurora title="Logo del tuo locale" sub="PNG o JPG, formato quadrato consigliato, max 5MB">
+      {/* Niente wash aurora: l'accento decorativo attirava l'occhio più dei
+          contenuti. Le due card primarie (logo, galleria) restano neutre. */}
+      <ImpCard title="Logo del tuo locale" sub="PNG o JPG, formato quadrato consigliato, max 5MB">
         <div style={{
           padding: 32, border:`2px dashed ${PN.BORDER}`, borderRadius: 12,
           textAlign:'center', background:'#FAFBFC',
@@ -698,40 +785,7 @@ function VetrinaAspetto({ onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard title="Le tue vetrine" sub="Solo una vetrina può essere pubblicata. Crea vetrine tematiche per occasioni speciali" action={
-        <ImpButton variant="ghost" icon={<PnI.Plus size={13}/>}>Nuova</ImpButton>
-      }>
-        {[
-          {name:'Vetrina principale', active: true, sub:'Sempre visibile'},
-          {name:'San Valentino', active: false, sub:'Bozza'},
-          {name:'Vetrina estate', active: false, sub:'Bozza · ultima modifica 2 mesi fa'},
-        ].map((v, i) => (
-          <div key={i} style={{
-            display:'flex', alignItems:'center', gap: 12,
-            padding: '14px 16px',
-            border:`1.5px solid ${v.active ? PN.PINK : PN.BORDER_SOFT}`,
-            background: v.active ? PN.PINK_SOFT : PN.WHITE,
-            borderRadius: 10, marginBottom: 8,
-          }}>
-            <span style={{
-              width:18, height:18, borderRadius:'50%',
-              border: `1.5px solid ${v.active ? PN.PINK : PN.BORDER}`,
-              background: PN.WHITE,
-              display:'grid', placeItems:'center',
-            }}>
-              {v.active && <span style={{width:9, height:9, borderRadius:'50%', background:PN.PINK}}/>}
-            </span>
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:15.5, fontWeight:600}}>{v.name}</div>
-              <div style={{fontSize:13, color:PN.MUTED, marginTop:1}}>{v.sub}</div>
-            </div>
-            {v.active && <span style={{fontSize:13, fontWeight:700, color:PN.PINK_DARK, letterSpacing:0.4}}>PUBBLICATA</span>}
-            <ImpButton variant="ghost" style={{padding:'6px 12px', fontSize:14}}>Modifica</ImpButton>
-          </div>
-        ))}
-      </ImpCard>
-
-      <ImpCard aurora title="Galleria fotografica" sub="Foto del locale e dei piatti — consigliate min. 5 foto">
+      <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti — consigliate min. 5 foto">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
           {[1,2,3].map(i => (
             <div key={i} style={{
@@ -760,6 +814,40 @@ function VetrinaAspetto({ onChange }) {
           </div>
         </div>
       </ImpCard>
+
+      {/* Vetrine tematiche: concetto avanzato — contratto, non in mezzo al
+          flusso base (Miller: un chunk in meno da tenere a mente). */}
+      <CollapsibleCard title="Le tue vetrine" sub="Vetrine tematiche per occasioni speciali — una sola è pubblicata"
+        action={<ImpButton variant="ghost" icon={<PnI.Plus size={13}/>}>Nuova</ImpButton>}>
+        {[
+          {name:'Vetrina principale', active: true, sub:'Sempre visibile'},
+          {name:'San Valentino', active: false, sub:'Bozza'},
+          {name:'Vetrina estate', active: false, sub:'Bozza · ultima modifica 2 mesi fa'},
+        ].map((v, i) => (
+          <div key={i} style={{
+            display:'flex', alignItems:'center', gap: 12,
+            padding: '14px 16px',
+            border:`1.5px solid ${v.active ? PN.PINK : PN.BORDER_SOFT}`,
+            background: v.active ? PN.PINK_SOFT : PN.WHITE,
+            borderRadius: 10, marginBottom: 8,
+          }}>
+            <span style={{
+              width:18, height:18, borderRadius:'50%',
+              border: `1.5px solid ${v.active ? PN.PINK : PN.BORDER}`,
+              background: PN.WHITE,
+              display:'grid', placeItems:'center',
+            }}>
+              {v.active && <span style={{width:9, height:9, borderRadius:'50%', background:PN.PINK}}/>}
+            </span>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:15.5, fontWeight:600}}>{v.name}</div>
+              <div style={{fontSize:13, color:PN.MUTED, marginTop:1}}>{v.sub}</div>
+            </div>
+            {v.active && <span style={{fontSize:13, fontWeight:700, color:PN.PINK_DARK, letterSpacing:0.4}}>PUBBLICATA</span>}
+            <ImpButton variant="ghost" style={{padding:'6px 12px', fontSize:14}}>Modifica</ImpButton>
+          </div>
+        ))}
+      </CollapsibleCard>
     </div>
   );
 }
