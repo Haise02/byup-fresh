@@ -1130,7 +1130,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'account' && (
-          <div style={{ animation: 'fade 0.2s ease', position: 'relative', minHeight: 'calc(100vh - 260px)' }}>
+          <div style={{ animation: 'fade 0.2s ease', position: 'relative', minHeight: 620 }}>
             <button onClick={() => setView('main')} style={{
               width: 36, height: 36, borderRadius: 999, background: TINT_X,
               border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1154,8 +1154,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
             {/* Elimina account: staccato dal gruppo, entra dal fondo dello schermo */}
             <div style={{
-              position: 'absolute', left: 0, right: 0,
-              bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+              position: 'absolute', left: 0, right: 0, bottom: 24,
               display: 'flex', justifyContent: 'center', pointerEvents: 'none',
               animation: 'slideUpDanger .5s .15s cubic-bezier(.2,1.1,.3,1) backwards',
             }}>
