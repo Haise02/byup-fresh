@@ -2673,6 +2673,9 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
             cursor: 'pointer', padding: 4,
           }}>×</button>
         </div>
+        <div style={{ fontSize: 12, color: MUTED, marginTop: 8, lineHeight: 1.45 }}>
+          Il numero di partecipanti determina in quante parti si dividono i piatti del tavolo.
+        </div>
 
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {ospitiCount > 0 && (
@@ -3975,7 +3978,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                 Niente etichette di gruppo: la gerarchia la dà la sequenza. */}
             {mode === 'mine' && (appGuests.length > 0 || webGuests.length > 0 || altroItems.length > 0) && (
               <div style={{ padding: '28px 22px 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>
                     Il tavolo
                   </div>
@@ -3991,6 +3994,10 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                       <polyline points="9 18 15 12 9 6"/>
                     </svg>
                   </button>
+                </div>
+                {/* Subheadline: lega il numero di partecipanti alla divisione dei piatti "tavolo" */}
+                <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.45, marginBottom: 14 }}>
+                  I piatti messi a "tavolo" si dividono tra i {(order.guests?.length || 0)} partecipanti. Tocca il numero per modificarli.
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {appGuests.map(g => renderTableCard({

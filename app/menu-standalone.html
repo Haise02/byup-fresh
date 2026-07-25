@@ -30201,6 +30201,13 @@ function GuestsSheet({
     }
   }, "\xD7")), /*#__PURE__*/React.createElement("div", {
     style: {
+      fontSize: 12,
+      color: MUTED,
+      marginTop: 8,
+      lineHeight: 1.45
+    }
+  }, "Il numero di partecipanti determina in quante parti si dividono i piatti del tavolo."), /*#__PURE__*/React.createElement("div", {
+    style: {
       marginTop: 14,
       display: 'flex',
       flexDirection: 'column',
@@ -32682,7 +32689,7 @@ function PaymentScreen({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 14
+      marginBottom: 6
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -32722,6 +32729,13 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "9 18 15 12 9 6"
   })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: MUTED,
+      lineHeight: 1.45,
+      marginBottom: 14
+    }
+  }, "I piatti messi a \"tavolo\" si dividono tra i ", order.guests?.length || 0, " partecipanti. Tocca il numero per modificarli."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
