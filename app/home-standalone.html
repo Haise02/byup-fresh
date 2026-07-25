@@ -26243,6 +26243,45 @@ const CTA_GRAD = 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)';
 const CTA_GLOW = '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)';
 const CTA_DEAD = '#e9cfd8';
 
+// ─── Marchio "b" byup — stesso identico trattamento del gestionale (avatar dei
+//     coperti in sala, riferimenti in contabilità), così un utente app si
+//     riconosce a colpo d'occhio ovunque nell'ecosistema:
+//       tondo gradiente brand + "b" bianca  → ha l'app byup
+//       tondo blu + pallino bianco          → collegato da webapp
+const BYUP_GRAD = 'linear-gradient(135deg, #FF5A5F, #B53338)';
+const BYUP_GLOW = '0 1px 3px rgba(255,90,95,0.34)';
+const WEBAPP_GRAD = 'linear-gradient(135deg, #60A5FA, #2563EB)';
+const WEBAPP_GLOW = '0 1px 3px rgba(37,99,235,0.30)';
+function ByupB({
+  size = 13
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: size,
+      fontWeight: 900,
+      color: '#fff',
+      lineHeight: 1,
+      letterSpacing: -0.5,
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      display: 'inline-block',
+      transform: 'translateY(-0.5px)'
+    }
+  }, "b");
+}
+function WebappDot({
+  size = 8
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      background: '#fff',
+      display: 'inline-block'
+    }
+  });
+}
+
 // Navigazione verso l'app Home: dentro la SPA usa il router globale
 // (__byupNav, nessun reload); da pagina separata fa deep-link classico.
 // Menu premium (locali Selezione byup): food render PNG al posto delle foto
@@ -26299,12 +26338,20 @@ const PremFoodImg = ({
     }
   }) : null;
 };
-const __goApp = page => {
+const __goApp = (page, params) => {
   const nav = window.__byupNav;
+  const qs = params ? Object.keys(params).map(k => `${k}=${encodeURIComponent(params[k])}`).join('&') : '';
   if (nav) {
-    if (!page) nav.home();else if (page === 'venue' && nav.venue) nav.venue();else nav.go(page);
+    // I parametri servono al Profilo per aprire lo storico sull'ordine giusto:
+    // la nav interna non li porta con se', quindi li lascio in querystring.
+    if (qs) {
+      try {
+        history.replaceState(null, '', '?page=' + page + '&' + qs);
+      } catch (e) {}
+    }
+    if (!page) nav.home();else if (page === 'venue' && nav.venue) nav.venue();else nav.go(page, params);
   } else {
-    window.location.href = page ? 'byup Home.html?page=' + page : 'byup Home.html';
+    window.location.href = page ? 'byup Home.html?page=' + page + (qs ? '&' + qs : '') : 'byup Home.html';
   }
 };
 
@@ -28010,6 +28057,129 @@ function CatBand({
     }
   }));
 }
+
+// ─── CopertiSheet ────────────────────────────────────────────────────────────
+// Chiesto al momento del pagamento, non all'ingresso al tavolo: prima compariva
+// appena aperto il menu, quando ancora non serviva, e veniva saltato. Qui e'
+// obbligatorio (niente skip ne' chiusura sul backdrop) perche' il numero lo
+// legge lo staff di sala.
+function CopertiSheet({
+  onConfirm
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      background: 'rgba(0,0,0,0.35)',
+      zIndex: 45,
+      display: 'flex',
+      alignItems: 'flex-end',
+      animation: 'fade 0.22s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: '100%',
+      background: SURF,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: '10px 22px 32px',
+      animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
+      boxShadow: '0 -8px 32px rgba(0,0,0,0.12)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      background: MUTESURF,
+      borderRadius: 999,
+      margin: '4px auto 18px'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 800,
+      color: TEXT,
+      letterSpacing: -0.4,
+      marginBottom: 6
+    }
+  }, "Quanti siete al tavolo?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: MUTED,
+      lineHeight: 1.45
+    }
+  }, "Serve per dividere il conto e per il servizio al tavolo.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 10,
+      marginBottom: 14
+    }
+  }, [1, 2, 3, 4, 5, 6].map(n => /*#__PURE__*/React.createElement("button", {
+    key: n,
+    onClick: () => onConfirm(n === 6 ? 6 : n),
+    style: {
+      height: 64,
+      borderRadius: 14,
+      border: `1.5px solid ${BORDER}`,
+      background: SURF,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontSize: 20,
+      fontWeight: 800,
+      color: TEXT,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.15s'
+    },
+    onMouseEnter: e => {
+      e.currentTarget.style.borderColor = WINE;
+      e.currentTarget.style.background = '#fdf6f8';
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.borderColor = BORDER;
+      e.currentTarget.style.background = '#fff';
+    }
+  }, n === 6 ? '6+' : n))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 8,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: '#F6F7F9',
+      border: `1px solid ${BORDER}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
+    style: {
+      width: 18,
+      height: 18,
+      borderRadius: 999,
+      flexShrink: 0,
+      marginTop: 1,
+      background: MUTESURF,
+      color: MUTED,
+      display: 'grid',
+      placeItems: 'center',
+      fontSize: 12,
+      fontWeight: 800
+    }
+  }, "i"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: MUTED,
+      lineHeight: 1.45
+    }
+  }, "Il numero verr\xE0 visionato dallo staff di sala."))));
+}
 function MenuScreen({
   state,
   setState,
@@ -28117,26 +28287,32 @@ function MenuScreen({
   const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
-  useEffect(() => {
-    if (!fromVenue && !state.copertiSelected) {
-      const t = setTimeout(() => setCopertiSheetOpen(true), 600);
-      return () => clearTimeout(t);
+  // Il numero di commensali non si chiede piu' all'ingresso al tavolo (dove
+  // l'utente non sa ancora se dividera' il conto e lo saltava): si chiede al
+  // "Paga ora", dove serve davvero. Li' e' obbligatorio — niente skip, niente
+  // chiusura sul backdrop — perche' lo staff di sala legge quel numero.
+  const [afterCoperti, setAfterCoperti] = useState(null); // cosa fare dopo la conferma
+  const askCoperti = then => {
+    if (state.copertiSelected) {
+      then && then();
+      return;
     }
-  }, []);
+    setAfterCoperti(() => then || null);
+    setCopertiSheetOpen(true);
+  };
   const confirmCoperti = n => {
+    saveCoperti(n);
     setState(s => ({
       ...s,
       coperti: n,
       copertiSelected: true
     }));
     setCopertiSheetOpen(false);
-  };
-  const skipCoperti = () => {
-    setState(s => ({
-      ...s,
-      copertiSelected: true
-    }));
-    setCopertiSheetOpen(false);
+    if (afterCoperti) {
+      const f = afterCoperti;
+      setAfterCoperti(null);
+      setTimeout(f, 120);
+    }
   };
   const dishes = DISHES_BY_CAT;
   const cart = state.cart; // array of { lineId, dishId, qty, variants, extras, removed }
@@ -29496,102 +29672,9 @@ function MenuScreen({
     onTakeaway: startTakeaway,
     cartCount: cartCount,
     cartTotal: cartTotal
-  }), copertiSheetOpen && /*#__PURE__*/React.createElement("div", {
-    onClick: skipCoperti,
-    style: {
-      position: 'absolute',
-      inset: 0,
-      background: 'rgba(0,0,0,0.35)',
-      zIndex: 45,
-      display: 'flex',
-      alignItems: 'flex-end',
-      animation: 'fade 0.22s ease'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      width: '100%',
-      background: SURF,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: '10px 22px 32px',
-      animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
-      boxShadow: '0 -8px 32px rgba(0,0,0,0.12)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 38,
-      height: 4,
-      background: MUTESURF,
-      borderRadius: 999,
-      margin: '4px auto 18px'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: 'center',
-      marginBottom: 22
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 800,
-      color: TEXT,
-      letterSpacing: -0.4,
-      marginBottom: 6
-    }
-  }, "Quanti siete al tavolo?"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: MUTED,
-      lineHeight: 1.45
-    }
-  }, "Ci servir\xE0 per dividere il conto, se vorrai farlo.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: 10,
-      marginBottom: 14
-    }
-  }, [1, 2, 3, 4, 5, 6].map(n => /*#__PURE__*/React.createElement("button", {
-    key: n,
-    onClick: () => confirmCoperti(n === 6 ? 6 : n),
-    style: {
-      height: 64,
-      borderRadius: 14,
-      border: `1.5px solid ${BORDER}`,
-      background: SURF,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      fontSize: 20,
-      fontWeight: 800,
-      color: TEXT,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.15s'
-    },
-    onMouseEnter: e => {
-      e.currentTarget.style.borderColor = WINE;
-      e.currentTarget.style.background = '#fdf6f8';
-    },
-    onMouseLeave: e => {
-      e.currentTarget.style.borderColor = BORDER;
-      e.currentTarget.style.background = '#fff';
-    }
-  }, n === 6 ? '6+' : n))), /*#__PURE__*/React.createElement("button", {
-    onClick: skipCoperti,
-    style: {
-      width: '100%',
-      padding: '12px',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      fontSize: 13.5,
-      color: MUTED,
-      fontWeight: 500
-    }
-  }, "Lo decider\xF2 pi\xF9 tardi"))), guestsOpen && (() => {
+  }), copertiSheetOpen && /*#__PURE__*/React.createElement(CopertiSheet, {
+    onConfirm: confirmCoperti
+  }), guestsOpen && (() => {
     const order = state.activeOrder || {
       table: state.tableNumber ? `Tavolo ${state.tableNumber}` : 'Tavolo 23',
       guests: [{
@@ -29821,6 +29904,7 @@ function SwipeDishRow({
   const [dx, setDx] = useState(0);
   const [drag, setDrag] = useState(false);
   const [flash, setFlash] = useState(null); // 'table' | 'pick'
+  const [askUndo, setAskUndo] = useState(false); // conferma: togliere la divisione fra persone
   const start = useRef(0);
   const active = useRef(false);
   const moved = useRef(false);
@@ -29847,17 +29931,31 @@ function SwipeDishRow({
     active.current = false;
     setDrag(false);
     setDx(cur => {
+      // Swipe ripetuto nel verso gia' applicato = disfare, non rifare.
+      // Col tavolo si annulla subito (nessun dato da perdere); con una
+      // divisione fra persone si chiede conferma, perche' si perde la scelta
+      // di chi paga cosa.
+      const giaTavolo = split && split.kind === 'tavolo';
+      const giaDiviso = split && split.kind && split.kind !== 'tavolo' && split.kind !== 'me';
       if (cur > TH * 0.92) {
-        setFlash('table');
-        setTimeout(() => setFlash(null), 520);
         try {
           window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light();
         } catch {}
+        if (giaTavolo) {
+          setTimeout(onReset, 120);
+          return 0;
+        }
+        setFlash('table');
+        setTimeout(() => setFlash(null), 520);
         setTimeout(onTable, 120);
       } else if (cur < -TH * 0.92) {
         try {
           window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light();
         } catch {}
+        if (giaDiviso) {
+          setAskUndo(true);
+          return 0;
+        }
         setTimeout(onPick, 140);
       }
       return 0;
@@ -29869,10 +29967,60 @@ function SwipeDishRow({
     style: {
       position: 'relative',
       borderRadius: 12,
-      overflow: 'hidden',
+      overflow: askUndo ? 'visible' : 'hidden',
       touchAction: 'pan-y'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, askUndo && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 4,
+      background: 'rgba(255,255,255,0.97)',
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '0 10px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: TEXT,
+      lineHeight: 1.3
+    }
+  }, "Togliere la divisione?"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setAskUndo(false);
+      onReset && onReset();
+    },
+    style: {
+      padding: '6px 12px',
+      borderRadius: 999,
+      border: 'none',
+      background: WINE,
+      color: '#fff',
+      fontSize: 12.5,
+      fontWeight: 800,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Togli"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAskUndo(false),
+    style: {
+      padding: '6px 10px',
+      borderRadius: 999,
+      border: `1px solid ${BORDER}`,
+      background: '#fff',
+      color: MUTED,
+      fontSize: 12.5,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Annulla")), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       inset: 0,
@@ -31106,323 +31254,329 @@ function ActiveOrderCard({
   const allSettled = unpaidItems.length === 0;
   const unpaidTotal = unpaidItems.reduce((s, i) => s + i.price * i.qty, 0);
   const title = postPay ? 'Da saldare al tavolo' : 'Il tuo ordine';
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderRadius: 22,
-      overflow: 'hidden',
-      background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 80%)`,
-      color: '#fff',
-      position: 'relative',
-      boxShadow: '0 8px 24px rgba(194,24,91,0.35)',
-      transition: 'all 0.3s'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      width: 220,
-      height: 220,
-      background: 'radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 60%)',
-      pointerEvents: 'none'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '14px 16px 14px',
-      position: 'relative'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      opacity: 0.9,
-      fontWeight: 600,
-      letterSpacing: 0.3,
-      textTransform: 'uppercase'
-    }
-  }, fmtTime(order.startedAt)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: e => {
-      e.stopPropagation();
-      onOpenGuests && onOpenGuests();
-    },
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      background: 'rgba(255,255,255,0.18)',
-      backdropFilter: 'blur(6px)',
-      border: 'none',
-      color: '#fff',
-      fontFamily: 'inherit',
-      padding: '5px 10px 5px 7px',
-      borderRadius: 999,
-      cursor: 'pointer',
-      fontSize: 12,
-      fontWeight: 700
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "14",
-    height: "14",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "#fff",
-    strokeWidth: "2.2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "9",
-    cy: "7",
-    r: "4"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M23 21v-2a4 4 0 0 0-3-3.87"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M16 3.13a4 4 0 0 1 0 7.75"
-  })), covers, " coperti"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setExpanded(!expanded),
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      background: 'rgba(255,255,255,0.18)',
-      border: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      backdropFilter: 'blur(6px)'
-    }
-  }, expanded ? /*#__PURE__*/React.createElement(I.ChevDown, {
-    size: 16
-  }) : /*#__PURE__*/React.createElement(I.ChevUp, {
-    size: 16
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      fontSize: 12.5,
-      opacity: 0.9,
-      fontWeight: 500
-    }
-  }, /*#__PURE__*/React.createElement(I.Pin, {
-    size: 13,
-    color: "#fff"
-  }), " ", order.table), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 19,
-      fontWeight: 800,
-      marginTop: 2,
-      letterSpacing: -0.3
-    }
-  }, order.venue)), postPay && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      padding: '7px 11px',
-      borderRadius: 999,
-      background: 'rgba(255,255,255,0.2)',
-      backdropFilter: 'blur(6px)',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 6,
-      fontSize: 11.5,
-      fontWeight: 700,
-      letterSpacing: 0.2
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "12",
-    height: "12",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "#fff",
-    strokeWidth: "3",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "20 6 9 17 4 12"
-  })), "Hai saldato la tua parte"), expanded ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      opacity: 0.95,
-      marginTop: 10,
-      lineHeight: 1.4
-    }
-  }, postPay ? /*#__PURE__*/React.createElement(React.Fragment, null, "Sono rimasti ", unpaidItems.length, " piatti senza pagatore. Possono essere saldati da chiunque al tavolo.") : /*#__PURE__*/React.createElement(React.Fragment, null, "Clicca su ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700
-    }
-  }, "\"Paga ora\""), " per saldare il conto.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      padding: '12px 14px',
-      borderRadius: 14,
-      background: 'rgba(255,255,255,0.15)',
-      backdropFilter: 'blur(8px)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      opacity: 0.85,
-      marginBottom: 8
-    }
-  }, title), unpaidItems.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      opacity: 0.95,
-      padding: '4px 0'
-    }
-  }, "Tutto saldato.") : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 7
-    }
-  }, unpaidItems.map((i, idx) => /*#__PURE__*/React.createElement("div", {
-    key: idx,
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'baseline',
-      gap: 8,
-      fontSize: 13
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      opacity: 0.75,
-      fontWeight: 600
-    }
-  }, i.qty, "\xD7"), " ", i.name), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 600,
-      opacity: 0.95,
-      flexShrink: 0
-    }
-  }, (i.price * i.qty).toFixed(2), "\u20AC")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: 'rgba(255,255,255,0.25)',
-      margin: '10px 0'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'baseline',
-      fontSize: 14
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700
-    }
-  }, postPay ? 'Da pagare ancora' : 'Totale'), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 800,
-      fontSize: 16
-    }
-  }, (postPay ? unpaidTotal : order.total).toFixed(2), "\u20AC"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      marginTop: 12
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => goTo('menu'),
-    style: {
-      flex: 1,
-      height: 42,
-      borderRadius: 999,
-      border: '1.5px solid rgba(255,255,255,0.55)',
-      background: 'transparent',
-      color: '#fff',
-      fontSize: 14,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      backdropFilter: 'blur(6px)',
-      WebkitBackdropFilter: 'blur(6px)'
-    }
-  }, "Ordina ancora"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => goTo('pay'),
-    disabled: allSettled,
-    style: {
-      flex: 1.2,
-      height: 42,
-      borderRadius: 999,
-      border: 'none',
-      background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
-      color: allSettled ? '#fff' : PINK_DARK,
-      fontSize: 14,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: allSettled ? 'default' : 'pointer',
-      opacity: allSettled ? 0.6 : 1
-    }
-  }, postPay ? 'Salda il resto' : 'Paga ora'))) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      marginTop: 12
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => goTo('menu'),
-    style: {
-      flex: 1,
-      height: 38,
-      borderRadius: 999,
-      border: '1.5px solid rgba(255,255,255,0.55)',
-      background: 'transparent',
-      color: '#fff',
-      fontSize: 13.5,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      backdropFilter: 'blur(6px)',
-      WebkitBackdropFilter: 'blur(6px)'
-    }
-  }, "Ordina ancora"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => goTo('pay'),
-    disabled: allSettled,
-    style: {
-      flex: 1,
-      height: 38,
-      borderRadius: 999,
-      border: 'none',
-      background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
-      color: allSettled ? '#fff' : PINK_DARK,
-      fontSize: 13.5,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: allSettled ? 'default' : 'pointer',
-      opacity: allSettled ? 0.6 : 1
-    }
-  }, postPay ? 'Salda il resto' : 'Paga ora'))));
+  return (
+    /*#__PURE__*/
+    // Marcata cosi' la home della SPA sa che una card del tavolo c'e' gia' e
+    // non ne aggiunge una seconda quando le due schermate si sovrappongono.
+    React.createElement("div", {
+      "data-byup-table-card": true,
+      style: {
+        borderRadius: 22,
+        overflow: 'hidden',
+        background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 80%)`,
+        color: '#fff',
+        position: 'relative',
+        boxShadow: '0 8px 24px rgba(194,24,91,0.35)',
+        transition: 'all 0.3s'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 220,
+        height: 220,
+        background: 'radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 60%)',
+        pointerEvents: 'none'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '14px 16px 14px',
+        position: 'relative'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        opacity: 0.9,
+        fontWeight: 600,
+        letterSpacing: 0.3,
+        textTransform: 'uppercase'
+      }
+    }, fmtTime(order.startedAt)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        onOpenGuests && onOpenGuests();
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'rgba(255,255,255,0.18)',
+        backdropFilter: 'blur(6px)',
+        border: 'none',
+        color: '#fff',
+        fontFamily: 'inherit',
+        padding: '5px 10px 5px 7px',
+        borderRadius: 999,
+        cursor: 'pointer',
+        fontSize: 12,
+        fontWeight: 700
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: "14",
+      height: "14",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "#fff",
+      strokeWidth: "2.2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "9",
+      cy: "7",
+      r: "4"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M23 21v-2a4 4 0 0 0-3-3.87"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M16 3.13a4 4 0 0 1 0 7.75"
+    })), covers, " coperti"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setExpanded(!expanded),
+      style: {
+        width: 30,
+        height: 30,
+        borderRadius: 999,
+        background: 'rgba(255,255,255,0.18)',
+        border: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        backdropFilter: 'blur(6px)'
+      }
+    }, expanded ? /*#__PURE__*/React.createElement(I.ChevDown, {
+      size: 16
+    }) : /*#__PURE__*/React.createElement(I.ChevUp, {
+      size: 16
+    })))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        fontSize: 12.5,
+        opacity: 0.9,
+        fontWeight: 500
+      }
+    }, /*#__PURE__*/React.createElement(I.Pin, {
+      size: 13,
+      color: "#fff"
+    }), " ", order.table), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 19,
+        fontWeight: 800,
+        marginTop: 2,
+        letterSpacing: -0.3
+      }
+    }, order.venue)), postPay && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        padding: '7px 11px',
+        borderRadius: 999,
+        background: 'rgba(255,255,255,0.2)',
+        backdropFilter: 'blur(6px)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        fontSize: 11.5,
+        fontWeight: 700,
+        letterSpacing: 0.2
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: "12",
+      height: "12",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "#fff",
+      strokeWidth: "3",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("polyline", {
+      points: "20 6 9 17 4 12"
+    })), "Hai saldato la tua parte"), expanded ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        opacity: 0.95,
+        marginTop: 10,
+        lineHeight: 1.4
+      }
+    }, postPay ? /*#__PURE__*/React.createElement(React.Fragment, null, "Sono rimasti ", unpaidItems.length, " piatti senza pagatore. Possono essere saldati da chiunque al tavolo.") : /*#__PURE__*/React.createElement(React.Fragment, null, "Clicca su ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700
+      }
+    }, "\"Paga ora\""), " per saldare il conto.")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 12,
+        padding: '12px 14px',
+        borderRadius: 14,
+        background: 'rgba(255,255,255,0.15)',
+        backdropFilter: 'blur(8px)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 0.4,
+        textTransform: 'uppercase',
+        opacity: 0.85,
+        marginBottom: 8
+      }
+    }, title), unpaidItems.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        opacity: 0.95,
+        padding: '4px 0'
+      }
+    }, "Tutto saldato.") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 7
+      }
+    }, unpaidItems.map((i, idx) => /*#__PURE__*/React.createElement("div", {
+      key: idx,
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        gap: 8,
+        fontSize: 13
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        opacity: 0.75,
+        fontWeight: 600
+      }
+    }, i.qty, "\xD7"), " ", i.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600,
+        opacity: 0.95,
+        flexShrink: 0
+      }
+    }, (i.price * i.qty).toFixed(2), "\u20AC")))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 1,
+        background: 'rgba(255,255,255,0.25)',
+        margin: '10px 0'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        fontSize: 14
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700
+      }
+    }, postPay ? 'Da pagare ancora' : 'Totale'), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 800,
+        fontSize: 16
+      }
+    }, (postPay ? unpaidTotal : order.total).toFixed(2), "\u20AC"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        marginTop: 12
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => goTo('menu'),
+      style: {
+        flex: 1,
+        height: 42,
+        borderRadius: 999,
+        border: '1.5px solid rgba(255,255,255,0.55)',
+        background: 'transparent',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 700,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)'
+      }
+    }, "Ordina ancora"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => goTo('pay'),
+      disabled: allSettled,
+      style: {
+        flex: 1.2,
+        height: 42,
+        borderRadius: 999,
+        border: 'none',
+        background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
+        color: allSettled ? '#fff' : PINK_DARK,
+        fontSize: 14,
+        fontWeight: 700,
+        fontFamily: 'inherit',
+        cursor: allSettled ? 'default' : 'pointer',
+        opacity: allSettled ? 0.6 : 1
+      }
+    }, postPay ? 'Salda il resto' : 'Paga ora'))) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        marginTop: 12
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => goTo('menu'),
+      style: {
+        flex: 1,
+        height: 38,
+        borderRadius: 999,
+        border: '1.5px solid rgba(255,255,255,0.55)',
+        background: 'transparent',
+        color: '#fff',
+        fontSize: 13.5,
+        fontWeight: 700,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)'
+      }
+    }, "Ordina ancora"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => goTo('pay'),
+      disabled: allSettled,
+      style: {
+        flex: 1,
+        height: 38,
+        borderRadius: 999,
+        border: 'none',
+        background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
+        color: allSettled ? '#fff' : PINK_DARK,
+        fontSize: 13.5,
+        fontWeight: 700,
+        fontFamily: 'inherit',
+        cursor: allSettled ? 'default' : 'pointer',
+        opacity: allSettled ? 0.6 : 1
+      }
+    }, postPay ? 'Salda il resto' : 'Paga ora'))))
+  );
 }
 
 // ─── TAKEAWAY CARD on Home ─────────────────────────────────
@@ -31925,15 +32079,19 @@ function GuestsSheet({
       width: 38,
       height: 38,
       borderRadius: 999,
-      background: g.isGuest ? MUTESURF : g.isMe ? PINK : BADGE,
-      color: g.isGuest ? MUTED : '#fff',
+      background: g.isMe ? PINK : g.isApp ? BYUP_GRAD : g.isWebApp ? WEBAPP_GRAD : MUTESURF,
+      color: g.isMe || g.isApp || g.isWebApp ? '#fff' : MUTED,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: 14,
       fontWeight: 700
     }
-  }, g.initial), /*#__PURE__*/React.createElement("div", {
+  }, !g.isMe && g.isApp ? /*#__PURE__*/React.createElement(ByupB, {
+    size: 15
+  }) : !g.isMe && g.isWebApp ? /*#__PURE__*/React.createElement(WebappDot, {
+    size: 9
+  }) : g.initial), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
@@ -33168,6 +33326,22 @@ function tableRemaining(order) {
   const settled = seedSettled(order);
   return order.items.reduce((s, it) => s + lineRemaining(order, it, settled), 0);
 }
+// I coperti valgono per tutta la serata al tavolo, ma la SPA smonta MenuApp
+// ogni volta che si torna in home: tenendoli nel solo state, "Salda il resto"
+// li richiedeva di nuovo.
+function loadCoperti() {
+  try {
+    const n = parseInt(sessionStorage.getItem('byup_coperti') || '', 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch (e) {
+    return null;
+  }
+}
+function saveCoperti(n) {
+  try {
+    sessionStorage.setItem('byup_coperti', String(n));
+  } catch (e) {}
+}
 function applyPayments(setState, payments) {
   setState(s => {
     const ord = s.activeOrder;
@@ -33504,6 +33678,8 @@ function PaymentScreen({
     }
   }, "Nessun ordine attivo.");
 
+  // I coperti non si chiedono più all'utente: il numero arriva da order.covers
+  // (lo imposta lo staff di sala), quindi il pagamento si apre diretto.
   // mode: 'mine' (la mia parte) | 'all' (tutto il tavolo) — di default 'mine',
   // 'all' si attiva tappando la CTA secondaria "Paga per tutto il tavolo"
   const [mode, setMode] = useState('mine');
@@ -33566,17 +33742,10 @@ function PaymentScreen({
   // Metodo di pagamento scelto (modificabile da "Cambia" → PayMethodScreen)
   const payMethod = state.payMethod || 'apple';
 
-  // Piatti del tavolo (aggiunti dal cameriere). Mostro solo quelli ancora aperti.
-  // Il "+" aggiunge il piatto a "Aggiunti al tuo conto" via selectedExtras (come per
-  // i piatti offerti agli altri): un'unica lista di ciò che pago io.
+  // Piatti aggiunti dal cameriere e non ancora saldati. Il "+" li mette su
+  // "Aggiunti al tuo conto" via selectedExtras (come i piatti offerti agli altri):
+  // un'unica lista di ciò che pago io.
   const tableItems = order.items.filter(i => i.ownerId === 'table' && !isPaid(i.lineId));
-  const [tableOpen, setTableOpen] = useState(false);
-  // Una volta che un piatto del tavolo è aggiunto al mio conto sparisce da qui e vive
-  // solo in "Aggiunti al tuo conto" (un oggetto, un posto).
-  const tablePending = tableItems.filter(i => !selectedExtras[i.lineId]);
-  const tablePendingTotal = tablePending.reduce((s, i) => s + i.price * i.qty, 0);
-  // Piatti del tavolo ancora da assegnare (né presi da altri, né in pagamento)
-  const tableUnclaimed = tablePending.filter(i => !i.claimedBy && !isLocked(i.lineId)).length;
 
   // Stili condivisi dei pulsanti tondi +/− (coerenti in tutte le sezioni):
   // "+" = contorno vino su bianco; "−"/attivo = pieno vino.
@@ -33643,35 +33812,29 @@ function PaymentScreen({
 
   // In caso di rientro post-pagamento parziale: escludo i miei piatti già saldati
   const myItems = order.items.filter(i => i.ownerId === 'me' && !isPaid(i.lineId));
-  const otherItems = order.items.filter(i => i.ownerId !== 'me' && i.ownerId !== 'table');
 
-  // Group other items by ownerId; tutti gli ospiti senza app finiscono
-  // in un'unica voce collettiva 'guests' (niente Ospite 1/2/3 separati)
-  const isGuestOwner = oid => {
-    const g = order.guests.find(x => x.id === oid);
-    return !!(g && g.isGuest);
-  };
-  const guestPeopleCount = order.guests.filter(g => g.isGuest).length || 1;
-  const groupByOwner = {};
-  otherItems.forEach(i => {
-    const key = isGuestOwner(i.ownerId) ? 'guests' : i.ownerId;
-    if (!groupByOwner[key]) groupByOwner[key] = [];
-    groupByOwner[key].push(i);
-  });
+  // ── "Il tavolo": gerarchia Utenti app → Utenti webapp → Altro ───────────────
+  // I commensali con l'app e quelli da webapp hanno una card ciascuno (sono
+  // identificabili, quindi si sa a chi si sta offrendo il piatto). "Altro" è un
+  // unico contenitore: piatti messi dal cameriere + porzioni al tavolo di chi
+  // non usa né app né webapp, che nominalmente non si possono attribuire.
+  const guestsList = order.guests || [];
+  const itemsOfOwner = oid => order.items.filter(i => i.ownerId === oid);
+  const appGuests = guestsList.filter(g => !g.isMe && g.isApp && itemsOfOwner(g.id).length > 0);
+  const webGuests = guestsList.filter(g => !g.isMe && !g.isApp && g.isWebApp && itemsOfOwner(g.id).length > 0);
+  const offlineIds = guestsList.filter(g => !g.isMe && !g.isApp && !g.isWebApp).map(g => g.id);
+  const altroItems = order.items.filter(i => i.ownerId === 'table' || offlineIds.includes(i.ownerId));
   const ownerLabel = oid => {
     if (oid === 'table') return 'Per il tavolo';
-    if (oid === 'guests') return guestPeopleCount === 1 ? '1 Ospite' : `${guestPeopleCount} Ospiti`;
-    const g = order.guests.find(x => x.id === oid);
+    const g = guestsList.find(x => x.id === oid);
     if (!g) return 'Sconosciuto';
     return g.name;
   };
-  const ownerSub = oid => {
-    if (oid === 'table') return 'Aggiunto dal cameriere';
-    if (oid === 'guests') return 'senza app';
-    const g = order.guests.find(x => x.id === oid);
-    if (!g) return '';
-    return g.isApp ? "✓ ha l'app" : 'ospite — non loggato';
-  };
+  // Chi ha già preso un piatto del tavolo (solo i piatti 'table' hanno claimedBy)
+  const claimant = i => i.claimedBy ? guestsList.find(g => g.id === i.claimedBy) : null;
+  // Aggiungibile al mio conto: non pagato, non congelato da un pagamento in
+  // corso, non già preso da qualcun altro.
+  const canAdd = i => !isPaid(i.lineId) && !isLocked(i.lineId) && !claimant(i);
   const toggleOwner = oid => setOpenOwners(o => ({
     ...o,
     [oid]: !o[oid]
@@ -33694,17 +33857,202 @@ function PaymentScreen({
     } else n[lineId] = true;
     return n;
   });
-  const addAllOwner = oid => {
+  const addAllItems = items => {
     setSelectedExtras(s => {
       const n = {
         ...s
       };
-      // Salta i piatti già pagati o congelati da un pagamento in corso
-      (groupByOwner[oid] || []).forEach(i => {
-        if (!isPaid(i.lineId) && !isLocked(i.lineId)) n[i.lineId] = true;
+      items.forEach(i => {
+        if (canAdd(i)) n[i.lineId] = true;
       });
       return n;
     });
+  };
+
+  // Card di gruppo: header riepilogativo + righe piatto. Ogni riga porta solo
+  // nome e prezzo, più "+" per metterla sul proprio conto e "−" per toglierla.
+  // Le righe non disponibili (pagate, in pagamento, già prese) restano visibili
+  // in grigio con la sola icona di stato.
+  const renderTableCard = ({
+    id,
+    title,
+    avatar,
+    avatarBg,
+    avatarColor,
+    avatarGlow,
+    items
+  }) => {
+    const open = !!openOwners[id];
+    const unpaid = items.filter(i => !isPaid(i.lineId));
+    const available = unpaid.filter(canAdd);
+    const allPaid = unpaid.length === 0;
+    const frozen = allPaid || available.length === 0;
+    const picked = available.filter(i => selectedExtras[i.lineId]);
+    const availableTotal = available.reduce((s, i) => s + i.price * i.qty, 0);
+    const pickedTotal = picked.reduce((s, i) => s + i.price * i.qty, 0);
+    const allPicked = available.length > 0 && picked.length === available.length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: id,
+      style: {
+        background: SURF,
+        borderRadius: 14,
+        overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        opacity: frozen ? 0.7 : 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: () => !frozen && toggleOwner(id),
+      style: {
+        padding: 14,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        cursor: frozen ? 'default' : 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 11,
+        flexShrink: 0,
+        background: avatarBg,
+        color: avatarColor,
+        boxShadow: avatarGlow || 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 13,
+        fontWeight: 700
+      }
+    }, avatar), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 16,
+        fontWeight: 700,
+        color: TEXT
+      }
+    }, title), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        marginTop: 1,
+        color: allPaid ? '#1c8c5b' : MUTED,
+        fontWeight: allPaid ? 700 : 500
+      }
+    }, allPaid ? 'Tutto già pagato' : available.length === 0 ? 'In pagamento…' : picked.length > 0 ? `${picked.length}/${available.length} sul tuo conto · ${pickedTotal.toFixed(2)}€` : `${available.length} ${available.length === 1 ? 'piatto' : 'piatti'} · ${availableTotal.toFixed(2)}€`)), !frozen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        transform: open ? 'rotate(0)' : 'rotate(-90deg)',
+        transition: 'transform 0.2s'
+      }
+    }, /*#__PURE__*/React.createElement(I.ChevDown, {
+      color: MUTED,
+      size: 16
+    }))), open && !frozen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '0 14px 14px'
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => addAllItems(items),
+      disabled: allPicked,
+      style: {
+        width: '100%',
+        padding: '8px 12px',
+        borderRadius: 999,
+        background: allPicked ? '#ebe3d6' : WINE,
+        color: allPicked ? MUTED : '#fff',
+        border: 'none',
+        fontSize: 12.5,
+        fontWeight: 700,
+        fontFamily: 'inherit',
+        cursor: allPicked ? 'default' : 'pointer',
+        marginBottom: 8
+      }
+    }, allPicked ? 'Già tutti sul tuo conto' : `Aggiungi tutto (${availableTotal.toFixed(2)}€)`), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column'
+      }
+    }, items.map(i => {
+      const paid = isPaid(i.lineId);
+      const taken = claimant(i);
+      const locked = !paid && !taken && isLocked(i.lineId);
+      const sel = !!selectedExtras[i.lineId];
+      const off = paid || locked || !!taken;
+      return /*#__PURE__*/React.createElement("div", {
+        key: i.lineId,
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '11px 0',
+          borderTop: `1px solid ${BORDER}`,
+          opacity: off ? 0.45 : 1
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0,
+          fontSize: 15,
+          fontWeight: 600,
+          color: TEXT,
+          textDecoration: paid ? 'line-through' : 'none',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }
+      }, i.name), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 14.5,
+          fontWeight: 700,
+          color: TEXT,
+          flexShrink: 0,
+          fontVariantNumeric: 'tabular-nums'
+        }
+      }, (i.price * i.qty).toFixed(2), "\u20AC"), off ? /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: 32,
+          display: 'flex',
+          justifyContent: 'center',
+          flexShrink: 0
+        }
+      }, locked ? /*#__PURE__*/React.createElement("svg", {
+        width: "15",
+        height: "15",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: MUTED,
+        strokeWidth: "2.2",
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+      }, /*#__PURE__*/React.createElement("rect", {
+        x: "3",
+        y: "11",
+        width: "18",
+        height: "11",
+        rx: "2",
+        ry: "2"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M7 11V7a5 5 0 0 1 10 0v4"
+      })) : /*#__PURE__*/React.createElement("svg", {
+        width: "16",
+        height: "16",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "#1c8c5b",
+        strokeWidth: "3",
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+      }, /*#__PURE__*/React.createElement("polyline", {
+        points: "20 6 9 17 4 12"
+      }))) : /*#__PURE__*/React.createElement("button", {
+        onClick: () => toggleExtra(i.lineId),
+        "aria-label": sel ? 'Togli dal mio conto' : 'Aggiungi al mio conto',
+        style: sel ? removeBtnStyle : addBtnStyle
+      }, sel ? '−' : '+'));
+    }))));
   };
   const myShareOf = it => {
     const splitN = (it.splitWith?.length || 0) + 1;
@@ -33799,8 +34147,24 @@ function PaymentScreen({
   };
 
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
+  // Pagare per tutti e' irreversibile e di importo ben diverso dalla propria
+  // quota: la slide da sola non basta come conferma.
+  const [confirmAll, setConfirmAll] = useState(false);
   const payNow = () => {
     if (paying || ctaTotal <= 0) return;
+    // La modalita' della CTA e' ctaMode ('mine' | 'split' | 'all'), non `mode`:
+    // e' quella che decide cosa si paga davvero.
+    if (ctaMode === 'all') {
+      setConfirmAll(true);
+      return;
+    } // conferma esplicita
+    setPaying(true);
+    setTimeout(() => {
+      proceed();
+    }, 5000);
+  };
+  const payConfirmed = () => {
+    setConfirmAll(false);
     setPaying(true);
     setTimeout(() => {
       proceed();
@@ -33828,7 +34192,7 @@ function PaymentScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: '8px 22px 0',
+      padding: '8px 22px 18px',
       display: 'flex',
       alignItems: 'center',
       gap: 14
@@ -33864,83 +34228,7 @@ function PaymentScreen({
       color: MUTED,
       marginTop: 2
     }
-  }, order.table, " \xB7 ", order.venue))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '18px 22px 16px'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setGuestsOpen(true),
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      background: 'transparent',
-      border: 'none',
-      padding: 0,
-      cursor: 'pointer',
-      fontFamily: 'inherit'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'row-reverse'
-    }
-  }, (order.guests || []).slice(0, 4).map((g, i) => /*#__PURE__*/React.createElement("div", {
-    key: g.id,
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      background: g.isApp || g.isWebApp ? BADGE : '#ebe3d6',
-      color: g.isApp || g.isWebApp ? '#fff' : MUTED,
-      border: '2.5px solid #FBF4F1',
-      marginLeft: -10,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 11.5,
-      fontWeight: 700
-    }
-  }, g.initial || '?')), (order.guests?.length || 0) > 4 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      background: MUTESURF,
-      border: '2.5px solid #FBF4F1',
-      marginLeft: -10,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 11,
-      fontWeight: 700,
-      color: MUTED
-    }
-  }, "+", order.guests.length - 4)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: MUTED,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700,
-      color: TEXT
-    }
-  }, order.guests?.length || 0), " al tavolo"), /*#__PURE__*/React.createElement("svg", {
-    width: "11",
-    height: "11",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: MUTED,
-    strokeWidth: "2.4",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "9 18 15 12 9 6"
-  })))))), /*#__PURE__*/React.createElement("div", {
+  }, order.table)))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       overflowY: 'auto',
@@ -34067,6 +34355,11 @@ function PaymentScreen({
     }, myShare.toFixed(2), "\u20AC"));
   }), mode === 'mine' && extraItems.map(it => {
     const isTable = it.ownerId === 'table';
+    // Tutto ciò che arriva dal container "Altro" (piatti del cameriere
+    // e porzioni di chi non usa né app né webapp) si presenta come
+    // "altro": quel piatto non è attribuibile a una persona precisa,
+    // quindi "di Ospite 1" prometteva un'identità che non c'è.
+    const isAltro = isTable || offlineIds.includes(it.ownerId);
     const sp = isTable ? tableSplits[it.lineId] : null;
     const share = extraShareFor(it);
     return /*#__PURE__*/React.createElement("div", {
@@ -34101,7 +34394,7 @@ function PaymentScreen({
         fontSize: 11,
         fontWeight: 700
       }
-    }, isTable ? 'dal tavolo' : `di ${ownerLabel(it.ownerId)}`), isTable && /*#__PURE__*/React.createElement("span", {
+    }, isAltro ? 'altro' : `di ${ownerLabel(it.ownerId)}`), isTable && /*#__PURE__*/React.createElement("span", {
       onClick: () => openSplitDish(it),
       style: {
         color: WINE,
@@ -34164,242 +34457,132 @@ function PaymentScreen({
       color: MUTED,
       textAlign: 'center'
     }
-  }, "\u2713 Non hai piatti tuoi sul conto."))), mode === 'mine' && tablePending.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "\u2713 Non hai piatti tuoi sul conto."))), mode === 'mine' && (appGuests.length > 0 || webGuests.length > 0 || altroItems.length > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '28px 22px 0'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 22,
       fontWeight: 800,
       color: TEXT,
-      letterSpacing: -0.4,
-      marginBottom: 4
+      letterSpacing: -0.4
     }
-  }, "Il tavolo"), /*#__PURE__*/React.createElement("div", {
+  }, "Il tavolo"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setGuestsOpen(true),
     style: {
-      fontSize: 13,
-      color: MUTED,
-      marginBottom: 14
-    }
-  }, "Apri una card e tocca ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700,
-      color: WINE
-    }
-  }, "+"), " sui piatti che offri tu."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: SURF,
-      borderRadius: 14,
-      overflow: 'hidden',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: () => setTableOpen(o => !o),
-    style: {
-      padding: '14px',
       display: 'flex',
       alignItems: 'center',
-      gap: 12,
-      cursor: 'pointer'
+      gap: 10,
+      background: 'transparent',
+      border: 'none',
+      padding: 0,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
-      background: TINT,
-      color: WINE,
+      display: 'flex',
+      flexDirection: 'row-reverse'
+    }
+  }, (order.guests || []).slice(0, 4).map((g, i) => /*#__PURE__*/React.createElement("div", {
+    key: g.id,
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      background: g.isApp ? BYUP_GRAD : g.isWebApp ? WEBAPP_GRAD : '#ebe3d6',
+      color: g.isApp || g.isWebApp ? '#fff' : MUTED,
+      border: '2.5px solid #FBF4F1',
+      marginLeft: -10,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      flexShrink: 0
+      fontSize: 11.5,
+      fontWeight: 700
     }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "16",
-    height: "16",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2.2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M3 7h18M5 7v12h14V7M9 11v4M15 11v4"
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, g.isApp ? /*#__PURE__*/React.createElement(ByupB, {
+    size: 12
+  }) : g.isWebApp ? /*#__PURE__*/React.createElement(WebappDot, {
+    size: 7
+  }) : g.initial || '?')), (order.guests?.length || 0) > 4 && /*#__PURE__*/React.createElement("div", {
     style: {
-      flex: 1,
-      minWidth: 0
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      background: MUTESURF,
+      border: '2.5px solid #FBF4F1',
+      marginLeft: -10,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 11,
+      fontWeight: 700,
+      color: MUTED
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, "+", order.guests.length - 4)), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 16,
+      fontSize: 13,
+      color: MUTED,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
+    style: {
       fontWeight: 700,
       color: TEXT
     }
-  }, "Aggiunti dal cameriere"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED,
-      marginTop: 1
-    }
-  }, tablePendingTotal.toFixed(2), "\u20AC totali")), tableUnclaimed > 0 && !tableOpen && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: WINE,
-      color: '#fff',
-      fontSize: 11,
-      fontWeight: 800,
-      padding: '3px 8px',
-      borderRadius: 999,
-      marginRight: 4
-    }
-  }, tableUnclaimed), /*#__PURE__*/React.createElement("div", {
-    style: {
-      transform: tableOpen ? 'rotate(0)' : 'rotate(-90deg)',
-      transition: 'transform 0.2s'
-    }
-  }, /*#__PURE__*/React.createElement(I.ChevDown, {
-    color: MUTED,
-    size: 16
-  }))), tableOpen && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 14px 14px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10
-    }
-  }, tablePending.map(it => {
-    const claimedByOther = it.claimedBy && order.guests.find(g => g.id === it.claimedBy);
-    const locked = isLocked(it.lineId);
-    const disabled = claimedByOther || locked;
-    return /*#__PURE__*/React.createElement("div", {
-      key: it.lineId,
-      style: {
-        background: disabled ? TINT : SURF,
-        borderRadius: 14,
-        padding: '14px',
-        border: `1px solid ${BORDER}`,
-        boxShadow: disabled ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
-        opacity: disabled ? 0.7 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 700,
-        color: TEXT
-      }
-    }, it.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: MUTED,
-        marginTop: 2
-      }
-    }, claimedByOther ? `Già preso da ${claimedByOther.name.split(' ')[0]}` : locked ? 'In pagamento…' : `${it.price.toFixed(2)}€`)), claimedByOther ? /*#__PURE__*/React.createElement("svg", {
-      width: "18",
-      height: "18",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "#1c8c5b",
-      strokeWidth: "3",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      style: {
-        flexShrink: 0
-      }
-    }, /*#__PURE__*/React.createElement("polyline", {
-      points: "20 6 9 17 4 12"
-    })) : locked ? /*#__PURE__*/React.createElement("svg", {
-      width: "16",
-      height: "16",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: MUTED,
-      strokeWidth: "2.2",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      style: {
-        flexShrink: 0
-      }
-    }, /*#__PURE__*/React.createElement("rect", {
-      x: "3",
-      y: "11",
-      width: "18",
-      height: "11",
-      rx: "2",
-      ry: "2"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M7 11V7a5 5 0 0 1 10 0v4"
-    })) : /*#__PURE__*/React.createElement("button", {
-      onClick: () => toggleExtra(it.lineId),
-      "aria-label": "Aggiungi al mio conto",
-      style: addBtnStyle
-    }, "+"));
-  })))), mode === 'mine' && Object.keys(groupByOwner).length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '12px 22px 0'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, order.guests?.length || 0), " al tavolo"), /*#__PURE__*/React.createElement("svg", {
+    width: "11",
+    height: "11",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: MUTED,
+    strokeWidth: "2.4",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "9 18 15 12 9 6"
+  }))))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
       gap: 10
     }
-  }, Object.entries(groupByOwner).map(([oid, items]) => {
-    const open = !!openOwners[oid];
-    const unpaidItems = items.filter(i => !isPaid(i.lineId));
-    // openItems: piatti su cui posso agire (non pagati, non in pagamento)
-    const openItems = unpaidItems.filter(i => !isLocked(i.lineId));
-    const allPaid = unpaidItems.length === 0;
-    // allLocked: tutto il resto del suo ordine è in pagamento adesso → bloccato
-    const allLocked = !allPaid && openItems.length === 0;
-    const frozen = allPaid || allLocked; // accordion non apribile
-    const allSelected = openItems.length > 0 && openItems.every(i => selectedExtras[i.lineId]);
-    const selectedCount = items.filter(i => selectedExtras[i.lineId] && !isPaid(i.lineId)).length;
-    const openTotal = openItems.reduce((s, i) => s + i.price * i.qty, 0);
-    const guest = oid === 'guests' ? {
-      isGuest: true
-    } : order.guests.find(g => g.id === oid);
-    return /*#__PURE__*/React.createElement("div", {
-      key: oid,
-      style: {
-        background: SURF,
-        borderRadius: 14,
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        opacity: frozen ? 0.7 : 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      onClick: () => !frozen && toggleOwner(oid),
-      style: {
-        padding: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        cursor: frozen ? 'default' : 'pointer'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 38,
-        height: 38,
-        borderRadius: 11,
-        background: oid === 'table' ? TINT : guest?.isGuest ? MUTESURF : BADGE,
-        color: oid === 'table' ? WINE : guest?.isGuest ? MUTED : '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 13,
-        fontWeight: 700,
-        position: 'relative'
-      }
-    }, oid === 'table' ? /*#__PURE__*/React.createElement("svg", {
+  }, appGuests.map(g => renderTableCard({
+    id: g.id,
+    title: g.name,
+    avatar: /*#__PURE__*/React.createElement(ByupB, {
+      size: 15
+    }),
+    avatarBg: BYUP_GRAD,
+    avatarColor: '#fff',
+    avatarGlow: BYUP_GLOW,
+    items: itemsOfOwner(g.id)
+  })), webGuests.map(g => renderTableCard({
+    id: g.id,
+    title: g.name,
+    avatar: /*#__PURE__*/React.createElement(WebappDot, {
+      size: 9
+    }),
+    avatarBg: WEBAPP_GRAD,
+    avatarColor: '#fff',
+    avatarGlow: WEBAPP_GLOW,
+    items: itemsOfOwner(g.id)
+  })), altroItems.length > 0 && renderTableCard({
+    id: 'altro',
+    title: 'Altro',
+    avatarBg: TINT,
+    avatarColor: WINE,
+    avatar: /*#__PURE__*/React.createElement("svg", {
       width: "16",
       height: "16",
       viewBox: "0 0 24 24",
@@ -34410,194 +34593,8 @@ function PaymentScreen({
       strokeLinejoin: "round"
     }, /*#__PURE__*/React.createElement("path", {
       d: "M3 7h18M5 7v12h14V7M9 11v4M15 11v4"
-    })) : oid === 'guests' ? /*#__PURE__*/React.createElement("svg", {
-      width: "17",
-      height: "17",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2.1",
-      strokeLinecap: "round",
-      strokeLinejoin: "round"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-    }), /*#__PURE__*/React.createElement("circle", {
-      cx: "9",
-      cy: "7",
-      r: "4"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M23 21v-2a4 4 0 0 0-3-3.87"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M16 3.13a4 4 0 0 1 0 7.75"
-    })) : guest?.initial || '?', allPaid && /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        bottom: -3,
-        right: -3,
-        width: 16,
-        height: 16,
-        borderRadius: 999,
-        background: '#1c8c5b',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: '2px solid #fff'
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: "9",
-      height: "9",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "#fff",
-      strokeWidth: "3.5",
-      strokeLinecap: "round",
-      strokeLinejoin: "round"
-    }, /*#__PURE__*/React.createElement("polyline", {
-      points: "20 6 9 17 4 12"
-    }))), allLocked && /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        bottom: -3,
-        right: -3,
-        width: 16,
-        height: 16,
-        borderRadius: 999,
-        background: MUTED,
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: '2px solid #fff'
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: "8",
-      height: "8",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "#fff",
-      strokeWidth: "3",
-      strokeLinecap: "round",
-      strokeLinejoin: "round"
-    }, /*#__PURE__*/React.createElement("rect", {
-      x: "3",
-      y: "11",
-      width: "18",
-      height: "11",
-      rx: "2",
-      ry: "2"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M7 11V7a5 5 0 0 1 10 0v4"
-    })))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 16,
-        fontWeight: 700,
-        color: TEXT
-      }
-    }, ownerLabel(oid)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: allPaid ? '#1c8c5b' : MUTED,
-        marginTop: 1,
-        fontWeight: allPaid ? 700 : 500
-      }
-    }, allPaid ? 'Ha già pagato la sua parte' : allLocked ? 'Sta pagando la sua parte…' : selectedCount > 0 ? `${selectedCount}/${openItems.length} aggiunti · ${items.filter(i => selectedExtras[i.lineId] && !isPaid(i.lineId)).reduce((s, i) => s + i.price * i.qty, 0).toFixed(2)}€` : `${openItems.length} piatti · ${openTotal.toFixed(2)}€`)), !frozen && /*#__PURE__*/React.createElement("div", {
-      style: {
-        transform: open ? 'rotate(0)' : 'rotate(-90deg)',
-        transition: 'transform 0.2s'
-      }
-    }, /*#__PURE__*/React.createElement(I.ChevDown, {
-      color: MUTED,
-      size: 16
-    }))), open && !frozen && /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: '0 14px 14px'
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => addAllOwner(oid),
-      disabled: allSelected,
-      style: {
-        width: '100%',
-        padding: '8px 12px',
-        borderRadius: 999,
-        background: allSelected ? '#ebe3d6' : WINE,
-        color: allSelected ? MUTED : '#fff',
-        border: 'none',
-        fontSize: 12.5,
-        fontWeight: 700,
-        fontFamily: 'inherit',
-        cursor: allSelected ? 'default' : 'pointer',
-        marginBottom: 8
-      }
-    }, allSelected ? 'Già tutti aggiunti' : `Offri tutto (${openTotal.toFixed(2)}€)`), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        flexDirection: 'column'
-      }
-    }, items.map(i => {
-      const paid = isPaid(i.lineId);
-      const locked = !paid && isLocked(i.lineId);
-      const sel = !!selectedExtras[i.lineId];
-      return /*#__PURE__*/React.createElement("div", {
-        key: i.lineId,
-        style: {
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '10px 0',
-          borderTop: `1px solid ${BORDER}`,
-          opacity: paid || locked ? 0.5 : 1
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 15,
-          fontWeight: 600,
-          color: TEXT,
-          textDecoration: paid ? 'line-through' : 'none'
-        }
-      }, i.name), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 12,
-          color: MUTED,
-          marginTop: 1
-        }
-      }, paid ? '✓ già pagato' : locked ? 'In pagamento…' : `${i.price}€${i.qty > 1 ? ` × ${i.qty}` : ''}`)), paid ? null : locked ? /*#__PURE__*/React.createElement("svg", {
-        width: "15",
-        height: "15",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: MUTED,
-        strokeWidth: "2.2",
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        style: {
-          flexShrink: 0,
-          marginRight: 7
-        }
-      }, /*#__PURE__*/React.createElement("rect", {
-        x: "3",
-        y: "11",
-        width: "18",
-        height: "11",
-        rx: "2",
-        ry: "2"
-      }), /*#__PURE__*/React.createElement("path", {
-        d: "M7 11V7a5 5 0 0 1 10 0v4"
-      })) : /*#__PURE__*/React.createElement("button", {
-        onClick: () => toggleExtra(i.lineId),
-        "aria-label": sel ? 'Togli dal mio conto' : 'Aggiungi al mio conto',
-        style: sel ? removeBtnStyle : addBtnStyle
-      }, sel ? '−' : '+'));
-    }))));
+    })),
+    items: altroItems
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
@@ -35356,7 +35353,99 @@ function PaymentScreen({
       opacity: 0.85,
       marginTop: 4
     }
-  }, "Non chiudere l'app"))));
+  }, "Non chiudere l'app"))), confirmAll && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      background: 'rgba(0,0,0,0.42)',
+      zIndex: 60,
+      display: 'flex',
+      alignItems: 'flex-end',
+      animation: 'fade 0.2s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      background: SURF,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: '10px 22px 26px',
+      animation: 'slideUp 0.3s cubic-bezier(.2,.9,.3,1.05)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      background: MUTESURF,
+      borderRadius: 999,
+      margin: '4px auto 18px'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 800,
+      color: TEXT,
+      letterSpacing: -0.3,
+      marginBottom: 6
+    }
+  }, "Paghi per tutto il tavolo?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: MUTED,
+      lineHeight: 1.5,
+      marginBottom: 18
+    }
+  }, "Saldi l'intero conto, comprese le consumazioni degli altri commensali."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      padding: '12px 14px',
+      borderRadius: 14,
+      background: '#F6F7F9',
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      color: MUTED,
+      fontWeight: 600
+    }
+  }, "Totale"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22,
+      fontWeight: 800,
+      color: TEXT
+    }
+  }, "\u20AC ", ctaTotal.toFixed(2))), /*#__PURE__*/React.createElement("button", {
+    onClick: payConfirmed,
+    style: {
+      width: '100%',
+      padding: '15px',
+      borderRadius: 16,
+      border: 'none',
+      background: WINE,
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 800,
+      fontFamily: 'inherit',
+      cursor: 'pointer',
+      marginBottom: 8
+    }
+  }, "S\xEC, pago tutto"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setConfirmAll(false),
+    style: {
+      width: '100%',
+      padding: '12px',
+      background: 'none',
+      border: 'none',
+      fontFamily: 'inherit',
+      fontSize: 14.5,
+      color: MUTED,
+      fontWeight: 600,
+      cursor: 'pointer'
+    }
+  }, "Torna indietro"))));
 }
 
 // ─── PAYMENT METHOD ────────────────────────────────────────
@@ -36489,6 +36578,9 @@ function SuccessScreen({
   // BRANCH DINE-IN — layout ridisegnato
   const paidAmount = state.payTotal || 0;
   const commensali = (state.activeOrder?.guests || []).filter(g => !g.isMe);
+  // Chi non ha ancora saldato: al posto del generico "Alla prossima", che non
+  // diceva nulla, la schermata chiude dicendo chi manca all'appello.
+  const daPagare = commensali.filter(g => !g.paid && !g.settled);
   // Sta scrivendo una recensione → la CTA primaria è "Invia recensione",
   // quindi "Torna alla home" passa in secondo piano (evita due bottoni gemelli).
   const reviewing = rating > 0 && !submitted;
@@ -36560,7 +36652,10 @@ function SuccessScreen({
     }
   }, venue)), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      __goApp('profile');
+      __goApp('profile', {
+        view: 'orders',
+        order: 'recent'
+      });
     },
     style: {
       background: 'transparent',
@@ -36581,7 +36676,7 @@ function SuccessScreen({
       fontSize: 15,
       lineHeight: 1
     }
-  }, "\u203A")), commensali.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "\u203A")), daPagare.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 22,
       display: 'flex',
@@ -36597,43 +36692,63 @@ function SuccessScreen({
       textTransform: 'uppercase',
       letterSpacing: 0.7
     }
-  }, "Alla prossima"), /*#__PURE__*/React.createElement("div", {
+  }, "Devono ancora pagare"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
-      flexDirection: 'row-reverse'
+      gap: 8,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      maxWidth: 320
     }
-  }, commensali.slice(0, 5).map((g, i) => /*#__PURE__*/React.createElement("div", {
+  }, daPagare.slice(0, 4).map((g, i) => /*#__PURE__*/React.createElement("div", {
     key: g.id || i,
     style: {
-      width: 34,
-      height: 34,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 7,
+      padding: '6px 12px 6px 6px',
       borderRadius: 999,
+      background: 'rgba(255,255,255,0.7)',
+      border: `1px solid ${BORDER}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 999,
+      flexShrink: 0,
       background: g.isApp || g.isWebApp ? BADGE : '#c4b89f',
       color: '#fff',
-      border: '2.5px solid #FBF4F1',
-      marginLeft: -10,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 12.5,
-      fontWeight: 700
-    }
-  }, g.initial || '?')), commensali.length > 5 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 34,
-      height: 34,
-      borderRadius: 999,
-      background: MUTESURF,
-      color: MUTED,
-      border: '2.5px solid #FBF4F1',
-      marginLeft: -10,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: 11,
       fontWeight: 700
     }
-  }, "+", commensali.length - 5)))), !submitted && /*#__PURE__*/React.createElement("div", {
+  }, g.initial || '?'), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: TEXT
+    }
+  }, g.name || 'Ospite'), g.amount != null && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: MUTED
+    }
+  }, "\u20AC ", Number(g.amount).toFixed(2)))), daPagare.length > 4 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '6px 12px',
+      borderRadius: 999,
+      background: MUTESURF,
+      fontSize: 13,
+      fontWeight: 700,
+      color: MUTED
+    }
+  }, "+", daPagare.length - 4)))), !submitted && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 40
     }
@@ -37285,9 +37400,11 @@ function MenuApp({
     status: 'preparing',
     pickupCode: '4729'
   } : null;
-  const [state, setState] = useState({
+  const [state, setState] = useState(() => ({
     cart: [],
     splits: {},
+    coperti: loadCoperti() || undefined,
+    copertiSelected: loadCoperti() != null,
     takeawayOrder: demoTakeaway,
     activeOrder: {
       venue: 'Ristorante Maria Grazia',
@@ -37333,7 +37450,7 @@ function MenuApp({
         price: 8,
         ownerId: 'g1'
       },
-      // Ospite 1 (g2)
+      // Giulia (g2) — da webapp
       {
         lineId: 'g2-1',
         id: 's1',
@@ -37363,7 +37480,7 @@ function MenuApp({
         price: 8,
         ownerId: 'g2'
       },
-      // Ospite 2 (g3)
+      // Ospite 1 (g3) — né app né webapp: finisce in "Altro"
       {
         lineId: 'g3-1',
         id: 'p3',
@@ -37488,7 +37605,7 @@ function MenuApp({
       }]
     },
     participants: null
-  });
+  }));
   // Riprendi i pagamenti già fatti in questa sessione (la SPA smonta MenuApp
   // quando torni in home: senza hydrate il conto tornerebbe tutto da pagare).
   useEffect(() => {
