@@ -4501,13 +4501,13 @@ function ProfileScreen({
     onBack: () => setView('main'),
     content: [{
       h: 'Titolare del trattamento',
-      p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM) — C.F. / P.IVA 12345678901 — è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
+      p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
     }, {
       h: 'Dati raccolti',
       p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.'
     }, {
       h: 'Finalità e base giuridica',
-      p: 'I dati sono trattati per: (a) eseguire il contratto di servizio — art. 6.1.b GDPR; (b) adempiere a obblighi legali — art. 6.1.c GDPR; (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito — art. 6.1.a GDPR.'
+      p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).'
     }, {
       h: 'Conservazione',
       p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.'
@@ -5138,7 +5138,7 @@ function BookingSheet({
       fontFamily: 'inherit',
       padding: 4
     }
-  }, people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'), /*#__PURE__*/React.createElement("div", {
+  }, people > 6 ? `${people} persone · tocca per aggiungere` : 'Siete di più? Tocca qui'), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       background: TINT_X,
@@ -7331,7 +7331,7 @@ const VENUE_DATA = {
     initial: 'G',
     when: '2 giorni fa',
     rating: 5,
-    text: 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma — e ne ho provate tante.',
+    text: 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma. E ne ho provate tante.',
     dish: 'Cacio e Pepe'
   },
   reviews_list: [{
@@ -8470,7 +8470,7 @@ function VenueC({
       fontSize: 13,
       color: 'rgba(255,255,255,0.8)'
     }
-  }, "Coperti:"), /*#__PURE__*/React.createElement("div", {
+  }, "Partecipanti:"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 6
@@ -12516,6 +12516,7 @@ window.PostaScreen = PostaScreen;
 </script>
 <script>/* auth.jsx */
 (function(){
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 /* global React */
 // auth.jsx — Onboarding & auth flow that runs BEFORE the Home.
 // Screens: Login (matches the shared mockup) → recupero password,
@@ -12742,7 +12743,7 @@ function GlassField({
       border: `1.5px solid ${focus ? '#fff' : 'transparent'}`,
       transition: 'border-color .15s'
     }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("input", _extends({
     type: type,
     value: value,
     placeholder: placeholder,
@@ -12760,9 +12761,8 @@ function GlassField({
       color: A_TEXT,
       fontFamily: 'inherit',
       borderRadius: 14
-    },
-    ...rest
-  }), rightSlot && /*#__PURE__*/React.createElement("div", {
+    }
+  }, rest)), rightSlot && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px 0 6px',
       display: 'flex'
@@ -12970,7 +12970,7 @@ function AuthLogin({
     value: pw,
     onChange: setPw,
     type: show ? 'text' : 'password',
-    placeholder: "••••••••",
+    placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
     autoComplete: "current-password",
     rightSlot: /*#__PURE__*/React.createElement("button", {
       onClick: () => setShow(s => !s),
@@ -13285,7 +13285,7 @@ function LightField({
       border: `1.5px solid ${focus ? A_PINK : 'transparent'}`,
       transition: 'border-color .15s'
     }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("input", _extends({
     type: type,
     value: value,
     placeholder: placeholder,
@@ -13303,9 +13303,8 @@ function LightField({
       color: A_TEXT,
       fontFamily: 'inherit',
       borderRadius: 12
-    },
-    ...rest
-  }), rightSlot && /*#__PURE__*/React.createElement("div", {
+    }
+  }, rest)), rightSlot && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 12px 0 4px',
       display: 'flex'
@@ -13336,13 +13335,13 @@ const A_TERMS = [{
 }];
 const A_PRIVACY = [{
   h: 'Titolare del trattamento',
-  p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM) — C.F. / P.IVA 12345678901 — è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
+  p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
 }, {
   h: 'Dati raccolti',
   p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.'
 }, {
   h: 'Finalità e base giuridica',
-  p: 'I dati sono trattati per: (a) eseguire il contratto di servizio — art. 6.1.b GDPR; (b) adempiere a obblighi legali — art. 6.1.c GDPR; (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito — art. 6.1.a GDPR.'
+  p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).'
 }, {
   h: 'Conservazione',
   p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.'
@@ -13726,7 +13725,7 @@ function AuthRegister({
       fontWeight: 600,
       lineHeight: '20px'
     }
-  }, "🇮🇹 +39")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDDEE\uD83C\uDDF9 +39")), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
@@ -14056,7 +14055,7 @@ function AuthSuccess({
       marginTop: 12,
       lineHeight: 1.55
     }
-  }, "Il tuo account è pronto. Scopri i migliori locali vicino a te e prenota in pochi tap."), /*#__PURE__*/React.createElement("button", {
+  }, "Il tuo account \xE8 pronto. Scopri i migliori locali vicino a te e prenota in pochi tap."), /*#__PURE__*/React.createElement("button", {
     onClick: onStart,
     style: {
       width: '100%',
@@ -19540,7 +19539,7 @@ function PaymentCard({
       opacity: .85,
       marginTop: 3
     }
-  }, "Apple Pay \xB7 Google Pay \xB7 Carte \u2014 30 secondi e paghi in un tap.")), /*#__PURE__*/React.createElement("div", {
+  }, "Apple Pay \xB7 Google Pay \xB7 Carte. 30 secondi e paghi in un tap.")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: '#ceff00',
       color: '#141414',
@@ -23492,7 +23491,7 @@ function ByuppiniScreen({
     style: {
       color: BYP.lime
     }
-  }, "LIV.5 \xB7 5.000 byuppini"), " \u2014 sei al 24%"), /*#__PURE__*/React.createElement("span", {
+  }, "LIV.5 \xB7 5.000 byuppini"), ". Sei al 24%"), /*#__PURE__*/React.createElement("span", {
     style: {
       position: 'absolute',
       right: -14,
@@ -25611,7 +25610,7 @@ function ShortcutsPanel() {
     href: 'byup Home.html'
   }, {
     id: 'home-empty',
-    label: 'Home — nessun locale',
+    label: 'Home · nessun locale',
     href: 'byup Home.html?page=home-empty'
   }, {
     id: 'map',
@@ -32821,7 +32820,7 @@ function GuestsSheet({
       color: MUTED,
       marginTop: 1
     }
-  }, "senza app \u2014 ordinano dal cameriere")), onRemoveGuest && (order.guests || []).some(g => g.isGuest) && /*#__PURE__*/React.createElement("button", {
+  }, "senza app \xB7 ordinano dal cameriere")), onRemoveGuest && (order.guests || []).some(g => g.isGuest) && /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       const last = [...(order.guests || [])].reverse().find(g => g.isGuest);
       last && onRemoveGuest(last.id);
@@ -32891,7 +32890,7 @@ function GuestsSheet({
       color: MUTED,
       marginTop: 1
     }
-  }, g.isApp ? "✓ ha l'app" : g.isWebApp ? '✓ da webapp' : 'ospite — non loggato')), g.isApp && /*#__PURE__*/React.createElement("span", {
+  }, g.isApp ? "✓ ha l'app" : g.isWebApp ? '✓ da webapp' : 'ospite · non loggato')), g.isApp && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10.5,
       fontWeight: 700,
@@ -37000,7 +36999,7 @@ function BalanceScreen({
       fontSize: 11.5,
       color: MUTED
     }
-  }, "Diviso per ", tableCount, " commensali \u2014 paghi la tua quota."), /*#__PURE__*/React.createElement("button", {
+  }, "Diviso per ", tableCount, " commensali. Paghi la tua quota."), /*#__PURE__*/React.createElement("button", {
     onClick: pay,
     style: {
       width: '100%',

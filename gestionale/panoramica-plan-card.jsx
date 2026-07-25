@@ -112,7 +112,7 @@ function PnSidebarPlanCardMini({ onExpand }) {
   return (
     <button
       onClick={onExpand}
-      title={`Piano Starter · ${pct}% ordini usati — clicca per espandere il menu`}
+      title={`Piano Starter · ${pct}% ordini usati. Clicca per espandere il menu`}
       style={{
         width: '100%', padding: '10px 2px', margin: '14px 0 10px',
         borderRadius: 10, border: 'none', cursor: 'pointer',

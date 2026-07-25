@@ -487,7 +487,7 @@ function InviteModal({ onClose, prefill }) {
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
             {kind === 'person'
               ? 'Invia un invito email per attivare l\'accesso al gestionale'
-              : 'Crea username e password per il dispositivo — non serve un\'email'}
+              : 'Crea username e password per il dispositivo. Non serve un\'email'}
           </div>
           <button onClick={onClose} style={{
             position:'absolute', top: 16, right: 16,

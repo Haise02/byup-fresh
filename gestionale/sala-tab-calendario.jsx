@@ -36,7 +36,7 @@ const SALA_RES_DATA = (() => {
     // Cancellata: non conta nei conteggi ma resta in lista per il flusso "cancellate"
     {id:'r17', time:'22:30', dur:60,  name:'Conti',           posti:2, table:4,  status:'cancellata', phone:'+39 333 ...',       note:null, notes:null, source:'tel'},
     // Tavolo 8 prenotato a pranzo dalle 12:30
-    {id:'r24', time:'12:30', dur:75, name:'Esposito', posti:2, table:8, status:'confermata', phone:'+39 347 ...', note:null, notes:'Cliente abituale — posto fisso', source:'tel'},
+    {id:'r24', time:'12:30', dur:75, name:'Esposito', posti:2, table:8, status:'confermata', phone:'+39 347 ...', note:null, notes:'Cliente abituale · posto fisso', source:'tel'},
     // Cluster imminenti 12:30
     {id:'r25', time:'12:30', dur:75,  name:'Borrelli',       posti:3, table:2,    status:'confermata', phone:'+39 345 ...', note:null, notes:'Menu vegano', source:'tel'},
     {id:'r26', time:'12:30', dur:60,  name:'Mele',           posti:2, table:4,    status:'inattesa',   phone:'+39 347 ...', note:null, notes:null, source:'tel'},

@@ -1293,9 +1293,9 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
         {view === 'privacy' && (
           <LegalView title="Privacy policy" onBack={() => setView('main')} content={[
-            { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM) — C.F. / P.IVA 12345678901 — è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
+            { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
             { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
-            { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio — art. 6.1.b GDPR; (b) adempiere a obblighi legali — art. 6.1.c GDPR; (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito — art. 6.1.a GDPR.' },
+            { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).' },
             { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
             { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
             { h: 'Cookie e tecnologie simili', p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.' },
@@ -1576,7 +1576,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
               <button onClick={() => setPeople(p => Math.min(20, p + 1))} style={{
                 marginTop: 8, background: 'none', border: 'none', color: people > 6 ? PINK_X : MUTED_X,
                 fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 4 }}>
-                {people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'}
+                {people > 6 ? `${people} persone · tocca per aggiungere` : 'Siete di più? Tocca qui'}
               </button>
 
               {/* Dati già compilati, ripiegati */}

@@ -64,7 +64,7 @@ function ImpDatiFiscali() {
         <div style={{flex:1}}>
           <div style={{fontSize:16, fontWeight:700, color: isComplete ? PN.GREEN : PN.AMBER}}>
             {isComplete
-              ? 'Anagrafica completa — i dati appaiono correttamente sugli scontrini'
+              ? 'Anagrafica completa. I dati appaiono correttamente sugli scontrini'
               : `${missing.length} ${missing.length===1?'campo mancante':'campi mancanti'} per emettere scontrini conformi`}
           </div>
           <div style={{fontSize:14, color: PN.MUTED, marginTop: 2}}>
@@ -142,7 +142,7 @@ function ImpDatiFiscali() {
 
           <ImpCard
             title="Dati fatturazione"
-            sub="Informazioni fiscali e amministrative — utili anche se collegherai un servizio esterno (es. Aruba)"
+            sub="Informazioni fiscali e amministrative. Utili anche se collegherai un servizio esterno (es. Aruba)"
           >
             <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
               <ImpField label="Ragione sociale" hint="Come risulta a registro imprese">
@@ -260,7 +260,7 @@ function ImpDatiFiscali() {
               background: PN.BLUE_SOFT, borderRadius: 10,
               fontSize: 13.5, color:'#1E40AF', lineHeight: 1.5,
             }}>
-              <b>Numerazione fatture, aliquote IVA e bollo virtuale</b> vengono gestiti automaticamente dal servizio di fatturazione collegato (es. Aruba) — non serve configurarli qui.
+              <b>Numerazione fatture, aliquote IVA e bollo virtuale</b> vengono gestiti automaticamente dal servizio di fatturazione collegato (es. Aruba). Non serve configurarli qui.
             </div>
           </ImpCard>
 
@@ -272,7 +272,7 @@ function ImpDatiFiscali() {
           }}>
             <span style={{fontSize: 20}}>ℹ️</span>
             <div style={{fontSize: 14, color:'#1E40AF', lineHeight: 1.5}}>
-              <b>Lo scontrino è 100% digitale</b> — byup emette e trasmette i corrispettivi all'Agenzia delle Entrate per te. Il collegamento al POS e gli strumenti di pagamento si configurano nella pagina <b style={{cursor:'pointer'}}>POS e integrazioni</b>.
+              <b>Lo scontrino è 100% digitale</b>: byup emette e trasmette i corrispettivi all'Agenzia delle Entrate per te. Il collegamento al POS e gli strumenti di pagamento si configurano nella pagina <b style={{cursor:'pointer'}}>POS e integrazioni</b>.
             </div>
           </div>
         </div>

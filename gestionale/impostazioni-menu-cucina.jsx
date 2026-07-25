@@ -1197,7 +1197,7 @@ function IngredientList({ ingredients, setIngredients }) {
                   {/* Removable toggle — minus-circle = "opzionale/escludibile" */}
                   <button
                     onClick={() => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, removable: !x.removable} : x))}
-                    title={ing.removable ? 'Rimovibile dal cliente — clicca per bloccare' : 'Il cliente non può rimuovere — clicca per abilitare'}
+                    title={ing.removable ? 'Rimovibile dal cliente. Clicca per bloccare' : 'Il cliente non può rimuovere. Clicca per abilitare'}
                     style={{
                       width:28, height:28, borderRadius:6, flexShrink:0,
                       border:`1px solid ${ing.removable ? PN.PINK : PN.BORDER_MED}`,
@@ -2056,7 +2056,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                   transition: 'opacity 0.15s',
                 }}>
                   <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
-                    <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>Ricetta — procedimento</div>
+                    <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>Ricetta · procedimento</div>
                     {noPrep && (
                       <span style={{fontSize:13.5, color:PN.MUTED, fontStyle:'italic', fontWeight:500}}>
                         Non applicabile per prodotti finiti
@@ -3143,7 +3143,7 @@ function MCConfigura() {
       <ImpCard
         title="Prenotazioni"
         sub={modules.prenotazioni
-          ? "Durata media per servizio — usata come default nel popup di nuova prenotazione"
+          ? "Durata media per servizio. Usata come default nel popup di nuova prenotazione"
           : "Attiva per gestire agenda, orari e conferme"
         }
         action={

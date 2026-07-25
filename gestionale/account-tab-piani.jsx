@@ -273,8 +273,7 @@ function AccPianiAbbonamenti() {
         {/* Piano Gratuito — downgrade come nota secondaria, non come card.
             Il click apre il modale di confronto, non il cambio diretto. */}
         <div style={{marginTop: 16, textAlign: 'center', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
-          Vuoi rinunciare ai vantaggi del tuo piano attuale? Valuta il piano <strong style={{color: PN.TEXT}}>Gratuito</strong> —
-          {' '}{freePlan.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini/mese, poi {fmtPrice(freePlan.ordineExtra)} € a ordine.{' '}
+          Vuoi rinunciare ai vantaggi del tuo piano attuale? Valuta il piano <strong style={{color: PN.TEXT}}>Gratuito</strong>:{' '}{freePlan.ordiniInclusi.toLocaleString('it-IT', {useGrouping: true})} ordini/mese, poi {fmtPrice(freePlan.ordineExtra)} € a ordine.{' '}
           <button
             onClick={() => setFreeModal(true)}
             style={{

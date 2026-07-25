@@ -4,7 +4,7 @@
 // window.byupReadLocale/byupWriteLocale (definiti in panoramica-sidebar.jsx).
 const ACC_LOCALI = [
   { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner', logo: 'CP' },
-  { id: 'co', name: 'Cacio e Pepe — Ostiense', city: 'Roma · Ostiense', addr: 'Via Ostiense 142', role: 'Owner', logo: 'CO' },
+  { id: 'co', name: 'Cacio e Pepe · Ostiense', city: 'Roma · Ostiense', addr: 'Via Ostiense 142', role: 'Owner', logo: 'CO' },
   { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager', logo: 'TB' },
 ];
 
@@ -61,7 +61,7 @@ function AccDatiGenerali() {
       logo: dir.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
     }]);
     setAddOpen(false);
-    setDatiToast(`✓ Richiesta inviata a ${dir.name} — attendi la conferma del proprietario`);
+    setDatiToast(`✓ Richiesta inviata a ${dir.name} . Attendi la conferma del proprietario`);
     setTimeout(() => setDatiToast(null), 3200);
   };
   const confermaDissocia = () => {
@@ -79,7 +79,7 @@ function AccDatiGenerali() {
       if (window.byupWriteLocale) window.byupWriteLocale(nuovo);
       setLocaleAttivo(nuovo);
       setSwitching(null);
-      setDatiToast(`✓ Ora stai gestendo ${loc.name} — apro la Panoramica…`);
+      setDatiToast(`✓ Ora stai gestendo ${loc.name} . Apro la Panoramica…`);
       setTimeout(() => { window.location.href = 'byup Panoramica.html'; }, 1200);
     }, 900);
   };

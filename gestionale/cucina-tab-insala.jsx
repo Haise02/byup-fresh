@@ -555,7 +555,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
             </div>
             <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Annullare questa comanda?</div>
             <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5, marginBottom: 18}}>
-              Stai per annullare <strong style={{color: PN.TEXT}}>{confirmCancel.label}</strong> — {confirmCancel.count} piatti. Non sarà più visibile in cucina.
+              Stai per annullare <strong style={{color: PN.TEXT}}>{confirmCancel.label}</strong>: {confirmCancel.count} piatti. Non sarà più visibile in cucina.
             </div>
             <div style={{display:'flex', gap: 10, justifyContent:'flex-end'}}>
               <button onClick={() => setConfirmCancel(null)} style={{

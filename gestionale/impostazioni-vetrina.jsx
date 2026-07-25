@@ -212,7 +212,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard title="Orari di apertura" sub="Scegli i giorni e un orario standard — i clienti vedranno questi orari sulla vetrina">
+      <ImpCard title="Orari di apertura" sub="Scegli i giorni e un orario standard. I clienti vedranno questi orari sulla vetrina">
         {/* Mini-calendario settimanale visuale */}
         <div style={{
           display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 6,
@@ -245,15 +245,15 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         }}>
           <span style={{fontSize:14, fontWeight:700}}>Orario standard</span>
           <span style={{fontSize:13, color:PN.MUTED}}>per tutti i giorni aperti</span>
+          <ImpButton variant="ghost" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5}}>
+            Personalizza orari
+          </ImpButton>
           <span style={{flex:1}}/>
           <ImpInput value={stdHours[0]} style={{width:74, padding:'7px 10px'}}
             onChange={e => { setStdHours([e.target.value, stdHours[1]]); onChange(); }}/>
           <span style={{color:PN.MUTED}}>—</span>
           <ImpInput value={stdHours[1]} style={{width:74, padding:'7px 10px'}}
             onChange={e => { setStdHours([stdHours[0], e.target.value]); onChange(); }}/>
-          <ImpButton variant="ghost" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5}}>
-            Personalizza orari
-          </ImpButton>
         </div>
 
         <div style={{marginTop: 14, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
@@ -433,7 +433,7 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Personalizza orari</div>
             <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
-              Turni per ogni giorno di apertura — i clienti li vedranno sulla vetrina.
+              Turni per ogni giorno di apertura. I clienti li vedranno sulla vetrina.
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -734,9 +734,9 @@ function SedeConfirmModal({ sede, onClose, onConfirm }) {
 
 // Anagrafica dei locali cercabili nel popup (mock del registro byup).
 const SEDE_DIRECTORY = [
-  { name: 'Cacio e Pepe — Trastevere', addr: 'Via della Lungaretta 10, Roma',
+  { name: 'Cacio e Pepe · Trastevere', addr: 'Via della Lungaretta 10, Roma',
     photo: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=400&q=70&auto=format&fit=crop' },
-  { name: 'Cacio e Pepe — Prati', addr: 'Via dei Gracchi 56, Roma',
+  { name: 'Cacio e Pepe · Prati', addr: 'Via dei Gracchi 56, Roma',
     photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop' },
   { name: 'Osteria del Ponte', addr: 'Lungotevere degli Anguillara 3, Roma',
     photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop' },
@@ -985,7 +985,7 @@ function CertUploadModal({ ctx, onClose }) {
         <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>
-              {rejected ? `Ricarica certificazione — ${ctx.name}` : 'Carica certificazione'}
+              {rejected ? `Ricarica certificazione · ${ctx.name}` : 'Carica certificazione'}
             </div>
             <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
               PDF rilasciato da un ente accettato, max 10MB.
@@ -1123,7 +1123,7 @@ function VetrinaAspetto({ onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti — consigliate min. 5 foto">
+      <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti. Consigliate min. 5 foto">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
           {[
             'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop',

@@ -670,7 +670,7 @@ function StripeConnectRow({status, onConnect, onDisconnect}) {
         </div>
         <div style={{fontSize: 15, fontWeight: 400, color: ONB.MUTED, lineHeight: 1.4, marginTop: 2}}>
           {connected
-            ? 'Connesso — acct_••••dE3v'
+            ? 'Connesso · acct_••••dE3v'
             : 'Collega per accettare da subito carte e pagamenti digitali.'}
         </div>
       </div>

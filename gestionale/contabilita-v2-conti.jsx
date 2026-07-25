@@ -67,7 +67,7 @@ const CONTI_MOCK = [
     rimborso: {amount:12.00, ora:'2025-11-10 14:05', method:'carta', reason:'Servizio contestato'} },
   { id:'cnt-7',  idOrdine:'#2509-0156', dataOra:'2025-08-17 22:15', tavolo:'Tavolo 6',  cliente:'Paolo Bianchi',     liberatoOre:2160,  totaleConto:110.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1'}],
-    rimborso: {amount:25.00, ora:'2025-08-18 10:12', method:'carta', reason:'Piatto reso — pasta troppo cotta'} },
+    rimborso: {amount:25.00, ora:'2025-08-18 10:12', method:'carta', reason:'Piatto reso: pasta troppo cotta'} },
   { id:'cnt-18', idOrdine:'#2510-0089', dataOra:'2025-10-05 21:00', tavolo:'Asporto', canale:'asporto', cliente:'Sara Mancini',      liberatoOre:1032,  totaleConto:76.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p18a', method:'contanti', amount:76.00, ora:'2025-10-05 21:50', scontrinoNum:'SC-2510-0089-1'}] },
   { id:'cnt-19', idOrdine:'#2509-0143', dataOra:'2025-09-20 13:00', tavolo:'Tavolo 3',  cliente:'Luca Caruso',       liberatoOre:1380,  totaleConto:42.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',

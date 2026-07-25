@@ -1681,7 +1681,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose }) {
                   {g.name}{g.isMe && <span style={{ fontSize: 11, color: PINK, marginLeft: 6, fontWeight: 600 }}>(tu)</span>}
                 </div>
                 <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>
-                  {g.isApp ? '✓ ha l’app' : 'ospite — non loggato'}
+                  {g.isApp ? '✓ ha l’app' : 'ospite · non loggato'}
                 </div>
               </div>
               {g.isApp && !g.isMe && (
@@ -2067,7 +2067,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     if (oid === 'table') return 'Aggiunto dal cameriere';
     const g = order.guests.find(x => x.id === oid);
     if (!g) return '';
-    return g.isApp ? '✓ ha l’app' : 'ospite — non loggato';
+    return g.isApp ? '✓ ha l’app' : 'ospite · non loggato';
   };
 
   const toggleOwner = (oid) => setOpenOwners(o => ({ ...o, [oid]: !o[oid] }));

@@ -1967,7 +1967,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
                   {g.name}{g.isMe && <span style={{ fontSize: 11, color: PINK, marginLeft: 6, fontWeight: 600 }}>(tu)</span>}
                 </div>
                 <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>
-                  {g.isApp ? "✓ ha l'app" : (g.isWebApp ? '✓ da webapp' : 'ospite — non loggato')}
+                  {g.isApp ? "✓ ha l'app" : (g.isWebApp ? '✓ da webapp' : 'ospite · non loggato')}
                 </div>
               </div>
               {g.isApp && (

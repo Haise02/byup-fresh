@@ -433,7 +433,7 @@ function PnConnectionStatus({ variant, collapsed = false }) {
         }}>
           {showRestored
             ? '✓  Connessione ripristinata'
-            : '⚠  Connessione assente — verifica la rete'}
+            : '⚠  Connessione assente. Verifica la rete'}
         </div>,
         document.body
       )}

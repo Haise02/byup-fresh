@@ -1099,7 +1099,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         </div>
         <button
           onClick={() => setTakeaway(v => !v)}
-          title={takeaway ? 'Da asporto — tocca per togliere' : 'Segna come da asporto'}
+          title={takeaway ? 'Da asporto. Tocca per togliere' : 'Segna come da asporto'}
           style={{
             display:'inline-flex', alignItems:'center', gap: 5,
             padding: '5px 10px', borderRadius: 8,

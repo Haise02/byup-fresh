@@ -59,7 +59,7 @@ const VENUE_DATA = {
     initial: 'G',
     when: '2 giorni fa',
     rating: 5,
-    text: 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma — e ne ho provate tante.',
+    text: 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma. E ne ho provate tante.',
     dish: 'Cacio e Pepe',
   },
   reviews_list: [

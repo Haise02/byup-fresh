@@ -182,7 +182,7 @@ function ByupPayHero({ devices, onAdd }) {
           </div>
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
             {list.length === 0
-              ? 'Nessun dispositivo collegato — collega uno smartphone per accettare pagamenti'
+              ? 'Nessun dispositivo collegato. Collega uno smartphone per accettare pagamenti'
               : <>{list.length} dispositiv{list.length===1?'o':'i'} collegat{list.length===1?'o':'i'} · <span style={{color: PN.GREEN, fontWeight:600}}>● {onlineCount} online ora</span></>
             }
           </div>

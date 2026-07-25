@@ -14,7 +14,7 @@ function ContIva({ month, setMonth }) {
       <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 20}}>
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom: 14, flexWrap:'wrap', gap: 12}}>
           <div>
-            <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Movimenti IVA — 2026</div>
+            <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Movimenti IVA · 2026</div>
             <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>
               {selected
                 ? <><strong style={{color: PN.TEXT}}>{selected.m} 2026</strong> · saldo <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {(selected.deb-selected.cred).toFixed(2)}</strong> · <button onClick={() => setMonth(null)} style={{background:'none', border:'none', color: PN.PINK, cursor:'pointer', fontWeight:600, padding:0, fontFamily:'inherit', fontSize: C.T_SM}}>Rimuovi filtro</button></>

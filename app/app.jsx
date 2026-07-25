@@ -2286,7 +2286,7 @@ function PaymentCard({ onClick }) {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: BK.TYPE.display, fontSize: 15.5, fontWeight: 600, lineHeight: 1.2 }}>La tua carta si sente sola.</div>
-            <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 3 }}>Apple Pay · Google Pay · Carte — 30 secondi e paghi in un tap.</div>
+            <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 3 }}>Apple Pay · Google Pay · Carte. 30 secondi e paghi in un tap.</div>
           </div>
           <div style={{
             background: '#ceff00', color: '#141414', flexShrink: 0,
@@ -4006,7 +4006,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
                 <i style={{ display: 'block', height: '100%', width: '24%', borderRadius: 999, background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)` }}/>
               </span>
               <span style={{ display: 'block', fontSize: 11.5, color: 'rgba(246,236,233,.7)', marginTop: 8, fontWeight: 600, maxWidth: '60%' }}>
-                Sbloccala a <b style={{ color: BYP.lime }}>LIV.5 · 5.000 byuppini</b> — sei al 24%</span>
+                Sbloccala a <b style={{ color: BYP.lime }}>LIV.5 · 5.000 byuppini</b>. Sei al 24%</span>
               <span style={{ position: 'absolute', right: -14, top: '50%', width: 196, zIndex: 1,
                 filter: 'drop-shadow(0 22px 30px rgba(0,0,0,.6))', animation: 'bypCardFloat 5.5s ease-in-out infinite' }}>
                 <img src="assets/reward-byupcard.png" alt="byup card" style={{ display: 'block', width: '100%' }}/>
@@ -5101,7 +5101,7 @@ function ShortcutsPanel() {
     { id: 'login',      label: 'Login',                 href: 'byup Home.html?auth=login' },
     { id: 'register',   label: 'Registrazione',         href: 'byup Home.html?auth=register' },
     { id: 'home',       label: 'Home',                  href: 'byup Home.html' },
-    { id: 'home-empty', label: 'Home — nessun locale',  href: 'byup Home.html?page=home-empty' },
+    { id: 'home-empty', label: 'Home · nessun locale',  href: 'byup Home.html?page=home-empty' },
     { id: 'map',        label: 'Mappa',                 href: 'byup Home.html?page=map' },
     { id: 'byuppini',   label: 'Byuppini',              href: 'byup Home.html?page=byuppini' },
     { id: 'roadmap',    label: 'Roadmap livelli',       href: 'byup Home.html?page=roadmap' },

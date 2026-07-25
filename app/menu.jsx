@@ -2925,7 +2925,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 700 }}>{ospitiCount === 1 ? '1 Ospite' : `${ospitiCount} Ospiti`}</div>
-                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>senza app — ordinano dal cameriere</div>
+                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>senza app · ordinano dal cameriere</div>
               </div>
               {onRemoveGuest && (order.guests || []).some(g => g.isGuest) && (
                 <button onClick={() => { const last = [...(order.guests || [])].reverse().find(g => g.isGuest); last && onRemoveGuest(last.id); }}
@@ -2961,7 +2961,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
                   {g.name}{g.isMe && <span style={{ fontSize: 11, color: PINK, marginLeft: 6, fontWeight: 600 }}>(tu)</span>}
                 </div>
                 <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>
-                  {g.isApp ? "✓ ha l'app" : (g.isWebApp ? '✓ da webapp' : 'ospite — non loggato')}
+                  {g.isApp ? "✓ ha l'app" : (g.isWebApp ? '✓ da webapp' : 'ospite · non loggato')}
                 </div>
               </div>
               {g.isApp && (
@@ -5058,7 +5058,7 @@ function BalanceScreen({ state, setState, goTo }) {
             </div>
           )}
           {mode === 'table' && (
-            <div style={{ fontSize: 11.5, color: MUTED }}>Diviso per {tableCount} commensali — paghi la tua quota.</div>
+            <div style={{ fontSize: 11.5, color: MUTED }}>Diviso per {tableCount} commensali. Paghi la tua quota.</div>
           )}
           <button onClick={pay} style={{
             width: '100%', height: 52, borderRadius: 999, border: 'none',
