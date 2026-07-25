@@ -9,7 +9,9 @@ function WMetric({ label, value, sub, trend, trendColor, big }) {
   // Il valore numerico non va MAI spezzato → whiteSpace nowrap.
   return (
     <div style={{minWidth: 0}}>
-      <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
+      {label && (
+        <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
+      )}
       <div style={{display:'flex', alignItems:'baseline', gap: 12, marginBottom: 4, flexWrap:'wrap', minWidth: 0}}>
         <div style={{fontSize: big ? 58 : 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.4, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
         {trend && (
@@ -147,7 +149,7 @@ function WidgetIncassi({ size }) {
     oggi: {
       total: '€ 1.247',
       trend: '+18%',
-      sub: 'vs media giovedì',
+      sub: 'vs media giornaliera',
       // 16 punti — picco pranzo (12-14h), calo pomeriggio, esplosione cena (19-22h)
       spark: [12, 28, 45, 78, 92, 64, 38, 22, 18, 35, 88, 142, 178, 165, 198, 152],
       labels: ['12:00', '17:00', '21:00'],
@@ -182,7 +184,7 @@ function WidgetIncassi({ size }) {
         <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
         <div style={{display: 'flex', flex: 1, minHeight: 0, gap: 18}}>
           <div style={{flex: '0 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-            <WMetric label={`Incassi ${period}`} value={d.total} trend={d.trend} sub={d.sub} big/>
+            <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
           </div>
           <div style={{flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
             <div style={{flex: '1 1 auto', minHeight: 0}}>
@@ -200,7 +202,7 @@ function WidgetIncassi({ size }) {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}>
       <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
-      <WMetric label={`Incassi ${period}`} value={d.total} trend={d.trend} sub={d.sub} big/>
+      <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
       <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
         <div style={{flex: '1 1 auto', minHeight: 0}}>
           <WSparkline data={d.spark} color={PN.PINK} animated/>
@@ -1261,7 +1263,7 @@ function WidgetFinancials({ size }) {
 
   const data = {
     oggi: {
-      total: '€ 1.247', trend: '+18%', sub: 'vs media giovedì',
+      total: '€ 1.247', trend: '+18%', sub: 'vs media giornaliera',
       spark: [12, 28, 45, 78, 92, 64, 38, 22, 18, 35, 88, 142, 178, 165, 198, 152],
       scontrino: '€ 29,70', sDelta: '+€ 0,80',
       coperti: '42', cDelta: '+5%',
@@ -1323,16 +1325,14 @@ function WidgetFinancials({ size }) {
           position: 'relative', zIndex: 1, minWidth: 0,
         }}>
           <div key={period + '-l'} style={{minWidth: 0, animation: 'fin-fade-in 320ms ease-out'}}>
-            <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-              Incassi {period}
-            </div>
             <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
               <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>
                 {d.total}
               </span>
               <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
-              <span style={{fontSize: 13, color: PN.MUTED, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</span>
             </div>
+            {/* Il confronto su riga propria: mai troncato dalle mini-card */}
+            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</div>
           </div>
           <div key={period + '-r'} style={{display: 'flex', gap: 10, flexShrink: 0, animation: 'fin-fade-in 320ms ease-out 60ms both'}}>
             <FinMiniCard label="Scontrino" value={d.scontrino} delta={d.sDelta}/>
@@ -1357,9 +1357,6 @@ function WidgetFinancials({ size }) {
         animation: 'fin-fade-in 320ms ease-out',
         minWidth: 0,
       }}>
-        <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-          Incassi {period}
-        </div>
         <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
           <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>
             {d.total}
