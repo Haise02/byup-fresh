@@ -44,7 +44,9 @@ function ConfigCompletaApp() {
       {/* ─── Colonna sinistra: contenuto che scrolla + barra azioni fissa ── */}
       <div style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column'}}>
       <main className="pn-scroll" style={{flex:1, minHeight: 0, overflow:'auto'}}>
-        <div style={{maxWidth: 880, margin: '0 auto', padding: '26px 32px 24px'}}>
+        {/* Fluido: niente max-width — il contenuto usa tutta la finestra
+            (la scala di font e componenti la dà lo zoom-fit del canvas). */}
+        <div style={{padding: '24px 28px 20px'}}>
 
           {/* ─── Header ─────────────────────────────────────────────── */}
           <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 24, marginBottom: 22}}>
@@ -99,6 +101,32 @@ function ConfigCompletaApp() {
               <div style={{flex: 2}}/>
             </div>
           </div>
+
+          {/* Completamento — chips orizzontali sopra il form (il blocco che
+              prima stava sotto il telefono vive qui, a sinistra). */}
+          {step === 'vetrina' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+              background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+              borderRadius: 14, padding: '12px 16px', marginBottom: 20,
+              boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
+            }}>
+              <span style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginRight: 4}}>
+                Completamento
+              </span>
+              {completion.map((c, i) => (
+                <span key={i} title={c.sub} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  fontSize: 13, fontWeight: 600,
+                  padding: '4px 11px', borderRadius: 999,
+                  background: c.done ? PN.PINK_BG_SOFT : '#F4F5F7',
+                  color: c.done ? PN.PINK_DARK : PN.MUTED,
+                }}>
+                  {c.done ? '✓' : '○'} {c.label}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* ─── Step 1 · Vetrina: form card (l'anteprima vive nella rail
                  fissa a destra, fuori dallo scroll) ─────────────────────── */}
@@ -188,11 +216,11 @@ function ConfigCompletaApp() {
       </div>
       </div>
 
-      {/* ─── Rail destra FISSA: l'anteprima non scrolla mai col resto ──── */}
+      {/* ─── Rail destra FISSA: solo il telefono, grande — non scrolla ──── */}
       {step === 'vetrina' && (
         <aside style={{
-          width: 316, flexShrink: 0,
-          padding: '20px 20px 20px 0',
+          width: 396, flexShrink: 0,
+          padding: '18px 18px 18px 0',
           display: 'flex', flexDirection: 'column', minHeight: 0,
         }}>
           <div style={{
@@ -201,47 +229,16 @@ function ConfigCompletaApp() {
             flex: 1, minHeight: 0,
             display: 'flex', flexDirection: 'column',
           }}>
-            <div style={{marginBottom: 10, flexShrink: 0}}>
+            <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexShrink: 0}}>
               <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Anteprima vetrina</div>
-              <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1}}>Cosa vedranno i clienti</div>
+              <div style={{fontSize: 13, color: PN.MUTED}}>Cosa vedranno i clienti</div>
             </div>
             <PublishButton dirty={dirty} onPublish={() => setDirty(false)}/>
 
-            {/* Telefono: larghezza calibrata perché tutto (header + publish +
-                phone + checklist) stia nei 900px del canvas senza scroll. */}
-            <div style={{width: 228, margin: '0 auto', flexShrink: 0}}>
+            {/* Telefono grande: riempie la rail — larghezza calibrata perché
+                header + publish + phone chiudano nei 900px del canvas. */}
+            <div style={{width: 340, margin: '0 auto', flexShrink: 0}}>
               <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}/>
-            </div>
-
-            {/* Checklist compatta: una riga per voce, dettaglio nel title */}
-            <div style={{
-              marginTop: 12, background: PN.WHITE,
-              border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
-              padding: '2px 12px', flexShrink: 0,
-            }}>
-              {completion.map((c, i) => (
-                <div key={i} title={c.sub} style={{
-                  display:'flex', alignItems:'center', gap: 10,
-                  padding: '6.5px 0',
-                  borderBottom: i < completion.length - 1 ? `1px solid ${PN.BORDER_HAIR}` : 'none',
-                }}>
-                  <div style={{flex:1, minWidth: 0, fontSize: 13, fontWeight: 600, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                    {c.label}
-                  </div>
-                  <div style={{
-                    width: 17, height: 17, borderRadius: '50%', flexShrink: 0,
-                    background: c.done ? PN.PINK : 'transparent',
-                    border: c.done ? 'none' : `1.5px solid ${PN.BORDER}`,
-                    display:'grid', placeItems:'center',
-                  }}>
-                    {c.done && (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </aside>

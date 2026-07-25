@@ -271,25 +271,29 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
       </CollapsibleCard>
 
       <CollapsibleCard title="Sedi" sub="Aggiungi sedi secondarie del tuo locale"
-        action={<ImpButton variant="primary" icon={<PnI.Plus size={13}/>}>Aggiungi sede</ImpButton>}>
+        action={<AnimatedAddButton>Aggiungi sede</AnimatedAddButton>}>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
           {[
-            {name:'Sede principale', addr:'Via Roma 13, Roma', status:'Attiva', sc:PN.GREEN, bg:PN.GREEN_SOFT, c:'#7B3F2A'},
-            {name:'Sede Parioli', addr:'Viale Parioli 23, Roma', status:'In verifica', sc:PN.AMBER, bg:PN.AMBER_SOFT, c:'#D2691E'},
+            {name:'Sede principale', addr:'Via Roma 13, Roma', status:'Attiva', sc:PN.GREEN, bg:PN.GREEN_SOFT,
+             photo:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=640&q=70&auto=format&fit=crop'},
+            {name:'Sede Parioli', addr:'Viale Parioli 23, Roma', status:'In verifica', sc:PN.AMBER, bg:PN.AMBER_SOFT,
+             photo:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=640&q=70&auto=format&fit=crop'},
           ].map((s,i) => (
             <div key={i} style={{
               border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow:'hidden',
               background: PN.WHITE,
             }}>
-              <div style={{
-                height: 70, background: `linear-gradient(135deg, ${s.c}, #B8743A)`,
-                position:'relative',
-              }}>
+              {/* Foto placeholder della sede, con lo stato in overlay */}
+              <div style={{height: 96, position:'relative', background:'#EDEAE4'}}>
+                <img src={s.photo} alt="" loading="lazy"
+                  style={{width:'100%', height:'100%', objectFit:'cover', display:'block'}}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
                 <span style={{
                   position:'absolute', top: 8, right: 8,
                   fontSize: 12.5, fontWeight: 700,
                   padding:'3px 9px', borderRadius: 999,
                   background: s.bg, color: s.sc,
+                  boxShadow: '0 1px 4px rgba(15,17,21,0.15)',
                 }}>● {s.status}</span>
               </div>
               <div style={{padding: '12px 14px'}}>
@@ -328,19 +332,55 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
   );
 }
 
-// ─── Vetrina-profilo: dati e tessere ────────────────────────────────────────
+// ─── Vetrina-profilo: icone, dati e tessere ─────────────────────────────────
+
+// Icone stroke coerenti (niente emoji): disegnate sul viewBox 24, ereditano
+// il colore dal chip che le ospita.
+const VIcon = {
+  shield:    (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 2.8v5.4c0 4.3-2.9 7.3-7 8.8-4.1-1.5-7-4.5-7-8.8V5.8L12 3z"/><path d="M9.5 12l1.8 1.8 3.4-3.6"/></svg>,
+  car:       (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16v-3.2L6 8.2A1.8 1.8 0 0 1 7.7 7h8.6A1.8 1.8 0 0 1 18 8.2l1.5 4.6V16"/><path d="M4.5 12.8h15"/><circle cx="8" cy="16.2" r="1.5"/><circle cx="16" cy="16.2" r="1.5"/></svg>,
+  wifi:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 9.6a12.4 12.4 0 0 1 16 0"/><path d="M7 13a8.2 8.2 0 0 1 10 0"/><path d="M10 16.3a4.2 4.2 0 0 1 4 0"/><circle cx="12" cy="19" r="1.1" fill="currentColor" stroke="none"/></svg>,
+  paw:       (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="6.4" cy="10" r="1.7"/><circle cx="10" cy="6.8" r="1.7"/><circle cx="14" cy="6.8" r="1.7"/><circle cx="17.6" cy="10" r="1.7"/><path d="M12 11c2.9 0 5.3 2.1 5.3 4.4 0 1.6-1.3 2.6-2.8 2.6-.9 0-1.7-.5-2.5-.5s-1.6.5-2.5.5c-1.5 0-2.8-1-2.8-2.6C6.7 13.1 9.1 11 12 11z"/></svg>,
+  wheelchair:(s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="4.6" r="1.7"/><path d="M12 7.5v4.5h4.4l2.1 5"/><path d="M15.5 17.6a4.6 4.6 0 1 1-5.6-6.4"/></svg>,
+  braille:   (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 5.5H9a2.5 2.5 0 0 1 2.5 2.5v10.5A2.5 2.5 0 0 0 9 16H3.5z"/><path d="M20.5 5.5H15a2.5 2.5 0 0 0-2.5 2.5v10.5A2.5 2.5 0 0 1 15 16h5.5z"/></svg>,
+  bell:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 17a7.5 7.5 0 0 1 15 0z"/><path d="M12 9.5V7.5"/><path d="M10.5 7.5h3"/><path d="M3 20h18"/></svg>,
+  forkKnife: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 3v5.5a2 2 0 0 0 4 0V3"/><path d="M8.5 3v18"/><path d="M17.5 3c-1.6 2-2.3 4.2-2.3 6.5 0 2 .9 3 2.3 3V21"/></svg>,
+  pizza:     (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4.5c4.5-2 9.5-2 14 0L12 21z"/><path d="M5.8 8.5c4-1.7 8.4-1.7 12.4 0"/><circle cx="10.5" cy="11" r=".9" fill="currentColor" stroke="none"/><circle cx="14" cy="13.5" r=".9" fill="currentColor" stroke="none"/></svg>,
+  fish:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5.5 12S8.5 7 14 7s7.5 5 7.5 5-2.5 5-7.5 5-8.5-5-8.5-5z"/><path d="M5.5 12L2.5 9v6z"/><circle cx="16.5" cy="10.8" r=".9" fill="currentColor" stroke="none"/></svg>,
+  steak:     (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3.5c1.2 2.8-2.2 3.9-2.2 6.6a4.2 4.2 0 0 0 8.4.4c0-3.4-4-4.5-6.2-7z"/><path d="M6.5 14.5a5.5 5.5 0 1 0 11 .2"/></svg>,
+  globe:     (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.6 2.3 3.9 5.2 3.9 8.5s-1.3 6.2-3.9 8.5c-2.6-2.3-3.9-5.2-3.9-8.5s1.3-6.2 3.9-8.5z"/></svg>,
+  coffee:    (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8.5h12V14a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 9.5h2.2a2.4 2.4 0 0 1 0 4.8H16"/><path d="M7.5 4.5v1.8M10.5 3.5v2.8M13.5 4.5v1.8"/></svg>,
+  cheers:    (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3.5h4l-.8 7a1.6 1.6 0 0 1-3.2 0z"/><path d="M9 12.5V20"/><path d="M6.5 20.5h5"/><path d="M14.5 5.5l4.5 1-2 6.2a1.6 1.6 0 0 1-3-.9z"/><path d="M15.5 13.5l-1 6.5"/></svg>,
+  wine:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 3.5h9c0 4.8-1.9 7.7-4.5 7.7S7.5 8.3 7.5 3.5z"/><path d="M12 11.2V20"/><path d="M8.5 20.5h7"/><path d="M8 7h8"/></svg>,
+  doc:       (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 3h7.5l3.5 3.5V21h-11z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15.5h6"/></svg>,
+  alert:     (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3.5L21.5 20h-19z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>,
+};
+
+// Chip-icona: quadratino arrotondato tinta + icona che ne eredita il colore.
+function VIconChip({ name, on, size = 38 }) {
+  const I = VIcon[name] || VIcon.doc;
+  return (
+    <span style={{
+      width: size, height: size, borderRadius: Math.round(size * 0.28),
+      background: on ? 'rgba(255, 90, 95, 0.14)' : '#F1F2F5',
+      color: on ? PN.PINK_DARK : PN.TEXT,
+      display: 'inline-grid', placeItems: 'center', flexShrink: 0,
+      transition: 'background 150ms ease, color 150ms ease',
+    }}>{I(Math.round(size * 0.55))}</span>
+  );
+}
 
 const SERVICE_TILES = {
   servizi: [
-    { label: 'Parcheggio custodito', icon: '🅿️', desc: 'Posto auto sorvegliato per i clienti' },
-    { label: 'Parcheggio riservato', icon: '🚗', desc: 'Posti dedicati davanti al locale' },
-    { label: 'WiFi gratuito',        icon: '📶', desc: 'Rete libera per gli ospiti' },
-    { label: 'Animali ammessi',      icon: '🐾', desc: 'Amici a quattro zampe benvenuti' },
+    { label: 'Parcheggio custodito', icon: 'shield', desc: 'Posto auto sorvegliato per i clienti' },
+    { label: 'Parcheggio riservato', icon: 'car',    desc: 'Posti dedicati davanti al locale' },
+    { label: 'WiFi gratuito',        icon: 'wifi',   desc: 'Rete libera per gli ospiti' },
+    { label: 'Animali ammessi',      icon: 'paw',    desc: 'Amici a quattro zampe benvenuti' },
   ],
   accessibilita: [
-    { label: 'Rampa per disabili',   icon: '♿', desc: 'Ingresso senza barriere' },
-    { label: 'Menù per non vedenti', icon: '📖', desc: 'Disponibile anche in Braille' },
-    { label: 'Servizio al tavolo',   icon: '🛎️', desc: 'Il personale serve al tavolo' },
+    { label: 'Rampa per disabili',   icon: 'wheelchair', desc: 'Ingresso senza barriere' },
+    { label: 'Menù per non vedenti', icon: 'braille',    desc: 'Disponibile anche in Braille' },
+    { label: 'Servizio al tavolo',   icon: 'bell',       desc: 'Il personale serve al tavolo' },
   ],
 };
 
@@ -370,7 +410,7 @@ function ServiceTile({ label, icon, desc, on, onToggle }) {
           </svg>
         </span>
       )}
-      <div style={{fontSize: 26, lineHeight: 1, marginBottom: 8}}>{icon}</div>
+      <div style={{marginBottom: 9}}><VIconChip name={icon} on={on}/></div>
       <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{label}</div>
       <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{desc}</div>
     </button>
@@ -378,14 +418,14 @@ function ServiceTile({ label, icon, desc, on, onToggle }) {
 }
 
 const VETRINA_CATS = [
-  { name: 'Ristorante',     icon: '🍝', desc: 'Cucina completa con servizio al tavolo, pranzo e cena' },
-  { name: 'Pizzeria',       icon: '🍕', desc: 'La pizza al centro del menù, al tavolo o d\'asporto' },
-  { name: 'Giapponese',     icon: '🍣', desc: 'Sushi, ramen e cucina nipponica' },
-  { name: 'Carne & Griglia',icon: '🥩', desc: 'Braceria: tagli, grigliate e affumicati' },
-  { name: 'Cucina etnica',  icon: '🌶️', desc: 'Sapori dal mondo: indiano, messicano, mediorientale' },
-  { name: 'Bar',            icon: '☕', desc: 'Caffetteria, colazioni e aperitivi veloci' },
-  { name: 'Bistrot',        icon: '🥂', desc: 'Informale e curato: piatti semplici e buoni vini' },
-  { name: 'Enoteca',        icon: '🍷', desc: 'Vini al calice con taglieri e degustazioni' },
+  { name: 'Ristorante',     icon: 'forkKnife', desc: 'Cucina completa con servizio al tavolo, pranzo e cena' },
+  { name: 'Pizzeria',       icon: 'pizza',     desc: 'La pizza al centro del menù, al tavolo o d\'asporto' },
+  { name: 'Giapponese',     icon: 'fish',      desc: 'Sushi, ramen e cucina nipponica' },
+  { name: 'Carne & Griglia',icon: 'steak',     desc: 'Braceria: tagli, grigliate e affumicati' },
+  { name: 'Cucina etnica',  icon: 'globe',     desc: 'Sapori dal mondo: indiano, messicano, mediorientale' },
+  { name: 'Bar',            icon: 'coffee',    desc: 'Caffetteria, colazioni e aperitivi veloci' },
+  { name: 'Bistrot',        icon: 'cheers',    desc: 'Informale e curato: piatti semplici e buoni vini' },
+  { name: 'Enoteca',        icon: 'wine',      desc: 'Vini al calice con taglieri e degustazioni' },
 ];
 
 function CatTile({ cat, active, onPick }) {
@@ -394,14 +434,14 @@ function CatTile({ cat, active, onPick }) {
     <button onClick={onPick}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        minHeight: 118, padding: '14px 12px', borderRadius: 12, textAlign: 'center',
+        minHeight: 122, padding: '14px 12px', borderRadius: 12, textAlign: 'center',
         border: `2px solid ${active ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
         background: active ? PN.PINK_SOFT : PN.WHITE,
         cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
         transition: 'border-color 150ms ease, background 150ms ease',
       }}>
-      <div style={{fontSize: 26, lineHeight: 1, marginBottom: 8}}>{cat.icon}</div>
+      <div style={{marginBottom: 8}}><VIconChip name={cat.icon} on={active}/></div>
       <div style={{
         fontSize: 14.5, fontWeight: active ? 700 : 600,
         color: active ? PN.PINK_DARK : PN.TEXT,
@@ -411,6 +451,37 @@ function CatTile({ cat, active, onPick }) {
         fontSize: 12, color: PN.MUTED, lineHeight: 1.35, marginTop: 5,
         opacity: hover ? 1 : 0, transition: 'opacity 180ms ease',
       }}>{cat.desc}</div>
+    </button>
+  );
+}
+
+// Bottone "Aggiungi sede" — animato: lift con molla in hover e "+" che ruota.
+function AnimatedAddButton({ children, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        padding: '9px 16px', borderRadius: 10,
+        border: '1px solid rgba(180, 30, 35, 0.40)',
+        background: hover
+          ? 'linear-gradient(180deg, #FF6E73 0%, #F04A4F 100%)'
+          : 'linear-gradient(180deg, #FF6A6F 0%, #FF5A5F 100%)',
+        color: '#fff', fontSize: 14.5, fontWeight: 600, fontFamily: 'inherit',
+        cursor: 'pointer',
+        transform: hover ? 'translateY(-2px) scale(1.04)' : 'none',
+        boxShadow: hover
+          ? '0 10px 22px -6px rgba(255, 90, 95, 0.55), inset 0 1px 0 rgba(255,255,255,0.35)'
+          : '0 1px 2px rgba(255, 90, 95, 0.18), inset 0 1px 0 rgba(255,255,255,0.35)',
+        transition: 'transform 220ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 220ms ease, background 150ms ease',
+      }}>
+      <span style={{
+        display: 'inline-flex',
+        transform: hover ? 'rotate(90deg)' : 'none',
+        transition: 'transform 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}><PnI.Plus size={13}/></span>
+      {children}
     </button>
   );
 }
@@ -472,8 +543,12 @@ function CertCard({ cert, onOpenRejected }) {
   );
 }
 
+const CERT_TYPES = ['Senza glutine', 'Biologico', 'Vegano', 'Halal', 'Kosher'];
+
 function CertUploadModal({ ctx, onClose }) {
   const rejected = ctx.mode === 'rifiutata';
+  // Per cosa è la certificazione: dal rifiuto arriva già selezionata.
+  const [tipo, setTipo] = React.useState(rejected ? ctx.name : null);
   return (
     <div onClick={onClose} style={{
       position: 'absolute', inset: 0, zIndex: 80,
@@ -482,7 +557,7 @@ function CertUploadModal({ ctx, onClose }) {
       animation: 'cert-overlay-in 180ms ease-out',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: 460, maxWidth: 'calc(100% - 48px)',
+        width: 480, maxWidth: 'calc(100% - 48px)',
         background: PN.WHITE, borderRadius: 16,
         boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
         padding: '20px 22px',
@@ -510,7 +585,7 @@ function CertUploadModal({ ctx, onClose }) {
             padding: '11px 13px', borderRadius: 10, marginBottom: 14,
             background: PN.RED_SOFT, border: `1px solid ${PN.RED}44`,
           }}>
-            <span style={{fontSize: 15, lineHeight: 1.2}}>⚠️</span>
+            <span style={{color: PN.RED, flexShrink: 0, marginTop: 1}}>{VIcon.alert(16)}</span>
             <div>
               <div style={{fontSize: 13.5, fontWeight: 700, color: PN.RED}}>Motivo del rifiuto</div>
               <div style={{fontSize: 13.5, color: PN.TEXT, marginTop: 2, lineHeight: 1.45}}>{ctx.reason}</div>
@@ -518,18 +593,42 @@ function CertUploadModal({ ctx, onClose }) {
           </div>
         )}
 
+        {/* Per cosa è la certificazione */}
+        <div style={{marginBottom: 14}}>
+          <div style={{fontSize: 13.5, fontWeight: 600, color: PN.TEXT, marginBottom: 8}}>
+            Per cosa è la certificazione?
+          </div>
+          <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
+            {CERT_TYPES.map(t => {
+              const on = tipo === t;
+              return (
+                <button key={t} onClick={() => setTipo(t)} style={{
+                  padding: '6px 12px', borderRadius: 999,
+                  border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                  background: on ? PN.PINK : PN.WHITE,
+                  color: on ? '#fff' : PN.TEXT,
+                  fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
+                }}>{t}</button>
+              );
+            })}
+          </div>
+        </div>
+
         <div style={{
-          padding: '26px 16px', border: `2px dashed ${PN.BORDER}`, borderRadius: 12,
+          padding: '24px 16px', border: `2px dashed ${PN.BORDER}`, borderRadius: 12,
           textAlign: 'center', background: '#FAFBFC', marginBottom: 14, cursor: 'pointer',
         }}>
-          <div style={{fontSize: 22, marginBottom: 6}}>📄</div>
+          <div style={{color: PN.MUTED, marginBottom: 6, display: 'flex', justifyContent: 'center'}}>{VIcon.doc(24)}</div>
           <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>Trascina qui il certificato</div>
           <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>oppure clicca per sfogliare</div>
         </div>
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
           <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-          <ImpButton variant="primary" onClick={onClose}>{rejected ? 'Invia di nuovo' : 'Carica'}</ImpButton>
+          <ImpButton variant="primary" onClick={onClose} disabled={!tipo}>
+            {rejected ? 'Invia di nuovo' : 'Carica'}
+          </ImpButton>
         </div>
       </div>
       <style>{`
