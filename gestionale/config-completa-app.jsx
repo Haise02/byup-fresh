@@ -8,19 +8,20 @@
 // VetrinaAspetto / VetrinaPubblico, ImpPersonale, anteprima + pubblica.
 
 function ConfigCompletaApp() {
-  const [step, setStep] = React.useState('vetrina'); // 'vetrina' | 'personale'
+  // Tre step: Informazioni (profilo vetrina) → Aspetto (foto, social e FAQ)
+  // → Personale.
+  const [step, setStep] = React.useState('informazioni');
 
   // Stato vetrina — lo stesso di ImpVetrina nelle Impostazioni.
-  const [sub, setSub] = React.useState('profilo');
   const [dirty, setDirty] = React.useState(false);
   const [tags, setTags] = React.useState(['Elegante','Tradizionale']);
   const [social, setSocial] = React.useState(['ig']);
   const [categoria, setCategoria] = React.useState('Ristorante');
   const markDirty = () => setDirty(true);
 
-  // Sub-tab con contatore campi completati (stesso mock del completamento).
+  // Tab interne allo step Aspetto, con contatore campi completati.
+  const [sub, setSub] = React.useState('aspetto');
   const SUBS = [
-    { id: 'profilo',  label: 'Profilo',      done: 3, tot: 3 },
     { id: 'aspetto',  label: 'Aspetto',      done: 1, tot: 2 },
     { id: 'pubblico', label: 'Social e FAQ', done: 0, tot: 2 },
   ];
@@ -107,17 +108,22 @@ function ConfigCompletaApp() {
           }}>
             <div style={{height: 3, background: '#F1F2F5'}}>
               <div style={{
-                height: '100%', width: step === 'vetrina' ? '50%' : '100%',
+                height: '100%',
+                width: step === 'informazioni' ? '33%' : step === 'aspetto' ? '66%' : '100%',
                 background: `linear-gradient(90deg, ${PN.PINK}, #FF7A7E)`,
                 transition: 'width 320ms ease',
               }}/>
             </div>
             <div style={{display:'flex', alignItems:'center', padding: '14px 20px', gap: 12}}>
-              <CfgStep num="1" label="Vetrina pubblica" sub="Foto, descrizione, atmosfera"
-                active={step === 'vetrina'} done={step !== 'vetrina'}
-                onClick={() => setStep('vetrina')}/>
+              <CfgStep num="1" label="Informazioni" sub="Chi sei e che atmosfera offri"
+                active={step === 'informazioni'} done={step !== 'informazioni'}
+                onClick={() => setStep('informazioni')}/>
               <div style={{flex: 1}}/>
-              <CfgStep num="2" label="Personale" sub="Invita il tuo staff"
+              <CfgStep num="2" label="Aspetto" sub="Foto, social e FAQ"
+                active={step === 'aspetto'} done={step === 'personale'}
+                onClick={() => setStep('aspetto')}/>
+              <div style={{flex: 1}}/>
+              <CfgStep num="3" label="Personale" sub="Invita il tuo staff"
                 active={step === 'personale'} done={false}
                 onClick={() => setStep('personale')}/>
               <div style={{flex: 2}}/>
@@ -126,7 +132,7 @@ function ConfigCompletaApp() {
 
           {/* Completamento — chips orizzontali sopra il form (il blocco che
               prima stava sotto il telefono vive qui, a sinistra). */}
-          {step === 'vetrina' && (
+          {step !== 'personale' && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
               background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
@@ -162,9 +168,8 @@ function ConfigCompletaApp() {
       <main className="pn-scroll" style={{flex:1, minHeight: 0, overflow:'auto'}}>
         <div style={{padding: '2px 28px 20px'}}>
 
-          {/* ─── Step 1 · Vetrina: form card (l'anteprima vive nella rail
-                 fissa a destra, fuori dallo scroll) ─────────────────────── */}
-          {step === 'vetrina' && (
+          {/* ─── Step 1 · Informazioni: profilo della vetrina ─────────── */}
+          {step === 'informazioni' && (
               <section style={{
                 background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
                 borderRadius: 14, padding: '20px 22px',
@@ -172,10 +177,39 @@ function ConfigCompletaApp() {
                 minWidth: 0,
               }}>
                 <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em'}}>
-                  Vetrina pubblica
+                  Informazioni
                 </div>
                 <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, marginBottom: 16}}>
                   Compila solo ciò che serve per far capire ai clienti chi sei e che atmosfera offre il locale.
+                </div>
+
+                <VetrinaProfilo
+                  tags={tags} setTags={t => {setTags(t); markDirty();}}
+                  categoria={categoria} setCategoria={c => {setCategoria(c); markDirty();}}
+                  onChange={markDirty}/>
+
+                <div style={{
+                  display:'flex', alignItems:'center', gap: 8, marginTop: 14,
+                  fontSize: 13, color: PN.MUTED,
+                }}>
+                  <PnI.Eye size={13}/> Potrai modificare tutto in seguito dalle Impostazioni.
+                </div>
+              </section>
+          )}
+
+          {/* ─── Step 2 · Aspetto: foto + social e FAQ ────────────────── */}
+          {step === 'aspetto' && (
+              <section style={{
+                background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+                borderRadius: 14, padding: '20px 22px',
+                boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
+                minWidth: 0,
+              }}>
+                <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em'}}>
+                  Aspetto
+                </div>
+                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, marginBottom: 16}}>
+                  Il volto della vetrina: foto, stile, social e domande frequenti.
                 </div>
 
                 {/* Tab contate — stessa funzione delle sub-tab Impostazioni */}
@@ -204,10 +238,6 @@ function ConfigCompletaApp() {
                   })}
                 </div>
 
-                {sub === 'profilo' && <VetrinaProfilo
-                  tags={tags} setTags={t => {setTags(t); markDirty();}}
-                  categoria={categoria} setCategoria={c => {setCategoria(c); markDirty();}}
-                  onChange={markDirty}/>}
                 {sub === 'aspetto' && <VetrinaAspetto onChange={markDirty}/>}
                 {sub === 'pubblico' && <VetrinaPubblico social={social} setSocial={s => {setSocial(s); markDirty();}} onChange={markDirty}/>}
 
@@ -220,7 +250,7 @@ function ConfigCompletaApp() {
               </section>
           )}
 
-          {/* ─── Step 2 · Personale: card a tutta larghezza ──────────── */}
+          {/* ─── Step 3 · Personale: card a tutta larghezza ──────────── */}
           {step === 'personale' && (
             <section style={{
               background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
@@ -241,12 +271,16 @@ function ConfigCompletaApp() {
         background: PN.WHITE, borderTop: `1px solid ${PN.BORDER_SOFT}`,
         flexShrink: 0,
       }}>
-        {step === 'personale'
-          ? <ApBtn variant="neutral" onClick={() => setStep('vetrina')}>← Indietro</ApBtn>
-          : <ApBtn variant="neutral" onClick={() => { window.location.href = 'byup Restaurant Onboarding.html?step=4'; }}>← Torna alla configurazione base</ApBtn>}
-        {step === 'vetrina'
-          ? <ApBtn variant="brand" onClick={() => setStep('personale')}>Continua a Personale →</ApBtn>
-          : <ApBtn variant="brand" onClick={complete}>Completa e vai alla Panoramica →</ApBtn>}
+        {step === 'informazioni'
+          ? <ApBtn variant="neutral" onClick={() => { window.location.href = 'byup Restaurant Onboarding.html?step=4'; }}>← Torna alla configurazione base</ApBtn>
+          : step === 'aspetto'
+            ? <ApBtn variant="neutral" onClick={() => setStep('informazioni')}>← Indietro</ApBtn>
+            : <ApBtn variant="neutral" onClick={() => setStep('aspetto')}>← Indietro</ApBtn>}
+        {step === 'informazioni'
+          ? <ApBtn variant="brand" onClick={() => setStep('aspetto')}>Continua ad Aspetto →</ApBtn>
+          : step === 'aspetto'
+            ? <ApBtn variant="brand" onClick={() => setStep('personale')}>Continua a Personale →</ApBtn>
+            : <ApBtn variant="brand" onClick={complete}>Completa e vai alla Panoramica →</ApBtn>}
       </div>
 
       {/* Toast di conferma pubblicazione */}
@@ -295,7 +329,7 @@ function ConfigCompletaApp() {
       `}</style>
 
       {/* ─── Rail destra FISSA: solo il telefono, grande — non scrolla ──── */}
-      {step === 'vetrina' && (
+      {step !== 'personale' && (
         <aside style={{
           width: 396, flexShrink: 0,
           padding: '18px 18px 18px 0',
@@ -317,7 +351,7 @@ function ConfigCompletaApp() {
                 header + publish + phone chiudano nei 900px del canvas. */}
             <div style={{width: 340, margin: '0 auto', flexShrink: 0}}>
               <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
-                focusSection={sub === 'profilo' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>
+                focusSection={step === 'informazioni' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>
             </div>
           </div>
         </aside>

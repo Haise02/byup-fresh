@@ -499,37 +499,37 @@ function CatTile({ cat, active, onPick }) {
 function SedeCard({ sede, onRemove }) {
   const attesa = sede.status === 'attesa';
   return (
+    /* Foto a tutta altezza sulla sinistra: la card è un blocco fotografico,
+       non una lista con thumbnail francobollo. */
     <div style={{
       border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
-      background: PN.WHITE, padding: 10,
-      display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0,
+      background: PN.WHITE, overflow: 'hidden',
+      display: 'flex', minWidth: 0, minHeight: 96,
     }}>
-      <div style={{display: 'flex', gap: 9, alignItems: 'center', minWidth: 0}}>
-        <img src={sede.photo} alt="" loading="lazy"
-          style={{width: 42, height: 42, borderRadius: 9, objectFit: 'cover', flexShrink: 0, background: '#EDEAE4'}}
-          onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}/>
-        <div style={{minWidth: 0, flex: 1}}>
-          {/* Badge di stato a fianco del nome, sulla stessa riga */}
-          <div style={{display: 'flex', alignItems: 'center', gap: 6, minWidth: 0}}>
-            <span style={{fontSize: 14, fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.name}</span>
-            {attesa ? (
-              <span style={{display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: PN.MUTED, background: '#F4F5F7', padding: '2px 8px', borderRadius: 999, flexShrink: 0}}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-                In attesa
-              </span>
-            ) : (
-              <span style={{fontSize: 11, fontWeight: 700, color: PN.GREEN, background: PN.GREEN_SOFT, padding: '2px 8px', borderRadius: 999, flexShrink: 0}}>● Attiva</span>
-            )}
-          </div>
-          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.addr}</div>
+      <img src={sede.photo} alt="" loading="lazy"
+        style={{width: 64, alignSelf: 'stretch', objectFit: 'cover', flexShrink: 0, background: '#EDEAE4', display: 'block'}}
+        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}/>
+      <div style={{flex: 1, minWidth: 0, padding: '10px 11px', display: 'flex', flexDirection: 'column'}}>
+        {/* Badge di stato a fianco del nome, sulla stessa riga */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 6, minWidth: 0}}>
+          <span style={{fontSize: 13.5, fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.name}</span>
+          {attesa ? (
+            <span style={{display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, color: PN.MUTED, background: '#F4F5F7', padding: '1.5px 7px', borderRadius: 999, flexShrink: 0}}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+              In attesa
+            </span>
+          ) : (
+            <span style={{fontSize: 10.5, fontWeight: 700, color: PN.GREEN, background: PN.GREEN_SOFT, padding: '1.5px 7px', borderRadius: 999, flexShrink: 0}}>● Attiva</span>
+          )}
         </div>
-      </div>
-      <div style={{display: 'flex', justifyContent: 'flex-end'}}>
-        <button onClick={onRemove} style={{
-          background: 'transparent', border: 'none', padding: '3px 4px',
-          fontSize: 12.5, fontWeight: 600, color: PN.RED,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>{attesa ? 'Annulla' : 'Rimuovi'}</button>
+        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.addr}</div>
+        <div style={{marginTop: 'auto', display: 'flex', justifyContent: 'flex-end'}}>
+          <button onClick={onRemove} style={{
+            background: 'transparent', border: 'none', padding: '3px 4px',
+            fontSize: 12.5, fontWeight: 600, color: PN.RED,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>{attesa ? 'Annulla' : 'Rimuovi'}</button>
+        </div>
       </div>
     </div>
   );
@@ -543,7 +543,7 @@ function AddSedeTile({ onClick }) {
       style={{
         border: `2px dashed ${hover ? PN.PINK : PN.BORDER}`,
         borderRadius: 12, background: hover ? PN.PINK_SOFT : 'transparent',
-        cursor: 'pointer', fontFamily: 'inherit', minHeight: 92,
+        cursor: 'pointer', fontFamily: 'inherit', minHeight: 96,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
         color: hover ? PN.PINK_DARK : PN.MUTED,
         transform: hover ? 'translateY(-1px)' : 'none',
