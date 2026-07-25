@@ -219,10 +219,18 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       <div onClick={onClose} style={{
         position:'absolute', inset: 0, background:'rgba(15,17,21,0.55)', zIndex: 60,
       }}/>
+      {/* Dialog, non takeover: a 920×660 fissi con tetto al 94% il pannello
+          copriva ~3/4 dell'area contenuti a ogni risoluzione (la shell scala
+          tutto con uno zoom guidato dall'altezza, quindi la proporzione non
+          cambiava mai) e leggeva come una schermata piena — con in più un bel
+          vuoto sotto la lista articoli quando il conto è corto.
+          Altezza ora guidata dal contenuto e tetto all'88%: si accorcia sui
+          conti brevi, cresce e scrolla su quelli lunghi, e lascia sempre
+          respirare la pagina sotto. */}
       <div style={{
         position:'absolute', top:'50%', left:'50%',
         transform:'translate(-50%, -50%)',
-        width: 920, maxWidth:'94%', height: 660, maxHeight:'94%',
+        width: 880, maxWidth:'88%', height:'auto', maxHeight:'88%',
         background:'#fff', borderRadius: 16,
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
         zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',

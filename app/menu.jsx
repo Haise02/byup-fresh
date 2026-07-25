@@ -3966,6 +3966,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             })}
             {mode === 'mine' && extraItems.map(it => {
               const isTable = it.ownerId === 'table';
+              // Tutto ciò che arriva dal container "Altro" (piatti del cameriere
+              // e porzioni di chi non usa né app né webapp) si presenta come
+              // "altro": quel piatto non è attribuibile a una persona precisa,
+              // quindi "di Ospite 1" prometteva un'identità che non c'è.
+              const isAltro = isTable || offlineIds.includes(it.ownerId);
               const sp = isTable ? tableSplits[it.lineId] : null;
               const share = extraShareFor(it);
               return (
@@ -3974,7 +3979,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 14.5, color: TEXT }}>{it.name}</span>
                     <span style={{ background: TINT, color: WINE, padding: '2.5px 9px', borderRadius: 999,
-                      fontSize: 11, fontWeight: 700 }}>{isTable ? 'dal tavolo' : `di ${ownerLabel(it.ownerId)}`}</span>
+                      fontSize: 11, fontWeight: 700 }}>{isAltro ? 'altro' : `di ${ownerLabel(it.ownerId)}`}</span>
                     {isTable && (
                       <span onClick={() => openSplitDish(it)} style={{ color: WINE, fontSize: 11, fontWeight: 700,
                         cursor: 'pointer', textDecoration: 'underline' }}>
