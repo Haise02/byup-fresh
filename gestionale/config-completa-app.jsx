@@ -43,10 +43,9 @@ function ConfigCompletaApp() {
     <div style={{display:'flex', flex:1, minHeight:0, background: PN.BG}}>
       {/* ─── Colonna sinistra: contenuto che scrolla + barra azioni fissa ── */}
       <div style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column'}}>
-      <main className="pn-scroll" style={{flex:1, minHeight: 0, overflow:'auto'}}>
-        {/* Fluido: niente max-width — il contenuto usa tutta la finestra
-            (la scala di font e componenti la dà lo zoom-fit del canvas). */}
-        <div style={{padding: '24px 28px 20px'}}>
+      {/* Fascia alta LOCKATA: header, stepper e completamento restano fissi,
+          sotto scorre solo il form. Fluido: niente max-width. */}
+      <div style={{padding: '24px 28px 0', flexShrink: 0}}>
 
           {/* ─── Header ─────────────────────────────────────────────── */}
           <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 24, marginBottom: 22}}>
@@ -127,6 +126,10 @@ function ConfigCompletaApp() {
               ))}
             </div>
           )}
+      </div>
+
+      <main className="pn-scroll" style={{flex:1, minHeight: 0, overflow:'auto'}}>
+        <div style={{padding: '2px 28px 20px'}}>
 
           {/* ─── Step 1 · Vetrina: form card (l'anteprima vive nella rail
                  fissa a destra, fuori dallo scroll) ─────────────────────── */}

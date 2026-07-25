@@ -122,35 +122,41 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
   return (
     <div>
       <ImpCard title="Informazioni pratiche" sub="Dettagli utili che i clienti vedono sulla vetrina">
-        <ImpField label="Nome locale" hint="Come appare in vetrina, sui link e nelle ricevute">
-          <ImpInput placeholder="es. Trattoria del Borgo"/>
-        </ImpField>
-        <ImpField label="Sito web">
-          <ImpInput placeholder="es. nomeristorante.it"/>
-        </ImpField>
-        <ImpField label="Indirizzo su Google Maps" hint="Incolla il link Google Maps della tua attività">
-          <ImpInput placeholder="https://maps.app.goo.gl/..."/>
-        </ImpField>
-        <ImpField label="Descrizione" hint="Racconta storia, atmosfera e cosa rende unico il locale (consigliato 2–4 frasi)">
-          <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…"/>
-        </ImpField>
-
-        {/* Servizi e accessibilità: tessere grandi con icona e descrizione,
-            selezione con spunta — niente più liste di checkbox. */}
-        <div style={{paddingTop: 4}}>
-          <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Servizi disponibili</div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(178px, 1fr))', gap: 10, marginBottom: 16}}>
-            {SERVICE_TILES.servizi.map(s => (
-              <ServiceTile key={s.label} {...s} on={!!services[s.label]}
-                onToggle={() => {setServices(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
-            ))}
+        {/* Due colonne: campi a sinistra, servizi e accessibilità a destra —
+            la card resta compatta invece di allungarsi in verticale. */}
+        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 26, alignItems: 'start'}}>
+          <div style={{minWidth: 0}}>
+            <ImpField label="Nome locale" hint="Come appare in vetrina, sui link e nelle ricevute">
+              <ImpInput placeholder="es. Trattoria del Borgo"/>
+            </ImpField>
+            <ImpField label="Sito web">
+              <ImpInput placeholder="es. nomeristorante.it"/>
+            </ImpField>
+            <ImpField label="Indirizzo su Google Maps" hint="Incolla il link Google Maps della tua attività">
+              <ImpInput placeholder="https://maps.app.goo.gl/..."/>
+            </ImpField>
+            <ImpField label="Descrizione" hint="Racconta storia, atmosfera e cosa rende unico il locale (consigliato 2–4 frasi)">
+              <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…"/>
+            </ImpField>
           </div>
-          <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Accessibilità</div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(178px, 1fr))', gap: 10}}>
-            {SERVICE_TILES.accessibilita.map(s => (
-              <ServiceTile key={s.label} {...s} on={!!access[s.label]}
-                onToggle={() => {setAccess(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
-            ))}
+
+          {/* Servizi e accessibilità: tessere con icona e descrizione,
+              selezione con spunta — niente più liste di checkbox. */}
+          <div style={{minWidth: 0}}>
+            <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Servizi disponibili</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 14}}>
+              {SERVICE_TILES.servizi.map(s => (
+                <ServiceTile key={s.label} {...s} on={!!services[s.label]}
+                  onToggle={() => {setServices(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
+              ))}
+            </div>
+            <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Accessibilità</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 8}}>
+              {SERVICE_TILES.accessibilita.map(s => (
+                <ServiceTile key={s.label} {...s} on={!!access[s.label]}
+                  onToggle={() => {setAccess(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
+              ))}
+            </div>
           </div>
         </div>
       </ImpCard>

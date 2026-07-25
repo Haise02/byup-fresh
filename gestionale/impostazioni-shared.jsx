@@ -444,148 +444,162 @@ function ImpSaveBar({ dirty, onCancel, onSave }) {
 }
 
 // Mini phone preview rendering vetrina mock content — same design language as onboarding
+// Phone preview della vetrina — replica 1:1 di VenueOriginal (la vetrina
+// dell'app consumer, app/extras.jsx): hero con gallery e gradient, eyebrow
+// con la categoria, titolo Fredoka, logo a cavallo del bordo, badge stato,
+// indirizzo e orari, recensione media, promo e CTA sticky. Il contenuto è
+// renderizzato a 390px (larghezza di progetto dell'app) e scalato alla
+// larghezza reale del device.
 function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante' }) {
-  const WINE = '#B53338';
-  const TEXT = '#1a1a1a';
-  const MUTED = '#6b6b6b';
-  const BG_PAGE = '#fafafa';
+  const A = { PINK:'#E32459', TEXT:'#1c0f15', MUTED:'#6d5a61', BG:'#FBF4F1', TINT:'#f6f1ea', SURF:'#fff' };
+  const SHELL = 6;
+  const ref = React.useRef(null);
+  const [w, setW] = React.useState(340);
+  React.useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const m = () => el.offsetWidth && setW(el.offsetWidth);
+    m();
+    const ro = new ResizeObserver(m); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const k = (w - SHELL * 2) / 390;
+  const designH = Math.round((w * 19 / 9 - SHELL * 2) / k);
+  const HERO = 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=70&auto=format&fit=crop';
+  const rowIcon = (d) => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={A.MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+  );
   return (
-    <div style={{
-      width: '100%', aspectRatio:'9/19',
-      background:'#1a1a1a', borderRadius: 28, padding: 6,
-      boxShadow:'0 8px 24px rgba(0,0,0,0.18)',
+    <div ref={ref} style={{
+      width: '100%', aspectRatio: '9/19',
+      background: '#1a1a1a', borderRadius: 34, padding: SHELL,
+      boxShadow: '0 12px 32px rgba(0,0,0,0.22)',
     }}>
-      <div style={{
-        width:'100%', height:'100%', background: BG_PAGE, borderRadius: 22,
-        overflow:'hidden', position:'relative', display:'flex', flexDirection:'column',
-      }}>
-        {/* Status bar */}
+      <div style={{width: '100%', height: '100%', borderRadius: 28, overflow: 'hidden', position: 'relative', background: A.BG}}>
         <div style={{
-          padding:'8px 16px 2px', display:'flex', justifyContent:'space-between',
-          fontSize: 11, fontWeight: 700, color: TEXT, flexShrink: 0,
+          width: 390, height: designH,
+          transform: `scale(${k})`, transformOrigin: 'top left',
+          position: 'relative', overflow: 'hidden', color: A.TEXT,
+          fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
         }}>
-          <span>9:41</span>
-          <span style={{display:'flex', gap:2, alignItems:'center'}}>
-            <span style={{width:11, height:6, border:`1px solid ${TEXT}`, borderRadius:1.5, position:'relative'}}>
-              <span style={{position:'absolute', inset:1, background:TEXT, width:7, borderRadius:0.5}}/>
+          {/* Status bar sopra la foto */}
+          <div style={{position: 'absolute', top: 10, left: 24, right: 24, zIndex: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', fontSize: 13, fontWeight: 700}}>
+            <span style={{fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 4px rgba(0,0,0,0.4)'}}>9:41</span>
+            <span style={{width: 22, height: 10, border: '1.2px solid #fff', borderRadius: 2, position: 'relative', opacity: 0.95}}>
+              <span style={{position: 'absolute', inset: 1, width: 15, background: '#fff', borderRadius: 1}}/>
             </span>
-          </span>
-        </div>
-
-        {/* Hero photo */}
-        <div style={{
-          margin:'8px 10px 0', borderRadius: 14, overflow:'hidden',
-          aspectRatio:'16/10', position:'relative',
-          background:'linear-gradient(135deg, #8B4513, #D2691E)',
-          flexShrink: 0,
-        }}>
-          {/* top chips on photo */}
-          <div style={{
-            position:'absolute', top:6, left:6, right:6,
-            display:'flex', justifyContent:'space-between', gap:4,
-          }}>
-            <span style={{
-              padding:'2px 6px', borderRadius:999,
-              background:'rgba(255,255,255,0.9)', backdropFilter:'blur(4px)',
-              fontSize:9, fontWeight:700, color:TEXT,
-            }}>● Aperto</span>
-            <span style={{
-              padding:'2px 6px', borderRadius:999,
-              background:'rgba(0,0,0,0.45)', color:'#fff',
-              fontSize:9, fontWeight:700,
-            }}>4.8 ★ · 312</span>
           </div>
-        </div>
 
-        {/* Logo straddling the photo */}
-        <div style={{
-          margin:'-18px 0 0 14px', width: 36, height: 36,
-          borderRadius: 9, background: PN.WHITE, padding: 3,
-          boxShadow:'0 2px 8px rgba(0,0,0,0.18)', flexShrink: 0, position:'relative', zIndex: 2,
-        }}>
-          <div style={{
-            width:'100%', height:'100%', borderRadius: 6,
-            background:'linear-gradient(135deg, #FF5A5F, #E04347)',
-            display:'grid', placeItems:'center',
-            color:'#fff', fontSize: 11, fontWeight: 800,
-          }}>CP</div>
-        </div>
+          {/* Bottoni flottanti come nell'app: back / cuore / altro */}
+          <div style={{position: 'absolute', top: 40, left: 16, right: 16, zIndex: 6, display: 'flex', justifyContent: 'space-between'}}>
+            <span style={{width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </span>
+            <span style={{display: 'flex', gap: 8}}>
+              <span style={{width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </span>
+              <span style={{width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={A.TEXT}><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+              </span>
+            </span>
+          </div>
 
-        {/* Body */}
-        <div style={{padding:'4px 14px 0', flexShrink: 0}}>
-          <div style={{fontSize: 14.5, fontWeight: 800, color: TEXT, letterSpacing:-0.2}}>Cacio e Pepe</div>
-          <div style={{fontSize: 11, color: MUTED, marginTop: 1}}>{categoria} · Via Roma 13, Roma</div>
-
-          {tags.length > 0 && (
-            <div style={{display:'flex', flexWrap:'wrap', gap: 3, marginTop: 8}}>
-              {tags.slice(0, 4).map(t => (
-                <span key={t} style={{
-                  fontSize: 9.5, fontWeight: 600, padding:'2px 6px',
-                  borderRadius: 999, background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                }}>{t}</span>
-              ))}
+          {/* Hero — foto, gradient, eyebrow categoria + titolo Fredoka */}
+          <div style={{height: 220, position: 'relative', background: '#222'}}>
+            <div style={{position: 'absolute', inset: 0, overflow: 'hidden'}}>
+              <img src={HERO} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
             </div>
-          )}
-
-          <div style={{fontSize: 10, color: MUTED, lineHeight: 1.4, marginTop: 8}}>
-            Benvenuti al Cacio e Pepe! Cucina romana tradizionale con un tocco contemporaneo…
-          </div>
-
-          {/* Section header */}
-          <div style={{
-            marginTop: 12, fontSize: 11.5, fontWeight: 700, color: TEXT, letterSpacing: 0.2,
-          }}>CHEF CONSIGLIA</div>
-        </div>
-
-        {/* Dish cards */}
-        <div style={{flex:1, overflow:'hidden', padding:'8px 14px 0', display:'flex', flexDirection:'column', gap: 6}}>
-          {[
-            {n:'Cacio e Pepe', p:'14,00', c:'#F4D9A0'},
-            {n:'Carbonara', p:'15,00', c:'#E8C28A'},
-          ].map((d,i)=>(
-            <div key={i} style={{
-              background: PN.WHITE, borderRadius: 10, padding: 6,
-              display:'flex', gap: 8, boxShadow:'0 1px 3px rgba(0,0,0,0.06)',
-            }}>
-              <div style={{width: 38, height: 38, borderRadius: 7, background: d.c, flexShrink: 0}}/>
-              <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', justifyContent:'center'}}>
-                <div style={{fontSize: 11.5, fontWeight: 700, color: TEXT}}>{d.n}</div>
-                <div style={{fontSize: 11.5, fontWeight: 800, color: TEXT, marginTop: 1}}>€ {d.p}</div>
+            <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.72) 100%)'}}/>
+            <div style={{position: 'absolute', left: 20, right: 96, bottom: 44, color: '#fff'}}>
+              <div style={{fontSize: 11, fontWeight: 700, letterSpacing: 1.5, opacity: 0.85, textTransform: 'uppercase', marginBottom: 5}}>
+                {categoria}
+              </div>
+              <div style={{fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)'}}>
+                Ristorante Cacio e Pepe
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* CTA bar */}
-        <div style={{
-          margin:'8px 10px 10px', display:'flex', gap: 5, flexShrink: 0,
-        }}>
-          <button style={{
-            flex: 1, padding:'7px 0', borderRadius: 999,
-            background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
-            fontSize: 11, fontWeight: 700, color: TEXT, cursor:'pointer',
-          }}>Menu</button>
-          <button style={{
-            flex: 1.4, padding:'7px 0', borderRadius: 999,
-            background: WINE, border:'none',
-            fontSize: 11, fontWeight: 700, color:'#fff', cursor:'pointer',
-          }}>Prenota</button>
-        </div>
-
-        {/* Social row (only if any) */}
-        {social.length > 0 && (
-          <div style={{
-            position:'absolute', top: 4, right: 26,
-            display:'flex', gap: 3,
-          }}>
-            {social.includes('ig') && <span style={{width:8,height:8,borderRadius:2,background:'linear-gradient(135deg,#f09433,#dc2743,#bc1888)'}}/>}
-            {social.includes('fb') && <span style={{width:8,height:8,borderRadius:2,background:'#1877F2'}}/>}
-            {social.includes('tt') && <span style={{width:8,height:8,borderRadius:2,background:'#000'}}/>}
-            {social.includes('yt') && <span style={{width:8,height:8,borderRadius:2,background:'#FF0000'}}/>}
-            {social.includes('tw') && <span style={{width:8,height:8,borderRadius:2,background:'#000'}}/>}
-            {social.includes('li') && <span style={{width:8,height:8,borderRadius:2,background:'#0A66C2'}}/>}
+            <div style={{position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5}}>
+              {[0,1,2,3,4].map(i => (
+                <span key={i} style={{width: i === 0 ? 18 : 6, height: 6, borderRadius: 99, background: '#fff', opacity: i === 0 ? 1 : 0.45}}/>
+              ))}
+            </div>
+            {/* Logo a cavallo del bordo, come nell'app */}
+            <div style={{
+              position: 'absolute', right: 20, bottom: -40, zIndex: 5,
+              width: 80, height: 80, borderRadius: 999,
+              background: '#fff', boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
+              border: '3px solid rgba(255,255,255,0.95)', overflow: 'hidden',
+            }}>
+              <div style={{width: '100%', height: '100%', borderRadius: 999, background: 'linear-gradient(135deg, #FFD3DC 0%, #FFB0C0 100%)', display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 800, color: A.PINK, fontFamily: 'Georgia, serif'}}>CP</div>
+            </div>
           </div>
-        )}
+
+          {/* Badge di stato + tag scelti nel gestionale */}
+          <div style={{display: 'flex', gap: 6, padding: '14px 20px 0', flexWrap: 'wrap'}}>
+            <span style={{fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: '#e6f5e9', padding: '4px 9px', borderRadius: 999}}>APERTO</span>
+            <span style={{fontSize: 10.5, fontWeight: 700, color: A.TEXT, background: A.TINT, padding: '4px 9px', borderRadius: 999}}>🏆 TOP 10 ROMA</span>
+            {tags.slice(0, 3).map(t => (
+              <span key={t} style={{fontSize: 10.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '4px 9px', borderRadius: 999}}>{t.toUpperCase()}</span>
+            ))}
+          </div>
+
+          {/* Indirizzo + orari */}
+          <div style={{display: 'flex', flexDirection: 'column', gap: 5, padding: '14px 20px 0'}}>
+            <div style={{fontSize: 13.5, color: A.MUTED, display: 'flex', alignItems: 'center', gap: 6}}>
+              {rowIcon(<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>)}
+              Via dei Gracchi 56, 00187 Roma
+            </div>
+            <div style={{fontSize: 13.5, color: A.MUTED, display: 'flex', alignItems: 'center', gap: 6}}>
+              {rowIcon(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>)}
+              Lun – Ven · 11:00 – 23:00
+            </div>
+          </div>
+
+          {/* Recensione media */}
+          <div style={{padding: '18px 20px 0'}}>
+            <div style={{fontSize: 15, fontWeight: 700, marginBottom: 10}}>Recensione media</div>
+            <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+              {[1,2,3,4,5].map(n => (
+                <span key={n} style={{width: 30, height: 30, borderRadius: 7, background: n <= 5 ? A.PINK : A.TINT, display: 'grid', placeItems: 'center'}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </span>
+              ))}
+              <span style={{marginLeft: 8, display: 'flex', alignItems: 'baseline', gap: 6}}>
+                <span style={{fontSize: 28, fontWeight: 800, letterSpacing: -0.5}}>4.8</span>
+                <span style={{fontSize: 14, color: A.MUTED, fontWeight: 500}}>· 320 recensioni</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Promo / Eventi */}
+          <div style={{padding: '20px 20px 0'}}>
+            <div style={{fontSize: 15, fontWeight: 700, marginBottom: 10}}>Promo / Eventi</div>
+            <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+              {['Aperitivo 2x1', 'Karaoke venerdì', 'Brunch domenica'].map(p => (
+                <span key={p} style={{fontSize: 12.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '7px 12px', borderRadius: 999}}>{p}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* La nostra storia */}
+          <div style={{padding: '20px 20px 0'}}>
+            <div style={{fontSize: 15, fontWeight: 700, marginBottom: 8}}>La nostra storia</div>
+            <div style={{fontSize: 13.5, lineHeight: 1.55}}>
+              Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti
+              tradizionali della cucina romana… <span style={{color: A.PINK, fontWeight: 600}}>...Altro</span>
+            </div>
+          </div>
+
+          {/* CTA sticky come nell'app */}
+          <div style={{
+            position: 'absolute', left: 0, right: 0, bottom: 0,
+            padding: '34px 16px 18px', display: 'flex', gap: 10,
+            background: 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,0.96) 45%)',
+          }}>
+            <span style={{flex: 1, padding: '13px 0', borderRadius: 999, background: '#fff', border: '1.5px solid #eddfda', fontSize: 14.5, fontWeight: 700, color: A.TEXT, textAlign: 'center'}}>Vedi menù</span>
+            <span style={{flex: 1.5, padding: '13px 0', borderRadius: 999, background: A.PINK, fontSize: 14.5, fontWeight: 700, color: '#fff', textAlign: 'center', boxShadow: '0 6px 16px rgba(227,36,89,0.35)'}}>Prenota un tavolo</span>
+          </div>
+        </div>
       </div>
     </div>
   );
