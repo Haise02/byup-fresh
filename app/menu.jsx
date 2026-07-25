@@ -2596,6 +2596,122 @@ const removeGuestFromOrder = (setState, id) => setState(s => {
   };
 });
 
+// Porta il numero di partecipanti a `n` sincronizzando i segnaposto "Ospite":
+// gli utenti reali (app/webapp) non si toccano, i segnaposto si aggiungono o
+// si tolgono dal fondo. covers segue il totale.
+const setParticipantsCount = (setState, n) => setState(s => {
+  const ao = s.activeOrder;
+  if (!ao) return s;
+  const guests = [...(ao.guests || [])];
+  const fixed = guests.filter(g => !g.isGuest).length;
+  const target = Math.max(n, fixed, 1);
+  for (let i = guests.length - 1; i >= 0 && guests.length > target; i--) {
+    if (guests[i].isGuest) guests.splice(i, 1);
+  }
+  let nextN = guests.filter(g => g.isGuest).length;
+  while (guests.length < target) {
+    nextN += 1;
+    guests.push({ id: `og-${Date.now()}-${nextN}`, name: `Ospite ${nextN}`, initial: '?', isGuest: true });
+  }
+  return { ...s, activeOrder: { ...ao, guests, covers: target } };
+});
+
+// Pannello partecipanti (schermata pagamento): stepper unico al posto della
+// lista ospiti — il numero guida la divisione dei piatti "al tavolo".
+function ParticipantsSheet({ order, onClose, onSave }) {
+  const initial = Math.max(1, (order?.guests || []).length);
+  const minN = Math.max(1, (order?.guests || []).filter(g => !g.isGuest).length);
+  const [n, setN] = useState(initial);
+  const dirty = n !== initial;
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)',
+      zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      animation: 'fadeIn 0.2s',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: '100%', background: SURF, color: TEXT,
+        borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: '14px 22px 28px',
+        animation: 'slideUp 0.25s cubic-bezier(.2,.9,.3,1)',
+      }}>
+        <div style={{ width: 40, height: 4, background: '#e5e0d8', borderRadius: 999, margin: '0 auto 14px' }}/>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.3 }}>Partecipanti al tavolo</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 3 }}>{order.table} · {order.venue}</div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 34, height: 34, borderRadius: 999, background: TINT,
+            border: 'none', fontSize: 15, color: TEXT, cursor: 'pointer', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>✕</button>
+        </div>
+
+        <div style={{
+          marginTop: 18, border: `1.5px solid ${BORDER}`, borderRadius: 18,
+          padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: TINT, color: WINE,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800 }}>Totale partecipanti</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>include te e gli altri commensali</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <button onClick={() => setN(v => Math.max(minN, v - 1))} disabled={n <= minN} style={{
+              width: 42, height: 42, borderRadius: 12, background: SURF,
+              border: `1.5px solid ${BORDER}`, color: WINE, fontSize: 20, fontWeight: 700,
+              cursor: n <= minN ? 'default' : 'pointer', opacity: n <= minN ? 0.35 : 1, fontFamily: 'inherit',
+            }}>−</button>
+            <div style={{ minWidth: 28, textAlign: 'center', fontSize: 24, fontWeight: 800, color: WINE, fontVariantNumeric: 'tabular-nums' }}>{n}</div>
+            <button onClick={() => setN(v => Math.min(30, v + 1))} style={{
+              width: 42, height: 42, borderRadius: 12, background: SURF,
+              border: `1.5px solid ${BORDER}`, color: WINE, fontSize: 20, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>+</button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, background: '#EDF3FD', borderRadius: 16, padding: 14, display: 'flex', gap: 10 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: '#2563eb' }}>
+              I piatti "al tavolo" verranno divisi per {n} {n === 1 ? 'persona' : 'persone'}
+            </div>
+            <div style={{ fontSize: 12.5, color: '#44506b', marginTop: 2 }}>
+              Il numero che inserisci verrà verificato dal personale di sala.
+            </div>
+          </div>
+        </div>
+
+        {dirty && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <button onClick={onClose} style={{
+              flex: 1, padding: 14, borderRadius: 14, background: 'transparent',
+              border: `1.5px solid ${BORDER}`, fontSize: 14.5, fontWeight: 700, color: TEXT,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Annulla</button>
+            <button onClick={() => onSave(n)} style={{
+              flex: 1, padding: 14, borderRadius: 14, background: WINE, border: 'none',
+              fontSize: 14.5, fontWeight: 700, color: '#fff',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Salva</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGuest }) {
   const inviteUrl = `byup.app/t/${(order?.table || 'tavolo').toLowerCase().replace(/\s+/g, '')}-x9k7`;
   const [shareState, setShareState] = useState('idle'); // 'idle' | 'copied'
@@ -4143,13 +4259,10 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
             {/* Sheet "Al tavolo" — chi è loggato e chi è ospite */}
       {guestsOpen && (
-        <GuestsSheet
+        <ParticipantsSheet
           order={order}
-          loggedIn={(order.guests || []).filter(g => g.isApp || g.isWebApp).length}
-          covers={order.covers || (order.guests?.length || 1)}
           onClose={() => setGuestsOpen(false)}
-          onAddGuest={() => addGuestToOrder(setState)}
-          onRemoveGuest={(id) => removeGuestFromOrder(setState, id)}/>
+          onSave={(n) => { setParticipantsCount(setState, n); setGuestsOpen(false); }}/>
       )}
 
       {/* Popup divisione di un piatto preso dal tavolo */}
