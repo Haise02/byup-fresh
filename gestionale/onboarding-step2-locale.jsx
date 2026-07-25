@@ -49,19 +49,6 @@ function Step2Locale({
 
         {/* ─── Colonna sinistra — contesto ────────────────────────────── */}
         <div>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '4px 10px', borderRadius: 999,
-            background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
-            fontSize: 14, fontWeight: 600,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-            marginBottom: 20,
-          }}>
-            <span style={{
-              width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
-            }}/>
-            Step 2 di 4
-          </div>
           <h1 style={{
             fontSize: 40, fontWeight: 600, lineHeight: 1.15,
             letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
@@ -95,6 +82,40 @@ function Step2Locale({
 
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
         <div>
+          {/* Le due sezioni dello step, sempre visibili e cliccabili: rende
+              esplicito che Informazioni e Pagamenti vivono nello stesso step. */}
+          <div style={{display: 'flex', gap: 8, marginBottom: 16}}>
+            {[['info', '1', 'Informazioni'], ['pagamenti', '2', 'Pagamenti']].map(([id, n, label]) => {
+              const active = subStep === id;
+              const done = id === 'info' && subStep === 'pagamenti';
+              return (
+                <button key={id} onClick={() => setSubStep(id)} style={{
+                  flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '11px 14px', borderRadius: 10,
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  background: active ? '#fff' : 'transparent',
+                  border: active ? `1.5px solid ${ONB.BRAND}` : '1px solid rgba(15, 17, 21, 0.10)',
+                  boxShadow: active ? '0 1px 2px rgba(15, 17, 21, 0.05)' : 'none',
+                  transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                }}>
+                  <span style={{
+                    width: 24, height: 24, borderRadius: 999, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 600,
+                    background: done ? ONB.GREEN : active ? ONB.BRAND : 'rgba(15, 17, 21, 0.06)',
+                    color: (done || active) ? '#fff' : ONB.MUTED,
+                  }}>
+                    {done ? <OnbIcon.Check size={11} color="#fff"/> : n}
+                  </span>
+                  <span style={{
+                    fontSize: 15, fontWeight: 600,
+                    color: active ? ONB.TEXT : ONB.MUTED,
+                  }}>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {subStep === 'info'      && <SubStepInfo      venue={venue} v={v}/>}
           {subStep === 'pagamenti' && <SubStepPagamenti payments={payments} p={p}/>}
 

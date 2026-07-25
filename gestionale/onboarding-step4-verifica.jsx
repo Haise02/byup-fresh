@@ -89,20 +89,6 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             {/* Confetti — canvas absolutely positioned su top dell'area sinistra */}
             <ConfettiCanvas/>
 
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 10px', borderRadius: 999,
-              background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
-              fontSize: 14, fontWeight: 600,
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-              marginBottom: 20, position: 'relative', zIndex: 1,
-            }}>
-              <span style={{
-                width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
-              }}/>
-              Step 4 di 4
-            </div>
-
             <h1 style={{
               fontSize: 40, fontWeight: 600, lineHeight: 1.15,
               letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
@@ -195,20 +181,11 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             </div>
           </div>
 
-          {/* ─── Colonna destra — telefono, e sotto il riepilogo ────────── */}
-          {/* sticky: telefono e recap restano fissi a schermo mentre l'editor
-              del menù, che può crescere, scorre nella colonna a fianco. */}
+          {/* ─── Colonna destra — solo il telefono ──────────────────────── */}
+          {/* sticky: il telefono resta fisso a schermo mentre l'editor del
+              menù, che può crescere, scorre nella colonna a fianco. */}
           <div style={{position: 'sticky', top: 0}}>
-            <PhoneMockup menu={menu} height={505}/>
-            <div style={{marginTop: 16}}>
-              <CompletionChecklist
-                venue={venue}
-                rooms={rooms}
-                totalDishes={totalDishes}
-                totalCategories={menu.length}
-                totalTables={totalTables}
-              />
-            </div>
+            <PhoneMockup menu={menu} height={570}/>
           </div>
         </div>
 
@@ -226,22 +203,22 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             Indietro
           </SecondaryCta>
           <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-            {/* Inversione gerarchia: l'azione consigliata è ora entrare subito nel
-                prodotto ("Inizia a gestire il locale" → Panoramica). La configurazione
-                avanzata resta accessibile come alternativa, separata da un "oppure"
-                discreto per chiarire che è un bivio, non una sequenza. */}
-            <PrimaryCtaArrow onClick={() => onComplete && onComplete('panoramica')}>
+            {/* Gerarchia: l'azione consigliata è chiudere il setup ("Completa la
+                configurazione") — rossa e a pillola. Entrare subito nel prodotto
+                resta possibile ma anonimo, separato da un "oppure" discreto per
+                chiarire che è un bivio, non una sequenza. */}
+            <SecondaryCta onClick={() => onComplete && onComplete('panoramica')}>
               Inizia a gestire il locale
-            </PrimaryCtaArrow>
+            </SecondaryCta>
             <span style={{
               fontSize: 14, fontWeight: 500, color: ONB.MUTED_LIGHT,
               letterSpacing: '0.04em',
             }}>
               oppure
             </span>
-            <SecondaryCta onClick={() => onComplete && onComplete('config')}>
+            <PrimaryCtaArrow onClick={() => onComplete && onComplete('config')}>
               Completa la configurazione
-            </SecondaryCta>
+            </PrimaryCtaArrow>
           </div>
         </div>
       </div>
@@ -843,33 +820,6 @@ function PhoneMockup({menu, height = 570}) {
           </div>
         </div>
 
-        {/* Cart bar pinned bottom */}
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0,
-          background: '#fff',
-          borderTopLeftRadius: 20, borderTopRightRadius: 20,
-          boxShadow: '0 -4px 16px rgba(15, 17, 21, 0.06)',
-          padding: '10px 14px 14px',
-          zIndex: 2,
-        }}>
-          <div style={{
-            width: 36, height: 4, background: 'rgba(15, 17, 21, 0.12)',
-            borderRadius: 999, margin: '0 auto 8px',
-            display: 'none',
-          }}/>
-          <button style={{
-            width: '100%', height: 40, borderRadius: 999, border: 'none',
-            background: ONB.ACTION_SECONDARY, color: '#fff',
-            fontSize: 15, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          }}>
-            Apri ordine
-            <span style={{opacity: 0.5}}>·</span>
-            <span style={{fontWeight: 500, opacity: 0.8}}>
-              {menu.reduce((n, c) => n + c.dishes.length, 0)} piatti
-            </span>
-          </button>
-        </div>
       </div>
       </div>
     </div>

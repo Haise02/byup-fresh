@@ -65,19 +65,6 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
             locale?"), poi — scelto "Ho sale e tavoli" — diventa il titolo del
             flusso di configurazione. */}
         <div>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '4px 10px', borderRadius: 999,
-            background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
-            fontSize: 14, fontWeight: 600,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-            marginBottom: 20,
-          }}>
-            <span style={{
-              width: 5, height: 5, borderRadius: 999, background: ONB.BRAND, display: 'inline-block',
-            }}/>
-            Step 3 di 4
-          </div>
           <h1 style={{
             fontSize: 40, fontWeight: 600, lineHeight: 1.15,
             letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
