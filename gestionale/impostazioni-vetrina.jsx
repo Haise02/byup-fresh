@@ -1661,30 +1661,31 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
       )}
 
       <ImpCard title="Account social" sub="Collega i tuoi profili. Appariranno sulla vetrina">
-        {/* Collegati: un box per ogni account effettivamente attivo */}
+        {/* Collegati: un box compatto per ogni account effettivamente attivo */}
         {SOCIAL_DEFS.some(s => social.includes(s.key)) ? (
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 16}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap: 10, marginBottom: 16}}>
             {SOCIAL_DEFS.filter(s => social.includes(s.key)).map(s => (
               <div key={s.key} style={{
-                padding: '12px 14px', border:`1.5px solid ${PN.GREEN_SOFT}`,
-                borderRadius: 12, background: '#F0FDF4', minWidth: 0,
-                display:'flex', flexDirection:'column', gap: 8,
+                padding: '10px 12px', border:`1.5px solid ${PN.GREEN_SOFT}`,
+                borderRadius: 10, background: PN.WHITE, minWidth: 0,
+                boxShadow: '0 4px 14px rgba(15, 17, 21, 0.08)',
+                display:'flex', flexDirection:'column', gap: 6,
               }}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
                   <div style={{
-                    width: 34, height:34, borderRadius: 8, background: s.bg, flexShrink: 0,
-                    display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 14 : 16, fontWeight:800,
+                    width: 28, height:28, borderRadius: 7, background: s.bg, flexShrink: 0,
+                    display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 12 : 14, fontWeight:800,
                   }}>{s.abbr || s.name[0]}</div>
-                  <div style={{fontSize:11.5, fontWeight:700, color:PN.GREEN, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
+                  <div style={{fontSize:10.5, fontWeight:700, color:PN.GREEN, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
                 </div>
                 <div style={{minWidth: 0}}>
-                  <div style={{fontSize:15, fontWeight:700}}>{s.name}</div>
-                  <div title={links[s.key]} style={{fontSize:13, color:PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                  <div style={{fontSize:14, fontWeight:700}}>{s.name}</div>
+                  <div title={links[s.key]} style={{fontSize:12.5, color:PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                     {links[s.key] ? socialHandle(links[s.key]) : 'Profilo collegato'}
                   </div>
                 </div>
                 <ScollegaBtn onClick={() => setUnlink(s)}
-                  style={{alignSelf:'flex-start', padding:'4px 10px', marginLeft:-10, fontSize:13.5}}/>
+                  style={{alignSelf:'flex-end', padding:'3px 9px', marginRight:-9, marginTop:-2, fontSize:13}}/>
               </div>
             ))}
           </div>
