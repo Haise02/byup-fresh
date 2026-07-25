@@ -31,6 +31,34 @@ const CTA_GRAD = 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)';
 const CTA_GLOW = '0 16px 34px -12px rgba(227,36,89,.62), inset 0 1px 0 rgba(255,255,255,.30)';
 const CTA_DEAD = '#e9cfd8';
 
+// ─── Marchio "b" byup — stesso identico trattamento del gestionale (avatar dei
+//     coperti in sala, riferimenti in contabilità), così un utente app si
+//     riconosce a colpo d'occhio ovunque nell'ecosistema:
+//       tondo gradiente brand + "b" bianca  → ha l'app byup
+//       tondo blu + pallino bianco          → collegato da webapp
+const BYUP_GRAD = 'linear-gradient(135deg, #FF5A5F, #B53338)';
+const BYUP_GLOW = '0 1px 3px rgba(255,90,95,0.34)';
+const WEBAPP_GRAD = 'linear-gradient(135deg, #60A5FA, #2563EB)';
+const WEBAPP_GLOW = '0 1px 3px rgba(37,99,235,0.30)';
+function ByupB({ size = 13 }) {
+  return (
+    <span style={{
+      fontSize: size, fontWeight: 900, color: '#fff',
+      lineHeight: 1, letterSpacing: -0.5,
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      display: 'inline-block', transform: 'translateY(-0.5px)',
+    }}>b</span>
+  );
+}
+function WebappDot({ size = 8 }) {
+  return (
+    <span style={{
+      width: size, height: size, borderRadius: '50%',
+      background: '#fff', display: 'inline-block',
+    }}/>
+  );
+}
+
 // Navigazione verso l'app Home: dentro la SPA usa il router globale
 // (__byupNav, nessun reload); da pagina separata fa deep-link classico.
 // Menu premium (locali Selezione byup): food render PNG al posto delle foto
@@ -2685,13 +2713,18 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '10px 4px', borderBottom: `1px solid ${BORDER}`,
             }}>
+              {/* "Tu" resta rosa con l'iniziale; gli altri portano il marchio
+                  byup: "b" su gradiente brand se hanno l'app, pallino su blu
+                  se sono collegati da webapp. */}
               <div style={{
                 width: 38, height: 38, borderRadius: 999,
-                background: g.isGuest ? MUTESURF : (g.isMe ? PINK : BADGE),
-                color: g.isGuest ? MUTED : '#fff',
+                background: g.isMe ? PINK : g.isApp ? BYUP_GRAD : g.isWebApp ? WEBAPP_GRAD : MUTESURF,
+                color: (g.isMe || g.isApp || g.isWebApp) ? '#fff' : MUTED,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 14, fontWeight: 700,
-              }}>{g.initial}</div>
+              }}>
+                {!g.isMe && g.isApp ? <ByupB size={15}/> : !g.isMe && g.isWebApp ? <WebappDot size={9}/> : g.initial}
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 700 }}>
                   {g.name}{g.isMe && <span style={{ fontSize: 11, color: PINK, marginLeft: 6, fontWeight: 600 }}>(tu)</span>}
@@ -3612,16 +3645,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     });
   };
 
-  // Etichetta dei tre gruppi di "Il tavolo"
-  const groupLabelStyle = {
-    fontSize: 11.5, fontWeight: 800, color: MUTED, letterSpacing: 0.7,
-    textTransform: 'uppercase', margin: '18px 2px 8px',
-  };
   // Card di gruppo: header riepilogativo + righe piatto. Ogni riga porta solo
   // nome e prezzo, più "+" per metterla sul proprio conto e "−" per toglierla.
   // Le righe non disponibili (pagate, in pagamento, già prese) restano visibili
   // in grigio con la sola icona di stato.
-  const renderTableCard = ({ id, title, avatar, avatarBg, avatarColor, items }) => {
+  const renderTableCard = ({ id, title, avatar, avatarBg, avatarColor, avatarGlow, items }) => {
     const open = !!openOwners[id];
     const unpaid = items.filter(i => !isPaid(i.lineId));
     const available = unpaid.filter(canAdd);
@@ -3643,6 +3671,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           <div style={{
             width: 38, height: 38, borderRadius: 11, flexShrink: 0,
             background: avatarBg, color: avatarColor,
+            boxShadow: avatarGlow || 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 700,
           }}>{avatar}</div>
@@ -3858,15 +3887,19 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             cursor: 'pointer', fontFamily: 'inherit',
           }}>
             <div style={{ display: 'flex', flexDirection: 'row-reverse' }}>
+              {/* app → "b" su gradiente brand, webapp → pallino su blu,
+                  ospite non collegato → iniziale su grigio (come in sala) */}
               {(order.guests || []).slice(0, 4).map((g, i) => (
                 <div key={g.id} style={{
                   width: 30, height: 30, borderRadius: 999,
-                  background: (g.isApp || g.isWebApp) ? BADGE : '#ebe3d6',
+                  background: g.isApp ? BYUP_GRAD : g.isWebApp ? WEBAPP_GRAD : '#ebe3d6',
                   color: (g.isApp || g.isWebApp) ? '#fff' : MUTED,
                   border: '2.5px solid #FBF4F1', marginLeft: -10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11.5, fontWeight: 700,
-                }}>{g.initial || '?'}</div>
+                }}>
+                  {g.isApp ? <ByupB size={12}/> : g.isWebApp ? <WebappDot size={7}/> : (g.initial || '?')}
+                </div>
               ))}
               {(order.guests?.length || 0) > 4 && (
                 <div style={{
@@ -3973,60 +4006,37 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         </div>
         )}
 
-            {/* Il tavolo — Utenti app · Utenti webapp · Altro */}
+            {/* Il tavolo — ordine: utenti app, utenti webapp, poi "Altro".
+                Niente etichette di gruppo: la gerarchia la dà la sequenza. */}
             {mode === 'mine' && (appGuests.length > 0 || webGuests.length > 0 || altroItems.length > 0) && (
               <div style={{ padding: '28px 22px 0' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 4 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 14 }}>
                   Il tavolo
                 </div>
-                <div style={{ fontSize: 13, color: MUTED }}>
-                  Apri una card e tocca <span style={{ fontWeight: 700, color: WINE }}>+</span> sui piatti che metti sul tuo conto.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {appGuests.map(g => renderTableCard({
+                    id: g.id, title: g.name, avatar: <ByupB size={15}/>,
+                    avatarBg: BYUP_GRAD, avatarColor: '#fff', avatarGlow: BYUP_GLOW,
+                    items: itemsOfOwner(g.id),
+                  }))}
+                  {webGuests.map(g => renderTableCard({
+                    id: g.id, title: g.name, avatar: <WebappDot size={9}/>,
+                    avatarBg: WEBAPP_GRAD, avatarColor: '#fff', avatarGlow: WEBAPP_GLOW,
+                    items: itemsOfOwner(g.id),
+                  }))}
+                  {altroItems.length > 0 && renderTableCard({
+                    id: 'altro',
+                    title: 'Altro',
+                    avatarBg: TINT,
+                    avatarColor: WINE,
+                    avatar: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
+                      </svg>
+                    ),
+                    items: altroItems,
+                  })}
                 </div>
-
-                {appGuests.length > 0 && (
-                  <div>
-                    <div style={groupLabelStyle}>Utenti app</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {appGuests.map(g => renderTableCard({
-                        id: g.id, title: g.name, avatar: g.initial || '?',
-                        avatarBg: BADGE, avatarColor: '#fff', items: itemsOfOwner(g.id),
-                      }))}
-                    </div>
-                  </div>
-                )}
-
-                {webGuests.length > 0 && (
-                  <div>
-                    <div style={groupLabelStyle}>Utenti webapp</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {webGuests.map(g => renderTableCard({
-                        id: g.id, title: g.name, avatar: g.initial || '?',
-                        avatarBg: BADGE, avatarColor: '#fff', items: itemsOfOwner(g.id),
-                      }))}
-                    </div>
-                  </div>
-                )}
-
-                {altroItems.length > 0 && (
-                  <div>
-                    <div style={{ ...groupLabelStyle, marginBottom: 2 }}>Altro</div>
-                    <div style={{ fontSize: 12, color: MUTED, margin: '0 2px 8px' }}>
-                      Dal cameriere e da chi al tavolo non usa app o webapp
-                    </div>
-                    {renderTableCard({
-                      id: 'altro',
-                      title: 'Altro',
-                      avatarBg: TINT,
-                      avatarColor: WINE,
-                      avatar: (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
-                        </svg>
-                      ),
-                      items: altroItems,
-                    })}
-                  </div>
-                )}
               </div>
             )}
 
