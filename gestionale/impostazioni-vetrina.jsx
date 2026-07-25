@@ -245,10 +245,10 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         }}>
           <span style={{fontSize:14, fontWeight:700}}>Orario standard</span>
           <span style={{fontSize:13, color:PN.MUTED}}>per tutti i giorni aperti</span>
-          <ImpButton variant="primary" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5, marginLeft: 20}}>
+          <span style={{flex:1}}/>
+          <ImpButton variant="primary" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5, marginRight: 10}}>
             Personalizza orari
           </ImpButton>
-          <span style={{flex:1}}/>
           <ImpInput value={stdHours[0]} style={{width:74, padding:'7px 10px'}}
             onChange={e => { setStdHours([e.target.value, stdHours[1]]); onChange(); }}/>
           <span style={{color:PN.MUTED}}>—</span>
@@ -256,24 +256,6 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
             onChange={e => { setStdHours([stdHours[0], e.target.value]); onChange(); }}/>
         </div>
 
-        <div style={{marginTop: 14, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize:14.5, fontWeight:700, marginBottom: 8}}>Date speciali</div>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
-            <div style={{
-              padding:'9px 12px', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
-              fontSize:14.5, display:'flex', alignItems:'center', justifyContent:'space-between',
-            }}>
-              <span><b>25–30 Dic</b> · Chiuso</span>
-              <button style={{background:'transparent', border:'none', color:PN.MUTED, cursor:'pointer'}}>
-                <PnI.X size={13}/>
-              </button>
-            </div>
-            <button style={{
-              padding:'9px 12px', border:`1.5px dashed ${PN.BORDER}`, borderRadius: 9,
-              background:'transparent', color:PN.MUTED, fontSize:14.5, fontWeight:600, cursor:'pointer',
-            }}>+ Aggiungi data</button>
-          </div>
-        </div>
       </ImpCard>
 
       {/* Categoria: niente aurora, tessere grandi con icona; in hover la
@@ -478,6 +460,28 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Date speciali: chiusure e orari straordinari vivono qui, insieme
+            al resto della personalizzazione */}
+        <div style={{marginBottom: 14, paddingTop: 12, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+          <div style={{fontSize: 14, fontWeight: 700, marginBottom: 8}}>Date speciali</div>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8}}>
+            <div style={{
+              padding: '9px 12px', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
+              fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span><b>25–30 Dic</b> · Chiuso</span>
+              <button style={{background: 'transparent', border: 'none', color: PN.MUTED, cursor: 'pointer'}}>
+                <PnI.X size={13}/>
+              </button>
+            </div>
+            <button style={{
+              padding: '9px 12px', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 9,
+              background: 'transparent', color: PN.MUTED, fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>+ Aggiungi data</button>
+          </div>
         </div>
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
@@ -1143,39 +1147,48 @@ function VetrinaAspetto({ onChange }) {
           elemento quadrato) e galleria a destra — niente più card "Aspetto"
           omonima dello step. */}
       <ImpCard title="Immagini" sub="Logo e foto del locale: appariranno sulla vetrina">
-        <div style={{display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr)', gap: 22, alignItems: 'start'}}>
+        {/* Due metà pari, come Locale/Servizi nello step Informazioni:
+            logo a sinistra che riempie la sua metà, galleria a destra nel
+            pannello tinto. */}
+        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'stretch'}}>
 
-          {/* Logo */}
-          <div style={{minWidth: 0}}>
+          {/* Logo — metà sinistra */}
+          <div style={{minWidth: 0, display: 'flex', flexDirection: 'column'}}>
             <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Logo del locale</div>
             <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>PNG o JPG quadrato · 512×512px</div>
             {logo ? (
-              <div>
-                <div style={{width: 150, height: 150}}>
+              <div style={{flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0}}>
+                <div style={{flex: 1, minHeight: 220}}>
                   <PhotoTile src={logo} radius={14} title="Rimuovi logo"
                     onRemove={() => { setLogo(null); onChange && onChange(); }}/>
                 </div>
                 <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}
-                  style={{padding:'6px 12px', fontSize: 13.5, marginTop: 12}}>Sostituisci</ImpButton>
+                  style={{padding:'6px 12px', fontSize: 13.5, marginTop: 12, alignSelf: 'flex-start'}}>Sostituisci</ImpButton>
               </div>
             ) : (
               <div onClick={() => setUploadModal('logo')} style={{
-                width: 150, aspectRatio: '1',
+                flex: 1, minHeight: 240,
                 border:`2px dashed ${PN.BORDER}`, borderRadius: 14,
                 display:'grid', placeItems:'center', textAlign:'center',
                 background:'#FAFBFC', cursor: 'pointer',
-                color: PN.MUTED, fontSize: 13, fontWeight: 600, lineHeight: 1.4,
+                color: PN.MUTED, fontSize: 14, fontWeight: 600, lineHeight: 1.45,
               }}>
                 <div>
-                  <PnI.Plus size={18} color={PN.MUTED}/>
-                  <div style={{marginTop: 6, padding: '0 12px'}}>Trascina o clicca<br/>512×512px</div>
+                  <PnI.Plus size={20} color={PN.MUTED}/>
+                  <div style={{marginTop: 8}}>Trascina o clicca per caricare<br/>512×512px</div>
+                  <ImpButton variant="ghost" onClick={(e) => { e.stopPropagation(); setUploadModal('logo'); }}
+                    style={{padding:'6px 14px', fontSize: 13.5, marginTop: 12, display: 'inline-flex'}}>Carica logo</ImpButton>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Galleria */}
-          <div style={{minWidth: 0, borderLeft: `1px solid ${PN.BORDER_SOFT}`, paddingLeft: 22}}>
+          {/* Galleria — metà destra, pannello tinto come Servizi disponibili */}
+          <div style={{
+            minWidth: 0, background: '#F3F5F7',
+            border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
+            padding: '14px 16px',
+          }}>
             <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Galleria fotografica</div>
             <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>JPG o PNG · consigliato 1600×1200px</div>
             {/* Riga-guida col limite: si accende e scuote al sesto tentativo */}
@@ -1187,18 +1200,19 @@ function VetrinaAspetto({ onChange }) {
             }}>
               Massimo 5 immagini · {photos.length}/5 caricate
             </div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap: 10}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 10}}>
               {photos.map((src, i) => (
-                <div key={i} style={{aspectRatio: '1'}}>
+                <div key={i} style={{aspectRatio: '4/3'}}>
                   <PhotoTile src={src} radius={10} title="Elimina foto"
                     onRemove={() => removePhoto(i)}/>
                 </div>
               ))}
               <div onClick={openGalleryUpload} style={{
-                aspectRatio:'1', borderRadius: 10,
+                aspectRatio:'4/3', borderRadius: 10,
                 border:`2px dashed ${PN.BORDER}`,
                 display:'grid', placeItems:'center',
                 color: PN.MUTED, fontSize: 13, fontWeight: 600, cursor:'pointer',
+                background: PN.WHITE,
               }}>
                 <div style={{textAlign:'center'}}>
                   <PnI.Plus size={18} color={PN.MUTED}/>
