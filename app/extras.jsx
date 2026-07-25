@@ -710,7 +710,7 @@ function MieiDatiView({ onBack }) {
   );
 }
 
-function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onBack }) {
+function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onBack, footer }) {
   const [values, setValues] = useState(() => Object.fromEntries(fields.map((f, i) => [i, f.defaultValue || ''])));
   const [done, setDone] = useState(false);
 
@@ -778,6 +778,7 @@ function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onB
         color: allFilled ? '#fff' : MUTED_X,
         transition: 'background 0.2s',
       }}>{submitLabel}</button>
+      {footer && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>{footer}</div>}
     </div>
   );
 }
@@ -1148,15 +1149,6 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 iconSvg={<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>}/>
             </RowGroup>
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
-              <button onClick={() => setView('recupera-password')} style={{
-                background: 'none', border: 'none', padding: '6px 10px',
-                cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13, fontWeight: 500, color: MUTED_X,
-                textDecoration: 'underline', textUnderlineOffset: 3,
-              }}>Hai dimenticato la password? recuperala ora</button>
-            </div>
-
             {/* Elimina account: staccato dal gruppo, entra dal fondo dello schermo */}
             <div style={{
               position: 'absolute', left: 0, right: 0, bottom: 24,
@@ -1224,6 +1216,14 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             ]}
             submitLabel="Salva password"
             successMsg="Password aggiornata con successo."
+            footer={
+              <button onClick={() => setView('recupera-password')} style={{
+                background: 'none', border: 'none', padding: '6px 10px',
+                cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 13, fontWeight: 500,
+                color: __BYUP_DK_X ? 'rgba(246,236,233,.5)' : '#9a9096',
+              }}>Hai dimenticato la password? <span style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Recuperala ora</span></button>
+            }
           />
         )}
 
