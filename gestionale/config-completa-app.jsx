@@ -121,19 +121,18 @@ function ConfigCompletaApp() {
                 transition: 'width 320ms ease',
               }}/>
             </div>
-            <div style={{display:'flex', alignItems:'center', padding: '14px 20px', gap: 12}}>
+            {/* Tre step su tre colonne uguali: distribuzione uniforme lungo
+                tutta la riga, ciascuno nel proprio terzo. */}
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', alignItems:'center', padding: '14px 20px', gap: 12}}>
               <CfgStep num="1" label="Informazioni" sub="Chi sei e che atmosfera offri"
                 active={step === 'informazioni'} done={step !== 'informazioni'}
                 onClick={() => setStep('informazioni')}/>
-              <div style={{flex: 1}}/>
               <CfgStep num="2" label="Aspetto" sub="Foto, social e FAQ"
                 active={step === 'aspetto'} done={step === 'personale'}
                 onClick={() => setStep('aspetto')}/>
-              <div style={{flex: 1}}/>
               <CfgStep num="3" label="Personale" sub="Invita il tuo staff"
                 active={step === 'personale'} done={false}
                 onClick={() => setStep('personale')}/>
-              <div style={{flex: 2}}/>
             </div>
           </div>
 
