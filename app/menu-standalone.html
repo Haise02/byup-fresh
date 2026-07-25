@@ -32696,67 +32696,21 @@ function PaymentScreen({
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 10,
+      gap: 6,
       background: 'transparent',
       border: 'none',
       padding: 0,
       cursor: 'pointer',
-      fontFamily: 'inherit'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'row-reverse'
-    }
-  }, (order.guests || []).slice(0, 4).map((g, i) => /*#__PURE__*/React.createElement("div", {
-    key: g.id,
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      background: g.isApp ? BYUP_GRAD : g.isWebApp ? WEBAPP_GRAD : '#ebe3d6',
-      color: g.isApp || g.isWebApp ? '#fff' : MUTED,
-      border: '2.5px solid #FBF4F1',
-      marginLeft: -10,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 11.5,
-      fontWeight: 700
-    }
-  }, g.isApp ? /*#__PURE__*/React.createElement(ByupB, {
-    size: 12
-  }) : g.isWebApp ? /*#__PURE__*/React.createElement(WebappDot, {
-    size: 7
-  }) : g.initial || '?')), (order.guests?.length || 0) > 4 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      background: MUTESURF,
-      border: '2.5px solid #FBF4F1',
-      marginLeft: -10,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 11,
-      fontWeight: 700,
-      color: MUTED
-    }
-  }, "+", order.guests.length - 4)), /*#__PURE__*/React.createElement("div", {
-    style: {
+      fontFamily: 'inherit',
       fontSize: 13,
-      color: MUTED,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6
+      color: MUTED
     }
   }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 700,
       color: TEXT
     }
-  }, order.guests?.length || 0), " al tavolo"), /*#__PURE__*/React.createElement("svg", {
+  }, order.guests?.length || 0), " partecipanti"), /*#__PURE__*/React.createElement("svg", {
     width: "11",
     height: "11",
     viewBox: "0 0 24 24",
@@ -32767,7 +32721,7 @@ function PaymentScreen({
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "9 18 15 12 9 6"
-  }))))), /*#__PURE__*/React.createElement("div", {
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',

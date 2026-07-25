@@ -3979,42 +3979,17 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                   <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>
                     Il tavolo
                   </div>
-                  {/* Strip coperti — tap per vedere chi è loggato */}
+                  {/* Partecipanti — tap per vedere chi è loggato */}
                   <button onClick={() => setGuestsOpen(true)} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
+                    display: 'flex', alignItems: 'center', gap: 6,
                     background: 'transparent', border: 'none', padding: 0,
                     cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 13, color: MUTED,
                   }}>
-                    <div style={{ display: 'flex', flexDirection: 'row-reverse' }}>
-                      {/* app → "b" su gradiente brand, webapp → pallino su blu,
-                          ospite non collegato → iniziale su grigio (come in sala) */}
-                      {(order.guests || []).slice(0, 4).map((g, i) => (
-                        <div key={g.id} style={{
-                          width: 30, height: 30, borderRadius: 999,
-                          background: g.isApp ? BYUP_GRAD : g.isWebApp ? WEBAPP_GRAD : '#ebe3d6',
-                          color: (g.isApp || g.isWebApp) ? '#fff' : MUTED,
-                          border: '2.5px solid #FBF4F1', marginLeft: -10,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11.5, fontWeight: 700,
-                        }}>
-                          {g.isApp ? <ByupB size={12}/> : g.isWebApp ? <WebappDot size={7}/> : (g.initial || '?')}
-                        </div>
-                      ))}
-                      {(order.guests?.length || 0) > 4 && (
-                        <div style={{
-                          width: 30, height: 30, borderRadius: 999, background: MUTESURF,
-                          border: '2.5px solid #FBF4F1', marginLeft: -10,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, fontWeight: 700, color: MUTED,
-                        }}>+{order.guests.length - 4}</div>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 13, color: MUTED, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span><span style={{ fontWeight: 700, color: TEXT }}>{(order.guests?.length || 0)}</span> al tavolo</span>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="9 18 15 12 9 6"/>
-                      </svg>
-                    </div>
+                    <span><span style={{ fontWeight: 700, color: TEXT }}>{(order.guests?.length || 0)}</span> partecipanti</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
