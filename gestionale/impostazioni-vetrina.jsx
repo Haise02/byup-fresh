@@ -1239,15 +1239,15 @@ function VetrinaAspetto({ onChange }) {
             <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 12}}>PNG o JPG quadrato · 512×512px</div>
             <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
               {logo ? (
-                <LogoCircle src={logo} size={96}
-                  onReplace={() => setUploadModal('logo')}
-                  onRemove={() => { setLogo(null); onChange && onChange(); }}/>
+                <>
+                  <LogoCircle src={logo} size={96}
+                    onReplace={() => setUploadModal('logo')}
+                    onRemove={() => { setLogo(null); onChange && onChange(); }}/>
+                  <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}>Sostituisci</ImpButton>
+                </>
               ) : (
                 <LogoDropCircle size={96} onClick={() => setUploadModal('logo')}/>
               )}
-              <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}>
-                {logo ? 'Sostituisci' : 'Carica logo'}
-              </ImpButton>
             </div>
           </div>
 
@@ -1368,8 +1368,8 @@ function LogoDropCircle({ onClick, size = 128 }) {
         transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), border-color 150ms ease, background 150ms ease, color 150ms ease',
       }}>
       <div>
-        <PnI.Plus size={18} color={hover ? PN.PINK_DARK : PN.MUTED}/>
-        <div style={{marginTop: 4}}>512×512px</div>
+        <PnI.Plus size={16} color={hover ? PN.PINK_DARK : PN.MUTED}/>
+        <div style={{marginTop: 3, fontSize: 11.5}}>Aggiungi logo</div>
       </div>
     </div>
   );
