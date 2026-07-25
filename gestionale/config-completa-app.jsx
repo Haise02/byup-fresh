@@ -19,12 +19,6 @@ function ConfigCompletaApp() {
   const [categoria, setCategoria] = React.useState('Ristorante');
   const markDirty = () => setDirty(true);
 
-  // Tab interne allo step Aspetto, con contatore campi completati.
-  const [sub, setSub] = React.useState('aspetto');
-  const SUBS = [
-    { id: 'aspetto',  label: 'Aspetto',      done: 1, tot: 2 },
-    { id: 'pubblico', label: 'Social e FAQ', done: 0, tot: 2 },
-  ];
 
   // Checklist di completamento (vive nella colonna anteprima, come nella
   // reference; prima era un banner sopra i form).
@@ -212,34 +206,9 @@ function ConfigCompletaApp() {
                   Il volto della vetrina: foto, stile, social e domande frequenti.
                 </div>
 
-                {/* Tab contate — stessa funzione delle sub-tab Impostazioni */}
-                <div style={{display:'flex', gap: 8, marginBottom: 18, flexWrap:'wrap'}}>
-                  {SUBS.map(s => {
-                    const active = sub === s.id;
-                    return (
-                      <button key={s.id} onClick={() => setSub(s.id)} style={{
-                        display:'flex', alignItems:'center', gap: 8,
-                        padding: '9px 14px', borderRadius: 10,
-                        border: active ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_SOFT}`,
-                        background: active ? PN.PINK_BG_SOFT : PN.WHITE,
-                        cursor: 'pointer', fontFamily: 'inherit',
-                        transition: 'border-color 150ms ease, background 150ms ease',
-                      }}>
-                        <span style={{fontSize: 14, fontWeight: 600, color: active ? PN.PINK_DARK : PN.TEXT}}>
-                          {s.label}
-                        </span>
-                        <span style={{
-                          fontSize: 11.5, fontWeight: 700, padding: '1px 7px', borderRadius: 999,
-                          background: active ? 'rgba(255,255,255,0.75)' : '#F4F5F7',
-                          color: s.done === s.tot ? PN.GREEN : PN.MUTED,
-                        }}>{s.done}/{s.tot}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {sub === 'aspetto' && <VetrinaAspetto onChange={markDirty}/>}
-                {sub === 'pubblico' && <VetrinaPubblico social={social} setSocial={s => {setSocial(s); markDirty();}} onChange={markDirty}/>}
+                {/* Tab fuse: foto e stile, poi social e FAQ, in un'unica pagina */}
+                <VetrinaAspetto onChange={markDirty}/>
+                <VetrinaPubblico social={social} setSocial={s => {setSocial(s); markDirty();}} onChange={markDirty}/>
 
                 <div style={{
                   display:'flex', alignItems:'center', gap: 8, marginTop: 14,
@@ -351,7 +320,7 @@ function ConfigCompletaApp() {
                 header + publish + phone chiudano nei 900px del canvas. */}
             <div style={{width: 340, margin: '0 auto', flexShrink: 0}}>
               <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
-                focusSection={step === 'informazioni' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>
+                focusSection={step === 'informazioni' ? 'info' : 'gallery'}/>
             </div>
           </div>
         </aside>

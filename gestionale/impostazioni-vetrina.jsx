@@ -473,7 +473,7 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
                     alignSelf: 'flex-start', background: 'transparent', border: 'none',
                     padding: '2px 0', color: PN.PINK, fontSize: 13, fontWeight: 600,
                     cursor: 'pointer', fontFamily: 'inherit',
-                  }}>+ Aggiungi turno</button>
+                  }}>+ Aggiungi fascia oraria</button>
                 )}
               </div>
             </div>
@@ -1122,12 +1122,18 @@ function VetrinaAspetto({ onChange }) {
 
       <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti — consigliate min. 5 foto">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
-          {[1,2,3].map(i => (
+          {[
+            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop',
+          ].map((src, i) => (
             <div key={i} style={{
-              aspectRatio:'1', borderRadius: 10,
-              background: `linear-gradient(135deg, hsl(${i*60} 30% 70%), hsl(${i*60+30} 40% 60%))`,
-              position:'relative',
+              aspectRatio:'1', borderRadius: 10, overflow:'hidden',
+              position:'relative', background:'#EDEAE4',
             }}>
+              <img src={src} alt="" loading="lazy"
+                style={{width:'100%', height:'100%', objectFit:'cover', display:'block'}}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
               <button style={{
                 position:'absolute', top:6, right:6,
                 width: 24, height:24, borderRadius:6,
@@ -1149,40 +1155,6 @@ function VetrinaAspetto({ onChange }) {
           </div>
         </div>
       </ImpCard>
-
-      {/* Vetrine tematiche: concetto avanzato — contratto, non in mezzo al
-          flusso base (Miller: un chunk in meno da tenere a mente). */}
-      <CollapsibleCard title="Le tue vetrine" sub="Vetrine tematiche per occasioni speciali — una sola è pubblicata"
-        action={<ImpButton variant="ghost" icon={<PnI.Plus size={13}/>}>Nuova</ImpButton>}>
-        {[
-          {name:'Vetrina principale', active: true, sub:'Sempre visibile'},
-          {name:'San Valentino', active: false, sub:'Bozza'},
-          {name:'Vetrina estate', active: false, sub:'Bozza · ultima modifica 2 mesi fa'},
-        ].map((v, i) => (
-          <div key={i} style={{
-            display:'flex', alignItems:'center', gap: 12,
-            padding: '14px 16px',
-            border:`1.5px solid ${v.active ? PN.PINK : PN.BORDER_SOFT}`,
-            background: v.active ? PN.PINK_SOFT : PN.WHITE,
-            borderRadius: 10, marginBottom: 8,
-          }}>
-            <span style={{
-              width:18, height:18, borderRadius:'50%',
-              border: `1.5px solid ${v.active ? PN.PINK : PN.BORDER}`,
-              background: PN.WHITE,
-              display:'grid', placeItems:'center',
-            }}>
-              {v.active && <span style={{width:9, height:9, borderRadius:'50%', background:PN.PINK}}/>}
-            </span>
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:15.5, fontWeight:600}}>{v.name}</div>
-              <div style={{fontSize:13, color:PN.MUTED, marginTop:1}}>{v.sub}</div>
-            </div>
-            {v.active && <span style={{fontSize:13, fontWeight:700, color:PN.PINK_DARK, letterSpacing:0.4}}>PUBBLICATA</span>}
-            <ImpButton variant="ghost" style={{padding:'6px 12px', fontSize:14}}>Modifica</ImpButton>
-          </div>
-        ))}
-      </CollapsibleCard>
     </div>
   );
 }
