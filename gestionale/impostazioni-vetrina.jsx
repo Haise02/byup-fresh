@@ -118,6 +118,19 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
   };
   // Popup certificazioni: null | {mode:'new'} | {mode:'rifiutata', name, reason}
   const [certModal, setCertModal] = React.useState(null);
+  // Sedi collegate: attiva | attesa (in attesa di conferma del proprietario).
+  const [sedi, setSedi] = React.useState([
+    { name: 'Sede principale', addr: 'Via Roma 13, Roma', status: 'attiva',
+      photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop' },
+    { name: 'Sede Parioli', addr: 'Viale Parioli 23, Roma', status: 'attesa',
+      photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=70&auto=format&fit=crop' },
+  ]);
+  const [sedeModal, setSedeModal] = React.useState(false);
+  const addSede = (v) => {
+    setSedi(s => [...s, { name: v.name, addr: v.addr, status: 'attesa', photo: v.photo }]);
+    onChange && onChange();
+  };
+  const removeSede = (name) => setSedi(s => s.filter(x => x.name !== name));
   // Eccezioni orario per giorno: chiuse di default (Hick — prima 6 righe
   // di input duplicate sempre visibili).
   const [customHoursOpen, setCustomHoursOpen] = React.useState(false);
@@ -310,47 +323,13 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         }`}</style>
       </CollapsibleCard>
 
-      <CollapsibleCard title="Sedi" sub="Aggiungi sedi secondarie del tuo locale"
-        action={<AnimatedAddButton>Aggiungi sede</AnimatedAddButton>}>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-          {[
-            {name:'Sede principale', addr:'Via Roma 13, Roma', status:'Attiva', sc:PN.GREEN, bg:PN.GREEN_SOFT,
-             photo:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=640&q=70&auto=format&fit=crop'},
-            {name:'Sede Parioli', addr:'Viale Parioli 23, Roma', status:'In verifica', sc:PN.AMBER, bg:PN.AMBER_SOFT,
-             photo:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=640&q=70&auto=format&fit=crop'},
-          ].map((s,i) => (
-            <div key={i} style={{
-              border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow:'hidden',
-              background: PN.WHITE,
-            }}>
-              {/* Foto placeholder della sede, con lo stato in overlay */}
-              <div style={{height: 96, position:'relative', background:'#EDEAE4'}}>
-                <img src={s.photo} alt="" loading="lazy"
-                  style={{width:'100%', height:'100%', objectFit:'cover', display:'block'}}
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
-                <span style={{
-                  position:'absolute', top: 8, right: 8,
-                  fontSize: 12.5, fontWeight: 700,
-                  padding:'3px 9px', borderRadius: 999,
-                  background: s.bg, color: s.sc,
-                  boxShadow: '0 1px 4px rgba(15,17,21,0.15)',
-                }}>● {s.status}</span>
-              </div>
-              <div style={{padding: '12px 14px'}}>
-                <div style={{fontSize: 15.5, fontWeight: 700}}>{s.name}</div>
-                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{s.addr}</div>
-                <div style={{display:'flex', gap: 6, marginTop: 10}}>
-                  <ImpButton variant="ghost" style={{flex:1, justifyContent:'center', padding:'6px 10px', fontSize: 13.5}}>Modifica</ImpButton>
-                  <button style={{
-                    padding:'6px 10px', flex:1,
-                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                    border:'none', borderRadius: 8,
-                    fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                  }}>Rimuovi</button>
-                </div>
-              </div>
-            </div>
-          ))}
+      <CollapsibleCard title="Sedi" sub="Le sedi collegate al tuo locale">
+        {/* Card compatte + tile 'Aggiungi sede': l'azione vive nella griglia,
+            niente CTA nel header. Rimuovi per le attive, Annulla per quelle
+            in attesa; nessun Modifica. */}
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10}}>
+          {sedi.map(s => <SedeCard key={s.name} sede={s} onRemove={() => removeSede(s.name)}/>)}
+          <AddSedeTile onClick={() => setSedeModal(true)}/>
         </div>
       </CollapsibleCard>
 
@@ -368,6 +347,12 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
       </CollapsibleCard>
 
       {certModal && <CertUploadModal ctx={certModal} onClose={() => setCertModal(null)}/>}
+      {sedeModal && (
+        <SedeSearchModal
+          existing={sedi.map(s => s.name)}
+          onClose={() => setSedeModal(false)}
+          onAdd={(v) => { addSede(v); setSedeModal(false); }}/>
+      )}
     </div>
   );
 }
@@ -495,34 +480,193 @@ function CatTile({ cat, active, onPick }) {
   );
 }
 
-// Bottone "Aggiungi sede" — animato: lift con molla in hover e "+" che ruota.
-function AnimatedAddButton({ children, onClick }) {
+// ─── Sedi: card compatta, tile aggiungi e popup di ricerca ──────────────────
+
+function SedeCard({ sede, onRemove }) {
+  const attesa = sede.status === 'attesa';
+  return (
+    <div style={{
+      border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
+      background: PN.WHITE, padding: 10,
+      display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0,
+    }}>
+      <div style={{display: 'flex', gap: 9, alignItems: 'center', minWidth: 0}}>
+        <img src={sede.photo} alt="" loading="lazy"
+          style={{width: 42, height: 42, borderRadius: 9, objectFit: 'cover', flexShrink: 0, background: '#EDEAE4'}}
+          onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}/>
+        <div style={{minWidth: 0}}>
+          <div style={{fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.name}</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.addr}</div>
+        </div>
+      </div>
+      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8}}>
+        {attesa ? (
+          <span style={{display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: PN.MUTED, background: '#F4F5F7', padding: '3px 9px', borderRadius: 999}}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            In attesa
+          </span>
+        ) : (
+          <span style={{fontSize: 12, fontWeight: 700, color: PN.GREEN, background: PN.GREEN_SOFT, padding: '3px 9px', borderRadius: 999}}>● Attiva</span>
+        )}
+        <button onClick={onRemove} style={{
+          background: 'transparent', border: 'none', padding: '3px 4px',
+          fontSize: 12.5, fontWeight: 600, color: PN.RED,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>{attesa ? 'Annulla' : 'Rimuovi'}</button>
+      </div>
+    </div>
+  );
+}
+
+function AddSedeTile({ onClick }) {
   const [hover, setHover] = React.useState(false);
   return (
     <button onClick={onClick}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7,
-        padding: '9px 16px', borderRadius: 10,
-        border: '1px solid rgba(180, 30, 35, 0.40)',
-        background: hover
-          ? 'linear-gradient(180deg, #FF6E73 0%, #F04A4F 100%)'
-          : 'linear-gradient(180deg, #FF6A6F 0%, #FF5A5F 100%)',
-        color: '#fff', fontSize: 14.5, fontWeight: 600, fontFamily: 'inherit',
-        cursor: 'pointer',
-        transform: hover ? 'translateY(-2px) scale(1.04)' : 'none',
-        boxShadow: hover
-          ? '0 10px 22px -6px rgba(255, 90, 95, 0.55), inset 0 1px 0 rgba(255,255,255,0.35)'
-          : '0 1px 2px rgba(255, 90, 95, 0.18), inset 0 1px 0 rgba(255,255,255,0.35)',
-        transition: 'transform 220ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 220ms ease, background 150ms ease',
+        border: `2px dashed ${hover ? PN.PINK : PN.BORDER}`,
+        borderRadius: 12, background: hover ? PN.PINK_SOFT : 'transparent',
+        cursor: 'pointer', fontFamily: 'inherit', minHeight: 92,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+        color: hover ? PN.PINK_DARK : PN.MUTED,
+        transform: hover ? 'translateY(-1px)' : 'none',
+        transition: 'border-color 150ms ease, background 150ms ease, color 150ms ease, transform 180ms ease',
       }}>
-      <span style={{
-        display: 'inline-flex',
-        transform: hover ? 'rotate(90deg)' : 'none',
-        transition: 'transform 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
-      }}><PnI.Plus size={13}/></span>
-      {children}
+      <PnI.Plus size={16}/>
+      <span style={{fontSize: 13.5, fontWeight: 700}}>Aggiungi sede</span>
     </button>
+  );
+}
+
+// Anagrafica dei locali cercabili nel popup (mock del registro byup).
+const SEDE_DIRECTORY = [
+  { name: 'Cacio e Pepe — Trastevere', addr: 'Via della Lungaretta 10, Roma',
+    photo: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=400&q=70&auto=format&fit=crop' },
+  { name: 'Cacio e Pepe — Prati', addr: 'Via dei Gracchi 56, Roma',
+    photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop' },
+  { name: 'Osteria del Ponte', addr: 'Lungotevere degli Anguillara 3, Roma',
+    photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop' },
+  { name: 'Trattoria Lucia', addr: 'Via della Scala 23, Roma',
+    photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&q=70&auto=format&fit=crop' },
+  { name: 'Al Settembrini', addr: 'Via Luigi Settembrini 25, Roma',
+    photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=70&auto=format&fit=crop' },
+  { name: 'Da Michele', addr: 'Via Sforza Cesarini 6, Roma',
+    photo: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=70&auto=format&fit=crop' },
+];
+
+// Popup aggiungi sede: cerca il locale → seleziona (spunta) → conferma con
+// avviso email al proprietario → la sede entra "In attesa".
+function SedeSearchModal({ existing = [], onClose, onAdd }) {
+  const [q, setQ] = React.useState('');
+  const [sel, setSel] = React.useState(null);
+  const [phase, setPhase] = React.useState('search'); // 'search' | 'confirm'
+  const results = SEDE_DIRECTORY
+    .filter(v => !existing.includes(v.name))
+    .filter(v => !q.trim() || v.name.toLowerCase().includes(q.toLowerCase()) || v.addr.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 80,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 480, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '20px 22px',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        {phase === 'search' ? (
+          <>
+            <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
+              <div style={{flex: 1, minWidth: 0}}>
+                <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Aggiungi sede</div>
+                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>Cerca il locale nel registro byup e collegalo come sede.</div>
+              </div>
+              <button onClick={onClose} style={{
+                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                border: 'none', background: '#F4F5F7', color: PN.TEXT,
+                cursor: 'pointer', display: 'grid', placeItems: 'center',
+              }}><PnI.X size={13}/></button>
+            </div>
+
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '9px 12px', background: '#F4F5F7', borderRadius: 10, marginBottom: 10,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+              <input autoFocus value={q} onChange={e => setQ(e.target.value)}
+                placeholder="Cerca il nome del locale…"
+                style={{flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: 'inherit', fontSize: 14.5}}/>
+            </div>
+
+            <div style={{maxHeight: 250, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14}}>
+              {results.map(v => {
+                const on = sel && sel.name === v.name;
+                return (
+                  <button key={v.name} onClick={() => setSel(on ? null : v)} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                    padding: '9px 10px', borderRadius: 10, fontFamily: 'inherit', cursor: 'pointer',
+                    border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
+                    background: on ? PN.PINK_SOFT : PN.WHITE,
+                    transition: 'border-color 150ms ease, background 150ms ease',
+                  }}>
+                    <img src={v.photo} alt="" loading="lazy" style={{width: 38, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: '#EDEAE4'}}/>
+                    <span style={{flex: 1, minWidth: 0}}>
+                      <span style={{display: 'block', fontSize: 14, fontWeight: 700, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{v.name}</span>
+                      <span style={{display: 'block', fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{v.addr}</span>
+                    </span>
+                    <span style={{
+                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                      background: on ? PN.PINK : 'transparent',
+                      border: on ? 'none' : `1.5px solid ${PN.BORDER}`,
+                      display: 'grid', placeItems: 'center',
+                    }}>
+                      {on && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </span>
+                  </button>
+                );
+              })}
+              {results.length === 0 && (
+                <div style={{padding: '18px 0', textAlign: 'center', fontSize: 13.5, color: PN.MUTED}}>
+                  Nessun locale trovato per “{q}”.
+                </div>
+              )}
+            </div>
+
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
+              <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+              <ImpButton variant="primary" onClick={() => sel && setPhase('confirm')} disabled={!sel}>Aggiungi sede</ImpButton>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, margin: '4px auto 12px',
+              background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+              display: 'grid', placeItems: 'center',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg>
+            </div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, textAlign: 'center'}}>Confermi il collegamento?</div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.5, textAlign: 'center'}}>
+              Invieremo un'email al profilo proprietario di <b style={{color: PN.TEXT}}>{sel.name}</b> per
+              autorizzare il collegamento. La sede resterà <b style={{color: PN.TEXT}}>in attesa</b> finché
+              non verrà confermata.
+            </div>
+            <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
+              <ImpButton variant="ghost" onClick={() => setPhase('search')}>Indietro</ImpButton>
+              <ImpButton variant="primary" onClick={() => onAdd(sel)}>Conferma e invia</ImpButton>
+            </div>
+          </>
+        )}
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
+    </div>
   );
 }
 
