@@ -1109,34 +1109,85 @@ function CollapsibleCard({ title, sub, action, children, defaultOpen = false }) 
 // ─── Aspetto (logo + vetrine + galleria) ────────────────────────────────────
 
 function VetrinaAspetto({ onChange }) {
+  const GALLERY_MAX = 5;
+  const [photos, setPhotos] = React.useState([
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop',
+  ]);
+  const [logo, setLogo] = React.useState(null);
+  const [uploadModal, setUploadModal] = React.useState(null); // null | 'gallery' | 'logo'
+  // Limite 5 foto: il sesto tentativo accende e scuote la riga-guida (come i tag).
+  const [galleryLimitHit, setGalleryLimitHit] = React.useState(false);
+  const hitLimit = () => {
+    setGalleryLimitHit(true);
+    clearTimeout(hitLimit._t);
+    hitLimit._t = setTimeout(() => setGalleryLimitHit(false), 1500);
+  };
+  const openGalleryUpload = () => {
+    if (photos.length >= GALLERY_MAX) { hitLimit(); return; }
+    setUploadModal('gallery');
+  };
+  const addPhoto = (src) => {
+    setPhotos(p => p.length >= GALLERY_MAX ? p : [...p, src]);
+    setUploadModal(null);
+    onChange && onChange();
+  };
+  const removePhoto = (i) => { setPhotos(p => p.filter((_, j) => j !== i)); onChange && onChange(); };
+
   return (
     <div>
-      {/* Niente wash aurora: l'accento decorativo attirava l'occhio più dei
-          contenuti. Le due card primarie (logo, galleria) restano neutre. */}
-      <ImpCard title="Logo del tuo locale" sub="PNG o JPG, formato quadrato consigliato, max 5MB">
-        <div style={{
-          padding: 32, border:`2px dashed ${PN.BORDER}`, borderRadius: 12,
-          textAlign:'center', background:'#FAFBFC',
-        }}>
-          <div style={{fontSize:16, color:PN.MUTED, marginBottom: 12}}>Trascina o clicca per caricare</div>
-          <ImpButton variant="ghost">Carica logo</ImpButton>
-        </div>
+      <ImpCard title="Logo del tuo locale" sub="PNG o JPG quadrato · consigliato 512×512px · max 5MB">
+        {logo ? (
+          <div style={{display:'flex', alignItems:'center', gap: 14}}>
+            <div style={{position:'relative', width: 88, height: 88}}>
+              <MediaThumb src={logo} radius={14}/>
+              <button title="Rimuovi logo" onClick={() => { setLogo(null); onChange && onChange(); }} style={{
+                position:'absolute', top:-9, right:-9,
+                width: 27, height:27, borderRadius:'50%',
+                background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
+                boxShadow:'0 3px 10px rgba(15,17,21,0.20)',
+                color: PN.RED, cursor:'pointer', display:'grid', placeItems:'center',
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>
+                </svg>
+              </button>
+            </div>
+            <div>
+              <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>Logo caricato</div>
+              <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, marginBottom: 8}}>Apparirà sulla vetrina e sulle ricevute.</div>
+              <ImpButton variant="ghost" onClick={() => setUploadModal('logo')} style={{padding:'6px 12px', fontSize: 13.5}}>Sostituisci</ImpButton>
+            </div>
+          </div>
+        ) : (
+          <div onClick={() => setUploadModal('logo')} style={{
+            padding: 32, border:`2px dashed ${PN.BORDER}`, borderRadius: 12,
+            textAlign:'center', background:'#FAFBFC', cursor: 'pointer',
+          }}>
+            <div style={{fontSize:16, color:PN.MUTED, marginBottom: 12}}>Trascina o clicca per caricare · 512×512px</div>
+            <ImpButton variant="ghost" onClick={(e) => { e.stopPropagation(); setUploadModal('logo'); }}>Carica logo</ImpButton>
+          </div>
+        )}
       </ImpCard>
 
-      <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti. Consigliate min. 5 foto">
+      <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti · JPG o PNG, consigliato 1600×1200px">
+        {/* Riga-guida col limite: si accende e scuote al sesto tentativo */}
+        <div style={{
+          fontSize: 13.5, fontWeight: 600, marginBottom: 10,
+          color: galleryLimitHit ? PN.RED : PN.MUTED,
+          animation: galleryLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
+          transition: 'color 150ms ease',
+        }}>
+          Massimo 5 immagini · {photos.length}/5 caricate
+        </div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
-          {[
-            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop',
-          ].map((src, i) => (
+          {photos.map((src, i) => (
             /* Cestino rosso a cavallo dell'angolo alto-dx: wrapper senza
                clipping, la foto arrotonda per conto suo. */
             <div key={i} style={{aspectRatio:'1', position:'relative'}}>
-              <img src={src} alt="" loading="lazy"
-                style={{width:'100%', height:'100%', objectFit:'cover', display:'block', borderRadius: 10, background:'#EDEAE4'}}
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
-              <button title="Elimina foto" style={{
+              <MediaThumb src={src} radius={10}/>
+              <button title="Elimina foto" onClick={() => removePhoto(i)} style={{
                 position:'absolute', top:-9, right:-9,
                 width: 27, height:27, borderRadius:'50%',
                 background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
@@ -1150,7 +1201,7 @@ function VetrinaAspetto({ onChange }) {
               </button>
             </div>
           ))}
-          <div style={{
+          <div onClick={openGalleryUpload} style={{
             aspectRatio:'1', borderRadius: 10,
             border:`2px dashed ${PN.BORDER}`,
             display:'grid', placeItems:'center',
@@ -1162,7 +1213,124 @@ function VetrinaAspetto({ onChange }) {
             </div>
           </div>
         </div>
+        <style>{`@keyframes tag-limit-shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-5px); } 40% { transform: translateX(5px); }
+          60% { transform: translateX(-3px); } 80% { transform: translateX(3px); }
+        }`}</style>
       </ImpCard>
+
+      {uploadModal && (
+        <MediaUploadModal
+          kind={uploadModal}
+          onClose={() => setUploadModal(null)}
+          onPick={(src) => uploadModal === 'logo'
+            ? (setLogo(src), setUploadModal(null), onChange && onChange())
+            : addPhoto(src)}/>
+      )}
+    </div>
+  );
+}
+
+// Thumbnail con l'indicazione dei pixel reali (letti a caricamento avvenuto).
+function MediaThumb({ src, radius = 10 }) {
+  const [dim, setDim] = React.useState(null);
+  return (
+    <>
+      <img src={src} alt="" loading="lazy"
+        onLoad={e => setDim([e.target.naturalWidth, e.target.naturalHeight])}
+        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        style={{width:'100%', height:'100%', objectFit:'cover', display:'block', borderRadius: radius, background:'#EDEAE4'}}/>
+      {dim && (
+        <span style={{
+          position:'absolute', left: 6, bottom: 6,
+          fontSize: 10.5, fontWeight: 700, color: '#fff',
+          background: 'rgba(15, 17, 21, 0.62)', padding: '2px 7px', borderRadius: 999,
+          pointerEvents: 'none', letterSpacing: 0.3,
+        }}>{dim[0]}×{dim[1]}px</span>
+      )}
+    </>
+  );
+}
+
+// Popup di caricamento condiviso (logo e galleria): trascina dentro il file
+// o sfoglia dalla scrivania. Indica formato e pixel consigliati.
+function MediaUploadModal({ kind, onClose, onPick }) {
+  const isLogo = kind === 'logo';
+  const inputRef = React.useRef(null);
+  const [dragOver, setDragOver] = React.useState(false);
+  const handleFiles = (files) => {
+    const f = files && files[0];
+    if (!f || !f.type || !f.type.startsWith('image/')) return;
+    const r = new FileReader();
+    r.onload = () => onPick(r.result);
+    r.readAsDataURL(f);
+  };
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 80,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 460, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '20px 22px',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>
+              {isLogo ? 'Carica il logo' : 'Aggiungi foto alla galleria'}
+            </div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
+              {isLogo
+                ? 'PNG o JPG quadrato · consigliato 512×512px · max 5MB'
+                : 'JPG o PNG · consigliato 1600×1200px · max 10MB'}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            border: 'none', background: '#F4F5F7', color: PN.TEXT,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}><PnI.X size={13}/></button>
+        </div>
+
+        <div
+          onClick={() => inputRef.current && inputRef.current.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+          style={{
+            padding: '34px 16px', borderRadius: 12, cursor: 'pointer',
+            border: `2px dashed ${dragOver ? PN.PINK : PN.BORDER}`,
+            background: dragOver ? PN.PINK_SOFT : '#FAFBFC',
+            textAlign: 'center',
+            transition: 'border-color 150ms ease, background 150ms ease',
+          }}>
+          <div style={{color: PN.MUTED, marginBottom: 8, display: 'flex', justifyContent: 'center'}}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+            </svg>
+          </div>
+          <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>
+            {dragOver ? 'Rilascia qui per caricare' : 'Trascina qui l\'immagine'}
+          </div>
+          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>oppure clicca per sfogliare dalla scrivania</div>
+          <input ref={inputRef} type="file" accept="image/*" style={{display: 'none'}}
+            onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}/>
+        </div>
+
+        <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: 14}}>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
     </div>
   );
 }
