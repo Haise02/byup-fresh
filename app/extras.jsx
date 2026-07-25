@@ -1128,10 +1128,10 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
               <button className="bk-press" onClick={() => setConfirmLogout(true)} style={{
-                padding: '10px 32px', background: 'rgba(227,36,89,.08)',
-                border: '1.5px solid rgba(227,36,89,.3)', borderRadius: 999,
+                padding: '8px 12px', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13.5, fontWeight: 700, color: PINK_X,
+                fontSize: 13.5, fontWeight: 500, color: MUTED_X,
+                textDecoration: 'underline', textUnderlineOffset: 3,
               }}>Esci</button>
             </div>
 
@@ -1649,7 +1649,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
               <RowKV k="Locale" v={venue?.name || editBooking?.venue || 'Ristorante'}/>
               <RowKV k="Data" v={date}/>
               <RowKV k="Orario" v={time}/>
-              <RowKV k="Coperti" v={people}/>
+              <RowKV k="Partecipanti" v={people}/>
               <RowKV k="A nome di" v={name}/>
               {note && <RowKV k="Note" v={note}/>}
             </div>

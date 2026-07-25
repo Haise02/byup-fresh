@@ -495,7 +495,7 @@ function VenueC({ onBack, onMenu, onBook }) {
           </div>
           {/* People selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Coperti:</span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Partecipanti:</span>
             <div style={{ display: 'flex', gap: 6 }}>
               {[2,3,4,6].map(n => (
                 <button key={n} onClick={() => setPeople(n)} style={{

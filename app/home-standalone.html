@@ -4194,15 +4194,16 @@ function ProfileScreen({
     className: "bk-press",
     onClick: () => setConfirmLogout(true),
     style: {
-      padding: '10px 32px',
-      background: 'rgba(227,36,89,.08)',
-      border: '1.5px solid rgba(227,36,89,.3)',
-      borderRadius: 999,
+      padding: '8px 12px',
+      background: 'none',
+      border: 'none',
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 13.5,
-      fontWeight: 700,
-      color: PINK_X
+      fontWeight: 500,
+      color: MUTED_X,
+      textDecoration: 'underline',
+      textUnderlineOffset: 3
     }
   }, "Esci"))), view === 'account' && /*#__PURE__*/React.createElement("div", {
     className: "acct-view-x",
@@ -5350,7 +5351,7 @@ function BookingSheet({
     k: "Orario",
     v: time
   }), /*#__PURE__*/React.createElement(RowKV, {
-    k: "Coperti",
+    k: "Partecipanti",
     v: people
   }), /*#__PURE__*/React.createElement(RowKV, {
     k: "A nome di",
@@ -17258,7 +17259,7 @@ function BookingHomeCard({
     d: "M23 21v-2a4 4 0 0 0-3-3.87"
   }), /*#__PURE__*/React.createElement("path", {
     d: "M16 3.13a4 4 0 0 1 0 7.75"
-  })), booking.people, " coperti"), /*#__PURE__*/React.createElement("button", {
+  })), booking.people, " partecipanti"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setExpanded(!expanded),
     style: {
       width: 30,
@@ -17335,7 +17336,7 @@ function BookingHomeCard({
     style: {
       fontWeight: 700
     }
-  }, "Quando arrivi al locale"), ", scansiona il QR sul tavolo per associarti e ordinare dall'app insieme ai tuoi coperti."), /*#__PURE__*/React.createElement("div", {
+  }, "Quando arrivi al locale"), ", scansiona il QR sul tavolo per associarti e ordinare dall'app insieme agli altri partecipanti."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -31412,7 +31413,7 @@ function ActiveOrderCard({
       d: "M23 21v-2a4 4 0 0 0-3-3.87"
     }), /*#__PURE__*/React.createElement("path", {
       d: "M16 3.13a4 4 0 0 1 0 7.75"
-    })), covers, " coperti"), /*#__PURE__*/React.createElement("button", {
+    })), covers, " partecipanti"), /*#__PURE__*/React.createElement("button", {
       onClick: () => setExpanded(!expanded),
       style: {
         width: 30,
@@ -32382,7 +32383,7 @@ function GuestsSheet({
       fontWeight: 800,
       color: TEXT
     }
-  }, totalCoperti), " ", totalCoperti === 1 ? 'coperto' : 'coperti'), appCount > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+  }, totalCoperti), " ", totalCoperti === 1 ? 'partecipante' : 'partecipanti'), appCount > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
     style: {
       color: '#cfc8b9'
     }

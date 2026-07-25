@@ -1719,7 +1719,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              {covers} coperti
+              {covers} partecipanti
             </button>
             <button onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
               aria-label={expanded ? 'Comprimi riepilogo' : 'Espandi riepilogo'} style={{
@@ -1913,7 +1913,7 @@ function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGue
           <div>
             <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.3 }}>Al tavolo</div>
             <div style={{ fontSize: 12.5, color: MUTED, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span><span style={{ fontWeight: 800, color: TEXT }}>{totalCoperti}</span> {totalCoperti === 1 ? 'coperto' : 'coperti'}</span>
+              <span><span style={{ fontWeight: 800, color: TEXT }}>{totalCoperti}</span> {totalCoperti === 1 ? 'partecipante' : 'partecipanti'}</span>
               {appCount > 0 && (
                 <>
                   <span style={{ color: '#cfc8b9' }}>·</span>
