@@ -621,17 +621,20 @@ function CatTile({ cat, active, onPick }) {
 function SedeCard({ sede, onRemove }) {
   const attesa = sede.status === 'attesa';
   return (
-    /* Foto a tutta altezza sulla sinistra: la card è un blocco fotografico,
-       non una lista con thumbnail francobollo. */
+    /* Foto orizzontale in testa + ombra: la card si stacca dal fondo invece
+       di confondersi nel bianco. */
     <div style={{
       border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
       background: PN.WHITE, overflow: 'hidden',
-      display: 'flex', minWidth: 0, minHeight: 96,
+      boxShadow: '0 4px 14px rgba(15, 17, 21, 0.08), 0 1px 3px rgba(15, 17, 21, 0.05)',
+      display: 'flex', flexDirection: 'column', minWidth: 0,
     }}>
-      <img src={sede.photo} alt="" loading="lazy"
-        style={{width: 64, alignSelf: 'stretch', objectFit: 'cover', flexShrink: 0, background: '#EDEAE4', display: 'block'}}
-        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}/>
-      <div style={{flex: 1, minWidth: 0, padding: '10px 11px', display: 'flex', flexDirection: 'column'}}>
+      <div style={{height: 76, background: '#EDEAE4', flexShrink: 0}}>
+        <img src={sede.photo} alt="" loading="lazy"
+          style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}
+          onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}/>
+      </div>
+      <div style={{flex: 1, minWidth: 0, padding: '9px 11px 8px', display: 'flex', flexDirection: 'column'}}>
         {/* Badge di stato a fianco del nome, sulla stessa riga */}
         <div style={{display: 'flex', alignItems: 'center', gap: 6, minWidth: 0}}>
           <span style={{fontSize: 13.5, fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.name}</span>
