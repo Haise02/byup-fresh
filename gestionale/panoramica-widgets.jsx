@@ -435,10 +435,12 @@ function WidgetRiempimento({ size }) {
         paddingTop: sideBySide ? 0 : 10,
         paddingLeft: sideBySide ? 18 : 0,
       }}>
-        {/* Header corto, senza il "picco" a destra: il picco parla da sé —
-            valore ed etichetta in bold sulla barra corallo. */}
-        <div style={{display:'flex', alignItems:'baseline', marginBottom: 8, minWidth: 0}}>
-          <div style={{fontSize:12, color: PN.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap'}}>Fasce orarie</div>
+        {/* Header esplicito sulla metrica: ogni barra è il tasso di
+            occupazione dei tavoli in quella fascia (non una quota del
+            flusso totale — per questo non sommano a 100%). */}
+        <div style={{display:'flex', alignItems:'baseline', gap: 8, marginBottom: 8, minWidth: 0}}>
+          <div style={{fontSize:12, color: PN.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap'}}>Occupazione per fascia</div>
+          <div style={{fontSize:11.5, color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth: 0}}>% tavoli occupati</div>
         </div>
         <div style={{flex:1, display:'flex', alignItems:'stretch', gap: 6}}>
           {(() => {
