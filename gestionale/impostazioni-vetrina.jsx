@@ -1130,19 +1130,24 @@ function VetrinaAspetto({ onChange }) {
             'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop',
             'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop',
           ].map((src, i) => (
-            <div key={i} style={{
-              aspectRatio:'1', borderRadius: 10, overflow:'hidden',
-              position:'relative', background:'#EDEAE4',
-            }}>
+            /* Cestino rosso a cavallo dell'angolo alto-dx: wrapper senza
+               clipping, la foto arrotonda per conto suo. */
+            <div key={i} style={{aspectRatio:'1', position:'relative'}}>
               <img src={src} alt="" loading="lazy"
-                style={{width:'100%', height:'100%', objectFit:'cover', display:'block'}}
+                style={{width:'100%', height:'100%', objectFit:'cover', display:'block', borderRadius: 10, background:'#EDEAE4'}}
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
-              <button style={{
-                position:'absolute', top:6, right:6,
-                width: 24, height:24, borderRadius:6,
-                background:'rgba(0,0,0,0.5)', border:'none', color:'#fff',
-                cursor:'pointer', display:'grid', placeItems:'center',
-              }}><PnI.X size={12}/></button>
+              <button title="Elimina foto" style={{
+                position:'absolute', top:-9, right:-9,
+                width: 27, height:27, borderRadius:'50%',
+                background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
+                boxShadow:'0 3px 10px rgba(15,17,21,0.20)',
+                color: PN.RED, cursor:'pointer',
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>
+                </svg>
+              </button>
             </div>
           ))}
           <div style={{
@@ -1166,35 +1171,94 @@ function VetrinaAspetto({ onChange }) {
 
 function VetrinaPubblico({ social, setSocial, onChange }) {
   const toggleSocial = (k) => setSocial(social.includes(k) ? social.filter(x => x !== k) : [...social, k]);
-  const faqs = [
-    'Avete prodotti senza glutine?',
-    'Fate asporto?',
-    'Organizzate feste di compleanno?',
-  ];
+  // FAQ reali: crea dal popup, riordina col drag, modifica, elimina con conferma.
+  const [faqs, setFaqs] = React.useState([
+    { id: 'f1', q: 'Avete prodotti senza glutine?', a: 'Sì, abbiamo un menù dedicato preparato in area separata.' },
+    { id: 'f2', q: 'Fate asporto?', a: 'Sì, tutti i piatti del menù sono disponibili da asporto.' },
+    { id: 'f3', q: 'Organizzate feste di compleanno?', a: 'Certo: menù dedicati e sala riservata, contattaci.' },
+  ]);
+  const [faqModal, setFaqModal] = React.useState(null);     // null | {mode:'new'} | {mode:'edit', faq}
+  const [faqConfirm, setFaqConfirm] = React.useState(null); // faq da eliminare
+  const [dragFaq, setDragFaq] = React.useState(null);
+  const [overFaq, setOverFaq] = React.useState(null);
+  const saveFaq = (draft) => {
+    if (draft.id) setFaqs(fs => fs.map(f => f.id === draft.id ? draft : f));
+    else setFaqs(fs => [...fs, { ...draft, id: `f${Date.now()}` }]);
+    setFaqModal(null);
+    onChange && onChange();
+  };
+  const deleteFaq = (id) => {
+    setFaqs(fs => fs.filter(f => f.id !== id));
+    setFaqConfirm(null);
+    onChange && onChange();
+  };
+  const reorderFaq = (fromId, toId) => {
+    if (!fromId || fromId === toId) return;
+    setFaqs(fs => {
+      const next = [...fs];
+      const from = next.findIndex(f => f.id === fromId);
+      const to = next.findIndex(f => f.id === toId);
+      if (from < 0 || to < 0) return fs;
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    onChange && onChange();
+  };
   return (
     <div>
       <ImpCard title="Domande frequenti" sub="Aiuta i clienti a trovare risposte rapide. Crea, ordina e modifica le FAQ" action={
-        <ImpButton variant="primary" icon={<PnI.Plus size={13}/>}>Nuova FAQ</ImpButton>
+        <ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => setFaqModal({mode: 'new'})}>Nuova FAQ</ImpButton>
       }>
         <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-          {faqs.map((q,i) => (
-            <div key={i} style={{
-              display:'flex', alignItems:'center', gap: 12,
-              padding: '12px 14px',
-              border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
-            }}>
-              <span style={{color:PN.MUTED, cursor:'grab'}}><PnI.Drag size={14}/></span>
-              <span style={{flex:1, fontSize:15.5, fontWeight:600}}>{q}</span>
-              <button style={{background:'transparent', border:'none', cursor:'pointer', color:PN.MUTED, padding:6}}>
+          {faqs.map(f => (
+            <div key={f.id}
+              onDragOver={e => { e.preventDefault(); setOverFaq(f.id); }}
+              onDragLeave={() => setOverFaq(o => o === f.id ? null : o)}
+              onDrop={() => { reorderFaq(dragFaq, f.id); setDragFaq(null); setOverFaq(null); }}
+              style={{
+                display:'flex', alignItems:'center', gap: 12,
+                padding: '12px 14px',
+                border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
+                background: PN.WHITE,
+                opacity: dragFaq === f.id ? 0.45 : 1,
+                outline: overFaq === f.id && dragFaq && dragFaq !== f.id ? `2px dashed ${PN.PINK}` : 'none',
+                outlineOffset: 3,
+                transition: 'opacity 120ms ease',
+              }}>
+              {/* Maniglia: da qui si trascina per riordinare */}
+              <span draggable
+                onDragStart={e => { setDragFaq(f.id); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragEnd={() => { setDragFaq(null); setOverFaq(null); }}
+                title="Trascina per riordinare"
+                style={{color:PN.MUTED, cursor:'grab', display:'inline-flex', padding: 2}}>
+                <PnI.Drag size={14}/>
+              </span>
+              <span style={{flex:1, minWidth: 0, fontSize:15.5, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{f.q}</span>
+              <button onClick={() => setFaqModal({mode: 'edit', faq: f})} title="Modifica"
+                style={{background:'transparent', border:'none', cursor:'pointer', color:PN.MUTED, padding:6}}>
                 <PnI.Edit size={14}/>
               </button>
-              <button style={{background:'transparent', border:'none', cursor:'pointer', color:PN.RED, padding:6}}>
+              <button onClick={() => setFaqConfirm(f)} title="Elimina"
+                style={{background:'transparent', border:'none', cursor:'pointer', color:PN.RED, padding:6}}>
                 <PnI.X size={14}/>
               </button>
             </div>
           ))}
         </div>
       </ImpCard>
+
+      {faqModal && (
+        <FaqModal ctx={faqModal}
+          onClose={() => setFaqModal(null)}
+          onSave={saveFaq}
+          onDelete={(f) => { setFaqModal(null); setFaqConfirm(f); }}/>
+      )}
+      {faqConfirm && (
+        <FaqConfirmModal faq={faqConfirm}
+          onClose={() => setFaqConfirm(null)}
+          onConfirm={() => deleteFaq(faqConfirm.id)}/>
+      )}
 
       <ImpCard title="Account social" sub="Collega i tuoi profili. Appariranno sulla vetrina">
         <div style={{
@@ -1243,6 +1307,120 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
           })}
         </div>
       </ImpCard>
+    </div>
+  );
+}
+
+// Popup FAQ: crea o modifica domanda e risposta. La X in alto chiude
+// annullando qualsiasi modifica; in modifica c'è anche Elimina.
+function FaqModal({ ctx, onClose, onSave, onDelete }) {
+  const editing = ctx.mode === 'edit';
+  const [q, setQ] = React.useState(editing ? ctx.faq.q : '');
+  const [a, setA] = React.useState(editing ? ctx.faq.a : '');
+  const canSave = q.trim().length > 0 && a.trim().length > 0;
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 80,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 480, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '20px 22px',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>
+              {editing ? 'Modifica FAQ' : 'Nuova FAQ'}
+            </div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
+              Domanda e risposta appariranno sulla vetrina del locale.
+            </div>
+          </div>
+          <button onClick={onClose} title="Chiudi senza salvare" style={{
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            border: 'none', background: '#F4F5F7', color: PN.TEXT,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}><PnI.X size={13}/></button>
+        </div>
+
+        <div style={{marginBottom: 12}}>
+          <div style={{fontSize: 13.5, fontWeight: 600, color: PN.TEXT, marginBottom: 6}}>Domanda</div>
+          <ImpInput autoFocus value={q} onChange={e => setQ(e.target.value)}
+            placeholder="es. Avete un menù per bambini?"/>
+        </div>
+        <div style={{marginBottom: 16}}>
+          <div style={{fontSize: 13.5, fontWeight: 600, color: PN.TEXT, marginBottom: 6}}>Risposta</div>
+          <ImpTextarea value={a} onChange={e => setA(e.target.value)}
+            placeholder="Scrivi la risposta che vedranno i clienti…"/>
+        </div>
+
+        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+          {editing && (
+            <button onClick={() => onDelete(ctx.faq)} style={{
+              background: 'transparent', border: 'none', padding: '6px 4px',
+              fontSize: 14, fontWeight: 600, color: PN.RED,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Elimina FAQ</button>
+          )}
+          <span style={{flex: 1}}/>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+          <ImpButton variant="primary" disabled={!canSave}
+            onClick={() => canSave && onSave(editing ? {...ctx.faq, q: q.trim(), a: a.trim()} : {q: q.trim(), a: a.trim()})}>
+            {editing ? 'Salva modifiche' : 'Salva FAQ'}
+          </ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
+// Conferma eliminazione FAQ: nessuna cancellazione a un solo click.
+function FaqConfirmModal({ faq, onClose, onConfirm }) {
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 85,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 380, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '22px 22px 18px', textAlign: 'center',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 12, margin: '0 auto 12px',
+          background: PN.RED_SOFT, color: PN.RED,
+          display: 'grid', placeItems: 'center',
+        }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/>
+          </svg>
+        </div>
+        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Eliminare la FAQ?</div>
+        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>
+          «<b style={{color: PN.TEXT}}>{faq.q}</b>» non sarà più visibile sulla vetrina.
+        </div>
+        <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
+          <ImpButton variant="ghost" onClick={onClose}>Indietro</ImpButton>
+          <ImpButton variant="primary" onClick={onConfirm}>Sì, elimina</ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
     </div>
   );
 }
