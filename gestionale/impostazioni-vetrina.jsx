@@ -245,7 +245,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         }}>
           <span style={{fontSize:14, fontWeight:700}}>Orario standard</span>
           <span style={{fontSize:13, color:PN.MUTED}}>per tutti i giorni aperti</span>
-          <ImpButton variant="primary" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5, marginLeft: 6}}>
+          <ImpButton variant="primary" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5, marginLeft: 20}}>
             Personalizza orari
           </ImpButton>
           <span style={{flex:1}}/>
