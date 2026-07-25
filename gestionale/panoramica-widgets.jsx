@@ -435,14 +435,15 @@ function WidgetRiempimento({ size }) {
                       borderRadius: '4px 4px 2px 2px',
                     }}/>
                   </div>
-                  {/* Etichetta piana e compatta: l'ora d'inizio della fascia */}
+                  {/* Fascia completa su due righe: "12:00-" sopra, "13:00"
+                      sotto — compatta in orizzontale, niente inclinazioni. */}
                   <div style={{
-                    fontSize: 10.5,
+                    fontSize: 10, lineHeight: 1.3, textAlign: 'center',
                     fontVariantNumeric: 'tabular-nums',
                     color: isPeak ? PN.TEXT : PN.MUTED,
                     fontWeight: isPeak ? 800 : 600,
                     whiteSpace: 'nowrap', flexShrink: 0,
-                  }}>{f.h}:00</div>
+                  }}>{f.h}:00-<br/>{Number(f.h) + 1}:00</div>
                 </div>
               );
             });
