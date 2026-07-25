@@ -316,12 +316,26 @@ function ConfigCompletaApp() {
             </div>
             <PublishButton dirty={dirty} onPublish={publish}/>
 
-            {/* Telefono grande: riempie la rail — larghezza calibrata perché
-                header + publish + phone chiudano nei 900px del canvas. */}
-            <div style={{width: 340, margin: '0 auto', flexShrink: 0}}>
+            {/* Telefono: larghezza calibrata perché header + publish + phone
+                + banner chiudano nei 900px del canvas. */}
+            <div style={{width: 290, margin: '0 auto', flexShrink: 0}}>
               <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
                 focusSection={step === 'informazioni' ? 'info' : 'gallery'}/>
             </div>
+
+            {/* Banner piano Plus: click → Piani e abbonamenti */}
+            <a href="byup Profilo.html?tab=piani" title="Sblocca la vetrina esclusiva di Byup"
+              style={{display: 'block', width: 290, margin: '12px auto 0', flexShrink: 0}}>
+              <img src="banner-vetrina-plus.jpg" alt="Differenziati da tutti: sblocca la vetrina esclusiva di Byup, dal piano Plus"
+                style={{
+                  width: '100%', display: 'block', borderRadius: 12,
+                  boxShadow: '0 8px 22px rgba(200, 60, 40, 0.28)',
+                  cursor: 'pointer',
+                  transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(200, 60, 40, 0.38)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 22px rgba(200, 60, 40, 0.28)'; }}/>
+            </a>
           </div>
         </aside>
       )}
