@@ -117,6 +117,24 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
     }
     setTags([...tags, t]);
   };
+  // Cibo: le categorie che gli utenti cercano nelle app food. Massimo 4,
+  // stessa logica dell'atmosfera (chips brand + shake al superamento).
+  const FOOD_TAGS = ['Pizza','Sushi','Pasta','Hamburger','Carne','Pesce','Poke','Ramen',
+    'Vegano','Vegetariano','Senza glutine','Dolci','Gelato','Brunch','Aperitivo',
+    'Cinese','Indiano','Messicano','Kebab','Frittura'];
+  const [foodTags, setFoodTags] = React.useState(['Pasta']);
+  const [foodLimitHit, setFoodLimitHit] = React.useState(false);
+  const toggleFood = (t) => {
+    if (foodTags.includes(t)) { setFoodTags(f => f.filter(x => x !== t)); onChange && onChange(); return; }
+    if (foodTags.length >= 4) {
+      setFoodLimitHit(true);
+      clearTimeout(toggleFood._t);
+      toggleFood._t = setTimeout(() => setFoodLimitHit(false), 1500);
+      return;
+    }
+    setFoodTags(f => [...f, t]);
+    onChange && onChange();
+  };
   // Popup certificazioni: null | {mode:'new'} | {mode:'rifiutata', name, reason}
   const [certModal, setCertModal] = React.useState(null);
   // Sedi collegate: attiva | attesa (in attesa di conferma del proprietario).
@@ -314,6 +332,31 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
             const on = tags.includes(t);
             return (
               <button key={t} onClick={() => toggleTag(t)} style={{
+                padding: '6px 12px', borderRadius: 999,
+                border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                background: on ? PN.PINK : PN.WHITE,
+                color: on ? '#fff' : PN.TEXT,
+                fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
+              }}>{on ? '✓ ' : '+ '}{t}</button>
+            );
+          })}
+        </div>
+
+        {/* Cibo: cosa si mangia da te — massimo 4 categorie */}
+        <div style={{
+          fontSize: 13.5, fontWeight: 600, margin: '16px 0 10px',
+          color: foodLimitHit ? PN.PINK : PN.MUTED,
+          animation: foodLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
+          transition: 'color 150ms ease',
+        }}>
+          Cibo · puoi selezionarne massimo 4
+        </div>
+        <div style={{display:'flex', flexWrap:'wrap', gap: 7}}>
+          {FOOD_TAGS.map(t => {
+            const on = foodTags.includes(t);
+            return (
+              <button key={t} onClick={() => toggleFood(t)} style={{
                 padding: '6px 12px', borderRadius: 999,
                 border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                 background: on ? PN.PINK : PN.WHITE,

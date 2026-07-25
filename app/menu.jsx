@@ -755,6 +755,49 @@ function MenuScreen({ state, setState, goTo }) {
     }
   };
 
+  // Swipe orizzontale tra le sezioni-categoria: sinistra → successiva,
+  // destra → precedente. La landing resta unica (stesso scroll verticale):
+  // il passaggio è animato con lo scroll morbido + una scivolata del
+  // contenuto nel verso dello swipe.
+  const swipeStart = useRef(null);
+  const [swipeFx, setSwipeFx] = useState(null); // 'next' | 'prev'
+  const onSwipeBegin = (x, y) => { swipeStart.current = { x, y }; };
+  const onSwipeFinish = (x, y) => {
+    const s = swipeStart.current;
+    swipeStart.current = null;
+    if (!s) return;
+    const dx = x - s.x, dy = y - s.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    const dir = dx < 0 ? 1 : -1;
+    const idx = navTabs.indexOf(tab);
+    const target = navTabs[Math.min(navTabs.length - 1, Math.max(0, idx + dir))];
+    if (!target || target === tab) return;
+    setSwipeFx(dir > 0 ? 'next' : 'prev');
+    scrollToTab(target);
+  };
+
+  // Deep-link dai "I più ordinati" della vetrina: apre il menu già
+  // posizionato sul piatto, con un flash del bordo per orientare l'occhio.
+  useEffect(() => {
+    let name = null;
+    try {
+      name = sessionStorage.getItem('byup_menu_dish');
+      if (name) sessionStorage.removeItem('byup_menu_dish');
+    } catch (e) {}
+    if (!name) return;
+    const t = setTimeout(() => {
+      const root = scrollRef.current;
+      if (!root) return;
+      const el = root.querySelector(`[data-dish="${name.replace(/"/g, '\\"')}"]`);
+      if (!el) return;
+      const delta = el.getBoundingClientRect().top - root.getBoundingClientRect().top;
+      root.scrollTo({ top: root.scrollTop + delta - 96, behavior: 'smooth' });
+      el.style.boxShadow = `0 0 0 2.5px ${WINE}, 0 8px 24px rgba(90,26,46,0.25)`;
+      setTimeout(() => { el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'; }, 1800);
+    }, 380);
+    return () => clearTimeout(t);
+  }, []);
+
   // Scroll la tab bar per tenere la tab attiva visibile
   useEffect(() => {
     const bar = tabBarRef.current;
@@ -1074,8 +1117,22 @@ function MenuScreen({ state, setState, goTo }) {
         )}
       </div>
 
-      {/* Scrollable list */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '0 0 240px' }}>
+      {/* Scrollable list — con swipe orizzontale per cambiare sezione */}
+      <div ref={scrollRef}
+        onTouchStart={e => onSwipeBegin(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchEnd={e => onSwipeFinish(e.changedTouches[0].clientX, e.changedTouches[0].clientY)}
+        onMouseDown={e => onSwipeBegin(e.clientX, e.clientY)}
+        onMouseUp={e => onSwipeFinish(e.clientX, e.clientY)}
+        onAnimationEnd={() => setSwipeFx(null)}
+        style={{
+          flex: 1, overflowY: 'auto', padding: '0 0 240px',
+          animation: swipeFx === 'next' ? 'menuSwipeNext 320ms cubic-bezier(.22,.9,.35,1)'
+            : swipeFx === 'prev' ? 'menuSwipePrev 320ms cubic-bezier(.22,.9,.35,1)' : 'none',
+        }}>
+        <style>{`
+          @keyframes menuSwipeNext { from { transform: translateX(34px); opacity: .55; } to { transform: none; opacity: 1; } }
+          @keyframes menuSwipePrev { from { transform: translateX(-34px); opacity: .55; } to { transform: none; opacity: 1; } }
+        `}</style>
 
         {/* Hero image — scorre via */}
         {!searchQ && (
@@ -1325,9 +1382,10 @@ function MenuScreen({ state, setState, goTo }) {
                           <div style={{ flex: 1, height: 1, background: TINT }}/>
                         </div>
                       )}
-                    <div onClick={() => goTo('dish', { dishId: d.id })} style={{
+                    <div onClick={() => goTo('dish', { dishId: d.id })} data-dish={d.name} style={{
                       background: SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
                       display: 'flex', gap: 14, cursor: 'pointer',
+                      transition: 'box-shadow 0.4s ease, border-color 0.2s',
                       boxShadow: qty > 0 ? `0 4px 16px rgba(90,26,46,0.14)` : '0 1px 4px rgba(0,0,0,0.05)',
                       border: qty > 0 ? `1.5px solid ${WINE}` : '1.5px solid transparent',
                       transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',

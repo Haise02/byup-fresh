@@ -6275,7 +6275,7 @@ function VenueOriginal({
       cursor: 'pointer'
     }
   }, "...Altro")))), /*#__PURE__*/React.createElement(Section, {
-    title: "Chef consiglia"
+    title: "I pi\xF9 ordinati"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
@@ -6287,9 +6287,16 @@ function VenueOriginal({
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       className: "bk-press",
+      onClick: () => {
+        try {
+          sessionStorage.setItem('byup_menu_dish', names[i]);
+        } catch (e) {}
+        onMenu && onMenu();
+      },
       style: {
         borderRadius: 16,
         overflow: 'hidden',
+        cursor: 'pointer',
         background: SURF_X,
         boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
         border: '1px solid rgba(77,18,46,.06)'
@@ -26744,6 +26751,60 @@ function MenuScreen({
     }
   };
 
+  // Swipe orizzontale tra le sezioni-categoria: sinistra → successiva,
+  // destra → precedente. La landing resta unica (stesso scroll verticale):
+  // il passaggio è animato con lo scroll morbido + una scivolata del
+  // contenuto nel verso dello swipe.
+  const swipeStart = useRef(null);
+  const [swipeFx, setSwipeFx] = useState(null); // 'next' | 'prev'
+  const onSwipeBegin = (x, y) => {
+    swipeStart.current = {
+      x,
+      y
+    };
+  };
+  const onSwipeFinish = (x, y) => {
+    const s = swipeStart.current;
+    swipeStart.current = null;
+    if (!s) return;
+    const dx = x - s.x,
+      dy = y - s.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    const dir = dx < 0 ? 1 : -1;
+    const idx = navTabs.indexOf(tab);
+    const target = navTabs[Math.min(navTabs.length - 1, Math.max(0, idx + dir))];
+    if (!target || target === tab) return;
+    setSwipeFx(dir > 0 ? 'next' : 'prev');
+    scrollToTab(target);
+  };
+
+  // Deep-link dai "I più ordinati" della vetrina: apre il menu già
+  // posizionato sul piatto, con un flash del bordo per orientare l'occhio.
+  useEffect(() => {
+    let name = null;
+    try {
+      name = sessionStorage.getItem('byup_menu_dish');
+      if (name) sessionStorage.removeItem('byup_menu_dish');
+    } catch (e) {}
+    if (!name) return;
+    const t = setTimeout(() => {
+      const root = scrollRef.current;
+      if (!root) return;
+      const el = root.querySelector(`[data-dish="${name.replace(/"/g, '\\"')}"]`);
+      if (!el) return;
+      const delta = el.getBoundingClientRect().top - root.getBoundingClientRect().top;
+      root.scrollTo({
+        top: root.scrollTop + delta - 96,
+        behavior: 'smooth'
+      });
+      el.style.boxShadow = `0 0 0 2.5px ${WINE}, 0 8px 24px rgba(90,26,46,0.25)`;
+      setTimeout(() => {
+        el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)';
+      }, 1800);
+    }, 380);
+    return () => clearTimeout(t);
+  }, []);
+
   // Scroll la tab bar per tenere la tab attiva visibile
   useEffect(() => {
     const bar = tabBarRef.current;
@@ -27310,12 +27371,21 @@ function MenuScreen({
     }
   }, "\xD7"))))), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
+    onTouchStart: e => onSwipeBegin(e.touches[0].clientX, e.touches[0].clientY),
+    onTouchEnd: e => onSwipeFinish(e.changedTouches[0].clientX, e.changedTouches[0].clientY),
+    onMouseDown: e => onSwipeBegin(e.clientX, e.clientY),
+    onMouseUp: e => onSwipeFinish(e.clientX, e.clientY),
+    onAnimationEnd: () => setSwipeFx(null),
     style: {
       flex: 1,
       overflowY: 'auto',
-      padding: '0 0 240px'
+      padding: '0 0 240px',
+      animation: swipeFx === 'next' ? 'menuSwipeNext 320ms cubic-bezier(.22,.9,.35,1)' : swipeFx === 'prev' ? 'menuSwipePrev 320ms cubic-bezier(.22,.9,.35,1)' : 'none'
     }
-  }, !searchQ && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("style", null, `
+          @keyframes menuSwipeNext { from { transform: translateX(34px); opacity: .55; } to { transform: none; opacity: 1; } }
+          @keyframes menuSwipePrev { from { transform: translateX(-34px); opacity: .55; } to { transform: none; opacity: 1; } }
+        `), !searchQ && /*#__PURE__*/React.createElement("div", {
     onClick: () => {
       try {
         sessionStorage.removeItem('byup_menu_from');
@@ -27852,6 +27922,7 @@ function MenuScreen({
         onClick: () => goTo('dish', {
           dishId: d.id
         }),
+        "data-dish": d.name,
         style: {
           background: SURF,
           borderRadius: 18,
@@ -27861,6 +27932,7 @@ function MenuScreen({
           display: 'flex',
           gap: 14,
           cursor: 'pointer',
+          transition: 'box-shadow 0.4s ease, border-color 0.2s',
           boxShadow: qty > 0 ? `0 4px 16px rgba(90,26,46,0.14)` : '0 1px 4px rgba(0,0,0,0.05)',
           border: qty > 0 ? `1.5px solid ${WINE}` : '1.5px solid transparent',
           transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s'

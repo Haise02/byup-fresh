@@ -608,9 +608,9 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
                 </div>
               </div>
 
-              {/* Chef consiglia */}
+              {/* I più ordinati */}
               <div data-psec="gallery" style={{padding: '20px 20px 0'}}>
-                {secTitle('Chef consiglia')}
+                {secTitle('I più ordinati')}
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10}}>
                   {DISHES.map(([n, src]) => (
                     <div key={n} style={{borderRadius: 16, overflow: 'hidden', background: '#fff', boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)', border: '1px solid rgba(77,18,46,.06)'}}>

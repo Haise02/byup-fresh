@@ -2140,14 +2140,19 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             </div>
           </Section>
 
-          {/* Piatti in evidenza */}
-          <Section title="Chef consiglia">
+          {/* Piatti in evidenza — tap: apre il menu già scrollato sul piatto */}
+          <Section title="I più ordinati">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
               {dishes.slice(0, 3).map((p, i) => {
                 const names = ['Cacio e Pepe', 'Carbonara', 'Amatriciana'];
                 return (
-                  <div key={i} className="bk-press" style={{
-                    borderRadius: 16, overflow: 'hidden',
+                  <div key={i} className="bk-press"
+                    onClick={() => {
+                      try { sessionStorage.setItem('byup_menu_dish', names[i]); } catch (e) {}
+                      onMenu && onMenu();
+                    }}
+                    style={{
+                    borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
                     background: SURF_X, boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
                     border: '1px solid rgba(77,18,46,.06)',
                   }}>
