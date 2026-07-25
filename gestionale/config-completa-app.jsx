@@ -40,9 +40,11 @@ function ConfigCompletaApp() {
   const goPanoramica = () => { window.location.href = 'byup Panoramica.html'; };
 
   return (
-    <div style={{display:'flex', flex:1, minHeight:0}}>
-      <main className="pn-scroll" style={{flex:1, minWidth: 0, overflow:'auto', background: PN.BG}}>
-        <div style={{maxWidth: 1180, margin: '0 auto', padding: '30px 36px 44px'}}>
+    <div style={{display:'flex', flex:1, minHeight:0, background: PN.BG}}>
+      {/* ─── Colonna sinistra: contenuto che scrolla + barra azioni fissa ── */}
+      <div style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column'}}>
+      <main className="pn-scroll" style={{flex:1, minHeight: 0, overflow:'auto'}}>
+        <div style={{maxWidth: 880, margin: '0 auto', padding: '26px 32px 24px'}}>
 
           {/* ─── Header ─────────────────────────────────────────────── */}
           <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 24, marginBottom: 22}}>
@@ -98,9 +100,9 @@ function ConfigCompletaApp() {
             </div>
           </div>
 
-          {/* ─── Step 1 · Vetrina: form card + anteprima sticky ─────── */}
+          {/* ─── Step 1 · Vetrina: form card (l'anteprima vive nella rail
+                 fissa a destra, fuori dallo scroll) ─────────────────────── */}
           {step === 'vetrina' && (
-            <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) 340px', gap: 20, alignItems:'flex-start'}}>
               <section style={{
                 background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
                 borderRadius: 14, padding: '20px 22px',
@@ -154,54 +156,6 @@ function ConfigCompletaApp() {
                   <PnI.Eye size={13}/> Potrai modificare tutto in seguito dalle Impostazioni.
                 </div>
               </section>
-
-              {/* Anteprima: publish + phone + checklist. NON sticky: con
-                  telefono e checklist supera l'altezza del viewport — da
-                  sticky la coda resterebbe irraggiungibile. */}
-              <aside style={{
-                alignSelf: 'start',
-                ...PN.GLASS_LIGHT,
-                borderRadius: 14, padding: '14px 14px 16px',
-              }}>
-                <div style={{marginBottom: 12}}>
-                  <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Anteprima vetrina</div>
-                  <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>Cosa vedranno i clienti</div>
-                </div>
-                <PublishButton dirty={dirty} onPublish={() => setDirty(false)}/>
-                <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}/>
-
-                <div style={{
-                  marginTop: 14, background: PN.WHITE,
-                  border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
-                  padding: '4px 14px',
-                }}>
-                  {completion.map((c, i) => (
-                    <div key={i} style={{
-                      display:'flex', alignItems:'center', gap: 10,
-                      padding: '9px 0',
-                      borderBottom: i < completion.length - 1 ? `1px solid ${PN.BORDER_HAIR}` : 'none',
-                    }}>
-                      <div style={{flex:1, minWidth: 0}}>
-                        <div style={{fontSize: 13.5, fontWeight: 600, color: PN.TEXT}}>{c.label}</div>
-                        <div style={{fontSize: 12, color: PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.sub}</div>
-                      </div>
-                      <div style={{
-                        width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                        background: c.done ? PN.PINK : 'transparent',
-                        border: c.done ? 'none' : `1.5px solid ${PN.BORDER}`,
-                        display:'grid', placeItems:'center',
-                      }}>
-                        {c.done && (
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </aside>
-            </div>
           )}
 
           {/* ─── Step 2 · Personale: card a tutta larghezza ──────────── */}
@@ -215,24 +169,83 @@ function ConfigCompletaApp() {
             </section>
           )}
 
-          {/* ─── Barra azioni ────────────────────────────────────────── */}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginTop: 20, padding: '12px 16px',
-            background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
-            borderRadius: 14,
-            boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
-          }}>
-            {step === 'personale'
-              ? <ApBtn variant="neutral" onClick={() => setStep('vetrina')}>← Indietro</ApBtn>
-              : <ApBtn variant="neutral" onClick={goPanoramica}>← Indietro</ApBtn>}
-            {step === 'vetrina'
-              ? <ApBtn variant="brand" onClick={() => setStep('personale')}>Continua a Personale →</ApBtn>
-              : <ApBtn variant="brand" onClick={goPanoramica}>Completa e vai alla Panoramica →</ApBtn>}
-          </div>
-
         </div>
       </main>
+
+      {/* ─── Barra azioni — fissa al fondo della colonna, fuori dallo scroll */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '12px 32px',
+        background: PN.WHITE, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+        flexShrink: 0,
+      }}>
+        {step === 'personale'
+          ? <ApBtn variant="neutral" onClick={() => setStep('vetrina')}>← Indietro</ApBtn>
+          : <ApBtn variant="neutral" onClick={goPanoramica}>← Indietro</ApBtn>}
+        {step === 'vetrina'
+          ? <ApBtn variant="brand" onClick={() => setStep('personale')}>Continua a Personale →</ApBtn>
+          : <ApBtn variant="brand" onClick={goPanoramica}>Completa e vai alla Panoramica →</ApBtn>}
+      </div>
+      </div>
+
+      {/* ─── Rail destra FISSA: l'anteprima non scrolla mai col resto ──── */}
+      {step === 'vetrina' && (
+        <aside style={{
+          width: 316, flexShrink: 0,
+          padding: '20px 20px 20px 0',
+          display: 'flex', flexDirection: 'column', minHeight: 0,
+        }}>
+          <div style={{
+            ...PN.GLASS_LIGHT,
+            borderRadius: 14, padding: '14px 14px 14px',
+            flex: 1, minHeight: 0,
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{marginBottom: 10, flexShrink: 0}}>
+              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Anteprima vetrina</div>
+              <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1}}>Cosa vedranno i clienti</div>
+            </div>
+            <PublishButton dirty={dirty} onPublish={() => setDirty(false)}/>
+
+            {/* Telefono: larghezza calibrata perché tutto (header + publish +
+                phone + checklist) stia nei 900px del canvas senza scroll. */}
+            <div style={{width: 228, margin: '0 auto', flexShrink: 0}}>
+              <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}/>
+            </div>
+
+            {/* Checklist compatta: una riga per voce, dettaglio nel title */}
+            <div style={{
+              marginTop: 12, background: PN.WHITE,
+              border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
+              padding: '2px 12px', flexShrink: 0,
+            }}>
+              {completion.map((c, i) => (
+                <div key={i} title={c.sub} style={{
+                  display:'flex', alignItems:'center', gap: 10,
+                  padding: '6.5px 0',
+                  borderBottom: i < completion.length - 1 ? `1px solid ${PN.BORDER_HAIR}` : 'none',
+                }}>
+                  <div style={{flex:1, minWidth: 0, fontSize: 13, fontWeight: 600, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                    {c.label}
+                  </div>
+                  <div style={{
+                    width: 17, height: 17, borderRadius: '50%', flexShrink: 0,
+                    background: c.done ? PN.PINK : 'transparent',
+                    border: c.done ? 'none' : `1.5px solid ${PN.BORDER}`,
+                    display:'grid', placeItems:'center',
+                  }}>
+                    {c.done && (
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
