@@ -1661,26 +1661,30 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
       )}
 
       <ImpCard title="Account social" sub="Collega i tuoi profili. Appariranno sulla vetrina">
-        {/* Collegati: una riga verde per ogni account effettivamente attivo */}
+        {/* Collegati: un box per ogni account effettivamente attivo */}
         {SOCIAL_DEFS.some(s => social.includes(s.key)) ? (
-          <div style={{display:'flex', flexDirection:'column', gap: 8, marginBottom: 16}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 16}}>
             {SOCIAL_DEFS.filter(s => social.includes(s.key)).map(s => (
               <div key={s.key} style={{
-                padding: '14px 16px', border:`1.5px solid ${PN.GREEN_SOFT}`,
-                borderRadius: 10, background: '#F0FDF4',
-                display:'flex', alignItems:'center', gap: 12,
+                padding: '12px 14px', border:`1.5px solid ${PN.GREEN_SOFT}`,
+                borderRadius: 12, background: '#F0FDF4', minWidth: 0,
+                display:'flex', flexDirection:'column', gap: 8,
               }}>
-                <div style={{
-                  width: 36, height:36, borderRadius: 8, background: s.bg, flexShrink: 0,
-                  display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 15 : 17, fontWeight:800,
-                }}>{s.abbr || s.name[0]}</div>
-                <div style={{flex:1, minWidth: 0}}>
-                  <div style={{fontSize:13, fontWeight:700, color:PN.GREEN, letterSpacing:0.4}}>● COLLEGATO · {s.name.toUpperCase()}</div>
-                  <div title={links[s.key]} style={{fontSize:15.5, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
+                  <div style={{
+                    width: 34, height:34, borderRadius: 8, background: s.bg, flexShrink: 0,
+                    display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 14 : 16, fontWeight:800,
+                  }}>{s.abbr || s.name[0]}</div>
+                  <div style={{fontSize:11.5, fontWeight:700, color:PN.GREEN, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
+                </div>
+                <div style={{minWidth: 0}}>
+                  <div style={{fontSize:15, fontWeight:700}}>{s.name}</div>
+                  <div title={links[s.key]} style={{fontSize:13, color:PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                     {links[s.key] ? socialHandle(links[s.key]) : 'Profilo collegato'}
                   </div>
                 </div>
-                <ScollegaBtn onClick={() => setUnlink(s)}/>
+                <ScollegaBtn onClick={() => setUnlink(s)}
+                  style={{alignSelf:'flex-start', padding:'4px 10px', marginLeft:-10, fontSize:13.5}}/>
               </div>
             ))}
           </div>
@@ -1698,19 +1702,7 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
             <div style={{fontSize:13.5, fontWeight:600, color:PN.MUTED, marginBottom:8, letterSpacing:0.3, textTransform:'uppercase'}}>Aggiungi altri social</div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
               {SOCIAL_DEFS.filter(s => !social.includes(s.key)).map(s => (
-                <button key={s.key} title={`Collega ${s.name}`} onClick={() => setLinkModal(s)}
-                  style={{
-                    display:'flex', alignItems:'center', gap: 10, minWidth: 0,
-                    padding: '10px 12px', borderRadius: 10,
-                    border:`1.5px solid ${PN.BORDER}`, background: PN.WHITE,
-                    cursor:'pointer', fontFamily:'inherit',
-                  }}>
-                  <span style={{
-                    width:24, height:24, borderRadius:5, background:s.bg, flexShrink: 0,
-                    display:'grid', placeItems:'center', color:'#fff', fontSize:13, fontWeight:800,
-                  }}>{s.abbr || s.name[0]}</span>
-                  <span style={{flex:1, minWidth: 0, textAlign:'left', fontSize:15, fontWeight:600}}>{s.name}</span>
-                </button>
+                <SocialAddTile key={s.key} s={s} onClick={() => setLinkModal(s)}/>
               ))}
             </div>
           </>
@@ -1869,8 +1861,39 @@ function FaqConfirmModal({ faq, onClose, onConfirm }) {
   );
 }
 
+// Tile "Aggiungi social": in hover si accende in tinta brand, si solleva e
+// mostra il + di collegamento; si comprime al click.
+function SocialAddTile({ s, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button title={`Collega ${s.name}`} onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        display:'flex', alignItems:'center', gap: 10, minWidth: 0,
+        padding: '10px 12px', borderRadius: 10,
+        border:`1.5px solid ${hover ? PN.PINK : PN.BORDER}`,
+        background: hover ? PN.PINK_SOFT : PN.WHITE,
+        cursor:'pointer', fontFamily:'inherit',
+        transform: pressed ? 'scale(0.97)' : hover ? 'translateY(-1px)' : 'none',
+        boxShadow: hover ? '0 6px 16px rgba(15, 17, 21, 0.10)' : 'none',
+        transition: 'border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease',
+      }}>
+      <span style={{
+        width:24, height:24, borderRadius:5, background:s.bg, flexShrink: 0,
+        display:'grid', placeItems:'center', color:'#fff', fontSize:13, fontWeight:800,
+      }}>{s.abbr || s.name[0]}</span>
+      <span style={{flex:1, minWidth: 0, textAlign:'left', fontSize:15, fontWeight:600, color: hover ? PN.PINK_DARK : PN.TEXT, transition:'color 150ms ease'}}>{s.name}</span>
+      {hover && <PnI.Plus size={12} color={PN.PINK_DARK}/>}
+    </button>
+  );
+}
+
 // "Scollega": testo rosso con feedback in hover (fondo tinto) e alla pressione.
-function ScollegaBtn({ onClick }) {
+function ScollegaBtn({ onClick, style }) {
   const [hover, setHover] = React.useState(false);
   const [pressed, setPressed] = React.useState(false);
   return (
@@ -1886,6 +1909,7 @@ function ScollegaBtn({ onClick }) {
         cursor: 'pointer', fontFamily: 'inherit',
         transform: pressed ? 'scale(0.94)' : 'none',
         transition: 'background 130ms ease, transform 130ms ease',
+        ...style,
       }}>Scollega</button>
   );
 }
