@@ -15,7 +15,8 @@
 const PN_WIDGET_CATALOG = [
   { id: 'financials', name: 'Andamento incassi', desc: 'Incassi + scontrino medio + coperti, switch automatico', component: 'WidgetFinancials', size: { w: 2, h: 1 }, category: 'Incassi', icon: 'chart-area' },
   { id: 'incassi', name: 'Incassi', desc: 'Oggi/Settimana/Mese con sparkline', component: 'WidgetIncassi', size: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
-  { id: 'kpi-vendita', name: 'KPI di vendita', desc: 'Scontrino medio e coperti per periodo', component: 'WidgetKpiVendita', size: { w: 1, h: 2 }, category: 'Statistiche', icon: 'chart-bar' },
+  { id: 'scontrino-medio', name: 'Scontrino medio', desc: 'Andamento per periodo con sparkline', component: 'WidgetScontrinoMedio', size: { w: 1, h: 2 }, category: 'Statistiche', icon: 'chart-bar' },
+  { id: 'coperti-medi', name: 'Coperti medi', desc: 'Media coperti per periodo', component: 'WidgetCopertiMedi', size: { w: 1, h: 2 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'riempimento', name: 'Occupazione sala', desc: 'Tasso di occupazione + fasce orarie', component: 'WidgetRiempimento', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-doughnut' },
   { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Lista live coperti del giorno', component: 'WidgetPrenotazioniOggi', size: { w: 1, h: 2 }, category: 'Sala', icon: 'time-calendar' },
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Mappa visiva sala in tempo reale', component: 'WidgetTavoliStato', size: { w: 2, h: 2 }, category: 'Sala', icon: 'place-table' },

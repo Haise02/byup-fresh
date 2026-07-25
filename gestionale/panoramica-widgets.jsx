@@ -235,19 +235,23 @@ function PnPeriodToggle({ period, setPeriod }) {
   );
 }
 
-// ─── KPI di vendita (scontrino + coperti per periodo) ──────────────────────
+// ─── Scontrino medio · Coperti medi — due widget singoli per KPI ───────────
 
-function WidgetKpiVendita({ size }) {
+const KPI_VENDITA_DATA = {
+  oggi:      { scontrino: '€ 29,70', sDelta: '+€ 0,80', sTrend: [28.4, 29.1, 28.8, 30.2, 29.6, 30.5, 29.7],
+               coperti: '42', cDelta: '+5%', cLabel: 'Coperti oggi',            cTrend: [5, 8, 6, 9, 7, 8, 7] },
+  settimana: { scontrino: '€ 31,90', sDelta: '+€ 1,10', sTrend: [30.1, 31.2, 30.8, 32.0, 31.4, 32.6, 31.9],
+               coperti: '38', cDelta: '+9%', cLabel: 'Coperti medi al giorno',  cTrend: [34, 38, 32, 42, 38, 45, 35] },
+  mese:      { scontrino: '€ 32,40', sDelta: '+€ 1,20', sTrend: [30.5, 31.0, 31.8, 32.2, 31.6, 32.8, 32.4],
+               coperti: '25', cDelta: '+8%', cLabel: 'Coperti medi al giorno',  cTrend: [95, 108, 98, 118, 105, 128, 101] },
+};
+
+// Shell condiviso dei KPI singoli: toggle periodo con auto-switch ogni 2s
+// (pause-on-hover) e corpo centrato con fade al cambio.
+function KpiSingleShell({ render }) {
   const [period, setPeriod] = React.useState('oggi');
   const [paused, setPaused] = React.useState(false);
   const periods = ['oggi', 'settimana', 'mese'];
-  // A w=1 la colonna è ~240px: valore 40px + delta + mini-chart non entrano
-  // sulla stessa riga → il chart va a capo (wrap) sotto i numeri, con
-  // spaziature ridotte per stare nei ~266px di h=2.
-  const narrow = ((size && size.w) || 1) === 1;
-
-  // Auto-switch ogni 2s tra oggi → settimana → mese → oggi.
-  // pause-on-hover: l'utente può "fermare" il carosello mettendo il mouse sopra.
   React.useEffect(() => {
     if (paused) return;
     const t = setInterval(() => {
@@ -255,32 +259,20 @@ function WidgetKpiVendita({ size }) {
     }, 2000);
     return () => clearInterval(t);
   }, [paused]);
-
-  const data = {
-    oggi:      { scontrino: '€ 29,70', sDelta: '+€ 0,80',  coperti: '42',  cDelta: '+5%',
-                 sTrend:[28.4,29.1,28.8,30.2,29.6,30.5,29.7], cTrend:[5,8,6,9,7,8,7] },
-    settimana: { scontrino: '€ 31,90', sDelta: '+€ 1,10',  coperti: '264', cDelta: '+9%',
-                 sTrend:[30.1,31.2,30.8,32.0,31.4,32.6,31.9], cTrend:[34,38,32,42,38,45,35] },
-    mese:      { scontrino: '€ 32,40', sDelta: '+€ 1,20',  coperti: '753', cDelta: '+8%',
-                 sTrend:[30.5,31.0,31.8,32.2,31.6,32.8,32.4], cTrend:[95,108,98,118,105,128,101] },
-  };
-  const d = data[period];
-
+  const d = KPI_VENDITA_DATA[period];
   return (
     <div
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      style={{display: 'flex', flexDirection: 'column', height: '100%', gap: 14}}
+      style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 12}}
     >
       <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
-
       <div key={period} style={{
         flex: 1, minHeight: 0, overflow: 'hidden',
-        display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: narrow ? 12 : 22,
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12,
         animation: 'kpi-fade-in 320ms ease-out',
       }}>
-        <KpiRow label="Scontrino medio" value={d.scontrino} delta={d.sDelta} trend={d.sTrend} variant="line" narrow={narrow}/>
-        <KpiRow label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta} trend={d.cTrend} variant="bar" narrow={narrow}/>
+        {render(d, period)}
       </div>
       <style>{`
         @keyframes kpi-fade-in {
@@ -289,6 +281,40 @@ function WidgetKpiVendita({ size }) {
         }
       `}</style>
     </div>
+  );
+}
+
+// Corpo del KPI singolo: etichetta, valore grande con delta, grafico sotto.
+function KpiSingleBody({ label, value, delta, chart }) {
+  return (
+    <>
+      <div style={{minWidth: 0}}>
+        <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{label}</div>
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
+          <div style={{fontSize: 44, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.9, lineHeight: 1, whiteSpace: 'nowrap'}}>{value}</div>
+          <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700, whiteSpace: 'nowrap'}}>{delta}</div>
+        </div>
+      </div>
+      <div style={{height: 56, minHeight: 0, display: 'flex', alignItems: 'flex-end'}}>{chart}</div>
+    </>
+  );
+}
+
+function WidgetScontrinoMedio() {
+  return (
+    <KpiSingleShell render={(d) => (
+      <KpiSingleBody label="Scontrino medio" value={d.scontrino} delta={d.sDelta}
+        chart={<div style={{width: '100%', height: '100%'}}><WSparkline data={d.sTrend} color={PN.PINK}/></div>}/>
+    )}/>
+  );
+}
+
+function WidgetCopertiMedi() {
+  return (
+    <KpiSingleShell render={(d) => (
+      <KpiSingleBody label={d.cLabel} value={d.coperti} delta={d.cDelta}
+        chart={<KpiBars data={d.cTrend}/>}/>
+    )}/>
   );
 }
 
@@ -1386,7 +1412,7 @@ function FinMiniCard({label, value, delta}) {
 
 window.PnWidgets = {
   WidgetFinancials,
-  WidgetIncassi, WidgetKpiVendita, WidgetRiempimento,
+  WidgetIncassi, WidgetScontrinoMedio, WidgetCopertiMedi, WidgetRiempimento,
   WidgetPrenotazioniOggi, WidgetTavoliStato, WidgetTopPiatti,
   WidgetRecensioni, WidgetAzioni, WidgetCopertiSettimana,
   WidgetCucinaLive,
