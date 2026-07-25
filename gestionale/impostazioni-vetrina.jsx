@@ -127,6 +127,8 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=70&auto=format&fit=crop' },
   ]);
   const [sedeModal, setSedeModal] = React.useState(false);
+  // Conferma prima di rimuovere una sede o annullare una richiesta.
+  const [confirmSede, setConfirmSede] = React.useState(null);
   const addSede = (v) => {
     setSedi(s => [...s, { name: v.name, addr: v.addr, status: 'attesa', photo: v.photo }]);
     onChange && onChange();
@@ -141,8 +143,8 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
       <ImpCard title="Informazioni pratiche" sub="Dettagli utili che i clienti vedono sulla vetrina">
         {/* Due colonne: campi a sinistra, servizi e accessibilità a destra —
             la card resta compatta invece di allungarsi in verticale. */}
-        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 0, alignItems: 'stretch'}}>
-          <div style={{minWidth: 0, paddingRight: 24}}>
+        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start'}}>
+          <div style={{minWidth: 0}}>
             <ImpField label="Nome locale" hint="Come appare in vetrina, sui link e nelle ricevute">
               <ImpInput placeholder="es. Trattoria del Borgo"/>
             </ImpField>
@@ -157,9 +159,14 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
             </ImpField>
           </div>
 
-          {/* Servizi e accessibilità: tessere con icona e descrizione,
-              selezione con spunta. Separatore centrale tra le due colonne. */}
-          <div style={{minWidth: 0, borderLeft: `1px solid ${PN.BORDER_SOFT}`, paddingLeft: 24}}>
+          {/* Servizi e accessibilità: pannello distinto (fondo tenue + bordo)
+              — la separazione dalle colonne dei campi è una zona, non una
+              hairline che si perdeva. */}
+          <div style={{
+            minWidth: 0, background: '#FAFBFC',
+            border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
+            padding: '14px 16px',
+          }}>
             <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Servizi disponibili</div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 14}}>
               {SERVICE_TILES.servizi.map(s => (
@@ -329,7 +336,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
             niente CTA nel header. Rimuovi per le attive, Annulla per quelle
             in attesa; nessun Modifica. */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10}}>
-          {sedi.map(s => <SedeCard key={s.name} sede={s} onRemove={() => removeSede(s.name)}/>)}
+          {sedi.map(s => <SedeCard key={s.name} sede={s} onRemove={() => setConfirmSede(s)}/>)}
           <AddSedeTile onClick={() => setSedeModal(true)}/>
         </div>
       </CollapsibleCard>
@@ -353,6 +360,12 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           existing={sedi.map(s => s.name)}
           onClose={() => setSedeModal(false)}
           onAdd={(v) => { addSede(v); setSedeModal(false); }}/>
+      )}
+      {confirmSede && (
+        <SedeConfirmModal
+          sede={confirmSede}
+          onClose={() => setConfirmSede(null)}
+          onConfirm={() => { removeSede(confirmSede.name); setConfirmSede(null); }}/>
       )}
     </div>
   );
@@ -539,6 +552,58 @@ function AddSedeTile({ onClick }) {
       <PnI.Plus size={16}/>
       <span style={{fontSize: 13.5, fontWeight: 700}}>Aggiungi sede</span>
     </button>
+  );
+}
+
+// Conferma rimozione/annullamento sede: nessuna azione distruttiva senza
+// un passaggio esplicito.
+function SedeConfirmModal({ sede, onClose, onConfirm }) {
+  const attesa = sede.status === 'attesa';
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 85,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 380, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '22px 22px 18px', textAlign: 'center',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 12, margin: '0 auto 12px',
+          background: PN.RED_SOFT, color: PN.RED,
+          display: 'grid', placeItems: 'center',
+        }}>
+          {attesa ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/></svg>
+          )}
+        </div>
+        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
+          {attesa ? 'Annullare la richiesta?' : 'Rimuovere la sede?'}
+        </div>
+        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>
+          {attesa
+            ? <>La richiesta di collegamento per <b style={{color: PN.TEXT}}>{sede.name}</b> verrà annullata e il proprietario non riceverà più l'email di conferma.</>
+            : <><b style={{color: PN.TEXT}}>{sede.name}</b> non comparirà più tra le sedi collegate sulla tua vetrina.</>}
+        </div>
+        <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
+          <ImpButton variant="ghost" onClick={onClose}>Indietro</ImpButton>
+          <ImpButton variant="primary" onClick={onConfirm}>
+            {attesa ? 'Sì, annulla richiesta' : 'Sì, rimuovi'}
+          </ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
+    </div>
   );
 }
 
