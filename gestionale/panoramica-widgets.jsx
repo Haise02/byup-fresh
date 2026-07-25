@@ -938,6 +938,9 @@ function WidgetAzioni({ size }) {
 
       <div style={{
         flex: 1, minHeight: 0, overflowY: 'auto',
+        // Respiro dentro l'area scrollabile: il lift in hover (translateY -2px
+        // + ombra) della prima riga non viene tagliato dal margine superiore.
+        margin: '-6px -8px -4px', padding: '6px 8px 4px',
         display: 'grid',
         // Launcher esteso: 3 colonne — con 6 azioni la griglia è un 3×2
         // perfettamente bilanciato (niente ultima riga sbilenca).
