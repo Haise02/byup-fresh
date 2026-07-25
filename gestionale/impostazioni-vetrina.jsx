@@ -1147,43 +1147,29 @@ function VetrinaAspetto({ onChange }) {
           elemento quadrato) e galleria a destra — niente più card "Aspetto"
           omonima dello step. */}
       <ImpCard title="Immagini" sub="Logo e foto del locale: appariranno sulla vetrina">
-        {/* Due metà pari, come Locale/Servizi nello step Informazioni:
-            logo a sinistra che riempie la sua metà, galleria a destra nel
-            pannello tinto. */}
-        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'stretch'}}>
+        {/* Logo in colonna stretta a sinistra (è un cerchio, come appare
+            sulla vetrina), galleria che occupa tutto il resto. */}
+        <div style={{display: 'grid', gridTemplateColumns: '240px minmax(0, 1fr)', gap: 18, alignItems: 'stretch'}}>
 
-          {/* Logo — metà sinistra */}
+          {/* Logo — colonna sinistra, tondo e compatto */}
           <div style={{minWidth: 0, display: 'flex', flexDirection: 'column'}}>
             <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Logo del locale</div>
             <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>PNG o JPG quadrato · 512×512px</div>
-            {logo ? (
-              <div style={{flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0}}>
-                <div style={{flex: 1, minHeight: 220}}>
-                  <PhotoTile src={logo} radius={14} title="Rimuovi logo"
-                    onRemove={() => { setLogo(null); onChange && onChange(); }}/>
-                </div>
-                <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}
-                  style={{padding:'6px 12px', fontSize: 13.5, marginTop: 12, alignSelf: 'flex-start'}}>Sostituisci</ImpButton>
-              </div>
-            ) : (
-              <div onClick={() => setUploadModal('logo')} style={{
-                flex: 1, minHeight: 240,
-                border:`2px dashed ${PN.BORDER}`, borderRadius: 14,
-                display:'grid', placeItems:'center', textAlign:'center',
-                background:'#FAFBFC', cursor: 'pointer',
-                color: PN.MUTED, fontSize: 14, fontWeight: 600, lineHeight: 1.45,
-              }}>
-                <div>
-                  <PnI.Plus size={20} color={PN.MUTED}/>
-                  <div style={{marginTop: 8}}>Trascina o clicca per caricare<br/>512×512px</div>
-                  <ImpButton variant="ghost" onClick={(e) => { e.stopPropagation(); setUploadModal('logo'); }}
-                    style={{padding:'6px 14px', fontSize: 13.5, marginTop: 12, display: 'inline-flex'}}>Carica logo</ImpButton>
-                </div>
-              </div>
-            )}
+            <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '12px 0 6px'}}>
+              {logo ? (
+                <LogoCircle src={logo}
+                  onReplace={() => setUploadModal('logo')}
+                  onRemove={() => { setLogo(null); onChange && onChange(); }}/>
+              ) : (
+                <LogoDropCircle onClick={() => setUploadModal('logo')}/>
+              )}
+              <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}>
+                {logo ? 'Sostituisci logo' : 'Carica logo'}
+              </ImpButton>
+            </div>
           </div>
 
-          {/* Galleria — metà destra, pannello tinto come Servizi disponibili */}
+          {/* Galleria — pannello tinto come Servizi disponibili, ora largo */}
           <div style={{
             minWidth: 0, background: '#F3F5F7',
             border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
@@ -1200,25 +1186,16 @@ function VetrinaAspetto({ onChange }) {
             }}>
               Massimo 5 immagini · {photos.length}/5 caricate
             </div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 10}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10}}>
               {photos.map((src, i) => (
                 <div key={i} style={{aspectRatio: '4/3'}}>
                   <PhotoTile src={src} radius={10} title="Elimina foto"
                     onRemove={() => removePhoto(i)}/>
                 </div>
               ))}
-              <div onClick={openGalleryUpload} style={{
-                aspectRatio:'4/3', borderRadius: 10,
-                border:`2px dashed ${PN.BORDER}`,
-                display:'grid', placeItems:'center',
-                color: PN.MUTED, fontSize: 13, fontWeight: 600, cursor:'pointer',
-                background: PN.WHITE,
-              }}>
-                <div style={{textAlign:'center'}}>
-                  <PnI.Plus size={18} color={PN.MUTED}/>
-                  <div style={{marginTop:4}}>Aggiungi</div>
-                </div>
-              </div>
+              {/* Sempre presente, anche a galleria piena: al limite il click
+                  scuote la riga-guida invece di aprire il caricamento. */}
+              <AddPhotoTile onClick={openGalleryUpload}/>
             </div>
           </div>
         </div>
@@ -1263,8 +1240,92 @@ function PhotoTile({ src, onRemove, radius = 10, title = 'Elimina' }) {
   );
 }
 
+// Logo circolare: com'è sulla vetrina, appena più grande. Si ingrandisce in
+// hover come le foto; il cestino sta a cavallo del bordo del cerchio.
+function LogoCircle({ src, onReplace, onRemove }) {
+  const [hover, setHover] = React.useState(false);
+  const [dim, setDim] = React.useState(null);
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10}}>
+      <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+        style={{position: 'relative', width: 128, height: 128}}>
+        <div onClick={onReplace} title="Sostituisci logo" style={{
+          position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden',
+          border: `1px solid ${PN.BORDER_SOFT}`, cursor: 'pointer',
+          transform: hover ? 'scale(1.05)' : 'scale(1)',
+          boxShadow: hover ? '0 14px 30px rgba(15, 17, 21, 0.22)' : '0 4px 14px rgba(15, 17, 21, 0.10)',
+          transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease',
+        }}>
+          <img src={src} alt="" onLoad={e => setDim([e.target.naturalWidth, e.target.naturalHeight])}
+            style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#EDEAE4'}}/>
+        </div>
+        <TrashBadge title="Rimuovi logo" onClick={onRemove} pos={{top: 2, right: 2}}/>
+      </div>
+      {dim && (
+        <div style={{fontSize: 11.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.3}}>
+          {dim[0]}×{dim[1]}px
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Dropzone circolare del logo quando non c'è ancora: stessa sagoma del logo
+// che comparirà, così l'occhio sa già cosa aspettarsi.
+function LogoDropCircle({ onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        width: 128, height: 128, borderRadius: '50%',
+        border: `2px dashed ${hover ? PN.PINK : PN.BORDER}`,
+        background: hover ? PN.PINK_SOFT : '#FAFBFC',
+        display: 'grid', placeItems: 'center', cursor: 'pointer', textAlign: 'center',
+        color: hover ? PN.PINK_DARK : PN.MUTED, fontSize: 12, fontWeight: 600,
+        transform: hover ? 'scale(1.05)' : 'scale(1)',
+        transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), border-color 150ms ease, background 150ms ease, color 150ms ease',
+      }}>
+      <div>
+        <PnI.Plus size={18} color={hover ? PN.PINK_DARK : PN.MUTED}/>
+        <div style={{marginTop: 4}}>512×512px</div>
+      </div>
+    </div>
+  );
+}
+
+// Tile "Aggiungi" della galleria: sempre visibile, si ingrandisce in hover
+// come le foto e si comprime al click.
+function AddPhotoTile({ onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <div onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        aspectRatio: '4/3', borderRadius: 10,
+        border: `2px dashed ${hover ? PN.PINK : PN.BORDER}`,
+        background: hover ? PN.PINK_SOFT : PN.WHITE,
+        display: 'grid', placeItems: 'center',
+        color: hover ? PN.PINK_DARK : PN.MUTED, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        transform: pressed ? 'scale(0.96)' : hover ? 'scale(1.045)' : 'scale(1)',
+        boxShadow: hover ? '0 12px 26px rgba(15, 17, 21, 0.14)' : 'none',
+        transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease, border-color 150ms ease, background 150ms ease, color 150ms ease',
+      }}>
+      <div style={{textAlign: 'center'}}>
+        <PnI.Plus size={18} color={hover ? PN.PINK_DARK : PN.MUTED}/>
+        <div style={{marginTop: 4}}>Aggiungi</div>
+      </div>
+    </div>
+  );
+}
+
 // Cestino a badge: bianco a riposo, rosso pieno in hover, si comprime al click.
-function TrashBadge({ onClick, title }) {
+// `pos` sposta il badge (serve sul logo tondo, dove l'angolo del box è fuori
+// dal cerchio).
+function TrashBadge({ onClick, title, pos }) {
   const [hover, setHover] = React.useState(false);
   const [pressed, setPressed] = React.useState(false);
   return (
@@ -1274,7 +1335,7 @@ function TrashBadge({ onClick, title }) {
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       style={{
-        position: 'absolute', top: -9, right: -9, zIndex: 3,
+        position: 'absolute', ...(pos || {top: -9, right: -9}), zIndex: 3,
         width: 27, height: 27, borderRadius: '50%',
         background: hover ? PN.RED : PN.WHITE,
         color: hover ? '#fff' : PN.RED,
@@ -1396,8 +1457,30 @@ function MediaUploadModal({ kind, onClose, onPick }) {
 
 // ─── Pubblico (FAQ + social) ────────────────────────────────────────────────
 
+// Social collegabili: per ciascuno i domini accettati per il link della pagina.
+const SOCIAL_DEFS = [
+  {key:'tw', name:'Twitter / X', bg:'#000',     domains:['x.com', 'twitter.com'],    sample:'https://x.com/iltuolocale'},
+  {key:'yt', name:'YouTube',     bg:'#FF0000',  domains:['youtube.com', 'youtu.be'], sample:'https://youtube.com/@iltuolocale'},
+  {key:'tt', name:'TikTok',      bg:'#000',     domains:['tiktok.com'],              sample:'https://tiktok.com/@iltuolocale'},
+  {key:'li', name:'LinkedIn',    bg:'#0A66C2',  domains:['linkedin.com'],            sample:'https://linkedin.com/company/iltuolocale'},
+  {key:'fb', name:'Facebook',    bg:'#1877F2',  domains:['facebook.com', 'fb.com'],  sample:'https://facebook.com/iltuolocale'},
+];
+
 function VetrinaPubblico({ social, setSocial, onChange }) {
-  const toggleSocial = (k) => setSocial(social.includes(k) ? social.filter(x => x !== k) : [...social, k]);
+  // Collegare un social passa dal popup del link; qui i link confermati.
+  const [links, setLinks] = React.useState({});
+  const [linkModal, setLinkModal] = React.useState(null); // def del social da collegare
+  const connectSocial = (key, url) => {
+    setLinks(l => ({...l, [key]: url}));
+    if (!social.includes(key)) setSocial([...social, key]);
+    setLinkModal(null);
+    onChange && onChange();
+  };
+  const disconnectSocial = (key) => {
+    setLinks(l => { const n = {...l}; delete n[key]; return n; });
+    setSocial(social.filter(x => x !== key));
+    onChange && onChange();
+  };
   // FAQ reali: crea dal popup, riordina col drag, modifica, elimina con conferma.
   const [faqs, setFaqs] = React.useState([
     { id: 'f1', q: 'Avete prodotti senza glutine?', a: 'Sì, abbiamo un menù dedicato preparato in area separata.' },
@@ -1505,33 +1588,44 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
 
         <div style={{fontSize:13.5, fontWeight:600, color:PN.MUTED, marginBottom:8, letterSpacing:0.3, textTransform:'uppercase'}}>Aggiungi altri social</div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
-          {[
-            {key:'tw', name:'Twitter / X', bg:'#000'},
-            {key:'yt', name:'YouTube', bg:'#FF0000'},
-            {key:'tt', name:'TikTok', bg:'#000'},
-            {key:'li', name:'LinkedIn', bg:'#0A66C2'},
-            {key:'fb', name:'Facebook', bg:'#1877F2'},
-          ].map(s => {
+          {SOCIAL_DEFS.map(s => {
             const on = social.includes(s.key);
+            const link = links[s.key];
             return (
-              <button key={s.key} onClick={() => toggleSocial(s.key)} style={{
-                display:'flex', alignItems:'center', gap: 10,
-                padding: '10px 12px', borderRadius: 10,
-                border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
-                background: on ? PN.PINK_SOFT : PN.WHITE,
-                cursor:'pointer', fontFamily:'inherit',
-              }}>
+              <button key={s.key}
+                title={on && link ? link : `Collega ${s.name}`}
+                onClick={() => on ? disconnectSocial(s.key) : setLinkModal(s)}
+                style={{
+                  display:'flex', alignItems:'center', gap: 10, minWidth: 0,
+                  padding: '10px 12px', borderRadius: 10,
+                  border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                  background: on ? PN.PINK_SOFT : PN.WHITE,
+                  cursor:'pointer', fontFamily:'inherit',
+                }}>
                 <span style={{
-                  width:24, height:24, borderRadius:5, background:s.bg,
+                  width:24, height:24, borderRadius:5, background:s.bg, flexShrink: 0,
                   display:'grid', placeItems:'center', color:'#fff', fontSize:13, fontWeight:800,
                 }}>{s.name[0]}</span>
-                <span style={{fontSize:15, fontWeight:600, flex:1, textAlign:'left'}}>{s.name}</span>
-                {on && <span style={{fontSize:13, color:PN.PINK_DARK, fontWeight:700}}>✓</span>}
+                <span style={{flex:1, minWidth: 0, textAlign:'left'}}>
+                  <span style={{display:'block', fontSize:15, fontWeight:600}}>{s.name}</span>
+                  {on && link && (
+                    <span style={{display:'block', fontSize:11.5, color:PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                      {link.replace(/^https?:\/\/(www\.)?/i, '')}
+                    </span>
+                  )}
+                </span>
+                {on && <span style={{fontSize:13, color:PN.PINK_DARK, fontWeight:700, flexShrink: 0}}>✓</span>}
               </button>
             );
           })}
         </div>
       </ImpCard>
+
+      {linkModal && (
+        <SocialLinkModal def={linkModal}
+          onClose={() => setLinkModal(null)}
+          onConnect={connectSocial}/>
+      )}
     </div>
   );
 }
@@ -1668,6 +1762,98 @@ function FaqConfirmModal({ faq, onClose, onConfirm }) {
         <style>{`
           @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
           @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
+// Popup di collegamento social: chiede il link della pagina e verifica che il
+// dominio corrisponda al social scelto prima di collegarlo.
+function SocialLinkModal({ def, onClose, onConnect }) {
+  const [url, setUrl] = React.useState('');
+  const [error, setError] = React.useState(null);
+  const [shake, setShake] = React.useState(0);
+  const submit = () => {
+    const v = url.trim();
+    if (!v) return;
+    const full = /^https?:\/\//i.test(v) ? v : `https://${v}`;
+    let host = '';
+    try { host = new URL(full).hostname.toLowerCase().replace(/^www\./, ''); } catch (e) { host = ''; }
+    if (!host || !host.includes('.')) {
+      setError('Questo non sembra un link valido. Incolla l\'indirizzo completo della pagina.');
+      setShake(s => s + 1);
+      return;
+    }
+    const ok = def.domains.some(d => host === d || host.endsWith(`.${d}`));
+    if (!ok) {
+      setError(`Il link non corrisponde a ${def.name}: serve un indirizzo ${def.domains[0]}.`);
+      setShake(s => s + 1);
+      return;
+    }
+    onConnect(def.key, full);
+  };
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 80,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 460, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '20px 22px',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
+          <span style={{
+            width: 36, height: 36, borderRadius: 9, background: def.bg, flexShrink: 0,
+            display: 'grid', placeItems: 'center', color: '#fff', fontSize: 16, fontWeight: 800,
+          }}>{def.name[0]}</span>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>
+              Collega {def.name}
+            </div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
+              Incolla il link della tua pagina. Apparirà sulla vetrina del locale.
+            </div>
+          </div>
+          <button onClick={onClose} title="Chiudi senza collegare" style={{
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            border: 'none', background: '#F4F5F7', color: PN.TEXT,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}><PnI.X size={13}/></button>
+        </div>
+
+        <div style={{marginBottom: 16}}>
+          <div style={{fontSize: 13.5, fontWeight: 600, color: PN.TEXT, marginBottom: 6}}>Link della pagina</div>
+          <ImpInput autoFocus value={url}
+            onChange={e => { setUrl(e.target.value); setError(null); }}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+            placeholder={def.sample}
+            style={error ? {borderColor: PN.RED, background: '#FFF7F7'} : undefined}/>
+          {error && (
+            <div key={shake} style={{
+              fontSize: 13, fontWeight: 600, color: PN.RED, marginTop: 8,
+              animation: 'tag-limit-shake 380ms ease',
+            }}>{error}</div>
+          )}
+        </div>
+
+        <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+          <ImpButton variant="primary" disabled={!url.trim()} onClick={submit}>Collega profilo</ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+          @keyframes tag-limit-shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); } 40% { transform: translateX(5px); }
+            60% { transform: translateX(-3px); } 80% { transform: translateX(3px); }
+          }
         `}</style>
       </div>
     </div>

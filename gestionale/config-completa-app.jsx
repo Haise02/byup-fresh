@@ -10,7 +10,13 @@
 function ConfigCompletaApp() {
   // Tre step: Informazioni (profilo vetrina) → Aspetto (foto, social e FAQ)
   // → Personale.
-  const [step, setStep] = React.useState('informazioni');
+  const [step, setStep] = React.useState(() => {
+    try {
+      const s = new URLSearchParams(window.location.search).get('step');
+      if (['informazioni', 'aspetto', 'personale'].includes(s)) return s;
+    } catch (e) {}
+    return 'informazioni';
+  });
 
   // Stato vetrina — lo stesso di ImpVetrina nelle Impostazioni.
   const [dirty, setDirty] = React.useState(false);
