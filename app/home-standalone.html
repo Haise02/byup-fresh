@@ -19777,12 +19777,15 @@ function HomeSections({
   onMap,
   onPosta,
   onSearch,
+  onSearchSubmit,
   onFilters,
   onCardClick,
   onSlotClick,
   onDisponibili,
   noVenues = false
 }) {
+  // Ricerca inline dalla home: si scrive qui, invio → risultati con la query
+  const [searchQ, setSearchQ] = useState('');
   // Allow internal moment management when parent doesn't provide it (legacy callers).
   const [intMoment, intSetMoment] = useState('ora');
   const moment = extMoment ?? intMoment;
@@ -20005,7 +20008,6 @@ function HomeSections({
       padding: '14px 22px 14px'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    onClick: onSearch,
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -20015,19 +20017,34 @@ function HomeSections({
       border: `1px solid ${T.glassBorder}`,
       padding: '0 16px',
       background: T.glass,
-      cursor: 'pointer',
+      cursor: 'text',
       backdropFilter: 'blur(24px) saturate(160%)',
       WebkitBackdropFilter: 'blur(24px) saturate(160%)',
       boxShadow: T.shadowSoft
     }
-  }, /*#__PURE__*/React.createElement(Icon.Search, null), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement(Icon.Search, null), /*#__PURE__*/React.createElement("input", {
+    value: searchQ,
+    onChange: e => setSearchQ(e.target.value),
+    onKeyDown: e => {
+      if (e.key === 'Enter' && searchQ.trim()) {
+        if (onSearchSubmit) onSearchSubmit(searchQ.trim());else onSearch?.(searchQ.trim());
+        setSearchQ('');
+        e.target.blur();
+      }
+    },
+    enterKeyHint: "search",
+    placeholder: "Cerca un locale, un piatto...",
     style: {
       flex: 1,
+      minWidth: 0,
+      border: 'none',
+      outline: 'none',
+      background: 'transparent',
       fontSize: 14.5,
-      color: T.textDim,
+      color: T.text,
       fontFamily: BK.TYPE.sans
     }
-  }, "Cerca un locale, un piatto..."), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: e => {
       e.stopPropagation();
       onFilters?.();
@@ -24777,6 +24794,10 @@ function App({
     onMap: () => setPage('map'),
     onPosta: () => setPage('posta'),
     onSearch: () => setPage('search'),
+    onSearchSubmit: q => {
+      setSearchQuery(q);
+      setPage('results');
+    },
     onFilters: () => setFiltersOpen(true),
     onDisponibili: () => setPage('disponibili'),
     onCardClick: item => {

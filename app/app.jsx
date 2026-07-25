@@ -2426,10 +2426,12 @@ function HomeSections({
   onCategory,
   quickFilters, setQuickFilters,
   activeFilterCount = 0,
-  onMap, onPosta, onSearch, onFilters,
+  onMap, onPosta, onSearch, onSearchSubmit, onFilters,
   onCardClick, onSlotClick, onDisponibili,
   noVenues = false,
 }) {
+  // Ricerca inline dalla home: si scrive qui, invio → risultati con la query
+  const [searchQ, setSearchQ] = useState('');
   // Allow internal moment management when parent doesn't provide it (legacy callers).
   const [intMoment, intSetMoment] = useState('ora');
   const moment = extMoment ?? intMoment;
@@ -2533,18 +2535,31 @@ function HomeSections({
         {/* Search — nascosta quando non ci sono locali */}
         {!noVenues && (
           <div style={{ padding: '14px 22px 14px' }}>
-            <div onClick={onSearch} style={{
+            <div style={{
               display: 'flex', alignItems: 'center', gap: 10,
               height: 50, borderRadius: 999,
               border: `1px solid ${T.glassBorder}`,
-              padding: '0 16px', background: T.glass, cursor: 'pointer',
+              padding: '0 16px', background: T.glass, cursor: 'text',
               backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)',
               boxShadow: T.shadowSoft,
             }}>
               <Icon.Search/>
-              <span style={{ flex: 1, fontSize: 14.5, color: T.textDim, fontFamily: BK.TYPE.sans }}>
-                Cerca un locale, un piatto...
-              </span>
+              <input
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQ.trim()) {
+                    if (onSearchSubmit) onSearchSubmit(searchQ.trim());
+                    else onSearch?.(searchQ.trim());
+                    setSearchQ('');
+                    e.target.blur();
+                  }
+                }}
+                enterKeyHint="search"
+                placeholder="Cerca un locale, un piatto..."
+                style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent',
+                  fontSize: 14.5, color: T.text, fontFamily: BK.TYPE.sans }}
+              />
               <button onClick={(e) => { e.stopPropagation(); onFilters?.(); }} style={{
                 border: 'none', background: 'transparent', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -4625,6 +4640,7 @@ function App({ recoveryArmed = false }) {
           onMap={() => setPage('map')}
           onPosta={() => setPage('posta')}
           onSearch={() => setPage('search')}
+          onSearchSubmit={(q) => { setSearchQuery(q); setPage('results'); }}
           onFilters={() => setFiltersOpen(true)}
           onDisponibili={() => setPage('disponibili')}
           onCardClick={(item) => {
