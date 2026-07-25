@@ -99,15 +99,25 @@ function VetrinaCompletion({ items, pct }) {
 // ─── Profilo (info + categorie + tag + sedi) ────────────────────────────────
 
 function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
-  const [services, setServices] = React.useState({Parcheggio:true});
-  const [access, setAccess] = React.useState({});
+  const [services, setServices] = React.useState({'WiFi gratuito': true});
+  const [access, setAccess] = React.useState({'Servizio al tavolo': true});
   const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
   const [openDays, setOpenDays] = React.useState({Lun:true,Mar:true,Mer:true,Gio:true,Ven:true,Sab:true});
-  const cats = ['Ristorante','Pizzeria','Giapponese','Carne & Griglia','Cucina etnica','Bar','Bistrot','Enoteca'];
   const allTags = ['Elegante','Luxury','Tradizionale','Moderno','Vivace','Romantico','Rustico','Tranquillo','Conviviale','Minimal'];
-  const targets = ['Coppie','Famiglie','Gruppi','Business','Turisti','Aperitivo','Eventi privati','Compleanni'];
-  const [activeTargets, setActiveTargets] = React.useState({Coppie:true, Famiglie:true});
-  const toggleTag = (t) => setTags(tags.includes(t) ? tags.filter(x => x !== t) : [...tags, t]);
+  // Tag: massimo 3. Il quarto tentativo accende e scuote la riga-guida.
+  const [tagLimitHit, setTagLimitHit] = React.useState(false);
+  const toggleTag = (t) => {
+    if (tags.includes(t)) { setTags(tags.filter(x => x !== t)); return; }
+    if (tags.length >= 3) {
+      setTagLimitHit(true);
+      clearTimeout(toggleTag._t);
+      toggleTag._t = setTimeout(() => setTagLimitHit(false), 1500);
+      return;
+    }
+    setTags([...tags, t]);
+  };
+  // Popup certificazioni: null | {mode:'new'} | {mode:'rifiutata', name, reason}
+  const [certModal, setCertModal] = React.useState(null);
 
   return (
     <div>
@@ -125,22 +135,22 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…"/>
         </ImpField>
 
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 24, paddingTop: 4}}>
-          <div>
-            <div style={{fontSize:14, fontWeight:600, marginBottom:4}}>Servizi disponibili</div>
-            <div style={{display:'flex', flexDirection:'column'}}>
-              {['Parcheggio custodito','Parcheggio riservato','WiFi gratuito','Animali ammessi'].map(s => (
-                <ImpCheckbox key={s} label={s} checked={!!services[s]} onChange={() => {setServices(o => ({...o, [s]: !o[s]})); onChange();}}/>
-              ))}
-            </div>
+        {/* Servizi e accessibilità: tessere grandi con icona e descrizione,
+            selezione con spunta — niente più liste di checkbox. */}
+        <div style={{paddingTop: 4}}>
+          <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Servizi disponibili</div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(178px, 1fr))', gap: 10, marginBottom: 16}}>
+            {SERVICE_TILES.servizi.map(s => (
+              <ServiceTile key={s.label} {...s} on={!!services[s.label]}
+                onToggle={() => {setServices(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
+            ))}
           </div>
-          <div>
-            <div style={{fontSize:14, fontWeight:600, marginBottom:4}}>Accessibilità</div>
-            <div style={{display:'flex', flexDirection:'column'}}>
-              {['Rampa per disabili','Menù per non vedenti','Servizio al tavolo'].map(s => (
-                <ImpCheckbox key={s} label={s} checked={!!access[s]} onChange={() => {setAccess(o => ({...o, [s]: !o[s]})); onChange();}}/>
-              ))}
-            </div>
+          <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Accessibilità</div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(178px, 1fr))', gap: 10}}>
+            {SERVICE_TILES.accessibilita.map(s => (
+              <ServiceTile key={s.label} {...s} on={!!access[s.label]}
+                onToggle={() => {setAccess(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
+            ))}
           </div>
         </div>
       </ImpCard>
@@ -212,54 +222,56 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard aurora title="Categoria del locale" sub="Il tuo locale apparirà agli utenti dell'App Byup nella categoria che selezioni">
+      {/* Categoria: niente aurora, tessere grandi con icona; in hover la
+          descrizione di quando scegliere quella categoria. */}
+      <ImpCard title="Categoria del locale" sub="Il tuo locale apparirà agli utenti dell'App Byup nella categoria che selezioni">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
-          {cats.map(c => (
-            <button key={c} onClick={() => setCategoria(c)} style={{
-              padding: '14px 12px',
-              border:`2px solid ${categoria===c ? PN.PINK : PN.BORDER_SOFT}`,
-              borderRadius: 10, background: categoria===c ? PN.PINK_SOFT : PN.WHITE,
-              color: categoria===c ? PN.PINK_DARK : PN.TEXT,
-              fontSize: 15, fontWeight: categoria===c ? 700 : 500,
-              cursor:'pointer', fontFamily:'inherit', textAlign:'center',
-            }}>{c}</button>
+          {VETRINA_CATS.map(c => (
+            <CatTile key={c.name} cat={c} active={categoria === c.name}
+              onPick={() => setCategoria(c.name)}/>
           ))}
         </div>
       </ImpCard>
 
-      <ImpCard title="Tag" sub="Scegli uno o più tag per farti trovare più velocemente dai clienti">
-        <div style={{fontSize:13.5, fontWeight:600, color:PN.MUTED, marginBottom:8, letterSpacing:0.3, textTransform:'uppercase'}}>Atmosfera</div>
-        <div style={{display:'flex', flexWrap:'wrap', gap: 7, marginBottom: 16}}>
+      {/* ─── Avanzate: tag, sedi e certificazioni — contratte di default ── */}
+      <div style={{margin: '22px 2px 10px'}}>
+        <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.8, textTransform: 'uppercase'}}>Avanzate</div>
+        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>Opzioni per raffinare la vetrina: aprile solo se ti servono.</div>
+      </div>
+
+      <CollapsibleCard title="Tag" sub="Il tono del locale in tre parole">
+        <div style={{
+          fontSize: 13.5, fontWeight: 600, marginBottom: 10,
+          color: tagLimitHit ? PN.PINK : PN.MUTED,
+          animation: tagLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
+          transition: 'color 150ms ease',
+        }}>
+          Atmosfera · puoi selezionarne massimo 3
+        </div>
+        <div style={{display:'flex', flexWrap:'wrap', gap: 7}}>
           {allTags.map(t => {
             const on = tags.includes(t);
             return (
               <button key={t} onClick={() => toggleTag(t)} style={{
                 padding: '6px 12px', borderRadius: 999,
-                border:`1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
-                background: on ? PN.TEXT : PN.WHITE,
-                color: on ? PN.WHITE : PN.TEXT,
+                border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                background: on ? PN.PINK : PN.WHITE,
+                color: on ? '#fff' : PN.TEXT,
                 fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
               }}>{on ? '✓ ' : '+ '}{t}</button>
             );
           })}
         </div>
-        <div style={{fontSize:13.5, fontWeight:600, color:PN.MUTED, marginBottom:8, letterSpacing:0.3, textTransform:'uppercase'}}>Target & occasione</div>
-        <div style={{display:'flex', flexWrap:'wrap', gap: 7}}>
-          {targets.map(t => (
-            <button key={t} onClick={() => setActiveTargets(o => ({...o, [t]: !o[t]}))} style={{
-              padding: '6px 12px', borderRadius: 999,
-              border:`1.5px solid ${activeTargets[t] ? PN.TEXT : PN.BORDER}`,
-              background: activeTargets[t] ? PN.TEXT : PN.WHITE,
-              color: activeTargets[t] ? PN.WHITE : PN.TEXT,
-              fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-            }}>{activeTargets[t] ? '✓ ' : '+ '}{t}</button>
-          ))}
-        </div>
-      </ImpCard>
+        <style>{`@keyframes tag-limit-shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-5px); } 40% { transform: translateX(5px); }
+          60% { transform: translateX(-3px); } 80% { transform: translateX(3px); }
+        }`}</style>
+      </CollapsibleCard>
 
-      <ImpCard title="Sedi" sub="Aggiungi sedi secondarie del tuo locale" action={
-        <ImpButton variant="primary" icon={<PnI.Plus size={13}/>}>Aggiungi sede</ImpButton>
-      }>
+      <CollapsibleCard title="Sedi" sub="Aggiungi sedi secondarie del tuo locale"
+        action={<ImpButton variant="primary" icon={<PnI.Plus size={13}/>}>Aggiungi sede</ImpButton>}>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
           {[
             {name:'Sede principale', addr:'Via Roma 13, Roma', status:'Attiva', sc:PN.GREEN, bg:PN.GREEN_SOFT, c:'#7B3F2A'},
@@ -296,31 +308,273 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
             </div>
           ))}
         </div>
-      </ImpCard>
+      </CollapsibleCard>
 
-      <ImpCard title="Certificazioni alimentari" sub="Mostrate sulla vetrina dopo approvazione" action={
-        <ImpButton variant="primary" icon={<PnI.Plus size={13}/>}>Carica certificazione</ImpButton>
-      }>
+      <CollapsibleCard title="Certificazioni alimentari" sub="Mostrate sulla vetrina dopo approvazione"
+        action={<ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => setCertModal({mode:'new'})}>Carica certificazione</ImpButton>}>
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-          {[
-            {name:'Senza glutine', status:'Approvata', color:PN.GREEN, bg:PN.GREEN_SOFT},
-            {name:'Biologico', status:'In attesa', color:PN.AMBER, bg:PN.AMBER_SOFT},
-            {name:'Halal', status:'Rifiutata', color:PN.RED, bg:PN.RED_SOFT},
-          ].map(c => (
-            <div key={c.name} style={{
-              padding: '14px 16px', borderRadius: 10,
-              background: c.bg, border:`1px solid ${PN.BORDER_SOFT}`,
-            }}>
-              <div style={{fontSize:15.5, fontWeight:700}}>{c.name}</div>
-              <div style={{fontSize:14, color:c.color, fontWeight:600, marginTop:3}}>● {c.status}</div>
-            </div>
+          {VETRINA_CERTS.map(c => (
+            <CertCard key={c.name} cert={c}
+              onOpenRejected={() => setCertModal({mode:'rifiutata', name: c.name, reason: c.reason})}/>
           ))}
         </div>
         <div style={{fontSize:13.5, color:PN.MUTED, marginTop:12, lineHeight:1.5}}>
           Enti accettati: AIC, ICEA, WHAD ITALIA, EIA, Rabbinato Centrale di Roma, VEGANOK.
         </div>
-      </ImpCard>
+      </CollapsibleCard>
+
+      {certModal && <CertUploadModal ctx={certModal} onClose={() => setCertModal(null)}/>}
     </div>
+  );
+}
+
+// ─── Vetrina-profilo: dati e tessere ────────────────────────────────────────
+
+const SERVICE_TILES = {
+  servizi: [
+    { label: 'Parcheggio custodito', icon: '🅿️', desc: 'Posto auto sorvegliato per i clienti' },
+    { label: 'Parcheggio riservato', icon: '🚗', desc: 'Posti dedicati davanti al locale' },
+    { label: 'WiFi gratuito',        icon: '📶', desc: 'Rete libera per gli ospiti' },
+    { label: 'Animali ammessi',      icon: '🐾', desc: 'Amici a quattro zampe benvenuti' },
+  ],
+  accessibilita: [
+    { label: 'Rampa per disabili',   icon: '♿', desc: 'Ingresso senza barriere' },
+    { label: 'Menù per non vedenti', icon: '📖', desc: 'Disponibile anche in Braille' },
+    { label: 'Servizio al tavolo',   icon: '🛎️', desc: 'Il personale serve al tavolo' },
+  ],
+};
+
+function ServiceTile({ label, icon, desc, on, onToggle }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={onToggle}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'relative', textAlign: 'left',
+        padding: '14px 14px 12px', borderRadius: 12,
+        border: `1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
+        background: on ? PN.PINK_SOFT : PN.WHITE,
+        cursor: 'pointer', fontFamily: 'inherit',
+        transform: hover ? 'translateY(-1px)' : 'none',
+        transition: 'border-color 150ms ease, background 150ms ease, transform 150ms ease',
+      }}>
+      {on && (
+        <span style={{
+          position: 'absolute', top: 10, right: 10,
+          width: 20, height: 20, borderRadius: '50%',
+          background: PN.PINK, display: 'grid', placeItems: 'center',
+          boxShadow: '0 2px 6px rgba(255, 90, 95, 0.40)',
+        }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </span>
+      )}
+      <div style={{fontSize: 26, lineHeight: 1, marginBottom: 8}}>{icon}</div>
+      <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{label}</div>
+      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{desc}</div>
+    </button>
+  );
+}
+
+const VETRINA_CATS = [
+  { name: 'Ristorante',     icon: '🍝', desc: 'Cucina completa con servizio al tavolo, pranzo e cena' },
+  { name: 'Pizzeria',       icon: '🍕', desc: 'La pizza al centro del menù, al tavolo o d\'asporto' },
+  { name: 'Giapponese',     icon: '🍣', desc: 'Sushi, ramen e cucina nipponica' },
+  { name: 'Carne & Griglia',icon: '🥩', desc: 'Braceria: tagli, grigliate e affumicati' },
+  { name: 'Cucina etnica',  icon: '🌶️', desc: 'Sapori dal mondo: indiano, messicano, mediorientale' },
+  { name: 'Bar',            icon: '☕', desc: 'Caffetteria, colazioni e aperitivi veloci' },
+  { name: 'Bistrot',        icon: '🥂', desc: 'Informale e curato: piatti semplici e buoni vini' },
+  { name: 'Enoteca',        icon: '🍷', desc: 'Vini al calice con taglieri e degustazioni' },
+];
+
+function CatTile({ cat, active, onPick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={onPick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        minHeight: 118, padding: '14px 12px', borderRadius: 12, textAlign: 'center',
+        border: `2px solid ${active ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
+        background: active ? PN.PINK_SOFT : PN.WHITE,
+        cursor: 'pointer', fontFamily: 'inherit',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
+        transition: 'border-color 150ms ease, background 150ms ease',
+      }}>
+      <div style={{fontSize: 26, lineHeight: 1, marginBottom: 8}}>{cat.icon}</div>
+      <div style={{
+        fontSize: 14.5, fontWeight: active ? 700 : 600,
+        color: active ? PN.PINK_DARK : PN.TEXT,
+      }}>{cat.name}</div>
+      {/* Descrizione: appare in hover, lo spazio è riservato (box grandi) */}
+      <div style={{
+        fontSize: 12, color: PN.MUTED, lineHeight: 1.35, marginTop: 5,
+        opacity: hover ? 1 : 0, transition: 'opacity 180ms ease',
+      }}>{cat.desc}</div>
+    </button>
+  );
+}
+
+// ─── Certificazioni: card di stato + popup di caricamento ───────────────────
+
+const VETRINA_CERTS = [
+  { name: 'Senza glutine', status: 'approvata' },
+  { name: 'Biologico',     status: 'attesa',    sent: '12 luglio 2026' },
+  { name: 'Halal',         status: 'rifiutata', reason: 'Documento scaduto: il certificato caricato non riporta la data di rinnovo dell\'ente.' },
+];
+
+function CertCard({ cert, onOpenRejected }) {
+  const [hover, setHover] = React.useState(false);
+  const clickable = cert.status === 'rifiutata';
+  const S = {
+    // Approvata e rifiutata: solo il bordo colorato, dentro bianche.
+    approvata: { border: PN.GREEN,       color: PN.GREEN, label: 'Approvata',            bg: PN.WHITE },
+    rifiutata: { border: PN.RED,         color: PN.RED,   label: 'Rifiutata · vedi motivo', bg: PN.WHITE },
+    // In attesa: grigiastra, con l'icona dell'attesa a destra.
+    attesa:    { border: PN.BORDER_SOFT, color: PN.MUTED, label: 'In attesa',            bg: '#F4F5F7' },
+  }[cert.status];
+  return (
+    <div
+      onClick={clickable ? onOpenRejected : undefined}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'relative',
+        padding: '14px 16px', borderRadius: 12,
+        background: S.bg,
+        border: `1.5px solid ${S.border}`,
+        cursor: clickable ? 'pointer' : 'default',
+        transform: hover ? 'scale(1.045)' : 'scale(1)',
+        boxShadow: hover ? '0 10px 24px rgba(15, 17, 21, 0.10)' : 'none',
+        transition: 'transform 180ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 180ms ease',
+        display: 'flex', alignItems: 'center', gap: 10,
+        zIndex: hover ? 2 : 1,
+      }}>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{cert.name}</div>
+        <div style={{fontSize: 13.5, color: S.color, fontWeight: 600, marginTop: 3}}>{S.label}</div>
+      </div>
+      {cert.status === 'attesa' && (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0}}>
+          <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>
+        </svg>
+      )}
+      {cert.status === 'attesa' && hover && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+          background: PN.TEXT, color: '#fff', fontSize: 12.5, fontWeight: 600,
+          padding: '6px 10px', borderRadius: 8, whiteSpace: 'nowrap', zIndex: 6,
+          boxShadow: '0 6px 16px rgba(15, 17, 21, 0.25)', pointerEvents: 'none',
+        }}>
+          Richiesta inviata il {cert.sent}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CertUploadModal({ ctx, onClose }) {
+  const rejected = ctx.mode === 'rifiutata';
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 80,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 460, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '20px 22px',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>
+              {rejected ? `Ricarica certificazione — ${ctx.name}` : 'Carica certificazione'}
+            </div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
+              PDF rilasciato da un ente accettato, max 10MB.
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            border: 'none', background: '#F4F5F7', color: PN.TEXT,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}><PnI.X size={13}/></button>
+        </div>
+
+        {rejected && (
+          <div style={{
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+            padding: '11px 13px', borderRadius: 10, marginBottom: 14,
+            background: PN.RED_SOFT, border: `1px solid ${PN.RED}44`,
+          }}>
+            <span style={{fontSize: 15, lineHeight: 1.2}}>⚠️</span>
+            <div>
+              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.RED}}>Motivo del rifiuto</div>
+              <div style={{fontSize: 13.5, color: PN.TEXT, marginTop: 2, lineHeight: 1.45}}>{ctx.reason}</div>
+            </div>
+          </div>
+        )}
+
+        <div style={{
+          padding: '26px 16px', border: `2px dashed ${PN.BORDER}`, borderRadius: 12,
+          textAlign: 'center', background: '#FAFBFC', marginBottom: 14, cursor: 'pointer',
+        }}>
+          <div style={{fontSize: 22, marginBottom: 6}}>📄</div>
+          <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>Trascina qui il certificato</div>
+          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>oppure clicca per sfogliare</div>
+        </div>
+
+        <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+          <ImpButton variant="primary" onClick={onClose}>{rejected ? 'Invia di nuovo' : 'Carica'}</ImpButton>
+        </div>
+      </div>
+      <style>{`
+        @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Card collassabile (gruppo Avanzate) ────────────────────────────────────
+
+function CollapsibleCard({ title, sub, action, children, defaultOpen = false }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+      borderRadius: 14, marginBottom: 12, overflow: 'visible',
+    }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+        padding: '15px 22px', background: 'transparent', border: 'none',
+        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+      }}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>{title}</div>
+          {sub && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{sub}</div>}
+        </div>
+        {open && action && <span onClick={e => e.stopPropagation()}>{action}</span>}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+          style={{flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease'}}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div style={{
+          padding: '16px 22px 20px',
+          borderTop: `1px solid ${PN.BORDER_SOFT}`,
+          animation: 'coll-open 220ms ease',
+        }}>
+          {children}
+        </div>
+      )}
+      <style>{`@keyframes coll-open { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }`}</style>
+    </section>
   );
 }
 
