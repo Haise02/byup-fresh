@@ -1281,9 +1281,9 @@ function VetrinaAspetto({ onChange }) {
                   onRemove={() => removePhoto(i)}/>
               </div>
             ))}
-            {/* Sempre presente, anche a galleria piena: al limite il click
-                scuote la riga-guida invece di aprire il caricamento. */}
-            <AddPhotoTile onClick={openGalleryUpload}/>
+            {/* A galleria piena (5/5) il tile sparisce: il limite è già
+                raggiunto, niente inviti ad aggiungere. */}
+            {photos.length < GALLERY_MAX && <AddPhotoTile onClick={openGalleryUpload}/>}
           </div>
         </div>
         <style>{`@keyframes tag-limit-shake {
