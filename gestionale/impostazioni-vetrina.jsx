@@ -1405,14 +1405,12 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
                 <PnI.Drag size={14}/>
               </span>
               <span style={{flex:1, minWidth: 0, fontSize:15.5, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{f.q}</span>
-              <button onClick={() => setFaqModal({mode: 'edit', faq: f})} title="Modifica"
-                style={{background:'transparent', border:'none', cursor:'pointer', color:PN.MUTED, padding:6}}>
+              <FaqIconBtn title="Modifica" onClick={() => setFaqModal({mode: 'edit', faq: f})}>
                 <PnI.Edit size={14}/>
-              </button>
-              <button onClick={() => setFaqConfirm(f)} title="Elimina"
-                style={{background:'transparent', border:'none', cursor:'pointer', color:PN.RED, padding:6}}>
+              </FaqIconBtn>
+              <FaqIconBtn title="Elimina" danger onClick={() => setFaqConfirm(f)}>
                 <PnI.X size={14}/>
-              </button>
+              </FaqIconBtn>
             </div>
           ))}
         </div>
@@ -1478,6 +1476,30 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
         </div>
       </ImpCard>
     </div>
+  );
+}
+
+// Bottone-icona delle righe FAQ: feedback visibile in hover (fondo tinto,
+// colore pieno, leggero ingrandimento) e alla pressione (si comprime).
+function FaqIconBtn({ title, danger, onClick, children }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button onClick={onClick} title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        width: 30, height: 30, borderRadius: 8, border: 'none',
+        background: hover ? (danger ? PN.RED_SOFT : '#EEF0F3') : 'transparent',
+        color: danger ? PN.RED : (hover ? PN.TEXT : PN.MUTED),
+        cursor: 'pointer', display: 'grid', placeItems: 'center',
+        transform: pressed ? 'scale(0.88)' : hover ? 'scale(1.08)' : 'scale(1)',
+        transition: 'background 130ms ease, color 130ms ease, transform 130ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+      {children}
+    </button>
   );
 }
 
