@@ -1100,6 +1100,21 @@ const RESULT_VENUES = [
 function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpenVenue, onMenu }) {
   const [sort, setSort] = useState('Top offer');
   const [sortOpen, setSortOpen] = useState(false);
+  // Filtro per categoria: stessa rail di "Esplora per categoria" in home
+  const [activeCat, setActiveCat] = useState(null);
+  const catObj = activeCat ? BRAND_CATS.find(c => c.id === activeCat) : null;
+  const catVenues = catObj ? (CAT_SCREEN_NAMES[activeCat] || CAT_SCREEN_NAMES.pizza).map((n, i) => {
+    const ph = CAT_SCREEN_PHOTOS[activeCat] || CAT_SCREEN_PHOTOS.pizza;
+    return {
+      name: n, cuisine: catObj.label, city: 'Roma, Italia',
+      distance: (0.3 + i * 0.4).toFixed(1) + 'km',
+      rating: +(4.2 + ((i * 7) % 8) / 10).toFixed(1),
+      open: i % 4 !== 3, hours: i % 4 !== 3 ? 'chiude alle ore 23:00' : 'apre alle 18:00',
+      topOffer: i % 3 === 0,
+      photo: `https://images.unsplash.com/photo-${ph[i % ph.length]}?w=800&q=70&auto=format&fit=crop`,
+    };
+  }) : null;
+  const list = catVenues || RESULT_VENUES;
   return (
     <div style={{
       width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
@@ -1154,9 +1169,19 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
           </div>
         </div>
 
+        {/* Esplora per categoria — tap per filtrare i risultati */}
+        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '16px 22px 0',
+          scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {BRAND_CATS.map(c => (
+            <Category key={c.id} id={c.id} label={c.label}
+              active={activeCat === c.id}
+              onClick={() => setActiveCat(a => a === c.id ? null : c.id)}/>
+          ))}
+        </div>
+
         <div style={{ padding: '18px 22px 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>
-            {RESULT_VENUES.length} Risultati
+            {list.length} Risultati{catObj ? ` · ${catObj.label}` : ''}
           </div>
           <button onClick={() => setSortOpen(o=>!o)} style={{
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -1185,8 +1210,8 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '14px 18px 0' }}>
-          {RESULT_VENUES.map((v, i) => (
-            <ResultCard key={i} {...v}
+          {list.map((v, i) => (
+            <ResultCard key={activeCat ? `${activeCat}-${i}` : i} {...v}
               onClick={() => onOpenVenue({ ...v, _from: 'results' })}
               onMenu={onMenu}/>
           ))}
