@@ -529,7 +529,7 @@ function WidgetPrenotazioniOggi() {
           flex: 1, minHeight: 0,
           overflowY: 'auto', overflowX: 'hidden',
           position: 'relative',
-          margin: '0 -4px', padding: '0 4px',
+          margin: '0 -7px', padding: '3px 7px',
         }}
       >
         <div style={{
@@ -742,7 +742,9 @@ function WidgetTopPiatti() {
           crescono uniformemente quando il widget è alto (h≥2), restano compatti
           quando il widget è 1×1 con scroll se servono.
           gap proporzionale: più aria tra dish in widget grande. */}
-      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 6, minHeight: 0, overflowY: 'auto'}}>
+      {/* Respiro laterale e verticale dentro l'area scrollabile: la riga che
+          si ingrandisce in hover non tocca mai il bordo di clipping. */}
+      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 6, minHeight: 0, overflowY: 'auto', margin: '0 -14px', padding: '3px 14px'}}>
         {dishes.map((d, i) => (
           <TopDishRow key={i} d={d} i={i} max={max}/>
         ))}
@@ -836,7 +838,7 @@ function WidgetRecensioni() {
         }}>+8 questa settimana</div>
       </div>
 
-      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, minHeight: 0, overflow:'auto'}}>
+      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, minHeight: 0, overflow:'auto', margin: '0 -6px', padding: '3px 6px'}}>
         {reviews.map((r,i) => <ReviewTile key={i} r={r}/>)}
       </div>
     </div>
@@ -1125,10 +1127,12 @@ function WidgetCucinaLive() {
         </span>
       </div>
 
-      {/* Rows — kitchen-row del preview, padding 8/10, radius 9, gap 6 tra righe */}
+      {/* Rows — kitchen-row del preview. Margine negativo + padding uguali:
+          le righe scalate in hover non vengono tagliate dai bordi. */}
       <div style={{
         display: 'flex', flexDirection: 'column', gap: 6,
-        flex: 1, minHeight: 0, overflowY: 'auto', marginTop: 4,
+        flex: 1, minHeight: 0, overflowY: 'auto',
+        margin: '4px -8px 0', padding: '2px 8px',
       }}>
         {orders.map((o, i) => (
           <KitchenLiveRow key={i} o={o} s={statusStyles[o.status]}/>
