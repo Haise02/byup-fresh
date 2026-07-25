@@ -152,9 +152,18 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
     onChange && onChange();
   };
   const removeSede = (name) => setSedi(s => s.filter(x => x.name !== name));
-  // Eccezioni orario per giorno: chiuse di default (Hick — prima 6 righe
-  // di input duplicate sempre visibili).
-  const [customHoursOpen, setCustomHoursOpen] = React.useState(false);
+  // Orari: standard per tutti i giorni aperti + personalizzazioni per giorno
+  // (turni multipli) configurate dal popup "Personalizza orari".
+  const [stdHours, setStdHours] = React.useState(['09:00', '23:00']);
+  const [customHours, setCustomHours] = React.useState(null); // null | {Lun: [['12:00','15:00'], …], …}
+  const [hoursModal, setHoursModal] = React.useState(false);
+  const fmtH = (h) => (h || '').replace(':00', '');
+  const dayLabel = (d) => {
+    const turns = customHours && customHours[d];
+    if (!turns || !turns.length) return `${fmtH(stdHours[0])}–${fmtH(stdHours[1])}`;
+    if (turns.length > 1) return `${turns.length} turni`;
+    return `${fmtH(turns[0][0])}–${fmtH(turns[0][1])}`;
+  };
 
   return (
     <div>
@@ -203,7 +212,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard title="Orari di apertura" sub="Scegli i giorni e un orario standard; personalizza solo se serve">
+      <ImpCard title="Orari di apertura" sub="Scegli i giorni e un orario standard — i clienti vedranno questi orari sulla vetrina">
         {/* Mini-calendario settimanale visuale */}
         <div style={{
           display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 6,
@@ -220,16 +229,15 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
                 transition: 'border-color 150ms ease, background 150ms ease',
               }}>
                 <div style={{fontSize:13, fontWeight:700, color: open ? PN.PINK_DARK : PN.MUTED, marginBottom: 4}}>{d}</div>
-                <div style={{fontSize:12.5, color: open ? PN.TEXT : PN.MUTED, fontWeight: 600}}>
-                  {open ? '09–23' : 'Chiuso'}
+                <div style={{fontSize:12.5, color: open ? PN.TEXT : PN.MUTED, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                  {open ? dayLabel(d) : 'Chiuso'}
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* Un solo orario standard per tutti i giorni aperti: tre decisioni
-            (giorni, apre, chiude) invece di sei righe di input duplicate. */}
+        {/* Orario standard + accesso alla personalizzazione per giorno */}
         <div style={{
           display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap',
           padding: '10px 12px', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
@@ -238,47 +246,14 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           <span style={{fontSize:14, fontWeight:700}}>Orario standard</span>
           <span style={{fontSize:13, color:PN.MUTED}}>per tutti i giorni aperti</span>
           <span style={{flex:1}}/>
-          <ImpInput defaultValue="09:00" style={{width:74, padding:'7px 10px'}} onChange={onChange}/>
+          <ImpInput value={stdHours[0]} style={{width:74, padding:'7px 10px'}}
+            onChange={e => { setStdHours([e.target.value, stdHours[1]]); onChange(); }}/>
           <span style={{color:PN.MUTED}}>—</span>
-          <ImpInput defaultValue="23:00" style={{width:74, padding:'7px 10px'}} onChange={onChange}/>
-        </div>
-
-        {/* Eccezioni per giorno: nascoste finché non servono */}
-        <div style={{marginTop: 10}}>
-          <button onClick={() => setCustomHoursOpen(o => !o)} style={{
-            display:'flex', alignItems:'center', gap: 6,
-            background:'transparent', border:'none', padding: '4px 2px',
-            fontSize: 13.5, fontWeight: 600, color: PN.PINK, cursor:'pointer', fontFamily:'inherit',
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PN.PINK} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-              style={{transform: customHoursOpen ? 'rotate(180deg)' : 'none', transition:'transform 200ms ease'}}>
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-            Personalizza per giorno
-          </button>
-          {customHoursOpen && (
-            <div style={{display:'flex', flexDirection:'column', gap: 6, marginTop: 8, animation:'coll-open 200ms ease'}}>
-              {days.filter(d => openDays[d]).map(d => (
-                <div key={d} style={{
-                  display:'grid', gridTemplateColumns: '60px 1fr',
-                  alignItems:'center', gap: 12,
-                  padding: '8px 12px',
-                  border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
-                }}>
-                  <span style={{fontSize:14.5, fontWeight:700}}>{d}</span>
-                  <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                    <ImpInput defaultValue="09:00" style={{width:74, padding:'7px 10px'}}/>
-                    <span style={{color:PN.MUTED}}>—</span>
-                    <ImpInput defaultValue="23:00" style={{width:74, padding:'7px 10px'}}/>
-                    <button style={{
-                      background:'transparent', border:'none', color:PN.PINK,
-                      fontSize:13.5, fontWeight:600, cursor:'pointer',
-                    }}>+ Aggiungi turno</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <ImpInput value={stdHours[1]} style={{width:74, padding:'7px 10px'}}
+            onChange={e => { setStdHours([stdHours[0], e.target.value]); onChange(); }}/>
+          <ImpButton variant="ghost" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5}}>
+            Personalizza orari
+          </ImpButton>
         </div>
 
         <div style={{marginTop: 14, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
@@ -410,6 +385,110 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           onClose={() => setConfirmSede(null)}
           onConfirm={() => { removeSede(confirmSede.name); setConfirmSede(null); }}/>
       )}
+      {hoursModal && (
+        <OrariCustomModal
+          days={days.filter(d => openDays[d])}
+          initial={customHours}
+          std={stdHours}
+          onClose={() => setHoursModal(false)}
+          onSave={(sched) => { setCustomHours(sched); setHoursModal(false); onChange && onChange(); }}/>
+      )}
+    </div>
+  );
+}
+
+// Popup "Personalizza orari": turni reali per giorno — aggiungi o rimuovi
+// turni, poi salva la configurazione o annulla. Gli orari salvati sono
+// quelli mostrati ai clienti sulla vetrina.
+function OrariCustomModal({ days, initial, std, onClose, onSave }) {
+  const [draft, setDraft] = React.useState(() => {
+    const base = {};
+    days.forEach(d => {
+      base[d] = ((initial && initial[d]) ? initial[d] : [std]).map(t => [...t]);
+    });
+    return base;
+  });
+  const setTurn = (d, i, j, val) => setDraft(dr => ({
+    ...dr,
+    [d]: dr[d].map((t, k) => k === i ? t.map((v, l) => l === j ? val : v) : t),
+  }));
+  const addTurn = (d) => setDraft(dr => dr[d].length >= 3 ? dr : ({...dr, [d]: [...dr[d], ['19:00', '23:00']]}));
+  const removeTurn = (d, i) => setDraft(dr => ({...dr, [d]: dr[d].filter((_, k) => k !== i)}));
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 80,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 540, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '20px 22px',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Personalizza orari</div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
+              Turni per ogni giorno di apertura — i clienti li vedranno sulla vetrina.
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            border: 'none', background: '#F4F5F7', color: PN.TEXT,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}><PnI.X size={13}/></button>
+        </div>
+
+        <div className="pn-scroll" style={{maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14, paddingRight: 4}}>
+          {days.map(d => (
+            <div key={d} style={{
+              display: 'grid', gridTemplateColumns: '48px 1fr', gap: 12, alignItems: 'start',
+              padding: '10px 12px', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
+            }}>
+              <span style={{fontSize: 14.5, fontWeight: 700, paddingTop: 7}}>{d}</span>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
+                {draft[d].map((t, i) => (
+                  <div key={i} style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                    <span style={{fontSize: 12, color: PN.MUTED, fontWeight: 600, width: 46, flexShrink: 0}}>
+                      {draft[d].length > 1 ? `Turno ${i + 1}` : 'Orario'}
+                    </span>
+                    <ImpInput value={t[0]} onChange={e => setTurn(d, i, 0, e.target.value)} style={{width: 72, padding: '6px 9px'}}/>
+                    <span style={{color: PN.MUTED}}>—</span>
+                    <ImpInput value={t[1]} onChange={e => setTurn(d, i, 1, e.target.value)} style={{width: 72, padding: '6px 9px'}}/>
+                    {draft[d].length > 1 && (
+                      <button onClick={() => removeTurn(d, i)} title="Rimuovi turno" style={{
+                        width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+                        border: 'none', background: '#F4F5F7', color: PN.RED,
+                        cursor: 'pointer', display: 'grid', placeItems: 'center',
+                      }}><PnI.X size={11}/></button>
+                    )}
+                  </div>
+                ))}
+                {draft[d].length < 3 && (
+                  <button onClick={() => addTurn(d)} style={{
+                    alignSelf: 'flex-start', background: 'transparent', border: 'none',
+                    padding: '2px 0', color: PN.PINK, fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}>+ Aggiungi turno</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+          <ImpButton variant="primary" onClick={() => onSave(draft)}>Salva configurazione</ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
     </div>
   );
 }
