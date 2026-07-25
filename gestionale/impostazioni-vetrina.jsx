@@ -1228,57 +1228,55 @@ function VetrinaAspetto({ onChange }) {
           elemento quadrato) e galleria a destra — niente più card "Aspetto"
           omonima dello step. */}
       <ImpCard title="Immagini" sub="Logo e foto del locale: appariranno sulla vetrina">
-        {/* Logo in colonna stretta a sinistra (è un cerchio, come appare
-            sulla vetrina), galleria che occupa tutto il resto. */}
-        <div style={{display: 'grid', gridTemplateColumns: '240px minmax(0, 1fr)', gap: 18, alignItems: 'stretch'}}>
-
-          {/* Logo — blocco compatto in alto: occupa solo lo spazio reale del
-              cerchio, niente centratura verticale nella colonna */}
-          <div style={{minWidth: 0}}>
-            <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Logo del locale</div>
-            <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 12}}>PNG o JPG quadrato · 512×512px</div>
-            <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-              {logo ? (
-                <>
-                  <LogoCircle src={logo} size={96}
-                    onReplace={() => setUploadModal('logo')}
-                    onRemove={() => { setLogo(null); onChange && onChange(); }}/>
-                  <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}>Sostituisci</ImpButton>
-                </>
-              ) : (
-                <LogoDropCircle size={96} onClick={() => setUploadModal('logo')}/>
-              )}
+        {/* Logo come striscia-profilo in alto (cerchio, testo, azione a
+            destra), galleria a tutta larghezza sotto: niente colonna
+            semivuota accanto alle foto. */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
+          {logo ? (
+            <LogoCircle src={logo} size={96}
+              onReplace={() => setUploadModal('logo')}
+              onRemove={() => { setLogo(null); onChange && onChange(); }}/>
+          ) : (
+            <LogoDropCircle size={96} onClick={() => setUploadModal('logo')}/>
+          )}
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 14.5, fontWeight: 600}}>Logo del locale</div>
+            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 3}}>
+              PNG o JPG quadrato · 512×512px. Comparirà accanto al nome sulla vetrina.
             </div>
           </div>
+          {logo && (
+            <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}>Sostituisci</ImpButton>
+          )}
+        </div>
 
-          {/* Galleria — pannello tinto come Servizi disponibili, ora largo */}
+        {/* Galleria — pannello tinto a tutta larghezza */}
+        <div style={{
+          marginTop: 16, background: '#F3F5F7',
+          border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
+          padding: '14px 16px',
+        }}>
+          <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Galleria fotografica</div>
+          <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>JPG o PNG · consigliato 1600×1200px</div>
+          {/* Riga-guida col limite: si accende e scuote al sesto tentativo */}
           <div style={{
-            minWidth: 0, background: '#F3F5F7',
-            border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
-            padding: '14px 16px',
+            fontSize: 13, fontWeight: 600, marginBottom: 10,
+            color: galleryLimitHit ? PN.RED : PN.MUTED,
+            animation: galleryLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
+            transition: 'color 150ms ease',
           }}>
-            <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Galleria fotografica</div>
-            <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>JPG o PNG · consigliato 1600×1200px</div>
-            {/* Riga-guida col limite: si accende e scuote al sesto tentativo */}
-            <div style={{
-              fontSize: 13, fontWeight: 600, marginBottom: 10,
-              color: galleryLimitHit ? PN.RED : PN.MUTED,
-              animation: galleryLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
-              transition: 'color 150ms ease',
-            }}>
-              Massimo 5 immagini · {photos.length}/5 caricate
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10}}>
-              {photos.map((src, i) => (
-                <div key={i} style={{aspectRatio: '4/3'}}>
-                  <PhotoTile src={src} radius={10} title="Elimina foto"
-                    onRemove={() => removePhoto(i)}/>
-                </div>
-              ))}
-              {/* Sempre presente, anche a galleria piena: al limite il click
-                  scuote la riga-guida invece di aprire il caricamento. */}
-              <AddPhotoTile onClick={openGalleryUpload}/>
-            </div>
+            Massimo 5 immagini · {photos.length}/5 caricate
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap: 10}}>
+            {photos.map((src, i) => (
+              <div key={i} style={{aspectRatio: '4/3'}}>
+                <PhotoTile src={src} radius={10} title="Elimina foto"
+                  onRemove={() => removePhoto(i)}/>
+              </div>
+            ))}
+            {/* Sempre presente, anche a galleria piena: al limite il click
+                scuote la riga-guida invece di aprire il caricamento. */}
+            <AddPhotoTile onClick={openGalleryUpload}/>
           </div>
         </div>
         <style>{`@keyframes tag-limit-shake {
