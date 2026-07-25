@@ -1539,6 +1539,8 @@ function MediaUploadModal({ kind, onClose, onPick }) {
 
 // Social collegabili: per ciascuno i domini accettati per il link della pagina.
 const SOCIAL_DEFS = [
+  {key:'ig', name:'Instagram',   abbr:'IG', bg:'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
+    domains:['instagram.com'],           sample:'https://instagram.com/iltuolocale'},
   {key:'tw', name:'Twitter / X', bg:'#000',     domains:['x.com', 'twitter.com'],    sample:'https://x.com/iltuolocale'},
   {key:'yt', name:'YouTube',     bg:'#FF0000',  domains:['youtube.com', 'youtu.be'], sample:'https://youtube.com/@iltuolocale'},
   {key:'tt', name:'TikTok',      bg:'#000',     domains:['tiktok.com'],              sample:'https://tiktok.com/@iltuolocale'},
@@ -1546,10 +1548,20 @@ const SOCIAL_DEFS = [
   {key:'fb', name:'Facebook',    bg:'#1877F2',  domains:['facebook.com', 'fb.com'],  sample:'https://facebook.com/iltuolocale'},
 ];
 
+// "@handle" leggibile dal link del profilo (fallback: dominio pulito).
+const socialHandle = (url) => {
+  try {
+    const u = new URL(url);
+    const seg = u.pathname.split('/').filter(Boolean).pop();
+    return seg ? `@${seg.replace(/^@/, '')}` : u.hostname.replace(/^www\./, '');
+  } catch (e) { return url; }
+};
+
 function VetrinaPubblico({ social, setSocial, onChange }) {
   // Collegare un social passa dal popup del link; qui i link confermati.
-  const [links, setLinks] = React.useState({});
+  const [links, setLinks] = React.useState({ ig: 'https://instagram.com/ristoranteparadiso' });
   const [linkModal, setLinkModal] = React.useState(null); // def del social da collegare
+  const [unlink, setUnlink] = React.useState(null);       // def del social da scollegare (con conferma)
   const connectSocial = (key, url) => {
     setLinks(l => ({...l, [key]: url}));
     if (!social.includes(key)) setSocial([...social, key]);
@@ -1649,62 +1661,71 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
       )}
 
       <ImpCard title="Account social" sub="Collega i tuoi profili. Appariranno sulla vetrina">
-        <div style={{
-          padding: '14px 16px', border:`1.5px solid ${PN.GREEN_SOFT}`,
-          borderRadius: 10, background: '#F0FDF4',
-          display:'flex', alignItems:'center', gap: 12, marginBottom: 16,
-        }}>
-          <div style={{
-            width: 36, height:36, borderRadius: 8,
-            background:'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
-            display:'grid', placeItems:'center', color:'#fff', fontSize:17, fontWeight:800,
-          }}>IG</div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:13, fontWeight:700, color:PN.GREEN, letterSpacing:0.4}}>● COLLEGATO</div>
-            <div style={{fontSize:15.5, fontWeight:700}}>@ristoranteparadiso</div>
+        {/* Collegati: una riga verde per ogni account effettivamente attivo */}
+        {SOCIAL_DEFS.some(s => social.includes(s.key)) ? (
+          <div style={{display:'flex', flexDirection:'column', gap: 8, marginBottom: 16}}>
+            {SOCIAL_DEFS.filter(s => social.includes(s.key)).map(s => (
+              <div key={s.key} style={{
+                padding: '14px 16px', border:`1.5px solid ${PN.GREEN_SOFT}`,
+                borderRadius: 10, background: '#F0FDF4',
+                display:'flex', alignItems:'center', gap: 12,
+              }}>
+                <div style={{
+                  width: 36, height:36, borderRadius: 8, background: s.bg, flexShrink: 0,
+                  display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 15 : 17, fontWeight:800,
+                }}>{s.abbr || s.name[0]}</div>
+                <div style={{flex:1, minWidth: 0}}>
+                  <div style={{fontSize:13, fontWeight:700, color:PN.GREEN, letterSpacing:0.4}}>● COLLEGATO · {s.name.toUpperCase()}</div>
+                  <div title={links[s.key]} style={{fontSize:15.5, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                    {links[s.key] ? socialHandle(links[s.key]) : 'Profilo collegato'}
+                  </div>
+                </div>
+                <ScollegaBtn onClick={() => setUnlink(s)}/>
+              </div>
+            ))}
           </div>
-          <button style={{background:'transparent', border:'none', color:PN.RED, fontSize:14, fontWeight:600, cursor:'pointer'}}>Scollega</button>
-        </div>
+        ) : (
+          <div style={{
+            padding: '12px 14px', border:`1.5px dashed ${PN.BORDER}`, borderRadius: 10,
+            fontSize: 13.5, color: PN.MUTED, marginBottom: 16,
+          }}>
+            Nessun account collegato: aggiungi il primo qui sotto.
+          </div>
+        )}
 
-        <div style={{fontSize:13.5, fontWeight:600, color:PN.MUTED, marginBottom:8, letterSpacing:0.3, textTransform:'uppercase'}}>Aggiungi altri social</div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
-          {SOCIAL_DEFS.map(s => {
-            const on = social.includes(s.key);
-            const link = links[s.key];
-            return (
-              <button key={s.key}
-                title={on && link ? link : `Collega ${s.name}`}
-                onClick={() => on ? disconnectSocial(s.key) : setLinkModal(s)}
-                style={{
-                  display:'flex', alignItems:'center', gap: 10, minWidth: 0,
-                  padding: '10px 12px', borderRadius: 10,
-                  border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
-                  background: on ? PN.PINK_SOFT : PN.WHITE,
-                  cursor:'pointer', fontFamily:'inherit',
-                }}>
-                <span style={{
-                  width:24, height:24, borderRadius:5, background:s.bg, flexShrink: 0,
-                  display:'grid', placeItems:'center', color:'#fff', fontSize:13, fontWeight:800,
-                }}>{s.name[0]}</span>
-                <span style={{flex:1, minWidth: 0, textAlign:'left'}}>
-                  <span style={{display:'block', fontSize:15, fontWeight:600}}>{s.name}</span>
-                  {on && link && (
-                    <span style={{display:'block', fontSize:11.5, color:PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                      {link.replace(/^https?:\/\/(www\.)?/i, '')}
-                    </span>
-                  )}
-                </span>
-                {on && <span style={{fontSize:13, color:PN.PINK_DARK, fontWeight:700, flexShrink: 0}}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
+        {SOCIAL_DEFS.some(s => !social.includes(s.key)) && (
+          <>
+            <div style={{fontSize:13.5, fontWeight:600, color:PN.MUTED, marginBottom:8, letterSpacing:0.3, textTransform:'uppercase'}}>Aggiungi altri social</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
+              {SOCIAL_DEFS.filter(s => !social.includes(s.key)).map(s => (
+                <button key={s.key} title={`Collega ${s.name}`} onClick={() => setLinkModal(s)}
+                  style={{
+                    display:'flex', alignItems:'center', gap: 10, minWidth: 0,
+                    padding: '10px 12px', borderRadius: 10,
+                    border:`1.5px solid ${PN.BORDER}`, background: PN.WHITE,
+                    cursor:'pointer', fontFamily:'inherit',
+                  }}>
+                  <span style={{
+                    width:24, height:24, borderRadius:5, background:s.bg, flexShrink: 0,
+                    display:'grid', placeItems:'center', color:'#fff', fontSize:13, fontWeight:800,
+                  }}>{s.abbr || s.name[0]}</span>
+                  <span style={{flex:1, minWidth: 0, textAlign:'left', fontSize:15, fontWeight:600}}>{s.name}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </ImpCard>
 
       {linkModal && (
         <SocialLinkModal def={linkModal}
           onClose={() => setLinkModal(null)}
           onConnect={connectSocial}/>
+      )}
+      {unlink && (
+        <SocialUnlinkModal def={unlink} link={links[unlink.key]}
+          onClose={() => setUnlink(null)}
+          onConfirm={() => { disconnectSocial(unlink.key); setUnlink(null); }}/>
       )}
     </div>
   );
@@ -1838,6 +1859,71 @@ function FaqConfirmModal({ faq, onClose, onConfirm }) {
         <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
           <ImpButton variant="ghost" onClick={onClose}>Indietro</ImpButton>
           <ImpButton variant="primary" onClick={onConfirm}>Sì, elimina</ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
+// "Scollega": testo rosso con feedback in hover (fondo tinto) e alla pressione.
+function ScollegaBtn({ onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        padding: '6px 12px', borderRadius: 8, border: 'none', flexShrink: 0,
+        background: hover ? PN.RED_SOFT : 'transparent',
+        color: PN.RED, fontSize: 14, fontWeight: 600,
+        cursor: 'pointer', fontFamily: 'inherit',
+        transform: pressed ? 'scale(0.94)' : 'none',
+        transition: 'background 130ms ease, transform 130ms ease',
+      }}>Scollega</button>
+  );
+}
+
+// Conferma di scollegamento: nessun social si stacca con un solo click.
+function SocialUnlinkModal({ def, link, onClose, onConfirm }) {
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 85,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 380, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '22px 22px 18px', textAlign: 'center',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 12, margin: '0 auto 12px',
+          background: PN.RED_SOFT, color: PN.RED,
+          display: 'grid', placeItems: 'center',
+        }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 15l-3.5 3.5a3.2 3.2 0 0 1-4.5-4.5L4.5 10.5a3.2 3.2 0 0 1 4.5 0" transform="translate(3 -1)"/>
+            <path d="M15 9l3.5-3.5a3.2 3.2 0 0 1 4.5 4.5L19.5 13.5a3.2 3.2 0 0 1-4.5 0" transform="translate(-3 1)"/>
+            <path d="M4 4l3 3M20 20l-3-3" strokeWidth="1.6"/>
+          </svg>
+        </div>
+        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Scollegare {def.name}?</div>
+        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>
+          <b style={{color: PN.TEXT}}>{link ? socialHandle(link) : 'Il profilo'}</b> non apparirà più sulla vetrina del locale.
+        </div>
+        <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+          <ImpButton variant="primary" onClick={onConfirm}>Sì, scollega</ImpButton>
         </div>
         <style>{`
           @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
