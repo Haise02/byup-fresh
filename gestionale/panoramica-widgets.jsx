@@ -177,15 +177,14 @@ function WidgetIncassi({ size }) {
 
   if (compact) {
     return (
-      <div style={{display: 'flex', height: '100%', minHeight: 0, gap: 18}}>
-        <div style={{flex: '0 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-          <WMetric label={`Incassi ${period}`} value={d.total} trend={d.trend} sub={d.sub} big/>
-        </div>
-        <div style={{flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8}}>
-          <div style={{display: 'flex', justifyContent: 'flex-end', flexShrink: 0}}>
-            <PnPeriodToggle period={period} setPeriod={setPeriod}/>
+      <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8}}>
+        {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
+        <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
+        <div style={{display: 'flex', flex: 1, minHeight: 0, gap: 18}}>
+          <div style={{flex: '0 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+            <WMetric label={`Incassi ${period}`} value={d.total} trend={d.trend} sub={d.sub} big/>
           </div>
-          <div style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
+          <div style={{flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
             <div style={{flex: '1 1 auto', minHeight: 0}}>
               <WSparkline data={d.spark} color={PN.PINK} animated/>
             </div>
@@ -200,7 +199,7 @@ function WidgetIncassi({ size }) {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}>
-      <PnPeriodToggle period={period} setPeriod={setPeriod}/>
+      <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
       <WMetric label={`Incassi ${period}`} value={d.total} trend={d.trend} sub={d.sub} big/>
       <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
         <div style={{flex: '1 1 auto', minHeight: 0}}>
@@ -210,6 +209,18 @@ function WidgetIncassi({ size }) {
           {d.labels.map((l,i) => <span key={i}>{l}</span>)}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Header standard dei widget: nome in alto a sinistra, filtri a destra.
+// Nei widget stretti il nome non si schiaccia: il filtro va a capo e resta
+// allineato a destra sulla sua riga.
+function WidgetHead({ name, right }) {
+  return (
+    <div style={{display:'flex', alignItems:'center', gap: '6px 10px', flexWrap:'wrap', flexShrink: 0, minWidth: 0}}>
+      <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap', flexShrink: 0}}>{name}</div>
+      <div style={{marginLeft: 'auto', flexShrink: 0}}>{right}</div>
     </div>
   );
 }
@@ -246,9 +257,9 @@ const KPI_VENDITA_DATA = {
                coperti: '25', cDelta: '+8%', cLabel: 'Coperti medi al giorno',  cTrend: [95, 108, 98, 118, 105, 128, 101] },
 };
 
-// Shell condiviso dei KPI singoli: toggle periodo con auto-switch ogni 2s
-// (pause-on-hover) e corpo centrato con fade al cambio.
-function KpiSingleShell({ render }) {
+// Shell condiviso dei KPI singoli: nome del widget a sinistra, toggle
+// periodo a destra (auto-switch ogni 2s, pause-on-hover), corpo centrato.
+function KpiSingleShell({ title, render }) {
   const [period, setPeriod] = React.useState('oggi');
   const [paused, setPaused] = React.useState(false);
   const periods = ['oggi', 'settimana', 'mese'];
@@ -266,7 +277,7 @@ function KpiSingleShell({ render }) {
       onMouseLeave={() => setPaused(false)}
       style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 12}}
     >
-      <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
+      <WidgetHead name={title} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
       <div key={period} style={{
         flex: 1, minHeight: 0, overflow: 'hidden',
         display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12,
@@ -284,16 +295,19 @@ function KpiSingleShell({ render }) {
   );
 }
 
-// Corpo del KPI singolo: etichetta, valore grande con delta, grafico sotto.
-function KpiSingleBody({ label, value, delta, chart }) {
+// Corpo del KPI singolo: valore grande con delta (e sottotitolo facoltativo
+// di contesto), grafico sotto — il nome del widget vive nell'header.
+function KpiSingleBody({ sub, value, delta, chart }) {
   return (
     <>
       <div style={{minWidth: 0}}>
-        <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{label}</div>
         <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
           <div style={{fontSize: 44, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.9, lineHeight: 1, whiteSpace: 'nowrap'}}>{value}</div>
           <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700, whiteSpace: 'nowrap'}}>{delta}</div>
         </div>
+        {sub && (
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sub}</div>
+        )}
       </div>
       <div style={{height: 56, minHeight: 0, display: 'flex', alignItems: 'flex-end'}}>{chart}</div>
     </>
@@ -302,8 +316,8 @@ function KpiSingleBody({ label, value, delta, chart }) {
 
 function WidgetScontrinoMedio() {
   return (
-    <KpiSingleShell render={(d) => (
-      <KpiSingleBody label="Scontrino medio" value={d.scontrino} delta={d.sDelta}
+    <KpiSingleShell title="Scontrino medio" render={(d) => (
+      <KpiSingleBody value={d.scontrino} delta={d.sDelta}
         chart={<div style={{width: '100%', height: '100%'}}><WSparkline data={d.sTrend} color={PN.PINK}/></div>}/>
     )}/>
   );
@@ -311,8 +325,8 @@ function WidgetScontrinoMedio() {
 
 function WidgetCopertiMedi() {
   return (
-    <KpiSingleShell render={(d) => (
-      <KpiSingleBody label={d.cLabel} value={d.coperti} delta={d.cDelta}
+    <KpiSingleShell title="Coperti medi" render={(d) => (
+      <KpiSingleBody sub={d.cLabel} value={d.coperti} delta={d.cDelta}
         chart={<KpiBars data={d.cTrend}/>}/>
     )}/>
   );
@@ -393,31 +407,26 @@ function WidgetRiempimento({ size }) {
   const sideBySide = wH === 1;
 
   return (
-    <div style={{
-      display:'flex',
-      flexDirection: sideBySide ? 'row' : 'column',
-      height:'100%', minHeight: 0,
-      gap: sideBySide ? 18 : 14,
-      alignItems: 'stretch',
-    }}>
-      {/* Block A: PnPeriodToggle + % grande. In sideBySide il sub va inline
-          accanto al delta (con ellipsis): toggle+label+% da soli riempiono
-          già i ~108px — il sub su riga propria veniva tagliato a metà. */}
+    <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0, gap: 8}}>
+      {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
+      <WidgetHead name="Occupazione sala" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
+      <div style={{
+        display:'flex',
+        flexDirection: sideBySide ? 'row' : 'column',
+        flex: 1, minHeight: 0,
+        gap: sideBySide ? 18 : 14,
+        alignItems: 'stretch',
+      }}>
+      {/* Block A: % grande + delta + sub, centrato nel suo terzo. */}
       <div style={{
         display:'flex', flexDirection:'column',
         gap: sideBySide ? 6 : 10,
         flexShrink: 0,
         flexBasis: sideBySide ? '38%' : 'auto',
         minWidth: 0, minHeight: 0, overflow:'hidden',
-        justifyContent: sideBySide ? 'center' : 'flex-start',
+        justifyContent: 'center',
       }}>
-        <PnPeriodToggle period={period} setPeriod={setPeriod}/>
         <div style={{minWidth: 0}}>
-          {/* In compact (h=1) niente etichetta: il toggle dà già il contesto e
-              i ~108px bastano solo a numero + sub — che ha SEMPRE la sua riga. */}
-          {!sideBySide && (
-            <div style={{fontSize: 12, color: PN.MUTED, fontWeight: 600, marginBottom: 3, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap'}}>Riempimento</div>
-          )}
           <div style={{display:'flex', alignItems:'baseline', gap: sideBySide ? 8 : 14, minWidth: 0}}>
             <div style={{fontSize: sideBySide ? 42 : 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.2, lineHeight: 1, whiteSpace:'nowrap'}}>{d.pct}%</div>
             <div style={{fontSize: 14, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700, whiteSpace:'nowrap', flexShrink: 0}}>{d.delta}</div>
@@ -477,6 +486,7 @@ function WidgetRiempimento({ size }) {
             });
           })()}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -600,10 +610,10 @@ function PrenRow({ it, tag }) {
         alignItems: 'start',
         padding: '9px 10px',
         borderRadius: 10,
-        background: hover ? '#FFFDF7' : PN.WHITE,
-        border: `1px solid ${hover ? '#F3D9A4' : PN.BORDER_HAIR}`,
+        background: PN.WHITE,
+        border: `1px solid ${hover ? '#7C3AED' : PN.BORDER_HAIR}`,
         boxShadow: hover
-          ? '0 0 0 3px rgba(245, 195, 92, 0.18), 0 8px 20px rgba(15, 17, 21, 0.08)'
+          ? '0 8px 20px rgba(15, 17, 21, 0.08)'
           : '0 1px 0 rgba(15, 17, 21, 0.02)',
         flexShrink: 0, cursor: 'pointer',
         transform: pressed ? 'scale(0.99)' : hover ? 'scale(1.012)' : 'scale(1)',
@@ -1301,14 +1311,9 @@ function WidgetFinancials({ size }) {
           <WSparkline data={d.spark} color={PN.PINK} animated/>
         </div>
 
-        {/* Riga alta: toggle + contesto */}
-        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, position: 'relative', zIndex: 1, flexShrink: 0, minWidth: 0}}>
-          <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
-          <span key={period + '-sub'} style={{
-            fontSize: 13, color: PN.MUTED, minWidth: 0,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            animation: 'fin-fade-in 320ms ease-out',
-          }}>{d.sub}</span>
+        {/* Riga alta — convenzione widget: nome a sinistra, filtro a destra */}
+        <div style={{position: 'relative', zIndex: 1}}>
+          <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
         </div>
 
         {/* Riga bassa: incasso grande + mini-card, sopra la sparkline */}
@@ -1326,6 +1331,7 @@ function WidgetFinancials({ size }) {
                 {d.total}
               </span>
               <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
+              <span style={{fontSize: 13, color: PN.MUTED, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</span>
             </div>
           </div>
           <div key={period + '-r'} style={{display: 'flex', gap: 10, flexShrink: 0, animation: 'fin-fade-in 320ms ease-out 60ms both'}}>
@@ -1344,7 +1350,7 @@ function WidgetFinancials({ size }) {
       onMouseLeave={() => setPaused(false)}
       style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 12}}
     >
-      <PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>
+      <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
 
       {/* Top: incassi + sparkline animata */}
       <div key={period + '-top'} style={{
