@@ -4092,7 +4092,7 @@ const ROAD_P = [
   { lvl: 5, left: 0.5837, top: 0.3674, w: 0.2594, pcx: 0.7134, pcy: 0.4452, pw: 0.273 },
   { lvl: 6, left: 0.1709, top: 0.2331, w: 0.3164, pcx: 0.3291, pcy: 0.3279, pw: 0.333 },
   { lvl: 7, left: 0.5715, top: 0.1354, w: 0.3078, pcx: 0.7254, pcy: 0.2276, pw: 0.324 },
-  { lvl: 8, left: 0.1898, top: 0.0074, w: 0.2945, pcx: 0.337, pcy: 0.150,  pw: 0.310 },
+  { lvl: 8, left: 0.1898, top: -0.003, w: 0.2945, pcx: 0.337, pcy: 0.150,  pw: 0.310 },
 ];
 const ROAD_RA = 864 / 1821;
 // Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta
