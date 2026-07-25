@@ -1,0 +1,1480 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>byup — Salda conto (redesign)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+    background:#E9E7E3;
+    color:#14161A;
+    -webkit-font-smoothing: antialiased;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh;
+  }
+  input, button, textarea { font-family: inherit; }
+  button { transition: transform 90ms ease-out, background 120ms ease, border-color 120ms ease; }
+  button:active:not(:disabled) { transform: scale(0.985); }
+  .sc-scroll::-webkit-scrollbar { width:10px; }
+  .sc-scroll::-webkit-scrollbar-thumb { background:#D6D2CC; border-radius:999px; border:3px solid transparent; background-clip:content-box; }
+  .sc-scroll::-webkit-scrollbar-track { background:transparent; }
+  @keyframes scFade { from { opacity:0 } to { opacity:1 } }
+  @keyframes scPop { 0% { opacity:0; transform:scale(.96) translateY(8px) } 100% { opacity:1; transform:scale(1) translateY(0) } }
+  @keyframes scToast { 0% { opacity:0; transform:translate(-50%, 10px) } 100% { opacity:1; transform:translate(-50%, 0) } }
+  @keyframes scRise { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState, useMemo, useRef, useEffect, Fragment } = React;
+
+/* ═══════════════════════════════════════════════════════════════
+   TOKEN — neutri caldi, brand usato solo dove deve significare
+   ═══════════════════════════════════════════════════════════════ */
+const T = {
+  INK:'#14161A', INK2:'#3F444D', MUTED:'#6E7076', FAINT:'#9A9CA3',
+  LINE:'#E6E3DE', LINE_SOFT:'#F1EFEC',
+  CANVAS:'#F6F5F2', SURF:'#FBFAF8', PAPER:'#FFFFFF',
+  BRAND:'#E04347', BRAND_SOFT:'#FDECEC', BRAND_INK:'#A32B2F',
+  GREEN:'#15803D', GREEN_SOFT:'#E7F6EC',
+  AMBER:'#B45309', AMBER_SOFT:'#FDF3E3',
+  BLUE:'#2563EB', BLUE_SOFT:'#E8EFFD',
+  R_S:10, R_M:14, R_L:20,
+};
+const NUM = { fontVariantNumeric:'tabular-nums' };
+
+/* Importi in italiano: virgola decimale, punto migliaia. */
+function eur(n) {
+  const v = Math.abs(n).toFixed(2).replace('.', ',');
+  const [i, d] = v.split(',');
+  const iSep = i.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (n < 0 ? '−' : '') + '€' + iSep + ',' + d;
+}
+/* Accetta sia 12,50 sia 12.50 — il cassiere digita con la virgola. */
+function parseAmount(s) {
+  if (s === '' || s == null) return 0;
+  const v = parseFloat(String(s).replace(',', '.'));
+  return isNaN(v) ? 0 : v;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DATI MOCK — tavolo italiano reale
+   ═══════════════════════════════════════════════════════════════ */
+const COMMENSALI = [
+  { id:'g1', nome:'Marco',  canale:'app' },
+  { id:'g2', nome:'Giulia', canale:'app' },
+  { id:'g3', nome:'Luca',   canale:'webapp' },
+];
+
+const CONTO_REALE = [
+  { id:'r1',  nome:'Coperto',                      qty:4, prezzo:2.5,  chi:null, canale:'staff' },
+  { id:'r2',  nome:'Tagliere di salumi e formaggi',qty:1, prezzo:16,   chi:null, canale:'staff' },
+  { id:'r3',  nome:'Bruschette al pomodoro',       qty:2, prezzo:7,    chi:'g1', canale:'app' },
+  { id:'r4',  nome:'Tagliatelle al ragù',          qty:1, prezzo:13,   chi:'g1', canale:'app' },
+  { id:'r5',  nome:'Cacio e pepe',                 qty:1, prezzo:13,   chi:'g2', canale:'app' },
+  { id:'r6',  nome:'Risotto ai funghi porcini',    qty:1, prezzo:15,   chi:'g3', canale:'webapp' },
+  { id:'r7',  nome:'Bistecca fiorentina',          qty:1, prezzo:38,   chi:'g2', canale:'app' },
+  { id:'r8',  nome:'Tagliata di manzo',            qty:1, prezzo:22,   chi:'g3', canale:'webapp' },
+  { id:'r9',  nome:'Chianti Classico DOCG',        qty:1, prezzo:24,   chi:null, canale:'staff' },
+  { id:'r10', nome:'Acqua naturale 1L',            qty:2, prezzo:3,    chi:null, canale:'staff' },
+  { id:'r11', nome:'Tiramisù della casa',          qty:2, prezzo:6,    chi:'g1', canale:'app' },
+  { id:'r12', nome:'Caffè',                        qty:4, prezzo:1.5,  chi:null, canale:'staff' },
+  { id:'r13', nome:'Amaro del Capo',               qty:2, prezzo:4,    chi:null, canale:'staff' },
+];
+
+const CONTO_CORTO = [
+  { id:'s1', nome:'Coperto',            qty:2, prezzo:2.5, chi:null, canale:'staff' },
+  { id:'s2', nome:'Margherita',         qty:2, prezzo:8,   chi:null, canale:'staff' },
+  { id:'s3', nome:'Birra artigianale',  qty:2, prezzo:6,   chi:'g1', canale:'app' },
+  { id:'s4', nome:'Caffè',              qty:2, prezzo:1.5, chi:null, canale:'staff' },
+];
+
+/* Conto lungo: banchetto da 40 righe — stress test densità. */
+const CONTO_LUNGO = (() => {
+  const piatti = [
+    ['Coperto',2.5],['Bruschette miste',7],['Tagliere della casa',16],['Fritto misto',12],
+    ['Cozze alla marinara',11],['Tagliatelle al ragù',13],['Cacio e pepe',13],['Amatriciana',12],
+    ['Risotto ai porcini',15],['Gnocchi al pesto',12],['Bistecca fiorentina',38],['Tagliata di manzo',22],
+    ['Grigliata mista',26],['Branzino al forno',24],['Scaloppine al limone',17],['Patate al forno',5],
+    ['Insalata mista',6],['Verdure grigliate',7],['Chianti Classico DOCG',24],['Vermentino di Gallura',22],
+    ['Acqua naturale 1L',3],['Acqua frizzante 1L',3],['Birra media',6],['Coca-Cola',3.5],
+    ['Tiramisù della casa',6],['Panna cotta',6],['Cannolo siciliano',5],['Sorbetto al limone',4],
+    ['Caffè',1.5],['Caffè corretto',2.5],['Amaro del Capo',4],['Limoncello',4],['Grappa riserva',6],
+    ['Bruschette al pomodoro',7],['Parmigiana di melanzane',13],['Polpette al sugo',12],
+    ['Crostata di visciole',6],['Vino della casa 1L',12],['Digestivo della casa',4],['Coperto bambini',1.5],
+  ];
+  const chiPool = [null,'g1','g2','g3',null,'g1',null,'g2'];
+  return piatti.map((p, i) => {
+    const chi = chiPool[i % chiPool.length];
+    const g = COMMENSALI.find(x => x.id === chi);
+    return {
+      id:'l'+i, nome:p[0], prezzo:p[1],
+      qty: i % 5 === 0 ? 3 : i % 3 === 0 ? 2 : 1,
+      chi, canale: g ? g.canale : 'staff',
+    };
+  });
+})();
+
+const MENU = [
+  { cat:'Antipasti', nome:'Bruschette al pomodoro', prezzo:7 },
+  { cat:'Antipasti', nome:'Tagliere di salumi e formaggi', prezzo:16 },
+  { cat:'Antipasti', nome:'Fritto misto', prezzo:12 },
+  { cat:'Antipasti', nome:'Cozze alla marinara', prezzo:11 },
+  { cat:'Primi', nome:'Tagliatelle al ragù', prezzo:13 },
+  { cat:'Primi', nome:'Cacio e pepe', prezzo:13 },
+  { cat:'Primi', nome:'Amatriciana', prezzo:12 },
+  { cat:'Primi', nome:'Risotto ai funghi porcini', prezzo:15 },
+  { cat:'Primi', nome:'Gnocchi al pesto', prezzo:12 },
+  { cat:'Secondi', nome:'Bistecca fiorentina', prezzo:38 },
+  { cat:'Secondi', nome:'Tagliata di manzo', prezzo:22 },
+  { cat:'Secondi', nome:'Branzino al forno', prezzo:24 },
+  { cat:'Secondi', nome:'Scaloppine al limone', prezzo:17 },
+  { cat:'Contorni', nome:'Patate al forno', prezzo:5 },
+  { cat:'Contorni', nome:'Insalata mista', prezzo:6 },
+  { cat:'Contorni', nome:'Verdure grigliate', prezzo:7 },
+  { cat:'Dolci', nome:'Tiramisù della casa', prezzo:6 },
+  { cat:'Dolci', nome:'Panna cotta', prezzo:6 },
+  { cat:'Dolci', nome:'Cannolo siciliano', prezzo:5 },
+  { cat:'Vini', nome:'Chianti Classico DOCG', prezzo:24 },
+  { cat:'Vini', nome:'Vermentino di Gallura', prezzo:22 },
+  { cat:'Vini', nome:'Vino della casa 1L', prezzo:12 },
+  { cat:'Bevande', nome:'Acqua naturale 1L', prezzo:3 },
+  { cat:'Bevande', nome:'Acqua frizzante 1L', prezzo:3 },
+  { cat:'Bevande', nome:'Birra media', prezzo:6 },
+  { cat:'Bevande', nome:'Coca-Cola', prezzo:3.5 },
+  { cat:'Caffetteria', nome:'Caffè', prezzo:1.5 },
+  { cat:'Caffetteria', nome:'Caffè corretto', prezzo:2.5 },
+  { cat:'Amari', nome:'Amaro del Capo', prezzo:4 },
+  { cat:'Amari', nome:'Limoncello', prezzo:4 },
+  { cat:'Amari', nome:'Grappa riserva', prezzo:6 },
+  { cat:'Coperti', nome:'Coperto', prezzo:2.5 },
+];
+
+/* I motivi sono chiusi: uno sconto deve sempre avere un nome,
+   e il nome deve essere uno di quelli che il locale riconosce. */
+const MOTIVI = ['Omaggio', 'Reclamo', 'Cliente abituale', 'Errore cucina', 'Accordo titolare'];
+
+/* ═══════════════════════════════════════════════════════════════
+   ATOMI
+   ═══════════════════════════════════════════════════════════════ */
+function Ico({ d, size=18, w=1.9, style }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0, ...style}}>
+      {d}
+    </svg>
+  );
+}
+const I = {
+  printer: <Ico d={<Fragment><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></Fragment>}/>,
+  close:   <Ico d={<path d="M6 6l12 12M18 6L6 18"/>} w={2.2}/>,
+  plus:    <Ico d={<path d="M12 5v14M5 12h14"/>} w={2.2}/>,
+  check:   <Ico d={<path d="M4 12.5l5.5 5.5L20 7"/>} w={2.6}/>,
+  chev:    <Ico d={<path d="M6 9l6 6 6-6"/>} w={2.2} size={16}/>,
+  dots:    <Ico d={<Fragment><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></Fragment>}/>,
+  cash:    <Ico d={<Fragment><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></Fragment>}/>,
+  card:    <Ico d={<Fragment><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></Fragment>}/>,
+  split:   <Ico d={<Fragment><path d="M3 7h5a4 4 0 014 4v2a4 4 0 004 4h5"/><path d="M3 17h5a4 4 0 004-4"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/></Fragment>}/>,
+  trash:   <Ico d={<Fragment><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 11v5M14 11v5"/></Fragment>}/>,
+  undo:    <Ico d={<Fragment><path d="M3 10h11a5 5 0 010 10h-4"/><path d="M7 6l-4 4 4 4"/></Fragment>}/>,
+  search:  <Ico d={<Fragment><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></Fragment>}/>,
+  tag:     <Ico d={<Fragment><path d="M3 12V4h8l9 9-8 8-9-9z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></Fragment>}/>,
+  doc:     <Ico d={<Fragment><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/><path d="M9 13h6M9 17h4"/></Fragment>}/>,
+  people:  <Ico d={<Fragment><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 5.5a3.2 3.2 0 010 5"/><path d="M18.5 20a6 6 0 00-2-4.5"/></Fragment>}/>,
+  alert:   <Ico d={<Fragment><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4v.2"/></Fragment>}/>,
+};
+
+/* Marchio di canale: "b" byup per l'app, pallino blu per la webapp,
+   iniziale neutra per chi ha ordinato al cameriere. Stesso segnale
+   che il personale vede già sulle card di sala. */
+function CanaleMark({ canale, iniziale, size=34 }) {
+  const isApp = canale === 'app', isWeb = canale === 'webapp';
+  return (
+    <div style={{
+      width:size, height:size, borderRadius:'50%', flexShrink:0,
+      background: isApp ? T.BRAND : isWeb ? T.BLUE : '#EDEAE5',
+      color: isApp || isWeb ? '#fff' : T.MUTED,
+      display:'grid', placeItems:'center',
+      fontSize: size*0.4, fontWeight:800, letterSpacing:-0.4,
+    }}>
+      {isApp ? <span style={{transform:'translateY(-1px)'}}>b</span>
+        : isWeb ? <span style={{width:size*0.26, height:size*0.26, borderRadius:'50%', background:'#fff'}}/>
+        : iniziale}
+    </div>
+  );
+}
+
+function Casella({ stato, onClick, size=26 }) {
+  const on = stato === 'tutto', mid = stato === 'parte';
+  return (
+    <button onClick={onClick} aria-label="Seleziona" style={{
+      width:size, height:size, borderRadius:8, flexShrink:0, padding:0,
+      border: on || mid ? `2px solid ${T.INK}` : `2px solid #CFCBC4`,
+      background: on ? T.INK : mid ? '#fff' : '#fff',
+      display:'grid', placeItems:'center', cursor:'pointer',
+    }}>
+      {on && <span style={{color:'#fff', display:'grid'}}><Ico d={<path d="M4 12.5l5.5 5.5L20 7"/>} w={3.2} size={size*0.6}/></span>}
+      {mid && <span style={{width:size*0.46, height:3, background:T.INK, borderRadius:2}}/>}
+    </button>
+  );
+}
+
+function Toggle({ on, onChange }) {
+  return (
+    <button onClick={onChange} role="switch" aria-checked={on} style={{
+      width:52, height:31, borderRadius:999, padding:0, flexShrink:0,
+      border:'none', cursor:'pointer', position:'relative',
+      background: on ? T.INK : '#D6D2CC',
+    }}>
+      <span style={{
+        position:'absolute', top:3, left: on ? 24 : 3,
+        width:25, height:25, borderRadius:'50%', background:'#fff',
+        boxShadow:'0 1px 4px rgba(0,0,0,0.22)', transition:'left 140ms ease',
+      }}/>
+    </button>
+  );
+}
+
+function Campo({ value, onChange, placeholder, big, prefisso, autoFocus, onEnter }) {
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap:8,
+      background:'#fff', border:`1.5px solid ${T.LINE}`, borderRadius:T.R_S,
+      padding: big ? '12px 14px' : '11px 13px',
+    }}>
+      {prefisso && <span style={{fontSize: big?24:17, fontWeight:700, color:T.FAINT}}>{prefisso}</span>}
+      <input
+        value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} autoFocus={autoFocus} inputMode={prefisso ? 'decimal' : 'text'}
+        onKeyDown={e => { if (e.key === 'Enter' && onEnter) onEnter(); }}
+        style={{
+          flex:1, minWidth:0, border:'none', outline:'none', background:'transparent',
+          fontSize: big?26:17, fontWeight: big?800:600, color:T.INK, padding:0, ...NUM,
+        }}/>
+    </div>
+  );
+}
+
+function Pill({ attivo, onClick, children, tono }) {
+  const brand = tono === 'brand';
+  return (
+    <button onClick={onClick} style={{
+      padding:'10px 15px', borderRadius:999, cursor:'pointer', whiteSpace:'nowrap',
+      border: attivo ? `1.5px solid ${brand ? T.BRAND : T.INK}` : `1.5px solid ${T.LINE}`,
+      background: attivo ? (brand ? T.BRAND : T.INK) : '#fff',
+      color: attivo ? '#fff' : T.INK2,
+      fontSize:15, fontWeight:700, lineHeight:1,
+      display:'inline-flex', alignItems:'center', gap:7,
+    }}>{children}</button>
+  );
+}
+
+function Toast({ testo }) {
+  if (!testo) return null;
+  return (
+    <div style={{
+      position:'absolute', bottom:26, left:'50%', zIndex:90,
+      padding:'13px 20px', borderRadius:999,
+      background:T.INK, color:'#fff', fontSize:16, fontWeight:700,
+      boxShadow:'0 12px 30px rgba(0,0,0,0.28)',
+      animation:'scToast 180ms ease-out both', pointerEvents:'none',
+    }}>{testo}</div>
+  );
+}
+
+/* Dialog centrato: usato per modifica riga e ricerca articoli.
+   Niente popover ancorati — su touch sbagliano bersaglio. */
+function Dialog({ titolo, sottotitolo, onClose, children, largo }) {
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset:0, zIndex:80, background:'rgba(20,22,26,0.42)',
+      display:'grid', placeItems:'center', animation:'scFade 140ms ease-out both',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: largo ? 620 : 480, maxWidth:'88%', maxHeight:'86%',
+        background:'#fff', borderRadius:T.R_L, overflow:'hidden',
+        boxShadow:'0 30px 80px rgba(0,0,0,0.32)',
+        display:'flex', flexDirection:'column',
+        animation:'scPop 180ms cubic-bezier(.2,.9,.3,1.05) both',
+      }}>
+        <div style={{padding:'20px 24px 16px', borderBottom:`1px solid ${T.LINE_SOFT}`, flexShrink:0}}>
+          <div style={{fontSize:21, fontWeight:800, letterSpacing:-0.3}}>{titolo}</div>
+          {sottotitolo && <div style={{fontSize:15, color:T.MUTED, marginTop:3}}>{sottotitolo}</div>}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RIGA ARTICOLO
+   ═══════════════════════════════════════════════════════════════ */
+function Riga({ art, sel, onToggle, onQty, onApri }) {
+  const tutto = sel >= art.qty, niente = sel === 0;
+  const stato = tutto ? 'tutto' : niente ? 'niente' : 'parte';
+  const mostrato = niente ? art.qty : sel;
+  const modificato = art.prezzoOrig != null || art.nomeOrig != null;
+
+  const stop = (e) => e.stopPropagation();
+
+  /* Tutta la riga è il bersaglio: su touch una casella da 26px si sbaglia.
+     Solo stepper e menù fermano la propagazione. */
+  return (
+    <div onClick={onToggle} style={{
+      display:'flex', alignItems:'center', gap:14,
+      padding:'0 14px 0 12px', minHeight:60, cursor:'pointer',
+      background: niente ? 'transparent' : '#fff',
+      borderRadius:T.R_S,
+      border: niente ? '1.5px solid transparent' : `1.5px solid ${tutto ? '#DFDBD4' : T.BLUE}`,
+      opacity: niente ? 0.62 : 1,
+    }}>
+      <Casella stato={stato} onClick={stop}/>
+
+      {/* Quantità: stepper solo dove serve davvero (più unità sulla riga) */}
+      {art.qty > 1 ? (
+        <div onClick={stop} style={{
+          display:'flex', alignItems:'center', flexShrink:0,
+          border:`1.5px solid ${niente ? T.LINE : '#DFDBD4'}`, borderRadius:9, background:'#fff', overflow:'hidden',
+        }}>
+          <button onClick={() => onQty(sel - 1)} disabled={sel <= 0} aria-label="Una in meno" style={{
+            width:38, height:38, border:'none', background:'transparent', cursor: sel<=0?'default':'pointer',
+            fontSize:21, fontWeight:800, color: sel<=0 ? '#D3CFC8' : T.INK, padding:0,
+          }}>−</button>
+          <span style={{minWidth:44, textAlign:'center', fontSize:16, fontWeight:800, ...NUM}}>
+            {sel}<span style={{color:T.FAINT, fontWeight:700}}>/{art.qty}</span>
+          </span>
+          <button onClick={() => onQty(sel + 1)} disabled={sel >= art.qty} aria-label="Una in più" style={{
+            width:38, height:38, border:'none', background:'transparent', cursor: sel>=art.qty?'default':'pointer',
+            fontSize:21, fontWeight:800, color: sel>=art.qty ? '#D3CFC8' : T.INK, padding:0,
+          }}>+</button>
+        </div>
+      ) : (
+        <span style={{
+          minWidth:38, textAlign:'center', fontSize:15, fontWeight:800, color:T.MUTED,
+          background:'#F1EFEC', borderRadius:7, padding:'5px 0', flexShrink:0, ...NUM,
+        }}>1×</span>
+      )}
+
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontSize:17, fontWeight:600, color:T.INK, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+          {art.nome}
+        </div>
+        {(modificato || art.aggiunto) && (
+          <div style={{display:'flex', gap:6, marginTop:3, flexWrap:'wrap'}}>
+            {art.aggiunto && <Traccia tono="green">aggiunto ora</Traccia>}
+            {art.nomeOrig != null && <Traccia>era “{art.nomeOrig}”</Traccia>}
+            {art.prezzoOrig != null && <Traccia tono="amber">prezzo da {eur(art.prezzoOrig)}</Traccia>}
+          </div>
+        )}
+      </div>
+
+      <span style={{fontSize:17.5, fontWeight:700, color: niente ? T.FAINT : T.INK, minWidth:82, textAlign:'right', ...NUM}}>
+        {eur(mostrato * art.prezzo)}
+      </span>
+
+      <button onClick={(e) => { stop(e); onApri(); }} aria-label="Modifica riga" style={{
+        width:40, height:40, borderRadius:9, flexShrink:0, padding:0,
+        border:`1.5px solid ${T.LINE}`, background:'#fff', color:T.MUTED, cursor:'pointer',
+        display:'grid', placeItems:'center',
+      }}>{I.dots}</button>
+    </div>
+  );
+}
+
+function Traccia({ children, tono }) {
+  const c = tono === 'amber' ? [T.AMBER, T.AMBER_SOFT] : tono === 'green' ? [T.GREEN, T.GREEN_SOFT] : [T.MUTED, '#F1EFEC'];
+  return (
+    <span style={{
+      fontSize:12.5, fontWeight:700, color:c[0], background:c[1],
+      padding:'2px 7px', borderRadius:6, whiteSpace:'nowrap',
+    }}>{children}</span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCHERMATA
+   ═══════════════════════════════════════════════════════════════ */
+function SaldaConto({ preset, onChiudi }) {
+  const base = preset === 'corto' ? CONTO_CORTO : preset === 'lungo' ? CONTO_LUNGO : CONTO_REALE;
+
+  const [righe, setRighe] = useState(() => base.map(r => ({...r})));
+  const [sel, setSel] = useState(() => new Map(base.map(r => [r.id, r.qty])));
+  const [chiusi, setChiusi] = useState(() => new Set());
+  const [aggiust, setAggiust] = useState(null);        // {tipo, val, motivo}
+  const [aggiustAperto, setAggiustAperto] = useState(false);
+  const [metodo, setMetodo] = useState(null);          // null | contanti | carta | misto
+  const [ricevuto, setRicevuto] = useState('');
+  const [mistoC, setMistoC] = useState('');
+  const [mistoK, setMistoK] = useState('');
+  const [fattura, setFattura] = useState(false);
+  const [datiFatt, setDatiFatt] = useState({ ragione:'', piva:'', sdi:'' });
+  const [preConto, setPreConto] = useState(null);
+  const [adesso, setAdesso] = useState(() => Date.now());
+  const [toast, setToast] = useState(null);
+  const [modifica, setModifica] = useState(null);
+  const [ricerca, setRicerca] = useState(false);
+  const [cestino, setCestino] = useState(null);        // {art, sel} per l'annulla
+  const [esito, setEsito] = useState(null);
+  const chiuso = useRef(false);
+
+  useEffect(() => { setRighe(base.map(r => ({...r}))); setSel(new Map(base.map(r => [r.id, r.qty]))); }, [preset]);
+  useEffect(() => { const t = setInterval(() => setAdesso(Date.now()), 20000); return () => clearInterval(t); }, []);
+  const avvisa = (t) => { setToast(t); setTimeout(() => setToast(null), 2600); };
+
+  /* ── Calcoli ──────────────────────────────────────────────── */
+  const totaleConto = righe.reduce((s,r) => s + r.qty * r.prezzo, 0);
+  const selezionate = righe.filter(r => (sel.get(r.id) || 0) > 0);
+  const subtotale = righe.reduce((s,r) => s + (sel.get(r.id) || 0) * r.prezzo, 0);
+  const unitaSel = righe.reduce((s,r) => s + (sel.get(r.id) || 0), 0);
+  const unitaTot = righe.reduce((s,r) => s + r.qty, 0);
+  const parziale = unitaSel < unitaTot;
+
+  const calcolo = useMemo(() => {
+    if (!aggiust) return { totale: subtotale, delta: 0, etichetta: null };
+    const v = parseAmount(aggiust.val);
+    if (aggiust.tipo === 'euro')  { const d = -Math.min(v, subtotale); return { totale: subtotale + d, delta: d, etichetta:'Sconto' }; }
+    if (aggiust.tipo === 'perc')  { const d = -(subtotale * Math.min(v, 100) / 100); return { totale: subtotale + d, delta: d, etichetta:`Sconto ${Math.min(v,100)}%` }; }
+    if (aggiust.tipo === 'arrot') { const t = Math.floor(subtotale); return { totale: t, delta: t - subtotale, etichetta:'Arrotondamento' }; }
+    const t = Math.max(0, v); return { totale: t, delta: t - subtotale, etichetta:'Totale su misura' };
+  }, [aggiust, subtotale]);
+
+  const totale = Math.max(0, calcolo.totale);           // mai sotto zero, in nessuna modalità
+  /* L'attrito sta dove sta il rischio: sconti e totali su misura vanno
+     motivati, l'arrotondamento sotto l'euro no — è routine e si autolimita. */
+  const scontoSenzaMotivo = !!aggiust && aggiust.tipo !== 'arrot' && calcolo.delta !== 0 && !aggiust.motivo;
+
+  /* La carta è SEMPRE pari al totale: derivata, mai memorizzata,
+     così non può restare indietro se il totale cambia dopo. */
+  const coperto = metodo === 'contanti' ? parseAmount(ricevuto)
+    : metodo === 'carta' ? totale
+    : metodo === 'misto' ? parseAmount(mistoC) + parseAmount(mistoK)
+    : 0;
+  const manca = Math.max(0, totale - coperto);
+  const resto = Math.max(0, coperto - totale);
+  const copre = coperto >= totale - 0.01;
+
+  const bloccoMotivo =
+    selezionate.length === 0 ? 'Seleziona almeno un articolo da incassare'
+    : scontoSenzaMotivo ? 'Indica il motivo dello sconto'
+    : !metodo ? 'Scegli come paga il cliente'
+    : !copre ? `Mancano ${eur(manca)}`
+    : null;
+
+  /* ── Gruppi: lista unica con intestazioni, niente doppia vista ── */
+  const gruppi = useMemo(() => {
+    const out = COMMENSALI.map(g => ({
+      id:g.id, nome:g.nome, canale:g.canale, iniziale:g.nome[0],
+      items: righe.filter(r => r.chi === g.id),
+    })).filter(g => g.items.length > 0);
+    const senza = righe.filter(r => !r.chi);
+    if (senza.length) out.push({ id:'tavolo', nome:'Tavolo', canale:'staff', iniziale:'T', items:senza, condiviso:true });
+    return out;
+  }, [righe]);
+
+  /* ── Selezione ────────────────────────────────────────────── */
+  const setQty = (id, q) => setSel(m => {
+    const r = righe.find(x => x.id === id); if (!r) return m;
+    const n = new Map(m), c = Math.max(0, Math.min(q, r.qty));
+    if (c === 0) n.delete(id); else n.set(id, c);
+    return n;
+  });
+  const toggleRiga = (id) => setSel(m => {
+    const r = righe.find(x => x.id === id); if (!r) return m;
+    const n = new Map(m);
+    if ((n.get(id) || 0) > 0) n.delete(id); else n.set(id, r.qty);
+    return n;
+  });
+  const soloGruppo = (g) => setSel(new Map(g.items.map(r => [r.id, r.qty])));
+  const tuttoIlTavolo = () => setSel(new Map(righe.map(r => [r.id, r.qty])));
+  const toggleGruppo = (g) => setSel(m => {
+    const n = new Map(m);
+    const pieno = g.items.every(r => (n.get(r.id) || 0) >= r.qty);
+    g.items.forEach(r => pieno ? n.delete(r.id) : n.set(r.id, r.qty));
+    return n;
+  });
+
+  /* Quale scorciatoia è attiva: serve a dire al cassiere "stai
+     incassando la parte di Marco", non solo "8 articoli". */
+  const scorciatoiaAttiva = useMemo(() => {
+    if (!parziale && selezionate.length === righe.length) return 'tutto';
+    for (const g of gruppi) {
+      const soloSuoi = righe.every(r => {
+        const q = sel.get(r.id) || 0;
+        return g.items.some(i => i.id === r.id) ? q === r.qty : q === 0;
+      });
+      if (soloSuoi) return g.id;
+    }
+    return null;
+  }, [sel, righe, gruppi, parziale, selezionate.length]);
+
+  /* ── Modifiche al conto (copia di lavoro) ──────────────────── */
+  const salvaModifica = (id, patch) => setRighe(a => a.map(r => {
+    if (r.id !== id) return r;
+    const n = { ...r, ...patch };
+    if (patch.nome != null && patch.nome !== r.nome && r.nomeOrig == null) n.nomeOrig = r.nome;
+    if (patch.prezzo != null && patch.prezzo !== r.prezzo && r.prezzoOrig == null) n.prezzoOrig = r.prezzo;
+    return n;
+  }));
+  const elimina = (id) => {
+    const art = righe.find(r => r.id === id);
+    setCestino({ art, q: sel.get(id) || 0, indice: righe.findIndex(r => r.id === id) });
+    setRighe(a => a.filter(r => r.id !== id));
+    setSel(m => { const n = new Map(m); n.delete(id); return n; });
+    setModifica(null);
+  };
+  const annullaElimina = () => {
+    if (!cestino) return;
+    setRighe(a => { const n = [...a]; n.splice(cestino.indice, 0, cestino.art); return n; });
+    if (cestino.q > 0) setSel(m => new Map(m).set(cestino.art.id, cestino.q));
+    setCestino(null);
+  };
+  const aggiungi = (voce) => {
+    const nuovo = {
+      id: 'x' + righe.length + '-' + Math.round(subtotale * 100),
+      nome: voce.nome, prezzo: voce.prezzo, qty: 1, chi: null, canale:'staff', aggiunto: true,
+    };
+    setRighe(a => [...a, nuovo]);
+    setSel(m => new Map(m).set(nuovo.id, 1));
+    setRicerca(false);
+    avvisa(`${voce.nome} aggiunto al conto`);
+  };
+
+  /* ── Contanti: taglio esatto + banconote subito superiori ──── */
+  const tagli = useMemo(() => {
+    const out = [{ etichetta:'Esatto', val: totale.toFixed(2) }];
+    const visti = new Set([Math.round(totale * 100)]);
+    for (const s of [5, 10, 20, 50, 100]) {
+      const v = Math.ceil(totale / s) * s;
+      if (v <= totale + 0.01) continue;
+      const k = Math.round(v * 100);
+      if (visti.has(k)) continue;
+      visti.add(k); out.push({ etichetta: eur(v), val: v.toFixed(2) });
+      if (out.length >= 4) break;
+    }
+    return out;
+  }, [totale]);
+
+  const stampaPre = () => {
+    setPreConto(Date.now()); setAdesso(Date.now());
+    avvisa(preConto ? `Pre-conto ristampato · ${eur(subtotale)}` : `Pre-conto stampato · ${eur(subtotale)}`);
+  };
+
+  const registra = () => {
+    if (chiuso.current || bloccoMotivo) return;      // doppio tap impossibile
+    chiuso.current = true;
+    setEsito({
+      totale,
+      contanti: metodo === 'contanti' ? Math.min(coperto, totale) : metodo === 'misto' ? parseAmount(mistoC) : 0,
+      carta:    metodo === 'carta' ? totale : metodo === 'misto' ? parseAmount(mistoK) : 0,
+      resto: metodo === 'contanti' ? resto : 0,
+      fattura, datiFatt, righe: selezionate.length, parziale,
+      restanti: totaleConto - subtotale,
+    });
+  };
+
+  const minutiPre = preConto ? Math.floor((adesso - preConto) / 60000) : 0;
+
+  if (esito) return <Esito d={esito} onChiudi={onChiudi}/>;
+
+  /* ── Render ───────────────────────────────────────────────── */
+  return (
+    <div style={{display:'flex', flexDirection:'column', height:'100%', background:T.CANVAS}}>
+
+      {/* ══ Testata ══ */}
+      <header style={{
+        display:'flex', alignItems:'center', gap:16, padding:'16px 22px',
+        background:'#fff', borderBottom:`1px solid ${T.LINE}`, flexShrink:0,
+      }}>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{display:'flex', alignItems:'baseline', gap:10, flexWrap:'wrap'}}>
+            <span style={{fontSize:25, fontWeight:800, letterSpacing:-0.5}}>Tavolo 7</span>
+            <span style={{fontSize:19, fontWeight:600, color:T.INK2}}>Famiglia Robinson</span>
+            <span style={{
+              fontSize:14.5, fontWeight:700, color:T.MUTED, background:'#F1EFEC',
+              padding:'4px 10px', borderRadius:999, display:'inline-flex', alignItems:'center', gap:5,
+            }}>{I.people} 4 coperti</span>
+          </div>
+          {preConto && (
+            <div style={{fontSize:14.5, color:T.AMBER, fontWeight:700, marginTop:5, display:'flex', alignItems:'center', gap:6}}>
+              {I.printer} Pre-conto in mano al cliente da {minutiPre < 1 ? 'meno di un minuto' : `${minutiPre} min`}
+            </div>
+          )}
+        </div>
+
+        <button onClick={stampaPre} style={{
+          display:'inline-flex', alignItems:'center', gap:9, height:48, padding:'0 18px',
+          borderRadius:T.R_S, border:`1.5px solid ${T.LINE}`, background:'#fff',
+          fontSize:16, fontWeight:700, color:T.INK, cursor:'pointer',
+        }}>{I.printer} {preConto ? 'Ristampa pre-conto' : 'Stampa pre-conto'}</button>
+
+        <button onClick={onChiudi} aria-label="Chiudi senza incassare" style={{
+          width:48, height:48, borderRadius:T.R_S, padding:0,
+          border:`1.5px solid ${T.LINE}`, background:'#fff', color:T.MUTED,
+          cursor:'pointer', display:'grid', placeItems:'center',
+        }}>{I.close}</button>
+      </header>
+
+      {/* ══ Corpo ══ */}
+      <div style={{flex:1, display:'flex', minHeight:0}}>
+
+        {/* ─── Colonna sinistra: il conto ─── */}
+        <section style={{flex:'1.45 1 0', display:'flex', flexDirection:'column', minWidth:0, borderRight:`1px solid ${T.LINE}`}}>
+
+          {/* Chi paga — la scorciatoia che sostituisce il lavoro di sottrazione */}
+          <div style={{padding:'14px 20px 12px', background:'#fff', borderBottom:`1px solid ${T.LINE_SOFT}`, flexShrink:0}}>
+            <div style={{fontSize:13.5, fontWeight:800, color:T.MUTED, letterSpacing:0.7, textTransform:'uppercase', marginBottom:10}}>
+              Chi paga adesso
+            </div>
+            <div style={{display:'flex', gap:8, overflowX:'auto', paddingBottom:2}}>
+              <Pill attivo={scorciatoiaAttiva === 'tutto'} onClick={tuttoIlTavolo} tono="brand">
+                Tutto il tavolo
+              </Pill>
+              {gruppi.map(g => (
+                <Pill key={g.id} attivo={scorciatoiaAttiva === g.id} onClick={() => soloGruppo(g)}>
+                  <CanaleMark canale={g.canale} iniziale={g.iniziale} size={20}/>
+                  {g.condiviso ? 'Condivisi' : g.nome}
+                </Pill>
+              ))}
+              {scorciatoiaAttiva === null && (
+                <span style={{
+                  display:'inline-flex', alignItems:'center', padding:'10px 15px', borderRadius:999,
+                  background:T.BLUE_SOFT, color:T.BLUE, fontSize:15, fontWeight:700, whiteSpace:'nowrap',
+                }}>Selezione a mano</span>
+              )}
+            </div>
+          </div>
+
+          {/* Barra lista */}
+          <div style={{
+            display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+            background:T.SURF, borderBottom:`1px solid ${T.LINE_SOFT}`, flexShrink:0,
+          }}>
+            <span style={{fontSize:15.5, fontWeight:700, color:T.INK2, flex:1, ...NUM}}>
+              {unitaSel} di {unitaTot} {unitaTot === 1 ? 'articolo' : 'articoli'} sul pagamento
+            </span>
+            <button onClick={() => setRicerca(true)} style={{
+              display:'inline-flex', alignItems:'center', gap:7, height:42, padding:'0 15px',
+              borderRadius:T.R_S, border:`1.5px solid ${T.LINE}`, background:'#fff',
+              fontSize:15.5, fontWeight:700, color:T.INK, cursor:'pointer',
+            }}>{I.plus} Aggiungi articolo</button>
+          </div>
+
+          {/* Lista unica, intestazioni appiccicate */}
+          <div className="sc-scroll" style={{flex:1, overflowY:'auto', padding:'6px 20px 20px'}}>
+            {righe.length === 0 ? (
+              <div style={{padding:'70px 20px', textAlign:'center'}}>
+                <div style={{fontSize:19, fontWeight:700, color:T.INK2, marginBottom:6}}>Il conto è vuoto</div>
+                <div style={{fontSize:16, color:T.MUTED, marginBottom:20}}>
+                  Nessun articolo da incassare su questo tavolo.
+                </div>
+                <button onClick={() => setRicerca(true)} style={{
+                  display:'inline-flex', alignItems:'center', gap:8, height:48, padding:'0 20px',
+                  borderRadius:T.R_S, border:'none', background:T.INK, color:'#fff',
+                  fontSize:16.5, fontWeight:700, cursor:'pointer',
+                }}>{I.plus} Aggiungi articolo</button>
+              </div>
+            ) : gruppi.map(g => {
+              const collassato = chiusi.has(g.id);
+              const tot = g.items.reduce((s,r) => s + r.qty * r.prezzo, 0);
+              const pieno = g.items.every(r => (sel.get(r.id) || 0) >= r.qty);
+              const parte = !pieno && g.items.some(r => (sel.get(r.id) || 0) > 0);
+              return (
+                <div key={g.id} style={{marginBottom:6}}>
+                  <div style={{
+                    position:'sticky', top:0, zIndex:2,
+                    display:'flex', alignItems:'center', gap:13,
+                    padding:'12px 6px 10px', background:T.CANVAS,
+                  }}>
+                    <Casella stato={pieno ? 'tutto' : parte ? 'parte' : 'niente'} size={30} onClick={() => toggleGruppo(g)}/>
+                    <CanaleMark canale={g.canale} iniziale={g.iniziale}/>
+                    <button onClick={() => setChiusi(s => { const n = new Set(s); n.has(g.id) ? n.delete(g.id) : n.add(g.id); return n; })}
+                      style={{
+                        flex:1, display:'flex', alignItems:'center', gap:10, minWidth:0,
+                        background:'transparent', border:'none', padding:0, cursor:'pointer', textAlign:'left',
+                      }}>
+                      <span style={{flex:1, minWidth:0}}>
+                        <span style={{display:'block', fontSize:17.5, fontWeight:800, color:T.INK}}>
+                          {g.condiviso ? 'Condivisi e coperti' : g.nome}
+                        </span>
+                        <span style={{display:'block', fontSize:14, color:T.MUTED, fontWeight:600, marginTop:1}}>
+                          {g.condiviso ? 'Presi dal personale' : g.canale === 'app' ? 'Ordina dall’app byup' : 'Ordina dalla webapp'}
+                          {' · '}{g.items.length} {g.items.length === 1 ? 'voce' : 'voci'}
+                        </span>
+                      </span>
+                      <span style={{fontSize:17.5, fontWeight:800, color:T.INK2, ...NUM}}>{eur(tot)}</span>
+                      <span style={{color:T.FAINT, display:'grid', transform: collassato ? 'rotate(-90deg)' : 'none', transition:'transform 140ms'}}>
+                        {I.chev}
+                      </span>
+                    </button>
+                  </div>
+                  {!collassato && (
+                    <div style={{display:'flex', flexDirection:'column', gap:5}}>
+                      {g.items.map(r => (
+                        <Riga key={r.id} art={r} sel={sel.get(r.id) || 0}
+                          onToggle={() => toggleRiga(r.id)}
+                          onQty={(q) => setQty(r.id, q)}
+                          onApri={() => setModifica(r)}/>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Annulla eliminazione — meglio di una conferma preventiva */}
+          {cestino && (
+            <div style={{
+              display:'flex', alignItems:'center', gap:12, padding:'12px 20px',
+              background:T.INK, color:'#fff', flexShrink:0, animation:'scRise 160ms ease-out both',
+            }}>
+              <span style={{flex:1, fontSize:15.5, fontWeight:700}}>
+                “{cestino.art.nome}” eliminato dal conto
+              </span>
+              <button onClick={annullaElimina} style={{
+                display:'inline-flex', alignItems:'center', gap:7, height:40, padding:'0 15px',
+                borderRadius:T.R_S, border:'1.5px solid rgba(255,255,255,.35)', background:'transparent',
+                color:'#fff', fontSize:15.5, fontWeight:700, cursor:'pointer',
+              }}>{I.undo} Annulla</button>
+              <button onClick={() => setCestino(null)} aria-label="Chiudi" style={{
+                width:36, height:36, borderRadius:8, padding:0, border:'none',
+                background:'rgba(255,255,255,.14)', color:'#fff', cursor:'pointer', display:'grid', placeItems:'center',
+              }}>{I.close}</button>
+            </div>
+          )}
+        </section>
+
+        {/* ─── Colonna destra: l'incasso ─── */}
+        <section style={{flex:'1 1 0', display:'flex', flexDirection:'column', minWidth:400, background:'#fff'}}>
+          <div className="sc-scroll" style={{flex:1, overflowY:'auto', padding:'20px 24px 8px'}}>
+
+            {/* Le tre grandezze, in ordine di importanza */}
+            <div style={{
+              display:'flex', alignItems:'baseline', gap:10,
+              fontSize:15.5, color:T.MUTED, fontWeight:600, marginBottom:6,
+            }}>
+              <span style={{flex:1}}>Conto del tavolo</span>
+              <span style={{...NUM, fontWeight:700, color:T.INK2}}>{eur(totaleConto)}</span>
+            </div>
+
+            <div style={{
+              padding:'16px 18px', borderRadius:T.R_M, marginBottom:12,
+              background:T.BRAND_SOFT, border:`1.5px solid #F6D3D3`,
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:2}}>
+                <span style={{fontSize:14, fontWeight:800, color:T.BRAND_INK, letterSpacing:0.6, textTransform:'uppercase', flex:1}}>
+                  Incassi adesso
+                </span>
+                {parziale && selezionate.length > 0 && (
+                  <span style={{fontSize:13.5, fontWeight:800, color:T.BRAND_INK, background:'#fff', padding:'3px 9px', borderRadius:999, ...NUM}}>
+                    {unitaSel} di {unitaTot}
+                  </span>
+                )}
+              </div>
+              <div style={{fontSize:46, fontWeight:800, color:T.INK, letterSpacing:-1.6, lineHeight:1.05, ...NUM}}>
+                {eur(totale)}
+              </div>
+              {calcolo.delta !== 0 && (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:8, marginTop:9, paddingTop:9,
+                  borderTop:'1px solid #F3CFCF', fontSize:15, fontWeight:700,
+                  color: calcolo.delta < 0 ? T.GREEN : T.AMBER,
+                }}>
+                  <span style={{flex:1}}>
+                    {calcolo.etichetta}{aggiust.motivo ? ` · ${aggiust.motivo}` : ''}
+                    <span style={{color:T.MUTED, fontWeight:600}}> · da {eur(subtotale)}</span>
+                  </span>
+                  <span style={NUM}>{calcolo.delta < 0 ? '−' : '+'}{eur(Math.abs(calcolo.delta))}</span>
+                  <button onClick={() => { setAggiust(null); setAggiustAperto(false); }} aria-label="Togli aggiustamento" style={{
+                    width:30, height:30, borderRadius:7, padding:0, border:'none',
+                    background:'#fff', color:T.MUTED, cursor:'pointer', display:'grid', placeItems:'center',
+                  }}>{I.close}</button>
+                </div>
+              )}
+              {parziale && selezionate.length > 0 && (
+                <div style={{fontSize:14.5, color:T.BRAND_INK, fontWeight:600, marginTop:8}}>
+                  Restano {eur(totaleConto - subtotale)} sul tavolo dopo questo incasso
+                </div>
+              )}
+            </div>
+
+            {/* Aggiustamento */}
+            {!aggiustAperto ? (
+              <button onClick={() => setAggiustAperto(true)} style={{
+                display:'inline-flex', alignItems:'center', gap:8, height:44, padding:'0 15px',
+                marginBottom:18, borderRadius:T.R_S,
+                border:`1.5px solid ${T.LINE}`, background:'#fff',
+                fontSize:15.5, fontWeight:700, color: aggiust ? T.INK : T.MUTED, cursor:'pointer',
+              }}>{I.tag} {aggiust ? 'Modifica sconto' : 'Applica sconto o arrotonda'}</button>
+            ) : (
+              <Aggiustamento
+                subtotale={subtotale} aggiust={aggiust} setAggiust={setAggiust}
+                onChiudi={() => setAggiustAperto(false)}/>
+            )}
+
+            {/* Metodo */}
+            <div style={{fontSize:13.5, fontWeight:800, color:T.MUTED, letterSpacing:0.7, textTransform:'uppercase', marginBottom:10}}>
+              Come paga
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16}}>
+              {[['contanti','Contanti',I.cash], ['carta','Carta',I.card], ['misto','Misto',I.split]].map(([k, l, ic]) => (
+                <button key={k} onClick={() => { setMetodo(k); setRicevuto(''); setMistoC(''); setMistoK(''); }} style={{
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:7,
+                  padding:'15px 6px', borderRadius:T.R_M, cursor:'pointer',
+                  border: metodo === k ? `1.5px solid ${T.INK}` : `1.5px solid ${T.LINE}`,
+                  background: metodo === k ? T.INK : '#fff',
+                  color: metodo === k ? '#fff' : T.INK,
+                  fontSize:16, fontWeight:700,
+                }}>{ic}{l}</button>
+              ))}
+            </div>
+
+            {!metodo && (
+              <div style={{
+                padding:'18px 16px', borderRadius:T.R_M, background:T.SURF,
+                border:`1.5px dashed ${T.LINE}`, textAlign:'center',
+                fontSize:16, color:T.MUTED, fontWeight:600, marginBottom:18,
+              }}>
+                Scegli il metodo per calcolare resto e copertura
+              </div>
+            )}
+
+            {metodo === 'contanti' && (
+              <div style={{marginBottom:18}}>
+                <div style={{fontSize:15, fontWeight:700, color:T.MUTED, marginBottom:7}}>Quanto ti ha dato</div>
+                <Campo value={ricevuto} onChange={setRicevuto} placeholder={totale.toFixed(2).replace('.',',')} prefisso="€" big/>
+                <div style={{display:'grid', gridTemplateColumns:`repeat(${tagli.length}, 1fr)`, gap:7, marginTop:9}}>
+                  {tagli.map(t => {
+                    const on = parseAmount(ricevuto).toFixed(2) === parseFloat(t.val).toFixed(2);
+                    return (
+                      <button key={t.etichetta} onClick={() => setRicevuto(t.val.replace('.',','))} style={{
+                        height:46, borderRadius:T.R_S, cursor:'pointer', whiteSpace:'nowrap',
+                        border: on ? `1.5px solid ${T.INK}` : `1.5px solid ${T.LINE}`,
+                        background: on ? T.INK : '#fff', color: on ? '#fff' : T.INK,
+                        fontSize:16, fontWeight:700, ...NUM,
+                      }}>{t.etichetta}</button>
+                    );
+                  })}
+                </div>
+                {parseAmount(ricevuto) > 0 && (
+                  <Esitino
+                    tono={!copre ? 'amber' : resto > 0.01 ? 'green' : 'neutro'}
+                    testo={!copre ? 'Mancano ancora' : resto > 0.01 ? 'Resto da dare' : 'Importo esatto, niente resto'}
+                    valore={!copre ? eur(manca) : resto > 0.01 ? eur(resto) : null}/>
+                )}
+              </div>
+            )}
+
+            {metodo === 'carta' && (
+              <div style={{
+                padding:'20px 18px', borderRadius:T.R_M, marginBottom:18,
+                background:T.SURF, border:`1.5px solid ${T.LINE}`, textAlign:'center',
+              }}>
+                <div style={{fontSize:15.5, color:T.MUTED, fontWeight:700, marginBottom:4}}>Digita sul POS</div>
+                <div style={{fontSize:34, fontWeight:800, color:T.INK, letterSpacing:-1, ...NUM}}>{eur(totale)}</div>
+                <div style={{
+                  marginTop:12, padding:'11px 14px', borderRadius:T.R_S,
+                  background:T.AMBER_SOFT, color:T.AMBER, fontSize:15, fontWeight:700,
+                  display:'flex', alignItems:'center', gap:9, textAlign:'left',
+                }}>
+                  {I.alert} Registra l’incasso solo dopo che il POS ha approvato la transazione
+                </div>
+              </div>
+            )}
+
+            {metodo === 'misto' && (
+              <div style={{marginBottom:18}}>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:9, marginBottom:9}}>
+                  <div>
+                    <div style={{fontSize:14.5, fontWeight:700, color:T.MUTED, marginBottom:6, display:'flex', alignItems:'center', gap:6}}>{I.cash} Contanti</div>
+                    <Campo value={mistoC} onChange={setMistoC} placeholder="0,00" prefisso="€"/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:14.5, fontWeight:700, color:T.MUTED, marginBottom:6, display:'flex', alignItems:'center', gap:6}}>{I.card} Carta</div>
+                    <Campo value={mistoK} onChange={setMistoK} placeholder="0,00" prefisso="€"/>
+                  </div>
+                </div>
+                <div style={{display:'flex', gap:7, marginBottom:12, flexWrap:'wrap'}}>
+                  <Scorc onClick={() => { const m = (totale/2).toFixed(2).replace('.',','); setMistoC(m); setMistoK(m); }}>Metà e metà</Scorc>
+                  {manca > 0.01 && parseAmount(mistoC) > 0 && (
+                    <Scorc onClick={() => setMistoK((parseAmount(mistoK) + manca).toFixed(2).replace('.',','))}>
+                      Il resto su carta · {eur(manca)}
+                    </Scorc>
+                  )}
+                  {manca > 0.01 && parseAmount(mistoK) > 0 && (
+                    <Scorc onClick={() => setMistoC((parseAmount(mistoC) + manca).toFixed(2).replace('.',','))}>
+                      Il resto in contanti · {eur(manca)}
+                    </Scorc>
+                  )}
+                </div>
+                <div style={{height:9, borderRadius:999, background:'#EDEAE5', overflow:'hidden', marginBottom:9}}>
+                  <div style={{
+                    width: `${totale > 0 ? Math.min(100, (coperto/totale)*100) : 0}%`, height:'100%',
+                    background: copre ? T.GREEN : T.INK, transition:'width 180ms ease',
+                  }}/>
+                </div>
+                <div style={{display:'flex', fontSize:15.5, fontWeight:700}}>
+                  <span style={{flex:1, color:T.MUTED, ...NUM}}>Coperto {eur(Math.min(coperto, totale))} di {eur(totale)}</span>
+                  <span style={{color: copre ? T.GREEN : T.AMBER, ...NUM}}>
+                    {copre ? '✓ Coperto tutto' : `Mancano ${eur(manca)}`}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Documento */}
+            <div style={{borderTop:`1px solid ${T.LINE_SOFT}`, paddingTop:16, marginBottom:8}}>
+              <div style={{display:'flex', alignItems:'center', gap:12}}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:17, fontWeight:700, color:T.INK}}>Serve la fattura</div>
+                  <div style={{fontSize:14.5, color:T.MUTED, marginTop:2}}>
+                    {fattura && datiFatt.ragione
+                      ? `${datiFatt.ragione}${datiFatt.piva ? ' · P.IVA ' + datiFatt.piva : ''}${datiFatt.sdi ? ' · SDI ' + datiFatt.sdi : ''}`
+                      : 'Senza fattura esce lo scontrino'}
+                  </div>
+                </div>
+                <Toggle on={fattura} onChange={() => setFattura(v => !v)}/>
+              </div>
+              {fattura && (
+                <div style={{display:'flex', flexDirection:'column', gap:8, marginTop:12}}>
+                  <Campo value={datiFatt.ragione} onChange={v => setDatiFatt(d => ({...d, ragione:v}))} placeholder="Ragione sociale"/>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
+                    <Campo value={datiFatt.piva} onChange={v => setDatiFatt(d => ({...d, piva:v}))} placeholder="Partita IVA"/>
+                    <Campo value={datiFatt.sdi} onChange={v => setDatiFatt(d => ({...d, sdi:v}))} placeholder="Codice SDI"/>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Azione */}
+          <div style={{
+            padding:'14px 24px 18px', borderTop:`1px solid ${T.LINE}`,
+            background:'#fff', flexShrink:0,
+          }}>
+            {bloccoMotivo && (
+              <div style={{
+                display:'flex', alignItems:'center', gap:9, marginBottom:10,
+                padding:'11px 14px', borderRadius:T.R_S,
+                background: scontoSenzaMotivo ? T.AMBER_SOFT : T.SURF,
+                color: scontoSenzaMotivo ? T.AMBER : T.MUTED,
+                fontSize:15.5, fontWeight:700,
+              }}>{I.alert} {bloccoMotivo}</div>
+            )}
+            <button onClick={registra} disabled={!!bloccoMotivo} style={{
+              width:'100%', height:64, borderRadius:T.R_M, border:'none',
+              background: bloccoMotivo ? '#E7E3DD' : T.BRAND,
+              color: bloccoMotivo ? T.FAINT : '#fff',
+              fontSize:21, fontWeight:800, letterSpacing:-0.3,
+              cursor: bloccoMotivo ? 'not-allowed' : 'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+              boxShadow: bloccoMotivo ? 'none' : '0 6px 18px rgba(224,67,71,0.30)',
+            }}>
+              Registra incasso <span style={{opacity:.55}}>·</span> <span style={NUM}>{eur(totale)}</span>
+            </button>
+            <div style={{
+              marginTop:9, fontSize:14.5, fontWeight:600, textAlign:'center',
+              color: metodo === 'contanti' && resto > 0.01 ? T.AMBER : T.MUTED,
+            }}>
+              {metodo === 'contanti' && resto > 0.01
+                ? `Ricordati il resto: ${eur(resto)}`
+                : fattura ? 'Genera fattura elettronica' : 'Genera scontrino'}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Dialoghi */}
+      {modifica && (
+        <ModificaRiga art={modifica} onSalva={salvaModifica} onElimina={elimina} onChiudi={() => setModifica(null)}/>
+      )}
+      {ricerca && <Ricerca onScegli={aggiungi} onChiudi={() => setRicerca(false)}/>}
+      <Toast testo={toast}/>
+    </div>
+  );
+}
+
+function Scorc({ children, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      height:42, padding:'0 14px', borderRadius:T.R_S,
+      border:`1.5px solid ${T.LINE}`, background:'#fff',
+      fontSize:15, fontWeight:700, color:T.INK, cursor:'pointer', whiteSpace:'nowrap',
+    }}>{children}</button>
+  );
+}
+
+function Esitino({ tono, testo, valore }) {
+  const c = tono === 'green' ? [T.GREEN, T.GREEN_SOFT] : tono === 'amber' ? [T.AMBER, T.AMBER_SOFT] : [T.INK2, '#F1EFEC'];
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap:10, marginTop:10,
+      padding:'14px 16px', borderRadius:T.R_M, background:c[1], color:c[0],
+    }}>
+      <span style={{flex:1, fontSize:16.5, fontWeight:700}}>{testo}</span>
+      {valore && <span style={{fontSize:26, fontWeight:800, letterSpacing:-0.5, ...NUM}}>{valore}</span>}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AGGIUSTAMENTO — veloce ma mai anonimo
+   ═══════════════════════════════════════════════════════════════ */
+function Aggiustamento({ subtotale, aggiust, setAggiust, onChiudi }) {
+  const [tipo, setTipo] = useState(aggiust?.tipo || 'euro');
+  const val = aggiust && aggiust.tipo === tipo ? aggiust.val : '';
+  const motivo = aggiust?.motivo || null;
+
+  const applica = (v) => {
+    const s = String(v);
+    if (s === '' && tipo !== 'arrot') { setAggiust(null); return; }
+    setAggiust({ tipo, val:s, motivo });
+  };
+  const cambiaTipo = (t) => { setTipo(t); setAggiust(null); };
+
+  return (
+    <div style={{
+      border:`1.5px solid ${T.LINE}`, borderRadius:T.R_M, padding:14, marginBottom:18,
+      background:T.SURF, animation:'scRise 160ms ease-out both',
+    }}>
+      <div style={{display:'flex', alignItems:'center', marginBottom:11}}>
+        <span style={{flex:1, fontSize:15.5, fontWeight:800, color:T.INK}}>Aggiusta il totale</span>
+        <button onClick={onChiudi} aria-label="Chiudi" style={{
+          width:32, height:32, borderRadius:7, padding:0, border:'none',
+          background:'#fff', color:T.MUTED, cursor:'pointer', display:'grid', placeItems:'center',
+        }}>{I.close}</button>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:6, marginBottom:11}}>
+        {[['euro','Sconto €'], ['perc','Sconto %'], ['arrot','Arrotonda'], ['misura','Su misura']].map(([k, l]) => (
+          <button key={k} onClick={() => cambiaTipo(k)} style={{
+            height:42, borderRadius:T.R_S, cursor:'pointer',
+            border: tipo === k ? `1.5px solid ${T.INK}` : `1.5px solid ${T.LINE}`,
+            background: tipo === k ? T.INK : '#fff', color: tipo === k ? '#fff' : T.INK,
+            fontSize:14.5, fontWeight:700, padding:'0 4px',
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {tipo === 'euro' && (
+        <div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:8}}>
+            {[5, 10, 15, 20].map(v => (
+              <button key={v} onClick={() => applica(v)} style={chipRapido(parseAmount(val) === v)}>−{eur(v)}</button>
+            ))}
+          </div>
+          <Campo value={val} onChange={applica} placeholder="Sconto libero" prefisso="€"/>
+        </div>
+      )}
+
+      {tipo === 'perc' && (
+        <div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:8}}>
+            {[5, 10, 15, 20].map(v => (
+              <button key={v} onClick={() => applica(v)} style={chipRapido(parseAmount(val) === v)}>−{v}%</button>
+            ))}
+          </div>
+          <Campo value={val} onChange={applica} placeholder="Percentuale libera"/>
+        </div>
+      )}
+
+      {tipo === 'arrot' && (
+        <button onClick={() => setAggiust({ tipo:'arrot', val:'0', motivo })} style={{
+          width:'100%', height:52, borderRadius:T.R_S, cursor:'pointer',
+          border: aggiust?.tipo === 'arrot' ? `1.5px solid ${T.INK}` : `1.5px solid ${T.LINE}`,
+          background: aggiust?.tipo === 'arrot' ? T.INK : '#fff',
+          color: aggiust?.tipo === 'arrot' ? '#fff' : T.INK,
+          fontSize:16.5, fontWeight:700, ...NUM,
+        }}>
+          Scendi a {eur(Math.floor(subtotale))} · togli {eur(subtotale - Math.floor(subtotale))}
+        </button>
+      )}
+
+      {tipo === 'misura' && (
+        <div>
+          <Campo value={val} onChange={applica} placeholder={subtotale.toFixed(2).replace('.',',')} prefisso="€" big/>
+          <div style={{fontSize:14.5, color:T.MUTED, marginTop:6, fontWeight:600}}>
+            Sostituisce il totale reale di <span style={{...NUM, fontWeight:700, color:T.INK2}}>{eur(subtotale)}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Il motivo non blocca la digitazione: blocca l'incasso.
+         Lo sconto si vede subito, ma non si registra senza un nome. */}
+      {aggiust && tipo !== 'arrot' && (
+        <div style={{marginTop:12, paddingTop:12, borderTop:`1px solid ${T.LINE}`}}>
+          <div style={{
+            fontSize:14.5, fontWeight:800, marginBottom:8,
+            color: motivo ? T.MUTED : T.AMBER,
+          }}>
+            {motivo ? 'Motivo dello sconto' : 'Scegli il motivo — senza non si registra'}
+          </div>
+          <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+            {MOTIVI.map(m => (
+              <button key={m} onClick={() => setAggiust(a => ({...a, motivo: a.motivo === m ? null : m}))} style={{
+                height:40, padding:'0 13px', borderRadius:999, cursor:'pointer',
+                border: motivo === m ? `1.5px solid ${T.INK}` : `1.5px solid ${T.LINE}`,
+                background: motivo === m ? T.INK : '#fff', color: motivo === m ? '#fff' : T.INK2,
+                fontSize:14.5, fontWeight:700,
+              }}>{m}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+const chipRapido = (on) => ({
+  height:42, borderRadius:T.R_S, cursor:'pointer',
+  border: on ? `1.5px solid ${T.INK}` : `1.5px solid ${T.LINE}`,
+  background: on ? T.INK : '#fff', color: on ? '#fff' : T.INK,
+  fontSize:15, fontWeight:700, ...NUM,
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   MODIFICA RIGA — un solo posto per rinomina, prezzo, eliminazione
+   ═══════════════════════════════════════════════════════════════ */
+function ModificaRiga({ art, onSalva, onElimina, onChiudi }) {
+  const [nome, setNome] = useState(art.nome);
+  const [prezzo, setPrezzo] = useState(String(art.prezzo).replace('.', ','));
+  const [confermaElimina, setConfermaElimina] = useState(false);
+  const nuovoPrezzo = parseAmount(prezzo);
+  const cambiato = nome.trim() !== art.nome || Math.abs(nuovoPrezzo - art.prezzo) > 0.001;
+
+  const salva = () => {
+    const patch = {};
+    if (nome.trim() && nome.trim() !== art.nome) patch.nome = nome.trim();
+    if (nuovoPrezzo >= 0 && Math.abs(nuovoPrezzo - art.prezzo) > 0.001) patch.prezzo = nuovoPrezzo;
+    if (Object.keys(patch).length) onSalva(art.id, patch);
+    onChiudi();
+  };
+
+  return (
+    <Dialog titolo="Modifica riga" sottotitolo={`${art.qty}× ${art.nome} · ${eur(art.qty * art.prezzo)}`} onClose={onChiudi}>
+      <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:16, overflowY:'auto'}}>
+        <div>
+          <div style={{fontSize:14.5, fontWeight:700, color:T.MUTED, marginBottom:7}}>Nome sullo scontrino</div>
+          <Campo value={nome} onChange={setNome} placeholder="Nome articolo" onEnter={salva}/>
+        </div>
+        <div>
+          <div style={{fontSize:14.5, fontWeight:700, color:T.MUTED, marginBottom:7}}>Prezzo unitario</div>
+          <Campo value={prezzo} onChange={setPrezzo} prefisso="€" placeholder="0,00" onEnter={salva}/>
+          {Math.abs(nuovoPrezzo - art.prezzo) > 0.001 && (
+            <div style={{
+              marginTop:8, padding:'10px 13px', borderRadius:T.R_S,
+              background:T.AMBER_SOFT, color:T.AMBER, fontSize:14.5, fontWeight:700,
+            }}>
+              Era {eur(art.prezzo)}. La modifica resta scritta sulla riga e finisce nel report di fine giornata.
+            </div>
+          )}
+        </div>
+
+        <div style={{borderTop:`1px solid ${T.LINE_SOFT}`, paddingTop:16}}>
+          {!confermaElimina ? (
+            <button onClick={() => setConfermaElimina(true)} style={{
+              display:'inline-flex', alignItems:'center', gap:8, height:46, padding:'0 16px',
+              borderRadius:T.R_S, border:`1.5px solid ${T.LINE}`, background:'#fff',
+              color:'#B3261E', fontSize:15.5, fontWeight:700, cursor:'pointer',
+            }}>{I.trash} Togli dal conto</button>
+          ) : (
+            <div style={{
+              padding:'14px 16px', borderRadius:T.R_M, background:'#FDF0EF', border:'1.5px solid #F5D4D2',
+            }}>
+              <div style={{fontSize:15.5, fontWeight:700, color:'#B3261E', marginBottom:10}}>
+                Togli “{art.nome}” dal conto? Il cliente non lo pagherà.
+              </div>
+              <div style={{display:'flex', gap:8}}>
+                <button onClick={() => onElimina(art.id)} style={{
+                  height:46, padding:'0 18px', borderRadius:T.R_S, border:'none',
+                  background:'#B3261E', color:'#fff', fontSize:15.5, fontWeight:700, cursor:'pointer',
+                }}>Sì, togli</button>
+                <button onClick={() => setConfermaElimina(false)} style={{
+                  height:46, padding:'0 18px', borderRadius:T.R_S,
+                  border:`1.5px solid ${T.LINE}`, background:'#fff',
+                  fontSize:15.5, fontWeight:700, cursor:'pointer',
+                }}>No, tieni</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{
+        display:'flex', gap:10, padding:'16px 24px', borderTop:`1px solid ${T.LINE_SOFT}`,
+        background:T.SURF, flexShrink:0,
+      }}>
+        <button onClick={onChiudi} style={{
+          flex:1, height:52, borderRadius:T.R_S, border:`1.5px solid ${T.LINE}`,
+          background:'#fff', fontSize:16.5, fontWeight:700, cursor:'pointer',
+        }}>Lascia com’è</button>
+        <button onClick={salva} disabled={!cambiato} style={{
+          flex:1.4, height:52, borderRadius:T.R_S, border:'none',
+          background: cambiato ? T.INK : '#E7E3DD', color: cambiato ? '#fff' : T.FAINT,
+          fontSize:16.5, fontWeight:700, cursor: cambiato ? 'pointer' : 'not-allowed',
+        }}>Salva modifica</button>
+      </div>
+    </Dialog>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RICERCA ARTICOLI
+   ═══════════════════════════════════════════════════════════════ */
+function Ricerca({ onScegli, onChiudi }) {
+  const [q, setQ] = useState('');
+  const testo = q.trim().toLowerCase();
+  const trovati = testo ? MENU.filter(m => m.nome.toLowerCase().includes(testo)).slice(0, 7) : [];
+
+  return (
+    <Dialog titolo="Aggiungi al conto" sottotitolo="Cerca nel menù o crea una voce al volo" onClose={onChiudi} largo>
+      <div style={{padding:'18px 24px 8px', flexShrink:0}}>
+        <Campo value={q} onChange={setQ} placeholder="Scrivi il nome del piatto…" autoFocus/>
+      </div>
+      <div className="sc-scroll" style={{flex:1, overflowY:'auto', padding:'6px 16px 18px', minHeight:180}}>
+        {!testo && (
+          <div style={{padding:'44px 20px', textAlign:'center', color:T.MUTED, fontSize:16, fontWeight:600}}>
+            Inizia a scrivere per cercare fra {MENU.length} voci di menù
+          </div>
+        )}
+        {testo && trovati.length === 0 && (
+          <div style={{padding:'30px 20px', textAlign:'center'}}>
+            <div style={{fontSize:16.5, color:T.MUTED, fontWeight:600, marginBottom:16}}>
+              Nessun piatto si chiama “{q.trim()}”
+            </div>
+            <button onClick={() => onScegli({ nome:q.trim(), prezzo:0 })} style={{
+              height:52, padding:'0 22px', borderRadius:T.R_S, border:'none',
+              background:T.INK, color:'#fff', fontSize:16.5, fontWeight:700, cursor:'pointer',
+            }}>Crea “{q.trim()}” a prezzo libero</button>
+            <div style={{fontSize:14, color:T.FAINT, marginTop:10}}>
+              Entra a €0,00 — imposti il prezzo dalla riga
+            </div>
+          </div>
+        )}
+        {trovati.map((m, i) => (
+          <button key={i} onClick={() => onScegli(m)} style={{
+            display:'flex', alignItems:'center', gap:14, width:'100%',
+            padding:'14px 12px', borderRadius:T.R_S, border:'none', background:'transparent',
+            cursor:'pointer', textAlign:'left', minHeight:58,
+          }}>
+            <span style={{flex:1, fontSize:17.5, fontWeight:600, color:T.INK}}>{m.nome}</span>
+            <span style={{
+              fontSize:13.5, fontWeight:700, color:T.MUTED, background:'#F1EFEC',
+              padding:'4px 10px', borderRadius:999,
+            }}>{m.cat}</span>
+            <span style={{fontSize:17.5, fontWeight:800, color:T.INK, minWidth:76, textAlign:'right', ...NUM}}>{eur(m.prezzo)}</span>
+          </button>
+        ))}
+      </div>
+    </Dialog>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ESITO — stato terminale, non si torna indietro
+   ═══════════════════════════════════════════════════════════════ */
+function Esito({ d, onChiudi }) {
+  const [stampato, setStampato] = useState(false);
+  const misto = d.contanti > 0 && d.carta > 0;
+  return (
+    <div style={{
+      height:'100%', display:'flex', flexDirection:'column',
+      alignItems:'center', justifyContent:'center', padding:40, background:'#fff',
+      animation:'scFade 200ms ease-out both',
+    }}>
+      <div style={{
+        width:86, height:86, borderRadius:'50%', background:T.GREEN_SOFT, color:T.GREEN,
+        display:'grid', placeItems:'center', marginBottom:20,
+      }}>
+        <Ico d={<path d="M4 12.5l5.5 5.5L20 7"/>} w={2.8} size={42}/>
+      </div>
+
+      <div style={{fontSize:22, fontWeight:700, color:T.MUTED, marginBottom:4}}>Incasso registrato</div>
+      <div style={{fontSize:56, fontWeight:800, color:T.INK, letterSpacing:-2, lineHeight:1, marginBottom:16, ...NUM}}>
+        {eur(d.totale)}
+      </div>
+
+      <div style={{
+        display:'flex', flexDirection:'column', gap:8, marginBottom:8,
+        padding:'16px 22px', borderRadius:T.R_M, background:T.SURF, border:`1px solid ${T.LINE}`,
+        minWidth:340,
+      }}>
+        <RigaEsito k="Tavolo" v="7 · Famiglia Robinson"/>
+        <RigaEsito k="Articoli incassati" v={`${d.righe}`}/>
+        {misto ? (
+          <Fragment>
+            <RigaEsito k="Contanti" v={eur(d.contanti)}/>
+            <RigaEsito k="Carta" v={eur(d.carta)}/>
+          </Fragment>
+        ) : (
+          <RigaEsito k="Metodo" v={d.carta > 0 ? 'Carta' : 'Contanti'}/>
+        )}
+        {d.resto > 0.01 && <RigaEsito k="Resto dato" v={eur(d.resto)} tono={T.AMBER}/>}
+        <RigaEsito k="Documento" v={d.fattura ? `Fattura · ${d.datiFatt.ragione || 'dati da completare'}` : 'Scontrino'}/>
+      </div>
+
+      {d.parziale && d.restanti > 0.01 && (
+        <div style={{
+          padding:'13px 18px', borderRadius:T.R_S, background:T.AMBER_SOFT, color:T.AMBER,
+          fontSize:16, fontWeight:700, marginBottom:22, display:'flex', alignItems:'center', gap:9,
+        }}>{I.alert} Il tavolo resta aperto: {eur(d.restanti)} ancora da incassare</div>
+      )}
+      {(!d.parziale || d.restanti <= 0.01) && <div style={{height:22}}/>}
+
+      <div style={{display:'flex', gap:10}}>
+        <button onClick={() => setStampato(true)} style={{
+          display:'inline-flex', alignItems:'center', gap:9, height:56, padding:'0 24px',
+          borderRadius:T.R_M, border:`1.5px solid ${T.LINE}`, background:'#fff',
+          fontSize:17, fontWeight:700, color:T.INK, cursor:'pointer',
+        }}>
+          {stampato ? I.check : I.doc}
+          {stampato ? 'Documento generato' : d.fattura ? 'Genera fattura' : 'Stampa scontrino'}
+        </button>
+        <button onClick={onChiudi} style={{
+          height:56, padding:'0 30px', borderRadius:T.R_M, border:'none',
+          background:T.INK, color:'#fff', fontSize:17, fontWeight:700, cursor:'pointer',
+        }}>Torna alla sala</button>
+      </div>
+    </div>
+  );
+}
+function RigaEsito({ k, v, tono }) {
+  return (
+    <div style={{display:'flex', gap:16, fontSize:16}}>
+      <span style={{flex:1, color:T.MUTED, fontWeight:600}}>{k}</span>
+      <span style={{fontWeight:700, color: tono || T.INK, ...NUM}}>{v}</span>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHELL DI PROVA — sala finta dietro + interruttore densità
+   ═══════════════════════════════════════════════════════════════ */
+function App() {
+  const [preset, setPreset] = useState('reale');
+  const [aperto, setAperto] = useState(true);
+  const [nonce, setNonce] = useState(0);   // riapertura = stato azzerato
+
+  return (
+    <div style={{
+      width:1440, height:900, maxWidth:'100vw', maxHeight:'100vh',
+      background:'#fff', borderRadius:18, overflow:'hidden', position:'relative',
+      boxShadow:'0 10px 50px rgba(0,0,0,0.14)', flexShrink:0,
+      transformOrigin:'center center',
+    }}>
+      <SalaFinta onApri={() => { setNonce(n => n+1); setAperto(true); }}/>
+
+      {aperto && (
+        <Fragment>
+          <div onClick={() => setAperto(false)} style={{
+            position:'absolute', inset:0, background:'rgba(20,22,26,0.5)', zIndex:40,
+            animation:'scFade 160ms ease-out both',
+          }}/>
+          {/* Wrapper di centratura: il pannello anima senza dover portare
+              anche il translate, che l'animazione sovrascriverebbe. */}
+          <div style={{
+            position:'absolute', inset:0, zIndex:41,
+            display:'grid', placeItems:'center', pointerEvents:'none',
+          }}>
+            <div style={{
+              width:1180, maxWidth:'94%', height:780, maxHeight:'92%',
+              borderRadius:T.R_L, overflow:'hidden', background:T.CANVAS, pointerEvents:'auto',
+              boxShadow:'0 40px 100px rgba(0,0,0,0.34)',
+              animation:'scPop 220ms cubic-bezier(.2,.9,.3,1.04) both',
+            }}>
+              <SaldaConto key={preset + '-' + nonce} preset={preset} onChiudi={() => setAperto(false)}/>
+            </div>
+          </div>
+        </Fragment>
+      )}
+
+      {/* Interruttore di sviluppo */}
+      <div style={{
+        position:'absolute', left:16, bottom:16, zIndex:60,
+        display:'flex', alignItems:'center', gap:8, padding:'8px 10px',
+        background:'rgba(20,22,26,0.9)', borderRadius:999,
+        boxShadow:'0 8px 26px rgba(0,0,0,0.3)',
+      }}>
+        <span style={{fontSize:12.5, fontWeight:800, color:'rgba(255,255,255,.55)', letterSpacing:0.6, textTransform:'uppercase', padding:'0 6px'}}>
+          Densità
+        </span>
+        {[['corto','4 righe'], ['reale','13 righe'], ['lungo','40 righe']].map(([k, l]) => (
+          <button key={k} onClick={() => setPreset(k)} style={{
+            height:34, padding:'0 14px', borderRadius:999, border:'none', cursor:'pointer',
+            background: preset === k ? '#fff' : 'transparent',
+            color: preset === k ? T.INK : 'rgba(255,255,255,.72)',
+            fontSize:13.5, fontWeight:700,
+          }}>{l}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SalaFinta({ onApri }) {
+  const tavoli = [
+    { n:1, s:'Occupato', c:4, t:'€84,00' }, { n:3, s:'Occupato', c:2, t:'€41,50' },
+    { n:7, s:'Da incassare', c:4, t:'€197,00', hot:true }, { n:9, s:'Occupato', c:6, t:'€152,00' },
+    { n:12, s:'Libero', c:2, t:'—' }, { n:14, s:'Prenotato', c:4, t:'—' },
+  ];
+  return (
+    <div style={{height:'100%', display:'flex', background:'#F4F3F0'}}>
+      <div style={{width:236, background:'#fff', borderRight:`1px solid ${T.LINE}`, padding:'22px 16px'}}>
+        <div style={{display:'flex', alignItems:'center', gap:9, marginBottom:28, padding:'0 6px'}}>
+          <div style={{width:32, height:32, borderRadius:10, background:T.BRAND, color:'#fff', display:'grid', placeItems:'center', fontSize:18, fontWeight:800}}>b</div>
+          <span style={{fontSize:19, fontWeight:800, letterSpacing:-0.4}}>byup <span style={{color:T.BRAND, fontSize:13, fontWeight:800}}>Fresh</span></span>
+        </div>
+        {['Panoramica','Sala','Vendita diretta','Prenotazioni','Cucina','Statistiche','Contabilità'].map(v => (
+          <div key={v} style={{
+            padding:'11px 12px', borderRadius:10, fontSize:15.5, fontWeight: v==='Sala'?700:600,
+            color: v==='Sala' ? T.BRAND : T.INK2, background: v==='Sala' ? T.BRAND_SOFT : 'transparent', marginBottom:2,
+          }}>{v}</div>
+        ))}
+      </div>
+      <div style={{flex:1, padding:'24px 28px'}}>
+        <div style={{fontSize:24, fontWeight:800, letterSpacing:-0.5, marginBottom:18}}>Sala principale</div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:14}}>
+          {tavoli.map(t => (
+            <div key={t.n} style={{
+              padding:'18px 20px', borderRadius:T.R_M, background:'#fff',
+              border: t.hot ? `1.5px solid ${T.BRAND}` : `1px solid ${T.LINE}`,
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:10}}>
+                <div style={{
+                  width:38, height:38, borderRadius:'50%', display:'grid', placeItems:'center',
+                  background: t.hot ? T.BRAND_SOFT : '#F1EFEC', color: t.hot ? T.BRAND : T.MUTED,
+                  fontSize:16, fontWeight:800,
+                }}>{t.n}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:15.5, fontWeight:700, color: t.hot ? T.BRAND : T.INK}}>{t.s}</div>
+                  <div style={{fontSize:13.5, color:T.MUTED, fontWeight:600}}>{t.c} coperti</div>
+                </div>
+                <div style={{fontSize:16.5, fontWeight:800, ...NUM}}>{t.t}</div>
+              </div>
+              {t.hot && (
+                <button onClick={onApri} style={{
+                  width:'100%', height:44, borderRadius:T.R_S, border:'none',
+                  background:T.BRAND, color:'#fff', fontSize:15.5, fontWeight:700, cursor:'pointer',
+                }}>Salda conto</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
