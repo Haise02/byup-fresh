@@ -65,32 +65,38 @@ function ConfigCompletaApp() {
       <div style={{padding: '24px 28px 0', flexShrink: 0}}>
 
           {/* ─── Header ─────────────────────────────────────────────── */}
-          <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 24, marginBottom: 22}}>
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
-                padding: '4px 12px', borderRadius: 999,
-                fontSize: 12.5, fontWeight: 600, marginBottom: 12, letterSpacing: 0.5,
-                textTransform: 'uppercase',
-              }}>
-                <span style={{width: 5, height: 5, borderRadius: 999, background: PN.PINK, display: 'inline-block'}}/>
-                Configurazione completa · Opzionale
+          <div style={{marginBottom: 22}}>
+            <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 24}}>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+                  padding: '4px 12px', borderRadius: 999,
+                  fontSize: 12.5, fontWeight: 600, marginBottom: 12, letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                }}>
+                  <span style={{width: 5, height: 5, borderRadius: 999, background: PN.PINK, display: 'inline-block'}}/>
+                  Configurazione completa · Opzionale
+                </div>
+                <h1 style={{
+                  fontWeight: 600, fontSize: 30, margin: 0,
+                  letterSpacing: '-0.02em', color: PN.TEXT,
+                }}>
+                  Completa la tua presenza su byup.
+                </h1>
               </div>
-              <h1 style={{
-                fontWeight: 600, fontSize: 30, margin: '0 0 8px',
-                letterSpacing: '-0.02em', color: PN.TEXT,
-              }}>
-                Completa la tua presenza su byup.
-              </h1>
-              <p style={{fontSize: 15, color: PN.MUTED, margin: 0, maxWidth: 560, lineHeight: 1.55}}>
-                Aggiungi le foto, descrivi l'atmosfera del locale e invita il tuo staff.
-                Puoi compilare adesso o tornare qui in un secondo momento dalle Impostazioni.
-              </p>
+              <ApBtn variant="neutral" onClick={goPanoramica} style={{flexShrink: 0}}>
+                Salta e continua dopo →
+              </ApBtn>
             </div>
-            <ApBtn variant="neutral" onClick={goPanoramica} style={{flexShrink: 0}}>
-              Salta e continua dopo →
-            </ApBtn>
+            {/* Sottotitolo su UNA riga: a tutta larghezza sotto la riga del
+                titolo, corpo compatto perché la frase intera ci stia. */}
+            <p style={{
+              fontSize: 13.5, color: PN.MUTED, margin: '8px 0 0', lineHeight: 1.5,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              Aggiungi le foto, descrivi l'atmosfera del locale e invita il tuo staff. Puoi compilare adesso o tornare qui in un secondo momento dalle Impostazioni.
+            </p>
           </div>
 
           {/* ─── Stepper card con progress line ─────────────────────── */}

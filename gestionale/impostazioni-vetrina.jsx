@@ -163,7 +163,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
               — la separazione dalle colonne dei campi è una zona, non una
               hairline che si perdeva. */}
           <div style={{
-            minWidth: 0, background: '#FAFBFC',
+            minWidth: 0, background: '#F0F2F5',
             border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
             padding: '14px 16px',
           }}>
