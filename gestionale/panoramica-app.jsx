@@ -2,22 +2,32 @@
 
 // Layout default — solo l'ORDINE dei widget: le misure sono fisse e vivono
 // nel catalogo (PN_WIDGET_CATALOG[].size), pensate per il dato che mostrano.
-// Tiling a 4 colonne senza buchi:
+// Tiling a 4 colonne:
 //   fold 1-2: prenotazioni 1×2 · tavoli-stato 2×2 · cucina-live 1×2
-//   riga 3:   financials 2×1 · riempimento 2×1
+//   riga 3:   andamento-coperti 2×1 · andamento-scontrino 2×1
 //   righe 4-5: azioni 4×2 (launcher)
 //   righe 6-7: top-piatti 1×2 · coperti-sett 2×2 · recensioni 1×2
+//   riga 8:   riempimento 2×1
 const DEFAULT_LAYOUT = [
   { id: 'prenotazioni-oggi' },
   { id: 'tavoli-stato' },
   { id: 'cucina-live' },
-  { id: 'financials' },
-  { id: 'riempimento' },
+  { id: 'andamento-coperti' },
+  { id: 'andamento-scontrino' },
   { id: 'azioni' },
   { id: 'top-piatti' },
   { id: 'coperti-sett' },
   { id: 'recensioni' },
+  { id: 'riempimento' },
 ];
+
+// Gli id storici dei layout salvati migrano sui widget nuovi.
+const PN_ID_MIGRATE = {
+  'financials': 'andamento-coperti',
+  'kpi-vendita': 'andamento-scontrino',
+  'scontrino-medio': 'andamento-scontrino',
+  'coperti-medi': 'andamento-coperti',
+};
 
 // Layout persistito: le modifiche salvate (Fine / "Salva ed esci") e i drag
 // fuori dall'edit mode sopravvivono al cambio pagina via localStorage.
@@ -29,7 +39,12 @@ function pnLoadLayout() {
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr) && arr.length && arr.every(w => w && w.id)) {
-        return arr.map(w => ({ id: w.id }));
+        let ids = arr.map(w => PN_ID_MIGRATE[w.id] || w.id);
+        ids = ids.filter((id, i) => ids.indexOf(id) === i);
+        if (ids.includes('andamento-coperti') && !ids.includes('andamento-scontrino')) {
+          ids.splice(ids.indexOf('andamento-coperti') + 1, 0, 'andamento-scontrino');
+        }
+        return ids.map(id => ({ id }));
       }
     }
   } catch (e) {}

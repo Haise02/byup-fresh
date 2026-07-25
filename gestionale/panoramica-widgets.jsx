@@ -248,139 +248,6 @@ function PnPeriodToggle({ period, setPeriod }) {
   );
 }
 
-// ─── Scontrino medio · Coperti medi — due widget singoli per KPI ───────────
-
-const KPI_VENDITA_DATA = {
-  oggi:      { scontrino: '€ 29,70', sDelta: '+€ 0,80', sTrend: [28.4, 29.1, 28.8, 30.2, 29.6, 30.5, 29.7],
-               coperti: '42', cDelta: '+5%', cLabel: 'Coperti oggi',            cTrend: [5, 8, 6, 9, 7, 8, 7] },
-  settimana: { scontrino: '€ 31,90', sDelta: '+€ 1,10', sTrend: [30.1, 31.2, 30.8, 32.0, 31.4, 32.6, 31.9],
-               coperti: '38', cDelta: '+9%', cLabel: 'Coperti medi al giorno',  cTrend: [34, 38, 32, 42, 38, 45, 35] },
-  mese:      { scontrino: '€ 32,40', sDelta: '+€ 1,20', sTrend: [30.5, 31.0, 31.8, 32.2, 31.6, 32.8, 32.4],
-               coperti: '25', cDelta: '+8%', cLabel: 'Coperti medi al giorno',  cTrend: [95, 108, 98, 118, 105, 128, 101] },
-};
-
-// Shell condiviso dei KPI singoli: nome del widget a sinistra, toggle
-// periodo a destra (auto-switch ogni 2s, pause-on-hover), corpo centrato.
-function KpiSingleShell({ title, render }) {
-  const [period, setPeriod] = React.useState('oggi');
-  const [paused, setPaused] = React.useState(false);
-  const periods = ['oggi', 'settimana', 'mese'];
-  React.useEffect(() => {
-    if (paused) return;
-    const t = setInterval(() => {
-      setPeriod(p => periods[(periods.indexOf(p) + 1) % periods.length]);
-    }, 2000);
-    return () => clearInterval(t);
-  }, [paused]);
-  const d = KPI_VENDITA_DATA[period];
-  return (
-    <div
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 12}}
-    >
-      <WidgetHead name={title} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
-      <div key={period} style={{
-        flex: 1, minHeight: 0, overflow: 'hidden',
-        display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12,
-        animation: 'kpi-fade-in 320ms ease-out',
-      }}>
-        {render(d, period)}
-      </div>
-      <style>{`
-        @keyframes kpi-fade-in {
-          from { opacity: 0; transform: translateY(4px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// Corpo del KPI singolo: valore grande con delta (e sottotitolo facoltativo
-// di contesto), grafico sotto — il nome del widget vive nell'header.
-function KpiSingleBody({ sub, value, delta, chart }) {
-  return (
-    <>
-      <div style={{minWidth: 0}}>
-        <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-          <div style={{fontSize: 44, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.9, lineHeight: 1, whiteSpace: 'nowrap'}}>{value}</div>
-          <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700, whiteSpace: 'nowrap'}}>{delta}</div>
-        </div>
-        {sub && (
-          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sub}</div>
-        )}
-      </div>
-      <div style={{height: 56, minHeight: 0, display: 'flex', alignItems: 'flex-end'}}>{chart}</div>
-    </>
-  );
-}
-
-function WidgetScontrinoMedio() {
-  return (
-    <KpiSingleShell title="Scontrino medio" render={(d) => (
-      <KpiSingleBody value={d.scontrino} delta={d.sDelta}
-        chart={<div style={{width: '100%', height: '100%'}}><WSparkline data={d.sTrend} color={PN.PINK}/></div>}/>
-    )}/>
-  );
-}
-
-function WidgetCopertiMedi() {
-  return (
-    <KpiSingleShell title="Coperti medi" render={(d) => (
-      <KpiSingleBody sub={d.cLabel} value={d.coperti} delta={d.cDelta}
-        chart={<KpiBars data={d.cTrend}/>}/>
-    )}/>
-  );
-}
-
-function KpiRow({ label, value, delta, trend, variant, narrow }) {
-  // narrow (w=1): il chart non entra a fianco dei numeri → flexWrap lo manda
-  // a capo (flexBasis 120px forza il wrap quando lo spazio residuo è poco)
-  // e l'altezza scende a 36px. minWidth:0 + ellipsis evitano sbordi.
-  return (
-    <div style={{display:'flex', alignItems:'center', gap: narrow ? 8 : 16, flexWrap: narrow ? 'wrap' : 'nowrap', minWidth: 0}}>
-      <div style={{flex:'0 1 auto', minWidth: 0}}>
-        <div style={{fontSize:13.5, color: PN.MUTED, fontWeight:600, marginBottom: 6, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
-        <div style={{display:'flex', alignItems:'baseline', gap: 10, minWidth: 0}}>
-          <div style={{fontSize: 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.8, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
-          <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700, whiteSpace:'nowrap'}}>{delta}</div>
-        </div>
-      </div>
-      <div style={{flex:'1 1 120px', minWidth: 0, height: narrow ? 36 : 48, display:'flex', alignItems:'flex-end', justifyContent:'flex-end', overflow:'hidden'}}>
-        {variant === 'line'
-          ? <div style={{width:'100%', maxWidth: 160, height:'100%'}}><WSparkline data={trend} color={PN.PINK}/></div>
-          : <KpiBars data={trend}/>
-        }
-      </div>
-    </div>
-  );
-}
-
-function KpiBars({ data }) {
-  const max = Math.max(...data);
-  const labels = ['L','M','M','G','V','S','D'];
-  return (
-    // height 100% (non più 44px fissi): il wrapper in KpiRow decide l'altezza
-    // (48px, 36px in narrow) — con 44 hardcoded le barre sbordavano dal box.
-    <div style={{display:'flex', alignItems:'flex-end', gap: 4, width:'100%', maxWidth: 160, height: '100%', minWidth: 0}}>
-      {data.map((v,i) => (
-        <div key={i} style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column', alignItems:'center', gap: 3, height:'100%'}}>
-          <div style={{flex:1, minHeight: 0, width:'100%', display:'flex', alignItems:'flex-end'}}>
-            <div style={{
-              width:'100%',
-              height: `${(v/max)*100}%`, minHeight: 4,
-              background: i === data.length-1 ? PN.PINK : PN.PINK_SOFT,
-              borderRadius: 2,
-            }}/>
-          </div>
-          <div style={{fontSize: 10.5, color: PN.MUTED, fontWeight: 600, flexShrink: 0}}>{labels[i]}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ─── Riempimento (% grande + grafico per fascia) ───────────────────────────
 
 function WidgetRiempimento({ size }) {
@@ -1238,19 +1105,34 @@ function KitchenLiveRow({ o, s }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// WidgetFinancials — UNIONE di Incassi + Scontrino medio + Coperti.
-// Auto-switch oggi → settimana → mese ogni 2.4s. Layout: incasso totale (top
-// con sparkline animata) + 2 mini-card laterali (scontrino + coperti).
-// Pause-on-hover comune. Pattern Apple "live activity": tutto scorre insieme.
+// WidgetAndamento — andamento di un singolo KPI (coperti o scontrino medio).
+// Auto-switch oggi → settimana → mese ogni 2.4s, pause-on-hover, sparkline
+// ambient sul fondo. Header standard: nome a sinistra, filtro a destra.
 // ─────────────────────────────────────────────────────────────────────────
 
-function WidgetFinancials({ size }) {
+const ANDAMENTO_DATA = {
+  coperti: {
+    oggi:      { total: '42',  trend: '+5%',  sub: 'vs media giornaliera',
+                 spark: [2, 5, 9, 14, 18, 12, 6, 3, 2, 6, 16, 26, 34, 30, 38, 28] },
+    settimana: { total: '264', trend: '+9%',  sub: 'vs settimana scorsa',
+                 spark: [26, 34, 22, 44, 38, 52, 64, 42, 36, 48, 40, 58] },
+    mese:      { total: '753', trend: '+8%',  sub: 'vs mese scorso',
+                 spark: [18, 24, 16, 32, 26, 38, 33, 46, 41, 54, 48, 62, 57, 68, 74, 66, 80, 72] },
+  },
+  scontrino: {
+    oggi:      { total: '€ 29,70', trend: '+€ 0,80', sub: 'vs media giornaliera',
+                 spark: [27.8, 28.6, 28.1, 29.4, 28.9, 30.1, 29.3, 30.6, 29.8, 30.9, 30.2, 31.1, 30.4, 29.9, 30.8, 29.7] },
+    settimana: { total: '€ 31,90', trend: '+€ 1,10', sub: 'vs settimana scorsa',
+                 spark: [29.8, 31.0, 30.2, 32.1, 31.2, 32.8, 31.6, 33.0, 32.2, 31.4, 32.5, 31.9] },
+    mese:      { total: '€ 32,40', trend: '+€ 1,20', sub: 'vs mese scorso',
+                 spark: [29.4, 30.2, 29.8, 31.0, 30.4, 31.6, 30.9, 32.0, 31.2, 32.4, 31.8, 32.8, 32.0, 33.1, 32.2, 33.4, 32.6, 32.4] },
+  },
+};
+
+function WidgetAndamento({ size, name, metric }) {
   const [period, setPeriod] = React.useState('oggi');
   const [paused, setPaused] = React.useState(false);
   const periods = ['oggi', 'settimana', 'mese'];
-  // A h=1 (default 2×1) lo stacked (toggle + totale + spark 56px + mini-card)
-  // vale ~230px contro i ~108 utili: le mini-card sparivano sotto il bordo.
-  // → compact: totale a sinistra, sparkline + mini-card a destra.
   const compact = ((size && size.h) || 1) === 1;
 
   React.useEffect(() => {
@@ -1261,29 +1143,9 @@ function WidgetFinancials({ size }) {
     return () => clearInterval(t);
   }, [paused]);
 
-  const data = {
-    oggi: {
-      total: '€ 1.247', trend: '+18%', sub: 'vs media giornaliera',
-      spark: [12, 28, 45, 78, 92, 64, 38, 22, 18, 35, 88, 142, 178, 165, 198, 152],
-      scontrino: '€ 29,70', sDelta: '+€ 0,80',
-      coperti: '42', cDelta: '+5%',
-    },
-    settimana: {
-      total: '€ 8.420', trend: '+12%', sub: 'vs settimana scorsa',
-      spark: [620, 740, 580, 1100, 880, 1340, 1820, 1247, 968, 1450, 1180, 1620],
-      scontrino: '€ 31,90', sDelta: '+€ 1,10',
-      coperti: '264', cDelta: '+9%',
-    },
-    mese: {
-      total: '€ 24.380', trend: '+11%', sub: 'vs mese scorso',
-      spark: [380, 480, 320, 690, 540, 840, 720, 1100, 980, 1340, 1180, 1620, 1480, 1820, 2100, 1820, 2280, 1980],
-      scontrino: '€ 32,40', sDelta: '+€ 1,20',
-      coperti: '753', cDelta: '+8%',
-    },
-  };
-  const d = data[period];
+  const d = ANDAMENTO_DATA[metric][period];
 
-  const finKeyframes = (
+  const keyframes = (
     <style>{`
       @keyframes fin-fade-in {
         from { opacity: 0; transform: translateY(4px); }
@@ -1293,131 +1155,71 @@ function WidgetFinancials({ size }) {
   );
 
   if (compact) {
-    // Layout "ambient": la sparkline è una FASCIA a tutta larghezza ancorata
-    // al fondo, dietro ai contenuti — niente più grafico mozzato che
-    // galleggia in alto a destra. Sopra: toggle a sinistra e contesto a
-    // destra; in basso: numero grande a sinistra, mini-card a destra.
+    // Sparkline ambient a tutta larghezza sul fondo, numero grande in basso.
     return (
       <div
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         style={{position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}
       >
-        {/* Sparkline backdrop — sempre montata (il morph vive qui). Bassa e
-            traslucida: fa da texture ambientale, non compete con numeri e
-            mini-card che le poggiano sopra. */}
         <div style={{
-          position: 'absolute', left: -10, right: -10, bottom: -10, height: '32%',
+          position: 'absolute', left: -10, right: -10, bottom: -10, height: '38%',
           pointerEvents: 'none', opacity: 0.5,
         }}>
           <WSparkline data={d.spark} color={PN.PINK} animated/>
         </div>
-
-        {/* Riga alta — convenzione widget: nome a sinistra, filtro a destra */}
         <div style={{position: 'relative', zIndex: 1}}>
-          <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
+          <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
         </div>
-
-        {/* Riga bassa: incasso grande + mini-card, sopra la sparkline */}
-        <div style={{
-          marginTop: 'auto', display: 'flex', alignItems: 'flex-end',
-          justifyContent: 'space-between', gap: 12,
-          position: 'relative', zIndex: 1, minWidth: 0,
+        <div key={period} style={{
+          marginTop: 'auto', position: 'relative', zIndex: 1, minWidth: 0,
+          animation: 'fin-fade-in 320ms ease-out',
         }}>
-          <div key={period + '-l'} style={{minWidth: 0, animation: 'fin-fade-in 320ms ease-out'}}>
-            <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-              <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>
-                {d.total}
-              </span>
-              <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
-            </div>
-            {/* Il confronto su riga propria: mai troncato dalle mini-card */}
-            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</div>
+          <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
+            <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
+            <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
           </div>
-          <div key={period + '-r'} style={{display: 'flex', gap: 10, flexShrink: 0, animation: 'fin-fade-in 320ms ease-out 60ms both'}}>
-            <FinMiniCard label="Scontrino" value={d.scontrino} delta={d.sDelta}/>
-            <FinMiniCard label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta}/>
-          </div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</div>
         </div>
-        {finKeyframes}
+        {keyframes}
       </div>
     );
   }
 
+  // Variante alta: numero in alto, sparkline piena sotto.
   return (
     <div
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 12}}
     >
-      <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
-
-      {/* Top: incassi + sparkline animata */}
-      <div key={period + '-top'} style={{
-        animation: 'fin-fade-in 320ms ease-out',
-        minWidth: 0,
-      }}>
+      <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
+      <div key={period} style={{animation: 'fin-fade-in 320ms ease-out', minWidth: 0}}>
         <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-          <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>
-            {d.total}
-          </span>
+          <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
           <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
           <span style={{fontSize: 13, color: PN.MUTED, marginLeft: 'auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</span>
         </div>
       </div>
-
-      {/* Sparkline FUORI dal blocco keyed: resta montata tra i cambi periodo
-          e il path fa il morphing invece di ridisegnarsi da zero. */}
-      <div style={{height: 56, overflow: 'hidden', borderRadius: 8, flexShrink: 0}}>
+      <div style={{flex: 1, minHeight: 36, overflow: 'hidden', borderRadius: 8}}>
         <WSparkline data={d.spark} color={PN.PINK} animated/>
       </div>
-
-      {/* Bottom: 2 mini-card scontrino + coperti */}
-      <div key={period + '-bot'} style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
-        animation: 'fin-fade-in 320ms ease-out 60ms both',
-        marginTop: 'auto',
-      }}>
-        <FinMiniCard label="Scontrino" value={d.scontrino} delta={d.sDelta}/>
-        <FinMiniCard label={`Coperti ${period}`} value={d.coperti} delta={d.cDelta}/>
-      </div>
-      {finKeyframes}
+      {keyframes}
     </div>
   );
 }
 
-function FinMiniCard({label, value, delta}) {
-  // minWidth:0 + overflow hidden: nella grid 1fr 1fr la card può scendere
-  // sotto la larghezza del contenuto — clip pulito invece di sbordo.
-  return (
-    <div style={{
-      padding: '10px 12px',
-      // Fondo pieno: la card può poggiare sulla sparkline backdrop del
-      // widget Incassi — la linea non deve trasparire attraverso.
-      background: '#FFFFFF',
-      border: `1px solid ${PN.BORDER_HAIR}`,
-      borderRadius: 10,
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 4px rgba(15,17,21,0.05)',
-      minWidth: 0, overflow: 'hidden',
-    }}>
-      <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-        {label}
-      </div>
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0}}>
-        <span style={{
-          fontSize: 19, fontWeight: 600, color: PN.TEXT, lineHeight: 1,
-          letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums',
-          whiteSpace: 'nowrap',
-        }}>{value}</span>
-        <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap'}}>{delta}</span>
-      </div>
-    </div>
-  );
+function WidgetAndamentoCoperti({ size }) {
+  return <WidgetAndamento size={size} name="Andamento coperti" metric="coperti"/>;
+}
+
+function WidgetAndamentoScontrino({ size }) {
+  return <WidgetAndamento size={size} name="Scontrino medio" metric="scontrino"/>;
 }
 
 window.PnWidgets = {
-  WidgetFinancials,
-  WidgetIncassi, WidgetScontrinoMedio, WidgetCopertiMedi, WidgetRiempimento,
+  WidgetAndamentoCoperti, WidgetAndamentoScontrino,
+  WidgetIncassi, WidgetRiempimento,
   WidgetPrenotazioniOggi, WidgetTavoliStato, WidgetTopPiatti,
   WidgetRecensioni, WidgetAzioni, WidgetCopertiSettimana,
   WidgetCucinaLive,
