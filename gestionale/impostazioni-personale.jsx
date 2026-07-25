@@ -417,20 +417,47 @@ function DevicesSection({ expanded, onToggle, onAddNew, onEditDevice, openMenu, 
   );
 }
 
+// Ruolo "Cucina": selezionabile negli inviti (persona che guarda le comande),
+// non è una sezione del Personale finché nessuno lo ricopre.
+const CUCINA_ROLE = {
+  id: 'cucina',
+  label: 'Cucina',
+  desc: 'Visualizza le comande in cucina',
+  color: '#475569', bg: '#F1F5F9',
+  icon: 'chef',
+  areas: ['cucina'],
+};
+
+// Etichette leggibili dei permessi mostrati nel riquadro del ruolo.
+const PERM_LABELS = {
+  panoramica: 'Panoramica', sala: 'Sala e prenotazioni', cucina: 'Comande in cucina',
+  app: 'App staff', statistiche: 'Statistiche', contabilita: 'Contabilità',
+  supporto: 'Supporto', impostazioni: 'Impostazioni',
+};
+const PERM_ICONS = {
+  panoramica: 'stats', sala: 'utensils', cucina: 'chef', app: 'phone',
+  statistiche: 'stats', contabilita: 'money', supporto: 'chat', impostazioni: 'settings',
+};
+
 function InviteModal({ onClose, prefill }) {
   const initialKind = prefill?.kind === 'device' ? 'device' : 'person';
   // Se prefill.roleId è quello di un ruolo selezionabile, usa quello; altrimenti default
   const prefillRoleSelectable = prefill?.roleId
-    && [...ROLES, ...CUSTOM_ROLES].some(r => r.id === prefill.roleId && !r.locked);
+    && [...ROLES, CUCINA_ROLE, ...CUSTOM_ROLES].some(r => r.id === prefill.roleId && !r.locked);
   const [kind, setKind] = React.useState(initialKind);
 
   // Persona
+  const [pname, setPname] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [roleId, setRoleId] = React.useState(prefillRoleSelectable ? prefill.roleId : 'cameriere');
   const [msg, setMsg] = React.useState('');
-  const allRolesForInvite = [...ROLES, ...CUSTOM_ROLES];
+  const allRolesForInvite = [...ROLES, CUCINA_ROLE, ...CUSTOM_ROLES];
   const role = allRolesForInvite.find(r => r.id === roleId) || ROLES[0];
   const personValid = /\S+@\S+\.\S+/.test(email);
+  // Riquadro permessi del ruolo selezionato
+  const perms = role.areas.filter(a => PERM_LABELS[a]).map(a => ({ icon: PERM_ICONS[a] || 'doc', label: PERM_LABELS[a] }));
+  if (role.id === 'cameriere') perms.splice(1, 0, { icon: 'utensils', label: 'Gestione tavoli e ordini' });
+  const noSettings = !role.areas.includes('impostazioni');
 
   // Dispositivo
   const [deviceTypeId, setDeviceTypeId] = React.useState('kitchen-monitor');
@@ -479,14 +506,16 @@ function InviteModal({ onClose, prefill }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG, borderRadius: 20,
-        width: 480, maxWidth:'100%', position:'relative',
+        width: kind === 'person' ? 620 : 480, maxWidth:'100%', position:'relative',
         maxHeight: '90vh', display:'flex', flexDirection:'column',
       }}>
         <div style={{padding: '20px 24px', borderBottom: `1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>Aggiungi un membro / dispositivo</div>
+          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>
+            {kind === 'person' ? 'Invita una persona' : 'Aggiungi un membro / dispositivo'}
+          </div>
           <div style={{fontSize: 14.5, color: PN.MUTED}}>
             {kind === 'person'
-              ? 'Invia un invito email per attivare l\'accesso al gestionale'
+              ? 'Invia un accesso al gestionale o all\'app staff.'
               : 'Crea username e password per il dispositivo. Non serve un\'email'}
           </div>
           <button onClick={onClose} style={{
@@ -536,75 +565,122 @@ function InviteModal({ onClose, prefill }) {
 
           {kind === 'person' && (
             <>
-              <ImpField label="Email">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="nome@delborgo.it"
-                  style={{
-                    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                    borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                    background:'rgba(255,255,255,0.8)',
-                  }}
-                />
-              </ImpField>
+              {/* Due colonne: campi a sinistra, riquadro del ruolo a destra */}
+              <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) 210px', gap: 16, alignItems:'start'}}>
+                <div style={{minWidth: 0}}>
+                  <ImpField label="Nome e cognome">
+                    <input
+                      type="text"
+                      value={pname}
+                      onChange={e => setPname(e.target.value)}
+                      placeholder="Es. Mario Rossi"
+                      style={{
+                        width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
+                        borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
+                        background:'rgba(255,255,255,0.8)',
+                      }}
+                    />
+                  </ImpField>
+                  <ImpField label="Email">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="es. mario.rossi@email.it"
+                      style={{
+                        width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
+                        borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
+                        background:'rgba(255,255,255,0.8)',
+                      }}
+                    />
+                  </ImpField>
+                  <ImpField label="Ruolo">
+                    <div style={{position:'relative'}}>
+                      <select
+                        value={roleId}
+                        onChange={e => setRoleId(e.target.value)}
+                        style={{
+                          width:'100%', padding:'10px 34px 10px 12px',
+                          border:`1px solid ${PN.BORDER}`, borderRadius: 9,
+                          fontSize: 15.5, fontFamily:'inherit', outline:'none',
+                          background:'rgba(255,255,255,0.8)', color: PN.TEXT,
+                          appearance:'none', WebkitAppearance:'none', cursor:'pointer',
+                        }}>
+                        {allRolesForInvite.filter(r => !r.locked).map(r => (
+                          <option key={r.id} value={r.id}>{r.label}</option>
+                        ))}
+                      </select>
+                      <span style={{position:'absolute', right: 12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color: PN.MUTED, display:'inline-flex'}}>
+                        <PnI.ChevronDown size={12}/>
+                      </span>
+                    </div>
+                  </ImpField>
+                  <ImpField label="Messaggio opzionale">
+                    <div style={{position:'relative'}}>
+                      <textarea
+                        value={msg}
+                        maxLength={200}
+                        onChange={e => setMsg(e.target.value)}
+                        placeholder="Scrivi un messaggio per il tuo nuovo collaboratore…"
+                        rows={3}
+                        style={{
+                          width:'100%', padding:'10px 12px 24px', border:`1px solid ${PN.BORDER}`,
+                          borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', resize:'vertical',
+                          background:'rgba(255,255,255,0.8)',
+                        }}
+                      />
+                      <span style={{position:'absolute', right: 10, bottom: 10, fontSize: 12, color: PN.MUTED}}>
+                        {msg.length}/200
+                      </span>
+                    </div>
+                  </ImpField>
+                </div>
 
-              <div style={{fontSize: 14.5, fontWeight: 700, marginBottom: 8, marginTop: 4}}>
-                Ruolo
-              </div>
-              <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 10}}>
-                Determina cosa potrà vedere e fare nel gestionale
-              </div>
-              <div style={{display:'flex', flexDirection:'column', gap: 6, marginBottom: 16}}>
-                {allRolesForInvite.filter(r => !r.locked).map(r => {
-                  const on = roleId === r.id;
-                  return (
-                    <label key={r.id} style={{
-                      display:'flex', alignItems:'center', gap: 12,
-                      padding: '10px 14px',
-                      border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
-                      background: on ? PN.PINK_SOFT : PN.WHITE,
-                      borderRadius: 10, cursor:'pointer', transition:'all 0.15s',
-                    }}>
-                      <input type="radio" name="role" checked={on} onChange={() => setRoleId(r.id)} style={{accentColor: PN.PINK}}/>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8,
-                        background: r.bg, color: r.color,
-                        display:'grid', placeItems:'center'
-                      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 16, color: 'currentColor'})}</div>
-                      <div style={{flex: 1}}>
-                        <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{r.label}</div>
-                        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 1, marginBottom: 6}}>{r.desc}</div>
-                        <div style={{display:'flex', flexWrap:'wrap', gap: 4}}>
-                          {ALL_AREAS.filter(a => r.areas.includes(a.id)).map(a => (
-                            <span key={a.id} style={{
-                              fontSize: 12, fontWeight: 600,
-                              padding:'1px 7px', borderRadius: 999,
-                              background: on ? 'rgba(255,255,255,0.6)' : '#F4F5F7',
-                              color: on ? PN.PINK_DARK : '#6B7280',
-                            }}>{a.label}</span>
-                          ))}
-                        </div>
+                {/* Riquadro ruolo: cosa potrà fare chi accetta l'invito */}
+                <div style={{
+                  background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`,
+                  borderRadius: 12, padding: '14px 14px 12px',
+                }}>
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 2}}>Ruolo selezionato:</div>
+                  <div style={{fontSize: 15.5, fontWeight: 700, color: PN.PINK_DARK, marginBottom: 12}}>{role.label}</div>
+                  <div style={{display:'flex', flexDirection:'column', gap: 10}}>
+                    {perms.map((p, i) => (
+                      <div key={i} style={{display:'flex', alignItems:'center', gap: 9}}>
+                        <span style={{
+                          width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                          background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
+                          display:'grid', placeItems:'center', color:'#475569',
+                        }}>{(BuIcons[p.icon]||BuIcons.doc)({size: 13, color:'currentColor'})}</span>
+                        <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, lineHeight: 1.35}}>{p.label}</span>
                       </div>
-                    </label>
-                  );
-                })}
+                    ))}
+                    {noSettings && (
+                      <div style={{display:'flex', alignItems:'center', gap: 9}}>
+                        <span style={{
+                          width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                          background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
+                          display:'grid', placeItems:'center', color:'#475569',
+                        }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                          </svg>
+                        </span>
+                        <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, lineHeight: 1.35}}>Nessun accesso alle impostazioni</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <ImpField label="Messaggio (opzionale)">
-                <textarea
-                  value={msg}
-                  onChange={e => setMsg(e.target.value)}
-                  placeholder="Ciao! Ti invito ad entrare nel gestionale del nostro ristorante…"
-                  rows={3}
-                  style={{
-                    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                    borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', resize:'vertical',
-                    background:'rgba(255,255,255,0.8)',
-                  }}
-                />
-              </ImpField>
+              <div style={{
+                marginTop: 2, padding:'10px 12px',
+                background:'#F4F5F7', borderRadius: 9,
+                fontSize: 13, color: PN.MUTED,
+                display:'flex', alignItems:'center', gap: 8,
+              }}>
+                {(BuIcons.info||BuIcons.doc)({size: 14, color:'currentColor'})}
+                L'invitato riceverà un'email con il link per attivare l'accesso.
+              </div>
             </>
           )}
 
@@ -1343,4 +1419,313 @@ function CreateRoleModal({ onClose, role }) {
   );
 }
 
+// ─── Step "Personale" della Configurazione completa ─────────────────────────
+// Layout onboarding: card-ruolo selezionabili, invito rapido in riga, elenco
+// unificato "Inviti e accessi". Dispositivi, ruoli custom e invito completo
+// con messaggio restano raggiungibili da qui (stesse modali del Personale).
+
+const STEP_ROLES = [
+  { id: 'manager',   label: 'Manager',   desc: 'Controlla sala, prenotazioni e panoramica',  icon: 'crown' },
+  { id: 'cameriere', label: 'Cameriere', desc: 'Usa l\'app staff per tavoli, ordini e conto', icon: 'user' },
+  { id: 'cucina',    label: 'Cucina',    desc: 'Visualizza le comande in cucina',            icon: 'chef' },
+];
+
+window.PERSONALE_TEAM_INITIAL = [
+  { id: 't1', kind: 'person', name: 'Marco Rossi',    email: 'marco@delborgo.it',  role: 'Manager',            status: 'active' },
+  { id: 't2', kind: 'person', name: 'Giulia Bianchi', email: 'giulia@delborgo.it', role: 'Cameriere',          status: 'invited' },
+  { id: 't3', kind: 'person', name: 'Luca Verdi',     email: 'luca@delborgo.it',   role: 'Cameriere',          status: 'active' },
+  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'PG1-cucina',         role: 'Dispositivo cucina', status: 'active' },
+];
+
+function PersonaleStep({ team, setTeam }) {
+  const [selRole, setSelRole] = React.useState('manager');
+  const [invName, setInvName] = React.useState('');
+  const [invEmail, setInvEmail] = React.useState('');
+  const [openMenu, setOpenMenu] = React.useState(null);
+  const [invite, setInvite] = React.useState(null);          // modale completa (persona/dispositivo)
+  const [showCreateRole, setShowCreateRole] = React.useState(false);
+  const [confirm, setConfirm] = React.useState(null);        // { title, body, cta, onConfirm }
+  const emailValid = /\S+@\S+\.\S+/.test(invEmail);
+
+  React.useEffect(() => {
+    if (openMenu === null) return;
+    const close = () => setOpenMenu(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [openMenu]);
+
+  const roleLabel = (STEP_ROLES.find(r => r.id === selRole) || STEP_ROLES[0]).label;
+  const addInvite = () => {
+    if (!emailValid) return;
+    const name = invName.trim() || invEmail.split('@')[0];
+    setTeam(t => [...t, { id: `t${Date.now()}`, kind: 'person', name, email: invEmail.trim(), role: roleLabel, status: 'invited' }]);
+    setInvName(''); setInvEmail('');
+  };
+  const setStatus = (id, status) => setTeam(t => t.map(m => m.id === id ? { ...m, status } : m));
+  const removeMember = (id) => setTeam(t => t.filter(m => m.id !== id));
+
+  return (
+    <div>
+      {/* Card-ruolo: selezionano il ruolo dell'invito rapido qui sotto */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 12}}>
+        {STEP_ROLES.map(r => (
+          <StepRoleCard key={r.id} r={r} on={selRole === r.id} onClick={() => setSelRole(r.id)}/>
+        ))}
+      </div>
+
+      {/* Invito rapido in riga */}
+      <div style={{marginTop: 20}}>
+        <div style={{fontSize: 14.5, fontWeight: 700, marginBottom: 10}}>Invita il team</div>
+        <div style={{display:'flex', gap: 10, alignItems:'stretch'}}>
+          <input value={invName} onChange={e => setInvName(e.target.value)} placeholder="Nome e cognome"
+            style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
+          <input value={invEmail} onChange={e => setInvEmail(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addInvite(); }} placeholder="Email" type="email"
+            style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
+          <div style={{position:'relative', width: 150, flexShrink: 0}}>
+            <select value={selRole} onChange={e => setSelRole(e.target.value)}
+              style={{
+                width:'100%', height:'100%', padding:'10px 30px 10px 12px',
+                border:`1px solid ${PN.BORDER}`, borderRadius: 9,
+                fontSize: 14.5, fontWeight: 600, fontFamily:'inherit', outline:'none',
+                background: PN.WHITE, color: PN.TEXT,
+                appearance:'none', WebkitAppearance:'none', cursor:'pointer',
+              }}>
+              {STEP_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+            </select>
+            <span style={{position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color: PN.MUTED, display:'inline-flex'}}>
+              <PnI.ChevronDown size={11}/>
+            </span>
+          </div>
+          <AddInviteBtn disabled={!emailValid} onClick={addInvite}/>
+        </div>
+        <button onClick={() => setInvite({ roleId: selRole, kind: 'person' })} style={{
+          marginTop: 8, padding: 0, background:'transparent', border:'none',
+          fontSize: 13, fontWeight: 600, color: PN.MUTED, cursor:'pointer', fontFamily:'inherit',
+          textDecoration:'underline', textUnderlineOffset: 3,
+        }}
+          onMouseEnter={e => { e.currentTarget.style.color = PN.PINK_DARK; }}
+          onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}>
+          Vuoi allegare un messaggio personale? Usa l'invito completo
+        </button>
+      </div>
+
+      {/* Elenco unificato: persone e dispositivi, con stato e azioni */}
+      <div style={{marginTop: 22}}>
+        <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 10}}>
+          <div style={{fontSize: 14.5, fontWeight: 700, flex: 1}}>Inviti e accessi</div>
+          <ImpButton variant="ghost" icon={<PnI.Plus size={12}/>} style={{padding:'6px 12px', fontSize: 13.5}}
+            onClick={() => setShowCreateRole(true)}>Crea ruolo</ImpButton>
+          <ImpButton variant="ghost" icon={(BuIcons.monitor||BuIcons.phone)({size: 13, color:'currentColor'})} style={{padding:'6px 12px', fontSize: 13.5}}
+            onClick={() => setInvite({ roleId: null, kind: 'device' })}>Aggiungi dispositivo</ImpButton>
+        </div>
+        <div style={{border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, background: PN.WHITE}}>
+          {team.map((m, i) => (
+            <TeamRow key={m.id} m={m} last={i === team.length - 1}
+              openMenu={openMenu} setOpenMenu={setOpenMenu}
+              onAction={(action) => {
+                setOpenMenu(null);
+                if (action === 'suspend') setStatus(m.id, 'suspended');
+                if (action === 'reactivate') setStatus(m.id, 'active');
+                if (action === 'revoke') setConfirm({
+                  title: 'Revocare l\'invito?',
+                  body: <>L'invito a <b style={{color: PN.TEXT}}>{m.email}</b> non sarà più valido.</>,
+                  cta: 'Revoca invito', onConfirm: () => removeMember(m.id),
+                });
+                if (action === 'remove') setConfirm({
+                  title: 'Rimuovere dal team?',
+                  body: <><b style={{color: PN.TEXT}}>{m.name}</b> perderà subito l'accesso al gestionale.</>,
+                  cta: 'Rimuovi', onConfirm: () => removeMember(m.id),
+                });
+                if (action === 'unlink') setConfirm({
+                  title: 'Scollegare il dispositivo?',
+                  body: <><b style={{color: PN.TEXT}}>{m.name}</b> perderà immediatamente l'accesso.</>,
+                  cta: 'Scollega', onConfirm: () => removeMember(m.id),
+                });
+                if (action === 'edit-device') setInvite({ kind: 'device', editDevice: { name: m.name, username: m.email, deviceType: 'kitchen-monitor' } });
+              }}/>
+          ))}
+        </div>
+        <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 12, fontSize: 13, color: PN.MUTED}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+          Permessi e accessi possono essere modificati in qualsiasi momento.
+        </div>
+      </div>
+
+      {invite && <InviteModal prefill={invite} onClose={() => setInvite(null)}/>}
+      {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
+      {confirm && (
+        <StepConfirmModal {...confirm}
+          onClose={() => setConfirm(null)}
+          onConfirm={() => { confirm.onConfirm(); setConfirm(null); }}/>
+      )}
+    </div>
+  );
+}
+
+// Card-ruolo con radio in alto a destra: feedback in hover, brand da selezionata.
+function StepRoleCard({ r, on, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
+        padding:'16px 16px 14px', borderRadius: 12,
+        border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
+        background: on ? '#FFF7F7' : PN.WHITE,
+        boxShadow: hover && !on ? '0 6px 16px rgba(15, 17, 21, 0.06)' : 'none',
+        transform: hover && !on ? 'translateY(-1px)' : 'none',
+        transition:'border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease',
+      }}>
+      {/* Radio */}
+      <span style={{
+        position:'absolute', top: 12, right: 12,
+        width: 16, height: 16, borderRadius:'50%',
+        border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+        display:'grid', placeItems:'center',
+        transition:'border-color 150ms ease',
+      }}>
+        {on && <span style={{width: 8, height: 8, borderRadius:'50%', background: PN.PINK}}/>}
+      </span>
+      <span style={{
+        width: 40, height: 40, borderRadius:'50%', display:'grid', placeItems:'center',
+        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
+        marginBottom: 10, transition:'background 150ms ease, color 150ms ease',
+      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 18, color:'currentColor'})}</span>
+      <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{r.label}</div>
+      <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>{r.desc}</div>
+    </button>
+  );
+}
+
+// "+ Aggiungi invito": chip corallo tenue con feedback hover/pressione.
+function AddInviteBtn({ disabled, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button onClick={onClick} disabled={disabled}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)} onMouseUp={() => setPressed(false)}
+      style={{
+        flexShrink: 0, padding:'10px 16px', borderRadius: 9,
+        border:`1.5px solid ${hover && !disabled ? PN.PINK : '#FFD5D6'}`,
+        background: PN.PINK_SOFT, color: PN.PINK_DARK,
+        fontSize: 14, fontWeight: 700, fontFamily:'inherit',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+        transform: pressed && !disabled ? 'scale(0.96)' : 'none',
+        transition:'border-color 150ms ease, transform 130ms ease, opacity 150ms ease',
+        display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
+      }}>
+      <PnI.Plus size={12}/> Aggiungi invito
+    </button>
+  );
+}
+
+// Riga dell'elenco unificato: avatar/iniziali, ruolo, stato, azioni.
+function TeamRow({ m, last, openMenu, setOpenMenu, onAction }) {
+  const isOpen = openMenu === m.id;
+  const initials = m.name.split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
+  const pill = m.status === 'active'
+    ? { label: 'Attivo', bg: PN.GREEN_SOFT, color: '#15803D' }
+    : m.status === 'invited'
+      ? { label: 'Invito inviato', bg: PN.AMBER_SOFT, color: '#92400E' }
+      : { label: 'Sospeso', bg: '#F4F5F7', color: '#6B7280' };
+  return (
+    <div style={{
+      display:'grid', gridTemplateColumns:'auto minmax(0, 1.1fr) minmax(0, 1fr) auto auto',
+      gap: 12, alignItems:'center',
+      padding:'11px 14px', position:'relative',
+      borderBottom: last ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+    }}>
+      <span style={{
+        width: 34, height: 34, borderRadius:'50%', flexShrink: 0,
+        background:'#F1F3F5', color:'#475569',
+        display:'grid', placeItems:'center',
+        fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3,
+      }}>
+        {m.kind === 'device' ? (BuIcons.monitor||BuIcons.phone)({size: 15, color:'currentColor'}) : initials}
+      </span>
+      <span title={m.email} style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{m.name}</span>
+      <span style={{fontSize: 14, color: PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{m.role}</span>
+      <span style={{
+        fontSize: 12.5, fontWeight: 700, padding:'3px 10px', borderRadius: 999,
+        background: pill.bg, color: pill.color, whiteSpace:'nowrap',
+      }}>{pill.label}</span>
+      <button onClick={e => { e.stopPropagation(); setOpenMenu(isOpen ? null : m.id); }}
+        aria-label="Altre azioni"
+        style={{
+          width: 30, height: 30, borderRadius: 8,
+          background: isOpen ? '#F4F5F7' : 'transparent',
+          border:'none', cursor:'pointer', color: PN.MUTED,
+          display:'grid', placeItems:'center', fontSize: 17, lineHeight: 1,
+        }}>⋮</button>
+      {isOpen && (
+        <div onClick={e => e.stopPropagation()} style={{
+          position:'absolute', top:'calc(100% - 6px)', right: 12,
+          minWidth: 190, background: PN.WHITE,
+          border:`1px solid ${PN.BORDER}`, borderRadius: 10,
+          boxShadow:'0 8px 24px rgba(0,0,0,0.12)',
+          padding: 6, zIndex: 50,
+        }}>
+          {m.kind === 'device' ? (
+            <>
+              <MenuItem icon={BuIcons.edit({size: 14, color:'currentColor'})} onClick={() => onAction('edit-device')}>Modifica</MenuItem>
+              <MenuItem icon={<PnI.Key size={14}/>} onClick={() => onAction('noop')}>Genera nuova password</MenuItem>
+              {m.status === 'suspended'
+                ? <MenuItem icon={BuIcons.play({size: 14, color:'currentColor'})} onClick={() => onAction('reactivate')}>Riattiva accesso</MenuItem>
+                : <MenuItem icon={BuIcons.pause({size: 14, color:'currentColor'})} onClick={() => onAction('suspend')}>Sospendi accesso</MenuItem>}
+              <div style={{height: 1, background: PN.BORDER_SOFT, margin:'4px 0'}}/>
+              <MenuItem icon={BuIcons.trash({size: 14, color:'currentColor'})} danger onClick={() => onAction('unlink')}>Scollega dispositivo</MenuItem>
+            </>
+          ) : m.status === 'invited' ? (
+            <>
+              <MenuItem icon={(BuIcons.send||BuIcons.mail)({size: 14, color:'currentColor'})} onClick={() => onAction('noop')}>Invita di nuovo</MenuItem>
+              <div style={{height: 1, background: PN.BORDER_SOFT, margin:'4px 0'}}/>
+              <MenuItem icon={BuIcons.trash({size: 14, color:'currentColor'})} danger onClick={() => onAction('revoke')}>Revoca invito</MenuItem>
+            </>
+          ) : (
+            <>
+              <MenuItem icon={BuIcons.user({size: 14, color:'currentColor'})} onClick={() => onAction('noop')}>Modifica ruolo</MenuItem>
+              <MenuItem icon={<PnI.Key size={14}/>} onClick={() => onAction('noop')}>Resetta password</MenuItem>
+              {m.status === 'suspended'
+                ? <MenuItem icon={BuIcons.play({size: 14, color:'currentColor'})} onClick={() => onAction('reactivate')}>Riattiva accesso</MenuItem>
+                : <MenuItem icon={BuIcons.pause({size: 14, color:'currentColor'})} onClick={() => onAction('suspend')}>Sospendi accesso</MenuItem>}
+              <div style={{height: 1, background: PN.BORDER_SOFT, margin:'4px 0'}}/>
+              <MenuItem icon={BuIcons.trash({size: 14, color:'currentColor'})} danger onClick={() => onAction('remove')}>Rimuovi dal team</MenuItem>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Conferma leggera per azioni distruttive dello step (revoca/rimozione/scollega).
+function StepConfirmModal({ title, body, cta, onClose, onConfirm }) {
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 200, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG, borderRadius: 20,
+        width: 380, maxWidth:'90%', padding: 24,
+      }}>
+        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>{title}</div>
+        <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.55, marginBottom: 20}}>{body}</div>
+        <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+          <ImpButton variant="danger" onClick={onConfirm}>{cta}</ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 window.ImpPersonale = ImpPersonale;
+window.PersonaleStep = PersonaleStep;

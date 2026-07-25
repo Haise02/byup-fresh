@@ -397,6 +397,32 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
   const addTurn = (d) => setDraft(dr => dr[d].length >= 3 ? dr : ({...dr, [d]: [...dr[d], ['19:00', '23:00']]}));
   const removeTurn = (d, i) => setDraft(dr => ({...dr, [d]: dr[d].filter((_, k) => k !== i)}));
 
+  // Date speciali di chiusura: singole date o periodi (dal–al).
+  const [specials, setSpecials] = React.useState([
+    { id: 's1', from: '2026-12-25', to: '2026-12-30' },
+  ]);
+  const [addingDate, setAddingDate] = React.useState(false);
+  const [newFrom, setNewFrom] = React.useState('');
+  const [newTo, setNewTo] = React.useState('');
+  const fmtDay = (iso) => {
+    const d = new Date(`${iso}T00:00`);
+    return isNaN(d) ? iso : d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).replace('.', '');
+  };
+  const fmtSpecial = (s) => {
+    if (!s.to || s.to === s.from) return fmtDay(s.from);
+    const sameMonth = s.from.slice(0, 7) === s.to.slice(0, 7);
+    return sameMonth
+      ? `${new Date(`${s.from}T00:00`).getDate()}–${fmtDay(s.to)}`
+      : `${fmtDay(s.from)} – ${fmtDay(s.to)}`;
+  };
+  const addSpecial = () => {
+    if (!newFrom) return;
+    const to = newTo && newTo > newFrom ? newTo : null;
+    setSpecials(sp => [...sp, { id: `s${Date.now()}`, from: newFrom, to }]);
+    setNewFrom(''); setNewTo(''); setAddingDate(false);
+  };
+  const removeSpecial = (id) => setSpecials(sp => sp.filter(s => s.id !== id));
+
   return (
     <div onClick={onClose} style={{
       position: 'absolute', inset: 0, zIndex: 80,
@@ -462,26 +488,57 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
           ))}
         </div>
 
-        {/* Date speciali: chiusure e orari straordinari vivono qui, insieme
-            al resto della personalizzazione */}
+        {/* Date speciali: chiusure singole o per periodo, aggiunte da qui */}
         <div style={{marginBottom: 14, paddingTop: 12, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize: 14, fontWeight: 700, marginBottom: 8}}>Date speciali</div>
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8}}>
-            <div style={{
-              padding: '9px 12px', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
-              fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <span><b>25–30 Dic</b> · Chiuso</span>
-              <button style={{background: 'transparent', border: 'none', color: PN.MUTED, cursor: 'pointer'}}>
-                <PnI.X size={13}/>
-              </button>
-            </div>
-            <button style={{
-              padding: '9px 12px', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 9,
-              background: 'transparent', color: PN.MUTED, fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>+ Aggiungi data</button>
+          <div style={{fontSize: 14, fontWeight: 700, marginBottom: 3}}>Date speciali</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 8}}>
+            Giorni o periodi di chiusura straordinaria: sulla vetrina il locale risulterà chiuso.
           </div>
+          <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'stretch'}}>
+            {specials.map(s => (
+              <div key={s.id} style={{
+                padding: '7px 8px 7px 12px', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
+                fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, background: PN.WHITE,
+              }}>
+                <span><b>{fmtSpecial(s)}</b> · Chiuso</span>
+                <SpecialDateX title="Elimina data speciale" onClick={() => removeSpecial(s.id)}/>
+              </div>
+            ))}
+            {!addingDate && (
+              <button onClick={() => setAddingDate(true)} style={{
+                padding: '8px 14px', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 9,
+                background: 'transparent', color: PN.MUTED, fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = PN.PINK; e.currentTarget.style.color = PN.PINK_DARK; e.currentTarget.style.background = PN.PINK_SOFT; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.background = 'transparent'; }}
+              >+ Aggiungi data</button>
+            )}
+          </div>
+          {addingDate && (
+            <div style={{
+              marginTop: 8, padding: '10px 12px',
+              border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 9, background: '#FAFBFC',
+              display: 'flex', alignItems: 'flex-end', gap: 10, flexWrap: 'wrap',
+            }}>
+              <div>
+                <div style={{fontSize: 12, fontWeight: 600, color: PN.MUTED, marginBottom: 4}}>Dal</div>
+                <ImpInput type="date" value={newFrom} onChange={e => setNewFrom(e.target.value)}
+                  style={{width: 148, padding: '7px 10px', fontSize: 14}}/>
+              </div>
+              <div>
+                <div style={{fontSize: 12, fontWeight: 600, color: PN.MUTED, marginBottom: 4}}>Al · facoltativo</div>
+                <ImpInput type="date" value={newTo} min={newFrom || undefined} onChange={e => setNewTo(e.target.value)}
+                  style={{width: 148, padding: '7px 10px', fontSize: 14}}/>
+              </div>
+              <span style={{flex: 1}}/>
+              <ImpButton variant="ghost" style={{padding: '7px 12px', fontSize: 13.5}}
+                onClick={() => { setAddingDate(false); setNewFrom(''); setNewTo(''); }}>Annulla</ImpButton>
+              <ImpButton variant="primary" disabled={!newFrom} style={{padding: '7px 14px', fontSize: 13.5}}
+                onClick={addSpecial}>Aggiungi</ImpButton>
+            </div>
+          )}
         </div>
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
@@ -494,6 +551,30 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
         `}</style>
       </div>
     </div>
+  );
+}
+
+// La × delle date speciali: si accende di rosso in hover, si comprime al
+// click e rimuove la chiusura.
+function SpecialDateX({ onClick, title }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button onClick={onClick} title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        width: 22, height: 22, borderRadius: 6, border: 'none', flexShrink: 0,
+        background: hover ? PN.RED_SOFT : 'transparent',
+        color: hover ? PN.RED : PN.MUTED,
+        cursor: 'pointer', display: 'grid', placeItems: 'center',
+        transform: pressed ? 'scale(0.82)' : hover ? 'scale(1.1)' : 'scale(1)',
+        transition: 'background 130ms ease, color 130ms ease, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+      <PnI.X size={11}/>
+    </button>
   );
 }
 

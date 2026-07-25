@@ -25,6 +25,10 @@ function ConfigCompletaApp() {
   const [categoria, setCategoria] = React.useState('Ristorante');
   const markDirty = () => setDirty(true);
 
+  // Team dello step Personale: vive qui perché lo leggono sia il form a
+  // sinistra sia la rail destra (panoramica team + checklist).
+  const [team, setTeam] = React.useState(() => window.PERSONALE_TEAM_INITIAL || []);
+
 
   // Checklist di completamento (vive nella colonna anteprima, come nella
   // reference; prima era un banner sopra i form).
@@ -87,7 +91,7 @@ function ConfigCompletaApp() {
                 </h1>
               </div>
               <ApBtn variant="neutral" onClick={goPanoramica} style={{flexShrink: 0}}>
-                Salta e continua dopo →
+                {step === 'personale' ? 'Salta e vai alla Panoramica →' : 'Salta e continua dopo →'}
               </ApBtn>
             </div>
             {/* Sottotitolo su UNA riga: a tutta larghezza sotto la riga del
@@ -96,7 +100,9 @@ function ConfigCompletaApp() {
               fontSize: 13.5, color: PN.MUTED, margin: '8px 0 0', lineHeight: 1.5,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
-              Aggiungi le foto, descrivi l'atmosfera del locale e invita il tuo staff. Puoi compilare adesso o tornare qui in un secondo momento dalle Impostazioni.
+              {step === 'personale'
+                ? 'Invita il tuo team ora o in un secondo momento dalle Impostazioni.'
+                : 'Aggiungi le foto, descrivi l\'atmosfera del locale e invita il tuo staff. Puoi compilare adesso o tornare qui in un secondo momento dalle Impostazioni.'}
             </p>
           </div>
 
@@ -225,14 +231,20 @@ function ConfigCompletaApp() {
               </section>
           )}
 
-          {/* ─── Step 3 · Personale: card a tutta larghezza ──────────── */}
+          {/* ─── Step 3 · Personale: ruoli, invito rapido, inviti e accessi */}
           {step === 'personale' && (
             <section style={{
               background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
               borderRadius: 14, padding: '20px 22px',
               boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
             }}>
-              <ImpPersonale/>
+              <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em'}}>
+                Personale
+              </div>
+              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, marginBottom: 16}}>
+                Invita solo chi serve davvero per partire. Potrai modificare ruoli e permessi in seguito.
+              </div>
+              <PersonaleStep team={team} setTeam={setTeam}/>
             </section>
           )}
 
@@ -302,6 +314,22 @@ function ConfigCompletaApp() {
         @keyframes cfg-fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes cfg-check-pop { 0% { transform: scale(0); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
       `}</style>
+
+      {/* ─── Rail destra dello step Personale: guida all'invito subito
+          visibile, poi numeri del team e checklist. Fissa, scrolla da sé. */}
+      {step === 'personale' && (
+        <aside style={{
+          width: 340, flexShrink: 0,
+          padding: '18px 18px 18px 0',
+          display: 'flex', flexDirection: 'column', minHeight: 0,
+        }}>
+          <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12}}>
+            <StaffInviteGuide/>
+            <StaffTeamStats team={team}/>
+            <StaffChecklist team={team}/>
+          </div>
+        </aside>
+      )}
 
       {/* ─── Rail destra FISSA: solo il telefono, grande — non scrolla ──── */}
       {step !== 'personale' && (
@@ -419,6 +447,146 @@ function ApBtn({variant = 'neutral', onClick, children, style = {}}) {
     >
       {children}
     </button>
+  );
+}
+
+// ─── Rail dello step Personale ──────────────────────────────────────────────
+
+// Card bianca compatta della rail.
+function RailCard({ children }) {
+  return (
+    <div style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+      borderRadius: 14, padding: '16px 16px 14px', flexShrink: 0,
+      boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
+    }}>{children}</div>
+  );
+}
+
+// Guida per i collaboratori: come si accetta l'invito. Deve essere la prima
+// cosa che si vede a destra atterrando sullo step.
+function StaffInviteGuide() {
+  const steps = [
+    <>Apri l'email di invito ricevuta da byup.</>,
+    <>Clicca sul link di conferma e imposta una password tramite il link che ti verrà dato.</>,
+    <>Al termine, clicca sulla CTA <b style={{color: PN.TEXT}}>"Aggiungi Byup Cameriere alla tua Home"</b>.</>,
+  ];
+  return (
+    <RailCard>
+      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Come accettare l'invito staff</div>
+      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, marginBottom: 14}}>
+        Spiega chiaramente ai collaboratori cosa fare per iniziare.
+      </div>
+      <div>
+        {steps.map((s, i) => (
+          <div key={i} style={{display: 'flex', gap: 12, position: 'relative', paddingBottom: 14}}>
+            {/* Connettore tratteggiato fra i numeri */}
+            <span style={{position: 'absolute', left: 12, top: 27, bottom: -1, borderLeft: `1.5px dashed ${PN.BORDER}`}}/>
+            <span style={{
+              width: 25, height: 25, borderRadius: '50%', flexShrink: 0,
+              border: `1.5px solid ${PN.PINK}`, color: PN.PINK, background: PN.WHITE,
+              display: 'grid', placeItems: 'center',
+              fontSize: 12.5, fontWeight: 700, position: 'relative', zIndex: 1,
+            }}>{i + 1}</span>
+            <div style={{fontSize: 12.8, lineHeight: 1.5, color: PN.TEXT, paddingTop: 3, minWidth: 0}}>
+              {s}
+              {i === 2 && (
+                <div style={{
+                  marginTop: 10, padding: '9px 12px', borderRadius: 10,
+                  border: `1.5px solid ${PN.PINK}`, color: PN.PINK,
+                  fontSize: 12.5, fontWeight: 700, textAlign: 'center',
+                  background: PN.WHITE, cursor: 'default', userSelect: 'none',
+                }}>Aggiungi Byup Cameriere alla tua Home</div>
+              )}
+            </div>
+          </div>
+        ))}
+        <div style={{display: 'flex', gap: 12, alignItems: 'flex-start'}}>
+          <span style={{width: 25, flexShrink: 0, display: 'grid', placeItems: 'center', color: PN.MUTED, paddingTop: 2}}>
+            {(BuIcons.phone||BuIcons.user)({size: 14, color: 'currentColor'})}
+          </span>
+          <div style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.5}}>
+            Consigliato per avere l'accesso rapido dal telefono durante il servizio.
+          </div>
+        </div>
+      </div>
+    </RailCard>
+  );
+}
+
+// Numeri del team, derivati dall'elenco reale dello step.
+function StaffTeamStats({ team }) {
+  const stats = [
+    { icon: 'users',  n: team.length, label: 'accessi totali' },
+    { icon: 'mail',   n: team.filter(m => m.status === 'invited').length, label: 'inviti attivi' },
+    { icon: 'shield', n: new Set(team.map(m => m.role)).size, label: 'ruoli configurati' },
+  ];
+  return (
+    <RailCard>
+      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Panoramica team</div>
+      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, marginBottom: 12}}>Configurazione rapida</div>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+        {stats.map((s, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
+            padding: '9px 12px',
+          }}>
+            <span style={{
+              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+              border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE, color: '#475569',
+              display: 'grid', placeItems: 'center',
+            }}>{(BuIcons[s.icon]||BuIcons.user)({size: 15, color: 'currentColor'})}</span>
+            <div>
+              <div style={{fontSize: 17, fontWeight: 800, color: PN.TEXT, lineHeight: 1.1}}>{s.n}</div>
+              <div style={{fontSize: 12, color: PN.MUTED, marginTop: 1}}>{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </RailCard>
+  );
+}
+
+// Checklist della configurazione del personale, derivata dall'elenco reale.
+function StaffChecklist({ team }) {
+  const nManager = team.filter(m => m.role === 'Manager').length;
+  const nStaff = team.filter(m => m.kind === 'person' && m.role !== 'Manager').length;
+  const items = [
+    { label: 'Aggiungi almeno un manager',
+      sub: nManager > 0 ? `Hai aggiunto ${nManager} manager` : 'Serve almeno un manager',
+      done: nManager > 0 },
+    { label: 'Invita camerieri o staff',
+      sub: nStaff > 0 ? `Hai invitato ${nStaff} ${nStaff === 1 ? 'membro' : 'membri'}` : 'Invita chi lavora in sala',
+      done: nStaff > 0 },
+    { label: 'Configura i ruoli principali',
+      sub: 'Completa per ottimizzare i permessi',
+      done: nManager > 0 && team.some(m => m.role === 'Cameriere') && team.some(m => m.role === 'Cucina') },
+  ];
+  return (
+    <RailCard>
+      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 12}}>Checklist configurazione</div>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+        {items.map((it, i) => (
+          <div key={i} style={{display: 'flex', gap: 10, alignItems: 'flex-start'}}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+              background: it.done ? '#16A34A' : PN.WHITE,
+              border: it.done ? 'none' : `1.5px solid ${PN.BORDER}`,
+              display: 'grid', placeItems: 'center',
+            }}>
+              {it.done && (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              )}
+            </span>
+            <div style={{minWidth: 0}}>
+              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.35}}>{it.label}</div>
+              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>{it.sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </RailCard>
   );
 }
 
