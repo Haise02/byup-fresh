@@ -18,10 +18,10 @@ function Step1Upload({onAnalyze}) {
     <div style={{
       minHeight: '100%',
       background: ONB.BG_SOFT,
-      /* Stesso padding-top e stesso ancoraggio in alto dello step 2, così i due
-         blocchi di testo partono esattamente alla stessa quota dello stage. */
       padding: '32px 80px',
-      display: 'flex', alignItems: 'flex-start',
+      /* Il blocco si centra in verticale nel canvas (margin auto sull'inner):
+         niente banda morta sotto la card quando il contenuto è più basso. */
+      display: 'flex',
     }}>
       {/* Griglia a due colonne: a sinistra la promessa, a destra il pannello
           d'azione. Sostituisce la colonna centrata stretta, che dentro un frame
@@ -29,7 +29,7 @@ function Step1Upload({onAnalyze}) {
           la CTA. Le colonne sono centrate fra loro sull'asse verticale e il
           pannello detta l'altezza del blocco. */}
       <div style={{
-        width: '100%', maxWidth: 1240, margin: '0 auto',
+        width: '100%', maxWidth: 1240, margin: 'auto',
         display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 560px',
         gap: 72, alignItems: 'start',
       }}>
@@ -374,15 +374,17 @@ function SecondaryCta({onClick, disabled, children}) {
       onMouseLeave={() => setHover(false)}
       style={{
         height: 44, padding: '0 20px',
-        background: '#fff',
+        /* hover ben visibile: fondo che si scurisce, non solo il bordo */
+        background: hover && !disabled ? '#EEF0F3' : '#fff',
         color: ONB.TEXT,
-        border: `1px solid ${hover ? 'rgba(15, 17, 21, 0.18)' : 'rgba(15, 17, 21, 0.10)'}`,
+        border: `1px solid ${hover ? 'rgba(15, 17, 21, 0.26)' : 'rgba(15, 17, 21, 0.10)'}`,
         borderRadius: 8,
         fontSize: 16, fontWeight: 500, fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
-        transition: 'border-color 150ms ease-out',
+        transition: 'background 150ms ease-out, border-color 150ms ease-out',
         display: 'flex', alignItems: 'center', gap: 8,
+        boxShadow: hover && !disabled ? '0 1px 3px rgba(15, 17, 21, 0.08)' : 'none',
       }}
     >
       {children}

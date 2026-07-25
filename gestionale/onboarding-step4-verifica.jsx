@@ -73,9 +73,16 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
       minHeight: '100%',
       background: ONB.BG_SOFT,
       padding: '32px 80px 28px',
-      display: 'flex', alignItems: 'flex-start',
+      /* niente alignItems: l'inner si stira a tutta altezza (stretch), così
+         il footer col marginTop auto arriva davvero al fondo del canvas */
+      display: 'flex',
     }}>
-      <div style={{width: '100%', maxWidth: 1240, margin: '0 auto'}}>
+      {/* flex column a tutta altezza: il footer CTA si aggancia al fondo del
+          canvas via marginTop auto invece di galleggiare a mezz'aria. */}
+      <div style={{
+        width: '100%', maxWidth: 1240, margin: '0 auto',
+        display: 'flex', flexDirection: 'column',
+      }}>
 
         {/* Stessa griglia degli altri step. La colonna stretta tiene il telefono
             e, sotto, il riepilogo di quanto configurato. */}
@@ -194,7 +201,7 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'sticky', bottom: 0, zIndex: 6,
-          marginTop: 20, paddingTop: 18, paddingBottom: 4,
+          marginTop: 'auto', paddingTop: 18, paddingBottom: 4,
           borderTop: '1px solid rgba(15, 17, 21, 0.08)',
           background: ONB.BG_SOFT,
         }}>

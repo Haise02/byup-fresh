@@ -51,11 +51,13 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
       minHeight: '100%',
       background: ONB.BG_SOFT,
       padding: '32px 80px 28px',
-      display: 'flex', alignItems: 'flex-start',
+      /* margin auto sull'inner: blocco centrato in verticale quando il
+         contenuto è basso (scelta modalità), top-aligned quando cresce. */
+      display: 'flex',
     }}>
       {/* Stessa griglia di step 1 e 2: contesto a sinistra, scelte a destra. */}
       <div style={{
-        width: '100%', maxWidth: 1240, margin: '0 auto',
+        width: '100%', maxWidth: 1240, margin: 'auto',
         display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 620px',
         gap: 72, alignItems: 'start',
       }}>

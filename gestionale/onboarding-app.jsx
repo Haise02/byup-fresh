@@ -25,7 +25,14 @@ const LOCALE_SUBSTEPS = [
 ];
 
 function OnboardingApp() {
-  const [step, setStep] = React.useState(1);
+  // ?step=N per aprire direttamente uno step (demo e sviluppo)
+  const [step, setStep] = React.useState(() => {
+    try {
+      const n = parseInt(new URLSearchParams(window.location.search).get('step'), 10);
+      if (n >= 1 && n <= 4) return n;
+    } catch {}
+    return 1;
+  });
   const [subStep, setSubStep] = React.useState('info');
   const [processing, setProcessing] = React.useState(false);
 
@@ -154,8 +161,8 @@ function OnbHeader({step, subStep}) {
         <div style={{width: 56, height: 28}} aria-hidden="true"/>
       </div>
 
-      {/* Sub-step bar visibile solo dentro step 2 — non occupa spazio negli altri */}
-      {step === 2 && <LocaleSubStepBar subStep={subStep}/>}
+      {/* La barra sub-step in header non serve più: dentro lo step 2 le due
+          sezioni (Informazioni/Pagamenti) hanno i loro tab espliciti in colonna. */}
     </header>
   );
 }
