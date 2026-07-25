@@ -515,6 +515,7 @@ const VIcon = {
   wine:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 3.5h9c0 4.8-1.9 7.7-4.5 7.7S7.5 8.3 7.5 3.5z"/><path d="M12 11.2V20"/><path d="M8.5 20.5h7"/><path d="M8 7h8"/></svg>,
   doc:       (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 3h7.5l3.5 3.5V21h-11z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15.5h6"/></svg>,
   alert:     (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3.5L21.5 20h-19z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>,
+  cake:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 20.5v-6.3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6.3"/><path d="M3.5 20.5h17"/><path d="M5 16.2c1.2 1 2.2 1 3.4 0s2.4-1 3.6 0 2.4 1 3.6 0 2.2-1 3.4 0"/><path d="M8 12.2V10M12 12.2V10M16 12.2V10"/><path d="M8 7.6v.1M12 7.6v.1M16 7.6v.1"/></svg>,
 };
 
 // Chip-icona: quadratino arrotondato tinta + icona che ne eredita il colore.
@@ -537,6 +538,7 @@ const SERVICE_TILES = {
     { label: 'Parcheggio riservato', icon: 'car',    desc: 'Posti dedicati davanti al locale' },
     { label: 'WiFi gratuito',        icon: 'wifi',   desc: 'Rete libera per gli ospiti' },
     { label: 'Animali ammessi',      icon: 'paw',    desc: 'Amici a quattro zampe benvenuti' },
+    { label: 'Compleanni',           icon: 'cake',   desc: 'Torta, allestimento e festeggiati' },
   ],
   accessibilita: [
     { label: 'Rampa per disabili',   icon: 'wheelchair', desc: 'Ingresso senza barriere' },
