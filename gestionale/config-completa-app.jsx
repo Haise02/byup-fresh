@@ -257,7 +257,7 @@ function ConfigCompletaApp() {
           ? <ApBtn variant="brand" onClick={() => setStep('aspetto')}>Continua →</ApBtn>
           : step === 'aspetto'
             ? <ApBtn variant="brand" onClick={() => { publish(); setStep('personale'); }}>Pubblica modifiche e procedi →</ApBtn>
-            : <ApBtn variant="brand" onClick={complete}>Completa e vai alla Panoramica →</ApBtn>}
+            : <ApBtn variant="brand" onClick={complete}>Inizia ora →</ApBtn>}
       </div>
 
       {/* Toast di conferma pubblicazione */}
