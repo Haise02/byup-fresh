@@ -104,7 +104,7 @@ function ImpSubTabs({ tabs, active, onChange }) {
   );
 }
 
-function ImpCard({ title, sub, children, action, aurora }) {
+function ImpCard({ title, sub, children, action, aurora, anchor }) {
   // L2 Aurora soft wash multi-color — pink + lavender + cream mesh su base
   // sfumata pink→lavender. Stesso DNA della variant L2 nella preview themes.
   // Sistema 75/15/10.
@@ -114,7 +114,7 @@ function ImpCard({ title, sub, children, action, aurora }) {
     'radial-gradient(circle at 60% 95%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
     'linear-gradient(135deg, #FFF6F4 0%, #FCF8FF 100%)';
   return (
-    <section style={{
+    <section data-cfg-anchor={anchor} style={{
       background: aurora ? auroraBg : PN.WHITE,
       border: `1px solid ${aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
       borderRadius: 14,

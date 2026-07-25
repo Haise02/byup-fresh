@@ -30,17 +30,28 @@ function ConfigCompletaApp() {
   const [team, setTeam] = React.useState(() => window.PERSONALE_TEAM_INITIAL || []);
 
 
-  // Checklist di completamento (vive nella colonna anteprima, come nella
-  // reference; prima era un banner sopra i form).
+  // Checklist di completamento: ogni voce sa in quale step e sezione vive,
+  // così i chip incompleti portano dritti al punto giusto.
   const completion = [
-    { label: 'Informazioni base',  sub: 'Nome, contatti e indirizzo',      done: true },
-    { label: 'Orari di apertura',  sub: 'Quando i clienti ti trovano',     done: true },
-    { label: 'Logo del locale',    sub: 'Il volto della tua vetrina',      done: true },
-    { label: 'Galleria foto',      sub: 'Mostra il tuo locale al meglio',  done: false },
-    { label: 'Tag e categorie',    sub: 'Racconta che atmosfera offri',    done: true },
-    { label: 'FAQ',                sub: 'Rispondi alle domande frequenti', done: false },
-    { label: 'Social',             sub: 'Aggiungi sito e Instagram',       done: false },
+    { label: 'Informazioni base',  sub: 'Nome, contatti e indirizzo',      done: true,  step: 'informazioni', anchor: 'locale' },
+    { label: 'Orari di apertura',  sub: 'Quando i clienti ti trovano',     done: true,  step: 'informazioni', anchor: 'orari' },
+    { label: 'Logo del locale',    sub: 'Il volto della tua vetrina',      done: true,  step: 'aspetto',      anchor: 'immagini' },
+    { label: 'Galleria foto',      sub: 'Mostra il tuo locale al meglio',  done: false, step: 'aspetto',      anchor: 'galleria' },
+    { label: 'Tag e categorie',    sub: 'Racconta che atmosfera offri',    done: true,  step: 'informazioni', anchor: 'tag' },
+    { label: 'FAQ',                sub: 'Rispondi alle domande frequenti', done: false, step: 'aspetto',      anchor: 'faq' },
+    { label: 'Social',             sub: 'Aggiungi sito e Instagram',       done: false, step: 'aspetto',      anchor: 'social' },
   ];
+
+  // Chip incompleto cliccato: cambia step se serve, poi scorre alla sezione
+  // (e apre la card collassabile se è quella dei Tag).
+  const goToSection = (c) => {
+    if (step !== c.step) setStep(c.step);
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('cfg-open-collapsible', { detail: c.anchor }));
+      const el = document.querySelector(`[data-cfg-anchor="${c.anchor}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 90);
+  };
 
   const goPanoramica = () => { window.location.href = 'byup Panoramica.html'; };
 
@@ -146,16 +157,17 @@ function ConfigCompletaApp() {
                 </span>
                 <span style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>{donePct}%</span>
               </span>
-              {completion.map((c, i) => (
+              {completion.map((c, i) => c.done ? (
                 <span key={i} title={c.sub} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   fontSize: 13, fontWeight: 600,
                   padding: '4px 11px', borderRadius: 999,
-                  background: c.done ? '#DCFCE7' : '#F4F5F7',
-                  color: c.done ? '#15803D' : PN.MUTED,
+                  background: '#DCFCE7', color: '#15803D',
                 }}>
-                  {c.done ? '✓' : '○'} {c.label}
+                  ✓ {c.label}
                 </span>
+              ) : (
+                <CompletionChip key={i} c={c} onClick={() => goToSection(c)}/>
               ))}
             </div>
           )}
@@ -434,6 +446,33 @@ function ApBtn({variant = 'neutral', onClick, children, style = {}}) {
       }}
     >
       {children}
+    </button>
+  );
+}
+
+// Chip di completamento incompleto: in hover si ingrandisce e si scurisce,
+// al click porta allo step e alla sezione da completare.
+function CompletionChip({ c, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button onClick={onClick} title={`${c.sub} · vai alla sezione`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+        padding: '4px 11px', borderRadius: 999, border: 'none',
+        background: hover ? '#E8EAEE' : '#F4F5F7',
+        color: hover ? PN.TEXT : PN.MUTED,
+        cursor: 'pointer',
+        transform: pressed ? 'scale(0.95)' : hover ? 'scale(1.08)' : 'scale(1)',
+        boxShadow: hover ? '0 4px 12px rgba(15, 17, 21, 0.10)' : 'none',
+        transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), background 140ms ease, color 140ms ease, box-shadow 160ms ease',
+      }}>
+      ○ {c.label}
     </button>
   );
 }

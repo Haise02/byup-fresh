@@ -167,7 +167,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
 
   return (
     <div>
-      <ImpCard title="Locale" sub="Dettagli utili che i clienti vedono sulla vetrina del tuo locale">
+      <ImpCard anchor="locale" title="Locale" sub="Dettagli utili che i clienti vedono sulla vetrina del tuo locale">
         {/* Due colonne: campi a sinistra, servizi e accessibilità a destra —
             la card resta compatta invece di allungarsi in verticale. */}
         <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start'}}>
@@ -212,7 +212,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         </div>
       </ImpCard>
 
-      <ImpCard title="Orari di apertura" sub="Scegli i giorni e un orario standard. I clienti vedranno questi orari sulla vetrina">
+      <ImpCard anchor="orari" title="Orari di apertura" sub="Scegli i giorni e un orario standard. I clienti vedranno questi orari sulla vetrina">
         {/* Mini-calendario settimanale visuale */}
         <div style={{
           display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 6,
@@ -275,7 +275,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>Opzioni per raffinare la vetrina: aprile solo se ti servono.</div>
       </div>
 
-      <CollapsibleCard title="Tag" sub="Il tono del locale in tre parole">
+      <CollapsibleCard anchor="tag" title="Tag" sub="Il tono del locale in tre parole">
         <div style={{
           fontSize: 13.5, fontWeight: 600, marginBottom: 10,
           color: tagLimitHit ? PN.PINK : PN.MUTED,
@@ -1157,10 +1157,17 @@ function CertUploadModal({ ctx, onClose }) {
 
 // ─── Card collassabile (gruppo Avanzate) ────────────────────────────────────
 
-function CollapsibleCard({ title, sub, action, children, defaultOpen = false }) {
+function CollapsibleCard({ title, sub, action, children, defaultOpen = false, anchor }) {
   const [open, setOpen] = React.useState(defaultOpen);
+  // I chip del completamento possono chiedere l'apertura diretta della card.
+  React.useEffect(() => {
+    if (!anchor) return;
+    const h = (e) => { if (e.detail === anchor) setOpen(true); };
+    window.addEventListener('cfg-open-collapsible', h);
+    return () => window.removeEventListener('cfg-open-collapsible', h);
+  }, [anchor]);
   return (
-    <section style={{
+    <section data-cfg-anchor={anchor} style={{
       background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
       borderRadius: 14, marginBottom: 12, overflow: 'visible',
     }}>
@@ -1227,7 +1234,7 @@ function VetrinaAspetto({ onChange }) {
       {/* Un'unica sezione "Immagini": logo a sinistra (colonna stretta, è un
           elemento quadrato) e galleria a destra — niente più card "Aspetto"
           omonima dello step. */}
-      <ImpCard title="Immagini" sub="Logo e foto del locale: appariranno sulla vetrina">
+      <ImpCard anchor="immagini" title="Immagini" sub="Logo e foto del locale: appariranno sulla vetrina">
         {/* Logo come striscia-profilo in alto (cerchio, testo, azione a
             destra), galleria a tutta larghezza sotto: niente colonna
             semivuota accanto alle foto. */}
@@ -1251,7 +1258,7 @@ function VetrinaAspetto({ onChange }) {
         </div>
 
         {/* Galleria — pannello tinto a tutta larghezza */}
-        <div style={{
+        <div data-cfg-anchor="galleria" style={{
           marginTop: 16, background: '#F3F5F7',
           border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
           padding: '14px 16px',
@@ -1609,7 +1616,7 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
   };
   return (
     <div>
-      <ImpCard title="Domande frequenti" sub="Aiuta i clienti a trovare risposte rapide. Crea, ordina e modifica le FAQ" action={
+      <ImpCard anchor="faq" title="Domande frequenti" sub="Aiuta i clienti a trovare risposte rapide. Crea, ordina e modifica le FAQ" action={
         <ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => setFaqModal({mode: 'new'})}>Nuova FAQ</ImpButton>
       }>
         <div style={{display:'flex', flexDirection:'column', gap: 8}}>
@@ -1660,7 +1667,7 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
           onConfirm={() => deleteFaq(faqConfirm.id)}/>
       )}
 
-      <ImpCard title="Account social" sub="Collega i tuoi profili. Appariranno sulla vetrina">
+      <ImpCard anchor="social" title="Account social" sub="Collega i tuoi profili. Appariranno sulla vetrina">
         {/* Collegati: un box compatto per ogni account effettivamente attivo */}
         {SOCIAL_DEFS.some(s => social.includes(s.key)) ? (
           <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap: 10, marginBottom: 16}}>
