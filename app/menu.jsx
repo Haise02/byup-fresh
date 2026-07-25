@@ -3468,8 +3468,8 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const order = state.activeOrder;
   if (!order) return <div style={{padding: 80, textAlign: 'center', color: MUTED}}>Nessun ordine attivo.</div>;
 
-  // Coperti: si chiedono qui, entrando dal "Paga ora". Obbligatori.
-  const [copertiOpen, setCopertiOpen] = useState(!state.copertiSelected);
+  // I coperti non si chiedono più all'utente: il numero arriva da order.covers
+  // (lo imposta lo staff di sala), quindi il pagamento si apre diretto.
   // mode: 'mine' (la mia parte) | 'all' (tutto il tavolo) — di default 'mine',
   // 'all' si attiva tappando la CTA secondaria "Paga per tutto il tavolo"
   const [mode, setMode] = useState('mine');
@@ -3524,17 +3524,10 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   // Metodo di pagamento scelto (modificabile da "Cambia" → PayMethodScreen)
   const payMethod = state.payMethod || 'apple';
 
-  // Piatti del tavolo (aggiunti dal cameriere). Mostro solo quelli ancora aperti.
-  // Il "+" aggiunge il piatto a "Aggiunti al tuo conto" via selectedExtras (come per
-  // i piatti offerti agli altri): un'unica lista di ciò che pago io.
+  // Piatti aggiunti dal cameriere e non ancora saldati. Il "+" li mette su
+  // "Aggiunti al tuo conto" via selectedExtras (come i piatti offerti agli altri):
+  // un'unica lista di ciò che pago io.
   const tableItems = order.items.filter(i => i.ownerId === 'table' && !isPaid(i.lineId));
-  const [tableOpen, setTableOpen] = useState(false);
-  // Una volta che un piatto del tavolo è aggiunto al mio conto sparisce da qui e vive
-  // solo in "Aggiunti al tuo conto" (un oggetto, un posto).
-  const tablePending = tableItems.filter(i => !selectedExtras[i.lineId]);
-  const tablePendingTotal = tablePending.reduce((s, i) => s + i.price * i.qty, 0);
-  // Piatti del tavolo ancora da assegnare (né presi da altri, né in pagamento)
-  const tableUnclaimed = tablePending.filter(i => !i.claimedBy && !isLocked(i.lineId)).length;
 
   // Stili condivisi dei pulsanti tondi +/− (coerenti in tutte le sezioni):
   // "+" = contorno vino su bianco; "−"/attivo = pieno vino.
@@ -3576,33 +3569,30 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
   // In caso di rientro post-pagamento parziale: escludo i miei piatti già saldati
   const myItems = order.items.filter(i => i.ownerId === 'me' && !isPaid(i.lineId));
-  const otherItems = order.items.filter(i => i.ownerId !== 'me' && i.ownerId !== 'table');
 
-  // Group other items by ownerId; tutti gli ospiti senza app finiscono
-  // in un'unica voce collettiva 'guests' (niente Ospite 1/2/3 separati)
-  const isGuestOwner = (oid) => { const g = order.guests.find(x => x.id === oid); return !!(g && g.isGuest); };
-  const guestPeopleCount = order.guests.filter(g => g.isGuest).length || 1;
-  const groupByOwner = {};
-  otherItems.forEach(i => {
-    const key = isGuestOwner(i.ownerId) ? 'guests' : i.ownerId;
-    if (!groupByOwner[key]) groupByOwner[key] = [];
-    groupByOwner[key].push(i);
-  });
+  // ── "Il tavolo": gerarchia Utenti app → Utenti webapp → Altro ───────────────
+  // I commensali con l'app e quelli da webapp hanno una card ciascuno (sono
+  // identificabili, quindi si sa a chi si sta offrendo il piatto). "Altro" è un
+  // unico contenitore: piatti messi dal cameriere + porzioni al tavolo di chi
+  // non usa né app né webapp, che nominalmente non si possono attribuire.
+  const guestsList = order.guests || [];
+  const itemsOfOwner = (oid) => order.items.filter(i => i.ownerId === oid);
+  const appGuests = guestsList.filter(g => !g.isMe && g.isApp && itemsOfOwner(g.id).length > 0);
+  const webGuests = guestsList.filter(g => !g.isMe && !g.isApp && g.isWebApp && itemsOfOwner(g.id).length > 0);
+  const offlineIds = guestsList.filter(g => !g.isMe && !g.isApp && !g.isWebApp).map(g => g.id);
+  const altroItems = order.items.filter(i => i.ownerId === 'table' || offlineIds.includes(i.ownerId));
 
   const ownerLabel = (oid) => {
     if (oid === 'table') return 'Per il tavolo';
-    if (oid === 'guests') return guestPeopleCount === 1 ? '1 Ospite' : `${guestPeopleCount} Ospiti`;
-    const g = order.guests.find(x => x.id === oid);
+    const g = guestsList.find(x => x.id === oid);
     if (!g) return 'Sconosciuto';
     return g.name;
   };
-  const ownerSub = (oid) => {
-    if (oid === 'table') return 'Aggiunto dal cameriere';
-    if (oid === 'guests') return 'senza app';
-    const g = order.guests.find(x => x.id === oid);
-    if (!g) return '';
-    return g.isApp ? "✓ ha l'app" : 'ospite — non loggato';
-  };
+  // Chi ha già preso un piatto del tavolo (solo i piatti 'table' hanno claimedBy)
+  const claimant = (i) => (i.claimedBy ? guestsList.find(g => g.id === i.claimedBy) : null);
+  // Aggiungibile al mio conto: non pagato, non congelato da un pagamento in
+  // corso, non già preso da qualcun altro.
+  const canAdd = (i) => !isPaid(i.lineId) && !isLocked(i.lineId) && !claimant(i);
 
   const toggleOwner = (oid) => setOpenOwners(o => ({ ...o, [oid]: !o[oid] }));
   const toggleExtra = (lineId) => setSelectedExtras(s => {
@@ -3614,13 +3604,127 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     } else n[lineId] = true;
     return n;
   });
-  const addAllOwner = (oid) => {
+  const addAllItems = (items) => {
     setSelectedExtras(s => {
       const n = { ...s };
-      // Salta i piatti già pagati o congelati da un pagamento in corso
-      (groupByOwner[oid] || []).forEach(i => { if (!isPaid(i.lineId) && !isLocked(i.lineId)) n[i.lineId] = true; });
+      items.forEach(i => { if (canAdd(i)) n[i.lineId] = true; });
       return n;
     });
+  };
+
+  // Etichetta dei tre gruppi di "Il tavolo"
+  const groupLabelStyle = {
+    fontSize: 11.5, fontWeight: 800, color: MUTED, letterSpacing: 0.7,
+    textTransform: 'uppercase', margin: '18px 2px 8px',
+  };
+  // Card di gruppo: header riepilogativo + righe piatto. Ogni riga porta solo
+  // nome e prezzo, più "+" per metterla sul proprio conto e "−" per toglierla.
+  // Le righe non disponibili (pagate, in pagamento, già prese) restano visibili
+  // in grigio con la sola icona di stato.
+  const renderTableCard = ({ id, title, avatar, avatarBg, avatarColor, items }) => {
+    const open = !!openOwners[id];
+    const unpaid = items.filter(i => !isPaid(i.lineId));
+    const available = unpaid.filter(canAdd);
+    const allPaid = unpaid.length === 0;
+    const frozen = allPaid || available.length === 0;
+    const picked = available.filter(i => selectedExtras[i.lineId]);
+    const availableTotal = available.reduce((s, i) => s + i.price * i.qty, 0);
+    const pickedTotal = picked.reduce((s, i) => s + i.price * i.qty, 0);
+    const allPicked = available.length > 0 && picked.length === available.length;
+    return (
+      <div key={id} style={{
+        background: SURF, borderRadius: 14, overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)', opacity: frozen ? 0.7 : 1,
+      }}>
+        <div onClick={() => !frozen && toggleOwner(id)} style={{
+          padding: 14, display: 'flex', alignItems: 'center', gap: 12,
+          cursor: frozen ? 'default' : 'pointer',
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+            background: avatarBg, color: avatarColor,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 700,
+          }}>{avatar}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{title}</div>
+            <div style={{
+              fontSize: 12, marginTop: 1,
+              color: allPaid ? '#1c8c5b' : MUTED, fontWeight: allPaid ? 700 : 500,
+            }}>
+              {allPaid
+                ? 'Tutto già pagato'
+                : available.length === 0
+                ? 'In pagamento…'
+                : picked.length > 0
+                ? `${picked.length}/${available.length} sul tuo conto · ${pickedTotal.toFixed(2)}€`
+                : `${available.length} ${available.length === 1 ? 'piatto' : 'piatti'} · ${availableTotal.toFixed(2)}€`}
+            </div>
+          </div>
+          {!frozen && (
+            <div style={{ transform: open ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
+              <I.ChevDown color={MUTED} size={16}/>
+            </div>
+          )}
+        </div>
+        {open && !frozen && (
+          <div style={{ padding: '0 14px 14px' }}>
+            <button onClick={() => addAllItems(items)} disabled={allPicked} style={{
+              width: '100%', padding: '8px 12px', borderRadius: 999,
+              background: allPicked ? '#ebe3d6' : WINE,
+              color: allPicked ? MUTED : '#fff',
+              border: 'none', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
+              cursor: allPicked ? 'default' : 'pointer', marginBottom: 8,
+            }}>{allPicked ? 'Già tutti sul tuo conto' : `Aggiungi tutto (${availableTotal.toFixed(2)}€)`}</button>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {items.map(i => {
+                const paid = isPaid(i.lineId);
+                const taken = claimant(i);
+                const locked = !paid && !taken && isLocked(i.lineId);
+                const sel = !!selectedExtras[i.lineId];
+                const off = paid || locked || !!taken;
+                return (
+                  <div key={i.lineId} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '11px 0', borderTop: `1px solid ${BORDER}`,
+                    opacity: off ? 0.45 : 1,
+                  }}>
+                    <div style={{
+                      flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: TEXT,
+                      textDecoration: paid ? 'line-through' : 'none',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{i.name}</div>
+                    <div style={{
+                      fontSize: 14.5, fontWeight: 700, color: TEXT, flexShrink: 0,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>{(i.price * i.qty).toFixed(2)}€</div>
+                    {off ? (
+                      <div style={{ width: 32, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+                        {locked ? (
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          </svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1c8c5b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => toggleExtra(i.lineId)}
+                        aria-label={sel ? 'Togli dal mio conto' : 'Aggiungi al mio conto'}
+                        style={sel ? removeBtnStyle : addBtnStyle}>{sel ? '−' : '+'}</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const myShareOf = (it) => {
@@ -3869,233 +3973,60 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         </div>
         )}
 
-            {/* Ordini del tavolo — piatti aggiunti dal cameriere, da assegnare */}
-            {mode === 'mine' && tablePending.length > 0 && (
+            {/* Il tavolo — Utenti app · Utenti webapp · Altro */}
+            {mode === 'mine' && (appGuests.length > 0 || webGuests.length > 0 || altroItems.length > 0) && (
               <div style={{ padding: '28px 22px 0' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 4 }}>
                   Il tavolo
                 </div>
-                <div style={{ fontSize: 13, color: MUTED, marginBottom: 14 }}>
-                  Apri una card e tocca <span style={{ fontWeight: 700, color: WINE }}>+</span> sui piatti che offri tu.
+                <div style={{ fontSize: 13, color: MUTED }}>
+                  Apri una card e tocca <span style={{ fontWeight: 700, color: WINE }}>+</span> sui piatti che metti sul tuo conto.
                 </div>
-                <div style={{
-                  background: SURF, borderRadius: 14, overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                }}>
-                  <div onClick={() => setTableOpen(o => !o)} style={{
-                    padding: '14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
-                  }}>
-                    <div style={{
-                      width: 38, height: 38, borderRadius: 11,
-                      background: TINT, color: WINE,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
-                      </svg>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>
-                        Aggiunti dal cameriere
-                      </div>
-                      <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>
-                        {tablePendingTotal.toFixed(2)}€ totali
-                      </div>
-                    </div>
-                    {tableUnclaimed > 0 && !tableOpen && (
-                      <div style={{
-                        background: WINE, color: '#fff',
-                        fontSize: 11, fontWeight: 800, padding: '3px 8px',
-                        borderRadius: 999, marginRight: 4,
-                      }}>{tableUnclaimed}</div>
-                    )}
-                    <div style={{ transform: tableOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
-                      <I.ChevDown color={MUTED} size={16}/>
+
+                {appGuests.length > 0 && (
+                  <div>
+                    <div style={groupLabelStyle}>Utenti app</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {appGuests.map(g => renderTableCard({
+                        id: g.id, title: g.name, avatar: g.initial || '?',
+                        avatarBg: BADGE, avatarColor: '#fff', items: itemsOfOwner(g.id),
+                      }))}
                     </div>
                   </div>
-                  {tableOpen && (
-                    <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {tablePending.map(it => {
-                          const claimedByOther = it.claimedBy && order.guests.find(g => g.id === it.claimedBy);
-                          const locked = isLocked(it.lineId);
-                          const disabled = claimedByOther || locked;
+                )}
 
-                          return (
-                            <div key={it.lineId} style={{
-                              background: disabled ? TINT : SURF,
-                              borderRadius: 14, padding: '14px',
-                              border: `1px solid ${BORDER}`,
-                              boxShadow: disabled ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
-                              opacity: disabled ? 0.7 : 1,
-                              display: 'flex', alignItems: 'center', gap: 12,
-                            }}>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 15, fontWeight: 700, color: TEXT }}>{it.name}</div>
-                                <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-                                  {claimedByOther
-                                    ? `Già preso da ${claimedByOther.name.split(' ')[0]}`
-                                    : locked
-                                    ? 'In pagamento…'
-                                    : `${it.price.toFixed(2)}€`}
-                                </div>
-                              </div>
-                              {claimedByOther ? (
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1c8c5b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                  <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                              ) : locked ? (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                </svg>
-                              ) : (
-                                <button onClick={() => toggleExtra(it.lineId)} aria-label="Aggiungi al mio conto" style={addBtnStyle}>+</button>
-                              )}
-                            </div>
-                          );
-                        })}
+                {webGuests.length > 0 && (
+                  <div>
+                    <div style={groupLabelStyle}>Utenti webapp</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {webGuests.map(g => renderTableCard({
+                        id: g.id, title: g.name, avatar: g.initial || '?',
+                        avatarBg: BADGE, avatarColor: '#fff', items: itemsOfOwner(g.id),
+                      }))}
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
+                  </div>
+                )}
 
-            {/* Aggiungi al mio conto */}
-            {mode === 'mine' && Object.keys(groupByOwner).length > 0 && (
-              <div style={{ padding: '12px 22px 0' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {Object.entries(groupByOwner).map(([oid, items]) => {
-                    const open = !!openOwners[oid];
-                    const unpaidItems = items.filter(i => !isPaid(i.lineId));
-                    // openItems: piatti su cui posso agire (non pagati, non in pagamento)
-                    const openItems = unpaidItems.filter(i => !isLocked(i.lineId));
-                    const allPaid = unpaidItems.length === 0;
-                    // allLocked: tutto il resto del suo ordine è in pagamento adesso → bloccato
-                    const allLocked = !allPaid && openItems.length === 0;
-                    const frozen = allPaid || allLocked; // accordion non apribile
-                    const allSelected = openItems.length > 0 && openItems.every(i => selectedExtras[i.lineId]);
-                    const selectedCount = items.filter(i => selectedExtras[i.lineId] && !isPaid(i.lineId)).length;
-                    const openTotal = openItems.reduce((s, i) => s + i.price * i.qty, 0);
-                    const guest = oid === 'guests' ? { isGuest: true } : order.guests.find(g => g.id === oid);
-                    return (
-                      <div key={oid} style={{
-                        background: SURF, borderRadius: 14, overflow: 'hidden',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                        opacity: frozen ? 0.7 : 1,
-                      }}>
-                        <div onClick={() => !frozen && toggleOwner(oid)} style={{
-                          padding: '14px', display: 'flex', alignItems: 'center', gap: 12,
-                          cursor: frozen ? 'default' : 'pointer',
-                        }}>
-                          <div style={{
-                            width: 38, height: 38, borderRadius: 11,
-                            background: oid === 'table' ? TINT : (guest?.isGuest ? MUTESURF : BADGE),
-                            color: oid === 'table' ? WINE : (guest?.isGuest ? MUTED : '#fff'),
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 13, fontWeight: 700, position: 'relative',
-                          }}>
-                            {oid === 'table' ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
-                              </svg>
-                            ) : oid === 'guests' ? (
-                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                              </svg>
-                            ) : (guest?.initial || '?')}
-                            {allPaid && (
-                              <div style={{
-                                position: 'absolute', bottom: -3, right: -3,
-                                width: 16, height: 16, borderRadius: 999,
-                                background: '#1c8c5b', color: '#fff',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                border: '2px solid #fff',
-                              }}>
-                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                              </div>
-                            )}
-                            {allLocked && (
-                              <div style={{
-                                position: 'absolute', bottom: -3, right: -3,
-                                width: 16, height: 16, borderRadius: 999,
-                                background: MUTED, color: '#fff',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                border: '2px solid #fff',
-                              }}>
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{ownerLabel(oid)}</div>
-                            <div style={{ fontSize: 12, color: allPaid ? '#1c8c5b' : MUTED, marginTop: 1, fontWeight: allPaid ? 700 : 500 }}>
-                              {allPaid
-                                ? 'Ha già pagato la sua parte'
-                                : allLocked
-                                ? 'Sta pagando la sua parte…'
-                                : selectedCount > 0
-                                ? `${selectedCount}/${openItems.length} aggiunti · ${items.filter(i => selectedExtras[i.lineId] && !isPaid(i.lineId)).reduce((s, i) => s + i.price * i.qty, 0).toFixed(2)}€`
-                                : `${openItems.length} piatti · ${openTotal.toFixed(2)}€`}
-                            </div>
-                          </div>
-                          {!frozen && (
-                            <div style={{ transform: open ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
-                              <I.ChevDown color={MUTED} size={16}/>
-                            </div>
-                          )}
-                        </div>
-                        {open && !frozen && (
-                          <div style={{ padding: '0 14px 14px' }}>
-                            <button onClick={() => addAllOwner(oid)} disabled={allSelected} style={{
-                              width: '100%', padding: '8px 12px', borderRadius: 999,
-                              background: allSelected ? '#ebe3d6' : WINE,
-                              color: allSelected ? MUTED : '#fff',
-                              border: 'none', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
-                              cursor: allSelected ? 'default' : 'pointer', marginBottom: 8,
-                            }}>{allSelected ? 'Già tutti aggiunti' : `Offri tutto (${openTotal.toFixed(2)}€)`}</button>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              {items.map(i => {
-                                const paid = isPaid(i.lineId);
-                                const locked = !paid && isLocked(i.lineId);
-                                const sel = !!selectedExtras[i.lineId];
-                                return (
-                                  <div key={i.lineId} style={{
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    padding: '10px 0', borderTop: `1px solid ${BORDER}`,
-                                    opacity: paid || locked ? 0.5 : 1,
-                                  }}>
-                                    <div style={{ flex: 1 }}>
-                                      <div style={{ fontSize: 15, fontWeight: 600, color: TEXT, textDecoration: paid ? 'line-through' : 'none' }}>{i.name}</div>
-                                      <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>
-                                        {paid ? '✓ già pagato' : locked ? 'In pagamento…' : `${i.price}€${i.qty > 1 ? ` × ${i.qty}` : ''}`}
-                                      </div>
-                                    </div>
-                                    {paid ? null : locked ? (
-                                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginRight: 7 }}>
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                      </svg>
-                                    ) : (
-                                      <button onClick={() => toggleExtra(i.lineId)} aria-label={sel ? 'Togli dal mio conto' : 'Aggiungi al mio conto'} style={sel ? removeBtnStyle : addBtnStyle}>{sel ? '−' : '+'}</button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                {altroItems.length > 0 && (
+                  <div>
+                    <div style={{ ...groupLabelStyle, marginBottom: 2 }}>Altro</div>
+                    <div style={{ fontSize: 12, color: MUTED, margin: '0 2px 8px' }}>
+                      Dal cameriere e da chi al tavolo non usa app o webapp
+                    </div>
+                    {renderTableCard({
+                      id: 'altro',
+                      title: 'Altro',
+                      avatarBg: TINT,
+                      avatarColor: WINE,
+                      avatar: (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
+                        </svg>
+                      ),
+                      items: altroItems,
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -4446,15 +4377,6 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           </div>
         </div>
       )}
-      {/* Coperti — obbligatori: si entra qui dal "Paga ora" */}
-      {copertiOpen && (
-        <CopertiSheet onConfirm={(n) => {
-          saveCoperti(n);
-          setState(st => ({ ...st, coperti: n, copertiSelected: true }));
-          setCopertiOpen(false);
-        }}/>
-      )}
-
       {/* Conferma "tutto il tavolo" */}
       {confirmAll && (
         <div style={{
@@ -5528,12 +5450,12 @@ function MenuApp({ initial = null }) {
         { lineId: 'g1-1', id: 'p2', name: 'Carbonara', qty: 1, price: 15, ownerId: 'g1' },
         { lineId: 'g1-2', id: 'a3', name: 'Tagliere misto', qty: 1, price: 12, ownerId: 'g1' },
         { lineId: 'g1-3', id: 'd1', name: 'Tiramisù della casa', qty: 1, price: 8, ownerId: 'g1' },
-        // Ospite 1 (g2)
+        // Giulia (g2) — da webapp
         { lineId: 'g2-1', id: 's1', name: 'Saltimbocca alla romana', qty: 1, price: 22, ownerId: 'g2' },
         { lineId: 'g2-2', id: 'a1', name: "Fritto all'Italiana", qty: 1, price: 20, ownerId: 'g2' },
         { lineId: 'g2-3', id: 'p4', name: 'Risotto al tartufo', qty: 1, price: 22, ownerId: 'g2' },
         { lineId: 'g2-4', id: 'd5', name: 'Crème brûlée', qty: 1, price: 8, ownerId: 'g2' },
-        // Ospite 2 (g3)
+        // Ospite 1 (g3) — né app né webapp: finisce in "Altro"
         { lineId: 'g3-1', id: 'p3', name: 'Amatriciana', qty: 1, price: 14, ownerId: 'g3', splitWith: ['g2'] },
         { lineId: 'g3-2', id: 's6', name: 'Filetto di manzo', qty: 1, price: 32, ownerId: 'g3' },
         { lineId: 'g3-3', id: 'b3', name: 'Birra artigianale 33cl', qty: 1, price: 6, ownerId: 'g3' },
