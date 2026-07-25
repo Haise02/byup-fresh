@@ -1162,10 +1162,10 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <style>{`@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
               <button onClick={() => setConfirmDeleteAccount(true)} style={{
                 pointerEvents: 'auto',
-                padding: '11px 30px', background: __BYUP_DK_X ? 'rgba(255,255,255,.07)' : MUTESURF_X,
-                border: `1px solid ${__BYUP_DK_X ? 'rgba(255,107,107,.5)' : 'rgba(180,30,30,.35)'}`, borderRadius: 999,
+                padding: '8px 12px', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13.5, fontWeight: 700, color: __BYUP_DK_X ? '#ff8a8a' : '#b42222',
+                fontSize: 13.5, fontWeight: 500, color: MUTED_X,
+                textDecoration: 'underline', textUnderlineOffset: 3,
               }}>Elimina account</button>
             </div>
 
