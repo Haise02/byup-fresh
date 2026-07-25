@@ -8,7 +8,14 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   // Filtro alert: quando attivo, mostra solo le card con triangolo rosso (>20' di ritardo o da pulire)
   const [alertOnly, setAlertOnly] = React.useState(false);
   const [view, setView] = React.useState(tweaks.defaultView || 'mappa');
-  const [expandedId, setExpandedId] = React.useState(null);
+  // Deep-link: ?tavolo=N (es. dal widget Stato tavoli in Panoramica) apre
+  // la Sala con quel tavolo già espanso.
+  const [expandedId, setExpandedId] = React.useState(() => {
+    try {
+      const v = parseInt(new URLSearchParams(window.location.search).get('tavolo'), 10);
+      return Number.isFinite(v) ? v : null;
+    } catch (e) { return null; }
+  });
   // Modalità "Unisci tavoli": selezione multipla sulla mappa → conferma.
   const [mergeMode, setMergeMode] = React.useState(false);
   const [mergeSel, setMergeSel] = React.useState(() => new Set());

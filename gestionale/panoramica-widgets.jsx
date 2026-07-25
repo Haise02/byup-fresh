@@ -595,29 +595,63 @@ function WidgetPrenotazioniOggi() {
 
 // ─── 3. Tavoli stato ────────────────────────────────────────────────────────
 
+// Palette identica alla Sala (STATE_STYLE di sala-card / sala-table-tile):
+// tint di riposo, tinta intensa per l'hover, ring e inchiostro per stato.
+const WTAV_STATES = {
+  libero:    { tint:'rgba(22, 163, 74, 0.10)',  hot:'rgba(22, 163, 74, 0.20)',  ring:'rgba(22, 163, 74, 0.40)',  ink:'#15803D', label:'Libero' },
+  occupato:  { tint:'rgba(255, 90, 95, 0.18)',  hot:'rgba(255, 90, 95, 0.32)',  ring:'rgba(227, 36, 89, 0.42)',  ink:'#E32459', label:'Occupato' },
+  prenotato: { tint:'rgba(124, 58, 237, 0.12)', hot:'rgba(124, 58, 237, 0.24)', ring:'rgba(124, 58, 237, 0.38)', ink:'#6D28D9', label:'Prenotato' },
+  dapulire:  { tint:'rgba(217, 119, 6, 0.14)',  hot:'rgba(217, 119, 6, 0.26)',  ring:'rgba(217, 119, 6, 0.42)',  ink:'#B45309', label:'Da liberare' },
+};
+
+// Tile-tavolo: hover come in Sala (tinta più intensa, hairline di stato,
+// lift con ombra) + scale; il click apre la Sala col tavolo espanso.
+function WTavTile({ t }) {
+  const [hover, setHover] = React.useState(false);
+  const S = WTAV_STATES[t.s];
+  return (
+    <button
+      onClick={() => { window.location.href = `byup Sala.html?tavolo=${t.id}`; }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      title={`Apri Tavolo ${t.id} in Sala`}
+      style={{
+        padding: 4, minHeight: 0, border: 'none', fontFamily: 'inherit', cursor: 'pointer',
+        background: hover ? S.hot : S.tint,
+        borderRadius: 10,
+        boxShadow: hover
+          ? `inset 0 0 0 1.25px ${S.ring}, 0 10px 24px rgba(80, 40, 80, 0.18)`
+          : `inset 0 0 0 1px ${S.ring}`,
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap: 2,
+        transform: hover ? 'scale(1.06)' : 'scale(1)',
+        transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), background 150ms ease, box-shadow 200ms ease',
+        position: 'relative', zIndex: hover ? 2 : 1,
+      }}>
+      <div style={{fontSize: 14.5, fontWeight: 700, color: S.ink, lineHeight: 1.1, whiteSpace:'nowrap'}}>Tavolo {t.id}</div>
+      <div style={{fontSize: 11.5, color: S.ink, fontWeight: 600, opacity: 0.8, lineHeight: 1.1, whiteSpace:'nowrap'}}>
+        {t.t || S.label}
+      </div>
+    </button>
+  );
+}
+
 function WidgetTavoliStato() {
-  // Stessi stati di Sala: libero | prenotato | occupato | dapulire
+  // Specchio dei primi 12 tavoli della Sala principale (sala-data.jsx):
+  // stessi id, stessi stati, stessi tempi — il widget dice la verità di Sala.
   const tables = [
-    { id:'T1', s:'libero' },
-    { id:'T2', s:'occupato', t:'45m' },
-    { id:'T3', s:'occupato', t:'12m' },
-    { id:'T4', s:'prenotato', t:'20:30' },
-    { id:'T5', s:'prenotato', t:'21:00' },
-    { id:'T6', s:'occupato', t:'1h10' },
-    { id:'T7', s:'occupato', t:'48m' },
-    { id:'T8', s:'libero' },
-    { id:'T9', s:'occupato', t:'12m' },
-    { id:'T10', s:'prenotato', t:'20:45' },
-    { id:'T11', s:'dapulire' },
-    { id:'T12', s:'libero' },
+    { id: 1,  s:'occupato',  t:'32m' },
+    { id: 2,  s:'libero' },
+    { id: 3,  s:'occupato',  t:'18m' },
+    { id: 4,  s:'prenotato', t:'20:30' },
+    { id: 5,  s:'occupato',  t:'1h05' },
+    { id: 6,  s:'dapulire' },
+    { id: 7,  s:'occupato',  t:'48m' },
+    { id: 8,  s:'libero' },
+    { id: 9,  s:'occupato',  t:'12m' },
+    { id: 10, s:'prenotato', t:'20:45' },
+    { id: 11, s:'occupato',  t:'1h35' },
+    { id: 12, s:'libero' },
   ];
-  // Palette allineata a Sala
-  const colors = {
-    libero:    { bg:'#F4F5F7',     fg: PN.MUTED,     label:'Libero' },
-    occupato:  { bg:'#FFE0DD',     fg: PN.PINK_DARK, label:'Occupato' },
-    prenotato: { bg: PN.BLUE_SOFT, fg: PN.BLUE,      label:'Prenotato' },
-    dapulire:  { bg: PN.PURPLE_SOFT, fg: PN.PURPLE,  label:'Da liberare' },
-  };
   const occupati = tables.filter(t => t.s === 'occupato').length;
 
   return (
@@ -637,24 +671,7 @@ function WidgetTavoliStato() {
         gridTemplateRows:'repeat(3, 1fr)',
         gap: 8, marginBottom: 12,
       }}>
-        {tables.map(t => {
-          const c = colors[t.s];
-          return (
-            <div key={t.id} style={{
-              padding: 4,
-              background: c.bg,
-              borderRadius: 10,
-              minHeight: 0,
-              display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-              gap: 2,
-            }}>
-              <div style={{fontSize: 16, fontWeight: 700, color: c.fg, lineHeight: 1.1}}>{t.id}</div>
-              <div style={{fontSize: 11.5, color: c.fg, fontWeight: 600, opacity: 0.8, lineHeight: 1.1}}>
-                {t.t || c.label}
-              </div>
-            </div>
-          );
-        })}
+        {tables.map(t => <WTavTile key={t.id} t={t}/>)}
       </div>
 
       <div style={{
@@ -662,9 +679,9 @@ function WidgetTavoliStato() {
         flexShrink: 0,
         paddingTop: 8, borderTop:`1px solid ${PN.BORDER_SOFT}`,
       }}>
-        {Object.entries(colors).map(([k, c]) => (
+        {Object.entries(WTAV_STATES).map(([k, c]) => (
           <div key={k} style={{display:'flex', alignItems:'center', gap: 5, fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap'}}>
-            <span style={{width: 8, height: 8, borderRadius: 2, background: c.fg}}/>
+            <span style={{width: 8, height: 8, borderRadius: 2, background: c.ink}}/>
             {c.label}
           </div>
         ))}
