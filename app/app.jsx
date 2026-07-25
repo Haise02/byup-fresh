@@ -2915,6 +2915,21 @@ const BYP_CSS = `
 .byp-badgecard:active{transform:scale(.96)}
 `;
 const BYP_LEVEL_NAMES = { 1: 'Novizio', 2: 'Esploratore', 3: 'Buongustaio', 4: 'Intenditore', 5: 'Gourmet', 6: 'Maestro', 7: 'Leggenda', 8: 'Icona' };
+// Ricompensa crescente e mascotte diversa per ogni livello della roadmap.
+// La carriera visiva segue le tavole byuppini (prime armi → cameriere →
+// caposala → chef → executive chef → proprietario → proprietario dorato →
+// imprenditore miliardario): quando arrivano gli 8 artwork dedicati basta
+// sostituire i path qui sotto.
+const BYP_LEVEL_INFO = {
+  1: { img: 'assets/mascot-wave.png',      mult: '×1',   bonus: 0 },
+  2: { img: 'assets/mascot-waiter.png',    mult: '×1,2', bonus: 100 },
+  3: { img: 'assets/mascot-confident.png', mult: '×1,3', bonus: 250 },
+  4: { img: 'assets/mascot-chef.png',      mult: '×1,5', bonus: 500 },
+  5: { img: 'assets/mascot-chef-2.png',    mult: '×1,8', bonus: 1000 },
+  6: { img: 'assets/mascot-wink.png',      mult: '×2',   bonus: 2000 },
+  7: { img: 'assets/mascot-master.png',    mult: '×2,5', bonus: 3500 },
+  8: { img: 'assets/mascot-coin.png',      mult: '×3',   bonus: 5000 },
+};
 const BYP_CUR_LEVEL = 3;
 const BYP_ACH = [
   { e: '🍕', t: 'Pizza lover', s: 'done', pts: 100, d: 'Hai ordinato 10 pizze dai locali byup.' },
@@ -3772,7 +3787,14 @@ function BypScratchSheet({ onClose, onWin }) {
 }
 
 function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }) {
-  const [seg, setSeg] = useState('wallet');
+  // Deep-link di segmento (es. "Guadagna punti" dalla roadmap → Traguardi)
+  const [seg, setSeg] = useState(() => {
+    try {
+      const s = sessionStorage.getItem('byup_byuppini_seg');
+      if (s) { sessionStorage.removeItem('byup_byuppini_seg'); return s; }
+    } catch {}
+    return 'wallet';
+  });
   const [bal, setBal] = useState(0);
   const [xp, setXp] = useState(0);
   const [levelUp, setLevelUp] = useState(false);
@@ -4034,23 +4056,27 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
       <BottomTabBar active="byuppini" forceDark onQR={onQR} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={() => {}}/>
 
       {/* Level-up */}
-      {levelUp && (
+      {levelUp && (() => {
+        const nextLvl = Math.min(8, BYP_CUR_LEVEL + 1);
+        const info = BYP_LEVEL_INFO[nextLvl];
+        return (
         <BypSheet center onClose={() => setLevelUp(false)}>
           <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
             background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.35), transparent 60%), ${BYP.surf}`,
             border: '1px solid rgba(255,90,130,.4)', borderRadius: 28, padding: '30px 24px 24px',
             boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)' }}>
-            <img src="assets/mascot-happy.png" onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
+            <img src={info.img} onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
               style={{ width: 130, margin: '-70px 0 4px', filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.5))' }}/>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: BYP.lime, textTransform: 'uppercase' }}>Prossimo livello</div>
-            <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.4 · {BYP_LEVEL_NAMES[4]}</div>
-            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>Sbloccherai il moltiplicatore <b style={{ color: '#fff' }}>×1,5</b> su tutti i byuppini che guadagni</div>
+            <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.{nextLvl} · {BYP_LEVEL_NAMES[nextLvl]}</div>
+            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>Sbloccherai il moltiplicatore <b style={{ color: '#fff' }}>{info.mult}</b> su tutti i byuppini che guadagni</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(206,255,0,.12)', border: '1px solid rgba(206,255,0,.35)',
-              color: BYP.lime, fontWeight: 800, fontSize: 13, padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>🎁 Riceverai +250 byuppini bonus</div>
+              color: BYP.lime, fontWeight: 800, fontSize: 13, padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>🎁 Riceverai +{info.bonus.toLocaleString('it-IT')} byuppini bonus</div>
             <BypCta onClick={() => setLevelUp(false)}>Non vedo l'ora</BypCta>
           </div>
         </BypSheet>
-      )}
+        );
+      })()}
 
       {/* Dettaglio traguardo */}
       {ach && (
@@ -4153,10 +4179,11 @@ const ROAD_PATHS = (() => {
   return { done, todo };
 })();
 
-function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }) {
+function RoadmapScreen({ onBack, onByuppini, onTraguardi, onHome, onProfile, onSearch, onQR }) {
   const sceneRef = useRef(null);
   const worldRef = useRef(null);
   const [imgOk, setImgOk] = useState(false);
+  const [lvlPopup, setLvlPopup] = useState(null); // numero livello aperto nel popup
   const pc = (v) => (v * 100).toFixed(3) + '%';
 
   useEffect(() => {
@@ -4222,8 +4249,9 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
                 <div style={{ position: 'absolute', transform: 'translate(-50%,-50%)', borderRadius: '50%', zIndex: 2,
                   pointerEvents: 'none', left: pc(p.pcx), top: pc(p.pcy + 0.004), width: pc(sw), height: pc(sw * 0.5 * ROAD_RA),
                   background: 'radial-gradient(closest-side, rgba(30,10,18,.5), rgba(30,10,18,.22) 55%, transparent 78%)' }}/>
-                <img src={`assets/venue-${p.lvl}.png`} alt=""
+                <img src={`assets/venue-${p.lvl}.png`} alt="" onClick={() => setLvlPopup(p.lvl)}
                   style={{ position: 'absolute', zIndex: 3, left: pc(p.left), top: pc(p.top), width: pc(p.w),
+                    cursor: 'pointer',
                     filter: state === 'lock'
                       ? 'grayscale(.72) brightness(.62) drop-shadow(0 8px 10px rgba(20,6,14,.5))'
                       : 'drop-shadow(0 10px 12px rgba(20,6,14,.45))',
@@ -4313,6 +4341,55 @@ function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(246,236,233,.65)" strokeWidth="2.4"
           strokeLinecap="round" style={{ flex: 'none' }}><polyline points="9 6 15 12 9 18"/></svg>
       </button>
+
+      {/* Popup livello — stesso stile di "Cosa succede al prossimo livello?";
+          lockato → CTA "Guadagna punti" verso i Traguardi */}
+      {lvlPopup && (() => {
+        const lvl = lvlPopup;
+        const lstate = lvl < ROAD_CUR ? 'done' : lvl === ROAD_CUR ? 'cur' : 'lock';
+        const info = BYP_LEVEL_INFO[lvl];
+        const locked = lstate === 'lock';
+        return (
+          <BypSheet center onClose={() => setLvlPopup(null)}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
+              background: `radial-gradient(90% 60% at 50% 0%, ${locked ? 'rgba(120,110,120,.30)' : 'rgba(227,36,89,.35)'}, transparent 60%), ${BYP.surf}`,
+              border: `1px solid ${locked ? 'rgba(255,255,255,.22)' : 'rgba(255,90,130,.4)'}`, borderRadius: 28, padding: '30px 24px 24px',
+              boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)' }}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img src={info.img} onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
+                  style={{ width: 130, margin: '-70px 0 4px',
+                    filter: locked ? 'grayscale(.8) brightness(.72) drop-shadow(0 14px 24px rgba(0,0,0,.5))' : 'drop-shadow(0 14px 24px rgba(0,0,0,.5))' }}/>
+                {locked && (
+                  <span style={{ position: 'absolute', right: -4, bottom: 12, width: 32, height: 32, borderRadius: '50%',
+                    background: '#2a262b', border: '2px solid rgba(255,255,255,.75)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🔒</span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: locked ? 'rgba(246,236,233,.6)' : BYP.lime, textTransform: 'uppercase' }}>
+                {locked ? 'Livello bloccato' : lstate === 'cur' ? 'Il tuo livello' : 'Livello raggiunto'}
+              </div>
+              <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.{lvl} · {BYP_LEVEL_NAMES[lvl]}</div>
+              <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>
+                {lvl === 1
+                  ? 'Il punto di partenza del percorso byuppini.'
+                  : <>{locked ? 'Sbloccherai il moltiplicatore' : 'Moltiplicatore'} <b style={{ color: '#fff' }}>{info.mult}</b> su tutti i byuppini che guadagni</>}
+              </div>
+              {info.bonus > 0 && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: locked ? 'rgba(255,255,255,.08)' : 'rgba(206,255,0,.12)',
+                  border: `1px solid ${locked ? 'rgba(255,255,255,.25)' : 'rgba(206,255,0,.35)'}`,
+                  color: locked ? 'rgba(246,236,233,.85)' : BYP.lime, fontWeight: 800, fontSize: 13,
+                  padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>
+                  🎁 {locked ? 'Sbloccalo per' : 'Bonus'} +{info.bonus.toLocaleString('it-IT')} byuppini
+                </div>
+              )}
+              {locked
+                ? <BypCta onClick={() => { setLvlPopup(null); onTraguardi ? onTraguardi() : onByuppini?.(); }}>Guadagna punti</BypCta>
+                : <BypCta onClick={() => setLvlPopup(null)}>Non vedo l'ora</BypCta>}
+            </div>
+          </BypSheet>
+        );
+      })()}
 
       <BottomTabBar active="byuppini" forceDark onQR={onQR} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={onByuppini}/>
     </div>
@@ -4469,6 +4546,10 @@ function App({ recoveryArmed = false }) {
       <RoadmapScreen
         onBack={goBack}
         onByuppini={() => setPage('byuppini')}
+        onTraguardi={() => {
+          try { sessionStorage.setItem('byup_byuppini_seg', 'tra'); } catch {}
+          setPage('byuppini');
+        }}
         onHome={resetToHome}
         onProfile={() => setPage('profile')}
         onSearch={() => setPage('search')}

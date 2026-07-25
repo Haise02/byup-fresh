@@ -18895,6 +18895,53 @@ const BYP_LEVEL_NAMES = {
   7: 'Leggenda',
   8: 'Icona'
 };
+// Ricompensa crescente e mascotte diversa per ogni livello della roadmap.
+// La carriera visiva segue le tavole byuppini (prime armi → cameriere →
+// caposala → chef → executive chef → proprietario → proprietario dorato →
+// imprenditore miliardario): quando arrivano gli 8 artwork dedicati basta
+// sostituire i path qui sotto.
+const BYP_LEVEL_INFO = {
+  1: {
+    img: 'assets/mascot-wave.png',
+    mult: '×1',
+    bonus: 0
+  },
+  2: {
+    img: 'assets/mascot-waiter.png',
+    mult: '×1,2',
+    bonus: 100
+  },
+  3: {
+    img: 'assets/mascot-confident.png',
+    mult: '×1,3',
+    bonus: 250
+  },
+  4: {
+    img: 'assets/mascot-chef.png',
+    mult: '×1,5',
+    bonus: 500
+  },
+  5: {
+    img: 'assets/mascot-chef-2.png',
+    mult: '×1,8',
+    bonus: 1000
+  },
+  6: {
+    img: 'assets/mascot-wink.png',
+    mult: '×2',
+    bonus: 2000
+  },
+  7: {
+    img: 'assets/mascot-master.png',
+    mult: '×2,5',
+    bonus: 3500
+  },
+  8: {
+    img: 'assets/mascot-coin.png',
+    mult: '×3',
+    bonus: 5000
+  }
+};
 const BYP_CUR_LEVEL = 3;
 const BYP_ACH = [{
   e: '🍕',
@@ -20970,7 +21017,17 @@ function ByuppiniScreen({
   onSearch,
   onQR
 }) {
-  const [seg, setSeg] = useState('wallet');
+  // Deep-link di segmento (es. "Guadagna punti" dalla roadmap → Traguardi)
+  const [seg, setSeg] = useState(() => {
+    try {
+      const s = sessionStorage.getItem('byup_byuppini_seg');
+      if (s) {
+        sessionStorage.removeItem('byup_byuppini_seg');
+        return s;
+      }
+    } catch {}
+    return 'wallet';
+  });
   const [bal, setBal] = useState(0);
   const [xp, setXp] = useState(0);
   const [levelUp, setLevelUp] = useState(false);
@@ -21744,75 +21801,79 @@ function ByuppiniScreen({
     onProfile: onProfile,
     onSearch: onSearch,
     onByuppini: () => {}
-  }), levelUp && /*#__PURE__*/React.createElement(BypSheet, {
-    center: true,
-    onClose: () => setLevelUp(false)
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      width: '100%',
-      maxWidth: 340,
-      textAlign: 'center',
-      background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.35), transparent 60%), ${BYP.surf}`,
-      border: '1px solid rgba(255,90,130,.4)',
-      borderRadius: 28,
-      padding: '30px 24px 24px',
-      boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)',
-      animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: "assets/mascot-happy.png",
-    onError: e => {
-      e.currentTarget.src = 'assets/mascot-wink.png';
-    },
-    alt: "",
-    style: {
-      width: 130,
-      margin: '-70px 0 4px',
-      filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.5))'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 800,
-      letterSpacing: 2,
-      color: BYP.lime,
-      textTransform: 'uppercase'
-    }
-  }, "Prossimo livello"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 600,
-      fontSize: 30,
-      margin: '4px 0 2px'
-    }
-  }, "LIV.4 \xB7 ", BYP_LEVEL_NAMES[4]), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: BYP.muted,
-      marginBottom: 16
-    }
-  }, "Sbloccherai il moltiplicatore ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: '#fff'
-    }
-  }, "\xD71,5"), " su tutti i byuppini che guadagni"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 8,
-      background: 'rgba(206,255,0,.12)',
-      border: '1px solid rgba(206,255,0,.35)',
-      color: BYP.lime,
-      fontWeight: 800,
-      fontSize: 13,
-      padding: '9px 16px',
-      borderRadius: 999,
-      marginBottom: 18
-    }
-  }, "\uD83C\uDF81 Riceverai +250 byuppini bonus"), /*#__PURE__*/React.createElement(BypCta, {
-    onClick: () => setLevelUp(false)
-  }, "Non vedo l'ora"))), ach && /*#__PURE__*/React.createElement(BypSheet, {
+  }), levelUp && (() => {
+    const nextLvl = Math.min(8, BYP_CUR_LEVEL + 1);
+    const info = BYP_LEVEL_INFO[nextLvl];
+    return /*#__PURE__*/React.createElement(BypSheet, {
+      center: true,
+      onClose: () => setLevelUp(false)
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'relative',
+        width: '100%',
+        maxWidth: 340,
+        textAlign: 'center',
+        background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.35), transparent 60%), ${BYP.surf}`,
+        border: '1px solid rgba(255,90,130,.4)',
+        borderRadius: 28,
+        padding: '30px 24px 24px',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)',
+        animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)'
+      }
+    }, /*#__PURE__*/React.createElement("img", {
+      src: info.img,
+      onError: e => {
+        e.currentTarget.src = 'assets/mascot-wink.png';
+      },
+      alt: "",
+      style: {
+        width: 130,
+        margin: '-70px 0 4px',
+        filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.5))'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 800,
+        letterSpacing: 2,
+        color: BYP.lime,
+        textTransform: 'uppercase'
+      }
+    }, "Prossimo livello"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: BK.TYPE.display,
+        fontWeight: 600,
+        fontSize: 30,
+        margin: '4px 0 2px'
+      }
+    }, "LIV.", nextLvl, " \xB7 ", BYP_LEVEL_NAMES[nextLvl]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13.5,
+        color: BYP.muted,
+        marginBottom: 16
+      }
+    }, "Sbloccherai il moltiplicatore ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: '#fff'
+      }
+    }, info.mult), " su tutti i byuppini che guadagni"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        background: 'rgba(206,255,0,.12)',
+        border: '1px solid rgba(206,255,0,.35)',
+        color: BYP.lime,
+        fontWeight: 800,
+        fontSize: 13,
+        padding: '9px 16px',
+        borderRadius: 999,
+        marginBottom: 18
+      }
+    }, "\uD83C\uDF81 Riceverai +", info.bonus.toLocaleString('it-IT'), " byuppini bonus"), /*#__PURE__*/React.createElement(BypCta, {
+      onClick: () => setLevelUp(false)
+    }, "Non vedo l'ora")));
+  })(), ach && /*#__PURE__*/React.createElement(BypSheet, {
     center: true,
     onClose: () => setAch(null)
   }, /*#__PURE__*/React.createElement("div", {
@@ -22070,6 +22131,7 @@ const ROAD_PATHS = (() => {
 function RoadmapScreen({
   onBack,
   onByuppini,
+  onTraguardi,
   onHome,
   onProfile,
   onSearch,
@@ -22078,6 +22140,7 @@ function RoadmapScreen({
   const sceneRef = useRef(null);
   const worldRef = useRef(null);
   const [imgOk, setImgOk] = useState(false);
+  const [lvlPopup, setLvlPopup] = useState(null); // numero livello aperto nel popup
   const pc = v => (v * 100).toFixed(3) + '%';
   useEffect(() => {
     if (!imgOk) return;
@@ -22281,12 +22344,14 @@ function RoadmapScreen({
     }), /*#__PURE__*/React.createElement("img", {
       src: `assets/venue-${p.lvl}.png`,
       alt: "",
+      onClick: () => setLvlPopup(p.lvl),
       style: {
         position: 'absolute',
         zIndex: 3,
         left: pc(p.left),
         top: pc(p.top),
         width: pc(p.w),
+        cursor: 'pointer',
         filter: state === 'lock' ? 'grayscale(.72) brightness(.62) drop-shadow(0 8px 10px rgba(20,6,14,.5))' : 'drop-shadow(0 10px 12px rgba(20,6,14,.45))',
         animation: state === 'cur' ? 'bypBob 3.4s ease-in-out infinite' : 'none'
       }
@@ -22539,7 +22604,106 @@ function RoadmapScreen({
     }
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "9 6 15 12 9 18"
-  }))), /*#__PURE__*/React.createElement(BottomTabBar, {
+  }))), lvlPopup && (() => {
+    const lvl = lvlPopup;
+    const lstate = lvl < ROAD_CUR ? 'done' : lvl === ROAD_CUR ? 'cur' : 'lock';
+    const info = BYP_LEVEL_INFO[lvl];
+    const locked = lstate === 'lock';
+    return /*#__PURE__*/React.createElement(BypSheet, {
+      center: true,
+      onClose: () => setLvlPopup(null)
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'relative',
+        width: '100%',
+        maxWidth: 340,
+        textAlign: 'center',
+        background: `radial-gradient(90% 60% at 50% 0%, ${locked ? 'rgba(120,110,120,.30)' : 'rgba(227,36,89,.35)'}, transparent 60%), ${BYP.surf}`,
+        border: `1px solid ${locked ? 'rgba(255,255,255,.22)' : 'rgba(255,90,130,.4)'}`,
+        borderRadius: 28,
+        padding: '30px 24px 24px',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)',
+        animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'relative',
+        display: 'inline-block'
+      }
+    }, /*#__PURE__*/React.createElement("img", {
+      src: info.img,
+      onError: e => {
+        e.currentTarget.src = 'assets/mascot-wink.png';
+      },
+      alt: "",
+      style: {
+        width: 130,
+        margin: '-70px 0 4px',
+        filter: locked ? 'grayscale(.8) brightness(.72) drop-shadow(0 14px 24px rgba(0,0,0,.5))' : 'drop-shadow(0 14px 24px rgba(0,0,0,.5))'
+      }
+    }), locked && /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: 'absolute',
+        right: -4,
+        bottom: 12,
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        background: '#2a262b',
+        border: '2px solid rgba(255,255,255,.75)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 14
+      }
+    }, "\uD83D\uDD12")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 800,
+        letterSpacing: 2,
+        color: locked ? 'rgba(246,236,233,.6)' : BYP.lime,
+        textTransform: 'uppercase'
+      }
+    }, locked ? 'Livello bloccato' : lstate === 'cur' ? 'Il tuo livello' : 'Livello raggiunto'), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: BK.TYPE.display,
+        fontWeight: 600,
+        fontSize: 30,
+        margin: '4px 0 2px'
+      }
+    }, "LIV.", lvl, " \xB7 ", BYP_LEVEL_NAMES[lvl]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13.5,
+        color: BYP.muted,
+        marginBottom: 16
+      }
+    }, lvl === 1 ? 'Il punto di partenza del percorso byuppini.' : /*#__PURE__*/React.createElement(React.Fragment, null, locked ? 'Sbloccherai il moltiplicatore' : 'Moltiplicatore', " ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: '#fff'
+      }
+    }, info.mult), " su tutti i byuppini che guadagni")), info.bonus > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        background: locked ? 'rgba(255,255,255,.08)' : 'rgba(206,255,0,.12)',
+        border: `1px solid ${locked ? 'rgba(255,255,255,.25)' : 'rgba(206,255,0,.35)'}`,
+        color: locked ? 'rgba(246,236,233,.85)' : BYP.lime,
+        fontWeight: 800,
+        fontSize: 13,
+        padding: '9px 16px',
+        borderRadius: 999,
+        marginBottom: 18
+      }
+    }, "\uD83C\uDF81 ", locked ? 'Sbloccalo per' : 'Bonus', " +", info.bonus.toLocaleString('it-IT'), " byuppini"), locked ? /*#__PURE__*/React.createElement(BypCta, {
+      onClick: () => {
+        setLvlPopup(null);
+        onTraguardi ? onTraguardi() : onByuppini?.();
+      }
+    }, "Guadagna punti") : /*#__PURE__*/React.createElement(BypCta, {
+      onClick: () => setLvlPopup(null)
+    }, "Non vedo l'ora")));
+  })(), /*#__PURE__*/React.createElement(BottomTabBar, {
     active: "byuppini",
     forceDark: true,
     onQR: onQR,
@@ -22727,6 +22891,12 @@ function App({
     return /*#__PURE__*/React.createElement(RoadmapScreen, {
       onBack: goBack,
       onByuppini: () => setPage('byuppini'),
+      onTraguardi: () => {
+        try {
+          sessionStorage.setItem('byup_byuppini_seg', 'tra');
+        } catch {}
+        setPage('byuppini');
+      },
       onHome: resetToHome,
       onProfile: () => setPage('profile'),
       onSearch: () => setPage('search'),
