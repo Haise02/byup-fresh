@@ -167,7 +167,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
 
   return (
     <div>
-      <ImpCard title="Informazioni pratiche" sub="Dettagli utili che i clienti vedono sulla vetrina">
+      <ImpCard title="Locale" sub="Dettagli utili che i clienti vedono sulla vetrina del tuo locale">
         {/* Due colonne: campi a sinistra, servizi e accessibilità a destra —
             la card resta compatta invece di allungarsi in verticale. */}
         <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start'}}>
