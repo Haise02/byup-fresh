@@ -747,6 +747,42 @@ function PhoneMockup({menu, height = 570}) {
   // scala rispetto ai 390px a cui è disegnata l'app.
   const screenW = width - 18;
   const k = screenW / 390;
+
+  // Le tab seguono lo scroll, come nell'app: leggo la posizione corrente
+  // dell'animazione CSS (translateY del contenuto), ricavo la sezione in
+  // vista e faccio scorrere la riga delle categorie sull'attiva.
+  const scrollRef = React.useRef(null);  // .phone-scroll-content (animato)
+  const listRef = React.useRef(null);    // prima copia della lista
+  const tabsRef = React.useRef(null);    // riga tab traslabile
+  const [activeCat, setActiveCat] = React.useState(0);
+  const [tabTx, setTabTx] = React.useState(0);
+
+  React.useEffect(() => {
+    const iv = setInterval(() => {
+      const sc = scrollRef.current, list = listRef.current, tabs = tabsRef.current;
+      if (!sc || !list || !tabs) return;
+      const tr = getComputedStyle(sc).transform;
+      let ty = 0;
+      if (tr && tr !== 'none') {
+        const m = tr.match(/matrix\(([^)]+)\)/);
+        if (m) ty = parseFloat(m[1].split(',')[5]) || 0;
+      }
+      const H = list.offsetHeight || 1;
+      const off = ((-ty) % H + H) % H;
+      const listTop = list.offsetTop;
+      let idx = 0;
+      list.querySelectorAll('[data-sec]').forEach((s, i) => {
+        if (s.offsetTop - listTop <= off + 160) idx = i;
+      });
+      setActiveCat(idx);
+      const t = tabs.children[idx];
+      if (t) {
+        const maxTx = Math.max(0, tabs.scrollWidth - 390);
+        setTabTx(Math.min(Math.max(0, t.offsetLeft - 16), maxTx));
+      }
+    }, 250);
+    return () => clearInterval(iv);
+  }, [menu]);
   return (
     /* Scocca: bordo scuro spesso + anello chiaro esterno (il riflesso del
        telaio) + tasti laterali. Prima era un rettangolo nero con gli angoli
@@ -841,16 +877,26 @@ function PhoneMockup({menu, height = 570}) {
           height: Math.round(56 * k), overflow: 'hidden',
         }}>
           <div style={{width: 390, transform: `scale(${k})`, transformOrigin: 'top left', fontFamily: APP_M.FONT}}>
-            <div style={{display: 'flex', gap: 4, padding: '12px 16px 0', overflow: 'hidden'}}>
-              {menu.map((c, i) => (
-                <div key={c.id} style={{
-                  padding: '10px 16px 12px', flex: '0 0 auto',
-                  borderBottom: `2.5px solid ${i === 0 ? APP_M.WINE : 'transparent'}`,
-                  fontSize: 16, fontWeight: i === 0 ? 700 : 500,
-                  color: i === 0 ? APP_M.WINE : APP_M.MUTED,
-                  letterSpacing: -0.1, whiteSpace: 'nowrap',
-                }}>{c.name || 'Categoria'}</div>
-              ))}
+            <div style={{overflow: 'hidden'}}>
+              <div ref={tabsRef} style={{
+                display: 'flex', gap: 4, padding: '12px 16px 0', width: 'max-content',
+                transform: `translateX(${-tabTx}px)`,
+                transition: 'transform 650ms cubic-bezier(.22,.9,.32,1)',
+              }}>
+                {menu.map((c, i) => {
+                  const active = i === activeCat;
+                  return (
+                    <div key={c.id} style={{
+                      padding: '10px 16px 12px', flex: '0 0 auto',
+                      borderBottom: `2.5px solid ${active ? APP_M.WINE : 'transparent'}`,
+                      fontSize: 16, fontWeight: active ? 700 : 500,
+                      color: active ? APP_M.WINE : APP_M.MUTED,
+                      letterSpacing: -0.1, whiteSpace: 'nowrap',
+                      transition: 'color 250ms ease, border-bottom-color 250ms ease',
+                    }}>{c.name || 'Categoria'}</div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -860,11 +906,11 @@ function PhoneMockup({menu, height = 570}) {
           flex: 1, overflow: 'hidden', position: 'relative', background: APP_M.BG,
         }}>
           <div style={{width: 390, transform: `scale(${k})`, transformOrigin: 'top left', fontFamily: APP_M.FONT}}>
-            <div className="phone-scroll-content" style={{
+            <div ref={scrollRef} className="phone-scroll-content" style={{
               animation: 'phone-scroll 48s linear infinite',
               willChange: 'transform',
             }}>
-              <PhoneMenuList menu={menu}/>
+              <PhoneMenuList menu={menu} innerRef={listRef}/>
               <PhoneMenuList menu={menu}/> {/* duplicata per loop seamless */}
             </div>
           </div>
@@ -880,12 +926,12 @@ function PhoneMockup({menu, height = 570}) {
 // categoria (numero fantasma, "Sezione n/N" coi dots, titolo Fredoka) e card
 // piatto identiche — foto a sinistra (qui swatch colore), nome, descrizione,
 // prezzo e bottone + wine. Statico: niente interazioni, è una vetrina.
-function PhoneMenuList({menu}) {
+function PhoneMenuList({menu, innerRef}) {
   const total = menu.length;
   return (
-    <div>
+    <div ref={innerRef}>
       {menu.map((cat, ci) => (
-        <div key={cat.id} style={{padding: '0 18px', marginBottom: 8}}>
+        <div key={cat.id} data-sec={ci} style={{padding: '0 18px', marginBottom: 8}}>
           <div style={{
             margin: ci === 0 ? '10px -18px 18px' : '32px -18px 18px',
             padding: '24px 18px 20px', position: 'relative', overflow: 'hidden',
