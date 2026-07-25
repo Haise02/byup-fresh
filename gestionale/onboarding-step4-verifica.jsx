@@ -689,8 +689,42 @@ function DishItem({dish, onUpdate, onRemove}) {
 // 0.63 contro lo 0.46 reale — da qui la sagoma schiacciata.
 const PHONE_RATIO = 9 / 19.5;
 
+// Design token dell'app consumer (tema chiaro): il mockup replica 1:1 la
+// schermata menu di app/menu.jsx. Il contenuto è renderizzato a 390px (la
+// larghezza di progetto dell'app) e scalato per stare nello schermo.
+const APP_M = {
+  BG: '#FBF4F1', SURF: '#fff', WINE: '#8B1A3A', TEXT: '#1c0f15',
+  MUTED: '#6d5a61', TINT: '#f6f1ea', PINK: '#E32459', BORDER: '#eddfda',
+  FONT: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
+};
+const APP_CAT_TINTS = {
+  'Antipasti': '#fae3de', 'Primi piatti': '#FCE9EE', 'Secondi piatti': '#FEF0E3',
+  'Dolci': '#F9E3EE', 'Bevande': '#f4e5ef',
+};
+const APP_DESCS = {
+  'Bruschetta al pomodoro':    "Pane tostato, pomodorini freschi, basilico e olio evo.",
+  'Tagliere misto':            "Affettati, formaggi, sott'oli e focaccia calda.",
+  'Burrata pugliese':          "Burrata cremosa con pomodorini confit e basilico.",
+  'Cacio e Pepe':              "Tonnarelli, pecorino romano DOP e pepe nero tostato.",
+  'Carbonara':                 "Guanciale croccante, uova, pecorino e pepe nero.",
+  'Amatriciana':               "Bucatini, guanciale, pomodoro e pecorino romano.",
+  'Gricia':                    "La carbonara bianca: guanciale e pecorino romano.",
+  'Ravioli ricotta e spinaci': "Fatti in casa, burro, salvia e parmigiano.",
+  'Saltimbocca alla romana':   "Vitello, prosciutto crudo e salvia, sfumati al vino.",
+  'Coda alla vaccinara':       "Stufata lentamente con sedano, cacao e pinoli.",
+  'Trippa alla romana':        "Con sugo di pomodoro, mentuccia e pecorino.",
+  'Tiramisù':                  "Savoiardi, mascarpone e caffè, come tradizione.",
+  'Panna cotta':               "Con coulis di frutti di bosco di stagione.",
+  'Acqua naturale 75cl':       "Naturale o frizzante, in vetro.",
+  'Vino della casa (1/2 lt)':  "Rosso o bianco della cantina del locale.",
+};
+
 function PhoneMockup({menu, height = 570}) {
   const width = Math.round(height * PHONE_RATIO);
+  // Larghezza utile dello schermo (scocca 3+3 + cornice 6+6) → fattore di
+  // scala rispetto ai 390px a cui è disegnata l'app.
+  const screenW = width - 18;
+  const k = screenW / 390;
   return (
     /* Scocca: bordo scuro spesso + anello chiaro esterno (il riflesso del
        telaio) + tasti laterali. Prima era un rettangolo nero con gli angoli
@@ -729,7 +763,7 @@ function PhoneMockup({menu, height = 570}) {
       }}>
       <div style={{
         width: '100%', height: '100%',
-        background: ONB.BG_SOFT,
+        background: APP_M.BG,
         borderRadius: Math.round(width * 0.125), overflow: 'hidden',
         position: 'relative',
         display: 'flex', flexDirection: 'column',
@@ -779,51 +813,38 @@ function PhoneMockup({menu, height = 570}) {
           </span>
         </div>
 
-        {/* Venue header — pinned top */}
+        {/* Tabs categorie — pinned top, come nell'app (il menu parte da qui) */}
         <div style={{
-          padding: '14px 16px 10px',
-          display: 'flex', alignItems: 'center', gap: 8,
-          borderBottom: '1px solid rgba(15, 17, 21, 0.06)',
-          background: ONB.BG_SOFT,
-          flexShrink: 0, zIndex: 2,
+          flexShrink: 0, position: 'relative', zIndex: 2, background: APP_M.BG,
+          height: Math.round(56 * k), overflow: 'hidden',
         }}>
-          <div style={{flex: 1, minWidth: 0}}>
-            <div style={{
-              fontSize: 13, fontWeight: 500, color: ONB.MUTED, lineHeight: 1.2,
-            }}>
-              Tavolo 7
+          <div style={{width: 390, transform: `scale(${k})`, transformOrigin: 'top left', fontFamily: APP_M.FONT}}>
+            <div style={{display: 'flex', gap: 4, padding: '12px 16px 0', overflow: 'hidden'}}>
+              {menu.map((c, i) => (
+                <div key={c.id} style={{
+                  padding: '10px 16px 12px', flex: '0 0 auto',
+                  borderBottom: `2.5px solid ${i === 0 ? APP_M.WINE : 'transparent'}`,
+                  fontSize: 16, fontWeight: i === 0 ? 700 : 500,
+                  color: i === 0 ? APP_M.WINE : APP_M.MUTED,
+                  letterSpacing: -0.1, whiteSpace: 'nowrap',
+                }}>{c.name || 'Categoria'}</div>
+              ))}
             </div>
-            <div style={{
-              fontSize: 16, fontWeight: 600, color: ONB.TEXT,
-              letterSpacing: '-0.01em', marginTop: 2,
-            }}>
-              Cacio e Pepe
-            </div>
-          </div>
-          <div style={{
-            width: 28, height: 28, borderRadius: 999,
-            background: '#fff', boxShadow: '0 1px 2px rgba(15,17,21,0.06)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ONB.TEXT} strokeWidth="2" strokeLinecap="round">
-              <circle cx="11" cy="11" r="7"/>
-              <line x1="20" y1="20" x2="16.65" y2="16.65"/>
-            </svg>
           </div>
         </div>
 
-        {/* Scrolling menu area */}
+        {/* Scrolling menu area — contenuto app a 390px, scalato */}
         <div className="phone-scroll-area" style={{
-          flex: 1, overflow: 'hidden', position: 'relative',
+          flex: 1, overflow: 'hidden', position: 'relative', background: APP_M.BG,
         }}>
-          <div className="phone-scroll-content" style={{
-            // 30px/s su ~750px (lista singola) → ~25s per giro completo (×2 → translateY -50%)
-            animation: 'phone-scroll 25s linear infinite',
-            willChange: 'transform',
-          }}>
-            <PhoneMenuList menu={menu}/>
-            <PhoneMenuList menu={menu}/> {/* duplicata per loop seamless */}
+          <div style={{width: 390, transform: `scale(${k})`, transformOrigin: 'top left', fontFamily: APP_M.FONT}}>
+            <div className="phone-scroll-content" style={{
+              animation: 'phone-scroll 48s linear infinite',
+              willChange: 'transform',
+            }}>
+              <PhoneMenuList menu={menu}/>
+              <PhoneMenuList menu={menu}/> {/* duplicata per loop seamless */}
+            </div>
           </div>
         </div>
 
@@ -833,58 +854,90 @@ function PhoneMockup({menu, height = 570}) {
   );
 }
 
+// Replica 1:1 della lista menu dell'app (app/menu.jsx): banda-capitolo per
+// categoria (numero fantasma, "Sezione n/N" coi dots, titolo Fredoka) e card
+// piatto identiche — foto a sinistra (qui swatch colore), nome, descrizione,
+// prezzo e bottone + wine. Statico: niente interazioni, è una vetrina.
 function PhoneMenuList({menu}) {
+  const total = menu.length;
   return (
     <div>
-      {menu.map(cat => (
-        <div key={cat.id}>
-          {/* Categoria header dentro la lista scrollante */}
+      {menu.map((cat, ci) => (
+        <div key={cat.id} style={{padding: '0 18px', marginBottom: 8}}>
           <div style={{
-            padding: '14px 16px 6px',
-            fontSize: 13, fontWeight: 600, color: ONB.MUTED,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
+            margin: ci === 0 ? '10px -18px 18px' : '32px -18px 18px',
+            padding: '24px 18px 20px', position: 'relative', overflow: 'hidden',
+            background: `linear-gradient(115deg, ${APP_CAT_TINTS[cat.name] || '#fae3de'} 0%, rgba(255,255,255,0) 82%)`,
           }}>
-            {cat.name}
-          </div>
-          {cat.dishes.map((d, i) => (
-            <div key={i} style={{
-              margin: '0 12px 8px', padding: 10, gap: 10,
-              background: '#fff', borderRadius: 12,
-              boxShadow: '0 1px 2px rgba(15, 17, 21, 0.04)',
-              display: 'flex', alignItems: 'center',
+            <div aria-hidden style={{
+              position: 'absolute', left: 8, top: -20, fontFamily: "'Fredoka', sans-serif",
+              fontSize: 104, fontWeight: 600, lineHeight: 1, color: APP_M.PINK,
+              letterSpacing: -5, opacity: 0.09, pointerEvents: 'none',
+            }}>{String(ci + 1).padStart(2, '0')}</div>
+            <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7}}>
+              <span style={{fontSize: 10.5, fontWeight: 800, color: APP_M.PINK, letterSpacing: 1.2, textTransform: 'uppercase'}}>
+                Sezione {ci + 1}<span style={{color: APP_M.MUTED, fontWeight: 700}}>/{total}</span>
+              </span>
+              <div style={{display: 'flex', gap: 4, alignItems: 'center'}}>
+                {menu.map((_, i) => (
+                  <div key={i} style={{
+                    width: i === ci ? 16 : 5, height: 5, borderRadius: 999,
+                    background: i === ci ? APP_M.PINK : (i < ci ? '#e79fb4' : '#e6d2d9'),
+                  }}/>
+                ))}
+              </div>
+            </div>
+            <div style={{
+              position: 'relative', fontFamily: "'Fredoka', sans-serif",
+              fontSize: 27, fontWeight: 600, color: APP_M.TEXT, lineHeight: 1.05,
             }}>
-              {/* Image placeholder — colored swatch (no foto AI generata) */}
-              <div style={{
-                width: 56, height: 56, borderRadius: 10,
-                background: d.color, flexShrink: 0,
-              }}/>
-              <div style={{flex: 1, minWidth: 0}}>
+              {cat.name || 'Nuova categoria'}
+            </div>
+          </div>
+
+          <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28}}>
+            {cat.dishes.map((d, di) => (
+              <div key={di} style={{
+                background: APP_M.SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
+                display: 'flex', gap: 14,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.05)', border: '1.5px solid transparent',
+              }}>
                 <div style={{
-                  fontSize: 14.5, fontWeight: 600, color: ONB.TEXT,
-                  lineHeight: 1.3,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {d.name}
-                </div>
-                <div style={{
-                  fontSize: 14, fontWeight: 600, color: ONB.TEXT,
-                  fontVariantNumeric: 'tabular-nums',
-                  marginTop: 6,
-                }}>
-                  € {d.price.toFixed(2)}
+                  width: 130, height: '100%', borderRadius: 14, overflow: 'hidden', flexShrink: 0,
+                  background: `linear-gradient(150deg, ${d.color} 0%, ${d.color} 58%, rgba(0,0,0,0.10) 145%)`,
+                }}/>
+                <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column'}}>
+                  <div style={{
+                    fontSize: 16, fontWeight: 700, color: APP_M.TEXT, lineHeight: 1.25,
+                    letterSpacing: -0.2, marginBottom: 5,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{d.name || 'Nuovo piatto'}</div>
+                  <div style={{
+                    fontSize: 13, color: APP_M.MUTED, lineHeight: 1.45, flex: 1,
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden', marginBottom: 10,
+                  }}>
+                    {APP_DESCS[d.name] || 'Preparato ogni giorno con ingredienti freschi.'}
+                  </div>
+                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10}}>
+                    <div style={{fontSize: 16, fontWeight: 800, color: APP_M.TEXT, flexShrink: 0}}>
+                      {+(d.price || 0)}€
+                    </div>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 999, flexShrink: 0,
+                      background: APP_M.WINE,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(90,26,46,0.25)',
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {/* Add button */}
-              <button style={{
-                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                background: ONB.ACTION_SECONDARY, border: 'none',
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <OnbIcon.Plus size={12} color="#fff"/>
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ))}
     </div>
