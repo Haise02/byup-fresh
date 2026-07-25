@@ -1,39 +1,36 @@
 // Top-level app
 
-// Layout default — 2 fold visibili.
-// Top-left: prenotazioni / Top-right: financials uniti (incassi+scontrino+coperti)
-// Bottom-left: recensioni recenti / Bottom-right: riempimento mese
-// Sotto la fold: il resto come prima.
-// Layout default — REGOLA: ogni widget occupa MAX 2 slot in una direzione
-// (wide 2×1 o tall 1×2), oppure 1×1. NON 2×2. Eccezione: WidgetAzioni è il
-// launcher full-row (4×2), trattato come oversize fisso.
-//
-// L'utente può modificare le dimensioni in edit mode tramite i due pulsanti
-// resize sulla card (↔ wide, ↕ tall) — il vincolo viene applicato lì.
-// Top-fold: prenotazioni-oggi (col 1, tall) + financials (col 2-3, top half wide)
-// + tavoli-stato (col 2-3, bottom half wide) + cucina-live (col 4, tall).
-// Le 4 occupano una riga visiva da 2 grid rows → fold riempita armonicamente.
+// Layout default — solo l'ORDINE dei widget: le misure sono fisse e vivono
+// nel catalogo (PN_WIDGET_CATALOG[].size), pensate per il dato che mostrano.
+// Tiling a 4 colonne senza buchi:
+//   fold 1-2: prenotazioni 1×2 · tavoli-stato 2×2 · cucina-live 1×2
+//   riga 3:   financials 2×1 · riempimento 2×1
+//   righe 4-5: azioni 4×2 (launcher)
+//   righe 6-7: top-piatti 1×2 · coperti-sett 2×2 · recensioni 1×2
 const DEFAULT_LAYOUT = [
-  { id: 'prenotazioni-oggi', size: { w: 1, h: 2 } },  // tall: lista coperti
-  { id: 'financials',        size: { w: 2, h: 1 } },  // wide: incassi banner (top)
-  { id: 'cucina-live',       size: { w: 1, h: 2 } },  // tall: lista ordini (dark)
-  { id: 'tavoli-stato',      size: { w: 2, h: 1 } },  // wide: stato tavoli (sotto financials)
-  { id: 'azioni',            size: { w: 4, h: 2 } },  // FULL ROW launcher (resizable)
-  { id: 'riempimento',       size: { w: 2, h: 1 } },  // wide: occupancy
-  { id: 'top-piatti',        size: { w: 1, h: 2 } },  // tall: classifica (dark)
-  { id: 'coperti-sett',      size: { w: 2, h: 1 } },  // wide: bar chart
-  { id: 'recensioni',        size: { w: 1, h: 2 } },  // tall: lista recensioni
+  { id: 'prenotazioni-oggi' },
+  { id: 'tavoli-stato' },
+  { id: 'cucina-live' },
+  { id: 'financials' },
+  { id: 'riempimento' },
+  { id: 'azioni' },
+  { id: 'top-piatti' },
+  { id: 'coperti-sett' },
+  { id: 'recensioni' },
 ];
 
 // Layout persistito: le modifiche salvate (Fine / "Salva ed esci") e i drag
 // fuori dall'edit mode sopravvivono al cambio pagina via localStorage.
+// Dei layout salvati prima delle misure fisse si conserva solo l'ordine.
 const PN_LAYOUT_KEY = 'byup_dashboard_layout';
 function pnLoadLayout() {
   try {
     const raw = localStorage.getItem(PN_LAYOUT_KEY);
     if (raw) {
       const arr = JSON.parse(raw);
-      if (Array.isArray(arr) && arr.length && arr.every(w => w && w.id && w.size)) return arr;
+      if (Array.isArray(arr) && arr.length && arr.every(w => w && w.id)) {
+        return arr.map(w => ({ id: w.id }));
+      }
     }
   } catch (e) {}
   return DEFAULT_LAYOUT;
@@ -69,13 +66,8 @@ function PnApp() {
   const add = (id) => {
     const def = PN_WIDGET_CATALOG.find(c => c.id === id);
     if (!def) return;
-    setWidgets(ws => [...ws, { id, size: def.defaultSize }]);
+    setWidgets(ws => [...ws, { id }]);
     setDrawerOpen(false);
-  };
-  // Resize handler: PnWidgetShell ha già forzato la regola (un solo raddoppio
-  // per direzione rispetto alla base). Qui mi limito ad applicare.
-  const resize = (id, newSize) => {
-    setWidgets(ws => ws.map(w => w.id === id ? { ...w, size: newSize } : w));
   };
   const reorder = (fromId, toId) => {
     setWidgets(ws => {
@@ -164,7 +156,6 @@ function PnApp() {
             editMode={editMode}
             onRemove={remove}
             onReorder={reorder}
-            onResize={resize}
           />
           )}
 

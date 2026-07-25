@@ -3,23 +3,10 @@
 // glass-ice (GLASS_DRAG) e leggermente scaled. Le altre card durante il drag
 // scaleno a 0.99 + opacity 0.92 — comunicano "lo strato sottostante è cedevole".
 
-function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wiggleDelay, children, size, onResize, fixedSize, theme, baseSize }) {
+function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wiggleDelay, children, theme }) {
   const [hover, setHover] = React.useState(false);
-  // Dimensioni: ogni card ha la sua misura base (dal catalogo) e UN solo
-  // ingrandimento per direzione (raddoppio, cap a 4 colonne). Massimo due
-  // passaggi totali: ↔ una volta + ↕ una volta. Ricliccare torna alla base.
-  const w = (size && size.w) || 1;
-  const h = (size && size.h) || 1;
-  const baseW = (baseSize && baseSize.w) || 1;
-  const baseH = (baseSize && baseSize.h) || 1;
-  const bigW = Math.min(4, baseW * 2);
-  const bigH = Math.min(4, baseH * 2);
-  const isWide = w > baseW;
-  const isTall = h > baseH;
-  const canWide = bigW !== baseW;
-  const canTall = bigH !== baseH;
-  const toggleWide = () => onResize({ w: isWide ? baseW : bigW, h });
-  const toggleTall = () => onResize({ w, h: isTall ? baseH : bigH });
+  // Le dimensioni sono fisse (dal catalogo): la shell non offre resize —
+  // ogni widget ha la misura pensata per il dato che mostra.
   // 4 stati: dragging (la mossa, glass-ice), otherDragging (un'altra in moto, scaled),
   // editMode (wiggle iOS edit-mode), idle.
   const inEditWiggle = editMode && !dragging;
@@ -102,52 +89,6 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
             }}>
             <Icon name="trash" size={12}/>
           </button>
-
-          {/* Ridimensiona — pill compatta a cavallo dell'angolo basso-dx
-              (il punto naturale del resize). Nascosta per widget fixedSize. */}
-          {!fixedSize && (canWide || canTall) && (
-            <div style={{
-              position: 'absolute', right: -8, bottom: -8, zIndex: 5,
-              display: 'flex', gap: 2, padding: 3,
-              background: PN.WHITE,
-              border: `1px solid ${PN.BORDER_LIGHT}`,
-              borderRadius: 999,
-              boxShadow: '0 3px 10px rgba(15,17,21,0.20)',
-            }}>
-              {canWide && <button
-                onClick={toggleWide}
-                title={isWide ? 'Riduci larghezza' : 'Allarga'}
-                style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: isWide ? PN.PINK : 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'grid', placeItems: 'center',
-                  color: isWide ? PN.WHITE : PN.MUTED,
-                  fontSize: 14, fontWeight: 700, lineHeight: 1,
-                  fontFamily: 'inherit',
-                  transition: 'background 150ms ease, color 150ms ease',
-                }}>
-                ↔
-              </button>}
-              {canTall && <button
-                onClick={toggleTall}
-                title={isTall ? 'Riduci altezza' : 'Alza'}
-                style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: isTall ? PN.PINK : 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'grid', placeItems: 'center',
-                  color: isTall ? PN.WHITE : PN.MUTED,
-                  fontSize: 14, fontWeight: 700, lineHeight: 1,
-                  fontFamily: 'inherit',
-                  transition: 'background 150ms ease, color 150ms ease',
-                }}>
-                ↕
-              </button>}
-            </div>
-          )}
         </>
       )}
       <div style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column'}}>
@@ -157,7 +98,7 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
   );
 }
 
-function PnGrid({ widgets, editMode, onRemove, onReorder, onResize }) {
+function PnGrid({ widgets, editMode, onRemove, onReorder }) {
   const [dragId, setDragId] = React.useState(null);
   const [overId, setOverId] = React.useState(null);
   // Offset reale del mouse rispetto al punto di partenza — la card draggata
@@ -239,6 +180,7 @@ function PnGrid({ widgets, editMode, onRemove, onReorder, onResize }) {
         const def = PN_WIDGET_CATALOG.find(c => c.id === w.id);
         if (!def) return null;
         const Comp = PnWidgets[def.component];
+        const size = def.size; // misura fissa dal catalogo
         const isDragging      = dragId === w.id;
         const isOtherDragging = !!dragId && !isDragging;
         // Stagger del wiggle: ogni card ha un delay diverso (0/40/80/120/160ms loop)
@@ -253,8 +195,8 @@ function PnGrid({ widgets, editMode, onRemove, onReorder, onResize }) {
             data-widget-id={w.id}
             onMouseDown={handleDragStart(w.id)}
             style={{
-              gridColumn: `span ${Math.min(w.size.w, cols)}`,
-              gridRow:    `span ${w.size.h}`,
+              gridColumn: `span ${Math.min(size.w, cols)}`,
+              gridRow:    `span ${size.h}`,
               minHeight: 0,
               borderRadius: 14,
               position: 'relative',
@@ -278,12 +220,8 @@ function PnGrid({ widgets, editMode, onRemove, onReorder, onResize }) {
               otherDragging={isOtherDragging}
               wiggleDelay={wiggleDelay}
               onRemove={() => onRemove(w.id)}
-              size={w.size}
-              baseSize={def.defaultSize}
-              fixedSize={def.fixedSize}
-              theme={def.theme}
-              onResize={(newSize) => onResize && onResize(w.id, newSize)}>
-              <Comp size={w.size}/>
+              theme={def.theme}>
+              <Comp size={size}/>
             </PnWidgetShell>
           </div>
         );

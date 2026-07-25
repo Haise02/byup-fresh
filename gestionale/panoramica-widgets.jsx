@@ -830,8 +830,8 @@ function WidgetAzioni({ size }) {
 
   const w = (size && size.w) || 1;
   const h = (size && size.h) || 1;
-  // h >= 2 (non === 2): col resize ↕ il widget diventa 4×4 — anche lì resta
-  // launcher con label, altrimenti 8 icone nude si spalmavano su ~580px.
+  // Misura fissa 4×2 dal catalogo → sempre full banner; il ramo compatto
+  // resta per robustezza se la griglia clampa le colonne su schermi stretti.
   const isFullBanner = w === 4 && h >= 2;
   const showLabels = isFullBanner;
 
