@@ -1222,7 +1222,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 13, fontWeight: 500,
                 color: __BYUP_DK_X ? 'rgba(246,236,233,.5)' : '#9a9096',
-              }}>Hai dimenticato la password? <span style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Recuperala ora</span></button>
+              }}>Hai dimenticato la password? <span style={{ color: PINK_X, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>Recuperala ora</span></button>
             }
           />
         )}
