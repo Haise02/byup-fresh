@@ -4165,10 +4165,10 @@ function ProfileScreen({
       color: PINK_X
     }
   }, "Esci"))), view === 'account' && /*#__PURE__*/React.createElement("div", {
+    className: "acct-view-x",
     style: {
       animation: 'fade 0.2s ease',
-      position: 'relative',
-      minHeight: 620
+      position: 'relative'
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setView('main'),
@@ -4221,22 +4221,6 @@ function ProfileScreen({
       d: "M7 11V7a5 5 0 0 1 10 0v4"
     }))
   }), /*#__PURE__*/React.createElement(Row, {
-    label: "Recupera password",
-    onClick: () => setView('recupera-password'),
-    iconColor: PINK_X,
-    iconSvg: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
-      cx: "12",
-      cy: "12",
-      r: "9"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
-    }), /*#__PURE__*/React.createElement("line", {
-      x1: "12",
-      y1: "17",
-      x2: "12.01",
-      y2: "17"
-    }))
-  }), /*#__PURE__*/React.createElement(Row, {
     label: "Modifica email",
     onClick: () => setView('modifica-email'),
     iconColor: PINK_X,
@@ -4247,6 +4231,26 @@ function ProfileScreen({
     }))
   })), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginTop: 18
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setView('recupera-password'),
+    style: {
+      background: 'none',
+      border: 'none',
+      padding: '6px 10px',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontSize: 13,
+      fontWeight: 500,
+      color: MUTED_X,
+      textDecoration: 'underline',
+      textUnderlineOffset: 3
+    }
+  }, "Hai dimenticato la password? recuperala ora")), /*#__PURE__*/React.createElement("div", {
+    style: {
       position: 'absolute',
       left: 0,
       right: 0,
@@ -4256,7 +4260,9 @@ function ProfileScreen({
       pointerEvents: 'none',
       animation: 'slideUpDanger .5s .15s cubic-bezier(.2,1.1,.3,1) backwards'
     }
-  }, /*#__PURE__*/React.createElement("style", null, `@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}`), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("style", null, `@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}
+.acct-view-x{min-height:620px}
+@media (hover:none) and (pointer:coarse){.acct-view-x{min-height:650px}}`), /*#__PURE__*/React.createElement("button", {
     onClick: () => setConfirmDeleteAccount(true),
     style: {
       pointerEvents: 'auto',

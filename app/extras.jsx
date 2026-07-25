@@ -1130,7 +1130,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'account' && (
-          <div style={{ animation: 'fade 0.2s ease', position: 'relative', minHeight: 620 }}>
+          <div className="acct-view-x" style={{ animation: 'fade 0.2s ease', position: 'relative' }}>
             <button onClick={() => setView('main')} style={{
               width: 36, height: 36, borderRadius: 999, background: TINT_X,
               border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1144,13 +1144,19 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <Row label="Cambia password" onClick={() => setView('cambia-password')}
                 iconColor={PINK_X}
                 iconSvg={<><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>}/>
-              <Row label="Recupera password" onClick={() => setView('recupera-password')}
-                iconColor={PINK_X}
-                iconSvg={<><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}/>
               <Row label="Modifica email" onClick={() => setView('modifica-email')}
                 iconColor={PINK_X}
                 iconSvg={<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>}/>
             </RowGroup>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
+              <button onClick={() => setView('recupera-password')} style={{
+                background: 'none', border: 'none', padding: '6px 10px',
+                cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 13, fontWeight: 500, color: MUTED_X,
+                textDecoration: 'underline', textUnderlineOffset: 3,
+              }}>Hai dimenticato la password? recuperala ora</button>
+            </div>
 
             {/* Elimina account: staccato dal gruppo, entra dal fondo dello schermo */}
             <div style={{
@@ -1158,7 +1164,9 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               display: 'flex', justifyContent: 'center', pointerEvents: 'none',
               animation: 'slideUpDanger .5s .15s cubic-bezier(.2,1.1,.3,1) backwards',
             }}>
-              <style>{`@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+              <style>{`@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}
+.acct-view-x{min-height:620px}
+@media (hover:none) and (pointer:coarse){.acct-view-x{min-height:650px}}`}</style>
               <button onClick={() => setConfirmDeleteAccount(true)} style={{
                 pointerEvents: 'auto',
                 padding: '8px 12px', background: 'none', border: 'none',
