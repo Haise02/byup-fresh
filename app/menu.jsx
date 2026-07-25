@@ -1468,22 +1468,20 @@ function MenuScreen({ state, setState, goTo }) {
 
       {copertiSheetOpen && <CopertiSheet onConfirm={confirmCoperti}/>}
 
-      {/* Sheet "Al tavolo" — stessa usata in Pagamento / Home: lista + share link */}
+      {/* Sheet partecipanti — stessa del Pagamento, qui con invito via link */}
       {guestsOpen && (() => {
         const order = state.activeOrder || {
           table: state.tableNumber ? `Tavolo ${state.tableNumber}` : 'Tavolo 23',
+          venue: 'Ristorante Maria Grazia',
           guests: [{ id: 'me', name: 'Tu', initial: 'T', isMe: true, isApp: true }],
           covers: state.coperti || 1,
         };
-        const guests = order.guests || [];
         return (
-          <GuestsSheet
+          <ParticipantsSheet
             order={order}
-            loggedIn={guests.filter(g => g.isApp || g.isWebApp).length}
-            covers={order.covers || guests.length || 1}
+            invite
             onClose={() => setGuestsOpen(false)}
-            onAddGuest={() => addGuestToOrder(setState)}
-            onRemoveGuest={(id) => removeGuestFromOrder(setState, id)}/>
+            onSave={(n) => { setParticipantsCount(setState, n); setGuestsOpen(false); }}/>
         );
       })()}
 
@@ -2257,13 +2255,11 @@ function HomeScreen({ state, setState, goTo }) {
       {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={() => __goApp()} onProfile={() => __goApp('profile')} onQR={() => goTo('menu')}/> : null; })()}
 
       {guestsOpen && order && (
-        <GuestsSheet
+        <ParticipantsSheet
           order={order}
-          loggedIn={loggedIn}
-          covers={covers}
+          invite
           onClose={() => setGuestsOpen(false)}
-          onAddGuest={() => addGuestToOrder(setState)}
-          onRemoveGuest={(id) => removeGuestFromOrder(setState, id)}/>
+          onSave={(n) => { setParticipantsCount(setState, n); setGuestsOpen(false); }}/>
       )}
     </div>
   );
@@ -2616,13 +2612,28 @@ const setParticipantsCount = (setState, n) => setState(s => {
   return { ...s, activeOrder: { ...ao, guests, covers: target } };
 });
 
-// Pannello partecipanti (schermata pagamento): stepper unico al posto della
-// lista ospiti — il numero guida la divisione dei piatti "al tavolo".
-function ParticipantsSheet({ order, onClose, onSave }) {
+// Pannello partecipanti (pagamento, menu e card post-ordine): stepper unico al
+// posto della lista ospiti — il numero guida la divisione dei piatti "al
+// tavolo". Con `invite` mostra anche il link per unirsi al tavolo.
+function ParticipantsSheet({ order, onClose, onSave, invite }) {
   const initial = Math.max(1, (order?.guests || []).length);
   const minN = Math.max(1, (order?.guests || []).filter(g => !g.isGuest).length);
   const [n, setN] = useState(initial);
   const dirty = n !== initial;
+  const inviteUrl = `byup.app/t/${(order?.table || 'tavolo').toLowerCase().replace(/\s+/g, '')}-x9k7`;
+  const [shareState, setShareState] = useState('idle'); // 'idle' | 'copied'
+  const handleShare = async () => {
+    const fullUrl = 'https://' + inviteUrl;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Unisciti al tavolo su byup', url: fullUrl });
+        return;
+      }
+    } catch { /* utente ha annullato */ }
+    try { await navigator.clipboard.writeText(fullUrl); } catch { /* clipboard non disponibile in iframe */ }
+    setShareState('copied');
+    setTimeout(() => setShareState('idle'), 1800);
+  };
   return (
     <div onClick={onClose} style={{
       position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)',
@@ -2692,6 +2703,49 @@ function ParticipantsSheet({ order, onClose, onSave }) {
             </div>
           </div>
         </div>
+
+        {invite && (
+          <div style={{ marginTop: 12, padding: 14, background: TINT, borderRadius: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: TEXT, letterSpacing: -0.1 }}>Invita al tavolo</div>
+            </div>
+            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.45, marginBottom: 10 }}>
+              Condividi questo link con chi non ha scansionato il QR: si unisce al tavolo dal suo telefono.
+            </div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: SURF, padding: '6px 6px 6px 12px', borderRadius: 999,
+              border: `1px solid ${BORDER}`,
+            }}>
+              <span style={{
+                flex: 1, fontSize: 12.5, color: TEXT,
+                fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{inviteUrl}</span>
+              <button onClick={handleShare} style={{
+                background: shareState === 'copied' ? '#1c8c5b' : PINK, color: '#fff',
+                border: 'none', padding: '7px 14px', borderRadius: 999,
+                fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 5,
+                boxShadow: shareState === 'copied' ? 'none' : `0 2px 6px ${PINK}40`,
+                transition: 'background 0.2s',
+              }}>
+                {shareState === 'copied' ? (
+                  <>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Copiato
+                  </>
+                ) : 'Condividi'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {dirty && (
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
@@ -4610,7 +4664,7 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
               const sel = method === m.id;
               // "Aggiungi carta" → Profilo › Pagamenti con il form "Aggiungi metodo" già aperto
               const onPick = m.id === 'card'
-                ? () => __goApp('profile')
+                ? () => __goApp('profile', { view: 'pagamenti', add: '1' })
                 : () => setMethod(m.id);
               return (
                 <button key={m.id} onClick={onPick} style={{

@@ -302,6 +302,23 @@ function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
   );
 }
 
+// Le 12 categorie brand — id allineati a BK.ASSETS.cat (icone kawaii, mai emoji).
+// Condivise tra Home ("Esplora per categoria") e Ricerca ("Cerca per tipologia").
+const BRAND_CATS = [
+  { id: 'pizza',     label: 'Pizza' },
+  { id: 'burger',    label: 'Burger' },
+  { id: 'aperitivo', label: 'Aperitivo' },
+  { id: 'poke',      label: 'Poke' },
+  { id: 'panini',    label: 'Panini' },
+  { id: 'birra',     label: 'Birra' },
+  { id: 'dolce',     label: 'Dolce' },
+  { id: 'vino',      label: 'Vino' },
+  { id: 'taco',      label: 'Taco' },
+  { id: 'brunch',    label: 'Brunch' },
+  { id: 'cocktail',  label: 'Sushi' },
+  { id: 'torta',     label: 'Torta' },
+];
+
 // ─── Quick filter chip ──────────────────────────────────────
 function FilterChip({ label, active, onClick, leading }) {
   const [T] = BK.useByupTheme();
@@ -920,9 +937,18 @@ function CategoryScreen({ cat, onBack, onOpenVenue }) {
 
 function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
   const [q, setQ] = useState('');
+  const [activeCat, setActiveCat] = useState(null);
   const inputRef = useRef(null);
   // niente autofocus: la tastiera si apre solo quando l'utente tocca il campo
   const submit = (term) => onSubmit(term);
+  // Categoria attiva → la griglia mostra i locali di quella categoria
+  const catObj = activeCat ? BRAND_CATS.find(c => c.id === activeCat) : null;
+  const tiles = catObj
+    ? (CAT_SCREEN_NAMES[activeCat] || CAT_SCREEN_NAMES.pizza).map((name, i) => {
+        const ph = CAT_SCREEN_PHOTOS[activeCat] || CAT_SCREEN_PHOTOS.pizza;
+        return { src: `https://images.unsplash.com/photo-${ph[i % ph.length]}?w=600&q=70&auto=format&fit=crop`, name, q: name };
+      })
+    : EXPLORE_TILES;
   return (
     <div style={{
       width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
@@ -974,15 +1000,28 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
           </div>
         </div>
 
+        {/* Cerca per tipologia — le stesse categorie della home, qui da filtro:
+            tap → si illumina e la griglia mostra i locali della categoria */}
+        {q.trim().length === 0 && (
+          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '16px 22px 0',
+            scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {BRAND_CATS.map(c => (
+              <Category key={c.id} id={c.id} label={c.label}
+                active={activeCat === c.id}
+                onClick={() => setActiveCat(a => a === c.id ? null : c.id)}/>
+            ))}
+          </div>
+        )}
+
         {q.trim().length === 0 && (
           <>
             <div style={{ padding: '20px 22px 12px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT,
               display: 'flex', alignItems: 'center', gap: 8 }}>
               <img src="assets/icon-sushi.png" alt="" width="22" height="22" style={{ filter: 'drop-shadow(0 3px 5px rgba(77,18,46,.2))' }}/>
-              Esplora i locali
+              {catObj ? catObj.label + ' vicino a te' : 'Esplora i locali'}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: '124px', gap: 3, padding: '0 3px' }}>
-              {EXPLORE_TILES.map((t, i) => {
+              {tiles.map((t, i) => {
                 const big = i % 7 === 0;
                 return (
                   <button key={i} onClick={() => submit(t.q)} style={{
@@ -2403,21 +2442,7 @@ function HomeSections({
   const md = MOMENT_DATA[moment] || MOMENT_DATA.ora;
   const heroPhoto = HERO_PHOTO[moment] || HERO_PHOTO.ora;
 
-  // Le 12 categorie brand — id allineati a BK.ASSETS.cat (icone kawaii, mai emoji).
-  const cats = [
-    { id: 'pizza',     label: 'Pizza' },
-    { id: 'burger',    label: 'Burger' },
-    { id: 'aperitivo', label: 'Aperitivo' },
-    { id: 'poke',      label: 'Poke' },
-    { id: 'panini',    label: 'Panini' },
-    { id: 'birra',     label: 'Birra' },
-    { id: 'dolce',     label: 'Dolce' },
-    { id: 'vino',      label: 'Vino' },
-    { id: 'taco',      label: 'Taco' },
-    { id: 'brunch',    label: 'Brunch' },
-    { id: 'cocktail',  label: 'Sushi' },
-    { id: 'torta',     label: 'Torta' },
-  ];
+  const cats = BRAND_CATS;
   const favorites = [
     { premium: true, name: 'Al Settembrini', type: 'Ristorante', distance: '0.4 km', hours: '12:30 – 23:00', open: true,
       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop' },
@@ -4067,7 +4092,7 @@ const ROAD_P = [
   { lvl: 5, left: 0.5837, top: 0.3674, w: 0.2594, pcx: 0.7134, pcy: 0.4452, pw: 0.273 },
   { lvl: 6, left: 0.1709, top: 0.2331, w: 0.3164, pcx: 0.3291, pcy: 0.3279, pw: 0.333 },
   { lvl: 7, left: 0.5715, top: 0.1354, w: 0.3078, pcx: 0.7254, pcy: 0.2276, pw: 0.324 },
-  { lvl: 8, left: 0.1825, top: 0.0368, w: 0.2945, pcx: 0.337, pcy: 0.150,  pw: 0.310 },
+  { lvl: 8, left: 0.1898, top: 0.0074, w: 0.2945, pcx: 0.337, pcy: 0.150,  pw: 0.310 },
 ];
 const ROAD_RA = 864 / 1821;
 // Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta

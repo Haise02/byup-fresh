@@ -23,23 +23,32 @@ const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
 const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
+// I 14 allergeni del Reg. UE 1169/2011, tutti presenti.
 const PROFILE_ALLERGENS = [
-  { id: 'glutine',     label: 'Glutine',       hint: 'Pane, pasta, dolci',    emoji: '🌾' },
-  { id: 'lattosio',    label: 'Lattosio',      hint: 'Latte, formaggi, burro', emoji: '🥛' },
-  { id: 'noci',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle', emoji: '🥜' },
-  { id: 'uova',        label: 'Uova',          hint: 'Frittate, dolci, salse', emoji: '🥚' },
-  { id: 'crostacei',   label: 'Crostacei',     hint: 'Gamberi, scampi, granchio', emoji: '🦐' },
-  { id: 'pesce',       label: 'Pesce',         hint: 'Acciughe, salse di pesce', emoji: '🐟' },
-  { id: 'soia',        label: 'Soia',          hint: 'Tofu, tempeh, salsa di soia', emoji: '🫘' },
-  { id: 'sedano',      label: 'Sedano',        hint: 'Brodi, soffritti', emoji: '🥬' },
+  { id: 'glutine',     label: 'Glutine',         hint: 'Pane, pasta, dolci',    emoji: '🌾' },
+  { id: 'crostacei',   label: 'Crostacei',       hint: 'Gamberi, scampi, granchio', emoji: '🦐' },
+  { id: 'uova',        label: 'Uova',            hint: 'Frittate, dolci, salse', emoji: '🥚' },
+  { id: 'pesce',       label: 'Pesce',           hint: 'Acciughe, salse di pesce', emoji: '🐟' },
+  { id: 'arachidi',    label: 'Arachidi',        hint: 'Burro di arachidi, snack', emoji: '🥜' },
+  { id: 'soia',        label: 'Soia',            hint: 'Tofu, tempeh, salsa di soia', emoji: '🫘' },
+  { id: 'lattosio',    label: 'Latte e lattosio', hint: 'Latte, formaggi, burro', emoji: '🥛' },
+  { id: 'noci',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle', emoji: '🌰' },
+  { id: 'sedano',      label: 'Sedano',          hint: 'Brodi, soffritti', emoji: '🥬' },
+  { id: 'senape',      label: 'Senape',          hint: 'Salse, condimenti, marinature', emoji: '🌭' },
+  { id: 'sesamo',      label: 'Sesamo',          hint: 'Pane, grissini, tahina', emoji: '🥯' },
+  { id: 'solfiti',     label: 'Anidride solforosa e solfiti', hint: 'Vino, frutta secca, sottaceti', emoji: '🍷' },
+  { id: 'lupini',      label: 'Lupini',          hint: 'Snack, farine vegetali', emoji: '🌼' },
+  { id: 'molluschi',   label: 'Molluschi',       hint: 'Cozze, vongole, calamari', emoji: '🦪' },
 ];
 const PROFILE_DIETS = [
   { id: 'vegetariano',   label: 'Vegetariano',   emoji: '🥗' },
   { id: 'vegano',        label: 'Vegano',        emoji: '🌱' },
   { id: 'senzaglutine',  label: 'Senza glutine', emoji: '🌾' },
   { id: 'halal',         label: 'Halal',         emoji: '🌙' },
-  { id: 'kosher',        label: 'Kosher',        emoji: '✡️' },
+  { id: 'kosher',        label: 'Kosher',        emoji: 'Ⓚ' },
   { id: 'pescetariano',  label: 'Pescetariano',  emoji: '🐟' },
+  { id: 'astemio',       label: 'Astemio',       emoji: '🧃' },
+  { id: 'proteico',      label: 'Proteico',      emoji: '💪' },
 ];
 const PROFILE_ORDERS = [
   { id: 'ORD-1042', venue: 'Trattoria Lucia',    address: 'Via della Lungaretta 10, Trastevere', cuisine: 'Cucina romana',   date: '12 mar', time: '20:45', items: [{n:'Cacio e pepe',p:16}, {n:'Saltimbocca alla romana',p:18}, {n:'Tiramisù',p:7}], total: 56.50, status: 'completato',

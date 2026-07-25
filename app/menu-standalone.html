@@ -1314,46 +1314,77 @@ const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
 const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
+// I 14 allergeni del Reg. UE 1169/2011, tutti presenti.
 const PROFILE_ALLERGENS = [{
   id: 'glutine',
   label: 'Glutine',
   hint: 'Pane, pasta, dolci',
   emoji: '🌾'
 }, {
-  id: 'lattosio',
-  label: 'Lattosio',
-  hint: 'Latte, formaggi, burro',
-  emoji: '🥛'
-}, {
-  id: 'noci',
-  label: 'Frutta a guscio',
-  hint: 'Noci, nocciole, mandorle',
-  emoji: '🥜'
+  id: 'crostacei',
+  label: 'Crostacei',
+  hint: 'Gamberi, scampi, granchio',
+  emoji: '🦐'
 }, {
   id: 'uova',
   label: 'Uova',
   hint: 'Frittate, dolci, salse',
   emoji: '🥚'
 }, {
-  id: 'crostacei',
-  label: 'Crostacei',
-  hint: 'Gamberi, scampi, granchio',
-  emoji: '🦐'
-}, {
   id: 'pesce',
   label: 'Pesce',
   hint: 'Acciughe, salse di pesce',
   emoji: '🐟'
+}, {
+  id: 'arachidi',
+  label: 'Arachidi',
+  hint: 'Burro di arachidi, snack',
+  emoji: '🥜'
 }, {
   id: 'soia',
   label: 'Soia',
   hint: 'Tofu, tempeh, salsa di soia',
   emoji: '🫘'
 }, {
+  id: 'lattosio',
+  label: 'Latte e lattosio',
+  hint: 'Latte, formaggi, burro',
+  emoji: '🥛'
+}, {
+  id: 'noci',
+  label: 'Frutta a guscio',
+  hint: 'Noci, nocciole, mandorle',
+  emoji: '🌰'
+}, {
   id: 'sedano',
   label: 'Sedano',
   hint: 'Brodi, soffritti',
   emoji: '🥬'
+}, {
+  id: 'senape',
+  label: 'Senape',
+  hint: 'Salse, condimenti, marinature',
+  emoji: '🌭'
+}, {
+  id: 'sesamo',
+  label: 'Sesamo',
+  hint: 'Pane, grissini, tahina',
+  emoji: '🥯'
+}, {
+  id: 'solfiti',
+  label: 'Anidride solforosa e solfiti',
+  hint: 'Vino, frutta secca, sottaceti',
+  emoji: '🍷'
+}, {
+  id: 'lupini',
+  label: 'Lupini',
+  hint: 'Snack, farine vegetali',
+  emoji: '🌼'
+}, {
+  id: 'molluschi',
+  label: 'Molluschi',
+  hint: 'Cozze, vongole, calamari',
+  emoji: '🦪'
 }];
 const PROFILE_DIETS = [{
   id: 'vegetariano',
@@ -1374,11 +1405,19 @@ const PROFILE_DIETS = [{
 }, {
   id: 'kosher',
   label: 'Kosher',
-  emoji: '✡️'
+  emoji: 'Ⓚ'
 }, {
   id: 'pescetariano',
   label: 'Pescetariano',
   emoji: '🐟'
+}, {
+  id: 'astemio',
+  label: 'Astemio',
+  emoji: '🧃'
+}, {
+  id: 'proteico',
+  label: 'Proteico',
+  emoji: '💪'
 }];
 const PROFILE_ORDERS = [{
   id: 'ORD-1042',
@@ -13222,6 +13261,46 @@ function Category({
   }, label));
 }
 
+// Le 12 categorie brand — id allineati a BK.ASSETS.cat (icone kawaii, mai emoji).
+// Condivise tra Home ("Esplora per categoria") e Ricerca ("Cerca per tipologia").
+const BRAND_CATS = [{
+  id: 'pizza',
+  label: 'Pizza'
+}, {
+  id: 'burger',
+  label: 'Burger'
+}, {
+  id: 'aperitivo',
+  label: 'Aperitivo'
+}, {
+  id: 'poke',
+  label: 'Poke'
+}, {
+  id: 'panini',
+  label: 'Panini'
+}, {
+  id: 'birra',
+  label: 'Birra'
+}, {
+  id: 'dolce',
+  label: 'Dolce'
+}, {
+  id: 'vino',
+  label: 'Vino'
+}, {
+  id: 'taco',
+  label: 'Taco'
+}, {
+  id: 'brunch',
+  label: 'Brunch'
+}, {
+  id: 'cocktail',
+  label: 'Sushi'
+}, {
+  id: 'torta',
+  label: 'Torta'
+}];
+
 // ─── Quick filter chip ──────────────────────────────────────
 function FilterChip({
   label,
@@ -14588,9 +14667,20 @@ function SearchScreen({
   activeFilterCount
 }) {
   const [q, setQ] = useState('');
+  const [activeCat, setActiveCat] = useState(null);
   const inputRef = useRef(null);
   // niente autofocus: la tastiera si apre solo quando l'utente tocca il campo
   const submit = term => onSubmit(term);
+  // Categoria attiva → la griglia mostra i locali di quella categoria
+  const catObj = activeCat ? BRAND_CATS.find(c => c.id === activeCat) : null;
+  const tiles = catObj ? (CAT_SCREEN_NAMES[activeCat] || CAT_SCREEN_NAMES.pizza).map((name, i) => {
+    const ph = CAT_SCREEN_PHOTOS[activeCat] || CAT_SCREEN_PHOTOS.pizza;
+    return {
+      src: `https://images.unsplash.com/photo-${ph[i % ph.length]}?w=600&q=70&auto=format&fit=crop`,
+      name,
+      q: name
+    };
+  }) : EXPLORE_TILES;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       width: '100%',
@@ -14699,7 +14789,22 @@ function SearchScreen({
       alignItems: 'center',
       justifyContent: 'center'
     }
-  }, activeFilterCount)))), q.trim().length === 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, activeFilterCount)))), q.trim().length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 4,
+      overflowX: 'auto',
+      padding: '16px 22px 0',
+      scrollbarWidth: 'none',
+      WebkitOverflowScrolling: 'touch'
+    }
+  }, BRAND_CATS.map(c => /*#__PURE__*/React.createElement(Category, {
+    key: c.id,
+    id: c.id,
+    label: c.label,
+    active: activeCat === c.id,
+    onClick: () => setActiveCat(a => a === c.id ? null : c.id)
+  }))), q.trim().length === 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '20px 22px 12px',
       fontFamily: BK.TYPE.display,
@@ -14718,7 +14823,7 @@ function SearchScreen({
     style: {
       filter: 'drop-shadow(0 3px 5px rgba(77,18,46,.2))'
     }
-  }), "Esplora i locali"), /*#__PURE__*/React.createElement("div", {
+  }), catObj ? catObj.label + ' vicino a te' : 'Esplora i locali'), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
       gridTemplateColumns: 'repeat(3, 1fr)',
@@ -14726,7 +14831,7 @@ function SearchScreen({
       gap: 3,
       padding: '0 3px'
     }
-  }, EXPLORE_TILES.map((t, i) => {
+  }, tiles.map((t, i) => {
     const big = i % 7 === 0;
     return /*#__PURE__*/React.createElement("button", {
       key: i,
@@ -17907,45 +18012,7 @@ function HomeSections({
   };
   const md = MOMENT_DATA[moment] || MOMENT_DATA.ora;
   const heroPhoto = HERO_PHOTO[moment] || HERO_PHOTO.ora;
-
-  // Le 12 categorie brand — id allineati a BK.ASSETS.cat (icone kawaii, mai emoji).
-  const cats = [{
-    id: 'pizza',
-    label: 'Pizza'
-  }, {
-    id: 'burger',
-    label: 'Burger'
-  }, {
-    id: 'aperitivo',
-    label: 'Aperitivo'
-  }, {
-    id: 'poke',
-    label: 'Poke'
-  }, {
-    id: 'panini',
-    label: 'Panini'
-  }, {
-    id: 'birra',
-    label: 'Birra'
-  }, {
-    id: 'dolce',
-    label: 'Dolce'
-  }, {
-    id: 'vino',
-    label: 'Vino'
-  }, {
-    id: 'taco',
-    label: 'Taco'
-  }, {
-    id: 'brunch',
-    label: 'Brunch'
-  }, {
-    id: 'cocktail',
-    label: 'Sushi'
-  }, {
-    id: 'torta',
-    label: 'Torta'
-  }];
+  const cats = BRAND_CATS;
   const favorites = [{
     premium: true,
     name: 'Al Settembrini',
@@ -21919,8 +21986,8 @@ const ROAD_P = [{
   pw: 0.324
 }, {
   lvl: 8,
-  left: 0.1825,
-  top: 0.0368,
+  left: 0.1898,
+  top: 0.0074,
   w: 0.2945,
   pcx: 0.337,
   pcy: 0.150,
@@ -27893,6 +27960,7 @@ function MenuScreen({
   }), guestsOpen && (() => {
     const order = state.activeOrder || {
       table: state.tableNumber ? `Tavolo ${state.tableNumber}` : 'Tavolo 23',
+      venue: 'Ristorante Maria Grazia',
       guests: [{
         id: 'me',
         name: 'Tu',
@@ -27902,14 +27970,14 @@ function MenuScreen({
       }],
       covers: state.coperti || 1
     };
-    const guests = order.guests || [];
-    return /*#__PURE__*/React.createElement(GuestsSheet, {
+    return /*#__PURE__*/React.createElement(ParticipantsSheet, {
       order: order,
-      loggedIn: guests.filter(g => g.isApp || g.isWebApp).length,
-      covers: order.covers || guests.length || 1,
+      invite: true,
       onClose: () => setGuestsOpen(false),
-      onAddGuest: () => addGuestToOrder(setState),
-      onRemoveGuest: id => removeGuestFromOrder(setState, id)
+      onSave: n => {
+        setParticipantsCount(setState, n);
+        setGuestsOpen(false);
+      }
     });
   })(), allergenSheetOpen && /*#__PURE__*/React.createElement("div", {
     onClick: () => setAllergenSheetOpen(false),
@@ -29432,13 +29500,14 @@ function HomeScreen({
       onProfile: () => __goApp('profile'),
       onQR: () => goTo('menu')
     }) : null;
-  })(), guestsOpen && order && /*#__PURE__*/React.createElement(GuestsSheet, {
+  })(), guestsOpen && order && /*#__PURE__*/React.createElement(ParticipantsSheet, {
     order: order,
-    loggedIn: loggedIn,
-    covers: covers,
+    invite: true,
     onClose: () => setGuestsOpen(false),
-    onAddGuest: () => addGuestToOrder(setState),
-    onRemoveGuest: id => removeGuestFromOrder(setState, id)
+    onSave: n => {
+      setParticipantsCount(setState, n);
+      setGuestsOpen(false);
+    }
   }));
 }
 function ActiveOrderCard({
@@ -30060,17 +30129,38 @@ const setParticipantsCount = (setState, n) => setState(s => {
   };
 });
 
-// Pannello partecipanti (schermata pagamento): stepper unico al posto della
-// lista ospiti — il numero guida la divisione dei piatti "al tavolo".
+// Pannello partecipanti (pagamento, menu e card post-ordine): stepper unico al
+// posto della lista ospiti — il numero guida la divisione dei piatti "al
+// tavolo". Con `invite` mostra anche il link per unirsi al tavolo.
 function ParticipantsSheet({
   order,
   onClose,
-  onSave
+  onSave,
+  invite
 }) {
   const initial = Math.max(1, (order?.guests || []).length);
   const minN = Math.max(1, (order?.guests || []).filter(g => !g.isGuest).length);
   const [n, setN] = useState(initial);
   const dirty = n !== initial;
+  const inviteUrl = `byup.app/t/${(order?.table || 'tavolo').toLowerCase().replace(/\s+/g, '')}-x9k7`;
+  const [shareState, setShareState] = useState('idle'); // 'idle' | 'copied'
+  const handleShare = async () => {
+    const fullUrl = 'https://' + inviteUrl;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Unisciti al tavolo su byup',
+          url: fullUrl
+        });
+        return;
+      }
+    } catch {/* utente ha annullato */}
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+    } catch {/* clipboard non disponibile in iframe */}
+    setShareState('copied');
+    setTimeout(() => setShareState('idle'), 1800);
+  };
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -30286,7 +30376,97 @@ function ParticipantsSheet({
       color: '#44506b',
       marginTop: 2
     }
-  }, "Il numero che inserisci verr\xE0 verificato dal personale di sala."))), dirty && /*#__PURE__*/React.createElement("div", {
+  }, "Il numero che inserisci verr\xE0 verificato dal personale di sala."))), invite && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: 14,
+      background: TINT,
+      borderRadius: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: TEXT,
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: TEXT,
+      letterSpacing: -0.1
+    }
+  }, "Invita al tavolo")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: MUTED,
+      lineHeight: 1.45,
+      marginBottom: 10
+    }
+  }, "Condividi questo link con chi non ha scansionato il QR: si unisce al tavolo dal suo telefono."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      background: SURF,
+      padding: '6px 6px 6px 12px',
+      borderRadius: 999,
+      border: `1px solid ${BORDER}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 12.5,
+      color: TEXT,
+      fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, inviteUrl), /*#__PURE__*/React.createElement("button", {
+    onClick: handleShare,
+    style: {
+      background: shareState === 'copied' ? '#1c8c5b' : PINK,
+      color: '#fff',
+      border: 'none',
+      padding: '7px 14px',
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
+      boxShadow: shareState === 'copied' ? 'none' : `0 2px 6px ${PINK}40`,
+      transition: 'background 0.2s'
+    }
+  }, shareState === 'copied' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
+    width: "11",
+    height: "11",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12"
+  })), "Copiato") : 'Condividi'))), dirty && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 10,
@@ -34071,7 +34251,10 @@ function PayMethodScreen({
   }, methods.map(m => {
     const sel = method === m.id;
     // "Aggiungi carta" → Profilo › Pagamenti con il form "Aggiungi metodo" già aperto
-    const onPick = m.id === 'card' ? () => __goApp('profile') : () => setMethod(m.id);
+    const onPick = m.id === 'card' ? () => __goApp('profile', {
+      view: 'pagamenti',
+      add: '1'
+    }) : () => setMethod(m.id);
     return /*#__PURE__*/React.createElement("button", {
       key: m.id,
       onClick: onPick,
