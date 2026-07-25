@@ -1139,56 +1139,72 @@ function VetrinaAspetto({ onChange }) {
 
   return (
     <div>
-      <ImpCard title="Logo del tuo locale" sub="PNG o JPG quadrato · consigliato 512×512px · max 5MB">
-        {logo ? (
-          <div style={{display:'flex', alignItems:'center', gap: 14}}>
-            <div style={{width: 88, height: 88}}>
-              <PhotoTile src={logo} radius={14} title="Rimuovi logo"
-                onRemove={() => { setLogo(null); onChange && onChange(); }}/>
-            </div>
-            <div>
-              <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>Logo caricato</div>
-              <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, marginBottom: 8}}>Apparirà sulla vetrina e sulle ricevute.</div>
-              <ImpButton variant="ghost" onClick={() => setUploadModal('logo')} style={{padding:'6px 12px', fontSize: 13.5}}>Sostituisci</ImpButton>
-            </div>
-          </div>
-        ) : (
-          <div onClick={() => setUploadModal('logo')} style={{
-            padding: 32, border:`2px dashed ${PN.BORDER}`, borderRadius: 12,
-            textAlign:'center', background:'#FAFBFC', cursor: 'pointer',
-          }}>
-            <div style={{fontSize:16, color:PN.MUTED, marginBottom: 12}}>Trascina o clicca per caricare · 512×512px</div>
-            <ImpButton variant="ghost" onClick={(e) => { e.stopPropagation(); setUploadModal('logo'); }}>Carica logo</ImpButton>
-          </div>
-        )}
-      </ImpCard>
+      {/* Un'unica sezione "Immagini": logo a sinistra (colonna stretta, è un
+          elemento quadrato) e galleria a destra — niente più card "Aspetto"
+          omonima dello step. */}
+      <ImpCard title="Immagini" sub="Logo e foto del locale: appariranno sulla vetrina">
+        <div style={{display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr)', gap: 22, alignItems: 'start'}}>
 
-      <ImpCard title="Galleria fotografica" sub="Foto del locale e dei piatti · JPG o PNG, consigliato 1600×1200px">
-        {/* Riga-guida col limite: si accende e scuote al sesto tentativo */}
-        <div style={{
-          fontSize: 13.5, fontWeight: 600, marginBottom: 10,
-          color: galleryLimitHit ? PN.RED : PN.MUTED,
-          animation: galleryLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
-          transition: 'color 150ms ease',
-        }}>
-          Massimo 5 immagini · {photos.length}/5 caricate
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
-          {photos.map((src, i) => (
-            <div key={i} style={{aspectRatio: '1'}}>
-              <PhotoTile src={src} radius={10} title="Elimina foto"
-                onRemove={() => removePhoto(i)}/>
+          {/* Logo */}
+          <div style={{minWidth: 0}}>
+            <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Logo del locale</div>
+            <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>PNG o JPG quadrato · 512×512px</div>
+            {logo ? (
+              <div>
+                <div style={{width: 150, height: 150}}>
+                  <PhotoTile src={logo} radius={14} title="Rimuovi logo"
+                    onRemove={() => { setLogo(null); onChange && onChange(); }}/>
+                </div>
+                <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}
+                  style={{padding:'6px 12px', fontSize: 13.5, marginTop: 12}}>Sostituisci</ImpButton>
+              </div>
+            ) : (
+              <div onClick={() => setUploadModal('logo')} style={{
+                width: 150, aspectRatio: '1',
+                border:`2px dashed ${PN.BORDER}`, borderRadius: 14,
+                display:'grid', placeItems:'center', textAlign:'center',
+                background:'#FAFBFC', cursor: 'pointer',
+                color: PN.MUTED, fontSize: 13, fontWeight: 600, lineHeight: 1.4,
+              }}>
+                <div>
+                  <PnI.Plus size={18} color={PN.MUTED}/>
+                  <div style={{marginTop: 6, padding: '0 12px'}}>Trascina o clicca<br/>512×512px</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Galleria */}
+          <div style={{minWidth: 0, borderLeft: `1px solid ${PN.BORDER_SOFT}`, paddingLeft: 22}}>
+            <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Galleria fotografica</div>
+            <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>JPG o PNG · consigliato 1600×1200px</div>
+            {/* Riga-guida col limite: si accende e scuote al sesto tentativo */}
+            <div style={{
+              fontSize: 13, fontWeight: 600, marginBottom: 10,
+              color: galleryLimitHit ? PN.RED : PN.MUTED,
+              animation: galleryLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
+              transition: 'color 150ms ease',
+            }}>
+              Massimo 5 immagini · {photos.length}/5 caricate
             </div>
-          ))}
-          <div onClick={openGalleryUpload} style={{
-            aspectRatio:'1', borderRadius: 10,
-            border:`2px dashed ${PN.BORDER}`,
-            display:'grid', placeItems:'center',
-            color: PN.MUTED, fontSize: 13.5, fontWeight: 600, cursor:'pointer',
-          }}>
-            <div style={{textAlign:'center'}}>
-              <PnI.Plus size={20} color={PN.MUTED}/>
-              <div style={{marginTop:4}}>Aggiungi</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap: 10}}>
+              {photos.map((src, i) => (
+                <div key={i} style={{aspectRatio: '1'}}>
+                  <PhotoTile src={src} radius={10} title="Elimina foto"
+                    onRemove={() => removePhoto(i)}/>
+                </div>
+              ))}
+              <div onClick={openGalleryUpload} style={{
+                aspectRatio:'1', borderRadius: 10,
+                border:`2px dashed ${PN.BORDER}`,
+                display:'grid', placeItems:'center',
+                color: PN.MUTED, fontSize: 13, fontWeight: 600, cursor:'pointer',
+              }}>
+                <div style={{textAlign:'center'}}>
+                  <PnI.Plus size={18} color={PN.MUTED}/>
+                  <div style={{marginTop:4}}>Aggiungi</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
