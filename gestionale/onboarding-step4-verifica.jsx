@@ -84,11 +84,11 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
         display: 'flex', flexDirection: 'column',
       }}>
 
-        {/* Stessa griglia degli altri step. La colonna stretta tiene il telefono
-            e, sotto, il riepilogo di quanto configurato. */}
+        {/* Stessa griglia degli altri step; flex 1 così la riga occupa tutta
+            l'altezza fino al footer e il telefono può centrarsi in verticale. */}
         <div style={{
           display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px',
-          gap: 72, alignItems: 'start',
+          gap: 72, alignItems: 'start', flex: 1, minHeight: 0,
         }}>
 
           {/* ─── Colonna sinistra — chiusura + editor del menù ─────────── */}
@@ -189,10 +189,13 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
           </div>
 
           {/* ─── Colonna destra — solo il telefono ──────────────────────── */}
-          {/* sticky: il telefono resta fisso a schermo mentre l'editor del
-              menù, che può crescere, scorre nella colonna a fianco. */}
-          <div style={{position: 'sticky', top: 0}}>
-            <PhoneMockup menu={menu} height={570}/>
+          {/* La colonna si stira a tutta l'altezza della riga e centra il
+              telefono in verticale: margini uguali sopra e sotto. */}
+          <div style={{
+            alignSelf: 'stretch', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <PhoneMockup menu={menu} height={640}/>
           </div>
         </div>
 
@@ -701,6 +704,25 @@ const APP_CAT_TINTS = {
   'Antipasti': '#fae3de', 'Primi piatti': '#FCE9EE', 'Secondi piatti': '#FEF0E3',
   'Dolci': '#F9E3EE', 'Bevande': '#f4e5ef',
 };
+// Foto reali dei piatti: gli stessi asset premium dell'app consumer.
+const APP_IMG_BASE = '../app/assets/premium/';
+const APP_IMGS = {
+  'Bruschetta al pomodoro':    'dish-bruschette.webp',
+  'Tagliere misto':            'dish-tagliere.webp',
+  'Burrata pugliese':          'dish-insalata.webp',
+  'Cacio e Pepe':              'dish-risotto.webp',
+  'Carbonara':                 'dish-carbonara.webp',
+  'Amatriciana':               'dish-lasagna.webp',
+  'Gricia':                    'dish-carbonara.webp',
+  'Ravioli ricotta e spinaci': 'dish-verdure.webp',
+  'Saltimbocca alla romana':   'dish-tagliata.webp',
+  'Coda alla vaccinara':       'dish-pollo.webp',
+  'Trippa alla romana':        'dish-polpo.webp',
+  'Tiramisù':                  'dessert-tiramisu.webp',
+  'Panna cotta':               'dessert-tortino.webp',
+  'Acqua naturale 75cl':       'drink-soda.webp',
+  'Vino della casa (1/2 lt)':  'drink-vino.webp',
+};
 const APP_DESCS = {
   'Bruschetta al pomodoro':    "Pane tostato, pomodorini freschi, basilico e olio evo.",
   'Tagliere misto':            "Affettati, formaggi, sott'oli e focaccia calda.",
@@ -905,7 +927,13 @@ function PhoneMenuList({menu}) {
                 <div style={{
                   width: 130, height: '100%', borderRadius: 14, overflow: 'hidden', flexShrink: 0,
                   background: `linear-gradient(150deg, ${d.color} 0%, ${d.color} 58%, rgba(0,0,0,0.10) 145%)`,
-                }}/>
+                }}>
+                  {APP_IMGS[d.name] && (
+                    <img src={APP_IMG_BASE + APP_IMGS[d.name]} alt=""
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                  )}
+                </div>
                 <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column'}}>
                   <div style={{
                     fontSize: 16, fontWeight: 700, color: APP_M.TEXT, lineHeight: 1.25,
