@@ -1142,19 +1142,9 @@ function VetrinaAspetto({ onChange }) {
       <ImpCard title="Logo del tuo locale" sub="PNG o JPG quadrato · consigliato 512×512px · max 5MB">
         {logo ? (
           <div style={{display:'flex', alignItems:'center', gap: 14}}>
-            <div style={{position:'relative', width: 88, height: 88}}>
-              <MediaThumb src={logo} radius={14}/>
-              <button title="Rimuovi logo" onClick={() => { setLogo(null); onChange && onChange(); }} style={{
-                position:'absolute', top:-9, right:-9,
-                width: 27, height:27, borderRadius:'50%',
-                background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
-                boxShadow:'0 3px 10px rgba(15,17,21,0.20)',
-                color: PN.RED, cursor:'pointer', display:'grid', placeItems:'center',
-              }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>
-                </svg>
-              </button>
+            <div style={{width: 88, height: 88}}>
+              <PhotoTile src={logo} radius={14} title="Rimuovi logo"
+                onRemove={() => { setLogo(null); onChange && onChange(); }}/>
             </div>
             <div>
               <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>Logo caricato</div>
@@ -1185,22 +1175,9 @@ function VetrinaAspetto({ onChange }) {
         </div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
           {photos.map((src, i) => (
-            /* Cestino rosso a cavallo dell'angolo alto-dx: wrapper senza
-               clipping, la foto arrotonda per conto suo. */
-            <div key={i} style={{aspectRatio:'1', position:'relative'}}>
-              <MediaThumb src={src} radius={10}/>
-              <button title="Elimina foto" onClick={() => removePhoto(i)} style={{
-                position:'absolute', top:-9, right:-9,
-                width: 27, height:27, borderRadius:'50%',
-                background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
-                boxShadow:'0 3px 10px rgba(15,17,21,0.20)',
-                color: PN.RED, cursor:'pointer',
-                display:'grid', placeItems:'center',
-              }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>
-                </svg>
-              </button>
+            <div key={i} style={{aspectRatio: '1'}}>
+              <PhotoTile src={src} radius={10} title="Elimina foto"
+                onRemove={() => removePhoto(i)}/>
             </div>
           ))}
           <div onClick={openGalleryUpload} style={{
@@ -1231,6 +1208,56 @@ function VetrinaAspetto({ onChange }) {
             : addPhoto(src)}/>
       )}
     </div>
+  );
+}
+
+// Tile-foto: in hover la foto si ingrandisce con ombra; il cestino a cavallo
+// dell'angolo si accende di rosso in hover e si comprime al click.
+function PhotoTile({ src, onRemove, radius = 10, title = 'Elimina' }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{position: 'relative', width: '100%', height: '100%'}}>
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: radius,
+        transform: hover ? 'scale(1.045)' : 'scale(1)',
+        boxShadow: hover ? '0 12px 26px rgba(15, 17, 21, 0.20)' : 'none',
+        transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease',
+        zIndex: hover ? 2 : 1,
+      }}>
+        <MediaThumb src={src} radius={radius}/>
+      </div>
+      <TrashBadge title={title} onClick={onRemove}/>
+    </div>
+  );
+}
+
+// Cestino a badge: bianco a riposo, rosso pieno in hover, si comprime al click.
+function TrashBadge({ onClick, title }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button title={title} onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        position: 'absolute', top: -9, right: -9, zIndex: 3,
+        width: 27, height: 27, borderRadius: '50%',
+        background: hover ? PN.RED : PN.WHITE,
+        color: hover ? '#fff' : PN.RED,
+        border: `1px solid ${hover ? PN.RED : PN.BORDER_LIGHT}`,
+        boxShadow: hover ? '0 5px 14px rgba(220, 38, 38, 0.40)' : '0 3px 10px rgba(15, 17, 21, 0.20)',
+        transform: pressed ? 'scale(0.82)' : hover ? 'scale(1.12)' : 'scale(1)',
+        transition: 'background 130ms ease, color 130ms ease, border-color 130ms ease, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
+        cursor: 'pointer', display: 'grid', placeItems: 'center',
+      }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>
+      </svg>
+    </button>
   );
 }
 
