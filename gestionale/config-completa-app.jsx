@@ -471,7 +471,7 @@ function CompletionChip({ c, onClick }) {
         boxShadow: hover ? '0 4px 12px rgba(15, 17, 21, 0.10)' : 'none',
         transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), background 140ms ease, color 140ms ease, box-shadow 160ms ease',
       }}>
-      ○ {c.label}
+      {c.label}
     </button>
   );
 }

@@ -1672,28 +1672,7 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
         {SOCIAL_DEFS.some(s => social.includes(s.key)) ? (
           <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap: 10, marginBottom: 16}}>
             {SOCIAL_DEFS.filter(s => social.includes(s.key)).map(s => (
-              <div key={s.key} style={{
-                padding: '10px 12px', border:`1.5px solid ${PN.GREEN_SOFT}`,
-                borderRadius: 10, background: PN.WHITE, minWidth: 0,
-                boxShadow: '0 4px 14px rgba(15, 17, 21, 0.08)',
-                display:'flex', flexDirection:'column', gap: 6,
-              }}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
-                  <div style={{
-                    width: 28, height:28, borderRadius: 7, background: s.bg, flexShrink: 0,
-                    display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 12 : 14, fontWeight:800,
-                  }}>{s.abbr || s.name[0]}</div>
-                  <div style={{fontSize:10.5, fontWeight:700, color:PN.GREEN, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
-                </div>
-                <div style={{minWidth: 0}}>
-                  <div style={{fontSize:14, fontWeight:700}}>{s.name}</div>
-                  <div title={links[s.key]} style={{fontSize:12.5, color:PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                    {links[s.key] ? socialHandle(links[s.key]) : 'Profilo collegato'}
-                  </div>
-                </div>
-                <ScollegaBtn onClick={() => setUnlink(s)}
-                  style={{alignSelf:'flex-end', padding:'3px 9px', marginRight:-9, marginTop:-2, fontSize:13}}/>
-              </div>
+              <SocialConnectedBox key={s.key} s={s} link={links[s.key]} onUnlink={() => setUnlink(s)}/>
             ))}
           </div>
         ) : (
@@ -1865,6 +1844,40 @@ function FaqConfirmModal({ faq, onClose, onConfirm }) {
           @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
         `}</style>
       </div>
+    </div>
+  );
+}
+
+// Box del social collegato: si ingrandisce in hover con ombra più profonda;
+// Scollega in basso a destra chiede conferma.
+function SocialConnectedBox({ s, link, onUnlink }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        padding: '10px 12px', border:`1.5px solid ${PN.GREEN_SOFT}`,
+        borderRadius: 10, background: PN.WHITE, minWidth: 0,
+        boxShadow: hover ? '0 12px 26px rgba(15, 17, 21, 0.15)' : '0 4px 14px rgba(15, 17, 21, 0.08)',
+        transform: hover ? 'scale(1.04)' : 'scale(1)',
+        transition: 'transform 180ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 180ms ease',
+        position: 'relative', zIndex: hover ? 2 : 1,
+        display:'flex', flexDirection:'column', gap: 6,
+      }}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
+        <div style={{
+          width: 28, height:28, borderRadius: 7, background: s.bg, flexShrink: 0,
+          display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 12 : 14, fontWeight:800,
+        }}>{s.abbr || s.name[0]}</div>
+        <div style={{fontSize:10.5, fontWeight:700, color:PN.GREEN, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
+      </div>
+      <div style={{minWidth: 0}}>
+        <div style={{fontSize:14, fontWeight:700}}>{s.name}</div>
+        <div title={link} style={{fontSize:12.5, color:PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+          {link ? socialHandle(link) : 'Profilo collegato'}
+        </div>
+      </div>
+      <ScollegaBtn onClick={onUnlink}
+        style={{alignSelf:'flex-end', padding:'3px 9px', marginRight:-9, marginTop:-2, fontSize:13}}/>
     </div>
   );
 }
