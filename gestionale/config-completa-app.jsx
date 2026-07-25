@@ -5,8 +5,8 @@ function ConfigCompletaApp() {
 
   return (
     <div style={{display:'flex', flex:1, minHeight:0}}>
-      <PnSidebar active="impostazioni-shadow"/>
-
+      {/* Niente sidebar: questa pagina fa ancora parte dell'onboarding, il
+          gestionale vero si apre solo dopo (Panoramica). */}
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0}}>
 
         {/* Header — Apple tone: white-off bg, hairline border 0.06 alpha,
