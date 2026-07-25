@@ -435,20 +435,14 @@ function WidgetRiempimento({ size }) {
                       borderRadius: '4px 4px 2px 2px',
                     }}/>
                   </div>
-                  {/* Fascia per esteso: "12:00-13:00" in diagonale — sette
-                      etichette complete convivono senza toccarsi. */}
-                  <div style={{height: 30, width: '100%', position: 'relative', flexShrink: 0, overflow: 'visible'}}>
-                    <div style={{
-                      position: 'absolute', top: 4, left: '50%',
-                      fontSize: 9.5, letterSpacing: '-0.2px',
-                      fontVariantNumeric: 'tabular-nums',
-                      color: isPeak ? PN.TEXT : PN.MUTED,
-                      fontWeight: isPeak ? 800 : 600,
-                      whiteSpace: 'nowrap',
-                      transform: 'rotate(-38deg) translateX(-50%)',
-                      transformOrigin: 'left top',
-                    }}>{f.h}:00-{Number(f.h) + 1}:00</div>
-                  </div>
+                  {/* Etichetta piana e compatta: l'ora d'inizio della fascia */}
+                  <div style={{
+                    fontSize: 10.5,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: isPeak ? PN.TEXT : PN.MUTED,
+                    fontWeight: isPeak ? 800 : 600,
+                    whiteSpace: 'nowrap', flexShrink: 0,
+                  }}>{f.h}:00</div>
                 </div>
               );
             });
