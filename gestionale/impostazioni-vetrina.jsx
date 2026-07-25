@@ -190,7 +190,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
               — la separazione dalle colonne dei campi è una zona, non una
               hairline che si perdeva. */}
           <div style={{
-            minWidth: 0, background: '#F0F2F5',
+            minWidth: 0, background: '#F3F5F7',
             border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
             padding: '14px 16px',
           }}>
@@ -245,7 +245,7 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         }}>
           <span style={{fontSize:14, fontWeight:700}}>Orario standard</span>
           <span style={{fontSize:13, color:PN.MUTED}}>per tutti i giorni aperti</span>
-          <ImpButton variant="ghost" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5}}>
+          <ImpButton variant="primary" onClick={() => setHoursModal(true)} style={{padding:'7px 13px', fontSize: 13.5, marginLeft: 6}}>
             Personalizza orari
           </ImpButton>
           <span style={{flex:1}}/>
