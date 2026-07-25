@@ -89,7 +89,7 @@ function ConfigCompletaApp() {
               </p>
             </div>
             <ApBtn variant="neutral" onClick={goPanoramica} style={{flexShrink: 0}}>
-              Salta e vai alla Panoramica →
+              Salta e continua dopo →
             </ApBtn>
           </div>
 
@@ -130,10 +130,11 @@ function ConfigCompletaApp() {
               <span style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginRight: 2}}>
                 Completamento
               </span>
-              {/* Progresso in forma standard: barra + percento (Jakob) */}
+              {/* Progresso in forma standard: barra + percento. Verde, non
+                  brand: il progresso è "riuscita", il coral resta alle azioni. */}
               <span style={{display: 'inline-flex', alignItems: 'center', gap: 8, marginRight: 6}}>
                 <span style={{width: 90, height: 6, borderRadius: 999, background: '#F1F2F5', overflow: 'hidden'}}>
-                  <span style={{display: 'block', height: '100%', width: `${donePct}%`, borderRadius: 999, background: `linear-gradient(90deg, ${PN.PINK}, #FF7A7E)`, transition: 'width 400ms ease'}}/>
+                  <span style={{display: 'block', height: '100%', width: `${donePct}%`, borderRadius: 999, background: 'linear-gradient(90deg, #16A34A, #22C55E)', transition: 'width 400ms ease'}}/>
                 </span>
                 <span style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>{donePct}%</span>
               </span>
@@ -142,8 +143,8 @@ function ConfigCompletaApp() {
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   fontSize: 13, fontWeight: 600,
                   padding: '4px 11px', borderRadius: 999,
-                  background: c.done ? PN.PINK_BG_SOFT : '#F4F5F7',
-                  color: c.done ? PN.PINK_DARK : PN.MUTED,
+                  background: c.done ? '#DCFCE7' : '#F4F5F7',
+                  color: c.done ? '#15803D' : PN.MUTED,
                 }}>
                   {c.done ? '✓' : '○'} {c.label}
                 </span>
@@ -236,7 +237,7 @@ function ConfigCompletaApp() {
       }}>
         {step === 'personale'
           ? <ApBtn variant="neutral" onClick={() => setStep('vetrina')}>← Indietro</ApBtn>
-          : <ApBtn variant="neutral" onClick={goPanoramica}>← Indietro</ApBtn>}
+          : <ApBtn variant="neutral" onClick={() => { window.location.href = 'byup Restaurant Onboarding.html?step=4'; }}>← Torna alla configurazione base</ApBtn>}
         {step === 'vetrina'
           ? <ApBtn variant="brand" onClick={() => setStep('personale')}>Continua a Personale →</ApBtn>
           : <ApBtn variant="brand" onClick={complete}>Completa e vai alla Panoramica →</ApBtn>}
@@ -309,7 +310,8 @@ function ConfigCompletaApp() {
             {/* Telefono grande: riempie la rail — larghezza calibrata perché
                 header + publish + phone chiudano nei 900px del canvas. */}
             <div style={{width: 340, margin: '0 auto', flexShrink: 0}}>
-              <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}/>
+              <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
+                focusSection={sub === 'profilo' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>
             </div>
           </div>
         </aside>

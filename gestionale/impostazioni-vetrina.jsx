@@ -14,7 +14,8 @@ function ImpVetrina() {
   ];
 
   const markDirty = () => setDirty(true);
-  const preview = <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}/>;
+  const preview = <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
+    focusSection={sub === 'profilo' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>;
 
   // Completamento profilo (semplice mock)
   const completion = [
@@ -140,8 +141,8 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
       <ImpCard title="Informazioni pratiche" sub="Dettagli utili che i clienti vedono sulla vetrina">
         {/* Due colonne: campi a sinistra, servizi e accessibilità a destra —
             la card resta compatta invece di allungarsi in verticale. */}
-        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 26, alignItems: 'start'}}>
-          <div style={{minWidth: 0}}>
+        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 0, alignItems: 'stretch'}}>
+          <div style={{minWidth: 0, paddingRight: 24}}>
             <ImpField label="Nome locale" hint="Come appare in vetrina, sui link e nelle ricevute">
               <ImpInput placeholder="es. Trattoria del Borgo"/>
             </ImpField>
@@ -157,8 +158,8 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           </div>
 
           {/* Servizi e accessibilità: tessere con icona e descrizione,
-              selezione con spunta — niente più liste di checkbox. */}
-          <div style={{minWidth: 0}}>
+              selezione con spunta. Separatore centrale tra le due colonne. */}
+          <div style={{minWidth: 0, borderLeft: `1px solid ${PN.BORDER_SOFT}`, paddingLeft: 24}}>
             <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Servizi disponibili</div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 14}}>
               {SERVICE_TILES.servizi.map(s => (
@@ -494,20 +495,23 @@ function SedeCard({ sede, onRemove }) {
         <img src={sede.photo} alt="" loading="lazy"
           style={{width: 42, height: 42, borderRadius: 9, objectFit: 'cover', flexShrink: 0, background: '#EDEAE4'}}
           onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}/>
-        <div style={{minWidth: 0}}>
-          <div style={{fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.name}</div>
+        <div style={{minWidth: 0, flex: 1}}>
+          {/* Badge di stato a fianco del nome, sulla stessa riga */}
+          <div style={{display: 'flex', alignItems: 'center', gap: 6, minWidth: 0}}>
+            <span style={{fontSize: 14, fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.name}</span>
+            {attesa ? (
+              <span style={{display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: PN.MUTED, background: '#F4F5F7', padding: '2px 8px', borderRadius: 999, flexShrink: 0}}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                In attesa
+              </span>
+            ) : (
+              <span style={{fontSize: 11, fontWeight: 700, color: PN.GREEN, background: PN.GREEN_SOFT, padding: '2px 8px', borderRadius: 999, flexShrink: 0}}>● Attiva</span>
+            )}
+          </div>
           <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.addr}</div>
         </div>
       </div>
-      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8}}>
-        {attesa ? (
-          <span style={{display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: PN.MUTED, background: '#F4F5F7', padding: '3px 9px', borderRadius: 999}}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-            In attesa
-          </span>
-        ) : (
-          <span style={{fontSize: 12, fontWeight: 700, color: PN.GREEN, background: PN.GREEN_SOFT, padding: '3px 9px', borderRadius: 999}}>● Attiva</span>
-        )}
+      <div style={{display: 'flex', justifyContent: 'flex-end'}}>
         <button onClick={onRemove} style={{
           background: 'transparent', border: 'none', padding: '3px 4px',
           fontSize: 12.5, fontWeight: 600, color: PN.RED,

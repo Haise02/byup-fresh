@@ -444,16 +444,16 @@ function ImpSaveBar({ dirty, onCancel, onSave }) {
 }
 
 // Mini phone preview rendering vetrina mock content — same design language as onboarding
-// Phone preview della vetrina — replica 1:1 di VenueOriginal (la vetrina
-// dell'app consumer, app/extras.jsx): hero con gallery e gradient, eyebrow
-// con la categoria, titolo Fredoka, logo a cavallo del bordo, badge stato,
-// indirizzo e orari, recensione media, promo e CTA sticky. Il contenuto è
-// renderizzato a 390px (larghezza di progetto dell'app) e scalato alla
-// larghezza reale del device.
-function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante' }) {
-  const A = { PINK:'#E32459', TEXT:'#1c0f15', MUTED:'#6d5a61', BG:'#FBF4F1', TINT:'#f6f1ea', SURF:'#fff' };
-  const SHELL = 6;
+// Phone preview della vetrina — iPhone con la replica 1:1 e COMPLETA di
+// VenueOriginal (la vetrina dell'app consumer, app/extras.jsx): hero, badge,
+// indirizzo, recensione media, promo, premi, storia, chef consiglia, FAQ e
+// recensioni, con CTA sticky. Il contenuto (390px di design, zoom scalato)
+// scorre con la rotella passandoci sopra col mouse; `focusSection`
+// ('info' | 'gallery' | 'faq') lo porta alla sezione corrispondente.
+function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante', focusSection = null }) {
+  const A = { PINK:'#E32459', TEXT:'#1c0f15', MUTED:'#6d5a61', BG:'#FBF4F1', TINT:'#f6f1ea', SURF:'#fff', BORDER:'#eddfda' };
   const ref = React.useRef(null);
+  const scrollRef = React.useRef(null);
   const [w, setW] = React.useState(340);
   React.useEffect(() => {
     const el = ref.current; if (!el) return;
@@ -462,145 +462,250 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
     const ro = new ResizeObserver(m); ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const k = (w - SHELL * 2) / 390;
-  const designH = Math.round((w * 19 / 9 - SHELL * 2) / k);
+
+  // La sezione attiva a sinistra posiziona la vetrina sul punto giusto.
+  React.useEffect(() => {
+    const cont = scrollRef.current;
+    if (!cont || !focusSection) return;
+    const el = cont.querySelector(`[data-psec="${focusSection}"]`);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top - cont.getBoundingClientRect().top + cont.scrollTop - 6;
+    cont.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }, [focusSection]);
+
+  const k = (w - 18) / 390; // scocca 3+3 + cornice 6+6
   const HERO = 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=70&auto=format&fit=crop';
+  const DISHES = [
+    ['Cacio e Pepe',  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop'],
+    ['Carbonara',     'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=70&auto=format&fit=crop'],
+    ['Amatriciana',   'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=70&auto=format&fit=crop'],
+  ];
   const rowIcon = (d) => (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={A.MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
   );
+  const secTitle = (t) => (
+    <div style={{fontSize: 15, fontWeight: 700, marginBottom: 10}}>{t}</div>
+  );
+
   return (
+    /* Scocca iPhone: anello metallico + tasti laterali + cornice nera,
+       stesso linguaggio del mockup dell'onboarding. */
     <div ref={ref} style={{
-      width: '100%', aspectRatio: '9/19',
-      background: '#1a1a1a', borderRadius: 34, padding: SHELL,
-      boxShadow: '0 12px 32px rgba(0,0,0,0.22)',
+      width: '100%', aspectRatio: '9/19.4', position: 'relative',
+      borderRadius: Math.round(w * 0.155),
+      background: 'linear-gradient(150deg, #43464D 0%, #1B1D22 42%, #303338 100%)',
+      padding: 3,
+      boxShadow: '0 22px 50px -18px rgba(15, 17, 21, 0.42), 0 4px 12px -4px rgba(15, 17, 21, 0.20), inset 0 0 0 1px rgba(255,255,255,0.16)',
     }}>
-      <div style={{width: '100%', height: '100%', borderRadius: 28, overflow: 'hidden', position: 'relative', background: A.BG}}>
+      <span aria-hidden="true" style={{position: 'absolute', left: -2, top: '14%', width: 3, height: 26, borderRadius: 3, background: '#2A2D33'}}/>
+      <span aria-hidden="true" style={{position: 'absolute', left: -2, top: '20%', width: 3, height: 44, borderRadius: 3, background: '#2A2D33'}}/>
+      <span aria-hidden="true" style={{position: 'absolute', right: -2, top: '17%', width: 3, height: 60, borderRadius: 3, background: '#2A2D33'}}/>
+
+      <div style={{width: '100%', height: '100%', background: '#0B0C0E', borderRadius: Math.round(w * 0.145), padding: 6}}>
         <div style={{
-          width: 390, height: designH,
-          transform: `scale(${k})`, transformOrigin: 'top left',
-          position: 'relative', overflow: 'hidden', color: A.TEXT,
+          width: '100%', height: '100%', borderRadius: Math.round(w * 0.125),
+          overflow: 'hidden', position: 'relative', background: A.BG,
           fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
+          color: A.TEXT,
         }}>
-          {/* Status bar sopra la foto */}
-          <div style={{position: 'absolute', top: 10, left: 24, right: 24, zIndex: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', fontSize: 13, fontWeight: 700}}>
-            <span style={{fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 4px rgba(0,0,0,0.4)'}}>9:41</span>
-            <span style={{width: 22, height: 10, border: '1.2px solid #fff', borderRadius: 2, position: 'relative', opacity: 0.95}}>
-              <span style={{position: 'absolute', inset: 1, width: 15, background: '#fff', borderRadius: 1}}/>
-            </span>
-          </div>
+          {/* Contenuto scrollabile: rotella del mouse sopra il telefono */}
+          <div ref={scrollRef} className="vetp-scroll" style={{position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden'}}>
+            <div style={{zoom: k, width: 390, position: 'relative'}}>
 
-          {/* Bottoni flottanti come nell'app: back / cuore / altro */}
-          <div style={{position: 'absolute', top: 40, left: 16, right: 16, zIndex: 6, display: 'flex', justifyContent: 'space-between'}}>
-            <span style={{width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </span>
-            <span style={{display: 'flex', gap: 8}}>
-              <span style={{width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </span>
-              <span style={{width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill={A.TEXT}><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-              </span>
-            </span>
-          </div>
-
-          {/* Hero — foto, gradient, eyebrow categoria + titolo Fredoka */}
-          <div style={{height: 220, position: 'relative', background: '#222'}}>
-            <div style={{position: 'absolute', inset: 0, overflow: 'hidden'}}>
-              <img src={HERO} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
-            </div>
-            <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.72) 100%)'}}/>
-            <div style={{position: 'absolute', left: 20, right: 96, bottom: 44, color: '#fff'}}>
-              <div style={{fontSize: 11, fontWeight: 700, letterSpacing: 1.5, opacity: 0.85, textTransform: 'uppercase', marginBottom: 5}}>
-                {categoria}
+              {/* Hero */}
+              <div data-psec="hero" style={{height: 220, position: 'relative', background: '#222'}}>
+                <div style={{position: 'absolute', inset: 0, overflow: 'hidden'}}>
+                  <img src={HERO} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                </div>
+                <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.72) 100%)'}}/>
+                <div style={{position: 'absolute', left: 20, right: 96, bottom: 44, color: '#fff'}}>
+                  <div style={{fontSize: 11, fontWeight: 700, letterSpacing: 1.5, opacity: 0.85, textTransform: 'uppercase', marginBottom: 5}}>
+                    {categoria}
+                  </div>
+                  <div style={{fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)'}}>
+                    Ristorante Cacio e Pepe
+                  </div>
+                </div>
+                <div style={{position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5}}>
+                  {[0,1,2,3,4].map(i => (
+                    <span key={i} style={{width: i === 0 ? 18 : 6, height: 6, borderRadius: 99, background: '#fff', opacity: i === 0 ? 1 : 0.45}}/>
+                  ))}
+                </div>
+                <div style={{
+                  position: 'absolute', right: 20, bottom: -40, zIndex: 5,
+                  width: 80, height: 80, borderRadius: 999,
+                  background: '#fff', boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
+                  border: '3px solid rgba(255,255,255,0.95)', overflow: 'hidden',
+                }}>
+                  <div style={{width: '100%', height: '100%', borderRadius: 999, background: 'linear-gradient(135deg, #FFD3DC 0%, #FFB0C0 100%)', display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 800, color: A.PINK, fontFamily: 'Georgia, serif'}}>CP</div>
+                </div>
               </div>
-              <div style={{fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)'}}>
-                Ristorante Cacio e Pepe
+
+              {/* Badge + tag scelti nel gestionale */}
+              <div data-psec="tags" style={{display: 'flex', gap: 6, padding: '14px 20px 0', flexWrap: 'wrap'}}>
+                <span style={{fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: '#e6f5e9', padding: '4px 9px', borderRadius: 999}}>APERTO</span>
+                <span style={{fontSize: 10.5, fontWeight: 700, color: A.TEXT, background: A.TINT, padding: '4px 9px', borderRadius: 999}}>🏆 TOP 10 ROMA</span>
+                {tags.slice(0, 3).map(t => (
+                  <span key={t} style={{fontSize: 10.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '4px 9px', borderRadius: 999}}>{t.toUpperCase()}</span>
+                ))}
               </div>
-            </div>
-            <div style={{position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5}}>
-              {[0,1,2,3,4].map(i => (
-                <span key={i} style={{width: i === 0 ? 18 : 6, height: 6, borderRadius: 99, background: '#fff', opacity: i === 0 ? 1 : 0.45}}/>
-              ))}
-            </div>
-            {/* Logo a cavallo del bordo, come nell'app */}
-            <div style={{
-              position: 'absolute', right: 20, bottom: -40, zIndex: 5,
-              width: 80, height: 80, borderRadius: 999,
-              background: '#fff', boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
-              border: '3px solid rgba(255,255,255,0.95)', overflow: 'hidden',
-            }}>
-              <div style={{width: '100%', height: '100%', borderRadius: 999, background: 'linear-gradient(135deg, #FFD3DC 0%, #FFB0C0 100%)', display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 800, color: A.PINK, fontFamily: 'Georgia, serif'}}>CP</div>
+
+              {/* Indirizzo + orari */}
+              <div data-psec="info" style={{display: 'flex', flexDirection: 'column', gap: 5, padding: '14px 20px 0'}}>
+                <div style={{fontSize: 13.5, color: A.MUTED, display: 'flex', alignItems: 'center', gap: 6}}>
+                  {rowIcon(<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>)}
+                  Via dei Gracchi 56, 00187 Roma
+                </div>
+                <div style={{fontSize: 13.5, color: A.MUTED, display: 'flex', alignItems: 'center', gap: 6}}>
+                  {rowIcon(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>)}
+                  Lun – Ven · 11:00 – 23:00
+                </div>
+              </div>
+
+              {/* Recensione media */}
+              <div style={{padding: '18px 20px 0'}}>
+                {secTitle('Recensione media')}
+                <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n} style={{width: 30, height: 30, borderRadius: 7, background: A.PINK, display: 'grid', placeItems: 'center'}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </span>
+                  ))}
+                  <span style={{marginLeft: 8, display: 'flex', alignItems: 'baseline', gap: 6}}>
+                    <span style={{fontSize: 28, fontWeight: 800, letterSpacing: -0.5}}>4.8</span>
+                    <span style={{fontSize: 14, color: A.MUTED, fontWeight: 500}}>· 320 recensioni</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Promo / Eventi */}
+              <div data-psec="promo" style={{padding: '20px 20px 0'}}>
+                {secTitle('Promo / Eventi')}
+                <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+                  {['Aperitivo 2x1', 'Karaoke venerdì', 'Brunch domenica'].map(p => (
+                    <span key={p} style={{fontSize: 12.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '7px 12px', borderRadius: 999}}>{p}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Premi */}
+              <div style={{padding: '20px 20px 0'}}>
+                {secTitle('Premi e riconoscimenti')}
+                <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+                  {[['🥇','Top 10 Roma 2025'], ['🥈','Gambero Rosso'], ['🥉','Tripadvisor Excellence']].map(([m, p]) => (
+                    <span key={p} style={{fontSize: 12.5, fontWeight: 700, color: A.TEXT, background: A.TINT, padding: '7px 12px', borderRadius: 999}}>{m} {p}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Storia */}
+              <div data-psec="story" style={{padding: '20px 20px 0'}}>
+                {secTitle('La nostra storia')}
+                <div style={{fontSize: 13.5, lineHeight: 1.55}}>
+                  Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti
+                  tradizionali della cucina romana, ingredienti freschi e selezionati ogni
+                  giorno. <span style={{color: A.PINK, fontWeight: 600}}>...Altro</span>
+                </div>
+              </div>
+
+              {/* Chef consiglia */}
+              <div data-psec="gallery" style={{padding: '20px 20px 0'}}>
+                {secTitle('Chef consiglia')}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10}}>
+                  {DISHES.map(([n, src]) => (
+                    <div key={n} style={{borderRadius: 16, overflow: 'hidden', background: '#fff', boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)', border: '1px solid rgba(77,18,46,.06)'}}>
+                      <div style={{height: 88, overflow: 'hidden'}}>
+                        <img src={src} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                      </div>
+                      <div style={{padding: '8px 10px 10px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{n}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* FAQ */}
+              <div data-psec="faq" style={{padding: '22px 20px 0'}}>
+                {secTitle('Domande frequenti')}
+                <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                  {[
+                    ['Siete aperti il sabato?', 'Sì, dalle 12:00 alle 23:00 con orario continuato.', true],
+                    ['Avete opzioni vegane?', null, false],
+                    ['Posso prenotare per gruppi?', null, false],
+                  ].map(([q, a, open]) => (
+                    <div key={q} style={{background: '#fff', borderRadius: 12, padding: '11px 14px', border: `1px solid ${A.BORDER}`}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                        <span style={{flex: 1, fontSize: 13.5, fontWeight: 700}}>{q}</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={A.MUTED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{transform: open ? 'rotate(180deg)' : 'none'}}><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                      {a && <div style={{fontSize: 12.5, color: A.MUTED, marginTop: 6, lineHeight: 1.45}}>{a}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recensioni */}
+              <div style={{padding: '22px 20px 120px'}}>
+                {secTitle('Le recensioni')}
+                <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                  {[
+                    ['G', 'Giulia M.', '2 giorni fa', 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma.'],
+                    ['M', 'Marco R.', '1 settimana fa', 'Servizio impeccabile, vino consigliato dal cameriere perfetto.'],
+                  ].map(([ini, name, when, text]) => (
+                    <div key={name} style={{background: '#fff', borderRadius: 14, padding: '12px 14px', border: `1px solid ${A.BORDER}`}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
+                        <span style={{width: 28, height: 28, borderRadius: 999, background: A.TINT, color: A.PINK, display: 'grid', placeItems: 'center', fontSize: 12.5, fontWeight: 800}}>{ini}</span>
+                        <span style={{fontSize: 13, fontWeight: 700}}>{name}</span>
+                        <span style={{fontSize: 11.5, color: A.MUTED}}>· {when}</span>
+                        <span style={{marginLeft: 'auto', fontSize: 11.5, color: '#f5b400'}}>★★★★★</span>
+                      </div>
+                      <div style={{fontSize: 12.5, color: A.TEXT, lineHeight: 1.5}}>{text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Badge di stato + tag scelti nel gestionale */}
-          <div style={{display: 'flex', gap: 6, padding: '14px 20px 0', flexWrap: 'wrap'}}>
-            <span style={{fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: '#e6f5e9', padding: '4px 9px', borderRadius: 999}}>APERTO</span>
-            <span style={{fontSize: 10.5, fontWeight: 700, color: A.TEXT, background: A.TINT, padding: '4px 9px', borderRadius: 999}}>🏆 TOP 10 ROMA</span>
-            {tags.slice(0, 3).map(t => (
-              <span key={t} style={{fontSize: 10.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '4px 9px', borderRadius: 999}}>{t.toUpperCase()}</span>
+          {/* Overlay fissi: status bar, island, bottoni flottanti, CTA, indicator */}
+          <div style={{position: 'absolute', top: Math.round(34 * k), left: Math.round(22 * k), right: Math.round(22 * k), zIndex: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', pointerEvents: 'none'}}>
+            <span style={{fontSize: Math.max(10, Math.round(13 * k)), fontWeight: 700, fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 4px rgba(0,0,0,0.4)'}}>9:41</span>
+            <span style={{width: Math.round(22 * k), height: Math.round(10 * k), border: '1.2px solid #fff', borderRadius: 2, position: 'relative', opacity: 0.95}}>
+              <span style={{position: 'absolute', inset: 1, width: '68%', background: '#fff', borderRadius: 1}}/>
+            </span>
+          </div>
+          <div style={{position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: Math.round(74 * k), height: Math.round(20 * k), borderRadius: 999, background: '#0B0C0E', zIndex: 7, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 7}}>
+            <span style={{width: Math.round(8 * k), height: Math.round(8 * k), borderRadius: 999, background: 'radial-gradient(circle at 32% 30%, #3A4150 0%, #0E1013 70%)', boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.20)'}}/>
+          </div>
+          <div style={{position: 'absolute', top: Math.round(64 * k), left: Math.round(16 * k), right: Math.round(16 * k), zIndex: 6, display: 'flex', justifyContent: 'space-between', pointerEvents: 'none'}}>
+            {[0, 1].map(side => side === 0 ? (
+              <span key="b" style={{width: Math.round(38 * k), height: Math.round(38 * k), borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
+                <svg width={Math.round(16 * k)} height={Math.round(16 * k)} viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </span>
+            ) : (
+              <span key="r" style={{display: 'flex', gap: Math.round(8 * k)}}>
+                <span style={{width: Math.round(38 * k), height: Math.round(38 * k), borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
+                  <svg width={Math.round(18 * k)} height={Math.round(18 * k)} viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </span>
+                <span style={{width: Math.round(38 * k), height: Math.round(38 * k), borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
+                  <svg width={Math.round(18 * k)} height={Math.round(18 * k)} viewBox="0 0 24 24" fill={A.TEXT}><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                </span>
+              </span>
             ))}
           </div>
-
-          {/* Indirizzo + orari */}
-          <div style={{display: 'flex', flexDirection: 'column', gap: 5, padding: '14px 20px 0'}}>
-            <div style={{fontSize: 13.5, color: A.MUTED, display: 'flex', alignItems: 'center', gap: 6}}>
-              {rowIcon(<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>)}
-              Via dei Gracchi 56, 00187 Roma
-            </div>
-            <div style={{fontSize: 13.5, color: A.MUTED, display: 'flex', alignItems: 'center', gap: 6}}>
-              {rowIcon(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>)}
-              Lun – Ven · 11:00 – 23:00
-            </div>
-          </div>
-
-          {/* Recensione media */}
-          <div style={{padding: '18px 20px 0'}}>
-            <div style={{fontSize: 15, fontWeight: 700, marginBottom: 10}}>Recensione media</div>
-            <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-              {[1,2,3,4,5].map(n => (
-                <span key={n} style={{width: 30, height: 30, borderRadius: 7, background: n <= 5 ? A.PINK : A.TINT, display: 'grid', placeItems: 'center'}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                </span>
-              ))}
-              <span style={{marginLeft: 8, display: 'flex', alignItems: 'baseline', gap: 6}}>
-                <span style={{fontSize: 28, fontWeight: 800, letterSpacing: -0.5}}>4.8</span>
-                <span style={{fontSize: 14, color: A.MUTED, fontWeight: 500}}>· 320 recensioni</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Promo / Eventi */}
-          <div style={{padding: '20px 20px 0'}}>
-            <div style={{fontSize: 15, fontWeight: 700, marginBottom: 10}}>Promo / Eventi</div>
-            <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-              {['Aperitivo 2x1', 'Karaoke venerdì', 'Brunch domenica'].map(p => (
-                <span key={p} style={{fontSize: 12.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '7px 12px', borderRadius: 999}}>{p}</span>
-              ))}
-            </div>
-          </div>
-
-          {/* La nostra storia */}
-          <div style={{padding: '20px 20px 0'}}>
-            <div style={{fontSize: 15, fontWeight: 700, marginBottom: 8}}>La nostra storia</div>
-            <div style={{fontSize: 13.5, lineHeight: 1.55}}>
-              Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti
-              tradizionali della cucina romana… <span style={{color: A.PINK, fontWeight: 600}}>...Altro</span>
-            </div>
-          </div>
-
-          {/* CTA sticky come nell'app */}
           <div style={{
-            position: 'absolute', left: 0, right: 0, bottom: 0,
-            padding: '34px 16px 18px', display: 'flex', gap: 10,
+            position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 6,
+            padding: `${Math.round(30 * k)}px ${Math.round(16 * k)}px ${Math.round(20 * k)}px`,
+            display: 'flex', gap: Math.round(10 * k),
             background: 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,0.96) 45%)',
+            pointerEvents: 'none',
           }}>
-            <span style={{flex: 1, padding: '13px 0', borderRadius: 999, background: '#fff', border: '1.5px solid #eddfda', fontSize: 14.5, fontWeight: 700, color: A.TEXT, textAlign: 'center'}}>Vedi menù</span>
-            <span style={{flex: 1.5, padding: '13px 0', borderRadius: 999, background: A.PINK, fontSize: 14.5, fontWeight: 700, color: '#fff', textAlign: 'center', boxShadow: '0 6px 16px rgba(227,36,89,0.35)'}}>Prenota un tavolo</span>
+            <span style={{flex: 1, padding: `${Math.round(12 * k)}px 0`, borderRadius: 999, background: '#fff', border: '1.5px solid #eddfda', fontSize: Math.max(10, Math.round(14.5 * k)), fontWeight: 700, color: A.TEXT, textAlign: 'center'}}>Vedi menù</span>
+            <span style={{flex: 1.5, padding: `${Math.round(12 * k)}px 0`, borderRadius: 999, background: A.PINK, fontSize: Math.max(10, Math.round(14.5 * k)), fontWeight: 700, color: '#fff', textAlign: 'center', boxShadow: '0 6px 16px rgba(227,36,89,0.35)'}}>Prenota un tavolo</span>
           </div>
+          <div aria-hidden="true" style={{position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)', width: Math.round(92 * k), height: 4, borderRadius: 999, background: 'rgba(15, 17, 21, 0.30)', zIndex: 7}}/>
         </div>
       </div>
+      <style>{`.vetp-scroll::-webkit-scrollbar{display:none}.vetp-scroll{scrollbar-width:none}`}</style>
     </div>
   );
 }
