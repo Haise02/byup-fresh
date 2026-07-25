@@ -73,16 +73,6 @@ function ConfigCompletaApp() {
           <div style={{marginBottom: 22}}>
             <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 24}}>
               <div style={{flex:1, minWidth:0}}>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
-                  padding: '4px 12px', borderRadius: 999,
-                  fontSize: 12.5, fontWeight: 600, marginBottom: 12, letterSpacing: 0.5,
-                  textTransform: 'uppercase',
-                }}>
-                  <span style={{width: 5, height: 5, borderRadius: 999, background: PN.PINK, display: 'inline-block'}}/>
-                  Configurazione completa · Opzionale
-                </div>
                 <h1 style={{
                   fontWeight: 600, fontSize: 30, margin: 0,
                   letterSpacing: '-0.02em', color: PN.TEXT,
@@ -264,9 +254,9 @@ function ConfigCompletaApp() {
             ? <ApBtn variant="neutral" onClick={() => setStep('informazioni')}>← Indietro</ApBtn>
             : <ApBtn variant="neutral" onClick={() => setStep('aspetto')}>← Indietro</ApBtn>}
         {step === 'informazioni'
-          ? <ApBtn variant="brand" onClick={() => setStep('aspetto')}>Continua ad Aspetto →</ApBtn>
+          ? <ApBtn variant="brand" onClick={() => setStep('aspetto')}>Continua →</ApBtn>
           : step === 'aspetto'
-            ? <ApBtn variant="brand" onClick={() => setStep('personale')}>Continua a Personale →</ApBtn>
+            ? <ApBtn variant="brand" onClick={() => { publish(); setStep('personale'); }}>Pubblica modifiche e procedi →</ApBtn>
             : <ApBtn variant="brand" onClick={complete}>Completa e vai alla Panoramica →</ApBtn>}
       </div>
 
@@ -344,22 +334,20 @@ function ConfigCompletaApp() {
             flex: 1, minHeight: 0,
             display: 'flex', flexDirection: 'column',
           }}>
-            <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexShrink: 0}}>
-              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Anteprima vetrina</div>
-              <div style={{fontSize: 13, color: PN.MUTED}}>Cosa vedranno i clienti</div>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 10, flexShrink: 0}}>
+              Cosa vedranno i clienti
             </div>
-            <PublishButton dirty={dirty} onPublish={publish}/>
 
-            {/* Telefono: larghezza calibrata perché header + publish + phone
-                + banner chiudano nei 900px del canvas. */}
-            <div style={{width: 290, margin: '0 auto', flexShrink: 0}}>
+            {/* Telefono: larghezza calibrata perché header + phone + banner
+                chiudano nei 900px del canvas. */}
+            <div style={{width: 300, margin: '0 auto', flexShrink: 0}}>
               <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
                 focusSection={step === 'informazioni' ? 'info' : 'gallery'}/>
             </div>
 
             {/* Banner piano Plus: click → Piani e abbonamenti */}
             <a href="byup Profilo.html?tab=piani" title="Sblocca la vetrina esclusiva di Byup"
-              style={{display: 'block', width: 290, margin: '12px auto 0', flexShrink: 0}}>
+              style={{display: 'block', width: 300, margin: '12px auto 0', flexShrink: 0}}>
               <img src="banner-vetrina-plus.jpg" alt="Differenziati da tutti: sblocca la vetrina esclusiva di Byup, dal piano Plus"
                 style={{
                   width: '100%', display: 'block', borderRadius: 12,

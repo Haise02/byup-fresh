@@ -1232,20 +1232,21 @@ function VetrinaAspetto({ onChange }) {
             sulla vetrina), galleria che occupa tutto il resto. */}
         <div style={{display: 'grid', gridTemplateColumns: '240px minmax(0, 1fr)', gap: 18, alignItems: 'stretch'}}>
 
-          {/* Logo — colonna sinistra, tondo e compatto */}
-          <div style={{minWidth: 0, display: 'flex', flexDirection: 'column'}}>
+          {/* Logo — blocco compatto in alto: occupa solo lo spazio reale del
+              cerchio, niente centratura verticale nella colonna */}
+          <div style={{minWidth: 0}}>
             <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Logo del locale</div>
-            <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>PNG o JPG quadrato · 512×512px</div>
-            <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '12px 0 6px'}}>
+            <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 12}}>PNG o JPG quadrato · 512×512px</div>
+            <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
               {logo ? (
-                <LogoCircle src={logo}
+                <LogoCircle src={logo} size={96}
                   onReplace={() => setUploadModal('logo')}
                   onRemove={() => { setLogo(null); onChange && onChange(); }}/>
               ) : (
-                <LogoDropCircle onClick={() => setUploadModal('logo')}/>
+                <LogoDropCircle size={96} onClick={() => setUploadModal('logo')}/>
               )}
               <ImpButton variant="ghost" onClick={() => setUploadModal('logo')}>
-                {logo ? 'Sostituisci logo' : 'Carica logo'}
+                {logo ? 'Sostituisci' : 'Carica logo'}
               </ImpButton>
             </div>
           </div>
@@ -1323,13 +1324,13 @@ function PhotoTile({ src, onRemove, radius = 10, title = 'Elimina' }) {
 
 // Logo circolare: com'è sulla vetrina, appena più grande. Si ingrandisce in
 // hover come le foto; il cestino sta a cavallo del bordo del cerchio.
-function LogoCircle({ src, onReplace, onRemove }) {
+function LogoCircle({ src, onReplace, onRemove, size = 128 }) {
   const [hover, setHover] = React.useState(false);
   const [dim, setDim] = React.useState(null);
   return (
-    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10}}>
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0}}>
       <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-        style={{position: 'relative', width: 128, height: 128}}>
+        style={{position: 'relative', width: size, height: size}}>
         <div onClick={onReplace} title="Sostituisci logo" style={{
           position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden',
           border: `1px solid ${PN.BORDER_SOFT}`, cursor: 'pointer',
@@ -1353,12 +1354,12 @@ function LogoCircle({ src, onReplace, onRemove }) {
 
 // Dropzone circolare del logo quando non c'è ancora: stessa sagoma del logo
 // che comparirà, così l'occhio sa già cosa aspettarsi.
-function LogoDropCircle({ onClick }) {
+function LogoDropCircle({ onClick, size = 128 }) {
   const [hover, setHover] = React.useState(false);
   return (
     <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        width: 128, height: 128, borderRadius: '50%',
+        width: size, height: size, borderRadius: '50%', flexShrink: 0,
         border: `2px dashed ${hover ? PN.PINK : PN.BORDER}`,
         background: hover ? PN.PINK_SOFT : '#FAFBFC',
         display: 'grid', placeItems: 'center', cursor: 'pointer', textAlign: 'center',
