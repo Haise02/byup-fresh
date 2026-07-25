@@ -2916,19 +2916,18 @@ const BYP_CSS = `
 `;
 const BYP_LEVEL_NAMES = { 1: 'Novizio', 2: 'Esploratore', 3: 'Buongustaio', 4: 'Intenditore', 5: 'Gourmet', 6: 'Maestro', 7: 'Leggenda', 8: 'Icona' };
 // Ricompensa crescente e mascotte diversa per ogni livello della roadmap.
-// La carriera visiva segue le tavole byuppini (prime armi → cameriere →
+// rank-1..8 sono i ritagli delle tavole byuppini: prime armi → cameriere →
 // caposala → chef → executive chef → proprietario → proprietario dorato →
-// imprenditore miliardario): quando arrivano gli 8 artwork dedicati basta
-// sostituire i path qui sotto.
+// imprenditore miliardario.
 const BYP_LEVEL_INFO = {
-  1: { img: 'assets/mascot-wave.png',      mult: '×1',   bonus: 0 },
-  2: { img: 'assets/mascot-waiter.png',    mult: '×1,2', bonus: 100 },
-  3: { img: 'assets/mascot-confident.png', mult: '×1,3', bonus: 250 },
-  4: { img: 'assets/mascot-chef.png',      mult: '×1,5', bonus: 500 },
-  5: { img: 'assets/mascot-chef-2.png',    mult: '×1,8', bonus: 1000 },
-  6: { img: 'assets/mascot-wink.png',      mult: '×2',   bonus: 2000 },
-  7: { img: 'assets/mascot-master.png',    mult: '×2,5', bonus: 3500 },
-  8: { img: 'assets/mascot-coin.png',      mult: '×3',   bonus: 5000 },
+  1: { img: 'assets/rank-1.png', mult: '×1',   bonus: 0 },
+  2: { img: 'assets/rank-2.png', mult: '×1,2', bonus: 100 },
+  3: { img: 'assets/rank-3.png', mult: '×1,3', bonus: 250 },
+  4: { img: 'assets/rank-4.png', mult: '×1,5', bonus: 500 },
+  5: { img: 'assets/rank-5.png', mult: '×1,8', bonus: 1000 },
+  6: { img: 'assets/rank-6.png', mult: '×2',   bonus: 2000 },
+  7: { img: 'assets/rank-7.png', mult: '×2,5', bonus: 3500 },
+  8: { img: 'assets/rank-8.png', mult: '×3',   bonus: 5000 },
 };
 const BYP_CUR_LEVEL = 3;
 const BYP_ACH = [
