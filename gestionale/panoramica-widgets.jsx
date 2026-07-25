@@ -409,16 +409,12 @@ function WidgetRiempimento({ size }) {
         paddingTop: sideBySide ? 0 : 10,
         paddingLeft: sideBySide ? 18 : 0,
       }}>
-        {/* Header corto (mai troncato) + il dato utile al posto della scala:
-            l'ora di picco. Niente gridline né assi 0–100: rumore in ~108px. */}
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 8, gap: 8, minWidth: 0}}>
+        {/* Header corto, senza il "picco" a destra: il picco parla da sé —
+            valore ed etichetta in bold sulla barra corallo. */}
+        <div style={{display:'flex', alignItems:'baseline', marginBottom: 8, minWidth: 0}}>
           <div style={{fontSize:12, color: PN.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap'}}>Fasce orarie</div>
-          {(() => {
-            const peak = d.fasce.reduce((a, b) => (b.v > a.v ? b : a));
-            return <div style={{fontSize:12, color: PN.MUTED, whiteSpace:'nowrap', flexShrink: 0}}>picco <b style={{color: PN.TEXT}}>{peak.h}:00</b></div>;
-          })()}
         </div>
-        <div style={{flex:1, display:'flex', alignItems:'stretch', gap: 8}}>
+        <div style={{flex:1, display:'flex', alignItems:'stretch', gap: 6}}>
           {(() => {
             const peakV = Math.max(...d.fasce.map(f => f.v));
             return d.fasce.map((f, i) => {
@@ -428,7 +424,7 @@ function WidgetRiempimento({ size }) {
                 <div key={i} style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column', alignItems:'center', gap: 4}}>
                   <div style={{flex:1, minHeight: 0, width:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end', alignItems:'center', overflow:'hidden'}}>
                     <div style={{
-                      fontSize: 11, fontWeight: isPeak ? 700 : 600,
+                      fontSize: 11, fontWeight: isPeak ? 800 : 600,
                       color: isPeak ? PN.PINK_DARK : PN.MUTED,
                       marginBottom: 3, whiteSpace:'nowrap',
                     }}>{f.v}%</div>
@@ -439,7 +435,20 @@ function WidgetRiempimento({ size }) {
                       borderRadius: '4px 4px 2px 2px',
                     }}/>
                   </div>
-                  <div style={{fontSize: 11.5, color: PN.MUTED, fontWeight: 600, whiteSpace:'nowrap', flexShrink: 0}}>{f.h}</div>
+                  {/* Fascia per esteso: "12:00-13:00" in diagonale — sette
+                      etichette complete convivono senza toccarsi. */}
+                  <div style={{height: 30, width: '100%', position: 'relative', flexShrink: 0, overflow: 'visible'}}>
+                    <div style={{
+                      position: 'absolute', top: 4, left: '50%',
+                      fontSize: 9.5, letterSpacing: '-0.2px',
+                      fontVariantNumeric: 'tabular-nums',
+                      color: isPeak ? PN.TEXT : PN.MUTED,
+                      fontWeight: isPeak ? 800 : 600,
+                      whiteSpace: 'nowrap',
+                      transform: 'rotate(-38deg) translateX(-50%)',
+                      transformOrigin: 'left top',
+                    }}>{f.h}:00-{Number(f.h) + 1}:00</div>
+                  </div>
                 </div>
               );
             });
@@ -457,21 +466,23 @@ function WidgetPrenotazioniOggi() {
   // tag: chip Compleanno/Aziendale, mostrato sotto il nome.
   // I tag prenotazione sono SOLO due: Compleanno e Aziendale.
   // Tutto il resto (allergie, preferenze tavolo…) vive come nota testuale.
+  // Voci allineate a SALA_RES_DATA (sala-tab-calendario): l'id è il deep-link
+  // che apre la prenotazione vera nel calendario della Sala.
   const items = [
-    { time: '19:30', name: 'Famiglia Robinson',   covers: 4, table: 'Tavolo 7',  tag: 'compleanno', note: 'torta' },
-    { time: '20:00', name: 'Bianchi M.',       covers: 2, table: 'Tavolo 3' },
-    { time: '20:15', name: 'Conte (regular)',  covers: 6, table: 'Tavolo 12' },
-    { time: '20:30', name: 'Walk-in attesa',   covers: 2, table: null },
-    { time: '21:00', name: 'Greco',            covers: 3, table: 'Tavolo 5' },
-    { time: '21:30', name: 'De Luca',          covers: 2, table: 'Tavolo 9',  note: 'allergia noci' },
-    { time: '21:45', name: 'Marini',           covers: 4, table: 'Tavolo 2',  tag: 'aziendale' },
-    { time: '22:00', name: 'Rinaldi',          covers: 2, table: 'Tavolo 11' },
-    { time: '22:15', name: 'Esposito',         covers: 5, table: 'Tavolo 4',  note: 'tavolo finestra' },
+    { id: 'r5',  time: '20:30', name: 'Andrea Bianchi',    covers: 2, table: 'Tavolo 3',  note: 'menu fisso' },
+    { id: 'r8',  time: '20:30', name: 'Tommy Shelby',      covers: 8, table: 'Tavolo 1',  tag: 'compleanno' },
+    { id: 'r22', time: '20:30', name: 'Mancini',           covers: 2, table: 'Tavolo 6',  note: 'laurea' },
+    { id: 'r6',  time: '21:30', name: 'Famiglia Robinson', covers: 4, table: 'Tavolo 7',  note: 'allergia glutine' },
+    { id: 'r12', time: '21:30', name: 'Marini',            covers: 4, table: 'Tavolo 12', tag: 'aziendale' },
+    { id: 'r10', time: '21:30', name: 'De Luca',           covers: 3, table: 'Tavolo 9',  note: 'anniversario' },
+    { id: 'r13', time: '21:30', name: 'Famiglia Verdi',    covers: 5, table: 'Tavolo 11', note: '2 bambini' },
+    { id: 'r14', time: '22:30', name: 'Jesse Pinkman',     covers: 2, table: 'Tavolo 1' },
   ];
 
+  // Entrambe le etichette in viola, per esteso accanto al nome.
   const tagStyle = {
     compleanno: { bg: '#EDE9FE', fg: '#7C3AED', label: 'Compleanno' },
-    aziendale:  { bg: '#DBEAFE', fg: '#1E40AF', label: 'Aziendale' },
+    aziendale:  { bg: '#EDE9FE', fg: '#7C3AED', label: 'Aziendale' },
   };
 
   const [interacting, setInteracting] = React.useState(false);
@@ -530,56 +541,11 @@ function WidgetPrenotazioniOggi() {
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 6,
         }}>
-          {/* render duplicato per loop seamless.
-              Riga su due piani per la colonna 1×: orario a sinistra, a destra
-              nome (riga 1) e tavolo · coperti · nota (riga 2) — niente colonna
-              destra che rubava spazio al nome e collideva con le chip. */}
-          {[...items, ...items].map((it, i) => {
-            const tag = it.tag ? tagStyle[it.tag] : null;
-            return (
-              <div key={i} style={{
-                display: 'grid', gridTemplateColumns: '48px minmax(0, 1fr)', gap: 10,
-                alignItems: 'start',
-                padding: '9px 10px',
-                borderRadius: 10,
-                background: PN.WHITE,
-                border: `1px solid ${PN.BORDER_HAIR}`,
-                boxShadow: '0 1px 0 rgba(15, 17, 21, 0.02)',
-                flexShrink: 0,
-              }}>
-                {/* Orario in chip: colonna fissa, sempre allineata */}
-                <div style={{
-                  fontSize: 13.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric: 'tabular-nums',
-                  background: PN.WHITE_OFF, border: `1px solid ${PN.BORDER_HAIR}`,
-                  borderRadius: 8, padding: '4px 0', textAlign: 'center', marginTop: 1,
-                }}>{it.time}</div>
-                <div style={{minWidth: 0}}>
-                  {/* Nome MAI troncato dalle chip: il tag è un pallino colorato
-                      accanto al nome (label nel title) — zero ingombro. */}
-                  <div style={{display: 'flex', alignItems: 'center', gap: 6, minWidth: 0}}>
-                    <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                      {it.name}
-                    </span>
-                    {tag && (
-                      <span title={tag.label} style={{
-                        width: 8, height: 8, borderRadius: 999, flexShrink: 0,
-                        background: tag.fg, boxShadow: `0 0 0 3px ${tag.bg}`,
-                      }}/>
-                    )}
-                  </div>
-                  <div style={{
-                    fontSize: 12.5, color: PN.MUTED, fontWeight: 500, marginTop: 3,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    <span style={{fontWeight: 600, color: it.table ? PN.MUTED : PN.WINE}}>
-                      {it.table || 'Da assegnare'}
-                    </span>
-                    {' · '}{it.covers} coperti{it.note ? ` · ${it.note}` : ''}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {/* render duplicato per loop seamless. Ogni riga si illumina in
+              hover e al click apre la prenotazione nel calendario Sala. */}
+          {[...items, ...items].map((it, i) => (
+            <PrenRow key={i} it={it} tag={it.tag ? tagStyle[it.tag] : null}/>
+          ))}
         </div>
       </div>
 
@@ -589,6 +555,68 @@ function WidgetPrenotazioniOggi() {
           to   { transform: translateY(-50%); }
         }
       `}</style>
+    </div>
+  );
+}
+
+// Riga prenotazione: si illumina in hover, si comprime al click e apre la
+// prenotazione nel calendario della Sala (?pren=<id>).
+function PrenRow({ it, tag }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <div
+      onClick={() => { window.location.href = `byup Sala.html?tab=calendar&pren=${it.id}`; }}
+      title={`Apri la prenotazione di ${it.name}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        display: 'grid', gridTemplateColumns: '48px minmax(0, 1fr)', gap: 10,
+        alignItems: 'start',
+        padding: '9px 10px',
+        borderRadius: 10,
+        background: hover ? '#FFFDF7' : PN.WHITE,
+        border: `1px solid ${hover ? '#F3D9A4' : PN.BORDER_HAIR}`,
+        boxShadow: hover
+          ? '0 0 0 3px rgba(245, 195, 92, 0.18), 0 8px 20px rgba(15, 17, 21, 0.08)'
+          : '0 1px 0 rgba(15, 17, 21, 0.02)',
+        flexShrink: 0, cursor: 'pointer',
+        transform: pressed ? 'scale(0.99)' : hover ? 'scale(1.012)' : 'scale(1)',
+        position: 'relative', zIndex: hover ? 2 : 1,
+        transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), background 150ms ease, border-color 150ms ease, box-shadow 170ms ease',
+      }}>
+      {/* Orario in chip: colonna fissa, sempre allineata */}
+      <div style={{
+        fontSize: 13.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric: 'tabular-nums',
+        background: PN.WHITE_OFF, border: `1px solid ${PN.BORDER_HAIR}`,
+        borderRadius: 8, padding: '4px 0', textAlign: 'center', marginTop: 1,
+      }}>{it.time}</div>
+      <div style={{minWidth: 0}}>
+        {/* Il tag è un'etichetta per esteso accanto al nome */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 7, minWidth: 0}}>
+          <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+            {it.name}
+          </span>
+          {tag && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: 0.2,
+              padding: '2px 8px', borderRadius: 999, flexShrink: 0,
+              background: tag.bg, color: tag.fg, whiteSpace: 'nowrap',
+            }}>{tag.label}</span>
+          )}
+        </div>
+        <div style={{
+          fontSize: 12.5, color: PN.MUTED, fontWeight: 500, marginTop: 3,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          <span style={{fontWeight: 600, color: it.table ? PN.MUTED : PN.WINE}}>
+            {it.table || 'Da assegnare'}
+          </span>
+          {' · '}{it.covers} coperti{it.note ? ` · ${it.note}` : ''}
+        </div>
+      </div>
     </div>
   );
 }
@@ -720,14 +748,40 @@ function WidgetTopPiatti() {
           crescono uniformemente quando il widget è alto (h≥2), restano compatti
           quando il widget è 1×1 con scroll se servono.
           gap proporzionale: più aria tra dish in widget grande. */}
-      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, minHeight: 0, overflowY: 'auto'}}>
+      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 6, minHeight: 0, overflowY: 'auto'}}>
         {dishes.map((d, i) => (
-          <div key={i} style={{
-            flex: '1 0 auto',
-            minHeight: 38,
-            display:'flex', flexDirection:'column', justifyContent:'center',
-            gap: 5,
-          }}>
+          <TopDishRow key={i} d={d} i={i} max={max}/>
+        ))}
+      </div>
+    </GlassDarkBox>
+  );
+}
+
+// Riga del top piatto: si accende e si ingrandisce in hover, al click porta
+// alle statistiche degli ordini (dove vivono i numeri dei piatti).
+function TopDishRow({ d, i, max }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <div
+      onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=ordini'; }}
+      title={`Statistiche di ${d.name}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        flex: '1 0 auto',
+        minHeight: 38,
+        display:'flex', flexDirection:'column', justifyContent:'center',
+        gap: 5,
+        padding: '6px 8px', margin: '0 -8px', borderRadius: 10,
+        background: hover ? 'rgba(255,255,255,0.08)' : 'transparent',
+        boxShadow: hover ? 'inset 0 0 0 1px rgba(255,255,255,0.12)' : 'none',
+        cursor: 'pointer',
+        transform: pressed ? 'scale(0.99)' : hover ? 'scale(1.015)' : 'scale(1)',
+        transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), background 150ms ease, box-shadow 150ms ease',
+      }}>
             {/* Due righe: il nome ha la riga 1 (con rank e trend), i numeri la
                 riga 2 — a colonna 1× nome e numeri insieme troncavano il nome
                 a due lettere. */}
@@ -751,10 +805,7 @@ function WidgetTopPiatti() {
             <div style={{height: 4, background:'rgba(255,255,255,0.08)', borderRadius: 99, overflow:'hidden'}}>
               <div style={{height:'100%', width: `${(d.sales/max)*100}%`, background: i === 0 ? '#FF6066' : 'rgba(255,255,255,0.30)', borderRadius: 99, boxShadow: i === 0 ? '0 0 8px rgba(255, 96, 102, 0.40)' : 'none'}}/>
             </div>
-          </div>
-        ))}
-      </div>
-    </GlassDarkBox>
+    </div>
   );
 }
 
@@ -792,39 +843,54 @@ function WidgetRecensioni() {
       </div>
 
       <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, minHeight: 0, overflow:'auto'}}>
-        {reviews.map((r,i) => (
-          // Soft-glass tile per ogni recensione: warm tint + specular highlight
-          // + lift on hover. Pattern tipo B. flex:1 0 auto + minHeight per
-          // distribuire l'altezza uniformemente quando widget è alto.
-          <div key={i} className="glass-lift-hover" style={{
-            flex: '1 0 auto',
-            minHeight: 64,
-            display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            padding: 12, borderRadius: 10,
-            background: 'rgba(255, 245, 248, 0.55)',
-            backgroundImage:
-              'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.10) 45%, rgba(255,255,255,0) 100%)',
-            backdropFilter: 'blur(12px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(160%)',
-            boxShadow:
-              'inset 0 1px 0 rgba(255,255,255,0.70), ' +
-              'inset 0 0 0 1px rgba(242, 107, 122, 0.08), ' +
-              '0 1px 2px rgba(15, 17, 21, 0.03)',
-          }}>
-            <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 5, minWidth: 0}}>
-              <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', flexShrink: 0}}>{r.name}</div>
-              <div style={{display:'flex', gap: 1, flexShrink: 0}}>
-                {[1,2,3,4,5].map(i => (
-                  <Icon name="star" key={i} size={10} color={i <= r.stars ? '#F59E0B' : '#E5E7EB'}/>
-                ))}
-              </div>
-              {/* ellipsis: a w=1 "2h fa · Google" sbordava dal tile glass */}
-              <div style={{fontSize: 13, color: PN.MUTED, marginLeft:'auto', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.when} · {r.source}</div>
-            </div>
-            <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>{r.text}</div>
-          </div>
-        ))}
+        {reviews.map((r,i) => <ReviewTile key={i} r={r}/>)}
       </div>
+    </div>
+  );
+}
+
+// Tile recensione: soft-glass che si ingrandisce in hover; al click porta
+// alla sezione recensioni (Statistiche · Clienti · Valutazioni).
+function ReviewTile({ r }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <div
+      onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=clienti'; }}
+      title="Vai alle recensioni"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        flex: '1 0 auto',
+        minHeight: 64,
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        padding: 12, borderRadius: 10,
+        background: 'rgba(255, 245, 248, 0.55)',
+        backgroundImage:
+          'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.10) 45%, rgba(255,255,255,0) 100%)',
+        backdropFilter: 'blur(12px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+        boxShadow: hover
+          ? 'inset 0 1px 0 rgba(255,255,255,0.70), inset 0 0 0 1px rgba(242, 107, 122, 0.18), 0 10px 24px rgba(15, 17, 21, 0.10)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.70), inset 0 0 0 1px rgba(242, 107, 122, 0.08), 0 1px 2px rgba(15, 17, 21, 0.03)',
+        cursor: 'pointer',
+        transform: pressed ? 'scale(0.99)' : hover ? 'scale(1.02)' : 'scale(1)',
+        position: 'relative', zIndex: hover ? 2 : 1,
+        transition: 'transform 170ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 170ms ease',
+      }}>
+      <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 5, minWidth: 0}}>
+        <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', flexShrink: 0}}>{r.name}</div>
+        <div style={{display:'flex', gap: 1, flexShrink: 0}}>
+          {[1,2,3,4,5].map(i => (
+            <Icon name="star" key={i} size={10} color={i <= r.stars ? '#F59E0B' : '#E5E7EB'}/>
+          ))}
+        </div>
+        {/* ellipsis: a w=1 "2h fa · Google" sbordava dal tile glass */}
+        <div style={{fontSize: 13, color: PN.MUTED, marginLeft:'auto', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.when} · {r.source}</div>
+      </div>
+      <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>{r.text}</div>
     </div>
   );
 }
@@ -838,13 +904,14 @@ function WidgetAzioni({ size }) {
   //  • Tutto il resto (w=1/2, qualunque h, o w=4 con h=1): grid auto-fit
   //    SOLO icone, niente label. Le shortcut diventano una toolbar compatta
   //    quando il widget è ridotto.
+  // Ogni azione atterra sulla funzione vera nella sua sezione (deep-link).
   const actions = [
-    { label: 'Nuova prenotazione', icon: 'time-calendar',       color: '#FB7185' },
-    { label: 'Aggiungi piatto',    icon: 'food-meal',           color: '#F472B6' },
-    { label: 'Apri cassa',         icon: 'commerce-wallet',     color: '#34D399' },
-    { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA' },
-    { label: 'Invita membro del team', icon: 'people-staff-group',  color: '#A78BFA' },
-    { label: 'Esporta dati del giorno', icon: 'download',            color: '#22D3EE' },
+    { label: 'Nuova prenotazione', icon: 'time-calendar',       color: '#FB7185', href: 'byup Sala.html?tab=calendar&nuova=1' },
+    { label: 'Aggiungi piatto',    icon: 'food-meal',           color: '#F472B6', href: 'byup Impostazioni.html?page=menu-cucina&sub=libreria&add=1' },
+    { label: 'Apri cassa',         icon: 'commerce-wallet',     color: '#34D399', href: 'byup Contabilita.html?tab=cassa' },
+    { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA', href: 'byup Impostazioni.html?page=sala' },
+    { label: 'Invita membro del team', icon: 'people-staff-group',  color: '#A78BFA', href: 'byup Impostazioni.html?page=personale&invita=1' },
+    { label: 'Esporta dati del giorno', icon: 'download',            color: '#22D3EE', href: 'byup Contabilita.html?tab=export' },
   ];
 
   const w = (size && size.w) || 1;
@@ -890,6 +957,9 @@ function WidgetAzioni({ size }) {
           <button key={i}
             className="glass-lift-hover"
             title={a.label}
+            onClick={() => { window.location.href = a.href; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
             style={{
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
@@ -912,6 +982,7 @@ function WidgetAzioni({ size }) {
             onMouseLeave={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
               e.currentTarget.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.06)';
+              e.currentTarget.style.transform = '';
             }}
           >
             <span style={{
@@ -1012,13 +1083,15 @@ function WidgetCucinaLive() {
   //   > 10' → red   (ritardo)
   // Il NUMERO MINUTI viene colorato come il pill status, così l'occhio capisce
   // urgenza scansionando la colonna centrale senza dover leggere la pill.
+  // Tavoli allineati ai ticket veri di cucina-data: il click apre la Cucina
+  // con il ticket del tavolo evidenziato (?tavolo=N).
   const orders = [
-    { table: '7',  items: 3, time: "8' 20\"",  status: 'amber', label: 'In preparazione' },
+    { table: '9',  items: 3, time: "8' 20\"",  status: 'amber', label: 'In preparazione' },
     { table: '12', items: 2, time: "2' 10\"",  status: 'green', label: 'Pronto' },
-    { table: '3',  items: 5, time: "12' 40\"", status: 'red',   label: 'In ritardo' },
-    { table: '9',  items: 4, time: "6' 45\"",  status: 'amber', label: 'In preparazione' },
-    { table: '14', items: 1, time: "1' 30\"",  status: 'green', label: 'Pronto' },
-    { table: '5',  items: 3, time: "4' 10\"",  status: 'green', label: 'Pronto' },
+    { table: '15', items: 5, time: "12' 40\"", status: 'red',   label: 'In ritardo' },
+    { table: '8',  items: 4, time: "6' 45\"",  status: 'amber', label: 'In preparazione' },
+    { table: '4',  items: 1, time: "1' 30\"",  status: 'green', label: 'Pronto' },
+    { table: '6',  items: 3, time: "4' 10\"",  status: 'green', label: 'Pronto' },
     { table: '11', items: 6, time: "10' 15\"", status: 'red',   label: 'In ritardo' },
   ];
   const statusStyles = {
@@ -1063,18 +1136,40 @@ function WidgetCucinaLive() {
         display: 'flex', flexDirection: 'column', gap: 6,
         flex: 1, minHeight: 0, overflowY: 'auto', marginTop: 4,
       }}>
-        {orders.map((o, i) => {
-          const s = statusStyles[o.status];
-          return (
-            <div key={i} style={{
-              display: 'grid', gridTemplateColumns: 'auto 1fr auto',
-              gap: 10, alignItems: 'center',
-              padding: '8px 10px', borderRadius: 9,
-              background: 'rgba(255, 255, 255, 0.06)',
-              boxShadow:
-                'inset 0 1px 0 rgba(255, 255, 255, 0.10), ' +
-                'inset 0 0 0 1px rgba(255, 255, 255, 0.06)',
-            }}>
+        {orders.map((o, i) => (
+          <KitchenLiveRow key={i} o={o} s={statusStyles[o.status]}/>
+        ))}
+      </div>
+    </GlassDarkBox>
+  );
+}
+
+// Riga della cucina in diretta: si ingrandisce e si accende in hover, al
+// click apre la Cucina con il ticket del tavolo evidenziato.
+function KitchenLiveRow({ o, s }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <div
+      onClick={() => { window.location.href = `byup Cucina.html?tavolo=${o.table}`; }}
+      title={`Apri la Cucina sul Tavolo ${o.table}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        display: 'grid', gridTemplateColumns: 'auto 1fr auto',
+        gap: 10, alignItems: 'center',
+        padding: '8px 10px', borderRadius: 9,
+        background: hover ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.06)',
+        boxShadow: hover
+          ? 'inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 8px 20px rgba(0, 0, 0, 0.25)'
+          : 'inset 0 1px 0 rgba(255, 255, 255, 0.10), inset 0 0 0 1px rgba(255, 255, 255, 0.06)',
+        cursor: 'pointer',
+        transform: pressed ? 'scale(0.985)' : hover ? 'scale(1.02)' : 'scale(1)',
+        position: 'relative', zIndex: hover ? 2 : 1,
+        transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), background 150ms ease, box-shadow 160ms ease',
+      }}>
               <span style={{
                 fontSize: 14, fontWeight: 700,
                 fontVariantNumeric: 'tabular-nums',
@@ -1096,11 +1191,7 @@ function WidgetCucinaLive() {
                 background: s.bg, color: s.fg,
                 whiteSpace: 'nowrap',
               }}>{o.label}</span>
-            </div>
-          );
-        })}
-      </div>
-    </GlassDarkBox>
+    </div>
   );
 }
 

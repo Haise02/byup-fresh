@@ -144,6 +144,16 @@ function ImpPersonale() {
   const [showPending, setShowPending] = React.useState(false);
   const [expanded, setExpanded] = React.useState(() => new Set());
 
+  // Deep-link "Invita membro del team" (Azioni rapide): ?invita=1 apre
+  // subito l'invito persona.
+  React.useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('invita') === '1') {
+        setInvite({ roleId: null, kind: 'person' });
+      }
+    } catch (e) {}
+  }, []);
+
   // Click outside per chiudere menu
   React.useEffect(() => {
     if (openMenu === null) return;

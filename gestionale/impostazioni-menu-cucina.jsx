@@ -44,7 +44,14 @@ window.ALLERGENS = ALLERGENS;
 window.AllergenIcon = AllergenIcon;
 
 function ImpMenuCucina() {
-  const [sub, setSub] = React.useState('menu');
+  // Deep-link: ?sub=menu|libreria|ingredienti apre la sotto-pagina giusta.
+  const [sub, setSub] = React.useState(() => {
+    try {
+      const s = new URLSearchParams(window.location.search).get('sub');
+      if (['menu', 'libreria', 'ingredienti'].includes(s)) return s;
+    } catch (e) {}
+    return 'menu';
+  });
   const subs = [
     { id: 'menu', label: 'Menù' },
     { id: 'libreria', label: 'Piatti' },
@@ -774,6 +781,16 @@ function LibrarySidebar({ library, menus, filters, setFilters }) {
 function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemoveLibraryDish }) {
   const [search, setSearch] = React.useState('');
   const [editingDish, setEditingDish] = React.useState(null);
+
+  // Deep-link "Aggiungi piatto" (Azioni rapide): ?add=1 apre subito il
+  // modulo di nuovo piatto.
+  React.useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('add') === '1') {
+        setEditingDish({ dishId: null, isNew: true, fromLibrary: true });
+      }
+    } catch (e) {}
+  }, []);
 
   const inMenusFor = (dishId) => menus.filter(m => m.categories.some(c => c.items.some(i => i.dishId === dishId)));
   const filtered = library.filter(d => {

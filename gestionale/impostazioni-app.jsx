@@ -1,7 +1,14 @@
 // App shell for Impostazioni
 
 function ImpApp() {
-  const [active, setActive] = React.useState('vetrina');
+  // Deep-link: ?page=<tab> apre direttamente la pagina di impostazioni.
+  const [active, setActive] = React.useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('page');
+      if (['vetrina', 'menu-cucina', 'sala', 'personale', 'flussi', 'fiscali', 'integrazioni'].includes(p)) return p;
+    } catch (e) {}
+    return 'vetrina';
+  });
 
   // Salto tra tab richiesto dall'interno di una tab
   // (es. CTA "Attiva ora" in Operazioni → Sala e tavoli)

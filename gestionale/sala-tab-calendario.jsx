@@ -119,6 +119,20 @@ function SalaCalendario({ tweaks, onNuova, onModifica }) {
     if (onModifica) onModifica(r);
   };
 
+  // Deep-link dalla Panoramica: ?pren=<id> apre la prenotazione indicata,
+  // ?nuova=1 apre subito il modal di nuova prenotazione.
+  React.useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('nuova') === '1') { onNuova && onNuova(); return; }
+      const id = p.get('pren');
+      if (id) {
+        const res = SALA_RES_DATA.find(r => r.id === id);
+        if (res) guardModifica(res);
+      }
+    } catch (e) {}
+  }, []);
+
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14, minWidth: 0, maxWidth:'100%', overflow:'hidden', position:'relative'}}>
       <Toolbar

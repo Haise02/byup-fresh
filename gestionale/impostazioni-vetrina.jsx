@@ -1621,36 +1621,12 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
       }>
         <div style={{display:'flex', flexDirection:'column', gap: 8}}>
           {faqs.map(f => (
-            <div key={f.id}
-              onDragOver={e => { e.preventDefault(); setOverFaq(f.id); }}
-              onDragLeave={() => setOverFaq(o => o === f.id ? null : o)}
-              onDrop={() => { reorderFaq(dragFaq, f.id); setDragFaq(null); setOverFaq(null); }}
-              style={{
-                display:'flex', alignItems:'center', gap: 12,
-                padding: '12px 14px',
-                border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
-                background: PN.WHITE,
-                opacity: dragFaq === f.id ? 0.45 : 1,
-                outline: overFaq === f.id && dragFaq && dragFaq !== f.id ? `2px dashed ${PN.PINK}` : 'none',
-                outlineOffset: 3,
-                transition: 'opacity 120ms ease',
-              }}>
-              {/* Maniglia: da qui si trascina per riordinare */}
-              <span draggable
-                onDragStart={e => { setDragFaq(f.id); e.dataTransfer.effectAllowed = 'move'; }}
-                onDragEnd={() => { setDragFaq(null); setOverFaq(null); }}
-                title="Trascina per riordinare"
-                style={{color:PN.MUTED, cursor:'grab', display:'inline-flex', padding: 2}}>
-                <PnI.Drag size={14}/>
-              </span>
-              <span style={{flex:1, minWidth: 0, fontSize:15.5, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{f.q}</span>
-              <FaqIconBtn title="Modifica" onClick={() => setFaqModal({mode: 'edit', faq: f})}>
-                <PnI.Edit size={14}/>
-              </FaqIconBtn>
-              <FaqIconBtn title="Elimina" danger onClick={() => setFaqConfirm(f)}>
-                <PnI.X size={14}/>
-              </FaqIconBtn>
-            </div>
+            <FaqRow key={f.id} f={f}
+              dragFaq={dragFaq} overFaq={overFaq}
+              setDragFaq={setDragFaq} setOverFaq={setOverFaq}
+              reorderFaq={reorderFaq}
+              onEdit={() => setFaqModal({mode: 'edit', faq: f})}
+              onDelete={() => setFaqConfirm(f)}/>
           ))}
         </div>
       </ImpCard>
@@ -1706,6 +1682,57 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
           onClose={() => setUnlink(null)}
           onConfirm={() => { disconnectSocial(unlink.key); setUnlink(null); }}/>
       )}
+    </div>
+  );
+}
+
+// Riga FAQ dinamica: tutta cliccabile per modificare — in hover si
+// ingrandisce con il bordo che si scurisce (niente riempimento), alla
+// pressione si comprime. A destra il cestino rosso con conferma.
+function FaqRow({ f, dragFaq, overFaq, setDragFaq, setOverFaq, reorderFaq, onEdit, onDelete }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  const isDragTarget = overFaq === f.id && dragFaq && dragFaq !== f.id;
+  return (
+    <div
+      onClick={onEdit}
+      title="Clicca per modificare"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onDragOver={e => { e.preventDefault(); setOverFaq(f.id); }}
+      onDragLeave={() => setOverFaq(o => o === f.id ? null : o)}
+      onDrop={() => { reorderFaq(dragFaq, f.id); setDragFaq(null); setOverFaq(null); }}
+      style={{
+        display:'flex', alignItems:'center', gap: 12,
+        padding: '12px 14px',
+        border:`1px solid ${hover ? PN.TEXT : PN.BORDER_SOFT}`, borderRadius: 10,
+        background: PN.WHITE,
+        opacity: dragFaq === f.id ? 0.45 : 1,
+        outline: isDragTarget ? `2px dashed ${PN.PINK}` : 'none',
+        outlineOffset: 3,
+        cursor: 'pointer',
+        transform: pressed ? 'scale(0.99)' : hover ? 'scale(1.012)' : 'scale(1)',
+        boxShadow: hover ? '0 8px 20px rgba(15, 17, 21, 0.08)' : 'none',
+        position: 'relative', zIndex: hover ? 2 : 1,
+        transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), border-color 140ms ease, box-shadow 160ms ease, opacity 120ms ease',
+      }}>
+      {/* Maniglia: da qui si trascina per riordinare (non apre la modifica) */}
+      <span draggable
+        onClick={e => e.stopPropagation()}
+        onDragStart={e => { setDragFaq(f.id); e.dataTransfer.effectAllowed = 'move'; }}
+        onDragEnd={() => { setDragFaq(null); setOverFaq(null); }}
+        title="Trascina per riordinare"
+        style={{color:PN.MUTED, cursor:'grab', display:'inline-flex', padding: 2}}>
+        <PnI.Drag size={14}/>
+      </span>
+      <span style={{flex:1, minWidth: 0, fontSize:15.5, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{f.q}</span>
+      <FaqIconBtn title="Elimina" danger onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>
+        </svg>
+      </FaqIconBtn>
     </div>
   );
 }

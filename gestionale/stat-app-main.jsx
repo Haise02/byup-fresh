@@ -3,8 +3,19 @@
 const { useState } = React;
 
 function StatisticheApp() {
-  const [tab, setTab] = useState('operazioni');
-  const [opSub, setOpSub] = useState('prenotazioni');
+  // Deep-link dalla Panoramica: ?tab=operazioni|economici|app e, per
+  // Operazioni, ?sub=prenotazioni|ordini|staff|clienti.
+  const urlInit = (() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return {
+        tab: ['operazioni', 'economici', 'app'].includes(p.get('tab')) ? p.get('tab') : 'operazioni',
+        sub: ['prenotazioni', 'ordini', 'staff', 'clienti'].includes(p.get('sub')) ? p.get('sub') : 'prenotazioni',
+      };
+    } catch (e) { return { tab: 'operazioni', sub: 'prenotazioni' }; }
+  })();
+  const [tab, setTab] = useState(urlInit.tab);
+  const [opSub, setOpSub] = useState(urlInit.sub);
   const [period, setPeriod] = useState('mese');
 
   const today = new Date();

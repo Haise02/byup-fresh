@@ -937,6 +937,7 @@ const lateGlow = u.tone === 'late';
 
   return (
     <div
+      data-kds-table={ticket.table != null ? ticket.table : ''}
       ref={el => { rootRef.current = el; registerNode && registerNode(el); }}
       onPointerDown={handleCardPointerDown}
       onPointerMove={handleCardPointerMove}
