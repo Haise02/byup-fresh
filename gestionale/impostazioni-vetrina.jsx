@@ -1706,8 +1706,8 @@ function FaqRow({ f, dragFaq, overFaq, setDragFaq, setOverFaq, reorderFaq, onEdi
       style={{
         display:'flex', alignItems:'center', gap: 12,
         padding: '12px 14px',
-        border:`1px solid ${hover ? PN.PINK : PN.BORDER_SOFT}`, borderRadius: 10,
-        background: hover ? '#FFF7F7' : PN.WHITE,
+        border:`1px solid ${hover ? PN.TEXT : PN.BORDER_SOFT}`, borderRadius: 10,
+        background: PN.WHITE,
         opacity: dragFaq === f.id ? 0.45 : 1,
         outline: isDragTarget ? `2px dashed ${PN.PINK}` : 'none',
         outlineOffset: 3,
