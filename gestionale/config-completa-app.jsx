@@ -81,7 +81,7 @@ function ConfigCompletaApp() {
                 </h1>
               </div>
               <ApBtn variant="neutral" onClick={goPanoramica} style={{flexShrink: 0}}>
-                {step === 'personale' ? 'Salta e vai alla Panoramica →' : 'Salta e continua dopo →'}
+                {step === 'personale' ? 'Salva e continua dopo →' : 'Salta e continua dopo →'}
               </ApBtn>
             </div>
             {/* Sottotitolo su UNA riga: a tutta larghezza sotto la riga del
