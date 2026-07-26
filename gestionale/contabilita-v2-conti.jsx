@@ -1016,6 +1016,8 @@ function ContConti({ filter = 'all' }) {
                   <div
                     data-row
                     onClick={() => setExpandedId(isExpanded ? null : conto.id)}
+                    onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = '#F7F8FA'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? PN.PINK_SOFT : PN.WHITE; }}
                     style={{
                       display:'grid',
                       gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px',

@@ -193,7 +193,12 @@ function ContCassa({ cassaOpen = false, setCassaOpen }) {
             }}/>
           </div>
           <div ref={pickerRef} style={{position:'relative'}}>
-            <button onClick={() => setPickerOpen(o => !o)} style={iconBtn}>
+            <button onClick={() => setPickerOpen(o => !o)}
+              style={{...iconBtn, transition: 'background 140ms ease, border-color 140ms ease, transform 130ms ease'}}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+              onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = ''; }}>
               <Ic.calendar size={14}/> {selDate || 'Filtra per data'}
             </button>
             {pickerOpen && (
@@ -269,15 +274,25 @@ window.primaryBtn = primaryBtn;
 window.iconOnlyBtn = iconOnlyBtn;
 
 function FilterChip({ active, onClick, label, count }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
       display:'inline-flex', alignItems:'center', gap: 6,
       padding:'7px 14px',
-      background: active ? PN.TEXT : PN.WHITE,
-      border: `1px solid ${active ? PN.TEXT : PN.BORDER}`,
+      background: active ? PN.TEXT : hover ? '#F4F5F7' : PN.WHITE,
+      border: `1px solid ${active || hover ? PN.TEXT : PN.BORDER}`,
       color: active ? '#fff' : PN.TEXT,
       borderRadius: C.R_PILL, fontSize: C.T_SM, fontWeight: 600,
       cursor:'pointer', fontFamily:'inherit',
+      transform: pressed ? 'scale(0.95)' : hover ? 'scale(1.06)' : 'scale(1)',
+      boxShadow: hover ? '0 4px 12px rgba(15, 17, 21, 0.10)' : 'none',
+      transition: 'transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), background 140ms ease, border-color 140ms ease, box-shadow 150ms ease',
     }}>
       {label}
       {count != null && <span style={{
