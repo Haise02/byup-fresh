@@ -267,6 +267,15 @@ Object.assign(window, { ST, ALLERGENI, statoConfig, I, Btn, Chip, StatusDot, All
     button { transition: transform 120ms ease, filter 140ms ease, box-shadow 150ms ease; }
     button:not(:disabled) { cursor: pointer; }
     button:not(:disabled):hover { filter: brightness(0.95); box-shadow: 0 3px 10px rgba(15, 17, 21, 0.14); }
+    button[style*="background: rgb(15, 17, 21)"]:not(:disabled):hover,
+    button[style*="background-color: rgb(15, 17, 21)"]:not(:disabled):hover,
+    button[style*="background: rgb(0, 0, 0)"]:not(:disabled):hover,
+    button[style*="background-color: rgb(0, 0, 0)"]:not(:disabled):hover,
+    button[style*="background: rgb(17, 17, 17)"]:not(:disabled):hover,
+    button[style*="rgb(42, 45, 54)"]:not(:disabled):hover,
+    button[style*="background: rgb(124, 45, 60)"]:not(:disabled):hover {
+      transform: scale(1.05);
+    }
     button:not(:disabled):active { transform: scale(0.96); filter: brightness(0.90); }
     select:not(:disabled) { cursor: pointer; transition: filter 140ms ease; }
     select:not(:disabled):hover { filter: brightness(0.96); }

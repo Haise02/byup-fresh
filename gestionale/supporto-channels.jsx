@@ -71,6 +71,10 @@ function SupCard({ icon, iconBg, iconColor, badge, badgeBg, badgeColor, title, d
         <div style={{fontSize: 14.5, color: 'rgba(58, 10, 14, 0.75)', lineHeight: 1.5, marginBottom: 14, flex: 1}}>{desc}</div>
         <button onClick={(e) => { e.stopPropagation(); onClick && onClick(); }}
           className="glass-shimmer"
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.07)'; e.currentTarget.style.filter = 'brightness(1.18)'; e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.25), 0 8px 20px -4px rgba(124, 45, 60, 0.65)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.filter = ''; e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.20), 0 4px 12px -4px rgba(124, 45, 60, 0.50)'; }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
           style={{
             alignSelf:'flex-start',
             background:'#7C2D3C', color:'#fff',
@@ -79,6 +83,7 @@ function SupCard({ icon, iconBg, iconColor, badge, badgeBg, badgeColor, title, d
             fontFamily:'inherit', cursor:'pointer',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.20), 0 4px 12px -4px rgba(124, 45, 60, 0.50)',
             position: 'relative',
+            transition: 'transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), filter 140ms ease, box-shadow 150ms ease',
           }}>
           <span style={{position:'relative', zIndex: 3}}>{cta}</span>
         </button>
