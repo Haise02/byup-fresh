@@ -1359,7 +1359,15 @@ function KdsFilterChip({ label, selected, defaultLabel, options, onChange }) {
 
   return (
     <div ref={ref} style={{position: 'relative'}}>
-      <button onClick={() => setOpen(o => !o)} style={{
+      <button onClick={() => setOpen(o => !o)}
+        onMouseEnter={e => {
+          if (!isActive) { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.10)'; e.currentTarget.style.boxShadow = 'inset 0 0 0 1px rgba(15, 17, 21, 0.18)'; }
+          else e.currentTarget.style.filter = 'brightness(1.18)';
+        }}
+        onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+        onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+        onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+        style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: '7px 12px', borderRadius: 10, height: 36,
         background: isActive ? `
@@ -1373,7 +1381,7 @@ function KdsFilterChip({ label, selected, defaultLabel, options, onChange }) {
         color: isActive ? '#FFE9E6' : PN.TEXT,
         fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
         whiteSpace: 'nowrap',
-        transition: 'background 150ms ease-out, color 150ms ease-out',
+        transition: 'background 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out, filter 140ms ease, transform 120ms ease',
       }}>
         <span style={{fontSize: 13, fontWeight: 500, opacity: isActive ? 0.65 : 0.5}}>{label}:</span>
         <span>{displayValue}</span>
@@ -1388,13 +1396,19 @@ function KdsFilterChip({ label, selected, defaultLabel, options, onChange }) {
           minWidth: 160,
         }}>
           {/* Voce "Tutti/Tutte" — resetta selezione */}
-          <button onClick={() => { onChange([]); setOpen(false); }} style={{
+          <button onClick={() => { onChange([]); setOpen(false); }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#EEF0F4'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = !isActive ? PN.BG : 'transparent'; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             width: '100%', padding: '9px 12px', borderRadius: 7,
             background: !isActive ? PN.BG : 'transparent',
             color: !isActive ? PN.TEXT : PN.MUTED,
             border: 'none', fontSize: 15, fontWeight: !isActive ? 700 : 500,
             cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'background 120ms ease, transform 120ms ease',
           }}>
             {defaultLabel}
             {!isActive && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -1404,13 +1418,19 @@ function KdsFilterChip({ label, selected, defaultLabel, options, onChange }) {
           {options.map(o => {
             const checked = selected.includes(o);
             return (
-              <button key={o} onClick={() => toggle(o)} style={{
+              <button key={o} onClick={() => toggle(o)} 
+                onMouseEnter={e => { e.currentTarget.style.background = '#EEF0F4'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = checked ? PN.BG : 'transparent'; e.currentTarget.style.transform = ''; }}
+                onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+                onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+                style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 width: '100%', padding: '9px 12px', borderRadius: 7,
                 background: checked ? PN.BG : 'transparent',
                 color: PN.TEXT,
                 border: 'none', fontSize: 15, fontWeight: checked ? 700 : 500,
                 cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'background 120ms ease, transform 120ms ease',
               }}>
                 {/* Checkbox */}
                 <span style={{
