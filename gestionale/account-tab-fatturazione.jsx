@@ -458,7 +458,10 @@ function AccFatturazione() {
               padding:'12px 16px', alignItems:'center',
               borderTop: `1px solid ${PN.BORDER_SOFT}`,
               fontSize: 15, color: PN.TEXT,
-            }}>
+              transition: 'background 150ms ease, transform 150ms ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.transform = 'scale(1.012)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.transform = ''; }}>
               <span style={{fontFamily:'ui-monospace, monospace', fontSize: 14.5}}>{f.num}</span>
               <span>{f.data}</span>
               <span style={{fontWeight: 700}}>€{f.importo.toFixed(2)}</span>
