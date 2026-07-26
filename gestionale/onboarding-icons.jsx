@@ -236,10 +236,12 @@ const OnbIcon = {
 Object.assign(window, { ONB, OnbIcon });
 
 
-// ─── Feedback universale dei bottoni (regola globale del gestionale) ────────
-// OGNI <button> — nelle pagine come nei popup — reagisce al passaggio del
-// mouse (leggermente più scuro) e al click (si comprime). I bottoni con
-// feedback custom via handler inline non vengono toccati: l'inline vince.
+// ─── Feedback universale del cliccabile (regola globale del gestionale) ─────
+// TUTTO ciò che è pensato per essere cliccato reagisce al passaggio e al
+// click: <button>, <select>, link e qualunque elemento con cursore pointer
+// (tab, chip, righe, tile, opzioni). I feedback custom inline restano
+// prioritari. Sui contenitori si usano solo ombre/outline: filter e
+// transform creerebbero containing block e romperebbero i modali interni.
 (function () {
   if (typeof document === 'undefined' || document.getElementById('pn-btn-feedback')) return;
   const st = document.createElement('style');
@@ -249,6 +251,24 @@ Object.assign(window, { ONB, OnbIcon });
     button:not(:disabled) { cursor: pointer; }
     button:not(:disabled):hover { filter: brightness(0.95); }
     button:not(:disabled):active { transform: scale(0.96); filter: brightness(0.90); }
+    select:not(:disabled) { cursor: pointer; transition: filter 140ms ease; }
+    select:not(:disabled):hover { filter: brightness(0.96); }
+    select:not(:disabled):active { filter: brightness(0.92); }
+    [style*="cursor: pointer"]:not(button):not(select),
+    [style*="cursor:pointer"]:not(button):not(select),
+    a[href] {
+      transition: box-shadow 150ms ease;
+    }
+    [style*="cursor: pointer"]:not(button):not(select):hover,
+    [style*="cursor:pointer"]:not(button):not(select):hover,
+    a[href]:hover {
+      box-shadow: 0 0 0 1.5px rgba(15, 17, 21, 0.10), 0 6px 16px rgba(15, 17, 21, 0.08);
+    }
+    [style*="cursor: pointer"]:not(button):not(select):active,
+    [style*="cursor:pointer"]:not(button):not(select):active,
+    a[href]:active {
+      box-shadow: 0 0 0 2px rgba(15, 17, 21, 0.16), 0 2px 6px rgba(15, 17, 21, 0.10);
+    }
   `;
   document.head.appendChild(st);
 })();
