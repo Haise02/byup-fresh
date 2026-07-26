@@ -286,14 +286,22 @@ function FileCheck({ label, checked, onClick }) {
 // ExportCard differenziata: variant="primary" per azione "pesante" (invia)
 function ExportCard({ variant, icon: I, title, desc, cta, ctaIcon: Ci, onClick }) {
   const isPrimary = variant === 'primary';
+  const [hover, setHover] = React.useState(false);
   return (
-    <div style={{
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
       padding: 18,
       background: isPrimary ? PN.PINK_BG_SOFT : C.SURF,
       border:`1px solid ${isPrimary ? PN.PINK_SOFT : PN.BORDER_SOFT}`,
       borderRadius: C.R_MD,
       display:'flex', flexDirection:'column', alignItems:'center',
       textAlign:'center', position:'relative',
+      transform: hover ? 'scale(1.03)' : 'scale(1)',
+      boxShadow: hover ? '0 12px 28px rgba(15, 17, 21, 0.12)' : 'none',
+      zIndex: hover ? 2 : 1,
+      transition: 'transform 180ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 180ms ease',
     }}>
       {isPrimary && (
         <span style={{

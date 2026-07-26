@@ -228,12 +228,16 @@ function ContCassa({ cassaOpen = false, setCassaOpen }) {
           </div>
           <MaxRowsScroll maxRows={10}>
           {rows.map((r,i) => (
-            <div key={r.id} style={{
+            <div key={r.id}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F7F8FA'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}
+              style={{
               display:'grid', gridTemplateColumns: cols,
               padding:'12px 14px', alignItems:'center',
               fontSize: C.T_SM, color: PN.TEXT,
               borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
               background: PN.WHITE,
+              transition:'background 120ms ease',
             }}>
               <span style={{display:'flex', alignItems:'center', gap: 8, fontVariantNumeric:'tabular-nums'}}>
                 <span style={{color: PN.MUTED}}><Ic.calendar size={14}/></span>

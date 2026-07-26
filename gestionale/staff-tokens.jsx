@@ -251,3 +251,21 @@ function DishImage({ name, kind = 'piatto', style }) {
 }
 
 Object.assign(window, { ST, ALLERGENI, statoConfig, I, Btn, Chip, StatusDot, AllergeneIcon, Stepper, DishImage });
+
+
+// ─── Feedback universale dei bottoni (regola globale del gestionale) ────────
+// OGNI <button> — nelle pagine come nei popup — reagisce al passaggio del
+// mouse (leggermente più scuro) e al click (si comprime). I bottoni con
+// feedback custom via handler inline non vengono toccati: l'inline vince.
+(function () {
+  if (typeof document === 'undefined' || document.getElementById('pn-btn-feedback')) return;
+  const st = document.createElement('style');
+  st.id = 'pn-btn-feedback';
+  st.textContent = `
+    button { transition: transform 120ms ease, filter 140ms ease; }
+    button:not(:disabled) { cursor: pointer; }
+    button:not(:disabled):hover { filter: brightness(0.95); }
+    button:not(:disabled):active { transform: scale(0.96); filter: brightness(0.90); }
+  `;
+  document.head.appendChild(st);
+})();
