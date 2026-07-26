@@ -118,7 +118,12 @@ function ContCosti({ openNewCost }) {
           const I = m.icon;
           const active = filterCat===c.id && !alertOnly;
           return (
-            <button key={c.id} onClick={() => { setFilterCat(c.id); setAlertOnly(false); }} style={{
+            <button key={c.id} onClick={() => { setFilterCat(c.id); setAlertOnly(false); }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.10)'; if (!active) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; } }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = active ? PN.TEXT : PN.WHITE; e.currentTarget.style.borderColor = active ? PN.TEXT : PN.BORDER; }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+              style={{
               display:'inline-flex', alignItems:'center', gap: 6,
               padding:'7px 14px',
               background: active ? PN.TEXT : PN.WHITE,
@@ -126,6 +131,7 @@ function ContCosti({ openNewCost }) {
               color: active ? '#fff' : PN.TEXT,
               borderRadius: C.R_PILL, fontSize: C.T_SM, fontWeight: 600,
               cursor:'pointer', fontFamily:'inherit',
+              transition: 'transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), background 140ms ease, border-color 140ms ease, box-shadow 150ms ease',
             }}>
               <span style={{color: active ? '#fff' : m.fg}}><I size={13}/></span>
               {c.label}
@@ -151,16 +157,21 @@ function ContCosti({ openNewCost }) {
           <span style={{fontSize: C.T_XS, opacity:0.7}}>· €{filtered.filter(c => selected.has(c.id)).reduce((s,c)=>s+c.amount,0).toFixed(2)}</span>
           <div style={{flex:1}}/>
           {selected.size === 1 && (
-            <button onClick={openNewCost} style={{padding:'6px 14px', background:'rgba(255,255,255,0.12)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.edit size={12}/> Modifica</button>
+            <button onClick={openNewCost} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.24)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.transform = ''; }} onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }} onMouseUp={e => { e.currentTarget.style.transform = ''; }} style={{transition:'background 130ms ease, transform 120ms ease', padding:'6px 14px', background:'rgba(255,255,255,0.12)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.edit size={12}/> Modifica</button>
           )}
           {allUnpaid && (
-            <button onClick={markSelectedPaid} style={{padding:'6px 14px', background:'rgba(16,185,129,0.22)', color:'#fff', border:'1px solid rgba(16,185,129,0.55)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.check size={12} stroke={2.6}/> Segna come pagati</button>
+            <button onClick={markSelectedPaid} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.40)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.22)'; e.currentTarget.style.transform = ''; }} onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }} onMouseUp={e => { e.currentTarget.style.transform = ''; }} style={{transition:'background 130ms ease, transform 120ms ease', padding:'6px 14px', background:'rgba(16,185,129,0.22)', color:'#fff', border:'1px solid rgba(16,185,129,0.55)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.check size={12} stroke={2.6}/> Segna come pagati</button>
           )}
           {allPaid && (
-            <button onClick={markSelectedUnpaid} style={{padding:'6px 14px', background:'rgba(255,255,255,0.12)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.recurring size={12}/> Segna come da pagare</button>
+            <button onClick={markSelectedUnpaid} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.24)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.transform = ''; }} onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }} onMouseUp={e => { e.currentTarget.style.transform = ''; }} style={{transition:'background 130ms ease, transform 120ms ease', padding:'6px 14px', background:'rgba(255,255,255,0.12)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.recurring size={12}/> Segna come da pagare</button>
           )}
-          <button onClick={askDeleteSelected} style={{padding:'6px 14px', background:'rgba(239,68,68,0.22)', color:'#fff', border:'1px solid rgba(239,68,68,0.5)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.trash size={12}/> Elimina</button>
-          <button onClick={() => setSelected(new Set())} style={{padding:'6px 8px', background:'transparent', color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit', display:'flex'}}><Ic.close size={14}/></button>
+          <button onClick={askDeleteSelected} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.40)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.22)'; e.currentTarget.style.transform = ''; }} onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }} onMouseUp={e => { e.currentTarget.style.transform = ''; }} style={{transition:'background 130ms ease, transform 120ms ease', padding:'6px 14px', background:'rgba(239,68,68,0.22)', color:'#fff', border:'1px solid rgba(239,68,68,0.5)', borderRadius: C.R_PILL, fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.trash size={12}/> Elimina</button>
+          <button onClick={() => setSelected(new Set())}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.9)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{padding:'6px 8px', background:'transparent', color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit', display:'flex', borderRadius: 7, transition:'background 130ms ease, transform 120ms ease'}}><Ic.close size={14}/></button>
         </div>
       )}
 
@@ -273,11 +284,21 @@ function ContCosti({ openNewCost }) {
             </div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:10, padding:'14px 22px',
               background: C.SURF_ALT, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
-              <button onClick={() => setPendingDelete(null)} style={{padding:'9px 16px', background:'#fff', color: PN.TEXT,
-                border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
-              <button onClick={confirmDelete} style={{padding:'9px 16px', background: PN.RED, color:'#fff', border:'none',
+              <button onClick={() => setPendingDelete(null)}
+                onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+                onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+                onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+                style={{padding:'9px 16px', background:'#fff', color: PN.TEXT,
+                border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', transition:'background 130ms ease, border-color 130ms ease, transform 120ms ease'}}>Annulla</button>
+              <button onClick={confirmDelete}
+                onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+                onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+                style={{padding:'9px 16px', background: PN.RED, color:'#fff', border:'none',
                 borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                display:'inline-flex', alignItems:'center', gap:6}}><Ic.trash size={13}/> Elimina</button>
+                display:'inline-flex', alignItems:'center', gap:6, transition:'filter 130ms ease, transform 120ms ease'}}><Ic.trash size={13}/> Elimina</button>
             </div>
           </div>
         </React.Fragment>

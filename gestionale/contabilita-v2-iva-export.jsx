@@ -86,11 +86,15 @@ function ContIva({ month, setMonth }) {
           {(month != null ? [IVA_MONTHLY[month]] : IVA_MONTHLY).map((m,i) => {
             const saldo = m.deb - m.cred;
             return (
-              <div key={m.m} style={{
+              <div key={m.m}
+                onMouseEnter={e => { e.currentTarget.style.background = '#F7F8FA'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                style={{
                 display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr',
                 padding:'12px 16px', alignItems:'center',
                 fontSize: C.T_SM, color: PN.TEXT,
                 borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+                transition:'background 120ms ease',
               }}>
                 <span style={{fontWeight: 600}}>{m.m} 2026</span>
                 <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {m.deb.toFixed(2)}</span>
@@ -113,11 +117,15 @@ function ContIva({ month, setMonth }) {
           </div>
           <MaxRowsScroll maxRows={10}>
           {filteredRates.map((r,i) => (
-            <div key={r.rate} style={{
+            <div key={r.rate}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F7F8FA'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              style={{
               display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr',
               padding:'12px 16px', alignItems:'center',
               fontSize: C.T_SM, color: PN.TEXT,
               borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+              transition:'background 120ms ease',
             }}>
               <span style={{fontWeight: 600}}>{r.rate}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.deb.toFixed(2)}</span>
@@ -175,11 +183,15 @@ function ContExport({ openShare }) {
           <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2, marginBottom: 14}}>Gli ultimi 5 export disponibili al download</div>
           <MaxRowsScroll maxRows={10}>
           {EXPORT_HISTORY.map((f,i) => (
-            <div key={i} style={{
+            <div key={i}
+              onMouseEnter={e => { e.currentTarget.style.background = '#EEF0F4'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = i%2===0 ? C.SURF : 'transparent'; }}
+              style={{
               display:'flex', alignItems:'center', gap: 14,
               padding:'12px 14px',
               background: i%2===0 ? C.SURF : 'transparent',
               borderRadius: C.R_SM,
+              transition:'background 120ms ease',
             }}>
               <div style={{
                 width: 38, height: 38, borderRadius: C.R_SM,
@@ -212,11 +224,17 @@ function ContExport({ openShare }) {
           <Row label="Frequenza" value="Mensile"/>
           <Row label="Prossimo invio" value={(() => { const d = new Date(); d.setMonth(d.getMonth()+1, 1); const M = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']; return `1 ${M[d.getMonth()]} ${d.getFullYear()}`; })()}/>
           <Row label="Destinatario" value="comm@email.it"/>
-          <button onClick={openShare} style={{
+          <button onClick={openShare}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{
             width:'100%', marginTop: 10,
             padding:'10px 0', background: PN.WHITE, color: PN.TEXT,
             border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
             fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            transition:'background 130ms ease, border-color 130ms ease, transform 120ms ease',
           }}>Modifica</button>
         </div>
 
@@ -235,13 +253,24 @@ function ContExport({ openShare }) {
 }
 
 function FileCheck({ label, checked, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
       display:'flex', alignItems:'center', gap: 10,
       padding:'10px 12px',
-      background: PN.WHITE, border: `1px solid ${checked ? PN.PINK : PN.BORDER_SOFT}`,
+      background: hover ? '#FFF9F9' : PN.WHITE,
+      border: `1px solid ${checked || hover ? PN.PINK : PN.BORDER_SOFT}`,
       borderRadius: C.R_SM, cursor:'pointer', fontFamily:'inherit',
       textAlign:'left',
+      transform: pressed ? 'scale(0.97)' : hover ? 'scale(1.02)' : 'scale(1)',
+      boxShadow: hover ? '0 4px 12px rgba(15, 17, 21, 0.08)' : 'none',
+      transition: 'transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), background 140ms ease, border-color 140ms ease, box-shadow 150ms ease',
     }}>
       <div style={{
         width: 18, height: 18, borderRadius: 5,
@@ -336,7 +365,12 @@ function ContNuovoCosto({ open, onClose }) {
             <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Aggiungi costo</div>
             <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>Registra una spesa ricorrente o un pagamento singolo</div>
           </div>
-          <button onClick={onClose} style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6}}><Ic.close size={18}/></button>
+          <button onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.88)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6, borderRadius: 8, transition:'background 130ms ease, color 130ms ease, transform 120ms ease'}}><Ic.close size={18}/></button>
         </div>
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: 22}}>
           <Field label="Nome del costo">
@@ -400,7 +434,12 @@ function ContNuovoCosto({ open, onClose }) {
           </Field>
         </div>
         <div style={{padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
-          <button onClick={onClose} style={{padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
+          <button onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit', transition:'background 130ms ease, border-color 130ms ease, transform 120ms ease'}}>Annulla</button>
           <button onClick={onClose} disabled={!isValid} style={{
             padding:'10px 20px',
             background: isValid ? PN.PINK : '#E5E7EB',
@@ -471,7 +510,12 @@ function ContShareModal({ open, onClose }) {
               <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>Invia i dati contabili via email</div>
             </div>
           </div>
-          <button onClick={onClose} style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6}}><Ic.close size={18}/></button>
+          <button onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.88)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6, borderRadius: 8, transition:'background 130ms ease, color 130ms ease, transform 120ms ease'}}><Ic.close size={18}/></button>
         </div>
         <div style={{padding: 22}}>
           <Field label="Destinatario · Email del commercialista">
@@ -516,8 +560,18 @@ function ContShareModal({ open, onClose }) {
           </button>
         </div>
         <div style={{padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
-          <button onClick={onClose} style={{padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
-          <button onClick={onClose} style={{padding:'10px 22px', background: PN.PINK, color:'#fff', border:'none', borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><Ic.send size={13}/> Invia ora</button>
+          <button onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit', transition:'background 130ms ease, border-color 130ms ease, transform 120ms ease'}}>Annulla</button>
+          <button onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.08)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 90, 95, 0.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{padding:'10px 22px', background: PN.PINK, color:'#fff', border:'none', borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6, transition:'filter 130ms ease, box-shadow 150ms ease, transform 120ms ease'}}><Ic.send size={13}/> Invia ora</button>
         </div>
       </div>
     </div>

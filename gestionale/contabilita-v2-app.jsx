@@ -115,12 +115,17 @@ function Kpi({ label, value, delta, up, down, icon: I, tooltip, divider }) {
   // lo slate scuro; delta in verde/rosso pastello (i toni saturi da light
   // theme sparivano sul fondo scuro). Divider verticale bianco-soft.
   return (
-    <div style={{
+    <div
+      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.zIndex = 2; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = ''; e.currentTarget.style.zIndex = ''; }}
+      style={{
       padding: '20px 22px',
       display:'flex', flexDirection:'column', gap: 10,
       minWidth: 0,
       position: 'relative',
       borderRight: divider ? '1px solid rgba(255, 255, 255, 0.10)' : 'none',
+      borderRadius: 12,
+      transition: 'transform 180ms cubic-bezier(0.34, 1.45, 0.64, 1), background 150ms ease',
     }}>
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
         <span style={{fontSize: C.T_XS, color: 'rgba(255, 255, 255, 0.60)', fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase'}}>{label}</span>
