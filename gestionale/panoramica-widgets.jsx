@@ -589,7 +589,7 @@ function WidgetTavoliStato() {
     <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0}}>
       <div style={{marginBottom: 10, flexShrink: 0, minWidth: 0}}>
         <WidgetHead name="Stato tavoli"
-          right={<span style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, whiteSpace: 'nowrap'}}><b style={{color: PN.TEXT}}>{occupati} su {tables.length}</b> occupati · Sala principale</span>}/>
+          right={<span style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, whiteSpace: 'nowrap'}}><b style={{color: PN.TEXT}}>{occupati} su {tables.length}</b> occupati</span>}/>
       </div>
 
       {/* Mappa 4×3 fissa che riempie tutta l'altezza del 2×2: i 12 tavoli si
