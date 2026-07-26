@@ -181,7 +181,7 @@ function WidgetIncassi({ size }) {
     return (
       <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8}}>
         {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
-        <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
+        <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
         <div style={{display: 'flex', flex: 1, minHeight: 0, gap: 18}}>
           <div style={{flex: '0 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
             <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
@@ -201,7 +201,7 @@ function WidgetIncassi({ size }) {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}>
-      <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
+      <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
       <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
       <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
         <div style={{flex: '1 1 auto', minHeight: 0}}>
@@ -1114,19 +1114,25 @@ function KitchenLiveRow({ o, s }) {
 const ANDAMENTO_DATA = {
   coperti: {
     oggi:      { total: '42',  trend: '+5%',  sub: 'vs media giornaliera',
-                 spark: [2, 5, 9, 14, 18, 12, 6, 3, 2, 6, 16, 26, 34, 30, 38, 28] },
+                 spark: [2, 5, 9, 14, 18, 12, 6, 3, 2, 6, 16, 26, 34, 30, 38, 28],
+                 labels: ['12:00', '17:00', '21:00'] },
     settimana: { total: '264', trend: '+9%',  sub: 'vs settimana scorsa',
-                 spark: [26, 34, 22, 44, 38, 52, 64, 42, 36, 48, 40, 58] },
+                 spark: [26, 34, 22, 44, 38, 52, 64, 42, 36, 48, 40, 58],
+                 labels: ['Lun', 'Mer', 'Ven', 'Dom'] },
     mese:      { total: '753', trend: '+8%',  sub: 'vs mese scorso',
-                 spark: [18, 24, 16, 32, 26, 38, 33, 46, 41, 54, 48, 62, 57, 68, 74, 66, 80, 72] },
+                 spark: [18, 24, 16, 32, 26, 38, 33, 46, 41, 54, 48, 62, 57, 68, 74, 66, 80, 72],
+                 labels: ['1', '10', '20', '30'] },
   },
   scontrino: {
     oggi:      { total: '€ 29,70', trend: '+€ 0,80', sub: 'vs media giornaliera',
-                 spark: [27.8, 28.6, 28.1, 29.4, 28.9, 30.1, 29.3, 30.6, 29.8, 30.9, 30.2, 31.1, 30.4, 29.9, 30.8, 29.7] },
+                 spark: [27.8, 28.6, 28.1, 29.4, 28.9, 30.1, 29.3, 30.6, 29.8, 30.9, 30.2, 31.1, 30.4, 29.9, 30.8, 29.7],
+                 labels: ['12:00', '17:00', '21:00'] },
     settimana: { total: '€ 31,90', trend: '+€ 1,10', sub: 'vs settimana scorsa',
-                 spark: [29.8, 31.0, 30.2, 32.1, 31.2, 32.8, 31.6, 33.0, 32.2, 31.4, 32.5, 31.9] },
+                 spark: [29.8, 31.0, 30.2, 32.1, 31.2, 32.8, 31.6, 33.0, 32.2, 31.4, 32.5, 31.9],
+                 labels: ['Lun', 'Mer', 'Ven', 'Dom'] },
     mese:      { total: '€ 32,40', trend: '+€ 1,20', sub: 'vs mese scorso',
-                 spark: [29.4, 30.2, 29.8, 31.0, 30.4, 31.6, 30.9, 32.0, 31.2, 32.4, 31.8, 32.8, 32.0, 33.1, 32.2, 33.4, 32.6, 32.4] },
+                 spark: [29.4, 30.2, 29.8, 31.0, 30.4, 31.6, 30.9, 32.0, 31.2, 32.4, 31.8, 32.8, 32.0, 33.1, 32.2, 33.4, 32.6, 32.4],
+                 labels: ['1', '10', '20', '30'] },
   },
 };
 
@@ -1156,54 +1162,51 @@ function WidgetAndamento({ size, name, metric }) {
   );
 
   if (compact) {
-    // Sparkline ambient a tutta larghezza sul fondo, numero grande in basso.
+    // Stesso impianto del widget Incassi: numero grande a sinistra,
+    // sparkline a destra con le etichette dell'asse sotto.
     return (
       <div
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
-        style={{position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}
+        style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8}}
       >
-        <div style={{
-          position: 'absolute', left: -10, right: -10, bottom: -10, height: '38%',
-          pointerEvents: 'none', opacity: 0.5,
-        }}>
-          <WSparkline data={d.spark} color={PN.PINK} animated/>
-        </div>
-        <div style={{position: 'relative', zIndex: 1}}>
-          <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
-        </div>
-        <div key={period} style={{
-          marginTop: 'auto', position: 'relative', zIndex: 1, minWidth: 0,
-          animation: 'fin-fade-in 320ms ease-out',
-        }}>
-          <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-            <span style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: -1.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
-            <span style={{fontSize: 16, color: PN.GREEN, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
+        <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
+        <div style={{display: 'flex', flex: 1, minHeight: 0, gap: 18}}>
+          <div key={period} style={{flex: '0 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', animation: 'fin-fade-in 320ms ease-out'}}>
+            <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
           </div>
-          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</div>
+          <div style={{flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
+            <div style={{flex: '1 1 auto', minHeight: 0}}>
+              <WSparkline data={d.spark} color={PN.PINK} animated/>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
+              {d.labels.map((l, i) => <span key={i}>{l}</span>)}
+            </div>
+          </div>
         </div>
         {keyframes}
       </div>
     );
   }
 
-  // Variante alta: numero in alto, sparkline piena sotto.
+  // Variante alta: numero in alto, sparkline piena sotto (come Incassi).
   return (
     <div
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 12}}
+      style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}
     >
       <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
       <div key={period} style={{animation: 'fin-fade-in 320ms ease-out', minWidth: 0}}>
-        <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-          <span style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: -1.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
-          <span style={{fontSize: 16, color: PN.GREEN, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
-          <span style={{fontSize: 13, color: PN.MUTED, marginLeft: 'auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</span>
-        </div>
+        <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
       </div>
-      <div style={{flex: 1, minHeight: 36, overflow: 'hidden', borderRadius: 8}}>
-        <WSparkline data={d.spark} color={PN.PINK} animated/>
+      <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
+        <div style={{flex: '1 1 auto', minHeight: 0}}>
+          <WSparkline data={d.spark} color={PN.PINK} animated/>
+        </div>
+        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
+          {d.labels.map((l, i) => <span key={i}>{l}</span>)}
+        </div>
       </div>
       {keyframes}
     </div>
@@ -1211,7 +1214,7 @@ function WidgetAndamento({ size, name, metric }) {
 }
 
 function WidgetAndamentoCoperti({ size }) {
-  return <WidgetAndamento size={size} name="Andamento coperti" metric="coperti"/>;
+  return <WidgetAndamento size={size} name="Coperti" metric="coperti"/>;
 }
 
 function WidgetAndamentoScontrino({ size }) {

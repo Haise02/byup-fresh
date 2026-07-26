@@ -13,9 +13,9 @@
 //   sunset    → applicato dal widget internamente con GlassDarkBox (Top piatti,
 //                Cucina live) → non serve sullo shell
 const PN_WIDGET_CATALOG = [
-  { id: 'andamento-coperti', name: 'Andamento coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
+  { id: 'andamento-coperti', name: 'Coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'andamento-scontrino', name: 'Scontrino medio', desc: 'Scontrino medio per periodo con sparkline', component: 'WidgetAndamentoScontrino', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-bar' },
-  { id: 'incassi', name: 'Andamento incassi', desc: 'Incassi per periodo con sparkline', component: 'WidgetIncassi', size: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
+  { id: 'incassi', name: 'Incassi', desc: 'Incassi per periodo con sparkline', component: 'WidgetIncassi', size: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
   { id: 'riempimento', name: 'Occupazione sala', desc: 'Tasso di occupazione e fasce orarie', component: 'WidgetRiempimento', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-doughnut' },
   { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Le prenotazioni del giorno: click per aprirle in Sala', component: 'WidgetPrenotazioniOggi', size: { w: 1, h: 2 }, category: 'Sala', icon: 'time-calendar' },
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Minimappa sala: click sul tavolo per aprirlo', component: 'WidgetTavoliStato', size: { w: 2, h: 2 }, category: 'Sala', icon: 'place-table' },
