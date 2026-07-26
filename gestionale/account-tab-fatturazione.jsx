@@ -290,6 +290,18 @@ function AccFatturazione() {
     setPromoteTick(t => t + 1);
   };
 
+  // Annulla abbonamento: doppio step — conferma, poi digitare la frase esatta.
+  const [cancelStep, setCancelStep] = React.useState(null); // null | 'confirm' | 'type' | 'done'
+  const [cancelText, setCancelText] = React.useState('');
+  const CANCEL_PHRASE = 'Annulla abbonamento';
+  const cancelReady = cancelText.trim().toLowerCase() === CANCEL_PHRASE.toLowerCase();
+  const closeCancel = () => { setCancelStep(null); setCancelText(''); };
+  const confirmCancel = () => {
+    if (!cancelReady) return;
+    setCancelStep('done');
+    setTimeout(closeCancel, 1400);
+  };
+
   const askRemove = (id) => {
     if (metodi.length <= 1) setBlockOpen(true);
     else setConfirmId(id);
@@ -494,7 +506,7 @@ function AccFatturazione() {
           <div style={{flex: 1, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
             Una volta annullato, perderai accesso ai menu digitali extra, ai membri staff aggiuntivi e al supporto telefonico (se inclusi nel tuo piano).
           </div>
-          <button style={{
+          <button onClick={() => setCancelStep('confirm')} style={{
             padding:'9px 16px', borderRadius: 999,
             background: PN.WHITE, color: PN.MUTED,
             border:`1px solid ${PN.BORDER}`,
@@ -503,6 +515,80 @@ function AccFatturazione() {
           }}>Annulla abbonamento</button>
         </div>
       </AcCard>
+
+      {/* Annulla abbonamento — step 1: conferma */}
+      {cancelStep === 'confirm' && (
+        <AcPayModal onClose={closeCancel} width={410}>
+          <AcPayModalHeader title="Vuoi annullare l'abbonamento?"
+            subtitle="Resterà attivo fino alla fine del periodo già pagato, poi passerai al piano Gratuito." onClose={closeCancel}/>
+          <div style={{
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+            padding: '12px 14px', borderRadius: 12,
+            background: PN.AMBER_SOFT, border: `1px solid ${PN.AMBER}33`,
+            fontSize: 14.5, color: AC_FATTURA_INK, lineHeight: 1.5,
+          }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Perderai i menu digitali extra, i membri staff aggiuntivi e il supporto telefonico inclusi nel tuo piano.
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button onClick={closeCancel} style={AcBtnGhost}>No, mantieni</button>
+            <button onClick={() => setCancelStep('type')} style={{
+              padding: '9px 16px', borderRadius: 999, border: 'none',
+              background: PN.BTN_DARK, color: PN.WHITE,
+              fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+              boxShadow: PN.INSET_HIGHLIGHT_DARK,
+            }}>Sì, continua</button>
+          </div>
+        </AcPayModal>
+      )}
+
+      {/* Annulla abbonamento — step 2: digita la frase per disdire */}
+      {(cancelStep === 'type' || cancelStep === 'done') && (
+        <AcPayModal onClose={closeCancel} width={410}>
+          {cancelStep === 'done' ? (
+            <div style={{ display: 'grid', placeItems: 'center', padding: '26px 0 18px', gap: 12 }}>
+              <span style={{
+                width: 62, height: 62, borderRadius: '50%',
+                background: PN.AMBER_SOFT, display: 'grid', placeItems: 'center',
+                animation: 'acPayCheckPop 420ms cubic-bezier(.2,.8,.25,1) both',
+              }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: PN.TEXT }}>Abbonamento annullato</div>
+              <div style={{ fontSize: 14, color: PN.MUTED, textAlign: 'center' }}>Resta attivo fino alla fine del periodo già pagato.</div>
+            </div>
+          ) : (
+            <React.Fragment>
+              <AcPayModalHeader title="Conferma la disdetta"
+                subtitle={`Per disdire, scrivi "${CANCEL_PHRASE}" qui sotto.`} onClose={closeCancel}/>
+              <input value={cancelText} onChange={e => setCancelText(e.target.value)}
+                placeholder={CANCEL_PHRASE} autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') confirmCancel(); }}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  padding: '11px 12px', borderRadius: 10,
+                  border: `1px solid ${cancelReady ? PN.GREEN : PN.BORDER}`,
+                  background: PN.WHITE, outline: 'none',
+                  fontSize: 15, color: PN.TEXT, fontFamily: 'inherit',
+                  transition: 'border-color 180ms ease',
+                }}/>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={closeCancel} style={AcBtnGhost}>Torna indietro</button>
+                <button onClick={confirmCancel} disabled={!cancelReady} style={{
+                  padding: '9px 16px', borderRadius: 999, border: 'none',
+                  background: cancelReady ? PN.RED : PN.WHITE_FROST,
+                  color: cancelReady ? PN.WHITE : PN.MUTED_SOFT,
+                  fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit',
+                  cursor: cancelReady ? 'pointer' : 'not-allowed',
+                  transition: 'background 200ms, color 200ms',
+                }}>Disdici abbonamento</button>
+              </div>
+            </React.Fragment>
+          )}
+        </AcPayModal>
+      )}
     </div>
   );
 }
