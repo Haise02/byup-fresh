@@ -22,7 +22,7 @@ const PN_WIDGET_CATALOG = [
   { id: 'top-piatti', name: 'Top piatti', desc: 'Classifica settimanale: click verso le statistiche ordini', component: 'WidgetTopPiatti', size: { w: 1, h: 2 }, category: 'Menu', icon: 'food-meal' },
   { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni: click verso le valutazioni clienti', component: 'WidgetRecensioni', size: { w: 1, h: 2 }, category: 'Reputazione', theme: 'aurora', icon: 'star' },
   { id: 'azioni', name: 'Azioni rapide', desc: 'Scorciatoie verso le funzioni delle sezioni', component: 'WidgetAzioni', size: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
-  { id: 'coperti-sett', name: 'Coperti settimana', desc: 'Andamento coperti sui 7 giorni con previsione', component: 'WidgetCopertiSettimana', size: { w: 2, h: 2 }, category: 'Statistiche', icon: 'people-staff-group' },
+  { id: 'coperti-sett', name: 'Spaccato coperti', desc: 'Coperti per giorno sui 7 giorni della settimana', component: 'WidgetCopertiSettimana', size: { w: 2, h: 2 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'cucina-live', name: 'Cucina in diretta', desc: 'Ordini in cucina: click per aprire il ticket', component: 'WidgetCucinaLive', size: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
 ];
 

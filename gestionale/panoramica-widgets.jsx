@@ -943,7 +943,7 @@ function WidgetCopertiSettimana({ size }) {
       height:'100%', minHeight: 0, gap: compact ? 18 : 0,
     }}>
       <div style={{flexShrink: 0, minWidth: 0, maxWidth: compact ? '46%' : 'none', display:'flex', flexDirection:'column', justifyContent: compact ? 'center' : 'flex-start'}}>
-        <WMetric label="Coperti questa settimana" value="198" sub="Previsione a fine settimana: 412" trend="+11%"/>
+        <WMetric label="Spaccato coperti questa settimana" value="198" trend="+11%"/>
       </div>
       <div style={{flex:1, minWidth: 0, minHeight: 0, display:'flex', alignItems:'stretch', gap: 8, marginTop: compact ? 0 : 18}}>
         {days.map((d,i) => (
