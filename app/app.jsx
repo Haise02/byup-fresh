@@ -2920,14 +2920,14 @@ const BYP_LEVEL_NAMES = { 1: 'Novizio', 2: 'Esploratore', 3: 'Buongustaio', 4: '
 // caposala → chef → executive chef → proprietario → proprietario dorato →
 // imprenditore miliardario.
 const BYP_LEVEL_INFO = {
-  1: { img: 'assets/rank-1.png', mult: '×1',   bonus: 0 },
-  2: { img: 'assets/rank-2.png', mult: '×1,2', bonus: 100 },
-  3: { img: 'assets/rank-3.png', mult: '×1,3', bonus: 250 },
-  4: { img: 'assets/rank-4.png', mult: '×1,5', bonus: 500 },
-  5: { img: 'assets/rank-5.png', mult: '×1,8', bonus: 1000 },
-  6: { img: 'assets/rank-6.png', mult: '×2',   bonus: 2000 },
-  7: { img: 'assets/rank-7.png', mult: '×2,5', bonus: 3500 },
-  8: { img: 'assets/rank-8.png', mult: '×3',   bonus: 5000 },
+  1: { img: 'assets/rank-1.png?v=2', mult: '×1',   bonus: 0 },
+  2: { img: 'assets/rank-2.png?v=2', mult: '×1,2', bonus: 100 },
+  3: { img: 'assets/rank-3.png?v=2', mult: '×1,3', bonus: 250 },
+  4: { img: 'assets/rank-4.png?v=2', mult: '×1,5', bonus: 500 },
+  5: { img: 'assets/rank-5.png?v=2', mult: '×1,8', bonus: 1000 },
+  6: { img: 'assets/rank-6.png?v=2', mult: '×2',   bonus: 2000 },
+  7: { img: 'assets/rank-7.png?v=2', mult: '×2,5', bonus: 3500 },
+  8: { img: 'assets/rank-8.png?v=2', mult: '×3',   bonus: 5000 },
 };
 const BYP_CUR_LEVEL = 3;
 const BYP_ACH = [
