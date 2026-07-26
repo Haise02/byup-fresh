@@ -213,13 +213,15 @@ function ContExport({ openShare }) {
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
         <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 18}}>
           <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 14}}>
-            <div style={{width: 36, height: 36, borderRadius: C.R_SM, background: PN.GREEN_SOFT, color: PN.GREEN, display:'grid', placeItems:'center'}}><Ic.calendar size={18}/></div>
-            <div>
-              <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>Invio automatico</div>
-              <div style={{fontSize: C.T_XS, color: PN.GREEN, fontWeight: 600, display:'inline-flex', alignItems:'center', gap: 5}}>
-                <span style={{width:6, height:6, borderRadius:'50%', background: PN.GREEN}}/> Attivo
-              </div>
-            </div>
+            <div style={{width: 36, height: 36, borderRadius: C.R_SM, background: PN.GREEN_SOFT, color: PN.GREEN, display:'grid', placeItems:'center', flexShrink: 0}}><Ic.calendar size={18}/></div>
+            <div style={{flex: 1, fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>Invio automatico</div>
+            <span style={{
+              fontSize: C.T_XS, color: PN.GREEN, fontWeight: 700,
+              display:'inline-flex', alignItems:'center', gap: 5,
+              background: PN.GREEN_SOFT, padding:'3px 10px', borderRadius: 999, flexShrink: 0,
+            }}>
+              <span style={{width:6, height:6, borderRadius:'50%', background: PN.GREEN}}/> Attivo
+            </span>
           </div>
           <Row label="Frequenza" value="Mensile"/>
           <Row label="Prossimo invio" value={(() => { const d = new Date(); d.setMonth(d.getMonth()+1, 1); const M = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']; return `1 ${M[d.getMonth()]} ${d.getFullYear()}`; })()}/>
@@ -320,12 +322,18 @@ function ExportCard({ variant, icon: I, title, desc, cta, ctaIcon: Ci, onClick }
       }}><I size={20}/></div>
       <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>{title}</div>
       <div style={{fontSize: C.T_XS, color: PN.MUTED, lineHeight: 1.4, minHeight: 30, marginBottom: 12}}>{desc}</div>
-      <button onClick={onClick} style={{
+      <button onClick={onClick}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = isPrimary ? '0 6px 16px rgba(255, 90, 95, 0.40)' : '0 6px 16px rgba(15, 17, 21, 0.28)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+        onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+        onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+        style={{
         padding:'8px 16px',
         background: isPrimary ? PN.PINK : PN.TEXT,
         color:'#fff', border:'none', borderRadius: C.R_PILL,
         fontSize: C.T_XS, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
         display:'inline-flex', alignItems:'center', gap: 6,
+        transition:'transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
       }}><Ci size={12}/> {cta}</button>
     </div>
   );

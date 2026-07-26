@@ -1078,15 +1078,15 @@ function ContConti({ filter = 'all' }) {
                       {conto.stato === 'non_saldato' && !saldati.has(conto.id) && (
                         <button
                           onClick={() => setModalPagamento(conto)}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#2E333C'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.28)'; }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#2E333C'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(15, 17, 21, 0.30)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = PN.TEXT; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
                           onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.94)'; }}
-                          onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+                          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.08)'; }}
                           style={{
                             padding:'7px 12px', background: PN.TEXT, color:'#fff',
                             border:'none', borderRadius: 9, fontSize: C.T_XS,
                             fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                            transition:'background 130ms ease, box-shadow 150ms ease, transform 120ms ease',
+                            transition:'background 130ms ease, box-shadow 150ms ease, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
                           }}>
                           Salda ora
                         </button>

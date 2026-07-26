@@ -384,64 +384,83 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
             quanto il contenuto e la lista non scrolla (card tagliate in basso) */}
         <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '14px 16px 20px', display:'flex', flexDirection:'column', gap: 12}}>
           {ritiri.map(r => (
-            <div key={r.id} style={{
-              border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 14,
-              boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 4px 12px rgba(15,17,21,0.04)',
+            <div key={r.id}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 0 rgba(15,17,21,0.03), 0 12px 28px rgba(15,17,21,0.10)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              style={{
+              border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 16,
+              background: PN.WHITE,
+              boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 16px rgba(15,17,21,0.05)',
               overflow:'hidden',
+              transition:'transform 160ms ease, box-shadow 180ms ease',
               // flexShrink 0 obbligatorio: senza, la colonna flex COMPRIME le card
               // per farcele stare (niente overflow → niente scroll) e il fondo
               // di ogni card — la CTA Consegna — resta clippato da overflow:hidden.
               flexShrink: 0,
             }}>
-              <div style={{padding:'12px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap: 10}}>
+              {/* Testata: cliente + stato; sotto, codice, orario e fonte in
+                  una riga di metadati ordinata */}
+              <div style={{padding:'13px 16px 11px', display:'flex', alignItems:'flex-start', gap: 10}}>
                 <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                    <span style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.cliente}</span>
+                  <div style={{fontSize: 17.5, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.cliente}</div>
+                  <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 5, minWidth: 0}}>
                     <span style={{
-                      fontSize: 13, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
+                      fontSize: 13, fontWeight: 700, color: PN.TEXT,
+                      fontVariantNumeric:'tabular-nums',
+                      background:'#F4F5F7', border:`1px solid ${PN.BORDER_SOFT}`,
+                      padding:'1px 8px', borderRadius: 7, flexShrink: 0,
+                    }}>{r.codice}</span>
+                    <span style={{display:'inline-flex', alignItems:'center', gap: 4, fontSize: 14, color: PN.MUTED, whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+                      ritiro {r.ritiro}
+                    </span>
+                    <span style={{
+                      fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
                       padding:'2px 8px', borderRadius: 999, flexShrink: 0,
                       background: r.fonte === 'webapp' ? PN.BLUE_SOFT : PN.PINK_SOFT,
                       color: r.fonte === 'webapp' ? PN.BLUE : PN.PINK_DARK,
                     }}>{r.fonte === 'webapp' ? 'webapp' : 'byup app'}</span>
                   </div>
-                  <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>{r.codice} · ritiro ore {r.ritiro}</div>
                 </div>
                 {r.pagato ? (
-                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 14, fontWeight: 700, color:'#15803D', background:'#DCFCE7', padding:'3px 10px', borderRadius: 999, flexShrink: 0}}>
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 13.5, fontWeight: 700, color:'#15803D', background:'#DCFCE7', padding:'4px 11px', borderRadius: 999, flexShrink: 0}}>
                     ✓ Pagato in app
                   </span>
                 ) : (
-                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 14, fontWeight: 700, color: PN.AMBER, background: PN.AMBER_SOFT, padding:'3px 10px', borderRadius: 999, flexShrink: 0}}>
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 13.5, fontWeight: 700, color:'#92400E', background: PN.AMBER_SOFT, padding:'4px 11px', borderRadius: 999, flexShrink: 0}}>
                     Da pagare
                   </span>
                 )}
               </div>
-              <div style={{padding:'10px 14px', display:'flex', flexDirection:'column', gap: 3}}>
+              {/* Articoli su pannello tinto: respiro e totale in evidenza */}
+              <div style={{margin:'0 12px 12px', background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, padding:'10px 12px', display:'flex', flexDirection:'column', gap: 4}}>
                 {r.items.map((item, i) => (
-                  <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 15.5}}>
-                    <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 24, flexShrink: 0}}>{item.qty}×</span>
+                  <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 15}}>
+                    <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 24, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
                     <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
                     <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
                   </div>
                 ))}
-                <div style={{display:'flex', justifyContent:'space-between', fontSize: 15.5, fontWeight: 700, color: PN.TEXT, borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 8, marginTop: 5}}>
-                  <span>{r.pagato ? 'Totale (pagato)' : 'Totale da pagare'}</span>
-                  <span style={{fontVariantNumeric:'tabular-nums'}}>€{r.totale.toFixed(2)}</span>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 8, marginTop: 4}}>
+                  <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.4}}>{r.pagato ? 'Totale · pagato' : 'Totale da pagare'}</span>
+                  <span style={{fontSize: 18, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', letterSpacing:-0.3}}>€{r.totale.toFixed(2)}</span>
                 </div>
               </div>
               {/* CTA: mai Consegna su un ordine da saldare — prima l'incasso,
                   poi (l'ordine resta in lista come pagato) la consegna */}
-              <div style={{padding:'0 14px 14px', display:'flex', gap: 8}}>
+              <div style={{padding:'0 12px 12px', display:'flex', gap: 8}}>
                 {!r.pagato ? (
                   <button onClick={() => onSalda(r)} style={{
                     flex: 1, padding:'11px 16px', borderRadius: 999,
                     background: PN.WHITE, color: PN.TEXT,
                     border: `1px solid ${PN.BORDER}`,
                     fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                    transition:'background 150ms ease-out',
+                    transition:'background 150ms ease-out, border-color 150ms ease, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}>
+                    onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(15,17,21,0.12)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}>
                     Salda ora
                   </button>
                 ) : (
@@ -451,10 +470,12 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
                     border:'1px solid transparent',
                     fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                     boxShadow: SV_SUNSET_SHADOW,
-                    transition:'box-shadow 180ms ease-out, filter 150ms ease-out',
+                    transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
                   }}
-                    onMouseEnter={svSunsetHoverIn}
-                    onMouseLeave={svSunsetHoverOut}>
+                    onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,200,210,0.22), inset 0 0 0 1px rgba(255,130,150,0.16), 0 12px 30px -8px rgba(80,10,30,0.65), 0 4px 10px -4px rgba(80,10,30,0.35)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = SV_SUNSET_SHADOW; }}
+                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}>
                     Consegna
                   </button>
                 )}
@@ -1100,6 +1121,10 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         <button
           onClick={() => setTakeaway(v => !v)}
           title={takeaway ? 'Da asporto. Tocca per togliere' : 'Segna come da asporto'}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.14)'; if (!takeaway) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.color = PN.TEXT; } }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.TEXT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.TEXT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.WHITE : PN.MUTED; }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.94)'; }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
           style={{
             display:'inline-flex', alignItems:'center', gap: 5,
             padding: '5px 10px', borderRadius: 8,
@@ -1107,7 +1132,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             background: takeaway ? PN.TEXT : 'transparent',
             color: takeaway ? PN.WHITE : PN.MUTED,
             fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            transition:'background .12s, color .12s, border-color .12s',
+            transition:'background .12s, color .12s, border-color .12s, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
           }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
