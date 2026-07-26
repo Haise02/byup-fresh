@@ -54,8 +54,14 @@ function SupFAQ({ search }) {
               background: '#f8f8fa',
               borderRadius: 10,
               overflow:'hidden',
+              transition:'transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), background 140ms ease, box-shadow 150ms ease',
             }}>
-              <button onClick={() => setOpen(isOpen ? null : f.id)} style={{
+              <button onClick={() => setOpen(isOpen ? null : f.id)}
+                onMouseEnter={e => { const c = e.currentTarget.parentElement; c.style.transform = 'scale(1.012)'; c.style.background = PN.PINK_BG_SOFT; c.style.boxShadow = '0 6px 16px rgba(15, 17, 21, 0.08)'; }}
+                onMouseLeave={e => { const c = e.currentTarget.parentElement; c.style.transform = ''; c.style.background = '#f8f8fa'; c.style.boxShadow = ''; }}
+                onMouseDown={e => { e.currentTarget.parentElement.style.transform = 'scale(0.99)'; }}
+                onMouseUp={e => { e.currentTarget.parentElement.style.transform = 'scale(1.012)'; }}
+                style={{
                 width:'100%', display:'flex', alignItems:'center', gap: 12,
                 padding: '12px 16px',
                 background:'transparent', border:'none',
