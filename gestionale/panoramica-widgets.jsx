@@ -930,7 +930,7 @@ function WidgetAzioni({ size }) {
 
 function WidgetCopertiSettimana({ size }) {
   const days = [
-    {d:'L', v:38}, {d:'M', v:42}, {d:'M', v:51}, {d:'G', v:67, today:true},
+    {d:'L', v:38}, {d:'M', v:42}, {d:'M', v:51}, {d:'G', v:42, today:true},
     {d:'V', v:0, future:true}, {d:'S', v:0, future:true}, {d:'D', v:0, future:true},
   ];
   const max = Math.max(...days.map(d=>d.v), 80);
@@ -946,7 +946,7 @@ function WidgetCopertiSettimana({ size }) {
       height:'100%', minHeight: 0, gap: compact ? 18 : 0, cursor: 'pointer',
     }}>
       <div style={{flexShrink: 0, minWidth: 0, maxWidth: compact ? '46%' : 'none', display:'flex', flexDirection:'column', justifyContent: compact ? 'center' : 'flex-start'}}>
-        <WMetric label="Spaccato coperti questa settimana" value="198" trend="+11%"/>
+        <WMetric label="Spaccato coperti questa settimana" value="173" trend="+11%"/>
       </div>
       <div style={{flex:1, minWidth: 0, minHeight: 0, display:'flex', alignItems:'stretch', gap: 8, marginTop: compact ? 0 : 18}}>
         {days.map((d,i) => (
@@ -1119,7 +1119,7 @@ const ANDAMENTO_DATA = {
     oggi:      { total: '42',  trend: '+5%',  sub: 'vs media giornaliera',
                  spark: [2, 5, 9, 14, 18, 12, 6, 3, 2, 6, 16, 26, 34, 30, 38, 28],
                  labels: ['12:00', '17:00', '21:00'] },
-    settimana: { total: '264', trend: '+9%',  sub: 'vs settimana scorsa',
+    settimana: { total: '173', trend: '+11%', sub: 'vs settimana scorsa',
                  spark: [26, 34, 22, 44, 38, 52, 64, 42, 36, 48, 40, 58],
                  labels: ['Lun', 'Mer', 'Ven', 'Dom'] },
     mese:      { total: '753', trend: '+8%',  sub: 'vs mese scorso',
