@@ -278,6 +278,17 @@ function AccFatturazione() {
   const [confirmId, setConfirmId] = React.useState(null); // carta in attesa di conferma rimozione
   const [blockOpen, setBlockOpen] = React.useState(false); // rimozione bloccata: unico metodo
   const [removingId, setRemovingId] = React.useState(null); // carta in uscita animata
+  // Cambia a ogni promozione: entra nelle key delle righe così l'ingresso
+  // animato si rigioca e il riordino si vede.
+  const [promoteTick, setPromoteTick] = React.useState(0);
+
+  const makeDefault = (id) => {
+    setMetodi(m => {
+      const card = m.find(c => c.id === id);
+      return card ? [card, ...m.filter(c => c.id !== id)] : m;
+    });
+    setPromoteTick(t => t + 1);
+  };
 
   const askRemove = (id) => {
     if (metodi.length <= 1) setBlockOpen(true);
@@ -299,13 +310,14 @@ function AccFatturazione() {
       <AcCard aurora title="Metodo di pagamento" subtitle="Carta usata per gli addebiti mensili.">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {metodi.map((c, i) => (
-            <div key={c.id} style={{
+            <div key={`${c.id}-${promoteTick}`} style={{
               display:'flex', alignItems:'center', gap: 14,
               padding: 16, borderRadius: 12,
               background:'#FAFBFC', border:`1px solid ${PN.BORDER}`,
               animation: removingId === c.id
                 ? 'acPayOut 300ms ease both'
                 : 'acPayIn 350ms ease both',
+              animationDelay: removingId === c.id ? '0ms' : `${i * 50}ms`,
               transition: 'box-shadow 180ms ease, transform 180ms ease',
             }}
               onMouseEnter={e => { e.currentTarget.style.boxShadow = PN.CARD_SHADOW_HOVER; e.currentTarget.style.transform = 'translateY(-1px)'; }}
@@ -323,6 +335,9 @@ function AccFatturazione() {
                 </div>
                 <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Scade {c.exp} · {c.holder}</div>
               </div>
+              {i > 0 && (
+                <button onClick={() => makeDefault(c.id)} style={AcBtnGhost}>Rendi predefinita</button>
+              )}
               <button onClick={() => askRemove(c.id)}
                 style={{...AcBtnGhost, color: PN.RED, borderColor: PN.RED}}>Rimuovi</button>
             </div>
