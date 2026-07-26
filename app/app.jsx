@@ -4379,7 +4379,7 @@ function RoadmapScreen({ onBack, onByuppini, onTraguardi, onHome, onProfile, onS
                   border: `1px solid ${locked ? 'rgba(255,255,255,.25)' : 'rgba(206,255,0,.35)'}`,
                   color: locked ? 'rgba(246,236,233,.85)' : BYP.lime, fontWeight: 800, fontSize: 13,
                   padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>
-                  🎁 {locked ? 'Sbloccalo per' : 'Bonus'} +{info.bonus.toLocaleString('it-IT')} byuppini
+                  🎁 {locked ? 'Ricompensa' : 'Bonus'} +{info.bonus.toLocaleString('it-IT')} byuppini
                 </div>
               )}
               {locked
