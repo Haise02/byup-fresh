@@ -280,7 +280,10 @@ function WidgetRiempimento({ size }) {
   const sideBySide = wH === 1;
 
   return (
-    <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0, gap: 8}}>
+    <div
+      onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=prenotazioni'; }}
+      title="Apri le statistiche di occupazione"
+      style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0, gap: 8, cursor: 'pointer'}}>
       {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
       <WidgetHead name="Percentuale tavoli occupati per fascia oraria"
         right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
