@@ -179,7 +179,9 @@ function WidgetIncassi({ size }) {
 
   if (compact) {
     return (
-      <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8}}>
+      <div onClick={() => { window.location.href = 'byup Statistiche.html?tab=economici'; }}
+        title="Apri le statistiche economiche"
+        style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8, cursor: 'pointer'}}>
         {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
         <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
         <div style={{display: 'flex', flex: 1, minHeight: 0, gap: 18}}>
@@ -200,7 +202,9 @@ function WidgetIncassi({ size }) {
   }
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}>
+    <div onClick={() => { window.location.href = 'byup Statistiche.html?tab=economici'; }}
+      title="Apri le statistiche economiche"
+      style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0, cursor: 'pointer'}}>
       <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
       <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
       <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
@@ -232,7 +236,7 @@ function PnPeriodToggle({ period, setPeriod }) {
   return (
     <div style={{display:'flex', gap: 4, padding: 3, background:'#F4F5F7', borderRadius: 8, alignSelf:'flex-start', flexShrink: 0}}>
       {['oggi', 'settimana', 'mese'].map(p => (
-        <button key={p} onClick={() => setPeriod(p)} style={{
+        <button key={p} onClick={(e) => { e.stopPropagation(); setPeriod(p); }} style={{
           padding:'4px 10px',
           background: period === p ? PN.WHITE : 'transparent',
           color: period === p ? PN.TEXT : PN.MUTED,
@@ -278,7 +282,10 @@ function WidgetRiempimento({ size }) {
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0, gap: 8}}>
       {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
-      <WidgetHead name="Occupazione sala" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
+      <WidgetHead
+        name={<>Occupazione sala per fascia oraria{' '}
+          <span style={{fontSize: 11, fontWeight: 600, color: PN.MUTED, textTransform: 'none', letterSpacing: 0.2}}>· % tavoli occupati</span></>}
+        right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
       <div style={{
         display:'flex',
         flexDirection: sideBySide ? 'row' : 'column',
@@ -313,13 +320,6 @@ function WidgetRiempimento({ size }) {
         paddingTop: sideBySide ? 0 : 10,
         paddingLeft: sideBySide ? 18 : 0,
       }}>
-        {/* Header esplicito sulla metrica: ogni barra è il tasso di
-            occupazione dei tavoli in quella fascia (non una quota del
-            flusso totale — per questo non sommano a 100%). */}
-        <div style={{display:'flex', alignItems:'baseline', gap: 8, marginBottom: 8, minWidth: 0}}>
-          <div style={{fontSize:12, color: PN.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap'}}>Occupazione per fascia</div>
-          <div style={{fontSize:11.5, color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth: 0}}>% tavoli occupati</div>
-        </div>
         <div style={{flex:1, display:'flex', alignItems:'stretch', gap: 6}}>
           {(() => {
             const peakV = Math.max(...d.fasce.map(f => f.v));
@@ -938,9 +938,11 @@ function WidgetCopertiSettimana({ size }) {
   // sideBySide di Riempimento). A h≥2 resta lo stacked classico.
   const compact = ((size && size.h) || 1) === 1;
   return (
-    <div style={{
+    <div onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=prenotazioni'; }}
+      title="Apri le statistiche dei coperti"
+      style={{
       display:'flex', flexDirection: compact ? 'row' : 'column',
-      height:'100%', minHeight: 0, gap: compact ? 18 : 0,
+      height:'100%', minHeight: 0, gap: compact ? 18 : 0, cursor: 'pointer',
     }}>
       <div style={{flexShrink: 0, minWidth: 0, maxWidth: compact ? '46%' : 'none', display:'flex', flexDirection:'column', justifyContent: compact ? 'center' : 'flex-start'}}>
         <WMetric label="Spaccato coperti questa settimana" value="198" trend="+11%"/>
@@ -1137,6 +1139,10 @@ const ANDAMENTO_DATA = {
 };
 
 function WidgetAndamento({ size, name, metric }) {
+  // Click sul widget → la sezione di Statistiche dove vive la metrica.
+  const statsHref = metric === 'scontrino'
+    ? 'byup Statistiche.html?tab=economici'
+    : 'byup Statistiche.html?tab=operazioni&sub=prenotazioni';
   const [period, setPeriod] = React.useState('oggi');
   const [paused, setPaused] = React.useState(false);
   const periods = ['oggi', 'settimana', 'mese'];
@@ -1166,9 +1172,11 @@ function WidgetAndamento({ size, name, metric }) {
     // sparkline a destra con le etichette dell'asse sotto.
     return (
       <div
+        onClick={() => { window.location.href = statsHref; }}
+        title="Apri le statistiche"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
-        style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8}}
+        style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8, cursor: 'pointer'}}
       >
         <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
         <div style={{display: 'flex', flex: 1, minHeight: 0, gap: 18}}>
@@ -1192,9 +1200,11 @@ function WidgetAndamento({ size, name, metric }) {
   // Variante alta: numero in alto, sparkline piena sotto (come Incassi).
   return (
     <div
+      onClick={() => { window.location.href = statsHref; }}
+      title="Apri le statistiche"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}
+      style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0, cursor: 'pointer'}}
     >
       <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
       <div key={period} style={{animation: 'fin-fade-in 320ms ease-out', minWidth: 0}}>
