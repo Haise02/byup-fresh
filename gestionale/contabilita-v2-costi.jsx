@@ -100,12 +100,18 @@ function ContCosti({ openNewCost }) {
               Da saldare: <strong style={{fontVariantNumeric:'tabular-nums'}}>€ {totalAlert.toFixed(2)}</strong>
             </div>
           </div>
-          <button onClick={() => setAlertOnly(a => !a)} style={{
+          <button onClick={() => setAlertOnly(a => !a)}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(217, 119, 6, 0.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+            style={{
             padding:'8px 16px', background: alertOnly ? '#fff' : PN.AMBER,
             color: alertOnly ? PN.AMBER : '#fff',
             border: alertOnly ? `1px solid ${PN.AMBER}` : 'none',
             borderRadius: C.R_PILL, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer',
             fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
+            transition:'transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
           }}>{alertOnly ? 'Mostra tutti i costi' : 'Mostra solo questi'} <Ic.chevronR size={12} stroke={2.4}/></button>
         </div>
       )}

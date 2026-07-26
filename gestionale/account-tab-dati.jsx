@@ -796,8 +796,10 @@ function AcEditField({ label, value, onChange, type = 'text', full }) {
           border:`1px solid ${PN.BORDER}`, background: '#FAFBFC',
           fontSize: 15.5, color: PN.TEXT, fontWeight: 500,
           fontFamily:'inherit', outline:'none', boxSizing:'border-box',
-          transition:'border-color 150ms, background 150ms',
+          transition:'border-color 150ms, background 150ms, transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 160ms ease',
         }}
+        onMouseEnter={e => { e.target.style.transform = 'scale(1.02)'; e.target.style.boxShadow = '0 6px 16px rgba(15, 17, 21, 0.08)'; }}
+        onMouseLeave={e => { e.target.style.transform = ''; e.target.style.boxShadow = ''; }}
         onFocus={e => { e.target.style.borderColor = PN.TEXT; e.target.style.background = PN.WHITE; }}
         onBlur={e => { e.target.style.borderColor = PN.BORDER; e.target.style.background = '#FAFBFC'; }}
       />
