@@ -254,18 +254,18 @@ Object.assign(window, { ONB, OnbIcon });
     select:not(:disabled) { cursor: pointer; transition: filter 140ms ease; }
     select:not(:disabled):hover { filter: brightness(0.96); }
     select:not(:disabled):active { filter: brightness(0.92); }
-    [style*="cursor: pointer"]:not(button):not(select),
-    [style*="cursor:pointer"]:not(button):not(select),
+    [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]),
+    [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]),
     a[href] {
       transition: box-shadow 150ms ease;
     }
-    [style*="cursor: pointer"]:not(button):not(select):hover,
-    [style*="cursor:pointer"]:not(button):not(select):hover,
+    [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):hover,
+    [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):hover,
     a[href]:hover {
       box-shadow: 0 0 0 1.5px rgba(15, 17, 21, 0.10), 0 6px 16px rgba(15, 17, 21, 0.08);
     }
-    [style*="cursor: pointer"]:not(button):not(select):active,
-    [style*="cursor:pointer"]:not(button):not(select):active,
+    [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):active,
+    [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):active,
     a[href]:active {
       box-shadow: 0 0 0 2px rgba(15, 17, 21, 0.16), 0 2px 6px rgba(15, 17, 21, 0.10);
     }

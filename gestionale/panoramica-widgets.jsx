@@ -179,7 +179,7 @@ function WidgetIncassi({ size }) {
 
   if (compact) {
     return (
-      <div onClick={() => { window.location.href = 'byup Statistiche.html?tab=economici'; }}
+      <div data-no-fx onClick={() => { window.location.href = 'byup Statistiche.html?tab=economici'; }}
         title="Apri le statistiche economiche"
         style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8, cursor: 'pointer'}}>
         {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
@@ -202,7 +202,7 @@ function WidgetIncassi({ size }) {
   }
 
   return (
-    <div onClick={() => { window.location.href = 'byup Statistiche.html?tab=economici'; }}
+    <div data-no-fx onClick={() => { window.location.href = 'byup Statistiche.html?tab=economici'; }}
       title="Apri le statistiche economiche"
       style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0, cursor: 'pointer'}}>
       <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
@@ -280,7 +280,7 @@ function WidgetRiempimento({ size }) {
   const sideBySide = wH === 1;
 
   return (
-    <div
+    <div data-no-fx
       onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=prenotazioni'; }}
       title="Apri le statistiche di occupazione"
       style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0, gap: 8, cursor: 'pointer'}}>
@@ -939,7 +939,7 @@ function WidgetCopertiSettimana({ size }) {
   // sideBySide di Riempimento). A h≥2 resta lo stacked classico.
   const compact = ((size && size.h) || 1) === 1;
   return (
-    <div onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=prenotazioni'; }}
+    <div data-no-fx onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=prenotazioni'; }}
       title="Apri le statistiche dei coperti"
       style={{
       display:'flex', flexDirection: compact ? 'row' : 'column',
@@ -1172,7 +1172,7 @@ function WidgetAndamento({ size, name, metric }) {
     // Stesso impianto del widget Incassi: numero grande a sinistra,
     // sparkline a destra con le etichette dell'asse sotto.
     return (
-      <div
+      <div data-no-fx
         onClick={() => { window.location.href = statsHref; }}
         title="Apri le statistiche"
         onMouseEnter={() => setPaused(true)}
@@ -1200,7 +1200,7 @@ function WidgetAndamento({ size, name, metric }) {
 
   // Variante alta: numero in alto, sparkline piena sotto (come Incassi).
   return (
-    <div
+    <div data-no-fx
       onClick={() => { window.location.href = statsHref; }}
       title="Apri le statistiche"
       onMouseEnter={() => setPaused(true)}
