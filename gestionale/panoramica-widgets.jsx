@@ -282,9 +282,7 @@ function WidgetRiempimento({ size }) {
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0, gap: 8}}>
       {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
-      <WidgetHead
-        name={<>Occupazione sala per fascia oraria{' '}
-          <span style={{fontSize: 11, fontWeight: 600, color: PN.MUTED, textTransform: 'none', letterSpacing: 0.2}}>· % tavoli occupati</span></>}
+      <WidgetHead name="Percentuale tavoli occupati per fascia oraria"
         right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
       <div style={{
         display:'flex',
