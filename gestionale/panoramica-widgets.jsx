@@ -10,7 +10,7 @@ function WMetric({ label, value, sub, trend, trendColor, big }) {
   return (
     <div style={{minWidth: 0}}>
       {label && (
-        <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
+        <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 700, letterSpacing: 0.5, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
       )}
       <div style={{display:'flex', alignItems:'baseline', gap: 12, marginBottom: 4, flexWrap:'wrap', minWidth: 0}}>
         <div style={{fontSize: big ? 58 : 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.4, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
@@ -221,7 +221,7 @@ function WidgetIncassi({ size }) {
 function WidgetHead({ name, right, dark }) {
   return (
     <div style={{display:'flex', alignItems:'center', gap: '6px 10px', flexWrap:'wrap', flexShrink: 0, minWidth: 0}}>
-      <div style={{fontSize: 12.5, color: dark ? 'rgba(255,255,255,0.65)' : PN.MUTED, fontWeight: 600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap', flexShrink: 0}}>{name}</div>
+      <div style={{fontSize: 12.5, color: dark ? 'rgba(255,255,255,0.65)' : PN.MUTED, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap', flexShrink: 0}}>{name}</div>
       <div style={{marginLeft: 'auto', flexShrink: 0, minWidth: 0}}>{right}</div>
     </div>
   );
@@ -645,7 +645,7 @@ function WidgetTopPiatti() {
         display:'flex', flexDirection:'column',
       }}>
       <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 14, minWidth: 0}}>
-        <div style={{fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Top piatti questa settimana</div>
+        <div style={{fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Top piatti questa settimana</div>
       </div>
       {/* Lista responsive: ogni dish ha flex:1 0 auto + minHeight → gli item
           crescono uniformemente quando il widget è alto (h≥2), restano compatti
@@ -729,7 +729,7 @@ function WidgetRecensioni() {
           il badge scende sotto invece di sbordare dalla card. */}
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, gap: '6px 10px', flexWrap:'wrap', minWidth: 0, flexShrink: 0}}>
         <div style={{minWidth: 0}}>
-          <div style={{fontSize: 12.5, fontWeight: 600, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Recensioni recenti</div>
+          <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Recensioni recenti</div>
           <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4, minWidth: 0}}>
             <div style={{display:'flex', gap: 2, flexShrink: 0}}>
               {[1,2,3,4,5].map(i => (
@@ -837,7 +837,7 @@ function WidgetAzioni({ size }) {
         minHeight: 0,
       }}>
       <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 12, flexShrink: 0, gap: 10, minWidth: 0}}>
-        <div style={{fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+        <div style={{fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
           Azioni rapide
         </div>
         <div style={{fontSize: 13.5, color: 'rgba(255,255,255,0.50)', whiteSpace:'nowrap', flexShrink: 0}}>
@@ -1023,7 +1023,7 @@ function WidgetCucinaLive() {
         marginBottom: 4, gap: 8, minWidth: 0, flexShrink: 0,
       }}>
         <span style={{
-          fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.65)',
+          fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)',
           textTransform: 'uppercase', letterSpacing: 0.5,
           minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>Cucina · in diretta</span>
