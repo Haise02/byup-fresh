@@ -99,7 +99,7 @@ function WSparkline({ data, color = PN.PINK, animated }) {
   const last = pts[pts.length - 1];
 
   return (
-    <div style={{width: '100%', height: '100%', overflow: 'hidden', display: 'block'}}>
+    <div style={{width: '100%', height: '100%', display: 'block', position: 'relative'}}>
       <svg
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="none"
@@ -122,18 +122,37 @@ function WSparkline({ data, color = PN.PINK, animated }) {
             strokeLinecap="round" strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
-          {animated && (
-            <circle
-              cx={last[0].toFixed(2)} cy={last[1].toFixed(2)}
-              r="2.4" fill={color}
-              style={{ animation: 'spark-pulse 1.6s ease-in-out infinite' }}
-            />
-          )}
         </g>
-        <style>{`
-          @keyframes spark-pulse  { 0%,100% { opacity: 1; r: 2.4; } 50% { opacity: 0.55; r: 3.4; } }
-        `}</style>
       </svg>
+      {/* Punto finale in HTML: resta un cerchio perfetto qualunque sia lo
+          stretch dell'svg (il circle SVG diventava un'ellisse schiacciata).
+          Alone morbido che si espande e svanisce. */}
+      {animated && (
+        <span style={{
+          position: 'absolute',
+          left: `${(last[0] / VB_W) * 100}%`,
+          top: `${(last[1] / VB_H) * 100}%`,
+          width: 7, height: 7, borderRadius: '50%',
+          background: color,
+          boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 4px rgba(15, 17, 21, 0.20)',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+        }}>
+          <span style={{
+            position: 'absolute', inset: -3, borderRadius: '50%',
+            background: color,
+            animation: 'spark-halo 1.8s ease-out infinite',
+            pointerEvents: 'none',
+          }}/>
+        </span>
+      )}
+      <style>{`
+        @keyframes spark-halo {
+          0%   { transform: scale(0.5); opacity: 0.45; }
+          70%  { transform: scale(1.9); opacity: 0; }
+          100% { transform: scale(1.9); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

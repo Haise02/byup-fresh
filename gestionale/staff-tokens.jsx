@@ -264,9 +264,9 @@ Object.assign(window, { ST, ALLERGENI, statoConfig, I, Btn, Chip, StatusDot, All
   const st = document.createElement('style');
   st.id = 'pn-btn-feedback';
   st.textContent = `
-    button { transition: transform 120ms ease, filter 140ms ease; }
+    button { transition: transform 120ms ease, filter 140ms ease, box-shadow 150ms ease; }
     button:not(:disabled) { cursor: pointer; }
-    button:not(:disabled):hover { filter: brightness(0.95); }
+    button:not(:disabled):hover { filter: brightness(0.95); box-shadow: 0 3px 10px rgba(15, 17, 21, 0.14); }
     button:not(:disabled):active { transform: scale(0.96); filter: brightness(0.90); }
     select:not(:disabled) { cursor: pointer; transition: filter 140ms ease; }
     select:not(:disabled):hover { filter: brightness(0.96); }
