@@ -10,7 +10,7 @@ function WMetric({ label, value, sub, trend, trendColor, big }) {
   return (
     <div style={{minWidth: 0}}>
       {label && (
-        <div style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.3, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
+        <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 600, letterSpacing: 0.5, textTransform:'uppercase', marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{label}</div>
       )}
       <div style={{display:'flex', alignItems:'baseline', gap: 12, marginBottom: 4, flexWrap:'wrap', minWidth: 0}}>
         <div style={{fontSize: big ? 58 : 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.4, lineHeight: 1, whiteSpace:'nowrap'}}>{value}</div>
@@ -181,7 +181,7 @@ function WidgetIncassi({ size }) {
     return (
       <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, gap: 8}}>
         {/* Convenzione widget: nome a sinistra, filtro periodo a destra */}
-        <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
+        <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
         <div style={{display: 'flex', flex: 1, minHeight: 0, gap: 18}}>
           <div style={{flex: '0 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
             <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
@@ -201,7 +201,7 @@ function WidgetIncassi({ size }) {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0}}>
-      <WidgetHead name="Incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
+      <WidgetHead name="Andamento incassi" right={<PnPeriodToggle period={period} setPeriod={setPeriod}/>}/>
       <WMetric value={d.total} trend={d.trend} sub={d.sub} big/>
       <div style={{flex: 1, minHeight: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden'}}>
         <div style={{flex: '1 1 auto', minHeight: 0}}>
@@ -218,11 +218,11 @@ function WidgetIncassi({ size }) {
 // Header standard dei widget: nome in alto a sinistra, filtri a destra.
 // Nei widget stretti il nome non si schiaccia: il filtro va a capo e resta
 // allineato a destra sulla sua riga.
-function WidgetHead({ name, right }) {
+function WidgetHead({ name, right, dark }) {
   return (
     <div style={{display:'flex', alignItems:'center', gap: '6px 10px', flexWrap:'wrap', flexShrink: 0, minWidth: 0}}>
-      <div style={{fontSize: 12.5, color: PN.MUTED, fontWeight: 600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap', flexShrink: 0}}>{name}</div>
-      <div style={{marginLeft: 'auto', flexShrink: 0}}>{right}</div>
+      <div style={{fontSize: 12.5, color: dark ? 'rgba(255,255,255,0.65)' : PN.MUTED, fontWeight: 600, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap', flexShrink: 0}}>{name}</div>
+      <div style={{marginLeft: 'auto', flexShrink: 0, minWidth: 0}}>{right}</div>
     </div>
   );
 }
@@ -421,8 +421,9 @@ function WidgetPrenotazioniOggi() {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}>
-      <div style={{marginBottom: 12, flexShrink: 0, minWidth: 0}}>
-        <div style={{fontSize: 24, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.02em', whiteSpace: 'nowrap'}}>23 prenotazioni</div>
+      <div style={{marginBottom: 10, flexShrink: 0, minWidth: 0}}>
+        <WidgetHead name="Prenotazioni oggi"
+          right={<span style={{fontSize: 13, fontWeight: 700, color: PN.TEXT, whiteSpace: 'nowrap'}}>23 <span style={{color: PN.MUTED, fontWeight: 600}}>in totale</span></span>}/>
       </div>
 
       {/* Auto-scroll wrapper — overflow:auto sempre attivo. Lista duplicata
@@ -586,9 +587,9 @@ function WidgetTavoliStato() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%', minHeight: 0}}>
-      <div style={{display:'flex', alignItems:'baseline', gap: '2px 10px', marginBottom: 10, flexShrink: 0, flexWrap:'wrap', minWidth: 0}}>
-        <div style={{fontSize: 24, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4, whiteSpace:'nowrap'}}>{occupati} tavoli su {tables.length} occupati</div>
-        <div style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Sala principale</div>
+      <div style={{marginBottom: 10, flexShrink: 0, minWidth: 0}}>
+        <WidgetHead name="Stato tavoli"
+          right={<span style={{fontSize: 13, color: PN.MUTED, fontWeight: 600, whiteSpace: 'nowrap'}}><b style={{color: PN.TEXT}}>{occupati} su {tables.length}</b> occupati · Sala principale</span>}/>
       </div>
 
       {/* Mappa 4×3 fissa che riempie tutta l'altezza del 2×2: i 12 tavoli si
@@ -644,7 +645,7 @@ function WidgetTopPiatti() {
         display:'flex', flexDirection:'column',
       }}>
       <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 14, minWidth: 0}}>
-        <div style={{fontSize: 17, fontWeight: 700, color: '#F5F5F7', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Top piatti questa settimana</div>
+        <div style={{fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Top piatti questa settimana</div>
       </div>
       {/* Lista responsive: ogni dish ha flex:1 0 auto + minHeight → gli item
           crescono uniformemente quando il widget è alto (h≥2), restano compatti
@@ -728,7 +729,7 @@ function WidgetRecensioni() {
           il badge scende sotto invece di sbordare dalla card. */}
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, gap: '6px 10px', flexWrap:'wrap', minWidth: 0, flexShrink: 0}}>
         <div style={{minWidth: 0}}>
-          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Recensioni recenti</div>
+          <div style={{fontSize: 12.5, fontWeight: 600, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Recensioni recenti</div>
           <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4, minWidth: 0}}>
             <div style={{display:'flex', gap: 2, flexShrink: 0}}>
               {[1,2,3,4,5].map(i => (
@@ -836,7 +837,7 @@ function WidgetAzioni({ size }) {
         minHeight: 0,
       }}>
       <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 12, flexShrink: 0, gap: 10, minWidth: 0}}>
-        <div style={{fontSize: 17, fontWeight: 700, color: '#F5F5F7', letterSpacing:'-0.01em', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+        <div style={{fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
           Azioni rapide
         </div>
         <div style={{fontSize: 13.5, color: 'rgba(255,255,255,0.50)', whiteSpace:'nowrap', flexShrink: 0}}>
@@ -1022,8 +1023,8 @@ function WidgetCucinaLive() {
         marginBottom: 4, gap: 8, minWidth: 0, flexShrink: 0,
       }}>
         <span style={{
-          fontSize: 15, fontWeight: 600, color: '#F3F4F6',
-          letterSpacing: '-0.01em',
+          fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.65)',
+          textTransform: 'uppercase', letterSpacing: 0.5,
           minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>Cucina · in diretta</span>
         <span style={{
@@ -1176,8 +1177,8 @@ function WidgetAndamento({ size, name, metric }) {
           animation: 'fin-fade-in 320ms ease-out',
         }}>
           <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-            <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
-            <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
+            <span style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: -1.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
+            <span style={{fontSize: 16, color: PN.GREEN, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
           </div>
           <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</div>
         </div>
@@ -1196,8 +1197,8 @@ function WidgetAndamento({ size, name, metric }) {
       <WidgetHead name={name} right={<PnPeriodToggle period={period} setPeriod={(p) => { setPeriod(p); setPaused(true); }}/>}/>
       <div key={period} style={{animation: 'fin-fade-in 320ms ease-out', minWidth: 0}}>
         <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-          <span style={{fontSize: 32, fontWeight: 600, color: PN.TEXT, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
-          <span style={{fontSize: 14, color: PN.GREEN, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
+          <span style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, lineHeight: 1, letterSpacing: -1.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{d.total}</span>
+          <span style={{fontSize: 16, color: PN.GREEN, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0}}>{d.trend}</span>
           <span style={{fontSize: 13, color: PN.MUTED, marginLeft: 'auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.sub}</span>
         </div>
       </div>
