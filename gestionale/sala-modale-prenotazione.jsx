@@ -93,7 +93,10 @@ const NP_T = {
   text:'#111827', textMuted:'#4B5563', textSubtle:'#6B7280', textInv:'#FFFFFF',
   bg:'#FFFFFF', bgSoft:'#F6F7F9', bgHush:'#EDEFF2',
   border:'#DFE3E8', borderSoft:'#ECEEF1', borderStrong:'#C4CAD2',
-  brand:'#111827', brandHover:'#1F2937',
+  // Selezione = corallo del brand (PN.PINK / PINK_DARK), non nero: qui dentro
+  // "brand" valeva #111827 e faceva uscire neri il giorno scelto, lo slot e il
+  // tavolo — l'unico posto del gestionale rimasto col nero al posto dell'accento.
+  brand:'#FF5A5F', brandHover:'#E04347', brandSoft:'#FFE0DD',
 };
 const NP_R = { sm:8, md:10, lg:12, pill:999 };
 const NP_FS = { xs:15, sm:16, md:17, base:18, lg:20, xl:26 };
@@ -241,11 +244,14 @@ function NpDateStrip({ value, onChange, label }) {
           const isToday = npSameDay(d, today);
           const wd = d.toLocaleDateString('it-IT', {weekday:'short'}).replace('.','');
           return (
+            // Giorno scelto in stile contorno, non pieno: la striscia dei giorni
+            // è un selettore, non una CTA. Il pieno corallo resta al tavolo, che
+            // è la scelta finale.
             <button key={iso} onClick={()=>onChange(iso)} style={{
               flex:'1 1 0', position:'relative', padding:'7px 0', borderRadius: NP_R.md,
-              border: isSel ? '1px solid transparent' : `1px solid ${NP_T.border}`,
-              background: isSel ? NP_T.brand : NP_T.bg,
-              color: isSel ? NP_T.textInv : NP_T.text,
+              border: isSel ? `1.5px solid ${NP_T.brand}` : `1px solid ${NP_T.border}`,
+              background: isSel ? NP_T.bg : NP_T.bg,
+              color: isSel ? NP_T.brandHover : NP_T.text,
               cursor:'pointer', fontFamily:'inherit',
               display:'flex', flexDirection:'column', alignItems:'center', gap: 2,
               transition:'background 160ms ease, color 160ms ease, border-color 160ms ease',
@@ -253,14 +259,14 @@ function NpDateStrip({ value, onChange, label }) {
               <span style={{
                 fontSize: 15, fontWeight: 700, lineHeight: 1,
                 textTransform:'uppercase', letterSpacing: 0.4,
-                color: isSel ? 'rgba(255,255,255,0.85)' : NP_T.textSubtle,
+                color: isSel ? NP_T.brand : NP_T.textSubtle,
               }}>{wd}</span>
               <span style={{fontSize: 20, fontWeight: 700, lineHeight: 1.1}}>{d.getDate()}</span>
               {isToday && (
                 <span style={{
                   position:'absolute', bottom: 4, left:'50%', transform:'translateX(-50%)',
                   width: 4, height: 4, borderRadius:'50%',
-                  background: isSel ? 'rgba(255,255,255,0.9)' : NP_T.brand,
+                  background: NP_T.brand,
                 }}/>
               )}
             </button>
@@ -687,9 +693,12 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
       }}>
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom: 14, gap: 12, flexWrap:'wrap'}}>
           <div>
+            {/* Titolo vero, non micro-etichetta: porta un dato (l'ora), quindi va
+                letto come testo. Il maiuscolo resta ai raggruppamenti (SALA
+                PRINCIPALE, DEHORS), che etichettano e non informano. */}
             <div style={{
-              fontSize: NP_FS.xs, fontWeight: 700, color: occInfo.text,
-              letterSpacing: 0.4, textTransform:'uppercase',
+              fontSize: NP_FS.base, fontWeight: 700, color: occInfo.text,
+              letterSpacing: 0,
             }}>
               Disponibilità · {selectedSlot}
             </div>
@@ -739,16 +748,25 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
                   borderRadius: 10, fontFamily:'inherit', position:'relative',
                   cursor: clickable ? 'pointer' : 'not-allowed',
                   background: c.bg,
-                  border: isSel ? `2px solid ${NP_T.brand}` : `1px solid ${c.border}`,
+                  // Selezionato = bordo nel colore che lo slot ha già: verde se
+                  // e' libero, corallo se e' pieno. Un bordo nero non diceva
+                  // niente sullo stato dello slot, solo che l'avevi toccato.
+                  border: isSel ? `2px solid ${isFull ? NP_T.brand : c.num}` : `1px solid ${c.border}`,
                   boxShadow: isSel ? '0 2px 8px rgba(15,17,21,0.12)' : 'none',
                   opacity: f.selectable ? 1 : 0.45,
                   display:'flex', flexDirection:'column', alignItems:'center', gap: 1,
                   transition:'border-color 140ms ease, box-shadow 140ms ease',
                 }}>
-                <span style={{fontSize: 22, fontWeight: 700, color: c.num, lineHeight: 1}}>
-                  {isFull ? '—' : free}
-                </span>
-                <span style={{fontSize: 12, fontWeight: 700, color: c.num, opacity: 0.85, lineHeight: 1,
+                {/* Sul pieno niente numero: il trattino "—" occupava il posto di
+                    una cifra che non c'e', e da lontano sembrava un dato illeggibile
+                    invece che l'assenza di posti. Resta la sola parola "Pieno". */}
+                {!isFull && (
+                  <span style={{fontSize: 22, fontWeight: 700, color: c.num, lineHeight: 1}}>
+                    {free}
+                  </span>
+                )}
+                <span style={{fontSize: isFull ? 13 : 12, fontWeight: 700, color: c.num,
+                  opacity: 0.85, lineHeight: 1, marginTop: isFull ? 6 : 0,
                   textTransform:'uppercase', letterSpacing: 0.4}}>
                   {isFull ? 'pieno' : 'liberi'}
                 </span>
@@ -820,18 +838,23 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
           <div style={{display:'flex', alignItems:'center', gap: 12, marginBottom: 14}}>
             <div style={{width: 30, height: 30, borderRadius:'50%', background:'#DC2626',
               display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0}}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              {/* Punto esclamativo, non croce: qui non e' fallito niente e non
+                  c'e' niente da chiudere — e' un avviso, e c'e' un'alternativa
+                  subito sotto. */}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round"><path d="M12 6.5v7"/><path d="M12 17.4v.1"/></svg>
             </div>
             <div>
               <div style={{fontSize: NP_FS.base, fontWeight: 700, color:'#7F1D1D'}}>
                 Nessun tavolo libero alle {selectedSlot}
               </div>
-              <div style={{fontSize: NP_FS.sm, color:'#9F1239', marginTop: 2, display:'flex', alignItems:'center', gap:4}}>
-                per <NpCopertiLabel n={coperti}/> · {npFmtDur(dur)}
+              {/* "per 2 persone" scritto per esteso: qui la riga si legge come una
+                  frase, e un'iconcina in mezzo alle parole la spezza. */}
+              <div style={{fontSize: NP_FS.sm, color:'#9F1239', marginTop: 2}}>
+                per {coperti} {coperti === 1 ? 'persona' : 'persone'} · {npFmtDur(dur)}
               </div>
             </div>
           </div>
-          <div style={{fontSize: NP_FS.xs, fontWeight: 700, color:'#9F1239', textTransform:'uppercase', letterSpacing: 0.4, marginBottom: 8}}>
+          <div style={{fontSize: NP_FS.sm, fontWeight: 700, color:'#9F1239', letterSpacing: 0, marginBottom: 8}}>
             Prossime disponibilità
           </div>
           <div style={{display:'flex', gap: 8}}>
@@ -1004,8 +1027,19 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
               }}
             >Cancella prenotazione</button>
           ))}
-          <PnButton variant="primary" disabled={!canSubmit} onClick={handleSubmit}>
-            {initData?.editMode ? 'Salva modifiche' : 'Conferma prenotazione'}
+          {/* Bloccato = lucchetto. Un bottone grigio dice solo "non si può", il
+              lucchetto dice che manca qualcosa da compilare, non che è rotto. */}
+          <PnButton variant="pink" disabled={!canSubmit} onClick={handleSubmit}>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 7}}>
+              {initData?.editMode ? 'Salva modifiche' : 'Conferma prenotazione'}
+              {!canSubmit && (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/>
+                  <path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9"/>
+                </svg>
+              )}
+            </span>
           </PnButton>
         </React.Fragment>
       }
