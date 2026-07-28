@@ -180,19 +180,6 @@ function CfRischi() {
     (celle[k] = celle[k] || []).push(r);
   });
 
-  const conta = (f, chiave) => RISCHI.filter(r => cfrFascia(chiave === 'residuo'
-    ? cfrLiv(r.residuoProb, r.residuoImpatto)
-    : cfrLiv(r.prob, r.impatto)) === f).length;
-
-  const alti = conta('alto', 'inerente');
-  const altiResidui = conta('alto', 'residuo');
-  const daTrattare = RISCHI.filter(r => r.stato === 'aperto' || r.stato === 'nuovo').length;
-  const maiRiesaminati = RISCHI.filter(r => !r.ultimoRiesame).length;
-
-  const somma = (chiave) => RISCHI.reduce((s, r) => s + (chiave === 'residuo'
-    ? cfrLiv(r.residuoProb, r.residuoImpatto) : cfrLiv(r.prob, r.impatto)), 0);
-  const riduzione = somma('inerente') ? Math.round(((somma('inerente') - somma('residuo')) / somma('inerente')) * 100) : 0;
-
   // Ordinamento per livello inerente decrescente: l'elenco deve aprirsi su ciò
   // che fa più male, non sull'ordine in cui i rischi sono stati scritti.
   const righe = RISCHI
@@ -215,66 +202,21 @@ function CfRischi() {
   };
 
   const GRID = 'minmax(0,2.1fr) 96px 116px 0.95fr 1.1fr 1.3fr 1.35fr 30px';
-  const sintesi = [
-    // Le tre fasce contano sempre il livello inerente, anche quando la matrice
-    // sotto è impostata su «residuo»: dirlo evita di leggere due numeri diversi
-    // come se fossero lo stesso.
-    { n:alti,            label:'a livello alto',    nota:'15-25 · inerente', coral:alti > 0 },
-    { n:conta('medio', 'inerente'), label:'a livello medio', nota:'8-12 · inerente' },
-    { n:conta('basso', 'inerente'), label:'a livello basso', nota:'1-6 · inerente' },
-    { n:daTrattare,      label:'da trattare',       nota:'aperti o nuovi', tono: daTrattare ? 'WARN' : 'OK' },
-    { n:maiRiesaminati,  label:'mai riesaminati',   nota:'senza data',     tono: maiRiesaminati ? 'DANGER' : 'OK' },
-  ];
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
-
-      {/* Profilo di rischio — la sintesi che l'auditor vuole in una riga */}
-      <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
-        background: daTrattare || maiRiesaminati ? '#FFF7E6' : ADM.OK_SOFT,
-        border:`1px solid ${daTrattare || maiRiesaminati ? '#FDE68A' : '#BBF7D0'}`}}>
-        <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:14.5, fontWeight:800, color: daTrattare || maiRiesaminati ? '#78350F' : '#065F46'}}>
-            {daTrattare || maiRiesaminati
-              ? `${daTrattare} rischi da trattare${maiRiesaminati ? ` · ${maiRiesaminati} mai riesaminati` : ''}`
-              : 'Tutti i rischi trattati e riesaminati'}
-          </div>
-          <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-            {RISCHI.length} rischi valutati · livello = probabilità × impatto su scala 1-5 · la fascia alta parte da 15
-          </div>
-        </div>
-        <div style={{textAlign:'right', flexShrink:0}}>
-          <div style={{fontSize:21, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
-            {alti}<span style={{fontSize:14, fontWeight:700, color:ADM.MUTED}}> → {altiResidui}</span>
-          </div>
-          <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:3}}>rischi alti dopo il trattamento</div>
-        </div>
-        <div style={{textAlign:'right', flexShrink:0, paddingLeft:16, borderLeft:`1px solid rgba(15,17,21,0.10)`}}>
-          <div style={{fontSize:21, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>−{riduzione}%</div>
-          <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:3}}>esposizione complessiva</div>
-        </div>
-      </div>
-
-      <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:10}}>
-        {sintesi.map(s => (
-          <div key={s.label} style={{...CF_CARD, padding:'13px 15px'}}>
-            <div style={{fontSize:23, fontWeight:800, letterSpacing:'-0.02em', lineHeight:1,
-              color: s.tono ? (s.n ? CF_TONO(s.tono) : ADM.TEXT) : s.coral ? ADM.PINK : ADM.TEXT}}>{s.n}</div>
-            <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:6}}>{s.label}</div>
-            <div style={{fontSize:11, color:ADM.MUTED_SOFT, marginTop:2}}>{s.nota}</div>
-          </div>
-        ))}
-      </div>
 
       {/* Matrice */}
       <div>
         <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:12}}>
           <div style={{...CF_H, marginBottom:0}}>Matrice probabilità × impatto</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>
-            {sel
-              ? `filtro attivo: ${CFR_PROB[sel.p-1]} × ${CFR_IMP[sel.i-1]}`
-              : 'clicca una cella piena per filtrare l’elenco'}
-          </span>
+          {/* Solo lo stato del filtro, non l'istruzione per attivarlo: le celle
+              piene sono già interattive al passaggio del mouse. */}
+          {sel && (
+            <span style={{fontSize:12.4, color:ADM.MUTED}}>
+              filtro attivo: {CFR_PROB[sel.p-1]} × {CFR_IMP[sel.i-1]}
+            </span>
+          )}
           <div style={{flex:1}}/>
           {sel && <AdmButton variant="ghost" size="sm" onClick={()=>setSel(null)}>Togli il filtro</AdmButton>}
           <AdmTabBar variant="segmented" active={vista} onChange={(v)=>{ setVista(v); setSel(null); }}
