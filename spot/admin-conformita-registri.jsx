@@ -465,10 +465,6 @@ function CfFornitori() {
   const [conferma, setConferma] = useStateCfr(null);
   const [, forza]             = useStateCfr(0);
 
-  const senzaDpa   = FORNITORI.filter(f => !f.dpa).length;
-  const maiRiesam  = FORNITORI.filter(f => !f.ultimoRiesame).length;
-  const buchi      = FORNITORI.filter(f => !f.dpa || !f.ultimoRiesame).length;
-
   // I problemi vanno in cima, e fra i problemi prima chi è più critico: un
   // fornitore senza contratto che tratta dati di pagamento non può stare
   // in fondo alla lista solo perché la lista è in ordine alfabetico.
@@ -487,30 +483,13 @@ function CfFornitori() {
   };
 
   const GRID = 'minmax(0,2fr) minmax(0,1.7fr) 96px minmax(0,1.6fr) 1.25fr 1.15fr 1.05fr 30px';
-  // Niente riga di KPI: su un registro di sette righe contare le righe non è un
-  // dato, e "3 ad alta criticità" si legge dalla colonna. Lo spazio va al
-  // contenuto — le eccezioni le dice la striscia qui sotto e le mostra la tabella.
+  // Nessun cappello: né KPI né striscia di riepilogo. Su sette righe contare le
+  // righe non è un dato, e riassumere le eccezioni sopra una tabella che le
+  // mette già in cima, colorate e con la nota, è dire due volte la stessa cosa.
+  // Lo spazio va al registro.
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
-
-      <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
-        background: senzaDpa ? ADM.DANGER_SOFT : maiRiesam ? '#FFF7E6' : ADM.OK_SOFT,
-        border:`1px solid ${senzaDpa ? '#FECACA' : maiRiesam ? '#FDE68A' : '#BBF7D0'}`}}>
-        <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:14.5, fontWeight:800, color: senzaDpa ? '#7F1D1D' : maiRiesam ? '#78350F' : '#065F46'}}>
-            {buchi
-              ? `${buchi} fornitori con un buco da chiudere`
-              : 'Registro dei fornitori completo e riesaminato'}
-          </div>
-          <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-            {buchi
-              ? [senzaDpa && `${senzaDpa} senza DPA (art. 28 GDPR · A.5.20)`,
-                 maiRiesam && `${maiRiesam} mai ${maiRiesam === 1 ? 'riesaminato' : 'riesaminati'} (A.5.22 · §8.4)`].filter(Boolean).join(' · ')
-              : `${FORNITORI.length} fornitori, tutti con accordo sul trattamento e riesame registrato.`}
-          </div>
-        </div>
-      </div>
 
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
