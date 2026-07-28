@@ -17,21 +17,73 @@ const cfMesi = (d, m) => { const x = new Date(d); x.setMonth(x.getMonth() + m); 
 // È il registro che alimenta il Cruscotto. Il modo tipico di perdere una
 // certificazione non è sbagliare l'audit iniziale: è ottenerla e poi lasciar
 // slittare le scadenze, così la sorveglianza trova i buchi.
+//
+// DUE NATURE, non una:
+//  - tipo 'cadenza' → la prossima scadenza si CALCOLA (ultima + cadenzaMesi).
+//    La cadenza la scegli tu: le norme dicono "a intervalli pianificati", non
+//    ogni quanto. Ma una volta scritta ti vincola, quindi va scelta sostenibile.
+//  - tipo 'data'    → la prossima scadenza è IMPOSTA da fuori e non si calcola.
+//    È il caso della sorveglianza dell'ente: la data arriva, non la decidi.
+//
+// NON APPLICABILE è uno stato, non una cancellazione: dichiarare che un
+// requisito non ti riguarda spiegando perché è una mossa corretta e prevista.
+// Un adempimento marcato non applicabile è evidenza; lo stesso adempimento
+// assente dalla lista è un buco.
 const ADEMPIMENTI = [
-  { id:'acc',  nome:'Riesame dei diritti di accesso', norme:['27001'], rif:'A.5.18',
+  // ─── Sicurezza delle informazioni
+  { id:'acc',  nome:'Riesame dei diritti di accesso', norme:['27001'], rif:'A.5.18', tipo:'cadenza',
     cadenzaMesi:3,  ultima:new Date('2026-04-14'), responsabile:'Marco Rinaldi', vaiA:{route:'team', tab:'riesame'} },
-  { id:'forn', nome:'Riesame dei fornitori',          norme:['27001','9001'], rif:'A.5.19 · §8.4',
-    cadenzaMesi:12, ultima:new Date('2025-11-18'), responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'fornitori'} },
-  { id:'risk', nome:'Riesame del registro dei rischi', norme:['27001'], rif:'§6.1',
+  { id:'risk', nome:'Riesame del registro dei rischi', norme:['27001'], rif:'§6.1', tipo:'cadenza',
     cadenzaMesi:6,  ultima:new Date('2026-02-10'), responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'rischi'} },
-  { id:'audit',nome:'Audit interno',                   norme:['27001','9001'], rif:'§9.2',
-    cadenzaMesi:12, ultima:new Date('2025-10-06'), responsabile:'Consulente esterno', vaiA:{route:'conformita', tab:'audit'} },
-  { id:'dir',  nome:'Riesame di direzione',            norme:['27001','9001'], rif:'§9.3',
-    cadenzaMesi:12, ultima:new Date('2025-12-15'), responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'direzione'} },
-  { id:'form', nome:'Formazione consapevolezza sicurezza', norme:['27001'], rif:'A.6.3',
-    cadenzaMesi:12, ultima:new Date('2025-09-22'), responsabile:'Sara Conti',   vaiA:{route:'conformita', tab:'registri'} },
-  { id:'rest', nome:'Test di ripristino dei backup',   norme:['27001'], rif:'A.8.13',
+  { id:'soa',  nome:'Riesame della Dichiarazione di Applicabilità', norme:['27001'], rif:'§6.1.3', tipo:'cadenza',
+    cadenzaMesi:12, ultima:new Date('2026-02-10'), responsabile:'Marco Rinaldi', vaiA:null },
+  { id:'forn', nome:'Riesame dei fornitori',          norme:['27001','9001'], rif:'A.5.22 · §8.4', tipo:'cadenza',
+    cadenzaMesi:12, ultima:new Date('2025-11-18'), responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'fornitori'} },
+  { id:'pol',  nome:'Riesame delle politiche e delle procedure', norme:['27001','9001'], rif:'A.5.1 · §7.5', tipo:'cadenza',
+    cadenzaMesi:12, ultima:new Date('2025-12-15'), responsabile:'Marco Rinaldi', vaiA:null },
+  { id:'form', nome:'Formazione consapevolezza sicurezza', norme:['27001'], rif:'A.6.3', tipo:'cadenza',
+    cadenzaMesi:12, ultima:new Date('2025-09-22'), responsabile:'Sara Conti', vaiA:{route:'conformita', tab:'registri'} },
+  { id:'rest', nome:'Test di ripristino dei backup',   norme:['27001'], rif:'A.8.13', tipo:'cadenza',
     cadenzaMesi:6,  ultima:new Date('2026-05-09'), responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'registri'} },
+  { id:'cont', nome:'Prova del piano di continuità',   norme:['27001'], rif:'A.5.29 · A.5.30', tipo:'cadenza',
+    cadenzaMesi:12, ultima:null, responsabile:'Marco Rinaldi', vaiA:null,
+    nota:'Diverso dal ripristino del backup: qui si prova il piano, non solo il database.' },
+  { id:'vuln', nome:'Verifica della gestione delle vulnerabilità', norme:['27001'], rif:'A.8.8', tipo:'cadenza',
+    cadenzaMesi:3,  ultima:null, responsabile:'Marco Rinaldi', vaiA:null,
+    nota:'Per un\'azienda che fa software è l\'area su cui l\'auditor scava di più.' },
+  { id:'log',  nome:'Riesame dei log e del monitoraggio', norme:['27001'], rif:'A.8.15 · A.8.16', tipo:'cadenza',
+    cadenzaMesi:3,  ultima:null, responsabile:'Marco Rinaldi', vaiA:null,
+    nota:'Raccogliere i log non basta: la norma chiede che qualcuno li guardi.' },
+
+  // ─── Qualità
+  { id:'sodd', nome:'Misurazione della soddisfazione dei clienti', norme:['9001'], rif:'§9.1.2', tipo:'cadenza',
+    cadenzaMesi:6,  ultima:null, responsabile:'Laura Bianchi', vaiA:null,
+    nota:'Obbligatoria e oggi non svolta in nessuna forma: i tuoi clienti sono i ristoratori.' },
+  { id:'obj',  nome:'Riesame degli obiettivi per la qualità', norme:['9001'], rif:'§6.2', tipo:'cadenza',
+    cadenzaMesi:6,  ultima:null, responsabile:'Marco Di Meo', vaiA:null,
+    nota:'Un indicatore senza bersaglio non è un obiettivo: servono traguardo e verifica.' },
+  { id:'ctx',  nome:'Riesame del contesto e delle parti interessate', norme:['9001','27001'], rif:'§4.1 · §4.2', tipo:'cadenza',
+    cadenzaMesi:12, ultima:new Date('2025-12-15'), responsabile:'Marco Rinaldi', vaiA:null,
+    nota:'Di solito si svolge dentro il riesame di direzione, ma va registrato.' },
+
+  // ─── Comuni alle due norme
+  { id:'audit',nome:'Audit interno',                   norme:['27001','9001'], rif:'§9.2', tipo:'cadenza',
+    cadenzaMesi:12, ultima:new Date('2025-10-06'), responsabile:'Consulente esterno', vaiA:{route:'conformita', tab:'audit'} },
+  { id:'dir',  nome:'Riesame di direzione',            norme:['27001','9001'], rif:'§9.3', tipo:'cadenza',
+    cadenzaMesi:12, ultima:new Date('2025-12-15'), responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'audit'} },
+
+  // ─── Imposti dall'ente di certificazione: la data non la decidi tu
+  { id:'sorv', nome:'Sorveglianza dell\'ente di certificazione', norme:['27001','9001'], rif:'schema di certificazione', tipo:'data',
+    prossimaImposta:new Date('2026-10-19'), ultima:new Date('2025-10-20'), responsabile:'Marco Rinaldi', vaiA:null,
+    nota:'È l\'unica scadenza che non controlli: mancarla non è un rilievo, è perdere il certificato.' },
+  { id:'ricer',nome:'Rinnovo del certificato', norme:['27001','9001'], rif:'schema di certificazione', tipo:'data',
+    prossimaImposta:new Date('2028-10-19'), ultima:new Date('2025-10-20'), responsabile:'Marco Rinaldi', vaiA:null,
+    nota:'Ogni tre anni l\'ente rifà la verifica completa, non solo la sorveglianza.' },
+
+  // ─── Non applicabile: dichiararlo con il motivo è la mossa corretta
+  { id:'tar',  nome:'Taratura degli strumenti di misura', norme:['9001'], rif:'§7.1.5', tipo:'cadenza',
+    cadenzaMesi:12, ultima:null, responsabile:'—', vaiA:null,
+    nonApplicabile:'Byup non impiega strumenti di misura fisici: il prodotto è software e le misure sono dati generati dal sistema.' },
 ];
 
 // ─── Fornitori (A.5.19–5.23 · §8.4) ────────────────────────────────────────
