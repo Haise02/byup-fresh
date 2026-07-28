@@ -1,8 +1,8 @@
 # Byup Fresh — Stato dello Sviluppo
 
-> **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` e `vue-components/WORK_IN_PROGRESS.md`.
+> **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` (nella root del repo) e `vue-components/WORK_IN_PROGRESS.md` (accanto a questo file). I percorsi in questo documento sono relativi alla root del repo `Byup/`, salvo dove indicato.
 
-**Ultimo aggiornamento:** 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
+**Ultimo aggiornamento:** 28 luglio 2026 — riallineamento percorsi alla struttura del repo `Byup/` (prototipo in `gestionale/`, backend in `backend/` alla root). Ultimo lavoro backend: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
 
 ---
 
@@ -132,7 +132,7 @@ Menu, categorie, piatti, allergeni e tag.
 
 Idempotente via `upsert(['code'])` / `upsert(['name'])`.
 
-**Endpoint (17 totali):**
+**Endpoint (16 totali):**
 ```
 GET    /catalog/allergens
 GET    /catalog/tags
@@ -184,12 +184,22 @@ POST   /devices/:id/regenerate-password
 ## 3. Struttura cartelle
 
 ```
-byup-fresh-main 3/
-├── CLAUDE.md                    ← project overview (riferimento globale)
-├── PROGRESS.md                  ← QUESTO FILE: stato sviluppo tra sessioni
-├── DESIGN_DECISIONS.md          ← design system frontend
-├── README.md
-├── *.jsx, *.html                ← prototipi React/HTML del gestionale
+Byup/                            ← root del repo (Desktop/Byup)
+├── vercel.json, index.html      ← deploy Vercel + landing "Ecosistema" con i link a tutte le superfici (il redirect alla Login è gestionale/index.html)
+├── gestionale/                  ← prototipo React/HTML del gestionale ────────
+│   ├── CLAUDE.md                ← project overview (riferimento globale)
+│   ├── PROGRESS.md              ← QUESTO FILE: stato sviluppo tra sessioni
+│   ├── DESIGN_DECISIONS.md      ← design system frontend
+│   ├── README.md
+│   ├── *.jsx, *.html            ← prototipi React/HTML del gestionale
+│   └── vue-components/          ← Vue 3 + Vite frontend (in migrazione da JSX)
+│       ├── package.json
+│       ├── WORK_IN_PROGRESS.md  ← stato migrazione frontend
+│       ├── *.dbml               ← 4 file ERD v0.7 (sorgente di verità DB)
+│       ├── byup-database-enums-reference-v7*.md
+│       ├── *.pdf                ← documenti di progettazione tecnica e flussi
+│       └── src/  (App.vue, components/, …)
+├── app/, spot/, staff/, cameriere/, web/  ← altre superfici (app consumer, console Spot, POS staff, cameriere web, webapp guest)
 │
 ├── backend/                     ← NestJS modular monolith ──────────────────
 │   ├── package.json
@@ -254,19 +264,12 @@ byup-fresh-main 3/
 │   │           ├── strategies/jwt-device.strategy.ts
 │   │           ├── guards/jwt-device.guard.ts
 │   │           └── dto/
+│   ├── scripts/
+│   │   └── phase1-functional-check.sh ← checklist funzionale Fase 1 via curl (vedi §5.7, §8)
 │   └── test/
-│       └── auth.e2e-spec.ts     ← e2e Jest+supertest: register/login/me/duplicate/protected
-│
-├── vue-components/              ← Vue 3 + Vite frontend (in migrazione da JSX) ─
-│   ├── package.json
-│   ├── WORK_IN_PROGRESS.md      ← stato migrazione frontend
-│   ├── *.dbml                   ← 4 file ERD v0.7 (sorgente di verità DB)
-│   ├── byup-database-enums-reference-v7.md
-│   ├── *.pdf                    ← documenti di progettazione tecnica e flussi
-│   └── src/
-│       ├── App.vue
-│       ├── components/...
-│       └── ...
+│       ├── auth.e2e-spec.ts     ← e2e Jest+supertest: register/login/me/duplicate/protected
+│       ├── helpers.ts
+│       └── section-a|b|c-*.e2e-spec.ts ← suite hardening (vedi §5.6)
 │
 └── ...
 ```
@@ -319,7 +322,7 @@ Dominio ancora in consolidamento, MVP veloce, team contenuto. Quando un modulo r
 
 **Perché:** un middleware globale che fa magic injection è elegante ma rischia bug silenti ("ho dimenticato di filtrare questa query"). Lo scoping esplicito è 1 riga in più per metodo ma impossibile dimenticarlo senza errore di compilazione. Trade-off accettato deliberatamente.
 
-**Conta totale:** 27 chiamate `require[Resource]` nei service. Vedi `BACKEND.md` per il riferimento.
+**Conta totale:** 30 chiamate `require[Resource]` nei service (verificato via grep, lug 2026). Vedi `BACKEND.md` per il riferimento.
 
 ### 4.5 PUT replace vs PATCH partial — semantica deliberata
 
@@ -396,7 +399,7 @@ Modifiche al codice → restart automatico del processo (PID cambia). Non richie
 
 ### 4.15 Esecuzione test/app: solo nel terminale utente (nota ambientale)
 
-L'ambiente di esecuzione Claude Code (harness) **non può eseguire la suite jest né bootare l'app**: macOS vieta il caricamento di addon nativi `.node` nel processo dell'harness (`library load disallowed by system policy`). Questo colpisce il resolver nativo di jest 30 (`unrs-resolver`) e `bcrypt`. Gate di verifica usabile dentro l'harness = `node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`. **I test runtime (unit + e2e) vanno lanciati nel terminale dell'utente.** La cartella di progetto è stata rinominata `Byup Fresh` → `Byup-Fresh` (rimosso lo spazio) — utile per tooling locale, ma non è la causa del limite sopra.
+L'ambiente di esecuzione Claude Code (harness) **non può eseguire la suite jest né bootare l'app**: macOS vieta il caricamento di addon nativi `.node` nel processo dell'harness (`library load disallowed by system policy`). Questo colpisce il resolver nativo di jest 30 (`unrs-resolver`) e `bcrypt`. Gate di verifica usabile dentro l'harness = `node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`. **I test runtime (unit + e2e) vanno lanciati nel terminale dell'utente.** La cartella di progetto era stata rinominata `Byup Fresh` → `Byup-Fresh` (rimosso lo spazio); oggi il progetto vive nel repo `Desktop/Byup` — utile per tooling locale, ma non è la causa del limite sopra.
 
 ### 4.16 Access token revocabile: la JwtAccessStrategy valida la sessione
 
@@ -631,7 +634,7 @@ Apri `backend/api.http` in VS Code con l'estensione "REST Client" e clicca **Sen
 
 ### Memoria persistente Claude
 
-Salvata in `~/.claude/projects/-Users-fabiomancinelli-Desktop-byup-fresh-main-3-vue-components/memory/`:
+Quella attiva per questo repo è `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` (indice `MEMORY.md`; note su design token PN/BU, piani gestionale, Spot, workflow push). La vecchia memoria `~/.claude/projects/-Users-fabiomancinelli-Desktop-byup-fresh-main-3-vue-components/memory/` esiste ancora ma non viene più caricata; conteneva:
 - `MEMORY.md` — indice
 - `user-fabio.md` — profilo utente
 - `project-byup.md` — contesto progetto
@@ -775,17 +778,14 @@ Suggerita per **non avere un blocco gigante non navigabile**:
 
 ### Riferimenti tecnici dettagliati
 - `backend/BACKEND.md` — dettagli decisioni backend modulo per modulo
-- `vue-components/WORK_IN_PROGRESS.md` — stato migrazione frontend Vue 3
-- `vue-components/*.dbml` — ERD v0.7 (sorgente di verità DB)
-- `vue-components/byup-database-enums-reference-v7.md` — valori e stati DB
-- `CLAUDE.md` — overview di prodotto (cosa è Byup, GTM, validation, team)
-- `DESIGN_DECISIONS.md` — design system frontend
+- `gestionale/vue-components/WORK_IN_PROGRESS.md` — stato migrazione frontend Vue 3
+- `gestionale/vue-components/*.dbml` — ERD v0.7 (sorgente di verità DB)
+- `gestionale/vue-components/byup-database-enums-reference-v7*.md` — valori e stati DB
+- `gestionale/CLAUDE.md` — overview di prodotto (cosa è Byup, GTM, validation, team)
+- `gestionale/DESIGN_DECISIONS.md` — design system frontend (stantio sui pesi font: i token `PN` nel codice sono la verità)
 
 ### Memoria conversazionale Claude
-La memoria persistente fra sessioni vive sotto `~/.claude/projects/.../memory/` ed è automaticamente caricata. Contiene:
-- Profilo Fabio (CEO co-founder, lavora sia su prodotto che backend)
-- Stato progetto Byup
-- Due "lezioni operative" da bug intercettati (transazioni service-level, entity metadata)
+La memoria persistente fra sessioni vive sotto `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` ed è automaticamente caricata. Contiene note su: design token (PN vivo, BU legacy), piani del gestionale (accento aurora, Free→Gratuito), console Spot, workflow di push, audit del gestionale. Le due "lezioni operative" dai bug intercettati (transazioni service-level, entity metadata) restano nella vecchia memoria `...-byup-fresh-main-3-vue-components` (vedi §8).
 
 ### Frequenza aggiornamento di questo file
 

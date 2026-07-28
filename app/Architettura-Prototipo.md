@@ -23,9 +23,12 @@
   `window`**. Ogni file pubblica i suoi componenti con `Object.assign(window, {…})`
   o `window.X = …`, e gli altri li leggono come `window.X` (spesso con guardia
   `const B = window.BottomTabBar; return B ? … : null`).
-- Esistono **due app separate** (due file HTML, due root React, due router
-  interni). Il passaggio dall'una all'altra è un **cambio pagina vero**
-  (`window.location.href`), con lo stato passato via **URL params** e
+- Il prototipo è ormai **un'unica SPA**: `byup Home.html` carica **tutti** i
+  moduli (menu compreso) e l'esperienza al tavolo è una **pagina della SPA**
+  (`page === 'menu'` → `window.MenuApp`). Esiste ancora un secondo entry point
+  (`byup Menu.html`, solo menu, con un suo mount) e il **cambio pagina vero**
+  (`window.location.href`) sopravvive come **fallback** quando si gira da lì; lo
+  stato cross-schermata viaggia via **URL params** e
   **sessionStorage/localStorage**.
 
 Conseguenze pratiche (importanti):
@@ -37,23 +40,27 @@ Conseguenze pratiche (importanti):
 
 ---
 
-## 2. Le due app e i due entry point
+## 2. I due entry point (SPA completa + pagina menu standalone)
 
 | HTML | Root mount | Root component | Scopo |
 |------|-----------|----------------|-------|
-| `byup Home.html` | `#root` | `Root` in [app.jsx](app.jsx) | **Vetrina**: onboarding/auth, home, mappa, posta, profilo, vetrina locale, ricerca |
-| `byup Menu.html` | `#menu-root` | `Root` in [menu.jsx](menu.jsx) | **Esperienza al tavolo / asporto**: menu, dettaglio piatto, carrello, divisione conto, pagamento, scontrino |
+| `byup Home.html` | `#root` | `Root` in [app.jsx](app.jsx) | **SPA completa**: onboarding/auth, home, mappa, posta, profilo, vetrina locale, ricerca, Byuppini/Roadmap **e** l'esperienza al tavolo/asporto (pagina `menu` → `window.MenuApp`) |
+| `byup Menu.html` | `#menu-root` | `Root` in [menu.jsx](menu.jsx) | **Solo esperienza al tavolo / asporto** standalone: menu, dettaglio piatto, carrello, divisione conto, pagamento |
 
 Script caricati (vedi `<body>` dei due HTML), in ordine:
 
-- **Home**: `ios-frame → extras → venue-variants → map → auth → app`
-- **Menu**: `ios-frame → extras → venue-variants → map → app → dish-art → menu`
+- **Home**: `byup-app-kit → ios-frame → extras → venue-variants → map → auth → app → dish-art → menu`
+- **Menu**: `byup-app-kit → ios-frame → extras → venue-variants → map → app → dish-art → menu`
 
-`app.jsx` viene caricato anche dentro `byup Menu.html`: serve solo per
-**riusare le sue globali** (`BottomTabBar`, `Icon`, costanti tema). Il suo
-`ReactDOM.createRoot` punta a `#root`, che **non esiste** in `byup Menu.html`,
-quindi quella `Root` non si monta lì (mount no-op). Il mount reale del menu è
-`#menu-root` in fondo a [menu.jsx](menu.jsx).
+[byup-app-kit.jsx](byup-app-kit.jsx) va caricato **per primo**: espone
+`window.ByupKit` (token, temi light/dark, mascotte, primitive) usato da tutti
+gli altri moduli. `app.jsx` viene caricato anche dentro `byup Menu.html`: serve
+solo per **riusare le sue globali** (`BottomTabBar`, `Icon`, costanti tema). Il
+suo `ReactDOM.createRoot` punta a `#root`, che **non esiste** in `byup
+Menu.html`, quindi quella `Root` non si monta lì (mount no-op). Specularmente
+`menu.jsx` dentro `byup Home.html` non monta nulla (`#menu-root` non esiste):
+espone `window.MenuApp`, che `app.jsx` renderizza come pagina `menu` della SPA.
+Il mount di `#menu-root` è in fondo a [menu.jsx](menu.jsx).
 
 ---
 
@@ -61,14 +68,15 @@ quindi quella `Root` non si monta lì (mount no-op). Il mount reale del menu è
 
 | File | Pubblica su `window` | Contenuto |
 |------|----------------------|-----------|
-| [ios-frame.jsx](ios-frame.jsx) | `IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSKeyboard` | Primitive UI iOS. `IOSDevice` è la **cornice iPhone** (402×874) che avvolge ogni schermata |
+| [byup-app-kit.jsx](byup-app-kit.jsx) | `ByupKit` (token `PALETTE/THEMES/TYPE/RADII`, `useByupTheme`, `Mascot/MascotMoment`, `GlassPanel`, `PillButton`, registry `ASSETS`, …) | **Design system condiviso**: temi light/dark, font (Fredoka + Hanken Grotesk), mascotte, primitive. Caricato per primo |
+| [ios-frame.jsx](ios-frame.jsx) | `IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSKeyboard` | Primitive UI iOS. `IOSDevice` è la **cornice iPhone** (402×874) su desktop; su mobile (≤560px) l'app va **a tutto schermo** senza cornice |
 | [dish-art.jsx](dish-art.jsx) | `DishArt` | Illustrazioni SVG generate (placeholder quando non c'è foto) |
 | [extras.jsx](extras.jsx) | `ProfileScreen, VenueScreen, BookingSheet` | Profilo, scheda locale, sheet prenotazione, preferenze allergeni/diete |
-| [venue-variants.jsx](venue-variants.jsx) | `VenueA, VenueB, VenueC` | **Stili di vetrina** alternativi (a/b/c) della scheda locale — vedi §3.1 |
+| [venue-variants.jsx](venue-variants.jsx) | `VenueA, VenueB, VenueC, VenuePremium` | **Stili di vetrina** alternativi (a/b/c/premium) della scheda locale — vedi §3.1 |
 | [map.jsx](map.jsx) | `MapScreen, PostaScreen` | Mappa locali (Leaflet + markercluster) e "Posta"/novità |
 | [auth.jsx](auth.jsx) | `AuthFlow, AuthPermissions` | Onboarding, login, registrazione, Face ID, permessi iOS |
-| [app.jsx](app.jsx) | `BottomTabBar, HomeSections, Icon, PINK, PINK_DARK, TEXT, MUTED, BORDER, BG_GRAY` | App Vetrina + gate di auth (`Root`) |
-| [menu.jsx](menu.jsx) | — (monta `#menu-root`) | Tutta l'esperienza al tavolo/asporto |
+| [app.jsx](app.jsx) | `BottomTabBar, HomeSections, Icon, PINK, PINK_DARK, TEXT, MUTED, BORDER, BG_GRAY` + router globale `__byupNav`/`__byupQR` | Guscio SPA + gate di auth (`Root`): Home, Cerca (`SearchScreen`), Byuppini (`ByuppiniScreen`), Roadmap (`RoadmapScreen`), dispatch pagine |
+| [menu.jsx](menu.jsx) | `MenuApp` (+ monta `#menu-root` in `byup Menu.html`) | Tutta l'esperienza al tavolo/asporto, renderizzata dalla SPA come pagina `menu` |
 
 ### 3.1 Stili di vetrina (scelti dal gestionale)
 
@@ -80,11 +88,13 @@ template di vetrina selezionabili.
 
 Siccome questo è un **prototipo senza backend**, lo stile si forza così:
 
-- URL `?venue=a|b|c|original` sulla Home, oppure
+- URL `?venue=a|b|c|original|premium` sulla Home, oppure
 - `window.__venueVariant = 'a'|'b'|'c'|'original'` da console.
 
 Il **dispatcher** è `VenueScreen` in [extras.jsx](extras.jsx): legge lo stile e
-monta il componente giusto. Default = `original`.
+monta il componente giusto. Default = `original`. Eccezione: lo stile
+`premium` scatta anche **in automatico** quando il locale ha il flag
+`premium` nei suoi dati (locali selezionati da byup).
 
 | Stile | Componente | Dove | Carattere |
 |-------|-----------|------|-----------|
@@ -92,11 +102,12 @@ monta il componente giusto. Default = `original`.
 | `a` | `VenueA` | [venue-variants.jsx](venue-variants.jsx) | Editorial / Magazine |
 | `b` | `VenueB` | [venue-variants.jsx](venue-variants.jsx) | Cinematic / Tasting menu |
 | `c` | `VenueC` | [venue-variants.jsx](venue-variants.jsx) | Operativo / Resy-style |
+| `premium` | `VenuePremium` | [venue-variants.jsx](venue-variants.jsx) | Premium byup (anche automatico se `venue.premium`) |
 
 Note per chi mette mano:
 - Lo stile **default vive in `extras.jsx`** (non in `venue-variants.jsx`) perché è
   la vetrina originale e riusa helper locali come `VenueMapThumbnail`. Gli altri
-  tre stili sono raccolti in `venue-variants.jsx` con i propri helper (`HeroNav`,
+  quattro stili sono raccolti in `venue-variants.jsx` con i propri helper (`HeroNav`,
   `StarsRow`, `StickyBar`).
 - **Fonte dati diversa**: `VenueA/B/C` usano i dati hardcoded di `VENUE_DATA`
   dentro `venue-variants.jsx`; `VenueOriginal` usa la prop `venue` passata
@@ -108,27 +119,36 @@ Note per chi mette mano:
 
 Non c'è un router unico. Coesistono **tre meccanismi**:
 
-### 4.1 Cross-app = cambio pagina
-Si salta tra Home e Menu con `window.location.href = '…html?param'`. Lo stato
-viaggia nell'URL / storage. Esempi:
-- `byup Menu.html?from=venue` — apri il menu arrivando dalla vetrina locale
-- `byup Home.html?page=venue` — torna alla Home già sulla scheda locale
-- `byup Home.html?page=profile|map|posta|search`
+### 4.1 Router globale `__byupNav` (SPA) + cambio pagina come fallback
+Dentro la SPA (`byup Home.html`) si naviga **senza reload**: `app.jsx` espone
+`window.__byupNav = { go(page), home(), venue() }` (riassegnato a ogni render) e
+il menu usa l'helper `__goApp(page, params)` ([menu.jsx](menu.jsx)) che vi si
+appoggia; i parametri extra (es. `view`/`order` per il Profilo) vengono messi in
+querystring con `history.replaceState`. Se `__byupNav` **non c'è** (si sta
+girando la pagina standalone `byup Menu.html`) si torna al **cambio pagina
+vero** con `window.location.href`. Esempi:
+- `byup Menu.html?from=venue` — apri il menu standalone arrivando dalla vetrina
+- `byup Home.html?page=venue` — Home già sulla scheda locale
+- `byup Home.html?page=profile|map|posta|search|byuppini|roadmap|menu`
 
 ### 4.2 Home app = **stack di navigazione** ([app.jsx](app.jsx) `App`)
 - `navStack` è un array; `setPage(p)` fa push, `goBack()` fa pop, `resetToHome()`
   riazzera a `['home']`.
-- Inizializzato dall'URL: `?page=venue|profile|map|posta` → `['home', p]`;
+- Inizializzato dall'URL: `?page=venue|profile|map|posta|search|byuppini|menu` →
+  `['home', p]`; `?page=roadmap` → `['home', 'byuppini', 'roadmap']`;
   `?page=home-empty` → `['home-empty']`.
 - La freccia "indietro" in alto a sinistra chiama sempre `goBack()`.
 
-### 4.3 Menu app = **route singola `{name, ctx}`** ([menu.jsx](menu.jsx) `Root`)
+### 4.3 Menu = **route singola `{name, ctx}`** ([menu.jsx](menu.jsx) `MenuApp`)
 - `goTo(name, ctx)` imposta `route = { name, ctx }`. `ctx` è il payload (es.
   `goTo('dish', { dishId, perTe:true })`).
 - `name` ∈ `menu | split | dish | home | pay | paymethod | balance | success | takeaway`.
-  (`balance` = **schermata Saldo del tavolo** dopo un pagamento parziale, vedi §9.)
-- Inizializzata dall'**hash** dell'URL (`#pay`, `#success`, …) se valido,
-  altrimenti `menu` (o `home` in demo takeaway).
+  (`balance` = **schermata Saldo del tavolo**, oggi raggiungibile solo via hash —
+  vedi §9.2.)
+- Route iniziale: dalla prop `initial` (la SPA la passa via
+  `sessionStorage.byup_menu_route`, es. la card "Paga in un tap" della Home apre
+  direttamente `paymethod`), altrimenti dall'**hash** dell'URL (`#pay`,
+  `#success`, …) se valido, altrimenti `menu` (o `home` in demo takeaway).
 
 ---
 
@@ -137,8 +157,8 @@ viaggia nell'URL / storage. Esempi:
 ### Query / hash riconosciuti
 | Param | Dove | Effetto |
 |-------|------|---------|
-| `?page=venue\|profile\|map\|posta\|home-empty` | Home | Apre direttamente quella schermata (salta auth) |
-| `?venue=a\|b\|c\|original` | Home | **Stile di vetrina** da mostrare (vedi §3.1). Default `original` |
+| `?page=venue\|profile\|map\|posta\|search\|byuppini\|roadmap\|menu\|home-empty` | Home | Apre direttamente quella schermata (salta auth) |
+| `?venue=a\|b\|c\|original\|premium` | Home | **Stile di vetrina** da mostrare (vedi §3.1). Default `original` |
 | `?view=orders\|allergens\|…` | Home (Profilo) | Apre una **sotto-vista del Profilo**. Consumato e poi rimosso dall'URL |
 | `?order=<id>\|recent` | Home (Profilo) | Ordine da **espandere** nello Storico ordini. `recent` = il più recente |
 | `?add=1` (con `view=pagamenti`) | Home (Profilo) | Apre subito **"Aggiungi metodo di pagamento"**. Usato da Menu › Metodo pagamento → "Aggiungi carta" |
@@ -155,11 +175,18 @@ viaggia nell'URL / storage. Esempi:
 | `byup_faceid` | [auth.jsx](auth.jsx) | `'1'` = Face ID attivato a fine registrazione |
 | `byup_booking` | [extras.jsx](extras.jsx)/[app.jsx](app.jsx) | Prenotazione corrente — **volutamente cancellata a ogni refresh** (vive solo nella sessione) |
 | `byup_allergens` | [extras.jsx](extras.jsx) | Preferenze persistenti `{ allergens:{}, diets:{} }` del profilo |
+| `byup.themeMode` | [byup-app-kit.jsx](byup-app-kit.jsx) | Tema: `light` \| `dark` \| `auto` (vedi §11) |
 
 ### sessionStorage
 | Chiave | Significato |
 |--------|-------------|
 | `byup_menu_from` | `'venue'` se il menu è stato aperto dalla vetrina; sopravvive ai re-render ma non alla chiusura tab |
+| `byup_menu_route` | Route iniziale con cui la SPA apre la pagina `menu` (es. `paymethod`); consumata al mount di `MenuApp` |
+| `byup_menu_premium` | `'1'` se il menu è stato aperto da una vetrina/locale **premium** (accenti diversi) |
+| `byup_menu_dish` | Deep-link a un piatto dal "I più ordinati" della vetrina: il menu si apre **già scrollato** su quel piatto (flash del bordo) |
+| `byup_table` | Pagamenti già fatti in sessione (`settled`/`paidLineIds` + residuo): ri-idrata `MenuApp` a ogni rientro e alimenta la card "tavolo aperto" in Home |
+| `byup_coperti` | N° coperti confermato (la SPA smonta `MenuApp` tornando in home: senza persistenza andrebbero richiesti) |
+| `byup_byuppini_seg` | Segmento Byuppini da aprire (es. `tra` = Traguardi, usato da Roadmap → Traguardi) |
 
 ---
 
@@ -195,19 +222,22 @@ account").
 
 ---
 
-## 7. Stato dell'esperienza al tavolo ([menu.jsx](menu.jsx) `Root`)
+## 7. Stato dell'esperienza al tavolo ([menu.jsx](menu.jsx) `MenuApp`)
 
-Tutto lo stato del menu vive in **un unico oggetto** `state` (useState in `Root`)
-passato giù come `state`/`setState`. Campi principali:
+Tutto lo stato del menu vive in **un unico oggetto** `state` (useState in
+`MenuApp`) passato giù come `state`/`setState`. Campi principali:
 
 - `cart` — array di **righe carrello** (vedi §8)
 - `splits` — divisioni di singoli piatti
-- `coperti` / `copertiSelected` — n° coperti e se l'utente ha già risposto
+- `coperti` / `copertiSelected` — n° coperti e se sono già stati confermati
+  (persistiti in `sessionStorage.byup_coperti`, vedi §5)
 - `activeOrder` — ordine al tavolo in corso (dati demo hardcoded, vedi §9)
 - `takeawayOrder` — ordine d'asporto (demo se `?takeaway=1`)
 
-> `activeOrder` e `demoTakeaway` sono **dati demo cablati** in `Root` per
-> popolare le schermate: non vengono da un backend.
+> `activeOrder` e `demoTakeaway` sono **dati demo cablati** in `MenuApp` per
+> popolare le schermate: non vengono da un backend. Poiché la SPA **smonta**
+> `MenuApp` quando si torna in home, al mount lo stato pagamenti viene
+> ri-idratato da `sessionStorage.byup_table` (righe già saldate + residuo).
 
 ---
 
@@ -229,13 +259,15 @@ Dettaglio/personalizzazione piatto (`DishDetailScreen`):
   **da una riga del carrello** — il `lineId` di quella riga (**modalità modifica**).
 - **In aggiunta** (piatto nuovo dal menu): selettore **quantità** (`qty`, min 1)
   in basso + CTA "Aggiungi all'ordine" con totale `(prezzo+extra)*qty`. In
-  **modifica** lo stepper quantità **non c'è** (vedi sotto) e la CTA è "Aggiorna piatto".
+  **modifica** lo stepper quantità libero **non c'è** (vedi sotto) e la CTA è
+  "Aggiorna ordine".
 - **Separazione dei compiti**: la **quantità** si cambia **nel carrello**; il
   dettaglio in **modifica** serve a cambiare la **personalizzazione**. Per questo
   in modifica **non c'è lo stepper quantità** (resta solo in *aggiunta*).
-- **Fork esplicito** (solo in modifica, solo se la riga ha `qty = n > 1`): un
-  controllo **etichettato** *"Applica la personalizzazione a [m] di n porzioni"*
-  (m ∈ `1..n`, default `n`). Alla conferma ("Aggiorna piatto"):
+- **Fork esplicito** (solo in modifica, solo se la riga ha `qty = n > 1`): nella
+  barra CTA compare la domanda *"A quante porzioni applicare le modifiche?"* con
+  uno stepper **"m di n"** (m ∈ `1..n`, default `n`). Alla conferma ("Aggiorna
+  ordine"):
   - `m = n` → **tutta** la riga aggiornata **in place** (mantiene la posizione);
   - `m < n` → **fork**: `m` porzioni con la nuova personalizzazione, `n − m`
     restano com'erano;
@@ -282,51 +314,66 @@ Stato di pagamento — **saldo a importi parziali**:
 Ospiti (`guests`) con flag di tipo: `isMe`, `isApp` (app nativa),
 `isWebApp` (web), `isGuest` (ospite non loggato).
 
-### 9.1 `PaymentScreen` — primo pagamento
+### 9.1 `PaymentScreen` — "Il tuo conto"
 
 Modalità (`mode`): `'mine'` (i tuoi piatti + quote + coperto) o `'all'` (tutto il
 tavolo). Sezioni:
-- **I miei piatti** → con sotto-lista **"Aggiunti al tuo conto"** (= `selectedExtras`).
-- **Ordini del tavolo** (accordion "Aggiunti dal cameriere"): elenco dei soli
-  piatti del tavolo **non ancora aggiunti** (`tablePending`). Il **"+"** chiama
-  `toggleExtra` → il piatto entra in "Aggiunti al tuo conto" e **sparisce** da qui.
-- **Offri agli altri** (ex "Aggiungi al mio conto"): accordion **per commensale**;
-  qui "+" aggiunge il piatto altrui al tuo conto ma **resta** nel gruppo (lo copri,
-  non lo prendi). Lock: utente con tutto l'ordine in pagamento → accordion non
-  apribile ("Sta pagando la sua parte…"); singolo piatto lockato → non selezionabile.
-- **Divisione solo dei piatti presi dal tavolo**: in "Aggiunti al tuo conto" ogni
-  riga del tavolo ha un pulsante **"Dividi"** → popup con `tableSplits[lineId]` =
-  `{kind:'table'}` (parti uguali tra tutti) o `{kind:'split', people}` (con alcuni).
-  La quota è `extraShareFor(it)`. I piatti offerti agli altri **non** sono divisibili.
+- **"Tu"** → i miei piatti non ancora saldati (`myItems`, con quota `myShareOf`
+  per i piatti divisi) più i piatti presi in carico (`selectedExtras`). In
+  `mode='all'` l'intestazione diventa **"Tu · offri il tavolo"** e la lista copre
+  tutto l'ordine.
+- **"Il tavolo"** → una **card per commensale** in gerarchia **utenti app →
+  utenti webapp → "Altro"** (contenitore unico: piatti messi dal cameriere +
+  porzioni di chi non usa né app né webapp). Il **"+"** su una riga chiama
+  `toggleExtra` → il piatto va sul tuo conto (la card mostra anche
+  "Aggiungi tutto"). Lock: righe pagate / in pagamento / già prese da altri
+  (`claimedBy`) restano visibili ma non selezionabili (`canAdd`).
+- **Divisione dei piatti presi dal tavolo**: pulsante **"Dividi"** → popup con
+  `tableSplits[lineId]` = `{kind:'table'}` (parti uguali tra tutti) o
+  `{kind:'split', people}` (con alcuni). La quota è `extraShareFor(it)`.
 - Coperto = `COVER (=2€) × covers`; `covers = order.covers || guests.length || 1`.
-- Tip (`baseForTip = subtotal + coperto`) in **due modalità mutuamente esclusive**:
-  percentuale (`tipPct` 5/10%) o **arrotondamento** (`tipRound`) = `ceil(baseForTip)
-  − baseForTip`.
-- **"Paga ora"** (`payNow`): nessun popup di conferma; **overlay di caricamento**
-  (~5s, spinner SVG `animateTransform`) poi `proceed()`. `proceed` registra i
-  pagamenti per-riga con la **quota effettiva** (`myShareOf` / `extraShareFor`) via
-  `applyPayments`, quindi va a `success` se `tableRemaining` è 0, altrimenti a
-  **`balance`**. È l'**unico** punto di pagamento dine-in.
-- **Metodo di pagamento** (`state.payMethod`, default `'apple'`): la riga inline
-  mostra il metodo scelto; "Cambia" → `PayMethodScreen`, che **dine-in non paga**:
-  conferma solo il metodo (CTA "Conferma metodo" → salva `payMethod` e torna a
-  `pay`). L'opzione **"Aggiungi carta"** fa un salto cross-app a
-  `byup Home.html?page=profile&view=pagamenti&add=1` (Profilo › Pagamenti con il
-  form "Aggiungi metodo" già aperto). Il ramo **takeaway** invece paga e crea l'ordine.
-  > ℹ️ **Solo limite del prototipo.** Qui "Aggiungi carta" è un salto cross-app
-  > (cambio pagina tra due file HTML separati), quindi lo stato del menu non viene
-  > preservato e dopo l'aggiunta non c'è ritorno automatico al conto — l'utente
-  > torna manualmente. **Nell'app Flutter da sviluppare è previsto il contrario**:
-  > unica app con stack di navigazione nativo → aggiunta la carta, l'utente viene
-  > **riportato automaticamente al conto (ritorno guidato)** con
-  > carrello/pagamento/metodo intatti. Vale per tutti i salti cross-app del
-  > prototipo (es. "Vedi scontrino"): la frammentazione è un artefatto del mockup,
-  > non il comportamento di prodotto.
+- Tip nello sheet **"Dettagli pagamento"** (`baseForTip = subtotal + coperto`),
+  in **due modalità mutuamente esclusive**: percentuale (`tipPct` 5/10%) o
+  **arrotondamento** (`tipRound`) = `ceil(baseForTip) − baseForTip`. Lì c'è anche
+  la riga **metodo di pagamento**.
+- **CTA = `SlideToPay`** (slide-to-pay, non un semplice bottone): il tap sul
+  pomello cicla `ctaMode` `'mine'` ↔ `'all'`; `'split'` ("Alla romana": quota
+  `1/N` del rimanente tra chi non ha pagato) esiste nel codice ma è fuori dal
+  ciclo. `payNow`: per `mine`/`split` nessun popup di conferma → **overlay di
+  caricamento** (~5s) poi `proceed()`; per `'all'` (importo ben più grande,
+  irreversibile) serve una **conferma esplicita** (`confirmAll`). `proceed`
+  registra i pagamenti per-riga con la quota effettiva via `applyPayments` e va
+  **sempre a `success`**: l'eventuale residuo del tavolo resta visibile nella
+  home (card ordine attivo, "Salda il resto"). È l'**unico** punto di pagamento
+  dine-in.
+- **Metodo di pagamento** (`state.payMethod`, default `'apple'`): la riga nello
+  sheet dettagli mostra il metodo scelto; "Cambia" → `PayMethodScreen`, che
+  **dine-in non paga**: conferma solo il metodo (CTA "Conferma metodo" → salva
+  `payMethod` e torna a `pay`). L'opzione **"Aggiungi carta"** naviga a
+  Profilo › Pagamenti col form "Aggiungi metodo" già aperto (via `__goApp` —
+  interno alla SPA senza reload; da `byup Menu.html` standalone resta il salto
+  di pagina a `byup Home.html?page=profile&view=pagamenti&add=1`). Il ramo
+  **takeaway** invece paga e crea l'ordine.
+  > ℹ️ **Solo limite del prototipo.** Anche dentro la SPA, navigare al Profilo
+  > **smonta** `MenuApp` (lo stato pagamenti sopravvive solo via
+  > `sessionStorage.byup_table`/`byup_coperti`) e dopo l'aggiunta della carta
+  > non c'è ritorno automatico al conto — l'utente torna manualmente.
+  > **Nell'app Flutter da sviluppare è previsto il contrario**: stack di
+  > navigazione nativo → aggiunta la carta, l'utente viene **riportato
+  > automaticamente al conto (ritorno guidato)** con carrello/pagamento/metodo
+  > intatti. Vale anche per "Vedi scontrino": la frammentazione è un artefatto
+  > del mockup, non il comportamento di prodotto.
 - Header (back + titolo + strip avatar) è una **barra fissa** in alto, fuori dallo scroll.
 
 ### 9.2 `BalanceScreen` — saldo del tavolo (route `balance`)
 
-Dopo un pagamento parziale. Mostra:
+> ⚠️ **Non più nel flusso principale.** Dopo un pagamento parziale oggi si va
+> **sempre a `success`** e il residuo si gestisce dalla **home** (card ordine
+> attivo → "Salda il resto" → di nuovo `pay`; nella Home della SPA c'è anche la
+> card "tavolo aperto" alimentata da `sessionStorage.byup_table`). La schermata
+> esiste ancora ed è raggiungibile via hash `#balance`.
+
+Mostra:
 - **"Manca al tavolo €X"** (`tableRemaining`) + n° articoli ancora da saldare.
 - Accordion **"Piatti da saldare"**: **esclude i miei piatti** (già saldati);
   ordine **tavolo → altri commensali**, con i **lockati in fondo**. Ogni riga:
@@ -339,9 +386,13 @@ Dopo un pagamento parziale. Mostra:
 - Quando il residuo **azionabile** va a 0, i lockati si considerano chiusi in
   parallelo dagli altri → saldo a 0 → **`success`**.
 
-**Coperti prompt**: appare **una sola volta** all'ingresso al tavolo, **non** se
-si arriva dalla Vetrina, gated da `!fromVenue && !state.copertiSelected` (con un
-ritardo di 600ms).
+**Coperti**: il numero di commensali **non si chiede più all'ingresso al
+tavolo** (l'utente non sa ancora se dividerà il conto e lo saltava): il numero
+arriva da `order.covers` e si gestisce dalla sheet **"Al tavolo"** (lista
+commensali, aggiungi/rimuovi ospiti — `covers` segue il totale). La
+`CopertiSheet` con `askCoperti`/`confirmCoperti` esiste ancora in `MenuScreen`
+ma non viene più invocata; il valore confermato persiste in
+`sessionStorage.byup_coperti` (vedi §5, §7).
 
 **`fromVenue`** è dedotto da più fonti (in OR): `?from=venue`, il `document
 .referrer` che è la vetrina, oppure `sessionStorage.byup_menu_from === 'venue'`.
@@ -391,10 +442,17 @@ Tre "segnali" su un piatto, con **priorità badge: ★ TOP > badge dieta > ✨ P
 
 ## 11. Tema, colori, illustrazioni
 
+- **Design system in [byup-app-kit.jsx](byup-app-kit.jsx)** (`window.ByupKit`):
+  palette brand (`coral #E32459`, `wine #4D122E`, `lime #CEFF00`, …), **temi
+  light/dark** (`THEMES` + `useByupTheme`; scelta persistita in
+  `localStorage.byup.themeMode` = `light|dark|auto`) e font **Fredoka**
+  (display) + **Hanken Grotesk**. Il dettaglio è in
+  [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
 - **Due palette accent**: la Vetrina/Home usa **PINK** `#E32459`; il Menu usa
-  **WINE** `#8B1A3A`. Neutri condivisi: `TEXT #1a1a1a`, `MUTED #6b6b6b`,
-  `BORDER #e5e5e5`. Sono **ridefiniti in ogni file** (no modulo comune) →
-  tenerli allineati.
+  **WINE** (`#8B1A3A` in light, `#ef6389` in dark). I neutri sono **theme-aware**
+  via la costante `__BYUP_DARK` letta al load (es. `TEXT #1c0f15`/`#f6ece9`,
+  `MUTED #6d5a61`, `BORDER #eddfda` in light) e restano **ridefiniti in ogni
+  file** (no modulo comune, a parte `ByupKit`) → tenerli allineati.
 - **Foto piatti/locali**: quando non c'è una `photo` reale, si generano
   illustrazioni SVG via `DishPhoto`/`DishArt` parametrizzate da `tone` e `kind`.
 - **Stelle di valutazione — stile unico (due livelli)**. Stesso glifo (polygon
@@ -413,16 +471,19 @@ Tre "segnali" su un piatto, con **priorità badge: ★ TOP > badge dieta > ✨ P
 
 ## 12. Cornice iOS e aiuti di sviluppo
 
-- `IOSDevice` (402×874) avvolge **ogni** schermata per simulare l'iPhone.
-- Su desktop il menu mostra più cornici affiancate; `ShortcutsPanel` ([app.jsx](app.jsx))
-  e la nav `.byup-screen-nav` sono **scorciatoie di sviluppo** per saltare tra
-  schermate; vengono nascoste sotto i 768px via CSS.
+- `IOSDevice` avvolge **ogni** schermata: su desktop è la **cornice iPhone**
+  402×874 (dynamic island, home indicator); su mobile (≤560px) niente mockup —
+  l'app occupa **tutto lo schermo** come un'app vera (safe-area via
+  `--byup-sat` + striscia blur sopra la status bar).
+- `ShortcutsPanel` ([app.jsx](app.jsx)) e la nav `.byup-screen-nav` sono
+  **scorciatoie di sviluppo** per saltare tra schermate; vengono nascoste sotto
+  i 768px via CSS.
 - `data-screen-label="…"` su ogni schermata serve da etichetta per quegli
   strumenti di navigazione.
-- `ShortcutsPanel` include un **toggle "Vetrina · stile"** (chip Classico/A/B/C)
-  per passare al volo tra gli stili di vetrina: ogni chip linka a
-  `?page=venue&venue=<stile>`. È solo uno strumento di sviluppo per **vederli
-  tutti** — in produzione lo stile arriva dal gestionale (vedi §3.1).
+- `ShortcutsPanel` include un **toggle "Vetrina · stile"** (chip
+  Classico/A/B/C/★ Premium) per passare al volo tra gli stili di vetrina: ogni
+  chip linka a `?page=venue&venue=<stile>`. È solo uno strumento di sviluppo per
+  **vederli tutti** — in produzione lo stile arriva dal gestionale (vedi §3.1).
 
 ---
 
@@ -440,15 +501,18 @@ Tre "segnali" su un piatto, con **priorità badge: ★ TOP > badge dieta > ✨ P
 - **`activeOrder`/takeaway** sono **demo cablate**: non cercare un backend.
 - **"Vedi scontrino" → Storico ordini (dinamica).** Lo scontrino per l'utente
   **non** è una schermata a sé: è l'**ordine nello Storico ordini** (Profilo,
-  Home app). Dalla schermata di pagamento riuscito, "Vedi scontrino" fa un
-  **salto cross-app** a `byup Home.html?page=profile&view=orders&order=<id>` e
-  apre quell'ordine **già espanso**.
+  Home app). Dalla schermata di pagamento riuscito, "Vedi scontrino" naviga a
+  Profilo › Storico con `__goApp('profile', { view:'orders', order:… })`
+  (interno alla SPA, parametri lasciati in querystring; da `byup Menu.html`
+  standalone è un cambio pagina a
+  `byup Home.html?page=profile&view=orders&order=<id>`) e apre quell'ordine
+  **già espanso**.
   - **Come dovrebbe funzionare col backend**: a pagamento riuscito l'ordine viene
     **persistito** nello storico dell'utente (con righe, totale, mancia, data,
     locale); il backend restituisce il suo **id**, e la app naviga allo storico
     passando *quell'*id → l'utente vede esattamente l'ordine appena pagato. App
     Menu e app Home leggono lo **stesso** storico dal backend.
-  - **Nel prototipo** (app separate, dati demo scollegati) si usa `order=recent`,
+  - **Nel prototipo** (dati demo scollegati) si usa `order=recent`,
     che apre il **primo** di `PROFILE_ORDERS` come **stand-in**: il flusso è
     corretto, ma l'ordine mostrato non è *letteralmente* quello pagato.
   - **Non esiste più** una schermata scontrino dentro l'app Menu: la vecchia

@@ -24,12 +24,12 @@ Il modello di pricing si basa sul volume di ordini effettuati. Per ciascun piano
 
 | Piano    | Ordini inclusi | Prezzo mensile  | Costo ordine extra |
 |----------|----------------|-----------------|---------------------|
-| Free     | 550            | 0 €             | 0,45 € + IVA        |
+| Gratuito | 550            | 0 €             | 0,45 € + IVA        |
 | Starter  | 1.850          | 46,99 € + IVA   | 0,34 € + IVA        |
 | Plus     | 7.500          | 134,99 € + IVA  | 0,23 € + IVA        |
 | Business | 15.000         | 250 € + IVA     | 0,12 € + IVA        |
 
-Il piano Free funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus e Business aggiungono supporto telefonico con callback entro 30 minuti, 24/7. Il numero di menu creabili varia da 1 (Free) a 3 (Starter) a illimitati (Plus e Business). I collegamenti tra kitchen monitor e camerieri partono da 1 (Free), 3 (Starter), illimitati per i piani superiori.
+Il piano Gratuito (in origine "Free") funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus e Business aggiungono supporto telefonico con callback entro 30 minuti, 24/7. Il numero di menu creabili varia da 1 (Gratuito) a 3 (Starter) a illimitati (Plus e Business). I collegamenti tra kitchen monitor e camerieri partono da 1 (Gratuito), 3 (Starter), illimitati per i piani superiori.
 
 Sono previsti anche pacchetti di transazioni acquistabili singolarmente per gestire picchi di attività senza dover passare al piano superiore.
 
@@ -91,7 +91,7 @@ Con un volume MVP (fino a 75 locali, ~90.000 transazioni al mese), le query aggr
 
 ## Modello di Business e Revenue
 
-Byup basa i propri ricavi sul volume di ordini effettuati nei locali affiliati, con abbonamenti a livelli differenziati per funzionalità, ordini inclusi, dimensione dello staff e livello di assistenza. Un modello freemium favorisce l'adozione: il piano Free consente di sperimentare il prodotto in condizioni reali senza impegno economico, e la conversione ai piani a pagamento è affidata all'esperienza d'uso effettiva.
+Byup basa i propri ricavi sul volume di ordini effettuati nei locali affiliati, con abbonamenti a livelli differenziati per funzionalità, ordini inclusi, dimensione dello staff e livello di assistenza. Un modello freemium favorisce l'adozione: il piano Gratuito consente di sperimentare il prodotto in condizioni reali senza impegno economico, e la conversione ai piani a pagamento è affidata all'esperienza d'uso effettiva.
 
 La ponderazione degli ordini (peso 1 per cassa/cameriere, peso 0,5 per app) è il meccanismo chiave del flywheel B2B2C: incentiva il locale a promuovere l'uso dell'app, che a sua volta rafforza l'ecosistema consumer.
 
@@ -103,7 +103,7 @@ Il SAM è il mercato italiano, stimato in circa 219,6 milioni di dollari nel 202
 
 ## Go-to-Market
 
-La distribuzione di Fresh è interamente online, con un modello self-service: i ristoratori accedono al piano Free dal sito, completando l'attivazione in pochi minuti. Gli upgrade avvengono in autonomia dal pannello di controllo. L'onboarding è assistito da tutorial video, guide interattive e — sul piano tecnico — dal processing AI di Claude per l'importazione del menu.
+La distribuzione di Fresh è interamente online, con un modello self-service: i ristoratori accedono al piano Gratuito dal sito, completando l'attivazione in pochi minuti. Gli upgrade avvengono in autonomia dal pannello di controllo. L'onboarding è assistito da tutorial video, guide interattive e — sul piano tecnico — dal processing AI di Claude per l'importazione del menu.
 
 L'espansione geografica segue una strategia a cluster con saturazione progressiva. Il lancio iniziale avviene a Roma e in Puglia nei primi 6-12 mesi, regioni scelte per la presenza di contatti diretti e familiarità del team con il tessuto ristorativo locale. L'espansione procede regione per regione, concentrandosi su ciascuna fino a raggiungere una densità critica di locali prima di passare alla successiva. Regioni prioritarie: Lombardia, Lazio, Campania, Sicilia, Veneto, Toscana, Emilia-Romagna.
 

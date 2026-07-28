@@ -106,16 +106,25 @@ quando la somma dei residui è 0.
 **Due momenti di pagamento.**
 1. **`PaymentScreen`** (primo pagamento): paghi i tuoi piatti + le tue quote +
    eventuali piatti del tavolo aggiunti col "+" + piatti altrui che **offri**.
+   La CTA a scorrimento («Scorri per pagare») alterna due modalità: **i miei**
+   (`mine`) e **paga tutto** (`all`, con popup di conferma esplicita). Una terza
+   modalità **alla romana** (`split`: 1/N del residuo del tavolo tra chi deve
+   ancora pagare) è nel codice ma **disattivata**: `cycleCtaMode` la salta
+   deliberatamente («niente "alla romana"»).
    - Divisione disponibile **solo sui piatti presi dal tavolo** (popup "Dividi":
      per te / parti uguali tra tutti / con alcuni commensali). I piatti offerti
      agli altri si pagano per intero.
-   - "Paga ora" → caricamento ~5s → se il saldo del tavolo è 0 → **Successo**,
-     altrimenti → **schermata Saldo**.
+   - Pagamento → caricamento ~5s → **sempre Successo** (che elenca chi deve
+     ancora pagare); se resta un residuo, la Home mostra la card «Da saldare al
+     tavolo» e «Salda il resto» riapre la `PaymentScreen`.
 2. **`BalanceScreen`** (saldo del tavolo): mostra **quanto manca** e i **piatti
    ancora scoperti** (esclusi i tuoi, già saldati), col proprietario o "Al tavolo",
    ed eventuale "diviso con". Selezioni le righe e fai un **secondo pagamento**
    (per intero / diviso con qualcuno / per il numero di commensali) → caricamento
    → torna al saldo aggiornato. Quando il saldo arriva a **0 → Successo**.
+   *(Nota di stato: la schermata esiste ancora, route `balance`, ma è **fuori dal
+   flusso principale** — oggi il residuo si salda ripassando dalla `PaymentScreen`
+   via «Salda il resto».)*
 
 **Lock real-time** (`lockedLineIds`): le righe che un altro sta pagando in quel
 momento sono **congelate** — non offribili in `PaymentScreen`, non selezionabili e
@@ -128,14 +137,16 @@ pagamento**: un solo saldo, decrementato da entrambi i canali.
 
 ## Punti aperti (da affrontare)
 
-> Stato al 2026-06-03. Nessuno di questi rompe il flusso attuale.
+> Stato al 2026-07-28. Nessuno di questi rompe il flusso attuale.
 
 **Prototipo — TODO**
 1. **"Successo" mostra l'ultima tranche, non il totale pagato.** `SuccessScreen`
-   legge `state.payTotal`, che dopo i pagamenti dalla `BalanceScreen` vale solo
-   l'ultimo importo. Fix: accumulare il totale pagato dal tavolo. *(Cosmetico.)*
-2. **Header fisso ~115px** in `PaymentScreen`/`BalanceScreen`: valutare il
-   **collasso dello strip avatar** durante lo scroll (tenere solo back + titolo).
+   legge `state.payTotal`, che dopo i pagamenti successivi («Salda il resto» /
+   `BalanceScreen`) vale solo l'ultimo importo. Fix: accumulare il totale pagato
+   dal tavolo. *(Cosmetico.)*
+2. ~~**Header fisso ~115px** in `PaymentScreen`/`BalanceScreen`~~ **Risolto**:
+   l'header fisso oggi tiene solo back + titolo; lo strip avatar non è più
+   nell'header.
 
 **Decisioni di prodotto da confermare**
 3. **"Per il tavolo" divide per TUTTI i commensali** (`tableCount =

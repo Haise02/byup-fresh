@@ -220,6 +220,12 @@ dominio backend, vedi §E)
   piatto è gratis"). Non è generata dai locali: è **editoriale/promozionale di
   byup**.
 
+**Gamification / fedeltà (solo app)**
+- ✅ **Byuppini**: valuta-fedeltà con saldo/XP, livelli, sfide, premi e
+  **roadmap** dei livelli — hub dedicato nella tab bar (schermate Byuppini +
+  Roadmap in `app.jsx`). Meccaniche ed economia →
+  [Byuppini-Concept.md](Byuppini-Concept.md).
+
 **Menu & ordine**
 - ✅ Menu per categorie, **ricerca**, **filtri allergeni** (nascondono) e
   **filtro dieta** (ordina/marca).
@@ -312,18 +318,21 @@ gestionale) quando si passa a Flutter.
 > - **Pagamento parziale / divisione (§G.6) — UX PRESENTE nel prototipo.** Il
 >   mockup fa già: `mine`/`all`; **i tuoi piatti + quote** (`myShareOf =
 >   price·qty/(splitWith+1)`); **"+"** per aggiungere al tuo conto i piatti del
->   tavolo e quelli **offerti** ad altri (sotto "Aggiunti al tuo conto");
+>   tavolo e quelli degli altri commensali (sezione "Il tavolo": card per
+>   commensale, gerarchia utenti app → webapp → "Altro");
 >   **divisione dei soli piatti del tavolo** via popup (`tableSplits`: per te /
 >   parti uguali tra tutti / con alcuni); **saldo a importi parziali**
 >   (`order.settled`, helper `seedSettled`/`lineRemaining`/`tableRemaining`/
->   `applyPayments`); **lock real-time** (`lockedLineIds`, righe "in pagamento"
->   da altri congelate); e una **schermata Saldo dedicata** (`BalanceScreen`,
->   route `balance`, [menu.jsx](menu.jsx)) con "Manca al tavolo €X", elenco dei
->   piatti scoperti (tavolo + altri commensali, lockati in fondo), selezione +
->   secondo pagamento (per intero / diviso / per il tavolo) → a saldo zero va a
->   **Successo**. "Paga ora" mostra un **caricamento ~5s** (niente popup di
->   conferma). **Quello che manca è solo il backend**: saldo e lock come **fonte di
->   verità unica condivisa app+cassa in real-time** (qui simulati lato client).
+>   `applyPayments`, persistiti in sessione via `byup_table`); **lock real-time**
+>   (`lockedLineIds`, righe "in pagamento" da altri congelate). Dopo un
+>   pagamento parziale si va a **Successo** e il **residuo** resta visibile in
+>   home (card ordine attivo → "Salda il resto" riapre il conto); la vecchia
+>   **schermata Saldo** (`BalanceScreen`, route `balance`, [menu.jsx](menu.jsx))
+>   esiste ancora ma è fuori dal flusso principale (solo hash `#balance`).
+>   "Paga ora" è uno **slide-to-pay** con **caricamento ~5s** (conferma
+>   esplicita solo per "paga tutto il tavolo"). **Quello che manca è solo il
+>   backend**: saldo e lock come **fonte di verità unica condivisa app+cassa in
+>   real-time** (qui simulati lato client).
 > - **Recupero ordine webapp→app (§G.7) — PARZIALE (percorso iOS).** Ora il
 >   prototipo **ha**: banner *"Hai un ordine da pagare?"* (20s → Posta → Novità),
 >   **popup codice** (digita/**incolla auto-accettato**), **caricamento simulato**
@@ -390,8 +399,10 @@ bivio arriva dopo. Questa sezione è la mappa dei percorsi e — importante — 
   sessione; ognuno ha il suo `ownerId`; pagamento e conto diviso come Architettura-Prototipo §9.
 - **Primo accesso = host**: a **chi scansiona per primo** il QR (apre la sessione)
   viene chiesto **quanti sono i commensali** al tavolo. Agli altri che si
-  uniscono dopo **non** viene chiesto. *(È il razionale del "coperti prompt",
-  Architettura-Prototipo §9: appare una sola volta, a chi apre.)*
+  uniscono dopo **non** viene chiesto. *(Nel prototipo attuale il numero non è
+  più chiesto all'ingresso — lo saltavano tutti: arriva da `order.covers` e si
+  gestisce/corregge dalla sheet commensali "Al tavolo"; vedi
+  Architettura-Prototipo §9.)*
 - **Modi per unirsi a un tavolo** (tutti risolvono allo **stesso ID tavolo**;
   per l'**app** tutti **gated dal geofence**, per la **webapp** no — vedi §G.8):
   1. **Scan QR** — primario, copre l'happy path.
@@ -427,7 +438,7 @@ bivio arriva dopo. Questa sezione è la mappa dei percorsi e — importante — 
   - Se il tavolo scansionato **≠** quello assegnato alla prenotazione → avviso
     *"Il tavolo non è quello pensato per te, prova a sentire il personale in
     sala."* *(controllo scan-time/backend: **non nel prototipo**, dove lo scan è
-    simulato — [menu.jsx:684](menu.jsx#L684).)*
+    simulato — `startScanQR` in [menu.jsx](menu.jsx).)*
   - Altrimenti → ti **aggancia** alla sessione del tavolo (→ G.2).
 
 ### G.4 Asporto

@@ -1,5 +1,14 @@
 # Byup — Handoff prototipo (Byuppini · Cerca · Roadmap · navigazione)
 
+> ⚠️ **Documento storico (luglio 2026), lavori COMPLETATI — vedi §8.** Gli
+> obiettivi dei §4–§7 sono stati realizzati: Byuppini e Roadmap sono pagine
+> React della SPA in `app.jsx`. I percorsi Windows
+> (`C:\Users\nilga\Downloads\…`) si riferiscono all'ambiente Cowork
+> dell'epoca: oggi l'app vive nella cartella `app/` di questo repo
+> (`github.com/Haise02/byup-fresh`, deploy Vercel). Per lo stato attuale
+> dell'architettura → [Architettura-Prototipo.md](Architettura-Prototipo.md) e
+> [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
+
 Documento di passaggio per una nuova chat. Obiettivo: rendere il prototipo **un unico prodotto coeso e navigabile**, con Byuppini, Roadmap e Cerca perfettamente integrati nell'app (stesso mockup, stessa navigazione, back funzionante).
 
 ---
@@ -11,7 +20,7 @@ Byup è l'app consumer (React "no-build", compilata a runtime da Babel-standalon
 **`C:\Users\nilga\Downloads\byup\byup-fresh-final\app\`**
 (NON usare la cartella Desktop `byup Fresh`: è vecchia/stale. NON usare `Byup (1)`: contiene solo markdown.)
 
-L'app è **fullscreen mobile** (niente device-bezel), contenitore centrato `max-width 460px`. Tema chiaro/scuro con toggle (near-black brand `#161514`, accenti coral `#E32459` / lime `#CEFF00`). Font: Fredoka (display) + Hanken Grotesk.
+L'app è **fullscreen mobile** (niente device-bezel), contenitore centrato `max-width 460px`. Tema chiaro/scuro con toggle (near-black brand `#161514`, accenti coral `#E32459` / lime `#CEFF00`). Font: Fredoka (display) + Hanken Grotesk. *(Oggi il guscio è `IOSDevice`: fullscreen sotto i 560px, cornice iPhone 402×874 su desktop.)*
 
 ### Come gira / preview
 - `byup Home.html` carica i `.jsx` a runtime via Babel (`<script type="text/babel" src="app.jsx">` ecc.). È la preview "vera" (Vercel).
@@ -30,8 +39,8 @@ Modificando i file grandi con gli strumenti host (Edit/Write), il mount della sa
 
 ## 2 · File rilevanti
 
-### App React (in `…/byup-fresh-final/app/`)
-- **`app.jsx`** (~3150 righe) — cuore dell'app: Home, dispatch pagine, `BottomTabBar`, set `Icon`, `SearchScreen` (Cerca) + `EXPLORE_TILES`, `ResultsScreen` + `RESULT_VENUES`, liste locali con foto.
+### App React (in `…/byup-fresh-final/app/` — oggi `app/` di questo repo)
+- **`app.jsx`** (~5200 righe, era ~3150) — cuore dell'app: Home, dispatch pagine, `BottomTabBar`, set `Icon`, `SearchScreen` (Cerca) + `EXPLORE_TILES`, `ResultsScreen` + `RESULT_VENUES`, liste locali con foto; ora anche `ByuppiniScreen` e `RoadmapScreen` (vedi §8).
 - `extras.jsx` — `ProfileScreen`, venue, prenotazione (Prenota).
 - `menu.jsx` — menù, ordine, pagamento.
 - `map.jsx` — mappa in-app + `PostaScreen`.
@@ -40,7 +49,7 @@ Modificando i file grandi con gli strumenti host (Edit/Write), il mount della sa
 - `byup Home.html` — entry runtime (Babel).
 - `home-standalone.html`, `menu-standalone.html` — build precompilate.
 
-### Schermate Byuppini (attualmente HTML separati — DA INTEGRARE)
+### Schermate Byuppini (all'epoca HTML separati — ora INTEGRATE in `app.jsx`, gli HTML restano riferimento legacy)
 - **`byuppini-standalone.html`** — schermata gamification (hero saldo + coin + mascotte, segmenti Portafoglio/Sfide/Premi/Traguardi, roadmap link, byup card in evidenza, card premi reel-style). Ha una bottom bar HTML che imita quella dell'app.
 - **`byuppini-roadmap.html`** — mappa-mondo dei livelli (terreno `road-terrain.png` + edifici `venue-1..8.png` posizionati in codice, badge/lucchetti/mascotte "SEI QUI"). **Zoom ~1.4×, scrollabile.**
 - `Byuppini-Concept.md` — strategia/economia byuppini.

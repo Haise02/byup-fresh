@@ -4,11 +4,13 @@ Riferimento per ogni nuova schermata. Le decisioni qui sono **vincolanti**: quan
 
 Standard di riferimento: Linear, Stripe Dashboard, Notion.
 
+Ultimo allineamento al codice: 2026-07-28.
+
 ---
 
 ## Palette
 
-Token sorgente: `onboarding-icons.jsx` (oggetto `ONB`). Usare i nomi semantici, mai i legacy (`PINK`, `PURPLE`, …).
+Due oggetti token vivi, per contesto: `ONB` (`onboarding-icons.jsx`) per i flussi di onboarding, `PN` (`panoramica-tokens.jsx`) per tutte le pagine del gestionale (il modulo cameriere eredita da PN). Usare i nomi semantici, mai i legacy (`PINK`, `PURPLE`, …). L'oggetto `BU` (`byup-tokens.jsx`) è **legacy morto**: è ancora caricato da diversi HTML ma nessun componente lo referenzia — non usarlo in codice nuovo. La tabella sotto documenta i token `ONB`.
 
 ### Brand & Action
 
@@ -63,7 +65,7 @@ L'AI **non** si segnala con sparkle e gradienti. Si segnala mostrando i risultat
 
 ## Tipografia
 
-Family: **Plus Jakarta Sans** (UI). `Instrument Serif` riservato a casi editoriali rari, non usato negli onboarding flows.
+Family: **Plus Jakarta Sans** (UI). `Instrument Serif` riservato a casi editoriali rari — oggi è caricato da due pagine (Panoramica, Configurazione Completa) ma di fatto inutilizzato nei componenti.
 
 ### Scala (px)
 
@@ -79,13 +81,20 @@ Family: **Plus Jakarta Sans** (UI). `Instrument Serif` riservato a casi editoria
 
 Niente valori intermedi (13, 15, 17, 18, 19…) salvo eccezione documentata.
 
+> Nota (lug 2026): nel gestionale la pratica si è allargata — 11/13/15/17 sono oggi d'uso comune (es. `PnButton` è 15 px). La scala sopra resta il riferimento per l'onboarding e per le nuove schermate.
+
 ### Pesi
 
-- `400` regular — body
-- `500` medium — labels, secondary buttons, body emphasized
-- `600` semibold — headline, primary button, key copy
+Scala reale in uso (verificata sul codice, lug 2026):
 
-**Mai `700` su body**. **Mai `800` da nessuna parte**. Linear usa 590, Stripe 600 — più di così è urlato.
+- `400` regular — body (vivo nell'onboarding, ormai raro nel gestionale)
+- `500` medium — labels, secondary buttons, body emphasized
+- `600` semibold — button, tab attive, key copy
+- `700` bold — peso dominante del gestionale: titoli, valori, righe dati (è il peso più usato in assoluto)
+- `800` extrabold — enfasi numerica e dati forti nelle superfici operative (Sala, Cucina, Contabilità, modali)
+- `900` — riservato: brand-mark `ByupB` e numeri identificativi grandi (numero tavolo, codice ritiro)
+
+**Mai `700`/`800` su body copy.** La regola storica "mai 700, mai 800 da nessuna parte" (rationale: Linear usa 590, Stripe 600 — più di così è urlato) resta valida solo per i flussi di onboarding, che sono ancora su 400/500/600. Gli HTML del gestionale caricano Plus Jakarta Sans `400;500;600;700;800`.
 
 ### Line-height
 
@@ -117,13 +126,14 @@ Margini sezione: **40** o **64** (separazione macroscopica).
 
 | Livello | Radius | Esempio |
 |---|---|---|
-| Frame outer / modal shell | `12 px` | `.frame`, modal |
+| Frame outer | `16 px` | `.frame` delle pagine gestionale |
+| Modal / pannelli glass | `14 px` | `PnModal`, `GLASS_HOVER` (sheet bottom: `22 px` in cima) |
 | Card | `10 px` | Card sezione, integration card |
-| Input, button, surface | `8 px` | Input, button, mini surface |
+| Input, button, surface | `8 px` | Input, button, mini surface (`PnButton` usa 9 px) |
 | Tag, chip piccolo | `6 px` | Allergen tag |
 | Pill, badge, avatar | `999 px` | Status pill, avatar |
 
-Una sola scala per tutto il prodotto. Niente 7, 9, 11, 13, 14, 16, 20.
+Una sola scala per tutto il prodotto: fuori dai casi in tabella, niente valori estemporanei.
 
 ---
 
@@ -191,7 +201,7 @@ Spinner ammessi solo per stato di caricamento reale (es. attesa risposta API). L
 - avatar generato con iniziali colorate random
 - gradiente decorativo (viola→rosa, blu→verde, qualsiasi)
 - ombra tinted (`rgba(brand, 0.3)`)
-- `fontWeight: 800`
+- `fontWeight: 800` su body copy o testo corrente (come enfasi numerica/dati è ammesso — vedi Pesi)
 - pulsante CTA con icona sparkle
 - card con padding 32+ su contenuto denso
 - più di una shadow level per layout
@@ -242,18 +252,18 @@ Translate Y 0 → -50% in 25s linear infinite, pause-on-hover. Lineare e lentiss
 
 ## Banner system
 
-Il `ProcessingBanner` (Step 2/3/4) è uno striscione persistente sotto l'header che comunica un'attività di background (l'AI sta rifinendo il menù).
+> Stato lug 2026 — la prima versione era uno striscione persistente 36 px sotto l'header con progress bar (crescita 0→90% in 180 s, completamento via `completeBannerThen()`, state in `OnboardingApp`). Quella versione è stata rimossa: niente più progress bar né state condiviso.
 
-- Altezza 36 px, background `BRAND_TINT`
-- Dot 7 px BRAND con pulse opacity 0.4↔1 in 1.5s ease-in-out infinite (si ferma a `completing`)
-- Copy: 13 px / weight 500 / color `BRAND_DARK` — `'Il tuo menù personalizzato è in elaborazione...'` o `'Il tuo menù è pronto'` quando `completing`
-- Percentuale a destra del copy: 12 px / weight 600 / `tabular-nums` / opacity 0.7
-- Progress bar absolute bottom 2 px: track `rgba(255, 90, 95, 0.12)` + fill BRAND. Width `${progress}%`, transition `200ms linear` durante la crescita auto, `500ms ease-out` durante il completion 90→100
-- Crescita automatica: 0 → 90 % in **180 s** (0.05 % × 100 ms tick = 0.5 %/s). Si ferma a 90.
-- Completamento: 90 → 100 % triggerato da `completeBannerThen()` quando l'utente clicca un CTA finale di Step 4. Dopo 600 ms il banner viene smontato (setHidden) e arriva il redirect.
-- State posseduto da `OnboardingApp` (non dal banner stesso) così Step 4 può triggerarne il completamento.
+Il `ProcessingBanner` attuale (`onboarding-app.jsx`) è una card flottante che annuncia l'elaborazione AI del menù:
 
-Pattern riutilizzabile per altri "background-jobs" futuri (es. import in corso, sync esterna). Limite: massimo un banner alla volta.
+- Posizione: bottom-left (`bottom: 32, left: 80`, allineata al padding 80 px degli step), oppure variante `inline` (maxWidth 440) dentro il flusso
+- Colore: viola AI — bg `ONB.AI_TINT`, border `AI_SOFT`, testo `AI_DARK`. Non coral: nel design system il viola è riservato alle feature AI, e "AI al lavoro" è esattamente l'informazione utile. Radius 12, shadow tinted viola soft
+- Badge 28 px `AI_SOFT` con `OnbIcon.Sparkle` e pulse scale 1↔1.2 / opacity 0.78↔1 in 1.8s infinite
+- Copy: titolo 15/600 `'Il tuo menù è in elaborazione'` + sottotitolo 14/400 op. 0.72 `'Completa la configurazione per visualizzarlo'`
+- **Niente progress bar** (richiesta esplicita): la promessa è la copy stessa
+- Entrata `banner-float-in` 280ms ease-out; accessibile con `role="status" aria-live="polite"`
+
+Limite invariato: massimo un banner alla volta.
 
 ---
 
@@ -262,10 +272,12 @@ Pattern riutilizzabile per altri "background-jobs" futuri (es. import in corso, 
 Modale full-screen sopra Step 1 quando l'utente clicca "Analizza il menù". Sostituisce qualunque "WOW" particle / orb pulsante: il momento WOW vero è il banner con la barra che parte e accompagna l'utente per 3 minuti, non l'overlay 3 secondi.
 
 - Backdrop `rgba(15, 17, 21, 0.55)` + `backdrop-filter: blur(6px)`
-- Card 460 px bianca, padding 32, radius 12, shadow `0 8px 24px rgba(15,17,21,0.08)`
-- Header: AILoader (ring 1.5px che ruota + dot 4px BRAND che orbita reverse) + titolo `Stiamo analizzando il tuo menù` con typewriter dei `.` `..` `...` che cambia ogni 400 ms (stato 0–3 ciclato)
-- Progress bar 2 px `TEXT` fill + shimmer overlay: gradient bianco 40 % che scorre in 1.6 s ease-in-out infinite — comunica "elaborazione viva" senza loader rotante prominente
-- Lista task: completati con check `GREEN` 14 px + label MUTED 13/400, corrente con dot dashed `rgba(15,17,21,0.24)` 14 px + label TEXT 13/500
+- Card 460 px "D3 Sunset Glass" (peak AI moment): gradient warm-dark `rgba(58,28,22,0.88) → rgba(30,12,10,0.92)` + `blur(22px) saturate(170%)`, doppio inset ring caldo + ombra burnt orange, radius 14, padding 32, contenuto in colorazione chiara (`#F3F4F6`)
+- Hero icon `HeroComposer` (88×88): SVG che simula la "compilazione" del menù riga per riga, nodi con pulse in stagger
+- Header: AILoader (ring 1.5px che ruota + dot BRAND che orbita reverse) + titolo `Stiamo ricreando il tuo menù` con typewriter dei `.` `..` `...` che cambia ogni 400 ms (stato 0–3 ciclato)
+- Countdown `Pronto in: Ns` (tabular-nums), decrementa a ogni task — sostituisce la vecchia rassicurazione statica
+- Progress bar 3 px: track chiaro `rgba(255,255,255,0.16)`, fill `BRAND` (diventa `GREEN` a fine) + shimmer overlay: gradient bianco 40 % che scorre in 1.6 s ease-in-out infinite — comunica "elaborazione viva" senza loader rotante prominente
+- Lista task: completati con check `GREEN` 14 px + label 15/400 chiara (`rgba(255,255,255,0.62)`), corrente con dot dashed `rgba(255,255,255,0.40)` 14 px + label 15/500 `#F3F4F6`
 - Stato finale (`finished` quando `doneCount >= 7`): loader sostituito da `DoneCheck` (cerchio GREEN 18×18 con check, scale-in 320 ms ease-out), titolo cambia in `Ci siamo quasi`, hold 800 ms, poi `onComplete()`
 
 Il "tocco AI giocoso" è confinato a due micro-elementi: il dot orbitale BRAND + i typewriter dots. Niente sparkle, niente conic gradient, niente particle field.
@@ -282,7 +294,7 @@ Ogni step monta con una transizione di entrata leggera: opacity 0→1 + scale 0.
 
 ## Logo
 
-File asset corrente: `fresh.png` (lowercase, server-safe). Esposto via `OnbIcon.Logo` e `PnI.Logo`, parametrato con `fontSize` (onboarding) o `size` (panoramica). Sostituisce ovunque il vecchio brand-mark inline (quadrato BRAND con "b" + scritta "byup") che era una costruzione live e non il marchio reale.
+File asset corrente: `Fresh.png` (capitalized — case-sensitive su Linux/Vercel). Esposto via `OnbIcon.Logo` e `PnI.Logo`, parametrato con `fontSize` (onboarding) o `size` (panoramica). Il solo glifo senza lettering è `Fresh-mark.png`, esposto via `PnI.LogoMark` per gli spazi stretti (sidebar chiusa); è corallo su trasparente, non va su fondo corallo. Sostituisce ovunque il vecchio brand-mark inline (quadrato BRAND con "b" + scritta "byup") che era una costruzione live e non il marchio reale.
 
 ---
 
@@ -292,21 +304,22 @@ Tutte le pagine `byup *.html` del gestionale (escluse Login e Restaurant Onboard
 
 ```css
 .frame {
-  width: 1440px;
-  height: calc(100vh - 48px);   /* fits within viewport */
-  min-height: 720px;             /* laptop 13" minimum */
-  max-height: 900px;             /* monitor desktop normale */
+  width: 1440px;                 /* dimensione di design fissa */
+  height: 900px;
   margin: 24px auto;
+  border-radius: 16px;
   display: flex;                 /* sidebar | main */
 }
 ```
+
+L'adattamento alla finestra non passa più da `calc(100vh)` / min-max-height: uno script a fondo pagina scala il frame con `zoom` proporzionale (`s = (innerHeight − margine) / 900`, clamp 0.4–2.2) e riallarga la `width` sui viewport stretti. Un `MutationObserver` su `#root` applica il fit appena React monta il frame (Babel compila async da CDN).
 
 **Vincolo**: la sidebar deve essere sempre visibile. Solo il `<main>` interno (con `.pn-scroll`) scorre.
 La `<aside>` ha `height: 100%` (via flex stretch). La sua lista nav ha `flex: 1; min-height: 0; overflow-y: auto` — su altezze ridotte la lista può scorrere internamente, ma logo, plan card, sys actions e profilo restano sempre visibili.
 
 `min-height: 0` è cruciale: senza, il default `min-height: auto` di un flex item blocca lo scroll interno e il contenuto deborda dal frame `overflow: hidden`.
 
-**Eccezione**: Contabilita.html e Contabilita v2.html usano già un pattern responsive `width: min(1440px, calc(100vw - 32px)); height: min(900px, calc(100vh - 32px))` — coerente, lasciato così.
+Non c'è più l'eccezione Contabilita: `byup Contabilita.html` usa lo stesso frame fisso 1440×900 con zoom JS (il file `Contabilita v2.html` e il vecchio pattern responsive `min()` non esistono più).
 
 ---
 
@@ -325,12 +338,14 @@ Pattern Apple-style: superficie semitrasparente + `backdrop-filter: blur` + satu
 - Pagina canvas o body
 - Tutto ciò che non si sovrappone visivamente a contenuto sotto
 
-Token base in `panoramica-tokens.jsx`:
+Token base in `panoramica-tokens.jsx` (valori correnti, iterazioni glass 2.3/2.4):
 
 ```js
-PN.GLASS_LIGHT  → rgba(255, 255, 255, 0.78) + blur(14px) saturate(160%)
-PN.GLASS_STRONG → rgba(255, 255, 255, 0.82) + blur(20px) saturate(180%)
+PN.GLASS_LIGHT  → rgba(255, 255, 255, 0.62) + blur(40px) saturate(220%)
+PN.GLASS_STRONG → rgba(255, 255, 255, 0.68) + blur(48px) saturate(240%)
 ```
+
+Rispetto alle prime versioni (2.0/2.1) il glass è diventato più impattante: fill più trasparente, blur alzato a 40–48 px, saturate 220–240%, più una specular highlight verticale (`backgroundImage` bianco 45%→0) e l'inset highlight inclusi nel token. Il `GlassMeshSubstrate` di `byup-glass.jsx` fornisce la "materia" colorata dietro al glass quando il fondo è troppo uniforme.
 
 Uso:
 ```jsx
@@ -344,6 +359,8 @@ Border + shadow inclusi nel token. NON aggiungere blur senza testare leggibilit�
 ---
 
 # Design System 2.0 — Apple-inspired layer
+
+> Sezione storica di iterazione. I valori glass citati qui e nella 2.1 sono stati poi ri-tarati dalle iterazioni 2.3/2.4: i valori vivi sono nella sezione «Liquid glass» sopra e in `panoramica-tokens.jsx` (anche `GLASS_VIBRANT` oggi ha blur reale, 24px).
 
 Il design system v1 era già pulito (Linear/Stripe/Notion). La v2 lo evolve **senza riscriverlo**, applicando un layer Apple-vibrancy macOS Sonoma sopra le primitive esistenti. Il principio: il sistema si riconosce dai dettagli — gradient sottili, hairline borders, inset highlights, glass dove ha effetto reale.
 
@@ -428,7 +445,7 @@ Dropdown notifiche ora usa `...PN.GLASS_MENU` — `blur(24px) saturate(180%)` su
 ### `impostazioni-shared.jsx`
 - `ImpWithPreview` aside ora spread `...PN.GLASS_LIGHT` (era inline raw rgba). Coerenza con il sistema.
 - `ImpButton` riscritto con gradient sottile + inset highlight per tutte le 4 varianti (primary/pink/ghost/text). Niente più `background: PN.TEXT` flat o `background: PN.WHITE` bianco-su-bianco.
-- `PublishButton` (nuovo) — sopra il phone preview vetrina. Apple-style: gradient brand/neutral sfumato, hover state, disabled state con sfumatura `#FFF→#F5F5F7` (NON puro bianco). Sostituisce `ImpSaveBar` (rimossa: l'azione di pubblicazione vive accanto all'oggetto modificato).
+- `PublishButton` (nuovo) — sopra il phone preview vetrina. Apple-style: gradient brand/neutral sfumato, hover state, disabled state con sfumatura `#FFF→#F5F5F7` (NON puro bianco). Sostituisce `ImpSaveBar` nel contesto con preview (l'azione di pubblicazione vive accanto all'oggetto modificato); `ImpSaveBar` resta però definita e usata dai form senza preview (es. `impostazioni-dati-fiscali.jsx`).
 
 ### `config-completa-app.jsx`
 - Header bg da `#fff` a `WHITE_OFF` (`#FAFBFC`), border-bottom hairline `BORDER_HAIR`. Headline da weight 800 a 600 con letter-spacing tighter. Eyebrow chip ora coerente coi pattern onboarding (BRAND_TINT con dot).
@@ -493,10 +510,10 @@ GLASS_DRAG  → blur(16px) saturate(160%) bg 0.72  — card draggata in dashboar
 
 **`app-page-shell.jsx`** è il centro di gravità di Sala, Cucina, Account, Profilo, Statistiche, Contabilita, Supporto. Ogni cambio qui propaga a tutte le pagine:
 
-- `PnPageHeader` → bg `WHITE_OFF` + border `BORDER_HAIR`, headline da weight 700 a 600 con letter-spacing tighter (-0.02em)
+- `PnPageHeader` → bg `WHITE_OFF` + border `BORDER_HAIR`, headline da weight 700 a 600 con letter-spacing tighter (-0.02em). *(Componente poi rimosso: oggi l'header di pagina è composto direttamente nelle singole app.)*
 - `PnUnderlineTabs` → bg `WHITE_OFF`, border hairline, tab attiva weight 600
-- `PnModal` → backdrop con `blur(8px)` su rgba 0.42, container spread `...PN.GLASS_STRONG`, footer `WHITE_HUSH`
-- `PnSheet` → stesso pattern del modal su drawer right
+- `PnModal` → backdrop con `blur(8px)` su rgba 0.42, container spread `...PN.GLASS_STRONG` (o superficie `solid` via prop), footer `WHITE_HUSH`
+- `PnSheet` → *(non è più un componente separato: oggi è la prop `sheet` di `PnModal` — bottom sheet con animazione `pnSheetUp` e radius 22 in cima)*
 - `PnButton` → 5 varianti (primary/secondary/ghost/danger/pink) ognuna con gradient + inset highlight + border alpha + hover state. Sostituisce i background piatti.
 
 **`panoramica-grid.jsx`** — drag system completamente refattorato:
@@ -526,6 +543,8 @@ GLASS_DRAG  → blur(16px) saturate(160%) bg 0.72  — card draggata in dashboar
 ### Dashboard layout default
 
 `panoramica-app.jsx` — layout default cambia: prima riga ora ha 4 widget visibili (incassi, kpi-vendita, riempimento RIDOTTO da 4×2 a 2×2, prenotazioni-oggi). Il widget Riempimento perde l'espansione full-row per fare spazio al widget Prenotazioni "above the fold".
+
+*(Superato: il layout default attuale è un tiling a 4 colonne che parte da prenotazioni-oggi · tavoli-stato · cucina-live; le misure vivono nel catalogo `PN_WIDGET_CATALOG` e gli id storici — es. `kpi-vendita` — migrano via `PN_ID_MIGRATE`.)*
 
 ### Impostazioni → Menu
 
@@ -574,6 +593,8 @@ GLASS_DRAG  → blur(16px) saturate(160%) bg 0.72  — card draggata in dashboar
 
 # Design System 2.2 — Rollout operativo (Sala · Cucina · Prenotazioni · Vendita diretta)
 
+> Nota sui nomi file (lug 2026): le due pagine Sala sono state poi unificate — oggi esiste solo `byup Sala.html` e i file `sala-v3-*` citati sotto sono stati rinominati/assorbiti nei `sala-*` correnti (`sala-app`, `sala-card`, `sala-tab-tavoli`, `sala-tab-calendario`, …).
+
 Applicazione del sistema 2.0/2.1 alle quattro superfici operative, **solo livello visivo** (nessun cambio di layout, wireframe, copy o flussi). Coperte entrambe le pagine Sala: `byup Sala v3.html` (canonica) e `byup Sala.html` (raggiunta dalla sidebar per tavoli/vendita/calendar).
 
 ## Cosa è cambiato
@@ -582,7 +603,7 @@ Applicazione del sistema 2.0/2.1 alle quattro superfici operative, **solo livell
 2. **Tile mappa tavoli con volume.** Le tile flat hanno ora specular highlight verticale (`linear-gradient` bianco 55%→0) + ombra resting `0 1px 2px` + inset top — leggono come oggetti fisici sulla planimetria. La barra accent in cima alle card tavolo passa da 2px/op.0.5 a 3px/op.0.85: lo stato si riconosce a colpo d'occhio anche a riposo.
 3. **Hairline al posto dei solidi.** Tutti i contenitori di sezione (toolbar, timeline, lista prenotazioni, grid POS, carrello) passano da `#E5E7EB`/`BORDER_SOFT` solid a `BORDER_HAIR` + shadow standard `0 1px 0 … , 0 6px 18px …`, radius allineato a 14.
 4. **KDS Cucina.** Le colonne perdono il bordo pieno 3px su 4 lati (crudo) in favore di: top accent 3px nel tone + bordo perimetrale `tone40` 1px + dot identificativo nel titolo + counter a pill tonale. I ticket passano da bordo `rgba(0,0,0,0.32)` 2px a hairline `BORDER_MED` + ombra elevata; il ring rosso "late" con pulse resta invariato (è segnale operativo).
-5. **Peso massimo 700.** Tutti i `fontWeight: 800` delle quattro sezioni normalizzati a 700 (la regola "mai 800" era già nel sistema; il logo `ByupB` resta 900 perché brand-mark).
+5. **Peso massimo 700.** Tutti i `fontWeight: 800` delle quattro sezioni normalizzati a 700 (la regola "mai 800" era già nel sistema; il logo `ByupB` resta 900 perché brand-mark). *(Superato: l'800 è poi rientrato come peso di enfasi numerica/dati nelle superfici operative — vedi la sezione Pesi.)*
 6. **Emoji → SVG.** `🔍` e `🛒` negli empty state POS sostituiti con icone SVG in cerchio `WHITE_FROST`; fallback `🍽` della riga carrello sostituito con iniziale del piatto nel colore categoria.
 
 ## Fix di caricamento (non-UI, necessario)
@@ -620,7 +641,7 @@ Questi non sono cliché AI nel contesto dato: sono scelte deliberate documentate
 
 ## Convenzione style inline
 
-Il progetto usa style inline JSX. Lo manteniamo. Per i token, leggere sempre da `ONB.<NOME>` — mai hex hardcoded fuori dal file token.
+Il progetto usa style inline JSX. Lo manteniamo. Per i token, leggere sempre dall'oggetto vivo del contesto — `ONB.<NOME>` nell'onboarding, `PN.<NOME>` nel gestionale — mai hex hardcoded fuori dai file token. L'oggetto `BU` (`byup-tokens.jsx`) è legacy morto: mai in codice nuovo.
 
 ```jsx
 // SI

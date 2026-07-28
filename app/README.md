@@ -31,6 +31,10 @@ rimanda agli altri per pertinenza, così il dettaglio vive **una volta sola**.
 | **[Recupero-Ordine.md](Recupero-Ordine.md)** | Spec tecnica recupero ordine **webapp→app** (Android Install Referrer con codice, iOS/banner, roadmap). | Implementazione | ✅ DECISO |
 | **[Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md)** | Difesa da accessi remoti / ordini civetta, barriere d'identità, metodo ISO 27001. | Durevole | 🟠 IN DISCUSSIONE |
 | **[Architettura-Prototipo.md](Architettura-Prototipo.md)** | Il *come* del prototipo React no-build (globali `window`, router, storage, stato menu, tema). | **Usa-e-getta** | — |
+| **[DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)** | Design system dell'app consumer: token (`window.ByupKit` in [byup-app-kit.jsx](byup-app-kit.jsx)), temi light/dark, tipografia, componenti, build standalone. | Riferimento vivo | — |
+| **[Byuppini-Concept.md](Byuppini-Concept.md)** | Gamification/fedeltà **Byuppini**: meccaniche, economia, livelli, premi. | Durevole | — |
+| **[Byuppini-Image-Prompts.md](Byuppini-Image-Prompts.md)** | Prompt per generare gli asset immagine dei Byuppini (moneta, badge, premi, mascotte). | Supporto | — |
+| **[HANDOFF-prototipo-byup.md](HANDOFF-prototipo-byup.md)** | Handoff storico (lug 2026) dell'integrazione Byuppini/Roadmap/Cerca nella SPA — lavori completati, vedi il suo §8. | Storico | ✅ CHIUSO |
 
 > I 4 documenti sorgente originari (`byup-punto2/3/4`, `byup-spec-tecnica-*`) su
 > `~/Desktop/` sono **integrati** qui e non sono più la fonte di verità.

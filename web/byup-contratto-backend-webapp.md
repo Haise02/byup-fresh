@@ -111,7 +111,7 @@ Item  = {                             // riga del conto
 | Invia i piatti del carrello | `MenuScreen.handleSubmit` | `addItems` |
 | Imposta la divisione di una riga | `SplitScreen.save` | `updateSplit` |
 | (montaggio home/menu con ordine) | `Root` useEffect | `subscribe` (real-time) |
-| "Paga ora" / "Scarica l'app" | `OrderRecoverySheet` | recupero via codice (`requestOrderCode` lato server) — **non** `pay` |
+| "Paga ora" / "Scarica l'app" | `OrderRecoverySheet` | recupero via codice — oggi generato in locale (`genRecoveryCode`, 6 cifre); a regime `requestOrderCode` lato server — **non** `pay` |
 | Aggiungi/rimuovi commensale | `GuestsSheet` (helper) | `addGuest` / `removeGuest` *(da agganciare quando il backend è pronto)* |
 
 > Già agganciati al mock: `addItems`, `updateSplit`, `subscribe`. Gli altri comandi
@@ -128,3 +128,8 @@ Item  = {                             // riga del conto
   ricalcolo quote/saldo, lock di pagamento (timeout, granularità di riga,
   centesimi — `punto4`), generazione codice ordine + Install Referrer + banner
   (`spec recupero`), e le difese anti-abuso lato server (`punto3`, **decisione aperta**).
+- ℹ️ **Nota di stato (lug 2026)**: in `backend/` esiste ora un backend reale
+  (NestJS + Postgres, Fase 1 del gestionale Byup Fresh: identity, onboarding,
+  venue, catalog — vedi `backend/BACKEND.md`), ma **nessun endpoint di questo
+  contratto è ancora implementato**: i moduli sala (sessioni/ordini), payments e
+  notifications/websocket sono a backlog.

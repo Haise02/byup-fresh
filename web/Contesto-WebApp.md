@@ -250,7 +250,8 @@ una logica che la webapp deve calcolare: il **conteggio è dominio di Byup Fresh
 
 > Le sezioni §1–§7 descrivono l'**intento di prodotto**. Questa sezione descrive
 > il **codice realmente presente in questo repo** (prototipo). Dove i due divergono,
-> è segnalato esplicitamente in §10. **Fonte: lettura diretta dei file**, giugno 2026.
+> è segnalato esplicitamente in §10. **Fonte: lettura diretta dei file**, giugno 2026
+> (riverificata luglio 2026).
 
 ### 8.1 Architettura tecnica
 
@@ -262,7 +263,9 @@ una logica che la webapp deve calcolare: il **conteggio è dominio di Byup Fresh
   quelle richieste → schermo bianco (nessun menu). Avviare con
   `python3 -m http.server 8000` nella cartella, poi aprire
   `http://localhost:8000/simulator.html` (simulatore) o `…/index.html` (app diretta).
-  Doppio click sul file = non funziona.
+  Doppio click sul file = non funziona. (La webapp vive in `web/` dentro il
+  **monorepo byup**: servendo la root del repo gli stessi URL diventano
+  `/web/simulator.html` e `/web/index.html`.)
 - **Punto d'ingresso runtime**: `index.html` → monta `Root` (in `menu.jsx`) su
   `#menu-root` via `ReactDOM.createRoot`.
 - **Backend assente (ma astratto)**: tutto è **dati hardcoded** (locale "Ristorante
@@ -277,7 +280,7 @@ una logica che la webapp deve calcolare: il **conteggio è dominio di Byup Fresh
   | `menu.jsx` | **Cuore della webapp.** `Root` (router + sottoscrizione real-time), `MenuScreen`, `OrderSheet`, `SplitScreen`, `DishDetailScreen`, `HomeScreen`, `OrderRecoverySheet`, l'**App-only gate**, `TakeawayRedirect` (schermata "scarica l'app" per il QR asporto). |
   | `venue.jsx` | **Vetrina locale** (`window.VenueScreen`): foto, info, FAQ, promo, award, social, mappa "Dove siamo". |
   | `dish-art.jsx` | Illustrazioni SVG dei piatti (`DishArt`). |
-  | `index.html` | Bootstrap (carica `api.jsx` → `dish-art.jsx` → `venue.jsx` → `menu.jsx`) + **gate desktop**. |
+  | `index.html` | Bootstrap (carica `api.jsx` → `dish-art.jsx` → `venue.jsx` → `menu.jsx`) + **gate tablet** e **mockup iPhone da desktop** (§8.7). |
   | `simulator.html` | Tool di sviluppo: anteprima multi-dispositivo in iframe (switch Tavolo/Asporto — "Asporto" mostra il redirect — e **PIATTAFORMA iOS/Android** per la schermata di recupero ordine). |
 
 ### 8.2 Router e schermate effettive (`Root` in `menu.jsx`)
@@ -296,8 +299,9 @@ Routing **a hash** (`#menu`, `#venue`, `#home`) + stato interno. Schermate:
 omissione**, ma mostrando un popup. `openAppOnly()` lancia l'evento `byup:apponly`;
 `AppOnlyHost` (montato una volta nella colonna) apre `AppOnlySheet` → *"Disponibile
 nell'app"* con CTA **"Scarica l'app"** (`https://byup.app/download`) e "Continua sul
-web". Oggi è agganciato a: **filtri avanzati** (bottone filtri nel menu),
-**pagamento / "Paga ora"**, e nella vetrina **Prenota**, **Mappa**, **Profilo**.
+web". Oggi è agganciato a: **filtri avanzati** (bottone filtri nel menu) e, nella
+vetrina, **Prenota**, **Mappa**, **Profilo**. ("Paga ora" **non** apre più il popup
+App-only: porta alla `OrderRecoverySheet` di recupero ordine, §8.6.)
 
 > Implicazione di prodotto: le funzioni app-only sono **visibili ma intercettate**.
 > Servono da **funnel verso il download dell'app**, non sono semplicemente assenti.
@@ -315,8 +319,8 @@ non più da un toggle in-app (il vecchio `DevModeSwitcher` è stato rimosso).
 
 ### 8.5 Funzionalità realmente presenti nel menu (`MenuScreen` / `OrderSheet`)
 
-- **Navigazione categorie**: tab `Antipasti · Primi · Secondi · Dolci · Bevande`
-  con **scroll-spy** (IntersectionObserver) che evidenzia la tab attiva.
+- **Navigazione categorie**: tab `Antipasti · Primi piatti · Secondi piatti ·
+  Dolci · Bevande` con **scroll-spy** (IntersectionObserver) che evidenzia la tab attiva.
 - **Ricerca inline** per piatto/ingrediente (campo testo, non gated).
 - **Filtri: nessuno attivo sul web.** Il **bottone filtri** nell'header è solo un
   **funnel App-only** (apre il popup "Disponibile nell'app", non filtra). Non
@@ -324,17 +328,21 @@ non più da un toggle in-app (il vecchio `DevModeSwitcher` è stato rimosso).
   filtro/ordinamento per dieta o allergeni è stata **rimossa** (era dead code —
   lo sheet non era raggiungibile, quindi lo stato dei filtri non cambiava mai).
   Gli allergeni restano visibili solo come "dots" informativi sul piatto (vedi sotto).
-- **Carrello bottom-sheet** (`OrderSheet`) collapsed/expanded, con tab
-  **Piatti / Divisione**.
+- **Carrello bottom-sheet** (`OrderSheet`) collapsed/expanded, con vista
+  secondaria **Divisione** (toggle "Dividi piatti tra i commensali",
+  stato `sheetTab` `piatti|divisione`).
 - **Personalizzazione piatto** (`DishDetailScreen`): varianti, extra (con quantità),
   rimozione ingredienti → riga carrello `{ lineId, dishId, qty, variants, extras, removed }`.
 - **Allergeni** mostrati come "dots" tappabili sul piatto.
 - **Coperti**: prompt automatico al **primo ingresso al tavolo** (non da vetrina,
-  non asporto), una sola volta → salva `state.coperti`.
+  non asporto), una sola volta → salva `state.coperti`. Nella UI il conteggio è
+  etichettato **"partecipanti"** (rename luglio 2026; "coperti" resta solo nello
+  stato interno).
 - **"Al tavolo"**: sheet con lista commensali (`isMe/isApp/isWebApp/isGuest`) + link
   di condivisione.
 - **Conto diviso** (`SplitScreen`): modalità `me · diviso · tavolo` (selezione di
-  chi divide). Il **pagamento** della propria parte è poi **gated** (App-only).
+  chi divide). Il **pagamento** della propria parte porta poi al **recupero ordine
+  in app** (`OrderRecoverySheet`, §8.6), non a un incasso web.
 
 ### 8.6 Ordine attivo (`HomeScreen`)
 
@@ -348,15 +356,27 @@ schermata differenziata per piattaforma: **iOS** = codice protagonista + App Sto
 codice come fallback in secondo piano. Override DEV: `?os=ios|android`.
 
 "Paga ora" / "Paga solo la tua parte" → **recupero ordine** (sopra) + banner
-`DownloadAppPromo` ("salta la fila, scarica l'app"). `genOrderId()` genera un codice
-ordine a 5 caratteri.
+`DownloadAppPromo` ("salta la fila, scarica l'app"). `genOrderId()` genera l'**ID
+ordine** a 5 caratteri alfanumerici (es. `#7K2P9`); il **codice di recupero** a
+6 cifre viene da `genRecoveryCode()`.
 
-### 8.7 Gate desktop (`index.html`)
+### 8.7 Gate tablet + mockup iPhone da desktop (`index.html`)
 
-Quando **entrambe** le dimensioni viewport sono ≥ 600px (tablet e desktop) la webapp
-si nasconde e compare un invito *"Questa funzionalità è pensata per dispositivi
-mobile"*. I telefoni (lato corto < 600px, anche in orizzontale) non vengono mai
-bloccati. È un vincolo **mobile-only** non citato in §1–§7.
+- **Tablet (touch reale)**: quando **entrambe** le dimensioni viewport sono ≥ 600px
+  la webapp si nasconde e compare un invito *"Questa funzionalità è pensata per
+  dispositivi mobile"*. I telefoni (lato corto < 600px, anche in orizzontale) non
+  vengono mai bloccati.
+- **Browser desktop** (puntatore fine, niente touch): la webapp non viene più solo
+  bloccata — si apre **dentro una cornice iPhone a dimensioni reali 1:1**,
+  completamente utilizzabile, con selettore del modello (SE, 14, 15 Pro,
+  14 Pro Max). Query param (`?takeaway`, `?os`, …) e hash vengono inoltrati
+  all'iframe, quindi ogni link di test resta valido; il gate CSS dei 600px resta
+  per i tablet veri.
+- In basso a sinistra c'è il bottone flottante **"Home byup"** (`#byup-hub-btn`)
+  che torna alla homepage del monorepo (`/`); dentro un iframe (mockup o
+  `simulator.html`) viene nascosto.
+
+Resta comunque un vincolo **mobile-only** non citato in §1–§7.
 
 ---
 
@@ -382,7 +402,7 @@ trattare l'una o l'altra come legge:
 | **Coperti** | solo app | **Presenti** (prompt coperti al tavolo) |
 | **Conto diviso** | solo app | **Presente** in UI (`SplitScreen`); solo il *pagamento* è gated |
 | **Vetrina/discovery** | solo app | **Vetrina locale presente** (`VenueScreen` con mappa); prenota/mappa/profilo gated |
-| **Pagamento** | non esiste sul web | **UI presente ma gated** via App-only (coerente con "si paga in cassa/app") |
+| **Pagamento** | non esiste sul web | **UI "Paga ora" presente ma non incassa**: apre il recupero ordine in app (coerente con "si paga in cassa/app") |
 | **Recupero ordine webapp→app** (§4.3, `spec-tecnica`) | codice ordine + install referrer + banner | ⚠️ **Parziale (lato webapp)**: `OrderRecoverySheet` in `menu.jsx` mostra il **codice ordine** copiabile e la schermata differenziata iOS/Android (override DEV `?os=ios\|android`). Mancano i pezzi backend/app: generazione server del codice, **Install Referrer** Android e **banner** all'apertura dell'app |
 | **Divisione real-time** (`punto4`) | conto unico, broadcast, quote | ⚠️ **Parziale**: UI divisione + seam `ByupAPI.updateSplit`/`subscribe` (mock) pronti lato webapp; mancano saldo unico, broadcast vero, ricalcolo quote e **lock** di pagamento (backend) |
 | **Pagamento** dalla webapp (`punto4`) | **mai** sul web | ✅ **Allineato**: `ByupAPI.pay()` bloccata; "Paga ora" → recupero ordine in app |
