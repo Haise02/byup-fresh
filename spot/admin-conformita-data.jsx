@@ -54,6 +54,12 @@ const ADEMPIMENTI = [
   { id:'log',  nome:'Riesame dei log e del monitoraggio', norme:['27001'], rif:'A.8.15 · A.8.16', tipo:'cadenza',
     cadenzaMesi:3,  ultima:null, responsabile:'Marco Rinaldi', vaiA:null,
     nota:'Raccogliere i log non basta: la norma chiede che qualcuno li guardi.' },
+  { id:'incp', nome:'Prova del piano di risposta agli incidenti', norme:['27001'], rif:'A.5.24 · A.5.26', tipo:'cadenza',
+    cadenzaMesi:12, ultima:null, responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'incidenti'},
+    nota:'Diversa dalla prova di continuità: lì i sistemi sono giù, qui c\'è una violazione e contano le prime 72 ore.' },
+  { id:'cons', nome:'Riesame della conservazione e cancellazione dei dati', norme:['27001'], rif:'A.5.33 · A.8.10', tipo:'cadenza',
+    cadenzaMesi:12, ultima:null, responsabile:'Marco Rinaldi', vaiA:null,
+    nota:'Dichiarare per quanto tempo tieni i dati non basta: va verificato che alla scadenza spariscano davvero.' },
 
   // ─── Qualità
   { id:'sodd', nome:'Misurazione della soddisfazione dei clienti', norme:['9001'], rif:'§9.1.2', tipo:'cadenza',
@@ -65,8 +71,14 @@ const ADEMPIMENTI = [
   { id:'ctx',  nome:'Riesame del contesto e delle parti interessate', norme:['9001','27001'], rif:'§4.1 · §4.2', tipo:'cadenza',
     cadenzaMesi:12, ultima:new Date('2025-12-15'), responsabile:'Marco Rinaldi', vaiA:null,
     nota:'Di solito si svolge dentro il riesame di direzione, ma va registrato.' },
+  { id:'disp', nome:'Verifica delle interfacce verso i dispositivi di terzi', norme:['9001','27001'], rif:'§8.6 · A.8.29', tipo:'cadenza',
+    cadenzaMesi:6,  ultima:null, responsabile:'Marco Di Meo', vaiA:null,
+    nota:'Stampanti fiscali e da comanda: se Byup invia un totale o un\'aliquota sbagliata, il danno non è una misura imprecisa, è un documento fiscale errato emesso dal cliente. Si verifica a ogni rilascio, ma senza registrarlo non è evidenza.' },
 
   // ─── Comuni alle due norme
+  { id:'leg',  nome:'Riesame degli obblighi legali e contrattuali', norme:['27001','9001'], rif:'A.5.31 · §8.2.2', tipo:'cadenza',
+    cadenzaMesi:12, ultima:null, responsabile:'Laura Bianchi', vaiA:null,
+    nota:'Pagamenti e trasmissione fiscale sono i due terreni che cambiano più spesso: il registro delle norme applicabili va tenuto vivo, non scritto una volta.' },
   { id:'audit',nome:'Audit interno',                   norme:['27001','9001'], rif:'§9.2', tipo:'cadenza',
     cadenzaMesi:12, ultima:new Date('2025-10-06'), responsabile:'Consulente esterno', vaiA:{route:'conformita', tab:'audit'} },
   { id:'dir',  nome:'Riesame di direzione',            norme:['27001','9001'], rif:'§9.3', tipo:'cadenza',
@@ -83,7 +95,7 @@ const ADEMPIMENTI = [
   // ─── Non applicabile: dichiararlo con il motivo è la mossa corretta
   { id:'tar',  nome:'Taratura degli strumenti di misura', norme:['9001'], rif:'§7.1.5', tipo:'cadenza',
     cadenzaMesi:12, ultima:null, responsabile:'—', vaiA:null,
-    nonApplicabile:'Byup non impiega strumenti di misura fisici: il prodotto è software e le misure sono dati generati dal sistema.' },
+    nonApplicabile:'La taratura riguarda strumenti che misurano e la cui accuratezza va riferita a un campione. Byup non ne impiega. Le stampanti fiscali e da comanda a cui il software si collega non sono di Byup, non misurano nulla e sono già soggette alla verificazione periodica a carico dell\'esercente. La correttezza di ciò che Byup invia a quei dispositivi non è taratura: è coperta dalla verifica delle interfacce verso i dispositivi di terzi.' },
 ];
 
 // ─── Fornitori (A.5.19–5.23 · §8.4) ────────────────────────────────────────

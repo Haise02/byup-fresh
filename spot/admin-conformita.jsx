@@ -133,11 +133,11 @@ function CfCruscotto({ onNav }) {
   const fornSenzaRiesame = FORNITORI.filter(f => !f.ultimoRiesame).length;
 
   const sintesi = [
-    { n:rischiAperti,      label:'rischi da trattare',        tab:'rischi',    tono: rischiAperti ? 'WARN' : 'OK' },
-    { n:ncAperte,          label:'non conformità aperte',      tab:'nc',        tono: ncAperte ? 'WARN' : 'OK' },
-    { n:incAperti,         label:'incidenti aperti',           tab:'incidenti', tono: incAperti ? 'WARN' : 'OK' },
-    { n:fornSenzaRiesame,  label:'fornitori mai riesaminati',  tab:'fornitori', tono: fornSenzaRiesame ? 'DANGER' : 'OK' },
-    { n:formScaduta,       label:'formazioni scadute o mancanti', tab:'registri', tono: formScaduta ? 'WARN' : 'OK' },
+    { n:rischiAperti,      uno:'rischio da trattare',         label:'rischi da trattare',        tab:'rischi',    tono: rischiAperti ? 'WARN' : 'OK' },
+    { n:ncAperte,          uno:'non conformità aperta',       label:'non conformità aperte',      tab:'nc',        tono: ncAperte ? 'WARN' : 'OK' },
+    { n:incAperti,         uno:'incidente aperto',            label:'incidenti aperti',           tab:'incidenti', tono: incAperti ? 'WARN' : 'OK' },
+    { n:fornSenzaRiesame,  uno:'fornitore mai riesaminato',   label:'fornitori mai riesaminati',  tab:'fornitori', tono: fornSenzaRiesame ? 'DANGER' : 'OK' },
+    { n:formScaduta,       uno:'formazione scaduta o mancante', label:'formazioni scadute o mancanti', tab:'registri', tono: formScaduta ? 'WARN' : 'OK' },
   ];
 
   return (
@@ -155,7 +155,9 @@ function CfCruscotto({ onNav }) {
           </div>
           <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
             {attivi.length} obblighi applicabili fra ISO 27001 e ISO 9001
-            {righe.length - attivi.length > 0 && `, ${righe.length - attivi.length} dichiarato non applicabile`}
+            {righe.length - attivi.length > 0 && (righe.length - attivi.length === 1
+              ? ', 1 dichiarato non applicabile'
+              : `, ${righe.length - attivi.length} dichiarati non applicabili`)}
             {' · '}la scadenza si calcola dalla cadenza, tranne le verifiche dell'ente che hanno una data imposta
           </div>
         </div>
@@ -217,7 +219,7 @@ function CfCruscotto({ onNav }) {
               style={{...CF_CARD, padding:'14px 16px', cursor:'pointer'}}>
               <div style={{fontSize:26, fontWeight:800, letterSpacing:'-0.02em', lineHeight:1,
                 color: s.n ? CF_TONO(s.tono) : ADM.TEXT}}>{s.n}</div>
-              <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:6, lineHeight:1.35}}>{s.label}</div>
+              <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:6, lineHeight:1.35}}>{s.n === 1 ? s.uno : s.label}</div>
             </div>
           ))}
         </div>
