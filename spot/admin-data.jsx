@@ -394,13 +394,82 @@ const RUOLI = {
 };
 
 const TEAM = [
-  { id: 'admin0', nome: 'Tu', email: 'me@byup.it', ruolo: 'super_admin', avatar: 'TU', avatarBg: 'linear-gradient(135deg, #FF5A5F, #B53338)', lastActive: new Date(Date.now() - 60000), addedBy: '—', due_fa: true, attivo: true, addedOn: new Date('2024-01-15'), isYou: true },
+  // nomeCompleto: "Tu" va bene nella lista del team, ma un'attestazione firmata
+  // "Tu" non è evidenza — all'auditor serve il nome della persona.
+  { id: 'admin0', nome: 'Tu', nomeCompleto: 'Marco Rinaldi', email: 'me@byup.it', ruolo: 'super_admin', avatar: 'TU', avatarBg: 'linear-gradient(135deg, #FF5A5F, #B53338)', lastActive: new Date(Date.now() - 60000), addedBy: '—', due_fa: true, attivo: true, addedOn: new Date('2024-01-15'), isYou: true },
   { id: 'admin1', nome: 'Laura Bianchi', email: 'l.bianchi@byup.it', ruolo: 'operations', avatar: 'LB', avatarBg: '#7C3AED', lastActive: new Date(Date.now() - 1200000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-03-22') },
   { id: 'admin2', nome: 'Davide Romano', email: 'd.romano@byup.it', ruolo: 'operations', avatar: 'DR', avatarBg: '#2563EB', lastActive: new Date(Date.now() - 86400000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-05-10') },
   { id: 'support1', nome: 'Sara Conti', email: 's.conti@byup.it', ruolo: 'support', avatar: 'SC', avatarBg: '#16A34A', lastActive: new Date(Date.now() - 180000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-07-04') },
   { id: 'support2', nome: 'Andrea Verdi', email: 'a.verdi@byup.it', ruolo: 'support', avatar: 'AV', avatarBg: '#D97706', lastActive: new Date(Date.now() - 7200000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-09-12') },
   { id: 'mkt1', nome: 'Paola Esposito', email: 'p.esposito@byup.it', ruolo: 'marketing', avatar: 'PE', avatarBg: '#D97706', lastActive: new Date(Date.now() - 3600000 * 5), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-11-20') },
   { id: 'mkt2', nome: 'Marco Galli', email: 'm.galli@byup.it', ruolo: 'marketing', avatar: 'MG', avatarBg: '#B45309', lastActive: new Date(Date.now() - 86400000 * 7), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2025-02-03') },
+  // I tre casi che un riesame degli accessi deve pescare. Senza, la schermata
+  // mostrerebbe sette persone tutte attive oggi e non dimostrerebbe nulla.
+  { id: 'mkt3', nome: 'Elena Ricci', email: 'e.ricci@byup.it', ruolo: 'marketing', avatar: 'ER', avatarBg: '#0891B2', lastActive: new Date(Date.now() - 86400000 * 142), addedBy: 'Paola Esposito', due_fa: true, attivo: true, addedOn: new Date('2025-06-10') },
+  { id: 'support3', nome: 'Nicola Ferrara', email: 'n.ferrara@byup.it', ruolo: 'support', avatar: 'NF', avatarBg: '#4F46E5', lastActive: new Date(Date.now() - 86400000 * 3), addedBy: 'Sara Conti', due_fa: true, attivo: true, addedOn: new Date('2026-07-08') },
+  { id: 'support4', nome: 'Chiara Fumagalli', email: 'c.fumagalli@byup.it', ruolo: 'support', avatar: 'CF', avatarBg: '#9333EA', lastActive: null, addedBy: 'Tu', due_fa: false, attivo: true, pending: true, addedOn: new Date('2026-06-20') },
+];
+
+// ─── Riesame periodico dei diritti di accesso (ISO/IEC 27001 A.5.18) ─────────
+// Il controllo non è "esiste una lista": è poter dimostrare che a una certa
+// data una persona ha guardato chi ha accesso a cosa e ha deciso, e che le
+// revoche sono state eseguite. Ambito = solo il team admin di Byup.
+const RIESAME_CADENZA_MESI = 6;
+
+// Campagna in corso: aperta il 1 lug, scade il 31. Gli esiti si accumulano qui
+// mentre il revisore lavora; la campagna si chiude solo quando sono tutti decisi.
+const RIESAME_CORRENTE = {
+  id: 'RA-2026-H2',
+  periodo: 'H2 2026',
+  apertaIl: new Date('2026-07-01T09:00:00'),
+  scadenza: new Date('2026-07-31T23:59:59'),
+  revisore: 'Marco Rinaldi',
+  stato: 'aperta',
+  esiti: [],
+};
+
+// Campagne chiuse: sono l'evidenza da mostrare all'auditor. Una volta chiuse
+// non si modificano — una correzione è una campagna nuova, mai una riscrittura.
+const RIESAMI_CHIUSI = [
+  {
+    id: 'RA-2026-H1',
+    periodo: 'H1 2026',
+    apertaIl: new Date('2026-01-02T09:00:00'),
+    scadenza: new Date('2026-01-31T23:59:59'),
+    chiusaIl: new Date('2026-01-16T16:42:00'),
+    revisore: 'Marco Rinaldi',
+    stato: 'chiusa',
+    esiti: [
+      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:'Marco Di Meo · CFO', quando:new Date('2026-01-16T16:30:00'), motivo:'' },
+      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:33:00'), motivo:'' },
+      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:34:00'), motivo:'' },
+      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:35:00'), motivo:'' },
+      // Andrea era Viewer e oggi è Support: il riesame lo deve segnalare.
+      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:36:00'), motivo:'' },
+      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:38:00'), motivo:'' },
+      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:39:00'), motivo:'' },
+      { soggettoId:'mkt3',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:40:00'), motivo:'' },
+      { soggettoId:'exdev1',   decisione:'revocato',   ruoloAllora:'super_admin', chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:41:00'), motivo:'Collaborazione terminata il 30/11/2025 — accesso non più necessario', eseguito:true, nomeStorico:'Tommaso Neri' },
+    ],
+  },
+  {
+    id: 'RA-2025-H2',
+    periodo: 'H2 2025',
+    apertaIl: new Date('2025-07-01T09:00:00'),
+    scadenza: new Date('2025-07-31T23:59:59'),
+    chiusaIl: new Date('2025-07-24T11:05:00'),
+    revisore: 'Marco Rinaldi',
+    stato: 'chiusa',
+    esiti: [
+      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:'Marco Di Meo · CFO', quando:new Date('2025-07-24T10:58:00'), motivo:'' },
+      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:00:00'), motivo:'' },
+      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:01:00'), motivo:'' },
+      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:02:00'), motivo:'' },
+      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:03:00'), motivo:'' },
+      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:04:00'), motivo:'' },
+      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:05:00'), motivo:'' },
+    ],
+  },
 ];
 
 // ---------- TOP PIATTI / ORDINI / CITTÀ aggregati ----------
@@ -539,3 +608,6 @@ window.SCREENS_USAGE = SCREENS_USAGE;
 window.FEATURES_USAGE = FEATURES_USAGE;
 window.MONTHLY_REVENUE = MONTHLY_REVENUE;
 window.TOTAL_REVENUE_HISTORICAL = TOTAL_REVENUE_HISTORICAL;
+window.RIESAME_CADENZA_MESI = RIESAME_CADENZA_MESI;
+window.RIESAME_CORRENTE = RIESAME_CORRENTE;
+window.RIESAMI_CHIUSI = RIESAMI_CHIUSI;

@@ -617,6 +617,19 @@ function DashGenerale({ onNav }) {
     segHi > 0       && { label: `${segHi} segnalazioni ad alta priorità`,          tone:'DANGER',  onClick: ()=>onNav('comunicazioni') },
     (segOpen-segHi) > 0 && { label: `${segOpen-segHi} segnalazioni aperte`,          tone:'NEUTRAL', onClick: ()=>onNav('comunicazioni') },
     certPending > 0 && { label: `${certPending} certificazioni da validare`,        tone:'INFO',    onClick: ()=>onNav('comunicazioni') },
+    // Il riesame degli accessi ha una scadenza, e una scadenza che non si vede
+    // slitta: qui è l'unico posto dove la si incrocia senza andarla a cercare.
+    (() => {
+      const gg = Math.ceil((RIESAME_CORRENTE.scadenza.getTime() - Date.now()) / 86400000);
+      if (RIESAME_CORRENTE.stato !== 'aperta' || gg > 14) return null;
+      return {
+        label: gg < 0
+          ? `Riesame accessi ${RIESAME_CORRENTE.periodo} scaduto da ${-gg} giorni`
+          : `Riesame accessi ${RIESAME_CORRENTE.periodo} · scade fra ${gg} giorni`,
+        tone: gg < 0 ? 'DANGER' : 'WARN',
+        onClick: ()=>onNav('team'),
+      };
+    })(),
   ].filter(Boolean);
 
   // Dettaglio in-linea aperto (o null). Click su una card → apre la fascia sotto;
