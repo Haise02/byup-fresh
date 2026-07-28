@@ -72,7 +72,7 @@ Il mount di `#menu-root` è in fondo a [menu.jsx](menu.jsx).
 | [ios-frame.jsx](ios-frame.jsx) | `IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSKeyboard` | Primitive UI iOS. `IOSDevice` è la **cornice iPhone** (402×874) su desktop; su mobile (≤560px) l'app va **a tutto schermo** senza cornice |
 | [dish-art.jsx](dish-art.jsx) | `DishArt` | Illustrazioni SVG generate (placeholder quando non c'è foto) |
 | [extras.jsx](extras.jsx) | `ProfileScreen, VenueScreen, BookingSheet` | Profilo, scheda locale, sheet prenotazione, preferenze allergeni/diete |
-| [venue-variants.jsx](venue-variants.jsx) | `VenueA, VenueB, VenueC, VenuePremium` | **Stili di vetrina** alternativi (a/b/c/premium) della scheda locale — vedi §3.1 |
+| [venue-variants.jsx](venue-variants.jsx) | `VenuePremium` | **Stile di vetrina** premium della scheda locale — vedi §3.1 |
 | [map.jsx](map.jsx) | `MapScreen, PostaScreen` | Mappa locali (Leaflet + markercluster) e "Posta"/novità |
 | [auth.jsx](auth.jsx) | `AuthFlow, AuthPermissions` | Onboarding, login, registrazione, Face ID, permessi iOS |
 | [app.jsx](app.jsx) | `BottomTabBar, HomeSections, Icon, PINK, PINK_DARK, TEXT, MUTED, BORDER, BG_GRAY` + router globale `__byupNav`/`__byupQR` | Guscio SPA + gate di auth (`Root`): Home, Cerca (`SearchScreen`), Byuppini (`ByuppiniScreen`), Roadmap (`RoadmapScreen`), dispatch pagine |
@@ -88,8 +88,8 @@ template di vetrina selezionabili.
 
 Siccome questo è un **prototipo senza backend**, lo stile si forza così:
 
-- URL `?venue=a|b|c|original|premium` sulla Home, oppure
-- `window.__venueVariant = 'a'|'b'|'c'|'original'` da console.
+- URL `?venue=original|premium` sulla Home, oppure
+- `window.__venueVariant = 'original'|'premium'` da console.
 
 Il **dispatcher** è `VenueScreen` in [extras.jsx](extras.jsx): legge lo stile e
 monta il componente giusto. Default = `original`. Eccezione: lo stile
@@ -99,19 +99,16 @@ monta il componente giusto. Default = `original`. Eccezione: lo stile
 | Stile | Componente | Dove | Carattere |
 |-------|-----------|------|-----------|
 | `original` (default) | `VenueOriginal` | [extras.jsx](extras.jsx) | Classico — la vetrina storica |
-| `a` | `VenueA` | [venue-variants.jsx](venue-variants.jsx) | Editorial / Magazine |
-| `b` | `VenueB` | [venue-variants.jsx](venue-variants.jsx) | Cinematic / Tasting menu |
-| `c` | `VenueC` | [venue-variants.jsx](venue-variants.jsx) | Operativo / Resy-style |
 | `premium` | `VenuePremium` | [venue-variants.jsx](venue-variants.jsx) | Premium byup (anche automatico se `venue.premium`) |
 
 Note per chi mette mano:
 - Lo stile **default vive in `extras.jsx`** (non in `venue-variants.jsx`) perché è
-  la vetrina originale e riusa helper locali come `VenueMapThumbnail`. Gli altri
-  quattro stili sono raccolti in `venue-variants.jsx` con i propri helper (`HeroNav`,
-  `StarsRow`, `StickyBar`).
-- **Fonte dati diversa**: `VenueA/B/C` usano i dati hardcoded di `VENUE_DATA`
-  dentro `venue-variants.jsx`; `VenueOriginal` usa la prop `venue` passata
-  dall'app. Quando ci sarà il backend, andranno unificati su un'unica fonte.
+  la vetrina originale e riusa helper locali come `VenueMapThumbnail`. Lo stile
+  `premium` sta in `venue-variants.jsx` con i propri dati (`PREMIUM_MENU`,
+  `PREMIUM_HOURS`, `PREMIUM_REVIEWS`).
+- Fino al 2026-07-28 esistevano altri tre stili sperimentali (`a` Editorial,
+  `b` Cinematic, `c` Operativo, in `venue-variants.jsx`): sono stati rimossi
+  perché non sono mai entrati nel prodotto.
 
 ---
 

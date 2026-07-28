@@ -283,7 +283,7 @@ gestionale) quando si passa a Flutter.
 | Dominio | Nel prototipo (finto) | In produzione (backend/gestionale) |
 |---------|----------------------|-----------------------------------|
 | **Auth** | `localStorage.byup_auth` (vedi Architettura-Prototipo §6) | Vero auth, **identità account = numero di telefono** (OTP/biometria), social, sessioni/token |
-| **Dati locale + vetrina** | `VENUE_DATA` hardcoded / prop `venue` | Anagrafica locale **+ stile vetrina scelto nel gestionale** (Architettura-Prototipo §3.1) |
+| **Dati locale + vetrina** | `EXPLORE_VENUES` hardcoded / prop `venue` | Anagrafica locale **+ stile vetrina scelto nel gestionale** (Architettura-Prototipo §3.1) |
 | **Menu** | `ALL_DISHES` hardcoded in [menu.jsx](menu.jsx) | Menu per locale: piatti, prezzi, categorie, varianti, extra, allergeni, macro |
 | **★ TOP** | flag `bestSeller` statico | **Statistiche d'ordine aggregate** per locale |
 | **✨ Per te** | calcolo client da filtri (Architettura-Prototipo §10) | **Personalizzazione** lato backend (storico, gusti). **Gate: ≥3 ordini** prima di mostrarla (§D) |
@@ -298,7 +298,7 @@ gestionale) quando si passa a Flutter.
 | **Prenotazioni** | `byup_booking`, azzerata al refresh | Disponibilità/booking reale |
 | **Preferenze profilo** | `localStorage.byup_allergens` | Profilo utente lato backend |
 | **Discovery + gate densità** | sempre mostrata (o `?page=home-empty` a mano) | **Conteggio locali attivi entro due raggi GPS** dalla posizione → decide se mostrare discovery o `home-empty` (soglie 125 raggio urbano / 150 raggio largo, in OR, con isteresi, §D) |
-| **Locale "in discovery"** | tutti i `VENUE_DATA` finti | Solo locali con **onboarding vetrina completato** su Byup Fresh |
+| **Locale "in discovery"** | tutti gli `EXPLORE_VENUES` finti | Solo locali con **onboarding vetrina completato** su Byup Fresh |
 | **Posta** | contenuti demo in [map.jsx](map.jsx) (`PostaScreen`) | Novità + promo pubblicate da byup via **Byup Spot** (§D) |
 | **Anagrafica utente** | stato locale (`MieiDatiView`) | Profilo utente (nome, cognome, genere, data di nascita) |
 | **Gestione account** | UI finta (cambia/recupera password, modifica email) | Operazioni auth reali (password, email, verifica) |
@@ -311,7 +311,7 @@ gestionale) quando si passa a Flutter.
 | **Elimina account** | conferma demo | Cancellazione dati **irreversibile** (GDPR) |
 
 > Regola d'oro per la riscrittura: **ogni "dato cablato" qui è un endpoint da
-> definire.** Cerca `ALL_DISHES`, `VENUE_DATA`, `activeOrder`, `demoTakeaway`.
+> definire.** Cerca `ALL_DISHES`, `EXPLORE_VENUES`, `activeOrder`, `demoTakeaway`.
 
 > ⚠️ **Cosa il prototipo NON mostra (verificato sul codice).** Confine preciso tra
 > ciò che il mockup *già fa* e ciò che resta backend/futuro:
