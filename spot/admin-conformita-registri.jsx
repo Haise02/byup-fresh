@@ -27,6 +27,27 @@ const cfrCoord  = (r, vista) => (vista === 'residuo'
 // renderebbe indistinguibili basso e medio.
 const cfrRampa = (liv) => `rgba(49,53,61,${(0.04 + (Math.min(liv, 12) / 12) * 0.16).toFixed(3)})`;
 
+// ─── Categorie di rischio ──────────────────────────────────────────────────
+// Tassonomia chiusa: un rischio deve poter cadere in una sola casella, e ogni
+// rischio futuro deve trovare la sua. Sono otto perché sotto si finisce a
+// mettere tutto in «informatico», sopra si ottengono categorie da un elemento
+// che come filtro non servono a niente.
+//
+// «Reputazionale» è deliberatamente assente: la perdita di reputazione è quasi
+// sempre la CONSEGUENZA di uno di questi otto, non un rischio a sé. Tenerla
+// come categoria porta a censire due volte lo stesso evento.
+const CFR_CATEGORIE = [
+  { id:'informatico',   label:'Informatico',   nota:'Guasti, indisponibilità, difetti del software' },
+  { id:'accessi',       label:'Accessi',       nota:'Credenziali, privilegi, identità' },
+  { id:'dati',          label:'Dati personali',nota:'Violazioni e trattamenti non conformi' },
+  { id:'fornitori',     label:'Fornitori',     nota:'Dipendenza da terze parti e sub-responsabili' },
+  { id:'organizzativo', label:'Organizzativo', nota:'Persone, ruoli, competenze, continuità del presidio' },
+  { id:'operativo',     label:'Operativo',     nota:'Erogazione del servizio nei locali' },
+  { id:'conformita',    label:'Conformità',    nota:'Obblighi legali, fiscali, contrattuali' },
+  { id:'economico',     label:'Economico',     nota:'Ricavi, incassi, sostenibilità' },
+];
+const cfrCatLabel = (id) => (CFR_CATEGORIE.find(c => c.id === id) || {}).label || id;
+
 const CFR_TRATT = { mitigare:'Mitigare', accettare:'Accettare', trasferire:'Trasferire', evitare:'Evitare' };
 const CFR_STATO = {
   nuovo:     { tono:'WARN',    label:'Nuovo' },
@@ -165,14 +186,202 @@ function CfrMatrice({ celle, sel, onSel }) {
   );
 }
 
+// ─── Modale del rischio ────────────────────────────────────────────────────
+// Un solo componente per due gesti, perché i campi sono gli stessi: rilevare un
+// rischio è compilare la valutazione la prima volta, riesaminarlo è rimetterci
+// mano. Cambia cosa è obbligatorio e cosa resta scritto nello storico.
+const CFR_INP = { width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
+  fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box' };
+const CFR_LAB = { fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+  letterSpacing:'0.05em', display:'block', marginBottom:5 };
+
+function CfrCampo({ etichetta, children, span }) {
+  return <div style={span ? {gridColumn:'1 / -1'} : undefined}><label style={CFR_LAB}>{etichetta}</label>{children}</div>;
+}
+
+function CfrScala({ valore, onChange }) {
+  return (
+    <select value={valore} onChange={e=>onChange(parseInt(e.target.value, 10))} style={CFR_INP}>
+      {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+    </select>
+  );
+}
+
+function CfrModaleRischio({ modo, rischio, onChiudi, onSalva }) {
+  const nuovo = modo === 'nuovo';
+  const [b, setB] = useStateCfr(() => ({
+    titolo:        rischio ? rischio.titolo : '',
+    categoria:     rischio ? rischio.categoria : 'informatico',
+    responsabile:  rischio ? rischio.responsabile : '',
+    prob:          rischio ? rischio.prob : 3,
+    impatto:       rischio ? rischio.impatto : 3,
+    residuoProb:   rischio ? rischio.residuoProb : 3,
+    residuoImpatto:rischio ? rischio.residuoImpatto : 3,
+    trattamento:   rischio ? rischio.trattamento : 'mitigare',
+    stato:         rischio ? rischio.stato : 'nuovo',
+    controlli:     rischio ? (rischio.controlli || []).join(', ') : '',
+    misure:        rischio ? rischio.misure : '',
+    nota:          '',
+  }));
+  const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+
+  const livI = cfrLiv(b.prob, b.impatto);
+  const livR = cfrLiv(b.residuoProb, b.residuoImpatto);
+  // Nel riesame la nota è obbligatoria: un riesame senza una riga di esito è la
+  // firma di cortesia che la norma non accetta come evidenza.
+  const puoSalvare = nuovo
+    ? b.titolo.trim().length > 2 && b.misure.trim().length > 2 && b.responsabile.trim().length > 1
+    : b.nota.trim().length > 2;
+
+  const storico = (rischio && rischio.riesami) || [];
+
+  return (
+    <div onClick={onChiudi} style={{position:'absolute', inset:0, zIndex:60,
+      background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
+      <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
+      <div style={{transform:'translateY(-50%)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:720, maxWidth:'92%', background:'#fff', borderRadius:14,
+        boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'78vh', display:'flex', flexDirection:'column'}}>
+
+        <div style={{padding:'18px 22px 14px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
+            {nuovo ? 'Rilevare un nuovo rischio' : `Riesame di ${rischio.id}`}
+          </div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
+            {nuovo
+              ? 'La valutazione va compilata adesso: un rischio censito senza probabilità, impatto e misure non è un rischio valutato.'
+              : 'Correggi ciò che è cambiato e scrivi l’esito. La data di oggi diventa l’ultimo riesame e la nota resta nello storico.'}
+          </div>
+        </div>
+
+        <div style={{padding:'16px 22px', overflowY:'auto', flex:1, minHeight:0}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
+            <CfrCampo etichetta="Rischio" span>
+              <input value={b.titolo} onChange={e=>agg('titolo', e.target.value)} style={CFR_INP}
+                placeholder="Che cosa può andare storto, in una riga"/>
+            </CfrCampo>
+
+            <CfrCampo etichetta="Categoria">
+              <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={CFR_INP}>
+                {CFR_CATEGORIE.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+              <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:4, lineHeight:1.4}}>
+                {(CFR_CATEGORIE.find(c => c.id === b.categoria) || {}).nota}
+              </div>
+            </CfrCampo>
+
+            <CfrCampo etichetta="Responsabile">
+              <input value={b.responsabile} onChange={e=>agg('responsabile', e.target.value)} style={CFR_INP}
+                placeholder="Chi risponde di questo rischio"/>
+            </CfrCampo>
+
+            <CfrCampo etichetta={`Inerente — livello ${livI} · ${cfrFascia(livI)}`}>
+              <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                <CfrScala valore={b.prob} onChange={v=>agg('prob', v)}/>
+                <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>×</span>
+                <CfrScala valore={b.impatto} onChange={v=>agg('impatto', v)}/>
+              </div>
+              <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:4}}>probabilità × impatto, prima del trattamento</div>
+            </CfrCampo>
+
+            <CfrCampo etichetta={`Residuo — livello ${livR} · ${cfrFascia(livR)}`}>
+              <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                <CfrScala valore={b.residuoProb} onChange={v=>agg('residuoProb', v)}/>
+                <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>×</span>
+                <CfrScala valore={b.residuoImpatto} onChange={v=>agg('residuoImpatto', v)}/>
+              </div>
+              <div style={{fontSize:11.4, color: livR > livI ? ADM.DANGER : ADM.MUTED_SOFT, marginTop:4}}>
+                {livR > livI
+                  ? 'Il residuo non può essere più alto dell’inerente: il trattamento non aggrava.'
+                  : livR === livI ? 'Invariato: va giustificato nelle misure' : `il trattamento vale −${livI - livR}`}
+              </div>
+            </CfrCampo>
+
+            <CfrCampo etichetta="Trattamento">
+              <select value={b.trattamento} onChange={e=>agg('trattamento', e.target.value)} style={CFR_INP}>
+                {Object.entries(CFR_TRATT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </CfrCampo>
+
+            <CfrCampo etichetta="Stato">
+              <select value={b.stato} onChange={e=>agg('stato', e.target.value)} style={CFR_INP}>
+                {Object.entries(CFR_STATO).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </CfrCampo>
+
+            <CfrCampo etichetta="Controlli Annex A" span>
+              <input value={b.controlli} onChange={e=>agg('controlli', e.target.value)} style={CFR_INP}
+                placeholder="A.5.15, A.8.13 — separati da virgola"/>
+            </CfrCampo>
+
+            <CfrCampo etichetta="Misure attuate" span>
+              <textarea value={b.misure} onChange={e=>agg('misure', e.target.value)} rows={3}
+                style={{...CFR_INP, resize:'vertical', lineHeight:1.5}}
+                placeholder="Che cosa è stato fatto concretamente per ridurre il livello"/>
+            </CfrCampo>
+
+            {!nuovo && (
+              <CfrCampo etichetta="Esito del riesame" span>
+                <textarea value={b.nota} onChange={e=>agg('nota', e.target.value)} rows={3}
+                  style={{...CFR_INP, resize:'vertical', lineHeight:1.5}}
+                  placeholder="Che cosa hai verificato e che cosa è cambiato dall’ultima volta"/>
+              </CfrCampo>
+            )}
+          </div>
+
+          {!nuovo && storico.length > 0 && (
+            <div style={{marginTop:18, paddingTop:14, borderTop:`1px solid ${ADM.BORDER}`}}>
+              <div style={{...CF_H, marginBottom:8}}>Riesami precedenti</div>
+              {storico.slice().reverse().map((v, k) => (
+                <div key={k} style={{padding:'10px 12px', borderRadius:9, background:ADM.NEUTRAL_SOFT, marginBottom:8}}>
+                  <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
+                    <span style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>{cfFmt(v.data)}</span>
+                    <span style={{fontSize:12.2, color:ADM.MUTED}}>{v.chi}</span>
+                    <span style={{fontSize:11.4, color:ADM.MUTED_SOFT}}>
+                      inerente {cfrLiv(v.prob, v.impatto)} · residuo {cfrLiv(v.residuoProb, v.residuoImpatto)}
+                    </span>
+                  </div>
+                  <div style={{fontSize:12.6, color:ADM.TEXT, marginTop:4, lineHeight:1.5}}>{v.nota}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          <span style={{fontSize:12, color:ADM.MUTED, flex:1, lineHeight:1.45}}>
+            {puoSalvare
+              ? (nuovo ? 'Il rischio entra nel registro con la data di oggi come prima valutazione.'
+                       : 'La data di oggi diventa l’ultimo riesame.')
+              : (nuovo ? 'Servono almeno titolo, responsabile e misure attuate.'
+                       : 'Serve l’esito del riesame: senza, non è evidenza.')}
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!puoSalvare} onClick={()=>onSalva(b)}>
+            {nuovo ? 'Aggiungi al registro' : 'Registra il riesame'}
+          </AdmButton>
+        </div>
+      </div>
+      </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Registro dei rischi ───────────────────────────────────────────────────
 function CfRischi() {
   const [vista, setVista]     = useStateCfr('inerente');  // la matrice mostra prima o dopo il trattamento
   const [sel, setSel]         = useStateCfr(null);        // cella selezionata { p, i }
+  const [cat, setCat]         = useStateCfr(null);        // categoria filtrata
   const [aperto, setAperto]   = useStateCfr(null);        // riga espansa
-  const [riesame, setRiesame] = useStateCfr(null);        // rischio in attesa di conferma
+  const [modale, setModale]   = useStateCfr(null);        // { modo, rischio }
   const [, forza]             = useStateCfr(0);           // i dati sono mutati in place: qui si forza il render
 
+  // La matrice conta sempre TUTTI i rischi: se contasse solo la categoria
+  // filtrata, il filtro nasconderebbe proprio il quadro d'insieme che la
+  // matrice esiste per dare.
   const celle = {};
   RISCHI.forEach(r => {
     const c = cfrCoord(r, vista);
@@ -180,10 +389,17 @@ function CfRischi() {
     (celle[k] = celle[k] || []).push(r);
   });
 
+  // Solo le categorie che hanno almeno un rischio: un filtro che porta a zero
+  // risultati è una promessa non mantenuta.
+  const categorieVive = CFR_CATEGORIE
+    .map(c => ({ ...c, n: RISCHI.filter(r => r.categoria === c.id).length }))
+    .filter(c => c.n > 0);
+
   // Ordinamento per livello inerente decrescente: l'elenco deve aprirsi su ciò
   // che fa più male, non sull'ordine in cui i rischi sono stati scritti.
   const righe = RISCHI
     .filter(r => {
+      if (cat && r.categoria !== cat) return false;
       if (!sel) return true;
       const c = cfrCoord(r, vista);
       return c.p === sel.p && c.i === sel.i;
@@ -193,11 +409,37 @@ function CfRischi() {
       || cfrLiv(b.residuoProb, b.residuoImpatto) - cfrLiv(a.residuoProb, a.residuoImpatto)
       || a.id.localeCompare(b.id));
 
-  const confermaRiesame = () => {
-    if (!riesame) return;
-    riesame.ultimoRiesame = new Date();
-    if (riesame.stato === 'nuovo') riesame.stato = 'aperto';
-    setRiesame(null);
+  const salva = (b) => {
+    const controlli = b.controlli.split(',').map(s => s.trim()).filter(Boolean);
+    const oggi = new Date();
+    if (modale.modo === 'nuovo') {
+      const num = RISCHI.reduce((m, r) => Math.max(m, parseInt(r.id.slice(1), 10) || 0), 0) + 1;
+      RISCHI.push({
+        id: 'R' + String(num).padStart(2, '0'),
+        titolo:b.titolo.trim(), categoria:b.categoria, responsabile:b.responsabile.trim(),
+        prob:b.prob, impatto:b.impatto, residuoProb:b.residuoProb, residuoImpatto:b.residuoImpatto,
+        trattamento:b.trattamento, stato:b.stato, controlli, misure:b.misure.trim(),
+        // La rilevazione È la prima valutazione: datarla oggi è corretto, ed
+        // evita che un rischio appena censito compaia subito come mai riesaminato.
+        ultimoRiesame: oggi,
+        riesami:[{ data:oggi, chi:'Marco Rinaldi', esito:'rilevato',
+          nota:'Rischio rilevato e valutato per la prima volta.',
+          prob:b.prob, impatto:b.impatto, residuoProb:b.residuoProb, residuoImpatto:b.residuoImpatto }],
+      });
+    } else {
+      const r = modale.rischio;
+      Object.assign(r, {
+        titolo:b.titolo.trim(), categoria:b.categoria, responsabile:b.responsabile.trim(),
+        prob:b.prob, impatto:b.impatto, residuoProb:b.residuoProb, residuoImpatto:b.residuoImpatto,
+        trattamento:b.trattamento, stato:b.stato, controlli, misure:b.misure.trim(),
+        ultimoRiesame: oggi,
+      });
+      r.riesami = (r.riesami || []).concat([{
+        data:oggi, chi:'Marco Rinaldi', esito:'riesaminato', nota:b.nota.trim(),
+        prob:b.prob, impatto:b.impatto, residuoProb:b.residuoProb, residuoImpatto:b.residuoImpatto,
+      }]);
+    }
+    setModale(null);
     forza(n => n + 1);
   };
 
@@ -248,6 +490,29 @@ function CfRischi() {
           <span style={{fontSize:12.4, color:ADM.MUTED}}>
             {righe.length === RISCHI.length ? 'ordinati per livello inerente decrescente' : `${righe.length} su ${RISCHI.length} rischi`}
           </span>
+          <div style={{flex:1}}/>
+          <AdmButton variant="primary" size="sm" onClick={()=>setModale({ modo:'nuovo', rischio:null })}>
+            Rileva un rischio
+          </AdmButton>
+        </div>
+
+        {/* Filtro per categoria. Le pastiglie portano il conteggio: si vede
+            quanto pesa una categoria prima ancora di cliccarla. */}
+        <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:10}}>
+          {[{ id:null, label:'Tutte', n:RISCHI.length }].concat(categorieVive).map(c => {
+            const attiva = cat === c.id;
+            return (
+              <button key={c.id || 'tutte'} onClick={()=>setCat(c.id)}
+                style={{padding:'5px 11px', borderRadius:999, fontFamily:'inherit', fontSize:12.4,
+                  fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6,
+                  border:`1px solid ${attiva ? ADM.TEXT : ADM.BORDER}`,
+                  background: attiva ? ADM.TEXT : '#fff', color: attiva ? '#fff' : ADM.TEXT}}
+                title={c.nota || undefined}>
+                {c.label}
+                <span style={{fontSize:11.2, fontWeight:700, opacity: attiva ? 0.75 : 0.5}}>{c.n}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div style={CF_CARD}>
@@ -255,6 +520,19 @@ function CfRischi() {
             <div>Rischio</div><div>Inerente</div><div>Residuo</div><div>Trattamento</div>
             <div>Responsabile</div><div>Controlli Annex A</div><div>Stato</div><div/>
           </div>
+
+          {/* I due filtri si sommano: categoria e cella possono non avere
+              intersezione, e allora va detto quale dei due togliere. */}
+          {righe.length === 0 && (
+            <div style={{padding:'26px 16px', textAlign:'center'}}>
+              <div style={{fontSize:13.4, color:ADM.TEXT, fontWeight:600}}>Nessun rischio con questi filtri</div>
+              <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:4}}>
+                {cat && sel
+                  ? `Nessun rischio della categoria ${cfrCatLabel(cat)} sta nella cella ${CFR_PROB[sel.p-1]} × ${CFR_IMP[sel.i-1]}.`
+                  : cat ? `La categoria ${cfrCatLabel(cat)} non ha rischi.` : 'La cella selezionata è vuota.'}
+              </div>
+            </div>
+          )}
 
           {righe.map((r, idx) => {
             const livI = cfrLiv(r.prob, r.impatto);
@@ -275,7 +553,7 @@ function CfRischi() {
                         fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{r.id}</span>
                       <span style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, lineHeight:1.3}}>{r.titolo}</span>
                     </div>
-                    <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:3}}>{r.categoria}</div>
+                    <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:3}}>{cfrCatLabel(r.categoria)}</div>
                   </div>
 
                   <div><CfrLivello p={r.prob} i={r.impatto} forte/></div>
@@ -328,7 +606,7 @@ function CfRischi() {
 
                       <div>
                         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:12}}>
-                          <CfrVoce k="Categoria" v={r.categoria}/>
+                          <CfrVoce k="Categoria" v={cfrCatLabel(r.categoria)}/>
                           <CfrVoce k="Trattamento" v={CFR_TRATT[r.trattamento] || r.trattamento}/>
                           <CfrVoce k="Responsabile" v={r.responsabile}/>
                           <CfrVoce k="Stato" v={st.label}/>
@@ -340,7 +618,7 @@ function CfRischi() {
                           <CfrVoce k="Cadenza" v="ogni 6 mesi"/>
                         </div>
                         <div style={{display:'flex', justifyContent:'flex-end', marginTop:16}}>
-                          <AdmButton variant="secondary" size="sm" onClick={()=>setRiesame(r)}>Riesamina</AdmButton>
+                          <AdmButton variant="secondary" size="sm" onClick={()=>setModale({ modo:'riesame', rischio:r })}>Riesamina</AdmButton>
                         </div>
                       </div>
                     </div>
@@ -357,45 +635,13 @@ function CfRischi() {
         </div>
       </div>
 
-      {/* Popup riesame — azione sensibile, quindi conferma esplicita */}
-      {riesame && (
-        <div onClick={()=>setRiesame(null)} style={{position:'absolute', inset:0, zIndex:60,
-          background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
-          {/* La tab è più alta della finestra: centrare sul contenitore manderebbe
-              la modale fuori campo. La fascia sticky la tiene al centro di ciò che si vede. */}
-          <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
-          <div style={{transform:'translateY(-50%)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'90%', background:'#fff', borderRadius:14,
-            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
-              Registrare il riesame di {riesame.id}?
-            </div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
-              Stai attestando che probabilità, impatto e misure di questo rischio sono ancora
-              quelli scritti nel registro. La data di oggi diventa l&rsquo;ultimo riesame: se qualcosa è
-              cambiato, va prima corretta la valutazione.
-            </div>
-            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
-              {[
-                ['Rischio', riesame.titolo],
-                ['Livello inerente', `${cfrLiv(riesame.prob, riesame.impatto)} · ${riesame.prob} × ${riesame.impatto}`],
-                ['Livello residuo', `${cfrLiv(riesame.residuoProb, riesame.residuoImpatto)} · ${riesame.residuoProb} × ${riesame.residuoImpatto}`],
-                ['Riesame precedente', riesame.ultimoRiesame ? cfFmt(riesame.ultimoRiesame) : 'mai eseguito'],
-              ].map(([k, v]) => (
-                <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
-                  <span style={{color:ADM.MUTED, width:132, flexShrink:0}}>{k}</span>
-                  <span style={{color:ADM.TEXT, fontWeight:600}}>{v}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setRiesame(null)}>Annulla</AdmButton>
-              <AdmButton variant="primary" size="sm" onClick={confermaRiesame}>Registra il riesame</AdmButton>
-            </div>
-          </div>
-          </div>
-          </div>
-        </div>
+      {/* La chiave forza il rimontaggio a ogni apertura: la bozza della modale
+          nasce da useState(init), che gira SOLO al mount. Senza, passare da un
+          rischio all'altro riproporrebbe i valori del precedente. */}
+      {modale && (
+        <CfrModaleRischio key={`${modale.modo}:${modale.rischio ? modale.rischio.id : 'nuovo'}`}
+          modo={modale.modo} rischio={modale.rischio}
+          onChiudi={()=>setModale(null)} onSalva={salva}/>
       )}
     </div>
   );
