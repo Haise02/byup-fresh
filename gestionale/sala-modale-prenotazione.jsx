@@ -980,7 +980,11 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
   };
 
   return (
-    <PnModal open={open} onClose={onClose}
+    // Superficie piena, non vetro: il vetro e' bianco al 68% e sopra la pagina
+    // scurita dietro legge grigio, mentre qui dentro si compila un modulo e i
+    // campi bianchi devono staccare sul fondo, non confondersi. I blocchi hanno
+    // gia' un bordo proprio, quindi restano leggibili come gruppi.
+    <PnModal open={open} onClose={onClose} surface="solid"
       title={initData?.editMode ? 'Modifica prenotazione' : 'Nuova prenotazione'}
       width={720}
       footer={
@@ -1029,7 +1033,10 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
           ))}
           {/* Bloccato = lucchetto. Un bottone grigio dice solo "non si può", il
               lucchetto dice che manca qualcosa da compilare, non che è rotto. */}
-          <PnButton variant="pink" disabled={!canSubmit} onClick={handleSubmit}>
+          {/* Corallo solo quando si puo' davvero confermare. Da bloccato resta
+              neutro: il disabilitato qui e' solo opacita', e un corallo al 50%
+              sembrerebbe "quasi attivo" invece che fermo. */}
+          <PnButton variant={canSubmit ? 'pink' : 'primary'} disabled={!canSubmit} onClick={handleSubmit}>
             <span style={{display:'inline-flex', alignItems:'center', gap: 7}}>
               {initData?.editMode ? 'Salva modifiche' : 'Conferma prenotazione'}
               {!canSubmit && (
