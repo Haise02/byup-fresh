@@ -687,6 +687,48 @@ function raClassifica(m) {
     nota:'Nessuna variazione dall\'ultima campagna' };
 }
 
+/* ─── Catena di integrità ────────────────────────────────────────────────────
+   Ogni attestazione chiusa porta l'impronta del proprio contenuto concatenata
+   a quella del record precedente. Toccare un record vecchio cambia la sua
+   impronta e spezza tutte quelle successive: la manomissione si vede.
+   Le impronte sono SHA-256 VERE, calcolate dal browser sul contenuto reale —
+   nel mock è l'unica parte che deve funzionare sul serio, altrimenti il
+   bottone "Verifica integrità" sarebbe teatro.                                */
+
+// Serializzazione canonica: stesso contenuto ⇒ stessa stringa, sempre.
+const raCanonico = (c) => [
+  c.id, c.periodo, c.chiusaIl.toISOString(), c.revisore,
+  ...c.esiti.map(e => `${e.soggettoId}:${e.decisione}:${e.chi}:${e.quando.toISOString()}:${e.motivo || ''}`),
+].join('|');
+
+async function raSha256(testo) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(testo));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const RA_GENESI = '0'.repeat(64);
+
+// Le campagne arrivano dalla più recente: la catena si costruisce dalla più
+// vecchia, com'è stata scritta nel tempo.
+async function raCalcolaCatena(campagne) {
+  const ordinate = [...campagne].reverse();
+  const out = {};
+  let prec = RA_GENESI;
+  for (const c of ordinate) {
+    const h = await raSha256(prec + '|' + raCanonico(c));
+    out[c.id] = { impronta: h, improntaPrec: prec };
+    prec = h;
+  }
+  return out;
+}
+
+// Le impronte "come scritte alla firma": si calcolano una volta sola sul dato
+// integro. La verifica poi ricalcola dal contenuto attuale e confronta.
+let RA_SIGILLO = null;
+let RA_MANOMISSIONE = null;   // ricordo dell'originale, per poter ripristinare
+
+const raImpronta = (h) => h ? `${h.slice(0, 4)}…${h.slice(-4)}` : '—';
+
 function raScaricaCSV(campagna, righeEsito) {
   const esc = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
   const head = ['Campagna','Periodo','Soggetto','Email','Ruolo','Ultimo accesso','Decisione','Motivo','Deciso da','Data decisione'];
@@ -709,8 +751,12 @@ function AccessReview() {
   const [confermaChiusura, setConfermaChiusura] = useStateTeam(false);
   const [revoca, setRevoca] = useStateTeam(null);        // { id, nome }
   const [motivo, setMotivo] = useStateTeam('');
-  const [secondo, setSecondo] = useStateTeam(null);      // popup auto-riesame
+  const [conferma, setConferma] = useStateTeam(null);    // singola conferma da confermare
+  const [confermaBlocco, setConfermaBlocco] = useStateTeam(false);
   const [storico, setStorico] = useStateTeam(null);      // campagna chiusa aperta in dettaglio
+  const [sigillo, setSigillo] = useStateTeam(RA_SIGILLO);
+  const [verifica, setVerifica] = useStateTeam(null);    // esito del controllo integrità
+  const [manomesso, setManomesso] = useStateTeam(!!RA_MANOMISSIONE);
 
   const camp = RIESAME_CORRENTE;
   // Firma con il nome vero, non con 'Tu': l'attestazione è un documento.
@@ -728,9 +774,42 @@ function AccessReview() {
   const tuttiDecisi = decisi === totale;
   const revocati = Object.values(esiti).filter(e => e.decisione === 'revocato').length;
   const daGuardare = righe.filter(r => r.cls.rank <= 4 && !esiti[r.m.id]).length;
-  // La propria riga resta SEMPRE fuori dal blocco: l'auto-riesame non è
-  // evidenza valida, e una conferma in blocco lo aggirerebbe in silenzio.
-  const invariatiAperti = righe.filter(r => r.cls.key === 'invariato' && !esiti[r.m.id] && !r.m.isYou);
+  const invariatiAperti = righe.filter(r => r.cls.key === 'invariato' && !esiti[r.m.id]);
+
+  // Il sigillo si calcola una volta sola, sul dato integro, e resta il termine
+  // di paragone per tutte le verifiche successive.
+  React.useEffect(() => {
+    if (RA_SIGILLO) { setSigillo(RA_SIGILLO); return; }
+    raCalcolaCatena(RIESAMI_CHIUSI).then(c => { RA_SIGILLO = c; setSigillo(c); });
+  }, []);
+
+  const verificaIntegrita = async () => {
+    setVerifica({ stato: 'corso' });
+    const ora = await raCalcolaCatena(RIESAMI_CHIUSI);
+    const ordinate = [...RIESAMI_CHIUSI].reverse();
+    const rotto = ordinate.find(c => !sigillo || !sigillo[c.id] || sigillo[c.id].impronta !== ora[c.id].impronta);
+    setVerifica(rotto
+      ? { stato: 'rotta', da: rotto.periodo, id: rotto.id, quando: new Date() }
+      : { stato: 'integra', n: ordinate.length, quando: new Date() });
+  };
+
+  // Interruttore di dimostrazione: altera davvero il contenuto di un record
+  // chiuso, così la verifica fallisce sul serio invece di fingere.
+  const toggleManomissione = () => {
+    if (RA_MANOMISSIONE) {
+      RA_MANOMISSIONE.esito.decisione = RA_MANOMISSIONE.originale;
+      RA_MANOMISSIONE = null;
+      setManomesso(false);
+    } else {
+      const camp = RIESAMI_CHIUSI.find(c => c.esiti.some(e => e.decisione === 'revocato'));
+      const es = camp && camp.esiti.find(e => e.decisione === 'revocato');
+      if (!es) return;
+      RA_MANOMISSIONE = { esito: es, originale: es.decisione };
+      es.decisione = 'confermato';
+      setManomesso(true);
+    }
+    setVerifica(null);
+  };
 
   // Ogni decisione lascia traccia nell'audit log: è lì che l'auditor va a
   // guardare, e deve combaciare con l'attestazione.
@@ -836,7 +915,7 @@ function AccessReview() {
             </span>
             <div style={{flex:1}}/>
             {invariatiAperti.length > 1 && (
-              <AdmButton variant="secondary" size="sm" onClick={confermaInvariati}>
+              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
                 Conferma i {invariatiAperti.length} invariati
               </AdmButton>
             )}
@@ -853,9 +932,6 @@ function AccessReview() {
               const dec = esiti[m.id];
               const gg = raGiorniFa(m.lastActive);
               const nAree = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
-              // Segregazione dei compiti: nessuno può auto-confermare i propri
-              // privilegi. È il punto su cui un auditor batte per primo.
-              const autoRiesame = !!m.isYou;
               return (
                 <div key={m.id} style={{
                   display:'grid', gridTemplateColumns:GRID, alignItems:'center', gap:8,
@@ -900,11 +976,9 @@ function AccessReview() {
                         </div>
                         <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:2}}>da {dec.chi}</div>
                       </div>
-                    ) : autoRiesame ? (
-                      <AdmButton variant="secondary" size="sm" onClick={()=>setSecondo(m)}>Secondo revisore</AdmButton>
                     ) : (
                       <>
-                        <AdmButton variant="secondary" size="sm" onClick={()=>registra(m, 'confermato', '', IO)}>Conferma</AdmButton>
+                        <AdmButton variant="secondary" size="sm" onClick={()=>setConferma({ m, cls })}>Conferma</AdmButton>
                         <AdmButton variant="ghost" size="sm" onClick={()=>{ setRevoca(m); setMotivo(''); }}
                           style={{color:ADM.DANGER, borderColor:'rgba(220,38,38,0.28)'}}>Revoca</AdmButton>
                       </>
@@ -936,6 +1010,8 @@ function AccessReview() {
               ['Confermate', String(chiusa.confermati)],
               ['Revocate', String(chiusa.revocati)],
               ['Controllo', 'ISO/IEC 27001 A.5.18'],
+              ['Impronta', raImpronta(sigillo && sigillo[RIESAMI_CHIUSI[0] && RIESAMI_CHIUSI[0].id] && sigillo[RIESAMI_CHIUSI[0].id].impronta)],
+              ['Segue', RIESAMI_CHIUSI[0] ? RIESAMI_CHIUSI[0].periodo : 'genesi'],
             ].map(([k, v]) => (
               <div key={k}>
                 <div style={{fontSize:11.6, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:700}}>{k}</div>
@@ -949,6 +1025,58 @@ function AccessReview() {
           </div>
         </div>
       )}
+
+      {/* Integrità della catena */}
+      <div>
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={{...H, marginBottom:0}}>Integrità delle attestazioni</div>
+          <span style={{fontSize:12.4, color:ADM.MUTED}}>ogni record è agganciato al precedente</span>
+          <div style={{flex:1}}/>
+          <AdmButton variant="secondary" size="sm" onClick={verificaIntegrita}>Verifica integrità</AdmButton>
+        </div>
+
+        {verifica && (
+          <div style={{display:'flex', alignItems:'center', gap:10, padding:'11px 14px', borderRadius:10, marginBottom:10,
+            background: verifica.stato === 'rotta' ? ADM.DANGER_SOFT : verifica.stato === 'integra' ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT,
+            border:`1px solid ${verifica.stato === 'rotta' ? '#FECACA' : verifica.stato === 'integra' ? '#BBF7D0' : ADM.BORDER}`}}>
+            <span style={{width:9, height:9, borderRadius:'50%', flexShrink:0,
+              background: verifica.stato === 'rotta' ? ADM.DANGER : verifica.stato === 'integra' ? ADM.OK : ADM.MUTED}}/>
+            <span style={{fontSize:13.4, fontWeight:700, color: verifica.stato === 'rotta' ? '#7F1D1D' : verifica.stato === 'integra' ? '#065F46' : ADM.TEXT}}>
+              {verifica.stato === 'corso' ? 'Verifica in corso…'
+                : verifica.stato === 'integra' ? `Catena integra · ${verifica.n} record verificati`
+                : `Catena interrotta a partire da ${verifica.da}`}
+            </span>
+            {verifica.stato !== 'corso' && (
+              <span style={{fontSize:12.4, color:ADM.MUTED}}>
+                {verifica.stato === 'rotta'
+                  ? `Il contenuto di ${verifica.id} non corrisponde più alla sua impronta: è stato modificato dopo la firma.`
+                  : `controllo eseguito ${raFmtDataOra(verifica.quando)}`}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.55, marginBottom:10}}>
+          L'impronta è lo SHA-256 del contenuto del record concatenato all'impronta di quello
+          prima. Modificare una campagna già firmata ne cambia l'impronta e spezza tutte le
+          successive — per questo una correzione è una campagna nuova, non una riscrittura.
+        </div>
+
+        {/* Affordance di sola dimostrazione, marcata come tale */}
+        <div style={{display:'inline-flex', alignItems:'center', gap:10, padding:'8px 12px', borderRadius:10,
+          border:`1px dashed ${manomesso ? ADM.DANGER : ADM.BORDER_STRONG || ADM.BORDER}`,
+          background: manomesso ? ADM.DANGER_SOFT : 'transparent'}}>
+          <span style={{fontSize:11.4, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Demo</span>
+          <span style={{fontSize:12.6, color:ADM.TEXT}}>
+            {manomesso
+              ? 'Un record chiuso è stato alterato: premi Verifica integrità'
+              : 'Altera un record già firmato per vedere il controllo fallire'}
+          </span>
+          <AdmButton variant="ghost" size="sm" onClick={toggleManomissione}>
+            {manomesso ? 'Ripristina' : 'Simula manomissione'}
+          </AdmButton>
+        </div>
+      </div>
 
       {/* Storico: è quello che si mostra all'auditor */}
       <div>
@@ -966,6 +1094,10 @@ function AccessReview() {
                 <div style={{fontSize:12.8, color:ADM.TEXT}}>Chiusa il {raFmtData(c.chiusaIl)} da {c.revisore}</div>
                 <div style={{fontSize:12.6, color:ADM.MUTED}}>
                   {c.esiti.length} esaminate · {rev > 0 ? <span style={{color:ADM.DANGER, fontWeight:700}}>{rev} revocate</span> : 'nessuna revoca'}
+                  <span style={{marginLeft:8, fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize:11.6,
+                    color: verifica && verifica.stato === 'rotta' ? ADM.DANGER : ADM.MUTED_SOFT}}>
+                    {raImpronta(sigillo && sigillo[c.id] && sigillo[c.id].impronta)}
+                  </span>
                 </div>
                 <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
               </div>
@@ -1031,28 +1163,65 @@ function AccessReview() {
         </div>
       )}
 
-      {/* Popup auto-riesame — il tool espone la lacuna invece di aggirarla */}
-      {secondo && (
-        <div onClick={()=>setSecondo(null)} style={{position:'absolute', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      {/* Popup conferma — confermare un accesso è un'attestazione, non un click */}
+      {conferma && (
+        <div onClick={()=>setConferma(null)} style={{position:'absolute', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
           display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'90%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>Serve un secondo revisore</div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
-              Non puoi confermare i tuoi stessi privilegi: un auto-riesame non è evidenza valida.
-              Nessun altro membro del team ha il permesso <strong style={{color:ADM.TEXT}}>Gestione team</strong>,
-              quindi la verifica del Super Admin va assegnata fuori dal team operativo.
+            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+              Confermare l'accesso di {conferma.m.nomeCompleto || conferma.m.nome}?
             </div>
-            <div style={{padding:'11px 13px', borderRadius:10, background:ADM.WARN_SOFT, border:'1px solid #FDE68A',
-              fontSize:12.6, color:'#78350F', lineHeight:1.5, marginBottom:16}}>
-              Nelle campagne precedenti questa riga è stata verificata da <strong>Marco Di Meo · CFO</strong>.
-              Se il team cresce, nominare un secondo Super Admin toglie questa dipendenza da una sola persona.
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
+              Stai attestando che questa persona deve continuare ad avere questi permessi.
+              La conferma finisce nell'attestazione e nell'audit log con il tuo nome e l'orario.
+            </div>
+            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
+              {[
+                ['Ruolo', (RUOLI[conferma.m.ruolo] && RUOLI[conferma.m.ruolo].label) || conferma.m.ruolo],
+                ['Aree accessibili', `${(RUOLI[conferma.m.ruolo] && RUOLI[conferma.m.ruolo].permessi || []).length} su ${PERMESSI.length}`],
+                ['Ultimo accesso', conferma.m.lastActive ? `${raGiorniFa(conferma.m.lastActive)} giorni fa` : 'mai'],
+                ['Rilievo', conferma.cls.nota],
+              ].map(([k, v]) => (
+                <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
+                  <span style={{color:ADM.MUTED, width:126, flexShrink:0}}>{k}</span>
+                  <span style={{color:ADM.TEXT, fontWeight:600}}>{v}</span>
+                </div>
+              ))}
             </div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setSecondo(null)}>Annulla</AdmButton>
+              <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(null)}>Annulla</AdmButton>
               <AdmButton variant="primary" size="sm"
-                onClick={()=>{ registra(secondo, 'confermato', 'Verificato da un revisore esterno al team operativo', 'Marco Di Meo · CFO'); setSecondo(null); }}>
-                Assegna a Marco Di Meo
+                onClick={()=>{ registra(conferma.m, 'confermato', '', IO); setConferma(null); }}>
+                Conferma accesso
+              </AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup conferma in blocco */}
+      {confermaBlocco && (
+        <div onClick={()=>setConfermaBlocco(false)} style={{position:'absolute', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
+            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+              Confermare {invariatiAperti.length} accessi invariati?
+            </div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
+              Sono le utenze senza variazioni dall'ultima campagna e con accesso recente.
+              Confermarle in blocco è legittimo proprio perché il confronto è stato calcolato:
+              stai attestando che non è cambiato nulla, non stai timbrando alla cieca.
+            </div>
+            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16,
+              fontSize:12.8, color:ADM.TEXT, lineHeight:1.7}}>
+              {invariatiAperti.map(r => (r.m.nomeCompleto || r.m.nome)).join(' · ')}
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(false)}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="sm" onClick={()=>{ confermaInvariati(); setConfermaBlocco(false); }}>
+                Conferma le {invariatiAperti.length} utenze
               </AdmButton>
             </div>
           </div>
