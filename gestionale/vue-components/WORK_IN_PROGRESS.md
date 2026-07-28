@@ -19,6 +19,8 @@ vue-components/
 ├── package.json               ← Vite 5 + Vue 3.4 + @vitejs/plugin-vue
 ├── vite.config.js             ← alias @ → src/
 ├── index.html                 ← font Inter da Google Fonts
+├── public/
+│   └── Fresh.png              ← logo per la sidebar
 └── src/
     ├── main.js
     ├── App.vue                ← root della Panoramica
@@ -108,7 +110,7 @@ npm run dev
 
 Apri `http://localhost:5173` — verrà mostrata la Panoramica completa.
 
-> **Nota:** copiare `Fresh.png` nella cartella `vue-components/public/` per visualizzare il logo nella sidebar.
+> **Nota:** il logo `Fresh.png` è già presente in `vue-components/public/` e viene mostrato nella sidebar.
 
 ---
 
@@ -127,6 +129,8 @@ Le sezioni JSX già prototipate nel progetto originale, da convertire in Vue 3:
 | Supporto | `supporto-*.jsx` | ⬜ Da fare |
 | Account / Profilo | `account-*.jsx` | ⬜ Da fare |
 | Onboarding | `onboarding-*.jsx` | ⬜ Da fare |
+| Configurazione completa | `config-completa-app.jsx` | ⬜ Da fare |
 | Login | `login-app.jsx` | ⬜ Da fare |
+| App cameriere (Staff) | `staff-*.jsx` | ⬜ Da fare |
 
 Quando si aggiungeranno nuove sezioni, valutare l'introduzione di **Vue Router** per la navigazione tra pagine e **Pinia** se lo stato condiviso cresce (es. ordini attivi, sessione utente).
