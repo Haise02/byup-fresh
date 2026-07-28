@@ -3,8 +3,8 @@
 Hub unico che raccoglie tutte le applicazioni dell'ecosistema **byup**, servite come
 sito statico (HTML + React via Babel-standalone, **no build step**) su Vercel.
 
-La **homepage** (`index.html`) è una console che linka a ogni applicazione; da ogni app
-si torna alla home con il pulsante fluttuante in alto a sinistra.
+La **homepage** (`index.html`) è una console che linka a ogni applicazione; dalle app
+si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non lo ha).
 
 ## Struttura
 
@@ -30,3 +30,6 @@ si torna alla home con il pulsante fluttuante in alto a sinistra.
 - Ogni app è autonoma: HTML di entry + file `.jsx` caricati via `<script type="text/babel">`.
 - La navigazione interna di ogni app usa percorsi **relativi**, quindi ognuna vive
   indipendentemente nella propria cartella.
+- `assets/` contiene icone e loghi condivisi (favicon, apple-touch icon, logo completo).
+- `byup_SaldaConto_redesign.html` (in root) è un mockup standalone del redesign della
+  schermata "Salda conto".
