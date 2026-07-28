@@ -492,11 +492,8 @@ function CfFornitori() {
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
 
       <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...CF_H, marginBottom:0}}>Fornitori e sub-responsabili</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>prima i buchi, poi per criticità decrescente</span>
-        </div>
-
+        {/* Nessuna intestazione di sezione: la tab si chiama già Fornitori, e
+            l'ordinamento si vede — i due con un buco sono le prime due righe. */}
         <div style={CF_CARD}>
           <div style={{...CF_TH, display:'grid', gridTemplateColumns:GRID, gap:10}}>
             <div>Fornitore</div><div>Dati trattati</div><div>Criticità</div><div>DPA e documento</div>
