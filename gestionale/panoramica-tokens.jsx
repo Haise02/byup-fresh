@@ -60,6 +60,10 @@ const PN = {
   BTN_BRAND_PRESS:    'linear-gradient(180deg, #E04347 0%, #D63A3F 100%)',
   BTN_DARK:           'linear-gradient(180deg, #2A2D36 0%, #15171C 100%)',
   BTN_DARK_HOVER:     'linear-gradient(180deg, #353841 0%, #1F2229 100%)',
+  // Azioni distruttive: rosso, non il corallo del brand — il brand non deve
+  // dire "elimina". Base sul RED dei token, stessa curva verticale degli altri.
+  BTN_DANGER:         'linear-gradient(180deg, #E63A3A 0%, #DC2626 100%)',
+  BTN_DANGER_HOVER:   'linear-gradient(180deg, #EA4040 0%, #C81F1F 100%)',
 
   // ─── Inset highlights — il "riflesso vetroso" dei buttons macOS ────────────
   INSET_HIGHLIGHT:        'inset 0 1px 0 rgba(255, 255, 255, 0.65)',

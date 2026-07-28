@@ -16,10 +16,14 @@ function ContCosti({ openNewCost }) {
     altro:     { icon: Ic.list,    bg:'#E5E7EB', fg:'#374151' },
   };
 
-  const today = new Date('2026-01-12');
-  const in7days = new Date('2026-01-19');
+  // Le scadenze del mock sono ri-ancorate a runtime sull'oggi reale
+  // (vedi contabilita-data.jsx): la finestra va calcolata anche lei da oggi,
+  // altrimenti "in scadenza" resta sempre vuota. Le date si leggono a mezzogiorno
+  // locale, come fa il ri-ancoraggio, per non sbagliare di un giorno col fuso.
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const in7days = new Date(today); in7days.setDate(in7days.getDate() + 7);
   const upcoming = costs.filter(c => {
-    const d = new Date(c.next);
+    const d = new Date(c.next + 'T12:00:00');
     return c.status !== 'paid' && d >= today && d <= in7days;
   });
   const overdue = costs.filter(c => c.status === 'overdue');
@@ -57,7 +61,7 @@ function ContCosti({ openNewCost }) {
   // Rimette "non pagato": scaduto se la data è passata, altrimenti da pagare.
   const markSelectedUnpaid = () => {
     setCosts(prev => prev.map(c => selected.has(c.id)
-      ? { ...c, status: new Date(c.next) < today ? 'overdue' : 'due' }
+      ? { ...c, status: new Date(c.next + 'T12:00:00') < today ? 'overdue' : 'due' }
       : c));
     setSelected(new Set());
   };

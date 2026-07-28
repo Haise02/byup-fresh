@@ -160,9 +160,9 @@ function ContoExpandedPanel({ conto, onRimborso }) {
     return time || '';
   };
   const methodMeta = {
-    contanti: { label:'Contanti', icon: PnI.Coin || PnI.Wallet, color:'#0F766E', bg:'#CCFBF1' },
-    carta:    { label:'Carta',    icon: PnI.Card || PnI.Wallet, color:'#1D4ED8', bg:'#DBEAFE' },
-    byup:     { label:'Byup app', icon: PnI.Smartphone || PnI.Phone || PnI.Mobile || PnI.Wallet, color:'#7C3AED', bg:'#EDE9FE' },
+    contanti: { label:'Contanti', icon: PnI.Coin,       color:'#0F766E', bg:'#CCFBF1' },
+    carta:    { label:'Carta',    icon: PnI.Card,       color:'#1D4ED8', bg:'#DBEAFE' },
+    byup:     { label:'Byup app', icon: PnI.Smartphone, color:'#7C3AED', bg:'#EDE9FE' },
   };
   return (
     <div style={{
@@ -253,7 +253,7 @@ function ContoExpandedPanel({ conto, onRimborso }) {
                   onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}
                   >
-                    {PnI.RotateCcw ? <PnI.RotateCcw size={12}/> : null}
+                    <PnI.RotateCcw size={12}/>
                     Rimborso
                   </button>
                 </div>
@@ -274,7 +274,7 @@ function ContoExpandedPanel({ conto, onRimborso }) {
             width: 32, height: 32, borderRadius: 8,
             background:'#FEE2E2', color:'#B91C1C',
             display:'grid', placeItems:'center',
-          }}>{PnI.RotateCcw ? <PnI.RotateCcw size={15}/> : (PnI.X ? <PnI.X size={15}/> : null)}</div>
+          }}><PnI.RotateCcw size={15}/></div>
           <div>
             <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
               Rimborso · {conto.rimborso.method === 'carta' ? 'Carta' : 'Contanti'}

@@ -189,6 +189,14 @@ function ImpButton({ variant = 'primary', icon, children, onClick, style = {}, d
       border: `1px solid ${PN.BORDER_LIGHT}`,
       shadow: PN.INSET_HIGHLIGHT,
     },
+    // Azioni distruttive (scollega, elimina): devono leggersi come tali,
+    // non cadere sul primary scuro.
+    danger: {
+      bg:     hover ? PN.BTN_DANGER_HOVER : PN.BTN_DANGER,
+      color:  '#fff',
+      border: '1px solid rgba(150, 25, 25, 0.42)',
+      shadow: PN.INSET_HIGHLIGHT_BRAND,
+    },
   };
   const v = variants[variant] || variants.primary;
   return (
