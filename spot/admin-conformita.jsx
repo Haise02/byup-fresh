@@ -93,10 +93,6 @@ function CfCruscotto({ onNav }) {
       return (x.s.giorni == null ? -1e9 : x.s.giorni) - (y.s.giorni == null ? -1e9 : y.s.giorni);
     });
 
-  const attivi  = righe.filter(r => r.s.stato !== 'na');
-  const scaduti = attivi.filter(r => r.s.stato === 'scaduto' || r.s.stato === 'mai').length;
-  const vicini  = attivi.filter(r => r.s.stato === 'vicino').length;
-
   const apriModifica = (a) => {
     setModifica(a);
     setBozza({
@@ -125,49 +121,16 @@ function CfCruscotto({ onNav }) {
     setModifica(null); setBozza(null); forzaCf(n => n + 1);
   };
 
-  // Stato sintetico dei registri: non è il dettaglio, è "c'è qualcosa di aperto?"
-  const rischiAperti = RISCHI.filter(r => r.stato === 'aperto' || r.stato === 'nuovo').length;
-  const ncAperte = NON_CONFORMITA.filter(n => n.stato !== 'chiusa').length;
-  const incAperti = INCIDENTI.filter(i => i.stato !== 'chiuso').length;
-  const formScaduta = FORMAZIONE.filter(f => !f.completatoIl || cfGiorniA(cfMesi(f.completatoIl, f.validitaMesi)) < 0).length;
-  const fornSenzaRiesame = FORNITORI.filter(f => !f.ultimoRiesame).length;
-
-  const sintesi = [
-    { n:rischiAperti,      uno:'rischio da trattare',         label:'rischi da trattare',        tab:'rischi',    tono: rischiAperti ? 'WARN' : 'OK' },
-    { n:ncAperte,          uno:'non conformità aperta',       label:'non conformità aperte',      tab:'nc',        tono: ncAperte ? 'WARN' : 'OK' },
-    { n:incAperti,         uno:'incidente aperto',            label:'incidenti aperti',           tab:'incidenti', tono: incAperti ? 'WARN' : 'OK' },
-    { n:fornSenzaRiesame,  uno:'fornitore mai riesaminato',   label:'fornitori mai riesaminati',  tab:'fornitori', tono: fornSenzaRiesame ? 'DANGER' : 'OK' },
-    { n:formScaduta,       uno:'formazione scaduta o mancante', label:'formazioni scadute o mancanti', tab:'registri', tono: formScaduta ? 'WARN' : 'OK' },
-  ];
-
   return (
-    <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20}}>
-      <div style={{display:'flex', alignItems:'center', gap:14, padding:'14px 16px', borderRadius:10,
-        background: scaduti ? ADM.DANGER_SOFT : vicini ? '#FFF7E6' : ADM.OK_SOFT,
-        border:`1px solid ${scaduti ? '#FECACA' : vicini ? '#FDE68A' : '#BBF7D0'}`}}>
-        <div style={{flex:1}}>
-          <div style={{fontSize:14.5, fontWeight:800, color: scaduti ? '#7F1D1D' : vicini ? '#78350F' : '#065F46'}}>
-            {scaduti
-              ? `${scaduti} ${scaduti === 1 ? 'adempimento scaduto' : 'adempimenti scaduti'}`
-              : vicini
-                ? `${vicini} ${vicini === 1 ? 'adempimento in scadenza' : 'adempimenti in scadenza'}`
-                : 'Tutti gli adempimenti in regola'}
-          </div>
-          <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-            {attivi.length} obblighi applicabili fra ISO 27001 e ISO 9001
-            {righe.length - attivi.length > 0 && (righe.length - attivi.length === 1
-              ? ', 1 dichiarato non applicabile'
-              : `, ${righe.length - attivi.length} dichiarati non applicabili`)}
-            {' · '}la scadenza si calcola dalla cadenza, tranne le verifiche dell'ente che hanno una data imposta
-          </div>
+    <div style={{padding:'18px 22px 22px', display:'flex', flexDirection:'column', flex:1, minHeight:0}}>
+      {/* La tabella riempie la pagina e scorre da dentro: l'intestazione resta
+          ferma, così su ventidue righe non si perde di vista quale colonna si
+          sta leggendo. */}
+      <div style={{...CF_CARD, display:'flex', flexDirection:'column', flex:1, minHeight:0}}>
+        <div style={{...CF_TH, display:'grid', gridTemplateColumns:CF_GRID_AD, gap:10, flexShrink:0}}>
+          <div>Adempimento</div><div>Norma</div><div>Ogni</div><div>Ultima</div><div>Prossima</div><div>Responsabile</div><div/>
         </div>
-      </div>
-
-      <div>
-        <div style={CF_CARD}>
-          <div style={{...CF_TH, display:'grid', gridTemplateColumns:CF_GRID_AD, gap:10}}>
-            <div>Adempimento</div><div>Norma</div><div>Ogni</div><div>Ultima</div><div>Prossima</div><div>Responsabile</div><div/>
-          </div>
+        <div style={{flex:1, minHeight:0, overflowY:'auto'}}>
           {righe.map(({ a, s }, i) => {
             const na = s.stato === 'na';
             return (
@@ -209,27 +172,6 @@ function CfCruscotto({ onNav }) {
             );
           })}
         </div>
-      </div>
-
-      <div>
-        <div style={CF_H}>Stato dei registri</div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:10}}>
-          {sintesi.map(s => (
-            <div key={s.label} className="adm-card-interactive" onClick={()=>onNav && onNav({ route:'conformita', tab:s.tab })}
-              style={{...CF_CARD, padding:'14px 16px', cursor:'pointer'}}>
-              <div style={{fontSize:26, fontWeight:800, letterSpacing:'-0.02em', lineHeight:1,
-                color: s.n ? CF_TONO(s.tono) : ADM.TEXT}}>{s.n}</div>
-              <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:6, lineHeight:1.35}}>{s.n === 1 ? s.uno : s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.6, padding:'12px 14px',
-        background:ADM.NEUTRAL_SOFT, borderRadius:10}}>
-        La cadenza la scegli tu: le norme chiedono «a intervalli pianificati», non ogni quanto.
-        Ma una volta scritta ti vincola — meglio una cadenza sostenibile e rispettata che una
-        ambiziosa e mancata. Fanno eccezione le verifiche dell'ente, la cui data non decidi.
       </div>
 
       {/* Modifica: cambia forma secondo la natura dell'adempimento */}
@@ -326,10 +268,16 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
     </div>
   );
 
+  // Il Cruscotto occupa tutta la pagina e scorre da dentro la tabella: le altre
+  // tab restano a flusso normale, hanno contenuti di altezze molto diverse e
+  // vincolarle qui le taglierebbe.
+  const pieno = tab === 'cruscotto';
+
   return (
-    <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
-      <AdmCard padding={0}>
-        <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
+    <div style={{padding:28, display:'flex', flexDirection:'column', gap:16,
+      ...(pieno ? {height:'100%', boxSizing:'border-box'} : {})}}>
+      <AdmCard padding={0} style={pieno ? {flex:1, minHeight:0, display:'flex', flexDirection:'column'} : undefined}>
+        <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
           <AdmTabBar tabs={[
             { id:'cruscotto', label:'Cruscotto' },
             { id:'rischi',    label:'Rischi' },
