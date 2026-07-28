@@ -15,17 +15,19 @@ Un set coerente che scala di preziosità: LIV.1 novizio → LIV.8 icona. Genera 
 Singolo (per il nodo "sei qui" sulla roadmap):
 > a glowing coral-magenta level medallion, plush-3D, number "4" embossed, lime energy aura, floating sparkles, transparent background — 1:1
 
+**Stato:** nel prototipo i livelli non usano medaglioni ma i ritagli-personaggio `assets/rank-1..8.png` (mascotte in carriera: prime armi → cameriere → caposala → chef → executive chef → proprietario → proprietario dorato → imprenditore miliardario), mostrati nei popup di livello e nel level-up; i nodi numerati della roadmap sono disegnati in codice.
+
 ## 3 · Achievement / badge traguardi (emblemi kawaii)
 Ognuno = emblema 3D tondo con l'oggetto-tema, in due stati (acceso vivace / spento grigio per il locked).
 > a rounded kawaii 3D emblem badge, plush-felt, [SUBJECT] centered inside a coral ring with tiny stars, glossy, transparent background, collectible sticker vibe — 1:1
 
-Sostituisci [SUBJECT] con: `a smiling pizza slice` (Pizza lover) · `a winking spritz cocktail glass` (Re dello spritz) · `a little globe with a fork` (Esploratore) · `a crown` (Ambassador) · `a flame streak` (Fedelissimo) · `a crescent moon with stars` (Nottambulo) · `a star with a speech bubble` (Critico) · `a shining trophy` (Icona).
+Sostituisci [SUBJECT] con: `a smiling pizza slice` (Pizza lover) · `a winking spritz cocktail glass` (Re dello spritz) · `a little globe with a fork` (Esploratore) · `a coral payment card with a sparkle` (byup pay) · `a crown` (Ambassador) · `a flame streak` (Fedelissimo) · `a crescent moon with stars` (Nottambulo) · `a star with a speech bubble` (Critico) · `a shining trophy` (Icona).
 Per lo stato bloccato: aggiungi `desaturated grayscale, matte, with a small padlock`.
 
 ## 4 · Premi / catalogo (product shots)
 > soft 3D product render, plush-toy meets premium merch, byup coral branding, studio light, transparent background, [ITEM] — 1:1
 
-[ITEM]: `a coral reusable bottle with a smiling face and "byup" logo` (borraccia) · `a coral tote bag with the byup mascot print` (tote) · `a pack of glossy byup sticker sheets` (sticker) · `a plated gourmet dessert with a sparkler` (dessert offerto) · `two spritz cocktails clinking` (aperitivo x2).
+[ITEM]: `a coral reusable bottle with a smiling face and "byup" logo` (borraccia) · `a coral tote bag with the byup mascot print` (tote) · `a pack of glossy byup sticker sheets` (sticker) · `a plated gourmet dessert with a sparkler` (dessert offerto) · `two spritz cocktails clinking` (aperitivo x2) · `a whole margherita pizza on a wooden board` (pizza offerta — nel prototipo è ancora un'emoji).
 
 **byup card (premio icona)** — separato, più cinematografico:
 > a premium matte-black + coral gradient payment card floating at 3/4 angle, embossed "byup card", subtle holographic sheen, lime accent line, cinematic dark background with soft coral glow, luxury fintech product shot — 3:2
@@ -45,11 +47,15 @@ Oppure singolo (esempio tappa attuale):
 
 Props opzionali per arricchire la scena (PNG trasparenti): `a small street lamp with a warm glow`, `a little coral flag banner`, `a bush/tree in muted warm tones`, `floating byup coins sparkling`.
 
+**Stato:** generati come `assets/venue-1..8.png` e già montati sulla roadmap del prototipo.
+
 ## 7 · Ambiente / terreno della mappa (lo SFONDO ricco)
 Questo è il pezzo che dà la "vita" alla mappa (stile reference Brawl Stars/Candy Crush) ma in versione byup. Generalo **senza sentiero e senza edifici** (quelli li metto in codice sopra) — solo terreno e scenografia, verticale e "tileable".
 > top-down game world map background, lush hand-painted mobile-game art (Brawl Stars / Candy Crush vibe) but in the byup brand mood: warm palette — coral #E32459 accents, wine, cream paths, soft warm-green grass with a sunset tint, a coral-teal river/lagoon, stylized round trees, warm ochre rocks, little bushes and flowers, a couple of empty flat plots ready for buildings, vertical composition, seamless top and bottom for tiling, playful, thick clean outlines, high detail, NO path lines, NO buildings, NO text — 9:16
 
 Genera **2–4 pannelli** con continuità (fiume/prati che proseguono) per lo scroll. Varia leggermente ogni pannello (più acqua in uno, più bosco in un altro).
+
+**Stato:** nel prototipo è montato un solo pannello, `assets/road-city.png` (864×1821); cima e fondo vengono specchiati e sfumati via codice per dare continuità. Un secondo terreno (`assets/road-terrain.png`) è stato generato ma non è usato.
 
 Nodi-livello (opzionale, se li vuoi a immagine invece che in codice), stile "bottone" della reference:
 > a glossy round level button token for a game map, coral-magenta gradient with a thick cream ring and a bold number placeholder, soft 3D, drop shadow, transparent background — 1:1 · e la versione bloccata: `grey metallic round token with a padlock, transparent background`.
@@ -57,4 +63,4 @@ Nodi-livello (opzionale, se li vuoi a immagine invece che in codice), stile "bot
 **Come lo monto:** metto il/i pannello/i come `background` scorrevole della scena, poi in codice disegno il sentiero che serpeggia tra i "plot", ci appoggio i locali (asset del punto 6), i nodi con numero+nome, lucchetti e la mascotte "SEI QUI". Tu generi terreno + locali, io li incastro.
 
 ## Roadmap livelli — approccio (aggiornato)
-NON un PNG da 10000×800: sarebbe pesante, sgranato allo zoom e non modificabile. Meglio **costruirla in codice** (percorso SVG + nodi), come i giochi mobile: sentiero verticale a serpentina, nodi-livello (completato / attuale con mascotte / bloccato), ricompense-milestone lungo il tratto, animazioni (nodo attuale che pulsa, sentiero che si "riempie"). È nitida a ogni densità, animabile e la aggiorni cambiando i dati. Le **immagini le usiamo per i pezzi** che stanno sopra al percorso: i badge di livello (punto 2), la mascotte-guida (punto 5), le icone-ricompensa. L'ho già implementata così nel prototipo.
+NON un PNG da 10000×800: sarebbe pesante, sgranato allo zoom e non modificabile. Meglio **costruirla in codice** (percorso SVG + nodi), come i giochi mobile: sentiero verticale a serpentina, nodi-livello (completato / attuale con mascotte / bloccato), ricompense-milestone lungo il tratto, animazioni (nodo attuale che pulsa, sentiero che si "riempie"). È nitida a ogni densità, animabile e la aggiorni cambiando i dati. Le **immagini le usiamo per i pezzi** che stanno sopra al percorso: i locali (punto 6), la mascotte-guida (punto 5) e i personaggi-livello `rank-1..8.png` nei popup; i nodi numerati e i lucchetti sono disegnati in codice. L'ho già implementata così nel prototipo (`byuppini-roadmap.html`, poi portata in `app.jsx` come RoadmapScreen).
