@@ -67,8 +67,9 @@ dell'operazione registrato nell'attestazione. È la differenza tra «abbiamo
 riesaminato» e «abbiamo riesaminato e rimediato» — cioè tra un rilievo e un pass.
 
 **Apertura automatica della campagna** alla scadenza della cadenza
-(`RIESAME_CADENZA_MESI`, oggi 6), con promemoria al revisore. Il chip nella
-striscia «Richiede attenzione» del Generale c'è già e compare sotto i 14 giorni.
+(`RIESAME_CADENZA_MESI`, oggi **3 mesi**: le campagne sono trimestrali, Q1…Q4),
+con promemoria al revisore. Il chip nella striscia «Richiede attenzione» del
+Generale c'è già e compare sotto i 14 giorni.
 
 **Export PDF** oltre al CSV: l'auditor di solito vuole un documento firmato,
 il CSV è per le carte di lavoro.

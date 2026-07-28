@@ -414,13 +414,13 @@ const TEAM = [
 // Il controllo non è "esiste una lista": è poter dimostrare che a una certa
 // data una persona ha guardato chi ha accesso a cosa e ha deciso, e che le
 // revoche sono state eseguite. Ambito = solo il team admin di Byup.
-const RIESAME_CADENZA_MESI = 6;
+const RIESAME_CADENZA_MESI = 3;
 
 // Campagna in corso: aperta il 1 lug, scade il 31. Gli esiti si accumulano qui
 // mentre il revisore lavora; la campagna si chiude solo quando sono tutti decisi.
 const RIESAME_CORRENTE = {
-  id: 'RA-2026-H2',
-  periodo: 'H2 2026',
+  id: 'RA-2026-Q3',
+  periodo: 'Q3 2026',
   apertaIl: new Date('2026-07-01T09:00:00'),
   scadenza: new Date('2026-07-31T23:59:59'),
   revisore: 'Marco Rinaldi',
@@ -432,19 +432,38 @@ const RIESAME_CORRENTE = {
 // non si modificano — una correzione è una campagna nuova, mai una riscrittura.
 const RIESAMI_CHIUSI = [
   {
-    id: 'RA-2026-H1',
-    periodo: 'H1 2026',
+    id: 'RA-2026-Q2',
+    periodo: 'Q2 2026',
+    apertaIl: new Date('2026-04-01T09:00:00'),
+    scadenza: new Date('2026-04-30T23:59:59'),
+    chiusaIl: new Date('2026-04-14T15:20:00'),
+    revisore: 'Marco Rinaldi',
+    stato: 'chiusa',
+    esiti: [
+      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:"d'ufficio",     quando:new Date('2026-04-14T15:10:00'), motivo:'Super Admin titolare — accesso per definizione del ruolo' },
+      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:12:00'), motivo:'' },
+      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:13:00'), motivo:'' },
+      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:14:00'), motivo:'' },
+      // Andrea era Viewer e oggi è Support: il riesame lo deve segnalare.
+      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:15:00'), motivo:'' },
+      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:17:00'), motivo:'' },
+      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:18:00'), motivo:'' },
+      { soggettoId:'mkt3',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:20:00'), motivo:'' },
+    ],
+  },
+  {
+    id: 'RA-2026-Q1',
+    periodo: 'Q1 2026',
     apertaIl: new Date('2026-01-02T09:00:00'),
     scadenza: new Date('2026-01-31T23:59:59'),
     chiusaIl: new Date('2026-01-16T16:42:00'),
     revisore: 'Marco Rinaldi',
     stato: 'chiusa',
     esiti: [
-      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:'Marco Di Meo · CFO', quando:new Date('2026-01-16T16:30:00'), motivo:'' },
+      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:"d'ufficio",     quando:new Date('2026-01-16T16:30:00'), motivo:'Super Admin titolare — accesso per definizione del ruolo' },
       { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:33:00'), motivo:'' },
       { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:34:00'), motivo:'' },
       { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:35:00'), motivo:'' },
-      // Andrea era Viewer e oggi è Support: il riesame lo deve segnalare.
       { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:36:00'), motivo:'' },
       { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:38:00'), motivo:'' },
       { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:39:00'), motivo:'' },
@@ -453,21 +472,22 @@ const RIESAMI_CHIUSI = [
     ],
   },
   {
-    id: 'RA-2025-H2',
-    periodo: 'H2 2025',
-    apertaIl: new Date('2025-07-01T09:00:00'),
-    scadenza: new Date('2025-07-31T23:59:59'),
-    chiusaIl: new Date('2025-07-24T11:05:00'),
+    id: 'RA-2025-Q4',
+    periodo: 'Q4 2025',
+    apertaIl: new Date('2025-10-01T09:00:00'),
+    scadenza: new Date('2025-10-31T23:59:59'),
+    chiusaIl: new Date('2025-10-20T11:05:00'),
     revisore: 'Marco Rinaldi',
     stato: 'chiusa',
     esiti: [
-      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:'Marco Di Meo · CFO', quando:new Date('2025-07-24T10:58:00'), motivo:'' },
-      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:00:00'), motivo:'' },
-      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:01:00'), motivo:'' },
-      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:02:00'), motivo:'' },
-      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:03:00'), motivo:'' },
-      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:04:00'), motivo:'' },
-      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-07-24T11:05:00'), motivo:'' },
+      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:"d'ufficio",     quando:new Date('2025-10-20T10:58:00'), motivo:'Super Admin titolare — accesso per definizione del ruolo' },
+      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:00:00'), motivo:'' },
+      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:01:00'), motivo:'' },
+      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:02:00'), motivo:'' },
+      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:03:00'), motivo:'' },
+      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:04:00'), motivo:'' },
+      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:05:00'), motivo:'' },
+      { soggettoId:'exdev1',   decisione:'confermato', ruoloAllora:'super_admin', chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:05:30'), motivo:'', nomeStorico:'Tommaso Neri' },
     ],
   },
 ];

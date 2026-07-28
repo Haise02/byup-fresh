@@ -41,7 +41,7 @@ Il pagamento dal tavolo è una funzionalità esclusiva dell'app nativa e richied
 
 Per chi non ha l'app, è disponibile una webapp guest accessibile via QR code che permette di ordinare dal tavolo senza registrazione, ma non consente il pagamento, incentivando il download dell'app.
 
-La sezione Discovery funziona come motore di scoperta dei locali aderenti, con filtri per stato (aperto/chiuso), distanza, promozioni attive, rating, tipo di cucina, fascia di prezzo, e tag alimentari (senza glutine, vegano, vegetariano). La discovery si attiva solo sopra la soglia di 125 locali nella città dell'utente o 150 nella regione.
+La sezione Discovery funziona come motore di scoperta dei locali aderenti, con filtri per stato (aperto/chiuso), distanza, promozioni attive, rating, tipo di cucina, fascia di prezzo, e tag alimentari (senza glutine, vegano, vegetariano). La discovery si attiva solo sopra la soglia di 125 locali entro 6 km dal GPS dell'utente, oppure 150 entro 50 km come fallback regionale. Raggi e soglie sono parametri configurabili da Spot (Impostazioni Admin → Piattaforma), non costanti di codice.
 
 In una fase successiva (post 4 anni), l'app sarà disponibile anche in versione Pro a 2,99 € + IVA al mese, con funzionalità avanzate basate su intelligenza artificiale per ricerche e prenotazioni più rapide, sconti dedicati e contenuti personalizzati.
 

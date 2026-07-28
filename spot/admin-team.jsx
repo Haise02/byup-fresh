@@ -442,19 +442,35 @@ function AuditLog() {
 // ─── Configurazione piattaforma — le leve commerciali, senza deploy ─────────
 // Solo Super Admin · ogni salvataggio richiede conferma e finisce in audit.
 function PlatformConfig() {
+  // Tre durate: il mensile è il riferimento, annuale e triennale sono le leve
+  // di sconto. Il risparmio non si scrive a mano — si calcola dal mensile, così
+  // cambiando un prezzo si vede subito che sconto si sta davvero offrendo.
   const DEFAULTS = {
-    free:     { label:'Gratuito', prezzo:0,      ordini:550,   extra:0.45 },
-    starter:  { label:'Starter',  prezzo:46.99,  ordini:1850,  extra:0.34 },
-    plus:     { label:'Plus',     prezzo:134.99, ordini:7500,  extra:0.23 },
-    business: { label:'Business', prezzo:250,    ordini:15000, extra:0.12 },
+    free:     { label:'Gratuito', prezzo:0,      anno:0,       triennio:0,      ordini:550,   extra:0.45 },
+    starter:  { label:'Starter',  prezzo:46.99,  anno:469.90,  triennio:1269.00, ordini:1850,  extra:0.34 },
+    plus:     { label:'Plus',     prezzo:134.99, anno:1349.90, triennio:3644.00, ordini:7500,  extra:0.23 },
+    business: { label:'Business', prezzo:250,    anno:2500.00, triennio:6750.00, ordini:15000, extra:0.12 },
   };
   const [cfg, setCfg] = React.useState(() => JSON.parse(JSON.stringify(DEFAULTS)));
-  const [pesoApp, setPesoApp] = React.useState('0.5');
-  const [sogliaCitta, setSogliaCitta] = React.useState('125');
-  const [sogliaRegione, setSogliaRegione] = React.useState('150');
+  // Peso dell'ordine per canale. L'app pesa meno per incentivarne l'adozione:
+  // è il meccanismo del flywheel. Gli altri partono da 1 ma sono leve, non
+  // costanti — domani si può voler spingere la webapp o frenare la cassa.
+  const [pesi, setPesi] = React.useState({ app:'0.5', webapp:'1', cameriere:'1', cassa:'1' });
+  // Discovery: la soglia dice QUANTI locali servono, il raggio dice ENTRO CHE
+  // DISTANZA contarli. Senza il raggio la soglia non è definita.
+  const [disc, setDisc] = React.useState({ raggioCitta:'6', sogliaCitta:'125', raggioRegione:'50', sogliaRegione:'150' });
   const [confirm, setConfirm] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const set = (piano, k) => (e) => { setSaved(false); setCfg(prev => ({ ...prev, [piano]: { ...prev[piano], [k]: e.target.value } })); };
+  const setPeso = (k) => (e) => { setSaved(false); setPesi(prev => ({ ...prev, [k]: e.target.value })); };
+  const setDisco = (k) => (e) => { setSaved(false); setDisc(prev => ({ ...prev, [k]: e.target.value })); };
+  // Sconto implicito rispetto al mensile pagato per la stessa durata.
+  const sconto = (mese, totale, mesi) => {
+    const m = parseFloat(mese), t = parseFloat(totale);
+    if (!m || !t) return null;
+    const pieno = m * mesi;
+    return Math.round((1 - t / pieno) * 100);
+  };
   const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
   const lab = {fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
   const doSave = () => { setConfirm(false); setSaved(true); setTimeout(()=>setSaved(false), 3000); };
@@ -471,6 +487,14 @@ function PlatformConfig() {
             <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT, marginBottom:12}}>{p.label}</div>
             <div style={{display:'flex', flexDirection:'column', gap:10}}>
               <div><label style={lab}>Prezzo €/mese</label><input type="number" step="0.01" value={p.prezzo} onChange={set(id,'prezzo')} style={inp} disabled={id==='free'}/></div>
+              <div>
+                <label style={lab}>€ /anno {(() => { const s = sconto(p.prezzo, p.anno, 12); return s ? <span style={{color:ADM.OK, marginLeft:4}}>−{s}%</span> : null; })()}</label>
+                <input type="number" step="0.01" value={p.anno} onChange={set(id,'anno')} style={inp} disabled={id==='free'}/>
+              </div>
+              <div>
+                <label style={lab}>€ /triennio {(() => { const s = sconto(p.prezzo, p.triennio, 36); return s ? <span style={{color:ADM.OK, marginLeft:4}}>−{s}%</span> : null; })()}</label>
+                <input type="number" step="0.01" value={p.triennio} onChange={set(id,'triennio')} style={inp} disabled={id==='free'}/>
+              </div>
               <div><label style={lab}>Ordini inclusi</label><input type="number" value={p.ordini} onChange={set(id,'ordini')} style={inp}/></div>
               <div><label style={lab}>€ / ordine extra</label><input type="number" step="0.01" value={p.extra} onChange={set(id,'extra')} style={inp}/></div>
             </div>
@@ -478,23 +502,63 @@ function PlatformConfig() {
         ))}
       </div>
 
-      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginTop:6}}>Pesi e soglie</div>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
-        <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
-          <label style={lab}>Peso ordine da app</label>
-          <input type="number" step="0.1" min="0.1" max="1" value={pesoApp} onChange={e=>{setSaved(false); setPesoApp(e.target.value);}} style={inp}/>
-          <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6}}>Cassa e cameriere pesano sempre 1 · l'app pesa meno per incentivarne l'adozione</div>
-        </div>
-        <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
-          <label style={lab}>Soglia discovery · città</label>
-          <input type="number" value={sogliaCitta} onChange={e=>{setSaved(false); setSogliaCitta(e.target.value);}} style={inp}/>
-          <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6}}>Locali minimi in città per attivare la discovery nell'app</div>
-        </div>
-        <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
-          <label style={lab}>Soglia discovery · regione</label>
-          <input type="number" value={sogliaRegione} onChange={e=>{setSaved(false); setSogliaRegione(e.target.value);}} style={inp}/>
-          <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6}}>Fallback regionale quando la città non raggiunge la soglia</div>
-        </div>
+      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginTop:6}}>Peso dell'ordine per canale</div>
+      <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:-6, lineHeight:1.5}}>
+        Quanto ogni ordine consuma del pacchetto incluso nel piano. L'app pesa meno per
+        incentivarne l'adozione — è il meccanismo che tiene insieme locale e cliente finale.
+      </div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
+        {[
+          { k:'app',       label:'Byup App',   nota:'Ordine dal telefono del cliente, con account' },
+          { k:'webapp',    label:'Webapp QR',  nota:'Ordine da QR senza app, ospite non registrato' },
+          { k:'cameriere', label:'Cameriere',  nota:'Comanda presa in sala dallo staff' },
+          { k:'cassa',     label:'Cassa',      nota:'Ordine battuto al banco o alla cassa' },
+        ].map(c => {
+          const v = parseFloat(pesi[c.k]);
+          return (
+            <div key={c.k} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+              <label style={lab}>{c.label}</label>
+              <input type="number" step="0.05" min="0" max="5" value={pesi[c.k]} onChange={setPeso(c.k)} style={inp}/>
+              <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.4}}>{c.nota}</div>
+              <div style={{fontSize:11.8, color: v === 1 ? ADM.MUTED : v < 1 ? ADM.OK : ADM.WARN, fontWeight:700, marginTop:6}}>
+                {!v && v !== 0 ? '—' : v === 1 ? 'Peso pieno' : v === 0 ? 'Non conteggiato' : v < 1 ? `Sconta il ${Math.round((1-v)*100)}%` : `Conta ${v}×`}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginTop:6}}>Discovery nell'app</div>
+      <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:-6, lineHeight:1.5}}>
+        Il <strong>raggio</strong> definisce entro che distanza dal GPS dell'utente cercare i locali;
+        la <strong>soglia</strong> quanti devono essercene perché la ricerca si accenda. Sotto soglia
+        l'app non mostra la discovery: meglio niente che una mappa vuota.
+      </div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:12}}>
+        {[
+          { id:'citta',   titolo:'Vicino a te', rk:'raggioCitta',   sk:'sogliaCitta',
+            nota:'È la home dell\'app: i locali nei dintorni dell\'utente.' },
+          { id:'regione', titolo:'Regionale',   rk:'raggioRegione', sk:'sogliaRegione',
+            nota:'Fallback quando intorno all\'utente non si raggiunge la soglia.' },
+        ].map(b => (
+          <div key={b.id} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+            <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT, marginBottom:12}}>{b.titolo}</div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+              <div>
+                <label style={lab}>Raggio · km</label>
+                <input type="number" step="1" min="1" value={disc[b.rk]} onChange={setDisco(b.rk)} style={inp}/>
+              </div>
+              <div>
+                <label style={lab}>Soglia · locali</label>
+                <input type="number" step="5" min="1" value={disc[b.sk]} onChange={setDisco(b.sk)} style={inp}/>
+              </div>
+            </div>
+            <div style={{fontSize:11.8, color:ADM.TEXT, marginTop:10, lineHeight:1.45}}>
+              Si accende con almeno <strong>{disc[b.sk] || '—'} locali</strong> entro <strong>{disc[b.rk] || '—'} km</strong> dall'utente.
+            </div>
+            <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:4, lineHeight:1.4}}>{b.nota}</div>
+          </div>
+        ))}
       </div>
 
       <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10}}>
