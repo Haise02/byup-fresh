@@ -1720,15 +1720,15 @@ function RowKV({ k, v }) {
 // Il locale può avere stili di vetrina diversi. In produzione lo stile sarà
 // scelto dal RISTORATORE nel gestionale e arriverà dal backend insieme ai dati
 // del locale. Qui (prototipo, nessun backend) lo stile si forza via:
-//   • URL  ?venue=a|b|c|original     → utile per ShortcutsPanel / demo
+//   • URL  ?venue=original|premium   → utile per ShortcutsPanel / demo
 //   • window.__venueVariant = '…'    → override da console
 // Default = 'original' (stile classico, definito sotto in questo file).
-// Gli altri stili (a/b/c) vivono in venue-variants.jsx. Vedi Contesto-App.md §3.1.
+// Lo stile 'premium' vive in venue-variants.jsx. Vedi Contesto-App.md §3.1.
 function VenueScreen(props) {
   const variant = (() => {
     try {
       const v = new URLSearchParams(window.location.search).get('venue');
-      if (['a','b','c','original','premium'].includes(v)) return v;
+      if (['original','premium'].includes(v)) return v;
     } catch {}
     return window.__venueVariant || null;
   })();
@@ -1737,9 +1737,6 @@ function VenueScreen(props) {
   if ((variant === 'premium' || (!variant && props.venue && props.venue.premium)) && window.VenuePremium) {
     return <window.VenuePremium {...props}/>;
   }
-  if (variant === 'a' && window.VenueA) return <window.VenueA {...props}/>;   // Editorial / Magazine
-  if (variant === 'b' && window.VenueB) return <window.VenueB {...props}/>;   // Cinematic / Tasting menu
-  if (variant === 'c' && window.VenueC) return <window.VenueC {...props}/>;   // Operativo / Resy-style
   return <VenueOriginal {...props}/>;                                         // Classico (default)
 }
 

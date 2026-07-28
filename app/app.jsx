@@ -5060,9 +5060,6 @@ function ShortcutsPanel() {
   // Stili di vetrina (in produzione li sceglie il ristoratore dal gestionale).
   const venueStyles = [
     { id: 'original', label: 'Classico',  desc: 'Classico (default)' },
-    { id: 'a',        label: 'A',         desc: 'Editorial / Magazine' },
-    { id: 'b',        label: 'B',         desc: 'Cinematic / Tasting' },
-    { id: 'c',        label: 'C',         desc: 'Operativo / Resy' },
     { id: 'premium',  label: '★',         desc: 'Premium byup' },
   ];
   const row = (s) => {
@@ -5095,7 +5092,7 @@ function ShortcutsPanel() {
           const active = cur === 'venue' && curVenue === v.id;
           return (
             <a key={v.id} href={`byup Home.html?page=venue&venue=${v.id}`} title={v.desc} style={{
-              flex: v.id === 'original' ? 1.6 : 1,
+              flex: 1,
               padding: '6px 4px', fontSize: 12, borderRadius: 8,
               background: active ? '#E32459' : TINT,
               color: active ? '#fff' : '#1a1a1a',
