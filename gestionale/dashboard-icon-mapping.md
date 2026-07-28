@@ -31,7 +31,7 @@ Vincoli di posizionamento dal prompt (Fase 4):
 | `byup Supporto.html` | `supporto-app.jsx` | "Supporto" | `headphones` (UI) | Headphones è canonical SF per support. Eccezione. *(Usata in sidebar.)* |
 | `byup Configurazione Completa.html` | `config-completa-app.jsx` | "Configurazione" | `place-restaurant` | Vetrina + personale del locale. |
 | `byup Restaurant Onboarding.html` | `onboarding-app.jsx` | "Benvenuto in byup" | `place-restaurant` | Onboarding di un nuovo locale. |
-| `byup Staff.html` | `staff-app.jsx` | (mobile app cameriere) | `people-waiter` | Non è dashboard tecnicamente — è l'app staff. Lo lascio per completezza. |
+| ~~`byup Staff.html`~~ | ~~`staff-app.jsx`~~ | (mobile app cameriere) | `people-waiter` | Non è dashboard tecnicamente — è l'app staff. Lo lascio per completezza. *(La copia in `gestionale/` è stata rimossa il 2026-07-28: l'app cameriere viva è `cameriere/cameriereweb.html` + `cameriere/staff-*.jsx`.)* |
 | `byup Login.html` | (login-app.jsx) | "Accedi" | — | Niente Content, login è UI-only. |
 
 ---
@@ -162,7 +162,7 @@ Posti dove un'illustrazione Content fa bene (Fase 4 lo ammette):
 ## 6. TODO / sezioni che richiedono icone fuori lista
 
 - `impostazioni-menu-cucina.jsx` — ✅ confermato e implementato (v. §3, `CAT_ICON`).
-- `staff-screen-menu.jsx` — può avere filter chips lato cameriere. Ancora da valutare.
+- `cameriere/staff-screen-menu.jsx` — può avere filter chips lato cameriere. Ancora da valutare.
 - `panoramica-widget-catalog.jsx` — ✅ oggi ogni widget del catalogo ha una propria icona SF (`time-calendar`, `place-table`, `food-meal`, `commerce-money`, `chart-doughnut`, `people-staff-group`, `food-flame`, `star`, `sparkles`, ...).
 
 ---

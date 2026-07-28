@@ -499,19 +499,10 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
   if (modal.kind === 'modifica-tavolo') {
     return <ModificaTavoloUnifModal modal={modal} closeModal={closeModal} openModal={openModal}/>;
   }
-  // Backward compat
-  if (modal.kind === 'modifica-tavoli') {
-    return <ModificaTavoliModal modal={modal} closeModal={closeModal} openModal={openModal}/>;
-  }
 
   // ─── Receipt: dove inviare ricevuta ─────────────────────────
   if (modal.kind === 'invia-ricevuta') {
     return <InviaRicevutaModal modal={modal} closeModal={closeModal} openModal={openModal} nav={nav}/>;
-  }
-
-  // ─── Filtri menu ────────────────────────────────────────────
-  if (modal.kind === 'filtri') {
-    return <FiltriModal modal={modal} closeModal={closeModal} openModal={openModal}/>;
   }
 
   // ─── Piatto custom ──────────────────────────────────────────
@@ -773,144 +764,6 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
   }
 
   return null;
-}
-
-// ─── Modifica tavoli ────────────────────────────────────────
-function ModificaTavoliModal({ modal, closeModal, openModal }) {
-  const [sel, setSel] = useStateMo({});
-  const tavoli = TAVOLI.concat([{ id: 27, n: 27 }, { id: 28, n: 28 }, { id: 29, n: 29 }, { id: 32, n: 32 }, { id: 33, n: 33 }, { id: 34, n: 34 }, { id: 35, n: 35 }, { id: 36, n: 36 }]).filter(x => x.id !== modal.tavolo?.id).slice(0, 12);
-  const selCount = Object.values(sel).filter(Boolean).length;
-
-  return (
-    <ModalShell onClose={closeModal} sheet>
-      <SheetHandle/>
-      <div style={{ padding: '8px 0 24px' }}>
-        <div style={{ padding: '0 20px 14px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase' }}>Modifica tavoli</div>
-          <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2 }}>
-            {modal.mode === 'unisci' ? 'Unisci tavoli' : 'Dividi tavolo'}
-          </div>
-          <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 4 }}>
-            {modal.mode === 'unisci' ? 'Seleziona i tavoli da unire al tavolo corrente' : 'Seleziona i tavoli su cui dividere il tavolo corrente'}
-          </div>
-        </div>
-
-        <div style={{ padding: '0 20px 14px' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Tavolo corrente</div>
-          <div style={{
-            background: ST.PINK_SOFT, padding: 14, borderRadius: ST.R_MD,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: ST.TEXT }}>Tavolo {modal.tavolo?.n}</div>
-            {modal.mode === 'dividi' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11.5, color: ST.MUTED }}>Coperti</span>
-                <Stepper value={modal.tavolo?.coperti || 4} onChange={() => {}}/>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div style={{ padding: '0 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-            Tavoli disponibili ({tavoli.length})
-          </div>
-        </div>
-
-        <div style={{ padding: '0 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {tavoli.map(t => {
-            const occupato = TAVOLI.some(x => x.id === t.id);
-            return (
-              <div key={t.id} onClick={() => !occupato && setSel({ ...sel, [t.id]: !sel[t.id] })} style={{
-                position: 'relative',
-                padding: 12, borderRadius: ST.R_MD,
-                border: `1.5px solid ${sel[t.id] ? ST.PINK_DARK : ST.BORDER}`,
-                background: sel[t.id] ? ST.PINK_SOFT : '#fff',
-                opacity: occupato ? 0.55 : 1,
-                cursor: occupato ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                {occupato && (
-                  <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 9, color: statoConfig('occupato').color, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', padding: '1px 5px', background: statoConfig('occupato').bg, borderRadius: ST.R_PILL }}>Occupato</span>
-                )}
-                <span style={{ fontSize: 14, fontWeight: 700, marginTop: occupato ? 8 : 0 }}>N {t.n}</span>
-                <span style={{
-                  width: 20, height: 20, borderRadius: 5,
-                  border: `2px solid ${sel[t.id] ? ST.PINK_DARK : ST.MUTED_3}`,
-                  background: sel[t.id] ? ST.PINK_DARK : '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{sel[t.id] && <I.Check s={11} c="#fff"/>}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ padding: '20px 20px 0' }}>
-          <Btn
-            variant="primary" full
-            disabled={selCount === 0}
-            onClick={() => {
-              if (selCount > 6 && modal.mode === 'dividi') {
-                closeModal();
-                openModal({ kind: 'error', text: 'Numero di coperti superiore alla capienza dei tavoli selezionati.' });
-              } else {
-                closeModal();
-                openModal({ kind: 'success', text: modal.mode === 'unisci' ? `${selCount + 1} tavoli uniti` : `Tavolo diviso su ${selCount} tavoli` });
-              }
-            }}
-          >{modal.mode === 'unisci' ? 'Unisci' : 'Dividi'}</Btn>
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-// ─── Filtri menu ────────────────────────────────────────────
-function FiltriModal({ modal, closeModal }) {
-  const [active, setActive] = useStateMo({ portate: ['Primo'], tipi: ['Pasta'] });
-  const isBev = modal.cat === 'bevande';
-  const sections = isBev ? [
-    { title: 'Tipo di bevanda', opts: ['Acqua','Vino','Birra','Cocktail','Superalcolici'] },
-    { title: 'Acqua', opts: ['Naturale','Frizzante','Leggermente gassata'] },
-    { title: 'Vino', opts: ['Bianco','Rosso','Naturale','Bollicine'] },
-    { title: 'Tipo di alcolici', opts: ['Superalcolici','Analcolici','Aperitivi'] },
-  ] : [
-    { title: 'Portata piatto', opts: ['Antipasto','Primo','Secondo','Dolce'] },
-    { title: 'Tipo piatto', opts: ['Pasta','Carne','Pesce','Latticini','Crostacei'] },
-    { title: 'Filtri rapidi', opts: ['Senza glutine','Vegetariano','Vegano','Senza lattosio'] },
-  ];
-
-  return (
-    <ModalShell onClose={closeModal} sheet>
-      <SheetHandle/>
-      <div style={{ padding: '8px 0 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px 16px' }}>
-          <button onClick={closeModal} style={{ fontSize: 13, fontWeight: 600, color: ST.PINK_DARK, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reset</button>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>Filtra per tipologia</div>
-          <button onClick={closeModal} style={{ width: 28, height: 28, borderRadius: ST.R_PILL, border: 'none', background: ST.SURF_ALT, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><I.Close s={14}/></button>
-        </div>
-        {sections.map(sec => (
-          <div key={sec.title} style={{ padding: '0 24px 18px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>
-              {sec.title}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {sec.opts.map(o => (
-                <button key={o} style={{
-                  height: 34, padding: '0 14px', borderRadius: ST.R_PILL,
-                  border: `1.5px solid ${ST.BORDER}`, background: '#fff',
-                  fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                }}>{o}</button>
-              ))}
-            </div>
-          </div>
-        ))}
-        <div style={{ padding: '0 24px' }}>
-          <Btn variant="primary" full onClick={closeModal}>Filtra</Btn>
-        </div>
-      </div>
-    </ModalShell>
-  );
 }
 
 // ─── Helpers ────────────────────────────────────────────────

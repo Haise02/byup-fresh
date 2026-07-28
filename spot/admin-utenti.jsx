@@ -29,17 +29,6 @@ function AdmUtentiPage({ search: searchProp, openUtente }) {
   }, [sesso, fascia, regione, statoFiltro, search]);
 
   const totUtenti = UTENTI.length;
-  const attiviN = UTENTI.filter(u => u.attivo).length;
-  const totalSpesa = UTENTI.reduce((s, u) => s + u.spesaTotale, 0);
-  const spesaMediaLifetime = Math.round(totalSpesa / totUtenti);
-  // Orizzonte medio per utente (dalla registrazione ad oggi) → consente di
-  // annualizzare e proiettare a 30gg in modo statisticamente coerente.
-  const avgHorizonDays = UTENTI.reduce((s, u) =>
-    s + Math.max(1, Math.floor((Date.now() - new Date(u.dataRegistrazione).getTime()) / 86400000)), 0
-  ) / totUtenti;
-  const spesaMediaAnno = Math.round(spesaMediaLifetime * (365 / avgHorizonDays));
-  const spesaMedia30g  = Math.round(spesaMediaLifetime * (30  / avgHorizonDays));
-  const mediaEta = Math.round(UTENTI.reduce((s,u)=>s+u.eta,0)/totUtenti);
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>

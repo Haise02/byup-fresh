@@ -241,7 +241,6 @@ function moM(series) {
 const _mese = MONTHLY_REVENUE[MONTHLY_REVENUE.length - 1];
 const _mesePrec = MONTHLY_REVENUE[MONTHLY_REVENUE.length - 2];
 const _ricaviGiornoCorr = Math.round((_mese.sub + _mese.extra) / 30);
-const _ricaviGiornoPrec = Math.round((_mesePrec.sub + _mesePrec.extra) / 30);
 const _ricaviMoMReal = ((_mese.sub + _mese.extra) - (_mesePrec.sub + _mesePrec.extra)) / (_mesePrec.sub + _mesePrec.extra) * 100;
 
 const TS = {
@@ -372,32 +371,6 @@ function AreaSpark({ data, color, height = 38, gradId, strokeW = 1.6 }) {
       <polygon points={`0,${H} ${line} ${W},${H}`} fill={`url(#${gid})`}/>
       <polyline points={line} fill="none" stroke={color} strokeWidth={strokeW} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"/>
     </svg>
-  );
-}
-
-// Popover ⓘ — i dettagli ricchi si aprono al CLICK (non in hover), con
-// click-fuori per chiudere. `align` left/right per non uscire dal frame.
-function InfoPopover({ content, width = 320, align = 'left', accent }) {
-  const [open, setOpen] = React.useState(false);
-  const c = accent || ADM.PINK;
-  return (
-    <span style={{position:'relative', display:'inline-flex'}} onClick={e=>e.stopPropagation()}>
-      <button onClick={(e)=>{ e.stopPropagation(); setOpen(o=>!o); }}
-        title="Mostra dettagli" aria-label="Mostra dettagli"
-        style={{width:16, height:16, borderRadius:'50%', border:'none', padding:0, cursor:'pointer',
-          background: open ? c : '#E9EBEF', color: open ? '#fff' : ADM.MUTED,
-          display:'inline-grid', placeItems:'center', fontSize:11, fontWeight:700, fontFamily:'inherit', lineHeight:1, flexShrink:0}}>i</button>
-      {open && (
-        <React.Fragment>
-          <div onClick={(e)=>{ e.stopPropagation(); setOpen(false); }} style={{position:'fixed', inset:0, zIndex:39}}/>
-          <div style={{position:'absolute', top:'calc(100% + 8px)', [align]:0, zIndex:40, width,
-            background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12,
-            boxShadow:'0 16px 40px -8px rgba(15,17,21,0.18), 0 0 0 1px rgba(15,17,21,0.04)', padding:'16px 18px'}}>
-            {content}
-          </div>
-        </React.Fragment>
-      )}
-    </span>
   );
 }
 
@@ -1247,49 +1220,8 @@ function ActiveCell({ label, val, tot, color }) {
   );
 }
 
-function GuestTooltip({ accessi, ordini }) {
-  const conv = accessi > 0 ? (ordini / accessi) * 100 : 0;
-  return (
-    <div>
-      <TooltipTitle>Attività guest · ultimi 30 giorni</TooltipTitle>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
-        <div style={{padding:'12px 14px', background:ADM.INFO_SOFT, borderRadius:8}}>
-          <div style={{fontSize:12.2, fontWeight:700, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.05em'}}>Accessi guest</div>
-          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(accessi)}</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>Utenti senza account che hanno avviato l'app</div>
-        </div>
-        <div style={{padding:'12px 14px', background:ADM.OK_SOFT, borderRadius:8}}>
-          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Ordini effettuati</div>
-          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(ordini)}</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>Senza login ({conv.toFixed(1)}% conversione)</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function TooltipTitle({ children }) {
   return <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:12}}>{children}</div>;
-}
-
-// Tooltip generico Mese / Anno (single metric)
-function MeseAnnoTooltip({ titolo, mese, anno, meseLabel, annoLabel, accent }) {
-  const c = accent || ADM.PINK;
-  return (
-    <div>
-      <TooltipTitle>{titolo} · spaccato temporale</TooltipTitle>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
-        <div style={{padding:'12px 14px', background:`${c}10`, border:`1px solid ${c}40`, borderRadius:9}}>
-          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{meseLabel || 'Ultimi 30 giorni'}</div>
-          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(mese)}</div>
-        </div>
-        <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:9}}>
-          <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{annoLabel || 'Ultimi 12 mesi'}</div>
-          <div style={{fontSize:20.9, fontWeight:800, color:ADM.TEXT, marginTop:5, letterSpacing:'-0.02em', lineHeight:1}}>{fmtNum(anno)}</div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // Tooltip specifico per Ordini · Scan QR (mostra entrambi + tasso di conversione)
@@ -1388,45 +1320,6 @@ function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, tr
   );
 }
 
-function BigStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, big }) {
-  const Icon = BuIcons[icon] || BuIcons.trendUp;
-  const c = ADM[accent];
-  const cSoft = ADM[accent + '_SOFT'] || '#F3F4F6';
-  return (
-    <AdmCard padding={big ? 22 : 18} onClick={onClick} style={onClick ? {cursor:'pointer'} : null}>
-      <div style={{display:'flex', alignItems:'flex-start', gap:14}}>
-        <div style={{width:big ? 44 : 36, height:big ? 44 : 36, borderRadius:9, background:cSoft, color:c, display:'grid', placeItems:'center', flexShrink:0}}>
-          <Icon size={big ? 19 : 16}/>
-        </div>
-        <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em'}}>{label}</div>
-          <div style={{fontSize: big ? 33 : 27, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{value}</div>
-          {sub && <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
-        </div>
-      </div>
-    </AdmCard>
-  );
-}
-
-function PlanCount({ piano, count, totalActive }) {
-  const pct = totalActive > 0 ? Math.round((count/totalActive)*100) : 0;
-  return (
-    <AdmCard padding={16}>
-      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-        <span style={{width:10, height:10, borderRadius:3, background:ADM[piano.color]}}/>
-        <div style={{fontSize:13.7, fontWeight:600, color:ADM.TEXT}}>Piano {piano.label}</div>
-        <div style={{flex:1}}/>
-        <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, fontWeight:600}}>{pct}%</div>
-      </div>
-      <div style={{fontSize:22.3, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginBottom:6}}>{fmtNum(count)}</div>
-      <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-        <div style={{width:`${pct}%`, height:'100%', background:ADM[piano.color], borderRadius:99}}/>
-      </div>
-      <div style={{fontSize:13, color:ADM.MUTED, marginTop:8}}>{piano.price > 0 ? `${fmtEur(piano.price)}/mese` : 'Gratuito'}</div>
-    </AdmCard>
-  );
-}
-
 // ---------- LOCALI tab ----------
 function DashLocali({ onNav }) {
   const onbCompletati = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'churned').length;
@@ -1463,11 +1356,6 @@ function DashLocali({ onNav }) {
     return { label: s.label, minutes: avg };
   });
   const maxStepMin = Math.max(...stepTimings.map(s => s.minutes), 1);
-
-  const funnelCounts = ONB_STEPS.map(s => ({
-    label: s.label,
-    count: LOCALI.filter(l => l.completedSteps.includes(s.id)).length,
-  }));
 
   // ── Aggregati Scan QR / Ordini (mese + anno)
   const totOrdiniMese    = LOCALI.reduce((s,l)=>s + (l.ordiniMese    || 0), 0);
@@ -2183,7 +2071,6 @@ function DashLocali({ onNav }) {
           const xFor = (m) => padX + (m/maxX) * plotW;
           const yFor = (v) => padY + (1 - (v - ltvCurveMin)/range) * plotH;
           // zero line
-          const zeroY = yFor(0);
           return (
             <div style={{overflow:'hidden'}}>
               <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:260}}>
@@ -3095,7 +2982,6 @@ function DashUtentiApp() {
   const wauW = woW(TS.wau);
   const mauW = moM(TS.mau);
   const totW = woW(TS.utentiTot);
-  const newRegM = moM(TS.newReg);
   const guestW = woW(TS.ordiniGuest);
   const prenotW = woW(TS.prenotApp);
 
@@ -4249,7 +4135,6 @@ function DashCamerieri() {
   const heatMax = Math.max(...heatmap.flatMap(d => d.fasce.map(f => f.v)));
 
   const totW = woW(TS.staffActive);
-  const ordiniW = woW(TS.ordiniTavolo);
   const totRegW = moM(TS.staffTot);
 
   return (

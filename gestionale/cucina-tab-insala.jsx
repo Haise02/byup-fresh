@@ -22,15 +22,12 @@ function _urgencyPickup(minToPickup) {
   return                       { tone: 'late', bg: PN.RED_SOFT,   dot: PN.RED,     text: PN.RED     };
 }
 
-const COURSE_LABEL = { 1: 'Antipasti', 2: 'Primi', 3: 'Secondi', 4: 'Dessert' };
-
 function CucinaInSala({ focus = false, onToggleFocus }) {
   const [station, setStation]       = React.useState([]); // [] = tutte
   const [kindFilter, setKindFilter] = React.useState([]); // [] = tutti
   const [onlyLate, setOnlyLate]     = React.useState(false);   // KPI "in ritardo" cliccabile
   const [tick, setTick]             = React.useState(0);       // forza re-render
   const [confirmCancel, setConfirmCancel] = React.useState(null); // { ticketId, col, label }
-  const [salaToast, setSalaToast]   = React.useState(null);    // { ticketId, courseLabel } per pulse
   const [readyTickets, setReadyTickets] = React.useState([]);
   const [prontiCollapsed, setProntiCollapsed] = React.useState(true);
   const [dropCol, setDropCol] = React.useState(null); // 'left' | 'right' — colonna evidenziata durante il drag
@@ -88,8 +85,8 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
 
   // Stato ticket
   const [tickets, setTickets] = React.useState(() => [
-    ...CUC_TICKETS_ATTIVI.map(t => ({...t, items: t.items.map(i => ({...i, state: 'todo'})), firedCourses: new Set([1])})),
-    ...CUC_TICKETS_PREP.map(t => ({...t, items: t.items.map(i => ({...i, state: 'doing'})), firedCourses: new Set([1, 2])})),
+    ...CUC_TICKETS_ATTIVI.map(t => ({...t, items: t.items.map(i => ({...i, state: 'todo'}))})),
+    ...CUC_TICKETS_PREP.map(t => ({...t, items: t.items.map(i => ({...i, state: 'doing'}))})),
   ]);
 
   // Timer live: re-render ogni 30s (e simula scorrere del tempo)
@@ -98,23 +95,10 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     return () => clearInterval(id);
   }, []);
 
-  // Pulse fire-from-sala dopo 4s
-  React.useEffect(() => {
-    if (!salaToast) return;
-    const id = setTimeout(() => setSalaToast(null), 4000);
-    return () => clearTimeout(id);
-  }, [salaToast]);
-
   const stations = ['Pizza','Primi','Secondi','Contorni','Bevande'];
 
   // KPI live
-  const allTickets = tickets;
-  const totItems = tickets.reduce((s, t) => s + t.items.reduce((a,i) => a + i.qty, 0), 0);
-  const inCottura = tickets.filter(t => t.items.some(i => i.state === 'doing')).length;
   const lateCount = tickets.filter(t => _ageMin(t.time) > 15).length;
-  const avgAge = tickets.length
-    ? Math.round(tickets.reduce((s, t) => s + _ageMin(t.time), 0) / tickets.length)
-    : 0;
 
   const matchKind = t => kindFilter.length === 0
     || (kindFilter.includes('Sala') && t.kind === 'sala')
@@ -233,27 +217,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
     flyToPronti(ticketId); // cattura la posizione prima che la card smonti
     setTickets(prev => prev.filter(x => x.id !== ticketId));
     setReadyTickets(prev => [t, ...prev]);
-  }
-
-  function fireCourse(ticketId, course) {
-    setTickets(prev => prev.map(t => {
-      if (t.id !== ticketId) return t;
-      const fc = new Set(t.firedCourses); fc.add(course);
-      const items = t.items.map(i => i.course === course && i.state === 'todo' ? {...i, state: 'doing'} : i);
-      return {...t, firedCourses: fc, items};
-    }));
-  }
-
-  function simulateFireFromSala() {
-    for (const t of tickets.filter(t => t.items.some(i => i.course))) {
-      const courses = [...new Set(t.items.filter(i => i.course).map(i => i.course))].sort();
-      const next = courses.find(c => !t.firedCourses.has(c));
-      if (next) {
-        fireCourse(t.id, next);
-        setSalaToast({ ticketId: t.id, courseLabel: COURSE_LABEL[next] });
-        return;
-      }
-    }
   }
 
   function revertItems(ticketId, itemIndices) {
@@ -769,7 +732,6 @@ function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, on
   const todoItems  = ticket.items.map((it, i) => ({...it, idx: i})).filter(it => it.state === 'todo');
   const doingItems = ticket.items.map((it, i) => ({...it, idx: i})).filter(it => it.state === 'doing');
   const doneItems  = ticket.items.map((it, i) => ({...it, idx: i})).filter(it => it.state === 'done');
-  const allDone    = ticket.items.length > 0 && ticket.items.every(i => i.state === 'done');
   const hasTodo    = todoItems.length > 0;
 
   const [doneCollapsed, setDoneCollapsed] = React.useState(true);

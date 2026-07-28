@@ -162,13 +162,8 @@ function AdmComunicazioniPage({ openId }) {
     { id:'all',      label:'Tutte',          count:cAll },
   ];
 
-  const unreadOpen   = items.filter(i => i.stato === 'nuova').length;
   const over48Open   = aperte.filter(i => (Date.now() - i.data.getTime()) > 48*3600000).length;
   const certUrgent   = items.filter(i => i.certRequest && i.stato === 'nuova' && (Date.now() - i.data.getTime()) > 24*3600000).length;
-  const mineUnread   = items.filter(i => i.assignedTo === MY_ID && i.stato === 'nuova').length;
-  const resolvedWeek = items.filter(i => (i.stato === 'risolta' || i.stato === 'approvata' || i.stato === 'rifiutata') && i.resolvedAt && (Date.now() - new Date(i.resolvedAt).getTime()) < 7*86400000).length;
-
-  const setViewToggle = (next) => setView(view === next ? 'all' : next);
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
@@ -263,83 +258,6 @@ function AdmComunicazioniPage({ openId }) {
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── Filter card cliccabile — KPI + filtro in unico componente ──────────────
-function FilterCard({ icon, tone, label, value, hint, hintTone, active, onClick }) {
-  const Icon = BuIcons[icon];
-  const [hover, setHover] = React.useState(false);
-  const hintColor = hintTone === 'danger' ? ADM.DANGER
-                  : hintTone === 'warn'   ? ADM.WARN
-                  : hintTone === 'ok'     ? ADM.OK
-                  : ADM.MUTED;
-  const hintDot = hintTone === 'danger' ? ADM.DANGER
-                : hintTone === 'warn'   ? ADM.WARN
-                : hintTone === 'ok'     ? ADM.OK
-                : ADM.MUTED_LIGHT;
-
-  // Bordo / sfondo / ring dipendono da active. Active = lift + tinta tono.
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={()=>setHover(true)}
-      onMouseLeave={()=>setHover(false)}
-      style={{
-        textAlign:'left',
-        position:'relative',
-        display:'flex', flexDirection:'column', gap:10,
-        padding:'14px 16px',
-        background: active ? '#fff' : (hover ? '#FBFBFC' : '#fff'),
-        border:`1.5px solid ${active ? ADM.PINK : (hover ? ADM.MUTED_LIGHT : ADM.BORDER)}`,
-        borderRadius:14,
-        minWidth:0, fontFamily:'inherit', cursor:'pointer',
-        boxShadow: active
-          ? `0 0 0 4px ${ADM.PINK_BG_SOFT}, 0 6px 16px -8px ${ADM.PINK}50`
-          : hover ? '0 4px 12px -6px rgba(15,17,21,0.10)' : '0 1px 2px rgba(15,17,21,0.03)',
-        transform: active ? 'translateY(-1px)' : 'translateY(0)',
-        transition: 'border-color 0.14s ease, box-shadow 0.18s ease, transform 0.14s ease, background 0.12s ease',
-      }}>
-      {/* check angolare quando attivo */}
-      {active && (
-        <div style={{
-          position:'absolute', top:10, right:10,
-          width:18, height:18, borderRadius:'50%',
-          background:ADM.PINK, color:'#fff',
-          display:'grid', placeItems:'center',
-          boxShadow:`0 2px 6px -2px ${ADM.PINK}80`,
-        }}>
-          <BuIcons.check size={15}/>
-        </div>
-      )}
-
-      <div style={{display:'flex', alignItems:'center', gap:10}}>
-        <div style={{
-          width:30, height:30, borderRadius:9,
-          background: active ? ADM.PINK : ADM.NEUTRAL_SOFT,
-          color: active ? '#fff' : ADM.NEUTRAL,
-          display:'grid', placeItems:'center', flexShrink:0,
-          transition:'background 0.14s ease, color 0.14s ease',
-        }}>
-          <Icon size={19}/>
-        </div>
-        <span style={{fontSize:14, fontWeight:700, color: active ? ADM.TEXT : ADM.MUTED, letterSpacing:'-0.005em'}}>{label}</span>
-      </div>
-
-      <div style={{
-        fontSize:29.5, fontWeight:800,
-        color: active ? ADM.PINK : ADM.TEXT,
-        letterSpacing:'-0.035em', lineHeight:1,
-        fontVariantNumeric:'tabular-nums',
-      }}>{value}</div>
-
-      {hint && (
-        <div style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.3, color:hintColor, fontWeight:500, letterSpacing:'-0.005em'}}>
-          <span style={{width:6, height:6, borderRadius:'50%', background:hintDot, flexShrink:0}}/>
-          {hint}
-        </div>
-      )}
-    </button>
   );
 }
 
@@ -951,38 +869,6 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
         </div>
       )}
     </>
-  );
-}
-
-// ─── Tag bar (sopra il testo) ───────────────────────────────────────────────
-function TagBar({ tags, input, onInput, onAdd, onRemove }) {
-  return (
-    <div style={{
-      background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:10,
-      padding:'10px 14px',
-      display:'flex', alignItems:'center', gap:8, flexWrap:'wrap',
-    }}>
-      <span style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tag</span>
-      {tags.length === 0 && <span style={{fontSize:13.3, color:ADM.MUTED_SOFT}}>Nessuno</span>}
-      {tags.map(t => <CustomTag key={t} label={t} onRemove={()=>onRemove(t)}/>)}
-      <input
-        value={input}
-        onChange={e=>onInput(e.target.value)}
-        onKeyDown={e=>{
-          if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); onAdd(); }
-          if (e.key === 'Backspace' && input === '' && tags.length > 0) {
-            onRemove(tags[tags.length - 1]);
-          }
-        }}
-        placeholder="aggiungi tag (Invio)"
-        style={{
-          flex:'1 1 140px', minWidth:120,
-          padding:'4px 6px',
-          border:'none', background:'transparent',
-          fontSize:13.7, fontFamily:'inherit', color:ADM.TEXT, outline:'none',
-        }}
-      />
-    </div>
   );
 }
 

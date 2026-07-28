@@ -136,7 +136,6 @@ function AdmCamerieriPage({ search: searchProp, openStaff }) {
 
   const totStaff = STAFF.length;
   const attiviOggi = STAFF.filter(s => s.attivoOggi).length;
-  const localiCoperti = new Set(STAFF.map(s => s.localeId)).size;
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>

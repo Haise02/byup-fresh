@@ -152,225 +152,6 @@ function ByupMark({ size = 16 }) {
   );
 }
 
-function ContSaldaModal({ open, conto, onClose, onConfirm }) {
-  const [method, setMethod] = React.useState('contanti');
-  const [cash, setCash] = React.useState('');
-  const [done, setDone] = React.useState(false);
-
-  React.useEffect(() => {
-    if (open) { setMethod('contanti'); setCash(''); setDone(false); }
-  }, [open]);
-
-  if (!open || !conto) return null;
-
-  const total = conto.daSaldare;
-  const tendered = parseFloat(cash) || 0;
-  const canConfirm = method !== 'contanti' || (tendered >= total - 0.01 && total > 0);
-  const resto = tendered - total;
-  const hasPartial = conto.totaleConto > conto.daSaldare;
-
-  const chipVals = Array.from(new Set([
-    total,
-    Math.ceil(total / 5) * 5,
-    Math.ceil(total / 10) * 10,
-    Math.ceil(total / 20) * 20,
-  ])).filter(v => v >= total).slice(0, 4);
-
-  const closeBtnStyle = {
-    width:32, height:32, borderRadius:8,
-    background:'#F1F2F5', border:'none', cursor:'pointer',
-    fontSize:20, fontFamily:'inherit', color:'#6B7280',
-  };
-
-  function handleConfirm() {
-    setDone(true);
-    onConfirm && onConfirm();
-  }
-
-  return (
-    <React.Fragment>
-      <div onClick={done ? onClose : undefined} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:60}}/>
-      <div style={{
-        position:'fixed', top:'50%', left:'50%',
-        transform:'translate(-50%,-50%)',
-        width:860, maxWidth:'94vw', maxHeight:'90vh',
-        background:'#fff', borderRadius:16,
-        boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
-        zIndex:61, display:'flex', flexDirection:'column', overflow:'hidden',
-        fontFamily:'inherit',
-      }}>
-      {done ? (
-        <div style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:30}}>
-          <div style={{width:72, height:72, borderRadius:'50%', background:'#DCFCE7', color:'#16A34A', marginBottom:16, display:'grid', placeItems:'center'}}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 13 L9 17 L19 7"/>
-            </svg>
-          </div>
-          <div style={{fontSize:C.T_MD, fontWeight:700, color:'#0F1115', marginBottom:4}}>Pagamento incassato</div>
-          <div style={{fontSize:C.T_XL, fontWeight:800, color:'#0F1115', marginBottom:8, letterSpacing:-0.5, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
-          <div style={{fontSize:C.T_SM, color:'#6B7280', marginBottom:24}}>
-            {conto.tavolo} · {method === 'contanti' ? 'Contanti' : 'Carta'}
-          </div>
-          <button onClick={onClose} style={{padding:'11px 24px', background:'#0F1115', color:'#fff', border:'none', borderRadius:9, fontSize:C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit'}}>
-            Chiudi
-          </button>
-        </div>
-      ) : (
-        <React.Fragment>
-        {/* Header */}
-        <div style={{padding:'14px 20px', borderBottom:'1px solid #F0F2F5', display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:C.T_XS, color:'#6B7280', fontWeight:800, letterSpacing:0.6, textTransform:'uppercase'}}>Salda conto</div>
-            <div style={{fontSize:C.T_LG, fontWeight:800, color:'#0F1115', marginTop:1}}>
-              {conto.tavolo}{conto.cliente ? ` · ${conto.cliente}` : ''}
-            </div>
-          </div>
-          <button onClick={onClose} style={closeBtnStyle}>×</button>
-        </div>
-
-        {/* Body 2 colonne */}
-        <div style={{flex:1, display:'flex', minHeight:0, overflow:'hidden'}}>
-          {/* Sinistra: piatti ordinati */}
-          <div style={{flex:'1.5 1 0', display:'flex', flexDirection:'column', borderRight:'1px solid #F0F2F5', minWidth:0, overflowY:'auto', padding:'16px 20px'}}>
-            <div style={{fontSize:C.T_XS, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:10}}>Piatti ordinati</div>
-            {hasPartial && (
-              <div style={{fontSize:C.T_XS, color:'#9CA3AF', marginBottom:10, padding:'8px 12px', background:'#F9FAFB', borderRadius:8, border:'1px solid #E5E7EB'}}>
-                Tot. €{conto.totaleConto.toFixed(2)} · già incassato €{(conto.totaleConto - conto.daSaldare).toFixed(2)}
-              </div>
-            )}
-            <div style={{display:'flex', flexDirection:'column', gap:3}}>
-              {(conto.ordini || []).map(item => (
-                <div key={item.id} style={{display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, background:'#F9FAFB'}}>
-                  <span style={{fontSize:C.T_XS, fontWeight:700, color:'#9CA3AF', minWidth:22, flexShrink:0}}>{item.qty}×</span>
-                  <span style={{flex:1, fontSize:C.T_SM, fontWeight:600, color:'#0F1115'}}>{item.nome}</span>
-                  <span style={{fontSize:C.T_SM, fontWeight:700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
-                </div>
-              ))}
-              {!conto.ordini && (
-                <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderRadius:10, background:'#F9FAFB', border:'1.5px solid #E5E7EB'}}>
-                  <div style={{flex:1, fontSize:C.T_SM, fontWeight:700, color:'#0F1115'}}>Saldo conto</div>
-                  <div style={{fontSize:C.T_MD, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
-                </div>
-              )}
-            </div>
-            <div style={{height:1, background:'#E5E7EB', margin:'12px 0'}}/>
-            <div style={{display:'flex', justifyContent:'space-between', padding:'2px 12px', fontSize:C.T_SM, fontWeight:700, color:'#0F1115'}}>
-              <span>Totale ordine</span>
-              <span style={{fontVariantNumeric:'tabular-nums'}}>€{conto.totaleConto.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Destra: metodo + importo */}
-          <div style={{flex:'1 1 0', display:'flex', flexDirection:'column', minWidth:0, overflowY:'auto', padding:'16px 20px', gap:16}}>
-            {/* Riepilogo */}
-            <div style={{display:'flex', justifyContent:'space-between', fontSize:C.T_SM, fontWeight:700, color:'#0F1115', padding:'10px 14px', background:'#F9FAFB', borderRadius:10}}>
-              <span>Da incassare</span>
-              <span style={{fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</span>
-            </div>
-
-            {/* Metodo */}
-            <div>
-              <div style={{fontSize:C.T_XS, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:8}}>Come paga il cliente?</div>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:14}}>
-                {[{id:'contanti',icon:'💵',label:'Contanti'},{id:'carta',icon:'💳',label:'Carta'},{id:'byup',icon:'📱',label:'App byup'}].map(m => {
-                  const on = method === m.id;
-                  return (
-                    <button key={m.id} onClick={() => setMethod(m.id)} style={{
-                      display:'flex', flexDirection:'column', alignItems:'center', gap:5,
-                      padding:'12px 6px', borderRadius:10,
-                      background: on ? '#0F1115' : '#fff',
-                      color: on ? '#fff' : '#0F1115',
-                      border: on ? '1px solid #0F1115' : '1px solid #E5E7EB',
-                      cursor:'pointer', fontFamily:'inherit', fontSize:C.T_SM, fontWeight:700,
-                    }}>
-                      <span>{m.icon}</span>{m.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {method === 'contanti' && (
-                <div>
-                  <div style={{fontSize:C.T_XS, fontWeight:700, color:'#6B7280', marginBottom:6}}>Importo ricevuto</div>
-                  <div style={{display:'flex', alignItems:'baseline', gap:4, background:'#fff', border:'1.5px solid #E5E7EB', borderRadius:10, padding:'12px 14px', marginBottom:8}}>
-                    <span style={{fontSize:C.T_LG, fontWeight:700, color:'#9CA3AF'}}>€</span>
-                    <input type="number" value={cash} onChange={e => setCash(e.target.value)}
-                      placeholder={total.toFixed(2)}
-                      style={{border:'none', outline:'none', fontSize:C.T_XL, fontWeight:800, color:'#0F1115', width:'100%', padding:0, fontFamily:'inherit', background:'transparent', fontVariantNumeric:'tabular-nums'}}/>
-                  </div>
-                  <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:12}}>
-                    {chipVals.map(v => {
-                      const sel = Math.abs(tendered - v) < 0.01;
-                      return (
-                        <button key={v} onClick={() => setCash(v.toFixed(2))} style={{
-                          padding:'8px 4px', borderRadius:8,
-                          background: sel ? '#0F1115' : '#fff',
-                          color: sel ? '#fff' : '#0F1115',
-                          border: sel ? '1px solid #0F1115' : '1px solid #E5E7EB',
-                          fontSize:C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-                        }}>€{v % 1 === 0 ? v : v.toFixed(2)}</button>
-                      );
-                    })}
-                  </div>
-                  {tendered > 0 && (
-                    <div style={{padding:'10px 14px', borderRadius:10, background: canConfirm ? '#DCFCE7' : '#FEF3C7', color: canConfirm ? '#166534' : '#92400E', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                      <span style={{fontSize:C.T_SM, fontWeight:700}}>
-                        {canConfirm ? (resto > 0.01 ? 'Resto da dare' : 'Pagamento esatto') : 'Manca ancora'}
-                      </span>
-                      <span style={{fontSize:C.T_LG, fontWeight:800, fontVariantNumeric:'tabular-nums'}}>
-                        €{Math.abs(canConfirm ? resto : total - tendered).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {method === 'carta' && (
-                <div style={{padding:'20px 16px', borderRadius:12, background:'#fff', border:'1.5px dashed #D1D5DB', textAlign:'center'}}>
-                  <div style={{width:44, height:44, borderRadius:12, background:'#F1F2F5', display:'grid', placeItems:'center', margin:'0 auto 10px'}}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
-                    </svg>
-                  </div>
-                  <div style={{fontSize:C.T_SM, fontWeight:700, color:'#0F1115', marginBottom:4}}>Inserisci la carta nel POS</div>
-                  <div style={{fontSize:C.T_XL, fontWeight:800, color:'#0F1115', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
-                </div>
-              )}
-
-              {method === 'byup' && (
-                <div style={{padding:'20px 16px', borderRadius:12, background:'#F5F3FF', border:'1.5px solid #DDD6FE', textAlign:'center'}}>
-                  <div style={{fontSize:C.T_SM, fontWeight:700, color:'#6D28D9', marginBottom:4}}>Pagamento via app byup</div>
-                  <div style={{fontSize:C.T_XL, fontWeight:800, color:'#6D28D9', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{padding:'14px 20px', borderTop:'1px solid #F0F2F5', display:'flex', gap:10, flexShrink:0}}>
-          <button onClick={onClose} style={{flex:1, padding:'11px 16px', background:'#fff', border:'1px solid #E5E7EB', borderRadius:9, fontSize:C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>
-            Annulla
-          </button>
-          <button
-            onClick={canConfirm ? handleConfirm : undefined}
-            style={{
-              flex:2, padding:'11px 16px',
-              background: canConfirm ? '#0F1115' : '#E5E7EB',
-              color: canConfirm ? '#fff' : '#9CA3AF',
-              border:'none', borderRadius:9, fontSize:C.T_SM, fontWeight:700,
-              cursor: canConfirm ? 'pointer' : 'default', fontFamily:'inherit',
-            }}>
-            Incassa €{total.toFixed(2)}
-          </button>
-        </div>
-        </React.Fragment>
-      )}
-      </div>
-    </React.Fragment>
-  );
-}
-
 function ContoExpandedPanel({ conto, onRimborso }) {
   const payments = conto.payments || [];
   const fmtPayOra = (s) => {
@@ -834,19 +615,6 @@ function ContConti({ filter = 'all' }) {
   const [expandedId, setExpandedId] = React.useState(null);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
 
-  // Polling: aspetta che sala-salda-modal.jsx venga compilato da Babel (async)
-  const [saldaComp, setSaldaComp] = React.useState(() => window.SalaSaldaModal || null);
-  React.useEffect(() => {
-    if (saldaComp) return;
-    const t = setInterval(() => {
-      if (window.SalaSaldaModal) {
-        setSaldaComp(() => window.SalaSaldaModal);
-        clearInterval(t);
-      }
-    }, 50);
-    return () => clearInterval(t);
-  }, []);
-
   function apriRimborso(conto, payment) {
     setModalRimborso(conto);
     setRimborsoPayment(payment || null);
@@ -1222,28 +990,20 @@ function ContConti({ filter = 'all' }) {
         );
       })()}
 
-      {/* Modal pagamento — usa SalaSaldaModal se disponibile, altrimenti fallback locale */}
-      {modalPagamento && (saldaComp
-        ? React.createElement(saldaComp, {
-            open: true,
-            tavolo: {
-              id: (modalPagamento.tavolo.match(/\d+/) || [])[0],
-              party: modalPagamento.cliente || '',
-              coperti: 1,
-              guests: [],
-              ordini: modalPagamento.ordini || [{ id: modalPagamento.id + '-1', nome: 'Saldo conto', prezzo: modalPagamento.daSaldare, qty: 1 }],
-            },
-            onClose: () => setModalPagamento(null),
-            onConfirm: () => setSaldati(s => new Set([...s, modalPagamento.id])),
-          })
-        : (
-          <ContSaldaModal
-            open={true}
-            conto={modalPagamento}
-            onClose={() => setModalPagamento(null)}
-            onConfirm={() => setSaldati(s => new Set([...s, modalPagamento.id]))}
-          />
-        )
+      {/* Modal pagamento — SalaSaldaModal (sala-salda-modal.jsx è caricato prima in pagina) */}
+      {modalPagamento && (
+        <SalaSaldaModal
+          open={true}
+          tavolo={{
+            id: (modalPagamento.tavolo.match(/\d+/) || [])[0],
+            party: modalPagamento.cliente || '',
+            coperti: 1,
+            guests: [],
+            ordini: modalPagamento.ordini || [{ id: modalPagamento.id + '-1', nome: 'Saldo conto', prezzo: modalPagamento.daSaldare, qty: 1 }],
+          }}
+          onClose={() => setModalPagamento(null)}
+          onConfirm={() => setSaldati(s => new Set([...s, modalPagamento.id]))}
+        />
       )}
     </div>
   );

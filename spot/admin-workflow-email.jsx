@@ -329,8 +329,6 @@ const templateToWorkflow = (tpl, overrides = {}) => ({
   templateKey: tpl.key,
   ...overrides,
 });
-const newWorkflow = () => templateToWorkflow(WF_TEMPLATES.find(t => t.key === 'blank'), { nome:'Workflow senza nome' });
-
 // ════════════════════════════════════════════════════════════════════════════
 // MOCK INIZIALE
 // ════════════════════════════════════════════════════════════════════════════

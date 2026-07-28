@@ -263,18 +263,12 @@ const iconBtn = {
   borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT,
   cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 8,
 };
-const primaryBtn = {
-  padding:'9px 14px', background: PN.TEXT, border:'none',
-  borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, color:'#fff',
-  cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 8,
-};
 const iconOnlyBtn = {
   background:'transparent', border:`1px solid ${PN.BORDER}`,
   borderRadius: C.R_SM, padding:'6px 9px', cursor:'pointer',
   color: PN.MUTED, display:'inline-flex', alignItems:'center', justifyContent:'center',
 };
 window.iconBtn = iconBtn;
-window.primaryBtn = primaryBtn;
 window.iconOnlyBtn = iconOnlyBtn;
 
 function FilterChip({ active, onClick, label, count }) {

@@ -17,9 +17,6 @@ function ContabilitaApp() {
   const [share, setShare] = useState(false);
   const [ivaMonth, setIvaMonth] = useState(null); // mese selezionato per filtro
 
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-
   const totalCosti = COSTS_DATA.reduce((s,c) => s+c.amount, 0);
   const cassaSaldo = CASH_MOVEMENTS.reduce((s,m) => s+m.amount, 0) + 500;
   const ivaSaldo = IVA_MONTHLY.reduce((s,m) => s+(m.deb-m.cred), 0);

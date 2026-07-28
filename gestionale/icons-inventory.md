@@ -38,8 +38,9 @@ panoramica-tokens.jsx
 byup-glass.jsx
 panoramica-icons.jsx        ← definisce window.PnI (icon set Panoramica, stroke-based — legacy, resta per Logo/LogoMark e pagine non migrate)
 panoramica-sf-icons.jsx     ← definisce window.SfIcons + window.Icon (registry SF, introdotto dalla migrazione)
-byup-tokens.jsx
-byup-icons.jsx              ← definisce window.BuIcons (icon set globale, stroke-based — legacy)
+byup-tokens.jsx             ← RIMOSSO il 2026-07-28 (token BU legacy, non più caricato)
+byup-icons.jsx              ← NON PIÙ CARICATO QUI dal 2026-07-28 (nessun jsx della Panoramica usa BuIcons;
+                              il file resta e serve Impostazioni, Statistiche, Supporto, Configurazione Completa)
 panoramica-sidebar.jsx
 panoramica-plan-card.jsx
 panoramica-notif-bell.jsx

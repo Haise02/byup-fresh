@@ -253,19 +253,6 @@ function Photo({ src, label, tone = 'a', duotone = true }) {
 const PhotoPlaceholder = Photo; // alias for back-compat
 
 // ─── Category chip ──────────────────────────────────────────
-const CAT_GRADIENTS = {
-  pizza:   'linear-gradient(135deg,#FF6B35 0%,#FF9457 100%)',
-  sushi:   'linear-gradient(135deg,#2EC4B6 0%,#1AA99F 100%)',
-  burger:  'linear-gradient(135deg,#FF9F1C 0%,#FFBF69 100%)',
-  gelato:  'linear-gradient(135deg,#FF6B9D 0%,#FF8FB1 100%)',
-  panini:  'linear-gradient(135deg,#F4D03F 0%,#E8B429 100%)',
-  brunch:  'linear-gradient(135deg,#FFB347 0%,#FF8C00 100%)',
-  cock:    'linear-gradient(135deg,#9B59B6 0%,#7D3C98 100%)',
-  vegan:   'linear-gradient(135deg,#27AE60 0%,#1E8449 100%)',
-  gf:      'linear-gradient(135deg,#D4A574 0%,#B8855A 100%)',
-  healthy: 'linear-gradient(135deg,#A8E063 0%,#56AB2F 100%)',
-};
-
 // Rail categorie: icone kawaii brand (mai emoji). `id` deve matchare BK.ASSETS.cat.
 function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
   const [T] = BK.useByupTheme();
@@ -2496,7 +2483,6 @@ function HomeSections({
       photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=70&auto=format&fit=crop' },
   ];
   const click = (item) => onCardClick?.(item);
-  const slotClick = (item) => onSlotClick?.(item);
   const [T] = BK.useByupTheme();
 
   return (
@@ -3275,36 +3261,6 @@ function BypBadgeCard({ a, i, onOpen }) {
         </div>
       )}
     </button>
-  );
-}
-
-function BypChal({ emo, title, desc, rew, pct, meta1, meta2, live, cta, onCta }) {
-  return (
-    <div style={{ background: live ? 'linear-gradient(158deg,#20303a,#12212b)' : BYP.surf,
-      border: `1px solid ${live ? 'rgba(120,200,255,.2)' : BYP.line}`, borderRadius: 18, padding: 15, marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 13, flex: 'none', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 22,
-          background: live ? 'linear-gradient(155deg,#123044,#0c4a63)' : 'linear-gradient(155deg,#3b2530,#6b1e39)' }}>{emo}</div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 700, color: BYP.text }}>{title}</div>
-          <div style={{ fontSize: 12, color: BYP.muted, marginTop: 2 }}>{desc}</div>
-        </div>
-        <div style={{ marginLeft: 'auto', flex: 'none', fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13, color: BYP.lime, whiteSpace: 'nowrap' }}>{rew}</div>
-      </div>
-      {pct != null && (
-        <>
-          <div style={{ height: 9, borderRadius: 999, background: BYP.surf2, marginTop: 12, overflow: 'hidden' }}>
-            <span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 999,
-              background: 'linear-gradient(90deg,#e32459,#ff3d6e)' }}/>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: BYP.muted, marginTop: 6, fontWeight: 600 }}>
-            <span>{meta1}</span><span>{meta2}</span>
-          </div>
-        </>
-      )}
-      {cta && <BypCta style={{ height: 46, marginTop: 12 }} onClick={onCta}>{cta}</BypCta>}
-    </div>
   );
 }
 
@@ -4399,9 +4355,6 @@ function App({ recoveryArmed = false }) {
   const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
   const [catSel, setCatSel] = useState(null); // categoria aperta a schermo intero
-  const [activeTab, setActiveTab] = useState('home');
-  const [search, setSearch] = useState('');
-  const [searchFocus, setSearchFocus] = useState(false);
   // Navigation stack: every setPage pushes; goBack pops. The top-left back
   // arrow on every screen calls goBack() and always returns to the previous
   // page, regardless of how the user got there.
@@ -4973,15 +4926,6 @@ function QRScanOverlay({ onDone, onClose }) {
     </div>
   );
 }
-
-// Reusable bottom tab bar — uses the provided 390×88 vector path.
-// The wrapper has `aspect-ratio: 390 / 88`, so its height auto-derives from the
-// width set by left/right insets. With matching aspect ratios on the wrapper and
-// the SVG (preserveAspectRatio="none"), the path scales uniformly without any
-// distortion of corner radii or the swooping notch curve, on any device width.
-// Same SVG path on every page — notch always visible, QR button optional.
-const TABBAR_PATH = 'M0 24C0 10.745 10.745 0 24 0H135C141.667 0 148.496 1.74568 154 8C159.504 14.2543 162.5 18 170 22C177.5 26 185 28 195 28C205 28 213 25.5 220 22C227 18.5 231.989 14.6813 237 8.00003C242.011 1.31871 248.333 0 255 0H366C379.255 0 390 10.745 390 24V88H0V24Z';
-const TABBAR_NOTCH_DEPTH_PCT = (28 / 88) * 100; // 31.818…% — deepest point of the notch
 
 function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini, onQR, showQR = true, forceDark = false }) {
   const [T] = BK.useByupTheme();

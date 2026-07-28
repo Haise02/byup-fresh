@@ -36,7 +36,6 @@ const PN = {
   // surfaces
   CARD_SHADOW: '0 1px 2px rgba(15,17,21,0.04), 0 1px 3px rgba(15,17,21,0.06)',
   CARD_SHADOW_HOVER: '0 4px 12px rgba(15,17,21,0.08), 0 2px 4px rgba(15,17,21,0.06)',
-  CARD_SHADOW_DRAG: '0 12px 32px rgba(15,17,21,0.18), 0 4px 8px rgba(15,17,21,0.10)',
 
   // ─── White shades — sfumature di bianco per evitare bianco-su-bianco piatto.
   // Ispirate a macOS Sonoma. Usare invece di #FFF puro su CTA secondari/superfici.
@@ -131,16 +130,6 @@ const PN = {
     border: '1px solid rgba(255, 255, 255, 0.40)',
     boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 24px 48px rgba(15, 17, 21, 0.22), 0 2px 6px rgba(15, 17, 21, 0.06)',
     borderRadius: 16,
-  },
-  // Hover panel
-  GLASS_HOVER: {
-    background: 'rgba(255, 255, 255, 0.70)',
-    backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.12) 35%, rgba(255,255,255,0) 100%)',
-    backdropFilter: 'blur(40px) saturate(220%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(220%)',
-    border: '1px solid rgba(255, 255, 255, 0.40)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 16px 36px rgba(15, 17, 21, 0.18), 0 1px 2px rgba(15, 17, 21, 0.04)',
-    borderRadius: 14,
   },
   // Drag preview — molto trasparente per "ghost"
   GLASS_DRAG: {

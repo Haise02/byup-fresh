@@ -36,8 +36,6 @@ const PIANI = [
   { id: 'business', label: 'Business', price: 249, color: 'PLAN_BUSINESS' },
 ];
 
-const TIPI_LOCALE = ['Trattoria','Ristorante','Pizzeria','Osteria','Bistrot','Enoteca','Pub','Bar'];
-
 // Helper deterministico
 function pseudoRand(seed) {
   let x = seed * 9301 + 49297;
@@ -333,22 +331,6 @@ const UTILIZZO_CLUSTER = {
 };
 
 // ---------- SEGNALAZIONI ----------
-const SEG_FONTI = {
-  app_user:  { label: 'Utente App', color: 'INFO' },
-  gestionale:{ label: 'Gestionale', color: 'PURPLE' },
-  staff:     { label: 'Camerieri/Staff', color: 'WARN' },
-};
-const SEG_STATI = {
-  nuova:   { label: 'Nuova', color: 'INFO' },
-  in_corso:{ label: 'In lavorazione', color: 'WARN' },
-  risolta: { label: 'Risolta', color: 'OK' },
-};
-const SEG_PRIO = {
-  alta:  { label: 'Alta', color: 'DANGER' },
-  media: { label: 'Media', color: 'WARN' },
-  bassa: { label: 'Bassa', color: 'INFO' },
-};
-
 const SEGNALAZIONI = [
   { id: 'S001', fonte: 'app_user', utenteId: 'U2003', oggetto: 'Non riesco a completare pagamento ordine', desc: 'Quando arrivo al pagamento la pagina si blocca dopo aver inserito la carta. Ho riprovato 3 volte.', stato: 'nuova', priorita: 'alta', data: new Date(Date.now() - 1200000), allegati: 1 },
   { id: 'S002', fonte: 'gestionale', localeId: 'L1018', oggetto: 'Stampante scontrini non risponde', desc: 'La stampante Epson smette di stampare dopo 5-6 ordini. Devo riavviarla ogni volta.', stato: 'in_corso', priorita: 'alta', data: new Date(Date.now() - 5400000), assignedTo: 'support1' },
@@ -419,23 +401,6 @@ const TEAM = [
   { id: 'support2', nome: 'Andrea Verdi', email: 'a.verdi@byup.it', ruolo: 'support', avatar: 'AV', avatarBg: '#D97706', lastActive: new Date(Date.now() - 7200000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-09-12') },
   { id: 'mkt1', nome: 'Paola Esposito', email: 'p.esposito@byup.it', ruolo: 'marketing', avatar: 'PE', avatarBg: '#D97706', lastActive: new Date(Date.now() - 3600000 * 5), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-11-20') },
   { id: 'mkt2', nome: 'Marco Galli', email: 'm.galli@byup.it', ruolo: 'marketing', avatar: 'MG', avatarBg: '#B45309', lastActive: new Date(Date.now() - 86400000 * 7), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2025-02-03') },
-];
-
-const PERMS = {
-  super_admin: { dashboard:'rw', locali:'rw', utenti:'rw', segnalazioni:'rw', certificazioni:'rw', messaggi:'rw', team:'rw' },
-  operations:  { dashboard:'r',  locali:'rw', utenti:'r',  segnalazioni:'-',  certificazioni:'-',  messaggi:'-',  team:'-' },
-  support:     { dashboard:'r',  locali:'r',  utenti:'r',  segnalazioni:'rw', certificazioni:'rw', messaggi:'-',  team:'-' },
-  marketing:   { dashboard:'r',  locali:'r',  utenti:'r',  segnalazioni:'-',  certificazioni:'-',  messaggi:'rw', team:'-' },
-};
-
-// ---------- ATTIVITÀ RECENTE (per dashboard) ----------
-const RECENT_ACTIVITY = [
-  { type: 'iscrizione', who: 'Trattoria del Borgo', when: new Date(Date.now() - 600000), detail: 'Nuovo locale iscritto · Milano' },
-  { type: 'certificazione', who: 'Osteria del Mare', when: new Date(Date.now() - 1800000), detail: 'HACCP inviato in revisione' },
-  { type: 'segnalazione', who: 'Marco B.', when: new Date(Date.now() - 2700000), detail: 'Segnalazione critica · pagamento bloccato' },
-  { type: 'upgrade', who: 'Pizzeria Sorbillo', when: new Date(Date.now() - 5400000), detail: 'Upgrade Starter → Plus' },
-  { type: 'onboarding', who: 'Bistrot Verde', when: new Date(Date.now() - 9000000), detail: 'Onboarding completato' },
-  { type: 'churn', who: 'Ristorante Cracco', when: new Date(Date.now() - 86400000), detail: 'Sospeso piano · 30 g inattivo' },
 ];
 
 // ---------- TOP PIATTI / ORDINI / CITTÀ aggregati ----------
@@ -550,7 +515,6 @@ const TOTAL_REVENUE_HISTORICAL = {
 window.ONB_STEPS = ONB_STEPS;
 window.REGIONI = REGIONI;
 window.PIANI = PIANI;
-window.TIPI_LOCALE = TIPI_LOCALE;
 // ── Dunning (mock): addebiti falliti su 3 locali attivi paganti ──────────
 LOCALI.filter(l => l.stato === 'active' && l.piano !== 'free').slice(3, 6).forEach((l, i) => {
   l.pagamentoFallito = {
@@ -564,16 +528,11 @@ window.LOCALI = LOCALI;
 window.UTENTI = UTENTI;
 window.UTILIZZO_CLUSTER = UTILIZZO_CLUSTER;
 window.SEGNALAZIONI = SEGNALAZIONI;
-window.SEG_FONTI = SEG_FONTI;
-window.SEG_STATI = SEG_STATI;
-window.SEG_PRIO = SEG_PRIO;
 window.CERTIFICAZIONI = CERTIFICAZIONI;
 window.CERT_TIPI = CERT_TIPI;
 window.TEAM = TEAM;
 window.RUOLI = RUOLI;
 window.PERMESSI = PERMESSI;
-window.PERMS = PERMS;
-window.RECENT_ACTIVITY = RECENT_ACTIVITY;
 window.TOP_PIATTI = TOP_PIATTI;
 window.TOP_CITTA = TOP_CITTA;
 window.SCREENS_USAGE = SCREENS_USAGE;

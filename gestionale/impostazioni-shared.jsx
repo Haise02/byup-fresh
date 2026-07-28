@@ -1,45 +1,5 @@
 // Shared building blocks for Impostazioni pages
 
-function ImpHeader({ active }) {
-  const SUBTITLES = {
-    vetrina: 'Vetrina · come appare il locale ai clienti',
-    'menu-cucina': 'Menù · catalogo piatti, allergeni e prezzi',
-    sala: 'Sala e tavoli · sale, tavoli e coperti',
-    personale: 'Personale · membri del team e dispositivi connessi',
-    flussi: 'Operazioni · come arrivano e vengono gestiti gli ordini',
-    fiscali: 'Dati fiscali · P.IVA, SDI, sede legale, IBAN',
-    integrazioni: 'POS e integrazioni · pagamenti, delivery e dispositivi',
-  };
-
-  return (
-    <header style={{
-      display:'flex', alignItems:'center', gap: 16,
-      padding: '20px 32px 18px',
-      borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-      background: PN.WHITE,
-    }}>
-      <span style={{
-        width: 40, height: 40, borderRadius: 11,
-        background: PN.PINK_SOFT, color: PN.PINK_DARK,
-        display: 'grid', placeItems: 'center', flexShrink: 0,
-      }}>
-        <Icon name="gear" size={22}/>
-      </span>
-      <div style={{flex:1}}>
-        <h1 style={{margin:0, fontSize: 24, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4}}>
-          Impostazioni
-        </h1>
-        <div style={{fontSize: 15, color: PN.MUTED, marginTop: 4}}>
-          {SUBTITLES[active] || ''}
-        </div>
-      </div>
-
-      <PnConnectionStatus/>
-      <PnNotifBell/>
-    </header>
-  );
-}
-
 function ImpTabs({ active, onChange }) {
   const tabs = [
     { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant' },
@@ -185,28 +145,6 @@ function ImpTextarea(props) {
   );
 }
 
-function ImpCheckbox({ label, checked, onChange }) {
-  return (
-    <label style={{
-      display:'inline-flex', alignItems:'center', gap: 8,
-      cursor:'pointer', fontSize: 15, color: PN.TEXT,
-      padding: '7px 0',
-    }}>
-      <span style={{
-        width: 18, height: 18, borderRadius: 5,
-        border: `1.5px solid ${checked ? PN.TEXT : PN.BORDER}`,
-        background: checked ? PN.TEXT : PN.WHITE,
-        display:'grid', placeItems:'center',
-        transition: 'all .12s',
-      }}>
-        {checked && <PnI.Check size={11} color={PN.WHITE}/>}
-      </span>
-      <input type="checkbox" checked={checked} onChange={onChange} style={{display:'none'}}/>
-      {label}
-    </label>
-  );
-}
-
 function ImpToggle({ checked, onChange }) {
   return (
     <button onClick={() => onChange?.(!checked)} style={{
@@ -250,12 +188,6 @@ function ImpButton({ variant = 'primary', icon, children, onClick, style = {}, d
       color:  PN.TEXT,
       border: `1px solid ${PN.BORDER_LIGHT}`,
       shadow: PN.INSET_HIGHLIGHT,
-    },
-    text: {
-      bg: 'transparent',
-      color: PN.TEXT,
-      border: 'none',
-      shadow: 'none',
     },
   };
   const v = variants[variant] || variants.primary;
@@ -301,14 +233,12 @@ function MenuItem({ icon, children, danger, onClick }) {
   );
 }
 
-window.ImpHeader = ImpHeader;
 window.ImpTabs = ImpTabs;
 window.ImpSubTabs = ImpSubTabs;
 window.ImpCard = ImpCard;
 window.ImpField = ImpField;
 window.ImpInput = ImpInput;
 window.ImpTextarea = ImpTextarea;
-window.ImpCheckbox = ImpCheckbox;
 window.ImpToggle = ImpToggle;
 window.ImpButton = ImpButton;
 window.MenuItem = MenuItem;

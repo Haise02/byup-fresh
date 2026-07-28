@@ -2,7 +2,7 @@
 
 > **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` (nella root del repo) e `vue-components/WORK_IN_PROGRESS.md` (accanto a questo file). I percorsi in questo documento sono relativi alla root del repo `Byup/`, salvo dove indicato.
 
-**Ultimo aggiornamento:** 28 luglio 2026 — riallineamento percorsi alla struttura del repo `Byup/` (prototipo in `gestionale/`, backend in `backend/` alla root). Ultimo lavoro backend: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
+**Ultimo aggiornamento:** 28 luglio 2026 — riallineamento percorsi alla struttura del repo `Byup/` (prototipo in `gestionale/`, backend in `backend/` alla root) + **rimozione di codice morto** su tutte le superfici: da `gestionale/` sono spariti le copie mai linkate delle app consumer/cameriere (`byup Home.html`, `byup Menu.html`, `byup Staff.html` e relativi `.jsx` — le versioni vive stanno in `app/` e `cameriere/`), i token legacy `BU` (`byup-tokens.jsx`), `cucina-tab-storico.jsx`, `tweaks-panel.jsx` e i `_demo-card-*.html`. Ultimo lavoro backend: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
 
 ---
 

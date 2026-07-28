@@ -100,7 +100,6 @@ function FloorPlan({
   // della cella e le sedie vivono nel margine (qui restano dentro la cella,
   // così footprint e collisioni non cambiano).
   const bodyUnit = Math.max(34, CELL - 2 * ttChairMetrics(CELL * 0.72).out);
-  const bodyOff = (CELL - bodyUnit) / 2;
 
   // ESC esce dalla modalità a tutto schermo
   React.useEffect(() => {
@@ -167,23 +166,6 @@ function FloorPlan({
       }
     }
     return { x: cx, y: cy };
-  };
-
-  // Cerca spazio libero per il tavolo "moved" senza overlap con "occupied"
-  const findFreeSpot = (moved, tx, ty, occupied) => {
-    const dims = tableDims(moved);
-    for (let r = 0; r <= 8; r += 0.5) {
-      for (let dx = -r; dx <= r; dx += 0.5) {
-        for (let dy = -r; dy <= r; dy += 0.5) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          const nx = Math.max(0, Math.min(COLS - dims.w, snap(tx + dx)));
-          const ny = Math.max(0, Math.min(ROWS - dims.h, snap(ty + dy)));
-          const test = { x: nx, y: ny, w: dims.w, h: dims.h };
-          if (!occupied.some(o => overlapRects(test, o))) return { x: nx, y: ny };
-        }
-      }
-    }
-    return { x: tx, y: ty };
   };
 
   // Drag elemento esistente (pointer events: mouse + touch)

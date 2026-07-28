@@ -237,7 +237,6 @@ function DrwAdozioneDigitale({ locale: l }) {
 
 function DrwScanOrdini({ locale: l }) {
   const [periodo, setPeriodo] = useStateDrw('mese');
-  const [hoverInfo, setHoverInfo] = useStateDrw(false);
   const isAnno = periodo === 'anno';
 
   // Calcoli per locale (mese + anno) + confronto con la media piattaforma
@@ -256,14 +255,6 @@ function DrwScanOrdini({ locale: l }) {
   const gap = ratioAvg > 0 ? ((ratio - ratioAvg) / ratioAvg) * 100 : 0;
   const aboveAvg = ratio >= ratioAvg;
   const accent = aboveAvg ? ADM.OK : ADM.DANGER;
-
-  // Versione opposta per il tooltip "anche annuale"
-  const opp = {
-    label: isAnno ? '30 giorni' : '12 mesi',
-    scan: isAnno ? l.scanQRMese : l.scanQRAnno,
-    ord:  isAnno ? l.ordiniMese : l.ordiniAnno,
-  };
-  const oppRatio = opp.scan > 0 ? opp.ord / opp.scan : 0;
 
   const fmtP = (r) => `${(r * 100).toFixed(1).replace('.', ',')}%`;
 
@@ -369,7 +360,6 @@ function FunnelStepper({ locale: l, variant = 'full' }) {
       {ONB_STEPS.map((s, i) => {
         const done = l.completedSteps.includes(s.id);
         const stuck = l.stoppedAt === s.id;
-        const future = !done && !stuck;
         const time = l.stepTimes && l.stepTimes[s.id];
         return (
           <React.Fragment key={s.id}>
@@ -407,59 +397,6 @@ function FunnelStepper({ locale: l, variant = 'full' }) {
           </React.Fragment>
         );
       })}
-    </div>
-  );
-}
-
-function DrwFunnel({ locale: l }) {
-  return (
-    <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:16}}>
-      <AdmCard padding={24}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
-          <div>
-            <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Stato del funnel di onboarding</div>
-            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Timeline da iscrizione a Go-live</div>
-          </div>
-          <AdmBadge color={l.stato === 'active' ? 'OK' : l.stato === 'onboarding' ? 'WARN' : l.stato === 'skipped' ? 'INFO' : 'PLAN_FREE'} size="md">
-            {l.stato === 'active' ? 'Completato' : l.stato === 'onboarding' ? 'In corso' : l.stato === 'skipped' ? 'Saltato' : l.stato === 'pending' ? 'Non iniziato' : 'Completato'}
-          </AdmBadge>
-        </div>
-        <FunnelStepper locale={l} variant="full"/>
-      </AdmCard>
-
-      {/* Timeline verticale */}
-      <AdmCard padding={20}>
-        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Cronologia step</div>
-        <div style={{display:'flex', flexDirection:'column'}}>
-          {ONB_STEPS.map((s, i) => {
-            const done = l.completedSteps.includes(s.id);
-            const stuck = l.stoppedAt === s.id;
-            const time = l.stepTimes && l.stepTimes[s.id];
-            return (
-              <div key={s.id} style={{display:'flex', gap:14, paddingBottom: i === ONB_STEPS.length-1 ? 0 : 18, position:'relative'}}>
-                {i < ONB_STEPS.length-1 && <div style={{position:'absolute', left:11, top:24, bottom:0, width:2, background: done && l.completedSteps.includes(ONB_STEPS[i+1].id) ? ADM.OK : '#E5E7EB'}}/>}
-                <div style={{
-                  width:24, height:24, borderRadius:'50%',
-                  background: done ? ADM.OK : stuck ? ADM.WARN_SOFT : '#F3F4F6',
-                  border: stuck ? `2px solid ${ADM.WARN}` : 'none',
-                  color: done ? '#fff' : stuck ? ADM.WARN : ADM.MUTED_LIGHT,
-                  display:'grid', placeItems:'center',
-                  fontSize:13, fontWeight:700,
-                  flexShrink:0, position:'relative', zIndex:1,
-                }}>{done ? <BuIcons.check size={17}/> : i+1}</div>
-                <div style={{flex:1, paddingTop:1}}>
-                  <div style={{fontSize:14.8, fontWeight:600, color:ADM.TEXT}}>{s.label}</div>
-                  <div style={{fontSize:13.3, color: stuck ? ADM.WARN : ADM.MUTED, marginTop:2, fontWeight: stuck ? 600 : 400}}>
-                    {done && time ? `Completato ${fmtDateTime(time)}` :
-                     stuck ? `In attesa da ${fmtRelative(l.lastLogin)}` :
-                     'In attesa'}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </AdmCard>
     </div>
   );
 }

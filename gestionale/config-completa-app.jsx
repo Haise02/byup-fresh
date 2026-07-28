@@ -378,7 +378,6 @@ function ConfigCompletaApp() {
 
 // Step del wizard — cerchio numerato + label con sotto-titolo.
 function CfgStep({num, label, sub, active, done, onClick}) {
-  const tone = done ? '#16A34A' : active ? PN.PINK : PN.MUTED;
   return (
     <button onClick={onClick} style={{
       display:'flex', alignItems:'center', gap: 12,

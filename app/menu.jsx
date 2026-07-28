@@ -652,72 +652,6 @@ function CatBand({ name, count, index = 0, total = 5 }) {
 }
 
 
-// ─── CopertiSheet ────────────────────────────────────────────────────────────
-// Chiesto al momento del pagamento, non all'ingresso al tavolo: prima compariva
-// appena aperto il menu, quando ancora non serviva, e veniva saltato. Qui e'
-// obbligatorio (niente skip ne' chiusura sul backdrop) perche' il numero lo
-// legge lo staff di sala.
-function CopertiSheet({ onConfirm }) {
-  return (
-        <div style={{
-          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 45,
-          display: 'flex', alignItems: 'flex-end',
-          animation: 'fade 0.22s ease',
-        }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-            padding: '10px 22px 32px',
-            animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
-          }}>
-            <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 18px' }}/>
-
-            <div style={{ textAlign: 'center', marginBottom: 22 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 6 }}>
-                Quanti siete al tavolo?
-              </div>
-              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.45 }}>
-                Serve per dividere il conto e per il servizio al tavolo.
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
-              {[1, 2, 3, 4, 5, 6].map(n => (
-                <button key={n} onClick={() => onConfirm(n === 6 ? 6 : n)} style={{
-                  height: 64, borderRadius: 14,
-                  border: `1.5px solid ${BORDER}`,
-                  background: SURF, cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: 20, fontWeight: 800, color: TEXT,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = WINE; e.currentTarget.style.background = '#fdf6f8'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.background = '#fff'; }}
-                >{n === 6 ? '6+' : n}</button>
-              ))}
-            </div>
-
-            {/* Disclaimer al posto dello skip: il dato non e' interno all'app,
-                lo vede il personale di sala. */}
-            <div style={{
-              display: 'flex', alignItems: 'flex-start', gap: 8,
-              padding: '10px 12px', borderRadius: 12,
-              background: '#F6F7F9', border: `1px solid ${BORDER}`,
-            }}>
-              <span aria-hidden="true" style={{
-                width: 18, height: 18, borderRadius: 999, flexShrink: 0, marginTop: 1,
-                background: MUTESURF, color: MUTED,
-                display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800,
-              }}>i</span>
-              <span style={{ fontSize: 13, color: MUTED, lineHeight: 1.45 }}>
-                Il numero verrà visionato dallo staff di sala.
-              </span>
-            </div>
-          </div>
-        </div>
-  );
-}
-
 function MenuScreen({ state, setState, goTo }) {
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   // Tab di navigazione: "Byup" è una voce extra (non una categoria di piatti)
@@ -841,26 +775,8 @@ function MenuScreen({ state, setState, goTo }) {
   const [splitPickItem, setSplitPickItem] = useState(null); // piatto per il popup "con chi dividi?" (swipe ←)
   const [confirm, setConfirm] = useState(false);
   const [modeSheetOpen, setModeSheetOpen] = useState(false);
-  // Prompt coperti: appare al primo ingresso al tavolo (non da Vetrina), una sola volta
-  const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
-  // Il numero di commensali non si chiede piu' all'ingresso al tavolo (dove
-  // l'utente non sa ancora se dividera' il conto e lo saltava): si chiede al
-  // "Paga ora", dove serve davvero. Li' e' obbligatorio — niente skip, niente
-  // chiusura sul backdrop — perche' lo staff di sala legge quel numero.
-  const [afterCoperti, setAfterCoperti] = useState(null);   // cosa fare dopo la conferma
-  const askCoperti = (then) => {
-    if (state.copertiSelected) { then && then(); return; }
-    setAfterCoperti(() => then || null);
-    setCopertiSheetOpen(true);
-  };
-  const confirmCoperti = (n) => {
-    saveCoperti(n);
-    setState(s => ({ ...s, coperti: n, copertiSelected: true }));
-    setCopertiSheetOpen(false);
-    if (afterCoperti) { const f = afterCoperti; setAfterCoperti(null); setTimeout(f, 120); }
-  };
 
   const dishes = DISHES_BY_CAT;
 
@@ -1286,7 +1202,6 @@ function MenuScreen({ state, setState, goTo }) {
             return dietMatch(d);
           }).slice(0, 6);
           if (picks.length < 2) return null;
-          const hasPrefs = dietFilter || Object.values(allergenFilters).some(Boolean);
           const dietLabels = { veg: 'vegetariana', vegan: 'vegana', gf: 'senza glutine' };
           const subtitle = dietFilter
             ? `Scelti per la tua dieta ${dietLabels[dietFilter] || ''}`.trim()
@@ -1523,8 +1438,6 @@ function MenuScreen({ state, setState, goTo }) {
           cartTotal={cartTotal}
         />
       )}
-
-      {copertiSheetOpen && <CopertiSheet onConfirm={confirmCoperti}/>}
 
       {/* Sheet partecipanti — stessa del Pagamento, qui con invito via link */}
       {guestsOpen && (() => {
@@ -1995,212 +1908,6 @@ function EmptyHint({ text }) {
       padding: '40px 20px', textAlign: 'center', color: MUTED,
       fontSize: 13.5,
     }}>{text}</div>
-  );
-}
-
-// ─── SPLIT SCREEN ──────────────────────────────────────────
-function SplitScreen({ state, setState, ctx, goBack }) {
-  const item = ctx?.item;
-  const splitKey = ctx?.splitKey;
-  const initial = state.splits?.[splitKey] || { kind: 'me', people: [] };
-  const [kind, setKind] = useState(initial.kind);
-  const [people, setPeople] = useState(initial.people);
-
-  const defaultParticipants = [
-    { id: 'me', name: 'Tu', initials: 'T', isMe: true },
-    { id: 'p1', name: 'Marco', initials: 'M' },
-    { id: 'p2', name: 'Margherita', initials: 'Mg' },
-    { id: 'p3', name: 'Roberto', initials: 'R' },
-    { id: 'p4', name: 'Ospite 1', initials: 'O', isGuest: true },
-  ];
-  const participants = state.participants || defaultParticipants;
-
-  const togglePerson = (id) => {
-    if (id === 'me') return; // me always included
-    setPeople(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
-  };
-
-  // Aggiunge un nuovo ospite alla lista partecipanti e lo seleziona
-  const addParticipant = () => {
-    const ospitiNum = participants.filter(p => p.isGuest).length + 1;
-    const newP = {
-      id: `p-og-${Date.now()}`,
-      name: `Ospite ${ospitiNum}`,
-      initials: '?',
-      isGuest: true,
-    };
-    setState(s => ({
-      ...s,
-      participants: [...(s.participants || defaultParticipants), newP],
-    }));
-    // Includi nuovo ospite anche se la modalità è "diviso"
-    setPeople(p => [...p, newP.id]);
-  };
-
-  const save = () => {
-    const split = { kind, people: kind === 'diviso' ? people : [] };
-    setState(s => ({ ...s, splits: { ...(s.splits || {}), [splitKey]: split } }));
-    goBack();
-  };
-
-  const splitCount = kind === 'tavolo'
-    ? participants.length
-    : kind === 'diviso'
-      ? people.length + 1
-      : 1;
-  const perPerson = item ? (item.price / splitCount).toFixed(2) : 0;
-
-  return (
-    <div data-screen-label="Divisione piatto" style={{
-      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
-      display: 'flex', flexDirection: 'column', overflow: 'hidden',
-    }}>
-      {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="happy" pageKey="split" message="Dividi con un tap. Restate amici." bottom={110} size={118}/> : null; })()}
-      {/* Header */}
-      <div style={{
-        padding: '60px 22px 14px', display: 'flex', alignItems: 'center', gap: 12,
-        background: SURF, borderBottom: `1px solid ${BORDER}`,
-      }}>
-        <button onClick={goBack} style={{
-          width: 36, height: 36, borderRadius: 999, background: BG_GRAY,
-          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-        }}><I.Back size={20}/></button>
-        <div>
-          <div style={{ fontSize: 12, color: MUTED, fontWeight: 500 }}>Dividi il piatto</div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: TEXT, lineHeight: 1.2 }}>{item?.name || 'Piatto'}</div>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px 140px' }}>
-        {/* Mode selector */}
-        <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Modalità
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-          <ModeCard active={kind === 'me'} onClick={() => setKind('me')}
-            title="Per me" desc="Pago io tutto il piatto" emoji={<img src="assets/mascot-confident.png" width="30" alt=""/>}/>
-          <ModeCard active={kind === 'diviso'} onClick={() => setKind('diviso')}
-            title="Diviso" desc="Scegli con chi dividere il piatto" emoji={<img src="assets/mascot-happy.png" width="30" alt=""/>}/>
-          <ModeCard active={kind === 'tavolo'} onClick={() => setKind('tavolo')}
-            title="Tavolo intero" desc={`Diviso tra tutti i ${participants.length} commensali`} emoji={<img src="assets/mascot-waiter.png" width="30" alt=""/>}/>
-        </div>
-
-        {/* Participants picker (only for 'diviso') */}
-        {kind === 'diviso' && (
-          <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Con chi dividi?
-            </div>
-            <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>
-              Tu sei sempre incluso · {people.length + 1} {people.length + 1 === 1 ? 'persona' : 'persone'} selezionate
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {participants.map(p => {
-                const sel = p.isMe || people.includes(p.id);
-                return (
-                  <div key={p.id} onClick={() => togglePerson(p.id)} style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 14px', borderRadius: 14,
-                    background: sel ? SURF : SURF,
-                    border: `1.5px solid ${sel ? WINE : BORDER}`,
-                    cursor: p.isMe ? 'default' : 'pointer',
-                    opacity: p.isMe ? 0.85 : 1,
-                  }}>
-                    <Avatar name={p.name} initials={p.initials} guest={p.isGuest}/>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: TEXT }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: MUTED }}>
-                        {p.isMe ? 'Sempre incluso' : p.isGuest ? 'Ospite (non loggato)' : 'Tramite app'}
-                      </div>
-                    </div>
-                    <div style={{
-                      width: 24, height: 24, borderRadius: 999,
-                      border: `2px solid ${sel ? WINE : '#d0d0d0'}`,
-                      background: sel ? WINE : SURF,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {sel && <I.Check size={14} color="#fff"/>}
-                    </div>
-                  </div>
-                );
-              })}
-              <button onClick={addParticipant} style={{
-                width: '100%', padding: '12px 14px', borderRadius: 14,
-                background: SURF, border: `1.5px dashed ${BORDER}`,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 12,
-                color: TEXT, fontSize: 14, fontWeight: 700,
-              }}>
-                <span style={{
-                  width: 32, height: 32, borderRadius: 999, background: TINT,
-                  color: WINE, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18, fontWeight: 700,
-                }}>+</span>
-                <span>Aggiungi ospite</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11.5, color: MUTED, fontWeight: 500 }}>
-                  senza app
-                </span>
-              </button>
-            </div>
-          </>
-        )}
-
-        {kind === 'tavolo' && (
-          <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Tavolo · {participants.length} persone
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div style={{ display: 'flex' }}>
-                {participants.map((p, i) => (
-                  <div key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
-                    <Avatar name={p.name} initials={p.initials} guest={p.isGuest} size={42}/>
-                  </div>
-                ))}
-              </div>
-              <button onClick={addParticipant} title="Aggiungi ospite" style={{
-                width: 42, height: 42, borderRadius: 999,
-                background: SURF, border: `1.5px dashed ${BORDER}`,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: WINE, fontSize: 22, fontWeight: 700, padding: 0, lineHeight: 1,
-              }}>+</button>
-            </div>
-          </>
-        )}
-
-        {/* Summary */}
-        {item && (
-          <div style={{
-            marginTop: 24, padding: 16, borderRadius: 16,
-            background: SURF, border: `1.5px solid ${BORDER}`,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MUTED, marginBottom: 6 }}>
-              <span>Prezzo piatto</span><span>{item.price}€</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MUTED, marginBottom: 10 }}>
-              <span>Diviso per</span><span>{splitCount} {splitCount === 1 ? 'persona' : 'persone'}</span>
-            </div>
-            <div style={{ height: 1, background: BORDER, margin: '4px 0 10px' }}/>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700, color: TEXT }}>
-              <span>La tua quota</span><span>{perPerson}€</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Save button */}
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0,
-        padding: '14px 22px 22px', background: SURF, borderTop: `1px solid ${BORDER}`,
-      }}>
-        <button onClick={save} style={{
-          width: '100%', height: 52, borderRadius: 999, border: 'none',
-          background: WINE, color: '#fff', fontSize: 15, fontWeight: 700,
-          fontFamily: 'inherit', cursor: 'pointer',
-        }}>Conferma divisione</button>
-      </div>
-    </div>
   );
 }
 
@@ -3555,9 +3262,6 @@ function loadCoperti() {
     return Number.isFinite(n) && n > 0 ? n : null;
   } catch (e) { return null; }
 }
-function saveCoperti(n) {
-  try { sessionStorage.setItem('byup_coperti', String(n)); } catch (e) {}
-}
 
 function applyPayments(setState, payments) {
   setState(s => {
@@ -3749,14 +3453,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const [paying, setPaying] = useState(false);
   const [splitInfo, setSplitInfo] = useState(null);
   const [confirmRejectSplit, setConfirmRejectSplit] = useState(null);
-  // Recap collassabile: tap sull'handle in alto al pannello di pagamento per nascondere
-  // dettagli (subtotale, mancia, metodo) e mostrare solo la CTA "Paga ora".
-  const [recapCollapsed, setRecapCollapsed] = useState(false);
   // Sheet "Al tavolo": apre la lista commensali con badge ✓ ha l'app / ospite
   const [guestsOpen, setGuestsOpen] = useState(false);
 
   // CTA a scorrimento: modalità ciclica e sheet "Dettagli pagamento"
-  const [ctaMode, setCtaMode] = useState('mine'); // 'mine' | 'split' | 'all'
+  const [ctaMode, setCtaMode] = useState('mine'); // 'mine' | 'all'
   const [detailsOpen, setDetailsOpen] = useState(false);
   const cycleCtaMode = () => setCtaMode(m => {
     const next = m === 'mine' ? 'all' : 'mine'; // niente "alla romana": solo mio ordine ↔ tutto il tavolo
@@ -4024,26 +3725,13 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const tipAmount = tipRound ? roundUpTip : baseForTip * tipPct;
   const total = baseForTip + tipAmount;
 
-  // "Alla romana": conto rimanente del tavolo diviso tra chi deve ancora pagare
-  const paidPeopleCount = new Set(Object.values(paidLineIds)).size;
-  const remainingPeople = Math.max(1, covers - paidPeopleCount);
-  const splitBase = (tableRemaining(order) + COVER * remainingPeople) / remainingPeople;
-  const splitRoundTip = Math.round((Math.ceil(splitBase) - splitBase) * 100) / 100;
-  const splitTip = tipRound ? splitRoundTip : splitBase * tipPct;
-  const splitTotal = splitBase + splitTip;
-  const ctaTotal = ctaMode === 'split' ? splitTotal : total;
+  const ctaTotal = total;
 
   const proceed = () => {
     // Costruisco i pagamenti per-riga con l'importo effettivo (quota), non l'intero.
     const settled = seedSettled(order);
     const payments = [];
-    if (ctaMode === 'split') {
-      // quota equa: pago 1/N di ogni riga ancora aperta
-      order.items.forEach(it => {
-        const rem = lineRemaining(order, it, settled);
-        if (rem > 0.001) payments.push({ lineId: it.lineId, amount: rem / remainingPeople });
-      });
-    } else if (mode === 'all') {
+    if (mode === 'all') {
       order.items.forEach(it => {
         const rem = lineRemaining(order, it, settled);
         if (rem > 0.001) payments.push({ lineId: it.lineId, amount: rem });
@@ -4052,7 +3740,6 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       myItems.forEach(it => payments.push({ lineId: it.lineId, amount: myShareOf(it) }));
       extraItems.forEach(it => payments.push({ lineId: it.lineId, amount: extraShareFor(it) }));
     }
-    const remBefore = tableRemaining(order);
     const paidNow = payments.reduce((s, p) => s + p.amount, 0);
     applyPayments(setState, payments);
     setState(s => ({
@@ -4075,7 +3762,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const [confirmAll, setConfirmAll] = useState(false);
   const payNow = () => {
     if (paying || ctaTotal <= 0) return;
-    // La modalita' della CTA e' ctaMode ('mine' | 'split' | 'all'), non `mode`:
+    // La modalita' della CTA e' ctaMode ('mine' | 'all'), non `mode`:
     // e' quella che decide cosa si paga davvero.
     if (ctaMode === 'all') { setConfirmAll(true); return; }   // conferma esplicita
     setPaying(true);
@@ -4265,7 +3952,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
       }}>
         <SlideToPay
           mode={ctaMode}
-          label={ctaMode === 'mine' ? 'Scorri per pagare' : ctaMode === 'split' ? 'Alla romana · tua quota' : 'Paga tutto il tavolo'}
+          label={ctaMode === 'mine' ? 'Scorri per pagare' : 'Paga tutto il tavolo'}
           amount={ctaTotal}
           disabled={paying || ctaTotal <= 0}
           onCycle={cycleCtaMode}
@@ -4291,8 +3978,8 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             <div style={{ padding: '0 16px 8px', fontSize: 13 }}>
               <div style={{ fontSize: 17, fontWeight: 800, color: TEXT, marginBottom: 12 }}>Dettagli pagamento</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: MUTED, marginBottom: 6 }}>
-                <span>{ctaMode === 'split' ? `Alla romana (1/${remainingPeople} del rimanente)` : mode === 'all' ? 'Tutto il tavolo' : (extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti')}</span>
-                <span style={{ fontWeight: 600, color: TEXT }}>{(ctaMode === 'split' ? splitBase : subtotal + cover).toFixed(2)}€</span>
+                <span>{mode === 'all' ? 'Tutto il tavolo' : (extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti')}</span>
+                <span style={{ fontWeight: 600, color: TEXT }}>{(subtotal + cover).toFixed(2)}€</span>
               </div>
           {/* Mancia inline */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
@@ -5733,8 +5420,6 @@ function MenuApp({ initial = null }) {
   let screen;
   if (route.name === 'menu') {
     screen = <MenuScreen state={state} setState={setState} goTo={goTo}/>;
-  } else if (route.name === 'split') {
-    screen = <SplitScreen state={state} setState={setState} ctx={route.ctx} goBack={() => goTo('menu')}/>;
   } else if (route.name === 'dish') {
     screen = <DishDetailScreen state={state} setState={setState} ctx={route.ctx} goBack={() => goTo('menu')}/>;
   } else if (route.name === 'home') {

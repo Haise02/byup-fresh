@@ -197,10 +197,10 @@ Feedback tattile: `.bk-press` (scale .97 al tap) + `BK.haptic` → `selection(8m
 
 | Gruppo | Contenuto |
 |---|---|
-| `mascot.*` | 11 pose (confident, happy, wave, chef, waiter, sleep, phone, …) — la mascotte è l'unico "personaggio", non si inventano varianti |
+| `mascot.*` | 8 pose (confident, happy, wave, wink, chef, waiter, sleep, phone) — la mascotte è l'unico "personaggio", non si inventano varianti |
 | `cat.*` | 12 icone categoria kawaii (pizza, burger, …; cocktail→`icon-sushi`, dolce→`icon-donut`, brunch→`icon-coffee`) |
-| `hero.*` | 7 hero food (coffee, birra, spritz, froyo, sushi, burger, boba) |
-| `bg.*` | splash/coral/dark/light/neutral |
+| `hero.*` | 4 hero food (coffee, spritz, froyo, burger) |
+| `bg.*` | coral/dark/light |
 | Extra | `coin.png`, `icon-*` kawaii (pasta, watermelon, popcorn…), `premium/*.webp` (23 render piatti), `road-city.png`, `avatar-default.png`, `rank-1…8.png` (gradi livello byuppini), `reward-*.png` (premi), `offerte/*.webp`, `reels/*.webp` |
 
 Icone di sistema: SVG inline stroke 2–2.6, `strokeLinecap/Join round`, 11–17px. Niente librerie icone, niente emoji (eccezione: Traguardi e micro-copy dove già presenti).

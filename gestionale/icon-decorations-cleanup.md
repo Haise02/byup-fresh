@@ -47,7 +47,7 @@ Cercate con regex sui file `.jsx` della dashboard.
 ### B.3 `cucina-app.jsx` / `cucina-tab-insala.jsx` — eventuali icone nelle card ordine
 
 > Non scansionate in profondità in questa migrazione. **TODO**: verificare in un secondo passaggio se ogni card-ordine ha icone Content (es. food-pizza) ridondanti accanto al nome piatto. Se sì → candidate rimozione.
-> *Aggiornamento*: `cucina-tab-insala.jsx` usa ancora icone SVG inline custom (es. `BagIcon`/`ScooterIcon` per i badge ASPORTO/DELIVERY), non icone Content accanto ai piatti; `cucina-tab-storico.jsx` non è più caricato da `byup Cucina.html` (la Cucina è una vista unica).
+> *Aggiornamento*: `cucina-tab-insala.jsx` usa ancora icone SVG inline custom (es. `BagIcon`/`ScooterIcon` per i badge ASPORTO/DELIVERY), non icone Content accanto ai piatti; `cucina-tab-storico.jsx` non era più caricato da `byup Cucina.html` (la Cucina è una vista unica) ed è stato rimosso il 2026-07-28.
 
 ---
 
@@ -79,7 +79,7 @@ Verifica con grep `<svg`:
 | `panoramica-icons.jsx` (file intero) | registry PnI legacy | Usato ancora da ~16 file .jsx (Account/Profilo, Impostazioni, Supporto, Configurazione, Sala, Contabilità-conti, ...); la sidebar dashboard usa `PnI.Logo`/`PnI.LogoMark`. **TENERE** fino a migrazione completa di quelle pagine. |
 | `byup-icons.jsx` (file intero) | registry BuIcons legacy | Idem: usato ancora da ~13 file (Statistiche sub-pagine, Impostazioni, Supporto, ...). **TENERE**. |
 | `sala-tab-tavoli.jsx` (ex `sala-v3-app.jsx`) | `<SvIcon>` per gli status chip in tavoli (il `<SvIconV3App>` del date picker non esiste più) | Set custom della pagina Sala. **Candidate per migrazione SF** in una fase separata. **TODO**. |
-| `cucina-tab-insala.jsx` | icone inline custom (badge asporto/delivery, status ordine) — `cucina-tab-storico.jsx` non è più caricato | **Candidate per migrazione SF** (`status-pending`, `status-success`). **TODO**. |
+| `cucina-tab-insala.jsx` | icone inline custom (badge asporto/delivery, status ordine) — `cucina-tab-storico.jsx` rimosso il 2026-07-28 | **Candidate per migrazione SF** (`status-pending`, `status-success`). **TODO**. |
 | `contabilita-v2-icons.jsx` | set custom `Ic.*` (usato dai KPI di `contabilita-v2-app.jsx`) | Set page-specific. Sostituibile con SF. **TODO**. |
 | `stat-atoms.jsx` | 1 svg inline (chart) + `BuIcons.*`; usa già anche `<Icon>` SF per le tab | Migrazione parziale. **TODO** per la parte BuIcons. |
 

@@ -208,40 +208,6 @@ function Stepper({step}) {
   );
 }
 
-function LocaleSubStepBar({subStep}) {
-  const idx = LOCALE_SUBSTEPS.findIndex(s => s.id === subStep);
-  return (
-    <div style={{
-      padding: '12px 48px',
-      borderTop: '1px solid rgba(15, 17, 21, 0.04)',
-      background: ONB.BG_SOFT,
-      display: 'flex', alignItems: 'center', gap: 16,
-    }}>
-      <span style={{
-        fontSize: 14, fontWeight: 500, color: ONB.MUTED,
-        letterSpacing: '0.04em', textTransform: 'uppercase',
-      }}>
-        {idx + 1} di {LOCALE_SUBSTEPS.length}
-      </span>
-      <div style={{display: 'flex', gap: 6}}>
-        {LOCALE_SUBSTEPS.map((s, i) => (
-          <div key={s.id} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '4px 10px', borderRadius: 999,
-            fontSize: 14, fontWeight: 500,
-            color: i === idx ? ONB.TEXT : i < idx ? ONB.GREEN : ONB.MUTED_LIGHT,
-            background: i === idx ? '#fff' : 'transparent',
-            border: i === idx ? '1px solid rgba(15, 17, 21, 0.08)' : '1px solid transparent',
-          }}>
-            {i < idx && <OnbIcon.Check size={10} color={ONB.GREEN}/>}
-            {s.label}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────
 // PROCESSING OVERLAY — sostituisce lo step "Processing" autonomo.
 // In-page modal, non un altro screen. Animazione: progress bar lineare + check

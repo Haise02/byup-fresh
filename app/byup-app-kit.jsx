@@ -14,12 +14,9 @@ const ASSETS = {
   mascot: {
     confident: asset('mascot-confident'),
     happy:     asset('mascot-happy'),
-    back:      asset('mascot-back'),
-    master:    asset('mascot-master'),
     wave:      asset('mascot-wave'),
     wink:      asset('mascot-wink'),
     chef:      asset('mascot-chef'),
-    chef2:     asset('mascot-chef-2'),
     waiter:    asset('mascot-waiter'),
     sleep:     asset('mascot-sleep'),
     phone:     asset('mascot-phone'),
@@ -32,9 +29,9 @@ const ASSETS = {
     dolce:    asset('icon-donut'),
     brunch:   asset('icon-coffee'),
   },
-  hero: Object.fromEntries(['coffee','birra','spritz','froyo','sushi','burger','boba']
+  hero: Object.fromEntries(['coffee','spritz','froyo','burger']
     .map(k => [k, asset('hero-'+k)])),
-  bg: Object.fromEntries(['splash','coral','dark','light','neutral']
+  bg: Object.fromEntries(['coral','dark','light']
     .map(k => [k, asset('bg-'+k)])),
 };
 
@@ -360,18 +357,12 @@ function Mascot({ pose = 'sleep', size = 110, message, T = THEMES.light, anim = 
   );
 }
 
-/* ---------- 10 · ENTRATA ORCHESTRATA ---------- */
-/* style helper: stagger(i) → fade-up a cascata (~40ms per step) */
-const stagger = (i, base = 0) => ({
-  animation: `bkFadeUp ${DUR.slow}ms ${base + i * 40}ms ${EASE_OUT} backwards`,
-});
-
 /* ---------- EXPORT ---------- */
 window.ByupKit = {
   ASSETS, PALETTE, THEMES, TYPE, RADII, SPRING, EASE_OUT, DUR,
   useByupTheme, haptic, Atmosphere, GlassPanel, PillButton,
   useFirstVisit, resetFirstVisits,
-  MascotVisual, MascotMoment, Mascot, Confetti, stagger,
+  MascotVisual, MascotMoment, Mascot, Confetti,
   GRAIN_URI,
 };
 /* sync */

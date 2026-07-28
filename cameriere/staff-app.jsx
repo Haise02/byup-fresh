@@ -33,7 +33,6 @@ function StaffApp() {
   const activeTab = (() => {
     if (['sala', 'tavolo', 'menu', 'pagamento-split', 'pagamento-metodo', 'pagamento-carta', 'pagamento-qr', 'pagamento-contanti'].includes(top.s)) return 'sala';
     if (top.s === 'ordini') return 'ordini';
-    if (['catalogo'].includes(top.s)) return 'catalogo';
     if (['profilo', 'account', 'account-password'].includes(top.s)) return 'profilo';
     return 'sala';
   })();
@@ -48,7 +47,6 @@ function StaffApp() {
         {top.s === 'tavolo' && <ScreenTavolo nav={nav} openModal={openModal} tavoloId={top.id}/>}
         {top.s === 'menu' && <ScreenMenu nav={nav} openModal={openModal} tavoloId={top.tavoloId} cart={cart} setCart={setCart}/>}
         {top.s === 'ordini' && <ScreenDaPortare nav={nav} openModal={openModal}/>}
-        {top.s === 'catalogo' && <ScreenMenu nav={nav} openModal={openModal} tavoloId={null} cart={cart} setCart={setCart}/>}
         {top.s === 'pagamento-split' && <ScreenPagamentoSplit nav={nav} openModal={openModal} tavoloId={top.id}/>}
         {top.s === 'pagamento-metodo' && <ScreenPagamentoMetodo nav={nav} importo={top.importo} tavoloId={top.tavoloId}/>}
         {top.s === 'pagamento-carta' && <ScreenPagamentoCarta nav={nav} openModal={openModal} importo={top.importo} tavoloId={top.tavoloId}/>}

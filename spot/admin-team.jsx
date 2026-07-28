@@ -138,7 +138,6 @@ function InviteMemberModal({ open, onClose, onInvite }) {
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const nomeOk = nome.trim().length >= 2;
   const canSend = nomeOk && emailOk;
-  const ini = nome.trim() ? nome.trim().split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase() : '?';
 
   const submit = () => { if (canSend) onInvite({ nome, email, ruolo }); };
 

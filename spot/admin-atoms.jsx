@@ -60,48 +60,6 @@ function AdmCard({ children, padding = 20, interactive = false, style = {}, clas
   );
 }
 
-function AdmKpiCard({ label, value, sub, trend, icon, accent = 'PINK' }) {
-  const Icon = icon ? BuIcons[icon] : null;
-  return (
-    <AdmCard padding={20}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
-        <div>
-          <div style={{fontSize:12, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
-          <div style={{fontSize:29, fontWeight:800, color:ADM.TEXT, marginTop:8, letterSpacing:'-0.025em', lineHeight:1.05}}>{value}</div>
-          {(sub || trend != null) && (
-            <div style={{display:'flex', alignItems:'center', gap:8, marginTop:8}}>
-              {trend != null && (
-                <span style={{
-                  display:'inline-flex', alignItems:'center', gap:3,
-                  fontSize:12, fontWeight:700,
-                  padding:'2px 7px',
-                  borderRadius:99,
-                  background: trend >= 0 ? ADM.OK_SOFT : ADM.DANGER_SOFT,
-                  color: trend >= 0 ? ADM.OK : ADM.DANGER,
-                }}>
-                  {trend >= 0 ? <BuIcons.trendUp size={14}/> : <BuIcons.trendDown size={14}/>}
-                  {Math.abs(trend)}%
-                </span>
-              )}
-              {sub && <span style={{fontSize:13.3, color:ADM.MUTED}}>{sub}</span>}
-            </div>
-          )}
-        </div>
-        {Icon && (
-          <div style={{
-            width:38, height:38, borderRadius:11,
-            background: ADM.NEUTRAL_SOFT,
-            color: ADM.NEUTRAL,
-            display:'grid', placeItems:'center',
-          }}>
-            <Icon size={23}/>
-          </div>
-        )}
-      </div>
-    </AdmCard>
-  );
-}
-
 function AdmAvatar({ name, bg, size = 32 }) {
   const ini = name ? name.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase() : '?';
   const bgFinal = bg || `hsl(${(name||'').charCodeAt(0)*7 % 360}, 50%, 55%)`;
@@ -324,26 +282,6 @@ function AdmStackedBar({ segments = [], height = 8 }) {
   );
 }
 
-function AdmCheckbox({ checked, onChange, label, size = 'sm' }) {
-  const sz = size === 'sm' ? 22 : 24;
-  return (
-    <label style={{display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none'}}>
-      <span onClick={() => onChange && onChange(!checked)} style={{
-        width:sz, height:sz, borderRadius:5,
-        border: checked ? `1.5px solid ${ADM.PINK}` : `1.5px solid ${ADM.MUTED_LIGHT}`,
-        background: checked ? `linear-gradient(180deg, #FF6F73 0%, ${ADM.PINK_DARK} 100%)` : '#fff',
-        boxShadow: checked ? '0 1px 2px rgba(255,90,95,0.25)' : 'inset 0 1px 1px rgba(0,0,0,0.02)',
-        display:'grid', placeItems:'center',
-        transition:'all 0.18s cubic-bezier(0.34,1.56,0.64,1)',
-        flexShrink:0,
-      }}>
-        {checked && <BuIcons.check size={sz*0.7} color="#fff"/>}
-      </span>
-      {label && <span style={{fontSize:14, color:ADM.TEXT}}>{label}</span>}
-    </label>
-  );
-}
-
 // iOS-style switch
 function AdmSwitch({ checked, onChange, size = 'md', disabled }) {
   const dim = size === 'sm'
@@ -376,11 +314,9 @@ function AdmSwitch({ checked, onChange, size = 'md', disabled }) {
 }
 
 window.AdmBadge = AdmBadge;
-window.AdmDot = AdmDot;
 window.AdmPlanBadge = AdmPlanBadge;
 window.AdmStatoBadge = AdmStatoBadge;
 window.AdmCard = AdmCard;
-window.AdmKpiCard = AdmKpiCard;
 window.AdmAvatar = AdmAvatar;
 window.AdmTabBar = AdmTabBar;
 window.AdmEmpty = AdmEmpty;
@@ -389,5 +325,4 @@ window.AdmIconBtn = AdmIconBtn;
 window.AdmSparkline = AdmSparkline;
 window.AdmBarChart = AdmBarChart;
 window.AdmStackedBar = AdmStackedBar;
-window.AdmCheckbox = AdmCheckbox;
 window.AdmSwitch = AdmSwitch;

@@ -15,10 +15,10 @@ const MERCHANT = {
 //   (in pagamento, bloccato). Nel prototipo è un flag statico; il lock reale è
 //   logica backend (stato condiviso + presa in carico atomica + rilascio/timeout).
 const CODA_INCASSO = [
-  { id: 'c_12', tavolo: 12, importo: 27.00, coperti: 2, inviato: '19:42' },
-  { id: 'c_05', tavolo: 5,  importo: 64.50, coperti: 4, inviato: '20:08', inPagamentoAltrove: true },
-  { id: 'c_08', tavolo: 8,  importo: 12.00, coperti: 1, inviato: '20:31' },
-  { id: 'c_03', tavolo: 3,  importo: 41.00, coperti: 3, inviato: '20:55' },
+  { id: 'c_12', tavolo: 12, importo: 27.00, inviato: '19:42' },
+  { id: 'c_05', tavolo: 5,  importo: 64.50, inviato: '20:08', inPagamentoAltrove: true },
+  { id: 'c_08', tavolo: 8,  importo: 12.00, inviato: '20:31' },
+  { id: 'c_03', tavolo: 3,  importo: 41.00, inviato: '20:55' },
 ];
 
 // Storico transazioni (più recente in cima) — tutte Tap to Pay

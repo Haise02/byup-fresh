@@ -49,16 +49,16 @@ Modificando i file grandi con gli strumenti host (Edit/Write), il mount della sa
 - `byup Home.html` — entry runtime (Babel).
 - `home-standalone.html`, `menu-standalone.html` — build precompilate.
 
-### Schermate Byuppini (all'epoca HTML separati — ora INTEGRATE in `app.jsx`, gli HTML restano riferimento legacy)
-- **`byuppini-standalone.html`** — schermata gamification (hero saldo + coin + mascotte, segmenti Portafoglio/Sfide/Premi/Traguardi, roadmap link, byup card in evidenza, card premi reel-style). Ha una bottom bar HTML che imita quella dell'app.
-- **`byuppini-roadmap.html`** — mappa-mondo dei livelli (terreno `road-terrain.png` + edifici `venue-1..8.png` posizionati in codice, badge/lucchetti/mascotte "SEI QUI"). **Zoom ~1.4×, scrollabile.**
+### Schermate Byuppini (all'epoca HTML separati — ora INTEGRATE in `app.jsx`; i due HTML sono stati rimossi il 2026-07-28)
+- **`byuppini-standalone.html`** *(rimosso il 2026-07-28)* — schermata gamification (hero saldo + coin + mascotte, segmenti Portafoglio/Sfide/Premi/Traguardi, roadmap link, byup card in evidenza, card premi reel-style). Ha una bottom bar HTML che imita quella dell'app.
+- **`byuppini-roadmap.html`** *(rimosso il 2026-07-28)* — mappa-mondo dei livelli (terreno `road-city.png` + edifici `venue-1..8.png` posizionati in codice, badge/lucchetti/mascotte "SEI QUI"). **Zoom ~1.4×, scrollabile.**
 - `Byuppini-Concept.md` — strategia/economia byuppini.
 - `Byuppini-Image-Prompts.md` — prompt immagini.
 
 ### Asset immagini (`app/assets/`)
 - **Foto ristoranti REALI = URL Unsplash** nel campo `photo:` dentro `app.jsx` (es. `RESULT_VENUES` ~riga 855; liste locali ~righe 1181–1261; `HERO_PHOTO`). **← sono queste le "foto dei ristoranti" da usare nella Cerca.**
 - `venue-1..8.png` — edifici **isometrici** della roadmap (illustrazioni, NON foto).
-- `road-terrain.png` — terreno roadmap.
+- `road-city.png` — terreno della roadmap. *(`road-terrain.png`, secondo pannello generato ma mai montato, è stato rimosso il 2026-07-28.)*
 - `coin.png`, `coin-stack.png`, `reward-*.png` (byupcard, tote, bottle, stickers, spritz, dessert), `mascot-*.png`.
 - `hero-*.png` = illustrazioni/icone cibo; `cat-*.png` = icone categoria; `offerte/offer-*.webp`; `reels/reel-*.webp`. **(NON usare hero/cat come "foto ristoranti".)**
 
@@ -114,7 +114,7 @@ Vedi "## 7" qui sotto — copia-incolla integrale.
 
 Sto lavorando al prototipo dell'app consumer **Byup** (React "no-build", Babel-standalone). Leggi PRIMA il file `C:\Users\nilga\Downloads\byup\byup-fresh-final\app\HANDOFF-prototipo-byup.md` (contesto completo, file, gotcha), poi lavora nella cartella `C:\Users\nilga\Downloads\byup\byup-fresh-final\app\` (NON la Desktop "byup Fresh" né "Byup (1)").
 
-Contesto lampo: `app.jsx` è il cuore React (Home, dispatch pagine con `setPage`/`goBack`, `BottomTabBar`, `Icon`, `SearchScreen`/Cerca + `EXPLORE_TILES`, `RESULT_VENUES`). `byup Home.html` carica i `.jsx` a runtime via Babel; `home-standalone.html`/`menu-standalone.html` sono build precompilate (rigenera con `node build-standalone.js app.jsx` dalla cartella outputs). `byuppini-standalone.html` e `byuppini-roadmap.html` sono schermate HTML separate. GOTCHA: i file grandi vanno editati con **Python sul path del mount** (gli edit host vengono troncati dal mount VM). Le "foto ristoranti" sono gli URL Unsplash nel campo `photo:` dentro `app.jsx`. Screenshot con Playwright (`LD_LIBRARY_PATH=/tmp/libs/ext/usr/lib/x86_64-linux-gnu`, auth via `localStorage byup_auth='1'/byup_perms='1'`).
+Contesto lampo: `app.jsx` è il cuore React (Home, dispatch pagine con `setPage`/`goBack`, `BottomTabBar`, `Icon`, `SearchScreen`/Cerca + `EXPLORE_TILES`, `RESULT_VENUES`). `byup Home.html` carica i `.jsx` a runtime via Babel; `home-standalone.html`/`menu-standalone.html` sono build precompilate (rigenera con `node build-standalone.js app.jsx` dalla cartella outputs). `byuppini-standalone.html` e `byuppini-roadmap.html` sono schermate HTML separate *(all'epoca: oggi sono pagine React di `app.jsx` e i due HTML sono stati rimossi il 2026-07-28)*. GOTCHA: i file grandi vanno editati con **Python sul path del mount** (gli edit host vengono troncati dal mount VM). Le "foto ristoranti" sono gli URL Unsplash nel campo `photo:` dentro `app.jsx`. Screenshot con Playwright (`LD_LIBRARY_PATH=/tmp/libs/ext/usr/lib/x86_64-linux-gnu`, auth via `localStorage byup_auth='1'/byup_perms='1'`).
 
 Obiettivo: trasformare il tutto in **un'unica app SPA coesa**, navigabile senza ricaricare URL tra le schermate, tutto dentro lo stesso mockup, con back sempre funzionante. Da fare (proponimi prima il piano, poi esegui e verifica ogni schermata con screenshot incluso il back):
 
@@ -132,7 +132,7 @@ Obiettivo: trasformare il tutto in **un'unica app SPA coesa**, navigabile senza 
 ## 8 · AGGIORNAMENTO (8 lug 2026) — FATTO in questa sessione
 
 Tutti gli 8 punti del §4/§7 sono stati completati e verificati con screenshot:
-- **Byuppini e Roadmap sono ora pagine React in `app.jsx`** (`ByuppiniScreen`, `RoadmapScreen`, dispatch `page==='byuppini'|'roadmap'`, deep-link `?page=byuppini|roadmap`). Navigazione tutta a stato (`setPage`/`goBack`), zero reload. `byuppini-standalone.html` e `byuppini-roadmap.html` restano solo come riferimento legacy, non più linkati dall'app.
+- **Byuppini e Roadmap sono ora pagine React in `app.jsx`** (`ByuppiniScreen`, `RoadmapScreen`, dispatch `page==='byuppini'|'roadmap'`, deep-link `?page=byuppini|roadmap`). Navigazione tutta a stato (`setPage`/`goBack`), zero reload. `byuppini-standalone.html` e `byuppini-roadmap.html` sono rimasti per un po' come riferimento legacy, non più linkati dall'app, e sono stati **rimossi il 2026-07-28**.
 - BottomTabBar: prop `onByuppini` + router globale `window.__byupNav` (fallback per le tab bar renderizzate da extras/map/menu: dentro la SPA usano setPage, dalla menu app fanno deep-link). Spacer centrale 50→88 per simmetria attorno al QR. Prop `forceDark` per barra scura sulle pagine Byuppini/Roadmap anche in tema chiaro.
 - Cerca: `EXPLORE_TILES` ora deriva da `EXPLORE_VENUES` (10 foto Unsplash uniche dei locali reali, ripetute a 30 con offset).
 - Premi: righe `BypRewardRow` full-bleed con overflow-x, snap e larghezze fisse — scroll fluido.

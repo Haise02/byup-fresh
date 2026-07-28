@@ -16,12 +16,6 @@ const STAFF_USER = {
 };
 
 // ─── Impostazioni operative ────────────────────────────────
-// tracciaConsegne: se attiva, l'app segnala i piatti pronti dalla cucina
-// e permette di segnarli come consegnati. Se disattivata non traccia nulla.
-// durataPrenotazione: durata base di una prenotazione (minuti), come impostata
-// nel gestionale → Prenotazioni. Stessa logica del gestionale: un tavolo
-// prenotato è "trattenuto" solo quando manca meno di questa durata (sedersi
-// rischierebbe di accavallarsi all'arrivo); prima è di fatto libero per i walk-in.
 // tolleranzaNoShow: minuti di ritardo oltre i quali una prenotazione è
 // considerata no-show (il tavolo va liberato o si decide il da farsi).
 // attesaComanda: minuti da seduti oltre i quali un tavolo occupato ancora
@@ -31,7 +25,7 @@ const STAFF_USER = {
 //  · preavvisoArrivo: da questa soglia in su (prenotazione ancora lontana, 1h30+)
 //    il tavolo LIBERO mostra il preavviso "prenot. tra X"; sotto la soglia (ma
 //    oltre l'imminenza) è Libero pulito — manca poco, diventerà presto "In arrivo".
-const STAFF_SETTINGS = { tracciaConsegne: true, durataPrenotazione: 120, tolleranzaNoShow: 15, attesaComanda: 5, arrivoImminente: 30, preavvisoArrivo: 90 };
+const STAFF_SETTINGS = { tolleranzaNoShow: 15, attesaComanda: 5, arrivoImminente: 30, preavvisoArrivo: 90 };
 
 // ─── Tavoli ────────────────────────────────────────────────
 // stato: libero | occupato | prenotato | da-pulire
@@ -260,8 +254,6 @@ const PIATTI = [
   { id: 'b3', cat: 'bevande', nome: 'Aperol Spritz', prezzo: 8, descr: 'Aperol, Prosecco e soda. Guarnito con arancia. Aperitivo classico, fresco e leggermente amaro.', allergeni: [], extras: [{ id:'b3e1', nome:'Arancia', prezzo: 0 },{ id:'b3e2', nome:'Menta', prezzo: 0 }], cottura: null, livello: ['Normale','Poco alcohol'], rotta: 'cucina', img: 'https://loremflickr.com/400/400/aperol,spritz,cocktail?lock=3' },
   { id: 'b4', cat: 'bevande', nome: 'Birra Moretti 0.4L', prezzo: 5, descr: 'Lager italiana alla spina.', allergeni: ['glutine'], extras: [], rotta: 'diretto', img: 'https://loremflickr.com/400/400/beer,glass?lock=34' },
 ];
-// Default: un articolo senza 'rotta' esplicita passa dalla cucina.
-const rottaPiatto = (piattoId) => PIATTI.find(p => p.id === piattoId)?.rotta || 'cucina';
 
 // ─── Ordine corrente di Tavolo 23 (esempio) ───────────────
 const ORDINE_T23 = [
@@ -342,4 +334,4 @@ function minutiPrenotazione(t) {
   return (h ? Number(h[1]) * 60 : 0) + (m ? Number(m[1]) : 0);
 }
 
-Object.assign(window, { STAFF_USER, STAFF_SETTINGS, TAVOLI, TAVOLI_LIBERI, TavoliStore, useTavoli, minutiPrenotazione, SALE, CATEGORIE, PIATTI, rottaPiatto, ORDINE_T23, CODA_CUCINA, CLIENTI_T23 });
+Object.assign(window, { STAFF_USER, STAFF_SETTINGS, TAVOLI, TAVOLI_LIBERI, TavoliStore, useTavoli, minutiPrenotazione, SALE, CATEGORIE, PIATTI, ORDINE_T23, CODA_CUCINA, CLIENTI_T23 });

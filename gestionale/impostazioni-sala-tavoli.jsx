@@ -106,7 +106,6 @@ function ImpSalaTavoli() {
   const [dragOverSalaId, setDragOverSalaId] = React.useState(null);
   const [search, setSearch] = React.useState('');
   const [filterStato, setFilterStato] = React.useState('all');
-  const [sortBy, setSortBy] = React.useState('name');
   const [toast, setToast] = React.useState(null); // { msg, undo }
   const [confirmDialog, setConfirmDialog] = React.useState(null); // { title, msg, danger, onConfirm }
   const [importModal, setImportModal] = React.useState(false);
@@ -469,9 +468,7 @@ function ImpSalaTavoli() {
   if (search) visible = visible.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || (t.alias||'').toLowerCase().includes(search.toLowerCase()));
   if (filterStato === 'attivi') visible = visible.filter(t => !t.disabled);
   if (filterStato === 'fuoriuso') visible = visible.filter(t => t.disabled);
-  if (sortBy === 'name') visible.sort((a,b) => naturalCompare(a.name, b.name));
-  else if (sortBy === 'coperti-asc') visible.sort((a,b) => a.coperti - b.coperti);
-  else if (sortBy === 'coperti-desc') visible.sort((a,b) => b.coperti - a.coperti);
+  visible.sort((a,b) => naturalCompare(a.name, b.name));
   const isFiltering = search || filterStato !== 'all';
 
   // Configurazione sale/tavoli — renderizzata solo quando il modulo Sala è

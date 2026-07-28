@@ -55,7 +55,7 @@ function POSApp() {
         {top.s === 'incassa' && <ScreenIncassa nav={nav} contiPagati={contiPagati} contiRimandati={contiRimandati}/>}
         {top.s === 'conto' && <ScreenConto nav={nav} conto={top.conto} rimandaConto={rimandaConto} openModal={openModal} showToast={showToast}/>}
         {top.s === 'tap' && <ScreenTap nav={nav} openModal={openModal} importo={top.importo} contoId={top.contoId} pagaConto={pagaConto}/>}
-        {top.s === 'transazioni' && <ScreenTransazioni nav={nav} openModal={openModal}/>}
+        {top.s === 'transazioni' && <ScreenTransazioni openModal={openModal}/>}
         {top.s === 'profilo' && <ScreenProfilo nav={nav} openModal={openModal} faceIdOn={faceIdOn} setFaceIdOn={setFaceIdOn}/>}
         {top.s === 'password' && <ScreenPassword nav={nav}/>}
       </div>

@@ -138,12 +138,8 @@ function AdmLocaliPage({ search, openLocale, openMessageModal }) {
   };
 
   const activeLocali = LOCALI.filter(l => l.stato === 'active');
-  const mrrTot = activeLocali.reduce((s,l)=>s+l.mrr+l.extras,0);
   const ticketMedio = activeLocali.length ? Math.round(activeLocali.reduce((s,l)=>s+l.ticketMedio,0)/activeLocali.length) : 0;
   const copertura = activeLocali.length ? Math.round(activeLocali.reduce((s,l)=>s+l.copertura,0)/activeLocali.length) : 0;
-  const onbCompletati = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'churned').length;
-  const onbTentati = LOCALI.length - LOCALI.filter(l => l.stato === 'pending').length;
-  const convRate = onbTentati > 0 ? Math.round((onbCompletati/onbTentati)*100) : 0;
 
   return (
     <div style={{padding: 28, display:'flex', flexDirection:'column', gap: 16}}>
@@ -298,8 +294,6 @@ function LocaleRow({ locale: l, onClick, striped, checked, onCheck }) {
   const piano = PIANI.find(p => p.id === l.piano);
   const totMese = l.mrr + l.extras;
 
-  const tipText = `Piano ${piano.label}: ${fmtEur(l.mrr)}\nExtras ordini: ${fmtEur(l.extras)}\n────────────\nTotale mese: ${fmtEur(totMese)}`;
-
   return (
     <div onClick={onClick} className="adm-row-open"
       onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
@@ -364,24 +358,5 @@ function LocaleRow({ locale: l, onClick, striped, checked, onCheck }) {
   );
 }
 
-function FunnelDots({ locale: l }) {
-  return (
-    <div style={{display:'flex', gap:3}}>
-      {ONB_STEPS.map((s) => {
-        const done = l.completedSteps.includes(s.id);
-        const stuck = l.stoppedAt === s.id;
-        return (
-          <span key={s.id} title={s.label} style={{
-            width: stuck ? 14 : 8, height:6, borderRadius: 2,
-            background: stuck ? ADM.WARN : done ? ADM.OK : '#E5E7EB',
-            transition:'all 0.15s',
-          }}/>
-        );
-      })}
-    </div>
-  );
-}
-
 window.AdmLocaliPage = AdmLocaliPage;
 window.FilterDropdown = FilterDropdown;
-window.FunnelDots = FunnelDots;

@@ -2,7 +2,7 @@
 
 const { useMemo: useMemoT } = React;
 
-function ScreenTransazioni({ nav, openModal }) {
+function ScreenTransazioni({ openModal }) {
   // Il POS mostra solo la giornata corrente: a fine giornata la cassa si azzera.
   const oggi = useMemoT(() => TRANSAZIONI.filter(t => t.data === 'Oggi'), []);
 

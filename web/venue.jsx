@@ -31,7 +31,7 @@ function VenueMapThumbnail({ lat, lng }) {
   return <div ref={divRef} style={{ width: '100%', height: '100%' }}/>;
 }
 
-function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap }) {
+function VenueOriginal({ venue, onBack, onMenu, onBook, onMap }) {
   const v = venue || {};
   const photos = v.photos || [
     'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=70&auto=format&fit=crop',

@@ -22,7 +22,6 @@ const CAMPAGNE = [
 ];
 
 // Helper derivati
-const cacOf = (c) => (c.paganti > 0 ? c.speso / c.paganti : 0);
 const convOf = (c) => (c.click > 0 ? c.iscritti / c.click : 0);
 // Compat: vecchio nome "utentiAcquisiti" mappato su "iscritti"
 CAMPAGNE.forEach(c => { c.utentiAcquisiti = c.iscritti; c.conv = convOf(c); c.costo = c.speso; });

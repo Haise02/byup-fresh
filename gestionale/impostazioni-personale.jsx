@@ -80,9 +80,6 @@ const MENUS = [
   },
 ];
 
-// Manteniamo MENU_CATEGORIES per compatibilità con il modal aggiungi
-const MENU_CATEGORIES = MENUS[0].categories;
-
 const ALL_AREAS = [
   { id: 'panoramica', label: 'Panoramica', icon: 'stats' },
   { id: 'sala', label: 'Sala e prenotazioni', icon: 'utensils' },
@@ -233,7 +230,6 @@ function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, op
   const people = PERSONS.filter(p => p.role === role.id);
   const count = people.length;
   const countLabel = count === 1 ? 'persona' : 'persone';
-  const isMenuOpen = openMenu === `role-${role.id}`;
 
   return (
     <div style={{
@@ -1291,7 +1287,6 @@ function CreateRoleModal({ onClose, role }) {
   const togglePage = (id) => {
     setSettingsPages(settingsPages.includes(id) ? settingsPages.filter(p => p !== id) : [...settingsPages, id]);
   };
-  const settingsSelected = areas.includes('impostazioni');
 
   return (
     <div onClick={onClose} style={{

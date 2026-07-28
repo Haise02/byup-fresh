@@ -1,6 +1,6 @@
 // Sala — Tab Tavoli (no timeline, card compatte, mappa+lista)
 
-function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, focus, onToggleFocus, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
+function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, focus, onToggleFocus, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
   const [search, setSearch] = React.useState('');
   const [room, setRoom] = React.useState('Sala principale');
   // Filtri multi-select: Set di chiavi KPI. Tutte attive default; vuoto = mostra tutti.
@@ -335,15 +335,15 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
             expandedId={expandedId} setExpandedId={setExpandedId} onAdjustCoperti={onAdjustCoperti}
             onAdjustReservationPosti={onAdjustReservationPosti}
-            onLibera={onLibera} onMove={onMove} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
-            onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
+            onLibera={onLibera} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
+            onModificaCoperti={onModificaCoperti}/>
         : <SalaListView tavoli={visibili} onOpenAdd={onOpenAdd} onOpenPay={onOpenPay}
             onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
             expandedId={expandedId} setExpandedId={setExpandedId} onAdjustCoperti={onAdjustCoperti}
             onAdjustReservationPosti={onAdjustReservationPosti}
             contiCollapsed={contiCollapsed}
-            onLibera={onLibera} onMove={onMove} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
-            onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
+            onLibera={onLibera} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
+            onModificaCoperti={onModificaCoperti}/>
       }
     </div>
   );
@@ -352,7 +352,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 // ─────────────────────────────────────────────────────────
 // List view — griglia di card compatte
 // ─────────────────────────────────────────────────────────
-function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
+function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
   const sorted = tavoli; // ordinamento già applicato dal parent (stato → numero)
 
   // Griglia responsiva: pannello aperto (contiCollapsed=false) → 3 col, chiuso → 4 col
@@ -367,9 +367,9 @@ function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCart
           onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
           onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(t.id, n)}
           onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(t.id, n)}
-          onLibera={onLibera} onMove={onMove} onEdit={onEdit}
+          onLibera={onLibera} onEdit={onEdit}
           onAssignOther={onAssignOther} onNoShow={onNoShow}
-          onUnisci={onUnisci} onModificaCoperti={onModificaCoperti}/>
+          onModificaCoperti={onModificaCoperti}/>
       ))}
       {sorted.length === 0 && (
         <div style={{
@@ -449,15 +449,6 @@ function salaInitPositions() {
   return init;
 }
 
-// Accenti traslucidi per stato — usati dalla cornice di unione tavoli.
-// (Il disegno del tavolo vive in sala-table-tile.jsx → <TableTile/>.)
-const SALA_TILE_GLASS = {
-  libero:    { tint: 'rgba(22, 163, 74, 0.10)',  ring: 'rgba(22, 163, 74, 0.40)',  ink: '#15803D' },
-  prenotato: { tint: 'rgba(124, 58, 237, 0.12)', ring: 'rgba(124, 58, 237, 0.38)', ink: '#6D28D9' },
-  occupato:  { tint: 'rgba(255, 90, 95, 0.18)',  ring: 'rgba(227, 36, 89, 0.42)',  ink: '#E32459' },
-  dapulire:  { tint: 'rgba(217, 119, 6, 0.14)',  ring: 'rgba(217, 119, 6, 0.42)',  ink: '#B45309' },
-};
-
 function rectsOverlap(a, b) {
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
@@ -474,7 +465,7 @@ function rectsIntersectArea(a, b) {
   return w > 0 && h > 0 ? w * h : 0;
 }
 
-function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSel, onExitMerge, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti }) {
+function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSel, onExitMerge, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
   const isDimmed = (id) => dimmedIds && dimmedIds.has(id);
   const COLS = SALA_GRID_COLS, ROWS = SALA_GRID_ROWS;
   // SCHERMATA UNICA: la griglia entra tutta (fit su larghezza E altezza,
@@ -893,12 +884,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
       position: 'relative',
       minWidth: 0,
     }}>
-      {/* Keyframes per slide-in del pannello */}
-      <style>{`@keyframes salaPanelIn {
-        from { opacity: 0; transform: translateX(12px); }
-        to   { opacity: 1; transform: translateX(0); }
-      }
-      @keyframes mergeChipIn {
+      <style>{`@keyframes mergeChipIn {
         from { opacity: 0; transform: translate(-50%, -50%) scale(0.78); }
         to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
       }`}</style>
@@ -1859,9 +1845,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               onAddArticle={closeAnd(onAddArticle)} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
               onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(clickedTable.id, n)}
               onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(clickedTable.id, n)}
-              onLibera={closeAnd(onLibera)} onMove={closeAnd(onMove)} onEdit={closeAnd(onEdit)}
+              onLibera={closeAnd(onLibera)} onEdit={closeAnd(onEdit)}
               onAssignOther={closeAnd(onAssignOther)} onNoShow={closeAnd(onNoShow)}
-              onUnisci={closeAnd(onUnisci)} onModificaCoperti={closeAnd(onModificaCoperti)}/>
+              onModificaCoperti={closeAnd(onModificaCoperti)}/>
           </div>
         </div>,
         document.querySelector('.frame') || document.body

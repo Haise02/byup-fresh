@@ -72,14 +72,6 @@ function formatOpenDuration(totalMinutes) {
   if (remainder === 0) return `${hours}h`;
   return `${hours}h${remainder}'`;
 }
-// Versione leggibile per la card espansa: "Seduti da 18 minuti" / "da 2 ore" / "da 1h 30min"
-function formatSeduti(totalMinutes) {
-  const m = Math.max(0, Math.round(totalMinutes));
-  if (m < 60) return `Seduti da ${m} minut${m === 1 ? 'o' : 'i'}`;
-  const h = Math.floor(m / 60), r = m % 60;
-  if (r === 0) return `Seduti da ${h} or${h === 1 ? 'a' : 'e'}`;
-  return `Seduti da ${h}h ${r}min`;
-}
 function getOpenDurationSeverity(totalMinutes) {
   if (totalMinutes > CRITICAL_DURATION_MIN) return 'critical';
   if (totalMinutes >= WARNING_DURATION_MIN) return 'warning';
@@ -204,85 +196,6 @@ function PeopleIcon({ size = 13, color = 'currentColor' }) {
       <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
       <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
-  );
-}
-
-// Pencil inline che apre un popover stepper per modificare i COPERTI della
-// prenotazione. Usato su libero/prenotato espansi (la capienza non si tocca).
-function PostiPencil({ currentPosti, onSave, max = 12, min = 1, withLabel = false }) {
-  const [open, setOpen] = React.useState(false);
-  const [val, setVal] = React.useState(currentPosti || 1);
-  const ref = React.useRef(null);
-  React.useEffect(() => { setVal(currentPosti || 1); }, [currentPosti]);
-  React.useEffect(() => {
-    if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-  const commit = () => { if (val !== currentPosti) onSave && onSave(val); setOpen(false); };
-  return (
-    <span ref={ref} style={{position:'relative', display:'inline-flex', alignItems:'center'}} onClick={(e)=>e.stopPropagation()}>
-      <button onClick={() => setOpen(v => !v)} title="Modifica numero di coperti" style={{
-        display:'inline-flex', alignItems:'center', gap: withLabel ? 4 : 0,
-        justifyContent:'center',
-        height: 18, marginLeft: withLabel ? 0 : 2, padding: withLabel ? '0 2px' : 0,
-        background:'transparent', border:'none', cursor:'pointer',
-        color:'#6B7280', borderRadius: 4, fontFamily:'inherit',
-        fontSize: withLabel ? 16.5 : 'inherit',
-        fontWeight: withLabel ? 500 : 'inherit',
-        transition:'color 120ms, background 120ms',
-      }}
-        onMouseEnter={e => { e.currentTarget.style.color = '#0F1115'; e.currentTarget.style.background = '#F4F5F7'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = withLabel ? '#6B7280' : '#9CA3AF'; e.currentTarget.style.background = 'transparent'; }}>
-        {withLabel && (
-          <span style={{display:'inline-flex', alignItems:'center', gap: 4, fontVariantNumeric:'tabular-nums'}}>
-            {currentPosti} <PeopleIcon size={13} color="currentColor"/>
-          </span>
-        )}
-        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-          <path d="M8.5 2.5l1 1-5.5 5.5H3v-1L8.5 2.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-      {open && (
-        <div style={{
-          position:'absolute', top:'calc(100% + 6px)', left: 0, zIndex: 30,
-          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 10,
-          boxShadow:'0 12px 28px rgba(15,17,21,0.12), 0 2px 6px rgba(15,17,21,0.06)',
-          padding: 12, minWidth: 200, fontFamily:'inherit',
-        }}>
-          <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>
-            Quanti coperti?
-          </div>
-          <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 10}}>
-            <button onClick={() => setVal(v => Math.max(min, v - 1))} disabled={val <= min} style={{
-              width: 32, height: 32, borderRadius: 8,
-              border:'1px solid #E5E7EB', background: val <= min ? '#FAFBFC' : '#FFFFFF',
-              cursor: val <= min ? 'default' : 'pointer',
-              fontSize: 22, fontWeight: 600, color: val <= min ? '#D1D5DB' : '#0F1115',
-              display:'inline-flex', alignItems:'center', justifyContent:'center',
-              fontFamily:'inherit',
-            }}>−</button>
-            <div style={{flex: 1, textAlign:'center', fontSize: 26, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{val}</div>
-            <button onClick={() => setVal(v => Math.min(max, v + 1))} disabled={val >= max} style={{
-              width: 32, height: 32, borderRadius: 8,
-              border:'1px solid #E5E7EB', background: val >= max ? '#FAFBFC' : '#FFFFFF',
-              cursor: val >= max ? 'default' : 'pointer',
-              fontSize: 22, fontWeight: 600, color: val >= max ? '#D1D5DB' : '#0F1115',
-              display:'inline-flex', alignItems:'center', justifyContent:'center',
-              fontFamily:'inherit',
-            }}>+</button>
-          </div>
-          <button onClick={commit} style={{
-            width:'100%', padding:'8px 12px', borderRadius: 8,
-            background: PN.BTN_DARK, color:'#fff',
-            border:'1px solid rgba(0,0,0,0.32)',
-            fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            boxShadow: PN.INSET_HIGHLIGHT_DARK,
-          }}>Salva</button>
-        </div>
-      )}
-    </span>
   );
 }
 
@@ -476,57 +389,6 @@ function CopertiChip({ coperti, posti, onAdjust }) {
 const SALA_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const SALA_POP  = 'cubic-bezier(0.34, 1.56, 0.64, 1)'; // apertura elastica "giocosa"
 
-// Cella del bento 2×2: etichetta muta maiuscola + valore forte
-function SalaBentoCell({ k, v, color }) {
-  return (
-    <div style={{padding:'10px 14px', minWidth: 0}}>
-      <div style={{fontSize: 10, fontWeight: 800, letterSpacing:'0.12em', textTransform:'uppercase', color:'#9CA3AF', marginBottom: 4}}>{k}</div>
-      <div style={{fontSize: 16.5, fontWeight: 700, color: color || '#0F1115', lineHeight: 1.2,
-        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>{v}</div>
-    </div>
-  );
-}
-
-// Le 4 celle per stato — STATO e COPERTI/POSTI sempre, le altre due contestuali
-function salaBentoCells(t, { meta, alert, isLate, lateMin, noteIsCritical, pulireSev }) {
-  const stato = { k:'Stato', v: meta.label, color: meta.accent };
-  if (t.state === 'occupato') return [
-    stato,
-    { k:'Coperti', v: `${t.coperti != null ? t.coperti : '—'} / ${t.posti != null ? t.posti : '—'}` },
-    { k:'Al tavolo', v: t.sittingMin != null ? formatOpenDuration(t.sittingMin) : '—', color: t.sittingMin != null ? getOpenDurationColor(t.sittingMin) : '#9CA3AF' },
-    noteIsCritical
-      ? { k:'Nota', v:'Allergia', color:'#DC2626' }
-      : (alert ? { k:'Nota', v: alert.label, color: alert.tone === 'warn' ? '#B45309' : '#6B7280' }
-               : { k:'Nota', v:'—', color:'#9CA3AF' }),
-  ];
-  if (t.state === 'prenotato') {
-    const res = t.nextReservation;
-    return [
-      stato,
-      { k:'Coperti', v: res && res.posti != null ? `${res.posti}` : '—' },
-      { k:'Ore', v: res ? res.time : '—', color: res ? undefined : '#9CA3AF' },
-      isLate
-        ? { k:'Ritardo', v: `${lateMin}'`, color: lateMin > ALERT_TRIANGLE_MIN ? '#DC2626' : '#B45309' }
-        : { k:'Arriva fra', v: t.minutiAllaPrenotazione != null ? `${t.minutiAllaPrenotazione}'` : '—', color: t.minutiAllaPrenotazione != null ? undefined : '#9CA3AF' },
-    ];
-  }
-  if (t.state === 'dapulire') {
-    const min = t.minutiDaPulire != null ? t.minutiDaPulire : t.freedMinAgo;
-    return [
-      stato,
-      { k:'Posti', v: t.posti != null ? `${t.posti}` : '—' },
-      { k:'Liberato da', v: min != null ? `${min}'` : '—', color: pulireSev === 'critical' ? '#DC2626' : (pulireSev === 'warning' ? '#B45309' : undefined) },
-      { k:'Prossima', v: t.nextReservation ? t.nextReservation.time : '—', color: t.nextReservation ? undefined : '#9CA3AF' },
-    ];
-  }
-  return [
-    stato,
-    { k:'Posti', v: t.posti != null ? `${t.posti}` : '—' },
-    { k:'Prossima', v: t.nextReservation ? t.nextReservation.time : '—', color: t.nextReservation ? undefined : '#9CA3AF' },
-    { k:'Nome', v: t.nextReservation ? t.nextReservation.name : '—', color: t.nextReservation ? undefined : '#9CA3AF' },
-  ];
-}
-
 // Riga info della card "Costa colorata" — un solo testo per stato
 function salaInfoText(t, { alert, isLate, lateMin }) {
   if (t.state === 'occupato') {
@@ -554,7 +416,7 @@ function salaInfoText(t, { alert, isLate, lateMin }) {
   return { text: res ? `Prossima ${res.time} · ${res.name}` : 'Nessuna prenotazione', color: '#6B7280' };
 }
 
-function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onMove, onEdit, onAssignOther, onNoShow, onUnisci, onModificaCoperti, onClose }) {
+function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti, onClose }) {
   const meta = SALA_STATE_META[t.state];
   const alert = t.state === 'occupato' ? getOccupiedAlert(t) : null;
   const note = readNote(t.note);
@@ -797,105 +659,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
 
     </div>
   );
-}
-
-function SalaCardCompact({ t, alert, urgent, isLate, lateMin, cta, pulireSev }) {
-  // Posti + sedia in basso a destra della card contratta (come i coperti
-  // sulla occupata) — l'header non mostra più la capienza
-  const postiTag = !!t.posti && (
-    <span style={{display:'inline-flex', alignItems:'center', gap: 4, flexShrink: 0, marginLeft:'auto'}}>
-      <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.posti}</span>
-      <ChairIcon size={16} color="#9CA3AF"/>
-    </span>
-  );
-  if (t.state === 'libero') {
-    return (
-      <div style={{display:'flex', alignItems:'center', gap: 6, fontSize: 15.5, color:'#6B7280', marginTop:'auto'}}>
-        {t.nextReservation && (
-          <>
-            <span style={{color:'#9CA3AF', flexShrink: 0}}>→</span>
-            <span style={{fontWeight: 700, color:'#0F1115', flexShrink: 0}}>{t.nextReservation.time}</span>
-            <span style={{minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-              {t.nextReservation.name}
-            </span>
-          </>
-        )}
-        {postiTag}
-      </div>
-    );
-  }
-  if (t.state === 'prenotato') {
-    if (!t.nextReservation) {
-      return (
-        <div style={{fontSize: 15, fontWeight: 600, color: '#7C3AED'}}>Prenotato</div>
-      );
-    }
-    // Niente "In arrivo fra X minuti": la riga prenotazione basta; il
-    // ritardo (se c'è) compare SOTTO la prenotazione, invertito rispetto a prima.
-    return (
-      <div style={{display:'flex', flexDirection:'column', gap: 2}}>
-        <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
-          <span style={{fontSize: 18, fontWeight: 700, color: '#0F1115', flexShrink: 0}}>
-            {t.nextReservation.time}
-          </span>
-          <span style={{flex: 1, minWidth: 0, fontSize: 15.5, color: '#0F1115', fontWeight: 600,
-            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-            {t.nextReservation.name}
-          </span>
-          {/* Coperti prenotati — sempre leggibili anche a card contratta */}
-          {t.nextReservation.posti && (
-            <span style={{display:'inline-flex', alignItems:'center', gap: 4, fontSize: 14.5, color: '#6B7280', fontWeight: 600, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>
-              {t.nextReservation.posti} <PeopleIcon size={13} color="#9CA3AF"/>
-            </span>
-          )}
-        </div>
-        {isLate && (
-          <div style={{fontSize: 14.5, fontWeight: 700, color: '#A16207', letterSpacing: 0.3, textTransform:'uppercase'}}>
-            In ritardo di {lateMin} minuti
-          </div>
-        )}
-      </div>
-    );
-  }
-  if (t.state === 'occupato') {
-    return (
-      // marginTop auto: la riga si ancora al FONDO della card (minHeight 88),
-      // così i coperti stanno davvero in basso a destra rispetto alla card
-      <div style={{display:'flex', alignItems:'center', gap: 8, marginTop:'auto'}}>
-        {alert && (
-          <div style={{
-            fontSize: 15, fontWeight: 700,
-            color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
-            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-          }}>{alert.label}</div>
-        )}
-        <span style={{flex: 1}}/>
-        {/* Coperti seduti in basso a destra, come sulla card prenotata
-            (gli utenti connessi stanno negli avatar della card espansa) */}
-        {!!t.coperti && (
-          <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0}}>
-            <span style={{fontSize: 15.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{t.coperti}</span>
-            <PeopleIcon size={14} color="#9CA3AF"/>
-          </span>
-        )}
-      </div>
-    );
-  }
-  if (t.state === 'dapulire') {
-    // A card CONTRATTA niente testi di stato ("Da liberare"/"Liberato…"):
-    // lo dicono banda e triangolo. Solo prossima prenotazione + posti.
-    return (
-      <div style={{display:'flex', alignItems:'center', gap: 6, marginTop:'auto'}}>
-        {t.nextReservation && (
-          <span style={{color:'#9CA3AF', fontSize: 14.5, fontWeight: 500, flexShrink: 0}}>
-            → {t.nextReservation.time}
-          </span>
-        )}
-        {postiTag}
-      </div>
-    );
-  }
-  return null;
 }
 
 function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustReservationPosti, onEdit, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev }) {

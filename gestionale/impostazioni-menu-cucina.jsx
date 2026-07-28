@@ -1516,21 +1516,9 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
   );
 }
 
-const INGREDIENT_LIBRARY = ['Pomodoro San Marzano','Mozzarella di bufala','Basilico','Olio EVO','Aglio','Cipolla rossa','Guanciale','Pecorino DOP','Parmigiano 24 mesi','Burro','Tonnarelli','Spaghetti','Rigatoni','Pepe nero','Pepe rosa','Salvia','Rosmarino','Pinoli','Vino bianco','Limone'];
-
-
 // ─── DishEditModal: modal completo (versione onboarding) ──────────────────────
-// Titolo di gruppo e card interna del modal piatto: un solo trattamento per
-// tutti i blocchi, invece di occhielli grigi e sottotitoli scuri mescolati.
-function DishSectionTitle({children}) {
-  return (
-    <div style={{
-      fontSize: 15, fontWeight: 700, color: PN.TEXT,
-      letterSpacing: '-0.01em', marginBottom: 2,
-    }}>{children}</div>
-  );
-}
-
+// Card interna del modal piatto: un solo trattamento per tutti i blocchi,
+// invece di occhielli grigi e sottotitoli scuri mescolati.
 function DishBlock({children, style}) {
   return (
     <div style={{

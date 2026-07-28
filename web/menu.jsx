@@ -12,14 +12,6 @@ const BG_PAGE = '#f7f5f3';
 
 // ─── Icons ─────────────────────────────────────────────────
 const I = {
-  QR: ({ size = 24, color = '#fff' }) => (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="2" strokeLinecap="square">
-      <rect x="4" y="4" width="9" height="9"/><rect x="19" y="4" width="9" height="9"/><rect x="4" y="19" width="9" height="9"/>
-      <rect x="7" y="7" width="3" height="3" fill={color}/><rect x="22" y="7" width="3" height="3" fill={color}/>
-      <rect x="7" y="22" width="3" height="3" fill={color}/><rect x="19" y="19" width="3" height="3" fill={color}/>
-      <rect x="25" y="25" width="3" height="3" fill={color}/><rect x="19" y="25" width="3" height="3" fill={color}/><rect x="25" y="19" width="3" height="3" fill={color}/>
-    </svg>
-  ),
   Plus: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   ),
@@ -34,35 +26,14 @@ const I = {
   Pin: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-7-7-12a7 7 0 0114 0c0 5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
   ),
-  Cal: ({ size = 16, color = TEXT }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
-  ),
-  Clock: ({ size = 16, color = TEXT }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-  ),
-  People: ({ size = 16, color = TEXT }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.8"/><path d="M14 20c0-2.5 2-4 4-4s3 1 3 3"/></svg>
-  ),
   ChevDown: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-  ),
-  ChevUp: ({ size = 16, color = '#fff' }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
   ),
   Back: ({ size = 22, color = TEXT }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   ),
   Check: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
-  ),
-  Home: ({ size = 24, color = TEXT, fill = 'none' }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 L12 4 L20 11 L20 20 L14 20 L14 14 L10 14 L10 20 L4 20 Z"/></svg>
-  ),
-  User: ({ size = 24, color = TEXT }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21 C4 16.5 7.5 14 12 14 C16.5 14 20 16.5 20 21"/></svg>
-  ),
-  Refresh: ({ size = 18, color = '#fff' }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 11-2.1-9.4L23 10"/></svg>
   ),
 };
 
@@ -84,7 +55,7 @@ const ALLERGENS = {
   molluschi:  { label: 'Molluschi',   color: '#7aa8c8', icon: '🐚' },
 };
 
-function AllergenDots({ ids, onTap }) {
+function AllergenDots({ ids }) {
   const [openId, setOpenId] = useState(null);
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, position: 'relative' }}>
@@ -595,8 +566,6 @@ function MenuScreen({ state, setState, goTo }) {
               { id: 'g2', name: 'Ospite', initial: '?', isGuest: true },
               { id: 'g3', name: 'Ospite', initial: '?', isGuest: true },
             ],
-            // table-wide items added by waiter or other guests
-            tableItems: [],
           },
           cart: [],
         };
@@ -2132,12 +2101,6 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
     goBack();
   };
 
-  const addDish = (id) => setState(s => {
-    const existing = s.cart.find(i => i.dishId === id && !Object.keys(i.variants||{}).length && !Object.keys(i.extras||{}).length && !Object.keys(i.removed||{}).length);
-    if (existing) return { ...s, cart: s.cart.map(i => i.lineId === existing.lineId ? { ...i, qty: i.qty + 1 } : i) };
-    return { ...s, cart: [...s.cart, { lineId: id + '-' + Date.now(), dishId: id, qty: 1, variants: {}, extras: {}, removed: {} }] };
-  });
-
   const macroBars = [
     { label: 'Carboidrati', val: dish.macros.carbo, max: 100, color: '#5cc16e' },
     { label: 'Grassi',      val: dish.macros.grassi, max: 60, color: '#f0a050' },
@@ -2563,9 +2526,7 @@ function Root() {
           onBack={goToMenuFromVenue}
           onMenu={goToMenuFromVenue}
           onBook={openAppOnly}
-          onMap={openAppOnly}
-          onHome={goToMenuFromVenue}
-          onProfile={openAppOnly}/>
+          onMap={openAppOnly}/>
       : <MenuScreen state={state} setState={setState} goTo={goTo}/>;
   } else if (route.name === 'split') {
     screen = <SplitScreen state={state} setState={setState} ctx={route.ctx} goBack={() => goTo('menu')}/>;

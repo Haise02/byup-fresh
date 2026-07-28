@@ -10,7 +10,7 @@ Ultimo allineamento al codice: 2026-07-28.
 
 ## Palette
 
-Due oggetti token vivi, per contesto: `ONB` (`onboarding-icons.jsx`) per i flussi di onboarding, `PN` (`panoramica-tokens.jsx`) per tutte le pagine del gestionale (il modulo cameriere eredita da PN). Usare i nomi semantici, mai i legacy (`PINK`, `PURPLE`, …). L'oggetto `BU` (`byup-tokens.jsx`) è **legacy morto**: è ancora caricato da diversi HTML ma nessun componente lo referenzia — non usarlo in codice nuovo. La tabella sotto documenta i token `ONB`.
+Due oggetti token vivi, per contesto: `ONB` (`onboarding-icons.jsx`) per i flussi di onboarding, `PN` (`panoramica-tokens.jsx`) per tutte le pagine del gestionale (il modulo cameriere eredita da PN). Usare i nomi semantici, mai i legacy (`PINK`, `PURPLE`, …). L'oggetto `BU` (`byup-tokens.jsx`) era **legacy morto** — nessun componente lo referenziava — ed è stato **rimosso il 2026-07-28** insieme al file: non reintrodurlo. La tabella sotto documenta i token `ONB`.
 
 ### Brand & Action
 
@@ -641,7 +641,7 @@ Questi non sono cliché AI nel contesto dato: sono scelte deliberate documentate
 
 ## Convenzione style inline
 
-Il progetto usa style inline JSX. Lo manteniamo. Per i token, leggere sempre dall'oggetto vivo del contesto — `ONB.<NOME>` nell'onboarding, `PN.<NOME>` nel gestionale — mai hex hardcoded fuori dai file token. L'oggetto `BU` (`byup-tokens.jsx`) è legacy morto: mai in codice nuovo.
+Il progetto usa style inline JSX. Lo manteniamo. Per i token, leggere sempre dall'oggetto vivo del contesto — `ONB.<NOME>` nell'onboarding, `PN.<NOME>` nel gestionale — mai hex hardcoded fuori dai file token. L'oggetto `BU` (`byup-tokens.jsx`) era legacy morto ed è stato rimosso il 2026-07-28: mai in codice nuovo.
 
 ```jsx
 // SI

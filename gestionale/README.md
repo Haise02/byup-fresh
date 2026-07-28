@@ -15,7 +15,8 @@ per la ristorazione.
 - React 18 UMD via unpkg
 - CSS-in-JS inline (no Tailwind, no styled-components)
 - Token + design system in `panoramica-tokens.jsx` (sistema `PN`, sorgente viva)
-  e `onboarding-icons.jsx` (`ONB`, onboarding); `byup-tokens.jsx` (`BU`) è legacy
+  e `onboarding-icons.jsx` (`ONB`, onboarding); i token legacy `BU`
+  (`byup-tokens.jsx`) sono stati rimossi il 2026-07-28
 
 ## Pagine
 
@@ -27,8 +28,11 @@ per la ristorazione.
 - `byup Cucina.html` — kitchen monitor (KDS)
 - `byup Statistiche.html`, `byup Contabilita.html`, `byup Impostazioni.html`,
   `byup Profilo.html` (pagina Account), `byup Supporto.html`
-- `byup Home.html`, `byup Menu.html` — demo Byup App consumer (frame iOS)
-- `byup Staff.html` — app cameriere (demo mobile)
+
+> Il 2026-07-28 sono state rimosse da questa cartella le copie mai linkate delle
+> altre superfici — `byup Home.html`, `byup Menu.html` (demo Byup App consumer),
+> `byup Staff.html` (app cameriere) e i `.jsx` relativi. Le versioni vive stanno
+> in `app/` (consumer) e `cameriere/` (cameriere web).
 
 ## Deploy Vercel
 

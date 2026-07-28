@@ -23,7 +23,6 @@ const tavoloLibero = (t) => t.stato === 'libero' || t.stato === 'da-pulire' || p
 const ritardoPrenot = (t) => (t.stato === 'prenotato' && t.prenotazione?.ritardo) || 0;
 const isNoShow  = (t) => ritardoPrenot(t) >= STAFF_SETTINGS.tolleranzaNoShow;
 const inRitardo = (t) => ritardoPrenot(t) > 0 && !isNoShow(t);
-const haPronti = (t) => STAFF_SETTINGS.tracciaConsegne && t.pronti > 0;
 const haDaInviare = (t) => t.daInviare > 0;
 // Comanda da prendere: seduti da un po' ma ancora senza ordini → azione operativa.
 const daComandare = (t) => t.stato === 'occupato' && !(t.ordini > 0) && (t.sedutiDa || 0) >= STAFF_SETTINGS.attesaComanda;

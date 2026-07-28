@@ -131,6 +131,6 @@ Le sezioni JSX già prototipate nel progetto originale, da convertire in Vue 3:
 | Onboarding | `onboarding-*.jsx` | ⬜ Da fare |
 | Configurazione completa | `config-completa-app.jsx` | ⬜ Da fare |
 | Login | `login-app.jsx` | ⬜ Da fare |
-| App cameriere (Staff) | `staff-*.jsx` | ⬜ Da fare |
+| App cameriere (Staff) | `cameriere/staff-*.jsx` | ⬜ Da fare |
 
 Quando si aggiungeranno nuove sezioni, valutare l'introduzione di **Vue Router** per la navigazione tra pagine e **Pinia** se lo stato condiviso cresce (es. ordini attivi, sessione utente).

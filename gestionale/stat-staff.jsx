@@ -17,7 +17,6 @@ function StatStaff() {
   const totTip = STAFF.reduce((s, x) => s + x.tip, 0);
   const top = [...STAFF].sort((a, b) => b.scontrino - a.scontrino)[0];
 
-  const sortIcon = (col) => sortBy === col ? (order === 'asc' ? '↑' : '↓') : '↕';
   const handleSort = (col) => {
     if (sortBy === col) setOrder(order === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setOrder('desc'); }

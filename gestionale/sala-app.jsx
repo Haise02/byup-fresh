@@ -46,7 +46,6 @@ function findFreeCellSpiral(POS, startX, startY, excludeId, COLS = 12, ROWS = 8,
 }
 
 function SalaApp() {
-  const dateStr = new Date().toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
   const initialTab = (() => {
     try {
       const t = new URLSearchParams(window.location.search).get('tab');
@@ -68,8 +67,6 @@ function SalaApp() {
   const [, setBump] = React.useState(0);
   const forceUpdate = React.useCallback(() => setBump(b => b + 1), []);
   const [modalApri, setModalApri] = React.useState(null); // tavolo con prenotazione imminente
-  const [modalUnisci, setModalUnisci] = React.useState(null);
-  const [modalSposta, setModalSposta] = React.useState(null);
   const [modalModifica, setModalModifica] = React.useState(null); // hub Sposta/Dividi/Unisci
 
   const openTable = React.useCallback((t) => {
@@ -100,14 +97,12 @@ function SalaApp() {
 
   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     "defaultView": "lista",
-    "showConflicts": true,
     "noOrderWarn": 15,
     "noOrderAlert": 25,
     "overstay": 90,
-    "oldBillHours": 3,
-    "showContiPanel": true
+    "oldBillHours": 3
   }/*EDITMODE-END*/;
-  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const tweaks = TWEAK_DEFAULTS;
 
   // Apri salda modal se arrivato da contabilità con ?openSalda=1
   React.useEffect(() => {
@@ -118,17 +113,6 @@ function SalaApp() {
       if (tavolo) setModalPay(tavolo);
     }
   }, []);
-
-  // Mantieni soglie globali sincronizzate
-  React.useEffect(() => {
-    window.SALA_THRESHOLDS = {
-      noOrderWarn: tweaks.noOrderWarn,
-      noOrderAlert: tweaks.noOrderAlert,
-      overstay: tweaks.overstay,
-      oldBillHours: tweaks.oldBillHours,
-    };
-  }, [tweaks.noOrderWarn, tweaks.noOrderAlert, tweaks.overstay, tweaks.oldBillHours]);
-
 
   function detachMergedTables(t) {
     if (!t.mergedTables || t.mergedTables.length === 0) return;
@@ -161,13 +145,11 @@ function SalaApp() {
       forceUpdate();
     }
   }
-  function handleMove(t)        { setModalSposta(t); }
-
   // Sposta: scambia i contenuti tra due tavoli (party, ordini, stato, ecc.) — gli ID restano fissi.
   function handleSpostaConfirm(sourceTavolo, targetId) {
     const all = getTavoli();
     const target = all.find(x => x.id === targetId);
-    if (!target) { setModalSposta(null); return; }
+    if (!target) return;
     const FIELDS = [
       'state','coperti','byup','byupWeb','party','sittingMin','conto','contoSaldato',
       'ordini','minutiSenzaOrdine','timeSinceLastOrder','note',
@@ -180,7 +162,6 @@ function SalaApp() {
       sourceTavolo[k] = target[k];
       target[k] = tmp;
     });
-    setModalSposta(null);
     showToast(`✓ Tavolo ${sourceTavolo.id} ↔ Tavolo ${target.id} scambiati`);
     forceUpdate();
   }
@@ -381,7 +362,6 @@ function SalaApp() {
         });
       window.dispatchEvent(new Event('sala-positions-sync'));
     }
-    setModalUnisci(null);
     showToast(`✓ ${selectedIds.length} tavol${selectedIds.length===1?'o unito':'i uniti'} a Tavolo ${sourceTavolo.id}`);
     forceUpdate();
   }
@@ -449,11 +429,9 @@ function SalaApp() {
                   }
                 }}
                 onLibera={handleLibera}
-                onMove={handleMove}
                 onEdit={handleEdit}
                 onAssignOther={handleAssignOther}
                 onNoShow={handleNoShow}
-                onUnisci={(t) => setModalUnisci(t)}
               />
             )}
             {tab === 'vendita' && <SalaVenditaDiretta/>}
@@ -492,26 +470,6 @@ function SalaApp() {
           tavolo={modalApri}
           onConfirm={() => { openTable(modalApri); setModalApri(null); }}
           onClose={() => setModalApri(null)}/>
-
-        <SalaUnisciModal
-          tavolo={modalUnisci}
-          onClose={() => setModalUnisci(null)}
-          onConfirm={handleUnisciConfirm}
-          onDetach={handleDetach}
-          onSetCoperti={(t, n) => {
-            const all = getTavoli();
-            const target = all.find(x => x.id === t.id);
-            if (!target) return;
-            target.posti = n;
-            if ((target.coperti || 0) > n) target.coperti = n;
-            if ((target.byup || 0) > n) target.byup = n;
-            forceUpdate();
-          }}/>
-
-        <SalaSpostaModal
-          tavolo={modalSposta}
-          onClose={() => setModalSposta(null)}
-          onConfirm={handleSpostaConfirm}/>
 
         <SalaModificaModal
           tavolo={modalModifica}
@@ -562,9 +520,6 @@ function SalaApp() {
             if (resId && window.SALA_RES_UPDATE) window.SALA_RES_UPDATE(resId, { status: 'cancellata' });
             showToast('✓ Prenotazione cancellata');
           }}/>
-
-        <TweaksPanel>
-        </TweaksPanel>
       </main>
     </div>
   );

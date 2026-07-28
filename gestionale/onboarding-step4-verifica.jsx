@@ -234,16 +234,6 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
       </div>
 
       <style>{`
-        /* Bounce sequenziale checklist — 4 item con delay 150ms */
-        @keyframes check-bounce {
-          0%   { transform: scale(0); opacity: 0; }
-          60%  { transform: scale(1.2); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes row-rise {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
         /* Phone auto-scroll: translateY 0 → -50% (lista duplicata) */
         @keyframes phone-scroll {
           from { transform: translateY(0); }
@@ -389,71 +379,6 @@ function ConfettiCanvas() {
         zIndex: 0,
       }}
     />
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// CompletionChecklist — 4 item, ognuno con bounce sequenziale 150ms stagger.
-// Check verde 20×20.
-// ─────────────────────────────────────────────────────────────────────────
-
-function CompletionChecklist({venue, rooms, totalDishes, totalCategories, totalTables}) {
-  const items = [
-    {label: 'Menù',      value: `${totalDishes} piatti in ${totalCategories} categorie`},
-    {label: 'Locale',    value: [venue.name, venue.city].filter(Boolean).join(' · ') || 'Da completare'},
-    {label: 'Pagamenti', value: 'Stripe connesso'},
-    {label: 'Sale',      value: `${rooms.length} ${rooms.length === 1 ? 'sala' : 'sale'} · ${totalTables} tavoli`},
-  ];
-  // L2 Aurora soft wash multi-color — pink + lavender + cream mesh su base
-  // sfumata pink→lavender. La checklist celebrativa vive sullo stesso wash
-  // dell'Anagrafica in Step 2: aurora L2 = momento warm celebrativo del flow.
-  return (
-    <div className="glass-lift-hover" style={{
-      position: 'relative', zIndex: 1,
-      background:
-        'radial-gradient(circle at 20% 18%, rgba(255, 217, 231, 0.55) 0%, transparent 60%), ' +
-        'radial-gradient(circle at 85% 25%, rgba(226, 217, 255, 0.50) 0%, transparent 60%), ' +
-        'radial-gradient(circle at 60% 95%, rgba(255, 237, 216, 0.55) 0%, transparent 65%), ' +
-        'linear-gradient(135deg, #FFF6F4 0%, #FCF8FF 100%)',
-      border: '1px solid rgba(190, 175, 220, 0.14)',
-      borderRadius: 12,
-      padding: 4,
-      boxShadow: '0 1px 0 rgba(15, 17, 21, 0.04), 0 4px 16px rgba(15, 17, 21, 0.03)',
-    }}>
-      {items.map((it, i) => (
-        <div key={i} style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 14px',
-          borderBottom: i < items.length - 1
-            ? '1px solid rgba(15, 17, 21, 0.06)'
-            : 'none',
-          animation: `row-rise 320ms ease-out ${i * 150}ms both`,
-        }}>
-          <span style={{
-            width: 20, height: 20, borderRadius: 999,
-            background: '#10B981',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.18)',
-            animation: `check-bounce 380ms ease-out ${i * 150}ms both`,
-          }}>
-            <OnbIcon.Check size={12}/>
-          </span>
-          <span style={{
-            fontSize: 14, fontWeight: 500, color: ONB.MUTED,
-            width: 88, flexShrink: 0,
-          }}>
-            {it.label}
-          </span>
-          <span style={{
-            fontSize: 15, fontWeight: 500, color: ONB.TEXT, flex: 1,
-            lineHeight: 1.4,
-          }}>
-            {it.value}
-          </span>
-        </div>
-      ))}
-    </div>
   );
 }
 

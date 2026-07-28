@@ -38,34 +38,6 @@ function PnUnderlineTabs({ tabs, active, onChange }) {
   );
 }
 
-// Search input
-function PnSearchInput({ placeholder = 'Cerca…', value, onChange, style }) {
-  return (
-    <div style={{
-      flex: 1, position:'relative',
-      ...style,
-    }}>
-      <input
-        value={value || ''}
-        onChange={e => onChange?.(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          width: '100%',
-          padding: '11px 40px 11px 16px',
-          borderRadius: 10,
-          border: `1px solid ${PN.BORDER}`,
-          background: PN.WHITE,
-          fontSize: 15.5, color: PN.TEXT,
-          outline: 'none', fontFamily: 'inherit',
-        }}
-      />
-      <span style={{position:'absolute', right: 14, top:'50%', transform:'translateY(-50%)', color: PN.MUTED}}>
-        <Icon name="magnifying-glass" size={16}/>
-      </span>
-    </div>
-  );
-}
-
 // Modal shell — backdrop con blur + container glass strong (Apple Sonoma).
 // sheet=true: FOGLIO che sale dal fondo (ancorato in basso, angoli 22px in
 // alto, slide-up spring) — per i flussi di creazione, niente modal opaco.
@@ -197,6 +169,5 @@ function PnButton({ variant = 'primary', icon, children, onClick, style, disable
 }
 
 window.PnUnderlineTabs = PnUnderlineTabs;
-window.PnSearchInput = PnSearchInput;
 window.PnModal = PnModal;
 window.PnButton = PnButton;

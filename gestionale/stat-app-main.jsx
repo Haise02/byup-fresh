@@ -18,9 +18,6 @@ function StatisticheApp() {
   const [opSub, setOpSub] = useState(urlInit.sub);
   const [period, setPeriod] = useState('mese');
 
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-
   return (
     <div className="frame" style={{position:'relative'}}>
       <GlassMeshSubstrate tone="neutral"/>

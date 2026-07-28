@@ -302,22 +302,6 @@ const SALA_MENU = {
   ],
 };
 
-// Riassume gli ordini di un tavolo nello stato più urgente da mostrare in compatto
-function summarizeOrdini(ordini) {
-  if (!ordini || ordini.length === 0) return null;
-  const pronti  = ordini.filter(o => o.stato === 'pronto');
-  const cottura = ordini.filter(o => o.stato === 'in_cottura');
-  const ordinati= ordini.filter(o => o.stato === 'ordinato');
-  const totQty = (arr) => arr.reduce((s,o)=>s+o.qty, 0);
-  const totale = totQty(ordini);
-  const prontiQty = totQty(pronti);
-
-  if (pronti.length > 0)  return { tone:'alert',   label: prontiQty === totale ? 'Tutto pronto, da servire' : `${prontiQty}/${totale} pronti`, count: prontiQty };
-  if (cottura.length > 0) return { tone:'warn',    label:`${totQty(cottura)} in cottura`, count: totQty(cottura) };
-  if (ordinati.length > 0)return { tone:'neutral', label:`${totQty(ordinati)} in attesa`,   count: totQty(ordinati) };
-  return null;
-}
-
 // Notifica di stato basata su soglie.
 // Usa le soglie progressive ORDINE_WARN_MIN (15) / ORDINE_ALERT_MIN (30) — MAI rosso.
 // 0-15' nessun segnale | 15-30' chip grigio info | >30' chip ambra warning.
@@ -345,7 +329,6 @@ window.SALA_TAVOLI = SALA_TAVOLI;
 window.SALA_CONTI_APERTI = SALA_CONTI_APERTI;
 window.SALA_THRESHOLDS = SALA_THRESHOLDS;
 window.SALA_MENU = SALA_MENU;
-window.summarizeOrdini = summarizeOrdini;
 window.getOccupiedAlert = getOccupiedAlert;
 window.PULIRE_WARNING_MIN  = PULIRE_WARNING_MIN;
 window.PULIRE_CRITICAL_MIN = PULIRE_CRITICAL_MIN;

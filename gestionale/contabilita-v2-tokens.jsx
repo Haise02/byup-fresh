@@ -12,7 +12,6 @@ const C = {
   T_MD: 17,
   T_LG: 20,
   T_XL: 26,
-  T_XXL: 34,
   // Surfaces
   SURF: '#FAFAFB',
   SURF_ALT: '#F4F5F7',

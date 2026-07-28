@@ -152,7 +152,6 @@ const I = {
   Mail:  (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>,
   Phone: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>,
   Refresh:(p={})=> <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>,
-  Stripe:(p={})=> <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill={p.c||ST.TEXT}><path d="M13.5 8.6c0-.8.66-1.1 1.74-1.1 1.55 0 3.5.47 5.06 1.31V4.3A13.4 13.4 0 0015.24 3.3C11.2 3.3 8.5 5.41 8.5 8.94c0 5.5 7.57 4.62 7.57 6.99 0 .94-.82 1.24-1.96 1.24-1.69 0-3.86-.7-5.57-1.64v4.6a14.1 14.1 0 005.55 1.16c4.14 0 7-2.05 7-5.62 0-5.94-7.59-4.88-7.59-7.07z"/></svg>,
 };
 
 // ─── Componenti atomici ───────────────────────────────────────
