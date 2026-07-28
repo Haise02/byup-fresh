@@ -33,3 +33,6 @@ si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non 
 - `assets/` contiene icone e loghi condivisi (favicon, apple-touch icon, logo completo).
 - `byup_SaldaConto_redesign.html` (in root) è un mockup standalone del redesign della
   schermata "Salda conto".
+- **Prima di un rilascio**: `grep -rn "data-demo-only" spot/` — marca le affordance
+  che esistono solo per la demo e non devono finire in produzione (oggi: il "simula
+  manomissione" del riesame accessi, vedi [spot/Riesame-Accessi.md](spot/Riesame-Accessi.md)).

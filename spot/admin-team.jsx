@@ -774,7 +774,20 @@ function AccessReview() {
   const tuttiDecisi = decisi === totale;
   const revocati = Object.values(esiti).filter(e => e.decisione === 'revocato').length;
   const daGuardare = righe.filter(r => r.cls.rank <= 4 && !esiti[r.m.id]).length;
-  const invariatiAperti = righe.filter(r => r.cls.key === 'invariato' && !esiti[r.m.id]);
+  const invariatiAperti = righe.filter(r => r.cls.key === 'invariato' && !esiti[r.m.id] && !r.m.isYou);
+
+  // Il Super Admin titolare non si conferma né si revoca da solo: l'accesso gli
+  // viene dal ruolo, e il ruolo cambia fuori da qui. Confermato d'ufficio, con
+  // il motivo scritto — nell'attestazione si deve leggere perché.
+  React.useEffect(() => {
+    const io = membri.find(m => m.isYou);
+    if (!io || esiti[io.id]) return;
+    setEsiti(prev => ({ ...prev, [io.id]: {
+      decisione: 'confermato',
+      motivo: 'Super Admin titolare — accesso per definizione del ruolo, cambia solo al cambio di ruolo',
+      chi: 'd\'ufficio', quando: new Date(), automatico: true,
+    } }));
+  }, []);
 
   // Il sigillo si calcola una volta sola, sul dato integro, e resta il termine
   // di paragone per tutte le verifiche successive.
@@ -793,8 +806,10 @@ function AccessReview() {
       : { stato: 'integra', n: ordinate.length, quando: new Date() });
   };
 
-  // Interruttore di dimostrazione: altera davvero il contenuto di un record
-  // chiuso, così la verifica fallisce sul serio invece di fingere.
+  // ⚠️ SOLO DEMO — DA RIMUOVERE PRIMA DELLA PRODUZIONE (spot/Riesame-Accessi.md).
+  // Altera davvero il contenuto di un record chiuso, così la verifica fallisce
+  // sul serio invece di fingere. In produzione non deve esistere nessun modo di
+  // toccare un record firmato.
   const toggleManomissione = () => {
     if (RA_MANOMISSIONE) {
       RA_MANOMISSIONE.esito.decisione = RA_MANOMISSIONE.originale;
@@ -971,10 +986,12 @@ function AccessReview() {
                     {dec ? (
                       <div style={{textAlign:'right'}}>
                         <div style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.6, fontWeight:700,
-                          color: dec.decisione === 'revocato' ? ADM.DANGER : ADM.OK}}>
-                          {dec.decisione === 'revocato' ? 'Revocato' : 'Confermato'}
+                          color: dec.decisione === 'revocato' ? ADM.DANGER : dec.automatico ? ADM.MUTED : ADM.OK}}>
+                          {dec.decisione === 'revocato' ? 'Revocato' : dec.automatico ? 'Confermato d\'ufficio' : 'Confermato'}
                         </div>
-                        <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:2}}>da {dec.chi}</div>
+                        <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:2, lineHeight:1.35}}>
+                          {dec.automatico ? 'Titolare — cambia solo al cambio di ruolo' : `da ${dec.chi}`}
+                        </div>
                       </div>
                     ) : (
                       <>
@@ -1062,8 +1079,15 @@ function AccessReview() {
           successive — per questo una correzione è una campagna nuova, non una riscrittura.
         </div>
 
-        {/* Affordance di sola dimostrazione, marcata come tale */}
-        <div style={{display:'inline-flex', alignItems:'center', gap:10, padding:'8px 12px', borderRadius:10,
+        {/* ⚠️ SOLO DEMO — DA RIMUOVERE PRIMA DELLA PRODUZIONE.
+            Serve a mostrare dal vivo che il controllo di integrità funziona
+            davvero: altera un record già firmato, così la verifica fallisce
+            invece di dare sempre verde. In produzione un comando che modifica
+            un record firmato è esattamente ciò che il controllo esiste per
+            impedire. Vedi spot/Riesame-Accessi.md.
+            Marcato con data-demo-only: `grep -r "data-demo-only" spot/`. */}
+        <div data-demo-only="simula-manomissione"
+          style={{display:'inline-flex', alignItems:'center', gap:10, padding:'8px 12px', borderRadius:10,
           border:`1px dashed ${manomesso ? ADM.DANGER : ADM.BORDER_STRONG || ADM.BORDER}`,
           background: manomesso ? ADM.DANGER_SOFT : 'transparent'}}>
           <span style={{fontSize:11.4, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Demo</span>
