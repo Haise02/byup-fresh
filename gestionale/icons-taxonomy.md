@@ -2,7 +2,7 @@
 
 Classificazione delle icone del registry (`panoramica-sf-icons.jsx` → `SfIcons`) + proposta per le nuove **Content icons** della Fase 2.
 
-> **Stato (2026-07-28): implementata.** Opzione A adottata (rinomina con prefisso, niente alias). Il registry conta oggi **93 icone**: UI 17, Content 69, Status 7. Scostamenti dalla proposta del §2: non implementate `people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked`; aggiunte fuori lista `commerce-piggy-bank` e `commerce-register` (Content) e `trash` + `download` (UI); `calendar` esiste solo come `time-calendar`.
+> **Stato (2026-07-28): implementata.** Opzione A adottata (rinomina con prefisso, niente alias). Il registry conta oggi **93 icone**: UI 17, Content 69, Status 7. Scostamenti dalla proposta del §2: non implementate `people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked` e `food-fruit` (Food resta comunque a 15 perché è entrata `food-flame`, rinomina dal §1); aggiunte fuori lista `commerce-piggy-bank` e `commerce-register` (Content) e `trash` + `download` (UI); `calendar` esiste solo come `time-calendar`.
 
 Tre famiglie (vincolo del prompt):
 
@@ -112,4 +112,4 @@ Rinominate dall'esistente: `commerce-wallet`, `commerce-receipt`, `commerce-bank
 | Status | 8 | **7** (`status-locked` non implementata) |
 | **Totale** | **90** | **93** |
 
-Il tetto teorico del prompt era 90: a consuntivo il registry è a 93 per via delle due Commerce extra (`commerce-piggy-bank`, `commerce-register`, nate per la sidebar Contabilità/Vendita) e delle UI `trash`/`download`; in compenso 5 proposte non sono mai state disegnate (`people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked`).
+Il tetto teorico del prompt era 90: a consuntivo il registry è a 93 per via delle due Commerce extra (`commerce-piggy-bank`, `commerce-register`, nate per la sidebar Contabilità/Vendita) e delle UI `trash`/`download`; in compenso 6 proposte non sono mai state disegnate (`people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked`, `food-fruit`).
