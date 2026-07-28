@@ -55,6 +55,13 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
   <script type="text/babel" src="ios-frame.jsx?v=32"></script>
+
+  <!-- Il POS si usa col dito su un telefono, mai col mouse: niente feedback di
+       hover, solo pressione. Va dichiarato PRIMA di panoramica-tokens.jsx, che
+       al caricamento decide quale foglio di feedback iniettare. Stessa scelta
+       del cameriere: le due app staff vanno tenute gemelle. -->
+  <script>window.__BYUP_TOUCH_SURFACE = true;</script>
+
   <!-- PN = design tokens del gestionale. DEVE stare prima di pos-tokens.jsx:
        il POS eredita da qui brand, neutri e materiali. -->
   <script type="text/babel" src="../gestionale/panoramica-tokens.jsx?v=32"></script>
