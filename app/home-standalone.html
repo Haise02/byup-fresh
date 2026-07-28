@@ -53,12 +53,9 @@
     mascot: {
       confident: asset('mascot-confident'),
       happy: asset('mascot-happy'),
-      back: asset('mascot-back'),
-      master: asset('mascot-master'),
       wave: asset('mascot-wave'),
       wink: asset('mascot-wink'),
       chef: asset('mascot-chef'),
-      chef2: asset('mascot-chef-2'),
       waiter: asset('mascot-waiter'),
       sleep: asset('mascot-sleep'),
       phone: asset('mascot-phone')
@@ -70,8 +67,8 @@
       dolce: asset('icon-donut'),
       brunch: asset('icon-coffee')
     },
-    hero: Object.fromEntries(['coffee', 'birra', 'spritz', 'froyo', 'sushi', 'burger', 'boba'].map(k => [k, asset('hero-' + k)])),
-    bg: Object.fromEntries(['splash', 'coral', 'dark', 'light', 'neutral'].map(k => [k, asset('bg-' + k)]))
+    hero: Object.fromEntries(['coffee', 'spritz', 'froyo', 'burger'].map(k => [k, asset('hero-' + k)])),
+    bg: Object.fromEntries(['coral', 'dark', 'light'].map(k => [k, asset('bg-' + k)]))
   };
 
   /* ---------- 2 · TOKENS ---------- */
@@ -626,12 +623,6 @@
     }, message));
   }
 
-  /* ---------- 10 · ENTRATA ORCHESTRATA ---------- */
-  /* style helper: stagger(i) → fade-up a cascata (~40ms per step) */
-  const stagger = (i, base = 0) => ({
-    animation: `bkFadeUp ${DUR.slow}ms ${base + i * 40}ms ${EASE_OUT} backwards`
-  });
-
   /* ---------- EXPORT ---------- */
   window.ByupKit = {
     ASSETS,
@@ -653,7 +644,6 @@
     MascotMoment,
     Mascot,
     Confetti,
-    stagger,
     GRAIN_URI
   };
   /* sync */
@@ -664,7 +654,7 @@
 (function(){
 // iOS.jsx — Simplified iOS 26 (Liquid Glass) device frame
 // Based on the iOS 26 UI Kit + Figma status bar spec. No assets, no deps.
-// Exports: IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSKeyboard
+// Exports: IOSDevice, IOSStatusBar
 
 // ─────────────────────────────────────────────────────────────
 // Status bar
@@ -789,148 +779,13 @@ function IOSStatusBar({
 }
 
 // ─────────────────────────────────────────────────────────────
-// Liquid glass pill — blur + tint + shine
-// ─────────────────────────────────────────────────────────────
-function IOSGlassPill({
-  children,
-  dark = false,
-  style = {}
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 44,
-      minWidth: 44,
-      borderRadius: 9999,
-      position: 'relative',
-      overflow: 'hidden',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: dark ? '0 2px 6px rgba(0,0,0,0.35), 0 6px 16px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.06)',
-      ...style
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 9999,
-      backdropFilter: 'blur(12px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-      background: dark ? 'rgba(120,120,128,0.28)' : 'rgba(255,255,255,0.5)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 9999,
-      boxShadow: dark ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(255,255,255,0.08)' : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
-      border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      zIndex: 1,
-      display: 'flex',
-      alignItems: 'center',
-      padding: '0 4px'
-    }
-  }, children));
-}
-
-// ─────────────────────────────────────────────────────────────
-// Navigation bar — glass pills + large title
-// ─────────────────────────────────────────────────────────────
-function IOSNavBar({
-  title = 'Title',
-  dark = false,
-  trailingIcon = true
-}) {
-  const muted = dark ? 'rgba(255,255,255,0.6)' : '#404040';
-  const text = dark ? '#fff' : '#000';
-  const pillIcon = content => /*#__PURE__*/React.createElement(IOSGlassPill, {
-    dark: dark
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 36,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  }, content));
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-      paddingTop: 62,
-      paddingBottom: 10,
-      position: 'relative',
-      zIndex: 5
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 16px'
-    }
-  }, pillIcon(/*#__PURE__*/React.createElement("svg", {
-    width: "12",
-    height: "20",
-    viewBox: "0 0 12 20",
-    fill: "none",
-    style: {
-      marginLeft: -1
-    }
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M10 2L2 10l8 8",
-    stroke: muted,
-    strokeWidth: "2.5",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }))), trailingIcon && pillIcon(/*#__PURE__*/React.createElement("svg", {
-    width: "22",
-    height: "6",
-    viewBox: "0 0 22 6"
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "3",
-    cy: "3",
-    r: "2.5",
-    fill: muted
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "11",
-    cy: "3",
-    r: "2.5",
-    fill: muted
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "19",
-    cy: "3",
-    r: "2.5",
-    fill: muted
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 16px',
-      fontFamily: '-apple-system, system-ui',
-      fontSize: 34,
-      fontWeight: 700,
-      lineHeight: '41px',
-      color: text,
-      letterSpacing: 0.4
-    }
-  }, title));
-}
-
-// ─────────────────────────────────────────────────────────────
 // Device frame
 // ─────────────────────────────────────────────────────────────
 function IOSDevice({
   children,
   width = 402,
   height = 874,
-  dark = false,
-  title,
-  keyboard = false
+  dark = false
 }) {
   // Su mobile: niente mockup — l'app occupa tutto lo schermo, come un'app vera.
   const [isMobile, setIsMobile] = React.useState(() => {
@@ -955,6 +810,7 @@ function IOSDevice({
   }, []);
   if (isMobile) {
     return /*#__PURE__*/React.createElement("div", {
+      "data-byup-screen": true,
       style: {
         position: 'fixed',
         inset: 0,
@@ -970,18 +826,13 @@ function IOSDevice({
         display: 'flex',
         flexDirection: 'column'
       }
-    }, title !== undefined && /*#__PURE__*/React.createElement(IOSNavBar, {
-      title: title,
-      dark: dark
-    }), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         overflow: 'auto',
         position: 'relative'
       }
-    }, children), keyboard && /*#__PURE__*/React.createElement(IOSKeyboard, {
-      dark: dark
-    })), /*#__PURE__*/React.createElement("div", {
+    }, children)), /*#__PURE__*/React.createElement("div", {
       "aria-hidden": true,
       style: {
         position: 'absolute',
@@ -998,6 +849,7 @@ function IOSDevice({
     }));
   }
   return /*#__PURE__*/React.createElement("div", {
+    "data-byup-screen": true,
     style: {
       width,
       height,
@@ -1038,17 +890,12 @@ function IOSDevice({
       display: 'flex',
       flexDirection: 'column'
     }
-  }, title !== undefined && /*#__PURE__*/React.createElement(IOSNavBar, {
-    title: title,
-    dark: dark
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       overflow: 'auto'
     }
-  }, children), keyboard && /*#__PURE__*/React.createElement(IOSKeyboard, {
-    dark: dark
-  })), /*#__PURE__*/React.createElement("div", {
+  }, children)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       bottom: 0,
@@ -1071,213 +918,9 @@ function IOSDevice({
     }
   })));
 }
-
-// ─────────────────────────────────────────────────────────────
-// Keyboard — iOS 26 liquid glass
-// ─────────────────────────────────────────────────────────────
-function IOSKeyboard({
-  dark = false
-}) {
-  const glyph = dark ? 'rgba(255,255,255,0.7)' : '#595959';
-  const sugg = dark ? 'rgba(255,255,255,0.6)' : '#333';
-  const keyBg = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
-
-  // special-key icons
-  const icons = {
-    shift: /*#__PURE__*/React.createElement("svg", {
-      width: "19",
-      height: "17",
-      viewBox: "0 0 19 17"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M9.5 1L1 9.5h4.5V16h8V9.5H18L9.5 1z",
-      fill: glyph
-    })),
-    del: /*#__PURE__*/React.createElement("svg", {
-      width: "23",
-      height: "17",
-      viewBox: "0 0 23 17"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M7 1h13a2 2 0 012 2v11a2 2 0 01-2 2H7l-6-7.5L7 1z",
-      fill: "none",
-      stroke: glyph,
-      strokeWidth: "1.6",
-      strokeLinejoin: "round"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M10 5l7 7M17 5l-7 7",
-      stroke: glyph,
-      strokeWidth: "1.6",
-      strokeLinecap: "round"
-    })),
-    ret: /*#__PURE__*/React.createElement("svg", {
-      width: "20",
-      height: "14",
-      viewBox: "0 0 20 14"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M18 1v6H4m0 0l4-4M4 7l4 4",
-      fill: "none",
-      stroke: "#fff",
-      strokeWidth: "1.8",
-      strokeLinecap: "round",
-      strokeLinejoin: "round"
-    }))
-  };
-  const key = (content, {
-    w,
-    flex,
-    ret,
-    fs = 25,
-    k
-  } = {}) => /*#__PURE__*/React.createElement("div", {
-    key: k,
-    style: {
-      height: 42,
-      borderRadius: 8.5,
-      flex: flex ? 1 : undefined,
-      width: w,
-      minWidth: 0,
-      background: ret ? '#08f' : keyBg,
-      boxShadow: '0 1px 0 rgba(0,0,0,0.075)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: '-apple-system, "SF Compact", system-ui',
-      fontSize: fs,
-      fontWeight: 458,
-      color: ret ? '#fff' : glyph
-    }
-  }, content);
-  const row = (keys, pad = 0) => /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6.5,
-      justifyContent: 'center',
-      padding: `0 ${pad}px`
-    }
-  }, keys.map(l => key(l, {
-    flex: true,
-    k: l
-  })));
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      zIndex: 15,
-      borderRadius: 27,
-      overflow: 'hidden',
-      padding: '11px 0 2px',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      boxShadow: dark ? '0 -2px 20px rgba(0,0,0,0.09)' : '0 -1px 6px rgba(0,0,0,0.018), 0 -3px 20px rgba(0,0,0,0.012)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 27,
-      backdropFilter: 'blur(12px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-      background: dark ? 'rgba(120,120,128,0.14)' : 'rgba(255,255,255,0.25)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 27,
-      boxShadow: dark ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15)' : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
-      border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
-      pointerEvents: 'none'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 20,
-      alignItems: 'center',
-      padding: '8px 22px 13px',
-      width: '100%',
-      boxSizing: 'border-box',
-      position: 'relative'
-    }
-  }, ['"The"', 'the', 'to'].map((w, i) => /*#__PURE__*/React.createElement(React.Fragment, {
-    key: i
-  }, i > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 1,
-      height: 25,
-      background: '#ccc',
-      opacity: 0.3
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      textAlign: 'center',
-      fontFamily: '-apple-system, system-ui',
-      fontSize: 17,
-      color: sugg,
-      letterSpacing: -0.43,
-      lineHeight: '22px'
-    }
-  }, w)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 13,
-      padding: '0 6.5px',
-      width: '100%',
-      boxSizing: 'border-box',
-      position: 'relative'
-    }
-  }, row(['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']), row(['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'], 20), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 14.25,
-      alignItems: 'center'
-    }
-  }, key(icons.shift, {
-    w: 45,
-    k: 'shift'
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6.5,
-      flex: 1
-    }
-  }, ['z', 'x', 'c', 'v', 'b', 'n', 'm'].map(l => key(l, {
-    flex: true,
-    k: l
-  }))), key(icons.del, {
-    w: 45,
-    k: 'del'
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6,
-      alignItems: 'center'
-    }
-  }, key('ABC', {
-    w: 92.25,
-    fs: 18,
-    k: 'abc'
-  }), key('', {
-    flex: true,
-    k: 'space'
-  }), key(icons.ret, {
-    w: 92.25,
-    ret: true,
-    k: 'ret'
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 56,
-      width: '100%',
-      position: 'relative'
-    }
-  }));
-}
 Object.assign(window, {
   IOSDevice,
-  IOSStatusBar,
-  IOSNavBar,
-  IOSGlassPill,
-  IOSKeyboard
+  IOSStatusBar
 });
 })();
 </script>
@@ -5513,15 +5156,15 @@ function RowKV({
 // Il locale può avere stili di vetrina diversi. In produzione lo stile sarà
 // scelto dal RISTORATORE nel gestionale e arriverà dal backend insieme ai dati
 // del locale. Qui (prototipo, nessun backend) lo stile si forza via:
-//   • URL  ?venue=a|b|c|original     → utile per ShortcutsPanel / demo
+//   • URL  ?venue=original|premium   → utile per ShortcutsPanel / demo
 //   • window.__venueVariant = '…'    → override da console
 // Default = 'original' (stile classico, definito sotto in questo file).
-// Gli altri stili (a/b/c) vivono in venue-variants.jsx. Vedi Contesto-App.md §3.1.
+// Lo stile 'premium' vive in venue-variants.jsx. Vedi Contesto-App.md §3.1.
 function VenueScreen(props) {
   const variant = (() => {
     try {
       const v = new URLSearchParams(window.location.search).get('venue');
-      if (['a', 'b', 'c', 'original', 'premium'].includes(v)) return v;
+      if (['original', 'premium'].includes(v)) return v;
     } catch {}
     return window.__venueVariant || null;
   })();
@@ -5530,9 +5173,6 @@ function VenueScreen(props) {
   if ((variant === 'premium' || !variant && props.venue && props.venue.premium) && window.VenuePremium) {
     return /*#__PURE__*/React.createElement(window.VenuePremium, props);
   }
-  if (variant === 'a' && window.VenueA) return /*#__PURE__*/React.createElement(window.VenueA, props); // Editorial / Magazine
-  if (variant === 'b' && window.VenueB) return /*#__PURE__*/React.createElement(window.VenueB, props); // Cinematic / Tasting menu
-  if (variant === 'c' && window.VenueC) return /*#__PURE__*/React.createElement(window.VenueC, props); // Operativo / Resy-style
   return /*#__PURE__*/React.createElement(VenueOriginal, props); // Classico (default)
 }
 function VenueMapThumbnail({
@@ -7276,1499 +6916,20 @@ Object.assign(window, {
 // Stili alternativi della vetrina locale. NON sono dead code né A/B test:
 // in produzione il ristoratore sceglierà lo stile dal GESTIONALE e il backend
 // lo invierà coi dati del locale. Qui (prototipo) lo stile si forza via
-// ?venue=a|b|c o window.__venueVariant — vedi il dispatcher VenueScreen in
+// ?venue=premium o window.__venueVariant — vedi il dispatcher VenueScreen in
 // extras.jsx e Contesto-App.md §3.1.
 //
 // Gli stili:
-//   a → Editorial / Magazine   (qui sotto, VenueA)
-//   b → Cinematic / Tasting     (qui sotto, VenueB)
-//   c → Operativo / Resy-style  (qui sotto, VenueC)
+//   premium  → Vetrina dei locali selezionati byup (qui sotto, VenuePremium).
+//              Si attiva anche da sola col flag `premium` sui dati del locale.
 //   original → Classico (DEFAULT) — vive in extras.jsx come VenueOriginal,
 //              perché è la vetrina storica e riusa helper locali (es. VenueMapThumbnail).
-//
-// NB: A/B/C usano i dati hardcoded di VENUE_DATA qui sotto; VenueOriginal usa
-// invece la prop `venue` passata dall'app. Tenerne conto se si allineano i dati.
 
 const {
   useState: useStateV,
   useEffect: useEffectV,
   useRef: useRefV
 } = React;
-const PINK_V = '#E32459';
-const TEXT_V = '#1c0f15';
-const MUTED_V = '#6d5a61';
-const BG_V = '#FBF4F1';
-const BORDER_V = '#eddfda';
-const CREAM_V = '#F4EFE6';
-const FOREST_V = '#2C4A3E';
-
-// ─── Shared data ─────────────────────────────────────────────
-const VENUE_DATA = {
-  name: 'Al Settembrini',
-  cuisine: 'Cucina Romana',
-  price: '€€',
-  address: 'Via dei Gracchi 56, 00187 Roma',
-  hours: 'Lun – Ven · 11:00 – 23:00',
-  rating: 4.8,
-  reviews: 320,
-  photos: ['https://images.unsplash.com/photo-1559339352-11d035aa65de?w=900&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=900&q=75&auto=format&fit=crop', 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=900&q=75&auto=format&fit=crop'],
-  signature: {
-    name: 'Cacio e Pepe',
-    desc: 'Tonnarelli fatti in casa, pecorino romano DOP stagionato 12 mesi, pepe nero del Sarawak.',
-    price: '14€',
-    photo: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&q=75&auto=format&fit=crop'
-  },
-  chef: {
-    name: 'Marco De Santis',
-    title: 'Chef e proprietario',
-    bio: 'Cresciuto tra i fornelli della trattoria di famiglia in Trastevere. Una stella Michelin nel 2022.',
-    photo: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&q=75&auto=format&fit=crop'
-  },
-  awards: ['Top 10 Roma 2025', 'Gambero Rosso', 'Tripadvisor Excellence'],
-  events: ['Aperitivo 2x1', 'Karaoke venerdì', 'Brunch domenica'],
-  topReview: {
-    name: 'Giulia M.',
-    initial: 'G',
-    when: '2 giorni fa',
-    rating: 5,
-    text: 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma. E ne ho provate tante.',
-    dish: 'Cacio e Pepe'
-  },
-  reviews_list: [{
-    name: 'Marco R.',
-    initial: 'M',
-    rating: 5,
-    when: '1 sett. fa',
-    text: 'Servizio impeccabile, vino consigliato dal cameriere perfetto.'
-  }, {
-    name: 'Sara D.',
-    initial: 'S',
-    rating: 4,
-    when: '2 sett. fa',
-    text: 'Ottima esperienza, tornerò sicuramente con amici.'
-  }, {
-    name: 'Luca B.',
-    initial: 'L',
-    rating: 5,
-    when: '3 sett. fa',
-    text: 'Locale autentico, niente turistate. Pasta fatta in casa che si sente.'
-  }],
-  slots: ['19:30', '20:00', '20:30', '21:30', '22:00'],
-  bio: 'Cucina romana di tradizione in un palazzo di fine \'800. Pasta tirata a mano ogni mattina, materie prime selezionate dai mercati di Testaccio e Campagna Amica. Carta dei vini con 200 etichette del Lazio.'
-};
-
-// ─── Shared utilities ────────────────────────────────────────
-// HeroNav è da renderizzare come SIBLING dello scroller, dentro il root con position:relative.
-// I tre bottoni (back / heart / more) restano sempre visibili anche durante lo scroll.
-function HeroNav({
-  onBack,
-  onMore,
-  dark = true
-}) {
-  const [saved, setSaved] = useStateV(false);
-  const bg = dark ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.55)';
-  const fg = dark ? TEXT_V : '#fff';
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      top: 50,
-      left: 16,
-      right: 16,
-      zIndex: 30,
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      pointerEvents: 'none'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: onBack,
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 999,
-      background: bg,
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      pointerEvents: 'auto'
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "16",
-    height: "16",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: fg,
-    strokeWidth: "2.5",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "15 18 9 12 15 6"
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      pointerEvents: 'auto'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setSaved(s => !s),
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 999,
-      background: saved ? PINK_V : bg,
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      transition: 'background 0.18s'
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "18",
-    height: "18",
-    viewBox: "0 0 24 24",
-    fill: saved ? '#fff' : 'none',
-    stroke: saved ? '#fff' : fg,
-    strokeWidth: "2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M20.84 4.61 a 5.5 5.5 0 0 0 -7.78 0 L 12 5.67 l -1.06 -1.06 a 5.5 5.5 0 0 0 -7.78 7.78 l 1.06 1.06 L 12 21.23 l 7.78 -7.78 1.06 -1.06 a 5.5 5.5 0 0 0 0 -7.78 z"
-  }))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => onMore && onMore(),
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 999,
-      background: bg,
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)'
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "18",
-    height: "18",
-    viewBox: "0 0 24 24",
-    fill: fg
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "5",
-    cy: "12",
-    r: "2"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "12",
-    cy: "12",
-    r: "2"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "19",
-    cy: "12",
-    r: "2"
-  })))));
-}
-function StarsRow({
-  rating = 5,
-  size = 14,
-  color = '#f5b400'
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 2
-    }
-  }, [1, 2, 3, 4, 5].map(n => /*#__PURE__*/React.createElement("svg", {
-    key: n,
-    width: size,
-    height: size,
-    viewBox: "0 0 24 24",
-    fill: n <= rating ? color : 'none',
-    stroke: n <= rating ? color : '#d4cfc4',
-    strokeWidth: "1.5",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("polygon", {
-    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-  }))));
-}
-function StickyBar({
-  onBook,
-  primaryLabel = 'Prenota un tavolo',
-  secondary,
-  onSecondary,
-  secondaryLabel = 'Vedi menù'
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      background: 'rgba(255,255,255,0.04)',
-      backdropFilter: 'blur(2px)',
-      WebkitBackdropFilter: 'blur(2px)',
-      border: '1px solid rgba(255,255,255,0.3)',
-      borderRadius: '28px 28px 0 0',
-      boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
-      padding: '20px 20px 36px',
-      display: 'flex',
-      gap: 12,
-      zIndex: 30
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: onBook,
-    style: {
-      flex: 1,
-      height: 58,
-      borderRadius: 999,
-      border: `1.5px solid ${BORDER_V}`,
-      background: '#fff',
-      color: TEXT_V,
-      fontSize: 17,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, primaryLabel), secondary && /*#__PURE__*/React.createElement("button", {
-    onClick: onSecondary,
-    style: {
-      flex: 1,
-      height: 58,
-      borderRadius: 999,
-      border: 'none',
-      background: PINK_V,
-      color: '#fff',
-      fontSize: 17,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      boxShadow: '0 4px 14px rgba(227,36,89,0.3)'
-    }
-  }, secondaryLabel));
-}
-
-// ═════════════════════════════════════════════════════════════
-// VARIANT A — EDITORIAL / MAGAZINE
-// ═════════════════════════════════════════════════════════════
-function VenueA({
-  onBack,
-  onMenu,
-  onBook
-}) {
-  const v = VENUE_DATA;
-  const [photoIdx, setPhotoIdx] = useStateV(0);
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: '100%',
-      height: '100%',
-      background: '#fff',
-      position: 'relative',
-      fontFamily: '-apple-system, "SF Pro Text", system-ui, sans-serif',
-      color: TEXT_V,
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflowY: 'auto',
-      paddingBottom: 90
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '70px 24px 24px',
-      borderBottom: `1px solid ${BORDER_V}`
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2.5,
-      color: PINK_V,
-      textTransform: 'uppercase',
-      marginBottom: 12
-    }
-  }, "CUCINA ROMANA \xB7 ROMA"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, "Times New Roman", serif',
-      fontSize: 38,
-      fontWeight: 700,
-      lineHeight: 1.05,
-      letterSpacing: -1,
-      color: TEXT_V,
-      marginBottom: 14
-    }
-  }, v.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14.5,
-      color: MUTED_V,
-      lineHeight: 1.5,
-      fontStyle: 'italic'
-    }
-  }, "\"Una stella Michelin, due generazioni di famiglia, e la migliore cacio e pepe di Roma.\""), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      marginTop: 18
-    }
-  }, /*#__PURE__*/React.createElement(StarsRow, {
-    rating: 5,
-    size: 14,
-    color: TEXT_V
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: TEXT_V,
-      fontWeight: 600
-    }
-  }, v.rating), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: MUTED_V
-    }
-  }, "\xB7 ", v.reviews, " recensioni"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      height: 320,
-      overflow: 'hidden'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: v.photos[photoIdx],
-    alt: "",
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      bottom: 12,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      display: 'flex',
-      gap: 6
-    }
-  }, v.photos.map((_, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    onClick: () => setPhotoIdx(i),
-    style: {
-      width: i === photoIdx ? 18 : 6,
-      height: 6,
-      borderRadius: 99,
-      background: '#fff',
-      opacity: i === photoIdx ? 1 : 0.6,
-      border: 'none',
-      cursor: 'pointer',
-      transition: 'width 0.2s'
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '32px 24px',
-      background: CREAM_V
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 60,
-      lineHeight: 0.5,
-      color: PINK_V,
-      marginBottom: 4
-    }
-  }, "\""), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 19,
-      lineHeight: 1.4,
-      color: TEXT_V,
-      fontStyle: 'italic',
-      marginBottom: 14
-    }
-  }, v.topReview.text), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED_V,
-      fontWeight: 600,
-      letterSpacing: 0.5
-    }
-  }, "\u2014 ", v.topReview.name.toUpperCase(), ", ", v.topReview.when.toUpperCase())), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '32px 24px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2,
-      color: PINK_V,
-      textTransform: 'uppercase',
-      marginBottom: 8
-    }
-  }, "La storia"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      lineHeight: 1.65,
-      color: TEXT_V,
-      fontFamily: 'Georgia, serif'
-    }
-  }, v.bio)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 24px 32px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2,
-      color: PINK_V,
-      textTransform: 'uppercase',
-      marginBottom: 12
-    }
-  }, "Il piatto firma"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      borderRadius: 4,
-      overflow: 'hidden',
-      height: 280,
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: v.signature.photo,
-    alt: "",
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      gap: 12,
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 24,
-      fontWeight: 700,
-      color: TEXT_V
-    }
-  }, v.signature.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 700,
-      color: PINK_V
-    }
-  }, v.signature.price)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: MUTED_V,
-      lineHeight: 1.55
-    }
-  }, v.signature.desc)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '24px 24px 32px',
-      borderTop: `1px solid ${BORDER_V}`,
-      borderBottom: `1px solid ${BORDER_V}`,
-      background: '#fafaf8'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2,
-      color: PINK_V,
-      textTransform: 'uppercase',
-      marginBottom: 16
-    }
-  }, "Lo chef"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 16,
-      alignItems: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: v.chef.photo,
-    alt: "",
-    style: {
-      width: 80,
-      height: 80,
-      borderRadius: 999,
-      objectFit: 'cover',
-      flexShrink: 0
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 19,
-      fontWeight: 700,
-      color: TEXT_V,
-      marginBottom: 2
-    }
-  }, v.chef.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED_V,
-      fontWeight: 500,
-      marginBottom: 8
-    }
-  }, v.chef.title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: TEXT_V,
-      lineHeight: 1.5
-    }
-  }, v.chef.bio)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '24px 24px 8px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2,
-      color: PINK_V,
-      textTransform: 'uppercase',
-      marginBottom: 14
-    }
-  }, "Riconoscimenti"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10
-    }
-  }, v.awards.map((a, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      fontSize: 14,
-      color: TEXT_V
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "14",
-    height: "14",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: TEXT_V,
-    strokeWidth: "2"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M6 9 a 6 6 0 0 0 12 0 V3 H6 z M12 15 v 6 M8 21 h 8"
-  })), a)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '24px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2,
-      color: PINK_V,
-      textTransform: 'uppercase',
-      marginBottom: 10
-    }
-  }, "Vieni a trovarci"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: TEXT_V,
-      marginBottom: 4
-    }
-  }, v.address), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: MUTED_V
-    }
-  }, v.hours))), /*#__PURE__*/React.createElement(HeroNav, {
-    onBack: onBack,
-    dark: true
-  }), /*#__PURE__*/React.createElement(StickyBar, {
-    onBook: onBook,
-    secondary: true,
-    onSecondary: onMenu
-  }));
-}
-
-// ═════════════════════════════════════════════════════════════
-// VARIANT B — CINEMATIC / TASTING MENU
-// ═════════════════════════════════════════════════════════════
-function VenueB({
-  onBack,
-  onMenu,
-  onBook
-}) {
-  const v = VENUE_DATA;
-  const [photoIdx, setPhotoIdx] = useStateV(0);
-  // Auto-advance hero photos
-  useEffectV(() => {
-    const t = setInterval(() => setPhotoIdx(i => (i + 1) % v.photos.length), 4500);
-    return () => clearInterval(t);
-  }, []);
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: '100%',
-      height: '100%',
-      background: '#0e0c0d',
-      position: 'relative',
-      fontFamily: '-apple-system, "SF Pro Text", system-ui, sans-serif',
-      color: '#fff',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflowY: 'auto',
-      paddingBottom: 90
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      height: 560,
-      overflow: 'hidden',
-      background: '#111'
-    }
-  }, v.photos.map((p, i) => /*#__PURE__*/React.createElement("img", {
-    key: i,
-    src: p,
-    alt: "",
-    style: {
-      position: 'absolute',
-      inset: 0,
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-      opacity: i === photoIdx ? 1 : 0,
-      transition: 'opacity 1.2s ease',
-      transform: i === photoIdx ? 'scale(1.04)' : 'scale(1)',
-      transitionProperty: 'opacity, transform',
-      transitionDuration: '1.2s, 5s'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      background: 'linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 35%, rgba(0,0,0,0.2) 60%, rgba(14,12,13,0.95) 100%)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 24,
-      right: 24,
-      bottom: 32,
-      color: '#fff'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 3,
-      opacity: 0.85,
-      textTransform: 'uppercase',
-      marginBottom: 14
-    }
-  }, v.cuisine, " \xB7 ROMA"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 46,
-      fontWeight: 700,
-      lineHeight: 1,
-      letterSpacing: -1.5,
-      marginBottom: 18,
-      textShadow: '0 4px 30px rgba(0,0,0,0.5)'
-    }
-  }, v.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement(StarsRow, {
-    rating: 5,
-    size: 13,
-    color: "#FFD75C"
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      fontWeight: 600
-    }
-  }, v.rating), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 3,
-      height: 3,
-      borderRadius: 99,
-      background: 'rgba(255,255,255,0.5)'
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      opacity: 0.85
-    }
-  }, v.reviews, " rec."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 3,
-      height: 3,
-      borderRadius: 99,
-      background: 'rgba(255,255,255,0.5)'
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      opacity: 0.85
-    }
-  }, v.price)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6,
-      marginTop: 22
-    }
-  }, v.photos.map((_, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      width: i === photoIdx ? 22 : 6,
-      height: 3,
-      borderRadius: 99,
-      background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.4)',
-      transition: 'width 0.3s'
-    }
-  }))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '36px 24px 32px',
-      background: '#0e0c0d'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2.5,
-      color: '#FFD75C',
-      textTransform: 'uppercase',
-      marginBottom: 14,
-      opacity: 0.9
-    }
-  }, "Il piatto del momento"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderRadius: 16,
-      overflow: 'hidden',
-      marginBottom: 18,
-      height: 320,
-      position: 'relative'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: v.signature.photo,
-    alt: "",
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      gap: 12,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 28,
-      fontWeight: 700,
-      color: '#fff',
-      letterSpacing: -0.5
-    }
-  }, v.signature.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 700,
-      color: '#FFD75C'
-    }
-  }, v.signature.price)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: 'rgba(255,255,255,0.7)',
-      lineHeight: 1.6
-    }
-  }, v.signature.desc)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '36px 24px',
-      background: '#1a1617'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2.5,
-      color: '#FFD75C',
-      textTransform: 'uppercase',
-      marginBottom: 18,
-      opacity: 0.9
-    }
-  }, "Lo chef"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderRadius: 16,
-      overflow: 'hidden',
-      marginBottom: 18,
-      height: 240,
-      position: 'relative'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: v.chef.photo,
-    alt: "",
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 24,
-      fontWeight: 700,
-      color: '#fff',
-      marginBottom: 4
-    }
-  }, v.chef.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'rgba(255,255,255,0.5)',
-      fontWeight: 500,
-      marginBottom: 12,
-      letterSpacing: 0.5,
-      textTransform: 'uppercase'
-    }
-  }, v.chef.title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: 'rgba(255,255,255,0.75)',
-      lineHeight: 1.6
-    }
-  }, v.chef.bio)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '36px 24px 24px',
-      background: '#0e0c0d'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2.5,
-      color: '#FFD75C',
-      textTransform: 'uppercase',
-      marginBottom: 14,
-      opacity: 0.9
-    }
-  }, "L'esperienza"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      color: 'rgba(255,255,255,0.85)',
-      lineHeight: 1.65,
-      marginBottom: 24
-    }
-  }, v.bio), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: 10
-    }
-  }, v.awards.map((a, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      fontSize: 11.5,
-      fontWeight: 600,
-      color: '#FFD75C',
-      padding: '6px 12px',
-      borderRadius: 999,
-      border: '1px solid rgba(255,215,92,0.3)',
-      letterSpacing: 0.3
-    }
-  }, a)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '24px 24px 36px',
-      background: '#0e0c0d'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: 'rgba(255,255,255,0.05)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 16,
-      padding: 22
-    }
-  }, /*#__PURE__*/React.createElement(StarsRow, {
-    rating: 5,
-    size: 14,
-    color: "#FFD75C"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Georgia, serif',
-      fontSize: 18,
-      color: '#fff',
-      lineHeight: 1.5,
-      fontStyle: 'italic',
-      margin: '14px 0 16px'
-    }
-  }, "\"", v.topReview.text, "\""), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'rgba(255,255,255,0.55)',
-      fontWeight: 600,
-      letterSpacing: 0.5
-    }
-  }, v.topReview.name.toUpperCase(), " \xB7 ", v.topReview.when.toUpperCase()))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 24px 36px',
-      background: '#0e0c0d'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2.5,
-      color: '#FFD75C',
-      textTransform: 'uppercase',
-      marginBottom: 12,
-      opacity: 0.9
-    }
-  }, "Vieni a trovarci"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: '#fff',
-      marginBottom: 4
-    }
-  }, v.address), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: 'rgba(255,255,255,0.55)'
-    }
-  }, v.hours))), /*#__PURE__*/React.createElement(StickyBar, {
-    onBook: onBook,
-    secondary: true,
-    onSecondary: onMenu
-  }));
-}
-
-// ═════════════════════════════════════════════════════════════
-// VARIANT C — OPERATIVO / RESY-STYLE
-// ═════════════════════════════════════════════════════════════
-function VenueC({
-  onBack,
-  onMenu,
-  onBook
-}) {
-  const v = VENUE_DATA;
-  const [photoIdx, setPhotoIdx] = useStateV(0);
-  const [selectedSlot, setSelectedSlot] = useStateV('20:00');
-  const [people, setPeople] = useStateV(2);
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: '100%',
-      height: '100%',
-      background: '#fff',
-      position: 'relative',
-      fontFamily: '-apple-system, "SF Pro Text", system-ui, sans-serif',
-      color: TEXT_V,
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflowY: 'auto',
-      paddingBottom: 90
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      height: 240,
-      overflow: 'hidden'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: v.photos[photoIdx],
-    alt: "",
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 40%)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      bottom: 12,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      display: 'flex',
-      gap: 5
-    }
-  }, v.photos.map((_, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    onClick: () => setPhotoIdx(i),
-    style: {
-      width: 6,
-      height: 6,
-      borderRadius: 99,
-      background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.5)',
-      border: 'none',
-      cursor: 'pointer'
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '20px 22px 18px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 800,
-      color: TEXT_V,
-      letterSpacing: -0.3,
-      marginBottom: 6
-    }
-  }, v.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      flexWrap: 'wrap',
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: TEXT_V,
-      fontWeight: 600,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 4
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
-    viewBox: "0 0 24 24",
-    fill: "#f5b400"
-  }, /*#__PURE__*/React.createElement("polygon", {
-    points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-  })), v.rating), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: MUTED_V
-    }
-  }, "(", v.reviews, ")"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 3,
-      height: 3,
-      borderRadius: 99,
-      background: BORDER_V
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: MUTED_V
-    }
-  }, v.cuisine), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 3,
-      height: 3,
-      borderRadius: 99,
-      background: BORDER_V
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: MUTED_V
-    }
-  }, v.price)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: MUTED_V,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 4
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: MUTED_V,
-    strokeWidth: "2",
-    strokeLinecap: "round"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M21 10 c 0 7 -9 13 -9 13 s -9 -6 -9 -13 a 9 9 0 0 1 18 0 z"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "12",
-    cy: "10",
-    r: "3"
-  })), v.address), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: '#0a8a3a',
-      fontWeight: 600,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: 99,
-      background: '#0a8a3a'
-    }
-  }), "Aperto ora \xB7 chiude alle 23:00")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: '0 18px 20px',
-      padding: 18,
-      borderRadius: 16,
-      background: FOREST_V,
-      color: '#fff'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      letterSpacing: 1,
-      color: '#a8d8b6',
-      textTransform: 'uppercase',
-      marginBottom: 12
-    }
-  }, "Disponibilit\xE0 stasera"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: 'rgba(255,255,255,0.8)'
-    }
-  }, "Partecipanti:"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6
-    }
-  }, [2, 3, 4, 6].map(n => /*#__PURE__*/React.createElement("button", {
-    key: n,
-    onClick: () => setPeople(n),
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: 999,
-      border: 'none',
-      cursor: 'pointer',
-      background: people === n ? '#fff' : 'rgba(255,255,255,0.12)',
-      color: people === n ? FOREST_V : '#fff',
-      fontSize: 13,
-      fontWeight: 700,
-      fontFamily: 'inherit'
-    }
-  }, n)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      flexWrap: 'wrap'
-    }
-  }, v.slots.map(t => {
-    const sel = selectedSlot === t;
-    return /*#__PURE__*/React.createElement("button", {
-      key: t,
-      onClick: () => setSelectedSlot(t),
-      style: {
-        flex: '1 1 0',
-        minWidth: 60,
-        padding: '12px 8px',
-        borderRadius: 10,
-        border: 'none',
-        cursor: 'pointer',
-        background: sel ? '#fff' : 'rgba(255,255,255,0.12)',
-        color: sel ? FOREST_V : '#fff',
-        fontSize: 14,
-        fontWeight: 700,
-        fontFamily: 'inherit'
-      }
-    }, t);
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: 'rgba(255,255,255,0.65)',
-      marginTop: 12,
-      textAlign: 'center'
-    }
-  }, "Conferma istantanea \xB7 Cancellazione gratuita fino a 2h prima")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 22px 20px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: TEXT_V,
-      marginBottom: 12
-    }
-  }, "Recensioni recenti"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 12
-    }
-  }, [v.topReview, ...v.reviews_list.slice(0, 1)].map((r, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      background: BG_V,
-      borderRadius: 12,
-      padding: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: 999,
-      background: PINK_V,
-      color: '#fff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 13,
-      fontWeight: 700
-    }
-  }, r.initial), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: TEXT_V
-    }
-  }, r.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: MUTED_V
-    }
-  }, r.when)), /*#__PURE__*/React.createElement(StarsRow, {
-    rating: r.rating,
-    size: 12
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: TEXT_V,
-      lineHeight: 1.5
-    }
-  }, r.text)))), /*#__PURE__*/React.createElement("button", {
-    style: {
-      width: '100%',
-      marginTop: 12,
-      padding: '12px',
-      borderRadius: 10,
-      background: '#fff',
-      border: `1.5px solid ${BORDER_V}`,
-      fontSize: 13,
-      fontWeight: 600,
-      color: TEXT_V,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, "Vedi tutte le ", v.reviews, " recensioni")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 22px 20px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: TEXT_V,
-      marginBottom: 12
-    }
-  }, "Piatti di punta"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 10,
-      overflowX: 'auto',
-      margin: '0 -22px',
-      padding: '0 22px 4px'
-    }
-  }, [v.signature, v.signature, v.signature].map((d, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      flex: '0 0 160px',
-      borderRadius: 12,
-      overflow: 'hidden',
-      background: '#fff',
-      boxShadow: '0 1px 6px rgba(0,0,0,0.06)'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: d.photo,
-    alt: "",
-    style: {
-      width: '100%',
-      height: 110,
-      objectFit: 'cover'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '10px 12px 12px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: TEXT_V
-    }
-  }, ['Cacio e Pepe', 'Carbonara', 'Amatriciana'][i]), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: PINK_V,
-      marginTop: 2
-    }
-  }, ['14€', '16€', '15€'][i])))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 22px 20px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: TEXT_V,
-      marginBottom: 10
-    }
-  }, "Riconoscimenti"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: 6
-    }
-  }, v.awards.map((a, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: TEXT_V,
-      background: BG_V,
-      padding: '6px 11px',
-      borderRadius: 999
-    }
-  }, a)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 22px 20px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: TEXT_V,
-      marginBottom: 10
-    }
-  }, "Info"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: TEXT_V,
-      lineHeight: 1.55
-    }
-  }, v.bio))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      background: 'rgba(255,255,255,0.04)',
-      backdropFilter: 'blur(2px)',
-      WebkitBackdropFilter: 'blur(2px)',
-      border: '1px solid rgba(255,255,255,0.3)',
-      borderRadius: '28px 28px 0 0',
-      boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
-      padding: '20px 20px 36px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-      zIndex: 30
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED_V,
-      textAlign: 'center'
-    }
-  }, selectedSlot, " \xB7 ", people, " ", people === 1 ? 'persona' : 'persone', " \xB7 stasera"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: onBook,
-    style: {
-      flex: 1,
-      height: 58,
-      borderRadius: 999,
-      border: `1.5px solid ${BORDER_V}`,
-      background: '#fff',
-      color: TEXT_V,
-      fontSize: 17,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, "Prenota a ", selectedSlot), /*#__PURE__*/React.createElement("button", {
-    onClick: onMenu,
-    style: {
-      flex: 1,
-      height: 58,
-      borderRadius: 999,
-      border: 'none',
-      background: PINK_V,
-      color: '#fff',
-      fontSize: 17,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      boxShadow: '0 4px 14px rgba(227,36,89,0.3)'
-    }
-  }, "Men\xF9"))));
-}
-
-// Export to window
-Object.assign(window, {
-  VenueA,
-  VenueB,
-  VenueC
-});
 
 // ─────────────────────────────────────────────────────────────
 // PREMIUM v2 — Vetrina per i locali selezionati byup.
@@ -14966,19 +13127,6 @@ function Photo({
 const PhotoPlaceholder = Photo; // alias for back-compat
 
 // ─── Category chip ──────────────────────────────────────────
-const CAT_GRADIENTS = {
-  pizza: 'linear-gradient(135deg,#FF6B35 0%,#FF9457 100%)',
-  sushi: 'linear-gradient(135deg,#2EC4B6 0%,#1AA99F 100%)',
-  burger: 'linear-gradient(135deg,#FF9F1C 0%,#FFBF69 100%)',
-  gelato: 'linear-gradient(135deg,#FF6B9D 0%,#FF8FB1 100%)',
-  panini: 'linear-gradient(135deg,#F4D03F 0%,#E8B429 100%)',
-  brunch: 'linear-gradient(135deg,#FFB347 0%,#FF8C00 100%)',
-  cock: 'linear-gradient(135deg,#9B59B6 0%,#7D3C98 100%)',
-  vegan: 'linear-gradient(135deg,#27AE60 0%,#1E8449 100%)',
-  gf: 'linear-gradient(135deg,#D4A574 0%,#B8855A 100%)',
-  healthy: 'linear-gradient(135deg,#A8E063 0%,#56AB2F 100%)'
-};
-
 // Rail categorie: icone kawaii brand (mai emoji). `id` deve matchare BK.ASSETS.cat.
 function Category({
   id,
@@ -19931,7 +18079,6 @@ function HomeSections({
     photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=70&auto=format&fit=crop'
   }];
   const click = item => onCardClick?.(item);
-  const slotClick = item => onSlotClick?.(item);
   const [T] = BK.useByupTheme();
   return /*#__PURE__*/React.createElement(React.Fragment, null, topBar, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -21692,104 +19839,6 @@ function BypBadgeCard({
       background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)`
     }
   })));
-}
-function BypChal({
-  emo,
-  title,
-  desc,
-  rew,
-  pct,
-  meta1,
-  meta2,
-  live,
-  cta,
-  onCta
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: live ? 'linear-gradient(158deg,#20303a,#12212b)' : BYP.surf,
-      border: `1px solid ${live ? 'rgba(120,200,255,.2)' : BYP.line}`,
-      borderRadius: 18,
-      padding: 15,
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 13,
-      flex: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 22,
-      background: live ? 'linear-gradient(155deg,#123044,#0c4a63)' : 'linear-gradient(155deg,#3b2530,#6b1e39)'
-    }
-  }, emo), /*#__PURE__*/React.createElement("div", {
-    style: {
-      minWidth: 0,
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14.5,
-      fontWeight: 700,
-      color: BYP.text
-    }
-  }, title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: BYP.muted,
-      marginTop: 2
-    }
-  }, desc)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginLeft: 'auto',
-      flex: 'none',
-      fontFamily: BK.TYPE.display,
-      fontWeight: 600,
-      fontSize: 13,
-      color: BYP.lime,
-      whiteSpace: 'nowrap'
-    }
-  }, rew)), pct != null && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 9,
-      borderRadius: 999,
-      background: BYP.surf2,
-      marginTop: 12,
-      overflow: 'hidden'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: 'block',
-      height: '100%',
-      width: `${pct}%`,
-      borderRadius: 999,
-      background: 'linear-gradient(90deg,#e32459,#ff3d6e)'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      fontSize: 11,
-      color: BYP.muted,
-      marginTop: 6,
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement("span", null, meta1), /*#__PURE__*/React.createElement("span", null, meta2))), cta && /*#__PURE__*/React.createElement(BypCta, {
-    style: {
-      height: 46,
-      marginTop: 12
-    },
-    onClick: onCta
-  }, cta));
 }
 
 // ─── Byup Games — card stile arcade (reference-driven) + swipe manuale ───
@@ -24508,9 +22557,6 @@ function App({
   const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
   const [catSel, setCatSel] = useState(null); // categoria aperta a schermo intero
-  const [activeTab, setActiveTab] = useState('home');
-  const [search, setSearch] = useState('');
-  const [searchFocus, setSearchFocus] = useState(false);
   // Navigation stack: every setPage pushes; goBack pops. The top-left back
   // arrow on every screen calls goBack() and always returns to the previous
   // page, regardless of how the user got there.
@@ -25406,16 +23452,6 @@ function QRScanOverlay({
     }
   }, "Ti porto al men\xF9!")));
 }
-
-// Reusable bottom tab bar — uses the provided 390×88 vector path.
-// The wrapper has `aspect-ratio: 390 / 88`, so its height auto-derives from the
-// width set by left/right insets. With matching aspect ratios on the wrapper and
-// the SVG (preserveAspectRatio="none"), the path scales uniformly without any
-// distortion of corner radii or the swooping notch curve, on any device width.
-// Same SVG path on every page — notch always visible, QR button optional.
-const TABBAR_PATH = 'M0 24C0 10.745 10.745 0 24 0H135C141.667 0 148.496 1.74568 154 8C159.504 14.2543 162.5 18 170 22C177.5 26 185 28 195 28C205 28 213 25.5 220 22C227 18.5 231.989 14.6813 237 8.00003C242.011 1.31871 248.333 0 255 0H366C379.255 0 390 10.745 390 24V88H0V24Z';
-const TABBAR_NOTCH_DEPTH_PCT = 28 / 88 * 100; // 31.818…% — deepest point of the notch
-
 function BottomTabBar({
   active = 'home',
   onHome,
@@ -25652,18 +23688,6 @@ function ShortcutsPanel() {
     label: 'Classico',
     desc: 'Classico (default)'
   }, {
-    id: 'a',
-    label: 'A',
-    desc: 'Editorial / Magazine'
-  }, {
-    id: 'b',
-    label: 'B',
-    desc: 'Cinematic / Tasting'
-  }, {
-    id: 'c',
-    label: 'C',
-    desc: 'Operativo / Resy'
-  }, {
     id: 'premium',
     label: '★',
     desc: 'Premium byup'
@@ -25733,7 +23757,7 @@ function ShortcutsPanel() {
       href: `byup Home.html?page=venue&venue=${v.id}`,
       title: v.desc,
       style: {
-        flex: v.id === 'original' ? 1.6 : 1,
+        flex: 1,
         padding: '6px 4px',
         fontSize: 12,
         borderRadius: 8,
@@ -28354,129 +26378,6 @@ function CatBand({
     }
   }));
 }
-
-// ─── CopertiSheet ────────────────────────────────────────────────────────────
-// Chiesto al momento del pagamento, non all'ingresso al tavolo: prima compariva
-// appena aperto il menu, quando ancora non serviva, e veniva saltato. Qui e'
-// obbligatorio (niente skip ne' chiusura sul backdrop) perche' il numero lo
-// legge lo staff di sala.
-function CopertiSheet({
-  onConfirm
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      background: 'rgba(0,0,0,0.35)',
-      zIndex: 45,
-      display: 'flex',
-      alignItems: 'flex-end',
-      animation: 'fade 0.22s ease'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      width: '100%',
-      background: SURF,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: '10px 22px 32px',
-      animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
-      boxShadow: '0 -8px 32px rgba(0,0,0,0.12)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 38,
-      height: 4,
-      background: MUTESURF,
-      borderRadius: 999,
-      margin: '4px auto 18px'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: 'center',
-      marginBottom: 22
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 800,
-      color: TEXT,
-      letterSpacing: -0.4,
-      marginBottom: 6
-    }
-  }, "Quanti siete al tavolo?"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: MUTED,
-      lineHeight: 1.45
-    }
-  }, "Serve per dividere il conto e per il servizio al tavolo.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: 10,
-      marginBottom: 14
-    }
-  }, [1, 2, 3, 4, 5, 6].map(n => /*#__PURE__*/React.createElement("button", {
-    key: n,
-    onClick: () => onConfirm(n === 6 ? 6 : n),
-    style: {
-      height: 64,
-      borderRadius: 14,
-      border: `1.5px solid ${BORDER}`,
-      background: SURF,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      fontSize: 20,
-      fontWeight: 800,
-      color: TEXT,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.15s'
-    },
-    onMouseEnter: e => {
-      e.currentTarget.style.borderColor = WINE;
-      e.currentTarget.style.background = '#fdf6f8';
-    },
-    onMouseLeave: e => {
-      e.currentTarget.style.borderColor = BORDER;
-      e.currentTarget.style.background = '#fff';
-    }
-  }, n === 6 ? '6+' : n))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 8,
-      padding: '10px 12px',
-      borderRadius: 12,
-      background: '#F6F7F9',
-      border: `1px solid ${BORDER}`
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    "aria-hidden": "true",
-    style: {
-      width: 18,
-      height: 18,
-      borderRadius: 999,
-      flexShrink: 0,
-      marginTop: 1,
-      background: MUTESURF,
-      color: MUTED,
-      display: 'grid',
-      placeItems: 'center',
-      fontSize: 12,
-      fontWeight: 800
-    }
-  }, "i"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: MUTED,
-      lineHeight: 1.45
-    }
-  }, "Il numero verr\xE0 visionato dallo staff di sala."))));
-}
 function MenuScreen({
   state,
   setState,
@@ -28634,37 +26535,8 @@ function MenuScreen({
   const [splitPickItem, setSplitPickItem] = useState(null); // piatto per il popup "con chi dividi?" (swipe ←)
   const [confirm, setConfirm] = useState(false);
   const [modeSheetOpen, setModeSheetOpen] = useState(false);
-  // Prompt coperti: appare al primo ingresso al tavolo (non da Vetrina), una sola volta
-  const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
-  // Il numero di commensali non si chiede piu' all'ingresso al tavolo (dove
-  // l'utente non sa ancora se dividera' il conto e lo saltava): si chiede al
-  // "Paga ora", dove serve davvero. Li' e' obbligatorio — niente skip, niente
-  // chiusura sul backdrop — perche' lo staff di sala legge quel numero.
-  const [afterCoperti, setAfterCoperti] = useState(null); // cosa fare dopo la conferma
-  const askCoperti = then => {
-    if (state.copertiSelected) {
-      then && then();
-      return;
-    }
-    setAfterCoperti(() => then || null);
-    setCopertiSheetOpen(true);
-  };
-  const confirmCoperti = n => {
-    saveCoperti(n);
-    setState(s => ({
-      ...s,
-      coperti: n,
-      copertiSelected: true
-    }));
-    setCopertiSheetOpen(false);
-    if (afterCoperti) {
-      const f = afterCoperti;
-      setAfterCoperti(null);
-      setTimeout(f, 120);
-    }
-  };
   const dishes = DISHES_BY_CAT;
   const cart = state.cart; // array of { lineId, dishId, qty, variants, extras, removed }
   const allDishesFlat = Object.values(dishes).flat();
@@ -29500,7 +27372,6 @@ function MenuScreen({
       return dietMatch(d);
     }).slice(0, 6);
     if (picks.length < 2) return null;
-    const hasPrefs = dietFilter || Object.values(allergenFilters).some(Boolean);
     const dietLabels = {
       veg: 'vegetariana',
       vegan: 'vegana',
@@ -30034,8 +27905,6 @@ function MenuScreen({
     onTakeaway: startTakeaway,
     cartCount: cartCount,
     cartTotal: cartTotal
-  }), copertiSheetOpen && /*#__PURE__*/React.createElement(CopertiSheet, {
-    onConfirm: confirmCoperti
   }), guestsOpen && (() => {
     const order = state.activeOrder || {
       table: state.tableNumber ? `Tavolo ${state.tableNumber}` : 'Tavolo 23',
@@ -30991,416 +28860,6 @@ function EmptyHint({
       fontSize: 13.5
     }
   }, text);
-}
-
-// ─── SPLIT SCREEN ──────────────────────────────────────────
-function SplitScreen({
-  state,
-  setState,
-  ctx,
-  goBack
-}) {
-  const item = ctx?.item;
-  const splitKey = ctx?.splitKey;
-  const initial = state.splits?.[splitKey] || {
-    kind: 'me',
-    people: []
-  };
-  const [kind, setKind] = useState(initial.kind);
-  const [people, setPeople] = useState(initial.people);
-  const defaultParticipants = [{
-    id: 'me',
-    name: 'Tu',
-    initials: 'T',
-    isMe: true
-  }, {
-    id: 'p1',
-    name: 'Marco',
-    initials: 'M'
-  }, {
-    id: 'p2',
-    name: 'Margherita',
-    initials: 'Mg'
-  }, {
-    id: 'p3',
-    name: 'Roberto',
-    initials: 'R'
-  }, {
-    id: 'p4',
-    name: 'Ospite 1',
-    initials: 'O',
-    isGuest: true
-  }];
-  const participants = state.participants || defaultParticipants;
-  const togglePerson = id => {
-    if (id === 'me') return; // me always included
-    setPeople(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
-  };
-
-  // Aggiunge un nuovo ospite alla lista partecipanti e lo seleziona
-  const addParticipant = () => {
-    const ospitiNum = participants.filter(p => p.isGuest).length + 1;
-    const newP = {
-      id: `p-og-${Date.now()}`,
-      name: `Ospite ${ospitiNum}`,
-      initials: '?',
-      isGuest: true
-    };
-    setState(s => ({
-      ...s,
-      participants: [...(s.participants || defaultParticipants), newP]
-    }));
-    // Includi nuovo ospite anche se la modalità è "diviso"
-    setPeople(p => [...p, newP.id]);
-  };
-  const save = () => {
-    const split = {
-      kind,
-      people: kind === 'diviso' ? people : []
-    };
-    setState(s => ({
-      ...s,
-      splits: {
-        ...(s.splits || {}),
-        [splitKey]: split
-      }
-    }));
-    goBack();
-  };
-  const splitCount = kind === 'tavolo' ? participants.length : kind === 'diviso' ? people.length + 1 : 1;
-  const perPerson = item ? (item.price / splitCount).toFixed(2) : 0;
-  return /*#__PURE__*/React.createElement("div", {
-    "data-screen-label": "Divisione piatto",
-    style: {
-      width: '100%',
-      height: '100%',
-      background: BG_PAGE,
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden'
-    }
-  }, (() => {
-    const K = window.ByupKit;
-    return K ? /*#__PURE__*/React.createElement(K.MascotMoment, {
-      absolute: true,
-      pose: "happy",
-      pageKey: "split",
-      message: "Dividi con un tap. Restate amici.",
-      bottom: 110,
-      size: 118
-    }) : null;
-  })(), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '60px 22px 14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      background: SURF,
-      borderBottom: `1px solid ${BORDER}`
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: goBack,
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: 999,
-      background: BG_GRAY,
-      border: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer'
-    }
-  }, /*#__PURE__*/React.createElement(I.Back, {
-    size: 20
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED,
-      fontWeight: 500
-    }
-  }, "Dividi il piatto"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 700,
-      color: TEXT,
-      lineHeight: 1.2
-    }
-  }, item?.name || 'Piatto'))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflowY: 'auto',
-      padding: '20px 22px 140px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: TEXT,
-      marginBottom: 10,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5
-    }
-  }, "Modalit\xE0"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-      marginBottom: 24
-    }
-  }, /*#__PURE__*/React.createElement(ModeCard, {
-    active: kind === 'me',
-    onClick: () => setKind('me'),
-    title: "Per me",
-    desc: "Pago io tutto il piatto",
-    emoji: /*#__PURE__*/React.createElement("img", {
-      src: "assets/mascot-confident.png",
-      width: "30",
-      alt: ""
-    })
-  }), /*#__PURE__*/React.createElement(ModeCard, {
-    active: kind === 'diviso',
-    onClick: () => setKind('diviso'),
-    title: "Diviso",
-    desc: "Scegli con chi dividere il piatto",
-    emoji: /*#__PURE__*/React.createElement("img", {
-      src: "assets/mascot-happy.png",
-      width: "30",
-      alt: ""
-    })
-  }), /*#__PURE__*/React.createElement(ModeCard, {
-    active: kind === 'tavolo',
-    onClick: () => setKind('tavolo'),
-    title: "Tavolo intero",
-    desc: `Diviso tra tutti i ${participants.length} commensali`,
-    emoji: /*#__PURE__*/React.createElement("img", {
-      src: "assets/mascot-waiter.png",
-      width: "30",
-      alt: ""
-    })
-  })), kind === 'diviso' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: TEXT,
-      marginBottom: 4,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5
-    }
-  }, "Con chi dividi?"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED,
-      marginBottom: 12
-    }
-  }, "Tu sei sempre incluso \xB7 ", people.length + 1, " ", people.length + 1 === 1 ? 'persona' : 'persone', " selezionate"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8
-    }
-  }, participants.map(p => {
-    const sel = p.isMe || people.includes(p.id);
-    return /*#__PURE__*/React.createElement("div", {
-      key: p.id,
-      onClick: () => togglePerson(p.id),
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '12px 14px',
-        borderRadius: 14,
-        background: sel ? SURF : SURF,
-        border: `1.5px solid ${sel ? WINE : BORDER}`,
-        cursor: p.isMe ? 'default' : 'pointer',
-        opacity: p.isMe ? 0.85 : 1
-      }
-    }, /*#__PURE__*/React.createElement(Avatar, {
-      name: p.name,
-      initials: p.initials,
-      guest: p.isGuest
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 600,
-        color: TEXT
-      }
-    }, p.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: MUTED
-      }
-    }, p.isMe ? 'Sempre incluso' : p.isGuest ? 'Ospite (non loggato)' : 'Tramite app')), /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 24,
-        height: 24,
-        borderRadius: 999,
-        border: `2px solid ${sel ? WINE : '#d0d0d0'}`,
-        background: sel ? WINE : SURF,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }
-    }, sel && /*#__PURE__*/React.createElement(I.Check, {
-      size: 14,
-      color: "#fff"
-    })));
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: addParticipant,
-    style: {
-      width: '100%',
-      padding: '12px 14px',
-      borderRadius: 14,
-      background: SURF,
-      border: `1.5px dashed ${BORDER}`,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      color: TEXT,
-      fontSize: 14,
-      fontWeight: 700
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: 999,
-      background: TINT,
-      color: WINE,
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 18,
-      fontWeight: 700
-    }
-  }, "+"), /*#__PURE__*/React.createElement("span", null, "Aggiungi ospite"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginLeft: 'auto',
-      fontSize: 11.5,
-      color: MUTED,
-      fontWeight: 500
-    }
-  }, "senza app")))), kind === 'tavolo' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: TEXT,
-      marginBottom: 12,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5
-    }
-  }, "Tavolo \xB7 ", participants.length, " persone"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex'
-    }
-  }, participants.map((p, i) => /*#__PURE__*/React.createElement("div", {
-    key: p.id,
-    style: {
-      marginLeft: i === 0 ? 0 : -8
-    }
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: p.name,
-    initials: p.initials,
-    guest: p.isGuest,
-    size: 42
-  })))), /*#__PURE__*/React.createElement("button", {
-    onClick: addParticipant,
-    title: "Aggiungi ospite",
-    style: {
-      width: 42,
-      height: 42,
-      borderRadius: 999,
-      background: SURF,
-      border: `1.5px dashed ${BORDER}`,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: WINE,
-      fontSize: 22,
-      fontWeight: 700,
-      padding: 0,
-      lineHeight: 1
-    }
-  }, "+"))), item && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 24,
-      padding: 16,
-      borderRadius: 16,
-      background: SURF,
-      border: `1.5px solid ${BORDER}`
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      fontSize: 14,
-      color: MUTED,
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "Prezzo piatto"), /*#__PURE__*/React.createElement("span", null, item.price, "\u20AC")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      fontSize: 14,
-      color: MUTED,
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "Diviso per"), /*#__PURE__*/React.createElement("span", null, splitCount, " ", splitCount === 1 ? 'persona' : 'persone')), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: BORDER,
-      margin: '4px 0 10px'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      fontSize: 16,
-      fontWeight: 700,
-      color: TEXT
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "La tua quota"), /*#__PURE__*/React.createElement("span", null, perPerson, "\u20AC")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      padding: '14px 22px 22px',
-      background: SURF,
-      borderTop: `1px solid ${BORDER}`
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: save,
-    style: {
-      width: '100%',
-      height: 52,
-      borderRadius: 999,
-      border: 'none',
-      background: WINE,
-      color: '#fff',
-      fontSize: 15,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, "Conferma divisione")));
 }
 function ModeCard({
   active,
@@ -34114,11 +31573,6 @@ function loadCoperti() {
     return null;
   }
 }
-function saveCoperti(n) {
-  try {
-    sessionStorage.setItem('byup_coperti', String(n));
-  } catch (e) {}
-}
 function applyPayments(setState, payments) {
   setState(s => {
     const ord = s.activeOrder;
@@ -34472,14 +31926,11 @@ function PaymentScreen({
   const [paying, setPaying] = useState(false);
   const [splitInfo, setSplitInfo] = useState(null);
   const [confirmRejectSplit, setConfirmRejectSplit] = useState(null);
-  // Recap collassabile: tap sull'handle in alto al pannello di pagamento per nascondere
-  // dettagli (subtotale, mancia, metodo) e mostrare solo la CTA "Paga ora".
-  const [recapCollapsed, setRecapCollapsed] = useState(false);
   // Sheet "Al tavolo": apre la lista commensali con badge ✓ ha l'app / ospite
   const [guestsOpen, setGuestsOpen] = useState(false);
 
   // CTA a scorrimento: modalità ciclica e sheet "Dettagli pagamento"
-  const [ctaMode, setCtaMode] = useState('mine'); // 'mine' | 'split' | 'all'
+  const [ctaMode, setCtaMode] = useState('mine'); // 'mine' | 'all'
   const [detailsOpen, setDetailsOpen] = useState(false);
   const cycleCtaMode = () => setCtaMode(m => {
     const next = m === 'mine' ? 'all' : 'mine'; // niente "alla romana": solo mio ordine ↔ tutto il tavolo
@@ -34866,29 +32317,12 @@ function PaymentScreen({
   const roundUpTip = Math.round((Math.ceil(baseRounded) - baseRounded) * 100) / 100;
   const tipAmount = tipRound ? roundUpTip : baseForTip * tipPct;
   const total = baseForTip + tipAmount;
-
-  // "Alla romana": conto rimanente del tavolo diviso tra chi deve ancora pagare
-  const paidPeopleCount = new Set(Object.values(paidLineIds)).size;
-  const remainingPeople = Math.max(1, covers - paidPeopleCount);
-  const splitBase = (tableRemaining(order) + COVER * remainingPeople) / remainingPeople;
-  const splitRoundTip = Math.round((Math.ceil(splitBase) - splitBase) * 100) / 100;
-  const splitTip = tipRound ? splitRoundTip : splitBase * tipPct;
-  const splitTotal = splitBase + splitTip;
-  const ctaTotal = ctaMode === 'split' ? splitTotal : total;
+  const ctaTotal = total;
   const proceed = () => {
     // Costruisco i pagamenti per-riga con l'importo effettivo (quota), non l'intero.
     const settled = seedSettled(order);
     const payments = [];
-    if (ctaMode === 'split') {
-      // quota equa: pago 1/N di ogni riga ancora aperta
-      order.items.forEach(it => {
-        const rem = lineRemaining(order, it, settled);
-        if (rem > 0.001) payments.push({
-          lineId: it.lineId,
-          amount: rem / remainingPeople
-        });
-      });
-    } else if (mode === 'all') {
+    if (mode === 'all') {
       order.items.forEach(it => {
         const rem = lineRemaining(order, it, settled);
         if (rem > 0.001) payments.push({
@@ -34906,7 +32340,6 @@ function PaymentScreen({
         amount: extraShareFor(it)
       }));
     }
-    const remBefore = tableRemaining(order);
     const paidNow = payments.reduce((s, p) => s + p.amount, 0);
     applyPayments(setState, payments);
     setState(s => ({
@@ -34929,7 +32362,7 @@ function PaymentScreen({
   const [confirmAll, setConfirmAll] = useState(false);
   const payNow = () => {
     if (paying || ctaTotal <= 0) return;
-    // La modalita' della CTA e' ctaMode ('mine' | 'split' | 'all'), non `mode`:
+    // La modalita' della CTA e' ctaMode ('mine' | 'all'), non `mode`:
     // e' quella che decide cosa si paga davvero.
     if (ctaMode === 'all') {
       setConfirmAll(true);
@@ -35346,7 +32779,7 @@ function PaymentScreen({
     }
   }, /*#__PURE__*/React.createElement(SlideToPay, {
     mode: ctaMode,
-    label: ctaMode === 'mine' ? 'Scorri per pagare' : ctaMode === 'split' ? 'Alla romana · tua quota' : 'Paga tutto il tavolo',
+    label: ctaMode === 'mine' ? 'Scorri per pagare' : 'Paga tutto il tavolo',
     amount: ctaTotal,
     disabled: paying || ctaTotal <= 0,
     onCycle: cycleCtaMode,
@@ -35412,12 +32845,12 @@ function PaymentScreen({
       color: MUTED,
       marginBottom: 6
     }
-  }, /*#__PURE__*/React.createElement("span", null, ctaMode === 'split' ? `Alla romana (1/${remainingPeople} del rimanente)` : mode === 'all' ? 'Tutto il tavolo' : extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti'), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, mode === 'all' ? 'Tutto il tavolo' : extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti'), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 600,
       color: TEXT
     }
-  }, (ctaMode === 'split' ? splitBase : subtotal + cover).toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("div", {
+  }, (subtotal + cover).toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -38402,13 +35835,6 @@ function MenuApp({
       state: state,
       setState: setState,
       goTo: goTo
-    });
-  } else if (route.name === 'split') {
-    screen = /*#__PURE__*/React.createElement(SplitScreen, {
-      state: state,
-      setState: setState,
-      ctx: route.ctx,
-      goBack: () => goTo('menu')
     });
   } else if (route.name === 'dish') {
     screen = /*#__PURE__*/React.createElement(DishDetailScreen, {
