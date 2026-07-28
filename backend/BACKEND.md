@@ -1,10 +1,10 @@
 # Byup Fresh — Backend Reference
-Versione 0.2 — Maggio 2026
+Versione 0.3 — Luglio 2026
 
 Documento di riferimento per lo sviluppo del backend. Risponde a *perché* certe scelte, non solo *cosa* c'è.
 
-> **Status:** Fase 1 MVP (Identity completa) — chiusa.
-> Pronta per il testing end-to-end. Fase 2 (Operational core: orders + bills + payments + kitchen_tickets) da iniziare.
+> **Status:** Fase 1 MVP (Identity completa) — chiusa e testata end-to-end (curl + suite Jest e2e in `test/`).
+> Aggiunte post-Fase 1: password reset, multi-tenant switch, gestione sessioni, rate limiting, modulo devices. Fase 2 (Operational core: orders + bills + payments + kitchen_tickets) da iniziare.
 
 ---
 
@@ -28,7 +28,7 @@ Documento di riferimento per lo sviluppo del backend. Risponde a *perché* certe
 ```
 src/
 ├── main.ts                    ← bootstrap, helmet, ValidationPipe, GlobalExceptionFilter
-├── app.module.ts              ← root: ConfigModule (globale), DatabaseModule, IdentityModule
+├── app.module.ts              ← root: ConfigModule (globale), ThrottlerModule (rate limit globale), DatabaseModule + moduli dominio
 ├── config/
 │   └── configuration.ts      ← Joi schema + typed config factory
 ├── database/
@@ -41,8 +41,8 @@ src/
 └── modules/
     ├── identity/              ← Modulo 1: tenant + auth staff + collaboration
     │   ├── identity.module.ts
-    │   ├── entities/          ← User, Session, UserTwoFa, Restaurant, Role, Membership, Invitation
-    │   ├── auth/              ← register, login, 2FA, refresh, logout, /me + JwtAuth + OwnerGuard
+    │   ├── entities/          ← User, Session, UserTwoFa, Restaurant, Role, Membership, Invitation, PasswordReset
+    │   ├── auth/              ← register, login, 2FA, refresh, logout, /me, password reset, sessioni, switch-tenant + JwtAuth + OwnerGuard
     │   ├── users/             ← UsersService (lookup by id/email)
     │   └── staff/             ← invitations + memberships management + roles custom
     ├── venue/                 ← Modulo 2: sedi fisiche + orari + impostazioni
@@ -57,13 +57,21 @@ src/
     │   ├── dto/
     │   ├── onboarding.controller.ts
     │   └── onboarding.service.ts
-    └── catalog/               ← Modulo 4: menu, categorie, piatti, allergeni, tag
-        ├── catalog.module.ts
-        ├── entities/          ← Menu, MenuCategory, MenuItem, Allergen, Tag, MenuItemAllergen, MenuItemTag
+    ├── catalog/               ← Modulo 4: menu, categorie, piatti, allergeni, tag
+    │   ├── catalog.module.ts
+    │   ├── entities/          ← Menu, MenuCategory, MenuItem, Allergen, Tag, MenuItemAllergen, MenuItemTag
+    │   ├── dto/
+    │   ├── seeds/             ← seed 14 allergeni UE + 6 tag piattaforma
+    │   ├── catalog.controller.ts
+    │   └── catalog.service.ts
+    └── devices/               ← Modulo 5: dispositivi tablet/KDS/POS + login dispositivo
+        ├── devices.module.ts
+        ├── entities/          ← Device
         ├── dto/
-        ├── seeds/             ← seed 14 allergeni UE + 6 tag piattaforma
-        ├── catalog.controller.ts
-        └── catalog.service.ts
+        ├── strategies/        ← JwtDeviceStrategy (token type='device')
+        ├── guards/            ← JwtDeviceGuard
+        ├── devices.controller.ts
+        └── devices.service.ts
 ```
 
 ---
@@ -80,6 +88,7 @@ src/
 | `Restaurant` | `restaurants` | slug unique, platform_status: onboarding/active/churned |
 | `Role` | `roles` | is_system (titolare/cameriere/cassa), permissions JSON |
 | `Membership` | `memberships` | user ↔ restaurant ↔ role, unique (user_id, restaurant_id) |
+| `PasswordReset` | `password_resets` | token_hash SHA-256 unique, expires_at, used_at |
 
 `vat_number` e `legal_name` su `restaurants` sono `nullable` per ora: vengono completati nell'onboarding step 2 (dati fiscali). Allineamento con ERD da fare quando si implementa il modulo onboarding.
 
@@ -127,7 +136,10 @@ In transazione:
   2. Crea Restaurant (slug auto-generato, platform_status='onboarding')
   3. Crea 3 ruoli di sistema: titolare / cameriere / cassa
   4. Crea Membership user → restaurant, role=titolare
-  5. Crea Session + emette access+refresh token
+  5. Crea OnboardingProgress
+
+Dopo il commit: crea Session + emette access+refresh token
+(vedi "Lezione presa durante il primo smoke test").
 
 Ritorna: { accessToken, refreshToken, user, restaurant }
 ```
@@ -140,14 +152,20 @@ Ritorna: { accessToken, refreshToken, user, restaurant }
 | `POST` | `staff/login` | — | Ritorna token o `requiresTwoFactor` |
 | `POST` | `staff/login/2fa` | — | Completa flusso 2FA |
 | `POST` | `refresh` | — | Refresh token nel body, rotazione |
+| `POST` | `password/forgot` | — | Sempre 200 (non rivela se l'email esiste); `devToken` in dev/MVP |
+| `POST` | `password/reset` | — | Consuma il token (hashato in `password_resets`), resetta la password |
 | `GET` | `me` | JWT | Profilo + restaurant + role + permessi |
+| `GET` | `memberships` | JWT | Ristoranti a cui l'utente appartiene |
+| `POST` | `switch-tenant` | JWT | Nuovo access token su un altro ristorante (stessa sessione) |
+| `GET` | `sessions` | JWT | Lista sessioni attive (con `isCurrent`) |
+| `DELETE` | `sessions/:id` | JWT | Revoca una sessione specifica |
 | `DELETE` | `logout` | JWT | Revoca sessione corrente |
 | `DELETE` | `logout/all` | JWT | Revoca tutte le sessioni attive |
 | `POST` | `2fa/setup` | JWT | Genera secret TOTP + QR data URI |
 | `POST` | `2fa/enable` | JWT | Attiva 2FA + genera 8 recovery codes |
 | `DELETE` | `2fa/disable` | JWT | Disattiva (richiede password nel body) |
 
-`AuthService.me(userId)` è implementato ma non esposto su controller — da aggiungere come `GET /auth/me`.
+**Rate limiting**: `ThrottlerGuard` globale (60 req/min) via `APP_GUARD`, più `@Throttle` stretto (5 req/min) su register, login, login/2fa e password/forgot. In-memory, senza Redis.
 
 ### Risposta standard
 
@@ -353,6 +371,29 @@ Il client può subito chiamare `GET /catalog/menus` dopo `ai-result === complete
 
 ---
 
+## Modulo Devices (completato)
+
+Dispositivi fisici del locale (tablet, KDS, terminale POS) legati alla venue di default. Solo i KDS hanno credenziali locali.
+
+### Endpoint API (`/api/v1/devices/`)
+
+| Metodo | Path | Guard | Cosa fa |
+|---|---|---|---|
+| `POST` | `login` | — | Login dispositivo KDS (username + password) → JWT device |
+| `GET` | `/` | JWT + Owner | Lista dispositivi del ristorante |
+| `POST` | `/` | JWT + Owner | Crea dispositivo (per i KDS genera username + password one-shot) |
+| `PUT` | `:id` | JWT + Owner | Update (nome, modello, attivo) |
+| `POST` | `:id/regenerate-password` | JWT + Owner | Rigenera password (solo KDS, invalida la vecchia) |
+| `DELETE` | `:id` | JWT + Owner | Elimina dispositivo |
+
+### Decisioni chiave
+
+- **Token device separato dal token staff**: JWT con `type='device'` + `scope` per tipo (`kitchen:*` per KDS, `orders`/`payments` per POS, `orders` per tablet), TTL 365 giorni, validato da `JwtDeviceStrategy` (passport `jwt-device`). Firmato con lo stesso `JWT_ACCESS_SECRET`: la discriminazione avviene sul claim `type`.
+- **Username KDS auto-generato** (es. `PG1-cucina`: prefisso venue + sequenza + nome device) con password random 12 char, restituita solo nella response del create/regenerate — dopo esiste solo l'hash bcrypt.
+- `Device` è legato alla `Venue` con `onDelete: CASCADE`; `assigned_operator` (nullable) è per i POS, associato al primo login.
+
+---
+
 ## Moduli da costruire (backlog)
 
 Priorità suggerita basata su dipendenze operative:
@@ -360,7 +401,6 @@ Priorità suggerita basata su dipendenze operative:
 | Modulo | Dipende da | Contenuto |
 |---|---|---|
 | **catalog v2** | catalog | `option_groups`, `option_values`, ingredients, nutrition, media upload S3 |
-| **venue** (estensione) | identity | `venue_hours`, `venue_settings`, devices |
 | **sala** | catalog + venue | `orders`, `order_items`, `bills`, `table_guests`, `reservations` |
 | **cucina** | sala | `kitchen_tickets`, `kitchen_ticket_items` |
 | **payments** | sala | `payments`, `payment_locks`, `fiscal_documents`, `refunds` |
@@ -369,7 +409,7 @@ Priorità suggerita basata su dipendenze operative:
 | **analytics** | sala + payments | KPI, statistiche, report |
 | **backoffice** | tutti | admin panel (tenant mgmt, supporto, commercial) |
 
-**Prossimo step consigliato:** modulo `onboarding` (completa il journey di registrazione) oppure `catalog` (sblocca l'intera filiera operativa).
+**Prossimo step consigliato:** modulo `sala` (orders + bills) — apre la Fase 2 operational core.
 
 ---
 
@@ -383,14 +423,16 @@ Priorità suggerita basata su dipendenze operative:
 
 **End-to-end test (Maggio 2026):** 22 step + 8 edge cases verificati con curl, sequenza completa register → onboarding → catalog AI hook → venue → staff invite/accept → go-live → ristorante `platform_status='active'`. Tenant isolation verificata (un titolare non può leggere il menu di un altro ristorante → 403). Validation Pipe whitelist attiva (campi sconosciuti → 400).
 
+**Suite Jest e2e** (`npm run test:e2e`, config `jest-e2e.json`) in `test/`: `auth.e2e-spec` più sezioni A (input malformati), B (concorrenza), C (token/temporale). Smoke funzionale ripetibile in `scripts/phase1-functional-check.sh`.
+
 ---
 
 ## Decisioni da rivedere / TODO tecnici
 
 - Email verification flow — `email_verified` è in DB, il flusso di invio email non è implementato
-- Rate limiting su `/auth/staff/login` — protezione brute-force (throttler NestJS + Redis)
-- `onboarding_progress` — entity e modulo da creare
+- Rimuovere `devToken` dalla response di `POST /auth/password/forgot` quando l'invio email (SES) è collegato
+- Rate limiting: oggi in-memory (`@nestjs/throttler`); valutare storage Redis quando si scala su più istanze
 - `user_social_logins` — entity non creata (OAuth Google/Apple, out of scope MVP staff)
-- `invitations` — entity non creata, flusso invito staff pendente
-- `devices` — entity non creata (KDS/POS, da fare con modulo venue)
 - Migration files per produzione — attualmente `DB_SYNC=true` in dev
+
+Fatti rispetto alla v0.2: rate limiting su login/register (throttler), `onboarding_progress` (modulo onboarding), `invitations` (modulo staff), `devices` (modulo devices), `GET /auth/me` esposto.
