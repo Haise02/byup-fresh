@@ -6,6 +6,11 @@ incasso del dispositivo, non nome di prodotto.
 
 > Stato: **bozza** per implementazione. Le scelte di prodotto sono congelate (Contesto §5.x);
 > qui si definiscono modello dati, stati, flussi, API ed eventi realtime.
+>
+> Nota di stato (lug 2026): nel repo esiste il backend reale di Byup Fresh (`backend/`,
+> NestJS — Fase 1 Identity chiusa, vedi `backend/BACKEND.md`); la parte qui specificata
+> (coda, lock, pagamenti Stripe) ricade nella Fase 2 «operational core» e **non è ancora
+> implementata**.
 
 ---
 

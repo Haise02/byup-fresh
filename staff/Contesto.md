@@ -72,7 +72,7 @@ letterale.
 |------|-------|
 | `index.html` | Mount dell'app dentro la cornice iPhone; carica gli script `.jsx` |
 | `ios-frame.jsx` | Cornice del dispositivo (`IOSDevice`) che contiene lo schermo del telefono — **illustrativa** (stile iOS); l'app reale è iOS + Android |
-| `pos-tokens.jsx` | Design tokens (`ST`), icone (`I`), atomi (`Btn`, `Chip`, `Logo`), helper (`eur`, `txConfig`) |
+| `pos-tokens.jsx` | Design tokens (`ST`) — brand, neutri e materiali **ereditati dai token `PN` del gestionale** (`../gestionale/panoramica-tokens.jsx`, caricato prima da `index.html`) — icone (`I`), atomi (`Btn`, `Chip`, `Logo`), helper (`eur`, `txConfig`) |
 | `pos-data.jsx` | Dati mock: esercente (`MERCHANT`), coda incasso (`CODA_INCASSO`), transazioni (`TRANSAZIONI`) |
 | `pos-app.jsx` | Shell, navigazione a stack, bottom nav, stato globale, montaggio delle schermate |
 | `pos-screen-login.jsx` | Login, recupero password, **Face ID gate** |
@@ -105,7 +105,8 @@ Tre comportamenti, coerenti col pattern delle app bancarie:
   con i bottoni *Riprova con Face ID* (al secondo giro sblocca) e *Usa la password*
   (fallback al form classico).
 - **Proposta al primo accesso**: la sequenza permessi di primo accesso (Tap to Pay →
-  posizione) termina con il prompt *"Vuoi sbloccare con il Face ID?"* (*Attiva* / *Non ora*).
+  posizione) termina con il prompt *"Vuoi sbloccare con il Face ID?"* (*Attiva Face ID* /
+  *Non ora*).
   Appare **una sola volta** (flag `faceIdAsked`).
 - **Toggle nel Profilo**: interruttore *Sblocco con Face ID* per attivare/disattivare in
   qualsiasi momento.
@@ -180,6 +181,10 @@ capacità (comporre conti, gestire utenti, creare account) vive sul gestionale e
 
 - Riusare i **token** (`ST`), le **icone** (`I`) e gli **atomi** (`Btn`, `Chip`, `Logo`)
   invece di re-inventare stili inline.
+- I token `ST` **ereditano da `PN`** (il sistema del gestionale): brand, neutri e materiali
+  **non si ridefiniscono** in `pos-tokens.jsx` — si adatta solo la scala al touch (hit target
+  44pt, radius 10/14/18, CTA a pillola). Il file fallisce esplicitamente se `PN` non è
+  caricato prima (ordine degli `<script>` in `index.html`).
 - Ogni file espone i suoi simboli con `Object.assign(window, { ... })` (niente import: tutto
   globale, caricato in ordine da `index.html`).
 - Dopo ogni modifica ai `.jsx`, **incrementare `?v=N`** in `index.html` per bustare la cache.
@@ -245,6 +250,11 @@ altri presenti nella coda di incasso.
   finché il relativo lock non viene rilasciato.
 - All'annullamento: il conto **lascia la coda**, l'eventuale **lock viene rilasciato** e il
   conto torna **modificabile sul gestionale** per la correzione e l'eventuale re-invio.
+
+Nel prototipo il flusso è implementato: l'azione *Annulla* vive nell'header del **dettaglio
+conto** (`ScreenConto`), con alert di conferma (azione *Rimanda al gestionale*) e toast
+*"Conto del tavolo N rimandato al gestionale"*; il conto esce dalla coda
+(`contiRimandati` in `POSApp`).
 
 > **Prospettiva POS vs gestionale.** Dal punto di vista del **POS**, l'annullamento si
 > traduce semplicemente nel fatto che il conto **esce dalla coda di incasso**: l'app non lo
