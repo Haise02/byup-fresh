@@ -36,7 +36,7 @@
 | Stato cross-schermata | `sessionStorage`: `byup_menu_route` (deep-route del menu), `byup_menu_premium`, `byup_table` (pagamenti fatti/residuo), `byup_menu_from` |
 | Tema | `localStorage byup.themeMode` = `light | dark | auto`. Componenti live: `BK.useByupTheme()` → `[T, mode, setMode]`. Moduli statici: const `__BYUP_DARK` letta al load (il toggle ricarica la pagina) |
 | Build standalone | `node build-standalone.js <file.jsx> …` — richiede **@babel/standalone v7** (o preset `[['react',{runtime:'classic'}]]`). Ogni blocco compilato è riavvolto in IIFE |
-| Safe-area PWA | var CSS `--byup-sat` (desktop 54px, mobile `max(env(safe-area-inset-top),12px)`); dock inferiore su `calc(env(safe-area-inset-bottom) + 10px)`, contenuto scrollabile con padding-bottom 102–126px; striscia blur sopra la status bar |
+| Safe-area PWA | var CSS `--byup-sat` (desktop 54px, mobile `max(env(safe-area-inset-top),12px)`); dock inferiore su `calc(env(safe-area-inset-bottom) + 10px)`, contenuto scrollabile con padding-bottom 100–126px; striscia blur sopra la status bar |
 | Viewport | `maximum-scale=1, user-scalable=no, viewport-fit=cover`; `overflow-x:hidden`; scrollbar nascoste ovunque; input ≥16px (no zoom iOS) |
 
 ---
