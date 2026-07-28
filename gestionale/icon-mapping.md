@@ -4,6 +4,8 @@ Mappatura 1:1 dei simboli esistenti (`PnI`, `BuIcons`) → nuovo registry `SfIco
 
 Ogni voce indica la URL Icons8 di riferimento per QA visivo.
 
+> **Stato (2026-07-28): migrazione eseguita.** Il registry vive in `panoramica-sf-icons.jsx` (`window.SfIcons` + `window.Icon`) e la dashboard lo usa. I nomi in tabella sono quelli della Fase 1: con la tassonomia (`icons-taxonomy.md`, Opzione A) le icone Content/Status hanno poi preso il prefisso famiglia — nomi attuali: `calendar`→`time-calendar`, `flame`→`food-flame`, `wallet`→`commerce-wallet`, `person`→`people-customer`, `receipt`→`commerce-receipt`, `table`→`place-table`, `credit-card`→`commerce-bank-cards`, `lightbulb`→`status-tip`, `party-popper`→`status-feature`.
+
 ## PnI → SfIcons
 
 | Icona corrente (PnI) | Nuovo nome | Riferimento Icons8 SF Regular Filled |
@@ -34,7 +36,9 @@ Ogni voce indica la URL Icons8 di riferimento per QA visivo.
 
 ## BuIcons (notifiche `panoramica-notif-bell.jsx`) → SfIcons
 
-Le notifiche referenziano `BuIcons[n.icon]` per chiave-stringa, quindi la migrazione richiede di mappare le **stringhe** (non i nomi di componente):
+> **Superata.** Nel redesign delle notifiche le righe non mostrano più un'icona per tipo: gli item di `PN_NOTIFICATIONS` non hanno più il campo `icon` e nel dropdown resta solo la campanella (`Icon name="bell"`). La tabella sotto è conservata come riferimento storico.
+
+Le notifiche referenziavano `BuIcons[n.icon]` per chiave-stringa, quindi la migrazione richiedeva di mappare le **stringhe** (non i nomi di componente):
 
 | chiave `BuIcons` | nuovo nome `SfIcons` |
 |---|---|
@@ -49,7 +53,7 @@ Le notifiche referenziano `BuIcons[n.icon]` per chiave-stringa, quindi la migraz
 ## Note
 
 - **Naming**: kebab-case singolare in inglese (es. `chevron-right`, `arrow-up-right`).
-- **Logo (`Fresh.png`)**: resta `<img>`, è un asset di brand raster non un'icona del DS.
-- **Sparkline `<svg>` in `panoramica-widgets.jsx:60`**: visualizzazione dati (path matematico), non un'icona — non viene migrata.
-- **Glifo `›` Unicode in `panoramica-widgets.jsx:646`**: sostituito con `<Icon name="chevron-right" />`.
-- **Icone definite in `PnI` ma non usate dalla dashboard** (es. `Trash`, `Mail`, `Phone`, `Lock`, `Eye`, `Cart`, `Home`, `QrCode`...): **non incluse** nel nuovo registry per lo scope corrente. Sono aggiungibili quando servono.
+- **Logo (`Fresh.png`)**: resta `<img>`, è un asset di brand raster non un'icona del DS. La sidebar oggi usa `PnI.Logo` e il nuovo `PnI.LogoMark` (variante compatta).
+- **Sparkline `<svg>` in `panoramica-widgets.jsx`**: visualizzazione dati (path matematico), non un'icona — non viene migrata.
+- **Glifo `›` Unicode nelle Azioni rapide**: fu sostituito con `<Icon name="chevron-right" />`; nel successivo redesign delle Azioni rapide il chevron è stato rimosso del tutto (`chevron-right` resta nel registry, oggi inutilizzato).
+- **Icone definite in `PnI` ma non usate dalla dashboard** (es. `Mail`, `Phone`, `Lock`, `Eye`, `Cart`, `Home`, `QrCode`...): **non incluse** nel nuovo registry per lo scope corrente. Sono aggiungibili quando servono — è successo per `trash` (rimozione widget) e `download` (export/azioni rapide), oggi nel registry SF.

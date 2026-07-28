@@ -1,6 +1,8 @@
 # Icons taxonomy — Byup Fresh
 
-Classificazione delle icone del registry attuale (`panoramica-sf-icons.jsx` → `SfIcons`) + proposta per le nuove **Content icons** della Fase 2.
+Classificazione delle icone del registry (`panoramica-sf-icons.jsx` → `SfIcons`) + proposta per le nuove **Content icons** della Fase 2.
+
+> **Stato (2026-07-28): implementata.** Opzione A adottata (rinomina con prefisso, niente alias). Il registry conta oggi **93 icone**: UI 17, Content 69, Status 7. Scostamenti dalla proposta del §2: non implementate `people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked`; aggiunte fuori lista `commerce-piggy-bank` e `commerce-register` (Content) e `trash` + `download` (UI); `calendar` esiste solo come `time-calendar`.
 
 Tre famiglie (vincolo del prompt):
 
@@ -12,7 +14,7 @@ Tre famiglie (vincolo del prompt):
 
 ---
 
-## 1. Registry attuale (25 icone) — classificazione
+## 1. Registry alla data della proposta (25 icone) — classificazione
 
 ### UI (16)
 
@@ -20,7 +22,7 @@ Generiche, agnostiche al dominio. Restano **senza prefisso**.
 
 `grid`, `magnifying-glass`, `bell`, `gear`, `plus`, `xmark`, `grip`, `check`, `pencil`, `chevron-right`, `star`, `sparkles`, `headphones`, `arrow-up-right`, `arrow-down-right`, `calendar`
 
-> *Nota su `calendar` e `headphones`:* sono usate oggi come voci di **nav** della sidebar, contesto UI. Semanticamente `calendar` apparterrebbe a `time-*` e `headphones` a UI/support — ma la nav è il loro uso canonico, le considero UI.
+> *Nota su `calendar` e `headphones`:* erano usate come voci di **nav** della sidebar, contesto UI. Semanticamente `calendar` apparterrebbe a `time-*` e `headphones` a UI/support. *(Esito: `calendar` è poi confluita in `time-calendar` — Content; `headphones` è rimasta UI.)*
 
 ### Content (7)
 
@@ -50,6 +52,8 @@ Domain-specific (food, place, people, commerce, data).
 **Opzione B (back-compat)**: mantengo i nomi attuali e aggiungo gli alias prefissati come *seconde* chiavi nel registry (`'flame': pathA`, `'food-flame': pathA`). Più gentile, ma genera due nomi per icona — il prefisso perde il suo scopo di disciplina.
 
 Mia raccomandazione: **Opzione A**. Il prezzo è basso (PR atomica) e il sistema resta pulito.
+
+> **Esito: Opzione A adottata.** Nel registry attuale esistono solo i nomi prefissati (`food-flame`, `commerce-wallet`, `people-customer`, `commerce-receipt`, `place-table`, `commerce-bank-cards`, `status-tip`, `status-feature`, `time-calendar`); nessun alias legacy.
 
 ---
 
@@ -99,13 +103,13 @@ Rinominate dall'esistente: `commerce-wallet`, `commerce-receipt`, `commerce-bank
 
 ---
 
-## 4. Conteggio finale (post-implementazione Fase 6)
+## 4. Conteggio finale (a consuntivo, registry attuale)
 
-| Famiglia | Conta |
-|---|---|
-| UI | 16 |
-| Content | 60 + 6 esistenti rinominate = **66** |
-| Status | 8 |
-| **Totale** | **90** |
+| Famiglia | Previsto | Effettivo |
+|---|---|---|
+| UI | 16 | **17** (aggiunte `trash`, `download`; `calendar` passata a Content) |
+| Content | 60 + 6 esistenti rinominate = 66 | **69** (Food 15 · Drink 10 · Commerce 15 · People 7 · Time 6 · Place 6 · Chart 7 · Event 3) |
+| Status | 8 | **7** (`status-locked` non implementata) |
+| **Totale** | **90** | **93** |
 
-90 è il limite massimo del prompt — siamo dentro. Se durante l'implementazione una proposta si rivela ridondante, posso scenderne il numero. Niente aggiunte fuori da questa lista senza tuo OK.
+Il tetto teorico del prompt era 90: a consuntivo il registry è a 93 per via delle due Commerce extra (`commerce-piggy-bank`, `commerce-register`, nate per la sidebar Contabilità/Vendita) e delle UI `trash`/`download`; in compenso 5 proposte non sono mai state disegnate (`people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked`).

@@ -3,6 +3,8 @@
 > Fase 1 della migrazione a Apple SF Regular Filled. NIENTE è stato modificato.
 > Aspettare "ok" prima di passare alla Fase 2.
 
+> **Stato (2026-07-28): fase conclusa, migrazione eseguita.** Il registry `panoramica-sf-icons.jsx` (`window.SfIcons` + `window.Icon`, oggi 93 icone con famiglie Content/Status da `icons-taxonomy.md`) è vivo e tutta la dashboard lo usa. L'inventario sotto fotografa lo stato PRE-migrazione ed è mantenuto come documento storico: righe e numeri di linea non corrispondono più al codice attuale.
+
 ---
 
 ## 1. Stack rilevato
@@ -21,7 +23,7 @@
 1. **API del componente Icon va adattata.** Lo spec del task usa `import { ... } from './...'` + TypeScript (`IconProps`, `IconName`). Qui non c'è modulo bundler né TS: il registry diventa un file `.jsx` che esporta `window.Icon` e `window.SfIcons`, esattamente come fa oggi `panoramica-icons.jsx` con `window.PnI`. I "tipi" si possono documentare via JSDoc.
 2. **Niente `npm install` / `npm run build`.** Le librerie non esistono — quindi i punti dello spec su rimozione dipendenze e build sono N/A.
 3. **Tree-shaking N/A.** Babel-standalone non ottimizza; il registry resta integralmente caricato a runtime. Se serve, si può splittare il registry in due file (icone-dashboard vs. icone-altre-pagine), ma per ora il volume è basso (≈22 icone uniche usate nella dashboard).
-4. **Test page `/_dev/icons`.** Diventa una pagina HTML statica autonoma (`_dev/icons.html`) che monta una griglia con tutto il registry — non una route Next.
+4. **Test page `/_dev/icons`.** Diventa una pagina HTML statica autonoma (`_dev/icons.html`) che monta una griglia con tutto il registry — non una route Next. *(Stato: mai creata, il QA visivo è avvenuto direttamente nelle pagine.)*
 5. **Linting finale.** Sostituiamo `npm run build` + grep TS con un grep manuale sul codice (no compile step da passare).
 6. **Niente librerie esterne da rimuovere.** Tutto il sistema icone attuale è interno (`PnI` da `panoramica-icons.jsx`, `BuIcons` da `byup-icons.jsx`). Lo spec menziona lucide/heroicons/ecc.: confermato che NON sono presenti nel repo.
 
@@ -29,13 +31,15 @@
 
 ## 2. File della dashboard
 
-Pagina dashboard: `byup Panoramica.html` (entry HTML). Carica nell'ordine:
+Pagina dashboard: `byup Panoramica.html` (entry HTML). Carica nell'ordine (aggiornato post-migrazione):
 
 ```
 panoramica-tokens.jsx
-panoramica-icons.jsx        ← definisce window.PnI (icon set Panoramica, stroke-based)
+byup-glass.jsx
+panoramica-icons.jsx        ← definisce window.PnI (icon set Panoramica, stroke-based — legacy, resta per Logo/LogoMark e pagine non migrate)
+panoramica-sf-icons.jsx     ← definisce window.SfIcons + window.Icon (registry SF, introdotto dalla migrazione)
 byup-tokens.jsx
-byup-icons.jsx              ← definisce window.BuIcons (icon set globale, stroke-based)
+byup-icons.jsx              ← definisce window.BuIcons (icon set globale, stroke-based — legacy)
 panoramica-sidebar.jsx
 panoramica-plan-card.jsx
 panoramica-notif-bell.jsx
@@ -46,7 +50,7 @@ panoramica-grid.jsx
 panoramica-app.jsx
 ```
 
-Nessun file del dashboard usa librerie di icone esterne (lucide-react, heroicons, react-icons, @tabler/icons-react, @radix-ui/react-icons, phosphor, iconify, @mui/icons-material): verificato con grep su tutto il repo (un solo match in `sala-v3-card.jsx`, ma è un commento di riferimento, non un import — fuori dallo scope dashboard).
+Nessun file del dashboard usa librerie di icone esterne (lucide-react, heroicons, react-icons, @tabler/icons-react, @radix-ui/react-icons, phosphor, iconify, @mui/icons-material): verificato con grep su tutto il repo (all'epoca un solo match in un commento di `sala-v3-card.jsx` — file poi rinominato `sala-card.jsx` e commento rimosso).
 
 Nessun `<img>` o `background-image` con SVG nella dashboard, a parte:
 - `<img src="Fresh.png">` per il logo (in `panoramica-icons.jsx` come `PnI.Logo`). È un raster del brand logo: **fuori scope** rispetto alle icone SF (è un'immagine di brand, non un'icona del design system).
@@ -57,7 +61,9 @@ L'unico `<svg>` inline NON dentro il registry `PnI` è una **sparkline chart** i
 
 ## 3. Inventario delle occorrenze di icone
 
-### 3.1 Definizioni nel registry attuale
+> *Snapshot pre-migrazione.* Nel codice attuale gli usi sono passati a `<Icon name="..."/>` (SfIcons) e i numeri di riga sono cambiati; `PnI` ha inoltre guadagnato `LogoMark` (il doppione `Money` c'è ancora).
+
+### 3.1 Definizioni nel registry legacy (`PnI`)
 
 | Sorgente | Nome | Note |
 |---|---|---|
@@ -180,20 +186,22 @@ Definite in `PnI` ma mai referenziate nei file dashboard:
 - (B) re-implementare l'intero registry `PnI` (50 voci) per coprire anche usi futuri / altre pagine che vorrai migrare in futuro
 - (C) re-implementare le 22 della dashboard + le 6 di `BuIcons` usate dalle notifiche (`sparkle, card, stats, bulb, receipt, party`)
 
+> **Esito**: si è andati oltre tutte e tre le opzioni — con la Fase 2 della tassonomia il registry SF è cresciuto fino alle attuali 93 icone (UI + Content per famiglia + Status), vedi `icons-taxonomy.md`.
+
 ---
 
 ## 4. Riepilogo numerico
 
 - **Icone uniche effettivamente usate dalla dashboard**: 22 da `PnI` + 6 da `BuIcons` = **28 simboli SF da disegnare**.
 - File dashboard interessati dalla sostituzione (Fase 5): **8** (`panoramica-sidebar.jsx`, `-header.jsx`, `-plan-card.jsx`, `-notif-bell.jsx`, `-widget-catalog.jsx`, `-widgets.jsx`, `-grid.jsx`, `-app.jsx`).
-- File registry da introdurre: **1 nuovo** (es. `panoramica-sf-icons.jsx` con `window.SfIcons` + `window.Icon`).
-- File registry esistenti da mantenere intatti per il momento: `panoramica-icons.jsx` resta (logo, eventuali pagine non dashboard ne dipendono — `byup Configurazione Completa.html` ad esempio). Da rimuovere solo quando avremo migrato tutto il prodotto.
+- File registry da introdurre: **1 nuovo** (es. `panoramica-sf-icons.jsx` con `window.SfIcons` + `window.Icon`). ✅ Fatto, con quel nome esatto.
+- File registry esistenti da mantenere intatti per il momento: `panoramica-icons.jsx` resta (logo, eventuali pagine non dashboard ne dipendono — `byup Configurazione Completa.html` ad esempio). Da rimuovere solo quando avremo migrato tutto il prodotto. *(Stato: ancora vivo — la sidebar usa `PnI.Logo`/`PnI.LogoMark` e ~16 file .jsx non migrati usano ancora `PnI`; `byup-icons.jsx` idem, ~13 file.)*
 
 ---
 
-## Domande aperte da risolvere prima di Fase 3
+## Domande aperte da risolvere prima di Fase 3 — tutte risolte
 
-1. **Scope del registry**: opzione A, B o C dal §3.4?
-2. **Glifo `›` testuale a riga 646**: lo lasciamo come carattere unicode (più leggero, già allineato al testo) o lo sostituiamo con `Icon name="chevron-right"`?
-3. **`PnI.Logo`**: confermi che resta `<img src="Fresh.png">` (è un brand raster, non un'icona del DS)?
-4. **Naming**: kebab-case singolare in inglese come da spec (es. `home`, `chevron-right`, `trend-up`) — ok? Le 6 di `BuIcons` rinominate: `sparkle` → `sparkles`, `card` → `credit-card`, `stats` → `chart-bar`, `bulb` → `lightbulb`, `receipt` → `receipt`, `party` → `party-popper`. Confermi questa convention?
+1. **Scope del registry**: superato in corsa — registry completo con famiglie Content/Status (93 icone), vedi `icons-taxonomy.md`.
+2. **Glifo `›` testuale**: fu sostituito con `Icon name="chevron-right"`; il redesign successivo delle Azioni rapide ha poi eliminato del tutto il chevron.
+3. **`PnI.Logo`**: confermato — resta `<img src="Fresh.png">` (oggi affiancato da `PnI.LogoMark`).
+4. **Naming**: confermato kebab-case; le icone Content/Status hanno poi preso il prefisso famiglia (`credit-card` → `commerce-bank-cards`, `lightbulb` → `status-tip`, `party-popper` → `status-feature`, ...). Nota: il mapping notifiche è poi decaduto — le notifiche non mostrano più icone per tipo.
