@@ -467,7 +467,6 @@ function CfFornitori() {
 
   const senzaDpa   = FORNITORI.filter(f => !f.dpa).length;
   const maiRiesam  = FORNITORI.filter(f => !f.ultimoRiesame).length;
-  const critiche   = FORNITORI.filter(f => f.criticita === 'alta').length;
   const buchi      = FORNITORI.filter(f => !f.dpa || !f.ultimoRiesame).length;
 
   // I problemi vanno in cima, e fra i problemi prima chi è più critico: un
@@ -488,12 +487,9 @@ function CfFornitori() {
   };
 
   const GRID = 'minmax(0,2fr) minmax(0,1.7fr) 96px minmax(0,1.6fr) 1.25fr 1.15fr 1.05fr 30px';
-  const sintesi = [
-    { n:FORNITORI.length, label:'fornitori nel registro', nota:'trattano dati per conto di Byup' },
-    { n:critiche,   label:'ad alta criticità', nota:'un loro guasto è un guasto nostro', coral:critiche > 0 },
-    { n:senzaDpa,   label:'senza DPA',         nota:'art. 28 GDPR · A.5.20', tono: senzaDpa ? 'DANGER' : 'OK' },
-    { n:maiRiesam,  label:'mai riesaminati',   nota:'A.5.22 · §8.4',         tono: maiRiesam ? 'WARN' : 'OK' },
-  ];
+  // Niente riga di KPI: su un registro di sette righe contare le righe non è un
+  // dato, e "3 ad alta criticità" si legge dalla colonna. Lo spazio va al
+  // contenuto — le eccezioni le dice la striscia qui sotto e le mostra la tabella.
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
@@ -509,21 +505,11 @@ function CfFornitori() {
           </div>
           <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
             {buchi
-              ? 'Senza DPA non esiste la base contrattuale al trattamento; senza riesame non esiste la prova che il controllo sia ancora attivo. Sono i due rilievi che un auditor trova nei primi cinque minuti.'
+              ? [senzaDpa && `${senzaDpa} senza DPA (art. 28 GDPR · A.5.20)`,
+                 maiRiesam && `${maiRiesam} mai ${maiRiesam === 1 ? 'riesaminato' : 'riesaminati'} (A.5.22 · §8.4)`].filter(Boolean).join(' · ')
               : `${FORNITORI.length} fornitori, tutti con accordo sul trattamento e riesame registrato.`}
           </div>
         </div>
-      </div>
-
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:10}}>
-        {sintesi.map(s => (
-          <div key={s.label} style={{...CF_CARD, padding:'13px 15px'}}>
-            <div style={{fontSize:23, fontWeight:800, letterSpacing:'-0.02em', lineHeight:1,
-              color: s.tono ? (s.n ? CF_TONO(s.tono) : ADM.TEXT) : s.coral ? ADM.PINK : ADM.TEXT}}>{s.n}</div>
-            <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:6}}>{s.label}</div>
-            <div style={{fontSize:11, color:ADM.MUTED_SOFT, marginTop:2}}>{s.nota}</div>
-          </div>
-        ))}
       </div>
 
       <div>
