@@ -28,10 +28,10 @@ function StaffApp() {
     return () => window.removeEventListener('keydown', h);
   }, [modal]);
 
-  // Determina se la bottom nav va mostrata (sulle schermate di pagamento carta no)
-  const hideNav = ['pagamento-split', 'pagamento-carta', 'pagamento-qr', 'pagamento-metodo', 'pagamento-contanti'].includes(top.s);
+  // Determina se la bottom nav va mostrata (sulla schermata del conto no)
+  const hideNav = ['pagamento-split'].includes(top.s);
   const activeTab = (() => {
-    if (['sala', 'tavolo', 'menu', 'pagamento-split', 'pagamento-metodo', 'pagamento-carta', 'pagamento-qr', 'pagamento-contanti'].includes(top.s)) return 'sala';
+    if (['sala', 'tavolo', 'menu', 'pagamento-split'].includes(top.s)) return 'sala';
     if (top.s === 'ordini') return 'ordini';
     if (['profilo', 'account', 'account-password'].includes(top.s)) return 'profilo';
     return 'sala';
@@ -48,10 +48,6 @@ function StaffApp() {
         {top.s === 'menu' && <ScreenMenu nav={nav} openModal={openModal} tavoloId={top.tavoloId} cart={cart} setCart={setCart}/>}
         {top.s === 'ordini' && <ScreenDaPortare nav={nav} openModal={openModal}/>}
         {top.s === 'pagamento-split' && <ScreenPagamentoSplit nav={nav} openModal={openModal} tavoloId={top.id}/>}
-        {top.s === 'pagamento-metodo' && <ScreenPagamentoMetodo nav={nav} importo={top.importo} tavoloId={top.tavoloId}/>}
-        {top.s === 'pagamento-carta' && <ScreenPagamentoCarta nav={nav} openModal={openModal} importo={top.importo} tavoloId={top.tavoloId}/>}
-        {top.s === 'pagamento-contanti' && <ScreenPagamentoContanti nav={nav} openModal={openModal} importo={top.importo} tavoloId={top.tavoloId} misto={top.misto}/>}
-        {top.s === 'pagamento-qr' && <ScreenPagamentoQR nav={nav} importo={top.importo} tavoloId={top.tavoloId}/>}
       </div>
 
       {/* Bottom nav */}
