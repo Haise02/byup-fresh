@@ -175,8 +175,32 @@ const I = {
   Alert: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.PINK_DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg>,
   Card:  (p={}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>,
   Receipt:(p={})=> <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,
-  Tables:(p={})=> <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="8" height="8" rx="1"/><rect x="13" y="4" width="8" height="8" rx="1"/><rect x="3" y="14" width="8" height="6" rx="1"/><rect x="13" y="14" width="8" height="6" rx="1"/></svg>,
-  Profile:(p={})=> <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21 C4 16.5 7.5 14 12 14 C16.5 14 20 16.5 20 21"/></svg>,
+  // ─── Icone della tab bar ──────────────────────────────────────────────────
+  // Disegnate nel linguaggio della Byup App consumer: viewBox 24, tratto 1.8,
+  // giunzioni tonde e geometrie morbide (niente wireframe spigoloso). Accettano
+  // `f` = fill per lo stato attivo, come le icone della tab bar dell'app.
+  //
+  // Sala: tavolo visto dall'alto con quattro coperti intorno. Prima erano
+  // quattro rettangoli affiancati, che leggevano come una griglia, non una sala.
+  Tables:(p={})=> {
+    const c = p.c || ST.TEXT;
+    return (
+      <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="6.6" y="6.6" width="10.8" height="10.8" rx="3.4" fill={p.f || 'none'}/>
+        <path d="M9.4 3.4h5.2M9.4 20.6h5.2M3.4 9.4v5.2M20.6 9.4v5.2"/>
+      </svg>
+    );
+  },
+  // Profilo: stessa geometria di Icon.User dell'app consumer, spalle arrotondate.
+  Profile:(p={})=> {
+    const c = p.c || ST.TEXT;
+    return (
+      <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8.2" r="3.6" fill={p.f || 'none'}/>
+        <path d="M5.3 20.2a6.9 6.9 0 0 1 13.4 0v.9H5.3z" fill={p.f || 'none'}/>
+      </svg>
+    );
+  },
   Trash: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
   Edit:  (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
   Note:  (p={}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>,
@@ -188,7 +212,34 @@ const I = {
   // Tavolo unito: due piani-tavolo accostati in un'unica superficie, con la
   // giuntura al centro. Letterale e leggibile anche piccolo (badge).
   Joined:(p={})=> <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="2.5"/><line x1="12" y1="7" x2="12" y2="17"/></svg>,
-  Walk:  (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="13" cy="4" r="2"/><path d="M4 22l4-9 4 5v6"/><path d="M12 12l4-2 4 4-3 3"/><path d="M9 8l-2 4 4 2"/></svg>,
+  // Walk = "sposta / attiva tavolo": la usano sette punti fra modali e CTA, NON
+  // la tab bar. Ridisegnata più tonda e continua (prima erano quattro tratti
+  // slegati che a 15px si leggevano come uno scarabocchio), ma resta un omino
+  // che cammina: il significato è quello.
+  Walk:  (p={}) => {
+    const c = p.c || ST.TEXT;
+    return (
+      <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="13.2" cy="4.6" r="2.1" fill={p.f || 'none'}/>
+        <path d="M13.4 9.1 10.2 11l-1.4 4.1"/>
+        <path d="M13.4 9.1c1.6.3 2.4 1.3 2.8 2.7l2.4 1.6"/>
+        <path d="M12.6 13.6 14 17l1 4.4"/>
+        <path d="m8.8 15.1-2.4 2.6-1.1 3.7"/>
+      </svg>
+    );
+  },
+  // Tray = "da consegnare": vassoio col coperchio, per la tab bar. Dice
+  // "questi piatti vanno portati in tavola", cosa che un omino non diceva.
+  Tray:  (p={}) => {
+    const c = p.c || ST.TEXT;
+    return (
+      <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4.2 16.2a7.8 7.8 0 0 1 15.6 0z" fill={p.f || 'none'}/>
+        <path d="M2.6 16.2h18.8"/>
+        <circle cx="12" cy="6.5" r="1.15" fill={p.f ? c : c}/>
+      </svg>
+    );
+  },
   QR:    (p={}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 32 32" fill="none" stroke={p.c||ST.TEXT} strokeWidth="2.2"><rect x="4" y="4" width="9" height="9"/><rect x="19" y="4" width="9" height="9"/><rect x="4" y="19" width="9" height="9"/><rect x="19" y="19" width="3" height="3"/><rect x="25" y="19" width="3" height="3"/><rect x="19" y="25" width="3" height="3"/><rect x="25" y="25" width="3" height="3"/></svg>,
   Refresh:(p={})=> <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>,
   Chair: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||ST.TEXT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2h6"/><path d="M9 2v9M15 2v9"/><path d="M5 11h14"/><path d="M8 11v9M16 11v9"/><path d="M8 16h8"/></svg>,

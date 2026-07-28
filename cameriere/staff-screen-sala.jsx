@@ -354,19 +354,24 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
       boxShadow: ST.SH_SM, border: `1px solid ${ST.BORDER_SOFT}`,
       borderLeft: `5px solid ${tone}`,
     }}>
-      {/* Riga principale: tassello numero + situazione + azione singola */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px' }}>
+      {/* Riga principale: tassello numero + situazione + azione singola.
+          Il tap vive QUI, su tutta la riga: il bersaglio è la card intera, non
+          due isole separate. L'unica eccezione è il bottone d'azione, che ferma
+          la propagazione perché porta altrove. */}
+      <div onClick={bodyTap} style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px',
+        cursor: bodyTap ? 'pointer' : 'default',
+      }}>
         {/* Tassello numero: tinto del colore di stato (sfondo tenue + numero nel
             tono) così lo stato si legge a colpo d'occhio. Si riempie pieno del tono
             (numero bianco) per le eccezioni accese (senza comanda / ritardo / no-show). */}
-        <div onClick={bodyTap} style={{
+        <div style={{
           position: 'relative',
           width: 46, height: 46, borderRadius: 13, flexShrink: 0,
           background: tileFilled ? tone : toneBg,
           color: tileFilled ? '#fff' : tone,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: tileFont, fontWeight: 800, letterSpacing: -0.3,
-          cursor: bodyTap ? 'pointer' : 'default',
         }}>
           {/* Tassello = identità tavolo. Per 3+ tavoli il numero primario è centrato
               e il "+N" è una pill agganciata FUORI dall'angolo (come una notifica):
@@ -386,7 +391,7 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
           )}
         </div>
 
-        <div onClick={bodyTap} style={{ flex: 1, minWidth: 0, cursor: bodyTap ? 'pointer' : 'default' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {/* Riga forte: icona (tono) + la SITUAZIONE che guida la mossa */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             {showHeadIcon && <StateIcon s={14} c={tone}/>}

@@ -155,36 +155,69 @@ window.PN = PN;
 // (tab, chip, righe, tile, opzioni). I feedback custom inline restano
 // prioritari. Sui contenitori si usano solo ombre/outline: filter e
 // transform creerebbero containing block e romperebbero i modali interni.
+//
+// SUPERFICI TOUCH (cameriere, POS): il dito non ha "passaggio sopra", quindi
+// l'hover non esiste come stato — e l'anello che usiamo sul desktop, su mobile
+// si vede solo DOPO il tap, dove sembra un bordo di selezione rimasto acceso.
+// Una pagina si dichiara touch con window.__BYUP_TOUCH_SURFACE = true PRIMA di
+// caricare questo file: riceve solo il feedback di pressione, mai l'hover.
+// Le regole hover restano comunque dentro @media (hover: hover), così anche il
+// gestionale aperto da tablet non le eredita.
 (function () {
   if (typeof document === 'undefined' || document.getElementById('pn-btn-feedback')) return;
+  const touch = typeof window !== 'undefined' && window.__BYUP_TOUCH_SURFACE === true;
   const st = document.createElement('style');
   st.id = 'pn-btn-feedback';
-  st.textContent = `
+
+  const press = `
     button { transition: transform 120ms ease, filter 140ms ease, box-shadow 150ms ease; }
     button:not(:disabled) { cursor: pointer; }
-    button:not(:disabled):hover { filter: brightness(0.95); box-shadow: 0 3px 10px rgba(15, 17, 21, 0.14); }
-    button[style*="background: rgb(15, 17, 21)"]:not(:disabled):hover,
-    button[style*="background-color: rgb(15, 17, 21)"]:not(:disabled):hover,
-    button[style*="background: rgb(0, 0, 0)"]:not(:disabled):hover,
-    button[style*="background-color: rgb(0, 0, 0)"]:not(:disabled):hover,
-    button[style*="background: rgb(17, 17, 17)"]:not(:disabled):hover,
-    button[style*="rgb(42, 45, 54)"]:not(:disabled):hover,
-    button[style*="background: rgb(124, 45, 60)"]:not(:disabled):hover {
-      transform: scale(1.05);
-    }
     button:not(:disabled):active { transform: scale(0.96); filter: brightness(0.90); }
     select:not(:disabled) { cursor: pointer; transition: filter 140ms ease; }
-    select:not(:disabled):hover { filter: brightness(0.96); }
     select:not(:disabled):active { filter: brightness(0.92); }
+  `;
+
+  st.textContent = touch ? `
+    ${press}
+    /* Niente flash grigio di sistema: il feedback lo diamo noi. */
+    * { -webkit-tap-highlight-color: transparent; }
+    /* Contenitori cliccabili (righe, card, tile): alla pressione si scuriscono
+       appena. Niente anello e niente transform, che su un contenitore creerebbe
+       un containing block. */
+    [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]),
+    [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]),
+    a[href] {
+      transition: filter 130ms ease;
+    }
+    [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):active,
+    [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):active,
+    a[href]:active {
+      filter: brightness(0.955);
+    }
+  ` : `
+    ${press}
+    @media (hover: hover) and (pointer: fine) {
+      button:not(:disabled):hover { filter: brightness(0.95); box-shadow: 0 3px 10px rgba(15, 17, 21, 0.14); }
+      button[style*="background: rgb(15, 17, 21)"]:not(:disabled):hover,
+      button[style*="background-color: rgb(15, 17, 21)"]:not(:disabled):hover,
+      button[style*="background: rgb(0, 0, 0)"]:not(:disabled):hover,
+      button[style*="background-color: rgb(0, 0, 0)"]:not(:disabled):hover,
+      button[style*="background: rgb(17, 17, 17)"]:not(:disabled):hover,
+      button[style*="rgb(42, 45, 54)"]:not(:disabled):hover,
+      button[style*="background: rgb(124, 45, 60)"]:not(:disabled):hover {
+        transform: scale(1.05);
+      }
+      select:not(:disabled):hover { filter: brightness(0.96); }
+      [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):hover,
+      [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):hover,
+      a[href]:hover {
+        box-shadow: 0 0 0 1.5px rgba(15, 17, 21, 0.10), 0 6px 16px rgba(15, 17, 21, 0.08);
+      }
+    }
     [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]),
     [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]),
     a[href] {
       transition: box-shadow 150ms ease;
-    }
-    [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):hover,
-    [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):hover,
-    a[href]:hover {
-      box-shadow: 0 0 0 1.5px rgba(15, 17, 21, 0.10), 0 6px 16px rgba(15, 17, 21, 0.08);
     }
     [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):active,
     [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):active,

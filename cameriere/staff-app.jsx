@@ -64,7 +64,7 @@ function BottomNav({ active, setTab }) {
   const daPortare = CODA_CUCINA.filter(o => o.stato === 'pronto').length;
   const items = [
     { id: 'sala', label: 'Sala', icon: I.Tables },
-    { id: 'ordini', label: 'Da consegnare', icon: I.Walk, badge: daPortare || null },
+    { id: 'ordini', label: 'Da consegnare', icon: I.Tray, badge: daPortare || null },
     { id: 'profilo', label: 'Profilo', icon: I.Profile },
   ];
   return (
@@ -99,7 +99,9 @@ function BottomNav({ active, setTab }) {
               transition: 'background 200ms',
               position: 'relative',
             }}>
-              <Ic s={20} c={isA ? ST.PINK_DARK : ST.MUTED}/>
+              {/* Attiva = icona piena, come la tab bar della Byup App consumer:
+                  il riempimento tenue si legge anche senza guardare il colore. */}
+              <Ic s={20} c={isA ? ST.PINK_DARK : ST.MUTED} f={isA ? 'rgba(227,36,89,0.16)' : undefined}/>
               {it.badge && (
                 <span style={{
                   position: 'absolute', top: 0, right: 4,
