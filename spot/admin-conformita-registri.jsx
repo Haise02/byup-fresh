@@ -190,20 +190,70 @@ function CfrMatrice({ celle, sel, onSel }) {
 // Un solo componente per due gesti, perché i campi sono gli stessi: rilevare un
 // rischio è compilare la valutazione la prima volta, riesaminarlo è rimetterci
 // mano. Cambia cosa è obbligatorio e cosa resta scritto nello storico.
-const CFR_INP = { width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-  fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box' };
-const CFR_LAB = { fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-  letterSpacing:'0.05em', display:'block', marginBottom:5 };
+// ─── Modale del rischio ────────────────────────────────────────────────────
+// Un solo componente per due gesti, perché i campi sono gli stessi: rilevare un
+// rischio è compilare la valutazione la prima volta, riesaminarlo è rimetterci
+// mano. Cambia cosa è obbligatorio e cosa resta scritto nello storico.
+//
+// I NUMERI NON SI SCELGONO, SI LEGGONO. Probabilità e impatto si scelgono per
+// nome — «Possibile», «Critico» — perché è così che si ragiona e si discute in
+// riunione. Il numero resta, ma come RISULTATO: compare nella pastiglia del
+// livello, che è la stessa che si vede nella tabella e nella matrice.
+const CFR_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:9,
+  fontSize:13.6, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+  boxSizing:'border-box', lineHeight:1.4 };
 
-function CfrCampo({ etichetta, children, span }) {
-  return <div style={span ? {gridColumn:'1 / -1'} : undefined}><label style={CFR_LAB}>{etichetta}</label>{children}</div>;
+// La freccia è disegnata a mano: la select di sistema ne mette una diversa per
+// piattaforma e spezza l'allineamento con gli input accanto.
+const CFR_SEL = { ...CFR_INP, appearance:'none', WebkitAppearance:'none', MozAppearance:'none',
+  paddingRight:34, cursor:'pointer',
+  backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.6L6 6.4L11 1.6' stroke='%238A9099' stroke-width='1.9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+  backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
+
+const CFR_LAB  = { fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+  letterSpacing:'0.05em', display:'block', marginBottom:6 };
+const CFR_SEZ  = { fontSize:11.4, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+  letterSpacing:'0.06em', marginBottom:12 };
+const CFR_AIUTO = { fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.45 };
+
+function CfrCampo({ etichetta, aiuto, span, children }) {
+  return (
+    <div style={span ? {gridColumn:'1 / -1'} : undefined}>
+      <label style={CFR_LAB}>{etichetta}</label>
+      {children}
+      {aiuto && <div style={CFR_AIUTO}>{aiuto}</div>}
+    </div>
+  );
 }
 
-function CfrScala({ valore, onChange }) {
+// Select su scala 1-5 che mostra i nomi. Il valore resta il numero.
+function CfrScelta({ etichetta, voci, valore, onChange }) {
   return (
-    <select value={valore} onChange={e=>onChange(parseInt(e.target.value, 10))} style={CFR_INP}>
-      {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
-    </select>
+    <div style={{marginBottom:10}}>
+      <label style={{...CFR_LAB, marginBottom:5}}>{etichetta}</label>
+      <select value={valore} onChange={e=>onChange(parseInt(e.target.value, 10))} style={CFR_SEL}>
+        {voci.map((v, k) => <option key={v} value={k + 1}>{v}</option>)}
+      </select>
+    </div>
+  );
+}
+
+// Il livello calcolato, nella stessa veste che ha nella tabella e nella matrice.
+function CfrEsito({ p, i }) {
+  const liv = cfrLiv(p, i);
+  const alta = cfrFascia(liv) === 'alto';
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:9, marginTop:12, paddingTop:12,
+      borderTop:`1px dashed ${ADM.BORDER}`}}>
+      <span style={{display:'inline-flex', alignItems:'baseline', gap:6, padding:'4px 11px', borderRadius:8,
+        background: alta ? ADM.PINK : 'rgba(49,53,61,0.09)', color: alta ? '#fff' : ADM.INK, flexShrink:0}}>
+        <span style={{fontSize:19, fontWeight:800, letterSpacing:'-0.02em'}}>{liv}</span>
+        <span style={{fontSize:11.5, fontWeight:700, opacity:0.75}}>{cfrFascia(liv)}</span>
+      </span>
+      <span style={{fontSize:11.6, color:ADM.MUTED_SOFT, lineHeight:1.35}}>
+        {CFR_PROB[p-1]} × {CFR_IMP[i-1]}
+      </span>
+    </div>
   );
 }
 
@@ -234,128 +284,152 @@ function CfrModaleRischio({ modo, rischio, onChiudi, onSalva }) {
     : b.nota.trim().length > 2;
 
   const storico = (rischio && rischio.riesami) || [];
+  const cat = CFR_CATEGORIE.find(c => c.id === b.categoria) || {};
 
   return (
     <div onClick={onChiudi} style={{position:'absolute', inset:0, zIndex:60,
       background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
       <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
       <div style={{transform:'translateY(-50%)'}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:720, maxWidth:'92%', background:'#fff', borderRadius:14,
+      <div onClick={e=>e.stopPropagation()} style={{width:740, maxWidth:'92%', background:'#fff', borderRadius:16,
         boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
-        maxHeight:'78vh', display:'flex', flexDirection:'column'}}>
+        maxHeight:'80vh', display:'flex', flexDirection:'column'}}>
 
-        <div style={{padding:'18px 22px 14px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
-          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
+        <div style={{padding:'20px 26px 16px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>
             {nuovo ? 'Rilevare un nuovo rischio' : `Riesame di ${rischio.id}`}
           </div>
-          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
+          <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
             {nuovo
               ? 'La valutazione va compilata adesso: un rischio censito senza probabilità, impatto e misure non è un rischio valutato.'
               : 'Correggi ciò che è cambiato e scrivi l’esito. La data di oggi diventa l’ultimo riesame e la nota resta nello storico.'}
           </div>
         </div>
 
-        <div style={{padding:'16px 22px', overflowY:'auto', flex:1, minHeight:0}}>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
-            <CfrCampo etichetta="Rischio" span>
-              <input value={b.titolo} onChange={e=>agg('titolo', e.target.value)} style={CFR_INP}
-                placeholder="Che cosa può andare storto, in una riga"/>
-            </CfrCampo>
+        <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
+          display:'flex', flexDirection:'column', gap:24}}>
 
-            <CfrCampo etichetta="Categoria">
-              <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={CFR_INP}>
-                {CFR_CATEGORIE.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-              <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:4, lineHeight:1.4}}>
-                {(CFR_CATEGORIE.find(c => c.id === b.categoria) || {}).nota}
-              </div>
-            </CfrCampo>
-
-            <CfrCampo etichetta="Responsabile">
-              <input value={b.responsabile} onChange={e=>agg('responsabile', e.target.value)} style={CFR_INP}
-                placeholder="Chi risponde di questo rischio"/>
-            </CfrCampo>
-
-            <CfrCampo etichetta={`Inerente — livello ${livI} · ${cfrFascia(livI)}`}>
-              <div style={{display:'flex', gap:8, alignItems:'center'}}>
-                <CfrScala valore={b.prob} onChange={v=>agg('prob', v)}/>
-                <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>×</span>
-                <CfrScala valore={b.impatto} onChange={v=>agg('impatto', v)}/>
-              </div>
-              <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:4}}>probabilità × impatto, prima del trattamento</div>
-            </CfrCampo>
-
-            <CfrCampo etichetta={`Residuo — livello ${livR} · ${cfrFascia(livR)}`}>
-              <div style={{display:'flex', gap:8, alignItems:'center'}}>
-                <CfrScala valore={b.residuoProb} onChange={v=>agg('residuoProb', v)}/>
-                <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>×</span>
-                <CfrScala valore={b.residuoImpatto} onChange={v=>agg('residuoImpatto', v)}/>
-              </div>
-              <div style={{fontSize:11.4, color: livR > livI ? ADM.DANGER : ADM.MUTED_SOFT, marginTop:4}}>
-                {livR > livI
-                  ? 'Il residuo non può essere più alto dell’inerente: il trattamento non aggrava.'
-                  : livR === livI ? 'Invariato: va giustificato nelle misure' : `il trattamento vale −${livI - livR}`}
-              </div>
-            </CfrCampo>
-
-            <CfrCampo etichetta="Trattamento">
-              <select value={b.trattamento} onChange={e=>agg('trattamento', e.target.value)} style={CFR_INP}>
-                {Object.entries(CFR_TRATT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </CfrCampo>
-
-            <CfrCampo etichetta="Stato">
-              <select value={b.stato} onChange={e=>agg('stato', e.target.value)} style={CFR_INP}>
-                {Object.entries(CFR_STATO).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </CfrCampo>
-
-            <CfrCampo etichetta="Controlli Annex A" span>
-              <input value={b.controlli} onChange={e=>agg('controlli', e.target.value)} style={CFR_INP}
-                placeholder="A.5.15, A.8.13 — separati da virgola"/>
-            </CfrCampo>
-
-            <CfrCampo etichetta="Misure attuate" span>
-              <textarea value={b.misure} onChange={e=>agg('misure', e.target.value)} rows={3}
-                style={{...CFR_INP, resize:'vertical', lineHeight:1.5}}
-                placeholder="Che cosa è stato fatto concretamente per ridurre il livello"/>
-            </CfrCampo>
-
-            {!nuovo && (
-              <CfrCampo etichetta="Esito del riesame" span>
-                <textarea value={b.nota} onChange={e=>agg('nota', e.target.value)} rows={3}
-                  style={{...CFR_INP, resize:'vertical', lineHeight:1.5}}
-                  placeholder="Che cosa hai verificato e che cosa è cambiato dall’ultima volta"/>
+          {/* 1 — che cosa può andare storto */}
+          <div>
+            <div style={CFR_SEZ}>Il rischio</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+              <CfrCampo etichetta="Descrizione" span>
+                <input value={b.titolo} onChange={e=>agg('titolo', e.target.value)} style={CFR_INP}
+                  placeholder="Che cosa può andare storto, in una riga"/>
               </CfrCampo>
-            )}
+              <CfrCampo etichetta="Categoria" aiuto={cat.nota}>
+                <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={CFR_SEL}>
+                  {CFR_CATEGORIE.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </CfrCampo>
+              <CfrCampo etichetta="Responsabile" aiuto="Chi risponde di questo rischio, non chi lo ha scritto">
+                <input value={b.responsabile} onChange={e=>agg('responsabile', e.target.value)} style={CFR_INP}
+                  placeholder="Nome e cognome"/>
+              </CfrCampo>
+            </div>
           </div>
 
-          {!nuovo && storico.length > 0 && (
-            <div style={{marginTop:18, paddingTop:14, borderTop:`1px solid ${ADM.BORDER}`}}>
-              <div style={{...CF_H, marginBottom:8}}>Riesami precedenti</div>
-              {storico.slice().reverse().map((v, k) => (
-                <div key={k} style={{padding:'10px 12px', borderRadius:9, background:ADM.NEUTRAL_SOFT, marginBottom:8}}>
-                  <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
-                    <span style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>{cfFmt(v.data)}</span>
-                    <span style={{fontSize:12.2, color:ADM.MUTED}}>{v.chi}</span>
-                    <span style={{fontSize:11.4, color:ADM.MUTED_SOFT}}>
-                      inerente {cfrLiv(v.prob, v.impatto)} · residuo {cfrLiv(v.residuoProb, v.residuoImpatto)}
-                    </span>
+          {/* 2 — la valutazione, per nome */}
+          <div>
+            <div style={CFR_SEZ}>Valutazione</div>
+            <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:12, padding:'16px 18px', background:'#FCFCFD'}}>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:0}}>
+                <div style={{paddingRight:20}}>
+                  <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT}}>Inerente</div>
+                  <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2, marginBottom:12}}>
+                    prima del trattamento
                   </div>
-                  <div style={{fontSize:12.6, color:ADM.TEXT, marginTop:4, lineHeight:1.5}}>{v.nota}</div>
+                  <CfrScelta etichetta="Probabilità" voci={CFR_PROB} valore={b.prob} onChange={v=>agg('prob', v)}/>
+                  <CfrScelta etichetta="Impatto" voci={CFR_IMP} valore={b.impatto} onChange={v=>agg('impatto', v)}/>
+                  <CfrEsito p={b.prob} i={b.impatto}/>
                 </div>
-              ))}
+                <div style={{paddingLeft:20, borderLeft:`1px solid ${ADM.BORDER}`}}>
+                  <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT}}>Residuo</div>
+                  <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2, marginBottom:12}}>
+                    dopo le misure attuate
+                  </div>
+                  <CfrScelta etichetta="Probabilità" voci={CFR_PROB} valore={b.residuoProb} onChange={v=>agg('residuoProb', v)}/>
+                  <CfrScelta etichetta="Impatto" voci={CFR_IMP} valore={b.residuoImpatto} onChange={v=>agg('residuoImpatto', v)}/>
+                  <CfrEsito p={b.residuoProb} i={b.residuoImpatto}/>
+                </div>
+              </div>
+
+              <div style={{marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER}`,
+                fontSize:12.4, lineHeight:1.5, color: livR > livI ? ADM.DANGER : ADM.MUTED}}>
+                {livR > livI
+                  ? 'Il residuo è più alto dell’inerente: un trattamento non aggrava un rischio. Uno dei due valori è sbagliato.'
+                  : livR === livI
+                    ? 'Livello invariato: se il trattamento non sposta nulla va spiegato nelle misure, oppure il rischio va accettato formalmente.'
+                    : `Il trattamento vale −${livI - livR}: è questo scarto a rendere giustificabili i controlli nella Dichiarazione di Applicabilità.`}
+              </div>
+            </div>
+          </div>
+
+          {/* 3 — che cosa si fa */}
+          <div>
+            <div style={CFR_SEZ}>Trattamento</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+              <CfrCampo etichetta="Strategia">
+                <select value={b.trattamento} onChange={e=>agg('trattamento', e.target.value)} style={CFR_SEL}>
+                  {Object.entries(CFR_TRATT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </CfrCampo>
+              <CfrCampo etichetta="Stato">
+                <select value={b.stato} onChange={e=>agg('stato', e.target.value)} style={CFR_SEL}>
+                  {Object.entries(CFR_STATO).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </CfrCampo>
+              <CfrCampo etichetta="Controlli Annex A" span
+                aiuto="Separati da virgola. Sono i controlli che giustificherai nella Dichiarazione di Applicabilità.">
+                <input value={b.controlli} onChange={e=>agg('controlli', e.target.value)} style={CFR_INP}
+                  placeholder="A.5.15, A.8.13"/>
+              </CfrCampo>
+              <CfrCampo etichetta="Misure attuate" span>
+                <textarea value={b.misure} onChange={e=>agg('misure', e.target.value)} rows={3}
+                  style={{...CFR_INP, resize:'vertical'}}
+                  placeholder="Che cosa è stato fatto concretamente per abbassare il livello"/>
+              </CfrCampo>
+            </div>
+          </div>
+
+          {/* 4 — solo nel riesame */}
+          {!nuovo && (
+            <div>
+              <div style={CFR_SEZ}>Esito del riesame</div>
+              <textarea value={b.nota} onChange={e=>agg('nota', e.target.value)} rows={3}
+                style={{...CFR_INP, resize:'vertical'}}
+                placeholder="Che cosa hai verificato e che cosa è cambiato dall’ultima volta"/>
+
+              {storico.length > 0 && (
+                <div style={{marginTop:18}}>
+                  <div style={CFR_SEZ}>Riesami precedenti</div>
+                  <div style={{display:'flex', flexDirection:'column', gap:8}}>
+                    {storico.slice().reverse().map((v, k) => (
+                      <div key={k} style={{padding:'11px 13px', borderRadius:10, background:ADM.NEUTRAL_SOFT}}>
+                        <div style={{display:'flex', alignItems:'baseline', gap:9, flexWrap:'wrap'}}>
+                          <span style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>{cfFmt(v.data)}</span>
+                          <span style={{fontSize:12.2, color:ADM.MUTED}}>{v.chi}</span>
+                          <span style={{fontSize:11.4, color:ADM.MUTED_SOFT}}>
+                            {CFR_PROB[v.prob-1]} × {CFR_IMP[v.impatto-1]} · residuo {cfrLiv(v.residuoProb, v.residuoImpatto)}
+                          </span>
+                        </div>
+                        <div style={{fontSize:12.6, color:ADM.TEXT, marginTop:5, lineHeight:1.5}}>{v.nota}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
-          alignItems:'center', gap:10, flexShrink:0}}>
-          <span style={{fontSize:12, color:ADM.MUTED, flex:1, lineHeight:1.45}}>
+        <div style={{padding:'15px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:12, flexShrink:0}}>
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1, lineHeight:1.45}}>
             {puoSalvare
               ? (nuovo ? 'Il rischio entra nel registro con la data di oggi come prima valutazione.'
                        : 'La data di oggi diventa l’ultimo riesame.')
-              : (nuovo ? 'Servono almeno titolo, responsabile e misure attuate.'
+              : (nuovo ? 'Servono almeno descrizione, responsabile e misure attuate.'
                        : 'Serve l’esito del riesame: senza, non è evidenza.')}
           </span>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
@@ -369,6 +443,7 @@ function CfrModaleRischio({ modo, rischio, onChiudi, onSalva }) {
     </div>
   );
 }
+
 
 // ─── Registro dei rischi ───────────────────────────────────────────────────
 function CfRischi() {
