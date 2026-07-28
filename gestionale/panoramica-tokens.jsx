@@ -181,25 +181,27 @@ window.PN = PN;
     ${press}
     /* Niente flash grigio di sistema: il feedback lo diamo noi. */
     * { -webkit-tap-highlight-color: transparent; }
-    /* Contenitori cliccabili (righe, card, tile): alla pressione si velano.
-       La velatura è un background-image, NON un filter: il filter si applica
-       anche ai figli, e su una card quasi bianca il calo si notava solo sopra
-       il bottone pieno che sta dentro — sembrava che a reagire fosse il bottone.
-       Il background-image invece si dipinge sopra lo sfondo del contenitore ma
-       sotto il contenuto, quindi i figli restano intatti. !important perché
-       molti contenitori hanno lo sfondo inline. Niente transform: su un
-       contenitore creerebbe un containing block. */
+    /* Contenitori cliccabili (righe, card, tile): alla pressione si scurisce
+       TUTTO il contenitore, figli compresi, così si legge come un oggetto solo.
+       Serve il filter proprio per questo: velare solo lo sfondo lasciava i
+       bottoni interni bianchi e brillanti sopra una card scurita, e l'occhio
+       leggeva "ha reagito il bottone". Niente transform, che su un contenitore
+       creerebbe un containing block. */
+    [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]),
+    [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]),
+    a[href] {
+      transition: filter 120ms ease;
+    }
     [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):active,
     [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):active,
     a[href]:active {
-      background-image: linear-gradient(rgba(15, 17, 21, 0.055), rgba(15, 17, 21, 0.055)) !important;
+      filter: brightness(0.93);
     }
     /* Se a essere premuto è un bottone DENTRO il contenitore, reagisce solo lui:
-       il feedback deve dire cosa hai toccato. Regola separata di proposito —
-       dove :has() non c'è, resta almeno la velatura della riga qui sopra. */
+       il feedback deve dire cosa hai toccato, non accendere mezza schermata. */
     [style*="cursor: pointer"]:not(button):not(select):not([data-no-fx]):active:has(button:active),
     [style*="cursor:pointer"]:not(button):not(select):not([data-no-fx]):active:has(button:active) {
-      background-image: none !important;
+      filter: none;
     }
   ` : `
     ${press}

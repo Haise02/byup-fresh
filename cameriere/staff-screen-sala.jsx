@@ -358,8 +358,13 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
           Il tap vive QUI, su tutta la riga: il bersaglio è la card intera, non
           due isole separate. L'unica eccezione è il bottone d'azione, che ferma
           la propagazione perché porta altrove. */}
+      {/* Lo sfondo bianco sta QUI e non solo sulla card: la riga è ciò che si
+          preme, e per scurirsi alla pressione deve avere una superficie propria.
+          Senza, il feedback scuriva solo i figli — cioè il bottone — lasciando
+          il bianco intatto, e sembrava che a reagire fosse "Aggiungi". */}
       <div onClick={bodyTap} style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px',
+        background: '#fff',
         cursor: bodyTap ? 'pointer' : 'default',
       }}>
         {/* Tassello numero: tinto del colore di stato (sfondo tenue + numero nel
