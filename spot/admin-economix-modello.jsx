@@ -99,17 +99,13 @@ function ecoLettura(s, d, frazione) {
     scarto: stimaMese ? (reale - stimaMese) / stimaMese * 100 : 0, letto:c.ultimaLettura };
 }
 
-// Rilettura forzata di una sorgente attiva. E l'unica azione legittima su un
-// collegamento dal backoffice: non riconfigura nulla, chiede solo un giro di
-// lettura adesso invece che al prossimo ciclo.
-const ecoRileggi = (conn) => { conn.ultimaLettura = new Date(); };
-
-// Lettura manuale: e vera immissione di dati, non configurazione, e per questo
-// resta un'azione della schermata.
-function ecoLetturaManuale(conn, importo) {
-  conn.ultimaLettura = new Date();
-  conn.importoManuale = importo;
+// Giorni che restano al consenso PSD2. Sotto i quindici e il caso in cui vale
+// la pena avvisare: rinnovarlo richiede una persona davanti all'home banking.
+function ecoGiorniConsenso(conn) {
+  if (!conn.consensoScadeIl) return null;
+  return Math.ceil((conn.consensoScadeIl.getTime() - Date.now()) / 86400000);
 }
+const ecoBanca = () => ECO_CONNESSIONI.find(c => c.cassa) || null;
 
 // Da quanti giorni una sorgente non risponde. Finche non risponde, le sue righe
 // sono stime: il numero di giorni dice quanto e vecchia l'ultima verita.
@@ -334,7 +330,20 @@ function ecoRiacquisti(mesiProiettati) {
   return out;
 }
 
-// Autonomia: quanti mesi prima che la cassa finisca al ritmo attuale.
+// Autonomia. DUE letture, e non sono intercambiabili:
+//  - col ricavo: cassa diviso il bruciato NETTO (costi meno incassi). E la
+//    definizione standard, e risponde a "quanto dura se le cose vanno come
+//    previsto".
+//  - senza ricavo: cassa diviso i soli costi. E lo scenario di tensione, e
+//    risponde a "quanto durerei se i ricavi si fermassero domani".
+// Su una societa ancora sotto il pareggio le due divergono molto, e mostrarne
+// una sola lascia credere che sia l'unica.
+function ecoRunwaySenzaRicavi(cassa, saldoOggi) {
+  if (!cassa.length) return Infinity;
+  const costiMedi = cassa.reduce((t, x) => t + x.costi + x.iva + x.scadenze, 0) / cassa.length;
+  return costiMedi > 0 ? saldoOggi / costiMedi : Infinity;
+}
+
 function ecoRunway(cassa) {
   const negativo = cassa.find(x => x.saldo <= 0);
   if (!negativo) {
@@ -400,12 +409,15 @@ function ecoStatoPatrimoniale(mix) {
     ce, cassa, crediti, debitiFornitori, ivaDebito, immobilizzazioni };
 }
 
+window.ecoGiorniConsenso = ecoGiorniConsenso;
+window.ecoBanca = ecoBanca;
 window.ecoPrepagati = ecoPrepagati;
 window.ecoRiacquisti = ecoRiacquisti;
 window.ecoIvaAcquisti = ecoIvaAcquisti;
 window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;
 window.ecoRunway = ecoRunway;
+window.ecoRunwaySenzaRicavi = ecoRunwaySenzaRicavi;
 window.ecoStatoPatrimoniale = ecoStatoPatrimoniale;
 window.ecoRegressione = ecoRegressione;
 window.ecoLeveIniziali = ecoLeveIniziali;
@@ -413,8 +425,6 @@ window.ecoProiettaDriver = ecoProiettaDriver;
 window.ecoConsumo = ecoConsumo;
 window.ecoPrezzo = ecoPrezzo;
 window.ecoLettura = ecoLettura;
-window.ecoRileggi = ecoRileggi;
-window.ecoLetturaManuale = ecoLetturaManuale;
 window.ecoGiorniInErrore = ecoGiorniInErrore;
 window.ecoCostoServizio = ecoCostoServizio;
 window.ecoCostiVariabili = ecoCostiVariabili;

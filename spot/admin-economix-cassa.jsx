@@ -13,6 +13,9 @@ function EcoCassa({ mix, leve }) {
   const scadenze = ECO_SCADENZE
     .filter(x => x.quando >= new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1))
     .sort((a, b) => a.quando - b.quando);
+  const banca = ecoBanca();
+  const ggConsenso = banca ? ecoGiorniConsenso(banca) : null;
+  const senzaRicavi = ecoRunwaySenzaRicavi(flussi, saldoOggi);
   const prepagati = ecoPrepagati();
   const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
   const minSaldo = Math.min.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
@@ -20,9 +23,14 @@ function EcoCassa({ mix, leve }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
         {[
-          { et:'Cassa oggi', v:ecoEur(saldoOggi), n:`aggiornata ${ecoQuando(ECO_CASSA.aggiornatoIl)}` },
+          { et:'Cassa oggi', v:ecoEur(saldoOggi),
+            tono: banca && banca.stato === 'errore' ? ADM.DANGER : null,
+            n: !banca ? 'saldo inserito a mano'
+              : banca.stato === 'attivo' ? `letta dal conto ${ecoQuando(banca.ultimaLettura)}`
+              : banca.stato === 'errore' ? `collegamento fermo: saldo di ${ecoQuando(banca.ultimaLettura)}`
+              : 'saldo inserito a mano' },
           { et:'Flusso medio mensile', v:ecoEur(bruciaMedio),
             tono: bruciaMedio >= 0 ? ADM.OK : ADM.DANGER,
             n: bruciaMedio >= 0 ? 'la cassa cresce' : 'quanto esce, al netto di quanto entra' },
@@ -30,10 +38,8 @@ function EcoCassa({ mix, leve }) {
             v: run.oltre
               ? (run.mesi === Infinity ? 'illimitata' : `${Math.floor(run.mesi)} mesi`)
               : `${run.mesi} ${run.mesi === 1 ? 'mese' : 'mesi'}`,
-            n: run.oltre ? 'oltre l’orizzonte di dicembre' : `la cassa va sotto zero a ${run.quando}` },
-          { et:'Cassa a dicembre', v:ecoEur(flussi.length ? flussi[flussi.length - 1].saldo : saldoOggi),
-            tono: (flussi.length ? flussi[flussi.length - 1].saldo : saldoOggi) >= 0 ? ADM.TEXT : ADM.DANGER,
-            n:'alle ipotesi della proiezione' },
+            n: `con i ricavi previsti · senza incassare nulla sarebbero ${
+              senzaRicavi === Infinity ? 'infiniti' : Math.floor(senzaRicavi)} mesi` },
         ].map(c => (
           <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
             <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
@@ -44,6 +50,17 @@ function EcoCassa({ mix, leve }) {
           </div>
         ))}
       </div>
+
+      {/* Il consenso PSD2 scade e nessuno se ne accorge finche la cassa non
+          smette di aggiornarsi: allora l'avviso va qui, dove il saldo si legge. */}
+      {ggConsenso != null && ggConsenso <= 30 && (
+        <div style={{padding:'12px 15px', borderRadius:10, background:ADM.WARN_SOFT, color:'#78350F',
+          fontSize:12.6, lineHeight:1.55}}>
+          Il consenso al conto corrente scade fra <strong>{ggConsenso} giorni</strong>. Alla scadenza
+          il saldo smette di aggiornarsi e resta l’ultimo letto — che sembra buono ma è vecchio.
+          Rinnovarlo richiede una nuova autenticazione sull’home banking.
+        </div>
+      )}
 
       {/* La curva del saldo: dove scende sotto zero e l'unica cosa da vedere. */}
       <div>

@@ -112,19 +112,24 @@ const ECO_STATO_CONN = {
   manuale: { label:'Lettura manuale',tono:'NEUTRAL' },
 };
 
-// Chi mette mano al collegamento e che cosa serve: sono istruzioni, non un
-// modulo. La credenziale non si incolla qui — vive nel gestore dei segreti, e
-// metterla in un campo del backoffice significherebbe scriverla nel database
-// dell'applicazione, dove chiunque abbia accesso a Spot potrebbe leggerla.
-const ECO_METODI = {
-  oauth:  { label:'OAuth', chi:'Chi amministra l’account del fornitore', durata:'un minuto' },
-  ruolo:  { label:'Ruolo delegato', chi:'Chi amministra il cloud', durata:'dieci minuti, una volta sola' },
-  chiave: { label:'Chiave API', chi:'Chi gestisce i segreti dell’infrastruttura', durata:'due minuti, una volta sola' },
-  delega: { label:'Delega amministrativa', chi:'Il commercialista o un intermediario accreditato',
-    durata:'da pochi giorni a qualche settimana' },
-};
-
 const ECO_CONNESSIONI = [
+  // Il conto corrente. A differenza dei fornitori cloud qui c'e uno standard
+  // europeo: PSD2 obbliga le banche a esporre saldi e movimenti a chi ha la
+  // licenza AISP. Non ci vuole la nostra, ci si appoggia a un aggregatore che
+  // la ha gia — e le credenziali della banca non passano mai da noi, perche
+  // l'autenticazione avviene sul sito della banca.
+  //
+  // IL CONSENSO SCADE A 90 GIORNI e va rinnovato con una nuova autenticazione
+  // forte. Se nessuno se ne accorge la cassa smette di aggiornarsi e resta
+  // l'ultimo saldo letto: sembra buono, ma e vecchio. Per questo il conto alla
+  // rovescia sta sulla scheda e non in un registro che nessuno apre.
+  { id:'banca', nome:'Conto corrente', servizi:[], cassa:true,
+    stato:'attivo', ultimaLettura:new Date(ECO_OGGI.getTime() - 4 * 3600000), metodo:'psd2',
+    consensoScadeIl:new Date(ECO_OGGI.getTime() + 23 * 86400000),
+    legge:'Saldo e movimenti del conto, più volte al giorno',
+    passi:['Un aggregatore con licenza AISP fa da tramite: Fabrick, Salt Edge, GoCardless Bank Account Data',
+           'Ci si autentica sul sito della banca e si torna con un consenso — le credenziali non passano da Byup',
+           'Il consenso vale 90 giorni: alla scadenza serve una nuova autenticazione forte'] },
   { id:'aws', nome:'AWS Cost Explorer', servizi:['aws-compute','aws-rds','aws-s3'],
     stato:'attivo', ultimaLettura:new Date(ECO_OGGI.getTime() - 26 * 60000), metodo:'ruolo',
     legge:'Costo maturato per servizio, aggiornato ogni sei ore',
@@ -249,7 +254,6 @@ const ECO_CASSA = {
   giorniIncasso: 2,          // addebito ricorrente: quasi immediato
   giorniPagamento: 30,       // termini medi verso fornitori
   fidoBancario: 0,
-  aggiornatoIl: new Date(ECO_OGGI.getTime() - 18 * 3600000),
 };
 
 // Scadenze note: quelle che non si deducono dai costi ricorrenti perche hanno
@@ -337,7 +341,6 @@ window.ECO_REGIME = ECO_REGIME;
 window.ECO_REGIMI = ECO_REGIMI;
 window.ECO_SERVIZI = ECO_SERVIZI;
 window.ECO_CONNESSIONI = ECO_CONNESSIONI;
-window.ECO_METODI = ECO_METODI;
 window.ECO_PACCHETTI = ECO_PACCHETTI;
 window.ecoTaglio = ecoTaglio;
 window.ecoPrezzoUnitario = ecoPrezzoUnitario;
