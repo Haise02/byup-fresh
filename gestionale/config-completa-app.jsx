@@ -250,6 +250,19 @@ function ConfigCompletaApp() {
             </section>
           )}
 
+          {/* Sezione a se, staccata dal fondo grigio: nella stessa card i
+              dispositivi sembravano campi del modulo delle persone che
+              continuano, e sono un'altra cosa. */}
+          {step === 'personale' && (
+            <section style={{
+              background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+              borderRadius: 14, padding: '20px 22px', marginTop: 16,
+              boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
+            }}>
+              <DispositivoStep setTeam={setTeam}/>
+            </section>
+          )}
+
         </div>
       </main>
 
@@ -326,8 +339,8 @@ function ConfigCompletaApp() {
           display: 'flex', flexDirection: 'column', minHeight: 0,
         }}>
           <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12}}>
-            <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
             <MembriDispositivi team={team} setTeam={setTeam}/>
+            <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
           </div>
         </aside>
       )}
@@ -496,14 +509,17 @@ function RailCard({ children }) {
 function StaffGuidaLink({ onApri }) {
   const [hover, setHover] = React.useState(false);
   return (
-    <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+    // In fondo alla rail e in coral pieno: sopra l'elenco era una riga grigia
+    // che si leggeva prima di quello che conta, qui e l'offerta d'aiuto che
+    // arriva dopo aver guardato chi c'e — ed e l'unica cosa cliccabile rimasta.
+    <div style={{display: 'flex', justifyContent: 'center', paddingTop: 2}}>
       <button onClick={onApri}
         onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
         style={{
           padding: 0, background: 'transparent', border: 'none', cursor: 'pointer',
-          fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600,
-          color: hover ? PN.PINK_DARK : PN.MUTED,
-          textDecoration: 'underline', textUnderlineOffset: 3,
+          fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+          color: hover ? PN.PINK_DARK : PN.PINK,
+          textDecoration: 'underline', textUnderlineOffset: 4, textDecorationThickness: 1.5,
           transition: 'color 150ms ease',
         }}>
         Come creare un membro del team?

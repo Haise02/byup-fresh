@@ -1483,25 +1483,13 @@ window.PERSONALE_TEAM_INITIAL = [
   { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'PG1-cucina',         role: 'Dispositivo cucina', status: 'active' },
 ];
 
-function PersonaleStep({ team, setTeam }) {
-  const [selRole, setSelRole] = React.useState('manager');
-  const [invName, setInvName] = React.useState('');
-  const [invEmail, setInvEmail] = React.useState('');
+// Configurare un dispositivo e l'altra meta del passo: le persone si invitano, i
+// dispositivi si collegano. Vive in una SEZIONE SUA e non sotto lo stesso titolo
+// — sono due lavori diversi, e nella stessa card sembravano un elenco di campi
+// che continua.
+function DispositivoStep({ setTeam }) {
   const [selDevice, setSelDevice] = React.useState('printer');
-  const [showCreateRole, setShowCreateRole] = React.useState(false);
-  // Lo stato del dispositivo vive nello step, non in una modale: la
-  // configurazione e diventata parte della pagina.
   const dev = useDeviceState(AVAILABLE_PRINTERS[0].id);
-  const emailValid = /\S+@\S+\.\S+/.test(invEmail);
-
-  const roleLabel = (STEP_ROLES.find(r => r.id === selRole) || STEP_ROLES[0]).label;
-  const addInvite = () => {
-    if (!emailValid) return;
-    const name = invName.trim() || invEmail.split('@')[0];
-    setTeam(t => [...t, { id: `t${Date.now()}`, kind: 'person', name, email: invEmail.trim(), role: roleLabel, status: 'invited' }]);
-    setInvName(''); setInvEmail('');
-  };
-  const removeMember = (id) => setTeam(t => t.filter(m => m.id !== id));
 
   // Il dispositivo entra nell'elenco e il modulo si svuota: la CTA e la fine di
   // un'operazione, non l'apertura di un'altra schermata.
@@ -1518,45 +1506,6 @@ function PersonaleStep({ team, setTeam }) {
 
   return (
     <div>
-      {/* Card-ruolo: selezionano il ruolo dell'invito rapido qui sotto */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 12}}>
-        {STEP_ROLES.map(r => (
-          <StepRoleCard key={r.id} r={r} on={selRole === r.id} onClick={() => setSelRole(r.id)}/>
-        ))}
-      </div>
-
-      {/* Invito rapido in riga */}
-      <div style={{marginTop: 20}}>
-        <div style={{fontSize: 14.5, fontWeight: 700, marginBottom: 10}}>Invita il team</div>
-        <div style={{display:'flex', gap: 10, alignItems:'stretch'}}>
-          <input value={invName} onChange={e => setInvName(e.target.value)} placeholder="Nome e cognome"
-            style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
-          <input value={invEmail} onChange={e => setInvEmail(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') addInvite(); }} placeholder="Email" type="email"
-            style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
-          <div style={{position:'relative', width: 150, flexShrink: 0}}>
-            <select value={selRole} onChange={e => setSelRole(e.target.value)}
-              style={{
-                width:'100%', height:'100%', padding:'10px 30px 10px 12px',
-                border:`1px solid ${PN.BORDER}`, borderRadius: 9,
-                fontSize: 14.5, fontWeight: 600, fontFamily:'inherit', outline:'none',
-                background: PN.WHITE, color: PN.TEXT,
-                appearance:'none', WebkitAppearance:'none', cursor:'pointer',
-              }}>
-              {STEP_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-            </select>
-            <span style={{position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color: PN.MUTED, display:'inline-flex'}}>
-              <PnI.ChevronDown size={11}/>
-            </span>
-          </div>
-          <AddInviteBtn disabled={!emailValid} onClick={addInvite}/>
-        </div>
-      </div>
-
-      {/* Configurare un dispositivo e il secondo mezzo passo del Personale: le
-          persone si invitano, i dispositivi si collegano. Sta qui e non in fondo
-          all'elenco perche e un'azione, non una riga da aggiungere a una lista. */}
-      <div style={{marginTop: 26}}>
         <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Configura un dispositivo</div>
         <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, marginBottom: 14}}>
           Collega solo i dispositivi che ti servono per iniziare. Potrai aggiungerne altri in seguito.
@@ -1627,8 +1576,67 @@ function PersonaleStep({ team, setTeam }) {
             Configura dispositivo
           </ImpButton>
         </div>
+    </div>
+  );
+}
+
+function PersonaleStep({ team, setTeam }) {
+  const [selRole, setSelRole] = React.useState('manager');
+  const [invName, setInvName] = React.useState('');
+  const [invEmail, setInvEmail] = React.useState('');
+  const [showCreateRole, setShowCreateRole] = React.useState(false);
+  const emailValid = /\S+@\S+\.\S+/.test(invEmail);
+
+  const roleLabel = (STEP_ROLES.find(r => r.id === selRole) || STEP_ROLES[0]).label;
+  const addInvite = () => {
+    if (!emailValid) return;
+    const name = invName.trim() || invEmail.split('@')[0];
+    setTeam(t => [...t, { id: `t${Date.now()}`, kind: 'person', name, email: invEmail.trim(), role: roleLabel, status: 'invited' }]);
+    setInvName(''); setInvEmail('');
+  };
+  const removeMember = (id) => setTeam(t => t.filter(m => m.id !== id));
+
+
+  return (
+    <div>
+      {/* Card-ruolo: selezionano il ruolo dell'invito rapido qui sotto */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 12}}>
+        {STEP_ROLES.map(r => (
+          <StepRoleCard key={r.id} r={r} on={selRole === r.id} onClick={() => setSelRole(r.id)}/>
+        ))}
       </div>
 
+      {/* Invito rapido in riga */}
+      <div style={{marginTop: 20}}>
+        <div style={{fontSize: 14.5, fontWeight: 700, marginBottom: 10}}>Invita il team</div>
+        <div style={{display:'flex', gap: 10, alignItems:'stretch'}}>
+          <input value={invName} onChange={e => setInvName(e.target.value)} placeholder="Nome e cognome"
+            style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
+          <input value={invEmail} onChange={e => setInvEmail(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addInvite(); }} placeholder="Email" type="email"
+            style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
+          <div style={{position:'relative', width: 150, flexShrink: 0}}>
+            <select value={selRole} onChange={e => setSelRole(e.target.value)}
+              style={{
+                width:'100%', height:'100%', padding:'10px 30px 10px 12px',
+                border:`1px solid ${PN.BORDER}`, borderRadius: 9,
+                fontSize: 14.5, fontWeight: 600, fontFamily:'inherit', outline:'none',
+                background: PN.WHITE, color: PN.TEXT,
+                appearance:'none', WebkitAppearance:'none', cursor:'pointer',
+              }}>
+              {STEP_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+            </select>
+            <span style={{position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color: PN.MUTED, display:'inline-flex'}}>
+              <PnI.ChevronDown size={11}/>
+            </span>
+          </div>
+          <AddInviteBtn disabled={!emailValid} onClick={addInvite}/>
+        </div>
+      </div>
+
+      {/* Configurare un dispositivo e il secondo mezzo passo del Personale: le
+          persone si invitano, i dispositivi si collegano. Sta qui e non in fondo
+          all'elenco perche e un'azione, non una riga da aggiungere a una lista. */}
       {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
     </div>
   );
@@ -1729,9 +1737,10 @@ function AddInviteBtn({ disabled, onClick }) {
         transition:'border-color 150ms ease, transform 130ms ease, opacity 150ms ease',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
       }}>
-      <PnI.Plus size={12}/> Aggiungi invito
+      <PnI.Plus size={12}/> Invita
     </button>
   );
 }
 window.ImpPersonale = ImpPersonale;
 window.PersonaleStep = PersonaleStep;
+window.DispositivoStep = DispositivoStep;
