@@ -30,6 +30,36 @@ function ConfigCompletaApp() {
   const [team, setTeam] = React.useState(() => window.PERSONALE_TEAM_INITIAL || []);
   const [guidaStaff, setGuidaStaff] = React.useState(false);
 
+  // «Membri e dispositivi» parte alla stessa altezza di «Configura un
+  // dispositivo». La distanza NON e un numero fisso: dipende da quante righe
+  // occupano i testi delle tessere-ruolo, che vanno a capo o no a seconda della
+  // larghezza — misurata, va da 680 a 705px sulla stessa pagina. Quindi si
+  // misura a ogni cambio di dimensione invece di scriverla.
+  const railCardRef = React.useRef(null);
+  React.useLayoutEffect(() => {
+    if (step !== 'personale') return;
+    const allinea = () => {
+      const sez = document.querySelector('[data-cfg-dispositivo]');
+      const card = railCardRef.current;
+      if (!sez || !card) return;
+      // Azzerare prima di misurare: senza, la misura include il margine
+      // precedente e a ogni passata la card scende ancora.
+      card.style.marginTop = '0px';
+      // getBoundingClientRect restituisce pixel VISIVI e il frame ha uno zoom:
+      // marginTop li vuole di layout, quindi il delta si divide per lo zoom.
+      const frame = document.querySelector('.frame');
+      const z = frame ? (parseFloat(getComputedStyle(frame).zoom) || 1) : 1;
+      const delta = (sez.getBoundingClientRect().top - card.getBoundingClientRect().top) / z;
+      card.style.marginTop = Math.max(0, Math.round(delta)) + 'px';
+    };
+    allinea();
+    const colonna = document.querySelector('[data-cfg-dispositivo]');
+    const ro = colonna && colonna.parentElement ? new ResizeObserver(allinea) : null;
+    if (ro) ro.observe(colonna.parentElement);
+    window.addEventListener('resize', allinea);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', allinea); };
+  }, [step, team]);
+
 
   // Checklist di completamento: ogni voce sa in quale step e sezione vive,
   // così i chip incompleti portano dritti al punto giusto.
@@ -254,7 +284,7 @@ function ConfigCompletaApp() {
               dispositivi sembravano campi del modulo delle persone che
               continuano, e sono un'altra cosa. */}
           {step === 'personale' && (
-            <section style={{
+            <section data-cfg-dispositivo style={{
               background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
               borderRadius: 14, padding: '20px 22px', marginTop: 16,
               boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
@@ -339,7 +369,9 @@ function ConfigCompletaApp() {
           display: 'flex', flexDirection: 'column', minHeight: 0,
         }}>
           <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12}}>
-            <MembriDispositivi team={team} setTeam={setTeam}/>
+            <div ref={railCardRef} data-cfg-membri>
+              <MembriDispositivi team={team} setTeam={setTeam}/>
+            </div>
             <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
           </div>
         </aside>
