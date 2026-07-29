@@ -361,6 +361,10 @@ function EcoCosti({ mix, forza }) {
   const etichetta = modo === 'mese'
     ? `${ECO_MESI_LUNGHI[primo.data.getMonth()]} ${primo.data.getFullYear()}`
     : String(anno);
+  // Etichetta breve per le schede che seguono la prima: il mese da solo quando
+  // si guarda un mese, l'anno quando si guarda un anno. L'anno per esteso lo
+  // dice gia la scheda del totale, e ripeterlo tre volte e rumore.
+  const periodoBreve = modo === 'mese' ? ECO_MESI_LUNGHI[primo.data.getMonth()] : String(anno);
   const sottoPeriodo = modo === 'mese'
     ? (primo.corrente ? `al giorno ${ECO_OGGI.getDate()} di ${ecoGiorniNelMese(ECO_OGGI)}` : 'mese chiuso')
     : (anno === ECO_OGGI.getFullYear()
@@ -429,10 +433,13 @@ function EcoCosti({ mix, forza }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         {[
           { et:`Costi ${etichetta}`, v:ecoEur(totVar + totFissi), n:sottoPeriodo },
-          { et:'Costi a consumo', v:ecoEur(totVar), n:`${(totVar / (totVar + totFissi) * 100).toFixed(0)}% del totale` },
-          { et:'Costi fissi', v:ecoEur(totFissi),
+          { et:`Costi a consumo ${periodoBreve}`, v:ecoEur(totVar),
+            n:`${(totVar / (totVar + totFissi) * 100).toFixed(0)}% del totale` },
+          { et:`Costi fissi ${periodoBreve}`, v:ecoEur(totFissi),
             n: unaTantum > 0 ? `di cui ${ecoEur(unaTantum)} una tantum` : 'nessuna voce una tantum' },
-          { et:'Costo per locale attivo', v:ecoEur2((totVar + totFissi) / (modo === 'mese' ? ultimo.localiAttivi : mesi.reduce((t,m)=>t+m.localiAttivi,0) / mesi.length)),
+          // Anche qui il periodo, altrimenti 218 al mese e 2.138 all'anno finiscono
+          // sotto la stessa dicitura e sembrano lo stesso numero sbagliato.
+          { et:`Per locale attivo ${periodoBreve}`, v:ecoEur2((totVar + totFissi) / (modo === 'mese' ? ultimo.localiAttivi : mesi.reduce((t,m)=>t+m.localiAttivi,0) / mesi.length)),
             n: modo === 'mese' ? `su ${ultimo.localiAttivi} locali attivi` : `su ${Math.round(mesi.reduce((t,m)=>t+m.localiAttivi,0) / mesi.length)} locali attivi in media` },
         ].map(c => (
           <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
