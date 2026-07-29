@@ -1075,6 +1075,12 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
   const [moveSubOpen, setMoveSubOpen] = React.useState(false);
   const [moving, setMoving] = React.useState(false);
   const [hover, setHover] = React.useState(false);
+  // Rosso e curva della Sala, non un secondo rosso di questa pagina: e lo
+  // stesso tavolo, deve accendersi allo stesso modo.
+  const SEL = '#E32459';
+  const POP = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+  const ombraSel = `0 16px 36px -10px ${SEL}35`;
+  const scalaSel = selected ? 'scale(1.012)' : 'none';
 
   // Chiudi il submenu se il menu padre si richiude
   React.useEffect(() => { if (!menuOpen) setMoveSubOpen(false); }, [menuOpen]);
@@ -1109,22 +1115,26 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
       onKeyDown={e => { if (!moving && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); onSelect(); } }}
       style={{
         padding: '12px 14px', position:'relative',
-        border:`1.5px solid ${selected ? PN.PINK : PN.BORDER_SOFT}`,
+        border:`1.5px solid ${selected ? 'rgba(227, 36, 89, 0.42)' : PN.BORDER_SOFT}`,
         borderRadius: 10,
-        background: selected ? PN.PINK_SOFT : PN.WHITE,
+        // Tinta dello stesso rosso del bordo: il corallo di PN.PINK_SOFT era di
+        // un'altra famiglia e accanto al cremisi si leggeva come un secondo
+        // rosso. La velatura resta perche in questa lista la selezione e
+        // multipla e va vista con la coda dell'occhio.
+        background: selected ? 'rgba(227, 36, 89, 0.07)' : PN.WHITE,
         opacity: moving ? 0 : (isDragging ? 0.45 : (t.disabled ? 0.78 : 1)),
         transform: moving
           ? 'translateX(24px) scale(0.94)'
-          : (isDragging ? 'scale(0.97) rotate(-1.2deg)' : 'none'),
+          : (isDragging ? 'scale(0.97) rotate(-1.2deg)' : scalaSel),
         pointerEvents: moving ? 'none' : 'auto',
         zIndex: menuOpen ? 50 : (isDragging ? 40 : 1),
         cursor: moving ? 'default' : (anyDragging ? 'grabbing' : 'grab'),
         userSelect: 'none',
-        boxShadow: isDragging ? '0 14px 32px rgba(63,20,36,0.18)' : 'none',
-        transition: 'opacity 0.18s ease, transform 0.18s cubic-bezier(.4,0,.2,1), border-color 0.15s, background 0.15s, box-shadow 0.15s',
+        boxShadow: isDragging ? '0 14px 32px rgba(63,20,36,0.18)' : (selected ? ombraSel : 'none'),
+        transition: `opacity 0.18s ease, transform 520ms ${POP}, border-color 0.26s ease-out, background 0.15s, box-shadow 0.38s ease-out`,
       }}
-      onMouseEnter={e => { setHover(true); if (!menuOpen && !moving && !anyDragging) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(63,20,36,0.06)'; }}}
-      onMouseLeave={e => { setHover(false); if (!moving && !isDragging) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}}
+      onMouseEnter={e => { setHover(true); if (!menuOpen && !moving && !anyDragging) { e.currentTarget.style.transform = selected ? 'scale(1.012) translateY(-1px)' : 'translateY(-1px)'; e.currentTarget.style.boxShadow = selected ? ombraSel : '0 4px 10px rgba(63,20,36,0.06)'; }}}
+      onMouseLeave={e => { setHover(false); if (!moving && !isDragging) { e.currentTarget.style.transform = scalaSel; e.currentTarget.style.boxShadow = selected ? ombraSel : 'none'; }}}
     >
       <div style={{display:'flex', alignItems:'center', gap: 12}}>
         {/* Badge tondo col numero: stesso linguaggio della Sala, dove un tavolo
@@ -1133,15 +1143,19 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
             sfuggita — la pastiglia accanto resta e lo dice a parole. */}
         <div title={t.name} style={{
           width: 48, height: 48, borderRadius:'50%', flexShrink: 0,
-          background: t.disabled ? '#F1F3F5' : PN.GREEN_SOFT,
-          boxShadow: `inset 0 0 0 2px ${t.disabled ? '#9CA3AF' : PN.GREEN}55`,
+          background: selected ? SEL : (t.disabled ? '#F1F3F5' : PN.GREEN_SOFT),
+          boxShadow: selected
+            ? `0 8px 18px -6px ${SEL}80`
+            : `inset 0 0 0 2px ${t.disabled ? '#9CA3AF' : PN.GREEN}55`,
           display:'grid', placeItems:'center',
-          transition:'background .15s, box-shadow .15s',
+          animation: selected ? `tcBadgePop 620ms ${POP} both` : 'none',
+          transition:'background 340ms ease-out, box-shadow 340ms ease-out',
         }}>
           <span style={{
             fontSize: String(numero).length > 2 ? 15 : 21, fontWeight: 900, lineHeight: 1,
-            color: t.disabled ? PN.MUTED : PN.TEXT,
+            color: selected ? '#FFFFFF' : (t.disabled ? PN.MUTED : PN.TEXT),
             letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums',
+            transition:'color 340ms ease-out',
           }}>{numero}</span>
         </div>
 
@@ -2069,6 +2083,14 @@ if (typeof document !== 'undefined' && !document.getElementById('sala-anims')) {
     @keyframes tcMenuIn { from { opacity: 0; transform: translateY(-4px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @keyframes tcSubIn { from { opacity: 0; transform: translateY(-4px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 400px; } }
     @keyframes tcSubItemIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+    /* Stesso movimento del badge in Sala (sala-card.jsx, salaBadgePop): il
+       tavolo selezionato e la stessa cosa nelle due schermate, e se si muove
+       in due modi diversi sembrano due oggetti diversi. */
+    @keyframes tcBadgePop {
+      0%   { transform: scale(1) rotate(0deg); }
+      45%  { transform: scale(1.18) rotate(-7deg); }
+      100% { transform: scale(1.08) rotate(-3deg); }
+    }
     @keyframes salaDropPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 100, 0.0); } 50% { box-shadow: 0 0 0 4px rgba(220, 38, 100, 0.12); } }
     @keyframes dropHintIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
     @keyframes salaAshCard { 0% { opacity: 1; transform: none; filter: none; } 25% { opacity: 0.96; } 100% { opacity: 0; transform: translate(26px, -34px) rotate(6deg) scale(0.88); filter: blur(5px); } }
