@@ -1834,9 +1834,9 @@ function ConfirmDialog({ title, msg, danger, confirmLabel, cancelLabel, singleAc
 // solo a fine animazione tavoli e QR vengono eliminati davvero da tutte le sale.
 function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
   const [burning, setBurning] = React.useState(false);
-  // 9 e non 12: con le tessere vere della mappa (sedie comprese) tre colonne
-  // respirano meglio di quattro, e tre righe bastano a dire "questi muoiono".
-  const shown = tavoli.slice(0, 9);
+  // Quattro tessere in croce: due righe da due bastano a dire "questi
+  // muoiono", il conto vero lo fa la riga «…e altri N tavoli» sotto.
+  const shown = tavoli.slice(0, 4);
   const extra = tavoli.length - shown.length;
 
   // Particelle di cenere per card, generate una sola volta al mount
@@ -1864,7 +1864,7 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
   // corpo glass, sedie e numero — cosi quello che brucia e riconoscibile come
   // quello che si e appena disegnato. unit piccola, orientazione forzata a
   // orizzontale: qui e una galleria d'addio, non una planimetria.
-  const U = 40;
+  const U = 48;
   const tessera = (t) => {
     const numero = (String(t.name || '').match(/\d+/) || [t.name || '?'])[0];
     const seats = t.coperti || 4;
@@ -1928,7 +1928,7 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
         {shown.length > 0 && (
           <div style={MODAL_BODY}>
             <div style={{
-              display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 10,
+              display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 10,
               padding: 14, borderRadius: 14,
               background:'#FAFBFC', border:`1px dashed ${PN.BORDER}`,
             }}>
@@ -1944,7 +1944,7 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
                   }}>
                     {/* Cella a altezza fissa: le sedie sporgono dal corpo e
                         vivono in questo margine, come nel gutter della mappa */}
-                    <div style={{height: 74, display:'grid', placeItems:'center'}}>
+                    <div style={{height: 88, display:'grid', placeItems:'center'}}>
                       {tessera(t)}
                     </div>
                     <div style={{fontSize: 12, fontWeight: 700, color: PN.TEXT}}>{t.name}</div>
