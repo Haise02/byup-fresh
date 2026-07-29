@@ -1227,8 +1227,8 @@ function AccessReview() {
 
       {/* Popup revoca — il motivo è obbligatorio, senza non è evidenza */}
       {revoca && (
-        <div onClick={()=>setRevoca(null)} style={{position:'absolute', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)'}}>
+        <div onClick={()=>setRevoca(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:460, maxWidth:'90%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>Revocare l'accesso a {revoca.nome}?</div>
@@ -1253,8 +1253,8 @@ function AccessReview() {
 
       {/* Popup conferma — confermare un accesso è un'attestazione, non un click */}
       {conferma && (
-        <div onClick={()=>setConferma(null)} style={{position:'absolute', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)'}}>
+        <div onClick={()=>setConferma(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'90%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
@@ -1290,8 +1290,8 @@ function AccessReview() {
 
       {/* Popup conferma in blocco */}
       {confermaBlocco && (
-        <div onClick={()=>setConfermaBlocco(false)} style={{position:'absolute', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)'}}>
+        <div onClick={()=>setConfermaBlocco(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
@@ -1318,8 +1318,8 @@ function AccessReview() {
 
       {/* Popup chiusura — la firma */}
       {confermaChiusura && (
-        <div onClick={()=>setConfermaChiusura(false)} style={{position:'absolute', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)'}}>
+        <div onClick={()=>setConfermaChiusura(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>Chiudere e firmare il riesame {camp.periodo}?</div>

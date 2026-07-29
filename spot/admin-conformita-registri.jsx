@@ -83,24 +83,28 @@ function CfrChips({ items, titolo }) {
   );
 }
 
-// Blocco livello: numero grande + la moltiplicazione che lo genera, così il
-// numero è verificabile a occhio e non è un voto calato dall'alto.
+// Blocco livello: la pastiglia con il livello e la fascia, e sotto i due nomi
+// che lo generano. Non «3 × 4»: quello è il punteggio, e un punteggio non si
+// legge. «Possibile × Grave» si legge, e rende la pastiglia verificabile a
+// occhio invece che un voto calato dall'alto.
 function CfrLivello({ p, i, forte, nota, notaTono }) {
   const liv = cfrLiv(p, i);
   const alta = cfrFascia(liv) === 'alto';
   return (
-    <span style={{display:'inline-flex', flexDirection:'column', alignItems:'flex-start', gap:2}}>
-      <span style={{display:'inline-flex', alignItems:'baseline', gap:5, padding:'2px 8px', borderRadius:6,
-        background: alta ? ADM.PINK : forte ? 'rgba(49,53,61,0.10)' : 'rgba(49,53,61,0.05)',
-        color: alta ? '#fff' : ADM.INK}}>
-        <span style={{fontSize:14.5, fontWeight:800, letterSpacing:'-0.01em'}}>{liv}</span>
-        <span style={{fontSize:10.5, fontWeight:700, opacity:0.7}}>{cfrFascia(liv)}</span>
-      </span>
-      {/* La nota sta sulla stessa riga di "p × i" così i due blocchi inerente e
-          residuo restano alti uguali e le pastiglie si allineano fra loro. */}
-      <span style={{display:'inline-flex', alignItems:'baseline', gap:6, whiteSpace:'nowrap'}}>
-        <span style={{fontSize:11, color:ADM.MUTED_SOFT}}>{p} × {i}</span>
+    <span style={{display:'inline-flex', flexDirection:'column', alignItems:'flex-start', gap:3}}>
+      {/* La nota sta accanto alla pastiglia, non sotto: così inerente e residuo
+          restano alti uguali e le pastiglie si allineano fra loro. */}
+      <span style={{display:'inline-flex', alignItems:'baseline', gap:6}}>
+        <span style={{display:'inline-flex', alignItems:'baseline', gap:5, padding:'2px 8px', borderRadius:6,
+          background: alta ? ADM.PINK : forte ? 'rgba(49,53,61,0.10)' : 'rgba(49,53,61,0.05)',
+          color: alta ? '#fff' : ADM.INK}}>
+          <span style={{fontSize:14.5, fontWeight:800, letterSpacing:'-0.01em'}}>{liv}</span>
+          <span style={{fontSize:10.5, fontWeight:700, opacity:0.7}}>{cfrFascia(liv)}</span>
+        </span>
         {nota && <span style={{fontSize:11, fontWeight:700, color: notaTono || ADM.MUTED_SOFT}}>{nota}</span>}
+      </span>
+      <span style={{fontSize:10.8, color:ADM.MUTED_SOFT, lineHeight:1.3}}>
+        {CFR_PROB[p-1]} × {CFR_IMP[i-1]}
       </span>
     </span>
   );
@@ -280,13 +284,11 @@ const CFR_P = { fontSize:13.4, color:ADM.TEXT, lineHeight:1.68, margin:'0 0 12px
 
 function CfrMetodologia({ onChiudi }) {
   return (
-    <div onClick={onChiudi} style={{position:'absolute', inset:0, zIndex:60,
-      background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
-      <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
-      <div style={{transform:'translateY(-50%)'}}>
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
       <div data-modale="metodologia" onClick={e=>e.stopPropagation()} style={{width:820, maxWidth:'94%', background:'#fff', borderRadius:16,
         boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
-        maxHeight:700, display:'flex', flexDirection:'column'}}>
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
 
         {/* Frontespizio: versione, approvazione e prossimo riesame stanno in
             testa perché una metodologia è un documento controllato, e la prima
@@ -456,8 +458,6 @@ function CfrMetodologia({ onChiudi }) {
           </div>
         </div>
       </div>
-      </div>
-      </div>
     </div>
   );
 }
@@ -563,13 +563,11 @@ function CfrModaleRischio({ modo, rischio, onChiudi, onSalva }) {
   const cat = CFR_CATEGORIE.find(c => c.id === b.categoria) || {};
 
   return (
-    <div onClick={onChiudi} style={{position:'absolute', inset:0, zIndex:60,
-      background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
-      <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
-      <div style={{transform:'translateY(-50%)'}}>
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
       <div data-modale="rischio" onClick={e=>e.stopPropagation()} style={{width:740, maxWidth:'92%', background:'#fff', borderRadius:16,
         boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
-        maxHeight:660, display:'flex', flexDirection:'column'}}>
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
 
         <div style={{padding:'20px 26px 16px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
           <div style={{fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>
@@ -714,8 +712,6 @@ function CfrModaleRischio({ modo, rischio, onChiudi, onSalva }) {
           </AdmButton>
         </div>
       </div>
-      </div>
-      </div>
     </div>
   );
 }
@@ -798,7 +794,7 @@ function CfRischi() {
   // Niente colonna Annex A: la mappatura dei controlli è già nel dettaglio della
   // riga, e un registro non si scorre cercando «A.5.18» a occhio. La larghezza
   // recuperata va alla descrizione, che invece si legge.
-  const GRID = 'minmax(0,2.6fr) 96px 116px 1fr 1.2fr 1.35fr 30px';
+  const GRID = 'minmax(0,2.2fr) 124px 148px 0.95fr 1.15fr 1.3fr 30px';
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
@@ -1154,10 +1150,8 @@ function CfFornitori() {
 
       {/* Popup conferma fornitore */}
       {conferma && (
-        <div onClick={()=>setConferma(null)} style={{position:'absolute', inset:0, zIndex:60,
-          background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
-          <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
-          <div style={{transform:'translateY(-50%)'}}>
+        <div onClick={()=>setConferma(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
@@ -1196,8 +1190,6 @@ function CfFornitori() {
               <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(null)}>Annulla</AdmButton>
               <AdmButton variant="primary" size="sm" onClick={confermaFornitore}>Registra il riesame</AdmButton>
             </div>
-          </div>
-          </div>
           </div>
         </div>
       )}
