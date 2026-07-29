@@ -496,8 +496,8 @@ function CfAudit({ onVai }) {
 
       {/* Conferma: il verbale è evidenza per due certificazioni */}
       {conferma && (
-        <div onClick={()=>setConferma(false)} style={{position:'absolute', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)'}}>
+        <div onClick={()=>setConferma(false)} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'90%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>

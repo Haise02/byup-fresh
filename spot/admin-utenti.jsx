@@ -596,7 +596,7 @@ function UtenteDrawer({ utente: u, onClose }) {
 
         {/* ═══ Popup conferma: rimozione recensione ═══ */}
         {revPopup && (
-          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setRevPopup(null)}>
+          <div style={{position:'fixed', inset:0, zIndex:20, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>setRevPopup(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:430, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
               <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere la recensione su {revPopup.locale.nome}?</div>
               <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione sparisce dalla scheda del locale. {form.nome} riceve una notifica con il motivo. L'azione viene registrata nell'audit log.</div>
@@ -612,7 +612,7 @@ function UtenteDrawer({ utente: u, onClose }) {
 
         {/* ═══ Popup conferma: carica / storna byuppini ═══ */}
         {byupPopup && (
-          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setByupPopup(null)}>
+          <div style={{position:'fixed', inset:0, zIndex:20, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>setByupPopup(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:380, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
               <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>{byupPopup === 'sub' ? 'Storna byuppini' : 'Carica byuppini'}</div>
               <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>
@@ -637,7 +637,7 @@ function UtenteDrawer({ utente: u, onClose }) {
 
         {/* ═══ Popup conferma: ban / rimozione ban ═══ */}
         {banPopup && (
-          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setBanPopup(null)}>
+          <div style={{position:'fixed', inset:0, zIndex:20, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>setBanPopup(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:410, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
               {banPopup === 'shadow' ? (<>
                 <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Shadowban per {form.nome}?</div>
@@ -682,7 +682,7 @@ function UtenteDrawer({ utente: u, onClose }) {
 
         {/* ═══ Popup conferma: eliminazione account ═══ */}
         {deletePopup && (
-          <div style={{position:'absolute', inset:0, zIndex:20, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setDeletePopup(false)}>
+          <div style={{position:'fixed', inset:0, zIndex:20, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>setDeletePopup(false)}>
             <div onClick={e=>e.stopPropagation()} style={{width:400, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
               <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Eliminare l'account di {form.nome}?</div>
               <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
