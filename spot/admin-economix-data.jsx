@@ -305,9 +305,10 @@ const ECO_SCADENZE = [
 // voci in fila si leggono peggio di quindici voci in cinque famiglie.
 const ECO_CATEGORIE = [
   { g:'Persone',        voci:['Personale', 'Consulenze', 'Formazione'] },
-  { g:'Tecnologia',     voci:['Cloud', 'API', 'Software', 'Attrezzature'] },
+  { g:'Tecnologia',     voci:['Cloud', 'API', 'Software', 'Computer ed elettronica'] },
   { g:'Crescita',       voci:['Marketing', 'Viaggi e trasferte'] },
   { g:'Struttura',      voci:['Ufficio e spese generali', 'Assicurazioni', 'Licenze e certificazioni'] },
+  { g:'Beni durevoli',  voci:['Attrezzature e macchinari', 'Mobili e arredi', 'Immobili', 'Terreni'] },
   { g:'Amministrazione',voci:['Banca e finanziari', 'Imposte e diritti', 'Altro'] },
 ];
 
@@ -328,16 +329,30 @@ const ECO_SOGLIA_CESPITE = 516.46;
 // senza accorgersene. Il primo esercizio va a meta aliquota, qualunque sia il
 // mese d'acquisto.
 const ECO_DURATE_AMM = [
-  { anni:0, v:100,   label:'Tutto nell’anno · sotto €516,46' },
-  { anni:3, v:33.33, label:'3 anni · 33%' },
-  { anni:4, v:25,    label:'4 anni · 25%' },
-  { anni:5, v:20,    label:'5 anni · 20% · computer, telefoni, elettronica' },
-  { anni:7, v:15,    label:'7 anni · 15% · macchinari e impianti' },
-  { anni:8, v:12,    label:'8 anni · 12% · mobili e arredi' },
+  { anni:0,  v:0,     label:'Non si ammortizza · terreni' },
+  { anni:0,  v:100,   label:'Tutto nell’anno · sotto €516,46' },
+  { anni:3,  v:33.33, label:'3 anni · 33%' },
+  { anni:4,  v:25,    label:'4 anni · 25%' },
+  { anni:5,  v:20,    label:'5 anni · 20% · computer, telefoni, elettronica' },
+  { anni:7,  v:15,    label:'7 anni · 15% · attrezzature e macchinari' },
+  { anni:8,  v:12,    label:'8 anni · 12% · mobili e arredi' },
+  { anni:33, v:3,     label:'33 anni · 3% · fabbricati' },
 ];
-// Categorie che quasi sempre sono beni durevoli: sceglierle propone da sole la
-// natura giusta, invece di lasciare che un macchinario entri come spesa.
-const ECO_CAT_DUREVOLI = ['Attrezzature'];
+// Categorie che sono beni durevoli, con l'aliquota che si usa di norma per
+// ciascuna: sceglierne una propone da sola la natura e la durata giuste,
+// invece di lasciare che un macchinario entri come spesa del mese perche
+// nessuno ha toccato un secondo menu.
+//
+// Il terreno sta a zero e non e una svista: un terreno non perde valore con
+// l'uso, quindi non si ammortizza mai. Resta un bene — esce dalla cassa e sta
+// nell'attivo al costo — ma il conto economico non lo vede passare.
+const ECO_CAT_DUREVOLI = {
+  'Computer ed elettronica':   20,
+  'Attrezzature e macchinari': 15,
+  'Mobili e arredi':           12,
+  'Immobili':                   3,
+  'Terreni':                    0,
+};
 
 // ─── Stato patrimoniale ────────────────────────────────────────────────────
 // Le voci che NON si deducono dal conto economico e vanno inserite: capitale,

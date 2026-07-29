@@ -8,6 +8,13 @@ const ECO_H = { fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'u
   letterSpacing:'0.06em', marginBottom:10 };
 // Titolo di blocco: sta sopra piu tabelle e ne comanda i controlli, quindi pesa
 // piu delle intestazioni delle singole tabelle invece di confondersi con loro.
+// Zero E un'aliquota valida — i terreni non si ammortizzano — quindi `|| 20` la
+// scartava perche falsy e faceva ammortizzare un terreno al 20%. La modale
+// diceva la cosa giusta e il salvataggio ne scriveva un'altra.
+const ecoAliquotaValida = (v) => {
+  const n = parseFloat(String(v).replace(',', '.'));
+  return isNaN(n) ? 20 : n;
+};
 const ECO_TITOLO = { fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
   letterSpacing:'0.08em' };
 const ECO_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:9,
@@ -104,9 +111,12 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
   // Scegliere «Attrezzature» dice gia che si sta comprando qualcosa che dura:
   // la natura si sposta da sola, altrimenti un macchinario entrerebbe come spesa
   // del mese solo perche nessuno ha toccato un secondo menu.
-  const cambiaCategoria = (c) => setB(x => ({ ...x, categoria:c,
-    tipo: !modifica && ECO_CAT_DUREVOLI.indexOf(c) !== -1 ? 'cespite' : x.tipo,
-    periodicita: ECO_CAT_DUREVOLI.indexOf(c) !== -1 ? 'una-tantum' : x.periodicita }));
+  // Cambiando categoria la durata proposta torna a seguire la categoria: se uno
+  // passa da un computer a un terreno, tenergli il 20% scelto prima gli farebbe
+  // ammortizzare un terreno.
+  const cambiaCategoria = (c) => setB(x => ({ ...x, categoria:c, ammScelto:false,
+    tipo: !modifica && durevole(c) ? 'cespite' : x.tipo,
+    periodicita: durevole(c) ? 'una-tantum' : x.periodicita }));
   const [file, setFile] = useStateEco(null);
   const allegata = modifica && costo.fattura ? ECO_FATTURE.find(x => x.id === costo.fattura) : null;
   // Si scrive l'imponibile OPPURE il totale: sono le due cifre che stanno sulla
@@ -131,12 +141,13 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
     const a = num(b.aliquota) / 100;
     agg('importo', num(v) > 0 ? fmt(num(v) / (1 + a)) : '');
   };
+  const durevole = (c) => ECO_CAT_DUREVOLI[c] != null;
   // Chi sceglie «bene strumentale» sta quasi sempre comprando attrezzatura:
   // lasciare «Software» costringerebbe a correggere la categoria ogni volta.
   const cambiaTipo = (t) => setB(x => ({ ...x, tipo:t,
     periodicita: t === 'cespite' ? 'una-tantum' : x.periodicita,
-    categoria: t === 'cespite' && x.categoria === 'Software' ? 'Attrezzature'
-      : t === 'costo' && x.categoria === 'Attrezzature' ? 'Software' : x.categoria }));
+    categoria: t === 'cespite' && !durevole(x.categoria) ? 'Computer ed elettronica'
+      : t === 'costo' && durevole(x.categoria) ? 'Software' : x.categoria }));
   const xml = !!file && /\.xml$/i.test(file);
   const imponibile = parseFloat(String(b.importo).replace(',', '.')) || 0;
   const iva = imponibile * (parseFloat(b.aliquota) || 0) / 100;
@@ -147,7 +158,13 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
   // seguire l'importo mentre lo si scrive: fissarla all'apertura della modale la
   // lasciava al 100% anche dopo aver digitato 2.400 euro, perche quando il tipo
   // e stato scelto il campo era ancora vuoto.
-  const ammProposta = imponibile > 0 && imponibile < ECO_SOGLIA_CESPITE ? '100' : '20';
+  // La proposta viene dalla categoria quando la categoria lo dice; sotto la
+  // soglia di legge si deduce tutto nell'anno, ma non un terreno, che non si
+  // ammortizza a nessun importo.
+  const daCat = ECO_CAT_DUREVOLI[b.categoria];
+  const ammProposta = daCat === 0 ? '0'
+    : imponibile > 0 && imponibile < ECO_SOGLIA_CESPITE ? '100'
+    : String(daCat != null ? daCat : 20);
   const durata = ECO_DURATE_AMM.find(x => String(x.v) === String(b.ammScelto ? b.amm : ammProposta));
   const amm = b.ammScelto ? b.amm : ammProposta;
   const quotaAnnua = imponibile * (parseFloat(amm) || 0) / 100;
@@ -252,9 +269,11 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
             </div>
             {cespite ? (
               <EcoCampo etichetta="In quanto tempo si ammortizza"
-                aiuto={imponibile > 0 && quotaAnnua > 0
-                  ? `${ecoEur2(quotaAnnua / 12)} al mese${durata && durata.anni ? ` per ${durata.anni} anni` : ''} · il primo esercizio a metà aliquota, come prevede la norma`
-                  : null}>
+                aiuto={(parseFloat(amm) || 0) === 0
+                  ? 'Un terreno non perde valore con l’uso: esce dalla cassa e resta nell’attivo al costo, ma non passa mai dal conto economico.'
+                  : imponibile > 0 && quotaAnnua > 0
+                    ? `${ecoEur2(quotaAnnua / 12)} al mese${durata && durata.anni ? ` per ${durata.anni} anni` : ''} · il primo esercizio a metà aliquota, come prevede la norma`
+                    : null}>
                 <select value={amm} onChange={e=>setB(x => ({ ...x, amm:e.target.value, ammScelto:true }))}
                   style={ECO_SEL}>
                   {ECO_DURATE_AMM.map(a => <option key={a.v} value={a.v}>{a.label}</option>)}
@@ -329,7 +348,8 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
           <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
             {!ok ? (cespite ? 'Servono il bene e l’imponibile.' : 'Servono voce e imponibile.')
               : cespite
-                ? `Dalla cassa ${ecoEur2(imponibile + iva)} oggi, nel conto economico ${ecoEur2(quotaAnnua / 12)} al mese.`
+                ? `Dalla cassa ${ecoEur2(imponibile + iva)} oggi, nel conto economico ${
+                    quotaAnnua > 0 ? `${ecoEur2(quotaAnnua / 12)} al mese` : 'nulla: non si ammortizza'}.`
                 : `Nel conto economico ${ecoEur2(imponibile)}${iva > 0 ? `, dalla cassa ${ecoEur2(imponibile + iva)}` : ''}.`}
           </span>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
@@ -580,7 +600,7 @@ function EcoCosti({ mix, forza }) {
     if (b.tipo === 'cespite') {
       ECO_CESPITI.push({ id:'C-' + String(ECO_CESPITI.length + 1).padStart(2, '0'),
         voce:b.voce.trim(), categoria:b.categoria, costo:imp, iva:ivaCalc, data:quando,
-        aliquota: parseFloat(b.amm) || 20,
+        aliquota: ecoAliquotaValida(b.amm),
         fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(), fattura:idFattura });
     } else {
       ECO_FISSI.push({ id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
@@ -794,7 +814,7 @@ function EcoCosti({ mix, forza }) {
           const comune = { voce:b.voce.trim(), categoria:b.categoria, iva,
             fornitore:b.fornitore.trim() || '—', piva:b.piva.trim() };
           Object.assign(modifica, b.tipo === 'cespite'
-            ? { ...comune, costo:imp, aliquota: parseFloat(b.amm) || 20, data:new Date(b.dal + 'T12:00:00') }
+            ? { ...comune, costo:imp, aliquota: ecoAliquotaValida(b.amm), data:new Date(b.dal + 'T12:00:00') }
             : { ...comune, importo:imp, periodicita:b.periodicita, dal:new Date(b.dal + 'T12:00:00') });
           setModifica(null); forza();
         }}/>}
