@@ -1603,23 +1603,16 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
   const [allergens, setAllergens] = React.useState(dish?.allergens || []);
   const [photos, setPhotos] = React.useState(dish?.photos || []);
   const [openSection, setOpenSection] = React.useState(null);
-  const [tipOpen, setTipOpen] = React.useState(null);       // tooltip "Prodotto finito": {x,y} o null
-
-  // Il tooltip si chiude al primo click altrove: aperto, restava sopra a
-  // qualsiasi cosa (anche all'anteprima foto) finche' non si ricliccava l'icona.
-  React.useEffect(() => {
-    if (!tipOpen) return;
-    const chiudi = () => setTipOpen(null);
-    document.addEventListener('click', chiudi);
-    return () => document.removeEventListener('click', chiudi);
-  }, [tipOpen]);
   const [preview, setPreview] = React.useState(null);       // indice foto in anteprima
   const [confirmDelete, setConfirmDelete] = React.useState(false); // popup conferma eliminazione
   const [initialPrice, setInitialPrice] = React.useState(
     currentPrice !== undefined ? String(currentPrice.toFixed(2)).replace('.', ',') : ''
   );
   const [foodCost, setFoodCost] = React.useState(dish?.foodCost ? dish.foodCost.toFixed(2) : '');
-  const [noPrep, setNoPrep] = React.useState(dish?.noPrep || false);
+  // Flag fiscale, non produttivo: dice cosa succede all'aliquota sull'asporto,
+  // NON se il piatto passa dalla cucina (quello lo decidono il flusso ordini e
+  // i monitor). Sostituisce il vecchio noPrep, che prometteva altro.
+  const [hasAlcohol, setHasAlcohol] = React.useState(dish?.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish?.hasFrozen || false);
   const [recipeSteps, setRecipeSteps] = React.useState(dish?.recipeSteps || ['', '', '']);
   const [aiLoading, setAiLoading] = React.useState(false);
@@ -1681,7 +1674,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
       cat,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(foodCost.replace(',','.')) : null,
-      noPrep, hasFrozen, recipeSteps,
+      hasAlcohol, hasFrozen, recipeSteps,
       ingredients, extras, variants, dietaryTags,
     };
     if (!fromLibrary && catName) {
@@ -1800,6 +1793,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </ImpField>
             </div>
 
+
             {/* riga 2 — descrizione a sinistra, le 3 foto a destra */}
             <div style={{display:'flex', gap:14, alignItems:'flex-start', flexWrap:'wrap'}}>
               <div style={{flex:'1 1 340px', minWidth:0}}>
@@ -1860,17 +1854,15 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </div>
             </div>
 
-            {/* riga 3 — i due flag obbligatori, sempre in chiaro e mai dentro un
-                collassabile: "surgelati" è una dicitura di legge (D.Lgs. 109/92)
-                e nasconderla dietro un accordion la fa dimenticare. */}
+            {/* riga 3 — i due flag dichiarativi, sempre in chiaro e mai dentro
+                un collassabile: "surgelati" è una dicitura di legge (D.Lgs.
+                109/92) e nasconderla dietro un accordion la fa dimenticare.
+                "Contiene alcool" è fiscale (aliquota sull'asporto). Nessuno dei
+                due dice nulla su chi prepara il piatto. */}
             <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
               <DishFlag
-                checked={noPrep} onChange={() => setNoPrep(v => !v)}
-                label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
-                info={{
-                  open: tipOpen, setOpen: setTipOpen,
-                  text: "Es. acqua, vino, birra in lattina. IVA 22% sull'asporto anziché 10%.",
-                }}
+                checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
+                label="Contiene alcool" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
               />
               <DishFlag
                 checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
@@ -2054,19 +2046,13 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                   <VariantsList variants={variants} setVariants={setVariants} hideAddButton/>
                 </DishBlock>
 
-                {/* Ricetta */}
-                <DishBlock style={{
-                  opacity: noPrep ? 0.45 : 1,
-                  pointerEvents: noPrep ? 'none' : 'auto',
-                  transition: 'opacity 0.15s',
-                }}>
+                {/* Ricetta — sempre compilabile: non è il flag fiscale a
+                    decidere se un prodotto ha un procedimento (uno spritz è
+                    una bevanda ed è da preparare). Chi non ne ha una, la
+                    lascia vuota. */}
+                <DishBlock>
                   <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
                     <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT}}>Ricetta · procedimento</div>
-                    {noPrep && (
-                      <span style={{fontSize:13.5, color:PN.MUTED, fontStyle:'italic', fontWeight:500}}>
-                        Non applicabile per prodotti finiti
-                      </span>
-                    )}
                   </div>
                   <div style={{display:'flex', flexDirection:'column', gap:6}}>
                     {recipeSteps.map((step, i) => (
@@ -2080,7 +2066,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                           background:PN.PINK_SOFT, color:PN.PINK_DARK, fontSize:14.5, fontWeight:800,
                           display:'grid', placeItems:'center', marginTop:7,
                         }}>{i+1}</span>
-                        <textarea value={step} disabled={noPrep}
+                        <textarea value={step}
                           onChange={e => setRecipeSteps(s => s.map((x, idx) => idx===i ? e.target.value : x))}
                           onKeyDown={e => {
                             if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); setRecipeSteps(s => [...s.slice(0,i+1),'', ...s.slice(i+1)]); setTimeout(() => { const el = document.querySelectorAll('.recipe-step'); if(el[i+1]) el[i+1].focus(); },0); }
@@ -2091,29 +2077,29 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                           onInput={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
                         />
                         {recipeSteps.length > 1 && (
-                          <button onClick={() => setRecipeSteps(s => s.filter((_,idx)=>idx!==i))} disabled={noPrep}
+                          <button onClick={() => setRecipeSteps(s => s.filter((_,idx)=>idx!==i))}
                             aria-label={`Rimuovi passo ${i+1}`}
                             style={{flexShrink:0, width:30, height:30, marginTop:4,
                               background:PN.WHITE, border:'1px solid #FECACA', borderRadius:8,
-                              cursor: noPrep ? 'default' : 'pointer', color:PN.RED,
+                              cursor:'pointer', color:PN.RED,
                               display:'grid', placeItems:'center',
                               transition:'background 150ms ease-out'}}
-                            onMouseEnter={e=> { if (!noPrep) e.currentTarget.style.background='#FEF2F2'; }}
-                            onMouseLeave={e=> { if (!noPrep) e.currentTarget.style.background=PN.WHITE; }}
+                            onMouseEnter={e=> e.currentTarget.style.background='#FEF2F2'}
+                            onMouseLeave={e=> e.currentTarget.style.background=PN.WHITE}
                           ><PnI.Trash size={13}/></button>
                         )}
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setRecipeSteps(s => [...s,''])} disabled={noPrep} style={{
+                  <button onClick={() => setRecipeSteps(s => [...s,''])} style={{
                     marginTop:10, display:'inline-flex', alignItems:'center', gap:5,
                     padding:'8px 14px', borderRadius:9,
                     background: PN.PINK_BG_SOFT, border:`1.5px solid ${PN.PINK_SOFT}`,
-                    color:PN.PINK_DARK, fontSize:15, fontWeight:700, cursor: noPrep ? 'default' : 'pointer', fontFamily:'inherit',
+                    color:PN.PINK_DARK, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
                     transition:'background 150ms ease-out',
                   }}
-                  onMouseEnter={e=>{ if (!noPrep) e.currentTarget.style.background = PN.PINK_SOFT; }}
-                  onMouseLeave={e=>{ if (!noPrep) e.currentTarget.style.background = PN.PINK_BG_SOFT; }}
+                  onMouseEnter={e=>{ e.currentTarget.style.background = PN.PINK_SOFT; }}
+                  onMouseLeave={e=>{ e.currentTarget.style.background = PN.PINK_BG_SOFT; }}
                   >+ Aggiungi passo</button>
                 </DishBlock>
               </div>
