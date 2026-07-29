@@ -490,7 +490,7 @@ function ImpSalaTavoli() {
   const configGrid = (
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr', gap: 16}}>
       <aside>
-        <ImpCard aurora title="Le tue sale" sub="Crea sale separate per gestire spazi diversi" action={
+        <ImpCard title="Le tue sale" sub="Crea sale separate per gestire spazi diversi" action={
           <button
             onClick={() => setEditSala({ name: '', active: true })}
             title="Nuova sala"
@@ -659,7 +659,6 @@ function ImpSalaTavoli() {
 
       <main>
         <ImpCard
-          aurora
           title={active?.name}
           sub={(() => {
             const op = tavoli.filter(t => !t.disabled);
@@ -724,7 +723,7 @@ function ImpSalaTavoli() {
                     <option value="attivi">Attivi</option>
                     <option value="fuoriuso">Inattivi</option>
                   </select>
-                  <ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => {
+                  <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={() => {
                     // Crea tavolo a posizione di default e apri popover
                     const center = { x: 4, y: 2.5 };
                     const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
@@ -828,7 +827,7 @@ function ImpSalaTavoli() {
                   <div style={{padding: '60px 20px', textAlign:'center'}}>
                     <div style={{display:'inline-flex', marginBottom: 12, color: PN.MUTED_SOFT}}><BuIcons.table size={40}/></div>
                     <div style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginBottom: 16}}>Nessun tavolo in questa sala</div>
-                    <ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => {
+                    <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={() => {
                       const center = { x: 4, y: 2.5 };
                       const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
                       setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), alias: '', coperti: 4, shape: 'square', disabled: false, pos: center }]);
@@ -1096,13 +1095,17 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
   const ombraSel = `0 0 0 3px rgba(255, 90, 95, 0.16), 0 16px 36px -10px ${SEL}35`;
   const scalaSel = selected ? 'scale(1.012)' : 'none';
 
-  // Accento di stato: un tavolo attivo porta il corallo della CTA Salva —
+  // Accento del badge: un tavolo attivo porta il corallo della CTA Salva —
   // e il colore che in questa pagina vuol dire «acceso» — uno spento il
-  // grigio. Selezionato non vira al rosso della selezione: si accende del
-  // proprio colore, il badge fino alla tinta piena del bottone.
+  // grigio. Selezionato si accende del proprio colore fino alla tinta piena
+  // del bottone, e la campitura della card sale allo stesso tono, appena
+  // percettibile. La pastiglia resta invece verde come il suo pallino: e
+  // l'altra cosa, dice se il tavolo lavora, non se e acceso di selezione.
   const acc = t.disabled
-    ? { soft:'#F1F3F5', ink:'#9CA3AF', text: PN.MUTED,      strong:'#9CA3AF',   glow:'rgba(156, 163, 175, 0.50)', hover:'#E5E7EB',    tint: PN.WHITE }
-    : { soft: PN.PINK_BG_SOFT, ink: PN.PINK, text: PN.PINK_DARK, strong: PN.BTN_BRAND, glow:'rgba(255, 90, 95, 0.55)',  hover: PN.PINK_SOFT, tint:'#FFF7F6' };
+    ? { soft:'#F1F3F5',        ink:'#9CA3AF', strong:'#9CA3AF',     glow:'rgba(156, 163, 175, 0.50)', tint:'#F7F8F9',
+        pill:{ bg:'#F1F3F5',      ink: PN.MUTED, dot:'#9CA3AF', hover:'#E5E7EB' } }
+    : { soft: PN.PINK_BG_SOFT, ink: PN.PINK,  strong: PN.BTN_BRAND, glow:'rgba(255, 90, 95, 0.55)',   tint:'#FFF7F6',
+        pill:{ bg: PN.GREEN_SOFT, ink: PN.GREEN, dot: PN.GREEN, hover:'#D6F0DC' } };
 
   // Chiudi il submenu se il menu padre si richiude
   React.useEffect(() => { if (!menuOpen) setMoveSubOpen(false); }, [menuOpen]);
@@ -1139,10 +1142,10 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         padding: '12px 14px', position:'relative',
         border:`1.5px solid ${selected ? 'rgba(227, 36, 89, 0.55)' : PN.BORDER_SOFT}`,
         borderRadius: 10,
-        // La campitura non dice la selezione — quella e tutta sul bordo, come
-        // sulle tessere della Sala — ma lo stato: un velo appena accennato del
-        // corallo della CTA sui tavoli attivi, bianco su quelli spenti.
-        background: acc.tint,
+        // A riposo la card e bianca: il velo di colore e riservato alla
+        // selezione, cosi una lista di tavoli tutti attivi non diventa un
+        // muro rosa e quelli scelti si staccano davvero.
+        background: selected ? acc.tint : PN.WHITE,
         // Il velo del tavolo spento cade mentre il suo menu e aperto: un
         // antenato semitrasparente fa da backdrop root e il vetro del menu
         // non vedrebbe piu nulla da sfocare sotto di se. La card su cui si
@@ -1194,16 +1197,16 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
             padding:'2px 8px', borderRadius:999,
             border:'none', cursor:'pointer', fontFamily:'inherit',
             fontSize:12.5, fontWeight:700, letterSpacing:0.3,
-            background: acc.soft,
-            color: acc.text,
+            background: acc.pill.bg,
+            color: acc.pill.ink,
             transition:'background 0.15s, color 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = acc.hover; }}
-          onMouseLeave={e => { e.currentTarget.style.background = acc.soft; }}
+          onMouseEnter={e => { e.currentTarget.style.background = acc.pill.hover; }}
+          onMouseLeave={e => { e.currentTarget.style.background = acc.pill.bg; }}
         >
           <span style={{
             width:6, height:6, borderRadius:'50%',
-            background: acc.ink,
+            background: acc.pill.dot,
           }}/>
           {t.disabled ? 'INATTIVO' : 'ATTIVO'}
         </button>
