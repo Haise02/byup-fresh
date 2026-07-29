@@ -1531,9 +1531,14 @@ function DishBlock({children, style}) {
   );
 }
 
-// Flag booleano del piatto (prodotto finito / surgelati): stessa forma per
-// entrambi, con tooltip opzionale ancorato via portale.
+// Flag booleano del piatto: stessa forma per tutti e tre, con tooltip
+// opzionale ancorato via portale.
+//
+// Il tooltip aperto e' uno solo per tutta la modale, quindi lo stato porta
+// anche l'id di chi l'ha aperto: senza, due flag che condividono lo stesso
+// `info.open` si aprirebbero insieme.
 function DishFlag({checked, onChange, label, accent, accentBg, accentBorder, info}) {
+  const tipAperto = !!(info && info.open && info.open.id === info.id);
   return (
     <label onClick={onChange} style={{
       display:'inline-flex', alignItems:'center', gap:8,
@@ -1560,23 +1565,23 @@ function DishFlag({checked, onChange, label, accent, accentBg, accentBorder, inf
           onClick={e => {
             e.stopPropagation();
             const r = e.currentTarget.getBoundingClientRect();
-            info.setOpen(o => o ? null : {x: r.right + 10, y: r.top + r.height / 2});
+            info.setOpen(o => (o && o.id === info.id) ? null : {id: info.id, x: r.right + 10, y: r.top + r.height / 2});
           }}
-          role="button" tabIndex={0} aria-expanded={!!info.open}
+          role="button" tabIndex={0} aria-expanded={tipAperto}
           aria-label={`Cos'è: ${label}`}
           style={{display:'inline-flex', flexShrink:0}}
         >
           <span style={{
             width:16, height:16, borderRadius:'50%',
-            background: info.open ? '#475569' : '#E2E8F0',
-            color: info.open ? '#fff' : '#64748B',
+            background: tipAperto ? '#475569' : '#E2E8F0',
+            color: tipAperto ? '#fff' : '#64748B',
             fontSize:12, fontWeight:700, display:'inline-grid', placeItems:'center', cursor:'pointer',
             transition:'background 150ms ease-out',
           }}>i</span>
         </span>
       )}
 
-      {info && info.open && ReactDOM.createPortal(
+      {tipAperto && ReactDOM.createPortal(
         <span onClick={e => e.stopPropagation()} style={{
           position:'fixed', left: info.open.x, top: info.open.y, transform:'translateY(-50%)',
           width:230, background:'#1E293B', color:'#F8FAFC', fontSize:13.5, lineHeight:1.5,
@@ -1609,11 +1614,26 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
     currentPrice !== undefined ? String(currentPrice.toFixed(2)).replace('.', ',') : ''
   );
   const [foodCost, setFoodCost] = React.useState(dish?.foodCost ? dish.foodCost.toFixed(2) : '');
-  // Flag fiscale, non produttivo: dice cosa succede all'aliquota sull'asporto,
-  // NON se il piatto passa dalla cucina (quello lo decidono il flusso ordini e
-  // i monitor). Sostituisce il vecchio noPrep, che prometteva altro.
+  // Tre dichiarazioni indipendenti, tre assi diversi — nessuna dice se il
+  // piatto passa dalla cucina, quello lo decidono il flusso ordini e i monitor.
+  //   prodottoFinito → come è confezionato (sigillato, nessuna manipolazione)
+  //   hasAlcohol     → cosa contiene
+  //   hasFrozen      → come è conservato un ingrediente
+  // I primi due portano entrambi l'asporto al 22%, ma per ragioni diverse e
+  // senza implicarsi: la birra alla spina è alcolica e non è un prodotto finito.
+  const [prodottoFinito, setProdottoFinito] = React.useState(dish?.prodottoFinito || false);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish?.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish?.hasFrozen || false);
+  const [tipOpen, setTipOpen] = React.useState(null); // tooltip aperto: {id,x,y} o null
+
+  // Il tooltip si chiude al primo click altrove: aperto, restava sopra a
+  // qualsiasi cosa (anche all'anteprima foto) finché non si ricliccava l'icona.
+  React.useEffect(() => {
+    if (!tipOpen) return;
+    const chiudi = () => setTipOpen(null);
+    document.addEventListener('click', chiudi);
+    return () => document.removeEventListener('click', chiudi);
+  }, [tipOpen]);
   const [recipeSteps, setRecipeSteps] = React.useState(dish?.recipeSteps || ['', '', '']);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [ingredients, setIngredients] = React.useState(dish?.ingredients || [
@@ -1674,7 +1694,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
       cat,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(foodCost.replace(',','.')) : null,
-      hasAlcohol, hasFrozen, recipeSteps,
+      prodottoFinito, hasAlcohol, hasFrozen, recipeSteps,
       ingredients, extras, variants, dietaryTags,
     };
     if (!fromLibrary && catName) {
@@ -1854,15 +1874,37 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               </div>
             </div>
 
-            {/* riga 3 — i due flag dichiarativi, sempre in chiaro e mai dentro
+            {/* riga 3 — i tre flag dichiarativi, sempre in chiaro e mai dentro
                 un collassabile: "surgelati" è una dicitura di legge (D.Lgs.
                 109/92) e nasconderla dietro un accordion la fa dimenticare.
-                "Contiene alcool" è fiscale (aliquota sull'asporto). Nessuno dei
-                due dice nulla su chi prepara il piatto. */}
+                Nessuno dei tre dice chi prepara il piatto.
+
+                Tre pari grado, non annidati: sono assi indipendenti e ogni
+                combinazione esiste davvero. Una birra alla spina è alcolica ma
+                NON è un prodotto finito (la spilli), un gelato confezionato è
+                finito E surgelato, uno sgroppino è alcolico E surgelato.
+                Annidare "alcolici" sotto "finito" prometteva un sottoinsieme
+                che non c'è — e non ci sarebbe stata ragione per annidare quello
+                e non "surgelati".
+
+                Colori per asse, non decorativi: neutro = come è confezionato,
+                ambra = cosa contiene, blu = come è conservato. */}
             <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
               <DishFlag
+                checked={prodottoFinito} onChange={() => setProdottoFinito(v => !v)}
+                label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
+                info={{
+                  id: 'finito', open: tipOpen, setOpen: setTipOpen,
+                  text: "Venduto sigillato, così come arriva. Es. acqua in bottiglietta, birra in lattina, snack confezionati. IVA 22% sull'asporto anziché 10%.",
+                }}
+              />
+              <DishFlag
                 checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
-                label="Contiene alcool" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
+                label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
+                info={{
+                  id: 'alcol', open: tipOpen, setOpen: setTipOpen,
+                  text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. IVA 22% sull'asporto e vendita vietata ai minori.",
+                }}
               />
               <DishFlag
                 checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
