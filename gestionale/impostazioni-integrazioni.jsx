@@ -111,7 +111,7 @@ function ImpIntegrazioni() {
               letterSpacing: 0.4, textTransform:'uppercase',
               marginBottom: 10, paddingLeft: 2,
             }}>{catLabels[c]}</div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 10}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
               {byCategory[c].map(i => i.printerType
                 ? <PrinterCard key={i.id} item={i}/>
                 : <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)}/>
@@ -132,7 +132,7 @@ function ImpIntegrazioni() {
       {/* Suggested */}
       {filter === 'all' && suggested.length > 0 && (
         <ImpCard title="Suggeriti per te" sub="Integrazioni popolari per ristoranti come il tuo">
-          <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 10}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
             {suggested.map(i => <IntegrationCard key={i.id} item={i} suggested onMobileQr={() => setQrApp(true)}/>)}
           </div>
         </ImpCard>
@@ -377,26 +377,31 @@ function PrinterCard({ item }) {
     { id:'usb',  label:'USB' },
   ];
 
+  // Stessa tessera in piedi delle altre integrazioni: la stampante occupava
+  // una riga intera solo perche i tre modi di collegarla stavano in fila, e
+  // in colonna ci stanno lo stesso — sopra il bottone, dove sono la scelta
+  // da fare prima di premerlo.
+  const azione = { width:'100%', justifyContent:'center', padding:'9px 14px', fontSize: 14.5 };
   return (
     <div style={{
-      gridColumn: '1 / -1',
-      display:'flex', alignItems:'center', gap:12,
-      padding:'14px 16px', borderRadius:12,
+      display:'flex', flexDirection:'column',
+      minHeight: 236, padding: 18, borderRadius: 16,
       border:`1.5px solid ${linked ? PN.GREEN_SOFT : PN.BORDER_SOFT}`,
       background: linked ? '#F0FDF4' : PN.WHITE,
     }}>
       <div style={{
-        width:42, height:42, borderRadius:10,
+        width:54, height:54, borderRadius:14,
         background: linked ? '#065F46' : item.bg,
         color:'#fff', display:'grid', placeItems:'center',
-        fontSize:24, flexShrink:0,
+        fontSize:28, flexShrink:0,
       }}>{item.logo}</div>
 
-      <div style={{flex:1, minWidth:0}}>
-        <div style={{fontSize:15.5, fontWeight:700, marginBottom:2}}>{item.name}</div>
-        <div style={{fontSize:13.5, color:PN.MUTED, marginBottom:7}}>{item.desc}</div>
+      <div style={{fontSize:17, fontWeight:700, letterSpacing:-0.2, marginTop:14}}>{item.name}</div>
+      <div style={{fontSize:14.5, color:PN.MUTED, marginTop:4, lineHeight:1.45}}>{item.desc}</div>
+
+      <div style={{marginTop:'auto', paddingTop:14}}>
         <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
-          <span style={{fontSize:13, color:PN.MUTED, fontWeight:500, marginRight:2}}>Connessione:</span>
+          <span style={{fontSize:13.5, color:PN.MUTED, fontWeight:500, marginRight:2}}>Connessione:</span>
           {conns.map(c => {
             const active = conn === c.id;
             return (
@@ -415,11 +420,9 @@ function PrinterCard({ item }) {
             );
           })}
         </div>
-      </div>
 
-      <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0}}>
-        <div style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600, color:s.color}}>
-          <span style={{width:6, height:6, borderRadius:'50%', background:s.dot}}/>
+        <div style={{display:'flex', alignItems:'center', gap:5, fontSize:13.5, fontWeight:600, color:s.color, marginTop:10}}>
+          <span style={{width:6, height:6, borderRadius:'50%', background:s.dot, flexShrink:0}}/>
           {s.label}
           {linked && conn && (
             <span style={{color:PN.MUTED, fontWeight:400}}>
@@ -427,18 +430,21 @@ function PrinterCard({ item }) {
             </span>
           )}
         </div>
-        {linked ? (
-          <ImpButton variant="ghost" style={{padding:'6px 12px', fontSize:14}}
-            onClick={() => { setLinked(false); setConn(null); }}>
-            Disconnetti
-          </ImpButton>
-        ) : (
-          <ImpButton
-            variant={conn ? 'primary' : 'ghost'}
-            style={{padding:'6px 14px', fontSize:14, opacity: conn ? 1 : 0.55}}
-            onClick={() => conn && setLinked(true)}
-          >Connetti</ImpButton>
-        )}
+
+        <div style={{marginTop:12}}>
+          {linked ? (
+            <ImpButton variant="ghost" style={azione}
+              onClick={() => { setLinked(false); setConn(null); }}>
+              Disconnetti
+            </ImpButton>
+          ) : (
+            <ImpButton
+              variant={conn ? 'primary' : 'ghost'}
+              style={{...azione, opacity: conn ? 1 : 0.55}}
+              onClick={() => conn && setLinked(true)}
+            >Connetti</ImpButton>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -446,63 +452,73 @@ function PrinterCard({ item }) {
 
 function IntegrationCard({ item, suggested, onMobileQr }) {
   const s = STATUS_LABEL[item.status];
+  // Tessera in piedi invece che riga sdraiata: logo in alto, nome e
+  // descrizione sotto, e il bottone appoggiato al fondo. Cosi il bottone sta
+  // sempre nello stesso punto — a destra, in fondo a una riga larga, ogni
+  // card lo teneva a un'altezza diversa a seconda di quanto era lungo il
+  // testo. Il margine automatico prima dello stato tiene i fondi allineati
+  // anche quando una descrizione va a capo e l'altra no.
+  const azione = { width:'100%', justifyContent:'center', padding:'9px 14px', fontSize: 14.5 };
   return (
     <div style={{
-      display:'flex', alignItems:'center', gap: 12,
-      padding: '14px 16px', borderRadius: 12,
+      display:'flex', flexDirection:'column',
+      minHeight: 236, padding: 18, borderRadius: 16,
       border: `1.5px solid ${item.status === 'connected' ? PN.GREEN_SOFT : item.status === 'todo' ? '#FCD34D' : PN.BORDER_SOFT}`,
       background: item.status === 'connected' ? '#F0FDF4' : item.status === 'todo' ? '#FFFBEB' : PN.WHITE,
     }}>
       <div style={{
-        width: 42, height: 42, borderRadius: 10,
+        width: 54, height: 54, borderRadius: 14,
         background: item.bg,
         border: item.borderless ? `1px solid ${PN.BORDER}` : 'none',
         color: item.color || '#fff',
         display:'grid', placeItems:'center',
-        fontSize: item.logo.length > 1 ? 13.5 : 18, fontWeight: 800,
+        fontSize: item.logo.length > 1 ? 17 : 24, fontWeight: 800,
         flexShrink: 0,
       }}>{item.logo}</div>
 
-      <div style={{flex:1, minWidth: 0}}>
-        <div style={{display:'flex', alignItems:'center', gap: 7, marginBottom: 1}}>
-          <span style={{fontSize:15.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{item.name}</span>
-          {item.required && (
-            <span style={{
-              fontSize: 11, fontWeight: 800, color: PN.WINE, letterSpacing: 0.4,
-              padding: '1px 6px', borderRadius: 3, background: PN.WINE_SOFT,
-            }}>RICHIESTO</span>
-          )}
-          {suggested && (
-            <span style={{
-              fontSize: 11, fontWeight: 800, color: PN.PINK_DARK, letterSpacing: 0.4,
-              padding: '1px 6px', borderRadius: 3, background: PN.PINK_SOFT,
-            }}>POPOLARE</span>
-          )}
-        </div>
-        <div style={{fontSize:13.5, color:PN.MUTED, marginBottom: 3}}>{item.desc}</div>
+      <div style={{display:'flex', alignItems:'center', gap: 7, flexWrap:'wrap', marginTop: 14}}>
+        <span style={{fontSize:17, fontWeight:700, letterSpacing:-0.2}}>{item.name}</span>
+        {item.required && (
+          <span style={{
+            fontSize: 11, fontWeight: 800, color: PN.WINE, letterSpacing: 0.4,
+            padding: '1px 6px', borderRadius: 3, background: PN.WINE_SOFT,
+          }}>RICHIESTO</span>
+        )}
+        {suggested && (
+          <span style={{
+            fontSize: 11, fontWeight: 800, color: PN.PINK_DARK, letterSpacing: 0.4,
+            padding: '1px 6px', borderRadius: 3, background: PN.PINK_SOFT,
+          }}>POPOLARE</span>
+        )}
+      </div>
+      <div style={{fontSize:14.5, color:PN.MUTED, marginTop: 4, lineHeight: 1.45}}>{item.desc}</div>
+
+      <div style={{marginTop:'auto', paddingTop: 14}}>
         <div style={{
-          display:'inline-flex', alignItems:'center', gap: 5,
-          fontSize: 13, fontWeight: 600, color: s.color,
+          display:'flex', alignItems:'baseline', gap: 5,
+          fontSize: 13.5, fontWeight: 600, color: s.color,
         }}>
-          <span style={{width:6, height:6, borderRadius:'50%', background: s.dot}}/>
-          {s.label}
-          {item.detail && <span style={{color:PN.MUTED, fontWeight: 500}}>· {item.detail}</span>}
+          <span style={{width:6, height:6, borderRadius:'50%', background: s.dot, flexShrink: 0, alignSelf:'center'}}/>
+          <span style={{flexShrink: 0}}>{s.label}</span>
+          {item.detail && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· {item.detail}</span>}
+        </div>
+
+        <div style={{marginTop: 12}}>
+          {item.status === 'connected' && (
+            <ImpButton variant="ghost" style={azione}>Configura</ImpButton>
+          )}
+          {item.status === 'todo' && (
+            <ImpButton
+              variant="primary"
+              style={azione}
+              onClick={item.mobile ? onMobileQr : undefined}
+            >{item.cta || 'Configura ora'}</ImpButton>
+          )}
+          {(item.status === 'available' || item.status === 'disconnected') && (
+            <ImpButton variant="ghost" style={azione}>Connetti</ImpButton>
+          )}
         </div>
       </div>
-
-      {item.status === 'connected' && (
-        <ImpButton variant="ghost" style={{padding:'6px 12px', fontSize: 14}}>Configura</ImpButton>
-      )}
-      {item.status === 'todo' && (
-        <ImpButton
-          variant="primary"
-          style={{padding:'6px 14px', fontSize: 14}}
-          onClick={item.mobile ? onMobileQr : undefined}
-        >{item.cta || 'Configura ora'}</ImpButton>
-      )}
-      {(item.status === 'available' || item.status === 'disconnected') && (
-        <ImpButton variant="ghost" style={{padding:'6px 14px', fontSize: 14}}>Connetti</ImpButton>
-      )}
     </div>
   );
 }
