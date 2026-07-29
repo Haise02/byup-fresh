@@ -1280,16 +1280,24 @@ function VetrinaAspetto({ onChange }) {
           border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
           padding: '14px 16px',
         }}>
-          <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Galleria fotografica</div>
-          <div style={{fontSize: 12, color: PN.MUTED, marginBottom: 10}}>JPG o PNG · consigliato 1600×1200px</div>
-          {/* Riga-guida col limite: si accende e scuote al sesto tentativo */}
-          <div style={{
-            fontSize: 13, fontWeight: 600, marginBottom: 10,
-            color: galleryLimitHit ? PN.RED : PN.MUTED,
-            animation: galleryLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
-            transition: 'color 150ms ease',
-          }}>
-            Massimo 5 immagini · {photos.length}/5 caricate
+          {/* Il conteggio sta in alto a destra, non sopra la griglia: e uno
+              stato — quante ne hai su quante ne puoi — e uno stato si legge
+              nell'angolo, non in mezzo al percorso fra il titolo e le foto.
+              Si accende e scuote al sesto tentativo. */}
+          <div style={{display:'flex', alignItems:'baseline', gap:12, marginBottom:10}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize: 14, fontWeight: 600, marginBottom: 3}}>Galleria fotografica</div>
+              <div style={{fontSize: 12, color: PN.MUTED}}>JPG o PNG · consigliato 1600×1200px</div>
+            </div>
+            <div style={{flex:1}}/>
+            <div style={{
+              fontSize: 13, fontWeight: 600, flexShrink: 0,
+              color: galleryLimitHit ? PN.RED : PN.MUTED,
+              animation: galleryLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
+              transition: 'color 150ms ease',
+            }}>
+              Massimo 5 immagini · {photos.length}/5 caricate
+            </div>
           </div>
           <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap: 10}}>
             {photos.map((src, i) => (
