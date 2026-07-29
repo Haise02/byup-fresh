@@ -168,7 +168,10 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
   const [file, setFile] = useStateEco(null);
   const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
   const xml = !!file && /\.xml$/i.test(file);
-  const ok = b.voce.trim().length > 2 && parseFloat(String(b.importo).replace(',', '.')) > 0;
+  const imponibile = parseFloat(String(b.importo).replace(',', '.')) || 0;
+  const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
+  const ivaZero = iva === 0;
+  const ok = b.voce.trim().length > 2 && imponibile > 0;
 
   return (
     <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
@@ -202,9 +205,26 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
               <input value={b.fornitore} onChange={e=>agg('fornitore', e.target.value)} style={ECO_INP}
                 placeholder="Chi emette la fattura"/>
             </EcoCampo>
-            <EcoCampo etichetta="Importo in euro">
+            {/* IMPONIBILE, sempre. L'IVA non e un costo: la paghi al fornitore e la
+                recuperi in liquidazione, quindi nel conto economico non entra.
+                Va registrata a parte perche dalla cassa esce comunque. */}
+            <EcoCampo etichetta="Imponibile"
+              aiuto="Al netto dell’IVA. È l’importo che entra nel conto economico.">
               <input value={b.importo} onChange={e=>agg('importo', e.target.value.replace(/[^\d.,]/g, ''))}
                 style={ECO_INP} placeholder="0,00"/>
+            </EcoCampo>
+            <EcoCampo etichetta="IVA"
+              aiuto={ivaZero
+                ? 'Zero: reverse charge o operazione non imponibile. Nessuna uscita di cassa in più.'
+                : `Esce dalla cassa e rientra con la liquidazione. Totale da pagare ${ecoEur2(imponibile + iva)}.`}>
+              <div style={{display:'flex', gap:7}}>
+                <input value={b.iva} onChange={e=>agg('iva', e.target.value.replace(/[^\d.,]/g, ''))}
+                  style={ECO_INP} placeholder="0,00"/>
+                <AdmButton variant="secondary" size="sm" style={{flexShrink:0, fontSize:12}}
+                  onClick={()=>agg('iva', (Math.round(imponibile * 22) / 100).toFixed(2).replace('.', ','))}>
+                  22%
+                </AdmButton>
+              </div>
             </EcoCampo>
             <EcoCampo etichetta="Periodicita"
               aiuto={b.periodicita === 'annuale' ? 'Nel conto economico entra in dodicesimi.'
@@ -238,14 +258,10 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
               </div>
             </label>
             {file && (
-              <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16, marginTop:14}}>
+              <div style={{marginTop:14}}>
                 <EcoCampo etichetta="Numero documento">
                   <input value={b.numero} onChange={e=>agg('numero', e.target.value)} style={ECO_INP}
                     placeholder="es. 118/2026"/>
-                </EcoCampo>
-                <EcoCampo etichetta="IVA" aiuto="Zero sui fornitori esteri in reverse charge.">
-                  <input value={b.iva} onChange={e=>agg('iva', e.target.value.replace(/[^\d.,]/g, ''))}
-                    style={ECO_INP} placeholder="0,00"/>
                 </EcoCampo>
               </div>
             )}
@@ -255,7 +271,9 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
         <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
           alignItems:'center', gap:10, flexShrink:0}}>
           <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
-            {ok ? 'Entra nel mese della data e nel conto economico.' : 'Servono voce e importo.'}
+            {ok
+              ? `Nel conto economico ${ecoEur2(imponibile)}${iva > 0 ? `, dalla cassa ${ecoEur2(imponibile + iva)}` : ''}.`
+              : 'Servono voce e imponibile.'}
           </span>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
           <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva({ ...b, file })}>
@@ -423,7 +441,11 @@ function EcoCosti({ mix, forza }) {
         origine: /\.xml$/i.test(b.file) ? 'sdi' : 'manuale', file:b.file, stato:'riconciliata' });
     }
     ECO_FISSI.push({ id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
-      voce:b.voce.trim(), categoria:b.categoria, importo:imp, periodicita:b.periodicita,
+      voce:b.voce.trim(), categoria:b.categoria, importo:imp,
+      // L'IVA sta sul costo e non solo sulla fattura: serve alla cassa anche
+      // quando il documento non e ancora stato allegato.
+      iva: parseFloat(String(b.iva).replace(',', '.')) || 0,
+      periodicita:b.periodicita,
       dal:quando, a:null, fornitore:b.fornitore.trim() || '—', fattura:idFattura });
     setNuovo(false); forza();
   };

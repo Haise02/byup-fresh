@@ -242,7 +242,7 @@ function ecoFlussiMese(m, mix) {
   // IVA: a debito sulle vendite, a credito sugli acquisti nazionali. I fornitori
   // esteri sono in reverse charge e non generano credito.
   const ivaVendite = ric.totale * 0.22;
-  const ivaAcquisti = ecoFissiDelMese(dataM) * 0.22 * 0.55;   // solo i fornitori italiani
+  const ivaAcquisti = ecoIvaAcquisti(dataM);
   return { m, incassi, uscite, ivaVendite, ivaAcquisti, ivaNetta: ivaVendite - ivaAcquisti,
     netto: incassi - uscite };
 }
@@ -258,7 +258,10 @@ function ecoProiezioneCassa(mix, leve) {
     const costi = ecoCostiVariabili(d) + ecoFissiDelMese(d.data);
     // L'IVA si versa il 16 del mese successivo al trimestre: qui approssimata
     // in dodicesimi mensili, e dichiarato.
-    const iva = Math.max(0, ric.totale * 0.22 - costi * 0.22 * 0.55);
+    // IVA sugli acquisti: dove il costo la porta scritta si usa quella, altrove
+    // si stima. I fornitori esteri sono in reverse charge e non danno credito,
+    // ed e il motivo per cui la stima non puo essere il 22% pieno.
+    const iva = Math.max(0, ric.totale * 0.22 - ecoIvaAcquisti(d.data));
     const scad = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === d.data.getFullYear()
       && x.quando.getMonth() === d.data.getMonth()).reduce((t, x) => t + x.importo, 0);
     const netto = ric.totale - costi - iva - scad;
@@ -266,6 +269,24 @@ function ecoProiezioneCassa(mix, leve) {
     out.push({ d, ricavi:ric.totale, costi, iva, scadenze:scad, netto, saldo, i });
   });
   return out;
+}
+
+// IVA detraibile del mese: quella dichiarata sulle singole voci, piu una stima
+// sul resto. Sui fornitori esteri e zero per costruzione.
+function ecoIvaAcquisti(d) {
+  let dichiarata = 0, senza = 0;
+  ECO_FISSI.forEach(f => {
+    if (f.dal && d < new Date(f.dal.getFullYear(), f.dal.getMonth(), 1)) return;
+    if (f.a && d > f.a) return;
+    const quota = f.periodicita === 'annuale' ? f.importo / 12
+      : f.periodicita === 'una-tantum'
+        ? (f.dal.getFullYear() === d.getFullYear() && f.dal.getMonth() === d.getMonth() ? f.importo : 0)
+        : f.importo;
+    if (!quota) return;
+    if (f.iva != null) dichiarata += f.iva * (quota / (f.importo || 1));
+    else senza += quota;
+  });
+  return dichiarata + senza * 0.22 * 0.55;
 }
 
 // Autonomia: quanti mesi prima che la cassa finisca al ritmo attuale.
@@ -302,7 +323,7 @@ function ecoStatoPatrimoniale(mix) {
   // Debiti verso fornitori: i costi dell'ultimo mese non ancora pagati.
   const costiMese = ecoCostiVariabili(ultimo) + ecoFissiDelMese(new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1));
   const debitiFornitori = costiMese * (ECO_CASSA.giorniPagamento / 30);
-  const ivaDebito = Math.max(0, ric.totale * 0.22 - costiMese * 0.22 * 0.55);
+  const ivaDebito = Math.max(0, ric.totale * 0.22 - ecoIvaAcquisti(new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1)));
   const immobilizzazioni = P.immobiliMateriali + P.fondoAmmortamento;
 
   const attivo = [
@@ -331,6 +352,7 @@ function ecoStatoPatrimoniale(mix) {
     ce, cassa, crediti, debitiFornitori, ivaDebito, immobilizzazioni };
 }
 
+window.ecoIvaAcquisti = ecoIvaAcquisti;
 window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;
 window.ecoRunway = ecoRunway;
