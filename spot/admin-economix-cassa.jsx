@@ -22,7 +22,6 @@ function EcoCassa({ mix, leve, forza }) {
   const meseCorr = storici[storici.length - 1];
   const recenti = storici.slice().reverse();
   const scadenze = ecoScadenzario(12, mix);
-  const inScadenza = scadenze.filter(x => x.giorni <= 0).length;
   // Uscite ancora da saldare nel mese in corso: quelle gia pagate non ci sono
   // piu, quindi e davvero "quanto manca", non "quanto costa il mese".
   // Fino a fine mese, non solo dentro il mese: una voce di giugno non pagata
@@ -182,9 +181,7 @@ function EcoCassa({ mix, leve, forza }) {
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
           <div style={ECO_TITOLO}>Scadenzario</div>
           <span style={{fontSize:12.4, color:ADM.MUTED}}>
-            tutto ciò che deve uscire nei prossimi dodici mesi · {inScadenza
-              ? `${inScadenza} ${inScadenza === 1 ? 'voce da saldare' : 'voci da saldare'}`
-              : 'nessuna voce scaduta'}
+            tutto ciò che deve uscire nei prossimi dodici mesi
           </span>
           <div style={{flex:1}}/>
           <AdmButton variant="primary" size="sm" onClick={()=>setNuovaScad(true)}>Aggiungi una scadenza</AdmButton>
@@ -288,8 +285,9 @@ function EcoCassa({ mix, leve, forza }) {
 
 /* ═══ STATO PATRIMONIALE ═════════════════════════════════════════════════ */
 function EcoPatrimonio({ mix }) {
-  const sp = ecoStatoPatrimoniale(mix);
-  const quadra = Math.abs(sp.sbilancio) < 1;
+  const anni = [...new Set(ECO_STORICO.map(m => m.anno))].sort((a, b) => b - a);
+  const [anno, setAnno] = useStateEco(ECO_OGGI.getFullYear());
+  const sp = ecoStatoPatrimoniale(mix, anno);
 
   const Colonna = ({ titolo, voci, totale, etichettaTot }) => (
     <div style={ECO_CARD}>
@@ -318,28 +316,14 @@ function EcoPatrimonio({ mix }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:20}}>
-      <div style={{display:'flex', alignItems:'baseline', gap:10}}>
-        {/* Stessa gerarchia del Conto economico: e il titolo della sua tab,
-            non l'intestazione di una tabella dentro un'altra cosa. */}
+      <div style={{display:'flex', alignItems:'center', gap:10}}>
+        {/* Stessa gerarchia e stesso comando del Conto economico. */}
         <div style={ECO_TITOLO}>Stato patrimoniale</div>
-        <span style={{fontSize:12.4, color:ADM.MUTED}}>
-          al {cfFmt(ECO_OGGI)} · non sostituisce il bilancio del commercialista, lo anticipa
-        </span>
-      </div>
-
-      {/* La quadratura e' il controllo che rende leggibile il resto: se attivo e
-          passivo non coincidono, una delle due colonne mente. */}
-      <div style={{padding:'13px 16px', borderRadius:10, display:'flex', alignItems:'center', gap:12,
-        background: quadra ? ADM.OK_SOFT : ADM.DANGER_SOFT,
-        border:`1px solid ${quadra ? '#BBF7D0' : '#FECACA'}`}}>
-        <span style={{fontSize:14, fontWeight:800, color: quadra ? '#065F46' : '#7F1D1D'}}>
-          {quadra ? 'Attivo e passivo quadrano' : `Sbilancio di ${ecoEur(Math.abs(sp.sbilancio))}`}
-        </span>
-        <span style={{fontSize:12.4, color:ADM.MUTED, flex:1}}>
-          {quadra
-            ? 'Le due colonne coincidono: i saldi inseriti e quelli calcolati sono coerenti fra loro.'
-            : `Le due colonne non coincidono. Succede quando qualcosa è stato registrato dopo l’ultima lettura del conto — il saldo di banca è fermo al ${cfFmt(ECO_PATRIMONIO.aggiornatoIl)} e non tiene ancora conto di quell’uscita.`}
-        </span>
+        <div style={{flex:1}}/>
+        <select value={anno} onChange={e=>setAnno(Number(e.target.value))}
+          style={{...ECO_SEL, width:'auto', minWidth:104, paddingRight:32}}>
+          {anni.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, alignItems:'start'}}>
@@ -352,14 +336,6 @@ function EcoPatrimonio({ mix }) {
         </div>
       </div>
 
-      <div style={{padding:'14px 16px', borderRadius:10, background:ADM.NEUTRAL_SOFT,
-        fontSize:12.4, color:ADM.MUTED, lineHeight:1.65}}>
-        Le voci che non si deducono dal conto economico — capitale, versamenti dei soci, perdite
-        portate a nuovo, cespiti — sono inserite e aggiornate al {cfFmt(ECO_PATRIMONIO.aggiornatoIl)}.
-        Tutto il resto è calcolato: i crediti verso clienti dal fatturato non ancora incassato,
-        i debiti verso fornitori dai costi non ancora pagati, il risultato dal conto economico a oggi.
-        Se una voce inserita invecchia, la quadratura qui sopra è la prima cosa che se ne accorge.
-      </div>
     </div>
   );
 }

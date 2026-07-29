@@ -726,19 +726,37 @@ function ecoAutonomia(cassa, saldoOggi) {
 // ─── Stato patrimoniale ────────────────────────────────────────────────────
 // Attivo e passivo devono quadrare. Se non quadrano c'e un errore, e mostrarlo
 // vale piu che nasconderlo con una voce di sbilancio.
-function ecoStatoPatrimoniale(mix) {
+// Posizione verso l'erario a una data. Per l'anno in corso e quella viva; per un
+// esercizio chiuso e il riporto lasciato dall'ultimo periodo terminato entro il
+// 31 dicembre — usare quella di oggi su un bilancio 2025 sarebbe come datare il
+// bilancio dell'anno scorso con l'estratto conto di stamattina.
+function ecoPosizioneIvaAl(mix, d) {
+  if (d.getFullYear() === ECO_OGGI.getFullYear()) return ecoSaldoIva(mix).saldo;
+  const per = ecoIvaPeriodi(mix).filter(x => x.fine <= d);
+  if (!per.length) return 0;
+  const u = per[per.length - 1];
+  return u.dovuto > 0 ? u.dovuto : -u.creditoDopo;
+}
+
+function ecoStatoPatrimoniale(mix, annoScelto) {
   const P = ECO_PATRIMONIO;
-  const anno = ECO_OGGI.getFullYear();
+  const anno = annoScelto || ECO_OGGI.getFullYear();
   const mesi = ECO_STORICO.filter(m => m.anno === anno);
   const ce = ecoContoEconomico(mesi, mix, ECO_REGIME);
   // Perdite portate a nuovo = somma dei risultati degli esercizi chiusi.
   const anniPrec = [...new Set(ECO_STORICO.map(m => m.anno))].filter(a => a < anno);
   const perditePortateANuovo = anniPrec.reduce((t, a) =>
     t + ecoContoEconomico(ECO_STORICO.filter(m => m.anno === a), mix, ECO_REGIME).netto, 0);
-  const ultimo = ECO_STORICO[ECO_STORICO.length - 1];
+  // Ultimo mese dell'esercizio scelto: su un anno chiuso e dicembre, non oggi.
+  const ultimo = mesi.length ? mesi[mesi.length - 1] : ECO_STORICO[ECO_STORICO.length - 1];
   const ric = ecoRicavi(ultimo, mix);
 
-  const cassa = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
+  // La cassa di un esercizio chiuso non e quella di oggi: si legge dal saldo
+  // ricostruito di quel mese, che e la stessa serie mostrata in Entrate e uscite.
+  const oggi = anno === ECO_OGGI.getFullYear();
+  const rigaFine = oggi ? null
+    : ecoFlussiStorici(mix).find(x => x.d.anno === anno && x.d.data.getMonth() === ultimo.data.getMonth());
+  const cassa = rigaFine ? rigaFine.saldo : ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
   // Crediti verso clienti: il fatturato non ancora incassato, cioe i giorni di
   // sfasamento sull'ultimo mese.
   const crediti = ric.totale * (ECO_CASSA.giorniIncasso / 30);
@@ -749,7 +767,7 @@ function ecoStatoPatrimoniale(mix) {
   // credito se si e comprato piu di quanto si e venduto. Prima qui c'era la
   // differenza del solo ultimo mese, che non e ne l'uno ne l'altro — e teneva
   // fuori dal bilancio quasi undicimila euro di credito davvero maturati.
-  const posizioneIva = ecoSaldoIva(mix).saldo;
+  const posizioneIva = ecoPosizioneIvaAl(mix, new Date(ultimo.data.getFullYear(), ultimo.data.getMonth() + 1, 0));
   const ivaDebito = Math.max(0, posizioneIva);
   const ivaCredito = Math.max(0, -posizioneIva);
   const cesp = ecoCespitiAlla(ultimo.data);
@@ -784,7 +802,7 @@ function ecoStatoPatrimoniale(mix) {
   ];
   const totPassivo = passivo.reduce((t, x) => t + x.n, 0);
 
-  return { attivo, passivo, totAttivo, totPassivo, pn, perditePortateANuovo, prepagato,
+  return { anno, attivo, passivo, totAttivo, totPassivo, pn, perditePortateANuovo, prepagato,
     sbilancio: totAttivo - totPassivo,
     ce, cassa, crediti, debitiFornitori, ivaDebito, ivaCredito, immobilizzazioni };
 }
@@ -812,6 +830,7 @@ window.ecoEliminaCosto = ecoEliminaCosto;
 window.ecoImpattoEliminazione = ecoImpattoEliminazione;
 window.ecoAutonomia = ecoAutonomia;
 window.ecoStatoPatrimoniale = ecoStatoPatrimoniale;
+window.ecoPosizioneIvaAl = ecoPosizioneIvaAl;
 window.ecoRegressione = ecoRegressione;
 window.ecoLeveIniziali = ecoLeveIniziali;
 window.ecoProiettaDriver = ecoProiettaDriver;
