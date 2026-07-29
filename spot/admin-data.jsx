@@ -390,13 +390,22 @@ const PERMESSI = [
   { id: 'segnalazioni',   label: 'Segnalazioni',           desc: 'Gestisce ticket e segnalazioni' },
   { id: 'certificazioni', label: 'Certificazioni',         desc: 'Revisiona le certificazioni alimentari' },
   { id: 'messaggi',       label: 'Messaggi & Broadcast',   desc: 'Invia comunicazioni agli utenti' },
+  // Economix e Conformita mancavano dalla matrice pur essendo due sezioni intere
+  // dell'applicazione: finche non c'erano, «7 aree su 7» voleva dire accesso a
+  // tutto mentre due sezioni restavano fuori dal conteggio.
+  { id: 'economix',       label: 'Economix',               desc: 'Costi, conto economico, cassa e stato patrimoniale' },
+  { id: 'conformita',     label: 'Conformità',             desc: 'Adempimenti, rischi, fornitori, incidenti e audit' },
   { id: 'team',           label: 'Gestione team',          desc: 'Invita e gestisce i membri del team admin' },
 ];
 
 const RUOLI = {
-  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni','messaggi','team'] },
+  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni','messaggi','economix','conformita','team'] },
   support:     { label: 'Support',    desc: 'Segnalazioni e certificazioni', color: 'INFO',            permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni'] },
   marketing:   { label: 'Marketing',  desc: 'Campagne e broadcast', color: 'WARN',                      permessi: ['dashboard','messaggi'] },
+  // AFC: i conti e i controlli, senza toccare l'operativita. Non ha accesso a
+  // locali, utenti e segnalazioni perche non gli servono per il suo lavoro, e
+  // dare piu di quanto serve e esattamente cio che la A.5.15 chiede di evitare.
+  afc:         { label: 'AFC',        desc: 'Amministrazione, finanza e controllo', color: 'TEAL',      permessi: ['dashboard','economix','conformita'] },
   // Ultimo = ultima colonna nella matrice Ruoli & Permessi. Sola visualizzazione.
   operations:  { label: 'Viewer',     desc: 'Sola visualizzazione della dashboard', color: 'PURPLE',    permessi: ['dashboard'] },
 };

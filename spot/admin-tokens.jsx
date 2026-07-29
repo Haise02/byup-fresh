@@ -61,6 +61,8 @@ const ADM = {
   BLUE_SOFT:    '#E8EFFB',
   PURPLE:       '#7C3AED',
   PURPLE_SOFT:  '#ECE9FA',
+  TEAL:         '#0D9488',
+  TEAL_SOFT:    '#D7EFEC',
   // plan colors
   PLAN_FREE:        '#6B7280',
   PLAN_FREE_SOFT:   '#F3F4F6',
