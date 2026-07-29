@@ -161,26 +161,302 @@ function CfrMatrice({ celle, sel, onSel }) {
 
   const GRIGLIA = { display:'grid', gridTemplateColumns:'128px repeat(5, minmax(0,1fr))', gap:5, alignItems:'center' };
 
+  // Gli assi si dichiarano una volta, in testa alla loro fila. I numeri di scala
+  // sotto ogni nome erano rumore: la posizione nella griglia dice già dove sta
+  // «Critico» rispetto a «Grave», e il livello si legge nella cella.
+  const ASSE = { fontSize:10.8, color:ADM.MUTED_SOFT, textTransform:'uppercase',
+    letterSpacing:'0.06em', fontWeight:700 };
+
   return (
     <div>
+      <div style={{...GRIGLIA, marginBottom:7}}>
+        <div style={{...ASSE, textAlign:'right', paddingRight:8}}>↑ impatto</div>
+      </div>
       {[5, 4, 3, 2, 1].map(i => (
         <div key={i} style={{...GRIGLIA, marginBottom:5}}>
-          <div style={{textAlign:'right', paddingRight:8}}>
-            <div style={{fontSize:12, fontWeight:700, color:ADM.TEXT}}>{CFR_IMP[i-1]}</div>
-            <div style={{fontSize:10.8, color:ADM.MUTED_SOFT}}>impatto {i}</div>
+          <div style={{textAlign:'right', paddingRight:8, fontSize:12.2, fontWeight:700, color:ADM.TEXT}}>
+            {CFR_IMP[i-1]}
           </div>
           {[1, 2, 3, 4, 5].map(p => cella(p, i))}
         </div>
       ))}
-      <div style={GRIGLIA}>
-        <div style={{textAlign:'right', paddingRight:8, fontSize:11, color:ADM.MUTED_SOFT,
-          textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:700}}>probabilità →</div>
+      <div style={{...GRIGLIA, marginTop:2}}>
+        <div style={{...ASSE, textAlign:'right', paddingRight:8}}>probabilità →</div>
         {[1, 2, 3, 4, 5].map(p => (
-          <div key={p} style={{textAlign:'center'}}>
-            <div style={{fontSize:11.6, fontWeight:700, color:ADM.TEXT}}>{CFR_PROB[p-1]}</div>
-            <div style={{fontSize:10.8, color:ADM.MUTED_SOFT}}>{p}</div>
+          <div key={p} style={{textAlign:'center', fontSize:11.8, fontWeight:700, color:ADM.TEXT}}>
+            {CFR_PROB[p-1]}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Metodologia di valutazione del rischio ────────────────────────────────
+// §6.1.2 chiede che il processo produca risultati «coerenti, validi e
+// comparabili»: comparabili significa che due persone diverse, in due momenti
+// diversi, davanti allo stesso rischio devono arrivare allo stesso numero. È
+// possibile solo se le scale sono DEFINITE, non lasciate al buon senso.
+//
+// Il documento controllato vive nel gestore documentale; qui c'è la versione in
+// vigore, leggibile nel punto in cui la si applica. Se le due divergono, vale
+// quella firmata su Drive.
+const CFR_MET = {
+  versione: 'Versione 2',
+  approvata: '10 febbraio 2026',
+  approvatore: 'Marco Rinaldi, responsabile del sistema di gestione',
+  prossimo: '10 febbraio 2027',
+};
+
+const CFR_SCALA_PROB = [
+  { n:1, def:'Mai osservato in Byup né riportato da fornitori o dal settore. Atteso meno di una volta ogni cinque anni.' },
+  { n:2, def:'Plausibile ma mai verificatosi. Atteso al più una volta ogni due o tre anni.' },
+  { n:3, def:'Già verificatosi almeno una volta nel settore, o una volta in Byup. Atteso circa una volta l’anno.' },
+  { n:4, def:'Già verificatosi in Byup o ricorrente nel settore. Atteso più volte l’anno.' },
+  { n:5, def:'La condizione che lo produce è già presente. Atteso entro pochi mesi se non si interviene.' },
+];
+
+const CFR_SCALA_IMP = [
+  { n:1, def:'Disservizio risolto entro l’ora su un solo locale. Nessun dato coinvolto, nessun costo rilevante.' },
+  { n:2, def:'Disservizio di poche ore su un locale. Nessun dato personale esposto, costo sotto i mille euro.' },
+  { n:3, def:'Disservizio di una giornata o esteso a più locali. Dati non personali esposti, costo fino a diecimila euro, reclami isolati.' },
+  { n:4, def:'Servizio interrotto oltre la giornata. Violazione di dati personali con notifica al Garante, sanzione possibile, perdita di clienti.' },
+  { n:5, def:'Interruzione prolungata o perdita di dati non recuperabile. Violazione estesa con notifica agli interessati, sanzione rilevante, danno di immagine pubblico.' },
+];
+
+// Le cinque dimensioni che l'impatto misura. Sono elencate perché la domanda
+// «questo quanto vale?» ha risposta solo se si sa che cosa si sta pesando — ed
+// è qui che entra il danno di immagine, che non è una categoria di rischio ma
+// una delle facce del danno.
+const CFR_DIMENSIONI = [
+  ['Continuità', 'per quanto tempo il servizio resta degradato o fermo'],
+  ['Dati personali', 'se sono coinvolti, di chi, e se scatta la notifica'],
+  ['Costo', 'esborso diretto, rimborsi, ore di lavoro per rimediare'],
+  ['Obblighi', 'sanzioni, inadempienze contrattuali verso i locali'],
+  ['Immagine', 'quanto diventa pubblico e quanto pesa sulla fiducia dei ristoratori'],
+];
+
+const CFR_FASCE = [
+  { fascia:'Basso', range:'1 – 6', tono:'ok',
+    criterio:'Accettabile. Si registra e si riesamina alla cadenza ordinaria, senza azioni obbligatorie.' },
+  { fascia:'Medio', range:'8 – 12', tono:'warn',
+    criterio:'Da trattare. Il piano va definito entro il riesame successivo, con un responsabile e una data.' },
+  { fascia:'Alto', range:'15 – 25', tono:'alto',
+    criterio:'Trattamento obbligatorio. Il residuo va portato sotto 15, oppure accettato con delibera del riesame di direzione.' },
+];
+
+function CfrRigaScala({ n, nome, def }) {
+  const forte = n >= 4;
+  return (
+    <div style={{display:'grid', gridTemplateColumns:'168px minmax(0,1fr)', gap:16, alignItems:'baseline',
+      padding:'10px 0', borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+      <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+        <span style={{fontSize:11.6, fontWeight:800, color:ADM.MUTED_SOFT, minWidth:12,
+          fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{n}</span>
+        <span style={{fontSize:13.4, fontWeight:700, color: forte ? ADM.TEXT : ADM.INK}}>{nome}</span>
+      </div>
+      <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.55}}>{def}</div>
+    </div>
+  );
+}
+
+function CfrSezioneMet({ n, titolo, sottotitolo, children }) {
+  return (
+    <section style={{marginBottom:30}}>
+      <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:3}}>
+        <span style={{fontSize:11.6, fontWeight:800, color:ADM.PINK, letterSpacing:'0.04em',
+          fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{String(n).padStart(2, '0')}</span>
+        <h3 style={{fontSize:15.5, fontWeight:800, color:ADM.TEXT, margin:0, letterSpacing:'-0.01em'}}>{titolo}</h3>
+      </div>
+      {sottotitolo && (
+        <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, marginBottom:12, marginLeft:26, lineHeight:1.5}}>{sottotitolo}</div>
+      )}
+      <div style={{marginLeft:26}}>{children}</div>
+    </section>
+  );
+}
+
+const CFR_P = { fontSize:13.4, color:ADM.TEXT, lineHeight:1.68, margin:'0 0 12px' };
+
+function CfrMetodologia({ onChiudi }) {
+  return (
+    <div onClick={onChiudi} style={{position:'absolute', inset:0, zIndex:60,
+      background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
+      <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
+      <div style={{transform:'translateY(-50%)'}}>
+      <div data-modale="metodologia" onClick={e=>e.stopPropagation()} style={{width:820, maxWidth:'94%', background:'#fff', borderRadius:16,
+        boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:700, display:'flex', flexDirection:'column'}}>
+
+        {/* Frontespizio: versione, approvazione e prossimo riesame stanno in
+            testa perché una metodologia è un documento controllato, e la prima
+            cosa che un auditor chiede è quale versione stavate applicando. */}
+        <div style={{padding:'22px 34px 18px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{display:'flex', alignItems:'flex-start', gap:16}}>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:11.4, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase',
+                letterSpacing:'0.07em'}}>ISO/IEC 27001 §6.1.2 · ISO 9001 §6.1</div>
+              <h2 style={{fontSize:21, fontWeight:800, color:ADM.TEXT, margin:'6px 0 0', letterSpacing:'-0.02em'}}>
+                Metodologia di valutazione del rischio
+              </h2>
+              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:5, lineHeight:1.5}}>
+                {CFR_MET.versione} · approvata il {CFR_MET.approvata} da {CFR_MET.approvatore} · prossimo riesame {CFR_MET.prossimo}
+              </div>
+            </div>
+            <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Chiudi</AdmButton>
+          </div>
+        </div>
+
+        <div style={{padding:'26px 34px 34px', overflowY:'auto', flex:1, minHeight:0}}>
+
+          <CfrSezioneMet n={1} titolo="A che cosa si applica">
+            <p style={CFR_P}>
+              Questa metodologia copre tutti i rischi che possono compromettere la riservatezza,
+              l’integrità o la disponibilità delle informazioni trattate da Byup, e la capacità di
+              erogare il servizio ai locali convenzionati. Il perimetro comprende la piattaforma nelle
+              sue quattro superfici — l’app per i clienti finali, il gestionale per i ristoratori,
+              l’app di sala per il personale e Spot per l’amministrazione — l’infrastruttura su cui
+              gira e la catena che porta un ordine fino all’incasso e alla trasmissione fiscale.
+            </p>
+            <p style={{...CFR_P, marginBottom:0}}>
+              Sono inclusi i rischi che nascono presso i fornitori, perché Byup resta responsabile
+              verso i propri clienti anche quando la causa è a monte. Sono esclusi i rischi propri
+              del locale che non dipendono dal servizio, come la gestione del personale di sala.
+            </p>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={2} titolo="Chi fa che cosa">
+            <p style={CFR_P}>
+              Ogni rischio ha un <strong>responsabile</strong>: è la persona che risponde del suo
+              trattamento e che ne conferma la valutazione al riesame. Non è chi lo ha scritto per
+              primo, ed è una persona sola — un rischio in capo a un gruppo non è in capo a nessuno.
+            </p>
+            <p style={{...CFR_P, marginBottom:0}}>
+              Il responsabile del sistema di gestione mantiene il registro, convoca i riesami e porta
+              al riesame di direzione i rischi che restano alti dopo il trattamento. L’accettazione di
+              un rischio residuo alto non è una decisione sua: è della direzione, e resta a verbale.
+            </p>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={3} titolo="Come si identificano"
+            sottotitolo="Un registro alimentato solo da una riunione annuale invecchia fra una riunione e l’altra.">
+            <p style={CFR_P}>
+              I rischi entrano nel registro da sette fonti, tutte già presenti in Spot: gli incidenti
+              registrati, i rilievi degli audit interni, le non conformità aperte, i reclami e le
+              segnalazioni dei locali, l’ingresso di un nuovo fornitore che tratta dati per conto di
+              Byup, ogni rilascio che tocca i pagamenti o la trasmissione fiscale, e gli aggiornamenti
+              normativi rilevati nel riesame degli obblighi legali.
+            </p>
+            <p style={{...CFR_P, marginBottom:0}}>
+              Un rischio si descrive per <strong>causa</strong>, non per conseguenza: «compromissione
+              delle credenziali di un amministratore» e non «violazione di dati». Due rischi con lo
+              stesso esito ma cause diverse richiedono controlli diversi, e se si classificano per
+              esito finiscono nella stessa riga perdendo proprio l’informazione che serve a trattarli.
+            </p>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={4} titolo="La scala di probabilità"
+            sottotitolo="Ancorata alla frequenza attesa, non alla sensazione di chi valuta.">
+            <div style={{marginTop:4}}>
+              {CFR_SCALA_PROB.map(v => <CfrRigaScala key={v.n} n={v.n} nome={CFR_PROB[v.n-1]} def={v.def}/>)}
+            </div>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={5} titolo="La scala di impatto"
+            sottotitolo="Si assegna il valore della dimensione messa peggio, non la media fra le cinque.">
+            <div style={{display:'flex', flexWrap:'wrap', gap:6, marginBottom:14}}>
+              {CFR_DIMENSIONI.map(([k, v]) => (
+                <span key={k} title={v} style={{fontSize:11.6, fontWeight:700, color:ADM.INK,
+                  background:'rgba(49,53,61,0.07)', padding:'4px 9px', borderRadius:6}}>{k}</span>
+              ))}
+            </div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, lineHeight:1.6, marginBottom:12}}>
+              {CFR_DIMENSIONI.map(([k, v]) => <div key={k}><strong style={{color:ADM.TEXT}}>{k}</strong> — {v}</div>)}
+            </div>
+            <div style={{marginTop:4}}>
+              {CFR_SCALA_IMP.map(v => <CfrRigaScala key={v.n} n={v.n} nome={CFR_IMP[v.n-1]} def={v.def}/>)}
+            </div>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={6} titolo="Il livello e le fasce"
+            sottotitolo="Livello = probabilità × impatto. Un numero che si può rifare a mano, non un voto.">
+            <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
+              {CFR_FASCE.map((f, k) => (
+                <div key={f.fascia} style={{display:'grid', gridTemplateColumns:'150px minmax(0,1fr)', gap:16,
+                  padding:'13px 16px', alignItems:'baseline',
+                  borderTop: k ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
+                  background: f.tono === 'alto' ? 'rgba(255,90,95,0.05)' : '#fff'}}>
+                  <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+                    <span style={{display:'inline-flex', alignItems:'center', padding:'2px 9px', borderRadius:6,
+                      fontSize:11.8, fontWeight:800,
+                      background: f.tono === 'alto' ? ADM.PINK : 'rgba(49,53,61,0.09)',
+                      color: f.tono === 'alto' ? '#fff' : ADM.INK}}>{f.fascia}</span>
+                    <span style={{fontSize:12.2, color:ADM.MUTED_SOFT, fontWeight:700,
+                      fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{f.range}</span>
+                  </div>
+                  <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.55}}>{f.criterio}</div>
+                </div>
+              ))}
+            </div>
+            <p style={{...CFR_P, fontSize:12.6, color:ADM.MUTED_SOFT, margin:'10px 0 0'}}>
+              I salti fra le soglie non sono arbitrari: su una scala 1-5 moltiplicata, i valori 7, 11,
+              13 e 14 non esistono. Le fasce cadono negli spazi vuoti, così nessun livello resta a
+              cavallo fra due giudizi.
+            </p>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={7} titolo="Trattamento e accettazione">
+            <p style={CFR_P}>
+              Per ogni rischio si sceglie una delle quattro strategie. <strong>Mitigare</strong>:
+              introdurre controlli che abbassano probabilità o impatto. <strong>Trasferire</strong>:
+              spostare l’onere su un terzo, con un contratto o una polizza — l’obbligo verso i propri
+              clienti però non si trasferisce mai. <strong>Evitare</strong>: rinunciare all’attività
+              che lo genera. <strong>Accettare</strong>: tenerlo così com’è, con una motivazione scritta.
+            </p>
+            <p style={{...CFR_P, marginBottom:0}}>
+              Dopo il trattamento si rivaluta il <strong>rischio residuo</strong> con le stesse due
+              scale. Il residuo non può superare l’inerente: se accade, una delle due valutazioni è
+              sbagliata. Un residuo identico all’inerente è ammesso solo dichiarando che il rischio è
+              accettato, non che è stato trattato. Chi accetta dipende dalla fascia, secondo la tabella
+              del punto 6.
+            </p>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={8} titolo="Quando si riesamina">
+            <p style={CFR_P}>
+              Alla cadenza ordinaria di <strong>sei mesi</strong>, e fuori cadenza ogni volta che
+              accade una di queste cose: un incidente che coinvolge il rischio, l’ingresso o
+              l’uscita di un fornitore che tratta dati, una modifica architetturale rilevante, una
+              non conformità che lo riguarda, un cambiamento normativo.
+            </p>
+            <p style={{...CFR_P, marginBottom:0}}>
+              Il riesame richiede un <strong>esito scritto</strong>: che cosa è stato verificato e che
+              cosa è cambiato. Una data che avanza senza una riga di motivazione non è evidenza di
+              riesame, è evidenza che qualcuno ha premuto un pulsante.
+            </p>
+          </CfrSezioneMet>
+
+          <CfrSezioneMet n={9} titolo="Legame con la Dichiarazione di Applicabilità">
+            <p style={{...CFR_P, marginBottom:0}}>
+              I controlli Annex A associati a ciascun rischio sono la giustificazione della loro
+              inclusione nella Dichiarazione di Applicabilità: un controllo è applicabile perché
+              tratta un rischio censito, ed è escluso perché nessun rischio lo richiede. Lo scarto fra
+              livello inerente e residuo è la misura di quanto quel controllo sta effettivamente
+              producendo — ed è la prima cosa che viene chiesta quando si difende una scelta di
+              esclusione.
+            </p>
+          </CfrSezioneMet>
+
+          <div style={{padding:'14px 16px', borderRadius:10, background:ADM.NEUTRAL_SOFT,
+            fontSize:12.4, color:ADM.MUTED, lineHeight:1.6}}>
+            La copia controllata e firmata di questo documento vive nel gestore documentale, insieme
+            alla Dichiarazione di Applicabilità e alle politiche. Quella che stai leggendo è la
+            versione in vigore, riportata qui perché si applica in questa schermata: se le due
+            divergono, vale quella firmata.
+          </div>
+        </div>
+      </div>
+      </div>
       </div>
     </div>
   );
@@ -291,9 +567,9 @@ function CfrModaleRischio({ modo, rischio, onChiudi, onSalva }) {
       background:'rgba(15,17,21,0.42)', backdropFilter:'blur(3px)'}}>
       <div style={{position:'sticky', top:'50%', display:'flex', justifyContent:'center'}}>
       <div style={{transform:'translateY(-50%)'}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:740, maxWidth:'92%', background:'#fff', borderRadius:16,
+      <div data-modale="rischio" onClick={e=>e.stopPropagation()} style={{width:740, maxWidth:'92%', background:'#fff', borderRadius:16,
         boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
-        maxHeight:'80vh', display:'flex', flexDirection:'column'}}>
+        maxHeight:660, display:'flex', flexDirection:'column'}}>
 
         <div style={{padding:'20px 26px 16px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
           <div style={{fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>
@@ -452,6 +728,7 @@ function CfRischi() {
   const [cat, setCat]         = useStateCfr(null);        // categoria filtrata
   const [aperto, setAperto]   = useStateCfr(null);        // riga espansa
   const [modale, setModale]   = useStateCfr(null);        // { modo, rischio }
+  const [metodo, setMetodo]   = useStateCfr(false);       // metodologia aperta
   const [, forza]             = useStateCfr(0);           // i dati sono mutati in place: qui si forza il render
 
   // La matrice conta sempre TUTTI i rischi: se contasse solo la categoria
@@ -518,7 +795,10 @@ function CfRischi() {
     forza(n => n + 1);
   };
 
-  const GRID = 'minmax(0,2.1fr) 96px 116px 0.95fr 1.1fr 1.3fr 1.35fr 30px';
+  // Niente colonna Annex A: la mappatura dei controlli è già nel dettaglio della
+  // riga, e un registro non si scorre cercando «A.5.18» a occhio. La larghezza
+  // recuperata va alla descrizione, che invece si legge.
+  const GRID = 'minmax(0,2.6fr) 96px 116px 1fr 1.2fr 1.35fr 30px';
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
@@ -536,6 +816,9 @@ function CfRischi() {
           )}
           <div style={{flex:1}}/>
           {sel && <AdmButton variant="ghost" size="sm" onClick={()=>setSel(null)}>Togli il filtro</AdmButton>}
+          {/* La metodologia sta qui e non in una tab propria: è il documento che
+              spiega che cosa significano gli assi che si stanno guardando. */}
+          <AdmButton variant="ghost" size="sm" onClick={()=>setMetodo(true)}>Metodologia</AdmButton>
           <AdmTabBar variant="segmented" active={vista} onChange={(v)=>{ setVista(v); setSel(null); }}
             tabs={[{ id:'inerente', label:'Inerente' }, { id:'residuo', label:'Residuo' }]}/>
         </div>
@@ -593,7 +876,7 @@ function CfRischi() {
         <div style={CF_CARD}>
           <div style={{...CF_TH, display:'grid', gridTemplateColumns:GRID, gap:10}}>
             <div>Rischio</div><div>Inerente</div><div>Residuo</div><div>Trattamento</div>
-            <div>Responsabile</div><div>Controlli Annex A</div><div>Stato</div><div/>
+            <div>Responsabile</div><div>Stato</div><div/>
           </div>
 
           {/* I due filtri si sommano: categoria e cella possono non avere
@@ -642,8 +925,6 @@ function CfRischi() {
                   <div style={{fontSize:12.8, color:ADM.TEXT, fontWeight:600}}>{CFR_TRATT[r.trattamento] || r.trattamento}</div>
 
                   <div style={{fontSize:12.6, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.responsabile}</div>
-
-                  <div><CfrChips items={r.controlli}/></div>
 
                   <div>
                     <CfPill tono={st.tono}>{st.label}</CfPill>
@@ -718,6 +999,8 @@ function CfRischi() {
           modo={modale.modo} rischio={modale.rischio}
           onChiudi={()=>setModale(null)} onSalva={salva}/>
       )}
+
+      {metodo && <CfrMetodologia onChiudi={()=>setMetodo(false)}/>}
     </div>
   );
 }
