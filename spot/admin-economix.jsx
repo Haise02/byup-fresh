@@ -166,7 +166,16 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
   const [b, setB] = useStateEco({ voce:'', categoria:'Software', importo:'', periodicita:'mensile',
     dal: new Date().toISOString().slice(0, 10), fornitore:'', numero:'', iva:'' });
   const [file, setFile] = useStateEco(null);
+  // Finche l'IVA non viene toccata a mano segue l'imponibile al 22%: e il caso
+  // normale. Appena qualcuno la scrive — tipicamente per azzerarla su un
+  // fornitore estero — smette di ricalcolarsi da sola.
+  const [ivaToccata, setIvaToccata] = useStateEco(false);
   const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+  const aggImponibile = (v) => setB(x => ({ ...x, importo:v,
+    iva: ivaToccata ? x.iva : (() => {
+      const n = parseFloat(String(v).replace(',', '.'));
+      return n > 0 ? (Math.round(n * 22) / 100).toFixed(2).replace('.', ',') : '';
+    })() }));
   const xml = !!file && /\.xml$/i.test(file);
   const imponibile = parseFloat(String(b.importo).replace(',', '.')) || 0;
   const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
@@ -210,20 +219,23 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
                 Va registrata a parte perche dalla cassa esce comunque. */}
             <EcoCampo etichetta="Imponibile"
               aiuto="Al netto dell’IVA. È l’importo che entra nel conto economico.">
-              <input value={b.importo} onChange={e=>agg('importo', e.target.value.replace(/[^\d.,]/g, ''))}
+              <input value={b.importo} onChange={e=>aggImponibile(e.target.value.replace(/[^\d.,]/g, ''))}
                 style={ECO_INP} placeholder="0,00"/>
             </EcoCampo>
             <EcoCampo etichetta="IVA"
               aiuto={ivaZero
-                ? 'Zero: reverse charge o operazione non imponibile. Nessuna uscita di cassa in più.'
-                : `Esce dalla cassa e rientra con la liquidazione. Totale da pagare ${ecoEur2(imponibile + iva)}.`}>
+                ? 'Reverse charge o operazione non imponibile.'
+                : `Totale da pagare ${ecoEur2(imponibile + iva)}.`}>
               <div style={{display:'flex', gap:7}}>
-                <input value={b.iva} onChange={e=>agg('iva', e.target.value.replace(/[^\d.,]/g, ''))}
-                  style={ECO_INP} placeholder="0,00"/>
-                <AdmButton variant="secondary" size="sm" style={{flexShrink:0, fontSize:12}}
-                  onClick={()=>agg('iva', (Math.round(imponibile * 22) / 100).toFixed(2).replace('.', ','))}>
-                  22%
-                </AdmButton>
+                <input value={b.iva} placeholder="0,00" style={ECO_INP}
+                  onChange={e=>{ setIvaToccata(true); agg('iva', e.target.value.replace(/[^\d.,]/g, '')); }}/>
+                {ivaToccata && (
+                  <AdmButton variant="secondary" size="sm" style={{flexShrink:0, fontSize:12}}
+                    onClick={()=>{ setIvaToccata(false);
+                      agg('iva', imponibile > 0 ? (Math.round(imponibile * 22) / 100).toFixed(2).replace('.', ',') : ''); }}>
+                    22%
+                  </AdmButton>
+                )}
               </div>
             </EcoCampo>
             <EcoCampo etichetta="Periodicita"
