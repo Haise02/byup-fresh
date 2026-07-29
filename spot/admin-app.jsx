@@ -23,7 +23,7 @@ const NAV_SYSTEM = [
   // domanda vista da tre lati: stanno insieme e non dentro le impostazioni,
   // dove finivano solo perche non c'era un altro posto.
   { id: 'sicurezza',    label: 'Sicurezza e sistemi', icon: 'lockFill' },
-  { id: 'hr',           label: 'Risorse Umane',      icon: 'badgeFill' },
+  { id: 'hr',           label: 'Risorse Umane',      icon: 'capFill' },
   { id: 'team',         label: 'Impostazioni Admin', icon: 'shieldUserFill' },
 ];
 
