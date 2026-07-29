@@ -14,6 +14,33 @@ const GLASS_MENU = {
   borderRadius: 10,
 };
 
+// I due fogli che chiedono una decisione — nuova sala, nuovo tavolo — non
+// sono vetro: il vetro va bene per un menu che sfiora la pagina, non per un
+// modulo da compilare. Bianco pieno, respiro largo, titolo che si legge da
+// lontano. (PN e gia definito: panoramica-tokens.jsx e caricato prima.)
+const MODAL_PANEL = {
+  background: PN.WHITE, borderRadius: 22, width: 540, maxWidth: '100%',
+  boxShadow: '0 32px 80px -24px rgba(15, 17, 21, 0.38), 0 0 0 1px rgba(15, 17, 21, 0.05)',
+};
+const MODAL_HEAD  = { padding: '26px 28px 20px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, position: 'relative' };
+const MODAL_TITLE = { fontSize: 25, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT, paddingRight: 44 };
+const MODAL_SUB   = { fontSize: 15, color: PN.MUTED, marginTop: 4, paddingRight: 44 };
+const MODAL_BODY  = { padding: '22px 28px' };
+const MODAL_FOOT  = { padding: '18px 28px', borderTop: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', gap: 10 };
+const MODAL_X     = {
+  position: 'absolute', top: 24, right: 24, width: 38, height: 38, borderRadius: 11,
+  background: PN.WHITE, border: `1px solid ${PN.BORDER}`, cursor: 'pointer',
+  display: 'grid', placeItems: 'center', color: PN.TEXT,
+};
+const MODAL_LABEL = {
+  fontSize: 13, fontWeight: 700, color: PN.MUTED,
+  letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
+};
+const MODAL_INPUT = {
+  width: '100%', padding: '13px 14px', border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+  fontSize: 16, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT,
+};
+
 // Sort numerico-aware: "Tavolo 2" prima di "Tavolo 10"
 function naturalCompare(a, b) {
   return String(a).localeCompare(String(b), 'it', { numeric: true, sensitivity: 'base' });
@@ -1349,25 +1376,18 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
       position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20, width: 420, maxWidth:'100%',
-      }}>
-        <div style={{padding:'18px 20px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, position:'relative'}}>
-          <div style={{fontSize: 17, fontWeight: 700}}>
-            {isNew ? <span style={{display:'inline-flex', alignItems:'center', gap: 8}}><BuIcons.sparkle size={16} color={PN.PINK_DARK}/> Nuovo tavolo posizionato</span> : `Modifica ${tavolo.name}`}
+      <div onClick={e => e.stopPropagation()} style={MODAL_PANEL}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>
+            {isNew ? 'Nuovo tavolo posizionato' : `Modifica ${tavolo.name}`}
           </div>
-          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>
+          <div style={MODAL_SUB}>
             {isNew ? 'Configura forma, posti e nome del tavolo' : 'Aggiorna le impostazioni del tavolo'}
           </div>
-          <button onClick={onClose} style={{
-            position:'absolute', top: 14, right: 14,
-            width: 30, height: 30, borderRadius: 8,
-            background:'#F4F5F7', border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-          }}><PnI.X size={13}/></button>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
 
-        <div style={{padding:'18px 20px'}}>
+        <div style={MODAL_BODY}>
           {groupInfo && (
             <div style={{
               display:'flex', alignItems:'center', gap: 10,
@@ -1389,36 +1409,51 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
               >Dividi</button>
             </div>
           )}
-          <ImpField label="Nome">
-            <div style={{
-              width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:8,
-              fontSize:15.5, fontFamily:'inherit', background:'#FAFBFC', color: PN.TEXT,
-              display:'flex', alignItems:'center', gap:8,
-            }}>
-              <span style={{flex:1, fontWeight:700}}>{tavolo.name}</span>
-              <span style={{fontSize:13, color: PN.MUTED, fontStyle:'italic'}}>assegnato automaticamente</span>
-            </div>
-          </ImpField>
+          <div style={MODAL_LABEL}>Nome</div>
+          <div style={{
+            ...MODAL_INPUT, marginBottom: 22,
+            display:'flex', alignItems:'center', gap: 8,
+          }}>
+            <span style={{flex:1, fontWeight:700}}>{tavolo.name}</span>
+            <span style={{fontSize:14, color: PN.MUTED, fontStyle:'italic'}}>assegnato automaticamente</span>
+          </div>
 
-          <div style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 8}}>Posti</div>
+          <div style={{...MODAL_LABEL, marginBottom: 4}}>Posti</div>
+          <div style={{fontSize: 14.5, color: PN.MUTED, marginBottom: 12, lineHeight: 1.4}}>
+            Seleziona o imposta il numero di posti disponibili per questo tavolo.
+          </div>
           {(() => {
             const presets = [2,4,6,8,10,12];
             const isCustom = !presets.includes(tavolo.coperti);
             const showCustom = customOpen || isCustom;
             return (
-              <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6, marginBottom: 8}}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10, marginBottom: 8}}>
                 {presets.map(n => {
                   const on = tavolo.coperti === n;
                   return (
                     <button key={n} onClick={() => { setCustomOpen(false); onUpdate({coperti: n}); }} style={{
-                      padding: '10px 0',
-                      border:`1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
+                      position:'relative', padding: '20px 0',
+                      border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                       background: on ? PN.PINK : PN.WHITE,
                       color: on ? PN.WHITE : PN.TEXT,
-                      borderRadius: 8, fontSize: 16, fontWeight: 700,
+                      borderRadius: 12, fontSize: 25, fontWeight: 800,
                       cursor:'pointer', fontFamily:'inherit',
                       transition: 'background .12s, border-color .12s, color .12s',
-                    }}>{n}</button>
+                    }}>
+                      {n}
+                      {/* La spunta e la conferma che il tocco e arrivato: sul
+                          pieno corallo il solo cambio di fondo si perde se si
+                          guarda un altro punto della modale. */}
+                      {on && (
+                        <span style={{
+                          position:'absolute', top: 7, right: 7,
+                          width: 18, height: 18, borderRadius:'50%',
+                          background: PN.WHITE, display:'grid', placeItems:'center',
+                        }}>
+                          <BuIcons.check size={11} color={PN.PINK}/>
+                        </span>
+                      )}
+                    </button>
                   );
                 })}
                 {/* Altro — collapsed: solo etichetta cliccabile / expanded: stepper integrato */}
@@ -1427,8 +1462,8 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                     gridColumn: 'span 2',
                     display:'flex', alignItems:'stretch',
                     border:`1.5px solid ${PN.PINK}`,
-                    background: PN.PINK_SOFT,
-                    borderRadius: 8, overflow:'hidden',
+                    background: PN.PINK_BG_SOFT,
+                    borderRadius: 12, overflow:'hidden',
                     animation: 'tcMenuIn .16s cubic-bezier(.2,.8,.2,1)',
                     transformOrigin: 'center',
                   }}>
@@ -1477,19 +1512,21 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                   <button
                     onClick={() => setCustomOpen(true)}
                     style={{
-                      gridColumn: 'span 2', padding: '10px 0',
-                      border:`1.5px dashed ${PN.BORDER}`,
-                      background: PN.WHITE,
-                      color: PN.MUTED,
-                      borderRadius: 8, fontSize: 15, fontWeight: 700,
-                      letterSpacing: 0.3, textTransform: 'uppercase',
-                      cursor:'pointer', fontFamily:'inherit',
-                      transition: 'background .12s, border-color .12s, color .12s',
+                      gridColumn: 'span 2', padding: '12px 13px',
+                      display:'flex', alignItems:'center', gap: 10, textAlign:'left',
+                      border:`1.5px dashed rgba(255, 90, 95, 0.55)`,
+                      background: '#FFF7F6',
+                      borderRadius: 12, cursor:'pointer', fontFamily:'inherit',
+                      transition: 'background .12s, border-color .12s',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = PN.PINK_DARK; e.currentTarget.style.color = PN.PINK_DARK; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.color = PN.MUTED; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.borderColor = PN.PINK; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#FFF7F6'; e.currentTarget.style.borderColor = 'rgba(255, 90, 95, 0.55)'; }}
                   >
-                    Personalizzato…
+                    <span style={{display:'inline-flex', color: PN.PINK, flexShrink: 0}}><BuIcons.edit size={17}/></span>
+                    <span style={{minWidth: 0}}>
+                      <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Personalizzato</span>
+                      <span style={{display:'block', fontSize: 13, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap'}}>Imposta un numero su misura</span>
+                    </span>
                   </button>
                 )}
               </div>
@@ -1529,9 +1566,9 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
           )}
         </div>
 
-        <div style={{padding:'14px 20px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 8, justifyContent: (!isNew && onDelete) ? 'space-between' : 'flex-end'}}>
-          {!isNew && onDelete && <ImpButton variant="ghost" icon={<BuIcons.trash size={13}/>} onClick={onDelete} style={{color: PN.PINK_DARK}}>Elimina</ImpButton>}
-          <ImpButton variant="primary" onClick={handleConfirm}>
+        <div style={{...MODAL_FOOT, justifyContent: (!isNew && onDelete) ? 'space-between' : 'flex-end'}}>
+          {!isNew && onDelete && <ImpButton variant="ghost" icon={<BuIcons.trash size={14}/>} onClick={onDelete} style={{color: PN.PINK_DARK, padding:'11px 18px', borderRadius: 11}}>Elimina</ImpButton>}
+          <ImpButton variant="pink" onClick={handleConfirm} style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}}>
             {isNew ? (quantity > 1 ? `Crea ${quantity} tavoli` : 'Crea tavolo') : 'Salva'}
           </ImpButton>
         </div>
@@ -1630,58 +1667,75 @@ function SalaModal({ sala, onSave, onClose }) {
       position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20, width: 420, maxWidth:'100%',
-      }}>
-        <div style={{padding:'18px 20px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, position:'relative'}}>
-          <div style={{fontSize: 17, fontWeight: 700}}>{isNew ? 'Nuova sala' : 'Modifica sala'}</div>
-          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>
+      <div onClick={e => e.stopPropagation()} style={MODAL_PANEL}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>{isNew ? 'Nuova sala' : 'Modifica sala'}</div>
+          <div style={MODAL_SUB}>
             {isNew ? 'Crea uno spazio separato (es. dehors, terrazza, sala VIP)' : 'Aggiorna nome e stato della sala'}
           </div>
-          <button onClick={onClose} style={{
-            position:'absolute', top: 14, right: 14,
-            width: 30, height: 30, borderRadius: 8,
-            background:'#F4F5F7', border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-          }}><PnI.X size={13}/></button>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
-        <div style={{padding:'18px 20px'}}>
+        <div style={MODAL_BODY}>
           <ImpField label="Nome sala">
             <input
               value={name} onChange={e => setName(e.target.value)} autoFocus
               placeholder="Es. Terrazza, Sala VIP, Dehors..."
-              style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)'}}
+              style={MODAL_INPUT}
             />
           </ImpField>
-          <div style={{display:'flex', gap: 12, marginBottom: 4}}>
+          <div style={{display:'flex', gap: 14, marginBottom: 4}}>
             <ImpField label="Larghezza (m)">
               <input
                 type="number" step="0.1" min="1" value={widthM} onChange={e => setWidthM(e.target.value)}
-                style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)'}}
+                style={MODAL_INPUT}
               />
             </ImpField>
             <ImpField label="Profondità (m)">
               <input
                 type="number" step="0.1" min="1" value={depthM} onChange={e => setDepthM(e.target.value)}
-                style={{width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.8)'}}
+                style={MODAL_INPUT}
               />
             </ImpField>
           </div>
-          <div style={{fontSize: 13.5, color: PN.MUTED, margin:'2px 0 14px', display:'flex', alignItems:'center', gap: 6}}>
-            <BuIcons.bulb size={13} color={PN.AMBER}/>
-            Superficie {(w * d).toFixed(1)} m² · capienza stimata <strong style={{color: PN.TEXT}}>{maxTavoli} tavoli</strong>
+          {/* Il conto della superficie non e una nota a margine: e la risposta
+              alle due misure appena scritte, e sta in una striscia sua. */}
+          <div style={{
+            display:'flex', alignItems:'center', gap: 10,
+            padding:'14px 16px', margin:'4px 0 16px',
+            background: PN.PINK_BG_SOFT, border:'1px solid rgba(255, 90, 95, 0.22)',
+            borderRadius: 12, fontSize: 14.5, color: PN.MUTED,
+          }}>
+            <span style={{display:'inline-flex', color: PN.PINK, flexShrink: 0}}><BuIcons.bulb size={16}/></span>
+            <span>Superficie {(w * d).toFixed(1)} m² · capienza stimata <strong style={{color: PN.TEXT}}>{maxTavoli} tavoli</strong></span>
           </div>
-          <label style={{display:'flex', alignItems:'center', gap: 10, padding: 12, background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 9, cursor:'pointer'}}>
-            <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} style={{accentColor: PN.PINK}}/>
-            <div style={{flex:1}}>
-              <div style={{fontSize: 15, fontWeight: 700}}>Sala attiva</div>
-              <div style={{fontSize: 13.5, color: PN.MUTED}}>Le sale disattivate non appaiono nell'app e non accettano ordini</div>
-            </div>
+          <label style={{
+            display:'flex', alignItems:'center', gap: 14, padding: '16px',
+            background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: 12, cursor:'pointer',
+          }}>
+            <input
+              type="checkbox" checked={active} onChange={e => setActive(e.target.checked)}
+              style={{position:'absolute', opacity: 0, width: 0, height: 0}}
+            />
+            {/* Casella disegnata a mano: quella di sistema arriva a 13px e in
+                un foglio con questo respiro sparisce. */}
+            <span style={{
+              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+              background: active ? PN.PINK : PN.WHITE,
+              border: `1.5px solid ${active ? PN.PINK : PN.BORDER}`,
+              display:'grid', placeItems:'center',
+              transition:'background .14s, border-color .14s',
+            }}>
+              {active && <BuIcons.check size={15} color={PN.WHITE}/>}
+            </span>
+            <span style={{flex:1}}>
+              <span style={{display:'block', fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Sala attiva</span>
+              <span style={{display:'block', fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>Le sale disattivate non appaiono nell'app e non accettano ordini</span>
+            </span>
           </label>
         </div>
-        <div style={{padding:'14px 20px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 8, justifyContent:'flex-end'}}>
-          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-          <ImpButton variant="primary" onClick={() => name.trim() && onSave({...sala, name: name.trim(), active, widthM: w || 12, depthM: d || 7.2})}>
+        <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose} style={{padding:'11px 22px', borderRadius: 11, fontSize: 16}}>Annulla</ImpButton>
+          <ImpButton variant="pink" style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}} onClick={() => name.trim() && onSave({...sala, name: name.trim(), active, widthM: w || 12, depthM: d || 7.2})}>
             {isNew ? 'Crea sala' : 'Salva'}
           </ImpButton>
         </div>
@@ -1934,14 +1988,14 @@ function ImportPlanModal({ onClose, onImport }) {
   // Mock generato dall'AI
   const generated = {
     tavoli: [
-      { id: 101, name: 'T1', alias:'', coperti: 2, shape: 'round', disabled: false, pos: {x: 1, y: 1} },
-      { id: 102, name: 'T2', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 3, y: 1} },
-      { id: 103, name: 'T3', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 5, y: 1} },
-      { id: 104, name: 'T4', alias:'', coperti: 6, shape: 'rect', disabled: false, pos: {x: 7, y: 1} },
-      { id: 105, name: 'T5', alias:'', coperti: 2, shape: 'round', disabled: false, pos: {x: 1.5, y: 3} },
-      { id: 106, name: 'T6', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 3.5, y: 3} },
-      { id: 107, name: 'T7', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 5.5, y: 3} },
-      { id: 108, name: 'T8', alias:'', coperti: 8, shape: 'rect', disabled: false, pos: {x: 7.5, y: 3} },
+      { id: 101, name: 'Tavolo 1', alias:'', coperti: 2, shape: 'round', disabled: false, pos: {x: 1, y: 1} },
+      { id: 102, name: 'Tavolo 2', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 3, y: 1} },
+      { id: 103, name: 'Tavolo 3', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 5, y: 1} },
+      { id: 104, name: 'Tavolo 4', alias:'', coperti: 6, shape: 'rect', disabled: false, pos: {x: 7, y: 1} },
+      { id: 105, name: 'Tavolo 5', alias:'', coperti: 2, shape: 'round', disabled: false, pos: {x: 1.5, y: 3} },
+      { id: 106, name: 'Tavolo 6', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 3.5, y: 3} },
+      { id: 107, name: 'Tavolo 7', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 5.5, y: 3} },
+      { id: 108, name: 'Tavolo 8', alias:'', coperti: 8, shape: 'rect', disabled: false, pos: {x: 7.5, y: 3} },
     ],
     furniture: [
       { id: 'fai-1', kind: 'kitchen', label:'Cucina', x: 0.2, y: 4.4, w: 2.5, h: 1.4, color:'#7c2436', textColor:'#FFF' },
