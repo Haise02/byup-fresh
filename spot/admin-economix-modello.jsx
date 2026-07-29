@@ -140,6 +140,43 @@ function ecoFissiDelMese(d) {
   }, 0);
 }
 
+// ─── Ratei e risconti ─────────────────────────────────────────────────────
+// Un canone annuale si paga tutto a gennaio e si consuma per dodici mesi. Il
+// conto economico lo spalma — giusto — e la cassa lo fa uscire in un colpo —
+// giusto anche quello — ma la differenza fra i due e un CREDITO verso il futuro
+// e deve stare in bilancio. Senza, attivo e passivo non tornano e nessuno sa
+// perche: e uno dei motivi per cui l'esercizio 2025 non quadrava.
+function ecoRisconti(d) {
+  const m = new Date(d.getFullYear(), d.getMonth(), 1);
+  return ECO_FISSI.reduce((t, f) => {
+    if (f.periodicita !== 'annuale') return t;
+    if (new Date(f.dal.getFullYear(), f.dal.getMonth(), 1) > m) return t;
+    if (f.a && m > f.a) return t;
+    // Mesi gia consumati dall'ultimo rinnovo: il resto e ancora da consumare.
+    const trascorsi = (m.getMonth() - f.dal.getMonth() + 12) % 12;
+    return t + f.importo * (12 - trascorsi) / 12;
+  }, 0);
+}
+
+// ─── Ritenute d'acconto ───────────────────────────────────────────────────
+// Su un compenso a un professionista non esce tutto al fornitore: una parte la
+// trattieni e la versi allo Stato entro il 16 del mese dopo. Sono soldi che a
+// fine mese sono ancora in cassa ma non sono tuoi, e senza questa voce la cassa
+// sembra piu ricca di quanto sia.
+function ecoRitenute(d) {
+  const m = new Date(d.getFullYear(), d.getMonth(), 1);
+  return ECO_FISSI.reduce((t, f) => {
+    if (!f.ritenuta) return t;
+    if (new Date(f.dal.getFullYear(), f.dal.getMonth(), 1) > m) return t;
+    if (f.a && m > f.a) return t;
+    const quota = f.periodicita === 'annuale' ? f.importo / 12
+      : f.periodicita === 'una-tantum'
+        ? (f.dal.getFullYear() === m.getFullYear() && f.dal.getMonth() === m.getMonth() ? f.importo : 0)
+        : f.importo;
+    return t + quota * f.ritenuta / 100;
+  }, 0);
+}
+
 // ─── Ammortamenti ─────────────────────────────────────────────────────────
 // Il fondo e la quota di un cespite a un dato mese. Si accumula in avanti invece
 // di moltiplicare i mesi trascorsi per la quota, perche due regole lo renderebbero
@@ -166,13 +203,33 @@ const ecoAmmortamentoMese = (d) => ECO_CESPITI.reduce((t, c) => t + ecoAmmortame
 // stesso fatto, ed e per questo che stanno in due funzioni diverse.
 const ecoCespitiDelMese = (d) => ECO_CESPITI.reduce((t, c) =>
   t + (c.data.getFullYear() === d.getFullYear() && c.data.getMonth() === d.getMonth() ? c.costo : 0), 0);
-function ecoCespitiAlla(d) {
+function ecoCespitiAlla(d, soloImmateriali) {
   return ECO_CESPITI.reduce((a, c) => {
     if (new Date(c.data.getFullYear(), c.data.getMonth(), 1) > new Date(d.getFullYear(), d.getMonth(), 1)) return a;
+    const cat = ECO_CAT_DUREVOLI[c.categoria];
+    const imm = !!(cat && cat.immateriale);
+    if (soloImmateriali != null && imm !== soloImmateriali) return a;
     const am = ecoAmmortamento(c, d);
     a.costo += c.costo; a.fondo += am.fondo; a.netto += am.residuo;
     return a;
   }, { costo:0, fondo:0, netto:0 });
+}
+
+// Gli stessi costi fissi, ma per la CASSA. Un canone annuale pesa un dodicesimo
+// al mese sul conto economico e esce tutto insieme al rinnovo: usare la stessa
+// funzione per i due significava far uscire l'assicurazione a rate che nessuno
+// paga, e lasciare senza contropartita il risconto che quella differenza genera.
+// Lo scadenzario lo trattava gia come un pagamento unico: erano i flussi a
+// raccontare un'altra storia.
+function ecoFissiCassaDelMese(d) {
+  return ECO_FISSI.reduce((tot, f) => {
+    if (f.dal && d < new Date(f.dal.getFullYear(), f.dal.getMonth(), 1)) return tot;
+    if (f.a && d > f.a) return tot;
+    if (f.periodicita === 'mensile') return tot + f.importo;
+    // annuale e una tantum: escono nel mese in cui cadono
+    if (f.periodicita === 'annuale') return tot + (f.dal.getMonth() === d.getMonth() ? f.importo : 0);
+    return tot + (f.dal.getFullYear() === d.getFullYear() && f.dal.getMonth() === d.getMonth() ? f.importo : 0);
+  }, 0);
 }
 
 // ─── Ricavi di un mese ─────────────────────────────────────────────────────
@@ -309,7 +366,7 @@ function ecoProiezioneCassa(mix, leve) {
   const out = [];
   futuri.forEach((d, i) => {
     const ric = ecoRicavi(d, mix);
-    const costi = ecoCostiVariabili(d) + ecoFissiDelMese(d.data) + ecoCespitiDelMese(d.data);
+    const costi = ecoCostiVariabili(d) + ecoFissiCassaDelMese(d.data) + ecoCespitiDelMese(d.data);
     // Gli abbonamenti sono + IVA: il ristoratore la paga a Byup, che la INCASSA
     // e la riversa. Mancava del tutto, e il flusso sottraeva l'IVA versata allo
     // Stato senza mai aggiungere quella riscossa — l'IVA risultava un costo
@@ -422,7 +479,7 @@ function ecoFlussiStorici(mix) {
     const frazione = m.corrente ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
     const ricavi = ric.totale * frazione;
     const ivaIncassata = ricavi * 0.22;
-    const costi = (ecoCostiVariabili(m) * frazione) + ecoFissiDelMese(dataM) + ecoCespitiDelMese(dataM);
+    const costi = (ecoCostiVariabili(m) * frazione) + ecoFissiCassaDelMese(dataM) + ecoCespitiDelMese(dataM);
     const ivaAcquisti = ecoIvaAcquisti(dataM);
     // Le uscite sono tutto cio che esce verso l'esterno: fornitori al lordo e
     // scadenze con calendario proprio. Tenerle in due colonne separate quando
@@ -433,7 +490,12 @@ function ecoFlussiStorici(mix) {
     // tenerlo in una colonna a se obbligava il flusso netto a sottrarre un
     // termine che non si vedeva accanto agli altri due.
     const ivaVersata = ecoIvaVersataNelMese(dataM, mix);
-    const pagamenti = costi + ivaAcquisti + altre + ivaVersata;
+    // La ritenuta non esce col compenso: resta in cassa fino al 16 del mese dopo.
+    // Senza questo sfasamento il bilancio mostrerebbe un debito per ritenute che
+    // secondo la cassa e gia stato pagato.
+    const ritTrattenute = ecoRitenute(dataM);
+    const ritVersate = ecoRitenute(new Date(dataM.getFullYear(), dataM.getMonth() - 1, 1));
+    const pagamenti = costi + ivaAcquisti + altre + ivaVersata - ritTrattenute + ritVersate;
     // Saldo del mese = IVA a debito meno IVA a credito, i due termini della
     // liquidazione. E quello che MATURA, non quello che esce: si accumula fino
     // alla scadenza del periodo e li diventa cassa. Positivo si deve, negativo
@@ -770,13 +832,19 @@ function ecoStatoPatrimoniale(mix, annoScelto) {
   const posizioneIva = ecoPosizioneIvaAl(mix, new Date(ultimo.data.getFullYear(), ultimo.data.getMonth() + 1, 0));
   const ivaDebito = Math.max(0, posizioneIva);
   const ivaCredito = Math.max(0, -posizioneIva);
-  const cesp = ecoCespitiAlla(ultimo.data);
+  const cesp = ecoCespitiAlla(ultimo.data, false);
+  const cespImm = ecoCespitiAlla(ultimo.data, true);
   const immobilizzazioni = P.immobiliMateriali + P.fondoAmmortamento + cesp.netto;
+  const fineMese = new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1);
+  const risconti = ecoRisconti(fineMese);
+  const ritenute = ecoRitenute(fineMese);
   const prepagato = ecoPrepagati().reduce((t, p) => t + p.valore, 0);
 
   const attivo = [
     { v:'Immobilizzazioni materiali', n:immobilizzazioni,
       sub:`${ecoEur(P.immobiliMateriali + cesp.costo)} al costo, ${ecoEur(-P.fondoAmmortamento + cesp.fondo)} ammortizzati` },
+    ...(cespImm.costo > 0 ? [{ v:'Immobilizzazioni immateriali', n:cespImm.netto,
+      sub:`${ecoEur(cespImm.costo)} al costo, ${ecoEur(cespImm.fondo)} ammortizzati · marchi e licenze pluriennali` }] : []),
     { v:'Crediti verso clienti', n:crediti, sub:`abbonamenti fatturati e non ancora incassati, ${ECO_CASSA.giorniIncasso} giorni medi` },
     { v:'Crediti tributari', n:P.creditiTributari + ivaCredito,
       sub: ivaCredito > 0
@@ -784,6 +852,10 @@ function ecoStatoPatrimoniale(mix, annoScelto) {
         : 'credito d’imposta maturato' },
     { v:'Servizi prepagati non consumati', n:prepagato,
       sub:'credito acquistato e non ancora usato: denaro già uscito che non è ancora costo' },
+    ...(risconti > 0 ? [{ v:'Risconti attivi', n:risconti,
+      sub:'canoni annuali già pagati e non ancora consumati: la quota che compete ai mesi successivi' }] : []),
+    ...(P.depositiCauzionali > 0 ? [{ v:'Depositi cauzionali', n:P.depositiCauzionali,
+      sub:'cauzioni su affitti e contratti, rimborsabili alla chiusura' }] : []),
     { v:'Disponibilità liquide', n:cassa, sub:`banca ${ecoEur(ECO_CASSA.saldoBanca)}` },
   ];
   const totAttivo = attivo.reduce((t, x) => t + x.n, 0);
@@ -798,13 +870,26 @@ function ecoStatoPatrimoniale(mix, annoScelto) {
     { v:'Debiti verso fornitori', n:debitiFornitori, gruppo:'deb', sub:`${ECO_CASSA.giorniPagamento} giorni medi di pagamento` },
     { v:'Debiti tributari', n:ivaDebito, gruppo:'deb',
       sub: ivaDebito > 0 ? 'IVA da versare alla prossima liquidazione' : 'nessuna IVA da versare: la posizione è a credito' },
+    ...(ritenute > 0 ? [{ v:'Ritenute d’acconto da versare', n:ritenute, gruppo:'deb',
+      sub:'trattenute sui compensi del mese: si versano con F24 entro il 16 del mese successivo' }] : []),
     { v:'Debiti verso banche', n:P.debitiBanche, gruppo:'deb' },
   ];
+  // La differenza si DICHIARA. Nasconderla dentro il patrimonio netto — che e
+  // quello che si faceva ritoccando i versamenti dei soci — fa quadrare il
+  // bilancio per costruzione, e un bilancio che quadra per costruzione non e una
+  // verifica: e una tautologia. Qui la differenza ha una riga sua, e piu e
+  // piccola piu i dati inseriti sono aggiornati.
+  const sbilancio = totAttivo - passivo.reduce((t, x) => t + x.n, 0);
+  if (Math.abs(sbilancio) >= 1) {
+    passivo.push({ v:'Differenza da riconciliare', n:sbilancio, gruppo:'deb',
+      sub:'attivo e passivo non coincidono: una voce inserita è più vecchia del resto, oppure ne manca una' });
+  }
   const totPassivo = passivo.reduce((t, x) => t + x.n, 0);
 
   return { anno, attivo, passivo, totAttivo, totPassivo, pn, perditePortateANuovo, prepagato,
-    sbilancio: totAttivo - totPassivo,
-    ce, cassa, crediti, debitiFornitori, ivaDebito, ivaCredito, immobilizzazioni };
+    sbilancio,
+    ce, cassa, crediti, debitiFornitori, ivaDebito, ivaCredito, immobilizzazioni,
+    risconti, ritenute, cesp, cespImm };
 }
 
 window.ecoGiorniConsenso = ecoGiorniConsenso;
@@ -817,6 +902,8 @@ window.ecoAmmortamento = ecoAmmortamento;
 window.ecoAmmortamentoMese = ecoAmmortamentoMese;
 window.ecoCespitiDelMese = ecoCespitiDelMese;
 window.ecoCespitiAlla = ecoCespitiAlla;
+window.ecoRisconti = ecoRisconti;
+window.ecoRitenute = ecoRitenute;
 window.ecoFlussiStorici = ecoFlussiStorici;
 window.ecoFinePeriodoIva = ecoFinePeriodoIva;
 window.ecoIvaPeriodi = ecoIvaPeriodi;
@@ -841,6 +928,7 @@ window.ecoGiorniInErrore = ecoGiorniInErrore;
 window.ecoCostoServizio = ecoCostoServizio;
 window.ecoCostiVariabili = ecoCostiVariabili;
 window.ecoFissiDelMese = ecoFissiDelMese;
+window.ecoFissiCassaDelMese = ecoFissiCassaDelMese;
 window.ecoMixPiani = ecoMixPiani;
 window.ecoRicavi = ecoRicavi;
 window.ecoImposte = ecoImposte;

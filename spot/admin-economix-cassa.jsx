@@ -283,10 +283,99 @@ function EcoCassa({ mix, leve, forza }) {
   );
 }
 
+// I saldi che il modello non puo dedurre da solo, piu i due parametri che
+// producevano voci intere restando invisibili: due e trenta giorni decidono da
+// soli i crediti verso clienti e i debiti verso fornitori, e nessuno poteva ne
+// vederli ne discuterli.
+function EcoModaleSaldi({ onChiudi, onSalva }) {
+  const P = ECO_PATRIMONIO;
+  const [b, setB] = useStateEco(() => ({
+    capitaleSociale:String(P.capitaleSociale), riserve:String(P.riserve),
+    versamentiSoci:String(P.versamentiSoci), immobiliMateriali:String(P.immobiliMateriali),
+    fondoAmmortamento:String(-P.fondoAmmortamento), creditiTributari:String(P.creditiTributari),
+    depositiCauzionali:String(P.depositiCauzionali), debitiBanche:String(P.debitiBanche),
+    giorniIncasso:String(ECO_CASSA.giorniIncasso), giorniPagamento:String(ECO_CASSA.giorniPagamento),
+    aggiornatoIl:P.aggiornatoIl.toISOString().slice(0, 10),
+  }));
+  const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+  const n = (v) => parseFloat(String(v).replace(',', '.')) || 0;
+  const campi = [
+    ['capitaleSociale', 'Capitale sociale', P.note.capitaleSociale],
+    ['riserve', 'Riserve', P.note.riserve],
+    ['versamentiSoci', 'Versamenti dei soci in conto capitale', P.note.versamentiSoci],
+    ['immobiliMateriali', 'Immobilizzazioni comprate prima di Economix', P.note.immobiliMateriali],
+    ['fondoAmmortamento', 'Ammortamento già maturato su quelle', P.note.fondoAmmortamento],
+    ['creditiTributari', 'Crediti tributari', P.note.creditiTributari],
+    ['depositiCauzionali', 'Depositi cauzionali', P.note.depositiCauzionali],
+    ['debitiBanche', 'Debiti verso banche', P.note.debitiBanche],
+  ];
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="saldi" onClick={e=>e.stopPropagation()} style={{width:700, maxWidth:'92%', background:'#fff',
+        borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
+        <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>Saldi inseriti e parametri</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            Tutto il resto dello stato patrimoniale è calcolato. Questi sono i valori che il modello
+            non può dedurre: se uno invecchia, la differenza da riconciliare lo dice.
+          </div>
+        </div>
+        <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
+          display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+          {campi.map(([k, et, aiuto]) => (
+            <EcoCampo key={k} etichetta={et} aiuto={aiuto}>
+              <input value={b[k]} onChange={e=>agg(k, e.target.value.replace(/[^\d.,-]/g, ''))}
+                style={ECO_INP} placeholder="0"/>
+            </EcoCampo>
+          ))}
+          <div style={{gridColumn:'1 / -1', paddingTop:6, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}/>
+          <EcoCampo etichetta="Giorni medi di incasso"
+            aiuto="Quanto passa fra la fattura al ristoratore e il bonifico: è questo numero a produrre i crediti verso clienti.">
+            <input value={b.giorniIncasso} onChange={e=>agg('giorniIncasso', e.target.value.replace(/[^\d]/g, ''))}
+              style={ECO_INP} placeholder="0"/>
+          </EcoCampo>
+          <EcoCampo etichetta="Giorni medi di pagamento"
+            aiuto="Quanto passa fra la fattura del fornitore e il pagamento: da qui vengono i debiti verso fornitori.">
+            <input value={b.giorniPagamento} onChange={e=>agg('giorniPagamento', e.target.value.replace(/[^\d]/g, ''))}
+              style={ECO_INP} placeholder="0"/>
+          </EcoCampo>
+          <EcoCampo etichetta="Saldi aggiornati al" span
+            aiuto="La data a cui questi valori sono veri. Serve a capire quale delle due colonne è più vecchia quando non tornano.">
+            <input type="date" value={b.aggiornatoIl} onChange={e=>agg('aggiornatoIl', e.target.value)} style={ECO_INP}/>
+          </EcoCampo>
+        </div>
+        <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
+            Il patrimonio netto non è una leva: se lo si ritocca per far quadrare, la quadratura smette di verificare qualcosa.
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={()=>{
+            Object.assign(ECO_PATRIMONIO, {
+              capitaleSociale:n(b.capitaleSociale), riserve:n(b.riserve), versamentiSoci:n(b.versamentiSoci),
+              immobiliMateriali:n(b.immobiliMateriali), fondoAmmortamento:-Math.abs(n(b.fondoAmmortamento)),
+              creditiTributari:n(b.creditiTributari), depositiCauzionali:n(b.depositiCauzionali),
+              debitiBanche:n(b.debitiBanche), aggiornatoIl:new Date(b.aggiornatoIl + 'T12:00:00'),
+            });
+            ECO_CASSA.giorniIncasso = n(b.giorniIncasso);
+            ECO_CASSA.giorniPagamento = n(b.giorniPagamento);
+            onSalva();
+          }}>Salva</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ STATO PATRIMONIALE ═════════════════════════════════════════════════ */
 function EcoPatrimonio({ mix }) {
   const anni = [...new Set(ECO_STORICO.map(m => m.anno))].sort((a, b) => b - a);
   const [anno, setAnno] = useStateEco(ECO_OGGI.getFullYear());
+  const [saldi, setSaldi] = useStateEco(false);
+  const [, ridisegna] = useStateEco(0);
   const sp = ecoStatoPatrimoniale(mix, anno);
 
   const Colonna = ({ titolo, voci, totale, etichettaTot }) => (
@@ -320,11 +409,15 @@ function EcoPatrimonio({ mix }) {
         {/* Stessa gerarchia e stesso comando del Conto economico. */}
         <div style={ECO_TITOLO}>Stato patrimoniale</div>
         <div style={{flex:1}}/>
+        <AdmButton variant="ghost" size="sm" onClick={()=>setSaldi(true)}>Saldi inseriti</AdmButton>
         <select value={anno} onChange={e=>setAnno(Number(e.target.value))}
           style={{...ECO_SEL, width:'auto', minWidth:104, paddingRight:32}}>
           {anni.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
+
+      {saldi && <EcoModaleSaldi onChiudi={()=>setSaldi(false)}
+        onSalva={()=>{ setSaldi(false); ridisegna(x => x + 1); }}/>}
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, alignItems:'start'}}>
         <Colonna titolo="Attivo" voci={sp.attivo} totale={sp.totAttivo} etichettaTot="Totale attivo"/>

@@ -308,7 +308,8 @@ const ECO_CATEGORIE = [
   { g:'Tecnologia',     voci:['Cloud', 'API', 'Software', 'Computer ed elettronica'] },
   { g:'Crescita',       voci:['Marketing', 'Viaggi e trasferte'] },
   { g:'Struttura',      voci:['Ufficio e spese generali', 'Assicurazioni', 'Licenze e certificazioni'] },
-  { g:'Beni durevoli',  voci:['Attrezzature e macchinari', 'Mobili e arredi', 'Immobili', 'Terreni'] },
+  { g:'Beni durevoli',  voci:['Attrezzature e macchinari', 'Mobili e arredi', 'Immobili', 'Terreni',
+                              'Marchi e brevetti', 'Licenze pluriennali'] },
   { g:'Amministrazione',voci:['Banca e finanziari', 'Imposte e diritti', 'Altro'] },
 ];
 
@@ -336,6 +337,7 @@ const ECO_DURATE_AMM = [
   { anni:5,  v:20,    label:'5 anni · 20% · computer, telefoni, elettronica' },
   { anni:7,  v:15,    label:'7 anni · 15% · attrezzature e macchinari' },
   { anni:8,  v:12,    label:'8 anni · 12% · mobili e arredi' },
+  { anni:18, v:5.56,  label:'18 anni · 5,6% · marchi' },
   { anni:33, v:3,     label:'33 anni · 3% · fabbricati' },
 ];
 // Categorie che sono beni durevoli, con l'aliquota che si usa di norma per
@@ -346,12 +348,17 @@ const ECO_DURATE_AMM = [
 // Il terreno sta a zero e non e una svista: un terreno non perde valore con
 // l'uso, quindi non si ammortizza mai. Resta un bene — esce dalla cassa e sta
 // nell'attivo al costo — ma il conto economico non lo vede passare.
+// `immateriale` separa le due righe dello stato patrimoniale: un marchio e un
+// portatile si ammortizzano allo stesso modo ma non stanno nella stessa voce, e
+// chi legge un bilancio guarda prima quanto e materiale e quanto no.
 const ECO_CAT_DUREVOLI = {
-  'Computer ed elettronica':   20,
-  'Attrezzature e macchinari': 15,
-  'Mobili e arredi':           12,
-  'Immobili':                   3,
-  'Terreni':                    0,
+  'Computer ed elettronica':   { v:20 },
+  'Attrezzature e macchinari': { v:15 },
+  'Mobili e arredi':           { v:12 },
+  'Immobili':                  { v:3 },
+  'Terreni':                   { v:0 },
+  'Marchi e brevetti':         { v:5.56,  immateriale:true },
+  'Licenze pluriennali':       { v:33.33, immateriale:true },
 };
 
 // ─── Stato patrimoniale ────────────────────────────────────────────────────
@@ -366,12 +373,30 @@ const ECO_PATRIMONIO = {
   // toglie l'unico numero che poteva invecchiare in silenzio.
   // Somma dei versamenti effettivamente fatti dai soci: non un numero tondo
   // perche non lo e mai — sono piu bonifici in momenti diversi.
-  versamentiSoci: 229388,
-  immobiliMateriali: 4800,       // portatili e attrezzatura
+  //
+  // ATTENZIONE: questo numero NON deve essere usato per far quadrare il
+  // bilancio. Lo e stato, ed e il difetto peggiore che questa schermata potesse
+  // avere: un bilancio che quadra perche qualcuno ha aggiustato il patrimonio
+  // netto non dimostra niente, e assorbe in silenzio ogni errore altrove. Se
+  // attivo e passivo non tornano, la differenza si dichiara — c'e una voce
+  // apposta — e poi si cerca da dove viene.
+  versamentiSoci: 230169,
+  immobiliMateriali: 4800,       // portatili e attrezzatura comprati prima di Economix
   fondoAmmortamento: -1920,
   creditiTributari: 3200,        // credito d'imposta R&S maturato
+  depositiCauzionali: 0,         // cauzioni su affitti o contratti
   debitiBanche: 0,
   aggiornatoIl: new Date('2026-06-30'),
+  note: {
+    capitaleSociale: 'Da visura camerale',
+    versamentiSoci: 'Somma dei bonifici dei soci in conto capitale',
+    riserve: 'Riserve deliberate in assemblea',
+    immobiliMateriali: 'Attrezzatura acquistata prima di Economix, al costo',
+    fondoAmmortamento: 'Ammortamento già maturato su quell’attrezzatura',
+    creditiTributari: 'Credito d’imposta R&S maturato e non ancora compensato',
+    depositiCauzionali: 'Cauzioni su affitti e contratti',
+    debitiBanche: 'Finanziamenti e scoperti in essere',
+  },
 };
 
 // ─── Serie storica dei driver ──────────────────────────────────────────────

@@ -104,9 +104,10 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
     fornitore:costo.fornitore === '—' ? '' : costo.fornitore, piva:costo.piva || '',
     numero:'', aliquota:aliquotaDi(eraCespite ? costo.costo : costo.importo, costo.iva),
     amm: String(eraCespite ? costo.aliquota : 20), ammScelto: eraCespite,
+    ritenuta: String(costo.ritenuta || 0),
   } : { tipo:'costo', voce:'', categoria:'Software', importo:'', periodicita:'mensile',
     dal: new Date().toISOString().slice(0, 10), fornitore:'', piva:'', numero:'',
-    aliquota:'22', amm:'20', ammScelto:false });
+    aliquota:'22', amm:'20', ammScelto:false, ritenuta:'0' });
   const cespite = b.tipo === 'cespite';
   // Scegliere «Attrezzature» dice gia che si sta comprando qualcosa che dura:
   // la natura si sposta da sola, altrimenti un macchinario entrerebbe come spesa
@@ -161,12 +162,13 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
   // La proposta viene dalla categoria quando la categoria lo dice; sotto la
   // soglia di legge si deduce tutto nell'anno, ma non un terreno, che non si
   // ammortizza a nessun importo.
-  const daCat = ECO_CAT_DUREVOLI[b.categoria];
+  const daCat = ECO_CAT_DUREVOLI[b.categoria] ? ECO_CAT_DUREVOLI[b.categoria].v : null;
   const ammProposta = daCat === 0 ? '0'
     : imponibile > 0 && imponibile < ECO_SOGLIA_CESPITE ? '100'
     : String(daCat != null ? daCat : 20);
   const durata = ECO_DURATE_AMM.find(x => String(x.v) === String(b.ammScelto ? b.amm : ammProposta));
   const amm = b.ammScelto ? b.amm : ammProposta;
+  const ritenuta = parseFloat(b.ritenuta) || 0;
   const quotaAnnua = imponibile * (parseFloat(amm) || 0) / 100;
   const ok = b.voce.trim().length > 2 && imponibile > 0;
 
@@ -285,6 +287,18 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
                   : b.periodicita === 'una-tantum' ? 'Pesa solo sul mese della data.' : null}>
                 <select value={b.periodicita} onChange={e=>agg('periodicita', e.target.value)} style={ECO_SEL}>
                   {Object.entries(ECO_PERIODICITA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </EcoCampo>
+            )}
+            {!cespite && (
+              <EcoCampo etichetta="Ritenuta d’acconto"
+                aiuto={ritenuta > 0
+                  ? `Al fornitore escono ${ecoEur2(imponibile - imponibile * ritenuta / 100 + iva)}: ${ecoEur2(imponibile * ritenuta / 100)} restano in cassa e si versano con F24 entro il 16 del mese dopo.`
+                  : 'Nessuna trattenuta: al fornitore esce il totale.'}>
+                <select value={b.ritenuta} onChange={e=>agg('ritenuta', e.target.value)} style={ECO_SEL}>
+                  <option value="0">Nessuna</option>
+                  <option value="20">20% · professionisti con partita IVA</option>
+                  <option value="4">4% · condomini e appalti</option>
                 </select>
               </EcoCampo>
             )}
@@ -608,7 +622,7 @@ function EcoCosti({ mix, forza }) {
         // L'IVA sta sul costo e non solo sulla fattura: serve alla cassa anche
         // quando il documento non e ancora stato allegato.
         iva: ivaCalc,
-        periodicita:b.periodicita,
+        periodicita:b.periodicita, ritenuta: parseFloat(b.ritenuta) || 0,
         dal:quando, a:null, fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(), fattura:idFattura });
     }
     setNuovo(false); forza();
@@ -815,7 +829,8 @@ function EcoCosti({ mix, forza }) {
             fornitore:b.fornitore.trim() || '—', piva:b.piva.trim() };
           Object.assign(modifica, b.tipo === 'cespite'
             ? { ...comune, costo:imp, aliquota: ecoAliquotaValida(b.amm), data:new Date(b.dal + 'T12:00:00') }
-            : { ...comune, importo:imp, periodicita:b.periodicita, dal:new Date(b.dal + 'T12:00:00') });
+            : { ...comune, importo:imp, periodicita:b.periodicita, ritenuta: parseFloat(b.ritenuta) || 0,
+                dal:new Date(b.dal + 'T12:00:00') });
           setModifica(null); forza();
         }}/>}
       {/* Si taglia dal mese che si sta guardando. Su un anno intero non esiste
