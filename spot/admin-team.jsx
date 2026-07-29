@@ -700,6 +700,13 @@ function PlatformDiagnostica() {
           ))}
         </div>
       </div>
+
+      {/* Test di ripristino — sta qui e non fra i registri di Conformita: chi
+          apre Diagnostica sta chiedendo se la piattaforma regge, e «l'ultimo
+          restore ha funzionato?» e la stessa domanda degli incidenti qui sopra.
+          Il componente vive nei file di conformita perche li stanno i suoi dati
+          e i suoi stili; l'obbligo A.8.13 resta tracciato dal cruscotto. */}
+      {window.CfTestRipristino ? <CfTestRipristino/> : null}
     </div>
   );
 }

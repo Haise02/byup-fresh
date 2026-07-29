@@ -1,5 +1,5 @@
 // Conformità — Audit interni e riesame di direzione (CfAudit), registri di
-// formazione e test di ripristino (CfRegistri).
+// formazione (CfRegistri) e test di ripristino (CfTestRipristino, reso in Diagnostica).
 //
 // Il pezzo che conta è il riesame di direzione: la §9.3 impone che la riunione
 // parta da una lista fissa di input, e la fatica non è decidere, è raccogliere
@@ -586,7 +586,7 @@ function CfAudit({ onVai }) {
   );
 }
 
-// ─── Registri minimi: formazione e test di ripristino ──────────────────────
+// ─── Registri minimi: formazione ───────────────────────────────────────────
 const RIE_GRID_FORM = 'minmax(0,1.25fr) minmax(0,2fr) 1fr 1fr 1.3fr';
 const RIE_GRID_REST = '1fr minmax(0,2.1fr) 1.05fr 1.35fr 1.05fr minmax(0,2fr)';
 
@@ -599,13 +599,7 @@ function CfRegistri() {
   const fuori   = reg.totale - reg.ok;
 
   const sForm = cfStatoAdempimento(rieAdemp('form') || {});
-  const sRest = cfStatoAdempimento(rieAdemp('rest') || {});
   const bForm = rieBanda(fuori ? 'WARN' : sForm.stato === 'ok' ? 'NEUTRAL' : sForm.tono);
-
-  const ripristini = RIPRISTINI.slice().sort((a, b) => b.data.getTime() - a.data.getTime());
-  const ultimoRest = ripristini[0];
-  const bRest = rieBanda(!ultimoRest ? 'DANGER' : sRest.stato === 'ok' ? 'NEUTRAL' : sRest.tono);
-  const conOsservazioni = ripristini.filter(r => r.esito !== 'riuscito').length;
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:22, position:'relative'}}>
@@ -689,7 +683,23 @@ function CfRegistri() {
         </div>
       </div>
 
-      {/* ── Test di ripristino ────────────────────────────────────────── */}
+    </div>
+  );
+}
+
+// ─── Test di ripristino dei backup (A.8.13) ────────────────────────────────
+// Vive in Diagnostica e non fra i registri di Conformita: chi guarda se il
+// ripristino funziona sta guardando la salute tecnica della piattaforma, non
+// preparando un audit. L'obbligo resta e resta tracciato dal cruscotto — quello
+// che si e spostato e il posto dove si legge il registro.
+function CfTestRipristino() {
+  const sRest = cfStatoAdempimento(rieAdemp('rest') || {});
+  const ripristini = RIPRISTINI.slice().sort((a, b) => b.data.getTime() - a.data.getTime());
+  const ultimoRest = ripristini[0];
+  const bRest = rieBanda(!ultimoRest ? 'DANGER' : sRest.stato === 'ok' ? 'NEUTRAL' : sRest.tono);
+  const conOsservazioni = ripristini.filter(r => r.esito !== 'riuscito').length;
+
+  return (
       <div>
         <div style={{...RIE_BANDA, background:bRest.bg, border:`1px solid ${bRest.bd}`, marginBottom:14}}>
           <div style={{flex:1, minWidth:0}}>
@@ -754,9 +764,9 @@ function CfRegistri() {
                 senza il tempo, «riuscito» non dice se il ripristino sarebbe arrivato in tempo.</span>}
         </div>
       </div>
-    </div>
   );
 }
 
 window.CfAudit = CfAudit;
 window.CfRegistri = CfRegistri;
+window.CfTestRipristino = CfTestRipristino;
