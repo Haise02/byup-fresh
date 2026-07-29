@@ -166,16 +166,31 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
   const [b, setB] = useStateEco({ voce:'', categoria:'Software', importo:'', periodicita:'mensile',
     dal: new Date().toISOString().slice(0, 10), fornitore:'', numero:'', iva:'' });
   const [file, setFile] = useStateEco(null);
-  // Finche l'IVA non viene toccata a mano segue l'imponibile al 22%: e il caso
-  // normale. Appena qualcuno la scrive — tipicamente per azzerarla su un
-  // fornitore estero — smette di ricalcolarsi da sola.
+  // Imponibile, IVA e totale sono la stessa cosa scritta in tre modi: si entra
+  // da quello che si ha sotto mano — spesso il totale, perche e la cifra grande
+  // sulla fattura — e gli altri due si riallineano.
   const [ivaToccata, setIvaToccata] = useStateEco(false);
+  const [totaleRaw, setTotaleRaw] = useStateEco(null);   // non null solo mentre si scrive nel totale
   const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
-  const aggImponibile = (v) => setB(x => ({ ...x, importo:v,
-    iva: ivaToccata ? x.iva : (() => {
-      const n = parseFloat(String(v).replace(',', '.'));
-      return n > 0 ? (Math.round(n * 22) / 100).toFixed(2).replace('.', ',') : '';
-    })() }));
+  const num = (v) => parseFloat(String(v).replace(',', '.')) || 0;
+  const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',');
+
+  const aggImponibile = (v) => {
+    setTotaleRaw(null);
+    setB(x => ({ ...x, importo:v,
+      iva: ivaToccata ? x.iva : (num(v) > 0 ? fmt(num(v) * 0.22) : '') }));
+  };
+  const aggIva = (v) => { setTotaleRaw(null); setIvaToccata(true); agg('iva', v); };
+  // Dal totale si torna indietro con l'aliquota in vigore: quella scritta a mano
+  // se c'e — zero compreso, che e il caso del reverse charge — altrimenti il 22%.
+  const aggTotale = (v) => {
+    setTotaleRaw(v);
+    const tot = num(v);
+    const imp0 = num(b.importo);
+    const aliquota = ivaToccata ? (imp0 > 0 ? num(b.iva) / imp0 : 0) : 0.22;
+    const imp = tot / (1 + aliquota);
+    setB(x => ({ ...x, importo: tot > 0 ? fmt(imp) : '', iva: tot > 0 && aliquota > 0 ? fmt(tot - imp) : '' }));
+  };
   const xml = !!file && /\.xml$/i.test(file);
   const imponibile = parseFloat(String(b.importo).replace(',', '.')) || 0;
   const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
@@ -214,30 +229,41 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
               <input value={b.fornitore} onChange={e=>agg('fornitore', e.target.value)} style={ECO_INP}
                 placeholder="Chi emette la fattura"/>
             </EcoCampo>
-            {/* IMPONIBILE, sempre. L'IVA non e un costo: la paghi al fornitore e la
-                recuperi in liquidazione, quindi nel conto economico non entra.
-                Va registrata a parte perche dalla cassa esce comunque. */}
-            <EcoCampo etichetta="Imponibile"
-              aiuto="Al netto dell’IVA. È l’importo che entra nel conto economico.">
-              <input value={b.importo} onChange={e=>aggImponibile(e.target.value.replace(/[^\d.,]/g, ''))}
-                style={ECO_INP} placeholder="0,00"/>
-            </EcoCampo>
-            <EcoCampo etichetta="IVA"
-              aiuto={ivaZero
-                ? 'Reverse charge o operazione non imponibile.'
-                : `Totale da pagare ${ecoEur2(imponibile + iva)}.`}>
-              <div style={{display:'flex', gap:7}}>
-                <input value={b.iva} placeholder="0,00" style={ECO_INP}
-                  onChange={e=>{ setIvaToccata(true); agg('iva', e.target.value.replace(/[^\d.,]/g, '')); }}/>
-                {ivaToccata && (
-                  <AdmButton variant="secondary" size="sm" style={{flexShrink:0, fontSize:12}}
-                    onClick={()=>{ setIvaToccata(false);
-                      agg('iva', imponibile > 0 ? (Math.round(imponibile * 22) / 100).toFixed(2).replace('.', ',') : ''); }}>
-                    22%
-                  </AdmButton>
-                )}
+            {/* Nel conto economico entra l'IMPONIBILE: l'IVA non e un costo, la
+                paghi al fornitore e la recuperi in liquidazione. Dalla cassa pero
+                esce il totale, ed e per questo che servono tutti e tre. */}
+            <div style={{gridColumn:'1 / -1'}}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14, alignItems:'end'}}>
+                <EcoCampo etichetta="Imponibile">
+                  <input value={b.importo} onChange={e=>aggImponibile(e.target.value.replace(/[^\d.,]/g, ''))}
+                    style={ECO_INP} placeholder="0,00"/>
+                </EcoCampo>
+                <EcoCampo etichetta="IVA">
+                  <div style={{display:'flex', gap:7}}>
+                    <input value={b.iva} placeholder="0,00" style={ECO_INP}
+                      onChange={e=>aggIva(e.target.value.replace(/[^\d.,]/g, ''))}/>
+                    {ivaToccata && (
+                      <AdmButton variant="secondary" size="sm" style={{flexShrink:0, fontSize:12}}
+                        onClick={()=>{ setIvaToccata(false); setTotaleRaw(null);
+                          agg('iva', imponibile > 0 ? fmt(imponibile * 0.22) : ''); }}>
+                        22%
+                      </AdmButton>
+                    )}
+                  </div>
+                </EcoCampo>
+                <EcoCampo etichetta="Totale">
+                  <input value={totaleRaw != null ? totaleRaw : (imponibile > 0 ? fmt(imponibile + iva) : '')}
+                    onChange={e=>aggTotale(e.target.value.replace(/[^\d.,]/g, ''))}
+                    onBlur={()=>setTotaleRaw(null)}
+                    style={{...ECO_INP, fontWeight:700}} placeholder="0,00"/>
+                </EcoCampo>
               </div>
-            </EcoCampo>
+              <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.45}}>
+                {ivaZero
+                  ? 'IVA a zero: reverse charge o operazione non imponibile. Nel conto economico e in cassa esce lo stesso importo.'
+                  : 'Scrivi quello che hai: gli altri due si ricalcolano. Nel conto economico entra l’imponibile, dalla cassa esce il totale.'}
+              </div>
+            </div>
             <EcoCampo etichetta="Periodicita"
               aiuto={b.periodicita === 'annuale' ? 'Nel conto economico entra in dodicesimi.'
                 : b.periodicita === 'una-tantum' ? 'Pesa solo sul mese della data.' : null}>
