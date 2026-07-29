@@ -61,29 +61,29 @@ const ECO_REGIMI = {
 // bugia più facile da raccontarsi.
 const ECO_SERVIZI = [
   { id:'aws-compute', nome:'AWS · Fargate', categoria:'Cloud', fornitore:'Amazon Web Services',
-    driver:'localiAttivi', perUnita:2.4, unita:'vCPU-ora', prezzo:0.0445,
+    driver:'localiAttivi', perUnita:2.4, unita:'vCPU-ora', unitaSing:'vCPU-ora', prezzo:0.0445,
     fonte:'aws-cost-explorer', scarto:1.071, nota:'Il compute scala con i locali attivi, non con gli ordini: ogni locale tiene sessioni aperte anche a sala vuota.' },
   { id:'aws-rds', nome:'AWS · RDS PostgreSQL', categoria:'Cloud', fornitore:'Amazon Web Services',
-    driver:'localiAttivi', perUnita:1, unita:'locali', prezzo:1.85,
+    driver:'localiAttivi', perUnita:1, unita:'locali', unitaSing:'locale', prezzo:1.85,
     fonte:'aws-cost-explorer', scarto:0.964, nota:'Istanza condivisa: il costo per locale scende crescendo, qui tenuto lineare in via prudenziale.' },
   { id:'aws-s3', nome:'AWS · S3 e CloudFront', categoria:'Cloud', fornitore:'Amazon Web Services',
-    driver:'utentiApp', perUnita:0.42, unita:'GB trasferiti', prezzo:0.085,
+    driver:'utentiApp', perUnita:0.42, unita:'GB trasferiti', unitaSing:'GB', prezzo:0.085,
     fonte:'aws-cost-explorer', scarto:1.118, nota:'Immagini dei menu servite agli utenti app: è il driver che cresce più in fretta.' },
   { id:'vercel', nome:'Vercel · hosting statico', categoria:'Cloud', fornitore:'Vercel',
-    driver:'fisso', perUnita:1, unita:'canone', prezzo:20,
+    driver:'fisso', perUnita:1, unita:'canone', unitaSing:'mese', prezzo:20,
     fonte:'manuale', nota:'Piano a canone, indipendente dal volume.' },
   { id:'anthropic', nome:'Anthropic · elaborazione menu', categoria:'API', fornitore:'Anthropic',
-    driver:'nuoviLocali', perUnita:1, unita:'menu', prezzo:2.10,
+    driver:'nuoviLocali', perUnita:1, unita:'menu', unitaSing:'menu', prezzo:2.10,
     fonte:'manuale', nota:'Si paga una volta per locale in onboarding: il costo segue le ATTIVAZIONI, non la base installata. È l’unica riga che scende se la crescita rallenta.' },
   { id:'maps', nome:'Google Maps Platform', categoria:'API', fornitore:'Google',
-    driver:'utentiApp', perUnita:11, unita:'richieste', prezzo:0.005,
+    driver:'utentiApp', perUnita:11, unita:'richieste', unitaSing:'richiesta', prezzo:0.005,
     fonte:'manuale', nota:'Discovery e geolocalizzazione: circa undici richieste per utente attivo al mese.' },
   { id:'push', nome:'Firebase · notifiche push', categoria:'API', fornitore:'Google',
-    driver:'utentiApp', perUnita:24, unita:'notifiche', prezzo:0.00018,
+    driver:'utentiApp', perUnita:24, unita:'notifiche', unitaSing:'notifica', prezzo:0.00018,
     fonte:'manuale', nota:'Sotto la soglia del piano gratuito il costo è zero: qui è già oltre.' },
   { id:'openapi', nome:'OpenAPI · trasmissione fiscale', categoria:'API', fornitore:'OpenAPI',
-    driver:'transazioni', perUnita:1, unita:'trasmissioni', prezzo:0.019,
-    fonte:'manuale', nota:'Una trasmissione per ogni pagamento, indipendentemente da dove avviene.' },
+    driver:'transazioni', perUnita:1, unita:'trasmissioni', unitaSing:'trasmissione', prezzo:0.019, pacchetti:'openapi',
+    fonte:'manuale', nota:'Una trasmissione per ogni pagamento, indipendentemente da dove avviene. Si acquista a pacchetti prepagati: il prezzo unitario scende col taglio.' },
 ];
 
 // ─── Collegamenti ai fornitori ─────────────────────────────────────────────
@@ -97,31 +97,60 @@ const ECO_SERVIZI = [
 // scarto fra i due è l'informazione più utile della schermata — se una lettura
 // si discosta molto, o il prezzo unitario è cambiato o il consumo non è quello
 // che credevi.
+// I metodi sono quattro e non si equivalgono. «Collega» come pulsante unico
+// esiste solo per l'OAuth; negli altri casi il lavoro vero avviene sulla console
+// del fornitore e qui si incolla soltanto il risultato — o, per lo SDI, si
+// aspettano giorni perche la delega e un atto amministrativo, non una chiamata.
+const ECO_METODI = {
+  oauth:  { label:'OAuth', azione:'Vai su', durata:'un minuto',
+    come:'Si viene rimandati alla pagina del fornitore, si autorizza, e si torna qui con il permesso già valido.' },
+  ruolo:  { label:'Ruolo delegato', azione:'Configura', durata:'dieci minuti',
+    come:'Si crea sulla console del fornitore un ruolo che autorizza Byup a leggere, e si incolla qui il suo identificativo.' },
+  chiave: { label:'Chiave API', azione:'Incolla la chiave', durata:'due minuti',
+    come:'Si genera una chiave di sola lettura sulla console del fornitore e la si incolla qui. Va conservata come una credenziale.' },
+  delega: { label:'Delega', azione:'Richiedi la delega', durata:'da pochi giorni a qualche settimana',
+    come:'Non è un collegamento tecnico: è una delega da registrare presso l’Agenzia delle Entrate, di solito tramite il commercialista o un intermediario accreditato.' },
+};
+
 const ECO_CONNESSIONI = [
   { id:'aws', nome:'AWS Cost Explorer', servizi:['aws-compute','aws-rds','aws-s3'],
     stato:'collegato', ultimaLettura:new Date(ECO_OGGI.getTime() - 26 * 60000), scartoPct:6.4,
+    metodo:'ruolo', campo:'ARN del ruolo', esempio:'arn:aws:iam::123456789012:role/ByupCostReader',
     legge:'Costo maturato per servizio, aggiornato ogni sei ore',
-    serve:'Un ruolo IAM di sola lettura con la policy ce:GetCostAndUsage. Nessun accesso ai dati, solo agli importi.' },
+    passi:['Su AWS crea un ruolo IAM con relazione di fiducia verso l’account di Byup e un ExternalId',
+           'Assegnagli la sola policy ce:GetCostAndUsage — accesso agli importi, non ai dati',
+           'Incolla qui l’ARN del ruolo'] },
   { id:'gcp', nome:'Google Cloud Billing', servizi:['maps','push'],
     stato:'scollegato', ultimaLettura:null, scartoPct:null,
+    metodo:'oauth', campo:null, esempio:null,
     legge:'Consumo di Maps Platform e Firebase, per SKU',
-    serve:'Esportazione della fatturazione su BigQuery e un service account di sola lettura.' },
+    passi:['Autorizza con l’account Google che possiede il progetto',
+           'Attiva l’esportazione della fatturazione su BigQuery, se non è già attiva',
+           'Da lì i costi per SKU arrivano ogni giorno'] },
   { id:'anthropic', nome:'Anthropic Console', servizi:['anthropic'],
     stato:'scollegato', ultimaLettura:null, scartoPct:null,
+    metodo:'chiave', campo:'Chiave Admin', esempio:'sk-ant-admin…',
     legge:'Token consumati e costo per modello',
-    serve:'Una chiave API con permesso di sola lettura sull\'utilizzo dell\'organizzazione.' },
+    passi:['Nella Console, sezione API keys, genera una chiave Admin di sola lettura',
+           'Incollala qui: serve solo per l’endpoint di utilizzo e costo dell’organizzazione'] },
   { id:'openapi', nome:'OpenAPI', servizi:['openapi'],
     stato:'manuale', ultimaLettura:new Date('2026-07-04'), scartoPct:null,
-    legge:'Trasmissioni fiscali effettuate',
-    serve:'Non espone un endpoint di consumo: la lettura si inserisce a mano dal riepilogo mensile.' },
+    metodo:'chiave', campo:'Token del pannello', esempio:'oa_live_…',
+    legge:'Trasmissioni effettuate e credito residuo del pacchetto',
+    passi:['Genera un token dal pannello OpenAPI',
+           'Il credito residuo del pacchetto si legge dallo stesso endpoint'] },
   { id:'vercel', nome:'Vercel', servizi:['vercel'],
     stato:'manuale', ultimaLettura:new Date('2026-07-01'), scartoPct:null,
+    metodo:'chiave', campo:'Token', esempio:'vercel_…',
     legge:'Canone del piano',
-    serve:'Importo fisso: non serve leggerlo, basta registrarlo una volta.' },
-  { id:'sdi', nome:'Sistema di Interscambio', servizi:[],
-    stato:'scollegato', ultimaLettura:null, scartoPct:null, fatture:true,
+    passi:['Importo fisso: collegarlo serve a poco, basta registrarlo una volta'] },
+  { id:'sdi', nome:'Sistema di Interscambio', servizi:[], fatture:true,
+    stato:'scollegato', ultimaLettura:null, scartoPct:null,
+    metodo:'delega', campo:null, esempio:null,
     legge:'Fatture elettroniche ricevute, in XML',
-    serve:'Delega alla consultazione tramite un intermediario accreditato. È il canale che compila le fatture da solo.' },
+    passi:['Il commercialista o un intermediario accreditato registra la delega alla consultazione',
+           'L’Agenzia la attiva: da quel momento gli XML arrivano da soli',
+           'È l’unico collegamento che non dipende da noi e richiede giorni, non minuti'] },
 ];
 const ecoConnessioneDi = (idServizio) =>
   ECO_CONNESSIONI.find(c => c.servizi.indexOf(idServizio) !== -1) || null;
@@ -130,6 +159,26 @@ const ECO_STATO_CONN = {
   scollegato: { label:'Da collegare',tono:'DANGER' },
   manuale:    { label:'Manuale',     tono:'NEUTRAL' },
 };
+
+// ─── Pacchetti prepagati ───────────────────────────────────────────────────
+// OpenAPI non fattura a consumo: si comprano tagli prepagati e il prezzo
+// unitario scende salendo di taglio. Il taglio scelto NON e una scelta di
+// prezzo soltanto: e una scelta di cassa, perche il credito e denaro fermo.
+const ECO_PACCHETTI = {
+  openapi: {
+    fornitore:'OpenAPI', unita:'trasmissioni',
+    attivo:'p50', residuo:18400, scadenzaMesi:12,
+    tagli:[
+      { id:'p5',   quantita:5000,   prezzo:145 },
+      { id:'p25',  quantita:25000,  prezzo:595 },
+      { id:'p50',  quantita:50000,  prezzo:950 },
+      { id:'p200', quantita:200000, prezzo:3180 },
+      { id:'p500', quantita:500000, prezzo:7250 },
+    ],
+  },
+};
+const ecoTaglio = (pk, id) => pk.tagli.find(t => t.id === id) || pk.tagli[0];
+const ecoPrezzoUnitario = (t) => t.prezzo / t.quantita;
 
 // ─── Costi fissi ───────────────────────────────────────────────────────────
 // `periodicita`: 'mensile' | 'annuale' | 'una-tantum'. Gli annuali entrano nel
@@ -230,6 +279,10 @@ window.ECO_REGIME = ECO_REGIME;
 window.ECO_REGIMI = ECO_REGIMI;
 window.ECO_SERVIZI = ECO_SERVIZI;
 window.ECO_CONNESSIONI = ECO_CONNESSIONI;
+window.ECO_METODI = ECO_METODI;
+window.ECO_PACCHETTI = ECO_PACCHETTI;
+window.ecoTaglio = ecoTaglio;
+window.ecoPrezzoUnitario = ecoPrezzoUnitario;
 window.ecoConnessioneDi = ecoConnessioneDi;
 window.ECO_STATO_CONN = ECO_STATO_CONN;
 window.ECO_FISSI = ECO_FISSI;

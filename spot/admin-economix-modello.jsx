@@ -72,7 +72,14 @@ function ecoProiettaDriver(leve) {
 
 // ─── Costo di un servizio in un mese ───────────────────────────────────────
 const ecoConsumo = (s, d) => (d[s.driver] || 0) * s.perUnita;
-const ecoCostoServizio = (s, d) => ecoConsumo(s, d) * s.prezzo;
+// Sui servizi a pacchetto il prezzo unitario non e quello scritto sul servizio:
+// e quello del taglio acquistato. Cambiando taglio cambia il costo di ogni riga
+// futura, ed e il motivo per cui la scelta del pacchetto sta nel modello.
+const ecoPrezzo = (s) => {
+  const pk = s.pacchetti && ECO_PACCHETTI[s.pacchetti];
+  return pk ? ecoPrezzoUnitario(ecoTaglio(pk, pk.attivo)) : s.prezzo;
+};
+const ecoCostoServizio = (s, d) => ecoConsumo(s, d) * ecoPrezzo(s);
 
 // Lettura reale contro stima. Se il fornitore e collegato il consuntivo del mese
 // arriva da lui e vale piu della stima; `scarto` e il rapporto fra i due, ed e
@@ -219,6 +226,7 @@ window.ecoRegressione = ecoRegressione;
 window.ecoLeveIniziali = ecoLeveIniziali;
 window.ecoProiettaDriver = ecoProiettaDriver;
 window.ecoConsumo = ecoConsumo;
+window.ecoPrezzo = ecoPrezzo;
 window.ecoLettura = ecoLettura;
 window.ecoCollega = ecoCollega;
 window.ecoAggiorna = ecoAggiorna;

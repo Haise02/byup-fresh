@@ -14,6 +14,9 @@ const ECO_SEL = { ...ECO_INP, appearance:'none', WebkitAppearance:'none', MozApp
   backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.6L6 6.4L11 1.6' stroke='%238A9099' stroke-width='1.9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
   backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
 const ECO_NUM = { fontVariantNumeric:'tabular-nums' };
+const ECO_GRID_SERV = 'minmax(0,1.7fr) 1.15fr 118px 124px 104px 116px 108px';
+const ECO_MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno',
+  'luglio','agosto','settembre','ottobre','novembre','dicembre'];
 
 // «26 minuti fa» dice piu di un orario: la domanda e quanto e fresca la lettura.
 function ecoQuando(d) {
@@ -32,35 +35,65 @@ function ecoQuando(d) {
 // permessi. Staccare non cancella nulla: si torna alla stima.
 function EcoModaleConnessione({ conn, onChiudi, onConferma }) {
   const attiva = conn.stato !== 'collegato';
+  const met = ECO_METODI[conn.metodo] || ECO_METODI.chiave;
+  const [valore, setValore] = useStateEco('');
+  // Un pulsante «Collega» basta solo per l'OAuth. Negli altri casi il lavoro
+  // avviene sulla console del fornitore e qui si incolla un identificativo;
+  // per lo SDI non c'e nulla da incollare, c'e una delega da far registrare.
+  const serveCampo = attiva && !!conn.campo;
+  const pronto = !attiva || !serveCampo || valore.trim().length > 6;
+
   return (
     <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
       display:'flex', alignItems:'center', justifyContent:'center', padding:24,
       backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-      <div data-modale="connessione" onClick={e=>e.stopPropagation()} style={{width:540, maxWidth:'92%', background:'#fff',
+      <div data-modale="connessione" onClick={e=>e.stopPropagation()} style={{width:580, maxWidth:'92%', background:'#fff',
         borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
         animation:'admModalIn 0.18s ease', maxHeight:'100%', overflowY:'auto'}}>
-        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
-          {attiva ? `Collegare ${conn.nome}?` : `Staccare ${conn.nome}?`}
+        <div style={{display:'flex', alignItems:'flex-start', gap:12, marginBottom:6}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, flex:1}}>
+            {attiva ? `Collegare ${conn.nome}` : `Staccare ${conn.nome}?`}
+          </div>
+          {attiva && <CfPill tono="NEUTRAL">{met.label} · {met.durata}</CfPill>}
         </div>
-        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:15}}>
-          {attiva
-            ? 'Da qui in poi i costi di questo fornitore arrivano da lui, non dal modello. Le stime restano visibili accanto alla lettura: lo scarto fra le due è la cosa che vale la pena guardare.'
+        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
+          {attiva ? met.come
             : 'I costi tornano a essere stimati dal modello. Nessun dato viene cancellato e ricollegare è immediato.'}
         </div>
-        <div style={{padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
-          {[['Che cosa legge', conn.legge], ['Che cosa serve', conn.serve],
-            ['Righe interessate', conn.fatture ? 'le fatture ricevute'
-              : conn.servizi.map(id => (ECO_SERVIZI.find(x => x.id === id) || {}).nome).join(', ')]].map(([k, v]) => (
-            <div key={k} style={{display:'flex', gap:12, fontSize:12.6, marginBottom:7, alignItems:'flex-start'}}>
-              <span style={{color:ADM.MUTED, width:132, flexShrink:0}}>{k}</span>
-              <span style={{color:ADM.TEXT, lineHeight:1.5}}>{v}</span>
-            </div>
-          ))}
+
+        {attiva && (
+          <div style={{padding:'14px 16px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+            {conn.passi.map((t, k) => (
+              <div key={k} style={{display:'flex', gap:10, marginBottom: k < conn.passi.length - 1 ? 9 : 0}}>
+                <span style={{fontSize:11, fontWeight:800, color:ADM.PINK, flexShrink:0, marginTop:2,
+                  fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{k + 1}</span>
+                <span style={{fontSize:12.8, color:ADM.TEXT, lineHeight:1.5}}>{t}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {serveCampo && (
+          <div style={{marginBottom:16}}>
+            <label style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+              letterSpacing:'0.05em', display:'block', marginBottom:6}}>{conn.campo}</label>
+            <input value={valore} onChange={e=>setValore(e.target.value)} style={ECO_INP}
+              placeholder={conn.esempio}/>
+          </div>
+        )}
+
+        <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+          Righe interessate:{' '}
+          <strong style={{color:ADM.TEXT}}>
+            {conn.fatture ? 'le fatture ricevute'
+              : conn.servizi.map(id => (ECO_SERVIZI.find(x => x.id === id) || {}).nome).join(', ')}
+          </strong>
         </div>
+
         <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
-          <AdmButton variant="primary" size="sm" onClick={onConferma}>
-            {attiva ? 'Collega' : 'Stacca'}
+          <AdmButton variant="primary" size="sm" disabled={!pronto} onClick={onConferma}>
+            {attiva ? met.azione : 'Stacca'}
           </AdmButton>
         </div>
       </div>
@@ -85,84 +118,6 @@ function EcoBarra({ quota, tono }) {
     <div style={{height:5, borderRadius:99, background:'rgba(49,53,61,0.08)', overflow:'hidden'}}>
       <div style={{height:'100%', width:`${Math.min(100, quota * 100)}%`, borderRadius:99,
         background: tono || ADM.INK, transition:'width 0.25s ease'}}/>
-    </div>
-  );
-}
-
-/* ═══ 1 · IL MESE IN CORSO ═══════════════════════════════════════════════ */
-function EcoMese({ mix }) {
-  const m = ecoMeseCorrente(mix);
-  const righe = m.righe.slice().sort((a, b) => b.fineMese - a.fineMese);
-  const maxRiga = righe[0] ? righe[0].fineMese : 1;
-  const margine = m.ricavi.totale - m.bruciatoFine;
-  const lette = m.righe.filter(r => r.l.collegato).length;
-
-  return (
-    <div style={{display:'flex', flexDirection:'column', gap:20}}>
-      {/* Il fulcro: quanto si è speso finora e dove si arriva se il ritmo tiene */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
-        {[
-          { et:'Speso finora questo mese', v:ecoEur(m.bruciatoOggi),
-            n:`giorno ${m.trascorsi} di ${m.giorni} · ${lette} ${lette === 1 ? 'riga letta' : 'righe lette'} dai fornitori su ${m.righe.length}, il resto stimato` },
-          { et:'Proiezione a fine mese', v:ecoEur(m.bruciatoFine),
-            n:'al ritmo attuale · i fissi entrano per intero, i variabili proseguono come oggi' },
-          { et:'Margine del mese', v:ecoEur(margine), tono: margine >= 0 ? ADM.OK : ADM.DANGER,
-            n:`ricavi previsti ${ecoEur(m.ricavi.totale)} meno costi previsti` },
-        ].map(c => (
-          <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
-            <div style={{fontSize:11.4, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-              letterSpacing:'0.05em'}}>{c.et}</div>
-            <div style={{fontSize:27, fontWeight:800, letterSpacing:'-0.02em', marginTop:7,
-              color: c.tono || ADM.TEXT, ...ECO_NUM}}>{c.v}</div>
-            <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.45}}>{c.n}</div>
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <div style={ECO_H}>Costi a consumo · spaccato per servizio</div>
-        <div style={ECO_CARD}>
-          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:'minmax(0,1.6fr) 1.15fr 96px 108px 108px', gap:12}}>
-            <div>Servizio</div><div>Consumo previsto</div><div>Prezzo</div><div>A oggi</div><div>Fine mese</div>
-          </div>
-          {righe.map((r, i) => (
-            <div key={r.s.id} style={{display:'grid', gridTemplateColumns:'minmax(0,1.6fr) 1.15fr 96px 108px 108px',
-              gap:12, alignItems:'center', padding:'11px 16px',
-              borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-              <div style={{minWidth:0}}>
-                <div style={{display:'flex', alignItems:'baseline', gap:7, flexWrap:'wrap'}}>
-                  <span style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.s.nome}</span>
-                  {/* Letto o stimato: la distinzione va sulla riga, non in una
-                      legenda a parte, perché cambia quanto ci si può fidare. */}
-                  {r.l.collegato
-                    ? <span style={{fontSize:11, color:ADM.OK, fontWeight:700}}>
-                        letto {ecoQuando(r.l.letto)}
-                        {r.l.scarto != null && ` · ${r.l.scarto >= 0 ? '+' : '−'}${ecoPct(Math.abs(r.l.scarto))} sulla stima`}
-                      </span>
-                    : <span style={{fontSize:11, color:ADM.MUTED_SOFT}}>stima dal modello</span>}
-                </div>
-                <div style={{marginTop:5}}><EcoBarra quota={r.fineMese / maxRiga}
-                  tono={r.l.collegato ? ADM.OK : ADM.INK}/></div>
-              </div>
-              <div style={{fontSize:12.4, color:ADM.MUTED, ...ECO_NUM}}>
-                {Math.round(r.consumoPieno).toLocaleString('it-IT')} <span style={{color:ADM.MUTED_SOFT}}>{r.s.unita}</span>
-              </div>
-              <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, ...ECO_NUM}}>{ecoEur2(r.s.prezzo)}</div>
-              <div style={{fontSize:13, color:ADM.MUTED, ...ECO_NUM}}>{ecoEur(r.aOggi)}</div>
-              <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.fineMese)}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Le commissioni non sono un costo di Byup: dirlo esplicitamente evita
-          che qualcuno le cerchi e concluda che mancano. */}
-      <div style={{padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT,
-        fontSize:12.4, color:ADM.MUTED, lineHeight:1.6}}>
-        Le commissioni sui pagamenti non compaiono qui perché non sono un costo di Byup: sono
-        riproiettate ai ristoratori e restano una partita di giro. Byup incassa l’abbonamento a
-        Byup Fresh, non una quota sul transato.
-      </div>
     </div>
   );
 }
@@ -236,9 +191,11 @@ function EcoModaleFisso({ onChiudi, onSalva }) {
 function EcoCosti({ mix, forza }) {
   const [nuovo, setNuovo] = useStateEco(false);
   const [conn, setConn] = useStateEco(null);
-  const d = ECO_STORICO[ECO_STORICO.length - 1];
-  const variabiliMese = ecoCostiVariabili(d);
+  const m = ecoMeseCorrente(mix);
+  const d = m.d;
   const fissiMese = ecoFissiDelMese(new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1));
+  const letture = ECO_CONNESSIONI.filter(c => c.stato === 'collegato' && c.ultimaLettura).map(c => c.ultimaLettura);
+  const letturaPiuRecente = letture.length ? new Date(Math.max.apply(null, letture)) : null;
 
   const perCategoria = {};
   ECO_SERVIZI.forEach(s => {
@@ -260,18 +217,19 @@ function EcoCosti({ mix, forza }) {
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         {[
-          { et:'Costi a consumo', v:ecoEur(variabiliMese), n:'questo mese, a volume attuale' },
+          { et:`Spesa ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(m.bruciatoOggi),
+            n:`letta ${ecoQuando(letturaPiuRecente)}` },
+          { et:'Costo fine mese', v:ecoEur(m.bruciatoFine) },
           { et:'Costi fissi', v:ecoEur(fissiMese), n:'competenza del mese, annuali in dodicesimi' },
-          { et:'Totale mensile', v:ecoEur(variabiliMese + fissiMese), n:'quanto costa tenere accesa Byup' },
-          { et:'Costo per locale attivo', v:ecoEur2((variabiliMese + fissiMese) / d.localiAttivi),
+          { et:'Costo per locale attivo', v:ecoEur2(m.bruciatoFine / d.localiAttivi),
             n:`su ${d.localiAttivi} locali attivi` },
         ].map(c => (
-          <div key={c.et} style={{...ECO_CARD, padding:'14px 16px'}}>
+          <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
             <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
               letterSpacing:'0.05em'}}>{c.et}</div>
-            <div style={{fontSize:23, fontWeight:800, letterSpacing:'-0.02em', color:ADM.TEXT,
-              marginTop:6, ...ECO_NUM}}>{c.v}</div>
-            <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.4}}>{c.n}</div>
+            <div style={{fontSize:25, fontWeight:800, letterSpacing:'-0.02em', color:ADM.TEXT,
+              marginTop:7, ...ECO_NUM}}>{c.v}</div>
+            {c.n && <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.4}}>{c.n}</div>}
           </div>
         ))}
       </div>
@@ -295,7 +253,6 @@ function EcoCosti({ mix, forza }) {
                   {collegato
                     ? <React.Fragment>
                         Ultima lettura <strong style={{color:ADM.TEXT}}>{ecoQuando(c.ultimaLettura)}</strong>
-                        {c.scartoPct != null && ` · scarto medio dalla stima ${c.scartoPct >= 0 ? '+' : '−'}${ecoPct(Math.abs(c.scartoPct))}`}
                       </React.Fragment>
                     : c.stato === 'manuale'
                       ? `Inserita a mano ${ecoQuando(c.ultimaLettura)}`
@@ -325,39 +282,109 @@ function EcoCosti({ mix, forza }) {
           </span>
         </div>
         <div style={ECO_CARD}>
-          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:'minmax(0,1.5fr) 1.3fr 1fr 110px 92px', gap:12}}>
-            <div>Servizio</div><div>Dipende da</div><div>Consumo</div><div>Costo mese</div><div>Origine</div>
+          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_SERV, gap:11}}>
+            <div>Servizio</div><div>Dipende da</div><div>Consumo attuale</div><div>Consumo previsto</div>
+            <div>Costo attuale</div><div>Costo fine mese</div><div>Stato</div>
           </div>
-          {ECO_SERVIZI.slice().sort((a, b) => ecoCostoServizio(b, d) - ecoCostoServizio(a, d)).map((s, i) => (
-            <div key={s.id} style={{display:'grid', gridTemplateColumns:'minmax(0,1.5fr) 1.3fr 1fr 110px 92px',
-              gap:12, alignItems:'center', padding:'12px 16px',
-              borderBottom: i < ECO_SERVIZI.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{s.nome}</div>
-                <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>{s.categoria} · {s.fornitore}</div>
+          {m.righe.slice().sort((a, b) => b.fineMese - a.fineMese).map((r, i) => {
+            const s = r.s;
+            const previsto = ecoConsumo(s, d);
+            const attuale = previsto * m.frazione;
+            const c = ecoConnessioneDi(s.id);
+            const st = ECO_STATO_CONN[(c && c.stato) || 'scollegato'];
+            return (
+              <div key={s.id} style={{display:'grid', gridTemplateColumns:ECO_GRID_SERV,
+                gap:11, alignItems:'center', padding:'12px 16px',
+                borderBottom: i < m.righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{s.nome}</div>
+                  <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
+                    {s.fornitore} · {ecoEur2(ecoPrezzo(s))} per {s.unitaSing || s.unita}
+                  </div>
+                </div>
+                <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4}}>{ECO_DRIVER_LABEL[s.driver]}</div>
+                <div style={{fontSize:12.6, color:ADM.TEXT, ...ECO_NUM}}>
+                  {Math.round(attuale).toLocaleString('it-IT', {useGrouping:true})}
+                </div>
+                <div style={{fontSize:12.4, color:ADM.MUTED, ...ECO_NUM}}>
+                  {Math.round(previsto).toLocaleString('it-IT', {useGrouping:true})}
+                </div>
+                <div style={{fontSize:13.2, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.aOggi)}</div>
+                <div style={{fontSize:13.8, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.fineMese)}</div>
+                <div><CfPill tono={st.tono}>{st.label}</CfPill></div>
               </div>
-              <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.45}}>{ECO_DRIVER_LABEL[s.driver]}</div>
-              <div style={{fontSize:12.4, color:ADM.MUTED, ...ECO_NUM}}>
-                {Math.round(ecoConsumo(s, d)).toLocaleString('it-IT')}
-                <span style={{color:ADM.MUTED_SOFT}}> {s.unita}</span>
-              </div>
-              <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(ecoCostoServizio(s, d))}</div>
-              <div>
-                {(() => {
-                  const c = ecoConnessioneDi(s.id);
-                  const st = ECO_STATO_CONN[(c && c.stato) || 'scollegato'];
-                  return <CfPill tono={st.tono}>{st.label}</CfPill>;
-                })()}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
         <div style={{fontSize:12, color:ADM.MUTED, marginTop:9, lineHeight:1.55}}>
           Le righe collegate riportano il consuntivo del fornitore; le altre la stima del modello.
-          Lo scarto fra i due si legge nella scheda del collegamento, ed è il segnale che il prezzo
-          unitario o il consumo per unità non sono più quelli scritti qui.
         </div>
       </div>
+
+      {/* Il pacchetto prepagato non e' un costo mensile: e' cassa immobilizzata.
+          Va guardato come tale — quanto credito resta e per quanti mesi basta. */}
+      {(() => {
+        const pk = ECO_PACCHETTI.openapi;
+        const t = ecoTaglio(pk, pk.attivo);
+        const consumoMese = ecoConsumo(ECO_SERVIZI.find(x => x.id === 'openapi'), d);
+        const mesiResidui = consumoMese ? pk.residuo / consumoMese : 0;
+        return (
+          <div>
+            <div style={ECO_H}>Credito prepagato · {pk.fornitore}</div>
+            <div style={{...ECO_CARD, padding:'16px 18px'}}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:18, marginBottom:14}}>
+                {[
+                  ['Taglio attivo', `${t.quantita.toLocaleString('it-IT')} ${pk.unita}`, `pagato ${ecoEur(t.prezzo)}`],
+                  ['Prezzo unitario', ecoEur2(ecoPrezzoUnitario(t)), 'scende salendo di taglio'],
+                  ['Credito residuo', pk.residuo.toLocaleString('it-IT'), `su ${t.quantita.toLocaleString('it-IT')}`],
+                  ['Basta per', mesiResidui < 1 ? 'meno di un mese' : `${mesiResidui.toFixed(1).replace('.', ',')} mesi`,
+                    `al ritmo di ${Math.round(consumoMese).toLocaleString('it-IT')} al mese`],
+                ].map(([k, v, n]) => (
+                  <div key={k}>
+                    <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                      letterSpacing:'0.05em'}}>{k}</div>
+                    <div style={{fontSize:18, fontWeight:800, color:ADM.TEXT, marginTop:5, ...ECO_NUM}}>{v}</div>
+                    <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:3}}>{n}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{paddingTop:13, borderTop:`1px solid ${ADM.BORDER}`}}>
+                <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                  letterSpacing:'0.05em', marginBottom:9}}>Tagli disponibili</div>
+                <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+                  {pk.tagli.map(x => {
+                    const att = x.id === pk.attivo;
+                    const mesi = consumoMese ? x.quantita / consumoMese : 0;
+                    return (
+                      <button key={x.id} className="adm-card-interactive"
+                        onClick={()=>{ pk.attivo = x.id; forza(); }}
+                        style={{padding:'9px 13px', borderRadius:10, cursor:'pointer', fontFamily:'inherit',
+                          textAlign:'left', border:`1.5px solid ${att ? ADM.TEXT : ADM.BORDER}`,
+                          background: att ? ADM.TEXT : '#fff', color: att ? '#fff' : ADM.TEXT}}>
+                        <div style={{fontSize:12.8, fontWeight:800, ...ECO_NUM}}>
+                          {x.quantita.toLocaleString('it-IT')}
+                        </div>
+                        <div style={{fontSize:11, opacity:0.72, marginTop:2, ...ECO_NUM}}>
+                          {ecoEur(x.prezzo)} · {ecoEur2(ecoPrezzoUnitario(x))}/u
+                        </div>
+                        <div style={{fontSize:10.6, opacity:0.6, marginTop:2}}>
+                          {mesi < 1 ? '<1 mese' : `${mesi.toFixed(1).replace('.', ',')} mesi`} di consumo
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{fontSize:12, color:ADM.MUTED, marginTop:11, lineHeight:1.55}}>
+                  Cambiando taglio cambia il prezzo unitario di ogni trasmissione, quindi la riga
+                  OpenAPI qui sopra e tutta la proiezione. Il taglio grande costa meno per unità ma
+                  immobilizza cassa: è una scelta di liquidità, non solo di prezzo.
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
@@ -402,7 +429,6 @@ const ECO_DRIVER_LABEL = {
   fisso:'Niente — canone fisso',
 };
 
-window.EcoMese = EcoMese;
 window.EcoCosti = EcoCosti;
 window.ecoQuando = ecoQuando;
 window.EcoModaleConnessione = EcoModaleConnessione;
@@ -412,6 +438,7 @@ window.ECO_H = ECO_H;
 window.ECO_INP = ECO_INP;
 window.ECO_SEL = ECO_SEL;
 window.ECO_NUM = ECO_NUM;
+window.ECO_MESI_LUNGHI = ECO_MESI_LUNGHI;
 window.ECO_PERIODICITA = ECO_PERIODICITA;
 window.ECO_DRIVER_LABEL = ECO_DRIVER_LABEL;
 window.EcoCampo = EcoCampo;

@@ -62,19 +62,19 @@ function EcoProiezione({ mix, leve, setLeve, base }) {
         </div>
 
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:22}}>
-          <EcoLeva etichetta="Nuovi locali al mese" valore={leve.nuoviLocaliMese} min={0} max={30} passo={0.5}
+          <EcoLeva etichetta="Nuovi locali al mese" valore={leve.nuoviLocaliMese} min={0} max={200} passo={0.5}
             onChange={v=>setLeve(l=>({...l, nuoviLocaliMese:v}))}
             nota="quanti se ne attivano ogni mese, al netto di quelli che se ne vanno"/>
-          <EcoLeva etichetta="Abbandono mensile" valore={leve.churnMensile} suffisso="%" min={0} max={12} passo={0.1}
+          <EcoLeva etichetta="Abbandono mensile" valore={leve.churnMensile} suffisso="%" min={0} max={100} passo={0.5}
             onChange={v=>setLeve(l=>({...l, churnMensile:v}))}
             nota="quota di locali attivi che chiude ogni mese"/>
-          <EcoLeva etichetta="Transazioni per locale" valore={leve.ordiniPerLocale} min={100} max={3000} passo={10}
+          <EcoLeva etichetta="Transazioni per locale" valore={leve.ordiniPerLocale} min={0} max={20000} passo={50}
             onChange={v=>setLeve(l=>({...l, ordiniPerLocale:v}))}
             nota="pagamenti al mese in un locale medio"/>
           <EcoLeva etichetta="Pagamenti da app" valore={leve.quotaApp} suffisso="%" min={0} max={100} passo={1}
             onChange={v=>setLeve(l=>({...l, quotaApp:v}))}
             nota="pesano 0,5 invece di 1,0: più app significa meno quota consumata, e quindi MENO ricavo da transazioni extra"/>
-          <EcoLeva etichetta="Utenti app per locale" valore={leve.utentiPerLocale} min={5} max={300} passo={1}
+          <EcoLeva etichetta="Utenti app per locale" valore={leve.utentiPerLocale} min={0} max={5000} passo={5}
             onChange={v=>setLeve(l=>({...l, utentiPerLocale:v}))}
             nota="guida Maps, notifiche e traffico immagini"/>
           <div>
@@ -141,20 +141,13 @@ function EcoProiezione({ mix, leve, setLeve, base }) {
         </div>
       </div>
 
-      <div style={{padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT,
-        fontSize:12.4, color:ADM.MUTED, lineHeight:1.6}}>
-        Nessuna riga futura è scritta a mano: ogni costo è il suo driver moltiplicato per il prezzo
-        unitario, ogni ricavo è la base attiva per il canone del piano più le transazioni oltre
-        soglia. Se un numero non ti torna, cambia la leva che lo genera e guarda dove si muove —
-        è l’unico modo per capire se il modello sta dicendo qualcosa o sta solo prolungando una riga.
-      </div>
     </div>
   );
 }
 
 /* ═══ GUSCIO ═════════════════════════════════════════════════════════════ */
 function Economix() {
-  const [tab, setTab] = useStateEco('mese');
+  const [tab, setTab] = useStateEco('costi');
   const [, forzaEco] = useStateEco(0);
   const forza = () => forzaEco(n => n + 1);
   const base = ecoLeveIniziali();
@@ -166,7 +159,6 @@ function Economix() {
       <AdmCard padding={0}>
         <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center'}}>
           <AdmTabBar tabs={[
-            { id:'mese',       label:'Mese in corso' },
             { id:'costi',      label:'Costi' },
             { id:'fatture',    label:'Fatture' },
             { id:'bilancio',   label:'Conto economico' },
@@ -174,7 +166,6 @@ function Economix() {
           ]} active={tab} onChange={setTab}/>
         </div>
         <div style={{padding:'20px 22px'}}>
-          {tab === 'mese'       && <EcoMese mix={mix}/>}
           {tab === 'costi'      && <EcoCosti mix={mix} forza={forza}/>}
           {tab === 'fatture'    && <EcoFatture forza={forza}/>}
           {tab === 'bilancio'   && <EcoBilancio mix={mix} leve={leve}/>}

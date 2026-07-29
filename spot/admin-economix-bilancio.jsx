@@ -85,8 +85,63 @@ function EcoModaleFattura({ onChiudi, onSalva }) {
   );
 }
 
+// Il documento vive nel gestore documentale, non in Spot: qui c'e il
+// riferimento, la strada per aprirlo e i dati che il registro deve provare.
+function EcoModaleDocumento({ fattura, onChiudi }) {
+  const percorso = `Drive · Fatture/${fattura.data.getFullYear()}/${fattura.fornitore}/${fattura.file}`;
+  const xml = /\.xml$/i.test(fattura.file || '');
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="documento" onClick={e=>e.stopPropagation()} style={{width:560, maxWidth:'92%', background:'#fff',
+        borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.18s ease', maxHeight:'100%', overflowY:'auto'}}>
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:5}}>{fattura.fornitore}</div>
+        <div style={{fontSize:12.6, color:ADM.MUTED, marginBottom:16}}>
+          {fattura.numero} · {cfFmt(fattura.data)} · {fattura.id}
+        </div>
+
+        <div style={{display:'flex', alignItems:'center', gap:13, padding:'15px 16px', borderRadius:12,
+          border:`1px solid ${ADM.BORDER}`, background:'#FCFCFD', marginBottom:16}}>
+          <div style={{width:38, height:46, borderRadius:5, background:'#fff', flexShrink:0,
+            border:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+            <BuIcons.paperclip size={17} color={ADM.MUTED_SOFT}/>
+          </div>
+          <div style={{minWidth:0, flex:1}}>
+            <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, wordBreak:'break-all'}}>{fattura.file}</div>
+            <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:3, wordBreak:'break-all'}}>{percorso}</div>
+          </div>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14, marginBottom:16}}>
+          <CfrVoce k="Imponibile" v={ecoEur2(fattura.imponibile)}/>
+          <CfrVoce k="IVA" v={fattura.iva ? ecoEur2(fattura.iva) : 'reverse charge'}/>
+          <CfrVoce k="Totale" v={ecoEur2(fattura.totale)}/>
+        </div>
+        {fattura.nota && (
+          <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>{fattura.nota}</div>
+        )}
+
+        <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:18,
+          fontSize:12.4, color:ADM.MUTED, lineHeight:1.6}}>
+          {xml
+            ? 'File XML dallo Sistema di Interscambio: i campi qui sopra sono stati letti dal documento, non trascritti.'
+            : 'PDF caricato a mano: i campi qui sopra sono stati inseriti da una persona e non sono verificati contro il documento.'}
+        </div>
+
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Chiudi</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={onChiudi}>Apri su Drive</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EcoFatture({ forza }) {
   const [nuova, setNuova] = useStateEco(false);
+  const [doc, setDoc] = useStateEco(null);
   const righe = ECO_FATTURE.slice().sort((a, b) => b.data - a.data);
   const daRic = righe.filter(f => f.stato === 'da-riconciliare').length;
 
@@ -119,8 +174,9 @@ function EcoFatture({ forza }) {
           <div>Fornitore</div><div>Documento</div><div>Data</div><div>Imponibile</div><div>Totale</div><div>Stato</div>
         </div>
         {righe.map((f, i) => (
-          <div key={f.id} style={{display:'grid', gridTemplateColumns:'minmax(0,1.5fr) 1.1fr 100px 108px 108px 130px',
-            gap:12, alignItems:'center', padding:'12px 16px',
+          <div key={f.id} className="adm-row-open" onClick={()=>setDoc(f)}
+            style={{display:'grid', gridTemplateColumns:'minmax(0,1.5fr) 1.1fr 100px 108px 108px 130px',
+            gap:12, alignItems:'center', padding:'12px 16px', cursor:'pointer',
             background: f.stato === 'da-riconciliare' ? '#FFFBFB' : '#fff',
             borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
             <div style={{minWidth:0}}>
@@ -157,6 +213,7 @@ function EcoFatture({ forza }) {
       </div>
 
       {nuova && <EcoModaleFattura onChiudi={()=>setNuova(false)} onSalva={salva}/>}
+      {doc && <EcoModaleDocumento fattura={doc} onChiudi={()=>setDoc(null)}/>}
     </div>
   );
 }
