@@ -286,9 +286,9 @@ const ECO_PAGATI = {};
 // `costo:false` sulle voci che sono movimenti di cassa ma NON costi: l'IVA si
 // versa, non si spende — e finita nel conto economico sarebbe un errore.
 const ECO_SCADENZE = [
-  { id:'S1', voce:'Liquidazione IVA del trimestre', tipo:'iva', costo:false,
-    quando:new Date(ECO_OGGI.getFullYear(), 7, 16),
-    importo:null, nota:'Si calcola dalla differenza fra IVA sulle vendite e IVA sugli acquisti del trimestre.' },
+  // La liquidazione IVA non sta piu qui: era una riga fissa con una data scritta
+  // a mano e nessun importo. Ora la genera lo scadenzario per ogni periodo, con
+  // la data giusta e il numero quando il periodo e chiuso.
   { id:'S2', voce:'Primo acconto IRES e IRAP', tipo:'imposte', costo:false, quando:new Date(ECO_OGGI.getFullYear(), 5, 30),
     importo:0, nota:'Zero: si calcola sull\'imposta dell\'esercizio precedente, che era nulla per via delle perdite.' },
   { id:'S3', voce:'Secondo acconto IRES e IRAP', tipo:'imposte', costo:false, quando:new Date(ECO_OGGI.getFullYear(), 10, 30),
@@ -309,7 +309,7 @@ const ECO_PATRIMONIO = {
   // toglie l'unico numero che poteva invecchiare in silenzio.
   // Somma dei versamenti effettivamente fatti dai soci: non un numero tondo
   // perche non lo e mai — sono piu bonifici in momenti diversi.
-  versamentiSoci: 218284,
+  versamentiSoci: 229388,
   immobiliMateriali: 4800,       // portatili e attrezzatura
   fondoAmmortamento: -1920,
   creditiTributari: 3200,        // credito d'imposta R&S maturato

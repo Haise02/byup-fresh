@@ -364,13 +364,19 @@ function ecoFlussiStorici(mix) {
     const ivaIncassata = ricavi * 0.22;
     const costi = (ecoCostiVariabili(m) * frazione) + ecoFissiDelMese(dataM);
     const ivaAcquisti = ecoIvaAcquisti(dataM);
-    const pagamenti = costi + ivaAcquisti;
-    const iva = Math.max(0, ivaIncassata - ivaAcquisti);
-    const scad = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === m.data.getFullYear()
+    // Le uscite sono tutto cio che esce verso l'esterno: fornitori al lordo e
+    // scadenze con calendario proprio. Tenerle in due colonne separate quando
+    // una delle due e quasi sempre vuota non aggiungeva niente.
+    const altre = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === m.data.getFullYear()
       && x.quando.getMonth() === m.data.getMonth()).reduce((t, x) => t + x.importo, 0);
+    const pagamenti = costi + ivaAcquisti + altre;
+    const iva = ecoIvaVersataNelMese(dataM, mix);
+    // Il saldo del mese e quello che matura, non quello che esce: si accumula
+    // fino alla scadenza del periodo e li diventa cassa.
+    const saldoIva = ivaIncassata - ivaAcquisti;
     const incassi = ricavi + ivaIncassata;
     return { d:m, ricavi, ivaIncassata, incassi, costi, ivaAcquisti, pagamenti,
-      iva, scadenze:scad, netto: incassi - pagamenti - iva - scad, i };
+      iva, saldoIva, netto: incassi - pagamenti - iva, i };
   });
   // Dal fondo verso l'alto: l'ultimo saldo e quello vero.
   let saldo = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
@@ -414,27 +420,65 @@ function ecoPeriodoIva(anno, periodo, regime, mix) {
     acquisti += ecoIvaAcquisti(new Date(m.data.getFullYear(), m.data.getMonth(), 1));
   });
   const saldo = vendite - acquisti;
-  const interessi = regime === 'trimestrale' && saldo > 0
-    ? saldo * ECO_CASSA.interessiTrimestrale / 100 : 0;
-  return { anno, periodo, regime, mesi, vendite, acquisti, saldo, interessi,
-    daVersare: Math.max(0, saldo) + interessi,
+  return { anno, periodo, regime, mesi, vendite, acquisti, saldo,
     scadenza: ecoScadenzaIva(anno, periodo, regime),
     etichetta: regime === 'mensile'
       ? `${ECO_MESI[periodo]} ${String(anno).slice(2)}`
       : `${periodo + 1}º trimestre ${anno}` };
 }
-function ecoLiquidazioneIva(mix) {
+// L'IVA non esce ogni mese: esce alle scadenze. Sul trimestrale sono quattro
+// date l'anno — 16 maggio, agosto, novembre e marzo — e negli altri otto mesi
+// dalla cassa non parte un euro di IVA. Il conteggio mensile che c'era prima
+// (incassata meno acquisti, ogni mese) non e mai stato un versamento: era il
+// maturato, e messo nella colonna della cassa raccontava un'uscita che non
+// avveniva.
+//
+// E i periodi non sono indipendenti: un credito NON si chiede a rimborso ogni
+// trimestre, si porta al periodo successivo e abbatte il debito che matura li.
+// Senza il riporto un'azienda a credito come Byup — che compra molto piu di
+// quanto vende — risultava «da versare» al primo trimestre in cui le vendite
+// superano gli acquisti, mentre in realta ha ancora credito da consumare.
+function ecoIvaPeriodi(mix) {
   const regime = ECO_CASSA.regimeIva;
-  const anno = ECO_OGGI.getFullYear();
-  const corrente = regime === 'mensile' ? ECO_OGGI.getMonth() : ecoTrimestre(ECO_OGGI);
-  const prec = corrente === 0
-    ? { anno: anno - 1, periodo: regime === 'mensile' ? 11 : 3 }
-    : { anno, periodo: corrente - 1 };
-  const chiuso = ecoPeriodoIva(prec.anno, prec.periodo, regime, mix);
-  const inCorso = ecoPeriodoIva(anno, corrente, regime, mix);
-  chiuso.giorni = Math.ceil((chiuso.scadenza.getTime() - Date.now()) / 86400000);
-  inCorso.giorni = Math.ceil((inCorso.scadenza.getTime() - Date.now()) / 86400000);
-  return { regime, chiuso, inCorso };
+  const n = regime === 'mensile' ? 12 : 4;
+  const primo = ECO_STORICO[0].data;
+  const ultimo = ECO_STORICO[ECO_STORICO.length - 1].data;
+  const out = [];
+  let credito = 0;                       // positivo = credito verso l'erario
+  for (let a = primo.getFullYear(); a <= ultimo.getFullYear() + 1; a++) {
+    for (let p = 0; p < n; p++) {
+      const per = ecoPeriodoIva(a, p, regime, mix);
+      if (!per.mesi.length) continue;
+      const netto = per.saldo - credito;
+      per.credito = credito;
+      per.interessi = regime === 'trimestrale' && netto > 0
+        ? netto * ECO_CASSA.interessiTrimestrale / 100 : 0;
+      per.dovuto = netto > 0 ? netto + per.interessi : 0;
+      per.creditoDopo = netto > 0 ? 0 : -netto;
+      per.fine = ecoFinePeriodoIva(per);
+      per.chiuso = per.fine < ECO_OGGI;
+      credito = per.creditoDopo;
+      out.push(per);
+    }
+  }
+  return out;
+}
+
+function ecoIvaVersataNelMese(d, mix) {
+  const per = ecoIvaPeriodi(mix).find(x => x.chiuso
+    && x.scadenza.getFullYear() === d.getFullYear() && x.scadenza.getMonth() === d.getMonth());
+  return per ? per.dovuto : 0;
+}
+
+// Saldo IVA accumulato: la posizione verso l'erario per i periodi non ancora
+// versati. Negativo vuol dire credito, e allora non c'e nessuna data di
+// pagamento da mostrare — mostrarla sarebbe annunciare un'uscita che non ci sara.
+function ecoSaldoIva(mix) {
+  const tutti = ecoIvaPeriodi(mix);
+  const aperti = tutti.filter(x => x.scadenza >= ECO_OGGI);
+  if (!aperti.length) return { saldo:0, aperti:[], prossima:null };
+  const saldo = aperti.reduce((t, x) => t + x.saldo, 0) - aperti[0].credito;
+  return { saldo, aperti, prossima: aperti.find(x => x.dovuto > 0) || null };
 }
 
 // ─── Scadenzario ───────────────────────────────────────────────────────────
@@ -444,7 +488,7 @@ function ecoLiquidazioneIva(mix) {
 // rispondeva alla domanda vera — che cosa pago nelle prossime settimane.
 const ecoChiave = (id, d) => `${id}@${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
-function ecoScadenzario(mesiAvanti) {
+function ecoScadenzario(mesiAvanti, mixScad) {
   const out = [];
   const oggi = ECO_OGGI;
   const orizzonte = new Date(oggi.getFullYear(), oggi.getMonth() + (mesiAvanti || 6), 0);
@@ -479,14 +523,30 @@ function ecoScadenzario(mesiAvanti) {
     }
   });
 
-  // 2 — scadenze con calendario proprio
+  // 2 — liquidazioni IVA, calcolate: la data e certa, l'importo lo e solo per i
+  // periodi gia chiusi. Su quelli ancora aperti si mostra la data senza inventare
+  // un numero, che e esattamente quello che sa chi tiene i conti.
+  ecoIvaPeriodi(mixScad).forEach(per => {
+    if (per.scadenza < oggi || per.dovuto <= 0) return;   // a credito: non si versa
+    spingi({ chiave:`IVA@${per.anno}-${per.periodo}`,
+      voce:`Liquidazione IVA · ${per.etichetta}`,
+      data:per.scadenza, importo: per.chiuso ? per.dovuto : null, origine:'IVA',
+      nota: per.chiuso
+        ? `${ecoEur2(per.vendite)} sulle vendite meno ${ecoEur2(per.acquisti)} sugli acquisti${
+            per.credito > 0 ? `, meno ${ecoEur2(per.credito)} di credito riportato` : ''}${
+            per.interessi ? `, più ${ecoEur2(per.interessi)} di interessi` : ''}`
+        : `Il periodo chiude il ${cfFmt(per.fine)}: l'importo si calcola allora. Oggi maturerebbe ${ecoEur2(per.dovuto)}.`,
+      costo:false });
+  });
+
+  // 3 — scadenze con calendario proprio
   ECO_SCADENZE.forEach(x => {
     spingi({ chiave:ecoChiave(x.id, x.quando), voce:x.voce, data:new Date(x.quando),
       importo:x.importo, origine:x.tipo === 'iva' ? 'IVA' : x.tipo === 'imposte' ? 'imposte' : 'fornitore',
       nota:x.nota, rif:x, costo: x.costo !== false });
   });
 
-  // 3 — ricariche dei prepagati, calcolate dal consumo
+  // 4 — ricariche dei prepagati, calcolate dal consumo
   ecoPrepagati().forEach(p => {
     let residuo = p.pk.residuo, k = 0;
     while (k < (mesiAvanti || 6)) {
@@ -603,14 +663,23 @@ function ecoStatoPatrimoniale(mix) {
   // Debiti verso fornitori: i costi dell'ultimo mese non ancora pagati.
   const costiMese = ecoCostiVariabili(ultimo) + ecoFissiDelMese(new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1));
   const debitiFornitori = costiMese * (ECO_CASSA.giorniPagamento / 30);
-  const ivaDebito = Math.max(0, ric.totale * 0.22 - ecoIvaAcquisti(new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1)));
+  // La posizione IVA e una sola e ha un segno: debito se si deve versare,
+  // credito se si e comprato piu di quanto si e venduto. Prima qui c'era la
+  // differenza del solo ultimo mese, che non e ne l'uno ne l'altro — e teneva
+  // fuori dal bilancio quasi undicimila euro di credito davvero maturati.
+  const posizioneIva = ecoSaldoIva(mix).saldo;
+  const ivaDebito = Math.max(0, posizioneIva);
+  const ivaCredito = Math.max(0, -posizioneIva);
   const immobilizzazioni = P.immobiliMateriali + P.fondoAmmortamento;
   const prepagato = ecoPrepagati().reduce((t, p) => t + p.valore, 0);
 
   const attivo = [
     { v:'Immobilizzazioni materiali', n:immobilizzazioni, sub:`${ecoEur(P.immobiliMateriali)} al costo, ${ecoEur(-P.fondoAmmortamento)} ammortizzati` },
     { v:'Crediti verso clienti', n:crediti, sub:`abbonamenti fatturati e non ancora incassati, ${ECO_CASSA.giorniIncasso} giorni medi` },
-    { v:'Crediti tributari', n:P.creditiTributari, sub:'credito d’imposta maturato' },
+    { v:'Crediti tributari', n:P.creditiTributari + ivaCredito,
+      sub: ivaCredito > 0
+        ? `${ecoEur(P.creditiTributari)} di credito d’imposta più ${ecoEur(ivaCredito)} di credito IVA da riportare`
+        : 'credito d’imposta maturato' },
     { v:'Servizi prepagati non consumati', n:prepagato,
       sub:'credito acquistato e non ancora usato: denaro già uscito che non è ancora costo' },
     { v:'Disponibilità liquide', n:cassa, sub:`banca ${ecoEur(ECO_CASSA.saldoBanca)}` },
@@ -625,14 +694,15 @@ function ecoStatoPatrimoniale(mix) {
       sub: anniPrec.length ? `risultati di ${anniPrec.join(', ')}, calcolati` : 'nessun esercizio precedente' },
     { v:`Risultato dell’esercizio ${anno}`, n:ce.netto, gruppo:'pn', sub:'consuntivo da gennaio a oggi' },
     { v:'Debiti verso fornitori', n:debitiFornitori, gruppo:'deb', sub:`${ECO_CASSA.giorniPagamento} giorni medi di pagamento` },
-    { v:'Debiti tributari', n:ivaDebito, gruppo:'deb', sub:'IVA da versare' },
+    { v:'Debiti tributari', n:ivaDebito, gruppo:'deb',
+      sub: ivaDebito > 0 ? 'IVA da versare alla prossima liquidazione' : 'nessuna IVA da versare: la posizione è a credito' },
     { v:'Debiti verso banche', n:P.debitiBanche, gruppo:'deb' },
   ];
   const totPassivo = passivo.reduce((t, x) => t + x.n, 0);
 
   return { attivo, passivo, totAttivo, totPassivo, pn, perditePortateANuovo, prepagato,
     sbilancio: totAttivo - totPassivo,
-    ce, cassa, crediti, debitiFornitori, ivaDebito, immobilizzazioni };
+    ce, cassa, crediti, debitiFornitori, ivaDebito, ivaCredito, immobilizzazioni };
 }
 
 window.ecoGiorniConsenso = ecoGiorniConsenso;
@@ -643,7 +713,9 @@ window.ecoRiacquisti = ecoRiacquisti;
 window.ecoIvaAcquisti = ecoIvaAcquisti;
 window.ecoFlussiStorici = ecoFlussiStorici;
 window.ecoFinePeriodoIva = ecoFinePeriodoIva;
-window.ecoLiquidazioneIva = ecoLiquidazioneIva;
+window.ecoIvaPeriodi = ecoIvaPeriodi;
+window.ecoIvaVersataNelMese = ecoIvaVersataNelMese;
+window.ecoSaldoIva = ecoSaldoIva;
 window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;
 window.ecoScadenzario = ecoScadenzario;

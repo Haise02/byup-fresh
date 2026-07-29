@@ -19,10 +19,10 @@ function EcoCassa({ mix, leve, forza }) {
   // dominio a febbraio — non comparirebbero mai, e lo scadenzario sembrerebbe
   // averle dimenticate proprio mentre dichiara di mostrarle tutte.
   const storici = ecoFlussiStorici(mix);
-  const liq = ecoLiquidazioneIva(mix);
+  const iva = ecoSaldoIva(mix);
   const meseCorr = storici[storici.length - 1];
   const recenti = storici.slice().reverse();
-  const scadenze = ecoScadenzario(12);
+  const scadenze = ecoScadenzario(12, mix);
   const inScadenza = scadenze.filter(x => x.giorni <= 0).length;
   // Uscite ancora da saldare nel mese in corso: quelle gia pagate non ci sono
   // piu, quindi e davvero "quanto manca", non "quanto costa il mese".
@@ -35,14 +35,16 @@ function EcoCassa({ mix, leve, forza }) {
   const daPagare = delMese.reduce((t, x) => t + (x.importo || 0), 0);
   const senzaImporto = delMese.filter(x => x.importo == null).length;
   // Tutto cio che esce nel mese: fornitori al lordo, IVA versata, altre uscite.
-  const usciteMese = meseCorr ? meseCorr.pagamenti + meseCorr.iva + meseCorr.scadenze : 0;
+  // pagamenti comprende gia le altre uscite del mese; l'IVA versata e a parte
+  // perche esce solo alle scadenze di liquidazione.
+  const usciteMese = meseCorr ? meseCorr.pagamenti + meseCorr.iva : 0;
   const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
   const minSaldo = Math.min.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
   const maxSaldo = Math.max.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:11}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:11}}>
         {[
           { et:'Cassa', v:ecoEur(saldoOggi),
             tono: banca && banca.stato === 'errore' ? ADM.DANGER : null,
@@ -66,6 +68,16 @@ function EcoCassa({ mix, leve, forza }) {
                   delMese.length === 1 ? 'voce' : 'voci'}${
                   scaduteMese ? `, ${scaduteMese} già ${scaduteMese === 1 ? 'scaduta' : 'scadute'}` : ''}${
                   senzaImporto ? ` · ${senzaImporto} da calcolare` : ''}` },
+          // Il saldo IVA e denaro che sta in cassa ma non e tuo: incassato dai
+          // ristoratori e dovuto allo Stato alla prossima scadenza. Guardare la
+          // cassa senza sapere quanto ne e gia impegnato porta a spenderlo.
+          { et:'Saldo IVA', v:ecoEur(iva.saldo),
+            tono: iva.saldo > 0 ? ADM.WARN : ADM.OK,
+            n: iva.saldo <= 0
+              ? 'credito verso l’erario: si porta avanti, non si versa'
+              : iva.prossima
+                ? `da versare il ${cfFmt(iva.prossima.scadenza)} · ${iva.prossima.etichetta}`
+                : 'nessun versamento in vista' },
           { et:'Autonomia', tono: run.oltre ? ADM.TEXT : ADM.DANGER,
             v: run.oltre
               ? (run.mesi === Infinity ? 'illimitata' : `${Math.floor(run.mesi)} mesi`)
@@ -101,64 +113,6 @@ function EcoCassa({ mix, leve, forza }) {
         </div>
       )}
 
-      {/* La liquidazione IVA: due periodi contano sempre, quello che sta per
-          essere versato e quello che si sta accumulando. */}
-      <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...ECO_H, marginBottom:0}}>Liquidazione IVA</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>
-            regime {liq.regime}
-            {liq.regime === 'trimestrale'
-              ? ' · si versa entro il 16 del secondo mese dopo il trimestre, con l’1% di interessi'
-              : ' · si versa entro il 16 del mese successivo'}
-          </span>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
-          {[{ p:liq.chiuso, et:'Da versare', chiuso:true }, { p:liq.inCorso, et:'In maturazione', chiuso:false }].map(({ p, et, chiuso }) => (
-            <div key={et} style={{...ECO_CARD, padding:'16px 18px'}}>
-              <div style={{display:'flex', alignItems:'baseline', gap:9, marginBottom:12}}>
-                <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                  letterSpacing:'0.05em'}}>{et}</div>
-                <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:700}}>{p.etichetta}</div>
-                <div style={{flex:1}}/>
-                {chiuso && (
-                  <span style={{fontSize:12, fontWeight:700,
-                    color: p.giorni < 15 ? ADM.WARN : ADM.MUTED}}>
-                    {p.giorni < 0 ? `scaduta da ${-p.giorni} giorni` : `fra ${p.giorni} giorni`}
-                  </span>
-                )}
-              </div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14, marginBottom:13}}>
-                {[['IVA sulle vendite', p.vendite], ['IVA sugli acquisti', -p.acquisti],
-                  ['Saldo', p.saldo]].map(([k, v], n) => (
-                  <div key={k}>
-                    <div style={{fontSize:10.8, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                      letterSpacing:'0.05em'}}>{k}</div>
-                    <div style={{fontSize: n === 2 ? 19 : 15.5, fontWeight: n === 2 ? 800 : 600,
-                      marginTop:4, ...ECO_NUM,
-                      color: n === 2 ? (v > 0 ? ADM.TEXT : ADM.OK) : ADM.MUTED}}>{ecoEur2(v)}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{paddingTop:12, borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
-                alignItems:'baseline', gap:10}}>
-                <span style={{fontSize:12.4, color:ADM.MUTED, flex:1}}>
-                  {p.saldo <= 0
-                    ? 'Credito verso l’erario: si porta al periodo successivo, non si versa nulla.'
-                    : chiuso
-                      ? `Da versare entro il ${cfFmt(p.scadenza)}${p.interessi > 0 ? `, interessi ${ecoEur2(p.interessi)} inclusi` : ''}`
-                      : `Chiude il ${cfFmt(ecoFinePeriodoIva(p))}, si versa il ${cfFmt(p.scadenza)}`}
-                </span>
-                <span style={{fontSize:17, fontWeight:800, ...ECO_NUM,
-                  color: p.daVersare > 0 ? ADM.TEXT : ADM.OK}}>
-                  {p.daVersare > 0 ? ecoEur2(p.daVersare) : '—'}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
           <div style={{...ECO_H, marginBottom:0}}>Entrate e uscite</div>
@@ -173,10 +127,11 @@ function EcoCassa({ mix, leve, forza }) {
         </div>
         <div style={{...ECO_CARD, display:'flex', flexDirection:'column'}}>
           <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI, gap:10}}>
-            {/* «Incassi» qui era falso: la colonna contiene i soli abbonamenti,
-                l'IVA sta in quella accanto e le entrate vere sono la somma. */}
-            <div>Mese</div><div>Abbonamenti</div><div>IVA incassata</div><div>Pagamenti</div>
-            <div>IVA versata</div><div>Altre uscite</div><div>Netto</div><div>Saldo</div>
+            {/* «Di cui IVA» e non «IVA incassata»: le entrate ora comprendono
+                l'IVA, e due colonne accostate senza dirlo si sommano da sole
+                nella testa di chi legge. */}
+            <div>Mese</div><div>Entrate</div><div>Di cui IVA</div><div>Uscite</div>
+            <div>IVA versata</div><div>Saldo IVA</div><div>Netto</div><div>Saldo</div>
           </div>
           {/* Il mese in corso e quello che si guarda per primo: la tabella parte
               da li e scende all'indietro. Tre righe a vista, il resto scorrendo
@@ -191,13 +146,15 @@ function EcoCassa({ mix, leve, forza }) {
               <div style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>
                 {x.d.mese}{x.d.corrente && <span style={{fontSize:10.4, color:ADM.MUTED_SOFT, fontWeight:500}}> in corso</span>}
               </div>
-              <div style={{fontSize:12.8, color:ADM.OK, fontWeight:600, ...ECO_NUM}}>{ecoEur(x.ricavi)}</div>
-              <div style={{fontSize:12.6, color:ADM.OK, ...ECO_NUM}}>{ecoEur(x.ivaIncassata)}</div>
+              <div style={{fontSize:12.8, color:ADM.OK, fontWeight:600, ...ECO_NUM}}>{ecoEur(x.incassi)}</div>
+              <div style={{fontSize:12.6, color:ADM.MUTED, ...ECO_NUM}}>{ecoEur(x.ivaIncassata)}</div>
               <div style={{fontSize:12.8, color:ADM.MUTED, ...ECO_NUM}}>−{ecoEur(x.pagamenti)}</div>
-              <div style={{fontSize:12.6, color:ADM.MUTED, ...ECO_NUM}}>{x.iva > 0 ? `−${ecoEur(x.iva)}` : '—'}</div>
-              <div style={{fontSize:12.6, color: x.scadenze ? ADM.WARN : ADM.MUTED_SOFT, fontWeight: x.scadenze ? 700 : 400, ...ECO_NUM}}>
-                {x.scadenze ? `−${ecoEur(x.scadenze)}` : '—'}
+              <div style={{fontSize:12.6, fontWeight: x.iva > 0 ? 700 : 400,
+                color: x.iva > 0 ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
+                {x.iva > 0 ? `−${ecoEur(x.iva)}` : '—'}
               </div>
+              <div style={{fontSize:12.6, ...ECO_NUM,
+                color: x.saldoIva > 0 ? ADM.WARN : ADM.OK}}>{ecoEur(x.saldoIva)}</div>
               <div style={{fontSize:13, fontWeight:700, ...ECO_NUM,
                 color: x.netto >= 0 ? ADM.OK : ADM.DANGER}}>{ecoEur(x.netto)}</div>
               <div style={{fontSize:13.6, fontWeight:800, ...ECO_NUM,
