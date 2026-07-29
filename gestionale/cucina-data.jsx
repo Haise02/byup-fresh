@@ -10,7 +10,9 @@ function _toMin(hhmm) {
 }
 
 // Ticket items: state = 'todo' | 'doing' | 'done'
-// kind = 'sala' | 'asporto' | 'delivery'
+// kind = 'sala' | 'asporto' | 'delivery' | 'banco'
+// 'banco' = ordine creato dalla cassa in Vendita diretta: niente tavolo né
+// cliente. Il KDS riceve tutte le righe e filtra da sé per stazione.
 // course: 1=antipasto, 2=primo, 3=secondo, 4=dessert (null=portata unica)
 const CUC_TICKETS_ATTIVI = [
   { id: 'a1', kind: 'sala', table: 9,  orderN: '#5678', time: '14:40', station: 'Pizza',  items: [

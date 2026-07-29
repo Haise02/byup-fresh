@@ -22,8 +22,9 @@ function SalaVenditaDiretta() {
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
   const [customOpen, setCustomOpen] = React.useState(false);
-  // Ritiri: ordini d'asporto in attesa di consegna. Drawer laterale + conferma
-  // con codice ritiro; "Salda ora" (CTA secondaria) apre l'incasso al banco.
+  // Ritiri: coda di chi aspetta al banco — asporto dai canali digitali e ordini
+  // di cassa con preparazione, che abbiano o no il sacchetto. Drawer laterale +
+  // conferma con codice ritiro; "Salda ora" apre l'incasso al banco.
   const [ritiri, setRitiri] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
   const [ritiriOpen, setRitiriOpen] = React.useState(false);
   const [consegna, setConsegna] = React.useState(null); // ordine in consegna (modale codice)
@@ -45,6 +46,47 @@ function SalaVenditaDiretta() {
   // Incasso confermato: l'ordine diventa pagato e resta in lista per la consegna.
   const confermaSaldo = (ordine) => {
     setRitiri(prev => prev.map(r => r.id === ordine.id ? {...r, pagato: true} : r));
+  };
+
+  // Creazione ordine al banco. Alla conferma dell'incasso l'ordine viene creato
+  // e inviato ai monitor: qui NON si decide cosa passa dalla cucina: si manda
+  // tutto ed è il KDS a filtrare per stazione (un caffè semplicemente non
+  // comparirà su nessuna postazione). Il numero è la ricevuta dell'invio per
+  // l'operatore, l'unico punto del flusso in cui l'ordine diventa una cosa.
+  const ordineSeq = React.useRef(1246);
+  // Codice ritiro: alfabeto senza I/O/0/1 — va dettato a voce al cliente.
+  const nuovoCodiceRitiro = () => Array.from({length: 4}, () =>
+    'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+
+  // Un ordine entra nella coda al banco se c'è qualcosa da aspettare, non se è
+  // da asporto: chi ordina una lasagna e si siede va richiamato al banco
+  // esattamente come chi la porta via. In produzione la risposta arriva a
+  // valle dal KDS (una stazione ha preso in carico l'ordine?); qui la
+  // approssimiamo con la categoria, che è l'unico segnale disponibile.
+  const haPreparazione = (righe) => righe.some(l =>
+    l.piatto.cat !== 'Bar' && l.piatto.cat !== 'Personalizzato');
+
+  const creaOrdine = (totale) => {
+    const numero = ++ordineSeq.current;
+    const ordine = { numero, codice: `#${numero}`, totale, takeaway };
+    // In coda: l'ordine non finisce col pagamento, resta in attesa di ritiro.
+    // Il flag asporto qui non decide nulla — dice solo se va incartato.
+    if (haPreparazione(lines)) {
+      ordine.codiceRitiro = nuovoCodiceRitiro();
+      const now = new Date();
+      const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      setRitiri(prev => [...prev, {
+        id: `banco-${numero}`, codice: ordine.codice,
+        cliente: null, ritiro: hhmm,
+        fonte: 'banco', pagato: true, asporto: takeaway, totale,
+        codiceRitiro: ordine.codiceRitiro,
+        items: lines.map(l => ({
+          nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+        })),
+      }]);
+    }
+    setTakeaway(false);
+    return ordine;
   };
 
   const cats = ['Tutto', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
@@ -148,12 +190,13 @@ function SalaVenditaDiretta() {
                 }}/>
             </div>
 
-            {/* Ritiri — ordini asporto (pagati in app o da saldare al banco)
-                in attesa di consegna. Chip di stato (non modalità): apre il drawer. */}
+            {/* Ritiri — la coda di chi aspetta al banco: asporto e consumo sul
+                posto senza tavolo hanno lo stesso handoff, quindi stessa lista.
+                Chip di stato (non modalità): apre il drawer. */}
             {ritiri.length > 0 && (
               <button
                 onClick={() => setRitiriOpen(true)}
-                title="Ordini d'asporto in attesa di ritiro"
+                title="Ordini in attesa di ritiro al banco"
                 style={{
                   display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
                   padding: '0 14px', borderRadius: 10,
@@ -167,7 +210,7 @@ function SalaVenditaDiretta() {
                 onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_LIGHT; e.currentTarget.style.background = PN.WHITE; }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                Ordini da asporto
+                Ritiri al banco
                 <span style={{
                   minWidth: 22, padding: '2px 7px', borderRadius: 999,
                   background: PN.PINK, color: '#fff',
@@ -281,7 +324,11 @@ function SalaVenditaDiretta() {
         open={incassaOpen}
         total={total}
         onClose={() => setIncassaOpen(false)}
-        onConfirm={() => setLines([])}
+        onConfirm={(totale) => {
+          const ordine = creaOrdine(totale);
+          setLines([]);
+          return ordine;
+        }}
       />
 
       {/* Drawer ritiri + modale consegna con codice */}
@@ -368,9 +415,9 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
         {/* header */}
         <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
           <div style={{flex: 1}}>
-            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Ordini da asporto</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Ritiri al banco</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
-              Ordini d'asporto in attesa di consegna. Per i pagati chiedi il codice ritiro; quelli da pagare vanno prima saldati al banco.
+              Ordini in attesa. Per i pagati chiedi il codice ritiro; quelli da pagare vanno prima saldati.
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -398,33 +445,45 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
               // di ogni card — la CTA Consegna — resta clippato da overflow:hidden.
               flexShrink: 0,
             }}>
-              {/* Testata: cliente + stato; sotto, codice, orario e fonte in
-                  una riga di metadati ordinata */}
+              {/* Testata: identità + stato; sotto, codice, orario e fonte in
+                  una riga di metadati ordinata. Un ordine di cassa non ha un
+                  nome: la sua identità è il numero, che sale a titolo — dentro
+                  un drawer già intitolato "Ritiri al banco" ripetere "al banco"
+                  su ogni card non aggiunge niente. */}
               <div style={{padding:'13px 16px 11px', display:'flex', alignItems:'flex-start', gap: 10}}>
                 <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{fontSize: 17.5, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.cliente}</div>
+                  <div style={{fontSize: 17.5, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>{r.cliente || r.codice}</div>
                   <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 5, minWidth: 0}}>
-                    <span style={{
-                      fontSize: 13, fontWeight: 700, color: PN.TEXT,
-                      fontVariantNumeric:'tabular-nums',
-                      background:'#F4F5F7', border:`1px solid ${PN.BORDER_SOFT}`,
-                      padding:'1px 8px', borderRadius: 7, flexShrink: 0,
-                    }}>{r.codice}</span>
+                    {r.cliente && (
+                      <span style={{
+                        fontSize: 13, fontWeight: 700, color: PN.TEXT,
+                        fontVariantNumeric:'tabular-nums',
+                        background:'#F4F5F7', border:`1px solid ${PN.BORDER_SOFT}`,
+                        padding:'1px 8px', borderRadius: 7, flexShrink: 0,
+                      }}>{r.codice}</span>
+                    )}
                     <span style={{display:'inline-flex', alignItems:'center', gap: 4, fontSize: 14, color: PN.MUTED, whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
                       ritiro {r.ritiro}
                     </span>
-                    <span style={{
-                      fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
-                      padding:'2px 8px', borderRadius: 999, flexShrink: 0,
-                      background: r.fonte === 'webapp' ? PN.BLUE_SOFT : PN.PINK_SOFT,
-                      color: r.fonte === 'webapp' ? PN.BLUE : PN.PINK_DARK,
-                    }}>{r.fonte === 'webapp' ? 'webapp' : 'byup app'}</span>
+                    {/* Un solo chip, e solo dove esiste una scelta: un ordine di
+                        cassa è da asporto o al banco, e la differenza è un gesto
+                        (incartare o no). Il canale non compare più — per gli
+                        ordini remoti lo dice già il badge di pagamento, e
+                        ripeterlo non cambia cosa fa l'operatore al ritiro. */}
+                    {r.fonte === 'banco' && (
+                      <span style={{
+                        fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
+                        padding:'2px 8px', borderRadius: 999, flexShrink: 0,
+                        background: r.asporto ? PN.AMBER_SOFT : '#F4F5F7',
+                        color: r.asporto ? '#92400E' : PN.MUTED,
+                      }}>{r.asporto ? 'da asporto' : 'al banco'}</span>
+                    )}
                   </div>
                 </div>
                 {r.pagato ? (
                   <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 13.5, fontWeight: 700, color:'#15803D', background:'#DCFCE7', padding:'4px 11px', borderRadius: 999, flexShrink: 0}}>
-                    ✓ Pagato in app
+                    ✓ {r.fonte === 'banco' ? 'Pagato in cassa' : 'Pagato in app'}
                   </span>
                 ) : (
                   <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 13.5, fontWeight: 700, color:'#92400E', background: PN.AMBER_SOFT, padding:'4px 11px', borderRadius: 999, flexShrink: 0}}>
@@ -1120,7 +1179,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         </div>
         <button
           onClick={() => setTakeaway(v => !v)}
-          title={takeaway ? 'Da asporto. Tocca per togliere' : 'Segna come da asporto'}
+          title={takeaway ? 'Da asporto. Tocca per togliere: resta al banco' : 'Segna come da asporto. Se spento resta al banco'}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.14)'; if (!takeaway) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.color = PN.TEXT; } }}
           onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.TEXT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.TEXT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.WHITE : PN.MUTED; }}
           onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.94)'; }}
@@ -1417,12 +1476,16 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const [adjustOpen, setAdjustOpen] = React.useState(false);
   const [confirmedTotal, setConfirmedTotal] = React.useState(0);
   const [confirmedPay, setConfirmedPay] = React.useState({ contanti: 0, carta: 0 });
+  // Ordine creato dal commit: lo restituisce onConfirm. Null quando l'incasso
+  // non crea un ordine nuovo (es. il "Salda ora" di un asporto già esistente).
+  const [ordine, setOrdine] = React.useState(null);
 
   React.useEffect(() => {
     if (open) {
       setMethod('contanti');
       setPay({ contanti: '', carta: '' });
       setDone(false);
+      setOrdine(null);
       setAdjust(null);
       setAdjustOpen(false);
     }
@@ -1515,11 +1578,41 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             <div style={{ fontSize: 32, fontWeight: 700, color: '#0F1115', marginBottom: 6, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }}>
               €{confirmedTotal.toFixed(2)}
             </div>
-            <div style={{ fontSize: 17, color: '#6B7280', marginBottom: 24 }}>
+            <div style={{ fontSize: 17, color: '#6B7280', marginBottom: ordine ? 16 : 24 }}>
               {confirmedPay.contanti > 0 && confirmedPay.carta > 0
                 ? `€${confirmedPay.contanti.toFixed(2)} contanti + €${confirmedPay.carta.toFixed(2)} carta`
                 : confirmedPay.contanti > 0 ? 'Contanti' : 'Carta'}
             </div>
+            {/* Conferma della creazione: è l'unico punto in cui l'operatore vede
+                che l'ordine esiste ed è partito. Senza, l'incasso sembra
+                chiudere la transazione e basta. */}
+            {ordine && (
+              <div style={{
+                width: '100%', marginBottom: 24,
+                padding: ordine.codiceRitiro ? '12px 16px' : '10px 16px',
+                borderRadius: 12, background: 'rgba(255,255,255,0.62)',
+                border: '1px solid rgba(15,17,21,0.08)',
+              }}>
+                <div style={{ fontSize: 17, color: '#0F1115', fontWeight: 600 }}>
+                  Ordine <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{ordine.codice}</span> creato
+                </div>
+                {/* Asporto: il codice va dettato al cliente, quindi grande e leggibile */}
+                {ordine.codiceRitiro && (
+                  <div style={{
+                    marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(15,17,21,0.08)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: '#6B7280', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                      Codice ritiro
+                    </span>
+                    <span style={{
+                      fontSize: 24, fontWeight: 800, color: '#0F1115',
+                      letterSpacing: 3, fontVariantNumeric: 'tabular-nums',
+                    }}>{ordine.codiceRitiro}</span>
+                  </div>
+                )}
+              </div>
+            )}
             <button onClick={onClose} style={{
               padding: '10px 24px', background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
               border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700,
@@ -1617,7 +1710,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     onChange={v => setPay({ contanti: v, carta: '' })}
                     chips={smartCashChips(finalTotal)}/>
                 )}
-                {method === 'carta' && <CardPay total={finalTotal}/>}
+                {/* Carta: nessun riquadro. Non c'è niente da inserire e
+                    niente da spiegare — l'importo è già scritto qui sopra e
+                    sul pulsante. Stessa scelta della finestra di saldo. */}
                 {method === 'misto' && (
                   <MixedPay
                     total={finalTotal} pay={pay} contanti={contanti} carta={carta} paid={paid}
@@ -1635,8 +1730,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 onClick={() => {
                   setConfirmedTotal(finalTotal);
                   setConfirmedPay({ contanti, carta });
+                  setOrdine(onConfirm ? onConfirm(finalTotal) : null);
                   setDone(true);
-                  onConfirm && onConfirm();
                 }}
                 disabled={!canConfirm}
                 style={{
