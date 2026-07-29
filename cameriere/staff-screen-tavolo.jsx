@@ -143,16 +143,24 @@ function TavoloHubServizio({ t, nav, openModal }) {
         </div>
       </div>
 
-      {/* Da inviare in cucina — in cima al corpo. Stessa logica di "Da portare":
-          tap sulla riga per selezionare; nessuna selezione = invia tutti. */}
+      {/* Da inviare — in cima al corpo. Stessa logica di "Da portare":
+          tap sulla riga per selezionare; nessuna selezione = invia tutti.
+          "Lo porto io" è per riga (swipe o manina), non una seconda CTA:
+          vedi SwipeDaInviare in staff-tokens.jsx. */}
       {t.daInviare > 0 && (() => {
         const items = t.daInviareItems || [];
         const selCount = items.filter((_, i) => inviaSel[i]).length;
         const toggle = (i) => setInviaSel({ ...inviaSel, [i]: !inviaSel[i] });
+        const selezioneOTutti = () =>
+          selCount > 0 ? items.map((_, i) => i).filter(i => inviaSel[i]) : items.map((_, i) => i);
         const invia = () => {
-          const idx = selCount > 0 ? items.map((_, i) => i).filter(i => inviaSel[i]) : items.map((_, i) => i);
-          TavoliStore.inviaCucinaItems(t.id, idx);
+          TavoliStore.inviaCucinaItems(t.id, selezioneOTutti());
+          setInviaSel({});
           openModal({ kind: 'send-success' });
+        };
+        const portaIo = (indici) => {
+          TavoliStore.portaDirettoItems(t.id, indici);
+          setInviaSel({});
         };
         return (
           <div style={{
@@ -166,25 +174,13 @@ function TavoloHubServizio({ t, nav, openModal }) {
 
             {items.length > 0 && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {items.map((it, i) => {
-                  const on = !!inviaSel[i];
-                  return (
-                    <div key={i} onClick={() => toggle(i)} style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '7px 10px', margin: '0 -4px', borderRadius: ST.R_SM,
-                      background: on ? '#fff' : 'transparent', cursor: 'pointer',
-                    }}>
-                      <span style={{
-                        minWidth: 24, height: 22, padding: '0 6px', borderRadius: ST.R_SM,
-                        background: on ? ST.ST_BOOKED : '#fff', color: on ? '#fff' : ST.ST_BOOKED,
-                        border: `1px solid ${ST.ST_BOOKED}`,
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11.5, fontWeight: 800, flexShrink: 0,
-                      }}>{it.qty}×</span>
-                      <span style={{ flex: 1, minWidth: 0, fontWeight: on ? 800 : 600, fontSize: 13, color: ST.TEXT }}>{it.nome}</span>
-                    </div>
-                  );
-                })}
+                {items.map((it, i) => (
+                  <SwipeDaInviare
+                    key={`${it.nome}-${i}`} it={it} on={!!inviaSel[i]}
+                    accent={ST.ST_BOOKED} bg="#fff" rowBg={ST.ST_BOOKED_BG}
+                    onTap={() => toggle(i)} onPortaIo={() => portaIo([i])}
+                  />
+                ))}
               </div>
             )}
 

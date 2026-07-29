@@ -408,4 +408,111 @@ function DishImage({ name, img, kind = 'piatto', style }) {
   );
 }
 
-Object.assign(window, { ST, ALLERGENI, statoConfig, I, Btn, StatusDot, AllergeneIcon, Stepper, DishImage });
+// ─── Riga "da inviare" ──────────────────────────────────────
+// Usata identica nel dettaglio tavolo e nella striscia "Da inviare" della Sala.
+//
+// Ogni riga porta la propria azione "lo porto io": l'articolo esce dai da-inviare
+// e diventa disponibile in "Da consegnare". NON consegnato — al momento della
+// comanda il cameriere non ce l'ha ancora in mano: se si distrae resta tracciato.
+//
+// L'azione è per riga e non una seconda CTA accanto a "Invia tutti", perché il
+// caso reale è "una bottiglia su quattro portate": una CTA globale costringerebbe
+// a selezionare prima, e due bottoni affiancati metterebbero sullo stesso piano
+// un'azione sempre sicura (invia) e una che, sbagliata, lascia un piatto senza
+// nessuno che lo prepari.
+//
+// Solo swipe a sinistra: niente affordance visibile sulla riga. Il tap continua
+// a selezionare, quindi la riga non ha comandi propri.
+// Pointer events, non touch: così funziona anche col mouse nel frame iOS.
+function SwipeDaInviare({ it, on, accent, bg, rowBg, onTap, onPortaIo }) {
+  const SOGLIA = 72;   // oltre questa distanza il gesto vale
+  const MAX    = 108;  // resistenza oltre: non si trascina all'infinito
+  const [dx, setDx] = React.useState(0);
+  const [uscita, setUscita] = React.useState(false);
+  const drag = React.useRef(null);
+  const uscito = React.useRef(false);
+
+  // Il guard è su una ref, non su `uscita`: lo stato si legge dalla closure del
+  // render e due invocazioni nello stesso tick (gesto + tap, o un pointercancel
+  // che segue il pointerup) lo vedrebbero entrambe a false, sganciando due volte
+  // onPortaIo. La seconda si porterebbe via la riga successiva, perché gli
+  // indici si ricompattano dopo la prima.
+  const esci = () => {
+    if (uscito.current) return;
+    uscito.current = true;
+    setUscita(true); setDx(-MAX); setTimeout(onPortaIo, 180);
+  };
+
+  const giu = (e) => {
+    if (uscito.current) return;
+    drag.current = { x0: e.clientX, y0: e.clientY, mosso: false, attivo: false };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const muovi = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const ddx = e.clientX - d.x0, ddy = e.clientY - d.y0;
+    // Finché non è chiaro che è orizzontale, lascio scorrere la lista.
+    if (!d.attivo) {
+      if (Math.abs(ddx) < 8 || Math.abs(ddx) <= Math.abs(ddy)) return;
+      d.attivo = true;
+    }
+    d.mosso = true;
+    setDx(ddx >= 0 ? 0 : Math.max(-MAX, ddx));
+  };
+  const su = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d) return;
+    if (-dx >= SOGLIA) { esci(); return; }
+    setDx(0);
+    if (!d.mosso) onTap();
+  };
+
+  const armato = -dx >= SOGLIA;
+
+  return (
+    <div style={{
+      position: 'relative', margin: '0 -4px', borderRadius: ST.R_SM, overflow: 'hidden',
+      maxHeight: uscita ? 0 : 44, opacity: uscita ? 0 : 1,
+      transition: uscita ? 'max-height 180ms ease-in, opacity 140ms ease-in' : 'none',
+    }}>
+      {/* Pannello rivelato dallo scorrimento */}
+      <div aria-hidden="true" style={{
+        position: 'absolute', inset: 0, borderRadius: ST.R_SM,
+        background: armato ? ST.ST_READY : 'rgba(190, 24, 93, 0.14)',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        padding: '0 14px',
+        transition: 'background 120ms ease-out',
+      }}>
+        <span style={{
+          fontSize: 12.5, fontWeight: 800, whiteSpace: 'nowrap',
+          color: armato ? '#fff' : ST.ST_READY,
+        }}>Lo porto io</span>
+      </div>
+
+      {/* Riga vera */}
+      <div
+        onPointerDown={giu} onPointerMove={muovi} onPointerUp={su} onPointerCancel={su}
+        style={{
+          position: 'relative', touchAction: 'pan-y',
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '7px 10px', borderRadius: ST.R_SM,
+          background: on ? bg : rowBg, cursor: 'pointer',
+          transform: `translateX(${dx}px)`,
+          transition: drag.current ? 'none' : 'transform 180ms cubic-bezier(0.2, 0, 0, 1)',
+        }}>
+        <span style={{
+          minWidth: 26, height: 22, padding: '0 6px', borderRadius: 6,
+          background: on ? accent : '#fff', color: on ? '#fff' : accent,
+          border: `1px solid ${accent}`,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11.5, fontWeight: 800, flexShrink: 0,
+        }}>{it.qty}×</span>
+        <span style={{ flex: 1, minWidth: 0, fontWeight: on ? 800 : 600, fontSize: 13, color: ST.TEXT }}>{it.nome}</span>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ST, ALLERGENI, statoConfig, I, Btn, StatusDot, AllergeneIcon, Stepper, DishImage, SwipeDaInviare });

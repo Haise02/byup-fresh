@@ -193,6 +193,29 @@ const TavoliStore = (() => {
       const daInviare = restanti.reduce((s, x) => s + (x.qty || 1), 0);
       return { ...t, daInviareItems: restanti, daInviare };
     }));
+  // "Lo porto io": scorciatoia del cameriere su un articolo da inviare. NON lo
+  // segna consegnato — al momento della comanda non ce l'ha ancora in mano.
+  // Lo porta un passo avanti, a "disponibile": esce dai da-inviare ed entra nei
+  // piatti pronti del tavolo, quindi compare in Da portare e sparisce solo
+  // quando lo consegna davvero. Se si distrae, resta tracciato.
+  api.portaDirettoItems = (id, indici) =>
+    api.setAttivi(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      const items = t.daInviareItems || [];
+      const presi    = items.filter((_, i) => indici.includes(i));
+      const restanti = items.filter((_, i) => !indici.includes(i));
+      const piattiPronti = [
+        ...(t.piattiPronti || []),
+        ...presi.map(x => ({ nome: x.nome, qty: x.qty || 1, diretto: true })),
+      ];
+      return {
+        ...t,
+        daInviareItems: restanti,
+        daInviare: restanti.reduce((s, x) => s + (x.qty || 1), 0),
+        piattiPronti,
+        pronti: piattiPronti.reduce((s, p) => s + p.qty, 0),
+      };
+    }));
   api.segnaPulito = (id) =>
     api.setLiberi(prev => prev.map(t => t.id === id ? { ...t, stato: 'libero' } : t));
   // No show: la prenotazione non si è presentata (ora superata) → tavolo libero.

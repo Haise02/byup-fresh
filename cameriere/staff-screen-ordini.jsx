@@ -3,14 +3,26 @@
 const { useState: useStateO } = React;
 
 // ═══════════════════════════════════════════════════════════
-// DA PORTARE — unica vista cross-tavolo: i piatti PRONTI in cucina.
+// DA PORTARE — unica vista cross-tavolo: tutto ciò che è pronto da portare,
+// sia uscito dalla cucina sia preso in carico dal cameriere ("lo porto io").
 // Niente "da inviare"/"in cucina" qui: l'invio vive nel flusso tavolo.
 // Una sola azione: Consegna. Ordinati per attesa (chi è pronto da più tempo
 // va portato prima, prima che si freddi).
 // ═══════════════════════════════════════════════════════════
 function ScreenDaPortare({ nav, openModal }) {
-  const pronti = CODA_CUCINA
-    .filter(o => o.stato === 'pronto')
+  const { attivi } = useTavoli();
+  // Articoli che il cameriere ha preso in carico dal tavolo ("lo porto io"):
+  // nessuno li prepara, sono disponibili da subito. Stessa lista dei piatti di
+  // cucina, ma senza attesa — quindi in fondo: chi si fredda va portato prima.
+  const diretti = attivi
+    .filter(t => (t.piattiPronti || []).some(p => p.diretto))
+    .map(t => ({
+      tavolo: t.n, stato: 'pronto', rotta: 'diretto',
+      piatti: (t.piattiPronti || [])
+        .filter(p => p.diretto)
+        .map((p, i) => ({ id: `d-${t.id}-${i}`, nome: p.nome, qty: p.qty })),
+    }));
+  const pronti = [...diretti, ...CODA_CUCINA.filter(o => o.stato === 'pronto')]
     .sort((a, b) => (b.minutiPronto || 0) - (a.minutiPronto || 0));
 
   return (
@@ -19,7 +31,7 @@ function ScreenDaPortare({ nav, openModal }) {
       <div style={{ background: '#fff', padding: 'calc(20px + env(safe-area-inset-top)) 20px 16px' }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-            Pronti in cucina · live
+            Pronti da portare · live
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, color: ST.TEXT, letterSpacing: -0.5, marginTop: 2 }}>
             Da consegnare
@@ -34,7 +46,7 @@ function ScreenDaPortare({ nav, openModal }) {
             <div style={{ fontSize: 34, marginBottom: 10 }}>✨</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: ST.TEXT }}>Niente da consegnare</div>
             <div style={{ fontSize: 12.5, color: ST.MUTED, marginTop: 4 }}>
-              Nessun piatto pronto in cucina al momento.
+              Non c'è niente da portare al momento.
             </div>
           </div>
         )}

@@ -204,6 +204,7 @@ function ScreenSala({ nav, openModal }) {
             onChiudi={() => openModal({ kind: 'conferma-libera', tavolo: t })}
             onPulito={() => store.segnaPulito(t.id)}
             onInvia={(indici) => { store.inviaCucinaItems(t.id, indici); openModal({ kind: 'send-success' }); }}
+            onPortaIo={(indici) => store.portaDirettoItems(t.id, indici)}
             onAddOrder={() => nav.push({ s: 'menu', tavoloId: t.id })}
             onPaga={() => nav.push({ s: 'pagamento-split', id: t.id })}
           />
@@ -218,7 +219,7 @@ function ScreenSala({ nav, openModal }) {
 // sola CTA per stato. Niente pallino (ridondante con l'accento), niente banner
 // (l'info sta nella meta), niente "…": le azioni di servizio vivono nel
 // dettaglio del tavolo. Il "pronti" resta solo come piccolo badge segnale.
-function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia, onAddOrder, onPaga }) {
+function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia, onPortaIo, onAddOrder, onPaga }) {
   const [aperto, setAperto] = useStateS(false);   // pannello "da inviare" espanso
   const [inviaSel, setInviaSel] = useStateS({});  // selezione articoli da inviare (default: tutti)
 
@@ -464,25 +465,14 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
             borderTop: `1px solid ${ST.BORDER_SOFT}`, background: ST.SURF,
             padding: '8px 14px 12px',
           }}>
-            {items.map((p, i) => {
-              const on = !!inviaSel[i];
-              return (
-                <div key={i} onClick={() => toggle(i)} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '7px 10px', margin: '0 -4px', borderRadius: ST.R_SM,
-                  background: on ? ST.AMBER_SOFT : 'transparent', cursor: 'pointer',
-                }}>
-                  <span style={{
-                    minWidth: 26, height: 22, padding: '0 6px', borderRadius: 6,
-                    background: on ? ST.AMBER : '#fff', color: on ? '#fff' : ST.TEXT,
-                    border: `1px solid ${on ? ST.AMBER : ST.BORDER}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 800, flexShrink: 0,
-                  }}>{p.qty}×</span>
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: on ? 800 : 600, color: ST.TEXT }}>{p.nome}</span>
-                </div>
-              );
-            })}
+            {items.map((p, i) => (
+              <SwipeDaInviare
+                key={`${p.nome}-${i}`} it={p} on={!!inviaSel[i]}
+                accent={ST.AMBER} bg={ST.AMBER_SOFT} rowBg={ST.SURF}
+                onTap={() => toggle(i)}
+                onPortaIo={() => { onPortaIo([i]); setInviaSel({}); }}
+              />
+            ))}
             <button onClick={invia} style={{
               marginTop: 10, width: '100%', height: 42, borderRadius: ST.R_PILL, border: 'none',
               background: ST.AMBER, color: '#fff',
