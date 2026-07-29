@@ -321,14 +321,13 @@ function ConfigCompletaApp() {
           visibile, poi numeri del team e checklist. Fissa, scrolla da sé. */}
       {step === 'personale' && (
         <aside style={{
-          width: 340, flexShrink: 0,
+          width: 384, flexShrink: 0,
           padding: '18px 18px 18px 0',
           display: 'flex', flexDirection: 'column', minHeight: 0,
         }}>
           <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12}}>
             <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
-            <StaffTeamStats team={team}/>
-            <StaffChecklist team={team}/>
+            <MembriDispositivi team={team} setTeam={setTeam}/>
           </div>
         </aside>
       )}
@@ -567,77 +566,60 @@ function StaffGuidaModal({ onClose }) {
   );
 }
 
-// Numeri del team, derivati dall'elenco reale dello step.
-function StaffTeamStats({ team }) {
-  const stats = [
-    { icon: 'users',  n: team.length, label: 'accessi totali' },
-    { icon: 'mail',   n: team.filter(m => m.status === 'invited').length, label: 'inviti attivi' },
-    { icon: 'shield', n: new Set(team.map(m => m.role)).size, label: 'ruoli configurati' },
-  ];
+// Chi c'e finora. Sta nella rail e non sotto il modulo perche e il RISULTATO di
+// quello che si sta facendo a sinistra: si guarda con la coda dell'occhio mentre
+// si invita, non si scorre come una tabella.
+//
+// Un'azione sola per riga, scritta e non nascosta in un menu: durante la
+// configurazione le cose che servono sono due — disfare un invito sbagliato e
+// togliere qualcuno aggiunto per errore — e un menu a tre puntini per due voci
+// e un clic in piu per niente.
+function MembriDispositivi({ team, setTeam }) {
+  const rimuovi = (id) => setTeam(t => t.filter(m => m.id !== id));
   return (
     <RailCard>
-      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Panoramica team</div>
-      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, marginBottom: 12}}>Configurazione rapida</div>
-      <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-        {stats.map((s, i) => (
-          <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
-            padding: '9px 12px',
-          }}>
-            <span style={{
-              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-              border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE, color: '#475569',
-              display: 'grid', placeItems: 'center',
-            }}>{(BuIcons[s.icon]||BuIcons.user)({size: 15, color: 'currentColor'})}</span>
-            <div>
-              <div style={{fontSize: 17, fontWeight: 800, color: PN.TEXT, lineHeight: 1.1}}>{s.n}</div>
-              <div style={{fontSize: 12, color: PN.MUTED, marginTop: 1}}>{s.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </RailCard>
-  );
-}
-
-// Checklist della configurazione del personale, derivata dall'elenco reale.
-function StaffChecklist({ team }) {
-  const nManager = team.filter(m => m.role === 'Manager').length;
-  const nStaff = team.filter(m => m.kind === 'person' && m.role !== 'Manager').length;
-  const items = [
-    { label: 'Aggiungi almeno un manager',
-      sub: nManager > 0 ? `Hai aggiunto ${nManager} manager` : 'Serve almeno un manager',
-      done: nManager > 0 },
-    { label: 'Invita camerieri o staff',
-      sub: nStaff > 0 ? `Hai invitato ${nStaff} ${nStaff === 1 ? 'membro' : 'membri'}` : 'Invita chi lavora in sala',
-      done: nStaff > 0 },
-    { label: 'Configura i ruoli principali',
-      sub: 'Completa per ottimizzare i permessi',
-      done: nManager > 0 && team.some(m => m.role === 'Cameriere') && team.some(m => m.role === 'Cucina') },
-  ];
-  return (
-    <RailCard>
-      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 12}}>Checklist configurazione</div>
-      <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-        {items.map((it, i) => (
-          <div key={i} style={{display: 'flex', gap: 10, alignItems: 'flex-start'}}>
-            <span style={{
-              width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 1,
-              background: it.done ? '#16A34A' : PN.WHITE,
-              border: it.done ? 'none' : `1.5px solid ${PN.BORDER}`,
-              display: 'grid', placeItems: 'center',
+      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 12}}>Membri e dispositivi</div>
+      <div style={{display: 'flex', flexDirection: 'column'}}>
+        {team.map((m, i) => {
+          const invitato = m.status === 'invited';
+          const iniziali = m.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase();
+          return (
+            <div key={m.id} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0',
+              borderTop: i ? `1px solid ${PN.BORDER_SOFT}` : 'none',
             }}>
-              {it.done && (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              )}
-            </span>
-            <div style={{minWidth: 0}}>
-              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.35}}>{it.label}</div>
-              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>{it.sub}</div>
+              <span style={{
+                width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                background: '#F1F3F5', color: '#475569',
+                display: 'grid', placeItems: 'center',
+                fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
+              }}>
+                {m.kind === 'device' ? (BuIcons.monitor||BuIcons.phone)({size: 15, color: 'currentColor'}) : iniziali}
+              </span>
+              <span style={{minWidth: 0, flex: 1}}>
+                <span style={{display: 'block', fontSize: 13.6, fontWeight: 700, color: PN.TEXT,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{m.name}</span>
+                <span style={{display: 'block', fontSize: 12.4, color: PN.MUTED,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{m.role}</span>
+              </span>
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '3px 7px', borderRadius: 999, flexShrink: 0,
+                background: invitato ? PN.AMBER_SOFT : PN.GREEN_SOFT,
+                color: invitato ? '#92400E' : '#15803D', whiteSpace: 'nowrap',
+              }}>{invitato ? 'Invito inviato' : 'Attivo'}</span>
+              <button onClick={() => rimuovi(m.id)} className="pn-btn-feedback" style={{
+                padding: 0, background: 'transparent', border: 'none', cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: PN.PINK,
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>{invitato ? 'Annulla invito' : 'Rimuovi'}</button>
             </div>
+          );
+        })}
+        {team.length === 0 && (
+          <div style={{fontSize: 12.8, color: PN.MUTED, padding: '6px 0'}}>
+            Nessuno ancora: invita qualcuno o collega un dispositivo.
           </div>
-        ))}
+        )}
       </div>
     </RailCard>
   );
