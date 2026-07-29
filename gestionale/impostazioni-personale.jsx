@@ -1527,7 +1527,8 @@ function DispositivoStep({ setTeam }) {
             Fondo incassato, niente bordo, una riga sola. */}
         <div style={{
           marginTop: 10, padding: '9px 12px', borderRadius: 10, background: PN.BG,
-          display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap', rowGap: 5,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          gap: 8, flexWrap:'wrap', rowGap: 5,
         }}>
           <span style={{display:'inline-flex', color: PN.MUTED, flexShrink: 0}}>
             {BuIcons.bulb({size: 14, color:'currentColor'})}
