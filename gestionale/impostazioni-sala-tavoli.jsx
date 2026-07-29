@@ -1,5 +1,19 @@
 // Impostazioni → Sala e tavoli (v4: undo, dialog conferma, sort numerico, skeleton, AI import, touch)
 
+// Superficie dei menu a comparsa (⋯ del tavolo, ⋯ della sala, «Sposta in»):
+// vetro invece del bianco pieno, cosi il pannello galleggia sopra la lista
+// invece di ritagliarci un buco dentro. Il velo resta alto (0.82) perche qui
+// sotto ci passa del testo che deve restare leggibile.
+const GLASS_MENU = {
+  background: 'rgba(255, 255, 255, 0.82)',
+  backdropFilter: 'blur(22px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(22px) saturate(180%)',
+  border: '1px solid rgba(255, 255, 255, 0.85)',
+  outline: '1px solid rgba(15, 17, 21, 0.06)',
+  outlineOffset: -1,
+  borderRadius: 10,
+};
+
 // Sort numerico-aware: "Tavolo 2" prima di "Tavolo 10"
 function naturalCompare(a, b) {
   return String(a).localeCompare(String(b), 'it', { numeric: true, sensitivity: 'base' });
@@ -597,8 +611,7 @@ function ImpSalaTavoli() {
                   {menuOpen && (
                     <div onClick={e => e.stopPropagation()} style={{
                       position:'absolute', top: 38, right: 10, zIndex: 20,
-                      minWidth: 170, background: PN.WHITE,
-                      border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+                      minWidth: 170, ...GLASS_MENU,
                       boxShadow: '0 8px 24px rgba(0,0,0,0.1)', padding: 6,
                     }}>
                       <MenuItem icon={<BuIcons.edit size={14}/>} onClick={() => { setEditSala({...s}); setSalaMenu(null); }}>Modifica sala</MenuItem>
@@ -748,8 +761,7 @@ function ImpSalaTavoli() {
                       return (
                         <div style={{
                           position:'absolute', top:'calc(100% + 6px)', right: 0, zIndex: 60,
-                          minWidth: 240, background: PN.WHITE,
-                          border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+                          minWidth: 240, ...GLASS_MENU,
                           boxShadow: '0 12px 32px rgba(0,0,0,0.16)', padding: 6,
                           animation: 'tcMenuIn .16s cubic-bezier(.2,.8,.2,1)',
                           transformOrigin: 'top right',
@@ -795,7 +807,7 @@ function ImpSalaTavoli() {
                   <ImpButton variant="ghost" icon={someActive ? <BuIcons.pause size={13}/> : <BuIcons.check size={13}/>} onClick={() => {
                     selected.forEach(id => updateTavolo(id, { disabled: someActive }));
                   }}>
-                    {someActive ? 'Disattiva' : 'Riattiva'}
+                    {someActive ? 'Disattiva' : 'Attiva'}
                   </ImpButton>
                   <button onClick={() => setSelected(new Set())} style={{background:'transparent', border:'none', color: PN.MUTED, padding: 6, cursor:'pointer'}}>
                     <PnI.X size={14}/>
@@ -1131,7 +1143,11 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         // sulle tessere della Sala — ma lo stato: un velo appena accennato del
         // corallo della CTA sui tavoli attivi, bianco su quelli spenti.
         background: acc.tint,
-        opacity: moving ? 0 : (isDragging ? 0.45 : (t.disabled ? 0.78 : 1)),
+        // Il velo del tavolo spento cade mentre il suo menu e aperto: un
+        // antenato semitrasparente fa da backdrop root e il vetro del menu
+        // non vedrebbe piu nulla da sfocare sotto di se. La card su cui si
+        // sta agendo, del resto, e giusto che sia presente per intero.
+        opacity: moving ? 0 : (isDragging ? 0.45 : (t.disabled && !menuOpen ? 0.78 : 1)),
         transform: moving
           ? 'translateX(24px) scale(0.94)'
           : (isDragging ? 'scale(0.97) rotate(-1.2deg)' : scalaSel),
@@ -1201,8 +1217,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         {menuOpen && (
           <div onClick={e => e.stopPropagation()} style={{
             position:'absolute', top: 38, right: 12, zIndex: 100,
-            minWidth: 200, background: PN.WHITE,
-            border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+            minWidth: 200, ...GLASS_MENU,
             boxShadow: '0 12px 32px rgba(0,0,0,0.16)', padding: 6,
             animation: 'tcMenuIn .16s cubic-bezier(.2,.8,.2,1)',
             transformOrigin: 'top right',
@@ -1269,7 +1284,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
             <MenuItem icon={<BuIcons.copy size={14}/>} onClick={onDuplicate}>Duplica</MenuItem>
             <MenuItem icon={<BuIcons.download size={14}/>} onClick={onQR}>Scarica QR</MenuItem>
             <MenuItem icon={t.disabled ? <BuIcons.check size={14}/> : <BuIcons.pause size={14}/>} onClick={onDisable}>
-              {t.disabled ? 'Riattiva' : 'Disattiva'}
+              {t.disabled ? 'Attiva' : 'Disattiva'}
             </MenuItem>
             <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
             <MenuItem icon={<BuIcons.trash size={14}/>} danger onClick={onDelete}>Elimina</MenuItem>
