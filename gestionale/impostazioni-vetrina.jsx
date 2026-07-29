@@ -35,11 +35,15 @@ function ImpVetrina() {
   // Cambia sub-tab se serve, poi apre la card collassabile (i Tag) e scorre.
   // Il rinvio serve perche la sezione bersaglio non e ancora nel DOM quando la
   // tab cambia nello stesso giro.
+  // Portare alla sezione non basta: chi arriva in fondo a uno scorrimento non
+  // sa dove si e fermato l'occhio. La sezione si accende per un attimo — un
+  // anello corallo che si spegne da solo — cosi il chip e il posto in cui si
+  // atterra sono la stessa cosa.
   const goToSection = (c) => {
     if (sub !== c.sub) setSub(c.sub);
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('cfg-open-collapsible', { detail: c.anchor }));
-      const el = document.querySelector(`[data-cfg-anchor="${c.anchor}"]`);
+      const el = impAccendiSezione(c.anchor);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 90);
   };
@@ -48,11 +52,7 @@ function ImpVetrina() {
     <div>
       <VetrinaCompletion items={completion} pct={pct} onGo={goToSection}/>
       <ImpSubTabs tabs={subs} active={sub} onChange={setSub}/>
-      <ImpWithPreview
-        preview={preview}
-        dirty={dirty}
-        onPublish={() => setDirty(false)}
-      >
+      <ImpWithPreview preview={preview}>
         {sub === 'profilo' && <VetrinaProfilo
           tags={tags} setTags={t => {setTags(t); markDirty();}}
           categoria={categoria} setCategoria={c => {setCategoria(c); markDirty();}}
@@ -60,6 +60,14 @@ function ImpVetrina() {
         {sub === 'aspetto' && <VetrinaAspetto onChange={markDirty}/>}
         {sub === 'pubblico' && <VetrinaPubblico social={social} setSocial={s => {setSocial(s); markDirty();}} onChange={markDirty}/>}
       </ImpWithPreview>
+
+      {/* Barra di salvataggio: resta incollata in fondo alla pagina finche
+          c'e qualcosa da salvare, e sparisce quando non c'e piu. I margini
+          negativi la portano a filo dei bordi dello scroller, che ha 32px di
+          padding: una barra rientrata non sembra il fondo della pagina. */}
+      <ImpSaveBar dirty={dirty} onSave={() => setDirty(false)}/>
+
+      <ImpAtterraggioStyle/>
     </div>
   );
 }
@@ -217,20 +225,20 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start'}}>
           <div style={{minWidth: 0}}>
             <ImpField label="Nome locale">
-              <ImpInput placeholder="es. Trattoria del Borgo"/>
+              <ImpInput placeholder="es. Trattoria del Borgo" onChange={onChange}/>
             </ImpField>
             <ImpField label="Sito web">
-              <ImpInput placeholder="es. nomeristorante.it"
+              <ImpInput placeholder="es. nomeristorante.it" onChange={onChange}
                 icona={<Icon name="globe-web" size={17}/>}/>
             </ImpField>
             <ImpField label="Indirizzo su Google Maps">
               {/* Il rosso di Maps: in un campo che chiede un link di Maps
                   l'icona colorata si riconosce senza doverla spiegare. */}
-              <ImpInput placeholder="https://maps.app.goo.gl/..."
+              <ImpInput placeholder="https://maps.app.goo.gl/..." onChange={onChange}
                 icona={<Icon name="place-map-pin" size={18} color="#EA4335"/>}/>
             </ImpField>
             <ImpField label="Descrizione">
-              <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…"/>
+              <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…" onChange={onChange}/>
             </ImpField>
           </div>
 

@@ -1,5 +1,33 @@
 // Shared building blocks for Impostazioni pages
 
+// Il chip della checklist porta alla sezione che lo risolve: portarci non
+// basta, perche chi arriva in fondo a uno scorrimento non sa dove si e
+// fermato l'occhio. La sezione si accende per un attimo — un anello corallo
+// che si spegne da solo — cosi il chip e il punto d'arrivo sono la stessa cosa.
+function impAccendiSezione(anchor) {
+  const el = document.querySelector(`[data-cfg-anchor="${anchor}"]`);
+  if (!el) return null;
+  el.classList.remove('imp-atterraggio');
+  void el.offsetWidth;   // riavvia l'animazione se si riclicca lo stesso chip
+  el.classList.add('imp-atterraggio');
+  setTimeout(() => el.classList.remove('imp-atterraggio'), 2000);
+  return el;
+}
+
+function ImpAtterraggioStyle() {
+  return (
+    <style>{`
+      .imp-atterraggio { animation: impAtterraggio 1.9s cubic-bezier(.2,.8,.2,1); }
+      @keyframes impAtterraggio {
+        0%   { box-shadow: 0 0 0 0 rgba(255, 90, 95, 0); }
+        12%  { box-shadow: 0 0 0 4px rgba(255, 90, 95, 0.30), 0 10px 28px -12px rgba(255, 90, 95, 0.55); }
+        70%  { box-shadow: 0 0 0 4px rgba(255, 90, 95, 0.18), 0 10px 28px -12px rgba(255, 90, 95, 0.30); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 90, 95, 0); }
+      }
+    `}</style>
+  );
+}
+
 function ImpTabs({ active, onChange }) {
   const tabs = [
     { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant' },
@@ -265,7 +293,7 @@ window.ImpButton = ImpButton;
 window.MenuItem = MenuItem;
 
 // Layout: main content on left, optional vetrina preview on right
-function ImpWithPreview({ children, preview, dirty, onPublish }) {
+function ImpWithPreview({ children, preview }) {
   const [open, setOpen] = React.useState(true);
   const asideRef = React.useRef(null);
   const phoneRef = React.useRef(null);
@@ -371,79 +399,13 @@ function ImpWithPreview({ children, preview, dirty, onPublish }) {
             }}><PnI.X size={14}/></button>
           </div>
 
-          {/* CTA Pubblica modifiche — sopra al phone preview. Disattivato finché
-              dirty=false. Sostituisce ImpSaveBar (rimossa): l'azione di pubblicazione
-              vive accanto all'oggetto modificato (la vetrina = il phone preview). */}
-          <PublishButton dirty={dirty} onPublish={onPublish}/>
-
+          {/* Solo il telefono: la pubblicazione e scesa nella barra in fondo
+              alla pagina, dove sta la modifica appena fatta, e il banner del
+              piano Plus non e cosa che si guarda mentre si compila. */}
           <div ref={phoneRef} data-imp-telefono style={{margin: '0 auto'}}>{preview}</div>
-
-          {/* Banner piano Plus: click → Piani e abbonamenti. Stesso posto che ha
-              nella configurazione completa — sotto il telefono, dove si e appena
-              guardata la propria vetrina e si vede cosa le manca. */}
-          <a href="byup Profilo.html?tab=piani" title="Sblocca la vetrina esclusiva di Byup"
-            style={{display:'block', marginTop: 12}}>
-            <img src="banner-vetrina-plus.jpg" alt="Differenziati da tutti: sblocca la vetrina esclusiva di Byup, dal piano Plus"
-              onLoad={() => adattaRef.current()}
-              style={{
-                width:'100%', display:'block', borderRadius: 12,
-                boxShadow:'0 8px 22px rgba(200, 60, 40, 0.28)',
-                cursor:'pointer',
-                transition:'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(200, 60, 40, 0.38)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 22px rgba(200, 60, 40, 0.28)'; }}/>
-          </a>
         </aside>
       )}
     </div>
-  );
-}
-
-// Pubblica modifiche — Apple-style button con gradient sottile + inset highlight.
-// State enabled = BRAND gradient + shadow tinted. State disabled = sfumatura
-// di bianco neutra (no bianco-su-bianco piatto).
-function PublishButton({ dirty, onPublish }) {
-  const [hover, setHover] = React.useState(false);
-  return (
-    <button
-      onClick={dirty ? onPublish : undefined}
-      disabled={!dirty}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        width: '100%', height: 38,
-        marginBottom: 14,
-        border: dirty
-          ? '1px solid rgba(0, 0, 0, 0.10)'
-          : '1px solid rgba(15, 17, 21, 0.08)',
-        borderRadius: 9,
-        cursor: dirty ? 'pointer' : 'not-allowed',
-        fontFamily: 'inherit',
-        fontSize: 15, fontWeight: 600,
-        // Gradient sottile dall'alto al basso — pattern macOS button.
-        // Inset highlight bianco simula il riflesso vetroso, comune nei
-        // button macOS Big Sur/Sonoma.
-        background: dirty
-          ? (hover
-              ? 'linear-gradient(180deg, #FF6E73 0%, #F04A4F 100%)'
-              : 'linear-gradient(180deg, #FF6A6F 0%, #FF5A5F 100%)')
-          : 'linear-gradient(180deg, #FFFFFF 0%, #F5F5F7 100%)',
-        color: dirty ? '#fff' : PN.MUTED_SOFT,
-        boxShadow: dirty
-          ? 'inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 2px rgba(255, 90, 95, 0.18)'
-          : 'inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 1px rgba(15,17,21,0.03)',
-        transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-      }}
-    >
-      <span style={{
-        width: 6, height: 6, borderRadius: 999,
-        background: dirty ? '#fff' : PN.MUTED_LIGHT,
-        opacity: dirty ? 0.9 : 1,
-      }}/>
-      {dirty ? 'Pubblica modifiche' : 'Nessuna modifica da pubblicare'}
-    </button>
   );
 }
 
@@ -466,8 +428,8 @@ function ImpSaveBar({ dirty, onCancel, onSave }) {
       }}/>
       <span style={{fontSize: 15, color: PN.TEXT, fontWeight: 600}}>Hai modifiche non salvate</span>
       <span style={{flex:1}}/>
-      <ImpButton variant="ghost" onClick={onCancel}>Annulla</ImpButton>
-      <ImpButton variant="primary" onClick={onSave}>Salva e pubblica</ImpButton>
+      {onCancel && <ImpButton variant="ghost" onClick={onCancel}>Annulla</ImpButton>}
+      <ImpButton variant="pink" onClick={onSave}>Salva modifiche</ImpButton>
     </div>
   );
 }
@@ -705,22 +667,6 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
           <div style={{position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: Math.round(74 * k), height: Math.round(20 * k), borderRadius: 999, background: '#0B0C0E', zIndex: 7, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 7}}>
             <span style={{width: Math.round(8 * k), height: Math.round(8 * k), borderRadius: 999, background: 'radial-gradient(circle at 32% 30%, #3A4150 0%, #0E1013 70%)', boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.20)'}}/>
           </div>
-          <div style={{position: 'absolute', top: Math.round(64 * k), left: Math.round(16 * k), right: Math.round(16 * k), zIndex: 6, display: 'flex', justifyContent: 'space-between', pointerEvents: 'none'}}>
-            {[0, 1].map(side => side === 0 ? (
-              <span key="b" style={{width: Math.round(38 * k), height: Math.round(38 * k), borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
-                <svg width={Math.round(16 * k)} height={Math.round(16 * k)} viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              </span>
-            ) : (
-              <span key="r" style={{display: 'flex', gap: Math.round(8 * k)}}>
-                <span style={{width: Math.round(38 * k), height: Math.round(38 * k), borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
-                  <svg width={Math.round(18 * k)} height={Math.round(18 * k)} viewBox="0 0 24 24" fill="none" stroke={A.TEXT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                </span>
-                <span style={{width: Math.round(38 * k), height: Math.round(38 * k), borderRadius: 999, background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.18)', display: 'grid', placeItems: 'center'}}>
-                  <svg width={Math.round(18 * k)} height={Math.round(18 * k)} viewBox="0 0 24 24" fill={A.TEXT}><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-                </span>
-              </span>
-            ))}
-          </div>
           <div style={{
             position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 6,
             padding: `${Math.round(30 * k)}px ${Math.round(16 * k)}px ${Math.round(20 * k)}px`,
@@ -742,3 +688,5 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
 window.ImpWithPreview = ImpWithPreview;
 window.ImpSaveBar = ImpSaveBar;
 window.VetrinaMiniPreview = VetrinaMiniPreview;
+window.impAccendiSezione = impAccendiSezione;
+window.ImpAtterraggioStyle = ImpAtterraggioStyle;

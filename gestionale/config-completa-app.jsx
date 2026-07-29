@@ -78,7 +78,7 @@ function ConfigCompletaApp() {
     if (step !== c.step) setStep(c.step);
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('cfg-open-collapsible', { detail: c.anchor }));
-      const el = document.querySelector(`[data-cfg-anchor="${c.anchor}"]`);
+      const el = impAccendiSezione(c.anchor);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 90);
   };
@@ -107,6 +107,7 @@ function ConfigCompletaApp() {
   // di pagina, non il fondo della pagina.
   return (
     <div style={{display:'flex', flexDirection:'column', flex:1, minWidth:0, minHeight:0, background: PN.BG}}>
+      <ImpAtterraggioStyle/>
       <div style={{display:'flex', flex:1, minWidth:0, minHeight:0}}>
       {/* ─── Colonna sinistra: contenuto che scrolla ─────────────────── */}
       <div style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column'}}>
@@ -387,19 +388,6 @@ function ConfigCompletaApp() {
                 focusSection={step === 'informazioni' ? 'info' : 'gallery'}/>
             </div>
 
-            {/* Banner piano Plus: click → Piani e abbonamenti */}
-            <a href="byup Profilo.html?tab=piani" title="Sblocca la vetrina esclusiva di Byup"
-              style={{display: 'block', width: 300, margin: '12px auto 0', flexShrink: 0}}>
-              <img src="banner-vetrina-plus.jpg" alt="Differenziati da tutti: sblocca la vetrina esclusiva di Byup, dal piano Plus"
-                style={{
-                  width: '100%', display: 'block', borderRadius: 12,
-                  boxShadow: '0 8px 22px rgba(200, 60, 40, 0.28)',
-                  cursor: 'pointer',
-                  transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(200, 60, 40, 0.38)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 22px rgba(200, 60, 40, 0.28)'; }}/>
-            </a>
           </div>
         </aside>
       )}
