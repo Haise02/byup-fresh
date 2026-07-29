@@ -74,11 +74,15 @@ function EcoRiga({ etichetta, valore, sub, forte, tono, indent, percento, nota }
   );
 }
 
-function EcoBilancio({ mix, leve }) {
+// CONSUNTIVO, non proiezione. Un conto economico che contiene mesi futuri non e
+// un conto economico: e uno scenario travestito da bilancio, e messi nella
+// stessa colonna i due si confondono. Qui ci sono solo mesi accaduti, ricalcolati
+// sui dati e sulle fatture presenti adesso. Lo scenario vive nella sua tab.
+function EcoBilancio({ mix }) {
   const anno = ECO_OGGI.getFullYear();
-  const chiusi = ECO_STORICO.filter(m => m.data.getFullYear() === anno && !m.corrente);
-  const futuri = ecoProiettaDriver(leve);
-  const ce = ecoContoEconomico(chiusi.concat(futuri), mix, ECO_REGIME);
+  const mesi = ECO_STORICO.filter(m => m.anno === anno);
+  const ce = ecoContoEconomico(mesi, mix, ECO_REGIME);
+  const chiusi = mesi.filter(m => !m.corrente);
   const ceChiusi = ecoContoEconomico(chiusi, mix, ECO_REGIME);
   const reg = ECO_REGIMI[ECO_REGIME.tipo];
 
@@ -87,13 +91,13 @@ function EcoBilancio({ mix, leve }) {
       <div style={{display:'flex', alignItems:'baseline', gap:10}}>
         <div style={{...ECO_H, marginBottom:0}}>Conto economico riclassificato {anno}</div>
         <span style={{fontSize:12.4, color:ADM.MUTED}}>
-          {chiusi.length} mesi chiusi + {futuri.length} proiettati · a margine di contribuzione
+          consuntivo · dal 1° gennaio a oggi · {chiusi.length} mesi chiusi più {ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]} in corso
         </span>
       </div>
 
       <div style={ECO_CARD}>
         <div style={{...ECO_TH, display:'grid', gridTemplateColumns:'minmax(0,1fr) 140px 96px', gap:12}}>
-          <div>Voce</div><div style={{textAlign:'right'}}>Anno {anno}</div><div style={{textAlign:'right'}}>Su ricavi</div>
+          <div>Voce</div><div style={{textAlign:'right'}}>{anno} a oggi</div><div style={{textAlign:'right'}}>Su ricavi</div>
         </div>
 
         <EcoRiga etichetta="Abbonamenti a Byup Fresh" valore={ce.sub} indent={1}
@@ -133,12 +137,12 @@ function EcoBilancio({ mix, leve }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
         <div style={{...ECO_CARD, padding:'14px 16px'}}>
           <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>
-            Consuntivo dei mesi chiusi
+            Solo i mesi chiusi
           </div>
           <div style={{fontSize:22, fontWeight:800, marginTop:6, ...ECO_NUM,
             color: ceChiusi.netto >= 0 ? ADM.OK : ADM.DANGER}}>{ecoEur(ceChiusi.netto)}</div>
           <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.4}}>
-            gennaio–{ECO_MESI[Math.max(0, ECO_OGGI.getMonth() - 1)]}, senza il mese in corso
+            gennaio–{ECO_MESI[Math.max(0, ECO_OGGI.getMonth() - 1)]}, senza il mese in corso che è parziale
           </div>
         </div>
         <div style={{...ECO_CARD, padding:'14px 16px'}}>

@@ -235,6 +235,58 @@ const ECO_FATTURE = [
     nota:'Caricata a mano prima che il collegamento SDI fosse attivo.' },
 ];
 
+// ─── Cassa ─────────────────────────────────────────────────────────────────
+// La cassa non e il conto economico. Un costo di competenza di giugno pagato a
+// settembre pesa sul risultato a giugno e sulla cassa a settembre: sono due
+// verita diverse, ed e proprio nello scarto fra le due che le societa muoiono
+// pur essendo redditizie sulla carta.
+//
+// `giorniIncasso` e `giorniPagamento` sono lo sfasamento medio: gli abbonamenti
+// si incassano subito perche vanno su addebito, i fornitori si pagano a 30 giorni.
+const ECO_CASSA = {
+  saldoBanca: 84200,
+  saldoContanti: 0,
+  giorniIncasso: 2,          // addebito ricorrente: quasi immediato
+  giorniPagamento: 30,       // termini medi verso fornitori
+  fidoBancario: 0,
+  aggiornatoIl: new Date(ECO_OGGI.getTime() - 18 * 3600000),
+};
+
+// Scadenze note: quelle che non si deducono dai costi ricorrenti perche hanno
+// un calendario proprio — imposte, IVA, rate. Sono quelle che sorprendono.
+const ECO_SCADENZE = [
+  { id:'S1', voce:'Liquidazione IVA del trimestre', tipo:'iva', quando:new Date(ECO_OGGI.getFullYear(), 7, 16),
+    importo:null, nota:'Si calcola dalla differenza fra IVA sulle vendite e IVA sugli acquisti del trimestre.' },
+  { id:'S2', voce:'Primo acconto IRES e IRAP', tipo:'imposte', quando:new Date(ECO_OGGI.getFullYear(), 5, 30),
+    importo:0, nota:'Zero: si calcola sull\'imposta dell\'esercizio precedente, che era nulla per via delle perdite.' },
+  { id:'S3', voce:'Secondo acconto IRES e IRAP', tipo:'imposte', quando:new Date(ECO_OGGI.getFullYear(), 10, 30),
+    importo:0, nota:'Come sopra: nessun acconto dovuto finche l\'imposta di riferimento resta zero.' },
+  { id:'S4', voce:'Rinnovo assicurazione RC professionale', tipo:'fornitore', quando:new Date(ECO_OGGI.getFullYear() + 1, 0, 15),
+    importo:1450, nota:'Annuale, esce in un colpo solo.' },
+  { id:'S5', voce:'Rinnovo pacchetto trasmissioni OpenAPI', tipo:'fornitore', quando:new Date(ECO_OGGI.getFullYear(), 8, 5),
+    importo:950, nota:'Credito prepagato: esce prima di essere consumato.' },
+];
+
+// ─── Stato patrimoniale ────────────────────────────────────────────────────
+// Le voci che NON si deducono dal conto economico e vanno inserite: capitale,
+// riserve, perdite portate a nuovo, cespiti. Il resto — crediti, debiti, cassa,
+// risultato d'esercizio — si calcola.
+const ECO_PATRIMONIO = {
+  capitaleSociale: 10000,
+  riserve: 0,
+  // Le perdite portate a nuovo NON sono un dato inserito: sono la somma dei
+  // risultati degli esercizi precedenti, e calcolarle invece di scriverle
+  // toglie l'unico numero che poteva invecchiare in silenzio.
+  // Somma dei versamenti effettivamente fatti dai soci: non un numero tondo
+  // perche non lo e mai — sono piu bonifici in momenti diversi.
+  versamentiSoci: 218103,
+  immobiliMateriali: 4800,       // portatili e attrezzatura
+  fondoAmmortamento: -1920,
+  creditiTributari: 3200,        // credito d'imposta R&S maturato
+  debitiBanche: 0,
+  aggiornatoIl: new Date('2026-06-30'),
+};
+
 // ─── Serie storica dei driver ──────────────────────────────────────────────
 // Ancorata a OGGI: la serie che c'era finiva a dicembre 2025 e sarebbe partita
 // da una base morta. Qui gli ultimi dodici mesi chiusi più quello in corso.
@@ -242,28 +294,30 @@ const ECO_FATTURE = [
 // I numeri sono coerenti con la base reale di Spot (25 locali attivi) e con la
 // distribuzione per piano: non sono una curva disegnata a mano.
 function ecoStoricoDriver() {
+  // Dalla partenza operativa (gennaio 2025) al mese in corso, che e parziale.
+  // Serve arrivare fin li per poter confrontare un anno con l'altro: con soli
+  // tredici mesi il 2025 sarebbe un mezzo anno e il paragone direbbe il falso.
   const out = [];
-  const meseCorrente = new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1);
-  // 13 punti: 12 mesi chiusi + il corrente, che è parziale
-  for (let k = 12; k >= 0; k--) {
-    const d = new Date(meseCorrente.getFullYear(), meseCorrente.getMonth() - k, 1);
-    const t = 12 - k;                                   // 0..12
-    const nuovi = Math.round(1.4 + t * 0.42);           // acquisizione in crescita lineare
-    const attiviPrec = out.length ? out[out.length - 1].localiAttivi : 12;
+  const inizio = new Date(2025, 0, 1);
+  const fine = new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1);
+  const n = (fine.getFullYear() - inizio.getFullYear()) * 12 + (fine.getMonth() - inizio.getMonth());
+  for (let t = 0; t <= n; t++) {
+    const d = new Date(inizio.getFullYear(), inizio.getMonth() + t, 1);
+    const nuovi = Math.round(0.8 + t * 0.30);
+    const attiviPrec = out.length ? out[out.length - 1].localiAttivi : 4;
     const churn = out.length ? Math.round(attiviPrec * 0.028) : 0;
     const attivi = Math.max(1, attiviPrec + nuovi - churn);
-    const ordiniPerLocale = 620 + t * 22;               // maturazione dei locali
+    const ordiniPerLocale = Math.round(560 + t * 17);
     const transazioni = Math.round(attivi * ordiniPerLocale);
-    const quotaApp = Math.min(0.62, 0.28 + t * 0.028);  // adozione dell'app che sale
+    const quotaApp = Math.min(0.62, 0.20 + t * 0.024);
     out.push({
-      mese: ecoEtichettaMese(d), data: d, indice: t,
+      mese: ecoEtichettaMese(d), data: d, indice: t, anno: d.getFullYear(),
       nuoviLocali: nuovi, churn, localiAttivi: attivi,
-      ordiniPerLocale, transazioni,
-      quotaApp,
+      ordiniPerLocale, transazioni, quotaApp,
       transazioniPesate: Math.round(transazioni * (quotaApp * 0.5 + (1 - quotaApp) * 1.0)),
-      utentiApp: Math.round(attivi * (34 + t * 3.1)),
-      fisso: 1,                     // driver neutro per i canoni indipendenti dal volume
-      corrente: k === 0,
+      utentiApp: Math.round(attivi * (30 + t * 2.2)),
+      fisso: 1,
+      corrente: t === n,
     });
   }
   return out;
@@ -294,3 +348,6 @@ window.ECO_STATO_CONN = ECO_STATO_CONN;
 window.ECO_FISSI = ECO_FISSI;
 window.ECO_FATTURE = ECO_FATTURE;
 window.ECO_STORICO = ECO_STORICO;
+window.ECO_CASSA = ECO_CASSA;
+window.ECO_SCADENZE = ECO_SCADENZE;
+window.ECO_PATRIMONIO = ECO_PATRIMONIO;

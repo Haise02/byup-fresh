@@ -346,45 +346,65 @@ function EcoCosti({ mix, forza }) {
   const [nuovo, setNuovo] = useStateEco(false);
   const [doc, setDoc] = useStateEco(null);
   const [allega, setAllega] = useStateEco(null);
-  const [k, setK] = useStateEco(ECO_STORICO.length - 1);   // mese selezionato
+  const [modo, setModo] = useStateEco('mese');            // 'mese' | 'anno'
+  const [k, setK] = useStateEco(ECO_STORICO.length - 1);  // mese selezionato
+  const [anno, setAnno] = useStateEco(ECO_OGGI.getFullYear());
 
-  const d = ECO_STORICO[k];
-  const corrente = k === ECO_STORICO.length - 1;
-  const frazione = corrente ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
+  const anni = [...new Set(ECO_STORICO.map(m => m.anno))].sort();
+  const frazioneDi = (m) => m.corrente ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
+
+  // Il periodo e un INSIEME di mesi: uno solo, o tutti quelli di un anno fino a
+  // oggi. Tenerlo cosi evita di scrivere due volte gli stessi conti.
+  const mesi = modo === 'mese' ? [ECO_STORICO[k]] : ECO_STORICO.filter(m => m.anno === anno);
+  const ultimo = mesi[mesi.length - 1];
+  const primo = mesi[0];
+  const etichetta = modo === 'mese'
+    ? `${ECO_MESI_LUNGHI[primo.data.getMonth()]} ${primo.data.getFullYear()}`
+    : String(anno);
+  const sottoPeriodo = modo === 'mese'
+    ? (primo.corrente ? `al giorno ${ECO_OGGI.getDate()} di ${ecoGiorniNelMese(ECO_OGGI)}` : 'mese chiuso')
+    : (anno === ECO_OGGI.getFullYear()
+        ? `dal 1° gennaio a oggi · ${mesi.length} ${mesi.length === 1 ? 'mese' : 'mesi'}`
+        : `anno intero · ${mesi.length} ${mesi.length === 1 ? 'mese' : 'mesi'}`);
 
   const righeVar = ECO_SERVIZI.map(s => {
     const c = ecoConnessioneDi(s.id);
     const auto = !!c && c.stato === 'attivo';
-    const pieno = ecoCostoServizio(s, d) * (auto ? (s.scarto || 1) : 1);
+    const consumo = mesi.reduce((t, m) => t + ecoConsumo(s, m) * frazioneDi(m), 0);
+    const costo = mesi.reduce((t, m) => t + ecoCostoServizio(s, m) * (auto ? (s.scarto || 1) : 1) * frazioneDi(m), 0);
     const ft = ECO_FATTURE.find(x => x.voce === s.id) || null;
-    return { s, c, ft, auto, consumo: ecoConsumo(s, d) * frazione, costo: pieno * frazione };
+    return { s, c, ft, auto, consumo, costo };
   }).sort((a, b) => b.costo - a.costo);
 
-  const dataMese = new Date(d.data.getFullYear(), d.data.getMonth(), 1);
-  const righeFisse = ECO_FISSI.filter(f => {
-    if (f.dal && dataMese < new Date(f.dal.getFullYear(), f.dal.getMonth(), 1)) return false;
-    if (f.a && dataMese > f.a) return false;
+  const dentro = (f, m) => {
+    const dm = new Date(m.data.getFullYear(), m.data.getMonth(), 1);
+    if (f.dal && dm < new Date(f.dal.getFullYear(), f.dal.getMonth(), 1)) return false;
+    if (f.a && dm > f.a) return false;
     if (f.periodicita === 'una-tantum')
-      return f.dal.getFullYear() === dataMese.getFullYear() && f.dal.getMonth() === dataMese.getMonth();
+      return f.dal.getFullYear() === dm.getFullYear() && f.dal.getMonth() === dm.getMonth();
     return true;
-  }).map(f => {
+  };
+  const righeFisse = ECO_FISSI.map(f => {
+    const mesiVal = mesi.filter(m => dentro(f, m));
+    if (!mesiVal.length) return null;
+    const perMese = f.periodicita === 'annuale' ? f.importo / 12 : f.importo;
+    const quota = f.periodicita === 'una-tantum' ? f.importo : perMese * mesiVal.length;
     const ft = f.fattura ? ECO_FATTURE.find(x => x.id === f.fattura) : null;
-    return { f, ft, auto: !!ft && ft.origine === 'sdi',
-      quota: f.periodicita === 'annuale' ? f.importo / 12 : f.importo };
-  }).sort((a, b) => b.quota - a.quota);
+    return { f, ft, auto: !!ft && ft.origine === 'sdi', quota, mesiVal:mesiVal.length };
+  }).filter(Boolean).sort((a, b) => b.quota - a.quota);
 
   const totVar = righeVar.reduce((t, r) => t + r.costo, 0);
   const totFissi = righeFisse.reduce((t, r) => t + r.quota, 0);
   const unaTantum = righeFisse.filter(r => r.f.periodicita === 'una-tantum').reduce((t, r) => t + r.quota, 0);
-  const periodici = totVar + totFissi - unaTantum;
   const maxVar = righeVar[0] ? righeVar[0].costo : 1;
 
-  // Andamento: il costo totale di ogni mese, cosi il periodo si sceglie
-  // guardando la serie invece che da una tendina cieca.
-  const serie = ECO_STORICO.map((m, i) => {
-    const fr = i === ECO_STORICO.length - 1 ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
-    return { m, i, tot: ecoCostiVariabili(m) * fr + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)) };
-  });
+  // La serie segue la granularita scelta: mesi o anni.
+  const serie = modo === 'mese'
+    ? ECO_STORICO.map((m, i) => ({ id:m.mese, i, sel: i === k, onSel: ()=>setK(i),
+        tot: ecoCostiVariabili(m) * frazioneDi(m) + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)) }))
+    : anni.map(a => ({ id:String(a), sel: a === anno, onSel: ()=>setAnno(a),
+        tot: ECO_STORICO.filter(m => m.anno === a).reduce((t, m) =>
+          t + ecoCostiVariabili(m) * frazioneDi(m) + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)), 0) }));
   const maxSerie = Math.max.apply(null, serie.map(x => x.tot)) || 1;
 
   const salva = (b) => {
@@ -408,12 +428,12 @@ function EcoCosti({ mix, forza }) {
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         {[
-          { et:`Costi ${ECO_MESI_LUNGHI[d.data.getMonth()]} ${d.data.getFullYear()}`, v:ecoEur(totVar + totFissi),
-            n:`periodici ${ecoEur(periodici)} · una tantum ${ecoEur(unaTantum)}` },
-          { et:'Costi a consumo', v:ecoEur(totVar), n:corrente ? 'maturati a oggi' : 'del mese' },
-          { et:'Costi fissi', v:ecoEur(totFissi), n:'annuali in dodicesimi' },
-          { et:'Costo per locale attivo', v:ecoEur2((totVar + totFissi) / d.localiAttivi),
-            n:`su ${d.localiAttivi} locali attivi` },
+          { et:`Costi ${etichetta}`, v:ecoEur(totVar + totFissi), n:sottoPeriodo },
+          { et:'Costi a consumo', v:ecoEur(totVar), n:`${(totVar / (totVar + totFissi) * 100).toFixed(0)}% del totale` },
+          { et:'Costi fissi', v:ecoEur(totFissi),
+            n: unaTantum > 0 ? `di cui ${ecoEur(unaTantum)} una tantum` : 'nessuna voce una tantum' },
+          { et:'Costo per locale attivo', v:ecoEur2((totVar + totFissi) / (modo === 'mese' ? ultimo.localiAttivi : mesi.reduce((t,m)=>t+m.localiAttivi,0) / mesi.length)),
+            n: modo === 'mese' ? `su ${ultimo.localiAttivi} locali attivi` : `su ${Math.round(mesi.reduce((t,m)=>t+m.localiAttivi,0) / mesi.length)} locali attivi in media` },
         ].map(c => (
           <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
             <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
@@ -425,33 +445,32 @@ function EcoCosti({ mix, forza }) {
         ))}
       </div>
 
-      {/* Il periodo si sceglie dalla serie: si vede l'andamento e si clicca. */}
       <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:10}}>
           <div style={{...ECO_H, marginBottom:0}}>Andamento</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>tredici mesi · clicca un mese per aprirlo</span>
+          <AdmTabBar variant="segmented" active={modo} onChange={setModo}
+            tabs={[{ id:'mese', label:'Per mese' }, { id:'anno', label:'Per anno' }]}/>
           <div style={{flex:1}}/>
           <AdmButton variant="primary" size="sm" onClick={()=>setNuovo(true)}>Aggiungi un costo</AdmButton>
         </div>
-        <div style={{...ECO_CARD, padding:'14px 16px', display:'flex', alignItems:'flex-end', gap:6}}>
-          {serie.map(x => {
-            const sel = x.i === k;
-            return (
-              <button key={x.m.mese} onClick={()=>setK(x.i)} className="adm-card-interactive"
-                title={`${x.m.mese} · ${ecoEur(x.tot)}`}
-                style={{flex:1, minWidth:0, border:'none', background:'transparent', cursor:'pointer',
-                  fontFamily:'inherit', padding:'4px 2px', borderRadius:8,
-                  display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
-                <span style={{fontSize:10.8, fontWeight:700, color: sel ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
-                  {Math.round(x.tot / 100) / 10}k
-                </span>
-                <span style={{width:'100%', height:Math.max(6, Math.round(x.tot / maxSerie * 54)), borderRadius:5,
-                  background: sel ? ADM.PINK : 'rgba(49,53,61,0.14)'}}/>
-                <span style={{fontSize:10.6, color: sel ? ADM.TEXT : ADM.MUTED_SOFT,
-                  fontWeight: sel ? 700 : 500}}>{x.m.mese}</span>
-              </button>
-            );
-          })}
+        <div style={{...ECO_CARD, padding:'14px 16px', display:'flex', alignItems:'flex-end',
+          gap: modo === 'mese' ? 6 : 14}}>
+          {serie.map(x => (
+            <button key={x.id} onClick={x.onSel} className="adm-card-interactive"
+              title={`${x.id} · ${ecoEur(x.tot)}`}
+              style={{flex:1, minWidth:0, border:'none', background:'transparent', cursor:'pointer',
+                fontFamily:'inherit', padding:'4px 2px', borderRadius:8,
+                display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
+              <span style={{fontSize: modo === 'mese' ? 10.8 : 12.4, fontWeight:700,
+                color: x.sel ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
+                {x.tot >= 1000 ? `${(Math.round(x.tot / 100) / 10).toString().replace('.', ',')}k` : Math.round(x.tot)}
+              </span>
+              <span style={{width:'100%', height:Math.max(6, Math.round(x.tot / maxSerie * 54)), borderRadius:5,
+                background: x.sel ? ADM.PINK : 'rgba(49,53,61,0.14)'}}/>
+              <span style={{fontSize: modo === 'mese' ? 10.6 : 12.2, color: x.sel ? ADM.TEXT : ADM.MUTED_SOFT,
+                fontWeight: x.sel ? 700 : 500}}>{x.id}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -486,10 +505,17 @@ function EcoCosti({ mix, forza }) {
       </div>
 
       <div>
-        <div style={ECO_H}>Costi fissi e una tantum</div>
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={{...ECO_H, marginBottom:0}}>Costi fissi e una tantum</div>
+          {unaTantum > 0 && (
+            <span style={{fontSize:12.4, color:ADM.WARN, fontWeight:700}}>
+              {ecoEur(unaTantum)} una tantum nel periodo
+            </span>
+          )}
+        </div>
         <div style={ECO_CARD}>
           <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_FIS, gap:11}}>
-            <div>Voce</div><div>Categoria</div><div>Fornitore</div><div>Periodicita</div>
+            <div>Voce</div><div>Categoria</div><div>Fornitore</div><div>Periodicità</div>
             <div>Importo</div><div>Fonte</div><div>Documento</div>
           </div>
           {righeFisse.map((r, i) => (
@@ -500,7 +526,11 @@ function EcoCosti({ mix, forza }) {
               borderBottom: i < righeFisse.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{minWidth:0}}>
                 <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.f.voce}</div>
-                {r.f.nota && <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.4}}>{r.f.nota}</div>}
+                {modo === 'anno' && r.f.periodicita !== 'una-tantum' && (
+                  <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
+                    {ecoEur2(r.f.periodicita === 'annuale' ? r.f.importo / 12 : r.f.importo)} × {r.mesiVal} mesi
+                  </div>
+                )}
               </div>
               <div style={{fontSize:12.4, color:ADM.MUTED}}>{r.f.categoria}</div>
               <div style={{fontSize:12.4, color:ADM.MUTED, minWidth:0, overflow:'hidden',
@@ -520,10 +550,10 @@ function EcoCosti({ mix, forza }) {
       {nuovo && <EcoModaleCosto onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
       {allega && <EcoModaleAllega voce={allega} onChiudi={()=>setAllega(null)} onSalva={(b)=>{
         const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
-        const id = `FT-${d.data.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
+        const id = `FT-${ultimo.data.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
         const fisso = allega.tipo === 'fisso' ? ECO_FISSI.find(f => f.id === allega.id) : null;
         ECO_FATTURE.push({ id, fornitore: fisso ? fisso.fornitore : (ECO_SERVIZI.find(x => x.id === allega.id) || {}).fornitore || '—',
-          numero:b.numero.trim() || '—', data:new Date(d.data.getFullYear(), d.data.getMonth(), 1),
+          numero:b.numero.trim() || '—', data:new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1),
           imponibile:allega.importo, iva, totale:allega.importo + iva,
           categoria: fisso ? fisso.categoria : 'Cloud', voce: fisso ? null : allega.id,
           origine: /\.xml$/i.test(b.file) ? 'sdi' : 'manuale', file:b.file, stato:'riconciliata' });

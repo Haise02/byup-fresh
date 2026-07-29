@@ -28,7 +28,11 @@ function ecoRegressione(y) {
 // ─── Le leve del modello ───────────────────────────────────────────────────
 // Ricavate dallo storico, ma tutte modificabili: è il punto della schermata.
 function ecoLeveIniziali() {
-  const st = ECO_STORICO.filter(m => !m.corrente);          // il mese in corso è parziale
+  const tutti = ECO_STORICO.filter(m => !m.corrente);       // il mese in corso è parziale
+  // Regressione sugli ULTIMI DODICI mesi chiusi, non su tutta la storia: una
+  // retta tirata dall'inizio pesa un anno fa quanto il mese scorso, e su una
+  // curva che accelera restituisce una pendenza troppo bassa.
+  const st = tutti.slice(-12);
   const regNuovi = ecoRegressione(st.map(m => m.nuoviLocali));
   const ultimo = st[st.length - 1];
   const churnMedio = st.slice(-6).reduce((s, m) => s + m.churn / Math.max(1, m.localiAttivi), 0) / 6;
@@ -221,6 +225,116 @@ function ecoMeseCorrente(mix) {
     bruciatoFine: variabiliFine + fissi };
 }
 
+// ─── Flussi di cassa ───────────────────────────────────────────────────────
+// Un mese di cassa non e un mese di conto economico: gli incassi arrivano con
+// pochi giorni di ritardo, i pagamenti con trenta. Su un mese solo la differenza
+// e piccola; su una societa che cresce e' esattamente il buco che ti fa mancare
+// i soldi mentre il conto economico migliora.
+function ecoFlussiMese(m, mix) {
+  const ric = ecoRicavi(m, mix);
+  const prec = ECO_STORICO[ECO_STORICO.indexOf(m) - 1] || m;
+  const dataM = new Date(m.data.getFullYear(), m.data.getMonth(), 1);
+  // Incassi: ricavi del mese, con lo sfasamento medio dell'addebito.
+  const incassi = ric.totale;
+  // Pagamenti: i costi di competenza del mese PRECEDENTE, perche si pagano a 30
+  // giorni. I costi a consumo del mese in corso escono il mese prossimo.
+  const uscite = ecoCostiVariabili(prec) + ecoFissiDelMese(new Date(prec.data.getFullYear(), prec.data.getMonth(), 1));
+  // IVA: a debito sulle vendite, a credito sugli acquisti nazionali. I fornitori
+  // esteri sono in reverse charge e non generano credito.
+  const ivaVendite = ric.totale * 0.22;
+  const ivaAcquisti = ecoFissiDelMese(dataM) * 0.22 * 0.55;   // solo i fornitori italiani
+  return { m, incassi, uscite, ivaVendite, ivaAcquisti, ivaNetta: ivaVendite - ivaAcquisti,
+    netto: incassi - uscite };
+}
+
+// Proiezione della cassa: saldo di partenza, poi mese per mese entrate meno
+// uscite meno IVA versata. Il numero che conta e uno solo — quando finisce.
+function ecoProiezioneCassa(mix, leve) {
+  const futuri = ecoProiettaDriver(leve);
+  let saldo = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
+  const out = [];
+  futuri.forEach((d, i) => {
+    const ric = ecoRicavi(d, mix);
+    const costi = ecoCostiVariabili(d) + ecoFissiDelMese(d.data);
+    // L'IVA si versa il 16 del mese successivo al trimestre: qui approssimata
+    // in dodicesimi mensili, e dichiarato.
+    const iva = Math.max(0, ric.totale * 0.22 - costi * 0.22 * 0.55);
+    const scad = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === d.data.getFullYear()
+      && x.quando.getMonth() === d.data.getMonth()).reduce((t, x) => t + x.importo, 0);
+    const netto = ric.totale - costi - iva - scad;
+    saldo += netto;
+    out.push({ d, ricavi:ric.totale, costi, iva, scadenze:scad, netto, saldo, i });
+  });
+  return out;
+}
+
+// Autonomia: quanti mesi prima che la cassa finisca al ritmo attuale.
+function ecoRunway(cassa) {
+  const negativo = cassa.find(x => x.saldo <= 0);
+  if (!negativo) {
+    const ultimo = cassa[cassa.length - 1];
+    const bruciaMedio = cassa.reduce((t, x) => t + Math.min(0, x.netto), 0) / cassa.length;
+    return { mesi: bruciaMedio < 0 ? ultimo.saldo / -bruciaMedio + cassa.length : Infinity,
+      oltre: true, saldoFine: ultimo.saldo };
+  }
+  return { mesi: negativo.i, oltre: false, quando: negativo.d.mese, saldoFine: negativo.saldo };
+}
+
+// ─── Stato patrimoniale ────────────────────────────────────────────────────
+// Attivo e passivo devono quadrare. Se non quadrano c'e un errore, e mostrarlo
+// vale piu che nasconderlo con una voce di sbilancio.
+function ecoStatoPatrimoniale(mix) {
+  const P = ECO_PATRIMONIO;
+  const anno = ECO_OGGI.getFullYear();
+  const mesi = ECO_STORICO.filter(m => m.anno === anno);
+  const ce = ecoContoEconomico(mesi, mix, ECO_REGIME);
+  // Perdite portate a nuovo = somma dei risultati degli esercizi chiusi.
+  const anniPrec = [...new Set(ECO_STORICO.map(m => m.anno))].filter(a => a < anno);
+  const perditePortateANuovo = anniPrec.reduce((t, a) =>
+    t + ecoContoEconomico(ECO_STORICO.filter(m => m.anno === a), mix, ECO_REGIME).netto, 0);
+  const ultimo = ECO_STORICO[ECO_STORICO.length - 1];
+  const ric = ecoRicavi(ultimo, mix);
+
+  const cassa = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
+  // Crediti verso clienti: il fatturato non ancora incassato, cioe i giorni di
+  // sfasamento sull'ultimo mese.
+  const crediti = ric.totale * (ECO_CASSA.giorniIncasso / 30);
+  // Debiti verso fornitori: i costi dell'ultimo mese non ancora pagati.
+  const costiMese = ecoCostiVariabili(ultimo) + ecoFissiDelMese(new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1));
+  const debitiFornitori = costiMese * (ECO_CASSA.giorniPagamento / 30);
+  const ivaDebito = Math.max(0, ric.totale * 0.22 - costiMese * 0.22 * 0.55);
+  const immobilizzazioni = P.immobiliMateriali + P.fondoAmmortamento;
+
+  const attivo = [
+    { v:'Immobilizzazioni materiali', n:immobilizzazioni, sub:`${ecoEur(P.immobiliMateriali)} al costo, ${ecoEur(-P.fondoAmmortamento)} ammortizzati` },
+    { v:'Crediti verso clienti', n:crediti, sub:`abbonamenti fatturati e non ancora incassati, ${ECO_CASSA.giorniIncasso} giorni medi` },
+    { v:'Crediti tributari', n:P.creditiTributari, sub:'credito d’imposta maturato' },
+    { v:'Disponibilità liquide', n:cassa, sub:`banca ${ecoEur(ECO_CASSA.saldoBanca)}` },
+  ];
+  const totAttivo = attivo.reduce((t, x) => t + x.n, 0);
+
+  const pn = P.capitaleSociale + P.riserve + P.versamentiSoci + perditePortateANuovo + ce.netto;
+  const passivo = [
+    { v:'Capitale sociale', n:P.capitaleSociale, gruppo:'pn' },
+    { v:'Versamenti dei soci in conto capitale', n:P.versamentiSoci, gruppo:'pn' },
+    { v:'Perdite portate a nuovo', n:perditePortateANuovo, gruppo:'pn',
+      sub: anniPrec.length ? `risultati di ${anniPrec.join(', ')}, calcolati` : 'nessun esercizio precedente' },
+    { v:`Risultato dell’esercizio ${anno}`, n:ce.netto, gruppo:'pn', sub:'consuntivo da gennaio a oggi' },
+    { v:'Debiti verso fornitori', n:debitiFornitori, gruppo:'deb', sub:`${ECO_CASSA.giorniPagamento} giorni medi di pagamento` },
+    { v:'Debiti tributari', n:ivaDebito, gruppo:'deb', sub:'IVA da versare' },
+    { v:'Debiti verso banche', n:P.debitiBanche, gruppo:'deb' },
+  ];
+  const totPassivo = passivo.reduce((t, x) => t + x.n, 0);
+
+  return { attivo, passivo, totAttivo, totPassivo, pn, perditePortateANuovo,
+    sbilancio: totAttivo - totPassivo,
+    ce, cassa, crediti, debitiFornitori, ivaDebito, immobilizzazioni };
+}
+
+window.ecoFlussiMese = ecoFlussiMese;
+window.ecoProiezioneCassa = ecoProiezioneCassa;
+window.ecoRunway = ecoRunway;
+window.ecoStatoPatrimoniale = ecoStatoPatrimoniale;
 window.ecoRegressione = ecoRegressione;
 window.ecoLeveIniziali = ecoLeveIniziali;
 window.ecoProiettaDriver = ecoProiettaDriver;

@@ -161,12 +161,16 @@ function Economix() {
           <AdmTabBar tabs={[
             { id:'costi',      label:'Costi' },
             { id:'bilancio',   label:'Conto economico' },
+            { id:'cassa',      label:'Cassa' },
+            { id:'patrimonio', label:'Stato patrimoniale' },
             { id:'proiezione', label:'Proiezione' },
           ]} active={tab} onChange={setTab}/>
         </div>
         <div style={{padding:'20px 22px'}}>
           {tab === 'costi'      && <EcoCosti mix={mix} forza={forza}/>}
-          {tab === 'bilancio'   && <EcoBilancio mix={mix} leve={leve}/>}
+          {tab === 'bilancio'   && <EcoBilancio mix={mix}/>}
+          {tab === 'cassa'      && <EcoCassa mix={mix} leve={leve}/>}
+          {tab === 'patrimonio' && <EcoPatrimonio mix={mix}/>}
           {tab === 'proiezione' && <EcoProiezione mix={mix} leve={leve} setLeve={setLeve} base={base}/>}
         </div>
       </AdmCard>
