@@ -207,28 +207,38 @@ const RISCHI = [
 // ─── Incidenti (A.5.24–5.28) ───────────────────────────────────────────────
 // Il campo che conta davvero è `dataBreach`: fa partire l'orologio delle 72 ore
 // verso il Garante. Senza quel flag l'incidente è solo un disservizio.
+// `categoria` classifica CIO CHE E SUCCESSO, non la causa a monte: e per questo
+// che non coincide con le categorie del registro dei rischi, che invece
+// classificano per causa. `rischioCollegato` chiude il cerchio di A.5.27 — un
+// incidente o conferma un rischio gia censito, o ne rivela uno che manca.
+// `origine` distingue cio che il monitoraggio ha visto da solo da cio che ha
+// dovuto segnalare una persona: la seconda categoria e la maggioranza.
 const INCIDENTI = [
   { id:'INC-2026-004', data:cfGiorni(-4), titolo:'Errori 3DS sopra la media sugli addebiti ricorrenti',
+    categoria:'fornitore', origine:'automatico', rischioCollegato:'R02',
     servizio:'Pagamenti (Stripe)', gravita:'media', dataBreach:false,
     causaRadice:'Cambio di policy dell\'emittente su una fascia di carte, non gestito dal retry',
     azione:'Aggiunto fallback su 3DS2 e allerta automatica sopra il 2% di fallimenti',
     stato:'in corso', chiusuraIl:null, responsabile:'Marco Rinaldi' },
   { id:'INC-2026-003', data:new Date('2026-07-14'), titolo:'Timeout sugli addebiti ricorrenti',
+    categoria:'indisponibilita', origine:'automatico', rischioCollegato:'R02',
     servizio:'Pagamenti (Stripe)', gravita:'media', dataBreach:false,
     causaRadice:'Picco di latenza del fornitore durante la finestra di addebito notturna',
     azione:'Riprocessati automaticamente, finestra spostata e allarme sulla coda',
     stato:'chiuso', chiusuraIl:new Date('2026-07-16'), responsabile:'Marco Rinaldi' },
   { id:'INC-2026-002', data:new Date('2026-07-02'), titolo:'Ritardo nella consegna delle notifiche su Android',
+    categoria:'indisponibilita', origine:'manuale', rischioCollegato:null,
     servizio:'Notifiche push', gravita:'bassa', dataBreach:false,
     causaRadice:'Coda FCM satura per un invio broadcast non scaglionato',
     azione:'Introdotto scaglionamento degli invii massivi',
     stato:'chiuso', chiusuraIl:new Date('2026-07-03'), responsabile:'Paola Esposito' },
   { id:'INC-2026-001', data:new Date('2026-03-11'), titolo:'Invio di un\'email di servizio a un indirizzo errato',
+    categoria:'dati', origine:'manuale', rischioCollegato:'R04',
     servizio:'Email transazionali', gravita:'alta', dataBreach:true,
     breachNotificato:true, breachNotificaIl:new Date('2026-03-12'),
     breachInteressati:1, breachValutazione:'Rischio basso per i diritti dell\'interessato: nessun dato di pagamento, destinatario unico identificato e collaborativo',
     causaRadice:'Errore di digitazione nell\'indirizzo durante una risposta manuale a un ticket',
-    azione:'Rimossa la possibilità di digitare a mano il destinatario: si seleziona dall\'anagrafica',
+    azione:'Rimossa la possibilita di digitare a mano il destinatario: si seleziona dall\'anagrafica',
     stato:'chiuso', chiusuraIl:new Date('2026-03-20'), responsabile:'Marco Rinaldi' },
 ];
 

@@ -118,8 +118,246 @@ const cfEvTonoGravita = (g) => g === 'alta' ? 'DANGER' : g === 'media' ? 'WARN' 
 
 const CF_EV_GRID_INC = '96px 88px minmax(0,2.3fr) minmax(0,1.25fr) 76px 100px 98px minmax(0,1.15fr) 26px';
 
+// ─── Tipologia degli incidenti ─────────────────────────────────────────────
+// NON coincide con le categorie del registro dei rischi, ed è giusto così: un
+// rischio si classifica per CAUSA («compromissione delle credenziali»), un
+// incidente per CIÒ CHE È SUCCESSO («accesso non autorizzato»). Lo stesso
+// evento può nascere da cause diverse, e le stesse cause producono eventi
+// diversi: forzare una tassonomia sola farebbe perdere l'una o l'altra lettura.
+const CF_EV_CAT = [
+  { id:'dati',           label:'Violazione di dati personali', nota:'Dati personali visti, persi o esposti a chi non doveva' },
+  { id:'accesso',        label:'Accesso non autorizzato',      nota:'Qualcuno è entrato, o ci ha provato, dove non poteva' },
+  { id:'indisponibilita',label:'Indisponibilità del servizio', nota:'Il servizio si è fermato o degradato' },
+  { id:'errore',         label:'Errore umano o di configurazione', nota:'Una persona ha sbagliato, o una configurazione era errata' },
+  { id:'guasto',         label:'Guasto tecnico',               nota:'Un componente ha smesso di funzionare' },
+  { id:'malware',        label:'Codice malevolo',              nota:'Malware, ransomware, dipendenza compromessa' },
+  { id:'phishing',       label:'Phishing o ingegneria sociale',nota:'Tentativo di farsi consegnare credenziali o denaro' },
+  { id:'dispositivo',    label:'Perdita o furto di dispositivo', nota:'Portatile, telefono o supporto smarrito' },
+  { id:'fornitore',      label:'Incidente presso un fornitore',nota:'È successo da loro, ma i dati o il servizio sono tuoi' },
+  { id:'policy',         label:'Violazione di policy interna', nota:'Una regola interna non è stata rispettata' },
+];
+const cfEvCatLabel = (id) => (CF_EV_CAT.find(c => c.id === id) || {}).label || '—';
+
+const CF_EV_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:9,
+  fontSize:13.6, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+  boxSizing:'border-box', lineHeight:1.4 };
+const CF_EV_SEL = { ...CF_EV_INP, appearance:'none', WebkitAppearance:'none', MozAppearance:'none',
+  paddingRight:34, cursor:'pointer',
+  backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.6L6 6.4L11 1.6' stroke='%238A9099' stroke-width='1.9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+  backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
+const CF_EV_SEZ = { fontSize:11.4, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+  letterSpacing:'0.06em', marginBottom:12 };
+
+// A livello di modulo: dentro il componente verrebbe rimontato a ogni render e
+// gli input perderebbero il fuoco a ogni carattere.
+function CfEvCampo({ etichetta, aiuto, span, children }) {
+  return (
+    <div style={span ? {gridColumn:'1 / -1'} : undefined}>
+      <label style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+        letterSpacing:'0.05em', display:'block', marginBottom:6}}>{etichetta}</label>
+      {children}
+      {aiuto && <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.45}}>{aiuto}</div>}
+    </div>
+  );
+}
+
+const cfEvIso = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
+
+function CfEvModale({ incidente, onChiudi, onSalva }) {
+  const nuovo = !incidente;
+  const [b, setB] = useStateEv(() => ({
+    titolo:        incidente ? incidente.titolo : '',
+    categoria:     incidente ? incidente.categoria : 'indisponibilita',
+    servizio:      incidente ? incidente.servizio : '',
+    data:          cfEvIso(incidente ? incidente.data : new Date()),
+    gravita:       incidente ? incidente.gravita : 'media',
+    stato:         incidente ? incidente.stato : 'in corso',
+    chiusuraIl:    cfEvIso(incidente && incidente.chiusuraIl),
+    responsabile:  incidente ? incidente.responsabile : '',
+    causaRadice:   incidente ? (incidente.causaRadice || '') : '',
+    azione:        incidente ? (incidente.azione || '') : '',
+    rischioCollegato: incidente ? (incidente.rischioCollegato || '') : '',
+    origine:       incidente ? incidente.origine : 'manuale',
+    dataBreach:    incidente ? !!incidente.dataBreach : false,
+    breachNotificato: incidente ? !!incidente.breachNotificato : false,
+    breachNotificaIl: cfEvIso(incidente && incidente.breachNotificaIl),
+    breachInteressati: incidente && incidente.breachInteressati != null ? String(incidente.breachInteressati) : '',
+    breachValutazione: incidente ? (incidente.breachValutazione || '') : '',
+  }));
+  const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+  const puoSalvare = b.titolo.trim().length > 3 && b.servizio.trim().length > 1 && !!b.data
+    && b.responsabile.trim().length > 1;
+  const cat = CF_EV_CAT.find(c => c.id === b.categoria) || {};
+
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="incidente" onClick={e=>e.stopPropagation()} style={{width:760, maxWidth:'92%', background:'#fff',
+        borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
+
+        <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
+            {nuovo ? 'Registrare un incidente' : `Modifica di ${incidente.id}`}
+          </div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            {nuovo
+              ? 'La data che conta è quella della SCOPERTA, non quella in cui il fatto è avvenuto: da lì partono le 72 ore della notifica.'
+              : 'Anche gli incidenti rilevati dal monitoraggio vanno completati a mano: gravità, causa e valutazione sono giudizi, non misure.'}
+          </div>
+        </div>
+
+        <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
+          display:'flex', flexDirection:'column', gap:22}}>
+
+          <div>
+            <div style={CF_EV_SEZ}>Che cosa è successo</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+              <CfEvCampo etichetta="Incidente" span>
+                <input value={b.titolo} onChange={e=>agg('titolo', e.target.value)} style={CF_EV_INP}
+                  placeholder="Che cosa è accaduto, in una riga"/>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Tipo di evento" aiuto={cat.nota}>
+                <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={CF_EV_SEL}>
+                  {CF_EV_CAT.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Servizio interessato">
+                <input value={b.servizio} onChange={e=>agg('servizio', e.target.value)} style={CF_EV_INP}
+                  placeholder="Pagamenti, Notifiche push, Gestionale…"/>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Data della scoperta"
+                aiuto="Quando ve ne siete accorti, non quando è successo.">
+                <input type="date" value={b.data} onChange={e=>agg('data', e.target.value)} style={CF_EV_INP}/>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Come è emerso">
+                <select value={b.origine} onChange={e=>agg('origine', e.target.value)} style={CF_EV_SEL}>
+                  <option value="manuale">Segnalazione di una persona</option>
+                  <option value="automatico">Rilevato dal monitoraggio</option>
+                </select>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Gravità">
+                <select value={b.gravita} onChange={e=>agg('gravita', e.target.value)} style={CF_EV_SEL}>
+                  <option value="bassa">Bassa</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
+                </select>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Responsabile">
+                <input value={b.responsabile} onChange={e=>agg('responsabile', e.target.value)} style={CF_EV_INP}
+                  placeholder="Chi lo sta gestendo"/>
+              </CfEvCampo>
+            </div>
+          </div>
+
+          {/* Il blocco che fa scattare gli obblighi: si apre solo se serve. */}
+          <div style={{border:`1px solid ${b.dataBreach ? '#F0A9AC' : ADM.BORDER}`, borderRadius:12,
+            padding:'15px 17px', background: b.dataBreach ? ADM.DANGER_SOFT : '#FCFCFD'}}>
+            <label style={{display:'flex', alignItems:'flex-start', gap:9, cursor:'pointer'}}>
+              <input type="checkbox" checked={b.dataBreach} onChange={e=>agg('dataBreach', e.target.checked)}
+                style={{width:16, height:16, marginTop:2, accentColor:ADM.PINK, cursor:'pointer'}}/>
+              <span>
+                <span style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, display:'block'}}>
+                  Ha coinvolto dati personali
+                </span>
+                <span style={{fontSize:11.8, color:ADM.MUTED, lineHeight:1.5, display:'block', marginTop:3}}>
+                  Se sì diventa una violazione ai sensi dell’art. 33: va documentata comunque, e notificata al
+                  Garante entro 72 ore dalla scoperta a meno che sia improbabile un rischio per gli interessati.
+                </span>
+              </span>
+            </label>
+
+            {b.dataBreach && (
+              <div style={{marginTop:15, paddingTop:15, borderTop:'1px solid rgba(220,38,38,0.18)',
+                display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+                <CfEvCampo etichetta="Interessati coinvolti">
+                  <input value={b.breachInteressati} onChange={e=>agg('breachInteressati', e.target.value.replace(/\D/g, ''))}
+                    style={CF_EV_INP} placeholder="quante persone"/>
+                </CfEvCampo>
+                <CfEvCampo etichetta="Notifica al Garante">
+                  <select value={b.breachNotificato ? 'si' : 'no'}
+                    onChange={e=>agg('breachNotificato', e.target.value === 'si')} style={CF_EV_SEL}>
+                    <option value="no">Non notificata</option>
+                    <option value="si">Notificata</option>
+                  </select>
+                </CfEvCampo>
+                {b.breachNotificato && (
+                  <CfEvCampo etichetta="Data della notifica"
+                    aiuto="Oltre le 72 ore dalla scoperta la notifica si fa lo stesso, motivando il ritardo.">
+                    <input type="date" value={b.breachNotificaIl}
+                      onChange={e=>agg('breachNotificaIl', e.target.value)} style={CF_EV_INP}/>
+                  </CfEvCampo>
+                )}
+                <CfEvCampo etichetta="Valutazione del rischio per gli interessati" span
+                  aiuto="Obbligatoria in entrambi i casi: se non notificate, è questa la motivazione che vi copre.">
+                  <textarea value={b.breachValutazione} onChange={e=>agg('breachValutazione', e.target.value)}
+                    rows={2} style={{...CF_EV_INP, resize:'vertical'}}
+                    placeholder="Quali dati, quante persone, che conseguenze possono subire"/>
+                </CfEvCampo>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div style={CF_EV_SEZ}>Analisi e chiusura</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+              <CfEvCampo etichetta="Causa radice" span
+                aiuto="Non il sintomo: la ragione per cui è potuto succedere. Senza, l’azione è un rattoppo.">
+                <textarea value={b.causaRadice} onChange={e=>agg('causaRadice', e.target.value)} rows={2}
+                  style={{...CF_EV_INP, resize:'vertical'}} placeholder="Perché è successo"/>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Azione correttiva" span>
+                <textarea value={b.azione} onChange={e=>agg('azione', e.target.value)} rows={2}
+                  style={{...CF_EV_INP, resize:'vertical'}} placeholder="Che cosa è stato cambiato perché non si ripeta"/>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Rischio collegato"
+                aiuto={b.rischioCollegato
+                  ? 'L’incidente conferma un rischio già censito: al prossimo riesame va verificato se il trattamento regge.'
+                  : 'Se nessun rischio lo copre, il registro dei rischi ha un buco: è così che A.5.27 chiede di imparare dagli incidenti.'}>
+                <select value={b.rischioCollegato} onChange={e=>agg('rischioCollegato', e.target.value)} style={CF_EV_SEL}>
+                  <option value="">Nessuno — rischio non censito</option>
+                  {(typeof RISCHI !== 'undefined' ? RISCHI : []).map(r =>
+                    <option key={r.id} value={r.id}>{r.id} · {r.titolo}</option>)}
+                </select>
+              </CfEvCampo>
+              <CfEvCampo etichetta="Stato">
+                <select value={b.stato} onChange={e=>agg('stato', e.target.value)} style={CF_EV_SEL}>
+                  <option value="in corso">In corso</option>
+                  <option value="chiuso">Chiuso</option>
+                </select>
+              </CfEvCampo>
+              {b.stato === 'chiuso' && (
+                <CfEvCampo etichetta="Data di chiusura">
+                  <input type="date" value={b.chiusuraIl} onChange={e=>agg('chiusuraIl', e.target.value)} style={CF_EV_INP}/>
+                </CfEvCampo>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1, lineHeight:1.45}}>
+            {puoSalvare
+              ? (b.dataBreach && !b.breachNotificato
+                  ? 'Violazione non notificata: il conto delle 72 ore parte dalla data di scoperta.'
+                  : 'Entra nel registro con i campi compilati.')
+              : 'Servono incidente, servizio, data della scoperta e responsabile.'}
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!puoSalvare} onClick={()=>onSalva(b)}>
+            {nuovo ? 'Registra l’incidente' : 'Salva le modifiche'}
+          </AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CfIncidenti() {
   const [apri, setApri] = useStateEv(null);
+  const [modale, setModale] = useStateEv(null);   // { incidente } — null = chiusa, {incidente:null} = nuovo
   const [, setTick] = useStateEv(0);
 
   const breachAperti = INCIDENTI.filter(i => i.dataBreach && !i.breachNotificato);
@@ -137,6 +375,33 @@ function CfIncidenti() {
   const righe = [...INCIDENTI].sort((a, b) =>
     (a.stato === 'chiuso' ? 1 : 0) - (b.stato === 'chiuso' ? 1 : 0) ||
     b.data.getTime() - a.data.getTime());
+
+  const salva = (b) => {
+    const dato = (v) => v ? new Date(v + 'T12:00:00') : null;
+    const campi = {
+      titolo:b.titolo.trim(), categoria:b.categoria, servizio:b.servizio.trim(),
+      data:dato(b.data), gravita:b.gravita, stato:b.stato,
+      chiusuraIl: b.stato === 'chiuso' ? dato(b.chiusuraIl) : null,
+      responsabile:b.responsabile.trim(), origine:b.origine,
+      causaRadice:b.causaRadice.trim(), azione:b.azione.trim(),
+      rischioCollegato: b.rischioCollegato || null,
+      dataBreach:b.dataBreach,
+      breachNotificato: b.dataBreach ? b.breachNotificato : false,
+      breachNotificaIl: b.dataBreach && b.breachNotificato ? dato(b.breachNotificaIl) : null,
+      breachInteressati: b.dataBreach && b.breachInteressati ? parseInt(b.breachInteressati, 10) : null,
+      breachValutazione: b.dataBreach ? b.breachValutazione.trim() : '',
+    };
+    if (modale.incidente) {
+      Object.assign(modale.incidente, campi);
+    } else {
+      const anno = new Date().getFullYear();
+      const n = INCIDENTI.filter(i => i.id.includes(String(anno)))
+        .reduce((m, i) => Math.max(m, parseInt(i.id.split('-').pop(), 10) || 0), 0) + 1;
+      INCIDENTI.push({ id:`INC-${anno}-${String(n).padStart(3, '0')}`, ...campi });
+    }
+    setModale(null);
+    setTick(x => x + 1);
+  };
 
   const aperti = INCIDENTI.filter(i => i.stato !== 'chiuso').length;
   const da12 = cfMesi(new Date(), -12);
@@ -206,6 +471,10 @@ function CfIncidenti() {
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
           <div style={{...CF_H, marginBottom:0}}>Registro degli incidenti</div>
           <span style={{fontSize:12.4, color:ADM.MUTED}}>A.5.24–5.28 · aperti in cima, poi dal più recente</span>
+          <div style={{flex:1}}/>
+          <AdmButton variant="primary" size="sm" onClick={()=>setModale({ incidente:null })}>
+            Registra un incidente
+          </AdmButton>
         </div>
 
         <div style={CF_CARD}>
@@ -235,6 +504,10 @@ function CfIncidenti() {
 
                   <div style={{minWidth:0}}>
                     <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, lineHeight:1.35}}>{i.titolo}</div>
+                    <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
+                      {cfEvCatLabel(i.categoria)}
+                      {i.origine === 'automatico' ? ' · dal monitoraggio' : ' · segnalato'}
+                    </div>
                     {mancanti.length > 0 && (
                       <div style={{fontSize:11.4, color:ADM.WARN, fontWeight:700, marginTop:3}}>
                         manca {mancanti.join(' e ')}
@@ -281,11 +554,20 @@ function CfIncidenti() {
                       </div>
                     </div>
 
-                    <div style={{display:'flex', gap:26, marginTop:14, paddingTop:12,
-                      borderTop:`1px dashed ${ADM.BORDER}`, fontSize:12.4, color:ADM.MUTED}}>
+                    <div style={{display:'flex', alignItems:'center', gap:26, marginTop:14, paddingTop:12,
+                      borderTop:`1px dashed ${ADM.BORDER}`, fontSize:12.4, color:ADM.MUTED, flexWrap:'wrap'}}>
                       <span>Responsabile <strong style={{color:ADM.TEXT, fontWeight:700}}>{i.responsabile}</strong></span>
                       <span>Rilevato il <strong style={{color:ADM.TEXT, fontWeight:700}}>{cfFmt(i.data)}</strong></span>
                       <span>Chiuso il <strong style={{color:ADM.TEXT, fontWeight:700}}>{cfFmt(i.chiusuraIl)}</strong></span>
+                      {/* A.5.27: un incidente o conferma un rischio censito, o ne
+                          rivela uno che manca. Il secondo caso va detto. */}
+                      <span>Rischio collegato{' '}
+                        {i.rischioCollegato
+                          ? <strong style={{color:ADM.TEXT, fontWeight:700}}>{i.rischioCollegato}</strong>
+                          : <strong style={{color:ADM.WARN, fontWeight:700}}>nessuno — da censire</strong>}
+                      </span>
+                      <div style={{flex:1}}/>
+                      <AdmButton variant="secondary" size="sm" onClick={()=>setModale({ incidente:i })}>Modifica</AdmButton>
                     </div>
 
                     {i.dataBreach && bi && (
@@ -344,6 +626,9 @@ function CfIncidenti() {
           stessa — ed è la prima cosa che il Garante legge.
         </div>
       </div>
+
+      {modale && <CfEvModale key={modale.incidente ? modale.incidente.id : 'nuovo'}
+        incidente={modale.incidente} onChiudi={()=>setModale(null)} onSalva={salva}/>}
     </div>
   );
 }
