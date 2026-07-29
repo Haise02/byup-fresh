@@ -68,10 +68,28 @@ function EcoFonte({ automatica, da }) {
 const ECO_PERIODICITA = { mensile:'Mensile', annuale:'Annuale', 'una-tantum':'Una tantum' };
 
 /* ═══ NUOVO COSTO — con la fattura, se c'e ═══════════════════════════════ */
-function EcoModaleCosto({ onChiudi, onSalva }) {
-  const [b, setB] = useStateEco({ voce:'', categoria:'Software', importo:'', periodicita:'mensile',
+// Una modale sola per creare e per modificare: i campi sono gli stessi, e
+// averne due avrebbe voluto dire tenerle allineate a mano per sempre.
+function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
+  const modifica = !!costo;
+  const fmtN = (n) => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',');
+  // IVA non registrata non e IVA a zero: sulle voci nate prima che il campo
+  // esistesse si riparte dal 22%, altrimenti aprire una riga per guardarla le
+  // azzererebbe l'aliquota al primo salvataggio.
+  const aliquotaDi = (c) => {
+    if (!c || !c.importo || c.iva == null) return '22';
+    const a = Math.round(c.iva / c.importo * 100);
+    return ['22','10','5','4','0'].indexOf(String(a)) !== -1 ? String(a) : '22';
+  };
+  const [b, setB] = useStateEco(() => costo ? {
+    voce:costo.voce, categoria:costo.categoria, importo:fmtN(costo.importo),
+    periodicita:costo.periodicita, dal:costo.dal.toISOString().slice(0, 10),
+    fornitore:costo.fornitore === '—' ? '' : costo.fornitore, piva:costo.piva || '',
+    numero:'', aliquota:aliquotaDi(costo),
+  } : { voce:'', categoria:'Software', importo:'', periodicita:'mensile',
     dal: new Date().toISOString().slice(0, 10), fornitore:'', piva:'', numero:'', aliquota:'22' });
   const [file, setFile] = useStateEco(null);
+  const allegata = modifica && costo.fattura ? ECO_FATTURE.find(x => x.id === costo.fattura) : null;
   // Si scrive l'imponibile OPPURE il totale: sono le due cifre che stanno sulla
   // fattura. L'IVA non e un terzo dato da inserire, e il prodotto dei due — e un
   // campo scrivibile inviterebbe a metterci dentro un numero incoerente.
@@ -110,10 +128,13 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
         borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
         maxHeight:'100%', display:'flex', flexDirection:'column'}}>
         <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
-          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>Aggiungere un costo</div>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
+            {modifica ? costo.voce : 'Aggiungere un costo'}
+          </div>
           <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
-            La data puo essere di un mese passato: il costo entra nel mese a cui appartiene, non in
-            quello in cui lo registri. Allegando la fattura la voce risulta documentata.
+            {modifica
+              ? `${ECO_PERIODICITA[costo.periodicita]} · dal ${cfFmt(costo.dal)}${costo.fornitore && costo.fornitore !== '—' ? ` · ${costo.fornitore}` : ''}`
+              : 'La data può essere di un mese passato: il costo entra nel mese a cui appartiene, non in quello in cui lo registri. Allegando la fattura la voce risulta documentata.'}
           </div>
         </div>
 
@@ -193,7 +214,21 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
 
           <div>
             <div style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-              letterSpacing:'0.05em', marginBottom:8}}>Fattura, se c'e</div>
+              letterSpacing:'0.05em', marginBottom:8}}>Fattura, se c'è</div>
+            {allegata ? (
+              <button onClick={()=>onDoc(allegata)} className="adm-card-interactive"
+                style={{display:'flex', alignItems:'center', gap:12, width:'100%', textAlign:'left',
+                  padding:'13px 15px', borderRadius:11, cursor:'pointer', fontFamily:'inherit',
+                  border:`1px solid ${ADM.BORDER}`, background:'#FCFCFD'}}>
+                <BuIcons.paperclip size={15} color={ADM.MUTED_SOFT}/>
+                <span style={{flex:1, minWidth:0}}>
+                  <span style={{display:'block', fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{allegata.file}</span>
+                  <span style={{display:'block', fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
+                    {allegata.numero} · {ecoEur2(allegata.totale)} · apri il documento
+                  </span>
+                </span>
+              </button>
+            ) : (
             <label style={{display:'block'}}>
               <div className="adm-card-interactive" style={{border:`1.5px dashed ${file ? ADM.OK : ADM.BORDER}`,
                 borderRadius:11, padding:'18px 16px', textAlign:'center', cursor:'pointer',
@@ -210,6 +245,7 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
                   onChange={e => setFile(e.target.files && e.target.files[0] ? e.target.files[0].name : null)}/>
               </div>
             </label>
+            )}
             {file && (
               <div style={{marginTop:14}}>
                 <EcoCampo etichetta="Numero documento">
@@ -223,6 +259,10 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
 
         <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
           alignItems:'center', gap:10, flexShrink:0}}>
+          {modifica && (
+            <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, flexShrink:0}}
+              onClick={()=>onElimina(costo)}>Elimina</AdmButton>
+          )}
           <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
             {ok
               ? `Nel conto economico ${ecoEur2(imponibile)}${iva > 0 ? `, dalla cassa ${ecoEur2(imponibile + iva)}` : ''}.`
@@ -230,7 +270,7 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
           </span>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
           <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva({ ...b, file })}>
-            Aggiungi
+            {modifica ? 'Salva' : 'Aggiungi'}
           </AdmButton>
         </div>
       </div>
@@ -312,11 +352,51 @@ function EcoDoc({ fattura }) {
   );
 }
 
+// Eliminare un costo ricorrente non tocca un mese: li tocca tutti, passati
+// compresi. Va detto prima, con i numeri, perche l'effetto non e visibile dal
+// punto in cui si preme.
+function EcoConfermaElimina({ costo, mesiTocc, onChiudi, onConferma }) {
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="elimina" onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'92%', background:'#fff',
+        borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.18s ease'}}>
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+          Eliminare {costo.voce}?
+        </div>
+        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:15}}>
+          {costo.periodicita === 'una-tantum'
+            ? `Sparisce dal mese di ${cfFmt(costo.dal)} e dal conto economico.`
+            : `È una voce ${ECO_PERIODICITA[costo.periodicita].toLowerCase()}: sparisce da tutti i mesi in cui compare, non solo da quello che stai guardando.`}
+        </div>
+        <div style={{padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
+          {[['Importo', `${ecoEur2(costo.importo)}${costo.iva ? ` più ${ecoEur2(costo.iva)} di IVA` : ''}`],
+            ['Mesi interessati', mesiTocc === 1 ? '1 mese' : `${mesiTocc} mesi`],
+            ['Documento', costo.fattura ? 'una fattura resta collegata' : 'nessuno']].map(([k, v]) => (
+            <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
+              <span style={{color:ADM.MUTED, width:140, flexShrink:0}}>{k}</span>
+              <span style={{color:ADM.TEXT, fontWeight:600}}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={onConferma}>Elimina</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ COSTI ══════════════════════════════════════════════════════════════ */
 function EcoCosti({ mix, forza }) {
   const [nuovo, setNuovo] = useStateEco(false);
   const [doc, setDoc] = useStateEco(null);
   const [allega, setAllega] = useStateEco(null);
+  const [modifica, setModifica] = useStateEco(null);
+  const [elimina, setElimina] = useStateEco(null);
   const [modo, setModo] = useStateEco('mese');            // 'mese' | 'anno'
   const [k, setK] = useStateEco(ECO_STORICO.length - 1);  // mese selezionato
   const [anno, setAnno] = useStateEco(ECO_OGGI.getFullYear());
@@ -381,6 +461,17 @@ function EcoCosti({ mix, forza }) {
         tot: ECO_STORICO.filter(m => m.anno === a).reduce((t, m) =>
           t + ecoCostiVariabili(m) * frazioneDi(m) + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)), 0) }));
   const maxSerie = Math.max.apply(null, serie.map(x => x.tot)) || 1;
+
+  // Su quanti mesi dello storico compare la voce: serve alla conferma, perche
+  // eliminare un ricorrente non tocca il mese che si sta guardando ma tutti.
+  const mesiInteressati = (f) => ECO_STORICO.filter(m => {
+    const dm = new Date(m.data.getFullYear(), m.data.getMonth(), 1);
+    if (f.dal && dm < new Date(f.dal.getFullYear(), f.dal.getMonth(), 1)) return false;
+    if (f.a && dm > f.a) return false;
+    if (f.periodicita === 'una-tantum')
+      return f.dal.getFullYear() === dm.getFullYear() && f.dal.getMonth() === dm.getMonth();
+    return true;
+  }).length;
 
   const salva = (b) => {
     const quando = new Date(b.dal + 'T12:00:00');
@@ -503,8 +594,7 @@ function EcoCosti({ mix, forza }) {
             <div>Importo</div><div>Fonte</div><div>Documento</div>
           </div>
           {righeFisse.map((r, i) => (
-            <div key={r.f.id} className="adm-row-open"
-              onClick={()=> r.ft ? setDoc(r.ft) : setAllega({ id:r.f.id, tipo:'fisso', nome:r.f.voce, importo:r.f.importo })}
+            <div key={r.f.id} className="adm-row-open" onClick={()=>setModifica(r.f)}
               style={{display:'grid', gridTemplateColumns:ECO_GRID_FIS, gap:11,
               alignItems:'center', padding:'12px 16px', cursor:'pointer',
               borderBottom: i < righeFisse.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
@@ -525,13 +615,38 @@ function EcoCosti({ mix, forza }) {
               </div>
               <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur2(r.quota)}</div>
               <div><EcoFonte automatica={r.auto} da={r.auto ? 'Letta dalla fattura elettronica' : 'Inserita a mano'}/></div>
-              <div style={{minWidth:0}}><EcoDoc fattura={r.ft}/></div>
+              <div style={{minWidth:0}} onClick={e=>e.stopPropagation()}>
+                <span onClick={()=> r.ft ? setDoc(r.ft) : setAllega({ id:r.f.id, tipo:'fisso', nome:r.f.voce, importo:r.f.importo })}
+                  className="adm-card-interactive" style={{display:'inline-block', cursor:'pointer'}}>
+                  <EcoDoc fattura={r.ft}/>
+                </span>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {nuovo && <EcoModaleCosto onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
+      {modifica && <EcoModaleCosto key={modifica.id} costo={modifica}
+        onChiudi={()=>setModifica(null)} onDoc={(f)=>{ setModifica(null); setDoc(f); }}
+        onElimina={(c)=>setElimina(c)}
+        onSalva={(b)=>{
+          const imp = parseFloat(String(b.importo).replace(',', '.')) || 0;
+          Object.assign(modifica, {
+            voce:b.voce.trim(), categoria:b.categoria, importo:imp,
+            iva: Math.round(imp * (parseFloat(b.aliquota) || 0)) / 100,
+            periodicita:b.periodicita, dal:new Date(b.dal + 'T12:00:00'),
+            fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(),
+          });
+          setModifica(null); forza();
+        }}/>}
+      {elimina && <EcoConfermaElimina costo={elimina} mesiTocc={mesiInteressati(elimina)}
+        onChiudi={()=>setElimina(null)}
+        onConferma={()=>{
+          const k = ECO_FISSI.indexOf(elimina);
+          if (k >= 0) ECO_FISSI.splice(k, 1);
+          setElimina(null); setModifica(null); forza();
+        }}/>}
       {allega && <EcoModaleAllega voce={allega} onChiudi={()=>setAllega(null)} onSalva={(b)=>{
         const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
         const id = `FT-${ultimo.data.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
