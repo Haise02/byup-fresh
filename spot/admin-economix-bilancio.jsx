@@ -80,23 +80,26 @@ function EcoRiga({ etichetta, valore, sub, forte, tono, indent, percento, nota }
 // stessa colonna i due si confondono. Qui ci sono solo mesi accaduti, ricalcolati
 // sui dati e sulle fatture presenti adesso. Lo scenario vive nella sua tab.
 function EcoBilancio({ mix }) {
-  const anno = ECO_OGGI.getFullYear();
+  const anni = [...new Set(ECO_STORICO.map(m => m.anno))].sort((a, b) => b - a);
+  const [anno, setAnno] = useStateEco(ECO_OGGI.getFullYear());
   const mesi = ECO_STORICO.filter(m => m.anno === anno);
   const ce = ecoContoEconomico(mesi, mix, ECO_REGIME);
-  const chiusi = mesi.filter(m => !m.corrente);
+  const corrente = anno === ECO_OGGI.getFullYear();
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:20}}>
-      <div style={{display:'flex', alignItems:'baseline', gap:10}}>
-        <div style={{...ECO_H, marginBottom:0}}>Conto economico riclassificato {anno}</div>
-        <span style={{fontSize:12.4, color:ADM.MUTED}}>
-          consuntivo · dal 1° gennaio a oggi · {chiusi.length} mesi chiusi più {ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]} in corso
-        </span>
+      <div style={{display:'flex', alignItems:'center', gap:10}}>
+        <div style={ECO_TITOLO}>Conto economico</div>
+        <div style={{flex:1}}/>
+        <select value={anno} onChange={e=>setAnno(Number(e.target.value))}
+          style={{...ECO_SEL, width:'auto', minWidth:104, paddingRight:32}}>
+          {anni.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
       </div>
 
       <div style={ECO_CARD}>
         <div style={{...ECO_TH, display:'grid', gridTemplateColumns:'minmax(0,1fr) 140px 96px', gap:12}}>
-          <div>Voce</div><div style={{textAlign:'right'}}>{anno} a oggi</div><div style={{textAlign:'right'}}>Su ricavi</div>
+          <div>Voce</div><div style={{textAlign:'right'}}>{corrente ? `${anno} a oggi` : `${anno} · anno intero`}</div><div style={{textAlign:'right'}}>Su ricavi</div>
         </div>
 
         <EcoRiga etichetta="Abbonamenti a Byup Fresh" valore={ce.sub} indent={1}

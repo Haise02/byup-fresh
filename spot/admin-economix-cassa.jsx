@@ -5,8 +5,6 @@ function EcoCassa({ mix, leve, forza }) {
   const flussi = ecoProiezioneCassa(mix, leve);
   const run = ecoRunway(flussi);
   const saldoOggi = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
-  const bruciaMedio = flussi.length
-    ? flussi.reduce((t, x) => t + x.netto, 0) / flussi.length : 0;
 
   const banca = ecoBanca();
   const ggConsenso = banca ? ecoGiorniConsenso(banca) : null;
@@ -16,12 +14,14 @@ function EcoCassa({ mix, leve, forza }) {
   const [elimina, setElimina] = useStateEco(null);
   const [daScadenza, setDaScadenza] = useStateEco(ECO_OGGI);
   const [nuovaScad, setNuovaScad] = useStateEco(false);
+  const [espansa, setEspansa] = useStateEco(false);
   // Dodici mesi e non sei: con sei le voci annuali — la polizza a gennaio, il
   // dominio a febbraio — non comparirebbero mai, e lo scadenzario sembrerebbe
   // averle dimenticate proprio mentre dichiara di mostrarle tutte.
   const storici = ecoFlussiStorici(mix);
   const liq = ecoLiquidazioneIva(mix);
   const meseCorr = storici[storici.length - 1];
+  const recenti = storici.slice().reverse();
   const scadenze = ecoScadenzario(12);
   const inScadenza = scadenze.filter(x => x.giorni <= 0).length;
   // Uscite ancora da saldare nel mese in corso: quelle gia pagate non ci sono
@@ -34,13 +34,15 @@ function EcoCassa({ mix, leve, forza }) {
   const scaduteMese = delMese.filter(x => x.giorni <= 0).length;
   const daPagare = delMese.reduce((t, x) => t + (x.importo || 0), 0);
   const senzaImporto = delMese.filter(x => x.importo == null).length;
+  // Tutto cio che esce nel mese: fornitori al lordo, IVA versata, altre uscite.
+  const usciteMese = meseCorr ? meseCorr.pagamenti + meseCorr.iva + meseCorr.scadenze : 0;
   const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
   const minSaldo = Math.min.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
   const maxSaldo = Math.max.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:11}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:11}}>
         {[
           { et:'Cassa', v:ecoEur(saldoOggi),
             tono: banca && banca.stato === 'errore' ? ADM.DANGER : null,
@@ -49,18 +51,19 @@ function EcoCassa({ mix, leve, forza }) {
                 ? `${banca.saldoAl || 'ultima lettura'} · rendiconto delle ${banca.ultimaLettura.getHours()}:${String(banca.ultimaLettura.getMinutes()).padStart(2,'0')}`
               : banca.stato === 'errore' ? `collegamento fermo: saldo di ${ecoQuando(banca.ultimaLettura)}`
               : 'saldo inserito a mano' },
-          { et:`Incassi ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(meseCorr ? meseCorr.incassi : 0),
+          { et:`Entrate ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(meseCorr ? meseCorr.incassi : 0),
             tono:ADM.OK,
             n: meseCorr
               ? `${ecoEur(meseCorr.ricavi)} di abbonamenti più ${ecoEur(meseCorr.ivaIncassata)} di IVA`
               : '—' },
-          { et:'Flusso medio mensile', v:ecoEur(bruciaMedio),
-            tono: bruciaMedio >= 0 ? ADM.OK : ADM.DANGER,
-            n: bruciaMedio >= 0 ? 'la cassa cresce' : 'quanto esce, al netto di quanto entra' },
-          { et:`Da pagare a ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(daPagare),
-            tono: scaduteMese ? ADM.DANGER : ADM.TEXT,
-            n: delMese.length === 0 ? 'niente da saldare entro fine mese'
-              : `${delMese.length} ${delMese.length === 1 ? 'voce' : 'voci'}${
+          // Entrate e uscite del mese sono la stessa domanda letta nei due versi,
+          // e vanno lette una accanto all'altra. Il «quanto manca ancora» resta
+          // qui sotto: era una scheda a se, ma e un dettaglio di questa.
+          { et:`Uscite ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(usciteMese),
+            tono: usciteMese > (meseCorr ? meseCorr.incassi : 0) ? ADM.DANGER : ADM.TEXT,
+            n: delMese.length === 0 ? 'tutto saldato entro fine mese'
+              : `${ecoEur(daPagare)} ancora da saldare · ${delMese.length} ${
+                  delMese.length === 1 ? 'voce' : 'voci'}${
                   scaduteMese ? `, ${scaduteMese} già ${scaduteMese === 1 ? 'scaduta' : 'scadute'}` : ''}${
                   senzaImporto ? ` · ${senzaImporto} da calcolare` : ''}` },
           { et:'Autonomia', tono: run.oltre ? ADM.TEXT : ADM.DANGER,
@@ -159,21 +162,32 @@ function EcoCassa({ mix, leve, forza }) {
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
           <div style={{...ECO_H, marginBottom:0}}>Entrate e uscite</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>
-            ultimi dodici mesi più {ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]} in corso · il saldo è
-            ricostruito all’indietro dal saldo di oggi, che è l’unico dato certo
+          <span style={{fontSize:12.4, color:ADM.MUTED, minWidth:0}}>
+            dal mese in corso all’indietro · il saldo è ricostruito partendo dal
+            saldo di oggi, che è l’unico dato certo
           </span>
+          <div style={{flex:1}}/>
+          <AdmButton variant="ghost" size="sm" onClick={()=>setEspansa(!espansa)}>
+            {espansa ? 'Comprimi' : `Espandi · ${storici.length} mesi`}
+          </AdmButton>
         </div>
-        <div style={ECO_CARD}>
+        <div style={{...ECO_CARD, display:'flex', flexDirection:'column'}}>
           <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI, gap:10}}>
-            <div>Mese</div><div>Incassi</div><div>IVA incassata</div><div>Pagamenti</div>
+            {/* «Incassi» qui era falso: la colonna contiene i soli abbonamenti,
+                l'IVA sta in quella accanto e le entrate vere sono la somma. */}
+            <div>Mese</div><div>Abbonamenti</div><div>IVA incassata</div><div>Pagamenti</div>
             <div>IVA versata</div><div>Altre uscite</div><div>Netto</div><div>Saldo</div>
           </div>
-          {storici.map((x, i) => (
+          {/* Il mese in corso e quello che si guarda per primo: la tabella parte
+              da li e scende all'indietro. Tre righe a vista, il resto scorrendo
+              o aprendo tutto. */}
+          <div ref={(el)=>ecoTagliaRighe(el, espansa ? 0 : 3)}
+            style={{overflowY:'auto', minHeight:0}}>
+          {recenti.map((x, i) => (
             <div key={x.d.mese} style={{display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI,
               gap:10, alignItems:'center', padding:'11px 16px',
               background: x.saldo < 0 ? ADM.DANGER_SOFT : x.d.corrente ? '#FAFAFB' : '#fff',
-              borderBottom: i < storici.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+              borderBottom: i < recenti.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>
                 {x.d.mese}{x.d.corrente && <span style={{fontSize:10.4, color:ADM.MUTED_SOFT, fontWeight:500}}> in corso</span>}
               </div>
@@ -190,13 +204,9 @@ function EcoCassa({ mix, leve, forza }) {
                 color: x.saldo < 0 ? ADM.DANGER : ADM.TEXT}}>{ecoEur(x.saldo)}</div>
             </div>
           ))}
+          </div>
         </div>
-        <div style={{fontSize:12, color:ADM.MUTED, marginTop:9, lineHeight:1.55}}>
-          Gli abbonamenti sono più IVA: il ristoratore la paga, Byup la incassa e la riversa allo
-          Stato al netto di quella pagata ai fornitori. Sulla cassa è neutra — quello che conta è
-          lo sfasamento, perché la incassi subito e la versi dopo. I pagamenti sono al lordo,
-          perché al fornitore esce il totale.
-        </div>
+
       </div>
 
       <div>
@@ -221,7 +231,7 @@ function EcoCassa({ mix, leve, forza }) {
           )}
           {/* L'altezza di dieci righe si MISURA, non si stima: le righe con la
               nota sono piu alte, e un tetto in pixel ne mostrava sei. */}
-          <div ref={ecoDieciRighe} style={{overflowY:'auto', minHeight:0}}>
+          <div ref={(el)=>ecoTagliaRighe(el, ECO_RIGHE_SCAD)} style={{overflowY:'auto', minHeight:0}}>
           {scadenze.map((x, i) => {
             const dovuta = x.giorni <= 0;
             // Solo le righe che sono davvero un costo si aprono: l'IVA, gli
@@ -385,17 +395,26 @@ function EcoPatrimonio({ mix }) {
 
 const ECO_GRID_SCAD = 'minmax(0,2fr) 108px 108px 118px 120px 172px';
 
-// Ref di misura: dieci righe esatte, poi si scorre. Si SOMMANO le altezze
-// invece di leggere offsetTop dell'undicesima, perche offsetTop si misura
-// dall'antenato posizionato e non dal contenitore — con la card non
-// posizionata restituiva un numero che non c'entrava nulla.
+// Ref di misura: N righe esatte, poi si scorre; 0 significa nessun taglio.
+// Si SOMMANO le altezze invece di leggere offsetTop della riga N+1, perche
+// offsetTop si misura dall'antenato posizionato e non dal contenitore — con la
+// card non posizionata restituiva un numero che non c'entrava nulla.
 const ECO_RIGHE_SCAD = 10;
-const ecoDieciRighe = (el) => {
+const ecoTagliaRighe = (el, n) => {
   if (!el) return;
   const f = Array.from(el.children);
-  el.style.maxHeight = f.length > ECO_RIGHE_SCAD
-    ? f.slice(0, ECO_RIGHE_SCAD).reduce((t, r) => t + r.offsetHeight, 0) + 'px'
-    : '';
+  if (!(n > 0 && f.length > n)) { el.style.maxHeight = ''; return; }
+  // Due trappole in due righe di codice. offsetHeight e arrotondato all'intero,
+  // e su righe da 50,4px il taglio a tre ne perdeva 1,2 — quel tanto che
+  // bastava a lasciare fuori la terza. getBoundingClientRect invece e preciso
+  // ma restituisce pixel VISIVI, e il frame ha uno zoom di 1,25: usarlo cosi
+  // dava un tetto di un quarto piu alto e faceva vedere dodici righe su dieci.
+  // Si misura col rect e si divide per lo zoom, che e l'unico modo di avere
+  // insieme la precisione e l'unita giusta.
+  const fr = el.closest('.frame');
+  const z = fr ? (parseFloat(getComputedStyle(fr).zoom) || 1) : 1;
+  const h = f.slice(0, n).reduce((t, r) => t + r.getBoundingClientRect().height, 0);
+  el.style.maxHeight = Math.ceil(h / z) + 'px';
 };
 const ECO_GRID_FLUSSI = '88px 1fr 1.05fr 1.05fr 1fr 1fr 1.05fr 1.15fr';
 

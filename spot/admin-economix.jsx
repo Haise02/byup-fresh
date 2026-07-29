@@ -6,6 +6,10 @@ const ECO_TH = { padding:'9px 16px', background:'#FAFAFB', borderBottom:`1px sol
   fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em' };
 const ECO_H = { fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
   letterSpacing:'0.06em', marginBottom:10 };
+// Titolo di blocco: sta sopra piu tabelle e ne comanda i controlli, quindi pesa
+// piu delle intestazioni delle singole tabelle invece di confondersi con loro.
+const ECO_TITOLO = { fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
+  letterSpacing:'0.08em' };
 const ECO_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:9,
   fontSize:13.6, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
   boxSizing:'border-box', lineHeight:1.4 };
@@ -507,7 +511,7 @@ function EcoCosti({ mix, forza }) {
           schede sia il grafico, quindi stanno sopra entrambi e non in mezzo. */}
       <div style={{display:'flex', flexDirection:'column', gap:12}}>
       <div style={{display:'flex', alignItems:'center', gap:10}}>
-        <div style={{...ECO_H, marginBottom:0}}>Andamento</div>
+        <div style={ECO_TITOLO}>Andamento</div>
         <div style={{flex:1}}/>
         <AdmTabBar variant="segmented" active={modo} onChange={setModo}
           tabs={[{ id:'mese', label:'Per mese' }, { id:'anno', label:'Per anno' }]}/>
@@ -561,8 +565,7 @@ function EcoCosti({ mix, forza }) {
           aggiunge uno sta li, non appeso al grafico che non c'entra. */}
       <div style={{display:'flex', flexDirection:'column', gap:22}}>
       <div style={{display:'flex', alignItems:'center', gap:12}}>
-        <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
-          letterSpacing:'0.08em'}}>Costi</div>
+        <div style={ECO_TITOLO}>Costi</div>
         <div style={{flex:1}}/>
         <AdmButton variant="primary" size="sm" onClick={()=>setNuovo(true)}>Aggiungi un costo</AdmButton>
       </div>
@@ -696,6 +699,7 @@ window.EcoConfermaElimina = EcoConfermaElimina;
 window.ECO_CARD = ECO_CARD;
 window.ECO_TH = ECO_TH;
 window.ECO_H = ECO_H;
+window.ECO_TITOLO = ECO_TITOLO;
 window.ECO_INP = ECO_INP;
 window.ECO_SEL = ECO_SEL;
 window.ECO_NUM = ECO_NUM;
