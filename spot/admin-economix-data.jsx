@@ -216,7 +216,7 @@ const ECO_FISSI = [
     dal:new Date('2025-01-01'), a:null, fornitore:'Google', nota:'Per utenza, 6 utenze attive.' },
   { id:'F-06', voce:'ClickUp', categoria:'Software', importo:38, periodicita:'mensile',
     dal:new Date('2025-06-01'), a:null, fornitore:'ClickUp' },
-  { id:'F-07', voce:'Registrazione dominio e certificati', categoria:'Software', importo:96, periodicita:'annuale',
+  { id:'F-07', voce:'Registrazione dominio e certificati', categoria:'Licenze e certificazioni', importo:96, periodicita:'annuale',
     dal:new Date('2026-02-01'), a:null, fornitore:'Registrar' },
   { id:'F-08', voce:'Assicurazione RC professionale', categoria:'Assicurazioni', importo:1450, periodicita:'annuale',
     dal:new Date('2026-01-15'), a:null, fornitore:'Generali' },
