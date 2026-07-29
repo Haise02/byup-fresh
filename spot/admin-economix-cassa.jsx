@@ -71,13 +71,17 @@ function EcoCassa({ mix, leve, forza }) {
           // Il saldo IVA e denaro che sta in cassa ma non e tuo: incassato dai
           // ristoratori e dovuto allo Stato alla prossima scadenza. Guardare la
           // cassa senza sapere quanto ne e gia impegnato porta a spenderlo.
-          { et:'Saldo IVA', v:ecoEur(iva.saldo),
-            tono: iva.saldo > 0 ? ADM.WARN : ADM.OK,
+          // Il segno non si mostra: «−€10.935» in verde e una contraddizione a
+          // vista, e il verso lo dice gia la riga sotto. Un credito non e una
+          // buona notizia da festeggiare — e denaro fermo all'erario — quindi
+          // resta neutro, e solo il debito prende un colore.
+          { et:'Saldo IVA', v:ecoEur(Math.abs(iva.saldo)),
+            tono: iva.saldo > 0 ? ADM.WARN : ADM.TEXT,
             n: iva.saldo <= 0
-              ? 'credito verso l’erario: si porta avanti, non si versa'
+              ? 'credito verso l’erario'
               : iva.prossima
-                ? `da versare il ${cfFmt(iva.prossima.scadenza)} · ${iva.prossima.etichetta}`
-                : 'nessun versamento in vista' },
+                ? `debito verso l’erario · da versare il ${cfFmt(iva.prossima.scadenza)}`
+                : 'debito verso l’erario' },
           { et:'Autonomia', tono: run.oltre ? ADM.TEXT : ADM.DANGER,
             v: run.oltre
               ? (run.mesi === Infinity ? 'illimitata' : `${Math.floor(run.mesi)} mesi`)
@@ -118,14 +122,11 @@ function EcoCassa({ mix, leve, forza }) {
 
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...ECO_H, marginBottom:0}}>Entrate e uscite</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED, minWidth:0}}>
-            dal mese in corso all’indietro · il saldo è ricostruito partendo dal
-            saldo di oggi, che è l’unico dato certo
-          </span>
+          <div style={ECO_TITOLO}>Entrate e uscite</div>
+          <span style={{fontSize:12.4, color:ADM.MUTED, minWidth:0}}>ultimi 12 mesi</span>
           <div style={{flex:1}}/>
           <AdmButton variant="ghost" size="sm" onClick={()=>setEspansa(!espansa)}>
-            {espansa ? 'Comprimi' : `Espandi · ${storici.length} mesi`}
+            {espansa ? 'Comprimi' : 'Espandi'}
           </AdmButton>
         </div>
         <div style={{...ECO_CARD, display:'flex', flexDirection:'column'}}>
@@ -156,8 +157,10 @@ function EcoCassa({ mix, leve, forza }) {
                 color: x.iva > 0 ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
                 {x.iva > 0 ? `−${ecoEur(x.iva)}` : '—'}
               </div>
+              {/* Il segno serve — dice se il mese matura debito o credito — ma
+                  il verde su un numero negativo no: resta acceso solo il debito. */}
               <div style={{fontSize:12.6, ...ECO_NUM,
-                color: x.saldoIva > 0 ? ADM.WARN : ADM.OK}}>{ecoEur(x.saldoIva)}</div>
+                color: x.saldoIva > 0 ? ADM.WARN : ADM.MUTED}}>{ecoEur(x.saldoIva)}</div>
               <div style={{fontSize:13, fontWeight:700, ...ECO_NUM,
                 color: x.netto >= 0 ? ADM.OK : ADM.DANGER}}>{ecoEur(x.netto)}</div>
               <div style={{fontSize:13.6, fontWeight:800, ...ECO_NUM,
@@ -171,7 +174,7 @@ function EcoCassa({ mix, leve, forza }) {
 
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...ECO_H, marginBottom:0}}>Scadenzario</div>
+          <div style={ECO_TITOLO}>Scadenzario</div>
           <span style={{fontSize:12.4, color:ADM.MUTED}}>
             tutto ciò che deve uscire nei prossimi dodici mesi · {inScadenza
               ? `${inScadenza} ${inScadenza === 1 ? 'voce da saldare' : 'voci da saldare'}`
@@ -310,9 +313,11 @@ function EcoPatrimonio({ mix }) {
   return (
     <div style={{display:'flex', flexDirection:'column', gap:20}}>
       <div style={{display:'flex', alignItems:'baseline', gap:10}}>
-        <div style={{...ECO_H, marginBottom:0}}>Stato patrimoniale al {cfFmt(ECO_OGGI)}</div>
+        {/* Stessa gerarchia del Conto economico: e il titolo della sua tab,
+            non l'intestazione di una tabella dentro un'altra cosa. */}
+        <div style={ECO_TITOLO}>Stato patrimoniale</div>
         <span style={{fontSize:12.4, color:ADM.MUTED}}>
-          consuntivo · non sostituisce il bilancio del commercialista, lo anticipa
+          al {cfFmt(ECO_OGGI)} · non sostituisce il bilancio del commercialista, lo anticipa
         </span>
       </div>
 
