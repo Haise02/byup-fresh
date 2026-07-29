@@ -169,7 +169,7 @@ function Economix() {
         <div style={{padding:'20px 22px'}}>
           {tab === 'costi'      && <EcoCosti mix={mix} forza={forza}/>}
           {tab === 'bilancio'   && <EcoBilancio mix={mix}/>}
-          {tab === 'cassa'      && <EcoCassa mix={mix} leve={leve}/>}
+          {tab === 'cassa'      && <EcoCassa mix={mix} leve={leve} forza={forza}/>}
           {tab === 'patrimonio' && <EcoPatrimonio mix={mix}/>}
           {tab === 'proiezione' && <EcoProiezione mix={mix} leve={leve} setLeve={setLeve} base={base}/>}
         </div>

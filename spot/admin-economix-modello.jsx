@@ -340,6 +340,94 @@ function ecoRiacquisti(mesiProiettati) {
   return out;
 }
 
+// ─── Scadenzario ───────────────────────────────────────────────────────────
+// Vista unica di tutto cio che deve uscire: i costi ricorrenti impostati nella
+// tab Costi, le una tantum con data futura, le scadenze con calendario proprio
+// e le ricariche dei prepagati. Prima erano tre elenchi in tre posti, e nessuno
+// rispondeva alla domanda vera — che cosa pago nelle prossime settimane.
+const ecoChiave = (id, d) => `${id}@${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+const ecoDataScadenza = (chiave, originale) => ECO_RINVII[chiave] || originale;
+
+function ecoScadenzario(mesiAvanti) {
+  const out = [];
+  const oggi = ECO_OGGI;
+  const orizzonte = new Date(oggi.getFullYear(), oggi.getMonth() + (mesiAvanti || 6), 0);
+  const dentro = (d) => d <= orizzonte;
+
+  const spingi = (r) => {
+    const chiave = r.chiave;
+    if (ECO_PAGATI[chiave]) return;                       // gia pagata: fuori dall'elenco
+    r.data = ecoDataScadenza(chiave, r.data);
+    if (!dentro(r.data)) return;
+    r.giorni = Math.ceil((r.data.getTime() - oggi.getTime()) / 86400000);
+    r.rinviata = !!ECO_RINVII[chiave];
+    out.push(r);
+  };
+
+  // 1 — costi ricorrenti e una tantum future, dalla tab Costi
+  ECO_FISSI.forEach(f => {
+    if (f.periodicita === 'una-tantum') {
+      if (f.dal >= new Date(oggi.getFullYear(), oggi.getMonth(), 1)) {
+        spingi({ chiave:ecoChiave(f.id, f.dal), voce:f.voce, data:new Date(f.dal),
+          importo:f.importo + (f.iva || 0), origine:'una tantum', fornitore:f.fornitore, rif:f, costo:true });
+      }
+      return;
+    }
+    const passo = f.periodicita === 'annuale' ? 12 : 1;
+    for (let k = 0; k <= (mesiAvanti || 6); k += passo) {
+      const d = new Date(oggi.getFullYear(), oggi.getMonth() + k, Math.min(f.dal.getDate(), 28));
+      if (d < new Date(oggi.getFullYear(), oggi.getMonth(), 1)) continue;
+      if (f.a && d > f.a) continue;
+      if (f.periodicita === 'annuale' && d.getMonth() !== f.dal.getMonth()) continue;
+      spingi({ chiave:ecoChiave(f.id, d), voce:f.voce, data:d,
+        importo:f.importo + (f.iva || 0), origine: f.periodicita === 'annuale' ? 'annuale' : 'mensile',
+        fornitore:f.fornitore, rif:f, costo:true });
+    }
+  });
+
+  // 2 — scadenze con calendario proprio
+  ECO_SCADENZE.forEach(x => {
+    spingi({ chiave:ecoChiave(x.id, x.quando), voce:x.voce, data:new Date(x.quando),
+      importo:x.importo, origine:x.tipo === 'iva' ? 'IVA' : x.tipo === 'imposte' ? 'imposte' : 'fornitore',
+      nota:x.nota, rif:x, costo: x.costo !== false });
+  });
+
+  // 3 — ricariche dei prepagati, calcolate dal consumo
+  ecoPrepagati().forEach(p => {
+    let residuo = p.pk.residuo, k = 0;
+    while (k < (mesiAvanti || 6)) {
+      const d = new Date(oggi.getFullYear(), oggi.getMonth() + k, 1);
+      residuo -= p.consumoMese;
+      if (residuo < 0) {
+        const giorno = new Date(d.getFullYear(), d.getMonth(), Math.min(28, Math.max(1,
+          Math.round(30 * (1 + residuo / p.consumoMese)))));
+        spingi({ chiave:ecoChiave(p.id, giorno), voce:`Ricarica ${p.pk.fornitore}`, data:giorno,
+          importo:p.taglio.prezzo, origine:'prepagato',
+          nota:`${p.taglio.quantita.toLocaleString('it-IT')} ${p.pk.unita}`, rif:p, costo:true });
+        residuo += p.taglio.quantita;
+      }
+      k++;
+    }
+  });
+
+  return out.sort((a, b) => a.data - b.data);
+}
+
+// Segna pagata un'occorrenza. Se e una voce che NON e gia un costo — le
+// scadenze con calendario proprio, tipo il rinnovo di una polizza — ne crea
+// uno alla data del pagamento. L'IVA e le imposte no: sono uscite di cassa,
+// non costi, e metterle nel conto economico sarebbe un errore.
+function ecoSegnaPagata(riga) {
+  ECO_PAGATI[riga.chiave] = new Date();
+  if (riga.costo && riga.origine === 'fornitore' && riga.rif && riga.rif.voce && !riga.rif.periodicita) {
+    ECO_FISSI.push({ id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
+      voce:riga.voce, categoria:'Altro', importo:riga.importo || 0, iva:0,
+      periodicita:'una-tantum', dal:new Date(), a:null,
+      fornitore:riga.fornitore || '—', piva:'', fattura:null });
+  }
+}
+const ecoRimanda = (riga, nuovaData) => { ECO_RINVII[riga.chiave] = nuovaData; };
+
 // Autonomia. DUE letture, e non sono intercambiabili:
 //  - col ricavo: cassa diviso il bruciato NETTO (costi meno incassi). E la
 //    definizione standard, e risponde a "quanto dura se le cose vanno come
@@ -427,6 +515,9 @@ window.ecoRiacquisti = ecoRiacquisti;
 window.ecoIvaAcquisti = ecoIvaAcquisti;
 window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;
+window.ecoScadenzario = ecoScadenzario;
+window.ecoSegnaPagata = ecoSegnaPagata;
+window.ecoRimanda = ecoRimanda;
 window.ecoRunway = ecoRunway;
 window.ecoRunwaySenzaRicavi = ecoRunwaySenzaRicavi;
 window.ecoStatoPatrimoniale = ecoStatoPatrimoniale;

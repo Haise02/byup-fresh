@@ -1,22 +1,55 @@
 // Economix — cassa e stato patrimoniale.
 
+// Rimandare non e cancellare: la voce resta, cambia la data, e la riga lo
+// dichiara. Una scadenza che sparisce perche e stata spostata e il modo piu
+// facile per dimenticarsene.
+function EcoModaleRimanda({ riga, onChiudi, onSalva }) {
+  const [d, setD] = useStateEco(new Date(riga.data.getTime() + 15 * 86400000).toISOString().slice(0, 10));
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="rimanda" onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'92%', background:'#fff',
+        borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.18s ease'}}>
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:5}}>Rimandare {riga.voce}</div>
+        <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
+          Era prevista il {cfFmt(riga.data)}
+          {riga.importo != null && riga.importo > 0 && ` per ${ecoEur2(riga.importo)}`}.
+          La voce resta nello scadenzario con la nuova data, segnalata come rinviata.
+        </div>
+        <label style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+          letterSpacing:'0.05em', display:'block', marginBottom:6}}>Nuova data</label>
+        <input type="date" value={d} onChange={e=>setD(e.target.value)} style={ECO_INP}/>
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:18}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!d}
+            onClick={()=>onSalva(new Date(d + 'T12:00:00'))}>Rimanda</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ CASSA ══════════════════════════════════════════════════════════════ */
-function EcoCassa({ mix, leve }) {
+function EcoCassa({ mix, leve, forza }) {
   const flussi = ecoProiezioneCassa(mix, leve);
   const run = ecoRunway(flussi);
   const saldoOggi = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
   const bruciaMedio = flussi.length
     ? flussi.reduce((t, x) => t + x.netto, 0) / flussi.length : 0;
 
-  // Scadenze future ordinate: e la lista che si guarda per sapere che cosa
-  // arriva, non un archivio.
-  const scadenze = ECO_SCADENZE
-    .filter(x => x.quando >= new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1))
-    .sort((a, b) => a.quando - b.quando);
   const banca = ecoBanca();
   const ggConsenso = banca ? ecoGiorniConsenso(banca) : null;
   const ritardo = ecoRitardoRendiconto(banca);
   const senzaRicavi = ecoRunwaySenzaRicavi(flussi, saldoOggi);
+  const [rimanda, setRimanda] = useStateEco(null);
+  const [nuovaScad, setNuovaScad] = useStateEco(false);
+  // Dodici mesi e non sei: con sei le voci annuali — la polizza a gennaio, il
+  // dominio a febbraio — non comparirebbero mai, e lo scadenzario sembrerebbe
+  // averle dimenticate proprio mentre dichiara di mostrarle tutte.
+  const scadenze = ecoScadenzario(12);
+  const inScadenza = scadenze.filter(x => x.giorni <= 0).length;
   const prepagati = ecoPrepagati();
   const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
   const minSaldo = Math.min.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
@@ -206,33 +239,76 @@ function EcoCassa({ mix, leve }) {
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
           <div style={{...ECO_H, marginBottom:0}}>Scadenzario</div>
           <span style={{fontSize:12.4, color:ADM.MUTED}}>
-            uscite con un calendario proprio, che non si deducono dai costi ricorrenti
+            tutto ciò che deve uscire nei prossimi dodici mesi · {inScadenza
+              ? `${inScadenza} ${inScadenza === 1 ? 'voce da saldare' : 'voci da saldare'}`
+              : 'nessuna voce scaduta'}
           </span>
+          <div style={{flex:1}}/>
+          <AdmButton variant="primary" size="sm" onClick={()=>setNuovaScad(true)}>Aggiungi una scadenza</AdmButton>
         </div>
         <div style={ECO_CARD}>
+          {scadenze.length === 0 && (
+            <div style={{padding:'22px 16px', textAlign:'center', fontSize:13, color:ADM.MUTED}}>
+              Nessuna scadenza nei prossimi dodici mesi.
+            </div>
+          )}
           {scadenze.map((x, i) => {
-            const gg = Math.round((x.quando - ECO_OGGI) / 86400000);
+            const dovuta = x.giorni <= 0;
             return (
-              <div key={x.id} style={{display:'grid', gridTemplateColumns:'minmax(0,2fr) 130px 118px 120px', gap:12,
-                alignItems:'center', padding:'13px 16px',
+              <div key={x.chiave} style={{display:'grid', gridTemplateColumns:ECO_GRID_SCAD, gap:12,
+                alignItems:'center', padding:'12px 16px',
+                background: dovuta ? '#FFFBFB' : '#fff',
                 borderBottom: i < scadenze.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
                 <div style={{minWidth:0}}>
                   <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{x.voce}</div>
-                  <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.45}}>{x.nota}</div>
+                  <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.45}}>
+                    {x.fornitore || x.nota || '—'}
+                    {x.rinviata && <span style={{color:ADM.WARN, fontWeight:700}}> · rinviata</span>}
+                  </div>
                 </div>
-                <div style={{fontSize:12.6, color:ADM.TEXT, ...ECO_NUM}}>{cfFmt(x.quando)}</div>
-                <div style={{fontSize:12.2, color: gg < 30 ? ADM.WARN : ADM.MUTED, fontWeight: gg < 30 ? 700 : 400}}>
-                  {gg < 0 ? `${-gg} giorni fa` : `fra ${gg} giorni`}
+                <div style={{fontSize:11.4, color:ADM.MUTED}}>{x.origine}</div>
+                <div style={{fontSize:12.6, color:ADM.TEXT, ...ECO_NUM}}>{cfFmt(x.data)}</div>
+                <div style={{fontSize:12.2, fontWeight: dovuta ? 700 : 400,
+                  color: dovuta ? ADM.DANGER : x.giorni < 15 ? ADM.WARN : ADM.MUTED}}>
+                  {x.giorni < 0 ? `${-x.giorni} giorni fa` : x.giorni === 0 ? 'oggi' : `fra ${x.giorni} giorni`}
                 </div>
                 <div style={{fontSize:13.4, fontWeight:700, textAlign:'right', ...ECO_NUM,
                   color: x.importo ? ADM.TEXT : ADM.MUTED_SOFT}}>
-                  {x.importo == null ? 'da calcolare' : x.importo === 0 ? '—' : ecoEur(x.importo)}
+                  {x.importo == null ? 'da calcolare' : x.importo === 0 ? '—' : ecoEur2(x.importo)}
+                </div>
+                {/* I pulsanti compaiono il giorno della scadenza: prima non c'e
+                    niente da decidere, e mostrarli invita a saldare in anticipo
+                    cose che hanno una data per un motivo. */}
+                <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                  {dovuta ? (
+                    <React.Fragment>
+                      <AdmButton variant="ghost" size="sm" style={{fontSize:12}}
+                        onClick={()=>setRimanda(x)}>Rimanda</AdmButton>
+                      <AdmButton variant="primary" size="sm" style={{fontSize:12}}
+                        onClick={()=>{ ecoSegnaPagata(x); forza(); }}>Pagato</AdmButton>
+                    </React.Fragment>
+                  ) : (
+                    <span style={{fontSize:11.4, color:ADM.MUTED_LIGHT}}>—</span>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {rimanda && <EcoModaleRimanda riga={rimanda} onChiudi={()=>setRimanda(null)}
+        onSalva={(d)=>{ ecoRimanda(rimanda, d); setRimanda(null); forza(); }}/>}
+      {nuovaScad && <EcoModaleCosto onChiudi={()=>setNuovaScad(false)} onSalva={(b)=>{
+        const quando = new Date(b.dal + 'T12:00:00');
+        const imp = parseFloat(String(b.importo).replace(',', '.')) || 0;
+        ECO_FISSI.push({ id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
+          voce:b.voce.trim(), categoria:b.categoria, importo:imp,
+          iva: Math.round(imp * (parseFloat(b.aliquota) || 0)) / 100,
+          periodicita:b.periodicita, dal:quando, a:null,
+          fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(), fattura:null });
+        setNuovaScad(false); forza();
+      }}/>}
     </div>
   );
 }
@@ -312,6 +388,8 @@ function EcoPatrimonio({ mix }) {
     </div>
   );
 }
+
+const ECO_GRID_SCAD = 'minmax(0,2fr) 108px 108px 118px 120px 172px';
 
 window.EcoCassa = EcoCassa;
 window.EcoPatrimonio = EcoPatrimonio;

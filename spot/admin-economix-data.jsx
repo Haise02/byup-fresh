@@ -264,16 +264,24 @@ const ECO_CASSA = {
   fidoBancario: 0,
 };
 
-// Scadenze note: quelle che non si deducono dai costi ricorrenti perche hanno
-// un calendario proprio — imposte, IVA, rate. Sono quelle che sorprendono.
+// Registro dei pagamenti effettuati e dei rinvii. La chiave identifica la
+// SINGOLA occorrenza — "F-01@2026-08" — non la voce: un canone mensile pagato
+// ad agosto deve restare da pagare a settembre.
+const ECO_PAGATI = {};
+const ECO_RINVII = {};
+
+// Scadenze con un calendario proprio, che non si deducono dai costi ricorrenti.
+// `costo:false` sulle voci che sono movimenti di cassa ma NON costi: l'IVA si
+// versa, non si spende — e finita nel conto economico sarebbe un errore.
 const ECO_SCADENZE = [
-  { id:'S1', voce:'Liquidazione IVA del trimestre', tipo:'iva', quando:new Date(ECO_OGGI.getFullYear(), 7, 16),
+  { id:'S1', voce:'Liquidazione IVA del trimestre', tipo:'iva', costo:false,
+    quando:new Date(ECO_OGGI.getFullYear(), 7, 16),
     importo:null, nota:'Si calcola dalla differenza fra IVA sulle vendite e IVA sugli acquisti del trimestre.' },
-  { id:'S2', voce:'Primo acconto IRES e IRAP', tipo:'imposte', quando:new Date(ECO_OGGI.getFullYear(), 5, 30),
+  { id:'S2', voce:'Primo acconto IRES e IRAP', tipo:'imposte', costo:false, quando:new Date(ECO_OGGI.getFullYear(), 5, 30),
     importo:0, nota:'Zero: si calcola sull\'imposta dell\'esercizio precedente, che era nulla per via delle perdite.' },
-  { id:'S3', voce:'Secondo acconto IRES e IRAP', tipo:'imposte', quando:new Date(ECO_OGGI.getFullYear(), 10, 30),
+  { id:'S3', voce:'Secondo acconto IRES e IRAP', tipo:'imposte', costo:false, quando:new Date(ECO_OGGI.getFullYear(), 10, 30),
     importo:0, nota:'Come sopra: nessun acconto dovuto finche l\'imposta di riferimento resta zero.' },
-  { id:'S4', voce:'Rinnovo assicurazione RC professionale', tipo:'fornitore', quando:new Date(ECO_OGGI.getFullYear() + 1, 0, 15),
+  { id:'S4', voce:'Rinnovo assicurazione RC professionale', tipo:'fornitore', costo:true, quando:new Date(ECO_OGGI.getFullYear() + 1, 0, 15),
     importo:1450, nota:'Annuale, esce in un colpo solo.' },
 ];
 
@@ -359,4 +367,6 @@ window.ECO_FATTURE = ECO_FATTURE;
 window.ECO_STORICO = ECO_STORICO;
 window.ECO_CASSA = ECO_CASSA;
 window.ECO_SCADENZE = ECO_SCADENZE;
+window.ECO_PAGATI = ECO_PAGATI;
+window.ECO_RINVII = ECO_RINVII;
 window.ECO_PATRIMONIO = ECO_PATRIMONIO;
