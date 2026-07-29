@@ -167,7 +167,10 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
 
   return (
     <div>
-      <ImpCard anchor="locale" title="Locale" sub="Dettagli utili che i clienti vedono sulla vetrina del tuo locale">
+      {/* Senza title e sub ImpCard non rende l'intestazione, ma tiene
+          data-cfg-anchor sulla section: il collegamento «Informazioni base»
+          della checklist continua a portare qui. */}
+      <ImpCard anchor="locale">
         {/* Due colonne: campi a sinistra, servizi e accessibilità a destra —
             la card resta compatta invece di allungarsi in verticale. */}
         <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start'}}>
