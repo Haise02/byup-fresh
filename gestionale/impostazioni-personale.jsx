@@ -1466,7 +1466,6 @@ function PersonaleStep({ team, setTeam }) {
     setTeam(t => [...t, { id: `t${Date.now()}`, kind: 'person', name, email: invEmail.trim(), role: roleLabel, status: 'invited' }]);
     setInvName(''); setInvEmail('');
   };
-  const setStatus = (id, status) => setTeam(t => t.map(m => m.id === id ? { ...m, status } : m));
   const removeMember = (id) => setTeam(t => t.filter(m => m.id !== id));
 
   return (
@@ -1504,15 +1503,6 @@ function PersonaleStep({ team, setTeam }) {
           </div>
           <AddInviteBtn disabled={!emailValid} onClick={addInvite}/>
         </div>
-        <button onClick={() => setInvite({ roleId: selRole, kind: 'person' })} style={{
-          marginTop: 8, padding: 0, background:'transparent', border:'none',
-          fontSize: 13, fontWeight: 600, color: PN.MUTED, cursor:'pointer', fontFamily:'inherit',
-          textDecoration:'underline', textUnderlineOffset: 3,
-        }}
-          onMouseEnter={e => { e.currentTarget.style.color = PN.PINK_DARK; }}
-          onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}>
-          Vuoi allegare un messaggio personale? Usa l'invito completo
-        </button>
       </div>
 
       {/* Elenco unificato: persone e dispositivi, con stato e azioni */}
@@ -1521,8 +1511,6 @@ function PersonaleStep({ team, setTeam }) {
           <div style={{fontSize: 14.5, fontWeight: 700, flex: 1}}>Inviti e accessi</div>
           <ImpButton variant="ghost" icon={<PnI.Plus size={12}/>} style={{padding:'6px 12px', fontSize: 13.5}}
             onClick={() => setShowCreateRole(true)}>Crea ruolo</ImpButton>
-          <ImpButton variant="ghost" icon={(BuIcons.monitor||BuIcons.phone)({size: 13, color:'currentColor'})} style={{padding:'6px 12px', fontSize: 13.5}}
-            onClick={() => setInvite({ roleId: null, kind: 'device' })}>Aggiungi dispositivo</ImpButton>
         </div>
         <div style={{border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, background: PN.WHITE}}>
           {team.map((m, i) => (
@@ -1530,12 +1518,10 @@ function PersonaleStep({ team, setTeam }) {
               openMenu={openMenu} setOpenMenu={setOpenMenu}
               onAction={(action) => {
                 setOpenMenu(null);
-                if (action === 'suspend') setStatus(m.id, 'suspended');
-                if (action === 'reactivate') setStatus(m.id, 'active');
                 if (action === 'revoke') setConfirm({
-                  title: 'Revocare l\'invito?',
+                  title: 'Annullare l\'invito?',
                   body: <>L'invito a <b style={{color: PN.TEXT}}>{m.email}</b> non sarà più valido.</>,
-                  cta: 'Revoca invito', onConfirm: () => removeMember(m.id),
+                  cta: 'Annulla invito', onConfirm: () => removeMember(m.id),
                 });
                 if (action === 'remove') setConfirm({
                   title: 'Rimuovere dal team?',
@@ -1551,6 +1537,22 @@ function PersonaleStep({ team, setTeam }) {
               }}/>
           ))}
         </div>
+        {/* Aggiungere un dispositivo non e un'azione di rifinitura come «Crea
+            ruolo»: e l'altra meta di questo passo — le persone e i monitor —
+            quindi sta in fondo, largo, dove finisce l'elenco a cui si aggiunge. */}
+        <button onClick={() => setInvite({ roleId: null, kind: 'device' })}
+          className="pn-btn-feedback"
+          style={{
+            width:'100%', marginTop: 12, padding:'13px 16px', borderRadius: 11,
+            border:`1.5px dashed ${PN.BORDER}`, background: PN.WHITE,
+            display:'flex', alignItems:'center', justifyContent:'center', gap: 9,
+            fontFamily:'inherit', fontSize: 14.5, fontWeight: 700, color: PN.TEXT,
+            cursor:'pointer',
+          }}>
+          {(BuIcons.monitor||BuIcons.phone)({size: 16, color:'currentColor'})}
+          Aggiungi dispositivo
+        </button>
+
         <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 12, fontSize: 13, color: PN.MUTED}}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
@@ -1677,29 +1679,25 @@ function TeamRow({ m, last, openMenu, setOpenMenu, onAction }) {
           boxShadow:'0 8px 24px rgba(0,0,0,0.12)',
           padding: 6, zIndex: 50,
         }}>
+          {/* Due sole voci: cambiare il ruolo e disfare. Resettare una password o
+              sospendere un accesso sono manutenzione, e la manutenzione non si fa
+              durante la configurazione iniziale — si fa in Impostazioni, quando
+              serve davvero. Averle qui invitava a usarle su un team appena creato. */}
           {m.kind === 'device' ? (
             <>
               <MenuItem icon={BuIcons.edit({size: 14, color:'currentColor'})} onClick={() => onAction('edit-device')}>Modifica</MenuItem>
-              <MenuItem icon={<PnI.Key size={14}/>} onClick={() => onAction('noop')}>Genera nuova password</MenuItem>
-              {m.status === 'suspended'
-                ? <MenuItem icon={BuIcons.play({size: 14, color:'currentColor'})} onClick={() => onAction('reactivate')}>Riattiva accesso</MenuItem>
-                : <MenuItem icon={BuIcons.pause({size: 14, color:'currentColor'})} onClick={() => onAction('suspend')}>Sospendi accesso</MenuItem>}
               <div style={{height: 1, background: PN.BORDER_SOFT, margin:'4px 0'}}/>
               <MenuItem icon={BuIcons.trash({size: 14, color:'currentColor'})} danger onClick={() => onAction('unlink')}>Scollega dispositivo</MenuItem>
             </>
           ) : m.status === 'invited' ? (
             <>
-              <MenuItem icon={(BuIcons.send||BuIcons.mail)({size: 14, color:'currentColor'})} onClick={() => onAction('noop')}>Invita di nuovo</MenuItem>
+              <MenuItem icon={BuIcons.user({size: 14, color:'currentColor'})} onClick={() => onAction('noop')}>Modifica ruolo</MenuItem>
               <div style={{height: 1, background: PN.BORDER_SOFT, margin:'4px 0'}}/>
-              <MenuItem icon={BuIcons.trash({size: 14, color:'currentColor'})} danger onClick={() => onAction('revoke')}>Revoca invito</MenuItem>
+              <MenuItem icon={BuIcons.trash({size: 14, color:'currentColor'})} danger onClick={() => onAction('revoke')}>Annulla invito</MenuItem>
             </>
           ) : (
             <>
               <MenuItem icon={BuIcons.user({size: 14, color:'currentColor'})} onClick={() => onAction('noop')}>Modifica ruolo</MenuItem>
-              <MenuItem icon={<PnI.Key size={14}/>} onClick={() => onAction('noop')}>Resetta password</MenuItem>
-              {m.status === 'suspended'
-                ? <MenuItem icon={BuIcons.play({size: 14, color:'currentColor'})} onClick={() => onAction('reactivate')}>Riattiva accesso</MenuItem>
-                : <MenuItem icon={BuIcons.pause({size: 14, color:'currentColor'})} onClick={() => onAction('suspend')}>Sospendi accesso</MenuItem>}
               <div style={{height: 1, background: PN.BORDER_SOFT, margin:'4px 0'}}/>
               <MenuItem icon={BuIcons.trash({size: 14, color:'currentColor'})} danger onClick={() => onAction('remove')}>Rimuovi dal team</MenuItem>
             </>

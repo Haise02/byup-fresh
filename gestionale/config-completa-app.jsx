@@ -28,6 +28,7 @@ function ConfigCompletaApp() {
   // Team dello step Personale: vive qui perché lo leggono sia il form a
   // sinistra sia la rail destra (panoramica team + checklist).
   const [team, setTeam] = React.useState(() => window.PERSONALE_TEAM_INITIAL || []);
+  const [guidaStaff, setGuidaStaff] = React.useState(false);
 
 
   // Checklist di completamento: ogni voce sa in quale step e sezione vive,
@@ -325,12 +326,14 @@ function ConfigCompletaApp() {
           display: 'flex', flexDirection: 'column', minHeight: 0,
         }}>
           <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12}}>
-            <StaffInviteGuide/>
+            <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
             <StaffTeamStats team={team}/>
             <StaffChecklist team={team}/>
           </div>
         </aside>
       )}
+
+      {guidaStaff && <StaffGuidaModal onClose={() => setGuidaStaff(false)}/>}
 
       {/* ─── Rail destra FISSA: solo il telefono, grande — non scrolla ──── */}
       {step !== 'personale' && (
@@ -488,54 +491,79 @@ function RailCard({ children }) {
   );
 }
 
-// Guida per i collaboratori: come si accetta l'invito. Deve essere la prima
-// cosa che si vede a destra atterrando sullo step.
-function StaffInviteGuide() {
+// La guida non e piu una card sempre aperta nella rail: e un link e una modale.
+// Chi sta invitando il terzo cameriere non ha bisogno di rileggere i passi ogni
+// volta, ma chi li cerca deve trovarli senza uscire dallo step.
+function StaffGuidaLink({ onApri }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+      <button onClick={onApri}
+        onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+        style={{
+          padding: 0, background: 'transparent', border: 'none', cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600,
+          color: hover ? PN.PINK_DARK : PN.MUTED,
+          textDecoration: 'underline', textUnderlineOffset: 3,
+          transition: 'color 150ms ease',
+        }}>
+        Come creare un membro del team?
+      </button>
+    </div>
+  );
+}
+
+// I passi sono scritti al RISTORATORE, non al collaboratore: e lui che ha aperto
+// la guida, ed e lui che deve far succedere le tre cose.
+function StaffGuidaModal({ onClose }) {
   const steps = [
-    <>Apri l'email di invito ricevuta da byup.</>,
-    <>Clicca sul link di conferma e imposta una password tramite il link che ti verrà dato.</>,
-    <>Al termine, clicca sulla CTA <b style={{color: PN.TEXT}}>"Aggiungi Byup Cameriere alla tua Home"</b>.</>,
+    <>Inserisci nome, cognome, email e ruolo. Fai click su <b style={{color: PN.TEXT}}>"Invita"</b>.</>,
+    <>Fai aprire l'email e cliccare sul link di conferma all'invitato.</>,
+    <>Una volta configurata la password fai fare click su <b style={{color: PN.TEXT}}>"Aggiungi Byup Cameriere alla tua Home"</b>.</>,
   ];
   return (
-    <RailCard>
-      <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Come accettare l'invito staff</div>
-      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, marginBottom: 14}}>
-        Spiega chiaramente ai collaboratori cosa fare per iniziare.
-      </div>
-      <div>
-        {steps.map((s, i) => (
-          <div key={i} style={{display: 'flex', gap: 12, position: 'relative', paddingBottom: 14}}>
-            {/* Connettore tratteggiato fra i numeri */}
-            <span style={{position: 'absolute', left: 12, top: 27, bottom: -1, borderLeft: `1.5px dashed ${PN.BORDER}`}}/>
-            <span style={{
-              width: 25, height: 25, borderRadius: '50%', flexShrink: 0,
-              border: `1.5px solid ${PN.PINK}`, color: PN.PINK, background: PN.WHITE,
-              display: 'grid', placeItems: 'center',
-              fontSize: 12.5, fontWeight: 700, position: 'relative', zIndex: 1,
-            }}>{i + 1}</span>
-            <div style={{fontSize: 12.8, lineHeight: 1.5, color: PN.TEXT, paddingTop: 3, minWidth: 0}}>
-              {s}
-              {i === 2 && (
-                <div style={{
-                  marginTop: 10, padding: '9px 12px', borderRadius: 10,
-                  border: `1.5px solid ${PN.PINK}`, color: PN.PINK,
-                  fontSize: 12.5, fontWeight: 700, textAlign: 'center',
-                  background: PN.WHITE, cursor: 'default', userSelect: 'none',
-                }}>Aggiungi Byup Cameriere alla tua Home</div>
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)',
+      display: 'grid', placeItems: 'center', zIndex: 200, padding: 20,
+      backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 460, maxWidth: '92%', background: PN.WHITE, borderRadius: 16,
+        padding: '22px 24px 20px', boxShadow: '0 24px 64px rgba(15,17,21,0.30)',
+      }}>
+        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Come accettare l'invito staff</div>
+        <div style={{fontSize: 13, color: PN.MUTED, marginTop: 3, marginBottom: 18}}>
+          Spiega chiaramente ai collaboratori cosa fare per iniziare.
+        </div>
+        <div>
+          {steps.map((s, i) => (
+            <div key={i} style={{display: 'flex', gap: 12, position: 'relative', paddingBottom: 16}}>
+              {/* Connettore tratteggiato fra i numeri, tranne dopo l'ultimo */}
+              {i < steps.length - 1 && (
+                <span style={{position: 'absolute', left: 12, top: 27, bottom: -1, borderLeft: `1.5px dashed ${PN.BORDER}`}}/>
               )}
+              <span style={{
+                width: 25, height: 25, borderRadius: '50%', flexShrink: 0,
+                border: `1.5px solid ${PN.PINK}`, color: PN.PINK, background: PN.WHITE,
+                display: 'grid', placeItems: 'center',
+                fontSize: 12.5, fontWeight: 700, position: 'relative', zIndex: 1,
+              }}>{i + 1}</span>
+              <div style={{fontSize: 13.4, lineHeight: 1.55, color: PN.TEXT, paddingTop: 3, minWidth: 0}}>{s}</div>
             </div>
-          </div>
-        ))}
-        <div style={{display: 'flex', gap: 12, alignItems: 'flex-start'}}>
-          <span style={{width: 25, flexShrink: 0, display: 'grid', placeItems: 'center', color: PN.MUTED, paddingTop: 2}}>
-            {(BuIcons.phone||BuIcons.user)({size: 14, color: 'currentColor'})}
-          </span>
-          <div style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.5}}>
-            Consigliato per avere l'accesso rapido dal telefono durante il servizio.
-          </div>
+          ))}
+        </div>
+        <div style={{
+          padding: '12px 14px', borderRadius: 11, background: PN.PINK_BG_SOFT || '#FFF1EF',
+          border: `1px solid ${PN.PINK_SOFT}`, fontSize: 13.2, fontWeight: 700,
+          color: PN.PINK_DARK, lineHeight: 1.45,
+        }}>
+          Controlla che tutti abbiano aggiunto Byup Cameriere alla Home del proprio dispositivo!
+        </div>
+        <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: 16}}>
+          <ImpButton variant="primary" onClick={onClose}>Ho capito</ImpButton>
         </div>
       </div>
-    </RailCard>
+    </div>
   );
 }
 
