@@ -755,7 +755,9 @@ function CfEvVerificaModal({ nc, scelta, onScelta, nota, onNota, onAnnulla, onCo
   );
 }
 
-const CF_EV_GRID_NC = '108px minmax(0,2.4fr) minmax(0,1.05fr) 118px 176px 124px 26px';
+// Responsabile a 1.35fr: a 1.05 l'intestazione «RESPONSABILE», che in maiuscolo
+// con la spaziatura è più larga di qualunque nome, sconfinava su «SCADENZA».
+const CF_EV_GRID_NC = '108px minmax(0,2.15fr) minmax(0,1.35fr) 118px 168px 120px 26px';
 
 // ─── Registrare una non conformità ─────────────────────────────────────────
 // L'origine non è un'etichetta di comodo: dice se il sistema si accorge da solo
@@ -878,10 +880,6 @@ function CfNonConformita() {
       (a.stato === 'chiusa' ? 1 : 0) - (b.stato === 'chiusa' ? 1 : 0) ||
       b.data.getTime() - a.data.getTime());
 
-  const aperte = righe.filter(n => n.stato !== 'chiusa').length;
-  const daVerificare = righe.filter(n => n.stato === 'da verificare').length;
-  const chiuse = righe.filter(n => n.stato === 'chiusa').length;
-  const ritardi = righe.filter(n => n.stato !== 'chiusa' && n.scadenza && cfGiorniA(n.scadenza) < 0).length;
 
   const apriVerifica = (n) => { setVerifica(n); setScelta(null); setNota(''); };
 
@@ -900,41 +898,9 @@ function CfNonConformita() {
     setVerifica(null); setScelta(null); setNota('');
   };
 
-  const tonoBanda = ritardi ? 'DANGER' : daVerificare ? 'WARN' : 'OK';
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
-
-      {/* Dove si inceppa il ciclo */}
-      <div style={{padding:'14px 16px', borderRadius:10,
-        background: CF_TONO_BG(tonoBanda),
-        border:`1px solid ${ritardi ? '#FECACA' : daVerificare ? '#FDE68A' : '#BBF7D0'}`}}>
-        <div style={{fontSize:14.5, fontWeight:800,
-          color: ritardi ? '#7F1D1D' : daVerificare ? '#78350F' : '#065F46'}}>
-          {ritardi
-            ? `${ritardi} ${ritardi === 1 ? 'azione correttiva oltre la scadenza' : 'azioni correttive oltre la scadenza'}`
-            : daVerificare
-              ? `${daVerificare} ${daVerificare === 1 ? 'non conformità aspetta la verifica di efficacia' : 'non conformità aspettano la verifica di efficacia'}`
-              : 'Nessuna non conformità aperta'}
-        </div>
-        <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>
-          {daVerificare > 0
-            ? 'L\'azione correttiva è conclusa ma non ancora provata: finché la verifica non è registrata la non conformità resta aperta.'
-            : 'Una non conformità si chiude con la verifica di efficacia, non con l\'azione correttiva.'}
-        </div>
-      </div>
-
-      {/* Numeri in testa */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:10}}>
-        <CfEvStat n={aperte} tono={aperte ? 'WARN' : 'OK'} label="non conformità aperte"
-          nota="registrate e non ancora chiuse con esito"/>
-        <CfEvStat n={daVerificare} tono={daVerificare ? 'WARN' : 'OK'} label="in attesa di verifica di efficacia"
-          nota="il passaggio che chiude davvero il ciclo §10.2"/>
-        <CfEvStat n={chiuse} tono="INK" label="chiuse con efficacia verificata"
-          nota="hanno un esito e una data di verifica agli atti"/>
-        <CfEvStat n={ritardi} tono={ritardi ? 'DANGER' : 'OK'} label="oltre la scadenza dell'azione"
-          nota="il ritardo è di per sé un rilievo: la scadenza l'abbiamo scelta noi"/>
-      </div>
 
       {/* Ciclo di vita — la mappa che l'auditor segue */}
       <div>
