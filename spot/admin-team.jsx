@@ -494,10 +494,6 @@ function PlatformConfig() {
   const doSave = () => { setConfirm(false); setSaved(true); setTimeout(()=>setSaved(false), 3000); };
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:14, position:'relative'}}>
-      <div style={{padding:'10px 14px', background:ADM.WARN_SOFT, border:`1px solid ${ADM.WARN}33`, borderRadius:10, fontSize:12.5, color:'#7A4A0C', lineHeight:1.5}}>
-        Queste sono le <strong>leve commerciali della piattaforma</strong>: le modifiche si applicano dal prossimo ciclo di fatturazione, sono riservate ai Super Admin e vengono registrate nell'audit log.
-      </div>
-
       <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Piani e prezzi</div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         {Object.entries(cfg).map(([id, p]) => (

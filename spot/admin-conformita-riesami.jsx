@@ -596,65 +596,16 @@ const RIE_GRID_REST = '1fr minmax(0,2.1fr) 1.05fr 1.35fr 1.05fr minmax(0,2fr)';
 const rieTonoEsito = (e) => e === 'riuscito' ? 'OK' : e === 'riuscito con osservazioni' ? 'WARN' : 'DANGER';
 
 function CfFormazione() {
-  const righe   = rieRigheFormazione();
-  const assenti = rieAssentiFormazione();
-  const reg     = rieFormazioneInRegola();
-  const fuori   = reg.totale - reg.ok;
-
-  const sForm = cfStatoAdempimento(rieAdemp('form') || {});
-  const bForm = rieBanda(fuori ? 'WARN' : sForm.stato === 'ok' ? 'NEUTRAL' : sForm.tono);
+  const righe = rieRigheFormazione();
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:22, position:'relative'}}>
 
-      {/* ── Formazione ────────────────────────────────────────────────── */}
       <div>
-        <div style={{...RIE_BANDA, background:bForm.bg, border:`1px solid ${bForm.bd}`, marginBottom:14}}>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14.5, fontWeight:800, color:bForm.fg}}>
-              {fuori
-                ? `${fuori} ${fuori === 1 ? 'persona' : 'persone'} fuori copertura sulla formazione obbligatoria`
-                : 'Tutto il team attivo è coperto dalla formazione obbligatoria'}
-            </div>
-            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-              A.6.3 · consapevolezza sicurezza, rinnovo annuale · ultima campagna {cfFmt(rieAdemp('form') && rieAdemp('form').ultima)}
-            </div>
-          </div>
-          <div style={{textAlign:'right', flexShrink:0}}>
-            <div style={{fontSize:24, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
-              {reg.ok}<span style={{fontSize:14, fontWeight:600, color:ADM.MUTED}}> / {reg.totale}</span>
-            </div>
-            <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:3}}>persone in regola</div>
-          </div>
-          <div style={{textAlign:'right', flexShrink:0}}>
-            <CfPill tono={sForm.tono}>{sForm.label}</CfPill>
-            <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:5}}>prossima entro il {cfFmt(sForm.prossima)}</div>
-          </div>
-        </div>
-
-        {assenti.length > 0 && (
-          <div style={{display:'flex', alignItems:'flex-start', gap:11, padding:'12px 14px', borderRadius:10,
-            background:ADM.DANGER_SOFT, border:'1px solid #FECACA', marginBottom:12}}>
-            <BuIcons.alertTriangle size={16} color={ADM.DANGER}/>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:13.4, fontWeight:800, color:'#7F1D1D'}}>
-                {assenti.length === 1
-                  ? 'Una persona con accesso attivo non compare nel registro'
-                  : `${assenti.length} persone con accesso attivo non compaiono nel registro`}
-              </div>
-              <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
-                {assenti.map(m => `${rieNome(m)} · nel team dal ${cfFmt(m.addedOn)}`).join(' — ')}.
-                Il controllo si misura su chi ha accesso, non su chi è già scritto qui: una persona
-                senza riga è un rilievo, non una dimenticanza.
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...CF_H, marginBottom:0}}>Registro della formazione</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>mai svolte e scadute in cima: sono le righe che generano il rilievo</span>
-        </div>
+        {/* Titolo di blocco: e la sola cosa in questa tab, non l'intestazione di
+            una tabella fra altre. */}
+        <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
+          letterSpacing:'0.08em', marginBottom:12}}>Registro della formazione</div>
 
         <div style={CF_CARD}>
           <div style={{...CF_TH, display:'grid', gridTemplateColumns:RIE_GRID_FORM, gap:10}}>
@@ -679,11 +630,6 @@ function CfFormazione() {
           ))}
         </div>
 
-        <div style={{...RIE_NOTA, marginTop:10}}>
-          Qui sta solo l'<strong>evidenza</strong>: chi, quale corso, quando l'ha completato e quando scade.
-          Le slide, il questionario e il materiale del corso sono documenti e vivono nel gestore documentale —
-          all'auditor serve poter dire «questa persona, questo giorno», non riaprire il corso.
-        </div>
       </div>
 
     </div>
