@@ -267,6 +267,63 @@ window.MenuItem = MenuItem;
 // Layout: main content on left, optional vetrina preview on right
 function ImpWithPreview({ children, preview, dirty, onPublish }) {
   const [open, setOpen] = React.useState(true);
+  const asideRef = React.useRef(null);
+  const phoneRef = React.useRef(null);
+
+  // Il pannello resta fermo solo se ci sta nella finestra: `sticky` non ancora
+  // in cima gli elementi piu alti del viewport — li lascia scorrere finche non
+  // arriva il loro fondo, ed e esattamente il movimento che si vedeva (aside
+  // 1040px, viewport 997). Col banner sotto il telefono sfora di poco, quindi
+  // si restringe il telefono quel tanto che serve: l'aspect ratio 9/19,4 resta,
+  // cambia solo la larghezza, e la scocca non si deforma.
+  // offsetHeight/clientHeight sono px di LAYOUT: con lo zoom del .frame
+  // getBoundingClientRect() darebbe px visivi e il conto sarebbe sbagliato.
+  const adattaRef = React.useRef(() => {});
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    const adatta = () => {
+      const aside = asideRef.current, box = phoneRef.current;
+      if (!aside || !box) return;
+      const scroller = aside.parentElement.closest('.pn-scroll');   // NON aside.closest: l'aside ha la stessa classe
+      if (!scroller) return;
+      // Azzerare PRIMA di misurare: se il maxHeight del giro precedente e ancora
+      // applicato, aside.offsetHeight arriva gia tagliato e il contorno risulta
+      // piu piccolo del vero — il telefono cresce, il pannello sfora, e al giro
+      // dopo cresce ancora.
+      aside.style.maxHeight = 'none';
+      const piena = box.parentElement.clientWidth;
+      box.style.width = piena + 'px';
+      // Lo sticky si ferma dove finisce il suo contenitore — la griglia — ma la
+      // pagina scorre ancora per il padding che viene dopo: senza toglierlo dal
+      // conto il pannello scattava in su nell'ultimo tratto di scroll.
+      // I rect sono px visivi per via dello zoom del .frame, scrollTop e
+      // offsetHeight sono px di layout: il delta va diviso per lo zoom.
+      const griglia = aside.parentElement;
+      const frame = aside.closest('.frame');
+      const z = frame ? (parseFloat(getComputedStyle(frame).zoom) || 1) : 1;
+      const topGriglia = (griglia.getBoundingClientRect().top - scroller.getBoundingClientRect().top) / z + scroller.scrollTop;
+      const coda = Math.max(0, scroller.scrollHeight - (topGriglia + griglia.offsetHeight));
+      const disponibile = scroller.clientHeight - 36 - coda;     // 18 sopra + 18 sotto
+      const contorno = aside.offsetHeight - box.offsetHeight;    // tutto tranne il telefono
+      const maxTel = disponibile - contorno;
+      box.style.width = Math.max(180, Math.min(piena, Math.floor(maxTel * 9 / 19.4))) + 'px';
+      // Rete per le finestre molto basse: sotto i 180px di telefono si smette di
+      // rimpicciolire e a scorrere e il pannello, che comunque resta fermo.
+      aside.style.maxHeight = Math.max(240, disponibile) + 'px';
+    };
+    adattaRef.current = adatta;
+    adatta();
+    // Lo zoom del .frame lo applica uno script DOPO il mount: misurare una volta
+    // sola al montaggio significa calcolare su un viewport che non esiste
+    // ancora. Il ResizeObserver riparte quando il contenitore cambia davvero,
+    // zoom compreso.
+    const scroller = asideRef.current && asideRef.current.parentElement.closest('.pn-scroll');
+    const ro = scroller ? new ResizeObserver(adatta) : null;
+    if (ro) ro.observe(scroller);
+    window.addEventListener('resize', adatta);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', adatta); };
+  }, [open]);
+
   if (!preview) return <div>{children}</div>;
   return (
     <div style={{display:'grid', gridTemplateColumns: open ? '1fr 320px' : '1fr', gap: 18, alignItems:'flex-start'}}>
@@ -294,11 +351,12 @@ function ImpWithPreview({ children, preview, dirty, onPublish }) {
         // a sinistra scorre il contenuto. alignSelf:start blocca lo stretching
         // verticale del grid item — sticky funziona solo se l'item non si
         // estende a tutta l'altezza del row.
-        <aside style={{
+        <aside ref={asideRef} className="pn-scroll" style={{
           position: 'sticky', top: 18, alignSelf: 'start',
           ...PN.GLASS_LIGHT,
           borderRadius: 14,
           padding: '14px 14px 18px',
+          overflowY: 'auto',
         }}>
           <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 12}}>
             <div style={{flex: 1}}>
@@ -318,7 +376,7 @@ function ImpWithPreview({ children, preview, dirty, onPublish }) {
               vive accanto all'oggetto modificato (la vetrina = il phone preview). */}
           <PublishButton dirty={dirty} onPublish={onPublish}/>
 
-          {preview}
+          <div ref={phoneRef} data-imp-telefono style={{margin: '0 auto'}}>{preview}</div>
 
           {/* Banner piano Plus: click → Piani e abbonamenti. Stesso posto che ha
               nella configurazione completa — sotto il telefono, dove si e appena
@@ -326,6 +384,7 @@ function ImpWithPreview({ children, preview, dirty, onPublish }) {
           <a href="byup Profilo.html?tab=piani" title="Sblocca la vetrina esclusiva di Byup"
             style={{display:'block', marginTop: 12}}>
             <img src="banner-vetrina-plus.jpg" alt="Differenziati da tutti: sblocca la vetrina esclusiva di Byup, dal piano Plus"
+              onLoad={() => adattaRef.current()}
               style={{
                 width:'100%', display:'block', borderRadius: 12,
                 boxShadow:'0 8px 22px rgba(200, 60, 40, 0.28)',
