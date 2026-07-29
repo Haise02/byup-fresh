@@ -255,8 +255,19 @@ function ecoFlussiMese(m, mix) {
 
 // Proiezione della cassa: saldo di partenza, poi mese per mese entrate meno
 // uscite meno IVA versata. Il numero che conta e uno solo — quando finisce.
+// Il mese chiude un periodo IVA? E il mese in cui si versa quello chiuso prima?
+const ecoUltimoMesePeriodo = (d, regime) =>
+  regime === 'mensile' ? true : d.getMonth() % 3 === 2;
+const ecoMeseDiVersamento = (d, regime) => regime === 'mensile'
+  ? true : [2, 4, 7, 10].indexOf(d.getMonth()) !== -1;
+
 function ecoProiezioneCassa(mix, leve) {
   const futuri = ecoProiettaDriver(leve);
+  const regimeIva = ECO_CASSA.regimeIva;
+  // Si parte dalla posizione vera di oggi: il credito gia maturato va consumato
+  // prima che riparta un solo euro di versamento.
+  let posizioneIva = ecoSaldoIva(mix).saldo;
+  let chiusaIva = 0;
   const riacquisti = ecoRiacquisti(futuri);
   let saldo = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
   const out = [];
@@ -273,9 +284,16 @@ function ecoProiezioneCassa(mix, leve) {
     // ed e il motivo per cui la stima non puo essere il 22% pieno.
     const ivaAcquisti = ecoIvaAcquisti(d.data);
     const pagamenti = costi + ivaAcquisti;                  // al fornitore esce il lordo
-    // Versata allo Stato il 16 del mese successivo al trimestre: qui approssimata
-    // in dodicesimi mensili, ed e dichiarato.
-    const iva = Math.max(0, ivaIncassata - ivaAcquisti);
+    // L'IVA esce alle scadenze di liquidazione, non ogni mese, e prima consuma
+    // il credito accumulato. Con Byup a credito di quasi undicimila euro,
+    // addebitarla mensilmente accorciava l'autonomia di mesi che non esistono.
+    posizioneIva += ivaIncassata - ivaAcquisti;
+    if (ecoUltimoMesePeriodo(d.data, regimeIva)) { chiusaIva += posizioneIva; posizioneIva = 0; }
+    let iva = 0;
+    if (ecoMeseDiVersamento(d.data, regimeIva) && chiusaIva > 0) {
+      iva = chiusaIva * (1 + (regimeIva === 'trimestrale' ? ECO_CASSA.interessiTrimestrale / 100 : 0));
+      chiusaIva = 0;
+    }
     const scad = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === d.data.getFullYear()
       && x.quando.getMonth() === d.data.getMonth()).reduce((t, x) => t + x.importo, 0)
       + riacquisti.filter(r => r.mese === d.mese).reduce((t, r) => t + r.importo, 0);
@@ -622,12 +640,14 @@ function ecoImpattoEliminazione(costo, daQuando) {
 //    risponde a "quanto durerei se i ricavi si fermassero domani".
 // Su una societa ancora sotto il pareggio le due divergono molto, e mostrarne
 // una sola lascia credere che sia l'unica.
+// Restituisce anche il divisore, perche il numero da solo non si puo verificare:
+// «cinque mesi» diventa controllabile solo se accanto c'e per cosa hai diviso.
 function ecoRunwaySenzaRicavi(cassa, saldoOggi) {
-  if (!cassa.length) return Infinity;
+  if (!cassa.length) return { mesi:Infinity, costiMedi:0 };
   // Senza ricavi non c'e nemmeno IVA incassata: resta l'IVA pagata ai fornitori,
   // che senza vendite non si compensa con nulla e diventa un'uscita secca.
   const costiMedi = cassa.reduce((t, x) => t + x.pagamenti + x.scadenze, 0) / cassa.length;
-  return costiMedi > 0 ? saldoOggi / costiMedi : Infinity;
+  return { mesi: costiMedi > 0 ? saldoOggi / costiMedi : Infinity, costiMedi };
 }
 
 function ecoRunway(cassa) {

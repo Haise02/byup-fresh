@@ -56,7 +56,7 @@ function EcoCassa({ mix, leve, forza }) {
           { et:`Entrate ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(meseCorr ? meseCorr.incassi : 0),
             tono:ADM.OK,
             n: meseCorr
-              ? `${ecoEur(meseCorr.ricavi)} di abbonamenti più ${ecoEur(meseCorr.ivaIncassata)} di IVA`
+              ? `${ecoEur(meseCorr.incassi)} di entrate totali, di cui ${ecoEur(meseCorr.ivaIncassata)} di IVA`
               : '—' },
           // Entrate e uscite del mese sono la stessa domanda letta nei due versi,
           // e vanno lette una accanto all'altra. Il «quanto manca ancora» resta
@@ -82,8 +82,11 @@ function EcoCassa({ mix, leve, forza }) {
             v: run.oltre
               ? (run.mesi === Infinity ? 'illimitata' : `${Math.floor(run.mesi)} mesi`)
               : `${run.mesi} ${run.mesi === 1 ? 'mese' : 'mesi'}`,
-            n: `con i ricavi previsti · senza incassare nulla sarebbero ${
-              senzaRicavi === Infinity ? 'infiniti' : Math.floor(senzaRicavi)} mesi` },
+            // Il numero grande vale con i ricavi previsti; questo e l'altro
+            // scenario, scritto come divisione perche si possa rifare a mente.
+            n: senzaRicavi.mesi === Infinity
+              ? 'nessuna uscita prevista: autonomia illimitata'
+              : `${ecoEur(saldoOggi)} ÷ ${ecoEur(senzaRicavi.costiMedi)} di uscite medie mensili · senza incassi autonomia di ${Math.floor(senzaRicavi.mesi)} mesi` },
         ].map(c => (
           <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
             <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
