@@ -14,7 +14,7 @@ const ECO_SEL = { ...ECO_INP, appearance:'none', WebkitAppearance:'none', MozApp
   backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.6L6 6.4L11 1.6' stroke='%238A9099' stroke-width='1.9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
   backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
 const ECO_NUM = { fontVariantNumeric:'tabular-nums' };
-const ECO_GRID_VAR = 'minmax(0,1.9fr) 1.3fr 1.35fr 116px 112px';
+const ECO_GRID_VAR = 'minmax(0,1.65fr) 1.15fr 1.2fr 108px 108px minmax(0,1.05fr)';
 const ECO_GRID_FIS = 'minmax(0,1.9fr) 1fr 1.15fr 108px 112px 112px minmax(0,1.1fr)';
 const ECO_MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno',
   'luglio','agosto','settembre','ottobre','novembre','dicembre'];
@@ -267,10 +267,85 @@ function EcoModaleCosto({ onChiudi, onSalva }) {
   );
 }
 
+// Allegare la fattura a un costo gia registrato. Stessa forma della modale di
+// creazione, ridotta a cio che manca: il documento e i suoi due dati.
+function EcoModaleAllega({ voce, onChiudi, onSalva }) {
+  const [file, setFile] = useStateEco(null);
+  const [b, setB] = useStateEco({ numero:'', iva:'' });
+  const xml = !!file && /\.xml$/i.test(file);
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="allega" onClick={e=>e.stopPropagation()} style={{width:560, maxWidth:'92%', background:'#fff',
+        borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.18s ease', maxHeight:'100%', overflowY:'auto'}}>
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:5}}>Allegare la fattura</div>
+        <div style={{fontSize:12.6, color:ADM.MUTED, marginBottom:16, lineHeight:1.5}}>
+          {voce.nome} · {ecoEur2(voce.importo)}. Senza documento questa voce resta manuale: e un
+          numero che qualcuno ha scritto, non uno che si puo verificare.
+        </div>
+        <label style={{display:'block', marginBottom:16}}>
+          <div className="adm-card-interactive" style={{border:`1.5px dashed ${file ? ADM.OK : ADM.BORDER}`,
+            borderRadius:11, padding:'20px 16px', textAlign:'center', cursor:'pointer',
+            background: file ? ADM.OK_SOFT : '#FCFCFD'}}>
+            <div style={{fontSize:13.4, fontWeight:700, color: file ? ADM.OK : ADM.TEXT}}>
+              {file || 'Scegli il documento'}
+            </div>
+            <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:4}}>
+              {file ? (xml ? 'XML dallo SDI: la voce diventa automatica' : 'PDF: la voce resta manuale')
+                    : 'XML dallo SDI oppure PDF'}
+            </div>
+            <input type="file" style={{display:'none'}}
+              onChange={e => setFile(e.target.files && e.target.files[0] ? e.target.files[0].name : null)}/>
+          </div>
+        </label>
+        {file && (
+          <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16, marginBottom:18}}>
+            <EcoCampo etichetta="Numero documento">
+              <input value={b.numero} onChange={e=>setB(x=>({...x, numero:e.target.value}))} style={ECO_INP}
+                placeholder="es. 118/2026"/>
+            </EcoCampo>
+            <EcoCampo etichetta="IVA" aiuto="Zero in reverse charge.">
+              <input value={b.iva} onChange={e=>setB(x=>({...x, iva:e.target.value.replace(/[^\d.,]/g,'')}))}
+                style={ECO_INP} placeholder="0,00"/>
+            </EcoCampo>
+          </div>
+        )}
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!file} onClick={()=>onSalva({ ...b, file })}>
+            Allega
+          </AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// La casella del documento: stessa sagoma piena o vuota, come per i DPA dei
+// fornitori — cambia il riempimento, non la forma.
+function EcoDoc({ fattura }) {
+  if (fattura) return (
+    <span style={{display:'inline-flex', alignItems:'center', gap:6, maxWidth:'100%',
+      padding:'3px 10px 3px 8px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, background:'#fff'}}>
+      <BuIcons.paperclip size={12} color={ADM.MUTED_SOFT}/>
+      <span style={{fontSize:12, color:ADM.TEXT, overflow:'hidden', whiteSpace:'nowrap',
+        textOverflow:'ellipsis'}}>{fattura.file}</span>
+    </span>
+  );
+  return (
+    <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'3px 10px', borderRadius:8,
+      border:`1px dashed #F0A9AC`, background:ADM.DANGER_SOFT, color:ADM.DANGER,
+      fontSize:12, fontWeight:700}}>carica</span>
+  );
+}
+
 /* ═══ COSTI ══════════════════════════════════════════════════════════════ */
 function EcoCosti({ mix, forza }) {
   const [nuovo, setNuovo] = useStateEco(false);
   const [doc, setDoc] = useStateEco(null);
+  const [allega, setAllega] = useStateEco(null);
   const [k, setK] = useStateEco(ECO_STORICO.length - 1);   // mese selezionato
 
   const d = ECO_STORICO[k];
@@ -281,7 +356,8 @@ function EcoCosti({ mix, forza }) {
     const c = ecoConnessioneDi(s.id);
     const auto = !!c && c.stato === 'attivo';
     const pieno = ecoCostoServizio(s, d) * (auto ? (s.scarto || 1) : 1);
-    return { s, c, auto, consumo: ecoConsumo(s, d) * frazione, costo: pieno * frazione };
+    const ft = ECO_FATTURE.find(x => x.voce === s.id) || null;
+    return { s, c, ft, auto, consumo: ecoConsumo(s, d) * frazione, costo: pieno * frazione };
   }).sort((a, b) => b.costo - a.costo);
 
   const dataMese = new Date(d.data.getFullYear(), d.data.getMonth(), 1);
@@ -383,11 +459,13 @@ function EcoCosti({ mix, forza }) {
         <div style={ECO_H}>Costi a consumo</div>
         <div style={ECO_CARD}>
           <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_VAR, gap:11}}>
-            <div>Servizio</div><div>Dipende da</div><div>Consumo</div><div>Costo</div><div>Fonte</div>
+            <div>Servizio</div><div>Dipende da</div><div>Consumo</div><div>Costo</div><div>Fonte</div><div>Documento</div>
           </div>
           {righeVar.map((r, i) => (
-            <div key={r.s.id} style={{display:'grid', gridTemplateColumns:ECO_GRID_VAR, gap:11,
-              alignItems:'center', padding:'12px 16px',
+            <div key={r.s.id} className="adm-row-open"
+              onClick={()=> r.ft ? setDoc(r.ft) : setAllega({ id:r.s.id, tipo:'servizio', nome:r.s.nome, importo:r.costo })}
+              style={{display:'grid', gridTemplateColumns:ECO_GRID_VAR, gap:11,
+              alignItems:'center', padding:'12px 16px', cursor:'pointer',
               borderBottom: i < righeVar.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{minWidth:0}}>
                 <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.s.nome}</div>
@@ -401,6 +479,7 @@ function EcoCosti({ mix, forza }) {
               <div style={{fontSize:13.8, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.costo)}</div>
               <div><EcoFonte automatica={r.auto}
                 da={r.auto ? `Letta da ${r.c.nome}` : r.c ? `${r.c.nome}: ${ECO_STATO_CONN[r.c.stato].label}` : 'Stima del modello'}/></div>
+              <div style={{minWidth:0}}><EcoDoc fattura={r.ft}/></div>
             </div>
           ))}
         </div>
@@ -414,8 +493,10 @@ function EcoCosti({ mix, forza }) {
             <div>Importo</div><div>Fonte</div><div>Documento</div>
           </div>
           {righeFisse.map((r, i) => (
-            <div key={r.f.id} style={{display:'grid', gridTemplateColumns:ECO_GRID_FIS, gap:11,
-              alignItems:'center', padding:'12px 16px',
+            <div key={r.f.id} className="adm-row-open"
+              onClick={()=> r.ft ? setDoc(r.ft) : setAllega({ id:r.f.id, tipo:'fisso', nome:r.f.voce, importo:r.f.importo })}
+              style={{display:'grid', gridTemplateColumns:ECO_GRID_FIS, gap:11,
+              alignItems:'center', padding:'12px 16px', cursor:'pointer',
               borderBottom: i < righeFisse.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{minWidth:0}}>
                 <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.f.voce}</div>
@@ -430,24 +511,25 @@ function EcoCosti({ mix, forza }) {
               </div>
               <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur2(r.quota)}</div>
               <div><EcoFonte automatica={r.auto} da={r.auto ? 'Letta dalla fattura elettronica' : 'Inserita a mano'}/></div>
-              <div onClick={e=>e.stopPropagation()}>
-                {r.ft
-                  ? <button onClick={()=>setDoc(r.ft)} className="adm-card-interactive"
-                      style={{display:'inline-flex', alignItems:'center', gap:6, maxWidth:'100%',
-                        padding:'4px 9px', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
-                        border:`1px solid ${ADM.BORDER}`, background:'#fff'}}>
-                      <BuIcons.paperclip size={12} color={ADM.MUTED_SOFT}/>
-                      <span style={{fontSize:12, color:ADM.TEXT, overflow:'hidden',
-                        whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{r.ft.file}</span>
-                    </button>
-                  : <span style={{fontSize:11.8, color:ADM.MUTED_SOFT}}>nessuno</span>}
-              </div>
+              <div style={{minWidth:0}}><EcoDoc fattura={r.ft}/></div>
             </div>
           ))}
         </div>
       </div>
 
       {nuovo && <EcoModaleCosto onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
+      {allega && <EcoModaleAllega voce={allega} onChiudi={()=>setAllega(null)} onSalva={(b)=>{
+        const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
+        const id = `FT-${d.data.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
+        const fisso = allega.tipo === 'fisso' ? ECO_FISSI.find(f => f.id === allega.id) : null;
+        ECO_FATTURE.push({ id, fornitore: fisso ? fisso.fornitore : (ECO_SERVIZI.find(x => x.id === allega.id) || {}).fornitore || '—',
+          numero:b.numero.trim() || '—', data:new Date(d.data.getFullYear(), d.data.getMonth(), 1),
+          imponibile:allega.importo, iva, totale:allega.importo + iva,
+          categoria: fisso ? fisso.categoria : 'Cloud', voce: fisso ? null : allega.id,
+          origine: /\.xml$/i.test(b.file) ? 'sdi' : 'manuale', file:b.file, stato:'riconciliata' });
+        if (fisso) fisso.fattura = id;
+        setAllega(null); forza();
+      }}/>}
       {doc && <EcoModaleDocumento fattura={doc} onChiudi={()=>setDoc(null)}/>}
     </div>
   );
@@ -474,3 +556,4 @@ window.ECO_DRIVER_LABEL = ECO_DRIVER_LABEL;
 window.EcoCampo = EcoCampo;
 window.EcoBarra = EcoBarra;
 window.EcoFonte = EcoFonte;
+window.EcoDoc = EcoDoc;
