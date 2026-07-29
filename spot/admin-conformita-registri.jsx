@@ -1267,11 +1267,6 @@ function CfFornitori() {
             const ultimo = idx === righe.length - 1;
             const extraUe = /SCC/.test(f.paese || '');
             const problema = !f.dpa || !f.ultimoRiesame;
-            const nota = !f.dpa && !f.ultimoRiesame
-              ? 'Nessun accordo sul trattamento e nessun riesame: oggi questo fornitore è fuori controllo sulla carta, qualunque cosa faccia in pratica.'
-              : !f.dpa
-                ? 'Nessun accordo sul trattamento dei dati: l’art. 28 GDPR lo pretende per chiunque tratti dati per conto di Byup, e A.5.20 chiede che i requisiti di sicurezza siano scritti nel contratto.'
-                : 'Mai riesaminato: A.5.22 chiede di verificare periodicamente che servizio, dati trattati e certificazioni siano ancora quelli concordati.';
             return (
               <div key={f.id} style={{borderBottom: !ultimo || espanso ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
                 <div className="adm-row-open" onClick={()=>setAperto(espanso ? null : f.id)}
@@ -1327,15 +1322,6 @@ function CfFornitori() {
 
                     <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
                   </div>
-
-                  {problema && (
-                    <div style={{display:'flex', alignItems:'flex-start', gap:8, marginTop:9, padding:'8px 11px',
-                      borderRadius:8, background: !f.dpa ? ADM.DANGER_SOFT : ADM.WARN_SOFT}}>
-                      <span style={{width:6, height:6, borderRadius:'50%', marginTop:5, flexShrink:0,
-                        background: !f.dpa ? ADM.DANGER : ADM.WARN}}/>
-                      <span style={{fontSize:12, lineHeight:1.5, color: !f.dpa ? '#7F1D1D' : '#78350F'}}>{nota}</span>
-                    </div>
-                  )}
                 </div>
 
                 {espanso && (
