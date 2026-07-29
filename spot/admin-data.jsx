@@ -411,10 +411,7 @@ const RUOLI = {
   // ICT tiene account, accessi, tracce e salute dei sistemi: e il perimetro di
   // chi amministra la piattaforma, non di chi la usa.
   ict:         { label: 'ICT',        desc: 'Sistemi, accessi e configurazione tecnica', color: 'INK',   permessi: ['dashboard','sicurezza','team'] },
-  // HR vede solo le Risorse Umane. Niente dashboard: i ricavi e i locali non
-  // servono a chi tiene il registro della formazione, e un permesso che non
-  // serve e solo superficie in piu da riesaminare ogni sei mesi.
-  hr:          { label: 'HR',         desc: 'Risorse umane e formazione del personale', color: 'AMBER',  permessi: ['hr'] },
+  hr:          { label: 'HR',         desc: 'Risorse umane e formazione del personale', color: 'AMBER',  permessi: ['dashboard','hr'] },
   // Ultimo = ultima colonna nella matrice Ruoli & Permessi. Sola visualizzazione.
   operations:  { label: 'Viewer',     desc: 'Sola visualizzazione della dashboard', color: 'PURPLE',    permessi: ['dashboard'] },
 };
