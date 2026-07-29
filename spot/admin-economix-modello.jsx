@@ -496,7 +496,12 @@ function ecoSaldoIva(mix) {
   const aperti = tutti.filter(x => x.scadenza >= ECO_OGGI);
   if (!aperti.length) return { saldo:0, aperti:[], prossima:null };
   const saldo = aperti.reduce((t, x) => t + x.saldo, 0) - aperti[0].credito;
-  return { saldo, aperti, prossima: aperti.find(x => x.dovuto > 0) || null };
+  // Due date diverse e servono entrambe: quella in cui esce denaro (puo non
+  // esistere, se si e a credito) e la prossima liquidazione comunque, che e
+  // l'appuntamento con l'erario anche quando non si versa nulla. Mostrare solo
+  // la prima significa non mostrare mai niente a un'azienda a credito.
+  return { saldo, aperti, prossimaLiquidazione: aperti[0],
+    prossima: aperti.find(x => x.dovuto > 0) || null };
 }
 
 // ─── Scadenzario ───────────────────────────────────────────────────────────

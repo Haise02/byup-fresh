@@ -30,9 +30,7 @@ function EcoCassa({ mix, leve, forza }) {
   // leggero di quanto sia.
   const fineMese = new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth() + 1, 0, 23, 59);
   const delMese = scadenze.filter(x => x.data <= fineMese);
-  const scaduteMese = delMese.filter(x => x.giorni <= 0).length;
   const daPagare = delMese.reduce((t, x) => t + (x.importo || 0), 0);
-  const senzaImporto = delMese.filter(x => x.importo == null).length;
   // Tutto cio che esce nel mese: fornitori al lordo, IVA versata, altre uscite.
   // pagamenti comprende gia le altre uscite del mese; l'IVA versata e a parte
   // perche esce solo alle scadenze di liquidazione.
@@ -63,10 +61,7 @@ function EcoCassa({ mix, leve, forza }) {
           { et:`Uscite ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(usciteMese),
             tono: usciteMese > (meseCorr ? meseCorr.incassi : 0) ? ADM.DANGER : ADM.TEXT,
             n: delMese.length === 0 ? 'tutto saldato entro fine mese'
-              : `${ecoEur(daPagare)} ancora da saldare · ${delMese.length} ${
-                  delMese.length === 1 ? 'voce' : 'voci'}${
-                  scaduteMese ? `, ${scaduteMese} già ${scaduteMese === 1 ? 'scaduta' : 'scadute'}` : ''}${
-                  senzaImporto ? ` · ${senzaImporto} da calcolare` : ''}` },
+              : `${ecoEur(daPagare)} ancora da saldare` },
           // Il saldo IVA e denaro che sta in cassa ma non e tuo: incassato dai
           // ristoratori e dovuto allo Stato alla prossima scadenza. Guardare la
           // cassa senza sapere quanto ne e gia impegnato porta a spenderlo.
@@ -76,11 +71,11 @@ function EcoCassa({ mix, leve, forza }) {
           // resta neutro, e solo il debito prende un colore.
           { et:'Saldo IVA', v:ecoEur(Math.abs(iva.saldo)),
             tono: iva.saldo > 0 ? ADM.WARN : ADM.TEXT,
-            n: iva.saldo <= 0
-              ? 'credito verso l’erario'
-              : iva.prossima
-                ? `debito verso l’erario · da versare il ${cfFmt(iva.prossima.scadenza)}`
-                : 'debito verso l’erario' },
+            n: iva.saldo > 0
+              ? `debito verso l’erario · da versare entro il ${cfFmt((iva.prossima || iva.prossimaLiquidazione).scadenza)}`
+              : iva.prossimaLiquidazione
+                ? `credito verso l’erario · prossima liquidazione il ${cfFmt(iva.prossimaLiquidazione.scadenza)}, nulla da versare`
+                : 'credito verso l’erario' },
           // La formula scritta e quella che produce il numero grande: cassa
           // diviso quanto si brucia, cioe uscite MENO incassi. Senza il secondo
           // termine il conto sarebbe quello dello scenario senza ricavi, che qui
@@ -134,7 +129,10 @@ function EcoCassa({ mix, leve, forza }) {
                 l'IVA, e due colonne accostate senza dirlo si sommano da sole
                 nella testa di chi legge. */}
             <div>Mese</div><div>Entrate</div><div>Di cui IVA</div><div>Uscite</div>
-            <div>IVA versata</div><div>Saldo IVA</div><div>Netto</div><div>Saldo</div>
+            {/* «IVA versata» si prestava a essere letta come l'IVA pagata ai fornitori,
+                che invece e gia dentro Uscite: qui c'e solo quella che va allo Stato
+                alla liquidazione, ed e per questo che quasi sempre e vuota. */}
+            <div>IVA allo Stato</div><div>Saldo IVA</div><div>Flusso di cassa netto</div><div>Saldo</div>
           </div>
           {/* Il mese in corso e quello che si guarda per primo: la tabella parte
               da li e scende all'indietro. Tre righe a vista, il resto scorrendo
@@ -380,7 +378,7 @@ const ecoTagliaRighe = (el, n) => {
   const h = f.slice(0, n).reduce((t, r) => t + r.getBoundingClientRect().height, 0);
   el.style.maxHeight = Math.ceil(h / z) + 'px';
 };
-const ECO_GRID_FLUSSI = '88px 1fr 1.05fr 1.05fr 1fr 1fr 1.05fr 1.15fr';
+const ECO_GRID_FLUSSI = '88px 1fr 1fr 1fr 0.95fr 0.95fr 1.3fr 1.15fr';
 
 window.EcoCassa = EcoCassa;
 window.EcoPatrimonio = EcoPatrimonio;
