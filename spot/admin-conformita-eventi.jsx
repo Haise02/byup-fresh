@@ -919,9 +919,10 @@ function CfNonConformita() {
 
       {/* Registro */}
       <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+        {/* Senza il sottotitolo la riga e titolo + pulsante: allineati al centro,
+            perche con baseline un pulsante alto sale sopra la riga del titolo. */}
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:10}}>
           <div style={{...CF_H, marginBottom:0}}>Non conformità e azioni correttive</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>ISO 9001 §10.2 · aperte in cima, poi dalla più recente</span>
           <div style={{flex:1}}/>
           <AdmButton variant="primary" size="sm" onClick={()=>setNuova(true)}>
             Registra una non conformità
@@ -1060,13 +1061,6 @@ function CfNonConformita() {
           })}
         </div>
 
-        <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.6, marginTop:12, padding:'12px 14px',
-          background:ADM.NEUTRAL_SOFT, borderRadius:10}}>
-          L'origine dice da dove è arrivata la non conformità — segnalazione, audit, reclamo, incidente —
-          e serve a capire se il sistema le trova da solo o le scopre sempre qualcun altro.
-          La chiusura non è la fine dell'azione: è la <strong>verifica di efficacia</strong>, con la sua data
-          e il suo esito. Se l'esito è negativo la non conformità resta aperta.
-        </div>
       </div>
 
       <CfEvVerificaModal
