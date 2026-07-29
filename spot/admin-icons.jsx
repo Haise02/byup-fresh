@@ -69,6 +69,11 @@ const ICON_FILLED = {
   // antiorario, arco interno di ritorno — e le due barre sono path a se che si
   // uniscono per sovrapposizione, non fori.
   euroFill: 'M18.73 5.7A8 8 0 1 0 18.73 18.3L16.88 15.94A5 5 0 1 1 16.88 8.06z|M5.85 8.95h7.75a1.25 1.25 0 0 1 0 2.5H5.85a1.25 1.25 0 0 1 0-2.5z|M5.85 12.55h7.75a1.25 1.25 0 0 1 0 2.5H5.85a1.25 1.25 0 0 1 0-2.5z',
+  // Tesserino: cartellino con la persona ricavata per evenodd e la clip sopra
+  // come forma a se. Serve a distinguere Risorse Umane da Staff, che e la
+  // stessa cosa vista dall'altra parte — li ci sono le persone dei locali, qui
+  // il fascicolo di chi lavora in Byup.
+  badgeFill: 'M6.5 5h11a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM12 9.2a2.1 2.1 0 1 0 0 4.2 2.1 2.1 0 0 0 0-4.2zM12 14.6c-2.3 0-4.2 1.35-4.2 3.02 0 .4.33.68.75.68h6.9c.42 0 .75-.28.75-.68 0-1.67-1.9-3.02-4.2-3.02z|M10.4 1.6h3.2a1.15 1.15 0 0 1 1.15 1.15v2.1a1.15 1.15 0 0 1-1.15 1.15h-3.2A1.15 1.15 0 0 1 9.25 4.85v-2.1A1.15 1.15 0 0 1 10.4 1.6z',
   // Lucchetto pieno: corpo con il buco della serratura ricavato per evenodd
   // nello STESSO d — sottotracciati in path separati non si bucherebbero — e
   // l'arco superiore come forma a se, che si unisce per sovrapposizione.
