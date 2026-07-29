@@ -1079,8 +1079,16 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
   // stesso tavolo, deve accendersi allo stesso modo.
   const SEL = '#E32459';
   const POP = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-  const ombraSel = `0 16px 36px -10px ${SEL}35`;
+  // Selezione come in Sala: un anello rosso attorno alla tessera, non una
+  // campitura. Dentro il bordo il tavolo resta del colore del suo stato.
+  const ombraSel = `0 0 0 3px rgba(255, 90, 95, 0.16), 0 16px 36px -10px ${SEL}35`;
   const scalaSel = selected ? 'scale(1.012)' : 'none';
+
+  // Accento di stato del badge: selezionato non vira al rosso, si accende del
+  // proprio colore — un tavolo attivo diventa verde pieno, uno spento grigio.
+  const acc = t.disabled
+    ? { soft: '#F1F3F5', ink: '#9CA3AF', strong: '#9CA3AF' }
+    : { soft: PN.GREEN_SOFT, ink: PN.GREEN, strong: PN.GREEN };
 
   // Chiudi il submenu se il menu padre si richiude
   React.useEffect(() => { if (!menuOpen) setMoveSubOpen(false); }, [menuOpen]);
@@ -1115,13 +1123,12 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
       onKeyDown={e => { if (!moving && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); onSelect(); } }}
       style={{
         padding: '12px 14px', position:'relative',
-        border:`1.5px solid ${selected ? 'rgba(227, 36, 89, 0.42)' : PN.BORDER_SOFT}`,
+        border:`1.5px solid ${selected ? 'rgba(227, 36, 89, 0.55)' : PN.BORDER_SOFT}`,
         borderRadius: 10,
-        // Tinta dello stesso rosso del bordo: il corallo di PN.PINK_SOFT era di
-        // un'altra famiglia e accanto al cremisi si leggeva come un secondo
-        // rosso. La velatura resta perche in questa lista la selezione e
-        // multipla e va vista con la coda dell'occhio.
-        background: selected ? 'rgba(227, 36, 89, 0.07)' : PN.WHITE,
+        // Nessuna campitura rossa: la selezione e tutta sul bordo, come sulle
+        // tessere della Sala. Il rosso dentro la riga coprirebbe il verde
+        // dello stato, che e l'altra cosa che questa lista deve dire.
+        background: PN.WHITE,
         opacity: moving ? 0 : (isDragging ? 0.45 : (t.disabled ? 0.78 : 1)),
         transform: moving
           ? 'translateX(24px) scale(0.94)'
@@ -1143,10 +1150,10 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
             sfuggita — la pastiglia accanto resta e lo dice a parole. */}
         <div title={t.name} style={{
           width: 48, height: 48, borderRadius:'50%', flexShrink: 0,
-          background: selected ? SEL : (t.disabled ? '#F1F3F5' : PN.GREEN_SOFT),
+          background: selected ? acc.strong : acc.soft,
           boxShadow: selected
-            ? `0 8px 18px -6px ${SEL}80`
-            : `inset 0 0 0 2px ${t.disabled ? '#9CA3AF' : PN.GREEN}55`,
+            ? `0 8px 18px -6px ${acc.strong}80`
+            : `inset 0 0 0 2px ${acc.ink}55`,
           display:'grid', placeItems:'center',
           animation: selected ? `tcBadgePop 620ms ${POP} both` : 'none',
           transition:'background 340ms ease-out, box-shadow 340ms ease-out',
