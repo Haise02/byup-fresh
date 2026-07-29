@@ -14,7 +14,8 @@ const ECO_SEL = { ...ECO_INP, appearance:'none', WebkitAppearance:'none', MozApp
   backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.6L6 6.4L11 1.6' stroke='%238A9099' stroke-width='1.9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
   backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
 const ECO_NUM = { fontVariantNumeric:'tabular-nums' };
-const ECO_GRID_SERV = 'minmax(0,1.7fr) 1.15fr 118px 124px 104px 116px 108px';
+const ECO_GRID_VAR = 'minmax(0,1.9fr) 1.3fr 1.35fr 116px 112px';
+const ECO_GRID_FIS = 'minmax(0,1.9fr) 1fr 1.15fr 108px 112px 112px minmax(0,1.1fr)';
 const ECO_MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno',
   'luglio','agosto','settembre','ottobre','novembre','dicembre'];
 
@@ -145,95 +146,185 @@ function EcoBarra({ quota, tono }) {
   );
 }
 
-/* ═══ 2 · COSTI ══════════════════════════════════════════════════════════ */
+// La fonte di una riga: letta da una connessione attiva o da una fattura
+// elettronica, oppure scritta da una persona. Non e un dettaglio tecnico —
+// dice quanto ci si puo fidare del numero.
+function EcoFonte({ automatica, da }) {
+  return (
+    <span title={da} style={{fontSize:11, fontWeight:700, padding:'3px 9px', borderRadius:6,
+      background: automatica ? 'rgba(22,163,74,0.12)' : 'rgba(49,53,61,0.08)',
+      color: automatica ? ADM.OK : ADM.INK}}>
+      {automatica ? 'Automatica' : 'Manuale'}
+    </span>
+  );
+}
+
 const ECO_PERIODICITA = { mensile:'Mensile', annuale:'Annuale', 'una-tantum':'Una tantum' };
 
-function EcoModaleFisso({ onChiudi, onSalva }) {
+/* ═══ NUOVO COSTO — con la fattura, se c'e ═══════════════════════════════ */
+function EcoModaleCosto({ onChiudi, onSalva }) {
   const [b, setB] = useStateEco({ voce:'', categoria:'Software', importo:'', periodicita:'mensile',
-    dal: new Date().toISOString().slice(0, 10), fornitore:'', nota:'' });
+    dal: new Date().toISOString().slice(0, 10), fornitore:'', numero:'', iva:'' });
+  const [file, setFile] = useStateEco(null);
   const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
-  const ok = b.voce.trim().length > 2 && parseFloat(b.importo) > 0;
+  const xml = !!file && /\.xml$/i.test(file);
+  const ok = b.voce.trim().length > 2 && parseFloat(String(b.importo).replace(',', '.')) > 0;
+
   return (
     <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
       display:'flex', alignItems:'center', justifyContent:'center', padding:24,
       backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-      <div data-modale="fisso" onClick={e=>e.stopPropagation()} style={{width:640, maxWidth:'92%', background:'#fff',
+      <div data-modale="costo" onClick={e=>e.stopPropagation()} style={{width:700, maxWidth:'92%', background:'#fff',
         borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
         maxHeight:'100%', display:'flex', flexDirection:'column'}}>
         <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
           <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>Aggiungere un costo</div>
           <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
-            Un costo che non dipende dal volume. Se invece cresce con i locali o con gli ordini è un
-            costo a consumo e va aggiunto come servizio, altrimenti la proiezione lo tiene fermo.
+            La data puo essere di un mese passato: il costo entra nel mese a cui appartiene, non in
+            quello in cui lo registri. Allegando la fattura la voce risulta documentata.
           </div>
         </div>
+
         <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
-          display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16, alignContent:'start'}}>
-          <EcoCampo etichetta="Voce di costo" span>
-            <input value={b.voce} onChange={e=>agg('voce', e.target.value)} style={ECO_INP}
-              placeholder="Che cosa si paga"/>
-          </EcoCampo>
-          <EcoCampo etichetta="Categoria">
-            <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={ECO_SEL}>
-              {['Personale','Consulenze','Software','Marketing','Assicurazioni','Altro'].map(c =>
-                <option key={c} value={c}>{c}</option>)}
-            </select>
-          </EcoCampo>
-          <EcoCampo etichetta="Fornitore">
-            <input value={b.fornitore} onChange={e=>agg('fornitore', e.target.value)} style={ECO_INP}
-              placeholder="Chi emette la fattura"/>
-          </EcoCampo>
-          <EcoCampo etichetta="Importo in euro">
-            <input value={b.importo} onChange={e=>agg('importo', e.target.value.replace(/[^\d.,]/g, ''))}
-              style={ECO_INP} placeholder="0,00"/>
-          </EcoCampo>
-          <EcoCampo etichetta="Periodicità"
-            aiuto={b.periodicita === 'annuale' ? 'Nel conto economico mensile entra in dodicesimi.'
-              : b.periodicita === 'una-tantum' ? 'Pesa solo sul mese in cui è avvenuto.' : null}>
-            <select value={b.periodicita} onChange={e=>agg('periodicita', e.target.value)} style={ECO_SEL}>
-              {Object.entries(ECO_PERIODICITA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          </EcoCampo>
-          <EcoCampo etichetta="Decorrenza" span>
-            <input type="date" value={b.dal} onChange={e=>agg('dal', e.target.value)} style={ECO_INP}/>
-          </EcoCampo>
+          display:'flex', flexDirection:'column', gap:20}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+            <EcoCampo etichetta="Voce di costo" span>
+              <input value={b.voce} onChange={e=>agg('voce', e.target.value)} style={ECO_INP}
+                placeholder="Che cosa si paga"/>
+            </EcoCampo>
+            <EcoCampo etichetta="Categoria">
+              <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={ECO_SEL}>
+                {['Personale','Consulenze','Software','Marketing','Assicurazioni','Cloud','API','Altro'].map(c =>
+                  <option key={c} value={c}>{c}</option>)}
+              </select>
+            </EcoCampo>
+            <EcoCampo etichetta="Fornitore">
+              <input value={b.fornitore} onChange={e=>agg('fornitore', e.target.value)} style={ECO_INP}
+                placeholder="Chi emette la fattura"/>
+            </EcoCampo>
+            <EcoCampo etichetta="Importo in euro">
+              <input value={b.importo} onChange={e=>agg('importo', e.target.value.replace(/[^\d.,]/g, ''))}
+                style={ECO_INP} placeholder="0,00"/>
+            </EcoCampo>
+            <EcoCampo etichetta="Periodicita"
+              aiuto={b.periodicita === 'annuale' ? 'Nel conto economico entra in dodicesimi.'
+                : b.periodicita === 'una-tantum' ? 'Pesa solo sul mese della data.' : null}>
+              <select value={b.periodicita} onChange={e=>agg('periodicita', e.target.value)} style={ECO_SEL}>
+                {Object.entries(ECO_PERIODICITA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </EcoCampo>
+            <EcoCampo etichetta="Data" span aiuto="Anche di un mese gia chiuso.">
+              <input type="date" value={b.dal} onChange={e=>agg('dal', e.target.value)} style={ECO_INP}/>
+            </EcoCampo>
+          </div>
+
+          <div>
+            <div style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+              letterSpacing:'0.05em', marginBottom:8}}>Fattura, se c'e</div>
+            <label style={{display:'block'}}>
+              <div className="adm-card-interactive" style={{border:`1.5px dashed ${file ? ADM.OK : ADM.BORDER}`,
+                borderRadius:11, padding:'18px 16px', textAlign:'center', cursor:'pointer',
+                background: file ? ADM.OK_SOFT : '#FCFCFD'}}>
+                <div style={{fontSize:13.4, fontWeight:700, color: file ? ADM.OK : ADM.TEXT}}>
+                  {file || 'Allega il documento'}
+                </div>
+                <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:4}}>
+                  {file
+                    ? (xml ? 'XML dallo SDI: la voce risulta automatica' : 'PDF: la voce resta manuale')
+                    : 'XML dallo SDI oppure PDF · senza documento la voce resta manuale'}
+                </div>
+                <input type="file" style={{display:'none'}}
+                  onChange={e => setFile(e.target.files && e.target.files[0] ? e.target.files[0].name : null)}/>
+              </div>
+            </label>
+            {file && (
+              <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16, marginTop:14}}>
+                <EcoCampo etichetta="Numero documento">
+                  <input value={b.numero} onChange={e=>agg('numero', e.target.value)} style={ECO_INP}
+                    placeholder="es. 118/2026"/>
+                </EcoCampo>
+                <EcoCampo etichetta="IVA" aiuto="Zero sui fornitori esteri in reverse charge.">
+                  <input value={b.iva} onChange={e=>agg('iva', e.target.value.replace(/[^\d.,]/g, ''))}
+                    style={ECO_INP} placeholder="0,00"/>
+                </EcoCampo>
+              </div>
+            )}
+          </div>
         </div>
+
         <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
           alignItems:'center', gap:10, flexShrink:0}}>
           <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
-            {ok ? 'Entra subito nel conto economico e nella proiezione.' : 'Servono voce e importo.'}
+            {ok ? 'Entra nel mese della data e nel conto economico.' : 'Servono voce e importo.'}
           </span>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
-          <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva(b)}>Aggiungi</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva({ ...b, file })}>
+            Aggiungi
+          </AdmButton>
         </div>
       </div>
     </div>
   );
 }
 
+/* ═══ COSTI ══════════════════════════════════════════════════════════════ */
 function EcoCosti({ mix, forza }) {
   const [nuovo, setNuovo] = useStateEco(false);
-  const [conn, setConn] = useStateEco(null);
-  const m = ecoMeseCorrente(mix);
-  const d = m.d;
-  const fissiMese = ecoFissiDelMese(new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1));
-  const letture = ECO_CONNESSIONI.filter(c => c.stato === 'attivo' && c.ultimaLettura).map(c => c.ultimaLettura);
-  const inErrore = ECO_CONNESSIONI.filter(c => c.stato === 'errore').length;
-  const letturaPiuRecente = letture.length ? new Date(Math.max.apply(null, letture)) : null;
+  const [doc, setDoc] = useStateEco(null);
+  const [k, setK] = useStateEco(ECO_STORICO.length - 1);   // mese selezionato
 
-  const perCategoria = {};
-  ECO_SERVIZI.forEach(s => {
-    perCategoria[s.categoria] = (perCategoria[s.categoria] || 0) + ecoCostoServizio(s, d);
+  const d = ECO_STORICO[k];
+  const corrente = k === ECO_STORICO.length - 1;
+  const frazione = corrente ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
+
+  const righeVar = ECO_SERVIZI.map(s => {
+    const c = ecoConnessioneDi(s.id);
+    const auto = !!c && c.stato === 'attivo';
+    const pieno = ecoCostoServizio(s, d) * (auto ? (s.scarto || 1) : 1);
+    return { s, c, auto, consumo: ecoConsumo(s, d) * frazione, costo: pieno * frazione };
+  }).sort((a, b) => b.costo - a.costo);
+
+  const dataMese = new Date(d.data.getFullYear(), d.data.getMonth(), 1);
+  const righeFisse = ECO_FISSI.filter(f => {
+    if (f.dal && dataMese < new Date(f.dal.getFullYear(), f.dal.getMonth(), 1)) return false;
+    if (f.a && dataMese > f.a) return false;
+    if (f.periodicita === 'una-tantum')
+      return f.dal.getFullYear() === dataMese.getFullYear() && f.dal.getMonth() === dataMese.getMonth();
+    return true;
+  }).map(f => {
+    const ft = f.fattura ? ECO_FATTURE.find(x => x.id === f.fattura) : null;
+    return { f, ft, auto: !!ft && ft.origine === 'sdi',
+      quota: f.periodicita === 'annuale' ? f.importo / 12 : f.importo };
+  }).sort((a, b) => b.quota - a.quota);
+
+  const totVar = righeVar.reduce((t, r) => t + r.costo, 0);
+  const totFissi = righeFisse.reduce((t, r) => t + r.quota, 0);
+  const unaTantum = righeFisse.filter(r => r.f.periodicita === 'una-tantum').reduce((t, r) => t + r.quota, 0);
+  const periodici = totVar + totFissi - unaTantum;
+  const maxVar = righeVar[0] ? righeVar[0].costo : 1;
+
+  // Andamento: il costo totale di ogni mese, cosi il periodo si sceglie
+  // guardando la serie invece che da una tendina cieca.
+  const serie = ECO_STORICO.map((m, i) => {
+    const fr = i === ECO_STORICO.length - 1 ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
+    return { m, i, tot: ecoCostiVariabili(m) * fr + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)) };
   });
+  const maxSerie = Math.max.apply(null, serie.map(x => x.tot)) || 1;
 
   const salva = (b) => {
-    ECO_FISSI.push({
-      id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
-      voce:b.voce.trim(), categoria:b.categoria,
-      importo: parseFloat(String(b.importo).replace(',', '.')) || 0,
-      periodicita:b.periodicita, dal: new Date(b.dal + 'T12:00:00'), a:null,
-      fornitore:b.fornitore.trim() || '—', manuale:true,
-    });
+    const quando = new Date(b.dal + 'T12:00:00');
+    const imp = parseFloat(String(b.importo).replace(',', '.')) || 0;
+    let idFattura = null;
+    if (b.file) {
+      const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
+      idFattura = `FT-${quando.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
+      ECO_FATTURE.push({ id:idFattura, fornitore:b.fornitore.trim() || '—', numero:b.numero.trim() || '—',
+        data:quando, imponibile:imp, iva, totale:imp + iva, categoria:b.categoria, voce:null,
+        origine: /\.xml$/i.test(b.file) ? 'sdi' : 'manuale', file:b.file, stato:'riconciliata' });
+    }
+    ECO_FISSI.push({ id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
+      voce:b.voce.trim(), categoria:b.categoria, importo:imp, periodicita:b.periodicita,
+      dal:quando, a:null, fornitore:b.fornitore.trim() || '—', fattura:idFattura });
     setNuovo(false); forza();
   };
 
@@ -241,11 +332,11 @@ function EcoCosti({ mix, forza }) {
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         {[
-          { et:`Spesa ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(m.bruciatoOggi),
-            n:`letta ${ecoQuando(letturaPiuRecente)}` },
-          { et:'Costo fine mese', v:ecoEur(m.bruciatoFine) },
-          { et:'Costi fissi', v:ecoEur(fissiMese), n:'competenza del mese, annuali in dodicesimi' },
-          { et:'Costo per locale attivo', v:ecoEur2(m.bruciatoFine / d.localiAttivi),
+          { et:`Costi ${ECO_MESI_LUNGHI[d.data.getMonth()]} ${d.data.getFullYear()}`, v:ecoEur(totVar + totFissi),
+            n:`periodici ${ecoEur(periodici)} · una tantum ${ecoEur(unaTantum)}` },
+          { et:'Costi a consumo', v:ecoEur(totVar), n:corrente ? 'maturati a oggi' : 'del mese' },
+          { et:'Costi fissi', v:ecoEur(totFissi), n:'annuali in dodicesimi' },
+          { et:'Costo per locale attivo', v:ecoEur2((totVar + totFissi) / d.localiAttivi),
             n:`su ${d.localiAttivi} locali attivi` },
         ].map(c => (
           <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
@@ -253,205 +344,115 @@ function EcoCosti({ mix, forza }) {
               letterSpacing:'0.05em'}}>{c.et}</div>
             <div style={{fontSize:25, fontWeight:800, letterSpacing:'-0.02em', color:ADM.TEXT,
               marginTop:7, ...ECO_NUM}}>{c.v}</div>
-            {c.n && <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.4}}>{c.n}</div>}
+            <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.4}}>{c.n}</div>
           </div>
         ))}
       </div>
 
+      {/* Il periodo si sceglie dalla serie: si vede l'andamento e si clicca. */}
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...ECO_H, marginBottom:0}}>Sorgenti dei costi</div>
-          <span style={{fontSize:12.4, color: inErrore ? ADM.DANGER : ADM.MUTED, fontWeight: inErrore ? 700 : 400}}>
-            {inErrore
-              ? `${inErrore} ${inErrore === 1 ? 'sorgente non risponde' : 'sorgenti non rispondono'}: quelle righe sono stimate`
-              : 'tutte le sorgenti attive rispondono'}
-          </span>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
-          {ECO_CONNESSIONI.map(c => {
-            const st = ECO_STATO_CONN[c.stato];
-            const gg = ecoGiorniInErrore(c);
-            return (
-              <div key={c.id} style={{...ECO_CARD, padding:'14px 16px', display:'flex', flexDirection:'column', gap:9,
-                borderColor: c.stato === 'errore' ? '#F0A9AC' : ADM.BORDER,
-                background: c.stato === 'errore' ? ADM.DANGER_SOFT : '#fff'}}>
-                <div style={{display:'flex', alignItems:'flex-start', gap:9}}>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{c.nome}</div>
-                    <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.4}}>{c.legge}</div>
-                  </div>
-                  <CfPill tono={st.tono}>{st.label}</CfPill>
-                </div>
-                <div style={{fontSize:11.8, color: c.stato === 'errore' ? '#7F1D1D' : ADM.MUTED, lineHeight:1.45}}>
-                  {c.stato === 'attivo' && <React.Fragment>Letta <strong style={{color:ADM.TEXT}}>{ecoQuando(c.ultimaLettura)}</strong></React.Fragment>}
-                  {c.stato === 'errore' && <React.Fragment>{c.errore} · stime da <strong>{gg} giorni</strong></React.Fragment>}
-                  {c.stato === 'manuale' && <React.Fragment>Inserita a mano {ecoQuando(c.ultimaLettura)}</React.Fragment>}
-                  {c.stato === 'assente' && 'Queste righe sono stimate dal modello'}
-                </div>
-                <div style={{display:'flex', gap:6, marginTop:'auto'}}>
-                  {c.stato === 'attivo' && (
-                    <AdmButton variant="secondary" size="sm" style={{fontSize:12}}
-                      onClick={()=>{ ecoRileggi(c); forza(); }}>Rileggi adesso</AdmButton>
-                  )}
-                  <AdmButton variant={c.stato === 'manuale' ? 'primary' : 'ghost'} size="sm" style={{fontSize:12}}
-                    onClick={()=>setConn(c)}>
-                    {c.stato === 'manuale' ? 'Inserisci la lettura'
-                      : c.stato === 'errore' ? 'Come si risolve' : 'Come si collega'}
-                  </AdmButton>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...ECO_H, marginBottom:0}}>Costi a consumo</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>
-            {Object.entries(perCategoria).map(([k, v]) => `${k} ${ecoEur(v)}`).join(' · ')}
-          </span>
-        </div>
-        <div style={ECO_CARD}>
-          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_SERV, gap:11}}>
-            <div>Servizio</div><div>Dipende da</div><div>Consumo attuale</div><div>Consumo previsto</div>
-            <div>Costo attuale</div><div>Costo fine mese</div><div>Stato</div>
-          </div>
-          {m.righe.slice().sort((a, b) => b.fineMese - a.fineMese).map((r, i) => {
-            const s = r.s;
-            const previsto = ecoConsumo(s, d);
-            const attuale = previsto * m.frazione;
-            const c = ecoConnessioneDi(s.id);
-            const st = ECO_STATO_CONN[(c && c.stato) || 'scollegato'];
-            return (
-              <div key={s.id} style={{display:'grid', gridTemplateColumns:ECO_GRID_SERV,
-                gap:11, alignItems:'center', padding:'12px 16px',
-                borderBottom: i < m.righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-                <div style={{minWidth:0}}>
-                  <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{s.nome}</div>
-                  <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
-                    {s.fornitore} · {ecoEur2(ecoPrezzo(s))} per {s.unitaSing || s.unita}
-                  </div>
-                </div>
-                <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4}}>{ECO_DRIVER_LABEL[s.driver]}</div>
-                <div style={{fontSize:12.6, color:ADM.TEXT, ...ECO_NUM}}>
-                  {Math.round(attuale).toLocaleString('it-IT', {useGrouping:true})}
-                </div>
-                <div style={{fontSize:12.4, color:ADM.MUTED, ...ECO_NUM}}>
-                  {Math.round(previsto).toLocaleString('it-IT', {useGrouping:true})}
-                </div>
-                <div style={{fontSize:13.2, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.aOggi)}</div>
-                <div style={{fontSize:13.8, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.fineMese)}</div>
-                <div><CfPill tono={st.tono}>{st.label}</CfPill></div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{fontSize:12, color:ADM.MUTED, marginTop:9, lineHeight:1.55}}>
-          Le righe collegate riportano il consuntivo del fornitore; le altre la stima del modello.
-        </div>
-      </div>
-
-      {/* Il pacchetto prepagato non e' un costo mensile: e' cassa immobilizzata.
-          Va guardato come tale — quanto credito resta e per quanti mesi basta. */}
-      {(() => {
-        const pk = ECO_PACCHETTI.openapi;
-        const t = ecoTaglio(pk, pk.attivo);
-        const consumoMese = ecoConsumo(ECO_SERVIZI.find(x => x.id === 'openapi'), d);
-        const mesiResidui = consumoMese ? pk.residuo / consumoMese : 0;
-        return (
-          <div>
-            <div style={ECO_H}>Credito prepagato · {pk.fornitore}</div>
-            <div style={{...ECO_CARD, padding:'16px 18px'}}>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:18, marginBottom:14}}>
-                {[
-                  ['Taglio attivo', `${t.quantita.toLocaleString('it-IT')} ${pk.unita}`, `pagato ${ecoEur(t.prezzo)}`],
-                  ['Prezzo unitario', ecoEur2(ecoPrezzoUnitario(t)), 'scende salendo di taglio'],
-                  ['Credito residuo', pk.residuo.toLocaleString('it-IT'), `su ${t.quantita.toLocaleString('it-IT')}`],
-                  ['Basta per', mesiResidui < 1 ? 'meno di un mese' : `${mesiResidui.toFixed(1).replace('.', ',')} mesi`,
-                    `al ritmo di ${Math.round(consumoMese).toLocaleString('it-IT')} al mese`],
-                ].map(([k, v, n]) => (
-                  <div key={k}>
-                    <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                      letterSpacing:'0.05em'}}>{k}</div>
-                    <div style={{fontSize:18, fontWeight:800, color:ADM.TEXT, marginTop:5, ...ECO_NUM}}>{v}</div>
-                    <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:3}}>{n}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{paddingTop:13, borderTop:`1px solid ${ADM.BORDER}`}}>
-                <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                  letterSpacing:'0.05em', marginBottom:9}}>Tagli disponibili</div>
-                <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
-                  {pk.tagli.map(x => {
-                    const att = x.id === pk.attivo;
-                    const mesi = consumoMese ? x.quantita / consumoMese : 0;
-                    return (
-                      <button key={x.id} className="adm-card-interactive"
-                        onClick={()=>{ pk.attivo = x.id; forza(); }}
-                        style={{padding:'9px 13px', borderRadius:10, cursor:'pointer', fontFamily:'inherit',
-                          textAlign:'left', border:`1.5px solid ${att ? ADM.TEXT : ADM.BORDER}`,
-                          background: att ? ADM.TEXT : '#fff', color: att ? '#fff' : ADM.TEXT}}>
-                        <div style={{fontSize:12.8, fontWeight:800, ...ECO_NUM}}>
-                          {x.quantita.toLocaleString('it-IT')}
-                        </div>
-                        <div style={{fontSize:11, opacity:0.72, marginTop:2, ...ECO_NUM}}>
-                          {ecoEur(x.prezzo)} · {ecoEur2(ecoPrezzoUnitario(x))}/u
-                        </div>
-                        <div style={{fontSize:10.6, opacity:0.6, marginTop:2}}>
-                          {mesi < 1 ? '<1 mese' : `${mesi.toFixed(1).replace('.', ',')} mesi`} di consumo
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{fontSize:12, color:ADM.MUTED, marginTop:11, lineHeight:1.55}}>
-                  Cambiando taglio cambia il prezzo unitario di ogni trasmissione, quindi la riga
-                  OpenAPI qui sopra e tutta la proiezione. Il taglio grande costa meno per unità ma
-                  immobilizza cassa: è una scelta di liquidità, non solo di prezzo.
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...ECO_H, marginBottom:0}}>Costi fissi</div>
+          <div style={{...ECO_H, marginBottom:0}}>Andamento</div>
+          <span style={{fontSize:12.4, color:ADM.MUTED}}>tredici mesi · clicca un mese per aprirlo</span>
           <div style={{flex:1}}/>
           <AdmButton variant="primary" size="sm" onClick={()=>setNuovo(true)}>Aggiungi un costo</AdmButton>
         </div>
+        <div style={{...ECO_CARD, padding:'14px 16px', display:'flex', alignItems:'flex-end', gap:6}}>
+          {serie.map(x => {
+            const sel = x.i === k;
+            return (
+              <button key={x.m.mese} onClick={()=>setK(x.i)} className="adm-card-interactive"
+                title={`${x.m.mese} · ${ecoEur(x.tot)}`}
+                style={{flex:1, minWidth:0, border:'none', background:'transparent', cursor:'pointer',
+                  fontFamily:'inherit', padding:'4px 2px', borderRadius:8,
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
+                <span style={{fontSize:10.8, fontWeight:700, color: sel ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
+                  {Math.round(x.tot / 100) / 10}k
+                </span>
+                <span style={{width:'100%', height:Math.max(6, Math.round(x.tot / maxSerie * 54)), borderRadius:5,
+                  background: sel ? ADM.PINK : 'rgba(49,53,61,0.14)'}}/>
+                <span style={{fontSize:10.6, color: sel ? ADM.TEXT : ADM.MUTED_SOFT,
+                  fontWeight: sel ? 700 : 500}}>{x.m.mese}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div style={ECO_H}>Costi a consumo</div>
         <div style={ECO_CARD}>
-          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:'minmax(0,1.7fr) 1fr 1.1fr 110px 120px', gap:12}}>
-            <div>Voce</div><div>Categoria</div><div>Fornitore</div><div>Importo</div><div>Periodicità</div>
+          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_VAR, gap:11}}>
+            <div>Servizio</div><div>Dipende da</div><div>Consumo</div><div>Costo</div><div>Fonte</div>
           </div>
-          {ECO_FISSI.map((f, i) => (
-            <div key={f.id} style={{display:'grid', gridTemplateColumns:'minmax(0,1.7fr) 1fr 1.1fr 110px 120px',
-              gap:12, alignItems:'center', padding:'12px 16px',
-              borderBottom: i < ECO_FISSI.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+          {righeVar.map((r, i) => (
+            <div key={r.s.id} style={{display:'grid', gridTemplateColumns:ECO_GRID_VAR, gap:11,
+              alignItems:'center', padding:'12px 16px',
+              borderBottom: i < righeVar.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{minWidth:0}}>
-                <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{f.voce}</div>
-                {f.nota && <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.4}}>{f.nota}</div>}
+                <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.s.nome}</div>
+                <div style={{marginTop:5}}><EcoBarra quota={r.costo / maxVar} tono={r.auto ? ADM.OK : ADM.INK}/></div>
               </div>
-              <div style={{fontSize:12.4, color:ADM.MUTED}}>{f.categoria}</div>
-              <div style={{fontSize:12.4, color:ADM.MUTED}}>{f.fornitore}</div>
-              <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur2(f.importo)}</div>
-              <div style={{fontSize:12.2, color: f.periodicita === 'una-tantum' ? ADM.MUTED_SOFT : ADM.MUTED}}>
-                {ECO_PERIODICITA[f.periodicita]}
+              <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4}}>{ECO_DRIVER_LABEL[r.s.driver]}</div>
+              <div style={{fontSize:12.4, color:ADM.MUTED, ...ECO_NUM}}>
+                {Math.round(r.consumo).toLocaleString('it-IT', {useGrouping:true})}
+                <span style={{color:ADM.MUTED_SOFT}}> {r.s.unita}</span>
+              </div>
+              <div style={{fontSize:13.8, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.costo)}</div>
+              <div><EcoFonte automatica={r.auto}
+                da={r.auto ? `Letta da ${r.c.nome}` : r.c ? `${r.c.nome}: ${ECO_STATO_CONN[r.c.stato].label}` : 'Stima del modello'}/></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div style={ECO_H}>Costi fissi e una tantum</div>
+        <div style={ECO_CARD}>
+          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_FIS, gap:11}}>
+            <div>Voce</div><div>Categoria</div><div>Fornitore</div><div>Periodicita</div>
+            <div>Importo</div><div>Fonte</div><div>Documento</div>
+          </div>
+          {righeFisse.map((r, i) => (
+            <div key={r.f.id} style={{display:'grid', gridTemplateColumns:ECO_GRID_FIS, gap:11,
+              alignItems:'center', padding:'12px 16px',
+              borderBottom: i < righeFisse.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.f.voce}</div>
+                {r.f.nota && <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.4}}>{r.f.nota}</div>}
+              </div>
+              <div style={{fontSize:12.4, color:ADM.MUTED}}>{r.f.categoria}</div>
+              <div style={{fontSize:12.4, color:ADM.MUTED, minWidth:0, overflow:'hidden',
+                whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{r.f.fornitore}</div>
+              <div style={{fontSize:12.2, color: r.f.periodicita === 'una-tantum' ? ADM.WARN : ADM.MUTED,
+                fontWeight: r.f.periodicita === 'una-tantum' ? 700 : 500}}>
+                {ECO_PERIODICITA[r.f.periodicita]}
+              </div>
+              <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur2(r.quota)}</div>
+              <div><EcoFonte automatica={r.auto} da={r.auto ? 'Letta dalla fattura elettronica' : 'Inserita a mano'}/></div>
+              <div onClick={e=>e.stopPropagation()}>
+                {r.ft
+                  ? <button onClick={()=>setDoc(r.ft)} className="adm-card-interactive"
+                      style={{display:'inline-flex', alignItems:'center', gap:6, maxWidth:'100%',
+                        padding:'4px 9px', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
+                        border:`1px solid ${ADM.BORDER}`, background:'#fff'}}>
+                      <BuIcons.paperclip size={12} color={ADM.MUTED_SOFT}/>
+                      <span style={{fontSize:12, color:ADM.TEXT, overflow:'hidden',
+                        whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{r.ft.file}</span>
+                    </button>
+                  : <span style={{fontSize:11.8, color:ADM.MUTED_SOFT}}>nessuno</span>}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {nuovo && <EcoModaleFisso onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
-      {conn && <EcoModaleConnessione conn={conn} onChiudi={()=>setConn(null)}
-        onLettura={(v)=>{ ecoLetturaManuale(conn, v); setConn(null); forza(); }}/>}
+      {nuovo && <EcoModaleCosto onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
+      {doc && <EcoModaleDocumento fattura={doc} onChiudi={()=>setDoc(null)}/>}
     </div>
   );
 }
+
 const ECO_DRIVER_LABEL = {
   localiAttivi:'Locali attivi',
   nuoviLocali:'Nuovi locali attivati nel mese',
@@ -461,8 +462,6 @@ const ECO_DRIVER_LABEL = {
 };
 
 window.EcoCosti = EcoCosti;
-window.ecoQuando = ecoQuando;
-window.EcoModaleConnessione = EcoModaleConnessione;
 window.ECO_CARD = ECO_CARD;
 window.ECO_TH = ECO_TH;
 window.ECO_H = ECO_H;
@@ -474,3 +473,4 @@ window.ECO_PERIODICITA = ECO_PERIODICITA;
 window.ECO_DRIVER_LABEL = ECO_DRIVER_LABEL;
 window.EcoCampo = EcoCampo;
 window.EcoBarra = EcoBarra;
+window.EcoFonte = EcoFonte;

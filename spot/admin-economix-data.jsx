@@ -186,14 +186,17 @@ const ecoPrezzoUnitario = (t) => t.prezzo / t.quantita;
 // ─── Costi fissi ───────────────────────────────────────────────────────────
 // `periodicita`: 'mensile' | 'annuale' | 'una-tantum'. Gli annuali entrano nel
 // mese di competenza ma pesano sul dodicesimo nel riclassificato mensile.
+// `fattura` collega la voce al documento che la prova. Da quel collegamento
+// discende la FONTE: una voce che nasce da una fattura letta dallo SDI e
+// automatica, una scritta a mano e manuale — e la differenza dice quanto vale.
 const ECO_FISSI = [
   { id:'F-01', voce:'Compenso amministratore', categoria:'Personale', importo:2800, periodicita:'mensile',
     dal:new Date('2025-01-01'), a:null, fornitore:'—', nota:'Unico rapporto continuativo.' },
   { id:'F-02', voce:'Consulenti a partita IVA', categoria:'Personale', importo:6400, periodicita:'mensile',
     dal:new Date('2025-03-01'), a:null, fornitore:'Vari', nota:'Sviluppo, design e supporto. Variano di mese in mese: qui la media degli ultimi sei.' },
-  { id:'F-03', voce:'Commercialista', categoria:'Consulenze', importo:280, periodicita:'mensile',
+  { fattura:'FT-2026-038', id:'F-03', voce:'Commercialista', categoria:'Consulenze', importo:280, periodicita:'mensile',
     dal:new Date('2025-01-01'), a:null, fornitore:'Studio Marchetti' },
-  { id:'F-04', voce:'Consulenza ISO 27001 e 9001', categoria:'Consulenze', importo:9800, periodicita:'una-tantum',
+  { fattura:'FT-2026-040', id:'F-04', voce:'Consulenza ISO 27001 e 9001', categoria:'Consulenze', importo:9800, periodicita:'una-tantum',
     dal:new Date('2026-03-10'), a:null, fornitore:'Studio Bianchi & Associati',
     nota:'Percorso di certificazione: audit interno, metodologia, documentazione.' },
   { id:'F-05', voce:'Google Workspace', categoria:'Software', importo:11.5, periodicita:'mensile',

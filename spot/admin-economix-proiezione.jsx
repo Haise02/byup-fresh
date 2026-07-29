@@ -160,14 +160,12 @@ function Economix() {
         <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center'}}>
           <AdmTabBar tabs={[
             { id:'costi',      label:'Costi' },
-            { id:'fatture',    label:'Fatture' },
             { id:'bilancio',   label:'Conto economico' },
             { id:'proiezione', label:'Proiezione' },
           ]} active={tab} onChange={setTab}/>
         </div>
         <div style={{padding:'20px 22px'}}>
           {tab === 'costi'      && <EcoCosti mix={mix} forza={forza}/>}
-          {tab === 'fatture'    && <EcoFatture forza={forza}/>}
           {tab === 'bilancio'   && <EcoBilancio mix={mix} leve={leve}/>}
           {tab === 'proiezione' && <EcoProiezione mix={mix} leve={leve} setLeve={setLeve} base={base}/>}
         </div>
