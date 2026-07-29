@@ -1078,6 +1078,11 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
   // Chiudi il submenu se il menu padre si richiude
   React.useEffect(() => { if (!menuOpen) setMoveSubOpen(false); }, [menuOpen]);
 
+  // Il badge porta il numero e basta, come le tessere della Sala: i tavoli si
+  // chiamano «Tavolo 3» o «T3» a seconda della sala, ma il numero e lo stesso
+  // ed e l'unica parte che cambia da una riga all'altra.
+  const numero = (String(t.name || '').match(/\d+/) || [t.name || '?'])[0];
+
   const otherSale = (sale || []).filter(s => s.id !== activeSalaId);
 
   const triggerMove = (targetSalaId) => {
@@ -1120,8 +1125,27 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
       onMouseEnter={e => { if (!menuOpen && !moving && !anyDragging) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(63,20,36,0.06)'; }}}
       onMouseLeave={e => { if (!moving && !isDragging) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}}
     >
-      <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 10}}>
-        <span style={{fontSize:15.5, fontWeight:700}}>{t.name}</span>
+      <div style={{display:'flex', alignItems:'center', gap: 12}}>
+        {/* Badge tondo col numero: stesso linguaggio della Sala, dove un tavolo
+            si riconosce dal numero grande e non da una stringa da leggere. Si
+            tinge di verde quando e attivo, cosi lo stato si vede anche di
+            sfuggita — la pastiglia accanto resta e lo dice a parole. */}
+        <div title={t.name} style={{
+          width: 48, height: 48, borderRadius:'50%', flexShrink: 0,
+          background: t.disabled ? '#F1F3F5' : PN.GREEN_SOFT,
+          boxShadow: `inset 0 0 0 2px ${t.disabled ? '#9CA3AF' : PN.GREEN}55`,
+          display:'grid', placeItems:'center',
+          transition:'background .15s, box-shadow .15s',
+        }}>
+          <span style={{
+            fontSize: String(numero).length > 2 ? 15 : 21, fontWeight: 900, lineHeight: 1,
+            color: t.disabled ? PN.MUTED : PN.TEXT,
+            letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums',
+          }}>{numero}</span>
+        </div>
+
+        <div style={{flex:1, minWidth:0}}>
+        <div style={{display:'flex', alignItems:'center', gap: 8}}>
         <button
           onClick={(e) => { e.stopPropagation(); onDisable(); }}
           title={t.disabled ? 'Clicca per attivare' : 'Clicca per disattivare'}
@@ -1227,12 +1251,12 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
             <MenuItem icon={<BuIcons.trash size={14}/>} danger onClick={onDelete}>Elimina</MenuItem>
           </div>
         )}
-      </div>
+        </div>
 
-      <div style={{display:'flex', alignItems:'center', gap: 12}}>
-        {/* Posti stepper */}
-        <div style={{flex: 1}}>
-          <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 4}}>Posti</div>
+        {/* Posti: etichetta inline invece che sopra — il badge occupa gia
+            l'altezza di due righe, e una terza riga allungava la card. */}
+        <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 8}}>
+          <span style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>Posti</span>
           <div onClick={e => e.stopPropagation()} style={{display:'inline-flex', alignItems:'center', gap: 0, border:`1px solid ${PN.BORDER}`, borderRadius: 7, overflow:'hidden'}}>
             <button onClick={(e) => { e.stopPropagation(); onUpdate({coperti: Math.max(1, t.coperti - 1)}); }} style={{
               width: 28, height: 28, border:'none', background: PN.WHITE,
@@ -1248,6 +1272,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
               cursor:'pointer', fontSize: 16, color: PN.TEXT,
             }}>+</button>
           </div>
+        </div>
         </div>
       </div>
     </div>
