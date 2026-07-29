@@ -203,7 +203,7 @@ function riePacchetto() {
       dettaglio:`${reg.ok} su ${reg.totale} in regola · ${frScad} scadute, ${frMai} mai svolte, ${assenti.length} non presenti nel registro`,
       // Il registro non e piu in Conformita: il pacchetto di input del riesame
       // deve portare dove la formazione si legge davvero.
-      tono: (frMai + frScad + assenti.length) ? 'WARN' : 'OK', vaiA:{route:'team', tab:'formazione'} },
+      tono: (frMai + frScad + assenti.length) ? 'WARN' : 'OK', vaiA:{route:'hr', tab:'formazione'} },
   ];
 
   return { voci, dec, decAperte, ultimoAudit, ultimoRiesame };

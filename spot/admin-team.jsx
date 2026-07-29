@@ -2,8 +2,18 @@
 
 const { useState: useStateTeam } = React;
 
-function AdmTeamPage({ search, initialTab }) {
-  const [tab, setTab] = useStateTeam(initialTab || 'membri');
+// Tre sezioni diverse condividono questo componente perche condividono le tab:
+// tenerle in tre file avrebbe voluto dire tre copie della stessa lista membri.
+// `sezione` decide quali tab mostrare, non quali esistono.
+const ADM_SEZIONI = {
+  sicurezza:    { pred:'membri',      tabs:['membri','riesame','audit','diagnostica'] },
+  hr:           { pred:'formazione',  tabs:['formazione'] },
+  impostazioni: { pred:'piattaforma', tabs:['piattaforma'] },
+};
+
+function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
+  const sez = ADM_SEZIONI[sezione] || ADM_SEZIONI.sicurezza;
+  const [tab, setTab] = useStateTeam(initialTab || sez.pred);
   // Un link da un'altra sezione — «Apri» su un adempimento del cruscotto — deve
   // poter arrivare sulla tab giusta, non sulla prima.
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
@@ -41,17 +51,18 @@ function AdmTeamPage({ search, initialTab }) {
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
       <AdmCard padding={0}>
-        <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
+        {/* Con una sola tab la barra non offre nessuna scelta: mostrarla
+            sarebbe un comando che non comanda niente. */}
+        <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`,
+          display: sez.tabs.length > 1 ? 'flex' : 'none', alignItems:'center', gap:12}}>
           <AdmTabBar tabs={[
             { id:'membri',      label:'Team',            badge:members.length },
             { id:'riesame',     label:'Riesame accessi' },
-            // La formazione sta fra le persone: chi la controlla sta guardando
-            // il team, non preparando un fascicolo per l'auditor.
             { id:'formazione',  label:'Formazione' },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
             { id:'diagnostica', label:'Diagnostica' },
-          ]} active={tab} onChange={setTab}/>
+          ].filter(t => sez.tabs.indexOf(t.id) !== -1)} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
           {tab === 'membri' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
         </div>

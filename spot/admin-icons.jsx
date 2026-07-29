@@ -69,6 +69,10 @@ const ICON_FILLED = {
   // antiorario, arco interno di ritorno — e le due barre sono path a se che si
   // uniscono per sovrapposizione, non fori.
   euroFill: 'M18.73 5.7A8 8 0 1 0 18.73 18.3L16.88 15.94A5 5 0 1 1 16.88 8.06z|M5.85 8.95h7.75a1.25 1.25 0 0 1 0 2.5H5.85a1.25 1.25 0 0 1 0-2.5z|M5.85 12.55h7.75a1.25 1.25 0 0 1 0 2.5H5.85a1.25 1.25 0 0 1 0-2.5z',
+  // Lucchetto pieno: corpo con il buco della serratura ricavato per evenodd
+  // nello STESSO d — sottotracciati in path separati non si bucherebbero — e
+  // l'arco superiore come forma a se, che si unisce per sovrapposizione.
+  lockFill: 'M6.5 9.5h11A2.5 2.5 0 0 1 20 12v7.5A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5V12a2.5 2.5 0 0 1 2.5-2.5zM12 13.1a1.9 1.9 0 0 0-.9 3.57V18a.9.9 0 0 0 1.8 0v-1.33A1.9 1.9 0 0 0 12 13.1z|M12 2a5 5 0 0 0-5 5v3h2.6V7a2.4 2.4 0 0 1 4.8 0v3H17V7a5 5 0 0 0-5-5z',
   shieldUserFill: 'M11.6 1.9a1.2 1.2 0 0 1 .8 0l7.2 2.6c.48.17.8.62.8 1.13V11c0 5.13-3.44 9.36-8.06 10.9a1.2 1.2 0 0 1-.68 0C7.04 20.36 3.6 16.13 3.6 11V5.63c0-.51.32-.96.8-1.13l7.2-2.6zM12 7a2.4 2.4 0 1 0 0 4.8A2.4 2.4 0 0 0 12 7zm0 6.2c-2.16 0-4 1.3-4.67 3.13a8.55 8.55 0 0 0 4.67 2.96 8.55 8.55 0 0 0 4.67-2.96C16 14.5 14.16 13.2 12 13.2z',
 };
 

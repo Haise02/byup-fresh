@@ -395,17 +395,26 @@ const PERMESSI = [
   // tutto mentre due sezioni restavano fuori dal conteggio.
   { id: 'economix',       label: 'Economix',               desc: 'Costi, conto economico, cassa e stato patrimoniale' },
   { id: 'conformita',     label: 'Conformità',             desc: 'Adempimenti, rischi, fornitori, incidenti e audit' },
-  { id: 'team',           label: 'Gestione team',          desc: 'Invita e gestisce i membri del team admin' },
+  { id: 'sicurezza',      label: 'Sicurezza e sistemi',    desc: 'Membri del team, riesame degli accessi, audit log e diagnostica' },
+  { id: 'hr',             label: 'Risorse Umane',          desc: 'Registro della formazione del personale' },
+  { id: 'team',           label: 'Impostazioni piattaforma', desc: 'Configurazione tecnica e parametri della piattaforma' },
 ];
 
 const RUOLI = {
-  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni','messaggi','economix','conformita','team'] },
+  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni','messaggi','economix','conformita','sicurezza','hr','team'] },
   support:     { label: 'Support',    desc: 'Segnalazioni e certificazioni', color: 'INFO',            permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni'] },
   marketing:   { label: 'Marketing',  desc: 'Campagne e broadcast', color: 'WARN',                      permessi: ['dashboard','messaggi'] },
   // AFC: i conti e i controlli, senza toccare l'operativita. Non ha accesso a
   // locali, utenti e segnalazioni perche non gli servono per il suo lavoro, e
   // dare piu di quanto serve e esattamente cio che la A.5.15 chiede di evitare.
   afc:         { label: 'AFC',        desc: 'Amministrazione, finanza e controllo', color: 'TEAL',      permessi: ['dashboard','economix','conformita'] },
+  // ICT tiene account, accessi, tracce e salute dei sistemi: e il perimetro di
+  // chi amministra la piattaforma, non di chi la usa.
+  ict:         { label: 'ICT',        desc: 'Sistemi, accessi e configurazione tecnica', color: 'INK',   permessi: ['dashboard','sicurezza','team'] },
+  // HR vede solo le Risorse Umane. Niente dashboard: i ricavi e i locali non
+  // servono a chi tiene il registro della formazione, e un permesso che non
+  // serve e solo superficie in piu da riesaminare ogni sei mesi.
+  hr:          { label: 'HR',         desc: 'Risorse umane e formazione del personale', color: 'AMBER',  permessi: ['hr'] },
   // Ultimo = ultima colonna nella matrice Ruoli & Permessi. Sola visualizzazione.
   operations:  { label: 'Viewer',     desc: 'Sola visualizzazione della dashboard', color: 'PURPLE',    permessi: ['dashboard'] },
 };
