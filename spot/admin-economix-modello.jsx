@@ -389,12 +389,18 @@ function ecoFlussiStorici(mix) {
       && x.quando.getMonth() === m.data.getMonth()).reduce((t, x) => t + x.importo, 0);
     const pagamenti = costi + ivaAcquisti + altre;
     const iva = ecoIvaVersataNelMese(dataM, mix);
+    // Un mese senza scadenza e un mese con la scadenza e nulla da versare sono
+    // due cose diverse, e con un solo trattino sembravano la stessa: il primo
+    // e «non era il momento», il secondo e «era il momento e non dovevi nulla».
+    const scadenzaIva = ecoIvaPeriodi(mix).some(y => y.chiuso
+      && y.scadenza.getFullYear() === dataM.getFullYear()
+      && y.scadenza.getMonth() === dataM.getMonth());
     // Il saldo del mese e quello che matura, non quello che esce: si accumula
     // fino alla scadenza del periodo e li diventa cassa.
     const saldoIva = ivaIncassata - ivaAcquisti;
     const incassi = ricavi + ivaIncassata;
     return { d:m, ricavi, ivaIncassata, incassi, costi, ivaAcquisti, pagamenti,
-      iva, saldoIva, netto: incassi - pagamenti - iva, i };
+      iva, scadenzaIva, saldoIva, netto: incassi - pagamenti - iva, i };
   });
   // Dal fondo verso l'alto: l'ultimo saldo e quello vero.
   let saldo = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;

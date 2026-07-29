@@ -153,9 +153,12 @@ function EcoCassa({ mix, leve, forza }) {
               <div style={{fontSize:12.8, color:ADM.OK, fontWeight:600, ...ECO_NUM}}>{ecoEur(x.incassi)}</div>
               <div style={{fontSize:12.6, color:ADM.MUTED, ...ECO_NUM}}>{ecoEur(x.ivaIncassata)}</div>
               <div style={{fontSize:12.8, color:ADM.MUTED, ...ECO_NUM}}>−{ecoEur(x.pagamenti)}</div>
+              {/* «€0» dice che il trimestre e stato liquidato e non si doveva
+                  nulla; «—» dice che quel mese non c'era nessuna scadenza. */}
               <div style={{fontSize:12.6, fontWeight: x.iva > 0 ? 700 : 400,
-                color: x.iva > 0 ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
-                {x.iva > 0 ? `−${ecoEur(x.iva)}` : '—'}
+                color: x.iva > 0 ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}
+                title={x.scadenzaIva ? 'Liquidazione del trimestre' : 'Nessuna scadenza IVA in questo mese'}>
+                {x.iva > 0 ? `−${ecoEur(x.iva)}` : x.scadenzaIva ? '€0' : '—'}
               </div>
               {/* Il segno serve — dice se il mese matura debito o credito — ma
                   il verde su un numero negativo no: resta acceso solo il debito. */}
