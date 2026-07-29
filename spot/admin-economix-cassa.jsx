@@ -338,7 +338,7 @@ function EcoPatrimonio({ mix }) {
         <span style={{fontSize:12.4, color:ADM.MUTED, flex:1}}>
           {quadra
             ? 'Le due colonne coincidono: i saldi inseriti e quelli calcolati sono coerenti fra loro.'
-            : 'Le due colonne non coincidono. Di solito significa che il saldo di banca o le perdite portate a nuovo sono aggiornati a una data diversa dal resto.'}
+            : `Le due colonne non coincidono. Succede quando qualcosa è stato registrato dopo l’ultima lettura del conto — il saldo di banca è fermo al ${cfFmt(ECO_PATRIMONIO.aggiornatoIl)} e non tiene ancora conto di quell’uscita.`}
         </span>
       </div>
 

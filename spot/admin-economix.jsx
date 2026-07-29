@@ -19,6 +19,7 @@ const ECO_SEL = { ...ECO_INP, appearance:'none', WebkitAppearance:'none', MozApp
   backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
 const ECO_NUM = { fontVariantNumeric:'tabular-nums' };
 const ECO_GRID_VAR = 'minmax(0,1.65fr) 1.15fr 1.2fr 108px 108px minmax(0,1.05fr)';
+const ECO_GRID_CESP = 'minmax(0,1.5fr) 1fr 1fr 1fr 1.1fr 1fr 1.15fr';
 const ECO_GRID_FIS = 'minmax(0,1.9fr) 1fr 1.15fr 108px 112px 112px minmax(0,1.1fr)';
 const ECO_MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno',
   'luglio','agosto','settembre','ottobre','novembre','dicembre'];
@@ -80,18 +81,26 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
   // IVA non registrata non e IVA a zero: sulle voci nate prima che il campo
   // esistesse si riparte dal 22%, altrimenti aprire una riga per guardarla le
   // azzererebbe l'aliquota al primo salvataggio.
-  const aliquotaDi = (c) => {
-    if (!c || !c.importo || c.iva == null) return '22';
-    const a = Math.round(c.iva / c.importo * 100);
+  // Un cespite non ha periodicita: e quello che lo distingue da un costo.
+  const eraCespite = !!(costo && !costo.periodicita);
+  const aliquotaDi = (imp, iva) => {
+    if (!imp || iva == null) return '22';
+    const a = Math.round(iva / imp * 100);
     return ['22','10','5','4','0'].indexOf(String(a)) !== -1 ? String(a) : '22';
   };
   const [b, setB] = useStateEco(() => costo ? {
-    voce:costo.voce, categoria:costo.categoria, importo:fmtN(costo.importo),
-    periodicita:costo.periodicita, dal:costo.dal.toISOString().slice(0, 10),
+    tipo: eraCespite ? 'cespite' : 'costo',
+    voce:costo.voce, categoria:costo.categoria,
+    importo: fmtN(eraCespite ? costo.costo : costo.importo),
+    periodicita: costo.periodicita || 'una-tantum',
+    dal: (eraCespite ? costo.data : costo.dal).toISOString().slice(0, 10),
     fornitore:costo.fornitore === '—' ? '' : costo.fornitore, piva:costo.piva || '',
-    numero:'', aliquota:aliquotaDi(costo),
-  } : { voce:'', categoria:'Software', importo:'', periodicita:'mensile',
-    dal: new Date().toISOString().slice(0, 10), fornitore:'', piva:'', numero:'', aliquota:'22' });
+    numero:'', aliquota:aliquotaDi(eraCespite ? costo.costo : costo.importo, costo.iva),
+    amm: String(eraCespite ? costo.aliquota : 20), ammScelto: eraCespite,
+  } : { tipo:'costo', voce:'', categoria:'Software', importo:'', periodicita:'mensile',
+    dal: new Date().toISOString().slice(0, 10), fornitore:'', piva:'', numero:'',
+    aliquota:'22', amm:'20', ammScelto:false });
+  const cespite = b.tipo === 'cespite';
   const [file, setFile] = useStateEco(null);
   const allegata = modifica && costo.fattura ? ECO_FATTURE.find(x => x.id === costo.fattura) : null;
   // Si scrive l'imponibile OPPURE il totale: sono le due cifre che stanno sulla
@@ -116,12 +125,25 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
     const a = num(b.aliquota) / 100;
     agg('importo', num(v) > 0 ? fmt(num(v) / (1 + a)) : '');
   };
+  // Chi sceglie «bene strumentale» sta quasi sempre comprando attrezzatura:
+  // lasciare «Software» costringerebbe a correggere la categoria ogni volta.
+  const cambiaTipo = (t) => setB(x => ({ ...x, tipo:t,
+    periodicita: t === 'cespite' ? 'una-tantum' : x.periodicita,
+    categoria: t === 'cespite' && x.categoria === 'Software' ? 'Attrezzature'
+      : t === 'costo' && x.categoria === 'Attrezzature' ? 'Software' : x.categoria }));
   const xml = !!file && /\.xml$/i.test(file);
   const imponibile = parseFloat(String(b.importo).replace(',', '.')) || 0;
   const iva = imponibile * (parseFloat(b.aliquota) || 0) / 100;
   const totale = imponibile + iva;
   const ivaZero = (parseFloat(b.aliquota) || 0) === 0;
   const estera = /^[A-Z]{2}/.test(b.piva) && !/^IT/.test(b.piva);
+  // Sotto la soglia di legge il bene si deduce tutto nell'anno. La proposta deve
+  // seguire l'importo mentre lo si scrive: fissarla all'apertura della modale la
+  // lasciava al 100% anche dopo aver digitato 2.400 euro, perche quando il tipo
+  // e stato scelto il campo era ancora vuoto.
+  const ammProposta = imponibile > 0 && imponibile < ECO_SOGLIA_CESPITE ? '100' : '20';
+  const amm = b.ammScelto ? b.amm : ammProposta;
+  const quotaAnnua = imponibile * (parseFloat(amm) || 0) / 100;
   const ok = b.voce.trim().length > 2 && imponibile > 0;
 
   return (
@@ -133,26 +155,43 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
         maxHeight:'100%', display:'flex', flexDirection:'column'}}>
         <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
           <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
-            {modifica ? costo.voce : 'Aggiungere un costo'}
+            {modifica ? costo.voce : cespite ? 'Registrare un bene strumentale' : 'Aggiungere un costo'}
           </div>
           <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
             {modifica
               ? `${ECO_PERIODICITA[costo.periodicita]} · dal ${cfFmt(costo.dal)}${costo.fornitore && costo.fornitore !== '—' ? ` · ${costo.fornitore}` : ''}`
-              : 'La data può essere di un mese passato: il costo entra nel mese a cui appartiene, non in quello in cui lo registri. Allegando la fattura la voce risulta documentata.'}
+              : cespite
+                ? 'Un bene non è un costo: la cassa esce tutta il giorno dell’acquisto, il conto economico lo assorbe a quote e il valore residuo resta fra le immobilizzazioni.'
+                : 'La data può essere di un mese passato: il costo entra nel mese a cui appartiene, non in quello in cui lo registri. Allegando la fattura la voce risulta documentata.'}
           </div>
         </div>
 
         <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
           display:'flex', flexDirection:'column', gap:20}}>
           <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
-            <EcoCampo etichetta="Voce di costo" span>
+            {/* Prima domanda, perche cambia dove finisce tutto il resto: una
+                spesa si consuma nel mese, un bene resta e si ammortizza. */}
+            <EcoCampo etichetta="Natura" span
+              aiuto={cespite
+                ? 'Esce dalla cassa tutto oggi, ma nel conto economico entra un dodicesimo alla volta. Il valore residuo resta nello stato patrimoniale.'
+                : 'Pesa sul conto economico del periodo a cui appartiene.'}>
+              <select value={b.tipo} onChange={e=>cambiaTipo(e.target.value)} disabled={modifica}
+                style={{...ECO_SEL, opacity: modifica ? 0.6 : 1}}>
+                <option value="costo">Spesa d’esercizio</option>
+                <option value="cespite">Bene strumentale · si ammortizza</option>
+              </select>
+            </EcoCampo>
+            <EcoCampo etichetta={cespite ? 'Che cosa si compra' : 'Voce di costo'} span>
               <input value={b.voce} onChange={e=>agg('voce', e.target.value)} style={ECO_INP}
-                placeholder="Che cosa si paga"/>
+                placeholder={cespite ? 'es. MacBook Pro 14”' : 'Che cosa si paga'}/>
             </EcoCampo>
             <EcoCampo etichetta="Categoria">
               <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={ECO_SEL}>
-                {['Personale','Consulenze','Software','Marketing','Assicurazioni','Cloud','API','Altro'].map(c =>
-                  <option key={c} value={c}>{c}</option>)}
+                {ECO_CATEGORIE.map(g => (
+                  <optgroup key={g.g} label={g.g}>
+                    {g.voci.map(c => <option key={c} value={c}>{c}</option>)}
+                  </optgroup>
+                ))}
               </select>
             </EcoCampo>
             <EcoCampo etichetta="Fornitore">
@@ -204,14 +243,27 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
                   : 'Scrivi l’imponibile oppure il totale, l’altro si ricalcola. Nel conto economico entra l’imponibile, dalla cassa esce il totale.'}
               </div>
             </div>
-            <EcoCampo etichetta="Periodicita"
-              aiuto={b.periodicita === 'annuale' ? 'Nel conto economico entra in dodicesimi.'
-                : b.periodicita === 'una-tantum' ? 'Pesa solo sul mese della data.' : null}>
-              <select value={b.periodicita} onChange={e=>agg('periodicita', e.target.value)} style={ECO_SEL}>
-                {Object.entries(ECO_PERIODICITA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </EcoCampo>
-            <EcoCampo etichetta="Data" span aiuto="Anche di un mese gia chiuso.">
+            {cespite ? (
+              <EcoCampo etichetta="Ammortamento"
+                aiuto={imponibile > 0 && quotaAnnua > 0
+                  ? `${ecoEur2(quotaAnnua / 12)} al mese · il primo anno a metà aliquota, come prevede la norma`
+                  : null}>
+                <select value={amm} onChange={e=>setB(x => ({ ...x, amm:e.target.value, ammScelto:true }))}
+                  style={ECO_SEL}>
+                  {ECO_ALIQUOTE_AMM.map(a => <option key={a.v} value={a.v}>{a.label}</option>)}
+                </select>
+              </EcoCampo>
+            ) : (
+              <EcoCampo etichetta="Periodicita"
+                aiuto={b.periodicita === 'annuale' ? 'Nel conto economico entra in dodicesimi.'
+                  : b.periodicita === 'una-tantum' ? 'Pesa solo sul mese della data.' : null}>
+                <select value={b.periodicita} onChange={e=>agg('periodicita', e.target.value)} style={ECO_SEL}>
+                  {Object.entries(ECO_PERIODICITA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </EcoCampo>
+            )}
+            <EcoCampo etichetta={cespite ? 'Data d’acquisto' : 'Data'} span
+              aiuto={cespite ? 'Da qui parte l’ammortamento.' : 'Anche di un mese gia chiuso.'}>
               <input type="date" value={b.dal} onChange={e=>agg('dal', e.target.value)} style={ECO_INP}/>
             </EcoCampo>
           </div>
@@ -268,12 +320,13 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
               onClick={()=>onElimina(costo)}>Elimina</AdmButton>
           )}
           <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
-            {ok
-              ? `Nel conto economico ${ecoEur2(imponibile)}${iva > 0 ? `, dalla cassa ${ecoEur2(imponibile + iva)}` : ''}.`
-              : 'Servono voce e imponibile.'}
+            {!ok ? (cespite ? 'Servono il bene e l’imponibile.' : 'Servono voce e imponibile.')
+              : cespite
+                ? `Dalla cassa ${ecoEur2(imponibile + iva)} oggi, nel conto economico ${ecoEur2(quotaAnnua / 12)} al mese.`
+                : `Nel conto economico ${ecoEur2(imponibile)}${iva > 0 ? `, dalla cassa ${ecoEur2(imponibile + iva)}` : ''}.`}
           </span>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
-          <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva({ ...b, file })}>
+          <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva({ ...b, amm, file })}>
             {modifica ? 'Salva' : 'Aggiungi'}
           </AdmButton>
         </div>
@@ -360,8 +413,12 @@ function EcoDoc({ fattura }) {
 // compresi. Va detto prima, con i numeri, perche l'effetto non e visibile dal
 // punto in cui si preme.
 function EcoConfermaElimina({ costo, daQuando, onChiudi, onConferma }) {
-  const imp = ecoImpattoEliminazione(costo, daQuando);
-  const unaTantum = costo.periodicita === 'una-tantum';
+  // Un cespite non ha periodicita e non si chiude da una data: o l'hai comprato
+  // o non l'hai comprato, quindi si toglie tutto insieme all'ammortamento che ha
+  // gia prodotto.
+  const cespite = !costo.periodicita;
+  const imp = cespite ? { restano:0, spariscono:0 } : ecoImpattoEliminazione(costo, daQuando);
+  const unaTantum = cespite || costo.periodicita === 'una-tantum';
   const daMese = `${ECO_MESI_LUNGHI[daQuando.getMonth()]} ${daQuando.getFullYear()}`;
   return (
     <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
@@ -376,7 +433,9 @@ function EcoConfermaElimina({ costo, daQuando, onChiudi, onConferma }) {
         {/* Il passato non si riscrive: i mesi gia trascorsi quel costo l'hanno
             avuto davvero, e toglierlo anche da li cambierebbe consuntivi chiusi. */}
         <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:15}}>
-          {unaTantum
+          {cespite
+            ? `È un bene strumentale acquistato il ${cfFmt(costo.data)}: sparisce dallo stato patrimoniale e con lui l’ammortamento già maturato.`
+            : unaTantum
             ? `È una voce una tantum: sparisce dal mese di ${cfFmt(costo.dal)} e dal conto economico.`
             : imp.restano === 0
               ? `È una voce ${ECO_PERIODICITA[costo.periodicita].toLowerCase()} che non ha mesi precedenti: sparisce del tutto.`
@@ -386,7 +445,9 @@ function EcoConfermaElimina({ costo, daQuando, onChiudi, onConferma }) {
           {/* «Mesi che spariscono» sarebbe una mezza verita su un ricorrente: nello
               storico ne trova uno, ma la voce sarebbe andata avanti all'infinito.
               Si dice invece cosa resta a consuntivo e da quando smette di contare. */}
-          {[['Importo', `${ecoEur2(costo.importo)}${costo.iva ? ` più ${ecoEur2(costo.iva)} di IVA` : ''}`],
+          {[['Importo', `${ecoEur2(cespite ? costo.costo : costo.importo)}${costo.iva ? ` più ${ecoEur2(costo.iva)} di IVA` : ''}`],
+            ...(cespite ? [['Ammortizzato finora', ecoEur2(ecoAmmortamento(costo, ECO_OGGI).fondo)],
+              ['Valore residuo', ecoEur2(ecoAmmortamento(costo, ECO_OGGI).residuo)]] : []),
             ...(unaTantum || imp.restano === 0 ? [] : [
               ['Resta a consuntivo', imp.restano === 1 ? '1 mese' : `${imp.restano} mesi`],
               ['Non conteggiato da', daMese]]),
@@ -480,6 +541,18 @@ function EcoCosti({ mix, forza }) {
           t + ecoCostiVariabili(m) * frazioneDi(m) + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)), 0) }));
   const maxSerie = Math.max.apply(null, serie.map(x => x.tot)) || 1;
 
+  // Un cespite compare da quando e stato comprato: la quota e l'ammortamento
+  // maturato nei mesi del periodo scelto, il residuo e il valore a fine periodo.
+  const righeCesp = ECO_CESPITI.map(c => {
+    const acq = new Date(c.data.getFullYear(), c.data.getMonth(), 1);
+    if (acq > new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1)) return null;
+    const quota = mesi.reduce((t, m) => t + ecoAmmortamento(c, m.data).quota, 0);
+    const fine = ecoAmmortamento(c, ultimo.data);
+    return { c, quota, residuo:fine.residuo, ft: c.fattura ? ECO_FATTURE.find(x => x.id === c.fattura) : null };
+  }).filter(Boolean).sort((a, b) => b.c.costo - a.c.costo);
+  const quotaCesp = righeCesp.reduce((t, r) => t + r.quota, 0);
+  const residuoCesp = righeCesp.reduce((t, r) => t + r.residuo, 0);
+
   const tagliaDa = modo === 'mese' ? primo.data : ECO_OGGI;
 
   const salva = (b) => {
@@ -495,13 +568,22 @@ function EcoCosti({ mix, forza }) {
         data:quando, imponibile:imp, iva, totale:imp + iva, categoria:b.categoria, voce:null,
         origine: /\.xml$/i.test(b.file) ? 'sdi' : 'manuale', file:b.file, stato:'riconciliata' });
     }
-    ECO_FISSI.push({ id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
-      voce:b.voce.trim(), categoria:b.categoria, importo:imp,
-      // L'IVA sta sul costo e non solo sulla fattura: serve alla cassa anche
-      // quando il documento non e ancora stato allegato.
-      iva: ivaCalc,
-      periodicita:b.periodicita,
-      dal:quando, a:null, fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(), fattura:idFattura });
+    // Un bene strumentale non entra fra i costi: entra fra i cespiti, e nel
+    // conto economico ci arriva dopo, un dodicesimo alla volta.
+    if (b.tipo === 'cespite') {
+      ECO_CESPITI.push({ id:'C-' + String(ECO_CESPITI.length + 1).padStart(2, '0'),
+        voce:b.voce.trim(), categoria:b.categoria, costo:imp, iva:ivaCalc, data:quando,
+        aliquota: parseFloat(b.amm) || 20,
+        fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(), fattura:idFattura });
+    } else {
+      ECO_FISSI.push({ id:'F-' + String(ECO_FISSI.length + 1).padStart(2, '0'),
+        voce:b.voce.trim(), categoria:b.categoria, importo:imp,
+        // L'IVA sta sul costo e non solo sulla fattura: serve alla cassa anche
+        // quando il documento non e ancora stato allegato.
+        iva: ivaCalc,
+        periodicita:b.periodicita,
+        dal:quando, a:null, fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(), fattura:idFattura });
+    }
     setNuovo(false); forza();
   };
 
@@ -648,18 +730,65 @@ function EcoCosti({ mix, forza }) {
       </div>
       </div>
 
+      {/* Non sono costi e non stanno fra i costi: escono dalla cassa in un colpo
+          solo e nel conto economico entrano a quote. Senza una tabella loro un
+          acquisto registrato sembrerebbe non essere stato salvato. */}
+      {righeCesp.length > 0 && (
+        <div>
+          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+            <div style={{...ECO_H, marginBottom:0}}>Beni strumentali</div>
+            <span style={{fontSize:12.4, color:ADM.MUTED}}>
+              {ecoEur(quotaCesp)} di ammortamento nel periodo · {ecoEur(residuoCesp)} di valore residuo
+            </span>
+          </div>
+          <div style={ECO_CARD}>
+            <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_CESP, gap:11}}>
+              <div>Bene</div><div>Categoria</div><div>Acquistato il</div><div>Costo</div>
+              <div>Quota del periodo</div><div>Residuo</div><div>Documento</div>
+            </div>
+            {righeCesp.map((r, i) => (
+              <div key={r.c.id} className="adm-row-open" onClick={()=>setModifica(r.c)}
+                style={{display:'grid', gridTemplateColumns:ECO_GRID_CESP, gap:11,
+                alignItems:'center', padding:'12px 16px', cursor:'pointer',
+                borderBottom: i < righeCesp.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT, overflow:'hidden',
+                    whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{r.c.voce}</div>
+                  <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
+                    si ammortizza al {r.c.aliquota}%
+                  </div>
+                </div>
+                <div style={{fontSize:12.4, color:ADM.MUTED}}>{r.c.categoria}</div>
+                <div style={{fontSize:12.4, color:ADM.MUTED}}>{cfFmt(r.c.data)}</div>
+                <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur2(r.c.costo)}</div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, ...ECO_NUM}}>{ecoEur2(r.quota)}</div>
+                <div style={{fontSize:13, fontWeight:600, color: r.residuo > 0 ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
+                  {r.residuo > 0 ? ecoEur2(r.residuo) : 'ammortizzato'}
+                </div>
+                <div style={{minWidth:0}} onClick={e=>e.stopPropagation()}>
+                  <span onClick={()=> r.ft ? setDoc(r.ft) : setAllega({ id:r.c.id, tipo:'cespite', nome:r.c.voce, importo:r.c.costo })}
+                    className="adm-card-interactive" style={{display:'inline-block', cursor:'pointer'}}>
+                    <EcoDoc fattura={r.ft}/>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {nuovo && <EcoModaleCosto onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
       {modifica && <EcoModaleCosto key={modifica.id} costo={modifica}
         onChiudi={()=>setModifica(null)} onDoc={(f)=>{ setModifica(null); setDoc(f); }}
         onElimina={(c)=>setElimina(c)}
         onSalva={(b)=>{
           const imp = parseFloat(String(b.importo).replace(',', '.')) || 0;
-          Object.assign(modifica, {
-            voce:b.voce.trim(), categoria:b.categoria, importo:imp,
-            iva: Math.round(imp * (parseFloat(b.aliquota) || 0)) / 100,
-            periodicita:b.periodicita, dal:new Date(b.dal + 'T12:00:00'),
-            fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(),
-          });
+          const iva = Math.round(imp * (parseFloat(b.aliquota) || 0)) / 100;
+          const comune = { voce:b.voce.trim(), categoria:b.categoria, iva,
+            fornitore:b.fornitore.trim() || '—', piva:b.piva.trim() };
+          Object.assign(modifica, b.tipo === 'cespite'
+            ? { ...comune, costo:imp, aliquota: parseFloat(b.amm) || 20, data:new Date(b.dal + 'T12:00:00') }
+            : { ...comune, importo:imp, periodicita:b.periodicita, dal:new Date(b.dal + 'T12:00:00') });
           setModifica(null); forza();
         }}/>}
       {/* Si taglia dal mese che si sta guardando. Su un anno intero non esiste
@@ -671,7 +800,8 @@ function EcoCosti({ mix, forza }) {
       {allega && <EcoModaleAllega voce={allega} onChiudi={()=>setAllega(null)} onSalva={(b)=>{
         const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
         const id = `FT-${ultimo.data.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
-        const fisso = allega.tipo === 'fisso' ? ECO_FISSI.find(f => f.id === allega.id) : null;
+        const fisso = allega.tipo === 'fisso' ? ECO_FISSI.find(f => f.id === allega.id)
+          : allega.tipo === 'cespite' ? ECO_CESPITI.find(c => c.id === allega.id) : null;
         ECO_FATTURE.push({ id, fornitore: fisso ? fisso.fornitore : (ECO_SERVIZI.find(x => x.id === allega.id) || {}).fornitore || '—',
           numero:b.numero.trim() || '—', data:new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1),
           imponibile:allega.importo, iva, totale:allega.importo + iva,

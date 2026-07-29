@@ -140,6 +140,41 @@ function ecoFissiDelMese(d) {
   }, 0);
 }
 
+// ─── Ammortamenti ─────────────────────────────────────────────────────────
+// Il fondo e la quota di un cespite a un dato mese. Si accumula in avanti invece
+// di moltiplicare i mesi trascorsi per la quota, perche due regole lo renderebbero
+// sbagliato: il primo esercizio va a META aliquota — qualunque sia il mese
+// d'acquisto — e l'ammortamento si ferma quando il fondo raggiunge il costo, non
+// un euro oltre.
+function ecoAmmortamento(c, fino) {
+  let fondo = 0, quota = 0;
+  const stop = new Date(fino.getFullYear(), fino.getMonth(), 1);
+  const d = new Date(c.data.getFullYear(), c.data.getMonth(), 1);
+  while (d <= stop) {
+    const primoEsercizio = d.getFullYear() === c.data.getFullYear();
+    const teorica = primoEsercizio
+      ? c.costo * (c.aliquota / 100) * 0.5 / (12 - c.data.getMonth())
+      : c.costo * (c.aliquota / 100) / 12;
+    quota = Math.max(0, Math.min(teorica, c.costo - fondo));
+    fondo += quota;
+    d.setMonth(d.getMonth() + 1);
+  }
+  return { fondo, quota, residuo: c.costo - fondo };
+}
+const ecoAmmortamentoMese = (d) => ECO_CESPITI.reduce((t, c) => t + ecoAmmortamento(c, d).quota, 0);
+// Esborso del mese d'acquisto: e cassa, non costo. Sono due voci diverse dello
+// stesso fatto, ed e per questo che stanno in due funzioni diverse.
+const ecoCespitiDelMese = (d) => ECO_CESPITI.reduce((t, c) =>
+  t + (c.data.getFullYear() === d.getFullYear() && c.data.getMonth() === d.getMonth() ? c.costo : 0), 0);
+function ecoCespitiAlla(d) {
+  return ECO_CESPITI.reduce((a, c) => {
+    if (new Date(c.data.getFullYear(), c.data.getMonth(), 1) > new Date(d.getFullYear(), d.getMonth(), 1)) return a;
+    const am = ecoAmmortamento(c, d);
+    a.costo += c.costo; a.fondo += am.fondo; a.netto += am.residuo;
+    return a;
+  }, { costo:0, fondo:0, netto:0 });
+}
+
 // ─── Ricavi di un mese ─────────────────────────────────────────────────────
 // Il mix per piano viene dalla base reale dei locali attivi e resta costante
 // nella proiezione: ipotizzare che migliori da solo sarebbe la scorciatoia più
@@ -196,7 +231,8 @@ function ecoContoEconomico(mesi, mix, regime) {
   const ricavi = r.sub + r.extra;
   const margineContribuzione = ricavi - r.variabili;
   const ebitda = margineContribuzione - r.fissi;
-  const ammortamenti = 0;
+  const ammortamenti = mesi.reduce((t, d) =>
+    t + ecoAmmortamentoMese(new Date(d.data.getFullYear(), d.data.getMonth(), 1)), 0);
   const ebit = ebitda - ammortamenti;
   const oneriFinanziari = 0;
   const ante = ebit - oneriFinanziari;
@@ -273,7 +309,7 @@ function ecoProiezioneCassa(mix, leve) {
   const out = [];
   futuri.forEach((d, i) => {
     const ric = ecoRicavi(d, mix);
-    const costi = ecoCostiVariabili(d) + ecoFissiDelMese(d.data);
+    const costi = ecoCostiVariabili(d) + ecoFissiDelMese(d.data) + ecoCespitiDelMese(d.data);
     // Gli abbonamenti sono + IVA: il ristoratore la paga a Byup, che la INCASSA
     // e la riversa. Mancava del tutto, e il flusso sottraeva l'IVA versata allo
     // Stato senza mai aggiungere quella riscossa — l'IVA risultava un costo
@@ -320,6 +356,12 @@ function ecoIvaAcquisti(d) {
     if (!quota) return;
     if (f.iva != null) dichiarata += f.iva * (quota / (f.importo || 1));
     else senza += quota;
+  });
+  // L'IVA su un bene strumentale e detraibile come quella su un servizio: il
+  // bene non e un costo, ma la sua IVA e IVA a credito nel mese d'acquisto.
+  ECO_CESPITI.forEach(c => {
+    if (c.data.getFullYear() === d.getFullYear() && c.data.getMonth() === d.getMonth())
+      dichiarata += c.iva || 0;
   });
   return dichiarata + senza * 0.22 * 0.55;
 }
@@ -380,7 +422,7 @@ function ecoFlussiStorici(mix) {
     const frazione = m.corrente ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
     const ricavi = ric.totale * frazione;
     const ivaIncassata = ricavi * 0.22;
-    const costi = (ecoCostiVariabili(m) * frazione) + ecoFissiDelMese(dataM);
+    const costi = (ecoCostiVariabili(m) * frazione) + ecoFissiDelMese(dataM) + ecoCespitiDelMese(dataM);
     const ivaAcquisti = ecoIvaAcquisti(dataM);
     // Le uscite sono tutto cio che esce verso l'esterno: fornitori al lordo e
     // scadenze con calendario proprio. Tenerle in due colonne separate quando
@@ -551,6 +593,14 @@ function ecoScadenzario(mesiAvanti, mixScad) {
     }
   });
 
+  // 1b — beni strumentali con data futura: la cassa esce tutta quel giorno
+  ECO_CESPITI.forEach(c => {
+    if (c.data < new Date(oggi.getFullYear(), oggi.getMonth(), 1)) return;
+    spingi({ chiave:ecoChiave(c.id, c.data), voce:c.voce, data:new Date(c.data),
+      importo:c.costo + (c.iva || 0), origine:'bene strumentale',
+      fornitore:c.fornitore, nota:`Si ammortizza al ${c.aliquota}%`, costo:true });
+  });
+
   // 2 — liquidazioni IVA, calcolate: la data e certa, l'importo lo e solo per i
   // periodi gia chiusi. Su quelli ancora aperti si mostra la data senza inventare
   // un numero, che e esattamente quello che sa chi tiene i conti.
@@ -702,11 +752,13 @@ function ecoStatoPatrimoniale(mix) {
   const posizioneIva = ecoSaldoIva(mix).saldo;
   const ivaDebito = Math.max(0, posizioneIva);
   const ivaCredito = Math.max(0, -posizioneIva);
-  const immobilizzazioni = P.immobiliMateriali + P.fondoAmmortamento;
+  const cesp = ecoCespitiAlla(ultimo.data);
+  const immobilizzazioni = P.immobiliMateriali + P.fondoAmmortamento + cesp.netto;
   const prepagato = ecoPrepagati().reduce((t, p) => t + p.valore, 0);
 
   const attivo = [
-    { v:'Immobilizzazioni materiali', n:immobilizzazioni, sub:`${ecoEur(P.immobiliMateriali)} al costo, ${ecoEur(-P.fondoAmmortamento)} ammortizzati` },
+    { v:'Immobilizzazioni materiali', n:immobilizzazioni,
+      sub:`${ecoEur(P.immobiliMateriali + cesp.costo)} al costo, ${ecoEur(-P.fondoAmmortamento + cesp.fondo)} ammortizzati` },
     { v:'Crediti verso clienti', n:crediti, sub:`abbonamenti fatturati e non ancora incassati, ${ECO_CASSA.giorniIncasso} giorni medi` },
     { v:'Crediti tributari', n:P.creditiTributari + ivaCredito,
       sub: ivaCredito > 0
@@ -743,6 +795,10 @@ window.ecoBanca = ecoBanca;
 window.ecoPrepagati = ecoPrepagati;
 window.ecoRiacquisti = ecoRiacquisti;
 window.ecoIvaAcquisti = ecoIvaAcquisti;
+window.ecoAmmortamento = ecoAmmortamento;
+window.ecoAmmortamentoMese = ecoAmmortamentoMese;
+window.ecoCespitiDelMese = ecoCespitiDelMese;
+window.ecoCespitiAlla = ecoCespitiAlla;
 window.ecoFlussiStorici = ecoFlussiStorici;
 window.ecoFinePeriodoIva = ecoFinePeriodoIva;
 window.ecoIvaPeriodi = ecoIvaPeriodi;

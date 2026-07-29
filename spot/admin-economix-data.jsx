@@ -297,6 +297,39 @@ const ECO_SCADENZE = [
     importo:1450, nota:'Annuale, esce in un colpo solo.' },
 ];
 
+// ─── Categorie di spesa ────────────────────────────────────────────────────
+// Otto categorie non bastavano a una startup vera: le certificazioni ISO che
+// Byup sta prendendo, il diritto camerale, le commissioni bancarie, un volo per
+// andare a vedere un locale e la cancelleria finivano tutte in «Altro», e una
+// categoria che raccoglie tutto non serve a niente. Raggruppate perche quindici
+// voci in fila si leggono peggio di quindici voci in cinque famiglie.
+const ECO_CATEGORIE = [
+  { g:'Persone',        voci:['Personale', 'Consulenze', 'Formazione'] },
+  { g:'Tecnologia',     voci:['Cloud', 'API', 'Software', 'Attrezzature'] },
+  { g:'Crescita',       voci:['Marketing', 'Viaggi e trasferte'] },
+  { g:'Struttura',      voci:['Ufficio e spese generali', 'Assicurazioni', 'Licenze e certificazioni'] },
+  { g:'Amministrazione',voci:['Banca e finanziari', 'Imposte e diritti', 'Altro'] },
+];
+
+// ─── Beni strumentali ──────────────────────────────────────────────────────
+// Un portatile, una stampante fiscale da tenere in ufficio per le prove, un
+// monitor: NON sono costi. Escono dalla cassa in un colpo solo ed entrano nel
+// conto economico un dodicesimo alla volta, per gli anni della loro vita utile.
+// Registrarne uno come costo del mese vuol dire dichiarare una perdita che non
+// c'e stata, e insieme far sparire dal patrimonio una cosa che si possiede.
+const ECO_CESPITI = [];
+// Sotto questa soglia il bene si deduce tutto nell'esercizio: e una scelta
+// concessa dalla legge, non un'approssimazione.
+const ECO_SOGLIA_CESPITE = 516.46;
+// Coefficienti ministeriali usati di norma. Il primo esercizio va a meta
+// aliquota, qualunque sia il mese d'acquisto.
+const ECO_ALIQUOTE_AMM = [
+  { v:100, label:'Tutto nell’anno · sotto €516,46' },
+  { v:20,  label:'20% · computer, telefoni, elettronica' },
+  { v:15,  label:'15% · macchinari e impianti' },
+  { v:12,  label:'12% · mobili e arredi' },
+];
+
 // ─── Stato patrimoniale ────────────────────────────────────────────────────
 // Le voci che NON si deducono dal conto economico e vanno inserite: capitale,
 // riserve, perdite portate a nuovo, cespiti. Il resto — crediti, debiti, cassa,
@@ -381,3 +414,7 @@ window.ECO_CASSA = ECO_CASSA;
 window.ECO_SCADENZE = ECO_SCADENZE;
 window.ECO_PAGATI = ECO_PAGATI;
 window.ECO_PATRIMONIO = ECO_PATRIMONIO;
+window.ECO_CATEGORIE = ECO_CATEGORIE;
+window.ECO_CESPITI = ECO_CESPITI;
+window.ECO_SOGLIA_CESPITE = ECO_SOGLIA_CESPITE;
+window.ECO_ALIQUOTE_AMM = ECO_ALIQUOTE_AMM;
