@@ -195,6 +195,12 @@ function ImpPersonale() {
         }
       >
         <div style={{display:'flex', flexDirection:'column', gap: 10}}>
+          {/* Il proprietario apre la lista e non si apre: e uno solo, si sa
+              gia chi e, e il suo nome sta nella riga stessa invece che dietro
+              un chevron da cliccare. */}
+          {allRoles.filter(role => role.id === 'proprietario' && PERSONS.some(p => p.role === role.id)).map(role => (
+            <RoleSection key={role.id} role={role} owner/>
+          ))}
           <DevicesSection
             expanded={expanded.has('_devices')}
             onToggle={() => toggleExpand('_devices')}
@@ -203,7 +209,7 @@ function ImpPersonale() {
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
           />
-          {allRoles.filter(role => PERSONS.some(p => p.role === role.id)).map(role => (
+          {allRoles.filter(role => role.id !== 'proprietario' && PERSONS.some(p => p.role === role.id)).map(role => (
             <RoleSection
               key={role.id}
               role={role}
@@ -226,10 +232,13 @@ function ImpPersonale() {
   );
 }
 
-function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, openMenu, setOpenMenu }) {
+function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, openMenu, setOpenMenu, owner }) {
   const people = PERSONS.filter(p => p.role === role.id);
   const count = people.length;
   const countLabel = count === 1 ? 'persona' : 'persone';
+  // Il proprietario non si apre: la persona e una sola ed e gia scritta qui
+  // sotto, quindi niente chevron, niente conteggio, niente elenco dentro.
+  const apribile = !owner && count > 0;
 
   return (
     <div style={{
@@ -240,8 +249,8 @@ function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, op
       position: 'relative',
     }}>
       <div
-        onClick={count > 0 ? onToggle : undefined}
-        style={{display:'flex', alignItems:'flex-start', gap: 14, padding:'14px 16px', cursor: count > 0 ? 'pointer' : 'default'}}
+        onClick={apribile ? onToggle : undefined}
+        style={{display:'flex', alignItems:'flex-start', gap: 14, padding:'14px 16px', cursor: apribile ? 'pointer' : 'default'}}
       >
         <div style={{
           width: 42, height: 42, borderRadius: 10,
@@ -281,18 +290,26 @@ function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, op
                 </div>
               </span>
             </span>
-            <span style={{
-              fontSize: 13.5, fontWeight: 600,
-              color: count === 0 ? PN.MUTED : PN.TEXT,
-              opacity: count === 0 ? 0.55 : 1,
-              padding: '2px 8px', borderRadius: 999,
-              background: count === 0 ? '#F4F5F7' : '#EEF2F6',
-              whiteSpace: 'nowrap',
-            }}>{count} {countLabel}</span>
+            {!owner && (
+              <span style={{
+                fontSize: 13.5, fontWeight: 600,
+                color: count === 0 ? PN.MUTED : PN.TEXT,
+                opacity: count === 0 ? 0.55 : 1,
+                padding: '2px 8px', borderRadius: 999,
+                background: count === 0 ? '#F4F5F7' : '#EEF2F6',
+                whiteSpace: 'nowrap',
+              }}>{count} {countLabel}</span>
+            )}
             {role.locked && <span style={{fontSize: 13}}>🔒</span>}
           </div>
           <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.4}}>
-            {role.desc}
+            {owner && people[0] ? (
+              <>
+                <span style={{fontWeight: 700, color: PN.TEXT}}>{people[0].name}</span>
+                <span style={{margin:'0 6px', opacity: 0.5}}>·</span>
+                {people[0].email}
+              </>
+            ) : role.desc}
           </div>
         </div>
 
@@ -317,7 +334,7 @@ function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, op
             </button>
           </div>
         )}
-        {count > 0 && (
+        {apribile && (
           <div style={{display:'inline-flex', alignItems:'center', flexShrink: 0, padding:'7px 0', color: PN.MUTED}}>
             <span style={{
               transform: expanded ? 'rotate(180deg)' : 'none',
@@ -327,7 +344,7 @@ function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, op
         )}
       </div>
 
-      {expanded && count > 0 && (
+      {expanded && apribile && (
         <div style={{
           borderTop: `1px solid ${PN.BORDER_SOFT}`,
           background: '#FAFBFC',
