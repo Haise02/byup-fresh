@@ -1948,10 +1948,6 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
                       {tessera(t)}
                     </div>
                     <div style={{fontSize: 12, fontWeight: 700, color: PN.TEXT}}>{t.name}</div>
-                    <div style={{
-                      fontSize: 10, fontWeight: 700, letterSpacing: 0.4, color: PN.MUTED,
-                      border:`1px solid ${PN.BORDER}`, borderRadius: 5, padding:'1px 5px',
-                    }}>QR</div>
                   </div>
                   {burning && ashes[i].map((p, j) => (
                     <span key={j} style={{
