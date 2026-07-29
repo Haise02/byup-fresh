@@ -2,8 +2,11 @@
 
 const { useState: useStateTeam } = React;
 
-function AdmTeamPage({ search }) {
-  const [tab, setTab] = useStateTeam('membri');
+function AdmTeamPage({ search, initialTab }) {
+  const [tab, setTab] = useStateTeam(initialTab || 'membri');
+  // Un link da un'altra sezione — «Apri» su un adempimento del cruscotto — deve
+  // poter arrivare sulla tab giusta, non sulla prima.
+  React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
   const [invitiOpen, setInvitiOpen] = useStateTeam(false);
   const [selectedId, setSelectedId] = useStateTeam(null);
   const [members, setMembers] = useStateTeam(TEAM);
@@ -42,6 +45,9 @@ function AdmTeamPage({ search }) {
           <AdmTabBar tabs={[
             { id:'membri',      label:'Team',            badge:members.length },
             { id:'riesame',     label:'Riesame accessi' },
+            // La formazione sta fra le persone: chi la controlla sta guardando
+            // il team, non preparando un fascicolo per l'auditor.
+            { id:'formazione',  label:'Formazione' },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
             { id:'diagnostica', label:'Diagnostica' },
@@ -107,6 +113,7 @@ function AdmTeamPage({ search }) {
           </>
         )}
         {tab === 'riesame' && <AccessReview/>}
+        {tab === 'formazione' && (window.CfFormazione ? <CfFormazione/> : null)}
         {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}

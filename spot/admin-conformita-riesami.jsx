@@ -1,5 +1,6 @@
 // Conformità — Audit interni e riesame di direzione (CfAudit), registri di
-// formazione (CfRegistri) e test di ripristino (CfTestRipristino, reso in Diagnostica).
+// formazione (CfFormazione) e test di ripristino (CfTestRipristino): entrambi
+// resi in Impostazioni Admin, non piu fra i registri di Conformita.
 //
 // Il pezzo che conta è il riesame di direzione: la §9.3 impone che la riunione
 // parta da una lista fissa di input, e la fatica non è decidere, è raccogliere
@@ -200,7 +201,9 @@ function riePacchetto() {
     { id:'formazione', rif:'§9.3.2 c) · A.6.3', titolo:'Formazione e consapevolezza',
       n:frMai + frScad + assenti.length, unita:'persone fuori copertura',
       dettaglio:`${reg.ok} su ${reg.totale} in regola · ${frScad} scadute, ${frMai} mai svolte, ${assenti.length} non presenti nel registro`,
-      tono: (frMai + frScad + assenti.length) ? 'WARN' : 'OK', tab:'registri' },
+      // Il registro non e piu in Conformita: il pacchetto di input del riesame
+      // deve portare dove la formazione si legge davvero.
+      tono: (frMai + frScad + assenti.length) ? 'WARN' : 'OK', vaiA:{route:'team', tab:'formazione'} },
   ];
 
   return { voci, dec, decAperte, ultimoAudit, ultimoRiesame };
@@ -395,7 +398,7 @@ function CfAudit({ onVai }) {
           </div>
           {pk.voci.map((v, i) => (
             <RieVoce key={v.id} voce={v} ultima={i === pk.voci.length - 1}
-              cliccabile={!!(v.tab && navigabile)} onApri={()=>vai(v.tab)}/>
+              cliccabile={!!((v.tab || v.vaiA) && navigabile)} onApri={()=>vai(v.vaiA || v.tab)}/>
           ))}
         </div>
 
@@ -586,13 +589,13 @@ function CfAudit({ onVai }) {
   );
 }
 
-// ─── Registri minimi: formazione ───────────────────────────────────────────
+// ─── Registro della formazione (A.6.3) ─────────────────────────────────────
 const RIE_GRID_FORM = 'minmax(0,1.25fr) minmax(0,2fr) 1fr 1fr 1.3fr';
 const RIE_GRID_REST = '1fr minmax(0,2.1fr) 1.05fr 1.35fr 1.05fr minmax(0,2fr)';
 
 const rieTonoEsito = (e) => e === 'riuscito' ? 'OK' : e === 'riuscito con osservazioni' ? 'WARN' : 'DANGER';
 
-function CfRegistri() {
+function CfFormazione() {
   const righe   = rieRigheFormazione();
   const assenti = rieAssentiFormazione();
   const reg     = rieFormazioneInRegola();
@@ -768,5 +771,5 @@ function CfTestRipristino() {
 }
 
 window.CfAudit = CfAudit;
-window.CfRegistri = CfRegistri;
+window.CfFormazione = CfFormazione;
 window.CfTestRipristino = CfTestRipristino;

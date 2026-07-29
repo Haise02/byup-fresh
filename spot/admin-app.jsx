@@ -130,6 +130,7 @@ function AdminApp({ tweaks }) {
   const [staffOpen, setStaffOpen] = useStateApp(null);
   const [commOpen, setCommOpen] = useStateApp(null);
   const [confTab, setConfTab] = useStateApp(null);   // tab della Conformità aperta da un link esterno
+  const [teamTab, setTeamTab] = useStateApp(null);   // idem per Impostazioni Admin
   const [searchOpen, setSearchOpen] = useStateApp(false);
   const [notifOpen, setNotifOpen] = useStateApp(false);
   const [notifRead, setNotifRead] = useStateApp(false);
@@ -341,9 +342,10 @@ function AdminApp({ tweaks }) {
           {route === 'camerieri'    && <AdmCamerieriPage search={''} openStaff={staffOpen}/>}
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
           {route === 'comunicazioni' && <AdmComunicazioniPage openId={commOpen}/>}
-          {route === 'team'         && <AdmTeamPage search={''}/>}
+          {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab}/>}
           {route === 'economix'     && (window.Economix ? <Economix/> : null)}
-          {route === 'conformita'   && <AdmConformitaPage initialTab={confTab} onNavRoute={(r)=>setRoute(r)}/>}
+          {route === 'conformita'   && <AdmConformitaPage initialTab={confTab}
+            onNavRoute={(r, t)=>{ if (r === 'team') setTeamTab(t || null); setRoute(r); }}/>}
           {route === 'promozioni'   && <AdmPromozioniPage onNew={()=>openMessageModal('utenti', [])}/>}
           {route === 'profilo'      && <ProfiloPage/>}
         </div>

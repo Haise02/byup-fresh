@@ -253,8 +253,12 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
   const [tab, setTab] = useStateConf(initialTab || 'cruscotto');
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
 
+  // Accetta sia una tab di Conformita (stringa) sia una destinazione altrove
+  // (oggetto con route): da quando formazione e ripristino vivono in
+  // Impostazioni Admin, un link del cruscotto puo uscire da questa sezione.
   const vai = (dest) => {
     if (!dest) return;
+    if (typeof dest === 'string') { setTab(dest); return; }
     if (dest.route && dest.route !== 'conformita') { onNavRoute && onNavRoute(dest.route, dest.tab); return; }
     setTab(dest.tab || 'cruscotto');
   };
@@ -284,7 +288,6 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
             { id:'incidenti', label:'Incidenti' },
             { id:'nc',        label:'Non conformità' },
             { id:'audit',     label:'Audit e riesami' },
-            { id:'registri',  label:'Registri' },
           ]} active={tab} onChange={setTab}/>
         </div>
 
@@ -295,8 +298,7 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
         {tab === 'nc'        && (window.CfNonConformita ? <CfNonConformita/> : manca('Non conformità'))}
         {/* onVai accende i collegamenti del pacchetto di input verso i registri:
             senza, il riesame di direzione elenca i numeri ma non ci porta. */}
-        {tab === 'audit'     && (window.CfAudit         ? <CfAudit onVai={setTab}/> : manca('Audit e riesami'))}
-        {tab === 'registri'  && (window.CfRegistri      ? <CfRegistri/>      : manca('Registri'))}
+        {tab === 'audit'     && (window.CfAudit         ? <CfAudit onVai={vai}/> : manca('Audit e riesami'))}
       </AdmCard>
     </div>
   );
