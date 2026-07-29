@@ -32,9 +32,9 @@ function EcoCassa({ mix, leve, forza }) {
   const delMese = scadenze.filter(x => x.data <= fineMese);
   const daPagare = delMese.reduce((t, x) => t + (x.importo || 0), 0);
   // Tutto cio che esce nel mese: fornitori al lordo, IVA versata, altre uscite.
-  // pagamenti comprende gia le altre uscite del mese; l'IVA versata e a parte
-  // perche esce solo alle scadenze di liquidazione.
-  const usciteMese = meseCorr ? meseCorr.pagamenti + meseCorr.iva : 0;
+  // pagamenti comprende gia tutto cio che esce: fornitori al lordo, altre
+  // uscite del mese e l'eventuale versamento IVA.
+  const usciteMese = meseCorr ? meseCorr.pagamenti : 0;
   const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
   const minSaldo = Math.min.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
   const maxSaldo = Math.max.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
@@ -131,11 +131,14 @@ function EcoCassa({ mix, leve, forza }) {
             {/* «Di cui IVA» e non «IVA incassata»: le entrate ora comprendono
                 l'IVA, e due colonne accostate senza dirlo si sommano da sole
                 nella testa di chi legge. */}
-            <div>Mese</div><div>Entrate</div><div>Di cui IVA</div><div>Uscite</div>
-            {/* «IVA versata» si prestava a essere letta come l'IVA pagata ai fornitori,
-                che invece e gia dentro Uscite: qui c'e solo quella che va allo Stato
-                alla liquidazione, ed e per questo che quasi sempre e vuota. */}
-            <div>IVA allo Stato</div><div>Saldo IVA</div><div>Flusso di cassa netto</div><div>Saldo</div>
+            {/* I termini della liquidazione, ciascuno sotto il totale che lo
+                contiene. A DEBITO e l'IVA incassata dai ristoratori — dovuta allo
+                Stato; A CREDITO e quella pagata ai fornitori — detraibile. Il
+                saldo e la loro sottrazione, e ora si verifica a occhio. */}
+            <div>Mese</div><div>Entrate</div><div>IVA a debito</div><div>Uscite</div>
+            {/* Due «di cui IVA» simmetrici, ciascuno sotto il totale che scompone:
+                cosi il saldo del mese e la loro sottrazione e si verifica a occhio. */}
+            <div>IVA a credito</div><div>Saldo IVA</div><div>Flusso di cassa netto</div><div>Saldo</div>
           </div>
           {/* Il mese in corso e quello che si guarda per primo: la tabella parte
               da li e scende all'indietro. Tre righe a vista, il resto scorrendo
@@ -151,14 +154,14 @@ function EcoCassa({ mix, leve, forza }) {
                 {x.d.mese}{x.d.corrente && <span style={{fontSize:10.4, color:ADM.MUTED_SOFT, fontWeight:500}}> in corso</span>}
               </div>
               <div style={{fontSize:12.8, color:ADM.OK, fontWeight:600, ...ECO_NUM}}>{ecoEur(x.incassi)}</div>
-              <div style={{fontSize:12.6, color:ADM.MUTED, ...ECO_NUM}}>{ecoEur(x.ivaIncassata)}</div>
+              <div style={{fontSize:12.6, color:ADM.MUTED, ...ECO_NUM}}
+                title="IVA incassata dai ristoratori sugli abbonamenti: è dovuta allo Stato">
+                {ecoEur(x.ivaIncassata)}
+              </div>
               <div style={{fontSize:12.8, color:ADM.MUTED, ...ECO_NUM}}>−{ecoEur(x.pagamenti)}</div>
-              {/* «€0» dice che il trimestre e stato liquidato e non si doveva
-                  nulla; «—» dice che quel mese non c'era nessuna scadenza. */}
-              <div style={{fontSize:12.6, fontWeight: x.iva > 0 ? 700 : 400,
-                color: x.iva > 0 ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}
-                title={x.scadenzaIva ? 'Liquidazione del trimestre' : 'Nessuna scadenza IVA in questo mese'}>
-                {x.iva > 0 ? `−${ecoEur(x.iva)}` : x.scadenzaIva ? '€0' : '—'}
+              <div style={{fontSize:12.6, color:ADM.MUTED, ...ECO_NUM}}
+                title="IVA pagata ai fornitori dentro le uscite del mese: è detraibile">
+                {ecoEur(x.ivaAcquisti)}
               </div>
               {/* Il segno serve — dice se il mese matura debito o credito — ma
                   il verde su un numero negativo no: resta acceso solo il debito. */}

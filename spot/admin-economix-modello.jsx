@@ -387,20 +387,19 @@ function ecoFlussiStorici(mix) {
     // una delle due e quasi sempre vuota non aggiungeva niente.
     const altre = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === m.data.getFullYear()
       && x.quando.getMonth() === m.data.getMonth()).reduce((t, x) => t + x.importo, 0);
-    const pagamenti = costi + ivaAcquisti + altre;
-    const iva = ecoIvaVersataNelMese(dataM, mix);
-    // Un mese senza scadenza e un mese con la scadenza e nulla da versare sono
-    // due cose diverse, e con un solo trattino sembravano la stessa: il primo
-    // e «non era il momento», il secondo e «era il momento e non dovevi nulla».
-    const scadenzaIva = ecoIvaPeriodi(mix).some(y => y.chiuso
-      && y.scadenza.getFullYear() === dataM.getFullYear()
-      && y.scadenza.getMonth() === dataM.getMonth());
-    // Il saldo del mese e quello che matura, non quello che esce: si accumula
-    // fino alla scadenza del periodo e li diventa cassa.
+    // Il versamento allo Stato e un'uscita come le altre e sta dentro le uscite:
+    // tenerlo in una colonna a se obbligava il flusso netto a sottrarre un
+    // termine che non si vedeva accanto agli altri due.
+    const ivaVersata = ecoIvaVersataNelMese(dataM, mix);
+    const pagamenti = costi + ivaAcquisti + altre + ivaVersata;
+    // Saldo del mese = IVA a debito meno IVA a credito, i due termini della
+    // liquidazione. E quello che MATURA, non quello che esce: si accumula fino
+    // alla scadenza del periodo e li diventa cassa. Positivo si deve, negativo
+    // e credito da portare avanti — lo stesso segno della scheda Saldo IVA.
     const saldoIva = ivaIncassata - ivaAcquisti;
     const incassi = ricavi + ivaIncassata;
     return { d:m, ricavi, ivaIncassata, incassi, costi, ivaAcquisti, pagamenti,
-      iva, scadenzaIva, saldoIva, netto: incassi - pagamenti - iva, i };
+      ivaVersata, saldoIva, netto: incassi - pagamenti, i };
   });
   // Dal fondo verso l'alto: l'ultimo saldo e quello vero.
   let saldo = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
