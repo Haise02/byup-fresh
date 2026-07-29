@@ -82,9 +82,12 @@ function EcoCassa({ mix, leve, forza }) {
           // sta come seconda lettura e non come formula principale.
           { et:'Autonomia', tono: aut.mesi === Infinity || aut.mesi >= 6 ? ADM.TEXT : ADM.DANGER,
             v: aut.mesi === Infinity ? 'illimitata' : `${Math.floor(aut.mesi)} mesi`,
+            // La formula si scrive per esteso, non coi numeri dentro: chi legge
+            // vuole sapere COME si ottiene il quindici, e i tre importi che
+            // servirebbero a rifare il conto sono gia le tre schede accanto.
             n: aut.mesi === Infinity
-              ? `gli incassi coprono le uscite: ${ecoEur(aut.incassiMedi)} contro ${ecoEur(aut.usciteMedie)} al mese`
-              : `${ecoEur(saldoOggi)} ÷ (${ecoEur(aut.usciteMedie)} di uscite − ${ecoEur(aut.incassiMedi)} di incassi) al mese · senza incassi autonomia di ${Math.floor(aut.senzaIncassi)} mesi` },
+              ? 'le entrate mensili coprono le uscite'
+              : `Cassa ÷ (uscite mensili − entrate mensili) · senza incassi autonomia di ${Math.floor(aut.senzaIncassi)} mesi` },
         ].map(c => (
           <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
             <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
