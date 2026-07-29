@@ -969,11 +969,6 @@ function CfRischi() {
             );
           })}
         </div>
-
-        <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.55}}>
-          Il riesame non è una firma di cortesia: è la verifica che probabilità, impatto e misure
-          siano ancora quelli di sei mesi fa. Un rischio senza data di riesame vale come non valutato.
-        </div>
       </div>
 
       {/* La chiave forza il rimontaggio a ogni apertura: la bozza della modale
@@ -1367,11 +1362,6 @@ function CfFornitori() {
               </div>
             );
           })}
-        </div>
-
-        <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.55}}>
-          Il registro dei fornitori non serve a elencare chi vi fattura: serve a dimostrare di sapere
-          a chi sono stati affidati i dati, con quale contratto e da quando.
         </div>
       </div>
 
