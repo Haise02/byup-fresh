@@ -101,64 +101,67 @@ const ECO_SERVIZI = [
 // esiste solo per l'OAuth; negli altri casi il lavoro vero avviene sulla console
 // del fornitore e qui si incolla soltanto il risultato — o, per lo SDI, si
 // aspettano giorni perche la delega e un atto amministrativo, non una chiamata.
+// Quattro stati, non due. Il piu importante e ERRORE: un token scaduto o un
+// ruolo cancellato non spegne niente in modo visibile — i costi tornano a essere
+// stimati e nessuno se ne accorge finche non arriva la fattura. E' la ragione
+// per cui questa schermata esiste.
+const ECO_STATO_CONN = {
+  attivo:  { label:'Attivo',         tono:'OK' },
+  errore:  { label:'Non risponde',   tono:'DANGER' },
+  assente: { label:'Non collegato',  tono:'WARN' },
+  manuale: { label:'Lettura manuale',tono:'NEUTRAL' },
+};
+
+// Chi mette mano al collegamento e che cosa serve: sono istruzioni, non un
+// modulo. La credenziale non si incolla qui — vive nel gestore dei segreti, e
+// metterla in un campo del backoffice significherebbe scriverla nel database
+// dell'applicazione, dove chiunque abbia accesso a Spot potrebbe leggerla.
 const ECO_METODI = {
-  oauth:  { label:'OAuth', azione:'Vai su', durata:'un minuto',
-    come:'Si viene rimandati alla pagina del fornitore, si autorizza, e si torna qui con il permesso già valido.' },
-  ruolo:  { label:'Ruolo delegato', azione:'Configura', durata:'dieci minuti',
-    come:'Si crea sulla console del fornitore un ruolo che autorizza Byup a leggere, e si incolla qui il suo identificativo.' },
-  chiave: { label:'Chiave API', azione:'Incolla la chiave', durata:'due minuti',
-    come:'Si genera una chiave di sola lettura sulla console del fornitore e la si incolla qui. Va conservata come una credenziale.' },
-  delega: { label:'Delega', azione:'Richiedi la delega', durata:'da pochi giorni a qualche settimana',
-    come:'Non è un collegamento tecnico: è una delega da registrare presso l’Agenzia delle Entrate, di solito tramite il commercialista o un intermediario accreditato.' },
+  oauth:  { label:'OAuth', chi:'Chi amministra l’account del fornitore', durata:'un minuto' },
+  ruolo:  { label:'Ruolo delegato', chi:'Chi amministra il cloud', durata:'dieci minuti, una volta sola' },
+  chiave: { label:'Chiave API', chi:'Chi gestisce i segreti dell’infrastruttura', durata:'due minuti, una volta sola' },
+  delega: { label:'Delega amministrativa', chi:'Il commercialista o un intermediario accreditato',
+    durata:'da pochi giorni a qualche settimana' },
 };
 
 const ECO_CONNESSIONI = [
   { id:'aws', nome:'AWS Cost Explorer', servizi:['aws-compute','aws-rds','aws-s3'],
-    stato:'collegato', ultimaLettura:new Date(ECO_OGGI.getTime() - 26 * 60000), scartoPct:6.4,
-    metodo:'ruolo', campo:'ARN del ruolo', esempio:'arn:aws:iam::123456789012:role/ByupCostReader',
+    stato:'attivo', ultimaLettura:new Date(ECO_OGGI.getTime() - 26 * 60000), metodo:'ruolo',
     legge:'Costo maturato per servizio, aggiornato ogni sei ore',
-    passi:['Su AWS crea un ruolo IAM con relazione di fiducia verso l’account di Byup e un ExternalId',
-           'Assegnagli la sola policy ce:GetCostAndUsage — accesso agli importi, non ai dati',
-           'Incolla qui l’ARN del ruolo'] },
+    passi:['Un ruolo IAM con relazione di fiducia verso l’account di Byup e un ExternalId',
+           'Policy ce:GetCostAndUsage soltanto — accesso agli importi, non ai dati',
+           'L’ARN del ruolo sta nel gestore dei segreti, non in questa schermata'] },
   { id:'gcp', nome:'Google Cloud Billing', servizi:['maps','push'],
-    stato:'scollegato', ultimaLettura:null, scartoPct:null,
-    metodo:'oauth', campo:null, esempio:null,
+    stato:'errore', ultimaLettura:new Date(ECO_OGGI.getTime() - 4 * 86400000), metodo:'oauth',
+    errore:'Token di aggiornamento scaduto', erroreDal:new Date(ECO_OGGI.getTime() - 4 * 86400000),
     legge:'Consumo di Maps Platform e Firebase, per SKU',
-    passi:['Autorizza con l’account Google che possiede il progetto',
-           'Attiva l’esportazione della fatturazione su BigQuery, se non è già attiva',
-           'Da lì i costi per SKU arrivano ogni giorno'] },
+    passi:['Ripetere l’autorizzazione con l’account Google che possiede il progetto',
+           'Verificare che l’esportazione della fatturazione su BigQuery sia ancora attiva',
+           'I token OAuth di Google scadono se restano inutilizzati: succede, e va notato'] },
   { id:'anthropic', nome:'Anthropic Console', servizi:['anthropic'],
-    stato:'scollegato', ultimaLettura:null, scartoPct:null,
-    metodo:'chiave', campo:'Chiave Admin', esempio:'sk-ant-admin…',
+    stato:'assente', ultimaLettura:null, metodo:'chiave',
     legge:'Token consumati e costo per modello',
-    passi:['Nella Console, sezione API keys, genera una chiave Admin di sola lettura',
-           'Incollala qui: serve solo per l’endpoint di utilizzo e costo dell’organizzazione'] },
+    passi:['Generare una chiave Admin di sola lettura dalla Console',
+           'Depositarla nel gestore dei segreti con rotazione pianificata',
+           'Il servizio la legge da lì all’avvio'] },
   { id:'openapi', nome:'OpenAPI', servizi:['openapi'],
-    stato:'manuale', ultimaLettura:new Date('2026-07-04'), scartoPct:null,
-    metodo:'chiave', campo:'Token del pannello', esempio:'oa_live_…',
+    stato:'manuale', ultimaLettura:new Date('2026-07-04'), metodo:'chiave',
     legge:'Trasmissioni effettuate e credito residuo del pacchetto',
-    passi:['Genera un token dal pannello OpenAPI',
-           'Il credito residuo del pacchetto si legge dallo stesso endpoint'] },
+    passi:['Il pannello espone i consumi ma non un endpoint stabile',
+           'Finché non c’è, la lettura mensile si inserisce a mano da qui'] },
   { id:'vercel', nome:'Vercel', servizi:['vercel'],
-    stato:'manuale', ultimaLettura:new Date('2026-07-01'), scartoPct:null,
-    metodo:'chiave', campo:'Token', esempio:'vercel_…',
+    stato:'manuale', ultimaLettura:new Date('2026-07-01'), metodo:'chiave',
     legge:'Canone del piano',
-    passi:['Importo fisso: collegarlo serve a poco, basta registrarlo una volta'] },
+    passi:['Importo fisso: collegarlo non aggiunge nulla, si registra una volta'] },
   { id:'sdi', nome:'Sistema di Interscambio', servizi:[], fatture:true,
-    stato:'scollegato', ultimaLettura:null, scartoPct:null,
-    metodo:'delega', campo:null, esempio:null,
+    stato:'assente', ultimaLettura:null, metodo:'delega',
     legge:'Fatture elettroniche ricevute, in XML',
-    passi:['Il commercialista o un intermediario accreditato registra la delega alla consultazione',
-           'L’Agenzia la attiva: da quel momento gli XML arrivano da soli',
-           'È l’unico collegamento che non dipende da noi e richiede giorni, non minuti'] },
+    passi:['La delega alla consultazione si registra presso l’Agenzia delle Entrate',
+           'Non è un collegamento tecnico e non dipende da noi: richiede giorni',
+           'Da quel momento gli XML arrivano da soli e le fatture si compilano da sole'] },
 ];
 const ecoConnessioneDi = (idServizio) =>
   ECO_CONNESSIONI.find(c => c.servizi.indexOf(idServizio) !== -1) || null;
-const ECO_STATO_CONN = {
-  collegato:  { label:'Collegato',   tono:'OK' },
-  scollegato: { label:'Da collegare',tono:'DANGER' },
-  manuale:    { label:'Manuale',     tono:'NEUTRAL' },
-};
 
 // ─── Pacchetti prepagati ───────────────────────────────────────────────────
 // OpenAPI non fattura a consumo: si comprano tagli prepagati e il prezzo

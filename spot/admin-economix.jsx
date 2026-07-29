@@ -33,15 +33,11 @@ function ecoQuando(d) {
 // Conferma del collegamento: si sta dando a Byup una credenziale su un sistema
 // che costa denaro, quindi prima si legge che cosa verrebbe letto e con quali
 // permessi. Staccare non cancella nulla: si torna alla stima.
-function EcoModaleConnessione({ conn, onChiudi, onConferma }) {
-  const attiva = conn.stato !== 'collegato';
+function EcoModaleConnessione({ conn, onChiudi, onLettura }) {
   const met = ECO_METODI[conn.metodo] || ECO_METODI.chiave;
-  const [valore, setValore] = useStateEco('');
-  // Un pulsante «Collega» basta solo per l'OAuth. Negli altri casi il lavoro
-  // avviene sulla console del fornitore e qui si incolla un identificativo;
-  // per lo SDI non c'e nulla da incollare, c'e una delega da far registrare.
-  const serveCampo = attiva && !!conn.campo;
-  const pronto = !attiva || !serveCampo || valore.trim().length > 6;
+  const manuale = conn.stato === 'manuale';
+  const [importo, setImporto] = useStateEco('');
+  const ok = parseFloat(String(importo).replace(',', '.')) > 0;
 
   return (
     <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
@@ -50,36 +46,60 @@ function EcoModaleConnessione({ conn, onChiudi, onConferma }) {
       <div data-modale="connessione" onClick={e=>e.stopPropagation()} style={{width:580, maxWidth:'92%', background:'#fff',
         borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
         animation:'admModalIn 0.18s ease', maxHeight:'100%', overflowY:'auto'}}>
+
         <div style={{display:'flex', alignItems:'flex-start', gap:12, marginBottom:6}}>
           <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, flex:1}}>
-            {attiva ? `Collegare ${conn.nome}` : `Staccare ${conn.nome}?`}
+            {manuale ? `Lettura di ${conn.nome}` : conn.nome}
           </div>
-          {attiva && <CfPill tono="NEUTRAL">{met.label} · {met.durata}</CfPill>}
+          <CfPill tono={ECO_STATO_CONN[conn.stato].tono}>{ECO_STATO_CONN[conn.stato].label}</CfPill>
         </div>
-        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
-          {attiva ? met.come
-            : 'I costi tornano a essere stimati dal modello. Nessun dato viene cancellato e ricollegare è immediato.'}
-        </div>
+        <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>{conn.legge}</div>
 
-        {attiva && (
-          <div style={{padding:'14px 16px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
-            {conn.passi.map((t, k) => (
-              <div key={k} style={{display:'flex', gap:10, marginBottom: k < conn.passi.length - 1 ? 9 : 0}}>
-                <span style={{fontSize:11, fontWeight:800, color:ADM.PINK, flexShrink:0, marginTop:2,
-                  fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{k + 1}</span>
-                <span style={{fontSize:12.8, color:ADM.TEXT, lineHeight:1.5}}>{t}</span>
-              </div>
-            ))}
+        {conn.stato === 'errore' && (
+          <div style={{padding:'13px 15px', borderRadius:10, background:ADM.DANGER_SOFT, color:'#7F1D1D',
+            fontSize:12.8, lineHeight:1.55, marginBottom:16}}>
+            <strong>{conn.errore}.</strong> Da {ecoGiorniInErrore(conn)} giorni queste righe sono
+            tornate a essere stimate dal modello senza che nulla lo segnalasse altrove.
           </div>
         )}
 
-        {serveCampo && (
-          <div style={{marginBottom:16}}>
+        {manuale ? (
+          <div style={{marginBottom:18}}>
             <label style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-              letterSpacing:'0.05em', display:'block', marginBottom:6}}>{conn.campo}</label>
-            <input value={valore} onChange={e=>setValore(e.target.value)} style={ECO_INP}
-              placeholder={conn.esempio}/>
+              letterSpacing:'0.05em', display:'block', marginBottom:6}}>Importo del mese</label>
+            <input value={importo} onChange={e=>setImporto(e.target.value.replace(/[^\d.,]/g, ''))}
+              style={ECO_INP} placeholder="0,00" autoFocus/>
+            <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.45}}>
+              Prende il posto della stima per il mese in corso. Ultima immissione {ecoQuando(conn.ultimaLettura)}.
+            </div>
           </div>
+        ) : (
+          <React.Fragment>
+            {/* Istruzioni, non un modulo: la credenziale non si incolla qui. */}
+            <div style={{padding:'14px 16px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+              <div style={{display:'flex', gap:22, marginBottom:12, flexWrap:'wrap'}}>
+                {[['Metodo', met.label], ['Chi lo fa', met.chi], ['Quanto richiede', met.durata]].map(([k, v]) => (
+                  <div key={k} style={{minWidth:0}}>
+                    <div style={{fontSize:10.8, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                      letterSpacing:'0.05em'}}>{k}</div>
+                    <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:600, marginTop:2}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              {conn.passi.map((t, k) => (
+                <div key={k} style={{display:'flex', gap:10, marginBottom: k < conn.passi.length - 1 ? 8 : 0}}>
+                  <span style={{fontSize:11, fontWeight:800, color:ADM.PINK, flexShrink:0, marginTop:2,
+                    fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{k + 1}</span>
+                  <span style={{fontSize:12.6, color:ADM.TEXT, lineHeight:1.5}}>{t}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.55, marginBottom:18}}>
+              Questa schermata non chiede la credenziale e non la conserva: vive nel gestore dei
+              segreti dell’infrastruttura. Un backoffice che la accettasse in un campo la
+              scriverebbe nel proprio database, dove chiunque vi abbia accesso potrebbe leggerla.
+            </div>
+          </React.Fragment>
         )}
 
         <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
@@ -91,10 +111,13 @@ function EcoModaleConnessione({ conn, onChiudi, onConferma }) {
         </div>
 
         <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
-          <AdmButton variant="primary" size="sm" disabled={!pronto} onClick={onConferma}>
-            {attiva ? met.azione : 'Stacca'}
-          </AdmButton>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Chiudi</AdmButton>
+          {manuale && (
+            <AdmButton variant="primary" size="sm" disabled={!ok}
+              onClick={()=>onLettura(parseFloat(String(importo).replace(',', '.')))}>
+              Registra la lettura
+            </AdmButton>
+          )}
         </div>
       </div>
     </div>
@@ -194,7 +217,8 @@ function EcoCosti({ mix, forza }) {
   const m = ecoMeseCorrente(mix);
   const d = m.d;
   const fissiMese = ecoFissiDelMese(new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1));
-  const letture = ECO_CONNESSIONI.filter(c => c.stato === 'collegato' && c.ultimaLettura).map(c => c.ultimaLettura);
+  const letture = ECO_CONNESSIONI.filter(c => c.stato === 'attivo' && c.ultimaLettura).map(c => c.ultimaLettura);
+  const inErrore = ECO_CONNESSIONI.filter(c => c.stato === 'errore').length;
   const letturaPiuRecente = letture.length ? new Date(Math.max.apply(null, letture)) : null;
 
   const perCategoria = {};
@@ -235,13 +259,22 @@ function EcoCosti({ mix, forza }) {
       </div>
 
       <div>
-        <div style={ECO_H}>Collegamenti ai fornitori</div>
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={{...ECO_H, marginBottom:0}}>Sorgenti dei costi</div>
+          <span style={{fontSize:12.4, color: inErrore ? ADM.DANGER : ADM.MUTED, fontWeight: inErrore ? 700 : 400}}>
+            {inErrore
+              ? `${inErrore} ${inErrore === 1 ? 'sorgente non risponde' : 'sorgenti non rispondono'}: quelle righe sono stimate`
+              : 'tutte le sorgenti attive rispondono'}
+          </span>
+        </div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
           {ECO_CONNESSIONI.map(c => {
             const st = ECO_STATO_CONN[c.stato];
-            const collegato = c.stato === 'collegato';
+            const gg = ecoGiorniInErrore(c);
             return (
-              <div key={c.id} style={{...ECO_CARD, padding:'14px 16px', display:'flex', flexDirection:'column', gap:9}}>
+              <div key={c.id} style={{...ECO_CARD, padding:'14px 16px', display:'flex', flexDirection:'column', gap:9,
+                borderColor: c.stato === 'errore' ? '#F0A9AC' : ADM.BORDER,
+                background: c.stato === 'errore' ? ADM.DANGER_SOFT : '#fff'}}>
                 <div style={{display:'flex', alignItems:'flex-start', gap:9}}>
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{c.nome}</div>
@@ -249,23 +282,21 @@ function EcoCosti({ mix, forza }) {
                   </div>
                   <CfPill tono={st.tono}>{st.label}</CfPill>
                 </div>
-                <div style={{fontSize:11.6, color:ADM.MUTED, lineHeight:1.45}}>
-                  {collegato
-                    ? <React.Fragment>
-                        Ultima lettura <strong style={{color:ADM.TEXT}}>{ecoQuando(c.ultimaLettura)}</strong>
-                      </React.Fragment>
-                    : c.stato === 'manuale'
-                      ? `Inserita a mano ${ecoQuando(c.ultimaLettura)}`
-                      : 'Gli importi di queste righe sono stimati dal modello'}
+                <div style={{fontSize:11.8, color: c.stato === 'errore' ? '#7F1D1D' : ADM.MUTED, lineHeight:1.45}}>
+                  {c.stato === 'attivo' && <React.Fragment>Letta <strong style={{color:ADM.TEXT}}>{ecoQuando(c.ultimaLettura)}</strong></React.Fragment>}
+                  {c.stato === 'errore' && <React.Fragment>{c.errore} · stime da <strong>{gg} giorni</strong></React.Fragment>}
+                  {c.stato === 'manuale' && <React.Fragment>Inserita a mano {ecoQuando(c.ultimaLettura)}</React.Fragment>}
+                  {c.stato === 'assente' && 'Queste righe sono stimate dal modello'}
                 </div>
                 <div style={{display:'flex', gap:6, marginTop:'auto'}}>
-                  {collegato && (
+                  {c.stato === 'attivo' && (
                     <AdmButton variant="secondary" size="sm" style={{fontSize:12}}
-                      onClick={()=>{ ecoAggiorna(c); forza(); }}>Aggiorna</AdmButton>
+                      onClick={()=>{ ecoRileggi(c); forza(); }}>Rileggi adesso</AdmButton>
                   )}
-                  <AdmButton variant={collegato ? 'ghost' : 'primary'} size="sm" style={{fontSize:12}}
+                  <AdmButton variant={c.stato === 'manuale' ? 'primary' : 'ghost'} size="sm" style={{fontSize:12}}
                     onClick={()=>setConn(c)}>
-                    {collegato ? 'Stacca' : c.stato === 'manuale' ? 'Collega comunque' : 'Collega'}
+                    {c.stato === 'manuale' ? 'Inserisci la lettura'
+                      : c.stato === 'errore' ? 'Come si risolve' : 'Come si collega'}
                   </AdmButton>
                 </div>
               </div>
@@ -417,7 +448,7 @@ function EcoCosti({ mix, forza }) {
 
       {nuovo && <EcoModaleFisso onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
       {conn && <EcoModaleConnessione conn={conn} onChiudi={()=>setConn(null)}
-        onConferma={()=>{ ecoCollega(conn, conn.stato !== 'collegato'); setConn(null); forza(); }}/>}
+        onLettura={(v)=>{ ecoLetturaManuale(conn, v); setConn(null); forza(); }}/>}
     </div>
   );
 }

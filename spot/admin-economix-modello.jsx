@@ -88,31 +88,32 @@ const ecoCostoServizio = (s, d) => ecoConsumo(s, d) * ecoPrezzo(s);
 function ecoLettura(s, d, frazione) {
   const stimaMese = ecoCostoServizio(s, d);
   const c = ecoConnessioneDi(s.id);
-  const collegato = !!c && c.stato === 'collegato';
+  const collegato = !!c && c.stato === 'attivo';
   if (!collegato) return { collegato:false, stimaMese, valoreMese:stimaMese, aOggi:stimaMese * frazione, scarto:null };
   const reale = stimaMese * (s.scarto || 1);
   return { collegato:true, stimaMese, valoreMese:reale, aOggi:reale * frazione,
     scarto: stimaMese ? (reale - stimaMese) / stimaMese * 100 : 0, letto:c.ultimaLettura };
 }
 
-// Collega o scollega una credenziale. Collegando, ai servizi che copre viene
-// assegnato uno scarto: e cio che accadrebbe leggendo davvero il fornitore,
-// perche la stima non azzecca mai il consuntivo al centesimo.
-function ecoCollega(conn, attiva) {
-  conn.stato = attiva ? 'collegato' : 'scollegato';
-  conn.ultimaLettura = attiva ? new Date() : null;
-  if (attiva) {
-    conn.servizi.forEach((id, k) => {
-      const s = ECO_SERVIZI.find(x => x.id === id);
-      if (s && !s.scarto) s.scarto = 1 + ((k % 3) - 1) * 0.058 + 0.031;
-    });
-    const sc = conn.servizi.map(id => (ECO_SERVIZI.find(x => x.id === id) || {}).scarto || 1);
-    conn.scartoPct = sc.length ? (sc.reduce((a, b) => a + b, 0) / sc.length - 1) * 100 : null;
-  } else {
-    conn.scartoPct = null;
-  }
+// Rilettura forzata di una sorgente attiva. E l'unica azione legittima su un
+// collegamento dal backoffice: non riconfigura nulla, chiede solo un giro di
+// lettura adesso invece che al prossimo ciclo.
+const ecoRileggi = (conn) => { conn.ultimaLettura = new Date(); };
+
+// Lettura manuale: e vera immissione di dati, non configurazione, e per questo
+// resta un'azione della schermata.
+function ecoLetturaManuale(conn, importo) {
+  conn.ultimaLettura = new Date();
+  conn.importoManuale = importo;
 }
-const ecoAggiorna = (conn) => { conn.ultimaLettura = new Date(); };
+
+// Da quanti giorni una sorgente non risponde. Finche non risponde, le sue righe
+// sono stime: il numero di giorni dice quanto e vecchia l'ultima verita.
+function ecoGiorniInErrore(conn) {
+  if (conn.stato !== 'errore' || !conn.erroreDal) return 0;
+  return Math.max(1, Math.round((Date.now() - conn.erroreDal.getTime()) / 86400000));
+}
+
 const ecoCostiVariabili = (d) => ECO_SERVIZI.reduce((tot, s) => tot + ecoCostoServizio(s, d), 0);
 
 // ─── Costi fissi di competenza di un mese ──────────────────────────────────
@@ -125,7 +126,6 @@ function ecoFissiDelMese(d) {
     if (f.a && d > f.a) return tot;
     if (f.periodicita === 'mensile')  return tot + f.importo;
     if (f.periodicita === 'annuale')  return tot + f.importo / 12;
-    // una tantum: solo nel suo mese
     return tot + (f.dal.getFullYear() === d.getFullYear() && f.dal.getMonth() === d.getMonth() ? f.importo : 0);
   }, 0);
 }
@@ -186,7 +186,7 @@ function ecoContoEconomico(mesi, mix, regime) {
   const ricavi = r.sub + r.extra;
   const margineContribuzione = ricavi - r.variabili;
   const ebitda = margineContribuzione - r.fissi;
-  const ammortamenti = 0;                       // nessun cespite capitalizzato
+  const ammortamenti = 0;
   const ebit = ebitda - ammortamenti;
   const oneriFinanziari = 0;
   const ante = ebit - oneriFinanziari;
@@ -202,8 +202,7 @@ function ecoContoEconomico(mesi, mix, regime) {
 
 // ─── Il mese in corso, mentre si spende ────────────────────────────────────
 // Consuntivo a oggi e proiezione a fine mese. La proiezione lineare sui giorni
-// trascorsi è grezza ma onesta: sui costi a consumo il ritmo è quasi costante,
-// e presentarla come più precisa di così sarebbe falso.
+// trascorsi è grezza ma onesta: sui costi a consumo il ritmo è quasi costante.
 function ecoMeseCorrente(mix) {
   const d = ECO_STORICO[ECO_STORICO.length - 1];
   const giorni = ecoGiorniNelMese(ECO_OGGI);
@@ -228,8 +227,9 @@ window.ecoProiettaDriver = ecoProiettaDriver;
 window.ecoConsumo = ecoConsumo;
 window.ecoPrezzo = ecoPrezzo;
 window.ecoLettura = ecoLettura;
-window.ecoCollega = ecoCollega;
-window.ecoAggiorna = ecoAggiorna;
+window.ecoRileggi = ecoRileggi;
+window.ecoLetturaManuale = ecoLetturaManuale;
+window.ecoGiorniInErrore = ecoGiorniInErrore;
 window.ecoCostoServizio = ecoCostoServizio;
 window.ecoCostiVariabili = ecoCostiVariabili;
 window.ecoFissiDelMese = ecoFissiDelMese;
