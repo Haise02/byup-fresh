@@ -445,13 +445,15 @@ function ImpSaveBar({ dirty, onCancel, onSave }) {
   );
 }
 
-// Mini phone preview rendering vetrina mock content — same design language as onboarding
 // Phone preview della vetrina — iPhone con la replica 1:1 e COMPLETA di
-// VenueOriginal (la vetrina dell'app consumer, app/extras.jsx): hero, badge,
-// indirizzo, recensione media, promo, premi, storia, chef consiglia, FAQ e
-// recensioni, con CTA sticky. Il contenuto (390px di design, zoom scalato)
-// scorre con la rotella passandoci sopra col mouse; `focusSection`
-// ('info' | 'gallery' | 'faq') lo porta alla sezione corrispondente.
+// VenueOriginal (la vetrina dell'app consumer, app/extras.jsx), nello stesso
+// ordine: hero a carosello (avanza da solo ogni 8s con Ken Burns, trascinabile
+// col mouse), badge, indirizzo, recensione media, promo, premi, storia, i piu
+// ordinati, reel dalla cucina, recensioni con velo e «Leggi tutte», mappa,
+// altre info, altre sedi, FAQ apribili, galleria e social, con CTA sticky.
+// Il contenuto (390px di design, zoom scalato) scorre con la rotella
+// passandoci sopra col mouse; `focusSection` ('info' | 'gallery' | 'faq')
+// lo porta alla sezione corrispondente.
 function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante', focusSection = null }) {
   const A = { PINK:'#E32459', TEXT:'#1c0f15', MUTED:'#6d5a61', BG:'#FBF4F1', TINT:'#f6f1ea', SURF:'#fff', BORDER:'#eddfda' };
   const ref = React.useRef(null);
@@ -476,7 +478,49 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
   }, [focusSection]);
 
   const k = (w - 18) / 390; // scocca 3+3 + cornice 6+6
-  const HERO = 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=70&auto=format&fit=crop';
+
+  // Hero a carosello, identico alla vetrina vera: avanza da solo ogni 8
+  // secondi, il trascinamento orizzontale cambia foto e azzera il timer,
+  // la foto corrente respira col Ken Burns.
+  const PHOTOS = [
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=800&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=70&auto=format&fit=crop',
+  ];
+  const [photoIdx, setPhotoIdx] = React.useState(0);
+  const heroTimer = React.useRef(null);
+  const heroDrag = React.useRef(null);
+  const riparteHero = React.useCallback(() => {
+    if (heroTimer.current) clearInterval(heroTimer.current);
+    heroTimer.current = setInterval(() => setPhotoIdx(i => (i + 1) % 5), 8000);
+  }, []);
+  React.useEffect(() => {
+    riparteHero();
+    return () => { if (heroTimer.current) clearInterval(heroTimer.current); };
+  }, [riparteHero]);
+  const heroGiu = (e) => { heroDrag.current = e.clientX; };
+  const heroSu = (e) => {
+    if (heroDrag.current == null) return;
+    const dx = e.clientX - heroDrag.current;
+    heroDrag.current = null;
+    if (Math.abs(dx) < 40) return;
+    setPhotoIdx(i => dx < 0 ? Math.min(i + 1, PHOTOS.length - 1) : Math.max(i - 1, 0));
+    riparteHero();
+  };
+
+  // Le sezioni vive della vetrina vera restano vive anche qui: FAQ apribili,
+  // storia espandibile, promo col dettaglio, reel che avanzano da soli.
+  const [faqOpen, setFaqOpen] = React.useState(0);
+  const [bioExp, setBioExp] = React.useState(false);
+  const [promoOpen, setPromoOpen] = React.useState(null);
+  const [reelCur, setReelCur] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setReelCur(c => (c + 1) % 4), 1500);
+    return () => clearInterval(t);
+  }, []);
+
   const DISHES = [
     ['Cacio e Pepe',  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop'],
     ['Carbonara',     'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=70&auto=format&fit=crop'],
@@ -514,13 +558,28 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
           <div ref={scrollRef} className="vetp-scroll" style={{position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden'}}>
             <div style={{zoom: k, width: 390, position: 'relative'}}>
 
-              {/* Hero */}
-              <div data-psec="hero" style={{height: 220, position: 'relative', background: '#222'}}>
+              {/* Hero — carosello scorrevole come nella vetrina vera */}
+              <div data-psec="hero"
+                onMouseDown={heroGiu} onMouseUp={heroSu}
+                onMouseLeave={() => { heroDrag.current = null; }}
+                style={{height: 220, position: 'relative', background: '#222', cursor: 'grab', userSelect: 'none'}}
+              >
                 <div style={{position: 'absolute', inset: 0, overflow: 'hidden'}}>
-                  <img src={HERO} alt="" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                  <div style={{
+                    display: 'flex', height: '100%',
+                    transform: `translateX(-${photoIdx * 100}%)`,
+                    transition: 'transform 0.42s cubic-bezier(0.4,0,0.2,1)',
+                  }}>
+                    {PHOTOS.map((p, i) => (
+                      <img key={i} src={p} alt="" draggable={false} style={{
+                        width: '100%', height: '100%', objectFit: 'cover', flexShrink: 0, pointerEvents: 'none',
+                        animation: i === photoIdx ? 'vetpKenBurns 11s ease-in-out infinite alternate' : 'none',
+                      }}/>
+                    ))}
+                  </div>
                 </div>
-                <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.72) 100%)'}}/>
-                <div style={{position: 'absolute', left: 20, right: 96, bottom: 44, color: '#fff'}}>
+                <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.72) 100%)', pointerEvents: 'none'}}/>
+                <div style={{position: 'absolute', left: 20, right: 96, bottom: 44, color: '#fff', pointerEvents: 'none'}}>
                   <div style={{fontSize: 11, fontWeight: 700, letterSpacing: 1.5, opacity: 0.85, textTransform: 'uppercase', marginBottom: 5}}>
                     {categoria}
                   </div>
@@ -528,16 +587,20 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
                     Ristorante Cacio e Pepe
                   </div>
                 </div>
-                <div style={{position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5}}>
-                  {[0,1,2,3,4].map(i => (
-                    <span key={i} style={{width: i === 0 ? 18 : 6, height: 6, borderRadius: 99, background: '#fff', opacity: i === 0 ? 1 : 0.45}}/>
+                <div style={{position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5, pointerEvents: 'none'}}>
+                  {PHOTOS.map((_, i) => (
+                    <span key={i} style={{
+                      width: i === photoIdx ? 18 : 6, height: 6, borderRadius: 99,
+                      background: '#fff', opacity: i === photoIdx ? 1 : 0.45,
+                      transition: 'width 0.25s, opacity 0.25s',
+                    }}/>
                   ))}
                 </div>
                 <div style={{
                   position: 'absolute', right: 20, bottom: -40, zIndex: 5,
                   width: 80, height: 80, borderRadius: 999,
                   background: '#fff', boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
-                  border: '3px solid rgba(255,255,255,0.95)', overflow: 'hidden',
+                  border: '3px solid rgba(255,255,255,0.95)', overflow: 'hidden', pointerEvents: 'none',
                 }}>
                   <div style={{width: '100%', height: '100%', borderRadius: 999, background: 'linear-gradient(135deg, #FFD3DC 0%, #FFB0C0 100%)', display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 800, color: A.PINK, fontFamily: 'Georgia, serif'}}>CP</div>
                 </div>
@@ -580,38 +643,63 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
                 </div>
               </div>
 
-              {/* Promo / Eventi */}
+              {/* Promo / Eventi — pillole col dettaglio a scomparsa, come in app */}
               <div data-psec="promo" style={{padding: '20px 20px 0'}}>
                 {secTitle('Promo / Eventi')}
                 <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-                  {['Aperitivo 2x1', 'Karaoke venerdì', 'Brunch domenica'].map(p => (
-                    <span key={p} style={{fontSize: 12.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '7px 12px', borderRadius: 999}}>{p}</span>
+                  {[['Aperitivo 2x1','Ogni giorno · 18:00 – 21:00'], ['Karaoke venerdì','Tutti i venerdì · dalle 21:00'], ['Brunch domenica','Ogni domenica · 11:00 – 15:00']].map(([p, info]) => (
+                    <span key={p} style={{display: 'inline-flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start'}}>
+                      <span onClick={() => setPromoOpen(o => o === p ? null : p)} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: promoOpen === p ? A.PINK : '#F8F5F6',
+                        color: promoOpen === p ? '#fff' : A.TEXT,
+                        padding: '6px 14px', borderRadius: 999,
+                        fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap',
+                        cursor: 'pointer', transition: 'all 0.15s', userSelect: 'none',
+                      }}>
+                        {p}
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{opacity: 0.6, transform: promoOpen === p ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s'}}>
+                          <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </span>
+                      {promoOpen === p && (
+                        <span style={{background: '#fff', border: `1px solid ${A.BORDER}`, borderRadius: 12, padding: '6px 12px', fontSize: 12, color: A.MUTED, fontWeight: 500, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.07)'}}>{info}</span>
+                      )}
+                    </span>
                   ))}
                 </div>
               </div>
 
-              {/* Premi */}
+              {/* Premi — pillole outline con alloro, a livelli come in app */}
               <div style={{padding: '20px 20px 0'}}>
                 {secTitle('Premi e riconoscimenti')}
                 <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-                  {[['🥇','Top 10 Roma 2025'], ['🥈','Gambero Rosso'], ['🥉','Tripadvisor Excellence']].map(([m, p]) => (
-                    <span key={p} style={{fontSize: 12.5, fontWeight: 700, color: A.TEXT, background: A.TINT, padding: '7px 12px', borderRadius: 999}}>{m} {p}</span>
+                  {[['Top 10 Roma 2025', '#c9930a', '#fdf6e0', '#efd98a'], ['Gambero Rosso', '#7b8494', '#f3f5f8', '#ccd3dd'], ['Tripadvisor Excellence', '#a3652f', '#f9ede1', '#e2c3a2']].map(([p, c, bg, bd]) => (
+                    <span key={p} style={{display: 'inline-flex', alignItems: 'center', gap: 6, background: bg, color: A.TEXT, padding: '6px 12px 6px 10px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', border: `1px solid ${bd}`}}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill={c} stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 9 a 6 6 0 0 0 12 0 V3 H6 z"/>
+                        <path d="M12 15 v 4 M8.5 21 h 7" fill="none"/>
+                        <path d="M6 5H3.5a4.5 4.5 0 0 0 4 4.4M18 5h2.5a4.5 4.5 0 0 1-4 4.4" fill="none"/>
+                      </svg>
+                      {p}
+                    </span>
                   ))}
                 </div>
               </div>
 
-              {/* Storia */}
+              {/* Storia — espandibile come in app */}
               <div data-psec="story" style={{padding: '20px 20px 0'}}>
                 {secTitle('La nostra storia')}
                 <div style={{fontSize: 13.5, lineHeight: 1.55}}>
-                  Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti
-                  tradizionali della cucina romana, ingredienti freschi e selezionati ogni
-                  giorno. <span style={{color: A.PINK, fontWeight: 600}}>...Altro</span>
+                  {bioExp
+                    ? <>Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti tradizionali della cucina romana, ingredienti freschi e selezionati ogni giorno. Pasta tirata a mano ogni mattina, materie prime dai mercati di Testaccio e Campagna Amica. Carta dei vini con 200 etichette del Lazio. Una stella Michelin nel 2022. <span onClick={() => setBioExp(false)} style={{color: A.PINK, fontWeight: 600, cursor: 'pointer'}}>Meno ↑</span></>
+                    : <>Benvenuto al Ristorante Paradiso! Offriamo un'esperienza culinaria unica con piatti tradizionali della cucina romana, ingredienti freschi e selezionati ogni giorno. <span onClick={() => setBioExp(true)} style={{color: A.PINK, fontWeight: 600, cursor: 'pointer'}}>...Altro</span></>
+                  }
                 </div>
               </div>
 
               {/* I più ordinati */}
-              <div data-psec="gallery" style={{padding: '20px 20px 0'}}>
+              <div data-psec="dishes" style={{padding: '20px 20px 0'}}>
                 {secTitle('I più ordinati')}
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10}}>
                   {DISHES.map(([n, src]) => (
@@ -625,43 +713,177 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
                 </div>
               </div>
 
-              {/* FAQ */}
-              <div data-psec="faq" style={{padding: '22px 20px 0'}}>
-                {secTitle('Domande frequenti')}
-                <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-                  {[
-                    ['Siete aperti il sabato?', 'Sì, dalle 12:00 alle 23:00 con orario continuato.', true],
-                    ['Avete opzioni vegane?', null, false],
-                    ['Posso prenotare per gruppi?', null, false],
-                  ].map(([q, a, open]) => (
-                    <div key={q} style={{background: '#fff', borderRadius: 12, padding: '11px 14px', border: `1px solid ${A.BORDER}`}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-                        <span style={{flex: 1, fontSize: 13.5, fontWeight: 700}}>{q}</span>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={A.MUTED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{transform: open ? 'rotate(180deg)' : 'none'}}><polyline points="6 9 12 15 18 9"/></svg>
+              {/* Dalla cucina — stack di reel 9:16 che avanza da solo, come in app */}
+              <div style={{padding: '20px 20px 0'}}>
+                {secTitle('Dalla cucina')}
+                <div style={{position: 'relative', height: 348, overflow: 'hidden'}}>
+                  {[1, 2, 3, 4].map((n, i) => {
+                    let r = (i - reelCur) % 4; if (r > 2) r -= 4; if (r < -2) r += 4;
+                    if (Math.abs(r) > 2) return null;
+                    return (
+                      <div key={n}
+                        onClick={() => { if (r !== 0) setReelCur(i); }}
+                        style={{
+                          position: 'absolute', left: '50%', top: 8, width: 172, height: 306,
+                          transform: `translateX(calc(-50% + ${r * 118}px)) scale(${r === 0 ? 1 : .84})`,
+                          zIndex: 10 - Math.abs(r),
+                          opacity: Math.abs(r) === 2 ? 0 : (r === 0 ? 1 : .55),
+                          transition: 'transform 520ms cubic-bezier(.22,.9,.35,1), opacity 420ms ease',
+                          cursor: 'pointer', willChange: 'transform',
+                        }}>
+                        <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 20, overflow: 'hidden', boxShadow: r === 0 ? '0 18px 36px -14px rgba(227,36,89,.45)' : '0 10px 22px -14px rgba(77,18,46,.4)'}}>
+                          <img src={`../app/assets/reels/reel-${n}.webp`} alt="" draggable={false} style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                        </div>
                       </div>
-                      {a && <div style={{fontSize: 12.5, color: A.MUTED, marginTop: 6, lineHeight: 1.45}}>{a}</div>}
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Recensioni — due visibili, velo e rimando, come in app */}
+              <div style={{padding: '22px 20px 0'}}>
+                {secTitle('Cosa dicono di noi')}
+                <div style={{position: 'relative'}}>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 238, overflow: 'hidden'}}>
+                    {[
+                      ['G', 'Giulia M.', '2 giorni fa', 5, 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma.'],
+                      ['M', 'Marco R.', '1 settimana fa', 5, 'Servizio impeccabile, vino consigliato dal cameriere perfetto.'],
+                    ].map(([ini, name, when, rating, text]) => (
+                      <div key={name} style={{padding: '13px 14px', borderRadius: 14, background: '#fff', border: `1px solid ${A.BORDER}`, display: 'flex', flexDirection: 'column', gap: 7}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+                          <span style={{width: 34, height: 34, borderRadius: 999, background: A.PINK, flexShrink: 0, color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 13}}>{ini}</span>
+                          <span style={{flex: 1, minWidth: 0}}>
+                            <span style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                              <span style={{fontSize: 13.5, fontWeight: 700}}>{name}</span>
+                              <span style={{fontSize: 11, color: A.MUTED}}>{when}</span>
+                            </span>
+                            <span style={{display: 'flex', gap: 2, marginTop: 3}}>
+                              {[1,2,3,4,5].map(st => (
+                                <svg key={st} width="11" height="11" viewBox="0 0 24 24" fill={st <= rating ? A.PINK : '#e0d8db'}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                              ))}
+                            </span>
+                          </span>
+                        </div>
+                        <div style={{fontSize: 13, lineHeight: 1.55}}>{text}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{
+                    position: 'absolute', left: 0, right: 0, bottom: 0, height: 120,
+                    background: 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,.92) 70%, #FBF4F1 100%)',
+                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 2,
+                  }}>
+                    <span style={{color: A.PINK, fontSize: 14, fontWeight: 700, padding: '10px 16px'}}>Leggi tutte le recensioni ↓</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mappa — tile finta (niente Leaflet qui) con pin e pillola */}
+              <div style={{padding: '22px 20px 0'}}>
+                {secTitle('Dove siamo')}
+                <div style={{
+                  height: 160, borderRadius: 14, overflow: 'hidden', position: 'relative',
+                  background: `
+                    linear-gradient(90deg, transparent 48%, #fff 48%, #fff 54%, transparent 54%),
+                    linear-gradient(0deg, transparent 30%, #fff 30%, #fff 35%, transparent 35%),
+                    linear-gradient(58deg, transparent 62%, #fff 62%, #fff 66%, transparent 66%),
+                    linear-gradient(0deg, #E8ECEA, #EEF1EF)`,
+                }}>
+                  <span style={{position: 'absolute', left: '18%', top: '12%', width: '26%', height: '30%', borderRadius: 10, background: '#DCE8DB'}}/>
+                  <span style={{position: 'absolute', right: '8%', bottom: '38%', width: '20%', height: '24%', borderRadius: 8, background: '#DDE3E8'}}/>
+                  <span style={{
+                    position: 'absolute', left: '50%', top: '44%', transform: 'translate(-50%, -50%)',
+                    width: 14, height: 14, borderRadius: '50%', background: A.PINK,
+                    border: '3px solid #fff', boxShadow: '0 2px 8px rgba(227,36,89,0.55)',
+                  }}/>
+                  <span style={{
+                    position: 'absolute', bottom: 12, right: 12,
+                    background: '#fff', borderRadius: 999, padding: '8px 16px',
+                    fontSize: 12.5, fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                  }}>Vedi mappa →</span>
+                </div>
+              </div>
+
+              {/* Altre info */}
+              <div style={{padding: '22px 20px 0'}}>
+                {secTitle('Altre info')}
+                <div style={{background: '#fff', border: `1px solid ${A.BORDER}`, borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 10}}>
+                  {[['P', 'Parcheggio custodito Via Giulia'], ['M', 'Metro Tiburtina linea B · Bus 54, 60, 12, 40']].map(([ic, label]) => (
+                    <div key={ic} style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                      <span style={{width: 28, height: 28, borderRadius: 999, background: '#FBF4F1', border: `1px solid ${A.BORDER}`, display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700}}>{ic}</span>
+                      <span style={{fontSize: 13, flex: 1}}>{label}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Recensioni */}
-              <div style={{padding: '22px 20px 120px'}}>
-                {secTitle('Le recensioni')}
+              {/* Altre sedi */}
+              <div style={{padding: '22px 20px 0'}}>
+                {secTitle('Altre sedi')}
                 <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-                  {[
-                    ['G', 'Giulia M.', '2 giorni fa', 'Atmosfera incredibile e cucina autentica. La cacio e pepe è la migliore di Roma.'],
-                    ['M', 'Marco R.', '1 settimana fa', 'Servizio impeccabile, vino consigliato dal cameriere perfetto.'],
-                  ].map(([ini, name, when, text]) => (
-                    <div key={name} style={{background: '#fff', borderRadius: 14, padding: '12px 14px', border: `1px solid ${A.BORDER}`}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
-                        <span style={{width: 28, height: 28, borderRadius: 999, background: A.TINT, color: A.PINK, display: 'grid', placeItems: 'center', fontSize: 12.5, fontWeight: 800}}>{ini}</span>
-                        <span style={{fontSize: 13, fontWeight: 700}}>{name}</span>
-                        <span style={{fontSize: 11.5, color: A.MUTED}}>· {when}</span>
-                        <span style={{marginLeft: 'auto', fontSize: 11.5, color: '#f5b400'}}>★★★★★</span>
-                      </div>
-                      <div style={{fontSize: 12.5, color: A.TEXT, lineHeight: 1.5}}>{text}</div>
+                  {[['Milano', 'Corso Venezia 50'], ['Firenze', 'Via dei Calzaiuoli 12']].map(([city, addr]) => (
+                    <div key={city} style={{background: '#fff', border: `1px solid ${A.BORDER}`, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12}}>
+                      <span style={{width: 38, height: 38, borderRadius: 13, background: '#FCE9EE', flexShrink: 0, display: 'grid', placeItems: 'center'}}>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={A.PINK} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 10.4 5 5.2A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.2l1 5.2"/>
+                          <path d="M4 10.4a2.6 2.6 0 0 0 5.2 0 2.6 2.6 0 0 0 5.3 0 2.6 2.6 0 0 0 5.3 0"/>
+                          <path d="M5.3 12.8V19a1.5 1.5 0 0 0 1.5 1.5h10.4A1.5 1.5 0 0 0 18.7 19v-6.2"/>
+                          <path d="M9.8 20.3v-4.6a1.3 1.3 0 0 1 1.3-1.3h1.8a1.3 1.3 0 0 1 1.3 1.3v4.6"/>
+                        </svg>
+                      </span>
+                      <span>
+                        <span style={{display: 'block', fontSize: 14, fontWeight: 700, marginBottom: 2}}>{city}</span>
+                        <span style={{display: 'block', fontSize: 12.5, color: A.MUTED}}>{addr}</span>
+                      </span>
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* FAQ — apribili come in app */}
+              <div data-psec="faq" style={{padding: '22px 20px 0'}}>
+                {secTitle('Domande frequenti')}
+                <div>
+                  {[
+                    ['Siete aperti il sabato?', 'Sì, dalle 12:00 alle 23:00 con orario continuato.'],
+                    ['Avete opzioni vegane?', 'Certo, almeno 5 piatti vegani sono sempre disponibili.'],
+                    ['Posso prenotare per gruppi?', 'Sì, fino a 30 persone con preavviso di 24 ore.'],
+                  ].map(([q, a], i) => (
+                    <div key={q} onClick={() => setFaqOpen(faqOpen === i ? -1 : i)} style={{borderBottom: `1px solid ${A.BORDER}`, padding: '12px 0', cursor: 'pointer'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <span style={{fontSize: 14}}>{q}</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={A.MUTED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{transform: faqOpen === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s'}}><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                      {faqOpen === i && <div style={{fontSize: 13, color: A.MUTED, marginTop: 8, lineHeight: 1.5}}>{a}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Galleria fotografica — qui atterra la tab Aspetto */}
+              <div data-psec="gallery" style={{padding: '22px 20px 0'}}>
+                {secTitle('Galleria fotografica')}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8}}>
+                  <div style={{gridRow: 'span 2', borderRadius: 12, overflow: 'hidden', height: 200}}>
+                    <img src={PHOTOS[1]} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                  </div>
+                  <div style={{borderRadius: 12, overflow: 'hidden', height: 96}}>
+                    <img src={PHOTOS[2]} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                  </div>
+                  <div style={{borderRadius: 12, overflow: 'hidden', height: 96}}>
+                    <img src={PHOTOS[3]} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                  </div>
+                </div>
+              </div>
+
+              {/* Canali social — i collegati nel gestionale */}
+              <div data-psec="social" style={{padding: '22px 20px 100px'}}>
+                {secTitle('Canali Social')}
+                <div style={{display: 'flex', gap: 12}}>
+                  {(social.length ? social : ['ig']).map(sc => (
+                    <span key={sc} style={{width: 36, height: 36, borderRadius: 999, background: A.PINK, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'serif'}}>
+                      {sc === 'fb' ? 'f' : sc}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -687,7 +909,7 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
           <div aria-hidden="true" style={{position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)', width: Math.round(92 * k), height: 4, borderRadius: 999, background: 'rgba(15, 17, 21, 0.30)', zIndex: 7}}/>
         </div>
       </div>
-      <style>{`.vetp-scroll::-webkit-scrollbar{display:none}.vetp-scroll{scrollbar-width:none}`}</style>
+      <style>{`.vetp-scroll::-webkit-scrollbar{display:none}.vetp-scroll{scrollbar-width:none}@keyframes vetpKenBurns{0%{transform:scale(1)}100%{transform:scale(1.09)}}`}</style>
     </div>
   );
 }
