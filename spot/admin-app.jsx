@@ -189,7 +189,7 @@ function AdminApp({ tweaks }) {
     team:         { t:'Impostazioni Admin', s:'Configurazione tecnica e parametri della piattaforma' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
     hr:           { t:'Risorse Umane', s:'Formazione del personale ed evidenze per la A.6.3' },
-    economix:     { t:'Economix', s:'Costi, ricavi e proiezione di Byup' },
+    economix:     { t:'Economix', s:'Costi, conto economico, cassa e patrimonio di Byup' },
     conformita:   { t:'Conformità', s:'Registri ed evidenze per ISO/IEC 27001 e ISO 9001' },
     profilo:      { t:'Profilo', s:'Account e sicurezza' },
   };
