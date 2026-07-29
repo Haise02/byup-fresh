@@ -61,6 +61,30 @@ function rieFormazioneInRegola() {
   return { ok: ok.length, totale: team.length };
 }
 
+// ─── Le tre uscite del riesame (§9.3.3) ────────────────────────────────────
+// La norma non chiede "decisioni" in generale: chiede decisioni SU TRE COSE, e
+// l'auditor le cerca separatamente. Tenerle in un campo unico le fa sembrare
+// tutte uguali, e in pratica la terza sparisce — perché è quella che costa.
+const RIE_TIPI = [
+  { id:'miglioramento', label:'Opportunità di miglioramento',
+    nota:'Che cosa si può fare meglio anche dove non è rotto niente' },
+  { id:'modifiche',     label:'Modifiche al sistema di gestione',
+    nota:'Politiche, procedure, perimetro, cadenze da cambiare' },
+  { id:'risorse',       label:'Risorse necessarie',
+    nota:'Persone, tempo, budget, strumenti — anche per dire che bastano quelle attuali' },
+];
+const RIE_ESEMPI = {
+  miglioramento:'Es. Anticipare il test di ripristino a maggio per non accavallarlo con la sorveglianza',
+  modifiche:'Es. Portare il riesame dei log da trimestrale a mensile',
+  risorse:'Es. Affidare a un consulente 3 giornate per la gestione delle vulnerabilità',
+};
+const rieTipoLabel = (id) => (RIE_TIPI.find(t => t.id === id) || {}).label || null;
+
+// Lo storico contiene decisioni scritte prima che esistesse il tipo: si legge
+// sia la stringa nuda sia l'oggetto, senza riscrivere i dati vecchi.
+const rieTestoDec = (d) => (typeof d === 'string' ? d : (d && d.testo) || '');
+const rieTipoDec  = (d) => (typeof d === 'string' ? null : (d && d.tipo) || null);
+
 // ─── Verifica delle decisioni prese nei riesami precedenti ─────────────────
 // Una decisione non è "fatta" perché qualcuno l'ha spuntata: lo è se il dato
 // vivo lo conferma. Ogni verifica va a leggere il registro che dovrebbe essere
@@ -104,7 +128,8 @@ function riePacchetto() {
   const ultimoAudit   = AUDIT_INTERNI[0];
   const ultimoRiesame = RIESAMI_DIREZIONE[0];
 
-  const dec = ((ultimoRiesame && ultimoRiesame.decisioni) || []).map(t => Object.assign({ testo:t }, rieStatoDecisione(t)));
+  const dec = ((ultimoRiesame && ultimoRiesame.decisioni) || [])
+    .map(d => Object.assign({ testo:rieTestoDec(d), tipo:rieTipoDec(d) }, rieStatoDecisione(rieTestoDec(d))));
   const decAperte = dec.filter(d => d.stato !== 'fatta').length;
 
   const ncAperte  = NON_CONFORMITA.filter(n => n.stato !== 'chiusa');
@@ -233,7 +258,7 @@ const RIE_GRID_STORICO = 'minmax(0,1fr) minmax(0,1.7fr) minmax(0,1.25fr) minmax(
 function CfAudit({ onVai }) {
   const [prepara, setPrepara]           = useStateRie(false);
   const [conferma, setConferma]         = useStateRie(false);
-  const [decisioni, setDecisioni]       = useStateRie('');
+  const [decisioni, setDecisioni]       = useStateRie({ miglioramento:'', modifiche:'', risorse:'' });
   const [partecipanti, setPartecipanti] = useStateRie((RIESAMI_DIREZIONE[0] && RIESAMI_DIREZIONE[0].partecipanti) || '');
   const [aperto, setAperto]             = useStateRie(RIESAMI_DIREZIONE[0] ? RIESAMI_DIREZIONE[0].id : null);
   const [versione, setVersione]         = useStateRie(0);
@@ -248,7 +273,11 @@ function CfAudit({ onVai }) {
   const senzaDoc = AUDIT_INTERNI.filter(a => !a.doc).length;
   const bAudit = rieBanda(sAudit.stato === 'ok' ? 'NEUTRAL' : sAudit.tono);
 
-  const righeDecisioni = decisioni.split('\n').map(s => s.trim()).filter(Boolean);
+  // Una riga per decisione, dentro la casella che le dà il tipo.
+  const righeDecisioni = RIE_TIPI.flatMap(t =>
+    (decisioni[t.id] || '').split('\n').map(s => s.trim()).filter(Boolean)
+      .map(testo => ({ testo, tipo:t.id })));
+  const senzaRisorse = !righeDecisioni.some(d => d.tipo === 'risorse');
 
   // Registrare il riesame chiude l'adempimento: la data di §9.3 riparte da qui,
   // così il Cruscotto non resta a raccontare una scadenza già rispettata.
@@ -383,7 +412,8 @@ function CfAudit({ onVai }) {
 
           <div style={CF_CARD}>
             {RIESAMI_DIREZIONE.map((r, i) => {
-              const dec = (r.decisioni || []).map(t => Object.assign({ testo:t }, rieStatoDecisione(t)));
+              const dec = (r.decisioni || [])
+                .map(d => Object.assign({ testo:rieTestoDec(d), tipo:rieTipoDec(d) }, rieStatoDecisione(rieTestoDec(d))));
               const aperte = dec.filter(d => d.stato !== 'fatta').length;
               const espanso = aperto === r.id;
               return (
@@ -422,7 +452,12 @@ function CfAudit({ onVai }) {
                             style={{display:'grid', gridTemplateColumns:'minmax(0,1.6fr) 130px minmax(0,1.5fr) 26px', gap:10,
                               alignItems:'center', padding:'8px 0', cursor: clic ? 'pointer' : 'default',
                               borderBottom: k < dec.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-                            <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:600, lineHeight:1.4}}>{d.testo}</div>
+                            <div style={{minWidth:0}}>
+                              <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:600, lineHeight:1.4}}>{d.testo}</div>
+                              {rieTipoLabel(d.tipo) && (
+                                <div style={{fontSize:11, color:ADM.MUTED_SOFT, marginTop:2}}>{rieTipoLabel(d.tipo)}</div>
+                              )}
+                            </div>
                             <div><CfPill tono={RIE_TONO_DEC[d.stato] || 'NEUTRAL'}>{RIE_LABEL_DEC[d.stato] || d.stato}</CfPill></div>
                             <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4}}>{d.nota}</div>
                             {clic
@@ -471,12 +506,34 @@ function CfAudit({ onVai }) {
                 fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, boxSizing:'border-box', outline:'none', marginBottom:14}}/>
 
             <div style={{fontSize:11.8, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
-              letterSpacing:'0.05em', marginBottom:6}}>Decisioni · una per riga</div>
-            <textarea value={decisioni} onChange={e=>setDecisioni(e.target.value)} autoFocus
-              placeholder={"Es. Chiudere entro settembre il riesame dei due fornitori mai riesaminati\nEs. Assegnare la formazione mancante alle persone fuori copertura"}
-              style={{width:'100%', minHeight:96, padding:'10px 12px', borderRadius:10, border:`1px solid ${ADM.BORDER}`,
-                fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, resize:'vertical', boxSizing:'border-box', outline:'none'}}/>
-            <div style={{fontSize:12, color:ADM.MUTED, marginTop:7, lineHeight:1.5}}>
+              letterSpacing:'0.05em', marginBottom:8}}>Decisioni · una per riga</div>
+
+            <div style={{display:'flex', flexDirection:'column', gap:14}}>
+              {RIE_TIPI.map((t, k) => (
+                <div key={t.id}>
+                  <div style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT}}>{t.label}</div>
+                  <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2, marginBottom:6, lineHeight:1.4}}>{t.nota}</div>
+                  <textarea value={decisioni[t.id]} autoFocus={k === 0}
+                    onChange={e=>setDecisioni(d => ({ ...d, [t.id]: e.target.value }))}
+                    placeholder={RIE_ESEMPI[t.id]}
+                    style={{width:'100%', minHeight:60, padding:'10px 12px', borderRadius:10,
+                      border:`1px solid ${ADM.BORDER}`, fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT,
+                      resize:'vertical', boxSizing:'border-box', outline:'none'}}/>
+                </div>
+              ))}
+            </div>
+
+            {/* Una casella risorse vuota non blocca, ma va detto: e la voce che
+                per prima sparisce dai verbali, perche e quella che costa. */}
+            {senzaRisorse && righeDecisioni.length > 0 && (
+              <div style={{fontSize:12.2, color:'#78350F', background:ADM.WARN_SOFT, borderRadius:9,
+                padding:'10px 12px', marginTop:12, lineHeight:1.5}}>
+                Nessuna decisione sulle risorse. È ammesso, ma vale la pena scriverci che quelle
+                attuali bastano: un riesame che per anni non tocca mai le risorse si nota.
+              </div>
+            )}
+
+            <div style={{fontSize:12, color:ADM.MUTED, marginTop:12, lineHeight:1.5}}>
               Le decisioni diventano lo stato di partenza del prossimo riesame e vengono
               riverificate sui registri, non sulla parola.
             </div>
@@ -510,7 +567,13 @@ function CfAudit({ onVai }) {
             </div>
             <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16,
               fontSize:12.6, color:ADM.TEXT, lineHeight:1.6}}>
-              {righeDecisioni.map((d, i) => <div key={i}>· {d}</div>)}
+              {RIE_TIPI.filter(t => righeDecisioni.some(d => d.tipo === t.id)).map(t => (
+                <div key={t.id} style={{marginBottom:7}}>
+                  <div style={{fontSize:11, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
+                    letterSpacing:'0.05em', marginBottom:2}}>{t.label}</div>
+                  {righeDecisioni.filter(d => d.tipo === t.id).map((d, i) => <div key={i}>· {d.testo}</div>)}
+                </div>
+              ))}
             </div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
               <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(false)}>Annulla</AdmButton>

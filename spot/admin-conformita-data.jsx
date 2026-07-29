@@ -288,10 +288,13 @@ const AUDIT_INTERNI = [
 // tutti, quindi il pacchetto si prepara da solo.
 const RIESAMI_DIREZIONE = [
   { id:'RD-2025', data:new Date('2025-12-15'), partecipanti:'Marco Rinaldi, Marco Di Meo, Laura Bianchi',
+    // Le decisioni portano il tipo previsto dalla 9.3.3: miglioramento,
+    // modifiche al sistema, risorse. Sono le tre voci che l'auditor cerca
+    // separatamente, e una casella vuota per anni e essa stessa un segnale.
     decisioni:[
-      'Nominare un secondo Super Admin entro il primo semestre 2026 (rischio R05)',
-      'Portare il riesame accessi da semestrale a trimestrale',
-      'Avviare il registro fornitori strutturato',
+      { testo:'Avviare il registro fornitori strutturato', tipo:'miglioramento' },
+      { testo:'Portare il riesame accessi da semestrale a trimestrale', tipo:'modifiche' },
+      { testo:'Nominare un secondo Super Admin entro il primo semestre 2026 (rischio R05)', tipo:'risorse' },
     ],
     stato:'chiuso', doc:'Drive · Riesami/2025/Verbale-riesame-direzione-2025.pdf' },
 ];
