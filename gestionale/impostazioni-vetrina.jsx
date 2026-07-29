@@ -50,9 +50,14 @@ function ImpVetrina() {
 
   return (
     <div>
-      <VetrinaCompletion items={completion} pct={pct} onGo={goToSection}/>
-      <ImpSubTabs tabs={subs} active={sub} onChange={setSub}/>
+      {/* Banner e sub-tab dentro la colonna sinistra, non sopra la griglia:
+          se stanno sopra, il pannello del telefono parte 170px piu in basso
+          e il suo fondo esce dalla finestra finche non si scrolla. Cosi
+          invece l'anteprima ha tutta l'altezza della finestra dal primo
+          istante, ed e il contenuto a scorrerle accanto. */}
       <ImpWithPreview preview={preview}>
+        <VetrinaCompletion items={completion} pct={pct} onGo={goToSection}/>
+        <ImpSubTabs tabs={subs} active={sub} onChange={setSub}/>
         {sub === 'profilo' && <VetrinaProfilo
           tags={tags} setTags={t => {setTags(t); markDirty();}}
           categoria={categoria} setCategoria={c => {setCategoria(c); markDirty();}}

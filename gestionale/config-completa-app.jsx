@@ -381,9 +381,10 @@ function ConfigCompletaApp() {
               Cosa vedranno i clienti
             </div>
 
-            {/* Telefono: larghezza calibrata perché header + phone + banner
-                chiudano nei 900px del canvas. */}
-            <div style={{width: 300, margin: '0 auto', flexShrink: 0}}>
+            {/* Telefono: senza piu il banner sotto, lo spazio della rail e
+                tutto suo — riempie la larghezza e l'altezza chiude nei 900px
+                del canvas. */}
+            <div style={{width: '100%', margin: '0 auto', flexShrink: 0}}>
               <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
                 focusSection={step === 'informazioni' ? 'info' : 'gallery'}/>
             </div>

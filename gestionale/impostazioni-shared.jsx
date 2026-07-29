@@ -356,7 +356,10 @@ function ImpWithPreview({ children, preview }) {
 
   if (!preview) return <div>{children}</div>;
   return (
-    <div style={{display:'grid', gridTemplateColumns: open ? '1fr 320px' : '1fr', gap: 18, alignItems:'flex-start'}}>
+    // 348px e non 320: con l'anteprima che parte dalla cima, l'altezza
+    // disponibile ammette un telefono da ~313px — la colonna vecchia lo
+    // strozzava in larghezza e lasciava 50px vuoti sul fondo del pannello.
+    <div style={{display:'grid', gridTemplateColumns: open ? '1fr 348px' : '1fr', gap: 18, alignItems:'flex-start'}}>
       <div style={{minWidth: 0}}>
         {/* A destra e non a sinistra: e il pulsante che riapre il pannello di
             destra, e sta dove ricompare quello che riapre. A sinistra sembrava
@@ -413,6 +416,12 @@ function ImpWithPreview({ children, preview }) {
 
 // Sticky save bar
 function ImpSaveBar({ dirty, onCancel, onSave }) {
+  // La barra copre una striscia in fondo allo scroller: il telefono deve
+  // ricalcolarsi quando lei compare o sparisce, e l'adattamento ascolta gia
+  // il resize della finestra — glielo si fa credere.
+  React.useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [dirty]);
   if (!dirty) return null;
   return (
     <div style={{
@@ -659,13 +668,9 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
             </div>
           </div>
 
-          {/* Overlay fissi: status bar, island, bottoni flottanti, CTA, indicator */}
-          <div style={{position: 'absolute', top: Math.round(34 * k), left: Math.round(22 * k), right: Math.round(22 * k), zIndex: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', pointerEvents: 'none'}}>
-            <span style={{fontSize: Math.max(10, Math.round(13 * k)), fontWeight: 700, fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 4px rgba(0,0,0,0.4)'}}>9:41</span>
-            <span style={{width: Math.round(22 * k), height: Math.round(10 * k), border: '1.2px solid #fff', borderRadius: 2, position: 'relative', opacity: 0.95}}>
-              <span style={{position: 'absolute', inset: 1, width: '68%', background: '#fff', borderRadius: 1}}/>
-            </span>
-          </div>
+          {/* Overlay fissi: island, CTA, indicator. Niente ora ne batteria:
+              sono la cornice del sistema, non la vetrina — qui si guarda il
+              contenuto, non un'istantanea di iOS. */}
           <div style={{position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: Math.round(74 * k), height: Math.round(20 * k), borderRadius: 999, background: '#0B0C0E', zIndex: 7, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 7}}>
             <span style={{width: Math.round(8 * k), height: Math.round(8 * k), borderRadius: 999, background: 'radial-gradient(circle at 32% 30%, #3A4150 0%, #0E1013 70%)', boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.20)'}}/>
           </div>
