@@ -3,13 +3,12 @@
 /* ═══ CASSA ══════════════════════════════════════════════════════════════ */
 function EcoCassa({ mix, leve, forza }) {
   const flussi = ecoProiezioneCassa(mix, leve);
-  const run = ecoRunway(flussi);
+  const aut = ecoAutonomia(flussi, ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti);
   const saldoOggi = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
 
   const banca = ecoBanca();
   const ggConsenso = banca ? ecoGiorniConsenso(banca) : null;
   const ritardo = ecoRitardoRendiconto(banca);
-  const senzaRicavi = ecoRunwaySenzaRicavi(flussi, saldoOggi);
   const [modifica, setModifica] = useStateEco(null);
   const [elimina, setElimina] = useStateEco(null);
   const [daScadenza, setDaScadenza] = useStateEco(ECO_OGGI);
@@ -82,15 +81,15 @@ function EcoCassa({ mix, leve, forza }) {
               : iva.prossima
                 ? `debito verso l’erario · da versare il ${cfFmt(iva.prossima.scadenza)}`
                 : 'debito verso l’erario' },
-          { et:'Autonomia', tono: run.oltre ? ADM.TEXT : ADM.DANGER,
-            v: run.oltre
-              ? (run.mesi === Infinity ? 'illimitata' : `${Math.floor(run.mesi)} mesi`)
-              : `${run.mesi} ${run.mesi === 1 ? 'mese' : 'mesi'}`,
-            // Il numero grande vale con i ricavi previsti; questo e l'altro
-            // scenario, scritto come divisione perche si possa rifare a mente.
-            n: senzaRicavi.mesi === Infinity
-              ? 'nessuna uscita prevista: autonomia illimitata'
-              : `${ecoEur(saldoOggi)} ÷ ${ecoEur(senzaRicavi.costiMedi)} di uscite medie mensili · senza incassi autonomia di ${Math.floor(senzaRicavi.mesi)} mesi` },
+          // La formula scritta e quella che produce il numero grande: cassa
+          // diviso quanto si brucia, cioe uscite MENO incassi. Senza il secondo
+          // termine il conto sarebbe quello dello scenario senza ricavi, che qui
+          // sta come seconda lettura e non come formula principale.
+          { et:'Autonomia', tono: aut.mesi === Infinity || aut.mesi >= 6 ? ADM.TEXT : ADM.DANGER,
+            v: aut.mesi === Infinity ? 'illimitata' : `${Math.floor(aut.mesi)} mesi`,
+            n: aut.mesi === Infinity
+              ? `gli incassi coprono le uscite: ${ecoEur(aut.incassiMedi)} contro ${ecoEur(aut.usciteMedie)} al mese`
+              : `${ecoEur(saldoOggi)} ÷ (${ecoEur(aut.usciteMedie)} di uscite − ${ecoEur(aut.incassiMedi)} di incassi) al mese · senza incassi autonomia di ${Math.floor(aut.senzaIncassi)} mesi` },
         ].map(c => (
           <div key={c.et} style={{...ECO_CARD, padding:'15px 17px'}}>
             <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',

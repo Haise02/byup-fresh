@@ -640,25 +640,27 @@ function ecoImpattoEliminazione(costo, daQuando) {
 //    risponde a "quanto durerei se i ricavi si fermassero domani".
 // Su una societa ancora sotto il pareggio le due divergono molto, e mostrarne
 // una sola lascia credere che sia l'unica.
-// Restituisce anche il divisore, perche il numero da solo non si puo verificare:
-// «cinque mesi» diventa controllabile solo se accanto c'e per cosa hai diviso.
-function ecoRunwaySenzaRicavi(cassa, saldoOggi) {
-  if (!cassa.length) return { mesi:Infinity, costiMedi:0 };
-  // Senza ricavi non c'e nemmeno IVA incassata: resta l'IVA pagata ai fornitori,
-  // che senza vendite non si compensa con nulla e diventa un'uscita secca.
-  const costiMedi = cassa.reduce((t, x) => t + x.pagamenti + x.scadenze, 0) / cassa.length;
-  return { mesi: costiMedi > 0 ? saldoOggi / costiMedi : Infinity, costiMedi };
-}
-
-function ecoRunway(cassa) {
-  const negativo = cassa.find(x => x.saldo <= 0);
-  if (!negativo) {
-    const ultimo = cassa[cassa.length - 1];
-    const bruciaMedio = cassa.reduce((t, x) => t + Math.min(0, x.netto), 0) / cassa.length;
-    return { mesi: bruciaMedio < 0 ? ultimo.saldo / -bruciaMedio + cassa.length : Infinity,
-      oltre: true, saldoFine: ultimo.saldo };
-  }
-  return { mesi: negativo.i, oltre: false, quando: negativo.d.mese, saldoFine: negativo.saldo };
+// L'autonomia e UNA divisione, e va detta per intero. La cassa non si consuma
+// con le uscite: si consuma con la DIFFERENZA fra uscite e incassi — se entra
+// quanto esce non finisce mai, e dividere per le sole uscite darebbe una data
+// di morte a un'azienda in pareggio. Il caso «senza incassi» e lo stesso conto
+// col secondo termine azzerato, ed e per questo che condivide il divisore:
+// due «uscite medie» diverse nella stessa frase sarebbero sembrate un errore.
+//
+// Il calcolo E la formula mostrata a schermo. Tenere un metodo piu fine dentro
+// e scriverne uno piu semplice fuori vuol dire pubblicare un numero che non si
+// puo rifare — e un numero che non si puo rifare non si puo nemmeno contestare.
+function ecoAutonomia(cassa, saldoOggi) {
+  if (!cassa.length) return { mesi:Infinity, senzaIncassi:Infinity, usciteMedie:0, incassiMedi:0, brucia:0 };
+  const n = cassa.length;
+  const usciteMedie = cassa.reduce((t, x) => t + x.pagamenti + x.iva + x.scadenze, 0) / n;
+  const incassiMedi = cassa.reduce((t, x) => t + x.incassi, 0) / n;
+  const brucia = usciteMedie - incassiMedi;
+  return {
+    mesi: brucia > 0 ? saldoOggi / brucia : Infinity,
+    senzaIncassi: usciteMedie > 0 ? saldoOggi / usciteMedie : Infinity,
+    usciteMedie, incassiMedi, brucia,
+  };
 }
 
 // ─── Stato patrimoniale ────────────────────────────────────────────────────
@@ -742,8 +744,7 @@ window.ecoScadenzario = ecoScadenzario;
 window.ecoSegnaPagata = ecoSegnaPagata;
 window.ecoEliminaCosto = ecoEliminaCosto;
 window.ecoImpattoEliminazione = ecoImpattoEliminazione;
-window.ecoRunway = ecoRunway;
-window.ecoRunwaySenzaRicavi = ecoRunwaySenzaRicavi;
+window.ecoAutonomia = ecoAutonomia;
 window.ecoStatoPatrimoniale = ecoStatoPatrimoniale;
 window.ecoRegressione = ecoRegressione;
 window.ecoLeveIniziali = ecoLeveIniziali;
