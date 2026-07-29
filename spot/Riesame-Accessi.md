@@ -1,8 +1,15 @@
 # Riesame periodico dei diritti di accesso — Spot
 
-Quinta tab di **Impostazioni Admin**. Serve il controllo **ISO/IEC 27001 A.5.18**
-(riesame dei diritti di accesso), quello su cui più aziende vengono bocciate
-perché lo gestiscono con un foglio Excel.
+Vive in **Sicurezza e sistemi → Accessi**. Serve il controllo **ISO/IEC 27001
+A.5.18** (riesame dei diritti di accesso), quello su cui più aziende vengono
+bocciate perché lo gestiscono con un foglio Excel.
+
+> Fino a luglio 2026 era una tab a sé, accanto a una tab «Team» che elencava le
+> stesse persone con gli stessi ruoli e due colonne diverse in fondo. Le due sono
+> state fuse: **l'elenco è uno solo**, ed è quello del riesame — era già il
+> sovrainsieme. 2FA e stato dell'utenza, che erano le uniche colonne in più della
+> vecchia tab Team, sono diventate pastiglie accanto al nome. Sotto l'elenco
+> restano gli inviti pendenti e la matrice ruoli & permessi.
 
 **Ambito: solo il team admin di Byup.** Lo staff dei locali resta fuori — l'ISMS
 è quello di Byup, e Byup non può certificare che un cameriere lavori ancora in
@@ -78,9 +85,24 @@ il CSV è per le carte di lavoro.
 
 ## Scelte di prodotto già prese
 
-**L'ordinamento è per rischio, non alfabetico:** mai acceduto → dormiente (oltre
-90 giorni) → permessi aumentati → mai riesaminato → invariato. Un riesame si
-guarda dall'anomalia in giù; ordinato per nome si timbra dall'alto senza leggere.
+**L'ordinamento è per rischio, non alfabetico:** in uscita o già uscito → mai
+acceduto → dormiente (oltre 90 giorni) → permessi aumentati → mai riesaminato →
+invariato. Un riesame si guarda dall'anomalia in giù; ordinato per nome si timbra
+dall'alto senza leggere.
+
+**L'uscita arriva da HR e batte tutto il resto.** È il rilievo più comune di un
+audit 27001 — «non lavora più qui e ha ancora l'account» — e prima si
+intercettava solo di rimbalzo, quando l'utenza restava ferma novanta giorni. Ma
+*dormiente non vuol dire uscito*: si può essere in congedo senza essere usciti, e
+usciti ieri con l'account usato ancora oggi. Ora chi tiene le Risorse Umane
+registra la data dell'ultimo giorno di lavoro (campo `uscitaIl` su `TEAM`), e
+quel dato — uno solo, in una direzione sola — compare qui come classificazione a
+priorità massima: *«Esce il 10 ago 2026 · l'accesso va revocato quel giorno»*,
+oppure *«Uscito da N giorni · andava revocato allora»*.
+
+Il confine è voluto: **HR non vede i permessi di nessuno e non entra in Sicurezza
+e sistemi**, e chi tiene gli accessi non deve chiedere a nessuno perché
+quell'account ha una scadenza. Passa un dato, non un accesso.
 
 **Gli invariati si confermano in blocco** ed è legittimo proprio perché il
 confronto con la campagna precedente è calcolato: si attesta che non è cambiato

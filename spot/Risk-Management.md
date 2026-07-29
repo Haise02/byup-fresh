@@ -1,16 +1,35 @@
-# Conformità — ISO/IEC 27001 e ISO 9001
+# Risk Management — ISO/IEC 27001 e ISO 9001
 
-Sezione **Conformità** di Spot (nav di sistema, accanto a Impostazioni Admin).
-Raccoglie i registri e le evidenze per le due certificazioni.
+Sezione **Risk Management** di Spot (nav di sistema, fra Economix e Sicurezza e
+sistemi). Raccoglie i rischi, gli adempimenti e le evidenze per le due
+certificazioni.
+
+> Si chiamava «Conformità» fino a luglio 2026. Il nome tecnico della rotta e dei
+> file resta `conformita`: è un fatto interno che non compare a schermo, e
+> rinominarlo avrebbe toccato quindici file per zero effetto.
+
+**Sei tab:** Cruscotto · Rischi · Fornitori · Incidenti · Non conformità ·
+Audit e riesami.
 
 Codice: [admin-conformita.jsx](admin-conformita.jsx) (guscio, primitive, Cruscotto),
 [admin-conformita-registri.jsx](admin-conformita-registri.jsx) (rischi, fornitori),
 [admin-conformita-eventi.jsx](admin-conformita-eventi.jsx) (incidenti, non conformità),
-[admin-conformita-riesami.jsx](admin-conformita-riesami.jsx) (audit, riesame di direzione,
-formazione, ripristini). Dati in [admin-conformita-data.jsx](admin-conformita-data.jsx).
+[admin-conformita-riesami.jsx](admin-conformita-riesami.jsx) (audit e riesame di
+direzione, più i componenti `CfFormazione` e `CfTestRipristino` che vengono resi
+altrove). Dati in [admin-conformita-data.jsx](admin-conformita-data.jsx).
 
-Il riesame degli accessi vive a parte, in Impostazioni Admin → Riesame accessi:
-vedi [Riesame-Accessi.md](Riesame-Accessi.md).
+**Tre registri sono usciti da questa sezione** pur restando obblighi tracciati
+dal Cruscotto — il codice vive ancora qui, cambia solo dove si legge:
+
+| Registro | Norma | Dove si legge ora |
+|---|---|---|
+| Riesame dei diritti di accesso | A.5.18 | Sicurezza e sistemi → Accessi ([Riesame-Accessi.md](Riesame-Accessi.md)) |
+| Test di ripristino dei backup | A.8.13 | Sicurezza e sistemi → Diagnostica |
+| Formazione del personale | A.6.3 | Risorse Umane |
+
+Il criterio è lo stesso in tutti e tre i casi: **il registro sta dove lavora chi
+lo compila**, non dove lo cerca l'auditor. L'auditor ci arriva comunque, perché
+il Cruscotto tiene l'obbligo e il pulsante «Apri» porta alla schermata giusta.
 
 ---
 
@@ -54,14 +73,26 @@ discende tutta la Dichiarazione di Applicabilità. Matrice probabilità×impatto
 con toggle **inerente/residuo** — il confronto fra i due è ciò che dimostra che
 il trattamento ha ridotto qualcosa, ed è più eloquente di qualsiasi tabella.
 
-**Fornitori (A.5.19–5.23 · §8.4).** Chi tratta quali dati per conto di Byup, con
-DPA, certificazioni e paese. Seconda area più bocciata dopo gli accessi. Chi non
-ha DPA o non è mai stato riesaminato va in cima: sono rilievi formali, non
-tecnici, e un auditor li trova subito.
+**Fornitori (A.5.19–5.23 · §8.4).** Chi tratta quali dati per conto di Byup.
+Seconda area più bocciata dopo gli accessi. Chi non ha DPA o non è mai stato
+riesaminato va in cima: sono rilievi formali, non tecnici, e un auditor li trova
+subito.
+
+In tabella stanno cinque colonne — fornitore, servizio, documenti, firmato il,
+ultimo riesame — e non di più. Dati trattati, paese di elaborazione e
+certificazioni si leggono aprendo la riga: in colonna erano tre blocchi di testo
+lungo che schiacciavano le uniche due informazioni per cui la tabella esiste,
+cioè **se il contratto c'è e da quando**. Quando il paese è fuori UE il
+caricamento delle garanzie (SCC o decisione di adeguatezza) diventa obbligatorio
+e la colonna documenti lo pretende.
 
 **Incidenti (A.5.24–5.28).** Il campo che conta è `dataBreach`: fa partire
-l'orologio delle **72 ore** verso il Garante. Il countdown è calcolato dalla
-*scoperta*, non dalla chiusura.
+l'orologio delle **72 ore** verso il Garante, calcolato dalla *scoperta* e non
+dalla chiusura. La notifica non è un banner sopra l'elenco ma un pulsante
+**dentro** l'incidente, con conferma: notificare al Garante è un atto, e un atto
+si compie stando sulla cosa che si sta notificando. Gli incidenti si aggiungono e
+si modificano a mano — non tutti arrivano da un sistema, e quelli che contano di
+più quasi mai.
 
 **Non conformità (§10.2).** Il cuore della 9001, alimentato dalle segnalazioni
 che arrivano già in Comunicazioni. Il passaggio che quasi tutti saltano è la
@@ -76,9 +107,17 @@ Lo stato delle azioni del riesame precedente non è una spunta ma una riverifica
 sul dato vivo — «nominare un secondo Super Admin» si controlla contando i super
 admin attivi, non fidandosi di una casella.
 
-**Registri (A.6.3, A.8.13).** Formazione e test di ripristino: solo l'evidenza —
-chi, quando, esito. «Quando avete provato l'ultimo restore» è la domanda che gli
-auditor fanno sempre e a cui quasi nessuno sa rispondere con un registro.
+**Formazione (A.6.3) e test di ripristino (A.8.13).** Non stanno più fra queste
+tab: solo l'evidenza — chi, quando, esito — e si compilano dove si lavora
+(Risorse Umane, Diagnostica). Il Cruscotto tiene l'obbligo e ci porta.
+
+Sul ripristino vale la pena dire una cosa che il registro da solo non dice: **la
+tabella non è il test.** Il test si fa altrove, ripristinando uno snapshot su
+un'istanza isolata; qui c'è la traccia. E una traccia compilata a mano resta
+un'autodichiarazione: la versione che vale davvero è quella in cui è il job di
+ripristino a scrivere la riga. Il numero che conta non è l'esito ma **il tempo
+contro l'RTO dichiarato**: «riuscito» da solo non dice se saresti arrivato in
+tempo, ed è stato il tempo a far emergere il peggioramento di novembre 2025.
 
 ---
 
