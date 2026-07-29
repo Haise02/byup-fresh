@@ -1,6 +1,14 @@
 // Impostazioni → Menù e cucina (rifatto: piatti per categoria, allergeni icone, filtri chip)
 
 const PHOTO_MOCK_BG = ['#F4D9A0', '#D0E8F4', '#E5D9F2'];
+// Foto segnaposto VERE, non campiture: sono le stesse dei piatti mock della
+// vetrina, cosi il prototipo racconta una cucina sola. La tinta pastello
+// resta dietro come fondo mentre l'immagine carica.
+const PHOTO_MOCK_IMGS = [
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=70&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=70&auto=format&fit=crop',
+];
 
 const ALLERGENS = [
   { id: 'glutine', name: 'Glutine', icon: '🌾', color: '#D97706' },
@@ -1562,11 +1570,21 @@ function DishFlag({checked, onChange, label, accent, accentBg, accentBorder, inf
 
       {info && (
         <span
-          onClick={e => {
-            e.stopPropagation();
+          // Il chiarimento si legge passando sopra, come ogni tooltip: il
+          // click resta neutro (stopPropagation) perche non deve togglare il
+          // flag sotto. Focus/blur danno la stessa cosa a chi naviga da
+          // tastiera.
+          onClick={e => e.stopPropagation()}
+          onMouseEnter={e => {
             const r = e.currentTarget.getBoundingClientRect();
-            info.setOpen(o => (o && o.id === info.id) ? null : {id: info.id, x: r.right + 10, y: r.top + r.height / 2});
+            info.setOpen({id: info.id, x: r.right + 10, y: r.top + r.height / 2});
           }}
+          onMouseLeave={() => info.setOpen(o => (o && o.id === info.id) ? null : o)}
+          onFocus={e => {
+            const r = e.currentTarget.getBoundingClientRect();
+            info.setOpen({id: info.id, x: r.right + 10, y: r.top + r.height / 2});
+          }}
+          onBlur={() => info.setOpen(o => (o && o.id === info.id) ? null : o)}
           role="button" tabIndex={0} aria-expanded={tipAperto}
           aria-label={`Cos'è: ${label}`}
           style={{display:'inline-flex', flexShrink:0}}
@@ -1837,6 +1855,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                     const prossimoLibero = i === photos.length;
                     return piena ? (
                       <div key={i} style={{position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'4/3', background: PHOTO_MOCK_BG[i % PHOTO_MOCK_BG.length]}}>
+                        <img src={PHOTO_MOCK_IMGS[i % PHOTO_MOCK_IMGS.length]} alt="" loading="lazy" style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block'}}/>
                         <button onClick={() => setPreview(i)} aria-label={`Apri anteprima foto ${i + 1}`} style={{
                           position:'absolute', inset:0, width:'100%', height:'100%',
                           background:'transparent', border:'none', cursor:'zoom-in', padding:0,
@@ -2208,7 +2227,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               width:'min(560px, 100%)', aspectRatio:'4/3', borderRadius:16,
               background: PHOTO_MOCK_BG[preview % PHOTO_MOCK_BG.length],
               boxShadow:'0 32px 80px -20px rgba(0,0,0,0.6)', position:'relative',
+              overflow:'hidden',
             }}>
+              <img src={PHOTO_MOCK_IMGS[preview % PHOTO_MOCK_IMGS.length]} alt="" style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block'}}/>
               <button onClick={() => setPreview(null)} aria-label="Chiudi anteprima" style={{
                 position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%',
                 background:'rgba(15,17,21,0.55)', border:'none', color:'#fff',
