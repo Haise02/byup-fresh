@@ -2,7 +2,7 @@
 
 > **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` (nella root del repo) e `vue-components/WORK_IN_PROGRESS.md` (accanto a questo file). I percorsi in questo documento sono relativi alla root del repo `Byup/`, salvo dove indicato.
 
-**Ultimo aggiornamento:** 28 luglio 2026 — riallineamento percorsi alla struttura del repo `Byup/` (prototipo in `gestionale/`, backend in `backend/` alla root) + **rimozione di codice morto** su tutte le superfici: da `gestionale/` sono spariti le copie mai linkate delle app consumer/cameriere (`byup Home.html`, `byup Menu.html`, `byup Staff.html` e relativi `.jsx` — le versioni vive stanno in `app/` e `cameriere/`), i token legacy `BU` (`byup-tokens.jsx`), `cucina-tab-storico.jsx`, `tweaks-panel.jsx` e i `_demo-card-*.html`. Ultimo lavoro backend: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
+**Ultimo aggiornamento:** 29 luglio 2026 — **batch UI sulle Impostazioni del prototipo** (Vetrina, Sala e tavoli, Personale, POS e integrazioni), dettagli e motivazioni in `DESIGN_DECISIONS.md` § "Batch Impostazioni — 29 lug 2026". In sintesi: Vetrina salva da una barra fissa in fondo (via `PublishButton`), telefono d'anteprima a tutta altezza e senza cornice iOS, i chip del completamento accendono la sezione d'arrivo; Sala e tavoli con selezione ad anello, stato in corallo brand, menu a vetro e fogli modali bianchi (`MODAL_*`); Personale rifatto come tabella unica persone+dispositivi con filtro ruoli; integrazioni a tessere quadrate 3 per fila con fascia `GRAD_STAFF`; copy dello spento unificato su «Disattivato». Sessione precedente (28 lug): riallineamento percorsi alla struttura del repo `Byup/` + rimozione codice morto (copie mai linkate delle app consumer/cameriere, token legacy `BU`, `cucina-tab-storico.jsx`, `tweaks-panel.jsx`, `_demo-card-*.html`). Ultimo lavoro backend: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
 
 ---
 
@@ -782,7 +782,7 @@ Suggerita per **non avere un blocco gigante non navigabile**:
 - `gestionale/vue-components/*.dbml` — ERD v0.7 (sorgente di verità DB)
 - `gestionale/vue-components/byup-database-enums-reference-v7*.md` — valori e stati DB
 - `gestionale/CLAUDE.md` — overview di prodotto (cosa è Byup, GTM, validation, team)
-- `gestionale/DESIGN_DECISIONS.md` — design system frontend (stantio sui pesi font: i token `PN` nel codice sono la verità)
+- `gestionale/DESIGN_DECISIONS.md` — design system frontend, riallineato al codice il 2026-07-28 e tenuto aggiornato a fine sessione (ultima: 2026-07-29); in caso di dubbio i token `PN` nel codice restano la verità
 
 ### Memoria conversazionale Claude
 La memoria persistente fra sessioni vive sotto `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` ed è automaticamente caricata. Contiene note su: design token (PN vivo, BU legacy), piani del gestionale (accento aurora, Free→Gratuito), console Spot, workflow di push, audit del gestionale. Le due "lezioni operative" dai bug intercettati (transazioni service-level, entity metadata) restano nella vecchia memoria `...-byup-fresh-main-3-vue-components` (vedi §8).

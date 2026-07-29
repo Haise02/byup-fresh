@@ -445,7 +445,7 @@ Dropdown notifiche ora usa `...PN.GLASS_MENU` — `blur(24px) saturate(180%)` su
 ### `impostazioni-shared.jsx`
 - `ImpWithPreview` aside ora spread `...PN.GLASS_LIGHT` (era inline raw rgba). Coerenza con il sistema.
 - `ImpButton` riscritto con gradient sottile + inset highlight per tutte le 4 varianti (primary/pink/ghost/text). Niente più `background: PN.TEXT` flat o `background: PN.WHITE` bianco-su-bianco.
-- `PublishButton` (nuovo) — sopra il phone preview vetrina. Apple-style: gradient brand/neutral sfumato, hover state, disabled state con sfumatura `#FFF→#F5F5F7` (NON puro bianco). Sostituisce `ImpSaveBar` nel contesto con preview (l'azione di pubblicazione vive accanto all'oggetto modificato); `ImpSaveBar` resta però definita e usata dai form senza preview (es. `impostazioni-dati-fiscali.jsx`).
+- `PublishButton` (nuovo) — sopra il phone preview vetrina. Apple-style: gradient brand/neutral sfumato, hover state, disabled state con sfumatura `#FFF→#F5F5F7` (NON puro bianco). Sostituisce `ImpSaveBar` nel contesto con preview (l'azione di pubblicazione vive accanto all'oggetto modificato); `ImpSaveBar` resta però definita e usata dai form senza preview (es. `impostazioni-dati-fiscali.jsx`). *(Superato il 2026-07-29: `PublishButton` è stato rimosso e la decisione ribaltata — il salvataggio della Vetrina è tornato a `ImpSaveBar`, barra sticky in fondo alla pagina, perché il pannello anteprima si può chiudere e l'azione principale non deve sparire con lui. Vedi § Batch Impostazioni.)*
 
 ### `config-completa-app.jsx`
 - Header bg da `#fff` a `WHITE_OFF` (`#FAFBFC`), border-bottom hairline `BORDER_HAIR`. Headline da weight 800 a 600 con letter-spacing tighter. Eyebrow chip ora coerente coi pattern onboarding (BRAND_TINT con dot).
@@ -526,7 +526,7 @@ GLASS_DRAG  → blur(16px) saturate(160%) bg 0.72  — card draggata in dashboar
 
 **`panoramica-notif-bell.jsx`** — dropdown con `...PN.GLASS_MENU` aggiornato (blur 28px sat 200% bg 0.92).
 
-**`impostazioni-shared.jsx`** — `ImpButton` riscritto Apple-style. `ImpWithPreview` aside con `...PN.GLASS_LIGHT`. `PublishButton` sopra phone preview.
+**`impostazioni-shared.jsx`** — `ImpButton` riscritto Apple-style. `ImpWithPreview` aside con `...PN.GLASS_LIGHT`. `PublishButton` sopra phone preview. *(PublishButton rimosso il 2026-07-29 — vedi § Batch Impostazioni.)*
 
 **`panoramica-sidebar.jsx`** — `...PN.GLASS_VIBRANT` (gradient verticale).
 
@@ -560,7 +560,7 @@ GLASS_DRAG  → blur(16px) saturate(160%) bg 0.72  — card draggata in dashboar
 `impostazioni-vetrina.jsx`:
 
 - Pulsante "Pubblica vetrina" rimosso dal banner "Vetrina pronta al X%"
-- L'azione di pubblicazione vive ora solo nel `PublishButton` sopra il phone preview
+- L'azione di pubblicazione vive ora solo nel `PublishButton` sopra il phone preview *(superato il 2026-07-29: oggi vive nella `ImpSaveBar` sticky in fondo — vedi § Batch Impostazioni)*
 - Banner di completamento resta solo come progress info, niente più CTA
 
 ### Statistiche & Supporto
@@ -636,6 +636,42 @@ Pattern AI esplicitamente RICHIESTI dal brief e quindi conservati intenzionalmen
 - Bounce sequenziale checklist (Task 6) — autorizzato come arrivo celebrativo
 
 Questi non sono cliché AI nel contesto dato: sono scelte deliberate documentate sopra, vincolate a contesti specifici, non riusabili come "decoration generica".
+
+---
+
+# Batch Impostazioni — 29 lug 2026
+
+Giro di rifinitura su quattro tab delle Impostazioni (Vetrina, Sala e tavoli, Personale, POS e integrazioni) più la vetrina dell'onboarding (`config-completa-app.jsx`). Le regole nate qui:
+
+## Sala e tavoli (`impostazioni-sala-tavoli.jsx`)
+
+- **La selezione è un anello, lo stato è un colore.** Nella lista la selezione vive sul bordo (cremisi `#E32459` a 0.55 + alone corallo), mai come campitura: dentro la card parla lo stato. Il badge col numero: **attivo a riposo = cerchio bianco con anello nero** (`PN.TEXT`), **attivo selezionato = corallo pieno della CTA** (`PN.BTN_BRAND` + `tcBadgePop`), spento = grigio. Il velo interno compare **solo da selezionato** (`#FFF7F6` attivo, `#F7F8F9` spento) ed è **opaco, non rgba**: sotto c'era un gradiente che passava attraverso e le card perdevano il bordo.
+- **La pastiglia ATTIVO resta verde** col suo pallino: dice se il tavolo lavora, che è un'altra cosa dall'essere selezionato. Due domande, due colori.
+- **Aurora rimossa** dai pannelli «Le tue sale» e sala aperta (prop `aurora` tolta dagli `ImpCard`): sotto le card faceva da terzo colore e i bordi ci si scioglievano.
+- **Menu a comparsa a vetro** (⋯ tavolo, ⋯ sala, «Sposta in»): ricetta **locale** `GLASS_MENU` (bianco 0.82, `blur(22px) saturate(180%)`, hairline chiara + outline scuro interno) — omonima ma distinta dal token `PN.GLASS_MENU`. Trappola scoperta: **un antenato con `opacity < 1` fa da backdrop root** e il `backdrop-filter` non campiona più niente — per questo il velo del tavolo disattivato (`opacity 0.78`) cade mentre il suo menu è aperto.
+- **Fogli modali bianchi, non glass** (Nuova sala, Nuovo tavolo posizionato): ricetta `MODAL_*` nel file (540px, radius 22, titolo 25/800, padding 28, X 38px bordata). Il vetro va bene per un menu che sfiora la pagina, non per un modulo da compilare. Posti = tessere alte col numero a 25 e spunta sulla scelta; «Personalizzato» = tessera a due righe con matita; casella «Sala attiva» disegnata a mano (28px) perché quella di sistema a 13px spariva. CTA di conferma `variant="pink"`.
+- **I tavoli si chiamano «Tavolo N», sempre.** Il mock dell'import AI generava `T1..T8`; `normalizzaNomeTavolo()` rimette in riga al load anche i nomi corti già persistiti in `localStorage['byup-sala-config']` (`T3`/`T 3`/`Tav 3`/`Tav. 3` → `Tavolo 3`) senza toccare «Terrazza 3» o «T3 bis».
+- **Lo spento si dice in un modo solo: «Disattivato/a»** — participio del bottone che si preme. Via `INATTIVO/A` (pastiglie menù, sala, tavolo), via «Non attivo» (moduli in `impostazioni-menu-cucina.jsx`), «Riattiva» → «Attiva». Il positivo resta «Attivo/a».
+
+## Personale (`impostazioni-personale.jsx`)
+
+- **Pagina rifatta come elenco unico di chi accede**: tabella Persona · Ruolo · Accesso · Stato · Azioni con **persone e dispositivi insieme** — un monitor cucina entra nel gestionale esattamente come un cameriere; prima erano quattro fisarmoniche per ruolo più una sezione a parte. Rimossi `RoleSection`, `DevicesSection`, `PersonRow`, `DeviceRow`.
+- A sinistra i **ruoli come filtro** con conteggi; matita permessi al passaggio su ogni ruolo non-locked (prima i ruoli standard non avevano NESSUN ingresso ai permessi, solo i custom). **Accessi rapidi** ospita solo ciò che non si fa da altrove: collegare un dispositivo (in testata si aggiungono persone) e gli inviti in attesa **coi nomi**, non col numero.
+- La colonna **Accesso si deriva dalle aree del ruolo** (`accessoDelRuolo`), mai scritta a mano: cambiano i permessi, cambia da sola. Stato = pastiglia Attivo/Disattivato + ultima attività sotto (due domande diverse).
+- **Proprietario**: prima riga della pagina, non espandibile, subhead = nome · email. È uno solo e non cambia: niente chevron, niente conteggio.
+
+## POS e integrazioni (`impostazioni-integrazioni.jsx`)
+
+- **Card a tessere verticali** (minHeight 236, radius 16, logo 54px in alto, bottone full-width appoggiato al fondo con `marginTop:'auto'` prima del blocco stato), **3 per fila**. Il `marginTop:auto` tiene i fondi allineati anche quando una descrizione va a capo e l'altra no. Anche le **stampanti** sono tessere: i tre modi di collegarle (Bluetooth/Wi-Fi/USB) stanno in colonna sopra il bottone che li aspetta.
+- **Fascia Byup Staff col gradiente del suo logo**: `GRAD_STAFF = linear-gradient(115deg, #FF1F5A 0%, #FF5A5F 46%, #FF9C8B 100%)` — rosa acceso, corallo brand al centro, salmone. Il marchio è `Fresh-mark.png` ricolorato in panna via `filter: brightness(0) invert(1)` (appiattisce tenendo l'alfa, poi inverte), direttamente sul gradiente senza tessera. Bottone ghost panna con scritta rossa: il dark pesava sul corallo pieno, il brand ci spariva dentro. `GRAD_STAFF` vive nel file; se servisse a una seconda superficie, sale nei token.
+
+## Vetrina (`impostazioni-vetrina.jsx` + `config-completa-app.jsx` + shared)
+
+- **Il salvataggio è la `ImpSaveBar` sticky in fondo alla pagina** («Hai modifiche non salvate» + «Salva modifiche» `variant="pink"`), visibile solo a `dirty`. `PublishButton` rimosso: stava sopra il telefono, in un pannello che si può chiudere — l'azione principale spariva con l'anteprima. I 4 campi delle Informazioni (nome, sito, indirizzo, descrizione) ora marcano `dirty` (prima non chiamavano nulla e la pagina restava «pulita»).
+- **Il telefono è solo contenuto**: via i bottoni flottanti della vetrina consumer (back/cuore/⋯) e la status bar (9:41 + batteria) da `VetrinaMiniPreview` — cornice di sistema, non vetrina. Via anche i banner Plus sotto il telefono, in entrambe le pagine. L'isola dinamica resta.
+- **Il telefono prende lo spazio della finestra**: banner completamento e sub-tab vivono DENTRO la colonna sinistra di `ImpWithPreview` (non sopra la griglia), così il pannello anteprima parte dalla cima ed è tutto visibile senza scroll; colonna anteprima 320→348px (con l'altezza ritrovata era la larghezza a strozzare il telefono). `ImpSaveBar` simula un `resize` quando compare/sparisce così `adatta()` ricalcola e il telefono non finisce sotto la barra. Nell'onboarding il telefono passa da 300px fissi (taratura del banner rimosso) a 100% della rail.
+- **I chip del completamento accendono dove portano**: `impAccendiSezione(anchor)` + `ImpAtterraggioStyle` (shared, usati da Impostazioni E onboarding) — anello corallo 1.9s sulla sezione d'arrivo, riavviabile ricliccando. Portarci non basta: chi arriva in fondo a uno scorrimento non sa dove si è fermato l'occhio.
+- `ImpField` accetta `style`: la Descrizione si allunga a pareggiare il fondo del pannello servizi (colonna flex + `flex:1` sul campo e sulla textarea).
 
 ---
 
