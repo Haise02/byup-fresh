@@ -73,29 +73,6 @@ function cfEvBreach(inc) {
     tono: restanti <= 24 ? 'DANGER' : 'WARN' };
 }
 
-// La finestra delle 72 ore disegnata: dove siamo rispetto al termine.
-function CfEvBarra72({ b }) {
-  if (!b) return null;
-  const col = CF_TONO(b.tono);
-  return (
-    <div style={{width:'100%'}}>
-      <div style={{position:'relative', height:8, borderRadius:99, background:'#fff',
-        border:`1px solid ${ADM.BORDER}`, overflow:'hidden'}}>
-        <div style={{width:`${b.pct}%`, height:'100%', background:col, borderRadius:99,
-          transition:'width 400ms ease'}}/>
-        <div style={{position:'absolute', left:'33.33%', top:0, bottom:0, width:1, background:'rgba(15,17,21,0.10)'}}/>
-        <div style={{position:'absolute', left:'66.66%', top:0, bottom:0, width:1, background:'rgba(15,17,21,0.10)'}}/>
-      </div>
-      <div style={{display:'flex', justifyContent:'space-between', marginTop:4,
-        fontSize:11, fontWeight:600, color:ADM.MUTED_SOFT}}>
-        <span>scoperta</span><span>24 h</span><span>48 h</span><span>72 h · termine</span>
-      </div>
-    </div>
-  );
-}
-
-// Badge della violazione: non è decorativo, dice che quell'incidente ha fatto
-// scattare un obbligo di legge.
 function CfEvBadgeBreach() {
   return (
     <span style={{display:'inline-flex', alignItems:'center', fontSize:10.5, fontWeight:800,
@@ -355,9 +332,71 @@ function CfEvModale({ incidente, onChiudi, onSalva }) {
   );
 }
 
+// Conferma della notifica al Garante. È un atto verso un'autorità, quindi non
+// parte da un click: prima si legge che cosa si sta dichiarando e con quale
+// tempistica, poi si conferma.
+function CfEvConfermaNotifica({ incidente, onChiudi, onConferma }) {
+  const b = cfEvBreach(incidente);
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="notifica" onClick={e=>e.stopPropagation()} style={{width:540, maxWidth:'92%', background:'#fff',
+        borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.18s ease', maxHeight:'100%', overflowY:'auto'}}>
+
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+          Registrare la notifica al Garante?
+        </div>
+        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:15}}>
+          Stai dichiarando che la notifica dell’art. 33 è stata inviata oggi. La notifica vera si
+          deposita sul portale del Garante: qui resta la data, che è ciò che il registro deve provare.
+        </div>
+
+        <div style={{padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:15}}>
+          {[
+            ['Incidente', `${incidente.id} · ${incidente.titolo}`],
+            ['Scoperta il', cfFmt(incidente.data)],
+            ['Interessati', incidente.breachInteressati != null ? String(incidente.breachInteressati) : 'non indicati'],
+            ['Termine delle 72 ore', b ? cfFmt(b.limite) : '—'],
+          ].map(([k, v]) => (
+            <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
+              <span style={{color:ADM.MUTED, width:150, flexShrink:0}}>{k}</span>
+              <span style={{color:ADM.TEXT, fontWeight:600}}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Il ritardo non impedisce la notifica: cambia cosa va scritto dentro. */}
+        <div style={{padding:'12px 14px', borderRadius:10, marginBottom:18, fontSize:12.4, lineHeight:1.55,
+          background: b && b.scaduto ? ADM.DANGER_SOFT : ADM.OK_SOFT,
+          color: b && b.scaduto ? '#7F1D1D' : '#065F46'}}>
+          {b && b.scaduto
+            ? `Il termine è superato da ${cfEvOre(-b.restanti)}. La notifica si invia lo stesso, ma il ritardo va motivato dentro la notifica stessa: è la prima cosa che il Garante legge.`
+            : `Sei entro il termine, con ${cfEvOre(b ? b.restanti : 0)} di margine.`}
+        </div>
+
+        {!incidente.breachValutazione && (
+          <div style={{padding:'12px 14px', borderRadius:10, background:ADM.WARN_SOFT, color:'#78350F',
+            fontSize:12.4, lineHeight:1.55, marginBottom:18}}>
+            Manca la valutazione del rischio per gli interessati. Va scritta comunque: è ciò che
+            giustifica la notifica e che decide se vanno avvisate anche le persone coinvolte.
+          </div>
+        )}
+
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={onConferma}>Registra la notifica</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CfIncidenti() {
   const [apri, setApri] = useStateEv(null);
   const [modale, setModale] = useStateEv(null);   // { incidente } — null = chiusa, {incidente:null} = nuovo
+  const [notifica, setNotifica] = useStateEv(null);  // incidente in attesa di conferma della notifica
   const [, setTick] = useStateEv(0);
 
   const breachAperti = INCIDENTI.filter(i => i.dataBreach && !i.breachNotificato);
@@ -408,53 +447,8 @@ function CfIncidenti() {
   const breach12 = INCIDENTI.filter(i => i.dataBreach && i.data >= da12).length;
   const incompleti = INCIDENTI.filter(i => cfEvMancanti(i).length > 0).length;
 
-  // La striscia in testa segue la violazione che conta: quella ancora da
-  // notificare se esiste, altrimenti l'ultima trattata.
-  const breachRif =
-    [...breachAperti].sort((a, b) => b.data.getTime() - a.data.getTime())[0] ||
-    INCIDENTI.filter(i => i.dataBreach).sort((a, b) => b.data.getTime() - a.data.getTime())[0] ||
-    null;
-  const b = cfEvBreach(breachRif);
-
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
-
-      {/* Striscia delle 72 ore — è il fulcro della schermata, non un dettaglio */}
-      {b && (
-        <div style={{display:'flex', alignItems:'center', gap:20, padding:'15px 18px', borderRadius:10,
-          background: b.notificato ? (b.inTempo ? ADM.OK_SOFT : ADM.DANGER_SOFT) : CF_TONO_BG(b.tono),
-          border:`1px solid ${b.notificato ? (b.inTempo ? '#BBF7D0' : '#FECACA') : (b.tono === 'DANGER' ? '#FECACA' : '#FDE68A')}`}}>
-
-          <div style={{textAlign:'center', flexShrink:0, minWidth:132}}>
-            <div style={{fontSize:26, fontWeight:800, letterSpacing:'-0.02em', lineHeight:1,
-              color: CF_TONO(b.notificato ? (b.inTempo ? 'OK' : 'DANGER') : b.tono)}}>
-              {b.notificato ? cfEvOre(b.ore) : cfEvOre(Math.abs(b.restanti))}
-            </div>
-            <div style={{fontSize:11.4, fontWeight:700, color:ADM.MUTED, marginTop:4,
-              textTransform:'uppercase', letterSpacing:'0.05em'}}>
-              {b.notificato ? 'dalla scoperta' : b.scaduto ? 'oltre il termine' : 'al termine'}
-            </div>
-          </div>
-
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14.5, fontWeight:800,
-              color: b.notificato ? (b.inTempo ? '#065F46' : '#7F1D1D') : (b.tono === 'DANGER' ? '#7F1D1D' : '#78350F')}}>
-              {b.notificato
-                ? `Violazione notificata al Garante il ${cfFmt(breachRif.breachNotificaIl)}`
-                : b.scaduto
-                  ? 'Violazione non notificata · termine delle 72 ore superato'
-                  : 'Violazione di dati personali da notificare al Garante'}
-            </div>
-            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>
-              {breachRif.id} · {breachRif.titolo} · scoperta il {cfFmt(breachRif.data)}
-              {b.notificato
-                ? ` · ${b.inTempo ? `entro il limite, con ${cfEvOre(b.margine)} di margine` : 'oltre il limite: il ritardo va motivato nella notifica'}`
-                : ` · termine ${cfFmt(b.limite)}`}
-            </div>
-            <div style={{marginTop:10}}><CfEvBarra72 b={b}/></div>
-          </div>
-        </div>
-      )}
 
       {/* Numeri in testa */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
@@ -600,7 +594,16 @@ function CfIncidenti() {
                                 : bi.scaduto ? `termine superato da ${cfEvOre(-bi.restanti)}` : `restano ${cfEvOre(bi.restanti)}`}
                             </div>
                           </div>
-                          <div style={{paddingTop:16}}><CfEvBarra72 b={bi}/></div>
+                          {/* L'azione sta dentro l'incidente, non in una striscia in
+                              testa alla pagina: si notifica una violazione precisa,
+                              dopo averne letto i dati, non un contatore generico. */}
+                          <div style={{paddingTop:14, display:'flex', justifyContent:'flex-end'}}>
+                            {!bi.notificato && (
+                              <AdmButton variant="primary" size="sm" onClick={()=>setNotifica(i)}>
+                                Notifica al Garante
+                              </AdmButton>
+                            )}
+                          </div>
                         </div>
 
                         <div style={{marginTop:14}}>
@@ -629,6 +632,13 @@ function CfIncidenti() {
 
       {modale && <CfEvModale key={modale.incidente ? modale.incidente.id : 'nuovo'}
         incidente={modale.incidente} onChiudi={()=>setModale(null)} onSalva={salva}/>}
+
+      {notifica && <CfEvConfermaNotifica incidente={notifica} onChiudi={()=>setNotifica(null)}
+        onConferma={()=>{
+          notifica.breachNotificato = true;
+          notifica.breachNotificaIl = new Date();
+          setNotifica(null); setTick(x => x + 1);
+        }}/>}
     </div>
   );
 }
@@ -747,12 +757,119 @@ function CfEvVerificaModal({ nc, scelta, onScelta, nota, onNota, onAnnulla, onCo
 
 const CF_EV_GRID_NC = '108px minmax(0,2.4fr) minmax(0,1.05fr) 118px 176px 124px 26px';
 
+// ─── Registrare una non conformità ─────────────────────────────────────────
+// L'origine non è un'etichetta di comodo: dice se il sistema si accorge da solo
+// dei propri difetti. Una §10.2 alimentata solo dagli audit interni descrive
+// un'azienda che scopre i problemi una volta l'anno.
+const CF_NC_ORIGINI = ['Audit interno', 'Reclamo cliente', 'Segnalazione locale', 'Incidente',
+  'Riesame di direzione', 'Verifica dell\'ente', 'Controllo interno'];
+const CF_NC_TIPI = [
+  { id:'processo',    label:'Processo',    nota:'Il modo in cui lavoriamo non ha funzionato' },
+  { id:'prodotto',    label:'Prodotto',    nota:'Il servizio erogato non era conforme' },
+  { id:'documentale', label:'Documentale', nota:'Un registro o un documento mancava o era vecchio' },
+];
+
+function CfEvModaleNc({ onChiudi, onSalva }) {
+  const [b, setB] = useStateEv({
+    descrizione:'', origine:'Segnalazione locale', tipo:'processo',
+    responsabile:'', scadenza:'', causaRadice:'', azione:'',
+  });
+  const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+  const puoSalvare = b.descrizione.trim().length > 5 && b.responsabile.trim().length > 1 && !!b.scadenza;
+  const tipo = CF_NC_TIPI.find(t => t.id === b.tipo) || {};
+
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="nc" onClick={e=>e.stopPropagation()} style={{width:700, maxWidth:'92%', background:'#fff',
+        borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
+
+        <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>Registrare una non conformità</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            Nasce aperta. Causa radice e azione si possono scrivere adesso o dopo, ma finché mancano
+            resta una segnalazione: la §10.2 chiede di rimuovere la causa, non di annotare il sintomo.
+          </div>
+        </div>
+
+        <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
+          display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16, alignContent:'start'}}>
+          <CfEvCampo etichetta="Non conformità" span>
+            <textarea value={b.descrizione} onChange={e=>agg('descrizione', e.target.value)} rows={2}
+              style={{...CF_EV_INP, resize:'vertical'}}
+              placeholder="Che cosa non è conforme, e rispetto a quale requisito"/>
+          </CfEvCampo>
+          <CfEvCampo etichetta="Come è emersa">
+            <select value={b.origine} onChange={e=>agg('origine', e.target.value)} style={CF_EV_SEL}>
+              {CF_NC_ORIGINI.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </CfEvCampo>
+          <CfEvCampo etichetta="Tipo" aiuto={tipo.nota}>
+            <select value={b.tipo} onChange={e=>agg('tipo', e.target.value)} style={CF_EV_SEL}>
+              {CF_NC_TIPI.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+          </CfEvCampo>
+          <CfEvCampo etichetta="Responsabile">
+            <input value={b.responsabile} onChange={e=>agg('responsabile', e.target.value)} style={CF_EV_INP}
+              placeholder="Chi risponde della chiusura"/>
+          </CfEvCampo>
+          <CfEvCampo etichetta="Scadenza dell’azione"
+            aiuto="Una non conformità senza data di chiusura resta aperta per sempre.">
+            <input type="date" value={b.scadenza} onChange={e=>agg('scadenza', e.target.value)} style={CF_EV_INP}/>
+          </CfEvCampo>
+          <CfEvCampo etichetta="Causa radice" span
+            aiuto="Se non è ancora chiara si lascia vuota: scriverne una falsa è peggio che ammettere di non saperla.">
+            <textarea value={b.causaRadice} onChange={e=>agg('causaRadice', e.target.value)} rows={2}
+              style={{...CF_EV_INP, resize:'vertical'}} placeholder="Perché è potuto succedere"/>
+          </CfEvCampo>
+          <CfEvCampo etichetta="Azione correttiva" span>
+            <textarea value={b.azione} onChange={e=>agg('azione', e.target.value)} rows={2}
+              style={{...CF_EV_INP, resize:'vertical'}} placeholder="Che cosa si cambia perché non si ripeta"/>
+          </CfEvCampo>
+        </div>
+
+        <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1, lineHeight:1.45}}>
+            {puoSalvare
+              ? 'Entra aperta. La verifica di efficacia si registra quando l’azione è conclusa.'
+              : 'Servono descrizione, responsabile e scadenza.'}
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!puoSalvare} onClick={()=>onSalva(b)}>
+            Registra la non conformità
+          </AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CfNonConformita() {
   const [apri, setApri] = useStateEv(null);
   const [esiti, setEsiti] = useStateEv({});      // verifiche registrate in sessione
   const [verifica, setVerifica] = useStateEv(null);
   const [scelta, setScelta] = useStateEv(null);
   const [nota, setNota] = useStateEv('');
+  const [nuova, setNuova] = useStateEv(false);
+  const [, setTickNc] = useStateEv(0);
+
+  const salvaNc = (b) => {
+    const anno = new Date().getFullYear();
+    const n = NON_CONFORMITA.filter(x => x.id.includes(String(anno)))
+      .reduce((m, x) => Math.max(m, parseInt(x.id.split('-').pop(), 10) || 0), 0) + 1;
+    NON_CONFORMITA.push({
+      id:`NC-${anno}-${String(n).padStart(3, '0')}`, data:new Date(),
+      origine:b.origine, tipo:b.tipo, descrizione:b.descrizione.trim(),
+      causaRadice:b.causaRadice.trim(), azione:b.azione.trim(),
+      responsabile:b.responsabile.trim(),
+      scadenza: b.scadenza ? new Date(b.scadenza + 'T12:00:00') : null,
+      efficacia:null, stato:'in corso',
+    });
+    setNuova(false); setTickNc(x => x + 1);
+  };
 
   // Vista = dato di partenza + verifiche registrate qui dentro.
   const righe = NON_CONFORMITA
@@ -839,6 +956,10 @@ function CfNonConformita() {
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
           <div style={{...CF_H, marginBottom:0}}>Non conformità e azioni correttive</div>
           <span style={{fontSize:12.4, color:ADM.MUTED}}>ISO 9001 §10.2 · aperte in cima, poi dalla più recente</span>
+          <div style={{flex:1}}/>
+          <AdmButton variant="primary" size="sm" onClick={()=>setNuova(true)}>
+            Registra una non conformità
+          </AdmButton>
         </div>
 
         <div style={CF_CARD}>
@@ -990,6 +1111,8 @@ function CfNonConformita() {
         onNota={setNota}
         onAnnulla={()=>{ setVerifica(null); setScelta(null); setNota(''); }}
         onConferma={registra}/>
+
+      {nuova && <CfEvModaleNc onChiudi={()=>setNuova(false)} onSalva={salvaNc}/>}
     </div>
   );
 }
