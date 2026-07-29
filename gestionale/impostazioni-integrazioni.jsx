@@ -25,6 +25,12 @@ const INTEGRATIONS = [
   { id:'zapier', name:'Zapier', cat:'automazione', logo:'Z', bg:'#FF4F00', desc:'Automazioni e flussi', status:'available' },
 ];
 
+// Gradiente del logo Byup Staff: rosa acceso in alto a sinistra, corallo di
+// brand al centro, salmone in basso a destra. Vive qui perche per ora e la
+// sola superficie che porta quel marchio; se ne servisse una seconda, sale
+// nei token.
+const GRAD_STAFF = 'linear-gradient(115deg, #FF1F5A 0%, #FF5A5F 46%, #FF9C8B 100%)';
+
 const STATUS_LABEL = {
   connected: { label: 'Connesso', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
   todo: { label: 'Da configurare', color: '#D97706', bg: PN.AMBER_SOFT, dot: '#F59E0B' },
@@ -161,33 +167,40 @@ function ByupPayHero({ devices, onAdd }) {
       marginBottom: 16,
       overflow: 'hidden',
     }}>
-      {/* Hero header con accent */}
+      {/* Testata col gradiente del logo Byup Staff: la fascia porta il marchio,
+          quindi porta anche i suoi colori — il rosa acceso a sinistra che si
+          apre nel salmone a destra, e il segno in panna sopra, come sul logo.
+          Il marchio e il PNG corallo ricolorato: brightness(0) lo appiattisce
+          a nero pieno tenendo l'alfa, invert(1) lo porta a bianco. */}
       <div style={{
-        padding: '18px 22px',
-        background: `linear-gradient(135deg, ${PN.PINK_SOFT} 0%, ${PN.WHITE} 100%)`,
-        borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+        padding: '20px 22px',
+        background: GRAD_STAFF,
+        borderBottom: '1px solid rgba(255, 255, 255, 0.22)',
         display:'flex', alignItems:'center', gap: 14,
       }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: 12,
-          background: PN.PINK, color: PN.WHITE,
-          display:'grid', placeItems:'center',
-          fontSize: 26, fontWeight: 800, fontStyle:'italic',
-          boxShadow: '0 4px 12px rgba(239,79,139,0.3)',
-          flexShrink: 0,
-        }}>b</div>
+        <img src="Fresh-mark.png" alt="" style={{
+          width: 44, height: 44, objectFit:'contain', flexShrink: 0,
+          filter: 'brightness(0) invert(1)', opacity: 0.96,
+        }}/>
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 3}}>
-            <span style={{fontSize: 19, fontWeight: 800, color: PN.TEXT}}>Byup Staff</span>
+            <span style={{fontSize: 19, fontWeight: 800, color: '#FFF6F3', letterSpacing: -0.2}}>Byup Staff</span>
           </div>
-          <div style={{fontSize: 14.5, color: PN.MUTED}}>
+          <div style={{fontSize: 14.5, color: 'rgba(255, 255, 255, 0.88)'}}>
             {list.length === 0
               ? 'Nessun dispositivo collegato. Collega uno smartphone per accettare pagamenti'
-              : <>{list.length} dispositiv{list.length===1?'o':'i'} collegat{list.length===1?'o':'i'} · <span style={{color: PN.GREEN, fontWeight:600}}>● {onlineCount} online ora</span></>
+              : <>{list.length} dispositiv{list.length===1?'o':'i'} collegat{list.length===1?'o':'i'} · <span style={{color:'#FFFFFF', fontWeight:700}}>● {onlineCount} online ora</span></>
             }
           </div>
         </div>
-        <ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={onAdd}>Collega dispositivo</ImpButton>
+        {/* Sul corallo pieno il bottone scuro pesava e quello di brand
+            sparirebbe: resta la panna del marchio, con la scritta rossa. */}
+        <ImpButton
+          variant="ghost"
+          icon={<PnI.Plus size={13}/>}
+          onClick={onAdd}
+          style={{color: PN.PINK_DARK, border:'1px solid rgba(255,255,255,0.55)', fontWeight: 700}}
+        >Collega dispositivo</ImpButton>
       </div>
 
       <div style={{padding: '18px 22px'}}>
