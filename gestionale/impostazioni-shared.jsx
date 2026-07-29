@@ -113,18 +113,31 @@ function ImpField({ label, hint, children }) {
   );
 }
 
-function ImpInput(props) {
+// `icona`: segno a sinistra dentro il campo. Serve a dire di che cosa si parla
+// senza una riga di testo sotto — su un URL o un indirizzo l'icona fa il lavoro
+// che faceva la didascalia, occupando zero righe.
+function ImpInput({ icona, ...props }) {
+  const base = {
+    width: '100%',
+    padding: icona ? '10px 12px 10px 37px' : '10px 12px',
+    border: `1px solid ${PN.BORDER}`,
+    borderRadius: 9,
+    fontSize: 15.5,
+    background: PN.WHITE,
+    outline: 'none',
+    ...props.style,
+  };
+  if (!icona) return <input {...props} style={base}/>;
   return (
-    <input {...props} style={{
-      width: '100%',
-      padding: '10px 12px',
-      border: `1px solid ${PN.BORDER}`,
-      borderRadius: 9,
-      fontSize: 15.5,
-      background: PN.WHITE,
-      outline: 'none',
-      ...props.style,
-    }}/>
+    <div style={{position: 'relative'}}>
+      {/* pointerEvents none: il clic sull'icona deve dare il fuoco al campo,
+          non fermarsi sull'icona. */}
+      <span style={{
+        position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+        display: 'flex', color: PN.MUTED, pointerEvents: 'none',
+      }}>{icona}</span>
+      <input {...props} style={base}/>
+    </div>
   );
 }
 

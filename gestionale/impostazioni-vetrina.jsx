@@ -175,16 +175,20 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
             la card resta compatta invece di allungarsi in verticale. */}
         <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start'}}>
           <div style={{minWidth: 0}}>
-            <ImpField label="Nome locale" hint="Come appare in vetrina, sui link e nelle ricevute">
+            <ImpField label="Nome locale">
               <ImpInput placeholder="es. Trattoria del Borgo"/>
             </ImpField>
             <ImpField label="Sito web">
-              <ImpInput placeholder="es. nomeristorante.it"/>
+              <ImpInput placeholder="es. nomeristorante.it"
+                icona={<Icon name="globe-web" size={17}/>}/>
             </ImpField>
-            <ImpField label="Indirizzo su Google Maps" hint="Incolla il link Google Maps della tua attività">
-              <ImpInput placeholder="https://maps.app.goo.gl/..."/>
+            <ImpField label="Indirizzo su Google Maps">
+              {/* Il rosso di Maps: in un campo che chiede un link di Maps
+                  l'icona colorata si riconosce senza doverla spiegare. */}
+              <ImpInput placeholder="https://maps.app.goo.gl/..."
+                icona={<Icon name="place-map-pin" size={18} color="#EA4335"/>}/>
             </ImpField>
-            <ImpField label="Descrizione" hint="Racconta storia, atmosfera e cosa rende unico il locale (consigliato 2–4 frasi)">
+            <ImpField label="Descrizione">
               <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…"/>
             </ImpField>
           </div>

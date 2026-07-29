@@ -702,6 +702,18 @@ const SfIcons = {
     <path fillRule="evenodd" clipRule="evenodd" d="M12 2a8 8 0 0 0-8 8c0 5.5 7 11.5 7.4 11.7a1 1 0 0 0 1.2 0C13 21.5 20 15.5 20 10a8 8 0 0 0-8-8Zm0 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
   ),
 
+  // Globo: anello, meridiano e due paralleli come path SEPARATI. Messi in un
+  // path solo con evenodd le linee si bucherebbero a vicenda negli incroci
+  // invece di sovrapporsi, ed e li che un globo si riconosce.
+  'globe-web': () => (
+    <>
+      <path fillRule="evenodd" clipRule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 1.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8z"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M12 3.6a4.6 8.4 0 1 0 0 16.8 4.6 8.4 0 0 0 0-16.8zm0 .8a3.8 7.6 0 1 1 0 15.2 3.8 7.6 0 0 1 0-15.2z"/>
+      <path d="M3.6 8.6h16.8v1.4H3.6z"/>
+      <path d="M3.6 14h16.8v1.4H3.6z"/>
+    </>
+  ),
+
   'place-truck': () => (
     <>
       <path d="M2 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8H2V7Z"/>
