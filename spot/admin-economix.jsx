@@ -476,6 +476,8 @@ function EcoCosti({ mix, forza }) {
           t + ecoCostiVariabili(m) * frazioneDi(m) + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)), 0) }));
   const maxSerie = Math.max.apply(null, serie.map(x => x.tot)) || 1;
 
+  const tagliaDa = modo === 'mese' ? primo.data : ECO_OGGI;
+
   const salva = (b) => {
     const quando = new Date(b.dal + 'T12:00:00');
     const imp = parseFloat(String(b.importo).replace(',', '.')) || 0;
@@ -500,7 +502,16 @@ function EcoCosti({ mix, forza }) {
   };
 
   return (
-    <div style={{display:'flex', flexDirection:'column', gap:22}}>
+    <div style={{display:'flex', flexDirection:'column', gap:26}}>
+      {/* L'andamento comincia qui: il titolo e la granularita comandano sia le
+          schede sia il grafico, quindi stanno sopra entrambi e non in mezzo. */}
+      <div style={{display:'flex', flexDirection:'column', gap:12}}>
+      <div style={{display:'flex', alignItems:'center', gap:10}}>
+        <div style={{...ECO_H, marginBottom:0}}>Andamento</div>
+        <div style={{flex:1}}/>
+        <AdmTabBar variant="segmented" active={modo} onChange={setModo}
+          tabs={[{ id:'mese', label:'Per mese' }, { id:'anno', label:'Per anno' }]}/>
+      </div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         {[
           { et:`Costi ${etichetta}`, v:ecoEur(totVar + totFissi), n:sottoPeriodo },
@@ -523,15 +534,7 @@ function EcoCosti({ mix, forza }) {
         ))}
       </div>
 
-      <div>
-        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:10}}>
-          <div style={{...ECO_H, marginBottom:0}}>Andamento</div>
-          <AdmTabBar variant="segmented" active={modo} onChange={setModo}
-            tabs={[{ id:'mese', label:'Per mese' }, { id:'anno', label:'Per anno' }]}/>
-          <div style={{flex:1}}/>
-          <AdmButton variant="primary" size="sm" onClick={()=>setNuovo(true)}>Aggiungi un costo</AdmButton>
-        </div>
-        <div style={{...ECO_CARD, padding:'14px 16px', display:'flex', alignItems:'flex-end',
+        <div style={{...ECO_CARD, padding:'16px 16px 14px', display:'flex', alignItems:'flex-end',
           gap: modo === 'mese' ? 6 : 14}}>
           {serie.map(x => (
             <button key={x.id} onClick={x.onSel} className="adm-card-interactive"
@@ -543,13 +546,25 @@ function EcoCosti({ mix, forza }) {
                 color: x.sel ? ADM.TEXT : ADM.MUTED_SOFT, ...ECO_NUM}}>
                 {x.tot >= 1000 ? `${(Math.round(x.tot / 100) / 10).toString().replace('.', ',')}k` : Math.round(x.tot)}
               </span>
-              <span style={{width:'100%', height:Math.max(6, Math.round(x.tot / maxSerie * 54)), borderRadius:5,
+              <span style={{width:'100%', height:Math.max(8, Math.round(x.tot / maxSerie * 78)), borderRadius:5,
                 background: x.sel ? ADM.PINK : 'rgba(49,53,61,0.14)'}}/>
+              {/* Senza nowrap «mag 25» va a capo e «gen 25» no: le etichette
+                  perdono la linea comune e le barre sembrano di altezze diverse. */}
               <span style={{fontSize: modo === 'mese' ? 10.6 : 12.2, color: x.sel ? ADM.TEXT : ADM.MUTED_SOFT,
-                fontWeight: x.sel ? 700 : 500}}>{x.id}</span>
+                fontWeight: x.sel ? 700 : 500, whiteSpace:'nowrap'}}>{x.id}</span>
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Le due tabelle sono un blocco solo — «Costi» — e il pulsante che ne
+          aggiunge uno sta li, non appeso al grafico che non c'entra. */}
+      <div style={{display:'flex', flexDirection:'column', gap:22}}>
+      <div style={{display:'flex', alignItems:'center', gap:12}}>
+        <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
+          letterSpacing:'0.08em'}}>Costi</div>
+        <div style={{flex:1}}/>
+        <AdmButton variant="primary" size="sm" onClick={()=>setNuovo(true)}>Aggiungi un costo</AdmButton>
       </div>
 
       <div>
@@ -628,6 +643,7 @@ function EcoCosti({ mix, forza }) {
           ))}
         </div>
       </div>
+      </div>
 
       {nuovo && <EcoModaleCosto onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
       {modifica && <EcoModaleCosto key={modifica.id} costo={modifica}
@@ -643,11 +659,12 @@ function EcoCosti({ mix, forza }) {
           });
           setModifica(null); forza();
         }}/>}
-      {/* Si taglia dal mese che si sta guardando: e il punto da cui l'utente
-          sta ragionando, e su un ricorrente e l'unica scelta sensata. */}
-      {elimina && <EcoConfermaElimina costo={elimina} daQuando={d.data}
+      {/* Si taglia dal mese che si sta guardando. Su un anno intero non esiste
+          un mese solo, e tagliare da gennaio cancellerebbe dodici mesi gia
+          consuntivati: in quel caso si chiude da oggi. */}
+      {elimina && <EcoConfermaElimina costo={elimina} daQuando={tagliaDa}
         onChiudi={()=>setElimina(null)}
-        onConferma={()=>{ ecoEliminaCosto(elimina, d.data); setElimina(null); setModifica(null); forza(); }}/>}
+        onConferma={()=>{ ecoEliminaCosto(elimina, tagliaDa); setElimina(null); setModifica(null); forza(); }}/>}
       {allega && <EcoModaleAllega voce={allega} onChiudi={()=>setAllega(null)} onSalva={(b)=>{
         const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
         const id = `FT-${ultimo.data.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
