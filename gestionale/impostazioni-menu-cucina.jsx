@@ -3505,7 +3505,14 @@ function AiUploadCta({onClick, children}) {
         <path d="M12 2 L13.6 8.4 L20 10 L13.6 11.6 L12 18 L10.4 11.6 L4 10 L10.4 8.4 Z" fill={PN.PINK}/>
         <path d="M19 3 L19.7 5.3 L22 6 L19.7 6.7 L19 9 L18.3 6.7 L16 6 L18.3 5.3 Z" fill={PN.PINK} opacity="0.7"/>
       </svg>
-      <span style={{position: 'relative', zIndex: 1}}>{children || 'Carica menu con AI (PDF / foto)'}</span>
+      {/* Default su due righe volute: l'azione sopra, il formato sotto in
+          tono minore — spezzata dal caso ("…AI (PDF /" a capo) leggeva male. */}
+      <span style={{position: 'relative', zIndex: 1}}>{children || (
+        <span style={{display: 'block', textAlign: 'left', lineHeight: 1.25}}>
+          <span style={{display: 'block'}}>Carica menu con AI</span>
+          <span style={{display: 'block', fontSize: 12.5, fontWeight: 600, opacity: 0.75, letterSpacing: 0.2}}>PDF / foto</span>
+        </span>
+      )}</span>
 
       {/* Shimmer overlay — gradient bianco che attraversa il button.
           Loop permanente, lento (3.4s), comunica "qualcosa di magico è qui"
