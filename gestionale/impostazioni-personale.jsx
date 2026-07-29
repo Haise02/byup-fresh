@@ -1,5 +1,16 @@
 // Impostazioni → Personale (rifatto: ruoli predefiniti + custom, permessi area-based, no dispositivi)
 
+// Superficie dei menu a comparsa: vetro, come in Sala e tavoli.
+const GLASS_MENU_PERSONALE = {
+  background: 'rgba(255, 255, 255, 0.82)',
+  backdropFilter: 'blur(22px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(22px) saturate(180%)',
+  border: '1px solid rgba(255, 255, 255, 0.85)',
+  outline: '1px solid rgba(15, 17, 21, 0.06)',
+  outlineOffset: -1,
+  borderRadius: 10,
+};
+
 const ROLES = [
   {
     id: 'proprietario',
@@ -106,7 +117,7 @@ const PERSONS = [
   { name: 'Davide Rossi', email: 'davide@delborgo.it', role: 'manager', last: 'ieri', online: false, color: '#85B8CB' },
   { name: 'Giovanni Rana', email: 'giovanni@delborgo.it', role: 'cameriere', last: '2 min fa', online: true, color: '#E8A87C' },
   { name: 'Sara Conti', email: 'sara@delborgo.it', role: 'cameriere', last: '1 ora fa', online: false, color: '#FFC09F' },
-  { name: 'Luca Ferretti', email: 'luca@delborgo.it', role: 'sommelier', last: '3 ore fa', online: false, color: '#7C3AED' },
+  { name: 'Luca Ferretti', email: 'luca@delborgo.it', role: 'sommelier', last: '3 ore fa', online: false, color: '#7C3AED', active: false },
 ];
 
 const DEVICES = [
@@ -139,7 +150,9 @@ function ImpPersonale() {
   const [editRole, setEditRole] = React.useState(null);
   const [invite, setInvite] = React.useState(null); // null | { roleId, kind }
   const [showPending, setShowPending] = React.useState(false);
-  const [expanded, setExpanded] = React.useState(() => new Set());
+  const [gruppo, setGruppo] = React.useState('all');   // filtro per ruolo (colonna sinistra)
+  const [query, setQuery] = React.useState('');
+  const [statoFiltro, setStatoFiltro] = React.useState('all');
 
   // Deep-link "Invita membro del team" (Azioni rapide): ?invita=1 apre
   // subito l'invito persona.
@@ -159,70 +172,270 @@ function ImpPersonale() {
     return () => document.removeEventListener('click', close);
   }, [openMenu]);
 
-  const toggleExpand = (id) => {
-    setExpanded(prev => {
-      const s = new Set(prev);
-      if (s.has(id)) s.delete(id); else s.add(id);
-      return s;
-    });
-  };
-
   const allRoles = [...ROLES, ...CUSTOM_ROLES];
+
+  // Persone e dispositivi in un elenco solo: la domanda della pagina è «chi
+  // entra nel gestionale», e un monitor di cucina che legge le comande entra
+  // esattamente come ci entra un cameriere. Tenerli in due liste separate
+  // costringeva a guardare in due posti per rispondere.
+  const righe = [
+    ...PERSONS.map(p => {
+      const ruolo = allRoles.find(r => r.id === p.role) || CUCINA_ROLE;
+      return {
+        key: `p-${p.email}`, tipo: 'persona', dato: p,
+        nome: p.name, sotto: p.email, colore: p.color,
+        ruolo, gruppo: ruolo.custom ? '_custom' : ruolo.id,
+        accesso: accessoDelRuolo(ruolo),
+        attivo: p.active !== false,
+        quando: p.online ? 'Online ora' : p.last,
+        online: p.online,
+      };
+    }),
+    ...DEVICES.map((d, i) => {
+      const stampante = d.deviceType === 'printer';
+      return {
+        key: `d-${i}`, tipo: 'dispositivo', dato: d, idx: i,
+        nome: d.name, sotto: stampante ? d.ip : d.username,
+        ruolo: DEVICE_ROLE, gruppo: '_devices',
+        accesso: stampante
+          ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
+          : { titolo: 'Cucina', sotto: 'Schermo comande' },
+        attivo: d.active !== false,
+        quando: d.online ? 'Online ora' : d.last,
+        online: d.online,
+        stampante,
+      };
+    }),
+  ];
+
+  const conta = (id) => id === 'all' ? righe.length : righe.filter(r => r.gruppo === id).length;
+  const gruppi = [
+    { id: 'all', label: 'Tutti i ruoli', icon: 'users', color: PN.PINK_DARK, bg: PN.PINK_SOFT },
+    ...ROLES.map(r => ({ id: r.id, label: r.label, icon: r.icon, color: r.color, bg: r.bg })),
+    { id: '_devices', label: 'Dispositivi', icon: 'monitor', color: DEVICE_ROLE.color, bg: DEVICE_ROLE.bg },
+    ...(CUSTOM_ROLES.length
+      ? [{ id: '_custom', label: 'Personalizzati', icon: 'sparkle', color: '#6D28D9', bg: '#EDE9FE' }]
+      : []),
+  ];
+
+  const q = query.trim().toLowerCase();
+  const visibili = righe.filter(r => {
+    if (gruppo !== 'all' && r.gruppo !== gruppo) return false;
+    if (statoFiltro === 'attivi' && !r.attivo) return false;
+    if (statoFiltro === 'disattivati' && r.attivo) return false;
+    if (!q) return true;
+    return [r.nome, r.sotto, r.ruolo.label].some(v => String(v).toLowerCase().includes(q));
+  });
+
+  const PANNELLO = {
+    background: PN.WHITE,
+    border: `1px solid ${PN.BORDER_SOFT}`,
+    borderRadius: 14,
+  };
 
   return (
     <div>
-      <ImpCard
-        title="Personale"
-        sub="Vedi chi accede al gestionale e con quali permessi, e gestisci persone e dispositivi"
-        action={
-          <div style={{display:'flex', gap: 8, alignItems:'center'}}>
-            <ImpButton
-              variant="ghost"
-              icon={(BuIcons.mail||BuIcons.doc)({size: 13, color:'currentColor'})}
-              onClick={() => setShowPending(true)}
-            >Inviti in sospeso ({PENDING.length})</ImpButton>
-            <ImpButton
-              variant="ghost"
-              icon={<PnI.Plus size={13}/>}
-              onClick={() => setShowCreateRole(true)}
-            >Crea ruolo</ImpButton>
-            <ImpButton
-              variant="primary"
-              icon={<PnI.Plus size={13}/>}
-              onClick={() => setInvite({ roleId: null, kind: 'person' })}
-            >Aggiungi persona</ImpButton>
+      {/* Testata invariata: titolo, sottotitolo e le tre azioni di sempre */}
+      <section style={{...PANNELLO, marginBottom: 14, padding: '18px 22px', display:'flex', alignItems:'flex-start', gap: 16}}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Personale</div>
+          <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.4}}>
+            Vedi chi accede al gestionale e con quali permessi, e gestisci persone e dispositivi
           </div>
-        }
-      >
-        <div style={{display:'flex', flexDirection:'column', gap: 10}}>
-          {/* Il proprietario apre la lista e non si apre: e uno solo, si sa
-              gia chi e, e il suo nome sta nella riga stessa invece che dietro
-              un chevron da cliccare. */}
-          {allRoles.filter(role => role.id === 'proprietario' && PERSONS.some(p => p.role === role.id)).map(role => (
-            <RoleSection key={role.id} role={role} owner/>
-          ))}
-          <DevicesSection
-            expanded={expanded.has('_devices')}
-            onToggle={() => toggleExpand('_devices')}
-            onAddNew={() => setInvite({ roleId: null, kind: 'device' })}
-            onEditDevice={d => setInvite({ kind: 'device', editDevice: d })}
-            openMenu={openMenu}
-            setOpenMenu={setOpenMenu}
-          />
-          {allRoles.filter(role => role.id !== 'proprietario' && PERSONS.some(p => p.role === role.id)).map(role => (
-            <RoleSection
-              key={role.id}
-              role={role}
-              expanded={expanded.has(role.id)}
-              onToggle={() => toggleExpand(role.id)}
-              onAddNew={() => setInvite({ roleId: role.id, kind: 'person' })}
-              onEditPermissions={() => setEditRole(role)}
-              openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
+        </div>
+        <div style={{display:'flex', gap: 8, alignItems:'center', flexShrink: 0}}>
+          <ImpButton
+            variant="ghost"
+            icon={(BuIcons.mail||BuIcons.doc)({size: 13, color:'currentColor'})}
+            onClick={() => setShowPending(true)}
+          >Inviti in sospeso ({PENDING.length})</ImpButton>
+          <ImpButton
+            variant="ghost"
+            icon={<PnI.Plus size={13}/>}
+            onClick={() => setShowCreateRole(true)}
+          >Crea ruolo</ImpButton>
+          <ImpButton
+            variant="primary"
+            icon={<PnI.Plus size={13}/>}
+            onClick={() => setInvite({ roleId: null, kind: 'person' })}
+          >Aggiungi persona</ImpButton>
+        </div>
+      </section>
+
+      <div style={{display:'grid', gridTemplateColumns:'248px minmax(0, 1fr)', gap: 14, alignItems:'start'}}>
+        <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
+          <section style={PANNELLO}>
+            <div style={{padding:'16px 18px 12px'}}>
+              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Ruoli</div>
+              <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Filtra le persone per ruolo</div>
+            </div>
+            <div style={{padding:'0 10px 12px', display:'flex', flexDirection:'column', gap: 2}}>
+              {gruppi.map(g => {
+                const on = gruppo === g.id;
+                const n = conta(g.id);
+                // I ruoli standard non avevano nessun punto da cui aprire i
+                // loro permessi: solo i custom mostravano «Modifica». La
+                // matita al passaggio vale per tutti.
+                const ruoloVero = allRoles.find(r => r.id === g.id && !r.locked);
+                return (
+                  <div key={g.id} style={{position:'relative'}}
+                    onMouseEnter={e => { const m = e.currentTarget.querySelector('.ruolo-matita'); if (m) m.style.opacity = 1; }}
+                    onMouseLeave={e => { const m = e.currentTarget.querySelector('.ruolo-matita'); if (m) m.style.opacity = 0; }}
+                  >
+                    <button
+                      onClick={() => setGruppo(g.id)}
+                      className="pn-btn-feedback"
+                      style={{
+                        width:'100%', display:'flex', alignItems:'center', gap: 10,
+                        padding:'9px 10px', borderRadius: 10,
+                        border: `1.5px solid ${on ? 'rgba(255, 90, 95, 0.55)' : 'transparent'}`,
+                        background: on ? '#FFF7F6' : 'transparent',
+                        cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+                        transition:'background .14s, border-color .14s',
+                      }}
+                      onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                      onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span style={{
+                        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                        background: g.bg, color: g.color,
+                        display:'grid', placeItems:'center',
+                      }}>{(BuIcons[g.icon]||BuIcons.user)({size: 14, color:'currentColor'})}</span>
+                      <span style={{
+                        flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600,
+                        color: on ? PN.PINK_DARK : PN.TEXT,
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                      }}>{g.label}</span>
+                      <span style={{
+                        fontSize: 13, fontWeight: 700, flexShrink: 0,
+                        color: on ? PN.PINK_DARK : PN.MUTED,
+                        marginRight: ruoloVero ? 24 : 0,
+                      }}>{n}</span>
+                    </button>
+                    {ruoloVero && (
+                      <button
+                        className="ruolo-matita"
+                        onClick={(e) => { e.stopPropagation(); setEditRole(ruoloVero); }}
+                        title={`Permessi di ${ruoloVero.label}`}
+                        aria-label={`Permessi di ${ruoloVero.label}`}
+                        style={{
+                          position:'absolute', top: '50%', right: 8, transform:'translateY(-50%)',
+                          width: 24, height: 24, borderRadius: 7,
+                          border:'none', background:'transparent', color: PN.MUTED,
+                          display:'grid', placeItems:'center', cursor:'pointer',
+                          opacity: 0, transition:'opacity .14s',
+                        }}
+                      >{BuIcons.edit({size: 13, color:'currentColor'})}</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Accessi rapidi: le due cose che da qui non si possono fare in
+              nessun altro modo. Collegare un dispositivo non ha un bottone in
+              testata — lassù si aggiungono persone — e gli inviti in sospeso
+              qui non ripetono il bottone, dicono chi sta aspettando. */}
+          <section style={PANNELLO}>
+            <div style={{padding:'16px 18px 12px'}}>
+              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Accessi rapidi</div>
+            </div>
+            <div style={{padding:'0 12px 14px', display:'flex', flexDirection:'column', gap: 8}}>
+              <ScorciatoiaAccesso
+                icona={(BuIcons.monitor||BuIcons.phone)({size: 17, color:'currentColor'})}
+                colore={DEVICE_ROLE.color} sfondo={DEVICE_ROLE.bg}
+                titolo="Collega un dispositivo"
+                sotto="Monitor cucina, cassa o stampante"
+                onClick={() => setInvite({ roleId: null, kind: 'device' })}
+              />
+              <ScorciatoiaAccesso
+                icona={(BuIcons.mail||BuIcons.doc)({size: 17, color:'currentColor'})}
+                colore={PENDING.length ? '#B45309' : PN.MUTED}
+                sfondo={PENDING.length ? PN.AMBER_SOFT : '#F4F5F7'}
+                titolo={PENDING.length ? `${PENDING.length} inviti in attesa` : 'Nessun invito in sospeso'}
+                sotto={PENDING.length
+                  ? `${PENDING.map(p => p.email.split('@')[0]).join(', ')} non hanno ancora accettato`
+                  : 'Chi inviti comparirà qui finché non accetta'}
+                onClick={PENDING.length ? () => setShowPending(true) : undefined}
+              />
+            </div>
+          </section>
+        </aside>
+
+        <section style={PANNELLO}>
+          <div style={{display:'flex', gap: 10, padding: 16, borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
+            <div style={{position:'relative', flex: 1, minWidth: 0}}>
+              <span style={{
+                position:'absolute', left: 13, top:'50%', transform:'translateY(-50%)',
+                color: PN.MUTED_LIGHT, display:'inline-flex', pointerEvents:'none',
+              }}><PnI.Search size={15}/></span>
+              <input
+                value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="Cerca per nome, email o ruolo…"
+                style={{
+                  width:'100%', padding:'11px 12px 11px 38px',
+                  border:`1px solid ${PN.BORDER}`, borderRadius: 10,
+                  fontSize: 15, fontFamily:'inherit', outline:'none',
+                  background: PN.WHITE, color: PN.TEXT,
+                }}
+              />
+            </div>
+            <select
+              value={statoFiltro} onChange={e => setStatoFiltro(e.target.value)}
+              style={{
+                padding:'11px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 10,
+                fontSize: 15, fontFamily:'inherit', background: PN.WHITE, cursor:'pointer',
+                color: PN.TEXT, flexShrink: 0,
+              }}
+            >
+              <option value="all">Tutti gli stati</option>
+              <option value="attivi">Attivi</option>
+              <option value="disattivati">Disattivati</option>
+            </select>
+          </div>
+
+          <div style={{
+            display:'grid', gridTemplateColumns: GRIGLIA_ACCESSI,
+            gap: 10, padding:'11px 14px',
+            borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+            fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+          }}>
+            <span>Persona</span><span>Ruolo</span><span>Accesso</span><span>Stato</span><span/>
+          </div>
+
+          {visibili.length === 0 ? (
+            <div style={{padding:'46px 20px', textAlign:'center', color: PN.MUTED, fontSize: 15}}>
+              Nessuno corrisponde a questa ricerca
+            </div>
+          ) : visibili.map((r, i) => (
+            <RigaAccesso
+              key={r.key} r={r} ultima={i === visibili.length - 1}
+              openMenu={openMenu} setOpenMenu={setOpenMenu}
+              onEditDevice={() => setInvite({ kind: 'device', editDevice: r.dato })}
             />
           ))}
-        </div>
-      </ImpCard>
+        </section>
+      </div>
+
+      {/* Chiusura della pagina: il ruolo su misura è la cosa che quasi nessuno
+          scopre da solo, ed è l'unica risposta a «questa persona non deve
+          vedere la contabilità». */}
+      <section style={{
+        ...PANNELLO, marginTop: 14, padding:'14px 18px',
+        display:'flex', alignItems:'center', gap: 12,
+      }}>
+        <span style={{
+          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+          background: PN.AMBER_SOFT, color: '#B45309',
+          display:'grid', placeItems:'center',
+        }}>{BuIcons.bulb ? BuIcons.bulb({size: 15, color:'currentColor'}) : '💡'}</span>
+        <span style={{flex: 1, minWidth: 0, fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45}}>
+          <strong style={{color: PN.TEXT, fontWeight: 700}}>Suggerimento:</strong> con un ruolo su misura dai
+          a ciascuno solo le sezioni che gli servono — un cameriere non deve vedere la contabilità.
+        </span>
+        <ImpButton variant="ghost" icon={<PnI.Plus size={13}/>} onClick={() => setShowCreateRole(true)}>Crea ruolo</ImpButton>
+      </section>
 
       {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
       {editRole && <CreateRoleModal role={editRole} onClose={() => setEditRole(null)}/>}
@@ -232,208 +445,223 @@ function ImpPersonale() {
   );
 }
 
-function RoleSection({ role, expanded, onToggle, onAddNew, onEditPermissions, openMenu, setOpenMenu, owner }) {
-  const people = PERSONS.filter(p => p.role === role.id);
-  const count = people.length;
-  const countLabel = count === 1 ? 'persona' : 'persone';
-  // Il proprietario non si apre: la persona e una sola ed e gia scritta qui
-  // sotto, quindi niente chevron, niente conteggio, niente elenco dentro.
-  const apribile = !owner && count > 0;
+// Colonne della tabella accessi — una sola definizione per testata e righe,
+// così non possono scivolare l'una rispetto all'altra.
+const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) 126px minmax(0, 1.7fr) 112px 34px';
 
+const DEVICE_ROLE = {
+  id: '_device', label: 'Dispositivo', icon: 'monitor',
+  color: '#475569', bg: '#F1F5F9',
+};
+
+// Che cosa vede davvero un ruolo, detto in due righe: la prima le sezioni,
+// la seconda quante sono sul totale. Si ricava dalle aree, non si scrive a
+// mano: se domani un ruolo guadagna una sezione, qui cambia da solo.
+function accessoDelRuolo(role) {
+  const aree = ALL_AREAS.filter(a => (role.areas || []).includes(a.id));
+  if (aree.length === ALL_AREAS.length) return { titolo: 'Accesso completo', sotto: 'Tutte le sezioni', tutte: 'Tutte le sezioni' };
+  if (aree.length === 0) return { titolo: 'Nessuna sezione', sotto: 'Solo il proprio profilo', tutte: 'Nessuna sezione' };
+  return {
+    titolo: aree.length > 1 ? `${aree[0].label} +${aree.length - 1}` : aree[0].label,
+    sotto: `${aree.length} ${aree.length === 1 ? 'sezione' : 'sezioni'} su ${ALL_AREAS.length}`,
+    tutte: aree.map(a => a.label).join(', '),
+  };
+}
+
+function ScorciatoiaAccesso({ icona, colore, sfondo, titolo, sotto, onClick }) {
+  const spento = !onClick;
   return (
-    <div style={{
-      border: `1px solid ${role.custom ? '#EDE9FE' : PN.BORDER_SOFT}`,
-      borderLeft: `4px solid ${role.color}`,
-      borderRadius: 12,
-      background: role.custom ? 'linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 70%)' : PN.WHITE,
-      position: 'relative',
-    }}>
-      <div
-        onClick={apribile ? onToggle : undefined}
-        style={{display:'flex', alignItems:'flex-start', gap: 14, padding:'14px 16px', cursor: apribile ? 'pointer' : 'default'}}
-      >
-        <div style={{
-          width: 42, height: 42, borderRadius: 10,
-          background: role.bg, color: role.color,
-          display:'grid', placeItems:'center', flexShrink: 0,
-        }}>{(BuIcons[role.icon]||BuIcons.user)({size: 19, color:'currentColor'})}</div>
-
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{display:'flex', alignItems:'center', gap: 7, marginBottom: 3}}>
-            <span
-              style={{fontSize: 16.5, fontWeight: 700, position:'relative', cursor:'default'}}
-              onMouseEnter={e => {
-                const t = e.currentTarget.querySelector('.role-tip');
-                if (t) { const r = e.currentTarget.getBoundingClientRect(); t.style.top = (r.bottom + 6) + 'px'; t.style.left = r.left + 'px'; t.style.display = 'block'; }
-              }}
-              onMouseLeave={e => { const t = e.currentTarget.querySelector('.role-tip'); if (t) t.style.display = 'none'; }}
-            >
-              {role.label}
-              <span className="role-tip" style={{
-                display:'none', position:'fixed', zIndex:9999,
-                background: PN.TEXT, color: '#fff',
-                borderRadius: 9, padding: '10px 12px',
-                fontSize: 14, fontWeight: 500, lineHeight: 1.5,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-                minWidth: 180, maxWidth: 260,
-                pointerEvents: 'none',
-              }}>
-                <div style={{fontWeight: 700, marginBottom: 6, fontSize: 13.5, opacity: 0.7, textTransform:'uppercase', letterSpacing: 0.4}}>Aree accessibili</div>
-                <div style={{display:'flex', flexWrap:'wrap', gap: 4}}>
-                  {ALL_AREAS.filter(a => role.areas.includes(a.id)).map(a => (
-                    <span key={a.id} style={{
-                      padding:'2px 8px', borderRadius: 999,
-                      background:'rgba(255,255,255,0.15)',
-                      fontSize: 13.5, fontWeight: 600,
-                    }}>{a.label}</span>
-                  ))}
-                </div>
-              </span>
-            </span>
-            {!owner && (
-              <span style={{
-                fontSize: 13.5, fontWeight: 600,
-                color: count === 0 ? PN.MUTED : PN.TEXT,
-                opacity: count === 0 ? 0.55 : 1,
-                padding: '2px 8px', borderRadius: 999,
-                background: count === 0 ? '#F4F5F7' : '#EEF2F6',
-                whiteSpace: 'nowrap',
-              }}>{count} {countLabel}</span>
-            )}
-            {role.locked && <span style={{fontSize: 13}}>🔒</span>}
-          </div>
-          <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.4}}>
-            {owner && people[0] ? (
-              <>
-                <span style={{fontWeight: 700, color: PN.TEXT}}>{people[0].name}</span>
-                <span style={{margin:'0 6px', opacity: 0.5}}>·</span>
-                {people[0].email}
-              </>
-            ) : role.desc}
-          </div>
-        </div>
-
-        {role.custom && (
-          <div style={{flexShrink: 0}}>
-            <button
-              onClick={e => { e.stopPropagation(); onEditPermissions?.(); }}
-              aria-label="Modifica ruolo"
-              style={{
-                display:'inline-flex', alignItems:'center', gap: 6,
-                height: 30, padding: '0 12px', borderRadius: 8,
-                background: 'transparent', border: `1px solid ${PN.BORDER}`,
-                cursor: 'pointer', color: PN.TEXT,
-                fontFamily: 'inherit', fontSize: 14.5, fontWeight: 600,
-                transition: 'background 0.15s, border-color 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-            >
-              {BuIcons.edit({size: 13, color: 'currentColor'})}
-              Modifica
-            </button>
-          </div>
-        )}
-        {apribile && (
-          <div style={{display:'inline-flex', alignItems:'center', flexShrink: 0, padding:'7px 0', color: PN.MUTED}}>
-            <span style={{
-              transform: expanded ? 'rotate(180deg)' : 'none',
-              transition: 'transform 0.2s', display:'inline-flex',
-            }}><PnI.ChevronDown size={12}/></span>
-          </div>
-        )}
-      </div>
-
-      {expanded && apribile && (
-        <div style={{
-          borderTop: `1px solid ${PN.BORDER_SOFT}`,
-          background: '#FAFBFC',
-          padding: '12px 16px',
-          borderRadius: '0 0 12px 12px',
-          display:'flex', flexDirection:'column', gap: 8,
-        }}>
-          {people.map((p, i) => (
-            <PersonRow
-              key={`${role.id}-${i}`}
-              p={p}
-              idx={`${role.id}-${i}`}
-              openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    <button
+      onClick={onClick}
+      disabled={spento}
+      className={spento ? undefined : 'pn-btn-feedback'}
+      style={{
+        display:'flex', alignItems:'center', gap: 11, width:'100%', textAlign:'left',
+        padding:'11px 12px', borderRadius: 11,
+        border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
+        cursor: spento ? 'default' : 'pointer', fontFamily:'inherit',
+        transition:'background .14s, border-color .14s',
+      }}
+      onMouseEnter={e => { if (!spento) { e.currentTarget.style.background = '#F7F8FA'; e.currentTarget.style.borderColor = PN.BORDER; } }}
+      onMouseLeave={e => { if (!spento) { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER_SOFT; } }}
+    >
+      <span style={{
+        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+        background: sfondo, color: colore,
+        display:'grid', placeItems:'center',
+      }}>{icona}</span>
+      <span style={{flex: 1, minWidth: 0}}>
+        <span style={{display:'block', fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{titolo}</span>
+        <span style={{
+          display:'block', fontSize: 13, color: PN.MUTED, marginTop: 1, lineHeight: 1.35,
+        }}>{sotto}</span>
+      </span>
+      {!spento && <span style={{display:'inline-flex', color: PN.MUTED_LIGHT, flexShrink: 0}}><BuIcons.chevronRight size={13}/></span>}
+    </button>
   );
 }
 
-function DevicesSection({ expanded, onToggle, onAddNew, onEditDevice, openMenu, setOpenMenu }) {
-  const count = DEVICES.length;
-  const countLabel = count === 1 ? 'dispositivo' : 'dispositivi';
+function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
+  const [confermaRimozione, setConfermaRimozione] = React.useState(false);
+  const aperto = openMenu === r.key;
+  const iniziali = r.tipo === 'persona'
+    ? r.nome.split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase()
+    : null;
+  const bloccato = r.ruolo.locked;
 
   return (
     <div style={{
-      border: `1px solid ${PN.BORDER_SOFT}`,
-      borderLeft: '4px solid #475569',
-      borderRadius: 12,
-      background: PN.WHITE,
-      position: 'relative',
+      display:'grid', gridTemplateColumns: GRIGLIA_ACCESSI,
+      gap: 10, alignItems:'center', padding:'12px 14px',
+      borderBottom: ultima ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+      position:'relative',
+      background: r.attivo ? 'transparent' : '#FCFCFD',
     }}>
-      <div
-        onClick={count > 0 ? onToggle : undefined}
-        style={{display:'flex', alignItems:'flex-start', gap: 14, padding:'14px 16px', cursor: count > 0 ? 'pointer' : 'default'}}
-      >
+      {/* Persona */}
+      <div style={{display:'flex', alignItems:'center', gap: 11, minWidth: 0}}>
         <div style={{
-          width: 42, height: 42, borderRadius: 10,
-          background: '#F1F5F9', color: '#475569',
-          display:'grid', placeItems:'center', flexShrink: 0,
-        }}>{(BuIcons.monitor||BuIcons.phone)({size: 19, color:'currentColor'})}</div>
-
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{display:'flex', alignItems:'center', gap: 7, marginBottom: 3}}>
-            <span style={{fontSize: 16.5, fontWeight: 700}}>Dispositivi</span>
-            <span style={{
-              fontSize: 13.5, fontWeight: 600,
-              color: count === 0 ? PN.MUTED : PN.TEXT,
-              opacity: count === 0 ? 0.55 : 1,
-              padding: '2px 8px', borderRadius: 999,
-              background: count === 0 ? '#F4F5F7' : '#EEF2F6',
-              whiteSpace: 'nowrap',
-            }}>{count} {countLabel}</span>
-          </div>
-          <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.4}}>
-            Monitor cucina e schermi KDS — accesso con username/password locali, senza email
-          </div>
+          width: 38, height: 38, borderRadius: r.tipo === 'persona' ? '50%' : 10, flexShrink: 0,
+          background: r.tipo === 'persona' ? (r.colore || PN.MUTED) : r.ruolo.bg,
+          color: r.tipo === 'persona' ? PN.WHITE : r.ruolo.color,
+          display:'grid', placeItems:'center',
+          fontSize: 13.5, fontWeight: 800, letterSpacing: 0.3,
+          opacity: r.attivo ? 1 : 0.55,
+        }}>
+          {iniziali || (r.stampante
+            ? (BuIcons.doc||BuIcons.phone)({size: 18, color:'currentColor'})
+            : (BuIcons.monitor||BuIcons.chef)({size: 18, color:'currentColor'}))}
         </div>
+        <div style={{minWidth: 0}}>
+          <div title={r.nome} style={{
+            fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+          }}>{r.nome}</div>
+          <div style={{
+            fontSize: 13.5, color: PN.MUTED, marginTop: 1,
+            fontFamily: r.tipo === 'dispositivo' ? 'ui-monospace, Menlo, monospace' : 'inherit',
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+          }}>{r.sotto}</div>
+        </div>
+      </div>
 
-        {count > 0 && (
-          <div style={{display:'inline-flex', alignItems:'center', flexShrink: 0, padding:'7px 0', color: PN.MUTED}}>
-            <span style={{
-              transform: expanded ? 'rotate(180deg)' : 'none',
-              transition: 'transform 0.2s', display:'inline-flex',
-            }}><PnI.ChevronDown size={12}/></span>
-          </div>
+      {/* Ruolo */}
+      <div style={{minWidth: 0}}>
+        <span style={{
+          display:'inline-flex', alignItems:'center', gap: 5, maxWidth:'100%',
+          padding:'4px 10px', borderRadius: 999,
+          background: r.ruolo.bg, color: r.ruolo.color,
+          fontSize: 13.5, fontWeight: 700,
+        }}>
+          {(BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
+          <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.ruolo.label}</span>
+        </span>
+      </div>
+
+      {/* Accesso */}
+      <div style={{minWidth: 0}}>
+        <div title={r.accesso.tutte} style={{
+          fontSize: 14.5, fontWeight: 600, color: PN.TEXT,
+          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+        }}>{r.accesso.titolo}</div>
+        <div style={{
+          fontSize: 13.5, color: PN.MUTED, marginTop: 1,
+          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+        }}>{r.accesso.sotto}</div>
+      </div>
+
+      {/* Stato: la pastiglia dice se l'accesso è acceso, la riga sotto quando
+          è stato usato l'ultima volta — due domande diverse. */}
+      <div>
+        <span style={{
+          display:'inline-flex', alignItems:'center', gap: 5,
+          padding:'3px 10px', borderRadius: 999,
+          background: r.attivo ? PN.GREEN_SOFT : '#F1F3F5',
+          color: r.attivo ? PN.GREEN : PN.MUTED,
+          fontSize: 13, fontWeight: 700,
+        }}>
+          <span style={{width: 6, height: 6, borderRadius:'50%', background: r.attivo ? PN.GREEN : '#9CA3AF'}}/>
+          {r.attivo ? 'Attivo' : 'Disattivato'}
+        </span>
+        <div style={{fontSize: 12.5, color: r.online ? PN.GREEN : PN.MUTED, marginTop: 3, paddingLeft: 2}}>
+          {r.quando}
+        </div>
+      </div>
+
+      {/* Azioni */}
+      <div style={{display:'flex', justifyContent:'flex-end'}}>
+        {bloccato ? (
+          <span title="Il proprietario non si modifica" style={{fontSize: 13, opacity: 0.5}}>🔒</span>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpenMenu(aperto ? null : r.key); }}
+            aria-label="Altre azioni"
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: aperto ? '#F4F5F7' : 'transparent',
+              border:'none', cursor:'pointer', color: PN.MUTED,
+              display:'grid', placeItems:'center', fontSize: 19,
+            }}
+          >⋯</button>
         )}
       </div>
 
-      {expanded && count > 0 && (
-        <div style={{
-          borderTop: `1px solid ${PN.BORDER_SOFT}`,
-          background: '#FAFBFC',
-          padding: '12px 16px',
-          borderRadius: '0 0 12px 12px',
-          display:'flex', flexDirection:'column', gap: 8,
+      {aperto && (
+        <div onClick={e => e.stopPropagation()} style={{
+          position:'absolute', top: 44, right: 14, zIndex: 60,
+          minWidth: 208, ...GLASS_MENU_PERSONALE,
+          boxShadow: '0 12px 32px rgba(0,0,0,0.16)', padding: 6,
         }}>
-          {DEVICES.map((d, i) => (
-            <DeviceRow
-              key={i}
-              d={d}
-              idx={`dev-${i}`}
-              openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
-              onEdit={() => onEditDevice?.(d)}
-            />
-          ))}
+          {r.tipo === 'persona' ? (
+            <>
+              <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}>Modifica ruolo</MenuItem>
+              <MenuItem icon={<PnI.Key size={14}/>}>Resetta password</MenuItem>
+              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>
+                {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
+              </MenuItem>
+              <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
+              <MenuItem icon={BuIcons.trash({size: 14, color: 'currentColor'})} danger
+                onClick={() => { setOpenMenu(null); setConfermaRimozione(true); }}>Rimuovi dal team</MenuItem>
+            </>
+          ) : (
+            <>
+              <MenuItem icon={BuIcons.edit({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onEditDevice?.(); }}>Modifica</MenuItem>
+              {!r.stampante && <MenuItem icon={<PnI.Key size={14}/>}>Genera nuova password</MenuItem>}
+              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>
+                {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
+              </MenuItem>
+              <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
+              <MenuItem icon={BuIcons.trash({size: 14, color: 'currentColor'})} danger
+                onClick={() => { setOpenMenu(null); setConfermaRimozione(true); }}>Scollega dispositivo</MenuItem>
+            </>
+          )}
+        </div>
+      )}
+
+      {confermaRimozione && (
+        <div onClick={() => setConfermaRimozione(false)} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex:200,
+          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...PN.GLASS_STRONG, borderRadius: 20,
+            width: 380, maxWidth:'90%', padding: 24,
+          }}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
+              {r.tipo === 'persona' ? 'Rimuovi dal team' : 'Scollega dispositivo'}
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              Sei sicuro di voler {r.tipo === 'persona' ? 'rimuovere' : 'scollegare'} <b style={{color: PN.TEXT}}>{r.nome}</b>?
+              {' '}L'accesso viene revocato subito.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConfermaRimozione(false)}>Annulla</ImpButton>
+              <ImpButton variant="danger" onClick={() => setConfermaRimozione(false)}>
+                {r.tipo === 'persona' ? 'Rimuovi' : 'Scollega'}
+              </ImpButton>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1050,182 +1278,6 @@ function InviteModal({ onClose, prefill }) {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function DeviceRow({ d, idx, openMenu, setOpenMenu, onEdit }) {
-  const isPrinter = d.deviceType === 'printer';
-  const t = isPrinter
-    ? { label: 'Stampante', color: PN.BLUE, bg: PN.BLUE_SOFT }
-    : (DEVICE_TYPES.find(x => x.id === d.deviceType) || DEVICE_TYPES[0]);
-  const isOpen = openMenu === `dev-${idx}`;
-  const [confirmScollega, setConfirmScollega] = React.useState(false);
-
-  return (
-    <div style={{
-      display:'flex', alignItems:'center', gap: 14,
-      padding:'14px 16px',
-      border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 11,
-      background: PN.WHITE,
-      position:'relative',
-    }}>
-      <div style={{position:'relative', flexShrink: 0}}>
-        <div style={{
-          width: 42, height: 42, borderRadius: 10,
-          background: t.bg, color: t.color,
-          display:'grid', placeItems:'center',
-        }}>{isPrinter
-          ? (BuIcons.doc||BuIcons.phone)({size: 20, color:'currentColor'})
-          : (BuIcons.monitor||BuIcons.chef)({size: 20, color:'currentColor'})
-        }</div>
-      </div>
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 2}}>
-          <span style={{fontSize: 16, fontWeight: 700}}>{d.name}</span>
-          <span style={{
-            fontSize: 12.5, fontWeight: 700,
-            padding:'2px 8px', borderRadius: 999,
-            background: t.bg, color: t.color,
-            display:'inline-flex', alignItems:'center', gap: 4,
-          }}>
-            {isPrinter
-              ? (BuIcons.doc||BuIcons.phone)({size: 11, color:'currentColor'})
-              : (BuIcons.monitor||BuIcons.chef)({size: 11, color:'currentColor'})
-            } {isPrinter ? `${t.label} · ${d.printerModel}` : t.label}
-          </span>
-        </div>
-        {isPrinter
-          ? <div style={{fontSize: 14, color: PN.MUTED, fontFamily:'ui-monospace, Menlo, monospace'}}>{d.ip}</div>
-          : <div style={{fontSize: 14, color: PN.MUTED, fontFamily:'ui-monospace, Menlo, monospace'}}>{d.username}</div>
-        }
-        {isPrinter && d.cats && d.cats.length > 0 && (
-          <div style={{display:'flex', flexWrap:'wrap', gap: 4, marginTop: 6}}>
-            {d.cats.map(cid => {
-              const cat = MENUS.flatMap(m => m.categories).find(c => c.id === cid);
-              return cat ? (
-                <span key={cid} style={{
-                  fontSize: 12.5, fontWeight: 600,
-                  padding:'2px 8px', borderRadius: 999,
-                  background: '#F1F5F9', color: '#475569',
-                }}>{cat.label}</span>
-              ) : null;
-            })}
-          </div>
-        )}
-      </div>
-
-
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpenMenu(isOpen ? null : `dev-${idx}`); }}
-        style={{
-          width: 34, height: 34, borderRadius: 8,
-          background: isOpen ? '#F4F5F7' : 'transparent',
-          border:'none', cursor:'pointer', color: PN.MUTED,
-          display:'grid', placeItems:'center', fontSize: 20,
-        }}
-        aria-label="Altre azioni"
-      >⋯</button>
-      {isOpen && (
-        <div onClick={e => e.stopPropagation()} style={{
-          position:'absolute', bottom: 'calc(100% - 8px)', right: 12,
-          minWidth: 190, background: PN.WHITE,
-          border: `1px solid ${PN.BORDER}`, borderRadius: 10,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-          padding: 6, zIndex: 50,
-        }}>
-          <MenuItem icon={BuIcons.edit({size: 14, color: 'currentColor'})} onClick={() => { setOpenMenu(null); onEdit?.(); }}>Modifica</MenuItem>
-          {!isPrinter && <MenuItem icon={<PnI.Key size={14}/>}>Genera nuova password</MenuItem>}
-          {!isPrinter && <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>Sospendi accesso</MenuItem>}
-          <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
-          <MenuItem icon={BuIcons.trash({size: 14, color: 'currentColor'})} danger onClick={() => { setOpenMenu(null); setConfirmScollega(true); }}>Scollega dispositivo</MenuItem>
-        </div>
-      )}
-
-      {confirmScollega && (
-        <div onClick={() => setConfirmScollega(false)} style={{
-          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex:200,
-          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            ...PN.GLASS_STRONG, borderRadius: 20,
-            width: 380, maxWidth:'90%',
-            padding: '24px',
-          }}>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
-              Scollega dispositivo
-            </div>
-            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
-              Sei sicuro di voler scollegare <b style={{color: PN.TEXT}}>{d.name}</b>? Il dispositivo perderà immediatamente l'accesso.
-            </div>
-            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
-              <ImpButton variant="ghost" onClick={() => setConfirmScollega(false)}>Annulla</ImpButton>
-              <ImpButton variant="danger" onClick={() => setConfirmScollega(false)}>Scollega</ImpButton>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PersonRow({ p, idx, openMenu, setOpenMenu }) {
-  const role = ROLES.find(r => r.id === p.role) || ROLES[2];
-  const initials = p.name.split(' ').map(s => s[0]).join('').slice(0, 2);
-  const isOpen = openMenu === idx;
-
-  return (
-    <div style={{
-      display:'flex', alignItems:'center', gap: 14,
-      padding:'14px 16px',
-      border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 11,
-      background: PN.WHITE,
-      position:'relative',
-    }}>
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{marginBottom: 2}}>
-          <span style={{fontSize: 16, fontWeight: 700}}>{p.name}</span>
-        </div>
-        <div style={{fontSize: 14, color: PN.MUTED}}>{p.email}</div>
-      </div>
-
-      {!role.locked && (
-        <>
-          <button
-            onClick={(e) => { e.stopPropagation(); setOpenMenu(isOpen ? null : idx); }}
-            style={{
-              width: 34, height: 34, borderRadius: 8,
-              background: isOpen ? '#F4F5F7' : 'transparent',
-              border:'none', cursor:'pointer', color: PN.MUTED,
-              display:'grid', placeItems:'center', fontSize: 20,
-            }}
-            aria-label="Altre azioni"
-          >⋯</button>
-          {isOpen && (
-            <div onClick={e => e.stopPropagation()} style={{
-              position:'absolute', bottom: 'calc(100% - 8px)', right: 12,
-              minWidth: 190, background: PN.WHITE,
-              border: `1px solid ${PN.BORDER}`, borderRadius: 10,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-              padding: 6, zIndex: 10,
-            }}>
-              <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}>Modifica ruolo</MenuItem>
-              <MenuItem icon={<PnI.Key size={14}/>}>Resetta password</MenuItem>
-              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>Sospendi accesso</MenuItem>
-              <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
-              <MenuItem icon={BuIcons.trash({size: 14, color: 'currentColor'})} danger>Rimuovi dal team</MenuItem>
-            </div>
-          )}
-        </>
-      )}
-      {role.locked && (
-        <span style={{
-          fontSize: 13, fontWeight: 600, color: PN.MUTED,
-          padding:'5px 10px', background: '#F4F5F7', borderRadius: 7,
-          display:'inline-flex', alignItems:'center', gap: 5,
-        }}>🔒 Non modificabile</span>
-      )}
     </div>
   );
 }
