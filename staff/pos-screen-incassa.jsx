@@ -1,10 +1,24 @@
 // Byup Staff — Incassa: selezione conto aperto → dettaglio → carta
 
+// `inviato` di una voce in coda: dal gestionale arriva come data (serve a
+// sapere da quanto aspetta), nei mock statici qui sotto è già l'ora scritta.
+// Accettiamo tutti e due invece di convertire il mock.
+function oraInvio(inviato) {
+  if (typeof inviato !== 'number') return inviato;
+  const d = new Date(inviato);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // CODA DI INCASSO — conti inviati dal gestionale, scegli quale incassare
 // ═══════════════════════════════════════════════════════════
-function ScreenIncassa({ nav, contiPagati = [], contiRimandati = [] }) {
-  const conti = CODA_INCASSO.filter(c => !contiPagati.includes(c.id) && !contiRimandati.includes(c.id));
+// Tre modi di uscire dalla coda: pagato, rimandato al gestionale da qui, o
+// ritirato dalla cassa. L'ultimo non nasce da un gesto dell'operatore, per
+// questo va tolto in silenzio: nessun avviso per un conto che magari non
+// ha nemmeno guardato.
+function ScreenIncassa({ nav, contiPagati = [], contiRimandati = [], contiRitirati = [] }) {
+  const fuori = [...contiPagati, ...contiRimandati, ...contiRitirati];
+  const conti = CODA_INCASSO.filter(c => !fuori.includes(c.id));
 
   return (
     <div style={{ background: ST.BG, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -76,7 +90,7 @@ function ScreenIncassa({ nav, contiPagati = [], contiRimandati = [] }) {
                     <I.Lock s={14} c={ST.MUTED}/> In pagamento su un altro dispositivo
                   </div>
                 ) : (
-                  <div style={{ fontSize: 13.5, fontWeight: 500, color: ST.TEXT }}>Inviato {c.inviato}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 500, color: ST.TEXT }}>Inviato {oraInvio(c.inviato)}</div>
                 )}
               </div>
 
@@ -106,7 +120,7 @@ function ScreenIncassa({ nav, contiPagati = [], contiRimandati = [] }) {
 // ═══════════════════════════════════════════════════════════
 // DETTAGLIO CONTO — importo del tavolo scelto → carta
 // ═══════════════════════════════════════════════════════════
-function ScreenConto({ nav, conto, rimandaConto, openModal, showToast }) {
+function ScreenConto({ nav, conto, ritirato, rimandaConto, openModal, showToast }) {
   const importo = conto.importo;
 
   const chiediAnnulla = () => openModal({
@@ -129,50 +143,86 @@ function ScreenConto({ nav, conto, rimandaConto, openModal, showToast }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}><I.Back s={20}/></button>
         <div style={{ flex: 1, fontSize: 18, fontWeight: 800, color: ST.TEXT }}>Tavolo {conto.tavolo}</div>
-        <button onClick={chiediAnnulla} style={{
-          minHeight: 40, padding: '8px 12px', borderRadius: ST.R_PILL, border: 'none',
-          background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-          color: ST.TEXT_SOFT, fontSize: 15, fontWeight: 600,
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-        }}><I.Close s={16} c={ST.TEXT_SOFT}/> Annulla</button>
+        {/* Su un conto ritirato "Annulla" non ha più senso: non c'è più
+            niente da rimandare indietro. */}
+        {!ritirato && (
+          <button onClick={chiediAnnulla} style={{
+            minHeight: 40, padding: '8px 12px', borderRadius: ST.R_PILL, border: 'none',
+            background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+            color: ST.TEXT_SOFT, fontSize: 15, fontWeight: 600,
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+          }}><I.Close s={16} c={ST.TEXT_SOFT}/> Annulla</button>
+        )}
       </div>
 
       {/* Display importo da incassare */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: ST.MUTED, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
-          Importo da incassare
+          {ritirato ? 'Non più da incassare' : 'Importo da incassare'}
         </div>
         <div style={{
           fontSize: 56, fontWeight: 800, letterSpacing: -1.5,
-          color: ST.TEXT, fontVariantNumeric: 'tabular-nums',
+          color: ritirato ? ST.MUTED_2 : ST.TEXT, fontVariantNumeric: 'tabular-nums',
         }}>
           {eur(importo)}
         </div>
-        <div style={{
-          marginTop: 16, padding: '8px 16px', borderRadius: ST.R_PILL,
-          background: ST.PINK_SOFT, color: ST.PINK_DARK,
-          fontSize: 13, fontWeight: 700,
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-        }}>
-          <I.Receipt s={15} c={ST.PINK_DARK}/> Saldo conto tavolo {conto.tavolo}
-        </div>
+        {/* Qui l'avviso ci vuole: sei entrato per incassare questo conto, e
+            nel frattempo è sparito. Detto sul posto, non con un toast che
+            passa. */}
+        {ritirato ? (
+          <div style={{
+            marginTop: 16, padding: '8px 16px', borderRadius: ST.R_PILL,
+            background: ST.SURF_ALT, color: ST.TEXT_SOFT,
+            fontSize: 13, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+          }}>
+            <I.Close s={15} c={ST.TEXT_SOFT}/> Ritirato dalla cassa
+          </div>
+        ) : (
+          <div style={{
+            marginTop: 16, padding: '8px 16px', borderRadius: ST.R_PILL,
+            background: ST.PINK_SOFT, color: ST.PINK_DARK,
+            fontSize: 13, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+          }}>
+            <I.Receipt s={15} c={ST.PINK_DARK}/> Saldo conto tavolo {conto.tavolo}
+          </div>
+        )}
       </div>
 
-      {/* CTA Incassa → dritto alla carta (paddingBottom lascia spazio alla bottom nav) */}
+      {/* CTA Incassa → dritto alla carta (paddingBottom lascia spazio alla bottom nav).
+          Se la cassa ha ritirato il conto mentre eri qui dentro, il pulsante
+          sparisce: incassarlo addebiterebbe qualcosa che non esiste più.
+          Rimosso e non spento, così non c'è niente da provare a premere. */}
       <div style={{ padding: '6px 16px 96px' }}>
-        <button
-          onClick={() => nav.push({ s: 'tap', importo, contoId: conto.id })}
-          style={{
-            width: '100%', height: 56, borderRadius: ST.R_PILL, border: 'none',
-            background: ST.PINK_DARK, color: '#fff',
-            fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
-            cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: ST.SH_FAB,
-          }}
-        >
-          <I.Contactless s={20} c="#fff"/> Incassa con carta {eur(importo)}
-        </button>
+        {ritirato ? (
+          <button
+            onClick={() => nav.pop()}
+            style={{
+              width: '100%', height: 56, borderRadius: ST.R_PILL, border: 'none',
+              background: ST.SURF_ALT, color: ST.TEXT,
+              fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+              cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            Torna alla coda
+          </button>
+        ) : (
+          <button
+            onClick={() => nav.push({ s: 'tap', importo, contoId: conto.id })}
+            style={{
+              width: '100%', height: 56, borderRadius: ST.R_PILL, border: 'none',
+              background: ST.PINK_DARK, color: '#fff',
+              fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+              cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              boxShadow: ST.SH_FAB,
+            }}
+          >
+            <I.Contactless s={20} c="#fff"/> Incassa con carta {eur(importo)}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ function POSApp() {
   const [modal, setModal] = useStateA(null);
   const [contiPagati, setContiPagati] = useStateA([]);       // id dei conti già saldati
   const [contiRimandati, setContiRimandati] = useStateA([]); // id dei conti rimandati al gestionale
+  const [contiRitirati, setContiRitirati] = useStateA([]);   // id dei conti ritirati dalla cassa
   const [toast, setToast] = useStateA(null);                 // banner transitorio { msg, id }
   const [faceIdOn, setFaceIdOn] = useStateA(false);          // sblocco con Face ID attivo
   const [faceIdAsked, setFaceIdAsked] = useStateA(false);    // primo accesso: attivazione già proposta?
@@ -14,6 +15,16 @@ function POSApp() {
   const pagaConto = id => setContiPagati(p => p.includes(id) ? p : [...p, id]);
   const rimandaConto = id => setContiRimandati(p => p.includes(id) ? p : [...p, id]);
   const showToast = msg => setToast({ msg, id: Date.now() });
+
+  // Terzo modo di uscire dalla coda, oltre a pagato e rimandato: la cassa
+  // ritira il conto che aveva mandato. Arriva da fuori, non da un gesto
+  // dell'operatore — in produzione dal server, qui dalla console per poterlo
+  // provare: BYUP_STAFF_RITIRA('c_08').
+  const ritiraConto = id => setContiRitirati(p => p.includes(id) ? p : [...p, id]);
+  useEffectA(() => {
+    window.BYUP_STAFF_RITIRA = ritiraConto;
+    return () => { delete window.BYUP_STAFF_RITIRA; };
+  }, []);
 
   const top = stack[stack.length - 1];
 
@@ -52,8 +63,8 @@ function POSApp() {
       <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden' }}>
         {top.s === 'login' && <ScreenLogin nav={nav} openModal={openModal} faceIdOn={faceIdOn} setFaceIdOn={setFaceIdOn} faceIdAsked={faceIdAsked} setFaceIdAsked={setFaceIdAsked}/>}
         {top.s === 'recupero' && <ScreenRecupero nav={nav}/>}
-        {top.s === 'incassa' && <ScreenIncassa nav={nav} contiPagati={contiPagati} contiRimandati={contiRimandati}/>}
-        {top.s === 'conto' && <ScreenConto nav={nav} conto={top.conto} rimandaConto={rimandaConto} openModal={openModal} showToast={showToast}/>}
+        {top.s === 'incassa' && <ScreenIncassa nav={nav} contiPagati={contiPagati} contiRimandati={contiRimandati} contiRitirati={contiRitirati}/>}
+        {top.s === 'conto' && <ScreenConto nav={nav} conto={top.conto} ritirato={contiRitirati.includes(top.conto?.id)} rimandaConto={rimandaConto} openModal={openModal} showToast={showToast}/>}
         {top.s === 'tap' && <ScreenTap nav={nav} openModal={openModal} importo={top.importo} contoId={top.contoId} pagaConto={pagaConto}/>}
         {top.s === 'transazioni' && <ScreenTransazioni openModal={openModal}/>}
         {top.s === 'profilo' && <ScreenProfilo nav={nav} openModal={openModal} faceIdOn={faceIdOn} setFaceIdOn={setFaceIdOn}/>}

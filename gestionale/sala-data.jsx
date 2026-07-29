@@ -43,6 +43,12 @@ const SALA_TAVOLI = [
       { id:'o7a', nome:'Pizza diavola',       qty:1, prezzo:11, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:5,  origin:'cameriere',guestId:null },
       { id:'o7b', nome:'Pizza diavola',       qty:1, prezzo:11, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:5,  origin:'cameriere',guestId:null },
     ],
+    // Incassi già arrivati su questo conto: due ospiti hanno pagato la loro
+    // parte dall'app prima che il conto si chiudesse.
+    pagamenti: [
+      { id:'p3a', method:'byup', amount: 9.00, ora:'20:41', chi:'Luca V.' },
+      { id:'p3b', method:'byup', amount: 9.00, ora:'20:43', chi:'Sara V.' },
+    ],
     minutiSenzaOrdine: 4, timeSinceLastOrder: 4,
     note: { tipo:'evento', testo:'Compleanno' },
     extraNote: { tipo:'generica', testo:'Servire al tavolo con tovaglia bianca' },
@@ -80,6 +86,13 @@ const SALA_TAVOLI = [
       { id:'o13', nome:'Tagliata di manzo',  qty:3, prezzo:22, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:18, origin:'cameriere', guestId:null },
       { id:'o14', nome:'Pasta s/ glutine',   qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:7, minutiInCoda:0,  origin:'byup',     guestId:'g7d', alert:'allergia' },
       { id:'o15', nome:'Vino rosso',         qty:1, prezzo:24, stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere', guestId:null },
+    ],
+    // Conto lungo pagato a pezzi: due quote dall'app, una in contanti al
+    // banco. Serve a vedere i tre canali insieme nella finestra di saldo.
+    pagamenti: [
+      { id:'p7a', method:'byup',     amount: 21.00, ora:'21:02', chi:'Paolo N.' },
+      { id:'p7b', method:'byup',     amount: 18.00, ora:'21:05', chi:'Elena N.' },
+      { id:'p7c', method:'contanti', amount: 15.00, ora:'21:11', chi:null },
     ],
     minutiSenzaOrdine: 6, timeSinceLastOrder: 6,
     note: { tipo:'allergia', testo:'Allergia glutine', ospite:'Marco R.' },

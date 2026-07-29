@@ -1,5 +1,58 @@
 // Sala — Modale Salda conto v2: layout 2 colonne, no wizard, pre-conto sempre raggiungibile
 
+// ── Pagamento carta su Byup Staff ──────────────────────────────────────
+// Due soli stati: in attesa, poi saldato. Chi sta in cassa deve decidere
+// una cosa sola — se aspettare o no — e per quella "in attesa" basta.
+// Raccontare anche che qualcuno l'ha aperto o che la carta è appoggiata
+// non cambia niente di quello che può fare.
+//
+// Il pagamento NON è indirizzato a un dispositivo: chiunque abbia Byup Staff
+// può prenderlo. Per questo la schermata non nomina mai un device o una
+// persona — finché non è saldato, l'unica cosa vera è che sta aspettando.
+//
+// PAY_FINE è finto: il telefono non è ancora collegato, quindi il saldo
+// arriva a tempo. In produzione lo dice il server (Stripe Terminal).
+const PAY_FINE = 16000;
+
+// Voce della coda di incasso. Stessa forma di CODA_INCASSO in
+// staff/pos-data.jsx: è il contratto fra cassa e Byup Staff, e va scritto
+// con quei nomi da entrambe le parti. `inviato` qui è un timestamp — la
+// coda su Staff lo formatta in ora, ma deve restare una data per calcolare
+// da quanto si aspetta.
+//
+// L'id porta il numero del tavolo perché si legga, ma non è il tavolo: un
+// conto rimandato indietro e re-inviato è una voce nuova, e due voci dello
+// stesso tavolo non devono mai collidere.
+// Il pallino "in attesa" respira. Sta fuori dal componente perché lo usa
+// anche il contatore in Sala, che vive quando la finestra di saldo è chiusa.
+(function saldaInjectPayKeyframes() {
+  if (typeof document === 'undefined' || document.getElementById('salda-pay-kf')) return;
+  const el = document.createElement('style');
+  el.id = 'salda-pay-kf';
+  el.textContent = `
+@keyframes saldaPayPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.28; } }
+@media (prefers-reduced-motion: reduce) {
+  [style*="saldaPayPulse"] { animation: none !important; }
+}`;
+  document.head.appendChild(el);
+})();
+
+function nuovaVoceCoda(tavolo, importo) {
+  const t = Date.now();
+  return {
+    id: `c_${String(tavolo.id).padStart(2, '0')}_${t.toString(36)}`,
+    tavolo: tavolo.id,
+    importo,
+    coperti: tavolo.coperti || 1,
+    inviato: t,
+  };
+}
+
+// Ambra = in sospeso. L'inchiostro è #B45309 e non PN.AMBER: su fondo
+// chiaro il PN.AMBER sta a 2,86:1.
+const PAY_INK = '#B45309';
+const PAY_BG  = '#FEF3C7';
+
 function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const [groupBy, setGroupBy] = React.useState('flat'); // flat | grouped
   // Map<itemId, qty selezionata> — permette selezione parziale (1 di 3, 2 di 3, tutti)
@@ -25,6 +78,34 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const [preContoStampato, setPreContoStampato] = React.useState(null); // null | timestamp
   const [toast, setToast] = React.useState(null);
 
+  // Conto messo in coda di incasso su Byup Staff. La voce vive sul TAVOLO,
+  // non qui: chiudere la finestra non la ritira, e riaprendola si ritrova
+  // allo stato in cui era. `payTick` serve solo a far ridisegnare.
+  const [payTick, setPayTick] = React.useState(0);
+  const inCoda = tavolo?.incasso || null;
+  const payElapsed = inCoda ? Date.now() - inCoda.inviato : 0;
+  const paying = !!inCoda;
+
+  React.useEffect(() => {
+    if (!inCoda) return;
+    const id = setInterval(() => setPayTick(t => t + 1), 400);
+    return () => clearInterval(id);
+  }, [inCoda?.inviato]);
+
+  // Chi chiude il pagamento è la Sala, non questa finestra: qui si guarda
+  // solo se il conto è ancora in coda. Se la finestra tenesse un suo timer,
+  // i due si farebbero la gara e il risultato dipenderebbe da chi arriva
+  // prima — a volte la conferma, a volte un salto secco al conto.
+  const eraInCoda = React.useRef(false);
+  React.useEffect(() => {
+    if (inCoda) { eraInCoda.current = true; return; }
+    if (!eraInCoda.current) return;
+    eraInCoda.current = false;
+    // Uscito dalla coda: o l'ha incassato un telefono, o l'abbiamo ritirato
+    // noi. Nel secondo caso si torna al conto, che è di nuovo modificabile.
+    if (tavolo && tavolo.contoSaldato) { setDone(true); onConfirm && onConfirm(); }
+  }, [inCoda]);
+
   React.useEffect(() => {
     if (open && tavolo) {
       const cloned = (tavolo.ordini || []).map(o => ({...o}));
@@ -34,7 +115,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       setCollapsedGroups(new Set());
       setAdjust(null);
       setPay({ contanti:'', carta:'' });
-      setMethod('contanti');
+      // Riaprendo un conto con un pagamento ancora in volo si torna dov'era:
+      // ripartire da "Contanti" nasconderebbe la transazione in corso e
+      // l'unico modo per annullarla.
+      setMethod(tavolo.incasso ? 'carta' : 'contanti');
       setInvoice(false);
       setInvoiceOpen(false);
       setAdjustOpen(false);
@@ -176,6 +260,24 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   function setMistoCash(v) { setPay(p => ({ ...p, contanti: v })); }
   function setMistoCard(v) { setPay(p => ({ ...p, carta: v })); }
 
+  // Il conto entra nella coda di incasso, visibile a tutti i Byup Staff
+  // collegati. Scrivere la voce sul tavolo (e non nello stato della
+  // finestra) è ciò che le permette di sopravvivere alla chiusura: la cassa
+  // resta libera di lavorare altrove.
+  function avviaPagamento() {
+    tavolo.incasso = nuovaVoceCoda(tavolo, total);
+    setPayTick(t => t + 1);
+  }
+  // Ritiro dalla coda — non è una cancellazione: il conto torna
+  // modificabile qui in cassa. Su Byup Staff la voce sparisce; se qualcuno
+  // la stava già guardando, se lo vede dire lì.
+  function ritiraDallaCoda() {
+    tavolo.incasso = null;
+    setPayTick(t => t + 1);
+    setToast({ type:'info', text:'Conto ritirato dalla coda' });
+    setTimeout(() => setToast(null), 2500);
+  }
+
   // Suggerimenti contanti: esatto + multipli arrotondati al rialzo
   function smartCashChips(tot) {
     const chips = [{ label: 'Esatto', val: tot.toFixed(2) }];
@@ -226,17 +328,30 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
           vuoto sotto la lista articoli quando il conto è corto.
           Altezza ora guidata dal contenuto e tetto all'88%: si accorcia sui
           conti brevi, cresce e scrolla su quelli lunghi, e lascia sempre
-          respirare la pagina sotto. */}
+          respirare la pagina sotto.
+          Attesa e conferma non hanno una lista da mostrare: sei righe
+          centrate in una finestra da 880 leggevano come un errore di
+          layout. Lì si stringe a 420 — la stessa misura della finestra di
+          incasso in Vendita diretta. */}
       <div style={{
         position:'absolute', top:'50%', left:'50%',
         transform:'translate(-50%, -50%)',
-        width: 880, maxWidth:'88%', height:'auto', maxHeight:'88%',
+        width: (paying || done) ? 420 : 880,
+        maxWidth:'88%', height:'auto', maxHeight:'88%',
         background:'#fff', borderRadius: 16,
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
         zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',
+        transition:'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {done ? (
           <SaldaDoneV2 tavolo={tavolo} total={total} pay={{contanti, carta}} invoice={invoice} onClose={onClose}/>
+        ) : paying ? (
+          <SaldaAttesaPagamento
+            tavolo={tavolo}
+            total={inCoda.importo}
+            elapsed={payElapsed}
+            onRitira={ritiraDallaCoda}
+            onClose={onClose}/>
         ) : (
           <>
             {/* Header */}
@@ -430,9 +545,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         chips={smartCashChips(total)}/>
                     )}
 
-                    {method === 'carta' && (
-                      <CardPay total={total}/>
-                    )}
+                    {/* Carta: nessun riquadro. Non c'è niente da inserire e
+                        niente da spiegare — l'importo è già scritto due volte
+                        qui sopra e una terza sul pulsante. */}
 
                     {method === 'misto' && (
                       <MixedPay
@@ -440,6 +555,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         onCash={setMistoCash} onCard={setMistoCard}/>
                     )}
                   </div>
+
+                  {/* Quello che è già stato incassato su questo conto: chi ha
+                      pagato con l'app, chi in contanti, quanto manca. Sola
+                      lettura — il rimborso resta in Contabilità, dove si può
+                      motivare e tracciare. */}
+                  <PagamentiConto pagamenti={tavolo.pagamenti} />
 
                   <div style={{height: 1, background:'#E5E7EB', margin:'0 -22px 16px'}}/>
 
@@ -472,22 +593,40 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   background:'#fff', flexShrink: 0,
                   display:'flex', flexDirection:'column', gap: 8,
                 }}>
-                  <button onClick={() => { setDone(true); onConfirm && onConfirm(); }}
-                    disabled={!canConfirm}
-                    style={{
-                      width:'100%', padding:'15px 16px', borderRadius: 10,
-                      background: canConfirm ? '#0F1115' : '#E5E7EB',
-                      color: canConfirm ? '#fff' : '#9CA3AF',
-                      border:'none', fontSize: 19, fontWeight: 800,
-                      cursor: canConfirm ? 'pointer' : 'not-allowed',
-                      fontFamily:'inherit',
-                      letterSpacing:-0.2,
-                      display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
-                    }}>
-                    {!canConfirm
-                      ? (total === 0 ? 'Nessun articolo selezionato' : `Manca €${(total-paid).toFixed(2)}`)
-                      : <>Conferma incasso <span style={{opacity:0.6}}>·</span> €{total.toFixed(2)}</>}
-                  </button>
+                  {/* Con carta il pulsante non incassa: manda la richiesta a
+                      Byup Staff e passa la finestra in attesa. */}
+                  {(() => {
+                    const inviaSuStaff = method === 'carta';
+                    const attivo = inviaSuStaff ? total > 0 : canConfirm;
+                    return (
+                      <button onClick={() => {
+                          if (!attivo) return;
+                          if (inviaSuStaff) avviaPagamento();
+                          else { setDone(true); onConfirm && onConfirm(); }
+                        }}
+                        disabled={!attivo}
+                        style={{
+                          width:'100%', padding:'15px 16px', borderRadius: 10,
+                          background: attivo ? '#0F1115' : '#E5E7EB',
+                          color: attivo ? '#fff' : '#9CA3AF',
+                          border:'none',
+                          // "Procedi al pagamento · €65.00" è più lunga di
+                          // "Conferma incasso": mezzo punto in meno la tiene
+                          // su una riga sola invece di spezzarla in due.
+                          fontSize: inviaSuStaff ? 18 : 19, fontWeight: 800,
+                          cursor: attivo ? 'pointer' : 'not-allowed',
+                          fontFamily:'inherit',
+                          letterSpacing:-0.2, whiteSpace:'nowrap',
+                          display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
+                        }}>
+                        {!attivo
+                          ? (total === 0 ? 'Nessun articolo selezionato' : `Manca €${(total-paid).toFixed(2)}`)
+                          : inviaSuStaff
+                            ? <>Procedi al pagamento <span style={{opacity:0.6}}>·</span> €{total.toFixed(2)}</>
+                            : <>Conferma incasso <span style={{opacity:0.6}}>·</span> €{total.toFixed(2)}</>}
+                      </button>
+                    );
+                  })()}
                   {preContoStampato && (
                     <div style={{
                       fontSize: 14.5, color:'#9CA3AF', textAlign:'center',
@@ -941,32 +1080,139 @@ function CashTendered({ total, value, onChange, chips }) {
   );
 }
 
-function CardPay({ total }) {
+// Attesa del pagamento su Byup Staff — sostituisce tutto il contenuto
+// della finestra, che intanto si stringe. È il modo più semplice di dire
+// "adesso non si tocca niente": invece di spegnere lista, metodi e
+// pulsante uno per uno, non c'è proprio nient'altro sullo schermo.
+//
+// Due uscite, che fanno cose opposte e vanno tenute distinte: "Ritira"
+// toglie il conto dalla coda e lo riporta modificabile qui, "Chiudi" lo
+// lascia in coda e libera la cassa. Con il solo Ritira, chi vuole solo
+// andarsene lo premerebbe per sbaglio.
+//
+// "Ritira" e non "Annulla" perché non è una cancellazione: il conto torna
+// indietro, si corregge e si rimanda. È la stessa parola del pannello in
+// Sala, ed è lo stesso gesto.
+//
+// Resta premibile fino alla fine. Se arriva tardi — carta già passata —
+// non lo diciamo con un terzo stato: perde la corsa e la finestra passa a
+// saldato, che è quello che è successo davvero.
+function SaldaAttesaPagamento({ tavolo, total, elapsed, onRitira, onClose }) {
+  const secondi = Math.floor((elapsed || 0) / 1000);
+  const mmss = `${Math.floor(secondi / 60)}:${String(secondi % 60).padStart(2, '0')}`;
+
   return (
     <div style={{
-      padding:'18px 16px', borderRadius: 12,
-      background:'#fff', border:'1.5px dashed #D1D5DB',
-      textAlign:'center',
+      flex:1, display:'flex', flexDirection:'column',
+      alignItems:'center', justifyContent:'center', padding: 30,
     }}>
       <div style={{
-        width: 44, height: 44, borderRadius: 12,
-        background:'#F1F2F5', color:'#0F1115',
-        display:'grid', placeItems:'center', margin:'0 auto 10px',
+        width: 72, height: 72, borderRadius:'50%',
+        background: PAY_BG, color: PAY_INK,
+        marginBottom: 16, display:'grid', placeItems:'center',
       }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
         </svg>
       </div>
-      <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', marginBottom: 2}}>
-        Inserisci la carta nel POS
+
+      {/* Il pallino pulsa per dire "e' ancora vivo", ma non e' mai l'unico
+          segnale: la scritta dice la stessa cosa a parole. */}
+      <div style={{
+        fontSize: 26, fontWeight: 800, color: PAY_INK, marginBottom: 4,
+        display:'flex', alignItems:'center', gap: 10,
+      }}>
+        <span aria-hidden="true" style={{
+          width: 11, height: 11, borderRadius: 999, flexShrink: 0,
+          background: PAY_INK, animation:'saldaPayPulse 1.6s ease-in-out infinite',
+        }}/>
+        In attesa
       </div>
-      <div style={{fontSize: 26, fontWeight: 800, color:'#0F1115', letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>
+
+      <div style={{fontSize: 30, fontWeight: 800, color:'#0F1115', marginBottom: 8, letterSpacing:-0.5, fontVariantNumeric:'tabular-nums'}}>
         €{total.toFixed(2)}
       </div>
-      <div style={{fontSize: 15, color:'#9CA3AF', marginTop: 4}}>
-        Conferma quando la transazione è completata
+
+      {/* Il contatore e' l'unica cosa che si muove: senza, una schermata
+          ferma non distingue "sta aspettando" da "si e' piantata". */}
+      <div style={{fontSize: 17, color:'#6B7280', marginBottom: 24, textAlign:'center'}}>
+        Tavolo {tavolo.id} · {mmss}
+      </div>
+
+      <div style={{display:'flex', gap: 8}}>
+        <button onClick={onRitira} style={btnSecondaryV2}>Ritira</button>
+        <button onClick={onClose} style={btnPrimaryV2}>Chiudi</button>
       </div>
     </div>
+  );
+}
+
+// Canali già incassati su questo conto — stessi colori della sezione conti
+// in Contabilità, così un pagamento con l'app si riconosce a colpo d'occhio
+// in tutti e due i posti.
+const PAG_META = {
+  contanti: { label:'Contanti', ink:'#0F766E', bg:'#CCFBF1' },
+  carta:    { label:'Carta',    ink:'#1D4ED8', bg:'#DBEAFE' },
+  byup:     { label:'Byup app', ink:'#7C3AED', bg:'#EDE9FE' },
+};
+
+function PagamentiConto({ pagamenti }) {
+  // Niente pagamenti, niente blocco: uno stato vuoto qui sarebbe solo
+  // un'altra cosa da leggere in una schermata già piena.
+  if (!pagamenti || pagamenti.length === 0) return null;
+  const totale = pagamenti.reduce((s, p) => s + p.amount, 0);
+
+  return (
+    <>
+      <div style={{height: 1, background:'#E5E7EB', margin:'0 -22px 16px'}}/>
+      <div style={{marginBottom: 18}}>
+        <div style={{
+          display:'flex', alignItems:'baseline', justifyContent:'space-between',
+          gap: 10, marginBottom: 10,
+        }}>
+          <span style={{
+            fontSize: 14.5, color:'#6B7280', fontWeight: 800,
+            letterSpacing: 0.6, textTransform:'uppercase',
+          }}>Già incassato</span>
+          <span style={{
+            fontSize: 16.5, fontWeight: 800, color:'#0F1115',
+            fontVariantNumeric:'tabular-nums',
+          }}>€{totale.toFixed(2)}</span>
+        </div>
+
+        <div style={{display:'flex', flexDirection:'column', gap: 6}}>
+          {pagamenti.map(p => {
+            const meta = PAG_META[p.method] || PAG_META.contanti;
+            return (
+              <div key={p.id} style={{
+                display:'flex', alignItems:'center', gap: 10,
+                padding:'9px 12px', background:'#fff',
+                border:'1px solid #F0F2F5', borderRadius: 10,
+              }}>
+                <span style={{
+                  padding:'3px 9px', borderRadius: 999, flexShrink: 0,
+                  background: meta.bg, color: meta.ink,
+                  fontSize: 14, fontWeight: 700,
+                }}>{meta.label}</span>
+                <span style={{
+                  flex: 1, minWidth: 0, fontSize: 15, color:'#9CA3AF',
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                }}>{[p.chi, p.ora].filter(Boolean).join(' · ')}</span>
+                <span style={{
+                  fontSize: 16, fontWeight: 700, color:'#0F1115',
+                  fontVariantNumeric:'tabular-nums',
+                }}>€{p.amount.toFixed(2)}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Niente scorciatoia a Contabilità: sarebbe un cambio di pagina a
+            conto aperto, con il cliente al tavolo che aspetta. Il rimborso
+            si fa da lì quando è il suo momento — qui basta vedere che quei
+            soldi sono già arrivati. */}
+      </div>
+    </>
   );
 }
 

@@ -32,6 +32,44 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
   const exitMergeMode = () => { setMergeMode(false); setMergeSel(new Set()); };
   React.useEffect(() => { if (view !== 'mappa' && mergeMode) exitMergeMode(); }, [view]);
 
+  // ── Conti in attesa di incasso ──────────────────────────────────────
+  // Stessa coda che Byup Staff mostra ai telefoni, vista dal lato di chi la
+  // riempie. Sta qui e non dentro la finestra di saldo: chi smista in cassa
+  // deve poterci dare un'occhiata senza entrare nello schermo che i conti
+  // li modifica.
+  const [attesaOpen, setAttesaOpen] = React.useState(false);
+  const [, setAttesaTick] = React.useState(0);
+  const bumpAttesa = setAttesaTick;
+  const inAttesa = (window.SALA_TAVOLI || SALA_TAVOLI).filter(t => t.incasso);
+
+  // Il finto esito del pagamento vive qui e non nella finestra di saldo: se
+  // stesse là, chiudendo la finestra il conto resterebbe in coda per sempre
+  // — e in produzione il saldo arriva dal server, non da chi sta guardando.
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      let cambiato = false;
+      (window.SALA_TAVOLI || SALA_TAVOLI).forEach(t => {
+        if (t.incasso && Date.now() - t.incasso.inviato >= PAY_FINE) {
+          t.incasso = null;
+          t.daIncassare = 0;
+          t.contoSaldato = true;
+          cambiato = true;
+        }
+      });
+      if (cambiato || inAttesa.length > 0) bumpAttesa(n => n + 1);
+    }, 500);
+    return () => clearInterval(id);
+  }, [inAttesa.length]);
+
+  // Il pannello si chiude da solo se la coda si svuota: restare aperto su
+  // una lista vuota sembra un errore.
+  React.useEffect(() => { if (inAttesa.length === 0) setAttesaOpen(false); }, [inAttesa.length]);
+
+  function ritiraDallaCoda(tavolo) {
+    tavolo.incasso = null;
+    bumpAttesa(n => n + 1);
+  }
+
   // Esclude i tavoli "uniti" (mergedWith): non sono entità autonome, fanno parte del source.
   const tavoliBase = (window.SALA_TAVOLI || SALA_TAVOLI).filter(t => !t.mergedWith);
   const counts = {
@@ -190,6 +228,37 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 
           <span style={{flex: 1}}/>
 
+          {/* Conti aperti — non e' uno stato della sala ma un rimando alla
+              Contabilita': sta con il selettore sala e lo schermo intero, non
+              fra i chip di stato. Spostandolo qui la riga dei filtri torna a
+              respirare e il contatore degli incassi in attesa ci entra senza
+              mandare niente a capo. Nascosto a zero. */}
+          {(window.SALA_CONTI_APERTI || []).length > 0 && (
+            <button
+              onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
+              title="Apri la Contabilità con il filtro Da saldare attivo"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                padding: '4px 10px', borderRadius: 8,
+                background: PN.WHITE_HUSH, border: `1px solid ${PN.BORDER_HAIR}`,
+                boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'border-color 150ms, background 150ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = PN.WHITE; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_HAIR; e.currentTarget.style.background = PN.WHITE_HUSH; }}
+            >
+              <span style={{
+                fontSize: 16.5, fontWeight: 700, color: PN.TEXT,
+                fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
+              }}>{(window.SALA_CONTI_APERTI || []).length}</span>
+              <span style={{fontSize: 15, color: PN.MUTED}}>
+                Conti aperti
+              </span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color: PN.MUTED}}><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </button>
+          )}
+
           <SaSelect value={room} onChange={setRoom} options={['Sala principale','Sala terrazza','Privé']}/>
 
           {/* Fullscreen — affiancato al select sala, estrema destra */}
@@ -215,8 +284,12 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
         {/* Divider orizzontale */}
         <div style={{height: 1, background: PN.BORDER_HAIR, margin: '10px -14px'}}/>
 
-        {/* Riga 2 — Chip di stato (filtri) + Riempimento */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
+        {/* Riga 2 — Solo stato della sala: i filtri, la segnalazione e il
+            contatore degli incassi in attesa. Tutto ancorato a sinistra,
+            così un elemento che compare o sparisce non sposta gli altri.
+            Il wrap resta come rete: su finestre molto strette va a capo
+            invece di spingere fuori schermo. */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', rowGap: 8}}>
           {kpiCards.map(kpi => {
             const isActive = filters.has(kpi.key);
             return (
@@ -292,34 +365,88 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             }}>{alertCount}</span>
           </button>
 
-          <span style={{flex: 1}}/>
+          {/* In attesa di incasso — la coda vista dal lato di chi la riempie.
+              Nascosto a zero: un contatore fermo su 0 è rumore fisso, e per
+              quasi tutti i locali resterà a 0 quasi sempre. */}
+          {inAttesa.length > 0 && (
+            <div style={{position:'relative', flexShrink: 0}}>
+              <button
+                onClick={() => setAttesaOpen(o => !o)}
+                title="Conti inviati a Byup Staff e non ancora saldati"
+                style={{
+                  display:'flex', alignItems:'center', gap: 6,
+                  padding:'4px 10px', borderRadius: 8,
+                  background: attesaOpen ? '#FEF3C7' : PN.WHITE_HUSH,
+                  border: `1px solid ${attesaOpen ? '#B4530955' : PN.BORDER_HAIR}`,
+                  boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
+                  cursor:'pointer', fontFamily:'inherit',
+                  transition:'border-color 150ms, background 150ms',
+                }}>
+                <span aria-hidden="true" style={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  background: '#B45309',
+                  animation: 'saldaPayPulse 1.6s ease-in-out infinite',
+                }}/>
+                <span style={{
+                  fontSize: 16.5, fontWeight: 700, color:'#B45309',
+                  fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em',
+                }}>{inAttesa.length}</span>
+                <span style={{fontSize: 15, color:'#B45309'}}>
+                  in attesa di incasso
+                </span>
+              </button>
 
-          {/* Conti aperti — stato della sala come il riempimento, ma cliccabile:
-              porta in Contabilità col filtro "da saldare" attivo. Nascosto a zero. */}
-          {(window.SALA_CONTI_APERTI || []).length > 0 && (
-            <button
-              onClick={() => { window.location.href = 'byup Contabilita.html?tab=conti&filter=da_saldare'; }}
-              title="Apri la Contabilità con il filtro Da saldare attivo"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-                padding: '4px 10px', borderRadius: 8,
-                background: PN.WHITE_HUSH, border: `1px solid ${PN.BORDER_HAIR}`,
-                boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
-                cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'border-color 150ms, background 150ms',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = PN.WHITE; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_HAIR; e.currentTarget.style.background = PN.WHITE_HUSH; }}
-            >
-              <span style={{
-                fontSize: 16.5, fontWeight: 700, color: PN.TEXT,
-                fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
-              }}>{(window.SALA_CONTI_APERTI || []).length}</span>
-              <span style={{fontSize: 15, color: PN.MUTED}}>
-                Conti aperti
-              </span>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color: PN.MUTED}}><path d="M7 17 17 7M8 7h9v9"/></svg>
-            </button>
+              {attesaOpen && (
+                <>
+                  {/* Chiude cliccando fuori: il pannello è una sbirciata, non
+                      un posto dove si sosta. */}
+                  <div onClick={() => setAttesaOpen(false)}
+                    style={{position:'fixed', inset:0, zIndex: 40}}/>
+                  <div style={{
+                    position:'absolute', top:'calc(100% + 8px)', right: 0, zIndex: 41,
+                    width: 340, background:'#fff', borderRadius: 12,
+                    border:`1px solid ${PN.BORDER_HAIR}`,
+                    boxShadow:'0 12px 34px rgba(15,17,21,0.16)',
+                    overflow:'hidden',
+                  }}>
+                    <div style={{
+                      padding:'10px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+                      fontSize: 13.5, fontWeight: 800, color: PN.MUTED,
+                      letterSpacing: 0.5, textTransform:'uppercase',
+                    }}>In attesa di incasso</div>
+
+                    {inAttesa.map(t => {
+                      const sec = Math.floor((Date.now() - t.incasso.inviato) / 1000);
+                      const mmss = `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
+                      return (
+                        <div key={t.incasso.id} style={{
+                          display:'flex', alignItems:'center', gap: 10,
+                          padding:'11px 14px',
+                          borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+                        }}>
+                          <div style={{flex:1, minWidth:0}}>
+                            <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>
+                              Tavolo {t.id}
+                            </div>
+                            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>
+                              €{t.incasso.importo.toFixed(2)} · {mmss}
+                            </div>
+                          </div>
+                          {/* "Ritira" e non "Annulla": il conto torna
+                              modificabile in cassa, non sparisce. */}
+                          <button onClick={() => ritiraDallaCoda(t)} style={{
+                            padding:'6px 12px', borderRadius: 999,
+                            background:'#fff', border:`1px solid ${PN.BORDER}`,
+                            fontSize: 14.5, fontWeight: 700, color: PN.TEXT,
+                            cursor:'pointer', fontFamily:'inherit', flexShrink: 0,
+                          }}>Ritira</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
         </div>
