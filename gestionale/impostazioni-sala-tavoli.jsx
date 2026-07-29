@@ -1271,16 +1271,20 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         {/* Posti: etichetta inline invece che sopra — il badge occupa gia
             l'altezza di due righe, e una terza riga allungava la card. */}
         <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 8}}>
-          {/* Sedia a riposo, «posti» al passaggio: l'etichetta serve la prima
-              volta e poi e rumore ripetuto otto volte, ma toglierla del tutto
-              lascerebbe un'icona da indovinare. Lo slot ha larghezza fissa,
-              cosi nello scambio lo stepper non si sposta. */}
+          {/* La sedia c'e sempre — e lei a dire cos'e quel numero — e al
+              passaggio le si affianca la parola. La parola resta nel flusso
+              anche da invisibile: cosi lo stepper non si sposta quando compare,
+              e lo spazio vuoto a riposo e il posto che le tiene. */}
           <span style={{
-            width: 36, flexShrink: 0,
-            display:'inline-flex', alignItems:'center', justifyContent:'center',
+            flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 5,
             fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
           }}>
-            {hover ? 'posti' : <BuIcons.chair size={15}/>}
+            <BuIcons.chair size={15}/>
+            <span style={{
+              opacity: hover ? 1 : 0,
+              transform: hover ? 'none' : 'translateX(-3px)',
+              transition:'opacity .16s ease-out, transform .16s ease-out',
+            }}>posti</span>
           </span>
           <div onClick={e => e.stopPropagation()} style={{display:'inline-flex', alignItems:'center', gap: 0, border:`1px solid ${PN.BORDER}`, borderRadius: 7, overflow:'hidden'}}>
             <button onClick={(e) => { e.stopPropagation(); onUpdate({coperti: Math.max(1, t.coperti - 1)}); }} style={{
