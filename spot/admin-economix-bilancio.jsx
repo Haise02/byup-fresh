@@ -14,6 +14,7 @@ function EcoModaleDocumento({ fattura, onChiudi }) {
         <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:5}}>{fattura.fornitore}</div>
         <div style={{fontSize:12.6, color:ADM.MUTED, marginBottom:16}}>
           {fattura.numero} · {cfFmt(fattura.data)} · {fattura.id}
+          {fattura.piva && ` · P.IVA ${fattura.piva}`}
         </div>
 
         <div style={{display:'flex', alignItems:'center', gap:13, padding:'15px 16px', borderRadius:12,

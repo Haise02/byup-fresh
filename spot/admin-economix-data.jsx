@@ -219,17 +219,17 @@ const ECO_FISSI = [
 // i dati si LEGGONO, non si indovinano con l'OCR. `origine` dice se la riga
 // verrebbe da lì o da un caricamento manuale.
 const ECO_FATTURE = [
-  { id:'FT-2026-041', fornitore:'Amazon Web Services', numero:'EUINGB26-1180432', data:new Date('2026-07-03'),
+  { id:'FT-2026-041', fornitore:'Amazon Web Services', numero:'EUINGB26-1180432', piva:'IE9827384L', data:new Date('2026-07-03'),
     imponibile:412.80, iva:0, totale:412.80, categoria:'Cloud', voce:'aws-compute',
     origine:'sdi', file:'AWS-2026-06.xml', stato:'riconciliata',
     nota:'Reverse charge: IVA assolta dal committente.' },
-  { id:'FT-2026-040', fornitore:'Studio Bianchi & Associati', numero:'42/2026', data:new Date('2026-06-28'),
+  { id:'FT-2026-040', fornitore:'Studio Bianchi & Associati', numero:'42/2026', piva:'IT04182730875', data:new Date('2026-06-28'),
     imponibile:3200, iva:704, totale:3904, categoria:'Consulenze', voce:'F-04',
     origine:'sdi', file:'Bianchi-42-2026.xml', stato:'riconciliata' },
-  { id:'FT-2026-039', fornitore:'Google Cloud EMEA', numero:'IE-2026-77120', data:new Date('2026-06-30'),
+  { id:'FT-2026-039', fornitore:'Google Cloud EMEA', numero:'IE-2026-77120', piva:'IE6388047V', data:new Date('2026-06-30'),
     imponibile:88.40, iva:0, totale:88.40, categoria:'API', voce:'maps',
     origine:'sdi', file:'Google-2026-06.xml', stato:'riconciliata' },
-  { id:'FT-2026-038', fornitore:'Studio Marchetti', numero:'118/2026', data:new Date('2026-06-30'),
+  { id:'FT-2026-038', fornitore:'Studio Marchetti', numero:'118/2026', piva:'IT03918260484', data:new Date('2026-06-30'),
     imponibile:280, iva:61.60, totale:341.60, categoria:'Consulenze', voce:'F-03',
     origine:'manuale', file:'Marchetti-118.pdf', stato:'da-riconciliare',
     nota:'Caricata a mano prima che il collegamento SDI fosse attivo.' },
