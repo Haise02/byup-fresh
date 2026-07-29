@@ -16,6 +16,7 @@ const NAV_MAIN = [
 const NAV_SYSTEM = [
   // La nav di sistema è per la governance, non per l'operatività quotidiana:
   // la conformità si consulta quando serve, come le impostazioni.
+  { id: 'economix',     label: 'Economix',           icon: 'money' },
   { id: 'conformita',   label: 'Conformità',         icon: 'shield',
     badge: ADEMPIMENTI.filter(a => { const s = cfStatoAdempimento(a); return s.stato === 'scaduto' || s.stato === 'mai'; }).length || null },
   { id: 'team',         label: 'Impostazioni Admin', icon: 'shieldUserFill' },
@@ -180,6 +181,7 @@ function AdminApp({ tweaks }) {
     comunicazioni: { t:'Comunicazioni', s:'Email, richieste e segnalazioni dai locali Byup Spot' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Impostazioni Admin', s:'Team, permessi, configurazione e diagnostica della piattaforma' },
+    economix:     { t:'Economix', s:'Costi, ricavi e proiezione di Byup' },
     conformita:   { t:'Conformità', s:'Registri ed evidenze per ISO/IEC 27001 e ISO 9001' },
     profilo:      { t:'Profilo', s:'Account e sicurezza' },
   };
@@ -340,6 +342,7 @@ function AdminApp({ tweaks }) {
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
           {route === 'comunicazioni' && <AdmComunicazioniPage openId={commOpen}/>}
           {route === 'team'         && <AdmTeamPage search={''}/>}
+          {route === 'economix'     && (window.Economix ? <Economix/> : null)}
           {route === 'conformita'   && <AdmConformitaPage initialTab={confTab} onNavRoute={(r)=>setRoute(r)}/>}
           {route === 'promozioni'   && <AdmPromozioniPage onNew={()=>openMessageModal('utenti', [])}/>}
           {route === 'profilo'      && <ProfiloPage/>}

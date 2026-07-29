@@ -29,11 +29,19 @@ const REGIONI = [
   'Emilia-Romagna', 'Piemonte', 'Puglia', 'Toscana', 'Liguria',
 ];
 
+// Listino allineato a quello del gestionale (ACC_PIANI in gestionale/account-data.jsx),
+// che e la fonte di verita: qui c'erano 49/99/249, li 46,99/134,99/250. `price`
+// e il mensile con fatturazione annuale — quello su cui sta la maggior parte
+// della base — `priceMensile` il mensile puro.
+//
+// `ordiniInclusi` non conta ordini grezzi ma TRANSAZIONI PESATE: un pagamento
+// in app pesa 0,5, uno in cassa 1,0 (app/Contesto-App.md §C). E la leva piu
+// interessante del modello — spingere l'app dimezza la quota consumata.
 const PIANI = [
-  { id: 'free',     label: 'Gratuito',     price: 0,   color: 'PLAN_FREE' },
-  { id: 'starter',  label: 'Starter',  price: 49,  color: 'PLAN_STARTER' },
-  { id: 'plus',     label: 'Plus',     price: 99,  color: 'PLAN_PLUS' },
-  { id: 'business', label: 'Business', price: 249, color: 'PLAN_BUSINESS' },
+  { id: 'free',     label: 'Gratuito', price: 0,      priceMensile: 0,      ordiniInclusi: 550,   ordineExtra: 0.45, color: 'PLAN_FREE' },
+  { id: 'starter',  label: 'Starter',  price: 46.99,  priceMensile: 54.99,  ordiniInclusi: 1850,  ordineExtra: 0.34, color: 'PLAN_STARTER' },
+  { id: 'plus',     label: 'Plus',     price: 134.99, priceMensile: 155.99, ordiniInclusi: 7500,  ordineExtra: 0.23, color: 'PLAN_PLUS' },
+  { id: 'business', label: 'Business', price: 250,    priceMensile: 290,    ordiniInclusi: 15000, ordineExtra: 0.12, color: 'PLAN_BUSINESS' },
 ];
 
 // Helper deterministico
