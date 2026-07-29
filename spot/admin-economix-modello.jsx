@@ -349,6 +349,94 @@ function ecoRiacquisti(mesiProiettati) {
   return out;
 }
 
+// ─── Flussi di cassa a CONSUNTIVO ──────────────────────────────────────────
+// La tab Cassa guarda indietro: gli ultimi dodici mesi piu quello in corso. Il
+// saldo si ricostruisce ALL'INDIETRO dal saldo di oggi, che e l'unico dato
+// certo — quello letto dalla banca. Costruirlo in avanti da un saldo iniziale
+// inventato avrebbe dato una curva che non finisce dove finisce la realta.
+function ecoFlussiStorici(mix) {
+  const mesi = ECO_STORICO.slice(-13);
+  const righe = mesi.map((m, i) => {
+    const ric = ecoRicavi(m, mix);
+    const dataM = new Date(m.data.getFullYear(), m.data.getMonth(), 1);
+    const frazione = m.corrente ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
+    const ricavi = ric.totale * frazione;
+    const ivaIncassata = ricavi * 0.22;
+    const costi = (ecoCostiVariabili(m) * frazione) + ecoFissiDelMese(dataM);
+    const ivaAcquisti = ecoIvaAcquisti(dataM);
+    const pagamenti = costi + ivaAcquisti;
+    const iva = Math.max(0, ivaIncassata - ivaAcquisti);
+    const scad = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === m.data.getFullYear()
+      && x.quando.getMonth() === m.data.getMonth()).reduce((t, x) => t + x.importo, 0);
+    const incassi = ricavi + ivaIncassata;
+    return { d:m, ricavi, ivaIncassata, incassi, costi, ivaAcquisti, pagamenti,
+      iva, scadenze:scad, netto: incassi - pagamenti - iva - scad, i };
+  });
+  // Dal fondo verso l'alto: l'ultimo saldo e quello vero.
+  let saldo = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
+  for (let k = righe.length - 1; k >= 0; k--) {
+    righe[k].saldo = saldo;
+    saldo -= righe[k].netto;
+  }
+  return righe;
+}
+
+// ─── Liquidazione IVA ──────────────────────────────────────────────────────
+// Due periodi contano sempre: quello CHIUSO che sta per essere versato, e
+// quello IN MATURAZIONE che si sta accumulando adesso. Mostrarne uno solo
+// lascia scoperta meta della domanda.
+function ecoTrimestre(d) { return Math.floor(d.getMonth() / 3); }
+function ecoScadenzaIva(anno, periodo, regime) {
+  if (regime === 'mensile') {
+    // entro il 16 del mese successivo
+    return new Date(anno, periodo + 1, 16);
+  }
+  // trimestrale: 16 del secondo mese dopo il trimestre; il quarto slitta a marzo
+  if (periodo === 3) return new Date(anno + 1, 2, 16);
+  return new Date(anno, periodo * 3 + 4, 16);
+}
+// Ultimo giorno del periodo. Sul trimestrale non e il mese prima della
+// scadenza: la scadenza e il 16 del SECONDO mese dopo, quindi il periodo chiude
+// due mesi prima — 3o trimestre, versamento 16 novembre, chiusura 30 settembre.
+function ecoFinePeriodoIva(p) {
+  if (p.regime === 'mensile') return new Date(p.anno, p.periodo + 1, 0);
+  return new Date(p.anno, p.periodo * 3 + 3, 0);
+}
+
+function ecoPeriodoIva(anno, periodo, regime, mix) {
+  const mesi = ECO_STORICO.filter(m => m.anno === anno && (regime === 'mensile'
+    ? m.data.getMonth() === periodo
+    : Math.floor(m.data.getMonth() / 3) === periodo));
+  let vendite = 0, acquisti = 0;
+  mesi.forEach(m => {
+    const frazione = m.corrente ? ECO_OGGI.getDate() / ecoGiorniNelMese(ECO_OGGI) : 1;
+    vendite += ecoRicavi(m, mix).totale * frazione * 0.22;
+    acquisti += ecoIvaAcquisti(new Date(m.data.getFullYear(), m.data.getMonth(), 1));
+  });
+  const saldo = vendite - acquisti;
+  const interessi = regime === 'trimestrale' && saldo > 0
+    ? saldo * ECO_CASSA.interessiTrimestrale / 100 : 0;
+  return { anno, periodo, regime, mesi, vendite, acquisti, saldo, interessi,
+    daVersare: Math.max(0, saldo) + interessi,
+    scadenza: ecoScadenzaIva(anno, periodo, regime),
+    etichetta: regime === 'mensile'
+      ? `${ECO_MESI[periodo]} ${String(anno).slice(2)}`
+      : `${periodo + 1}º trimestre ${anno}` };
+}
+function ecoLiquidazioneIva(mix) {
+  const regime = ECO_CASSA.regimeIva;
+  const anno = ECO_OGGI.getFullYear();
+  const corrente = regime === 'mensile' ? ECO_OGGI.getMonth() : ecoTrimestre(ECO_OGGI);
+  const prec = corrente === 0
+    ? { anno: anno - 1, periodo: regime === 'mensile' ? 11 : 3 }
+    : { anno, periodo: corrente - 1 };
+  const chiuso = ecoPeriodoIva(prec.anno, prec.periodo, regime, mix);
+  const inCorso = ecoPeriodoIva(anno, corrente, regime, mix);
+  chiuso.giorni = Math.ceil((chiuso.scadenza.getTime() - Date.now()) / 86400000);
+  inCorso.giorni = Math.ceil((inCorso.scadenza.getTime() - Date.now()) / 86400000);
+  return { regime, chiuso, inCorso };
+}
+
 // ─── Scadenzario ───────────────────────────────────────────────────────────
 // Vista unica di tutto cio che deve uscire: i costi ricorrenti impostati nella
 // tab Costi, le una tantum con data futura, le scadenze con calendario proprio
@@ -524,6 +612,9 @@ window.ecoBanca = ecoBanca;
 window.ecoPrepagati = ecoPrepagati;
 window.ecoRiacquisti = ecoRiacquisti;
 window.ecoIvaAcquisti = ecoIvaAcquisti;
+window.ecoFlussiStorici = ecoFlussiStorici;
+window.ecoFinePeriodoIva = ecoFinePeriodoIva;
+window.ecoLiquidazioneIva = ecoLiquidazioneIva;
 window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;
 window.ecoScadenzario = ecoScadenzario;

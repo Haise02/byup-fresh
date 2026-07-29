@@ -259,6 +259,15 @@ const ECO_FATTURE = [
 const ECO_CASSA = {
   saldoBanca: 84200,
   saldoContanti: 0,
+  // Liquidazione IVA. Mensile e il regime naturale, con versamento entro il 16
+  // del mese successivo. La TRIMESTRALE e opzionale ed e accessibile sotto i
+  // 500.000 euro di ricavi da servizi nell'anno precedente: Byup e ampiamente
+  // dentro. Si versa entro il 16 del secondo mese dopo il trimestre — 16 maggio,
+  // 16 agosto, 16 novembre — e il quarto trimestre slitta al 16 marzo con la
+  // dichiarazione annuale. Costa l'1% di interessi, e in cambio da tre
+  // adempimenti l'anno invece di dodici.
+  regimeIva: 'trimestrale',   // 'mensile' | 'trimestrale'
+  interessiTrimestrale: 1,    // %
   giorniIncasso: 2,          // addebito ricorrente: quasi immediato
   giorniPagamento: 30,       // termini medi verso fornitori
   fidoBancario: 0,

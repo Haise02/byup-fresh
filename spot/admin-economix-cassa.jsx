@@ -48,7 +48,9 @@ function EcoCassa({ mix, leve, forza }) {
   // Dodici mesi e non sei: con sei le voci annuali — la polizza a gennaio, il
   // dominio a febbraio — non comparirebbero mai, e lo scadenzario sembrerebbe
   // averle dimenticate proprio mentre dichiara di mostrarle tutte.
-  const meseCorr = flussi.find(x => x.d.primo) || flussi[0];
+  const storici = ecoFlussiStorici(mix);
+  const liq = ecoLiquidazioneIva(mix);
+  const meseCorr = storici[storici.length - 1];
   const scadenze = ecoScadenzario(12);
   const inScadenza = scadenze.filter(x => x.giorni <= 0).length;
   // Uscite ancora da saldare nel mese in corso: quelle gia pagate non ci sono
@@ -69,7 +71,7 @@ function EcoCassa({ mix, leve, forza }) {
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
       <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:11}}>
         {[
-          { et:'Cassa oggi', v:ecoEur(saldoOggi),
+          { et:'Cassa', v:ecoEur(saldoOggi),
             tono: banca && banca.stato === 'errore' ? ADM.DANGER : null,
             n: !banca ? 'saldo inserito a mano'
               : banca.stato === 'attivo'
@@ -125,49 +127,84 @@ function EcoCassa({ mix, leve, forza }) {
         </div>
       )}
 
-      {/* La curva del saldo: dove scende sotto zero e l'unica cosa da vedere. */}
+      {/* La liquidazione IVA: due periodi contano sempre, quello che sta per
+          essere versato e quello che si sta accumulando. */}
       <div>
-        <div style={ECO_H}>Saldo mese per mese</div>
-        <div style={{...ECO_CARD, padding:'16px 18px'}}>
-          <div style={{display:'flex', alignItems:'flex-end', gap:8, height:96, marginBottom:10}}>
-            {flussi.map(x => {
-              const alt = maxSaldo === minSaldo ? 50
-                : Math.max(4, Math.round((x.saldo - Math.min(0, minSaldo)) / (maxSaldo - Math.min(0, minSaldo)) * 88));
-              return (
-                <div key={x.d.mese} style={{flex:1, minWidth:0, display:'flex', flexDirection:'column',
-                  alignItems:'center', gap:5}}>
-                  <span style={{fontSize:10.8, fontWeight:700, color: x.saldo < 0 ? ADM.DANGER : ADM.MUTED, ...ECO_NUM}}>
-                    {Math.round(x.saldo / 1000)}k
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={{...ECO_H, marginBottom:0}}>Liquidazione IVA</div>
+          <span style={{fontSize:12.4, color:ADM.MUTED}}>
+            regime {liq.regime}
+            {liq.regime === 'trimestrale'
+              ? ' · si versa entro il 16 del secondo mese dopo il trimestre, con l’1% di interessi'
+              : ' · si versa entro il 16 del mese successivo'}
+          </span>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+          {[{ p:liq.chiuso, et:'Da versare', chiuso:true }, { p:liq.inCorso, et:'In maturazione', chiuso:false }].map(({ p, et, chiuso }) => (
+            <div key={et} style={{...ECO_CARD, padding:'16px 18px'}}>
+              <div style={{display:'flex', alignItems:'baseline', gap:9, marginBottom:12}}>
+                <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                  letterSpacing:'0.05em'}}>{et}</div>
+                <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:700}}>{p.etichetta}</div>
+                <div style={{flex:1}}/>
+                {chiuso && (
+                  <span style={{fontSize:12, fontWeight:700,
+                    color: p.giorni < 15 ? ADM.WARN : ADM.MUTED}}>
+                    {p.giorni < 0 ? `scaduta da ${-p.giorni} giorni` : `fra ${p.giorni} giorni`}
                   </span>
-                  <span style={{width:'100%', height:alt, borderRadius:5,
-                    background: x.saldo < 0 ? ADM.PINK : 'rgba(49,53,61,0.16)'}}/>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{display:'flex', gap:8}}>
-            {flussi.map(x => (
-              <div key={x.d.mese} style={{flex:1, minWidth:0, textAlign:'center', fontSize:10.8,
-                color:ADM.MUTED_SOFT}}>{x.d.mese}</div>
-            ))}
-          </div>
+                )}
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14, marginBottom:13}}>
+                {[['IVA sulle vendite', p.vendite], ['IVA sugli acquisti', -p.acquisti],
+                  ['Saldo', p.saldo]].map(([k, v], n) => (
+                  <div key={k}>
+                    <div style={{fontSize:10.8, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                      letterSpacing:'0.05em'}}>{k}</div>
+                    <div style={{fontSize: n === 2 ? 19 : 15.5, fontWeight: n === 2 ? 800 : 600,
+                      marginTop:4, ...ECO_NUM,
+                      color: n === 2 ? (v > 0 ? ADM.TEXT : ADM.OK) : ADM.MUTED}}>{ecoEur2(v)}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{paddingTop:12, borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+                alignItems:'baseline', gap:10}}>
+                <span style={{fontSize:12.4, color:ADM.MUTED, flex:1}}>
+                  {p.saldo <= 0
+                    ? 'Credito verso l’erario: si porta al periodo successivo, non si versa nulla.'
+                    : chiuso
+                      ? `Da versare entro il ${cfFmt(p.scadenza)}${p.interessi > 0 ? `, interessi ${ecoEur2(p.interessi)} inclusi` : ''}`
+                      : `Chiude il ${cfFmt(ecoFinePeriodoIva(p))}, si versa il ${cfFmt(p.scadenza)}`}
+                </span>
+                <span style={{fontSize:17, fontWeight:800, ...ECO_NUM,
+                  color: p.daVersare > 0 ? ADM.TEXT : ADM.OK}}>
+                  {p.daVersare > 0 ? ecoEur2(p.daVersare) : '—'}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       <div>
-        <div style={ECO_H}>Entrate e uscite</div>
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={{...ECO_H, marginBottom:0}}>Entrate e uscite</div>
+          <span style={{fontSize:12.4, color:ADM.MUTED}}>
+            ultimi dodici mesi più {ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]} in corso · il saldo è
+            ricostruito all’indietro dal saldo di oggi, che è l’unico dato certo
+          </span>
+        </div>
         <div style={ECO_CARD}>
           <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI, gap:10}}>
             <div>Mese</div><div>Incassi</div><div>IVA incassata</div><div>Pagamenti</div>
             <div>IVA versata</div><div>Scadenze</div><div>Netto</div><div>Saldo</div>
           </div>
-          {flussi.map((x, i) => (
+          {storici.map((x, i) => (
             <div key={x.d.mese} style={{display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI,
               gap:10, alignItems:'center', padding:'11px 16px',
-              background: x.saldo < 0 ? ADM.DANGER_SOFT : x.d.primo ? '#FAFAFB' : '#fff',
-              borderBottom: i < flussi.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+              background: x.saldo < 0 ? ADM.DANGER_SOFT : x.d.corrente ? '#FAFAFB' : '#fff',
+              borderBottom: i < storici.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>
-                {x.d.mese}{x.d.primo && <span style={{fontSize:10.4, color:ADM.MUTED_SOFT, fontWeight:500}}> in corso</span>}
+                {x.d.mese}{x.d.corrente && <span style={{fontSize:10.4, color:ADM.MUTED_SOFT, fontWeight:500}}> in corso</span>}
               </div>
               <div style={{fontSize:12.8, color:ADM.OK, fontWeight:600, ...ECO_NUM}}>{ecoEur(x.ricavi)}</div>
               <div style={{fontSize:12.6, color:ADM.OK, ...ECO_NUM}}>{ecoEur(x.ivaIncassata)}</div>
