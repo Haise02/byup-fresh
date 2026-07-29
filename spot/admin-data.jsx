@@ -410,7 +410,10 @@ const RUOLI = {
   afc:         { label: 'AFC',        desc: 'Amministrazione, finanza e controllo', color: 'TEAL',      permessi: ['dashboard','economix','conformita'] },
   // ICT tiene account, accessi, tracce e salute dei sistemi: e il perimetro di
   // chi amministra la piattaforma, non di chi la usa.
-  ict:         { label: 'ICT',        desc: 'Sistemi, accessi e configurazione tecnica', color: 'INK',   permessi: ['dashboard','sicurezza','team'] },
+  // Le impostazioni della piattaforma sono leve commerciali — prezzi, piani,
+  // soglie — e restano al solo Super Admin: ICT amministra i sistemi, non decide
+  // quanto costa un piano.
+  ict:         { label: 'ICT',        desc: 'Sistemi, accessi e diagnostica', color: 'INK',            permessi: ['dashboard','sicurezza'] },
   hr:          { label: 'HR',         desc: 'Risorse umane e formazione del personale', color: 'AMBER',  permessi: ['dashboard','hr'] },
   // Ultimo = ultima colonna nella matrice Ruoli & Permessi. Sola visualizzazione.
   operations:  { label: 'Viewer',     desc: 'Sola visualizzazione della dashboard', color: 'PURPLE',    permessi: ['dashboard'] },

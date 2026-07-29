@@ -36,7 +36,13 @@ function rieRigheFormazione() {
     const scade = f.completatoIl ? cfMesi(f.completatoIl, f.validitaMesi) : null;
     const g = scade ? cfGiorniA(scade) : null;
     let stato;
-    if (!f.completatoIl)  stato = { key:'mai',     label:'Mai svolta',                  tono:'DANGER',  rank:0 };
+    // «Mai svolta» e «in corso» non sono la stessa cosa: la prima e un rilievo,
+    // la seconda e un corso partito che deve solo finire — e non deve stare in
+    // cima all'elenco insieme alle inadempienze.
+    if (!f.completatoIl && !f.avviatoIl)
+                          stato = { key:'mai',     label:'Mai svolta',                  tono:'DANGER',  rank:0 };
+    else if (!f.completatoIl)
+                          stato = { key:'in-corso',label:'In corso',                    tono:'WARN',    rank:2 };
     else if (g < 0)       stato = { key:'scaduta', label:`Scaduta da ${-g} giorni`,     tono:'DANGER',  rank:1 };
     else if (g <= 30)     stato = { key:'vicina',  label:`Scade fra ${g} giorni`,       tono:'WARN',    rank:2 };
     else                  stato = { key:'valida',  label:`Ancora ${g} giorni`,          tono:'NEUTRAL', rank:3 };
@@ -595,31 +601,188 @@ const RIE_GRID_REST = '1fr minmax(0,2.1fr) 1.05fr 1.35fr 1.05fr minmax(0,2fr)';
 
 const rieTonoEsito = (e) => e === 'riuscito' ? 'OK' : e === 'riuscito con osservazioni' ? 'WARN' : 'DANGER';
 
+// ─── Registrare una formazione ─────────────────────────────────────────────
+// Il campo sta FUORI dal componente: dichiararlo dentro lo farebbe rimontare a
+// ogni battitura e l'input perderebbe il fuoco a ogni carattere.
+function RieCampo({ etichetta, aiuto, span, children }) {
+  return (
+    <div style={span ? {gridColumn:'1 / -1'} : null}>
+      <label style={CF_LAB}>{etichetta}</label>
+      {children}
+      {aiuto && <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.45}}>{aiuto}</div>}
+    </div>
+  );
+}
+
+const RIE_VALIDITA = [12, 24, 36];
+const rieIso = (d) => d ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) : '';
+
+function RieModaleCorso({ riga, onChiudi, onSalva, onElimina }) {
+  const modifica = !!riga;
+  const f = riga ? riga.f : null;
+  const [b, setB] = useStateRie(() => f ? {
+    persona:f.persona, corso:f.corso,
+    stato: f.completatoIl ? 'completato' : 'in-corso',
+    data: rieIso(f.completatoIl || f.avviatoIl || ECO_OGGI),
+    validitaMesi:String(f.validitaMesi || 12),
+  } : {
+    persona:'', corso:'', stato:'completato',
+    data: rieIso(new Date()), validitaMesi:'12',
+  });
+  const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+  const completato = b.stato === 'completato';
+  // I corsi gia in registro sono la lista da cui si sceglie quasi sempre: un
+  // corso scritto due volte in due modi diversi e due corsi per chi conta.
+  const corsi = [...new Set(FORMAZIONE.map(x => x.corso))];
+  const persone = [...new Set(rieTeamAttivo().map(rieNome).concat(FORMAZIONE.map(x => x.persona)))].sort();
+  const ok = b.persona.trim().length > 1 && b.corso.trim().length > 2 && !!b.data;
+  const scade = completato && ok
+    ? cfMesi(new Date(b.data + 'T12:00:00'), parseInt(b.validitaMesi, 10)) : null;
+
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="corso" onClick={e=>e.stopPropagation()} style={{width:620, maxWidth:'92%', background:'#fff',
+        borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
+        <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
+            {modifica ? f.corso : 'Registrare una formazione'}
+          </div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            {modifica
+              ? `${f.persona} · registrata nel corso di formazione`
+              : 'Una riga per persona e per corso. La validità decide quando la formazione andrà rifatta.'}
+          </div>
+        </div>
+
+        <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
+          display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+          <RieCampo etichetta="Persona">
+            <input list="rie-persone" value={b.persona} onChange={e=>agg('persona', e.target.value)}
+              style={CF_INP} placeholder="Nome e cognome"/>
+            <datalist id="rie-persone">{persone.map(x => <option key={x} value={x}/>)}</datalist>
+          </RieCampo>
+          <RieCampo etichetta="Corso">
+            <input list="rie-corsi" value={b.corso} onChange={e=>agg('corso', e.target.value)}
+              style={CF_INP} placeholder="Titolo del corso"/>
+            <datalist id="rie-corsi">{corsi.map(x => <option key={x} value={x}/>)}</datalist>
+          </RieCampo>
+          <RieCampo etichetta="Stato">
+            <select value={b.stato} onChange={e=>agg('stato', e.target.value)} style={CF_INP}>
+              <option value="in-corso">In corso</option>
+              <option value="completato">Completato</option>
+            </select>
+          </RieCampo>
+          <RieCampo etichetta={completato ? 'Completato il' : 'Iniziato il'}
+            aiuto={completato ? null : 'Finché il corso è in corso non produce una scadenza.'}>
+            <input type="date" value={b.data} onChange={e=>agg('data', e.target.value)} style={CF_INP}/>
+          </RieCampo>
+          {completato && (
+            <RieCampo etichetta="Validità" span
+              aiuto={scade ? `Da rifare entro il ${cfFmt(scade)}.` : null}>
+              <select value={b.validitaMesi} onChange={e=>agg('validitaMesi', e.target.value)} style={CF_INP}>
+                {RIE_VALIDITA.map(v => <option key={v} value={v}>{v} mesi</option>)}
+              </select>
+            </RieCampo>
+          )}
+        </div>
+
+        <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          {modifica && (
+            <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, flexShrink:0}}
+              onClick={()=>onElimina(riga)}>Elimina</AdmButton>
+          )}
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
+            {ok ? (completato ? 'La riga entra come completata e inizia a contare la scadenza.'
+                              : 'La riga entra come in corso: nessuna scadenza finché non si completa.')
+                : 'Servono persona, corso e data.'}
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva(b)}>
+            {modifica ? 'Salva' : 'Aggiungi al registro'}
+          </AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RieConfermaElimina({ riga, onChiudi, onConferma }) {
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="elimina-corso" onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'92%',
+        background:'#fff', borderRadius:16, padding:'22px 24px',
+        boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+          Eliminare questa riga?
+        </div>
+        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
+          {riga.f.persona} · {riga.f.corso}. Sparisce dal registro e dal conteggio della copertura:
+          se la persona ha davvero fatto il corso, l’evidenza si perde.
+        </div>
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={onConferma}>Elimina</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CfFormazione() {
+  const [nuovo, setNuovo] = useStateRie(false);
+  const [modifica, setModifica] = useStateRie(null);
+  const [elimina, setElimina] = useStateRie(null);
+  const [, ridisegna] = useStateRie(0);
+  const forza = () => ridisegna(x => x + 1);
   const righe = rieRigheFormazione();
+
+  // Una riga del registro e una persona + un corso: salvarla vuol dire scrivere
+  // la data nel campo giusto a seconda dello stato, perche una formazione in
+  // corso non ha una data di completamento e non deve fingere di averla.
+  const daBozza = (b) => {
+    const d = new Date(b.data + 'T12:00:00');
+    return { persona:b.persona.trim(), corso:b.corso.trim(),
+      completatoIl: b.stato === 'completato' ? d : null,
+      avviatoIl:    b.stato === 'completato' ? null : d,
+      validitaMesi: parseInt(b.validitaMesi, 10) || 12 };
+  };
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:22, position:'relative'}}>
 
       <div>
-        {/* Titolo di blocco: e la sola cosa in questa tab, non l'intestazione di
-            una tabella fra altre. */}
-        <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
-          letterSpacing:'0.08em', marginBottom:12}}>Registro della formazione</div>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12}}>
+          <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
+            letterSpacing:'0.08em'}}>Registro della formazione</div>
+          <div style={{flex:1}}/>
+          <AdmButton variant="primary" size="sm" onClick={()=>setNuovo(true)}>Registra una formazione</AdmButton>
+        </div>
 
         <div style={CF_CARD}>
           <div style={{...CF_TH, display:'grid', gridTemplateColumns:RIE_GRID_FORM, gap:10}}>
             <div>Persona</div><div>Corso</div><div>Completato il</div><div>Scade il</div><div>Stato</div>
           </div>
           {righe.map((r, i) => (
-            <div key={r.f.persona + r.f.corso} style={{display:'grid', gridTemplateColumns:RIE_GRID_FORM, gap:10,
-              alignItems:'center', padding:'11px 16px',
+            <div key={r.f.persona + r.f.corso} className="adm-row-open" onClick={()=>setModifica(r)}
+              style={{display:'grid', gridTemplateColumns:RIE_GRID_FORM, gap:10,
+              alignItems:'center', padding:'11px 16px', cursor:'pointer',
               borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
               background: r.stato.tono === 'DANGER' ? '#FFFBFB' : '#fff'}}>
               <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.f.persona}</div>
               <div style={{fontSize:12.6, color:ADM.TEXT, lineHeight:1.35}}>{r.f.corso}</div>
-              <div style={{fontSize:12.6, color: r.f.completatoIl ? ADM.TEXT : ADM.DANGER, fontWeight: r.f.completatoIl ? 500 : 700}}>
-                {r.f.completatoIl ? cfFmt(r.f.completatoIl) : 'mai'}
+              <div style={{fontSize:12.6,
+                color: r.f.completatoIl ? ADM.TEXT : r.f.avviatoIl ? ADM.MUTED : ADM.DANGER,
+                fontWeight: r.f.completatoIl ? 500 : r.f.avviatoIl ? 500 : 700}}>
+                {r.f.completatoIl ? cfFmt(r.f.completatoIl) : r.f.avviatoIl ? '—' : 'mai'}
+                {!r.f.completatoIl && r.f.avviatoIl && (
+                  <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>dal {cfFmt(r.f.avviatoIl)}</div>
+                )}
               </div>
               <div style={{fontSize:12.6, color:ADM.MUTED}}>
                 {r.scade ? cfFmt(r.scade) : '—'}
@@ -632,6 +795,18 @@ function CfFormazione() {
 
       </div>
 
+      {nuovo && <RieModaleCorso onChiudi={()=>setNuovo(false)}
+        onSalva={(b)=>{ FORMAZIONE.push(daBozza(b)); setNuovo(false); forza(); }}/>}
+      {modifica && <RieModaleCorso key={modifica.f.persona + modifica.f.corso} riga={modifica}
+        onChiudi={()=>setModifica(null)} onElimina={(r)=>setElimina(r)}
+        onSalva={(b)=>{ Object.assign(modifica.f, daBozza(b)); setModifica(null); forza(); }}/>}
+      {elimina && <RieConfermaElimina riga={elimina}
+        onChiudi={()=>setElimina(null)}
+        onConferma={()=>{
+          const k = FORMAZIONE.indexOf(elimina.f);
+          if (k >= 0) FORMAZIONE.splice(k, 1);
+          setElimina(null); setModifica(null); forza();
+        }}/>}
     </div>
   );
 }

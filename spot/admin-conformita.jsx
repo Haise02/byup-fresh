@@ -314,5 +314,7 @@ window.CfPill = CfPill;
 window.CfDoc = CfDoc;
 window.CF_H = CF_H;
 window.CF_CARD = CF_CARD;
+window.CF_INP = CF_INP;
+window.CF_LAB = CF_LAB;
 window.CF_TH = CF_TH;
 window.AdmConformitaPage = AdmConformitaPage;

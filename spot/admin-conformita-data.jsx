@@ -310,7 +310,9 @@ const FORMAZIONE = [
   { persona:'Paola Esposito',  corso:'Consapevolezza sicurezza e phishing', completatoIl:new Date('2025-09-22'), validitaMesi:12 },
   { persona:'Marco Galli',     corso:'Consapevolezza sicurezza e phishing', completatoIl:new Date('2026-02-03'), validitaMesi:12 },
   { persona:'Elena Ricci',     corso:'Consapevolezza sicurezza e phishing', completatoIl:null, validitaMesi:12 },
-  { persona:'Nicola Ferrara',  corso:'Consapevolezza sicurezza e phishing', completatoIl:null, validitaMesi:12 },
+  // Un corso avviato e non ancora finito: «mai svolta» e «in corso» sono due
+  // situazioni diverse e la prima e un rilievo, la seconda no.
+  { persona:'Nicola Ferrara',  corso:'Consapevolezza sicurezza e phishing', completatoIl:null, avviatoIl:new Date('2026-07-20'), validitaMesi:12 },
   { persona:'Marco Rinaldi',   corso:'Gestione degli incidenti e data breach', completatoIl:new Date('2026-01-15'), validitaMesi:24 },
   { persona:'Sara Conti',      corso:'Gestione degli incidenti e data breach', completatoIl:new Date('2026-01-15'), validitaMesi:24 },
 ];
