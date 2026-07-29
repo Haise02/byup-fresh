@@ -16,7 +16,7 @@ const NAV_MAIN = [
 const NAV_SYSTEM = [
   // La nav di sistema è per la governance, non per l'operatività quotidiana:
   // la conformità si consulta quando serve, come le impostazioni.
-  { id: 'economix',     label: 'Economix',           icon: 'money' },
+  { id: 'economix',     label: 'Economix',           icon: 'euroFill' },
   { id: 'conformita',   label: 'Conformità',         icon: 'shield',
     badge: ADEMPIMENTI.filter(a => { const s = cfStatoAdempimento(a); return s.stato === 'scaduto' || s.stato === 'mai'; }).length || null },
   { id: 'team',         label: 'Impostazioni Admin', icon: 'shieldUserFill' },
