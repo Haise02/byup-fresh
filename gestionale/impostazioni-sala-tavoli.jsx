@@ -533,7 +533,7 @@ function ImpSalaTavoli() {
                     style={{
                       display:'block', padding: '12px 14px', position:'relative',
                       border: `1.5px solid ${isDragOver ? PN.PINK_DARK : (isOpen ? PN.PINK : PN.BORDER_SOFT)}`,
-                      background: isDragOver ? PN.PINK_SOFT : (isOpen ? PN.PINK_SOFT : PN.WHITE),
+                      background: isDragOver ? PN.PINK_SOFT : (isOpen ? PN.PINK_BG_SOFT : PN.WHITE),
                       borderRadius: 10, textAlign:'left',
                       cursor:'pointer', width:'100%',
                       transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
@@ -742,7 +742,7 @@ function ImpSalaTavoli() {
                 <div style={{
                   display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap',
                   padding:'10px 14px', marginBottom: 14,
-                  background: PN.PINK_SOFT, border: `1px solid ${PN.PINK}`, borderRadius: 9,
+                  background: PN.PINK_BG_SOFT, border: `1px solid rgba(255, 90, 95, 0.38)`, borderRadius: 9,
                 }}>
                   <span style={{fontSize: 15, fontWeight: 700, color: PN.PINK_DARK}}>
                     {selected.size} {selected.size===1?'tavolo selezionato':'tavoli selezionati'}
@@ -1102,9 +1102,9 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
   // percettibile. La pastiglia resta invece verde come il suo pallino: e
   // l'altra cosa, dice se il tavolo lavora, non se e acceso di selezione.
   const acc = t.disabled
-    ? { soft:'#F1F3F5',        ink:'#9CA3AF', strong:'#9CA3AF',     glow:'rgba(156, 163, 175, 0.50)', tint:'#F7F8F9',
+    ? { soft:'#F1F3F5', ring:'rgba(156, 163, 175, 0.55)', strong:'#9CA3AF',     glow:'rgba(156, 163, 175, 0.50)', tint:'#F7F8F9',
         pill:{ bg:'#F1F3F5',      ink: PN.MUTED, dot:'#9CA3AF', hover:'#E5E7EB' } }
-    : { soft: PN.PINK_BG_SOFT, ink: PN.PINK,  strong: PN.BTN_BRAND, glow:'rgba(255, 90, 95, 0.55)',   tint:'#FFF7F6',
+    : { soft: PN.WHITE, ring: PN.TEXT,                   strong: PN.BTN_BRAND, glow:'rgba(255, 90, 95, 0.55)',   tint:'#FFF7F6',
         pill:{ bg: PN.GREEN_SOFT, ink: PN.GREEN, dot: PN.GREEN, hover:'#D6F0DC' } };
 
   // Chiudi il submenu se il menu padre si richiude
@@ -1174,7 +1174,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
           background: selected ? acc.strong : acc.soft,
           boxShadow: selected
             ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 8px 18px -6px ${acc.glow}`
-            : `inset 0 0 0 2px ${acc.ink}55`,
+            : `inset 0 0 0 2px ${acc.ring}`,
           display:'grid', placeItems:'center',
           animation: selected ? `tcBadgePop 620ms ${POP} both` : 'none',
           transition:'background 340ms ease-out, box-shadow 340ms ease-out',
