@@ -17,22 +17,36 @@ function ImpVetrina() {
   const preview = <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
     focusSection={sub === 'profilo' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>;
 
-  // Completamento profilo (semplice mock)
+  // Completamento profilo (semplice mock). Ogni voce sa in quale sub-tab e in
+  // quale sezione vive: un chip che dice «da completare» senza portarci lascia
+  // il lavoro di cercarla a chi legge.
   const completion = [
-    { label: 'Informazioni base', done: true },
-    { label: 'Orari di apertura', done: true },
-    { label: 'Logo del locale', done: true },
-    { label: 'Galleria foto', done: false },
-    { label: 'Tag e categorie', done: true },
-    { label: 'FAQ', done: false },
-    { label: 'Social', done: false },
+    { label: 'Informazioni base', done: true,  sub: 'profilo',  anchor: 'locale' },
+    { label: 'Orari di apertura', done: true,  sub: 'profilo',  anchor: 'orari' },
+    { label: 'Logo del locale',   done: true,  sub: 'aspetto',  anchor: 'immagini' },
+    { label: 'Galleria foto',     done: false, sub: 'aspetto',  anchor: 'galleria' },
+    { label: 'Tag e categorie',   done: true,  sub: 'profilo',  anchor: 'tag' },
+    { label: 'FAQ',               done: false, sub: 'pubblico', anchor: 'faq' },
+    { label: 'Social',            done: false, sub: 'pubblico', anchor: 'social' },
   ];
   const doneCount = completion.filter(c => c.done).length;
   const pct = Math.round((doneCount / completion.length) * 100);
 
+  // Cambia sub-tab se serve, poi apre la card collassabile (i Tag) e scorre.
+  // Il rinvio serve perche la sezione bersaglio non e ancora nel DOM quando la
+  // tab cambia nello stesso giro.
+  const goToSection = (c) => {
+    if (sub !== c.sub) setSub(c.sub);
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('cfg-open-collapsible', { detail: c.anchor }));
+      const el = document.querySelector(`[data-cfg-anchor="${c.anchor}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 90);
+  };
+
   return (
     <div>
-      <VetrinaCompletion items={completion} pct={pct}/>
+      <VetrinaCompletion items={completion} pct={pct} onGo={goToSection}/>
       <ImpSubTabs tabs={subs} active={sub} onChange={setSub}/>
       <ImpWithPreview
         preview={preview}
@@ -52,7 +66,7 @@ function ImpVetrina() {
 
 // ─── Indicatore completamento ────────────────────────────────────────────────
 
-function VetrinaCompletion({ items, pct }) {
+function VetrinaCompletion({ items, pct, onGo }) {
   const ringStyle = {
     background: `conic-gradient(${PN.PINK} ${pct*3.6}deg, #F4F5F7 0)`,
   };
@@ -80,13 +94,14 @@ function VetrinaCompletion({ items, pct }) {
       <div style={{flex:1, minWidth:0}}>
         <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Vetrina pronta al {pct}%</div>
         <div style={{display:'flex', flexWrap:'wrap', gap: 6, marginTop: 6}}>
-          {items.map((c, i) => (
+          {items.map((c, i) => c.done ? (
             <span key={i} style={{
               fontSize: 13, fontWeight: 600,
               padding:'3px 9px', borderRadius: 999,
-              background: c.done ? PN.GREEN_SOFT : '#F4F5F7',
-              color: c.done ? PN.GREEN : PN.MUTED,
-            }}>{c.done ? `✓ ${c.label}` : `${c.label} · Da completare`}</span>
+              background: PN.GREEN_SOFT, color: PN.GREEN,
+            }}>{`✓ ${c.label}`}</span>
+          ) : (
+            <VetrinaTodoChip key={i} c={c} onClick={() => onGo && onGo(c)}/>
           ))}
         </div>
       </div>
@@ -94,6 +109,32 @@ function VetrinaCompletion({ items, pct }) {
           sopra il phone preview (vedi ImpWithPreview). Il banner qui è solo
           progress-info, non chiama all'azione. */}
     </div>
+  );
+}
+
+// Il chip di una voce mancante e l'unico posto in cui il problema e gia
+// scritto: farlo portare al campo che lo risolve costa un click a chi legge,
+// e cercarlo a mano ne costa parecchi. Grigio a riposo perche il banner non
+// deve urlare; in coral al passaggio, dove la tinta annuncia che si clicca.
+function VetrinaTodoChip({ c, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  return (
+    <button onClick={onClick} title={`Vai a ${c.label}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        fontSize: 13, fontWeight: 600, fontFamily:'inherit',
+        padding:'3px 9px', borderRadius: 999, border:'none',
+        background: hover ? PN.PINK_BG_SOFT : '#F4F5F7',
+        color: hover ? PN.PINK_DARK : PN.MUTED,
+        cursor:'pointer',
+        transform: pressed ? 'scale(0.95)' : hover ? 'scale(1.08)' : 'scale(1)',
+        boxShadow: hover ? '0 4px 12px rgba(255, 90, 95, 0.20)' : 'none',
+        transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), background 140ms ease, color 140ms ease, box-shadow 160ms ease',
+      }}>{`${c.label} · Da completare`}</button>
   );
 }
 

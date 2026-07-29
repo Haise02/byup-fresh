@@ -271,10 +271,13 @@ function ImpWithPreview({ children, preview, dirty, onPublish }) {
   return (
     <div style={{display:'grid', gridTemplateColumns: open ? '1fr 320px' : '1fr', gap: 18, alignItems:'flex-start'}}>
       <div style={{minWidth: 0}}>
+        {/* A destra e non a sinistra: e il pulsante che riapre il pannello di
+            destra, e sta dove ricompare quello che riapre. A sinistra sembrava
+            l'intestazione del contenuto. */}
         {!open && (
           <button onClick={() => setOpen(true)} style={{
             display:'flex', alignItems:'center', gap: 8,
-            marginBottom: 14,
+            marginLeft:'auto', marginBottom: 14,
             padding:'10px 14px', borderRadius: 10,
             background: PN.WHITE, color: PN.TEXT,
             border:`1px solid ${PN.BORDER}`,
@@ -316,6 +319,22 @@ function ImpWithPreview({ children, preview, dirty, onPublish }) {
           <PublishButton dirty={dirty} onPublish={onPublish}/>
 
           {preview}
+
+          {/* Banner piano Plus: click → Piani e abbonamenti. Stesso posto che ha
+              nella configurazione completa — sotto il telefono, dove si e appena
+              guardata la propria vetrina e si vede cosa le manca. */}
+          <a href="byup Profilo.html?tab=piani" title="Sblocca la vetrina esclusiva di Byup"
+            style={{display:'block', marginTop: 12}}>
+            <img src="banner-vetrina-plus.jpg" alt="Differenziati da tutti: sblocca la vetrina esclusiva di Byup, dal piano Plus"
+              style={{
+                width:'100%', display:'block', borderRadius: 12,
+                boxShadow:'0 8px 22px rgba(200, 60, 40, 0.28)',
+                cursor:'pointer',
+                transition:'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(200, 60, 40, 0.38)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 22px rgba(200, 60, 40, 0.28)'; }}/>
+          </a>
         </aside>
       )}
     </div>
