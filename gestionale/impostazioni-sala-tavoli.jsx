@@ -67,6 +67,15 @@ function nextGlobalTavoloName(sale) {
   return nextGlobalTavoloNames(sale, 1)[0];
 }
 
+// I nomi corti — «T3», «Tav. 3» — sono il residuo delle planimetrie importate
+// prima che il mock parlasse per esteso, e sopravvivono nel localStorage anche
+// dopo il rinomino. Li rimettiamo in riga al caricamento: nessuno deve svuotare
+// il browser per leggere «Modifica Tavolo 3» al posto di «Modifica T3».
+function normalizzaNomeTavolo(name) {
+  const m = String(name || '').match(/^\s*T(?:av)?\.?\s*(\d+)\s*$/i);
+  return m ? `Tavolo ${m[1]}` : name;
+}
+
 const TAVOLI_INIT = Array.from({length: 8}).map((_, i) => ({
   id: i + 1,
   name: `Tavolo ${i+1}`,
@@ -115,7 +124,10 @@ function ImpSalaTavoli() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length) {
-          return parsed.map(s => ({ tavoli: [], furniture: [], groups: [], ...s }));
+          return parsed.map(s => ({
+            tavoli: [], furniture: [], groups: [], ...s,
+            tavoli: (s.tavoli || []).map(t => ({ ...t, name: normalizzaNomeTavolo(t.name) })),
+          }));
         }
       }
     } catch (e) { /* localStorage non disponibile o dato corrotto → default */ }
