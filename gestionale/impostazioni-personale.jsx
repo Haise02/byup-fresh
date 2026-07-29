@@ -466,7 +466,10 @@ function InviteModal({ onClose, prefill }) {
   const noSettings = !role.areas.includes('impostazioni');
 
   // Dispositivo
-  const [deviceTypeId, setDeviceTypeId] = React.useState('kitchen-monitor');
+  // prefill.deviceTypeId: chi arriva dalle tessere «Stampante» / «Kitchen
+  // Monitor» ha gia scelto, e ritrovarsi il menu sul valore sbagliato sarebbe
+  // chiedergli la stessa cosa due volte.
+  const [deviceTypeId, setDeviceTypeId] = React.useState(prefill?.deviceTypeId || 'kitchen-monitor');
   const [deviceName, setDeviceName] = React.useState('');
   const [username, setUsername] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -1429,6 +1432,19 @@ function CreateRoleModal({ onClose, role }) {
 // unificato "Inviti e accessi". Dispositivi, ruoli custom e invito completo
 // con messaggio restano raggiungibili da qui (stesse modali del Personale).
 
+// Le due sole cose che un locale collega il primo giorno. Il resto — seconda
+// stampante, monitor pizza — si aggiunge dopo, e dirlo evita di far scegliere
+// adesso qualcosa che non serve adesso.
+const STEP_DEVICES = [
+  { id: 'printer', label: 'Stampante',      desc: 'Stampa gli ordini da inviare in cucina o al bar', icon: 'doc' },
+  { id: 'monitor', label: 'Kitchen Monitor', desc: 'Mostra le comande in tempo reale in cucina',      icon: 'monitor' },
+];
+const DEVICE_STEPS = [
+  { icon: 'monitor', t: 'Scegli il dispositivo',            d: 'Seleziona il dispositivo che vuoi configurare.' },
+  { icon: 'plug',    t: 'Collega alla rete o alimentazione', d: 'Connetti il dispositivo alla rete Wi-Fi o all\'alimentazione.' },
+  { icon: 'check',   t: 'Conferma il collegamento',          d: 'Verifichiamo che tutto funzioni correttamente.' },
+];
+
 const STEP_ROLES = [
   { id: 'manager',   label: 'Manager',   desc: 'Controlla sala, prenotazioni e panoramica',  icon: 'crown' },
   { id: 'cameriere', label: 'Cameriere', desc: 'Usa l\'app staff per tavoli, ordini e conto', icon: 'user' },
@@ -1448,6 +1464,8 @@ function PersonaleStep({ team, setTeam }) {
   const [invEmail, setInvEmail] = React.useState('');
   const [openMenu, setOpenMenu] = React.useState(null);
   const [invite, setInvite] = React.useState(null);          // modale completa (persona/dispositivo)
+  const [selDevice, setSelDevice] = React.useState('printer');
+  const [deviceRimandato, setDeviceRimandato] = React.useState(false);
   const [showCreateRole, setShowCreateRole] = React.useState(false);
   const [confirm, setConfirm] = React.useState(null);        // { title, body, cta, onConfirm }
   const emailValid = /\S+@\S+\.\S+/.test(invEmail);
@@ -1505,6 +1523,80 @@ function PersonaleStep({ team, setTeam }) {
         </div>
       </div>
 
+      {/* Configurare un dispositivo e il secondo mezzo passo del Personale: le
+          persone si invitano, i dispositivi si collegano. Sta qui e non in fondo
+          all'elenco perche e un'azione, non una riga da aggiungere a una lista. */}
+      {!deviceRimandato && (
+        <div style={{marginTop: 26}}>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Configura un dispositivo</div>
+          <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, marginBottom: 14}}>
+            Collega solo i dispositivi che ti servono per iniziare. Potrai aggiungerne altri in seguito.
+          </div>
+
+          <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 12}}>
+            {STEP_DEVICES.map(d => (
+              <StepDeviceCard key={d.id} d={d} on={selDevice === d.id} onClick={() => setSelDevice(d.id)}/>
+            ))}
+          </div>
+
+          {/* I tre passi non sono decorazione: dicono che dopo il click c'e da
+              alzarsi e andare al dispositivo, e quanto poco manca. */}
+          <div style={{
+            marginTop: 12, padding:'14px 16px', borderRadius: 12,
+            border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
+            display:'grid', gridTemplateColumns:'1fr auto 1fr auto 1fr', gap: 10, alignItems:'center',
+          }}>
+            {DEVICE_STEPS.map((p, i) => (
+              <React.Fragment key={p.t}>
+                {/* Freccia disegnata a mano: le icone di PnI non inoltrano
+                    `style`, quindi ruotare una chevron non funziona — restava
+                    puntata in basso in mezzo a una fila orizzontale. */}
+                {i > 0 && (
+                  <span style={{display:'flex', alignItems:'center', color: PN.BORDER}}>
+                    <svg width="46" height="10" viewBox="0 0 46 10" fill="none" stroke="currentColor"
+                      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="1" y1="5" x2="36" y2="5" strokeDasharray="4 4"/>
+                      <polyline points="40,1.6 44,5 40,8.4"/>
+                    </svg>
+                  </span>
+                )}
+                <div style={{display:'flex', gap: 10, alignItems:'flex-start', minWidth: 0}}>
+                  <span style={{
+                    width: 34, height: 34, borderRadius:'50%', flexShrink: 0,
+                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    display:'grid', placeItems:'center',
+                  }}>{(BuIcons[p.icon]||BuIcons.check)({size: 15, color:'currentColor'})}</span>
+                  <div style={{minWidth: 0}}>
+                    <div style={{fontSize: 13, fontWeight: 700, color: PN.TEXT, lineHeight: 1.3}}>
+                      <span style={{color: PN.PINK, marginRight: 5}}>{i + 1}</span>{p.t}
+                    </div>
+                    <div style={{fontSize: 12.2, color: PN.MUTED, lineHeight: 1.4, marginTop: 2}}>{p.d}</div>
+                  </div>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+
+          <div style={{display:'flex', alignItems:'center', gap: 12, marginTop: 14, flexWrap:'wrap'}}>
+            <span style={{color: PN.GREEN || '#16A34A', display:'inline-flex', flexShrink: 0}}>
+              {BuIcons.shield({size: 15, color:'currentColor'})}
+            </span>
+            <span style={{fontSize: 13, color: PN.MUTED, flex: 1, minWidth: 180}}>
+              Potrai aggiungere altri dispositivi in qualsiasi momento.
+            </span>
+            {/* Corallo e non il primary scuro: e l'azione della schermata, come
+                «Inizia ora» in fondo alla pagina, e sta prima del rimando —
+                l'ordine dice qual e la strada. */}
+            <ImpButton variant="pink"
+              onClick={() => setInvite({ kind: 'device', roleId: null,
+                deviceTypeId: selDevice === 'printer' ? AVAILABLE_PRINTERS[0].id : 'kitchen-monitor' })}>
+              Configura dispositivo
+            </ImpButton>
+            <ImpButton variant="ghost" onClick={() => setDeviceRimandato(true)}>Lo farò dopo</ImpButton>
+          </div>
+        </div>
+      )}
+
       {/* Elenco unificato: persone e dispositivi, con stato e azioni */}
       <div style={{marginTop: 22}}>
         <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 10}}>
@@ -1537,22 +1629,6 @@ function PersonaleStep({ team, setTeam }) {
               }}/>
           ))}
         </div>
-        {/* Aggiungere un dispositivo non e un'azione di rifinitura come «Crea
-            ruolo»: e l'altra meta di questo passo — le persone e i monitor —
-            quindi sta in fondo, largo, dove finisce l'elenco a cui si aggiunge. */}
-        <button onClick={() => setInvite({ roleId: null, kind: 'device' })}
-          className="pn-btn-feedback"
-          style={{
-            width:'100%', marginTop: 12, padding:'13px 16px', borderRadius: 11,
-            border:`1.5px dashed ${PN.BORDER}`, background: PN.WHITE,
-            display:'flex', alignItems:'center', justifyContent:'center', gap: 9,
-            fontFamily:'inherit', fontSize: 14.5, fontWeight: 700, color: PN.TEXT,
-            cursor:'pointer',
-          }}>
-          {(BuIcons.monitor||BuIcons.phone)({size: 16, color:'currentColor'})}
-          Aggiungi dispositivo
-        </button>
-
         <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 12, fontSize: 13, color: PN.MUTED}}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
@@ -1569,6 +1645,45 @@ function PersonaleStep({ team, setTeam }) {
           onConfirm={() => { confirm.onConfirm(); setConfirm(null); }}/>
       )}
     </div>
+  );
+}
+
+// Tessera dispositivo: orizzontale — icona a sinistra, testo a destra — perche
+// i dispositivi sono due e non tre, e in orizzontale riempiono la riga invece di
+// lasciare due colonne mezze vuote.
+function StepDeviceCard({ d, on, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
+        display:'flex', alignItems:'center', gap: 14,
+        padding:'14px 44px 14px 14px', borderRadius: 12,
+        border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
+        background: on ? '#FFF7F7' : PN.WHITE,
+        boxShadow: hover && !on ? '0 6px 16px rgba(15, 17, 21, 0.06)' : 'none',
+        transform: hover && !on ? 'translateY(-1px)' : 'none',
+        transition:'border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease',
+      }}>
+      <span style={{
+        position:'absolute', top: 14, right: 14,
+        width: 16, height: 16, borderRadius:'50%',
+        border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+        display:'grid', placeItems:'center', transition:'border-color 150ms ease',
+      }}>
+        {on && <span style={{width: 8, height: 8, borderRadius:'50%', background: PN.PINK}}/>}
+      </span>
+      <span style={{
+        width: 44, height: 44, borderRadius: 12, flexShrink: 0, display:'grid', placeItems:'center',
+        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
+        transition:'background 150ms ease, color 150ms ease',
+      }}>{(BuIcons[d.icon]||BuIcons.monitor)({size: 20, color:'currentColor'})}</span>
+      <span style={{minWidth: 0}}>
+        <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 2}}>{d.label}</span>
+        <span style={{display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.4}}>{d.desc}</span>
+      </span>
+    </button>
   );
 }
 
