@@ -47,6 +47,8 @@ window.byupWriteLocale = function(l) {
 };
 
 function PnSidebar({ active = 'panoramica', onNav }) {
+  const [profHover, setProfHover] = React.useState(false);
+  const [profPress, setProfPress] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(() => {
     try { return localStorage.getItem('pn_sidebar_collapsed') === '1'; } catch(e) { return false; }
   });
@@ -207,33 +209,61 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         {window.PnNotifBell && <window.PnNotifBell sidebar collapsed={collapsed}/>}
       </div>
 
-      {/* Profile — click: pagina Profilo */}
-      <div title="Profilo" onClick={() => navTo('profilo')} style={{
-        display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        padding: collapsed ? '10px 0' : '10px 8px',
-        cursor: 'pointer', fontFamily: 'inherit',
-        textAlign: 'left', width: '100%', boxSizing: 'border-box',
-        borderRadius: 8,
-        borderTop: `1px solid ${PN.BORDER}`,
-        paddingTop: 14,
-        transition: 'background 160ms ease',
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-      >
-        <div style={{
-          width: 34, height: 34, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
-          color: '#fff', display: 'grid', placeItems: 'center',
-          fontWeight: 700, fontSize: 15, flexShrink: 0,
-        }}>MR</div>
-        {!collapsed && (
-          <div style={{minWidth: 0, flex: 1}}>
-            <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Mario Rossi</div>
-            <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{localeAttivo.nome}</div>
-          </div>
-        )}
+      {/* Profilo — card a tutta larghezza, come in Spot: a riposo e una scheda
+          bianca posata sul fondo, in hover si solleva di due pixel e prende il
+          bordo coral con l'ombra della stessa tinta. La freccia e un chip che si
+          riempie e scivola: e il segnale che la card porta da qualche parte.
+          Hover in stato React e non in CSS perche il chip deve reagire al passaggio
+          sul PADRE, e le pagine del gestionale non condividono un foglio di stile
+          dove mettere una regola discendente. */}
+      <div style={{borderTop: `1px solid ${PN.BORDER}`, paddingTop: 12, marginTop: 4}}>
+        <div title="Profilo" onClick={() => navTo('profilo')}
+          onMouseEnter={() => setProfHover(true)}
+          onMouseLeave={() => setProfHover(false)}
+          onMouseDown={() => setProfPress(true)}
+          onMouseUp={() => setProfPress(false)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            padding: collapsed ? '8px 0' : '9px 10px',
+            cursor: 'pointer', fontFamily: 'inherit',
+            textAlign: 'left', width: '100%', boxSizing: 'border-box',
+            borderRadius: 12,
+            background: '#fff',
+            // #FFB3B5 e la stessa tinta di bordo che usa Spot: PINK_SOFT (#FFE0DD)
+            // e troppo chiara e il contorno non si accende, che e proprio l'effetto
+            // per cui quel bottone piace.
+            border: `1px solid ${profHover ? '#FFB3B5' : 'rgba(15, 17, 21, 0.07)'}`,
+            boxShadow: profHover
+              ? '0 12px 28px -12px rgba(255,90,95,0.28), 0 2px 6px -2px rgba(15,17,21,0.05)'
+              : '0 1px 2px rgba(15,17,21,0.04)',
+            transform: profPress ? 'translateY(0) scale(0.99)' : profHover ? 'translateY(-2px)' : 'none',
+            transition: 'box-shadow 180ms ease, transform 180ms cubic-bezier(0.34,1.2,0.64,1), border-color 180ms ease',
+          }}
+        >
+          <div style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
+            color: '#fff', display: 'grid', placeItems: 'center',
+            fontWeight: 700, fontSize: 15, flexShrink: 0,
+          }}>MR</div>
+          {!collapsed && (
+            <React.Fragment>
+              <div style={{minWidth: 0, flex: 1}}>
+                <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Mario Rossi</div>
+                <div style={{fontSize: 13, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{localeAttivo.nome}</div>
+              </div>
+              <span style={{
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                display: 'inline-grid', placeItems: 'center',
+                background: profHover ? PN.PINK : '#F1F2F4',
+                color: profHover ? '#fff' : '#8A8A90',
+                transform: profHover ? 'translateX(2px)' : 'none',
+                transition: 'background 160ms ease, color 160ms ease, transform 160ms ease',
+              }}><Icon name="chevron-right" size={13}/></span>
+            </React.Fragment>
+          )}
+        </div>
       </div>
     </aside>
   );
