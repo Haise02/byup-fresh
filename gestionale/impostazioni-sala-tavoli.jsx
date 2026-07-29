@@ -1084,11 +1084,13 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
   const ombraSel = `0 0 0 3px rgba(255, 90, 95, 0.16), 0 16px 36px -10px ${SEL}35`;
   const scalaSel = selected ? 'scale(1.012)' : 'none';
 
-  // Accento di stato del badge: selezionato non vira al rosso, si accende del
-  // proprio colore — un tavolo attivo diventa verde pieno, uno spento grigio.
+  // Accento di stato: un tavolo attivo porta il corallo della CTA Salva —
+  // e il colore che in questa pagina vuol dire «acceso» — uno spento il
+  // grigio. Selezionato non vira al rosso della selezione: si accende del
+  // proprio colore, il badge fino alla tinta piena del bottone.
   const acc = t.disabled
-    ? { soft: '#F1F3F5', ink: '#9CA3AF', strong: '#9CA3AF' }
-    : { soft: PN.GREEN_SOFT, ink: PN.GREEN, strong: PN.GREEN };
+    ? { soft:'#F1F3F5', ink:'#9CA3AF', text: PN.MUTED,      strong:'#9CA3AF',   glow:'rgba(156, 163, 175, 0.50)', hover:'#E5E7EB',    tint: PN.WHITE }
+    : { soft: PN.PINK_BG_SOFT, ink: PN.PINK, text: PN.PINK_DARK, strong: PN.BTN_BRAND, glow:'rgba(255, 90, 95, 0.55)',  hover: PN.PINK_SOFT, tint:'#FFF7F6' };
 
   // Chiudi il submenu se il menu padre si richiude
   React.useEffect(() => { if (!menuOpen) setMoveSubOpen(false); }, [menuOpen]);
@@ -1125,10 +1127,10 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         padding: '12px 14px', position:'relative',
         border:`1.5px solid ${selected ? 'rgba(227, 36, 89, 0.55)' : PN.BORDER_SOFT}`,
         borderRadius: 10,
-        // Nessuna campitura rossa: la selezione e tutta sul bordo, come sulle
-        // tessere della Sala. Il rosso dentro la riga coprirebbe il verde
-        // dello stato, che e l'altra cosa che questa lista deve dire.
-        background: PN.WHITE,
+        // La campitura non dice la selezione — quella e tutta sul bordo, come
+        // sulle tessere della Sala — ma lo stato: un velo appena accennato del
+        // corallo della CTA sui tavoli attivi, bianco su quelli spenti.
+        background: acc.tint,
         opacity: moving ? 0 : (isDragging ? 0.45 : (t.disabled ? 0.78 : 1)),
         transform: moving
           ? 'translateX(24px) scale(0.94)'
@@ -1152,7 +1154,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
           width: 48, height: 48, borderRadius:'50%', flexShrink: 0,
           background: selected ? acc.strong : acc.soft,
           boxShadow: selected
-            ? `0 8px 18px -6px ${acc.strong}80`
+            ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 8px 18px -6px ${acc.glow}`
             : `inset 0 0 0 2px ${acc.ink}55`,
           display:'grid', placeItems:'center',
           animation: selected ? `tcBadgePop 620ms ${POP} both` : 'none',
@@ -1176,16 +1178,16 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
             padding:'2px 8px', borderRadius:999,
             border:'none', cursor:'pointer', fontFamily:'inherit',
             fontSize:12.5, fontWeight:700, letterSpacing:0.3,
-            background: t.disabled ? '#F1F3F5' : PN.GREEN_SOFT,
-            color: t.disabled ? PN.MUTED : PN.GREEN,
+            background: acc.soft,
+            color: acc.text,
             transition:'background 0.15s, color 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = t.disabled ? '#E5E7EB' : '#D6F0DC'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = t.disabled ? '#F1F3F5' : PN.GREEN_SOFT; }}
+          onMouseEnter={e => { e.currentTarget.style.background = acc.hover; }}
+          onMouseLeave={e => { e.currentTarget.style.background = acc.soft; }}
         >
           <span style={{
             width:6, height:6, borderRadius:'50%',
-            background: t.disabled ? '#9CA3AF' : PN.GREEN,
+            background: acc.ink,
           }}/>
           {t.disabled ? 'INATTIVO' : 'ATTIVO'}
         </button>
