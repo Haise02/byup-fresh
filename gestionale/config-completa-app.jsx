@@ -30,16 +30,15 @@ function ConfigCompletaApp() {
   const [team, setTeam] = React.useState(() => window.PERSONALE_TEAM_INITIAL || []);
   const [guidaStaff, setGuidaStaff] = React.useState(false);
 
-  // «Membri e dispositivi» parte alla stessa altezza di «Configura un
-  // dispositivo». La distanza NON e un numero fisso: dipende da quante righe
-  // occupano i testi delle tessere-ruolo, che vanno a capo o no a seconda della
-  // larghezza — misurata, va da 680 a 705px sulla stessa pagina. Quindi si
+  // «Membri e dispositivi» parte alla stessa altezza del box «Personale». La
+  // distanza NON e un numero fisso: dipende dall'altezza della fascia in cima,
+  // che cambia con lo zoom del frame e con l'andare a capo dei testi. Quindi si
   // misura a ogni cambio di dimensione invece di scriverla.
   const railCardRef = React.useRef(null);
   React.useLayoutEffect(() => {
     if (step !== 'personale') return;
     const allinea = () => {
-      const sez = document.querySelector('[data-cfg-dispositivo]');
+      const sez = document.querySelector('[data-cfg-personale]');
       const card = railCardRef.current;
       if (!sez || !card) return;
       // Azzerare prima di misurare: senza, la misura include il margine
@@ -53,7 +52,7 @@ function ConfigCompletaApp() {
       card.style.marginTop = Math.max(0, Math.round(delta)) + 'px';
     };
     allinea();
-    const colonna = document.querySelector('[data-cfg-dispositivo]');
+    const colonna = document.querySelector('[data-cfg-personale]');
     const ro = colonna && colonna.parentElement ? new ResizeObserver(allinea) : null;
     if (ro) ro.observe(colonna.parentElement);
     window.addEventListener('resize', allinea);
@@ -103,9 +102,13 @@ function ConfigCompletaApp() {
   };
   const donePct = Math.round(completion.filter(c => c.done).length / completion.length * 100);
 
+  // La barra azioni sta FUORI dalla riga: dentro la colonna sinistra si fermava
+  // dove comincia la rail, e una barra che si ferma a due terzi sembra un pezzo
+  // di pagina, non il fondo della pagina.
   return (
-    <div style={{display:'flex', flex:1, minHeight:0, background: PN.BG}}>
-      {/* ─── Colonna sinistra: contenuto che scrolla + barra azioni fissa ── */}
+    <div style={{display:'flex', flexDirection:'column', flex:1, minWidth:0, minHeight:0, background: PN.BG}}>
+      <div style={{display:'flex', flex:1, minWidth:0, minHeight:0}}>
+      {/* ─── Colonna sinistra: contenuto che scrolla ─────────────────── */}
       <div style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column'}}>
       {/* Fascia alta LOCKATA: header, stepper e completamento restano fissi,
           sotto scorre solo il form. Fluido: niente max-width. */}
@@ -265,7 +268,7 @@ function ConfigCompletaApp() {
 
           {/* ─── Step 3 · Personale: ruoli, invito rapido, inviti e accessi */}
           {step === 'personale' && (
-            <section style={{
+            <section data-cfg-personale style={{
               background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
               borderRadius: 14, padding: '20px 22px',
               boxShadow: '0 1px 2px rgba(15,17,21,0.03)',
@@ -295,25 +298,6 @@ function ConfigCompletaApp() {
 
         </div>
       </main>
-
-      {/* ─── Barra azioni — fissa al fondo della colonna, fuori dallo scroll */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '12px 32px',
-        background: PN.WHITE, borderTop: `1px solid ${PN.BORDER_SOFT}`,
-        flexShrink: 0,
-      }}>
-        {step === 'informazioni'
-          ? <ApBtn variant="neutral" onClick={() => { window.location.href = 'byup Restaurant Onboarding.html?step=4'; }}>← Torna alla configurazione base</ApBtn>
-          : step === 'aspetto'
-            ? <ApBtn variant="neutral" onClick={() => setStep('informazioni')}>← Indietro</ApBtn>
-            : <ApBtn variant="neutral" onClick={() => setStep('aspetto')}>← Indietro</ApBtn>}
-        {step === 'informazioni'
-          ? <ApBtn variant="brand" onClick={() => setStep('aspetto')}>Continua →</ApBtn>
-          : step === 'aspetto'
-            ? <ApBtn variant="brand" onClick={() => { publish(); setStep('personale'); }}>Pubblica modifiche e procedi →</ApBtn>
-            : <ApBtn variant="brand" onClick={complete}>Inizia ora →</ApBtn>}
-      </div>
 
       {/* Toast di conferma pubblicazione */}
       {toast && (
@@ -419,6 +403,26 @@ function ConfigCompletaApp() {
           </div>
         </aside>
       )}
+      </div>
+
+      {/* ─── Barra azioni: larga quanto la finestra, sotto contenuto e rail */}
+      <div data-cfg-barra style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '12px 32px',
+        background: PN.WHITE, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+        flexShrink: 0,
+      }}>
+        {step === 'informazioni'
+          ? <ApBtn variant="neutral" onClick={() => { window.location.href = 'byup Restaurant Onboarding.html?step=4'; }}>← Torna alla configurazione base</ApBtn>
+          : step === 'aspetto'
+            ? <ApBtn variant="neutral" onClick={() => setStep('informazioni')}>← Indietro</ApBtn>
+            : <ApBtn variant="neutral" onClick={() => setStep('aspetto')}>← Indietro</ApBtn>}
+        {step === 'informazioni'
+          ? <ApBtn variant="brand" onClick={() => setStep('aspetto')}>Continua →</ApBtn>
+          : step === 'aspetto'
+            ? <ApBtn variant="brand" onClick={() => { publish(); setStep('personale'); }}>Pubblica modifiche e procedi →</ApBtn>
+            : <ApBtn variant="brand" onClick={complete}>Salva e concludi →</ApBtn>}
+      </div>
     </div>
   );
 }

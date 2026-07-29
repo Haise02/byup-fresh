@@ -1608,28 +1608,22 @@ function PersonaleStep({ team, setTeam }) {
 
       {/* Invito rapido in riga */}
       <div style={{marginTop: 20}}>
-        <div style={{fontSize: 14.5, fontWeight: 700, marginBottom: 10}}>Invita il team</div>
+        {/* Niente select del ruolo: lo scelgono le tre tessere qui sopra, e
+            chiederlo di nuovo nella stessa schermata faceva due comandi per una
+            decisione sola — con il rischio che dicessero cose diverse. Qui il
+            ruolo scelto si LEGGE, accanto al titolo. */}
+        <div style={{display:'flex', alignItems:'baseline', gap: 8, marginBottom: 10}}>
+          <span style={{fontSize: 14.5, fontWeight: 700}}>Invita il team</span>
+          <span style={{fontSize: 13, color: PN.MUTED}}>
+            come <b style={{color: PN.PINK_DARK, fontWeight: 700}}>{roleLabel}</b>
+          </span>
+        </div>
         <div style={{display:'flex', gap: 10, alignItems:'stretch'}}>
           <input value={invName} onChange={e => setInvName(e.target.value)} placeholder="Nome e cognome"
             style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
           <input value={invEmail} onChange={e => setInvEmail(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') addInvite(); }} placeholder="Email" type="email"
             style={{flex: 1, minWidth: 0, padding:'10px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 14.5, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
-          <div style={{position:'relative', width: 150, flexShrink: 0}}>
-            <select value={selRole} onChange={e => setSelRole(e.target.value)}
-              style={{
-                width:'100%', height:'100%', padding:'10px 30px 10px 12px',
-                border:`1px solid ${PN.BORDER}`, borderRadius: 9,
-                fontSize: 14.5, fontWeight: 600, fontFamily:'inherit', outline:'none',
-                background: PN.WHITE, color: PN.TEXT,
-                appearance:'none', WebkitAppearance:'none', cursor:'pointer',
-              }}>
-              {STEP_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-            </select>
-            <span style={{position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color: PN.MUTED, display:'inline-flex'}}>
-              <PnI.ChevronDown size={11}/>
-            </span>
-          </div>
           <AddInviteBtn disabled={!emailValid} onClick={addInvite}/>
         </div>
       </div>
