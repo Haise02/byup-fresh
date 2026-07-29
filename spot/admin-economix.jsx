@@ -15,6 +15,59 @@ const ECO_SEL = { ...ECO_INP, appearance:'none', WebkitAppearance:'none', MozApp
   backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
 const ECO_NUM = { fontVariantNumeric:'tabular-nums' };
 
+// «26 minuti fa» dice piu di un orario: la domanda e quanto e fresca la lettura.
+function ecoQuando(d) {
+  if (!d) return 'mai';
+  const min = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+  if (min < 1) return 'adesso';
+  if (min < 60) return `${min} ${min === 1 ? 'minuto' : 'minuti'} fa`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h} ${h === 1 ? 'ora' : 'ore'} fa`;
+  const g = Math.round(h / 24);
+  return `${g} ${g === 1 ? 'giorno' : 'giorni'} fa`;
+}
+
+// Conferma del collegamento: si sta dando a Byup una credenziale su un sistema
+// che costa denaro, quindi prima si legge che cosa verrebbe letto e con quali
+// permessi. Staccare non cancella nulla: si torna alla stima.
+function EcoModaleConnessione({ conn, onChiudi, onConferma }) {
+  const attiva = conn.stato !== 'collegato';
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="connessione" onClick={e=>e.stopPropagation()} style={{width:540, maxWidth:'92%', background:'#fff',
+        borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.18s ease', maxHeight:'100%', overflowY:'auto'}}>
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+          {attiva ? `Collegare ${conn.nome}?` : `Staccare ${conn.nome}?`}
+        </div>
+        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:15}}>
+          {attiva
+            ? 'Da qui in poi i costi di questo fornitore arrivano da lui, non dal modello. Le stime restano visibili accanto alla lettura: lo scarto fra le due è la cosa che vale la pena guardare.'
+            : 'I costi tornano a essere stimati dal modello. Nessun dato viene cancellato e ricollegare è immediato.'}
+        </div>
+        <div style={{padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
+          {[['Che cosa legge', conn.legge], ['Che cosa serve', conn.serve],
+            ['Righe interessate', conn.fatture ? 'le fatture ricevute'
+              : conn.servizi.map(id => (ECO_SERVIZI.find(x => x.id === id) || {}).nome).join(', ')]].map(([k, v]) => (
+            <div key={k} style={{display:'flex', gap:12, fontSize:12.6, marginBottom:7, alignItems:'flex-start'}}>
+              <span style={{color:ADM.MUTED, width:132, flexShrink:0}}>{k}</span>
+              <span style={{color:ADM.TEXT, lineHeight:1.5}}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={onConferma}>
+            {attiva ? 'Collega' : 'Stacca'}
+          </AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EcoCampo({ etichetta, aiuto, span, children }) {
   return (
     <div style={span ? {gridColumn:'1 / -1'} : undefined}>
@@ -42,6 +95,7 @@ function EcoMese({ mix }) {
   const righe = m.righe.slice().sort((a, b) => b.fineMese - a.fineMese);
   const maxRiga = righe[0] ? righe[0].fineMese : 1;
   const margine = m.ricavi.totale - m.bruciatoFine;
+  const lette = m.righe.filter(r => r.l.collegato).length;
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:20}}>
@@ -49,7 +103,7 @@ function EcoMese({ mix }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
         {[
           { et:'Speso finora questo mese', v:ecoEur(m.bruciatoOggi),
-            n:`giorno ${m.trascorsi} di ${m.giorni} · variabili ${ecoEur(m.variabiliOggi)} + fissi maturati ${ecoEur(m.fissi * m.frazione)}` },
+            n:`giorno ${m.trascorsi} di ${m.giorni} · ${lette} ${lette === 1 ? 'riga letta' : 'righe lette'} dai fornitori su ${m.righe.length}, il resto stimato` },
           { et:'Proiezione a fine mese', v:ecoEur(m.bruciatoFine),
             n:'al ritmo attuale · i fissi entrano per intero, i variabili proseguono come oggi' },
           { et:'Margine del mese', v:ecoEur(margine), tono: margine >= 0 ? ADM.OK : ADM.DANGER,
@@ -76,8 +130,19 @@ function EcoMese({ mix }) {
               gap:12, alignItems:'center', padding:'11px 16px',
               borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{minWidth:0}}>
-                <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.s.nome}</div>
-                <div style={{marginTop:5}}><EcoBarra quota={r.fineMese / maxRiga}/></div>
+                <div style={{display:'flex', alignItems:'baseline', gap:7, flexWrap:'wrap'}}>
+                  <span style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.s.nome}</span>
+                  {/* Letto o stimato: la distinzione va sulla riga, non in una
+                      legenda a parte, perché cambia quanto ci si può fidare. */}
+                  {r.l.collegato
+                    ? <span style={{fontSize:11, color:ADM.OK, fontWeight:700}}>
+                        letto {ecoQuando(r.l.letto)}
+                        {r.l.scarto != null && ` · ${r.l.scarto >= 0 ? '+' : '−'}${ecoPct(Math.abs(r.l.scarto))} sulla stima`}
+                      </span>
+                    : <span style={{fontSize:11, color:ADM.MUTED_SOFT}}>stima dal modello</span>}
+                </div>
+                <div style={{marginTop:5}}><EcoBarra quota={r.fineMese / maxRiga}
+                  tono={r.l.collegato ? ADM.OK : ADM.INK}/></div>
               </div>
               <div style={{fontSize:12.4, color:ADM.MUTED, ...ECO_NUM}}>
                 {Math.round(r.consumoPieno).toLocaleString('it-IT')} <span style={{color:ADM.MUTED_SOFT}}>{r.s.unita}</span>
@@ -170,6 +235,7 @@ function EcoModaleFisso({ onChiudi, onSalva }) {
 
 function EcoCosti({ mix, forza }) {
   const [nuovo, setNuovo] = useStateEco(false);
+  const [conn, setConn] = useStateEco(null);
   const d = ECO_STORICO[ECO_STORICO.length - 1];
   const variabiliMese = ecoCostiVariabili(d);
   const fissiMese = ecoFissiDelMese(new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1));
@@ -211,6 +277,47 @@ function EcoCosti({ mix, forza }) {
       </div>
 
       <div>
+        <div style={ECO_H}>Collegamenti ai fornitori</div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
+          {ECO_CONNESSIONI.map(c => {
+            const st = ECO_STATO_CONN[c.stato];
+            const collegato = c.stato === 'collegato';
+            return (
+              <div key={c.id} style={{...ECO_CARD, padding:'14px 16px', display:'flex', flexDirection:'column', gap:9}}>
+                <div style={{display:'flex', alignItems:'flex-start', gap:9}}>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{c.nome}</div>
+                    <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.4}}>{c.legge}</div>
+                  </div>
+                  <CfPill tono={st.tono}>{st.label}</CfPill>
+                </div>
+                <div style={{fontSize:11.6, color:ADM.MUTED, lineHeight:1.45}}>
+                  {collegato
+                    ? <React.Fragment>
+                        Ultima lettura <strong style={{color:ADM.TEXT}}>{ecoQuando(c.ultimaLettura)}</strong>
+                        {c.scartoPct != null && ` · scarto medio dalla stima ${c.scartoPct >= 0 ? '+' : '−'}${ecoPct(Math.abs(c.scartoPct))}`}
+                      </React.Fragment>
+                    : c.stato === 'manuale'
+                      ? `Inserita a mano ${ecoQuando(c.ultimaLettura)}`
+                      : 'Gli importi di queste righe sono stimati dal modello'}
+                </div>
+                <div style={{display:'flex', gap:6, marginTop:'auto'}}>
+                  {collegato && (
+                    <AdmButton variant="secondary" size="sm" style={{fontSize:12}}
+                      onClick={()=>{ ecoAggiorna(c); forza(); }}>Aggiorna</AdmButton>
+                  )}
+                  <AdmButton variant={collegato ? 'ghost' : 'primary'} size="sm" style={{fontSize:12}}
+                    onClick={()=>setConn(c)}>
+                    {collegato ? 'Stacca' : c.stato === 'manuale' ? 'Collega comunque' : 'Collega'}
+                  </AdmButton>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
           <div style={{...ECO_H, marginBottom:0}}>Costi a consumo</div>
           <span style={{fontSize:12.4, color:ADM.MUTED}}>
@@ -236,19 +343,19 @@ function EcoCosti({ mix, forza }) {
               </div>
               <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(ecoCostoServizio(s, d))}</div>
               <div>
-                <span style={{fontSize:10.8, fontWeight:700, padding:'3px 8px', borderRadius:6,
-                  background: s.fonte === 'manuale' ? 'rgba(49,53,61,0.08)' : 'rgba(255,90,95,0.12)',
-                  color: s.fonte === 'manuale' ? ADM.INK : ADM.PINK}}>
-                  {s.fonte === 'manuale' ? 'manuale' : 'da collegare'}
-                </span>
+                {(() => {
+                  const c = ecoConnessioneDi(s.id);
+                  const st = ECO_STATO_CONN[(c && c.stato) || 'scollegato'];
+                  return <CfPill tono={st.tono}>{st.label}</CfPill>;
+                })()}
               </div>
             </div>
           ))}
         </div>
         <div style={{fontSize:12, color:ADM.MUTED, marginTop:9, lineHeight:1.55}}>
-          Nessuna connessione è attiva: questi importi sono stime coerenti coi driver, non letture.
-          Collegando AWS Cost Explorer e le console dei fornitori, le righe marcate «da collegare»
-          si aggiornerebbero da sole durante il mese.
+          Le righe collegate riportano il consuntivo del fornitore; le altre la stima del modello.
+          Lo scarto fra i due si legge nella scheda del collegamento, ed è il segnale che il prezzo
+          unitario o il consumo per unità non sono più quelli scritti qui.
         </div>
       </div>
 
@@ -282,6 +389,8 @@ function EcoCosti({ mix, forza }) {
       </div>
 
       {nuovo && <EcoModaleFisso onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
+      {conn && <EcoModaleConnessione conn={conn} onChiudi={()=>setConn(null)}
+        onConferma={()=>{ ecoCollega(conn, conn.stato !== 'collegato'); setConn(null); forza(); }}/>}
     </div>
   );
 }
@@ -295,6 +404,8 @@ const ECO_DRIVER_LABEL = {
 
 window.EcoMese = EcoMese;
 window.EcoCosti = EcoCosti;
+window.ecoQuando = ecoQuando;
+window.EcoModaleConnessione = EcoModaleConnessione;
 window.ECO_CARD = ECO_CARD;
 window.ECO_TH = ECO_TH;
 window.ECO_H = ECO_H;

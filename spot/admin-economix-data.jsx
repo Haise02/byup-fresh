@@ -62,13 +62,13 @@ const ECO_REGIMI = {
 const ECO_SERVIZI = [
   { id:'aws-compute', nome:'AWS · Fargate', categoria:'Cloud', fornitore:'Amazon Web Services',
     driver:'localiAttivi', perUnita:2.4, unita:'vCPU-ora', prezzo:0.0445,
-    fonte:'aws-cost-explorer', nota:'Il compute scala con i locali attivi, non con gli ordini: ogni locale tiene sessioni aperte anche a sala vuota.' },
+    fonte:'aws-cost-explorer', scarto:1.071, nota:'Il compute scala con i locali attivi, non con gli ordini: ogni locale tiene sessioni aperte anche a sala vuota.' },
   { id:'aws-rds', nome:'AWS · RDS PostgreSQL', categoria:'Cloud', fornitore:'Amazon Web Services',
     driver:'localiAttivi', perUnita:1, unita:'locali', prezzo:1.85,
-    fonte:'aws-cost-explorer', nota:'Istanza condivisa: il costo per locale scende crescendo, qui tenuto lineare in via prudenziale.' },
+    fonte:'aws-cost-explorer', scarto:0.964, nota:'Istanza condivisa: il costo per locale scende crescendo, qui tenuto lineare in via prudenziale.' },
   { id:'aws-s3', nome:'AWS · S3 e CloudFront', categoria:'Cloud', fornitore:'Amazon Web Services',
     driver:'utentiApp', perUnita:0.42, unita:'GB trasferiti', prezzo:0.085,
-    fonte:'aws-cost-explorer', nota:'Immagini dei menu servite agli utenti app: è il driver che cresce più in fretta.' },
+    fonte:'aws-cost-explorer', scarto:1.118, nota:'Immagini dei menu servite agli utenti app: è il driver che cresce più in fretta.' },
   { id:'vercel', nome:'Vercel · hosting statico', categoria:'Cloud', fornitore:'Vercel',
     driver:'fisso', perUnita:1, unita:'canone', prezzo:20,
     fonte:'manuale', nota:'Piano a canone, indipendente dal volume.' },
@@ -85,6 +85,51 @@ const ECO_SERVIZI = [
     driver:'transazioni', perUnita:1, unita:'trasmissioni', prezzo:0.019,
     fonte:'manuale', nota:'Una trasmissione per ogni pagamento, indipendentemente da dove avviene.' },
 ];
+
+// ─── Collegamenti ai fornitori ─────────────────────────────────────────────
+// Non si collega un servizio, si collega una CREDENZIALE: un solo ruolo di sola
+// lettura su AWS Cost Explorer accende insieme le tre righe AWS, perché è da lì
+// che arrivano tutte. Modellarlo per servizio darebbe l'idea sbagliata di dover
+// fare la stessa procedura tre volte.
+//
+// `letturaMTD` è il consuntivo del mese in corso letto dal fornitore. Non
+// coincide mai esattamente con la stima del modello, ed è giusto così: lo
+// scarto fra i due è l'informazione più utile della schermata — se una lettura
+// si discosta molto, o il prezzo unitario è cambiato o il consumo non è quello
+// che credevi.
+const ECO_CONNESSIONI = [
+  { id:'aws', nome:'AWS Cost Explorer', servizi:['aws-compute','aws-rds','aws-s3'],
+    stato:'collegato', ultimaLettura:new Date(ECO_OGGI.getTime() - 26 * 60000), scartoPct:6.4,
+    legge:'Costo maturato per servizio, aggiornato ogni sei ore',
+    serve:'Un ruolo IAM di sola lettura con la policy ce:GetCostAndUsage. Nessun accesso ai dati, solo agli importi.' },
+  { id:'gcp', nome:'Google Cloud Billing', servizi:['maps','push'],
+    stato:'scollegato', ultimaLettura:null, scartoPct:null,
+    legge:'Consumo di Maps Platform e Firebase, per SKU',
+    serve:'Esportazione della fatturazione su BigQuery e un service account di sola lettura.' },
+  { id:'anthropic', nome:'Anthropic Console', servizi:['anthropic'],
+    stato:'scollegato', ultimaLettura:null, scartoPct:null,
+    legge:'Token consumati e costo per modello',
+    serve:'Una chiave API con permesso di sola lettura sull\'utilizzo dell\'organizzazione.' },
+  { id:'openapi', nome:'OpenAPI', servizi:['openapi'],
+    stato:'manuale', ultimaLettura:new Date('2026-07-04'), scartoPct:null,
+    legge:'Trasmissioni fiscali effettuate',
+    serve:'Non espone un endpoint di consumo: la lettura si inserisce a mano dal riepilogo mensile.' },
+  { id:'vercel', nome:'Vercel', servizi:['vercel'],
+    stato:'manuale', ultimaLettura:new Date('2026-07-01'), scartoPct:null,
+    legge:'Canone del piano',
+    serve:'Importo fisso: non serve leggerlo, basta registrarlo una volta.' },
+  { id:'sdi', nome:'Sistema di Interscambio', servizi:[],
+    stato:'scollegato', ultimaLettura:null, scartoPct:null, fatture:true,
+    legge:'Fatture elettroniche ricevute, in XML',
+    serve:'Delega alla consultazione tramite un intermediario accreditato. È il canale che compila le fatture da solo.' },
+];
+const ecoConnessioneDi = (idServizio) =>
+  ECO_CONNESSIONI.find(c => c.servizi.indexOf(idServizio) !== -1) || null;
+const ECO_STATO_CONN = {
+  collegato:  { label:'Collegato',   tono:'OK' },
+  scollegato: { label:'Da collegare',tono:'DANGER' },
+  manuale:    { label:'Manuale',     tono:'NEUTRAL' },
+};
 
 // ─── Costi fissi ───────────────────────────────────────────────────────────
 // `periodicita`: 'mensile' | 'annuale' | 'una-tantum'. Gli annuali entrano nel
@@ -184,6 +229,9 @@ window.ecoEur2 = ecoEur2;
 window.ECO_REGIME = ECO_REGIME;
 window.ECO_REGIMI = ECO_REGIMI;
 window.ECO_SERVIZI = ECO_SERVIZI;
+window.ECO_CONNESSIONI = ECO_CONNESSIONI;
+window.ecoConnessioneDi = ecoConnessioneDi;
+window.ECO_STATO_CONN = ECO_STATO_CONN;
 window.ECO_FISSI = ECO_FISSI;
 window.ECO_FATTURE = ECO_FATTURE;
 window.ECO_STORICO = ECO_STORICO;

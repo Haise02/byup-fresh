@@ -73,6 +73,39 @@ function ecoProiettaDriver(leve) {
 // ─── Costo di un servizio in un mese ───────────────────────────────────────
 const ecoConsumo = (s, d) => (d[s.driver] || 0) * s.perUnita;
 const ecoCostoServizio = (s, d) => ecoConsumo(s, d) * s.prezzo;
+
+// Lettura reale contro stima. Se il fornitore e collegato il consuntivo del mese
+// arriva da lui e vale piu della stima; `scarto` e il rapporto fra i due, ed e
+// la cosa da guardare: uno scarto grande dice che il prezzo unitario o il
+// consumo per unita non sono quelli scritti nel modello.
+function ecoLettura(s, d, frazione) {
+  const stimaMese = ecoCostoServizio(s, d);
+  const c = ecoConnessioneDi(s.id);
+  const collegato = !!c && c.stato === 'collegato';
+  if (!collegato) return { collegato:false, stimaMese, valoreMese:stimaMese, aOggi:stimaMese * frazione, scarto:null };
+  const reale = stimaMese * (s.scarto || 1);
+  return { collegato:true, stimaMese, valoreMese:reale, aOggi:reale * frazione,
+    scarto: stimaMese ? (reale - stimaMese) / stimaMese * 100 : 0, letto:c.ultimaLettura };
+}
+
+// Collega o scollega una credenziale. Collegando, ai servizi che copre viene
+// assegnato uno scarto: e cio che accadrebbe leggendo davvero il fornitore,
+// perche la stima non azzecca mai il consuntivo al centesimo.
+function ecoCollega(conn, attiva) {
+  conn.stato = attiva ? 'collegato' : 'scollegato';
+  conn.ultimaLettura = attiva ? new Date() : null;
+  if (attiva) {
+    conn.servizi.forEach((id, k) => {
+      const s = ECO_SERVIZI.find(x => x.id === id);
+      if (s && !s.scarto) s.scarto = 1 + ((k % 3) - 1) * 0.058 + 0.031;
+    });
+    const sc = conn.servizi.map(id => (ECO_SERVIZI.find(x => x.id === id) || {}).scarto || 1);
+    conn.scartoPct = sc.length ? (sc.reduce((a, b) => a + b, 0) / sc.length - 1) * 100 : null;
+  } else {
+    conn.scartoPct = null;
+  }
+}
+const ecoAggiorna = (conn) => { conn.ultimaLettura = new Date(); };
 const ecoCostiVariabili = (d) => ECO_SERVIZI.reduce((tot, s) => tot + ecoCostoServizio(s, d), 0);
 
 // ─── Costi fissi di competenza di un mese ──────────────────────────────────
@@ -170,8 +203,8 @@ function ecoMeseCorrente(mix) {
   const trascorsi = ECO_OGGI.getDate();
   const frazione = trascorsi / giorni;
   const righe = ECO_SERVIZI.map(s => {
-    const pieno = ecoCostoServizio(s, d);
-    return { s, aOggi: pieno * frazione, fineMese: pieno, consumoPieno: ecoConsumo(s, d) };
+    const l = ecoLettura(s, d, frazione);
+    return { s, l, aOggi:l.aOggi, fineMese:l.valoreMese, consumoPieno: ecoConsumo(s, d) };
   });
   const variabiliOggi = righe.reduce((t, r) => t + r.aOggi, 0);
   const variabiliFine = righe.reduce((t, r) => t + r.fineMese, 0);
@@ -186,6 +219,9 @@ window.ecoRegressione = ecoRegressione;
 window.ecoLeveIniziali = ecoLeveIniziali;
 window.ecoProiettaDriver = ecoProiettaDriver;
 window.ecoConsumo = ecoConsumo;
+window.ecoLettura = ecoLettura;
+window.ecoCollega = ecoCollega;
+window.ecoAggiorna = ecoAggiorna;
 window.ecoCostoServizio = ecoCostoServizio;
 window.ecoCostiVariabili = ecoCostiVariabili;
 window.ecoFissiDelMese = ecoFissiDelMese;
