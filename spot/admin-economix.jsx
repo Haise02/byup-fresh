@@ -17,6 +17,9 @@ const ecoAliquotaValida = (v) => {
 };
 const ECO_TITOLO = { fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
   letterSpacing:'0.08em' };
+// Numero da mettere in un campo di testo: due decimali e la virgola. Era locale
+// alla modale dei costi, ora la usano in due.
+const fmtN = (n) => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',');
 const ECO_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:9,
   fontSize:13.6, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
   boxSizing:'border-box', lineHeight:1.4 };
@@ -84,7 +87,6 @@ const ECO_PERIODICITA = { mensile:'Mensile', annuale:'Annuale', 'una-tantum':'Un
 // averne due avrebbe voluto dire tenerle allineate a mano per sempre.
 function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
   const modifica = !!costo;
-  const fmtN = (n) => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',');
   // IVA non registrata non e IVA a zero: sulle voci nate prima che il campo
   // esistesse si riparte dal 22%, altrimenti aprire una riga per guardarla le
   // azzererebbe l'aliquota al primo salvataggio.
@@ -510,6 +512,139 @@ function EcoConfermaElimina({ costo, daQuando, onChiudi, onConferma }) {
   );
 }
 
+// ─── Modificare un costo a consumo ─────────────────────────────────────────
+// Un servizio a consumo non ha un importo da scrivere: ha una formula. Aprire
+// qui la modale dei costi fissi chiederebbe un imponibile che poi verrebbe
+// ignorato — l'importo lo decidono driver, consumo unitario e prezzo. Quindi si
+// modificano quelli, e la cifra del mese si legge sotto mentre cambia.
+function EcoModaleServizio({ servizio, mese, onChiudi, onSalva, onElimina }) {
+  const [b, setB] = useStateEco(() => ({
+    nome:servizio.nome, categoria:servizio.categoria, fornitore:servizio.fornitore || '',
+    driver:servizio.driver, perUnita:fmtN(servizio.perUnita), prezzo:String(servizio.prezzo).replace('.', ','),
+    unita:servizio.unita, unitaSing:servizio.unitaSing, nota:servizio.nota || '',
+  }));
+  const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+  const num = (v) => parseFloat(String(v).replace(',', '.')) || 0;
+  const fisso = b.driver === 'fisso';
+  const unita = ECO_DRIVER_UNITA[b.driver] || { s:'unità', p:'unità' };
+  // Anteprima sul mese guardato: cambiare un prezzo unitario senza vedere che
+  // cosa produce e chiedere di fidarsi di una moltiplicazione a mente.
+  const guida = fisso ? 1 : (mese ? mese[b.driver] || 0 : 0);
+  const consumo = guida * num(b.perUnita);
+  const costo = consumo * num(b.prezzo);
+  const ok = b.nome.trim().length > 2 && num(b.prezzo) >= 0;
+
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="servizio" onClick={e=>e.stopPropagation()} style={{width:640, maxWidth:'92%', background:'#fff',
+        borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
+        <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>{servizio.nome}</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            Costo a consumo: non si scrive quanto costa, si scrive da cosa dipende e quanto costa l’unità.
+          </div>
+        </div>
+
+        <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
+          display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
+          <EcoCampo etichetta="Servizio" span>
+            <input value={b.nome} onChange={e=>agg('nome', e.target.value)} style={ECO_INP}/>
+          </EcoCampo>
+          <EcoCampo etichetta="Categoria">
+            <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={ECO_SEL}>
+              {ECO_CATEGORIE.map(g => (
+                <optgroup key={g.g} label={g.g}>
+                  {g.voci.map(c => <option key={c} value={c}>{c}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </EcoCampo>
+          <EcoCampo etichetta="Fornitore">
+            <input value={b.fornitore} onChange={e=>agg('fornitore', e.target.value)} style={ECO_INP}/>
+          </EcoCampo>
+          <EcoCampo etichetta="Dipende da" span
+            aiuto="È il driver: il numero che fa salire o scendere il consumo ogni mese.">
+            <select value={b.driver} onChange={e=>agg('driver', e.target.value)} style={ECO_SEL}>
+              {Object.entries(ECO_DRIVER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </EcoCampo>
+          {!fisso && (
+            <EcoCampo etichetta={`Consumo per ${unita.s}`}
+              aiuto={`Quante ${b.unita} ogni ${unita.s}.`}>
+              <input value={b.perUnita} onChange={e=>agg('perUnita', e.target.value.replace(/[^\d.,]/g, ''))} style={ECO_INP}/>
+            </EcoCampo>
+          )}
+          <EcoCampo etichetta={`Prezzo per ${b.unitaSing}`}
+            aiuto={`Quanto costa una ${b.unitaSing}.`}>
+            <input value={b.prezzo} onChange={e=>agg('prezzo', e.target.value.replace(/[^\d.,]/g, ''))} style={ECO_INP}/>
+          </EcoCampo>
+          <EcoCampo etichetta="Nota" span>
+            <textarea value={b.nota} onChange={e=>agg('nota', e.target.value)}
+              style={{...ECO_INP, minHeight:64, resize:'vertical'}}/>
+          </EcoCampo>
+
+          <div style={{gridColumn:'1 / -1', padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT}}>
+            <div style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+              letterSpacing:'0.05em', marginBottom:6}}>Con i numeri di {mese ? mese.mese : 'questo mese'}</div>
+            <div style={{fontSize:13, color:ADM.TEXT, lineHeight:1.6}}>
+              {fisso
+                ? <span>Canone fisso: <strong>{ecoEur2(num(b.prezzo))}</strong> al mese, indipendente dal volume.</span>
+                : <span>{Math.round(guida).toLocaleString('it-IT')} {unita.p} ×{' '}
+                    {b.perUnita} = <strong>{Math.round(consumo).toLocaleString('it-IT')} {b.unita}</strong>,
+                    {/* Il prezzo si scrive com'e stato digitato: arrotondarlo ai
+                        centesimi mostrerebbe «€0,02» su una tariffa da 0,019, e
+                        la moltiplicazione scritta non tornerebbe piu. */}
+                    {' '}a €{b.prezzo} l’una fa <strong>{ecoEur2(costo)}</strong>{
+                      /* Sul mese in corso la tabella mostra il pro-rata sui giorni
+                         trascorsi: senza dirlo, i due numeri sembrano in disaccordo. */
+                      mese && mese.corrente ? ' a mese pieno.' : ' nel mese.'}</span>}
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, flexShrink:0}}
+            onClick={()=>onElimina(servizio)}>Elimina</AdmButton>
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
+            La modifica vale anche all’indietro: il costo di ogni mese si ricalcola con la formula nuova.
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!ok} onClick={()=>onSalva(b)}>Salva</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EcoConfermaEliminaServizio({ servizio, onChiudi, onConferma }) {
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="elimina-servizio" onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'92%',
+        background:'#fff', borderRadius:16, padding:'22px 24px',
+        boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+          Eliminare {servizio.nome}?
+        </div>
+        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
+          Un costo a consumo non si chiude a una data come un canone: sparisce da <strong>tutti</strong> i
+          mesi, passati compresi, perché il suo costo non è mai stato scritto — è sempre stato calcolato
+          dalla formula. Con lui cambiano il conto economico di ogni mese e la proiezione di cassa.
+        </div>
+        <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={onConferma}>Elimina</AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ COSTI ══════════════════════════════════════════════════════════════ */
 function EcoCosti({ mix, forza }) {
   const [nuovo, setNuovo] = useStateEco(false);
@@ -517,6 +652,8 @@ function EcoCosti({ mix, forza }) {
   const [allega, setAllega] = useStateEco(null);
   const [modifica, setModifica] = useStateEco(null);
   const [elimina, setElimina] = useStateEco(null);
+  const [servizio, setServizio] = useStateEco(null);
+  const [eliminaServ, setEliminaServ] = useStateEco(null);
   const [modo, setModo] = useStateEco('mese');            // 'mese' | 'anno'
   const [k, setK] = useStateEco(ECO_STORICO.length - 1);  // mese selezionato
   const [anno, setAnno] = useStateEco(ECO_OGGI.getFullYear());
@@ -699,9 +836,11 @@ function EcoCosti({ mix, forza }) {
           <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_VAR, gap:11}}>
             <div>Servizio</div><div>Dipende da</div><div>Consumo</div><div>Costo</div><div>Fonte</div><div>Documento</div>
           </div>
+          {/* La riga apre la scheda del servizio come ogni altro costo; il
+              documento resta appeso al suo chip, che e l'unica cosa che faceva
+              prima e che sarebbe sparita rendendo la riga cliccabile. */}
           {righeVar.map((r, i) => (
-            <div key={r.s.id} className="adm-row-open"
-              onClick={()=> r.ft ? setDoc(r.ft) : setAllega({ id:r.s.id, tipo:'servizio', nome:r.s.nome, importo:r.costo })}
+            <div key={r.s.id} className="adm-row-open" onClick={()=>setServizio(r.s)}
               style={{display:'grid', gridTemplateColumns:ECO_GRID_VAR, gap:11,
               alignItems:'center', padding:'12px 16px', cursor:'pointer',
               borderBottom: i < righeVar.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
@@ -717,7 +856,12 @@ function EcoCosti({ mix, forza }) {
               <div style={{fontSize:13.8, fontWeight:700, color:ADM.TEXT, ...ECO_NUM}}>{ecoEur(r.costo)}</div>
               <div><EcoFonte automatica={r.auto}
                 da={r.auto ? `Letta da ${r.c.nome}` : r.c ? `${r.c.nome}: ${ECO_STATO_CONN[r.c.stato].label}` : 'Stima del modello'}/></div>
-              <div style={{minWidth:0}}><EcoDoc fattura={r.ft}/></div>
+              <div style={{minWidth:0}} onClick={e=>e.stopPropagation()}>
+                <span onClick={()=> r.ft ? setDoc(r.ft) : setAllega({ id:r.s.id, tipo:'servizio', nome:r.s.nome, importo:r.costo })}
+                  className="adm-card-interactive" style={{display:'inline-block', cursor:'pointer'}}>
+                  <EcoDoc fattura={r.ft}/>
+                </span>
+              </div>
             </div>
           ))}
         </div>
@@ -818,6 +962,23 @@ function EcoCosti({ mix, forza }) {
         </div>
       )}
 
+      {servizio && <EcoModaleServizio key={servizio.id} servizio={servizio} mese={ultimo}
+        onChiudi={()=>setServizio(null)} onElimina={(s)=>setEliminaServ(s)}
+        onSalva={(b)=>{
+          Object.assign(servizio, {
+            nome:b.nome.trim(), categoria:b.categoria, fornitore:b.fornitore.trim(),
+            driver:b.driver, perUnita: parseFloat(String(b.perUnita).replace(',', '.')) || 0,
+            prezzo: parseFloat(String(b.prezzo).replace(',', '.')) || 0, nota:b.nota.trim(),
+          });
+          setServizio(null); forza();
+        }}/>}
+      {eliminaServ && <EcoConfermaEliminaServizio servizio={eliminaServ}
+        onChiudi={()=>setEliminaServ(null)}
+        onConferma={()=>{
+          const k = ECO_SERVIZI.indexOf(eliminaServ);
+          if (k >= 0) ECO_SERVIZI.splice(k, 1);
+          setEliminaServ(null); setServizio(null); forza();
+        }}/>}
       {nuovo && <EcoModaleCosto onChiudi={()=>setNuovo(false)} onSalva={salva}/>}
       {modifica && <EcoModaleCosto key={modifica.id} costo={modifica}
         onChiudi={()=>setModifica(null)} onDoc={(f)=>{ setModifica(null); setDoc(f); }}
@@ -857,6 +1018,16 @@ function EcoCosti({ mix, forza }) {
   );
 }
 
+// L'unita del driver al singolare e al plurale: serve «per locale» in
+// un'etichetta e «51.094 transazioni» in una frase, e usare la stessa forma nei
+// due posti fa scrivere alla schermata un italiano sbagliato.
+const ECO_DRIVER_UNITA = {
+  localiAttivi:{ s:'locale',       p:'locali' },
+  nuoviLocali: { s:'nuovo locale', p:'nuovi locali' },
+  utentiApp:   { s:'utente app',   p:'utenti app' },
+  transazioni: { s:'transazione',  p:'transazioni' },
+  fisso:       { s:'mese',         p:'mesi' },
+};
 const ECO_DRIVER_LABEL = {
   localiAttivi:'Locali attivi',
   nuoviLocali:'Nuovi locali attivati nel mese',
@@ -878,6 +1049,7 @@ window.ECO_NUM = ECO_NUM;
 window.ECO_MESI_LUNGHI = ECO_MESI_LUNGHI;
 window.ECO_PERIODICITA = ECO_PERIODICITA;
 window.ECO_DRIVER_LABEL = ECO_DRIVER_LABEL;
+window.ECO_DRIVER_UNITA = ECO_DRIVER_UNITA;
 window.EcoCampo = EcoCampo;
 window.EcoBarra = EcoBarra;
 window.EcoFonte = EcoFonte;
