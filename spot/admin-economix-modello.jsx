@@ -263,18 +263,27 @@ function ecoProiezioneCassa(mix, leve) {
   futuri.forEach((d, i) => {
     const ric = ecoRicavi(d, mix);
     const costi = ecoCostiVariabili(d) + ecoFissiDelMese(d.data);
-    // L'IVA si versa il 16 del mese successivo al trimestre: qui approssimata
-    // in dodicesimi mensili, e dichiarato.
+    // Gli abbonamenti sono + IVA: il ristoratore la paga a Byup, che la INCASSA
+    // e la riversa. Mancava del tutto, e il flusso sottraeva l'IVA versata allo
+    // Stato senza mai aggiungere quella riscossa — l'IVA risultava un costo
+    // secco quando sulla cassa e neutra, a meno dello sfasamento temporale.
+    const ivaIncassata = ric.totale * 0.22;
     // IVA sugli acquisti: dove il costo la porta scritta si usa quella, altrove
     // si stima. I fornitori esteri sono in reverse charge e non danno credito,
     // ed e il motivo per cui la stima non puo essere il 22% pieno.
-    const iva = Math.max(0, ric.totale * 0.22 - ecoIvaAcquisti(d.data));
+    const ivaAcquisti = ecoIvaAcquisti(d.data);
+    const pagamenti = costi + ivaAcquisti;                  // al fornitore esce il lordo
+    // Versata allo Stato il 16 del mese successivo al trimestre: qui approssimata
+    // in dodicesimi mensili, ed e dichiarato.
+    const iva = Math.max(0, ivaIncassata - ivaAcquisti);
     const scad = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === d.data.getFullYear()
       && x.quando.getMonth() === d.data.getMonth()).reduce((t, x) => t + x.importo, 0)
       + riacquisti.filter(r => r.mese === d.mese).reduce((t, r) => t + r.importo, 0);
-    const netto = ric.totale - costi - iva - scad;
+    const incassi = ric.totale + ivaIncassata;
+    const netto = incassi - pagamenti - iva - scad;
     saldo += netto;
-    out.push({ d, ricavi:ric.totale, costi, iva, scadenze:scad, netto, saldo, i });
+    out.push({ d, ricavi:ric.totale, ivaIncassata, incassi, costi, ivaAcquisti, pagamenti,
+      iva, scadenze:scad, netto, saldo, i });
   });
   return out;
 }
@@ -438,7 +447,9 @@ const ecoRimanda = (riga, nuovaData) => { ECO_RINVII[riga.chiave] = nuovaData; }
 // una sola lascia credere che sia l'unica.
 function ecoRunwaySenzaRicavi(cassa, saldoOggi) {
   if (!cassa.length) return Infinity;
-  const costiMedi = cassa.reduce((t, x) => t + x.costi + x.iva + x.scadenze, 0) / cassa.length;
+  // Senza ricavi non c'e nemmeno IVA incassata: resta l'IVA pagata ai fornitori,
+  // che senza vendite non si compensa con nulla e diventa un'uscita secca.
+  const costiMedi = cassa.reduce((t, x) => t + x.pagamenti + x.scadenze, 0) / cassa.length;
   return costiMedi > 0 ? saldoOggi / costiMedi : Infinity;
 }
 

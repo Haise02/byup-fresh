@@ -48,16 +48,26 @@ function EcoCassa({ mix, leve, forza }) {
   // Dodici mesi e non sei: con sei le voci annuali — la polizza a gennaio, il
   // dominio a febbraio — non comparirebbero mai, e lo scadenzario sembrerebbe
   // averle dimenticate proprio mentre dichiara di mostrarle tutte.
+  const meseCorr = flussi.find(x => x.d.primo) || flussi[0];
   const scadenze = ecoScadenzario(12);
   const inScadenza = scadenze.filter(x => x.giorni <= 0).length;
-  const prepagati = ecoPrepagati();
+  // Uscite ancora da saldare nel mese in corso: quelle gia pagate non ci sono
+  // piu, quindi e davvero "quanto manca", non "quanto costa il mese".
+  // Fino a fine mese, non solo dentro il mese: una voce di giugno non pagata
+  // e ancora denaro che deve uscire, e ometterla farebbe sembrare il mese piu
+  // leggero di quanto sia.
+  const fineMese = new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth() + 1, 0, 23, 59);
+  const delMese = scadenze.filter(x => x.data <= fineMese);
+  const scaduteMese = delMese.filter(x => x.giorni <= 0).length;
+  const daPagare = delMese.reduce((t, x) => t + (x.importo || 0), 0);
+  const senzaImporto = delMese.filter(x => x.importo == null).length;
   const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
   const minSaldo = Math.min.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
   const maxSaldo = Math.max.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:22}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:11}}>
         {[
           { et:'Cassa oggi', v:ecoEur(saldoOggi),
             tono: banca && banca.stato === 'errore' ? ADM.DANGER : null,
@@ -66,9 +76,20 @@ function EcoCassa({ mix, leve, forza }) {
                 ? `${banca.saldoAl || 'ultima lettura'} · rendiconto delle ${banca.ultimaLettura.getHours()}:${String(banca.ultimaLettura.getMinutes()).padStart(2,'0')}`
               : banca.stato === 'errore' ? `collegamento fermo: saldo di ${ecoQuando(banca.ultimaLettura)}`
               : 'saldo inserito a mano' },
+          { et:`Incassi ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(meseCorr ? meseCorr.incassi : 0),
+            tono:ADM.OK,
+            n: meseCorr
+              ? `${ecoEur(meseCorr.ricavi)} di abbonamenti più ${ecoEur(meseCorr.ivaIncassata)} di IVA`
+              : '—' },
           { et:'Flusso medio mensile', v:ecoEur(bruciaMedio),
             tono: bruciaMedio >= 0 ? ADM.OK : ADM.DANGER,
             n: bruciaMedio >= 0 ? 'la cassa cresce' : 'quanto esce, al netto di quanto entra' },
+          { et:`Da pagare a ${ECO_MESI_LUNGHI[ECO_OGGI.getMonth()]}`, v:ecoEur(daPagare),
+            tono: scaduteMese ? ADM.DANGER : ADM.TEXT,
+            n: delMese.length === 0 ? 'niente da saldare entro fine mese'
+              : `${delMese.length} ${delMese.length === 1 ? 'voce' : 'voci'}${
+                  scaduteMese ? `, ${scaduteMese} già ${scaduteMese === 1 ? 'scaduta' : 'scadute'}` : ''}${
+                  senzaImporto ? ` · ${senzaImporto} da calcolare` : ''}` },
           { et:'Autonomia', tono: run.oltre ? ADM.TEXT : ADM.DANGER,
             v: run.oltre
               ? (run.mesi === Infinity ? 'illimitata' : `${Math.floor(run.mesi)} mesi`)
@@ -136,20 +157,21 @@ function EcoCassa({ mix, leve, forza }) {
       <div>
         <div style={ECO_H}>Entrate e uscite</div>
         <div style={ECO_CARD}>
-          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:'96px 1fr 1fr 1fr 1fr 1.05fr 1.15fr', gap:11}}>
-            <div>Mese</div><div>Incassi</div><div>Pagamenti</div><div>IVA versata</div>
-            <div>Scadenze</div><div>Netto</div><div>Saldo</div>
+          <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI, gap:10}}>
+            <div>Mese</div><div>Incassi</div><div>IVA incassata</div><div>Pagamenti</div>
+            <div>IVA versata</div><div>Scadenze</div><div>Netto</div><div>Saldo</div>
           </div>
           {flussi.map((x, i) => (
-            <div key={x.d.mese} style={{display:'grid', gridTemplateColumns:'96px 1fr 1fr 1fr 1fr 1.05fr 1.15fr',
-              gap:11, alignItems:'center', padding:'11px 16px',
+            <div key={x.d.mese} style={{display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI,
+              gap:10, alignItems:'center', padding:'11px 16px',
               background: x.saldo < 0 ? ADM.DANGER_SOFT : x.d.primo ? '#FAFAFB' : '#fff',
               borderBottom: i < flussi.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
               <div style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>
                 {x.d.mese}{x.d.primo && <span style={{fontSize:10.4, color:ADM.MUTED_SOFT, fontWeight:500}}> in corso</span>}
               </div>
               <div style={{fontSize:12.8, color:ADM.OK, fontWeight:600, ...ECO_NUM}}>{ecoEur(x.ricavi)}</div>
-              <div style={{fontSize:12.8, color:ADM.MUTED, ...ECO_NUM}}>−{ecoEur(x.costi).replace('€', '€')}</div>
+              <div style={{fontSize:12.6, color:ADM.OK, ...ECO_NUM}}>{ecoEur(x.ivaIncassata)}</div>
+              <div style={{fontSize:12.8, color:ADM.MUTED, ...ECO_NUM}}>−{ecoEur(x.pagamenti)}</div>
               <div style={{fontSize:12.6, color:ADM.MUTED, ...ECO_NUM}}>{x.iva > 0 ? `−${ecoEur(x.iva)}` : '—'}</div>
               <div style={{fontSize:12.6, color: x.scadenze ? ADM.WARN : ADM.MUTED_SOFT, fontWeight: x.scadenze ? 700 : 400, ...ECO_NUM}}>
                 {x.scadenze ? `−${ecoEur(x.scadenze)}` : '—'}
@@ -161,79 +183,13 @@ function EcoCassa({ mix, leve, forza }) {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* I prepagati non hanno una scadenza, hanno un consumo: la data si calcola
-          dal residuo, e per questo stanno qui e non nello scadenzario. */}
-      {prepagati.length > 0 && (
-        <div>
-          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-            <div style={{...ECO_H, marginBottom:0}}>Credito prepagato</div>
-            <span style={{fontSize:12.4, color:ADM.MUTED}}>
-              esce a blocchi, quando finisce · il quando dipende dai consumi, non dal calendario
-            </span>
-          </div>
-          <div style={{...ECO_CARD, padding:'16px 18px'}}>
-            {prepagati.map(x => (
-              <div key={x.id} style={{display:'grid', gridTemplateColumns:'minmax(0,1.5fr) repeat(3, minmax(0,1fr))',
-                gap:18, alignItems:'start'}}>
-                <div>
-                  <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{x.pk.fornitore}</div>
-                  <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:3, lineHeight:1.45}}>
-                    taglio da {x.taglio.quantita.toLocaleString('it-IT')} a {ecoEur(x.taglio.prezzo)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                    letterSpacing:'0.05em'}}>Residuo</div>
-                  <div style={{fontSize:19, fontWeight:800, color:ADM.TEXT, marginTop:4, ...ECO_NUM}}>
-                    {x.pk.residuo.toLocaleString('it-IT')}
-                  </div>
-                  <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2}}>{x.pk.unita}</div>
-                </div>
-                <div>
-                  <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                    letterSpacing:'0.05em'}}>Vale a bilancio</div>
-                  <div style={{fontSize:19, fontWeight:800, color:ADM.TEXT, marginTop:4, ...ECO_NUM}}>
-                    {ecoEur(x.valore)}
-                  </div>
-                  <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2}}>già pagato, non ancora costo</div>
-                </div>
-                <div>
-                  <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                    letterSpacing:'0.05em'}}>Finisce fra</div>
-                  <div style={{fontSize:19, fontWeight:800, marginTop:4, ...ECO_NUM,
-                    color: x.giorniResidui < 30 ? ADM.DANGER : ADM.TEXT}}>
-                    {x.giorniResidui < 1 ? 'oggi' : `${x.giorniResidui} giorni`}
-                  </div>
-                  <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2}}>
-                    a {Math.round(x.consumoMese).toLocaleString('it-IT')} al mese
-                  </div>
-                </div>
-              </div>
-            ))}
-            {riacquisti.length > 0 && (
-              <div style={{marginTop:15, paddingTop:13, borderTop:`1px solid ${ADM.BORDER}`}}>
-                <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                  letterSpacing:'0.05em', marginBottom:8}}>Ricariche previste entro dicembre</div>
-                <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
-                  {riacquisti.map((r, i) => (
-                    <span key={i} style={{fontSize:12.2, fontWeight:700, color:ADM.INK,
-                      background:'rgba(49,53,61,0.08)', padding:'5px 11px', borderRadius:7}}>
-                      {r.mese} · {ecoEur(r.importo)}
-                    </span>
-                  ))}
-                </div>
-                <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.55}}>
-                  {riacquisti.length} ricariche per {ecoEur(riacquisti.reduce((t, r) => t + r.importo, 0))}
-                  {' '}complessivi. Con un taglio più grande sarebbero meno e costerebbero meno per unità,
-                  ma ogni ricarica immobilizzerebbe più cassa in una volta sola.
-                </div>
-              </div>
-            )}
-          </div>
+        <div style={{fontSize:12, color:ADM.MUTED, marginTop:9, lineHeight:1.55}}>
+          Gli abbonamenti sono più IVA: il ristoratore la paga, Byup la incassa e la riversa allo
+          Stato al netto di quella pagata ai fornitori. Sulla cassa è neutra — quello che conta è
+          lo sfasamento, perché la incassi subito e la versi dopo. I pagamenti sono al lordo,
+          perché al fornitore esce il totale.
         </div>
-      )}
+      </div>
 
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
@@ -246,12 +202,16 @@ function EcoCassa({ mix, leve, forza }) {
           <div style={{flex:1}}/>
           <AdmButton variant="primary" size="sm" onClick={()=>setNuovaScad(true)}>Aggiungi una scadenza</AdmButton>
         </div>
-        <div style={ECO_CARD}>
+        {/* Dieci righe a vista, poi scorre da dentro: su quarantacinque voci
+            l'elenco intero spingerebbe fuori pagina tutto il resto, e lo
+            scadenzario si guarda dalle prime — quelle vicine. */}
+        <div style={{...ECO_CARD, maxHeight:ECO_ALTEZZA_SCAD, display:'flex', flexDirection:'column'}}>
           {scadenze.length === 0 && (
             <div style={{padding:'22px 16px', textAlign:'center', fontSize:13, color:ADM.MUTED}}>
               Nessuna scadenza nei prossimi dodici mesi.
             </div>
           )}
+          <div style={{overflowY:'auto', minHeight:0}}>
           {scadenze.map((x, i) => {
             const dovuta = x.giorni <= 0;
             return (
@@ -294,7 +254,13 @@ function EcoCassa({ mix, leve, forza }) {
               </div>
             );
           })}
+          </div>
         </div>
+        {scadenze.length > 10 && (
+          <div style={{fontSize:12, color:ADM.MUTED, marginTop:9}}>
+            {scadenze.length} voci in tutto · le altre scorrendo nella tabella
+          </div>
+        )}
       </div>
 
       {rimanda && <EcoModaleRimanda riga={rimanda} onChiudi={()=>setRimanda(null)}
@@ -390,6 +356,9 @@ function EcoPatrimonio({ mix }) {
 }
 
 const ECO_GRID_SCAD = 'minmax(0,2fr) 108px 108px 118px 120px 172px';
+
+const ECO_ALTEZZA_SCAD = 10 * 62 + 4;   // dieci righe piu il filo
+const ECO_GRID_FLUSSI = '88px 1fr 1.05fr 1.05fr 1fr 1fr 1.05fr 1.15fr';
 
 window.EcoCassa = EcoCassa;
 window.EcoPatrimonio = EcoPatrimonio;
