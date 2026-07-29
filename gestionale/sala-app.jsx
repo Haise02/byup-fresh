@@ -92,7 +92,7 @@ function SalaApp() {
     const count = cart.items.reduce((s,i)=>s+i.qty,0);
     setCart({ tableId: null, items: [] });
     setArticoloSheet(null);
-    showToast(`✓ ${count} articol${count===1?'o':'i'} inviati alla cucina · Tavolo ${tableId}`);
+    showToast(`✓ ${count} articol${count===1?'o':'i'} inviati · Tavolo ${tableId}`);
   }
 
   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{

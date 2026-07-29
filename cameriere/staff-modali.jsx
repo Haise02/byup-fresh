@@ -536,7 +536,7 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
         <div style={{ padding: '32px 32px 28px', textAlign: 'center' }}>
           <CircleCheck/>
           <div style={{ fontSize: 16, fontWeight: 800, color: ST.TEXT, marginTop: 16 }}>Operazione completata</div>
-          <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 6 }}>L'ordine è stato inviato alla cucina</div>
+          <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 6 }}>L'ordine è stato inviato</div>
         </div>
       </ModalShell>
     );

@@ -163,7 +163,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
                     cursor:'pointer', fontFamily:'inherit',
                     display:'inline-flex', alignItems:'center', gap: 8, minHeight: 44,
                   }}>
-                    Invia in cucina
+                    Invia ordine
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M5 12h14 M13 6l6 6-6 6"/>
@@ -192,7 +192,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
               Sei sicuro?
             </div>
             <div style={{fontSize: 17, color:'#6B7280', lineHeight: 1.5, marginBottom: 22}}>
-              Se confermi <strong style={{color:'#0F1115'}}>NON</strong> verranno inviati gli ordini alla cucina e gli articoli selezionati andranno persi.
+              Se confermi <strong style={{color:'#0F1115'}}>NON</strong> verrà inviato l'ordine e gli articoli selezionati andranno persi.
             </div>
             <div style={{display:'flex', gap: 8}}>
               <button

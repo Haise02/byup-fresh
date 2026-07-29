@@ -512,7 +512,7 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
               Sono al ristorante
             </div>
             <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.35 }}>
-              Inquadra il QR del tavolo per inviare l'ordine in cucina
+              Inquadra il QR del tavolo per inviare l'ordine
             </div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>

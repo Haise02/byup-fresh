@@ -846,7 +846,7 @@ function MenuScreen({ state, setState, goTo }) {
               Ordine inviato!
             </div>
             <div style={{ fontSize: 13, color: MUTED, textAlign: 'center', maxWidth: 220 }}>
-              Lo trovi sulla home, è stato inviato in cucina.
+              Lo trovi sulla home, è stato inviato al locale.
             </div>
           </div>
         </div>
