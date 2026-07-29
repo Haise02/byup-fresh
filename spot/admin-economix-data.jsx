@@ -321,14 +321,23 @@ const ECO_CESPITI = [];
 // Sotto questa soglia il bene si deduce tutto nell'esercizio: e una scelta
 // concessa dalla legge, non un'approssimazione.
 const ECO_SOGLIA_CESPITE = 516.46;
-// Coefficienti ministeriali usati di norma. Il primo esercizio va a meta
-// aliquota, qualunque sia il mese d'acquisto.
-const ECO_ALIQUOTE_AMM = [
-  { v:100, label:'Tutto nell’anno · sotto €516,46' },
-  { v:20,  label:'20% · computer, telefoni, elettronica' },
-  { v:15,  label:'15% · macchinari e impianti' },
-  { v:12,  label:'12% · mobili e arredi' },
+// Si sceglie per ANNI, non per aliquota: «quanto pensi che duri» e la domanda
+// che uno si fa davvero davanti a un macchinario, mentre «15%» e la risposta
+// tradotta. La percentuale resta accanto perche e quella che finisce in
+// bilancio, e i coefficienti ministeriali sono segnalati per non allontanarsene
+// senza accorgersene. Il primo esercizio va a meta aliquota, qualunque sia il
+// mese d'acquisto.
+const ECO_DURATE_AMM = [
+  { anni:0, v:100,   label:'Tutto nell’anno · sotto €516,46' },
+  { anni:3, v:33.33, label:'3 anni · 33%' },
+  { anni:4, v:25,    label:'4 anni · 25%' },
+  { anni:5, v:20,    label:'5 anni · 20% · computer, telefoni, elettronica' },
+  { anni:7, v:15,    label:'7 anni · 15% · macchinari e impianti' },
+  { anni:8, v:12,    label:'8 anni · 12% · mobili e arredi' },
 ];
+// Categorie che quasi sempre sono beni durevoli: sceglierle propone da sole la
+// natura giusta, invece di lasciare che un macchinario entri come spesa.
+const ECO_CAT_DUREVOLI = ['Attrezzature'];
 
 // ─── Stato patrimoniale ────────────────────────────────────────────────────
 // Le voci che NON si deducono dal conto economico e vanno inserite: capitale,
@@ -417,4 +426,5 @@ window.ECO_PATRIMONIO = ECO_PATRIMONIO;
 window.ECO_CATEGORIE = ECO_CATEGORIE;
 window.ECO_CESPITI = ECO_CESPITI;
 window.ECO_SOGLIA_CESPITE = ECO_SOGLIA_CESPITE;
-window.ECO_ALIQUOTE_AMM = ECO_ALIQUOTE_AMM;
+window.ECO_DURATE_AMM = ECO_DURATE_AMM;
+window.ECO_CAT_DUREVOLI = ECO_CAT_DUREVOLI;

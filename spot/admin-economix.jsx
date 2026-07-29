@@ -101,6 +101,12 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
     dal: new Date().toISOString().slice(0, 10), fornitore:'', piva:'', numero:'',
     aliquota:'22', amm:'20', ammScelto:false });
   const cespite = b.tipo === 'cespite';
+  // Scegliere «Attrezzature» dice gia che si sta comprando qualcosa che dura:
+  // la natura si sposta da sola, altrimenti un macchinario entrerebbe come spesa
+  // del mese solo perche nessuno ha toccato un secondo menu.
+  const cambiaCategoria = (c) => setB(x => ({ ...x, categoria:c,
+    tipo: !modifica && ECO_CAT_DUREVOLI.indexOf(c) !== -1 ? 'cespite' : x.tipo,
+    periodicita: ECO_CAT_DUREVOLI.indexOf(c) !== -1 ? 'una-tantum' : x.periodicita }));
   const [file, setFile] = useStateEco(null);
   const allegata = modifica && costo.fattura ? ECO_FATTURE.find(x => x.id === costo.fattura) : null;
   // Si scrive l'imponibile OPPURE il totale: sono le due cifre che stanno sulla
@@ -142,6 +148,7 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
   // lasciava al 100% anche dopo aver digitato 2.400 euro, perche quando il tipo
   // e stato scelto il campo era ancora vuoto.
   const ammProposta = imponibile > 0 && imponibile < ECO_SOGLIA_CESPITE ? '100' : '20';
+  const durata = ECO_DURATE_AMM.find(x => String(x.v) === String(b.ammScelto ? b.amm : ammProposta));
   const amm = b.ammScelto ? b.amm : ammProposta;
   const quotaAnnua = imponibile * (parseFloat(amm) || 0) / 100;
   const ok = b.voce.trim().length > 2 && imponibile > 0;
@@ -186,7 +193,7 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
                 placeholder={cespite ? 'es. MacBook Pro 14”' : 'Che cosa si paga'}/>
             </EcoCampo>
             <EcoCampo etichetta="Categoria">
-              <select value={b.categoria} onChange={e=>agg('categoria', e.target.value)} style={ECO_SEL}>
+              <select value={b.categoria} onChange={e=>cambiaCategoria(e.target.value)} style={ECO_SEL}>
                 {ECO_CATEGORIE.map(g => (
                   <optgroup key={g.g} label={g.g}>
                     {g.voci.map(c => <option key={c} value={c}>{c}</option>)}
@@ -244,13 +251,13 @@ function EcoModaleCosto({ costo, onChiudi, onSalva, onElimina, onDoc }) {
               </div>
             </div>
             {cespite ? (
-              <EcoCampo etichetta="Ammortamento"
+              <EcoCampo etichetta="In quanto tempo si ammortizza"
                 aiuto={imponibile > 0 && quotaAnnua > 0
-                  ? `${ecoEur2(quotaAnnua / 12)} al mese · il primo anno a metà aliquota, come prevede la norma`
+                  ? `${ecoEur2(quotaAnnua / 12)} al mese${durata && durata.anni ? ` per ${durata.anni} anni` : ''} · il primo esercizio a metà aliquota, come prevede la norma`
                   : null}>
                 <select value={amm} onChange={e=>setB(x => ({ ...x, amm:e.target.value, ammScelto:true }))}
                   style={ECO_SEL}>
-                  {ECO_ALIQUOTE_AMM.map(a => <option key={a.v} value={a.v}>{a.label}</option>)}
+                  {ECO_DURATE_AMM.map(a => <option key={a.v} value={a.v}>{a.label}</option>)}
                 </select>
               </EcoCampo>
             ) : (
@@ -755,7 +762,7 @@ function EcoCosti({ mix, forza }) {
                   <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT, overflow:'hidden',
                     whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{r.c.voce}</div>
                   <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
-                    si ammortizza al {r.c.aliquota}%
+                    {(ECO_DURATE_AMM.find(x => x.v === r.c.aliquota) || {}).label || `${r.c.aliquota}% l’anno`}
                   </div>
                 </div>
                 <div style={{fontSize:12.4, color:ADM.MUTED}}>{r.c.categoria}</div>
