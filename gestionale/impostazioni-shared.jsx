@@ -128,9 +128,11 @@ function ImpCard({ title, sub, children, action, aurora, anchor }) {
   );
 }
 
-function ImpField({ label, hint, children }) {
+// `style`: serve a chi deve far crescere il campo fino a un'altezza data —
+// la descrizione della vetrina si allunga fino al fondo della colonna accanto.
+function ImpField({ label, hint, children, style }) {
   return (
-    <div style={{marginBottom: 16}}>
+    <div style={{marginBottom: 16, ...style}}>
       <label style={{
         display:'block', fontSize: 14, fontWeight: 600, color: PN.TEXT,
         marginBottom: 6,

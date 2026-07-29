@@ -222,8 +222,11 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
       <ImpCard anchor="locale">
         {/* Due colonne: campi a sinistra, servizi e accessibilità a destra —
             la card resta compatta invece di allungarsi in verticale. */}
-        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start'}}>
-          <div style={{minWidth: 0}}>
+        {/* Niente alignItems:start: le due colonne devono arrivare alla stessa
+            riga in fondo, ed e la descrizione a prendersi lo spazio che resta
+            invece di lasciare un buco sotto i campi. */}
+        <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18}}>
+          <div style={{minWidth: 0, display:'flex', flexDirection:'column'}}>
             <ImpField label="Nome locale">
               <ImpInput placeholder="es. Trattoria del Borgo" onChange={onChange}/>
             </ImpField>
@@ -237,8 +240,9 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
               <ImpInput placeholder="https://maps.app.goo.gl/..." onChange={onChange}
                 icona={<Icon name="place-map-pin" size={18} color="#EA4335"/>}/>
             </ImpField>
-            <ImpField label="Descrizione">
-              <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…" onChange={onChange}/>
+            <ImpField label="Descrizione" style={{marginBottom: 0, flex: 1, display:'flex', flexDirection:'column'}}>
+              <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…" onChange={onChange}
+                style={{flex: 1}}/>
             </ImpField>
           </div>
 
