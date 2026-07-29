@@ -3464,7 +3464,7 @@ function FlowDiagram({ active }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// AiUploadCta — pulsante "Carica menu (PDF / foto)" magenta brand vivace.
+// AiUploadCta — pulsante "Carica menu con AI (PDF / foto)" magenta brand vivace.
 // Sfondo gradient brand soft → tint, sparkle BRAND pulsante, shimmer permanente
 // che attraversa il button ogni 3.4s. Border dashed BRAND. Hover: gradient più
 // saturo + lift soft. Pattern AI-inspired ma col colore d'identità Byup.
@@ -3505,7 +3505,7 @@ function AiUploadCta({onClick, children}) {
         <path d="M12 2 L13.6 8.4 L20 10 L13.6 11.6 L12 18 L10.4 11.6 L4 10 L10.4 8.4 Z" fill={PN.PINK}/>
         <path d="M19 3 L19.7 5.3 L22 6 L19.7 6.7 L19 9 L18.3 6.7 L16 6 L18.3 5.3 Z" fill={PN.PINK} opacity="0.7"/>
       </svg>
-      <span style={{position: 'relative', zIndex: 1}}>{children || 'Carica menu (PDF / foto)'}</span>
+      <span style={{position: 'relative', zIndex: 1}}>{children || 'Carica menu con AI (PDF / foto)'}</span>
 
       {/* Shimmer overlay — gradient bianco che attraversa il button.
           Loop permanente, lento (3.4s), comunica "qualcosa di magico è qui"
