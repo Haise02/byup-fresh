@@ -83,8 +83,6 @@ function EcoBilancio({ mix }) {
   const mesi = ECO_STORICO.filter(m => m.anno === anno);
   const ce = ecoContoEconomico(mesi, mix, ECO_REGIME);
   const chiusi = mesi.filter(m => !m.corrente);
-  const ceChiusi = ecoContoEconomico(chiusi, mix, ECO_REGIME);
-  const reg = ECO_REGIMI[ECO_REGIME.tipo];
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:20}}>
@@ -134,36 +132,6 @@ function EcoBilancio({ mix }) {
           tono={ce.netto >= 0 ? ADM.OK : ADM.DANGER}/>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
-        <div style={{...ECO_CARD, padding:'14px 16px'}}>
-          <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>
-            Solo i mesi chiusi
-          </div>
-          <div style={{fontSize:22, fontWeight:800, marginTop:6, ...ECO_NUM,
-            color: ceChiusi.netto >= 0 ? ADM.OK : ADM.DANGER}}>{ecoEur(ceChiusi.netto)}</div>
-          <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.4}}>
-            gennaio–{ECO_MESI[Math.max(0, ECO_OGGI.getMonth() - 1)]}, senza il mese in corso che è parziale
-          </div>
-        </div>
-        <div style={{...ECO_CARD, padding:'14px 16px'}}>
-          <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>
-            Perdite pregresse residue
-          </div>
-          <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, marginTop:6, ...ECO_NUM}}>
-            {ecoEur(ce.imposte.perditeResidue)}
-          </div>
-          <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.4}}>
-            finché ci sono, l’imposta sul reddito resta zero
-          </div>
-        </div>
-        <div style={{...ECO_CARD, padding:'14px 16px'}}>
-          <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>
-            Regime
-          </div>
-          <div style={{fontSize:15.5, fontWeight:800, color:ADM.TEXT, marginTop:7}}>{reg.label}</div>
-          <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.45}}>{reg.nota}</div>
-        </div>
-      </div>
     </div>
   );
 }
