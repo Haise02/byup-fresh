@@ -32,7 +32,7 @@ const cfMesi = (d, m) => { const x = new Date(d); x.setMonth(x.getMonth() + m); 
 const ADEMPIMENTI = [
   // ─── Sicurezza delle informazioni
   { id:'acc',  nome:'Riesame dei diritti di accesso', norme:['27001'], rif:'A.5.18', tipo:'cadenza',
-    cadenzaMesi:3,  ultima:new Date('2026-04-14'), responsabile:'Marco Rinaldi', vaiA:{route:'sicurezza', tab:'riesame'} },
+    cadenzaMesi:3,  ultima:new Date('2026-04-14'), responsabile:'Marco Rinaldi', vaiA:{route:'sicurezza', tab:'accessi'} },
   { id:'risk', nome:'Riesame del registro dei rischi', norme:['27001'], rif:'§6.1', tipo:'cadenza',
     cadenzaMesi:6,  ultima:new Date('2026-02-10'), responsabile:'Marco Rinaldi', vaiA:{route:'conformita', tab:'rischi'} },
   { id:'soa',  nome:'Riesame della Dichiarazione di Applicabilità', norme:['27001'], rif:'§6.1.3', tipo:'cadenza',

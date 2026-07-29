@@ -428,7 +428,9 @@ const TEAM = [
   { id: 'support1', nome: 'Sara Conti', email: 's.conti@byup.it', ruolo: 'support', avatar: 'SC', avatarBg: '#16A34A', lastActive: new Date(Date.now() - 180000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-07-04') },
   { id: 'support2', nome: 'Andrea Verdi', email: 'a.verdi@byup.it', ruolo: 'support', avatar: 'AV', avatarBg: '#D97706', lastActive: new Date(Date.now() - 7200000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-09-12') },
   { id: 'mkt1', nome: 'Paola Esposito', email: 'p.esposito@byup.it', ruolo: 'marketing', avatar: 'PE', avatarBg: '#D97706', lastActive: new Date(Date.now() - 3600000 * 5), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-11-20') },
-  { id: 'mkt2', nome: 'Marco Galli', email: 'm.galli@byup.it', ruolo: 'marketing', avatar: 'MG', avatarBg: '#B45309', lastActive: new Date(Date.now() - 86400000 * 7), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2025-02-03') },
+  // uscitaIl: la registra HR in Risorse Umane, la legge ICT nell'elenco accessi.
+  // E' l'unico dato che attraversa il confine fra le due sezioni.
+  { id: 'mkt2', nome: 'Marco Galli', email: 'm.galli@byup.it', ruolo: 'marketing', avatar: 'MG', avatarBg: '#B45309', lastActive: new Date(Date.now() - 86400000 * 7), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2025-02-03'), uscitaIl: new Date(Date.now() + 86400000 * 12) },
   // I tre casi che un riesame degli accessi deve pescare. Senza, la schermata
   // mostrerebbe sette persone tutte attive oggi e non dimostrerebbe nulla.
   { id: 'mkt3', nome: 'Elena Ricci', email: 'e.ricci@byup.it', ruolo: 'marketing', avatar: 'ER', avatarBg: '#0891B2', lastActive: new Date(Date.now() - 86400000 * 142), addedBy: 'Paola Esposito', due_fa: true, attivo: true, addedOn: new Date('2025-06-10') },

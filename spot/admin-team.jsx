@@ -6,7 +6,7 @@ const { useState: useStateTeam } = React;
 // tenerle in tre file avrebbe voluto dire tre copie della stessa lista membri.
 // `sezione` decide quali tab mostrare, non quali esistono.
 const ADM_SEZIONI = {
-  sicurezza:    { pred:'membri',      tabs:['membri','riesame','audit','diagnostica'] },
+  sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'] },
   hr:           { pred:'formazione',  tabs:['formazione'] },
   impostazioni: { pred:'piattaforma', tabs:['piattaforma'] },
 };
@@ -18,15 +18,9 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
   // poter arrivare sulla tab giusta, non sulla prima.
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
   const [invitiOpen, setInvitiOpen] = useStateTeam(false);
-  const [selectedId, setSelectedId] = useStateTeam(null);
   const [members, setMembers] = useStateTeam(TEAM);
   const [inviteOpen, setInviteOpen] = useStateTeam(false);
 
-  const filtered = members.filter(t => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return t.nome.toLowerCase().includes(q) || t.email.toLowerCase().includes(q);
-  });
 
   const handleInvite = (nuovo) => {
     setMembers(prev => [
@@ -56,60 +50,27 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
         <div style={{padding:'0 22px 0 8px', borderBottom:`1px solid ${ADM.BORDER}`,
           display: sez.tabs.length > 1 ? 'flex' : 'none', alignItems:'center', gap:12}}>
           <AdmTabBar tabs={[
-            { id:'membri',      label:'Team',            badge:members.length },
-            { id:'riesame',     label:'Riesame accessi' },
+            // Team e Riesame erano la stessa anagrafica in due tab: gli stessi
+            // nomi, le stesse email, gli stessi ruoli, con due colonne diverse in
+            // fondo. Ora la lista e una e il riesame e uno stato in cui si trova.
+            { id:'accessi',     label:'Accessi',         badge:members.length },
             { id:'formazione',  label:'Formazione' },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
             { id:'diagnostica', label:'Diagnostica' },
           ].filter(t => sez.tabs.indexOf(t.id) !== -1)} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
-          {tab === 'membri' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
+          {tab === 'accessi' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
         </div>
 
-        {tab === 'membri' && (
-          <>
-            <div style={{
-              display:'grid',
-              gridTemplateColumns:'minmax(0,2fr) 1.2fr 1.2fr 1fr 1fr 60px',
-              padding:'10px 22px',
-              borderBottom:`1px solid ${ADM.BORDER}`,
-              fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
-            }}>
-              <div>Membro</div><div>Ruolo</div><div>Ultimo accesso</div><div>2FA</div><div>Stato</div><div></div>
-            </div>
-            {filtered.map((m, i) => {
-              const ruolo = RUOLI[m.ruolo];
-              return (
-                <div key={m.id} onClick={()=>setSelectedId(selectedId===m.id?null:m.id)} style={{
-                  display:'grid', gridTemplateColumns:'minmax(0,2fr) 1.2fr 1.2fr 1fr 1fr 60px',
-                  padding:'13px 22px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-                  alignItems:'center', cursor:'pointer',
-                  background: i%2===1 ? ADM.ROW_STRIPE : 'transparent',
-                }}>
-                  <div style={{display:'flex', alignItems:'center', gap:11}}>
-                    <AdmAvatar name={m.nome} size={39}/>
-                    <div>
-                      <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{m.nome}</div>
-                      <div style={{fontSize:13.3, color:ADM.MUTED}}>{m.email}</div>
-                    </div>
-                  </div>
-                  <div><AdmBadge color={ruolo.color} size="xs">{ruolo.label}</AdmBadge></div>
-                  <div style={{fontSize:13.7, color:ADM.TEXT}}>{fmtRelative(m.lastActive)}</div>
-                  <div>{m.due_fa
-                    ? <span style={{color:ADM.OK, display:'inline-flex', alignItems:'center', gap:5, fontSize:13.3, fontWeight:600}}><BuIcons.shield size={18}/> Attiva</span>
-                    : <span style={{color:ADM.WARN, display:'inline-flex', alignItems:'center', gap:5, fontSize:13.3, fontWeight:600}}><BuIcons.shield size={18}/> Disattiva</span>}</div>
-                  <div>{m.pending
-                    ? <AdmBadge color="WARN" size="xs">Invitato</AdmBadge>
-                    : m.attivo
-                    ? <AdmBadge color="OK" size="xs">Attivo</AdmBadge>
-                    : <AdmBadge color="PLAN_FREE" size="xs">Sospeso</AdmBadge>}</div>
-                  <div style={{textAlign:'right', color:ADM.MUTED}}><BuIcons.more size={20}/></div>
-                </div>
-              );
-            })}
+        {tab === 'accessi' && (
+          <React.Fragment>
+            {/* La lista sta qui dentro: il riesame la porta gia con nome, email,
+                ruolo, aree e ultimo accesso. Sotto restano le due cose che erano
+                solo del Team — chi e stato invitato e cosa puo fare ogni ruolo. */}
+            <AccessReview/>
 
-            <div className="adm-row-open" onClick={()=>setInvitiOpen(o=>!o)} style={{padding:'16px 22px', borderTop:`1px solid ${ADM.BORDER}`, marginTop:-1, display:'flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none'}}>
+            <div className="adm-row-open" onClick={()=>setInvitiOpen(o=>!o)} style={{padding:'16px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none'}}>
               <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Inviti pendenti</span>
               <span style={{fontSize:12.2, fontWeight:700, background:'rgba(120,120,128,0.15)', color:ADM.MUTED, padding:'1px 7px', borderRadius:999}}>2</span>
               <span className="adm-row-chev" style={{display:'inline-flex', color:ADM.MUTED_SOFT, transform:invitiOpen?'rotate(90deg)':'none', transition:'transform 0.15s ease'}}><BuIcons.chevronRight size={16}/></span>
@@ -121,9 +82,8 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
               <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Ruoli & permessi</span>
             </div>
             <RuoliMatrix/>
-          </>
+          </React.Fragment>
         )}
-        {tab === 'riesame' && <AccessReview/>}
         {tab === 'formazione' && (window.CfFormazione ? <CfFormazione/> : null)}
         {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
@@ -753,6 +713,19 @@ function raUltimoRiesame(soggettoId) {
 // altrimenti si timbra dall'alto senza leggere.
 function raClassifica(m) {
   const prec = raUltimoRiesame(m.id);
+  // L'uscita batte tutto il resto, e non e un dettaglio di ordinamento: «non
+  // lavora piu qui e ha ancora l'account» e il rilievo piu comune di un audit
+  // 27001, e finora lo si intercettava solo di rimbalzo, quando l'utenza restava
+  // ferma 90 giorni. Dormiente non vuol dire uscito: si puo essere in congedo
+  // senza essere usciti, e usciti ieri con l'account usato ancora oggi.
+  if (m.uscitaIl) {
+    const g = Math.ceil((m.uscitaIl.getTime() - Date.now()) / 86400000);
+    return g < 0
+      ? { rank:-1, key:'uscito', tono:'DANGER', label:`Uscito il ${raFmtData(m.uscitaIl)}`,
+          nota:`Ha lasciato il team ${-g} giorni fa: l'accesso andava revocato allora` }
+      : { rank:-1, key:'in-uscita', tono:'WARN', label:`Esce il ${raFmtData(m.uscitaIl)}`,
+          nota:`Ultimo giorno fra ${g} ${g === 1 ? 'giorno' : 'giorni'}: l'accesso va revocato quel giorno` };
+  }
   const gg = raGiorniFa(m.lastActive);
   const permOra = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
   const permPrima = prec ? (RUOLI[prec.esito.ruoloAllora] && RUOLI[prec.esito.ruoloAllora].permessi || []).length : null;
@@ -1044,10 +1017,27 @@ function AccessReview() {
                     <div style={{minWidth:0}}>
                       <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nomeCompleto || m.nome}</div>
                       <div style={{fontSize:12, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.email}</div>
-                      <div style={{display:'inline-flex', alignItems:'center', gap:6, marginTop:5,
+                      {/* 2FA e stato erano le due sole colonne che la vecchia tab
+                          Team aveva in piu: qui stanno accanto al nome, dove si
+                          leggono insieme alla persona invece che a due colonne
+                          di distanza. */}
+                      <div style={{display:'flex', alignItems:'center', gap:6, marginTop:5, flexWrap:'wrap'}}>
+                      {!m.due_fa && (
+                        <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 7px',
+                          borderRadius:99, background:ADM.WARN_SOFT}}>
+                          <BuIcons.shield size={12} color={ADM.WARN}/>
+                          <span style={{fontSize:11.2, fontWeight:700, color:ADM.WARN}}>2FA off</span>
+                        </span>
+                      )}
+                      {m.pending && (
+                        <span style={{padding:'2px 7px', borderRadius:99, background:ADM.WARN_SOFT,
+                          fontSize:11.2, fontWeight:700, color:ADM.WARN}}>Invitato</span>
+                      )}
+                      <div style={{display:'inline-flex', alignItems:'center', gap:6,
                         padding:'2px 8px', borderRadius:99, background: tonoBg[cls.tono], maxWidth:'100%'}}>
                         <span style={{width:6, height:6, borderRadius:'50%', background: tonoCol[cls.tono], flexShrink:0}}/>
                         <span style={{fontSize:11.4, fontWeight:700, color: tonoCol[cls.tono], whiteSpace:'nowrap'}}>{cls.label}</span>
+                      </div>
                       </div>
                       <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:4, lineHeight:1.35}}>{cls.nota}</div>
                     </div>
