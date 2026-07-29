@@ -15,6 +15,7 @@ function EcoCassa({ mix, leve }) {
     .sort((a, b) => a.quando - b.quando);
   const banca = ecoBanca();
   const ggConsenso = banca ? ecoGiorniConsenso(banca) : null;
+  const ritardo = ecoRitardoRendiconto(banca);
   const senzaRicavi = ecoRunwaySenzaRicavi(flussi, saldoOggi);
   const prepagati = ecoPrepagati();
   const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
@@ -28,7 +29,8 @@ function EcoCassa({ mix, leve }) {
           { et:'Cassa oggi', v:ecoEur(saldoOggi),
             tono: banca && banca.stato === 'errore' ? ADM.DANGER : null,
             n: !banca ? 'saldo inserito a mano'
-              : banca.stato === 'attivo' ? `letta dal conto ${ecoQuando(banca.ultimaLettura)}`
+              : banca.stato === 'attivo'
+                ? `${banca.saldoAl || 'ultima lettura'} · rendiconto delle ${banca.ultimaLettura.getHours()}:${String(banca.ultimaLettura.getMinutes()).padStart(2,'0')}`
               : banca.stato === 'errore' ? `collegamento fermo: saldo di ${ecoQuando(banca.ultimaLettura)}`
               : 'saldo inserito a mano' },
           { et:'Flusso medio mensile', v:ecoEur(bruciaMedio),
@@ -59,6 +61,13 @@ function EcoCassa({ mix, leve }) {
           Il consenso al conto corrente scade fra <strong>{ggConsenso} giorni</strong>. Alla scadenza
           il saldo smette di aggiornarsi e resta l’ultimo letto — che sembra buono ma è vecchio.
           Rinnovarlo richiede una nuova autenticazione sull’home banking.
+        </div>
+      )}
+      {ritardo > 1 && (
+        <div style={{padding:'12px 15px', borderRadius:10, background:ADM.WARN_SOFT, color:'#78350F',
+          fontSize:12.6, lineHeight:1.55}}>
+          Il rendiconto della banca non arriva da <strong>{ritardo} giorni</strong>. Il saldo qui sopra
+          è fermo all’ultimo file ricevuto: da controllare il deposito su SFTP.
         </div>
       )}
 

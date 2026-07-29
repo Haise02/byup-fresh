@@ -99,11 +99,21 @@ function ecoLettura(s, d, frazione) {
     scarto: stimaMese ? (reale - stimaMese) / stimaMese * 100 : 0, letto:c.ultimaLettura };
 }
 
-// Giorni che restano al consenso PSD2. Sotto i quindici e il caso in cui vale
-// la pena avvisare: rinnovarlo richiede una persona davanti all'home banking.
+// Il consenso esiste solo su PSD2: su CAMT non c'e nulla da rinnovare, ed e la
+// ragione principale per preferirlo. La funzione resta perche il modello deve
+// poter esprimere entrambi i canali.
 function ecoGiorniConsenso(conn) {
   if (!conn.consensoScadeIl) return null;
   return Math.ceil((conn.consensoScadeIl.getTime() - Date.now()) / 86400000);
+}
+
+// Da quanti giorni non arriva il rendiconto. E' il guasto tipico di CAMT: non
+// un permesso scaduto ma un file che smette di essere depositato, e il sintomo
+// e identico — la cassa resta ferma su un saldo vecchio.
+function ecoRitardoRendiconto(conn) {
+  if (!conn || conn.metodo !== 'camt' || !conn.ultimaLettura) return 0;
+  const gg = Math.floor((Date.now() - conn.ultimaLettura.getTime()) / 86400000);
+  return Math.max(0, gg);
 }
 const ecoBanca = () => ECO_CONNESSIONI.find(c => c.cassa) || null;
 
@@ -410,6 +420,7 @@ function ecoStatoPatrimoniale(mix) {
 }
 
 window.ecoGiorniConsenso = ecoGiorniConsenso;
+window.ecoRitardoRendiconto = ecoRitardoRendiconto;
 window.ecoBanca = ecoBanca;
 window.ecoPrepagati = ecoPrepagati;
 window.ecoRiacquisti = ecoRiacquisti;

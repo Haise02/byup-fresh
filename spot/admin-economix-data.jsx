@@ -113,23 +113,31 @@ const ECO_STATO_CONN = {
 };
 
 const ECO_CONNESSIONI = [
-  // Il conto corrente. A differenza dei fornitori cloud qui c'e uno standard
-  // europeo: PSD2 obbliga le banche a esporre saldi e movimenti a chi ha la
-  // licenza AISP. Non ci vuole la nostra, ci si appoggia a un aggregatore che
-  // la ha gia — e le credenziali della banca non passano mai da noi, perche
-  // l'autenticazione avviene sul sito della banca.
+  // IL CONTO CORRENTE, via CAMT.053. Due strade esistono e non si equivalgono.
   //
-  // IL CONSENSO SCADE A 90 GIORNI e va rinnovato con una nuova autenticazione
-  // forte. Se nessuno se ne accorge la cassa smette di aggiornarsi e resta
-  // l'ultimo saldo letto: sembra buono, ma e vecchio. Per questo il conto alla
-  // rovescia sta sulla scheda e non in un registro che nessuno apre.
-  { id:'banca', nome:'Conto corrente', servizi:[], cassa:true,
-    stato:'attivo', ultimaLettura:new Date(ECO_OGGI.getTime() - 4 * 3600000), metodo:'psd2',
-    consensoScadeIl:new Date(ECO_OGGI.getTime() + 23 * 86400000),
-    legge:'Saldo e movimenti del conto, più volte al giorno',
-    passi:['Un aggregatore con licenza AISP fa da tramite: Fabrick, Salt Edge, GoCardless Bank Account Data',
-           'Ci si autentica sul sito della banca e si torna con un consenso — le credenziali non passano da Byup',
-           'Il consenso vale 90 giorni: alla scadenza serve una nuova autenticazione forte'] },
+  // PSD2 e' lo standard europeo aperto: un aggregatore con licenza AISP legge
+  // saldo e movimenti quasi in tempo reale. Comodo, ma il consenso SCADE OGNI
+  // 90 GIORNI e va rinnovato con una nuova autenticazione forte — ed e la
+  // stessa forma di guasto silenzioso del token OAuth scaduto: nessuno se ne
+  // accorge finche la cassa non smette di aggiornarsi.
+  //
+  // CAMT.053 e' il rendiconto ISO 20022 che la banca produce a fine giornata e
+  // consegna via SFTP nel contratto di corporate banking. Non e in tempo reale
+  // — il saldo e quello di chiusura — ma vince su due cose che contano di piu:
+  //  - NON SCADE. E' un canale contrattuale, non un consenso da rinnovare.
+  //  - RICONCILIA. Porta gli identificativi end-to-end, i riferimenti SEPA e
+  //    l'IBAN della controparte, quindi un incasso si aggancia alla fattura da
+  //    solo. PSD2 spesso da solo una descrizione libera, che si abbina a mano.
+  //
+  // Per Byup la riconciliazione conta piu del tempo reale: la domanda e "quanto
+  // ho e quanto mi resta", non "questo bonifico e gia partito".
+  { id:'banca', nome:'Conto corrente · CAMT.053', servizi:[], cassa:true,
+    stato:'attivo', ultimaLettura:new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), ECO_OGGI.getDate(), 6, 40),
+    metodo:'camt', cadenza:'ogni mattina', saldoAl:'chiusura di ieri',
+    legge:'Rendiconto giornaliero: saldo di chiusura e movimenti con le causali strutturate',
+    passi:['La banca deposita il file CAMT.053 su SFTP ogni mattina',
+           'Si attiva dal contratto di corporate banking, di solito senza costi aggiuntivi',
+           'Nessun consenso da rinnovare: e un canale contrattuale, non un permesso a scadenza'] },
   { id:'aws', nome:'AWS Cost Explorer', servizi:['aws-compute','aws-rds','aws-s3'],
     stato:'attivo', ultimaLettura:new Date(ECO_OGGI.getTime() - 26 * 60000), metodo:'ruolo',
     legge:'Costo maturato per servizio, aggiornato ogni sei ore',
