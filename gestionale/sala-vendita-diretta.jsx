@@ -1479,6 +1479,14 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   // Ordine creato dal commit: lo restituisce onConfirm. Null quando l'incasso
   // non crea un ordine nuovo (es. il "Salda ora" di un asporto già esistente).
   const [ordine, setOrdine] = React.useState(null);
+  // Pagamento con carta in volo su Byup Staff. Stessa coda della finestra di
+  // saldo in Sala, ma qui l'attesa è BLOCCANTE: al tavolo il conto è attaccato
+  // a un tavolo che resta, quindi la cassa può chiudere e tornare a lavorare;
+  // al banco il cliente è davanti, il carrello vive solo qui dentro e l'ordine
+  // non esiste ancora. Lasciar chiudere significherebbe due vendite in volo su
+  // una cassa sola, e un pagamento senza più niente a cui attaccarsi.
+  const [attesa, setAttesa] = React.useState(null); // { inviato } | null
+  const [, setAttesaTick] = React.useState(0);
 
   React.useEffect(() => {
     if (open) {
@@ -1488,8 +1496,21 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
       setOrdine(null);
       setAdjust(null);
       setAdjustOpen(false);
+      setAttesa(null);
     }
   }, [open]);
+
+  // Il contatore che scorre e il finto esito vivono qui dentro, non fuori come
+  // in Sala: lì la finestra può chiudersi e il pagamento le sopravvive, qui la
+  // finestra non si chiude finché non è finita, quindi può possederne il ciclo.
+  React.useEffect(() => {
+    if (!attesa) return;
+    const id = setInterval(() => {
+      if (Date.now() - attesa.inviato >= PAY_FINE) chiudiPagamento();
+      else setAttesaTick(t => t + 1);
+    }, 400);
+    return () => clearInterval(id);
+  }, [attesa]);
 
   if (!open) return null;
 
@@ -1546,8 +1567,20 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
     return chips;
   }
 
+  // Unico punto in cui l'incasso si chiude e l'ordine nasce: ci passano sia la
+  // conferma diretta (contanti, misto) sia il ritorno del pagamento con carta.
+  function chiudiPagamento() {
+    setConfirmedTotal(finalTotal);
+    setConfirmedPay({ contanti, carta });
+    setOrdine(onConfirm ? onConfirm(finalTotal) : null);
+    setAttesa(null);
+    setDone(true);
+  }
+
   return (
-    <div onClick={onClose} style={{
+    // Con un pagamento in volo il click fuori non chiude: sarebbe l'unico modo
+    // di uscire per sbaglio da una transazione che il cliente sta pagando.
+    <div onClick={attesa ? undefined : onClose} style={{
       position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)',
       backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
       display: 'grid', placeItems: 'center', zIndex: 200, padding: 20,
@@ -1621,6 +1654,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             }}
             onMouseEnter={svSunsetHoverIn} onMouseLeave={svSunsetHoverOut}>Chiudi</button>
           </div>
+        ) : attesa ? (
+          <SvAttesaPagamento
+            total={finalTotal}
+            elapsed={Date.now() - attesa.inviato}
+            onRitira={() => setAttesa(null)}/>
         ) : (
           <>
             <div style={{
@@ -1726,36 +1764,122 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               padding: '14px 22px', borderTop: '1px solid rgba(15,17,21,0.08)',
               background: 'rgba(255,255,255,0.35)', flexShrink: 0,
             }}>
-              <button
-                onClick={() => {
-                  setConfirmedTotal(finalTotal);
-                  setConfirmedPay({ contanti, carta });
-                  setOrdine(onConfirm ? onConfirm(finalTotal) : null);
-                  setDone(true);
-                }}
-                disabled={!canConfirm}
-                style={{
-                  width: '100%', padding: '15px 16px', borderRadius: 10,
-                  background: canConfirm ? SV_SUNSET_BG : PN.WHITE_FROST,
-                  color: canConfirm ? SV_SUNSET_TEXT : '#9CA3AF',
-                  border: `1px solid ${canConfirm ? 'transparent' : PN.BORDER_SOFT_A}`,
-                  fontSize: 19, fontWeight: 700,
-                  cursor: canConfirm ? 'pointer' : 'not-allowed',
-                  fontFamily: 'inherit', letterSpacing: -0.2,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: canConfirm ? SV_SUNSET_SHADOW : 'none',
-                  transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
-                }}
-                onMouseEnter={e => { if (canConfirm) svSunsetHoverIn(e); }}
-                onMouseLeave={svSunsetHoverOut}>
-                {!canConfirm
-                  ? (finalTotal === 0 ? 'Nessun articolo nel conto' : `Mancano €${(finalTotal - paid).toFixed(2)}`)
-                  : <>Conferma incasso <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>}
-              </button>
+              {/* Con carta il pulsante non incassa: manda la richiesta a Byup
+                  Staff e la finestra passa in attesa. Il misto resta una
+                  conferma diretta, come nella finestra di saldo in Sala.
+                  "Richiedi pagamento" e non "Procedi al pagamento" come in
+                  Sala: qui quelle parole sono già la CTA del carrello che apre
+                  questa finestra, e premere due volte lo stesso pulsante per
+                  la stessa vendita fa sembrare che il primo non abbia preso. */}
+              {(() => {
+                const inviaSuStaff = method === 'carta';
+                const attivo = inviaSuStaff ? finalTotal > 0 : canConfirm;
+                return (
+                  <button
+                    onClick={() => {
+                      if (!attivo) return;
+                      if (inviaSuStaff) setAttesa({ inviato: Date.now() });
+                      else chiudiPagamento();
+                    }}
+                    disabled={!attivo}
+                    style={{
+                      width: '100%', padding: '15px 16px', borderRadius: 10,
+                      background: attivo ? SV_SUNSET_BG : PN.WHITE_FROST,
+                      color: attivo ? SV_SUNSET_TEXT : '#9CA3AF',
+                      border: `1px solid ${attivo ? 'transparent' : PN.BORDER_SOFT_A}`,
+                      // "Richiedi pagamento · €65.00" è più lunga di "Conferma
+                      // incasso": mezzo punto in meno la tiene su una riga sola.
+                      fontSize: inviaSuStaff ? 18 : 19, fontWeight: 700,
+                      cursor: attivo ? 'pointer' : 'not-allowed',
+                      fontFamily: 'inherit', letterSpacing: -0.2, whiteSpace: 'nowrap',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      boxShadow: attivo ? SV_SUNSET_SHADOW : 'none',
+                      transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
+                    }}
+                    onMouseEnter={e => { if (attivo) svSunsetHoverIn(e); }}
+                    onMouseLeave={svSunsetHoverOut}>
+                    {!attivo
+                      ? (finalTotal === 0 ? 'Nessun articolo nel conto' : `Mancano €${(finalTotal - paid).toFixed(2)}`)
+                      : inviaSuStaff
+                        ? <>Richiedi pagamento <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>
+                        : <>Conferma incasso <span style={{ opacity: 0.6 }}>·</span> €{finalTotal.toFixed(2)}</>}
+                  </button>
+                );
+              })()}
             </div>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Attesa del pagamento con carta al banco. Stessa lingua della finestra di
+// saldo in Sala — pallino che pulsa, importo, contatore — ma con una sola
+// uscita invece di due.
+//
+// In Sala c'è anche "Chiudi", perché la cassa ha altri tavoli da servire e il
+// conto resta in coda per conto suo. Qui non esiste un "intanto faccio altro":
+// il cliente è al banco, la vendita è una sola e finisce adesso. Un secondo
+// pulsante che libera la cassa lascerebbe un pagamento senza più un carrello
+// a cui tornare.
+//
+// "Ritira" e non "Annulla" perché è lo stesso gesto della Sala e va chiamato
+// con la stessa parola: la richiesta torna indietro, il carrello è ancora lì e
+// si può correggere e rimandare. Su Byup Staff, se qualcuno l'aveva già
+// aperta, se lo vede dire lì.
+//
+// Resta premibile fino alla fine: se arriva tardi perde la corsa e la finestra
+// passa a incassato, che è quello che è successo davvero.
+function SvAttesaPagamento({ total, elapsed, onRitira }) {
+  const secondi = Math.floor((elapsed || 0) / 1000);
+  const mmss = `${Math.floor(secondi / 60)}:${String(secondi % 60).padStart(2, '0')}`;
+
+  return (
+    <div style={{
+      padding: '36px 28px', textAlign: 'center',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+    }}>
+      <div style={{
+        width: 64, height: 64, borderRadius: '50%',
+        background: PAY_BG, color: PAY_INK,
+        display: 'grid', placeItems: 'center', marginBottom: 16,
+      }}>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
+        </svg>
+      </div>
+
+      {/* Il pallino dice "è ancora vivo", ma non è mai l'unico segnale: la
+          scritta accanto dice la stessa cosa a parole. */}
+      <div style={{
+        fontSize: 24, fontWeight: 700, color: PAY_INK, marginBottom: 4,
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span aria-hidden="true" style={{
+          width: 11, height: 11, borderRadius: 999, flexShrink: 0,
+          background: PAY_INK, animation: 'saldaPayPulse 1.6s ease-in-out infinite',
+        }}/>
+        In attesa
+      </div>
+
+      <div style={{
+        fontSize: 32, fontWeight: 700, color: '#0F1115', marginBottom: 6,
+        letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums',
+      }}>€{total.toFixed(2)}</div>
+
+      {/* Il contatore è l'unica cosa che si muove: senza, una schermata ferma
+          non distingue "sta aspettando" da "si è piantata". */}
+      <div style={{ fontSize: 17, color: '#6B7280', marginBottom: 24, fontVariantNumeric: 'tabular-nums' }}>
+        Richiesta inviata · {mmss}
+      </div>
+
+      <button onClick={onRitira} style={{
+        padding: '10px 24px', borderRadius: 10,
+        background: PN.WHITE_FROST, color: '#0F1115',
+        border: `1px solid ${PN.BORDER_SOFT_A}`,
+        fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+      }}>Ritira</button>
     </div>
   );
 }
