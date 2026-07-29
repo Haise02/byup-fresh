@@ -275,7 +275,7 @@ function MCMenuComposer() {
                             width:6, height:6, borderRadius:'50%',
                             background: m.active ? PN.GREEN : '#9CA3AF',
                           }}/>
-                          {m.active ? 'ATTIVO' : 'INATTIVO'}
+                          {m.active ? 'ATTIVO' : 'DISATTIVATO'}
                         </button>
                       </div>
                       {dotOpen && (
@@ -436,7 +436,7 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
             padding:'3px 9px', borderRadius: 5,
             background: menu.active ? PN.GREEN_SOFT : PN.BORDER_SOFT,
             color: menu.active ? PN.GREEN : PN.MUTED,
-          }}>{menu.active ? 'ATTIVO' : 'INATTIVO'}</span>
+          }}>{menu.active ? 'ATTIVO' : 'DISATTIVATO'}</span>
         }
       >
         {/* Toolbar */}
@@ -3188,7 +3188,7 @@ function MCConfigura() {
               color: modules.prenotazioni ? PN.GREEN : PN.MUTED,
               textTransform: 'uppercase',
             }}>
-              {modules.prenotazioni ? 'Attivo' : 'Non attivo'}
+              {modules.prenotazioni ? 'Attivo' : 'Disattivato'}
             </span>
             <ImpToggle checked={modules.prenotazioni} onChange={() => setModule('prenotazioni', !modules.prenotazioni)}/>
           </div>
@@ -3235,7 +3235,7 @@ function MCConfigura() {
               color: takeaway ? PN.GREEN : PN.MUTED,
               textTransform: 'uppercase',
             }}>
-              {takeaway ? 'Attivo' : 'Non attivo'}
+              {takeaway ? 'Attivo' : 'Disattivato'}
             </span>
             <ImpToggle checked={takeaway} onChange={() => setTakeaway(!takeaway)}/>
           </div>

@@ -605,7 +605,7 @@ function ImpSalaTavoli() {
                           width:6, height:6, borderRadius:'50%',
                           background: s.active ? PN.GREEN : '#9CA3AF',
                         }}/>
-                        {s.active ? 'ATTIVA' : 'INATTIVA'}
+                        {s.active ? 'ATTIVA' : 'DISATTIVATA'}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setSalaMenu(menuOpen ? null : s.id); }}
@@ -760,7 +760,7 @@ function ImpSalaTavoli() {
                   }}>
                     <option value="all">Tutti gli stati</option>
                     <option value="attivi">Attivi</option>
-                    <option value="fuoriuso">Inattivi</option>
+                    <option value="fuoriuso">Disattivati</option>
                   </select>
                   <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={() => {
                     // Crea tavolo a posizione di default e apri popover
@@ -835,7 +835,7 @@ function ImpSalaTavoli() {
                                 padding:'1px 6px', borderRadius:999,
                                 background: s.active ? PN.GREEN_SOFT : '#F1F3F5',
                                 color: s.active ? PN.GREEN : PN.MUTED,
-                              }}>{s.active ? 'ATTIVA' : 'INATTIVA'}</span>
+                              }}>{s.active ? 'ATTIVA' : 'DISATTIVATA'}</span>
                             </button>
                           ))}
                         </div>
@@ -1058,7 +1058,7 @@ function ImpSalaTavoli() {
 
 // ─── Card modulo — toggle di (ri)attivazione Sala ───
 // Pattern identico alle sezioni della tab Operazioni (impostazioni-menu-cucina):
-// header con pill Attivo/Non attivo + ImpToggle, body con empty-state tratteggiato
+// header con pill Attivo/Disattivato + ImpToggle, body con empty-state tratteggiato
 // quando il modulo è spento. Le impostazioni complete restano in Operazioni.
 
 function ImpModuleStatusPill({ active }) {
@@ -1070,7 +1070,7 @@ function ImpModuleStatusPill({ active }) {
       color: active ? PN.GREEN : PN.MUTED,
       textTransform: 'uppercase',
     }}>
-      {active ? 'Attivo' : 'Non attivo'}
+      {active ? 'Attivo' : 'Disattivato'}
     </span>
   );
 }
@@ -1247,7 +1247,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
             width:6, height:6, borderRadius:'50%',
             background: acc.pill.dot,
           }}/>
-          {t.disabled ? 'INATTIVO' : 'ATTIVO'}
+          {t.disabled ? 'DISATTIVATO' : 'ATTIVO'}
         </button>
         <button onClick={onMenuToggle} style={{
           marginLeft:'auto',
@@ -1318,7 +1318,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
                       padding:'1px 6px', borderRadius:999,
                       background: s.active ? PN.GREEN_SOFT : '#F1F3F5',
                       color: s.active ? PN.GREEN : PN.MUTED,
-                    }}>{s.active ? 'ATTIVA' : 'INATTIVA'}</span>
+                    }}>{s.active ? 'ATTIVA' : 'DISATTIVATA'}</span>
                   </button>
                 ))}
               </div>
