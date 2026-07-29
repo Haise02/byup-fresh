@@ -1249,7 +1249,9 @@ function VetrinaAspetto({ onChange }) {
       {/* Un'unica sezione "Immagini": logo a sinistra (colonna stretta, è un
           elemento quadrato) e galleria a destra — niente più card "Aspetto"
           omonima dello step. */}
-      <ImpCard anchor="immagini" title="Immagini" sub="Logo e foto del locale: appariranno sulla vetrina">
+      {/* Come per «Locale»: senza title e sub non c'e intestazione, ma
+          data-cfg-anchor resta e la checklist continua a portare qui. */}
+      <ImpCard anchor="immagini">
         {/* Logo come striscia-profilo in alto (cerchio, testo, azione a
             destra), galleria a tutta larghezza sotto: niente colonna
             semivuota accanto alle foto. */}
