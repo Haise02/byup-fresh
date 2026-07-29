@@ -1074,6 +1074,7 @@ function ImpModuloSalaCard({ active, onToggle }) {
 function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyDragging, onSelect, onUpdate, onMenuToggle, onMove, onDragStart, onDragEnd, onDuplicate, onQR, onDisable, onDelete }) {
   const [moveSubOpen, setMoveSubOpen] = React.useState(false);
   const [moving, setMoving] = React.useState(false);
+  const [hover, setHover] = React.useState(false);
 
   // Chiudi il submenu se il menu padre si richiude
   React.useEffect(() => { if (!menuOpen) setMoveSubOpen(false); }, [menuOpen]);
@@ -1122,8 +1123,8 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         boxShadow: isDragging ? '0 14px 32px rgba(63,20,36,0.18)' : 'none',
         transition: 'opacity 0.18s ease, transform 0.18s cubic-bezier(.4,0,.2,1), border-color 0.15s, background 0.15s, box-shadow 0.15s',
       }}
-      onMouseEnter={e => { if (!menuOpen && !moving && !anyDragging) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(63,20,36,0.06)'; }}}
-      onMouseLeave={e => { if (!moving && !isDragging) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}}
+      onMouseEnter={e => { setHover(true); if (!menuOpen && !moving && !anyDragging) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(63,20,36,0.06)'; }}}
+      onMouseLeave={e => { setHover(false); if (!moving && !isDragging) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}}
     >
       <div style={{display:'flex', alignItems:'center', gap: 12}}>
         {/* Badge tondo col numero: stesso linguaggio della Sala, dove un tavolo
@@ -1256,7 +1257,17 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         {/* Posti: etichetta inline invece che sopra — il badge occupa gia
             l'altezza di due righe, e una terza riga allungava la card. */}
         <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 8}}>
-          <span style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>Posti</span>
+          {/* Sedia a riposo, «posti» al passaggio: l'etichetta serve la prima
+              volta e poi e rumore ripetuto otto volte, ma toglierla del tutto
+              lascerebbe un'icona da indovinare. Lo slot ha larghezza fissa,
+              cosi nello scambio lo stepper non si sposta. */}
+          <span style={{
+            width: 36, flexShrink: 0,
+            display:'inline-flex', alignItems:'center', justifyContent:'center',
+            fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
+          }}>
+            {hover ? 'posti' : <BuIcons.chair size={15}/>}
+          </span>
           <div onClick={e => e.stopPropagation()} style={{display:'inline-flex', alignItems:'center', gap: 0, border:`1px solid ${PN.BORDER}`, borderRadius: 7, overflow:'hidden'}}>
             <button onClick={(e) => { e.stopPropagation(); onUpdate({coperti: Math.max(1, t.coperti - 1)}); }} style={{
               width: 28, height: 28, border:'none', background: PN.WHITE,
