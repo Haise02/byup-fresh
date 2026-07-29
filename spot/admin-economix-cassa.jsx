@@ -13,6 +13,8 @@ function EcoCassa({ mix, leve }) {
   const scadenze = ECO_SCADENZE
     .filter(x => x.quando >= new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1))
     .sort((a, b) => a.quando - b.quando);
+  const prepagati = ecoPrepagati();
+  const riacquisti = ecoRiacquisti(ecoProiettaDriver(leve));
   const minSaldo = Math.min.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
   const maxSaldo = Math.max.apply(null, flussi.map(x => x.saldo).concat([saldoOggi]));
 
@@ -101,6 +103,78 @@ function EcoCassa({ mix, leve }) {
           ))}
         </div>
       </div>
+
+      {/* I prepagati non hanno una scadenza, hanno un consumo: la data si calcola
+          dal residuo, e per questo stanno qui e non nello scadenzario. */}
+      {prepagati.length > 0 && (
+        <div>
+          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+            <div style={{...ECO_H, marginBottom:0}}>Credito prepagato</div>
+            <span style={{fontSize:12.4, color:ADM.MUTED}}>
+              esce a blocchi, quando finisce · il quando dipende dai consumi, non dal calendario
+            </span>
+          </div>
+          <div style={{...ECO_CARD, padding:'16px 18px'}}>
+            {prepagati.map(x => (
+              <div key={x.id} style={{display:'grid', gridTemplateColumns:'minmax(0,1.5fr) repeat(3, minmax(0,1fr))',
+                gap:18, alignItems:'start'}}>
+                <div>
+                  <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{x.pk.fornitore}</div>
+                  <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:3, lineHeight:1.45}}>
+                    taglio da {x.taglio.quantita.toLocaleString('it-IT')} a {ecoEur(x.taglio.prezzo)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                    letterSpacing:'0.05em'}}>Residuo</div>
+                  <div style={{fontSize:19, fontWeight:800, color:ADM.TEXT, marginTop:4, ...ECO_NUM}}>
+                    {x.pk.residuo.toLocaleString('it-IT')}
+                  </div>
+                  <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2}}>{x.pk.unita}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                    letterSpacing:'0.05em'}}>Vale a bilancio</div>
+                  <div style={{fontSize:19, fontWeight:800, color:ADM.TEXT, marginTop:4, ...ECO_NUM}}>
+                    {ecoEur(x.valore)}
+                  </div>
+                  <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2}}>già pagato, non ancora costo</div>
+                </div>
+                <div>
+                  <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                    letterSpacing:'0.05em'}}>Finisce fra</div>
+                  <div style={{fontSize:19, fontWeight:800, marginTop:4, ...ECO_NUM,
+                    color: x.giorniResidui < 30 ? ADM.DANGER : ADM.TEXT}}>
+                    {x.giorniResidui < 1 ? 'oggi' : `${x.giorniResidui} giorni`}
+                  </div>
+                  <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2}}>
+                    a {Math.round(x.consumoMese).toLocaleString('it-IT')} al mese
+                  </div>
+                </div>
+              </div>
+            ))}
+            {riacquisti.length > 0 && (
+              <div style={{marginTop:15, paddingTop:13, borderTop:`1px solid ${ADM.BORDER}`}}>
+                <div style={{fontSize:11.2, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                  letterSpacing:'0.05em', marginBottom:8}}>Ricariche previste entro dicembre</div>
+                <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+                  {riacquisti.map((r, i) => (
+                    <span key={i} style={{fontSize:12.2, fontWeight:700, color:ADM.INK,
+                      background:'rgba(49,53,61,0.08)', padding:'5px 11px', borderRadius:7}}>
+                      {r.mese} · {ecoEur(r.importo)}
+                    </span>
+                  ))}
+                </div>
+                <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.55}}>
+                  {riacquisti.length} ricariche per {ecoEur(riacquisti.reduce((t, r) => t + r.importo, 0))}
+                  {' '}complessivi. Con un taglio più grande sarebbero meno e costerebbero meno per unità,
+                  ma ogni ricarica immobilizzerebbe più cassa in una volta sola.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div>
         <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>

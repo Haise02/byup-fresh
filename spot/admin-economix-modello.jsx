@@ -251,6 +251,7 @@ function ecoFlussiMese(m, mix) {
 // uscite meno IVA versata. Il numero che conta e uno solo — quando finisce.
 function ecoProiezioneCassa(mix, leve) {
   const futuri = ecoProiettaDriver(leve);
+  const riacquisti = ecoRiacquisti(futuri);
   let saldo = ECO_CASSA.saldoBanca + ECO_CASSA.saldoContanti;
   const out = [];
   futuri.forEach((d, i) => {
@@ -263,7 +264,8 @@ function ecoProiezioneCassa(mix, leve) {
     // ed e il motivo per cui la stima non puo essere il 22% pieno.
     const iva = Math.max(0, ric.totale * 0.22 - ecoIvaAcquisti(d.data));
     const scad = ECO_SCADENZE.filter(x => x.importo && x.quando.getFullYear() === d.data.getFullYear()
-      && x.quando.getMonth() === d.data.getMonth()).reduce((t, x) => t + x.importo, 0);
+      && x.quando.getMonth() === d.data.getMonth()).reduce((t, x) => t + x.importo, 0)
+      + riacquisti.filter(r => r.mese === d.mese).reduce((t, r) => t + r.importo, 0);
     const netto = ric.totale - costi - iva - scad;
     saldo += netto;
     out.push({ d, ricavi:ric.totale, costi, iva, scadenze:scad, netto, saldo, i });
@@ -287,6 +289,49 @@ function ecoIvaAcquisti(d) {
     else senza += quota;
   });
   return dichiarata + senza * 0.22 * 0.55;
+}
+
+// ─── Pacchetti prepagati: tre nature, un solo oggetto ──────────────────────
+// COMPETENZA: costo variabile, matura a ogni trasmissione — gia gestito dal
+//   prezzo unitario del taglio in ecoPrezzo.
+// CASSA: uscita a blocchi, quando il credito finisce. Il QUANDO non e una data
+//   scelta: si calcola dal residuo diviso il consumo.
+// PATRIMONIO: il credito non consumato e un ATTIVO — denaro gia uscito che non
+//   e ancora diventato costo.
+function ecoPrepagati() {
+  const out = [];
+  Object.keys(ECO_PACCHETTI).forEach(id => {
+    const pk = ECO_PACCHETTI[id];
+    const s = ECO_SERVIZI.find(x => x.pacchetti === id);
+    if (!s) return;
+    const t = ecoTaglio(pk, pk.attivo);
+    const unit = ecoPrezzoUnitario(t);
+    const consumoMese = ecoConsumo(s, ECO_STORICO[ECO_STORICO.length - 1]);
+    out.push({ id, pk, s, taglio:t, unit, consumoMese,
+      valore: pk.residuo * unit,                                   // attivo a bilancio
+      mesiResidui: consumoMese ? pk.residuo / consumoMese : Infinity,
+      giorniResidui: consumoMese ? Math.round(pk.residuo / consumoMese * 30) : Infinity });
+  });
+  return out;
+}
+
+// Riacquisti previsti nell'orizzonte: quante volte il credito finisce, e quando.
+// E' l'uscita che sorprende, perche non ha un calendario ma un consumo.
+function ecoRiacquisti(mesiProiettati) {
+  const out = [];
+  ecoPrepagati().forEach(p => {
+    let residuo = p.pk.residuo;
+    mesiProiettati.forEach(d => {
+      const consumo = ecoConsumo(p.s, d);
+      residuo -= consumo;
+      while (residuo < 0) {
+        out.push({ mese:d.mese, data:d.data, voce:`Ricarica ${p.pk.fornitore}`,
+          importo:p.taglio.prezzo, quantita:p.taglio.quantita, servizio:p.s.nome });
+        residuo += p.taglio.quantita;
+      }
+    });
+  });
+  return out;
 }
 
 // Autonomia: quanti mesi prima che la cassa finisca al ritmo attuale.
@@ -325,11 +370,14 @@ function ecoStatoPatrimoniale(mix) {
   const debitiFornitori = costiMese * (ECO_CASSA.giorniPagamento / 30);
   const ivaDebito = Math.max(0, ric.totale * 0.22 - ecoIvaAcquisti(new Date(ultimo.data.getFullYear(), ultimo.data.getMonth(), 1)));
   const immobilizzazioni = P.immobiliMateriali + P.fondoAmmortamento;
+  const prepagato = ecoPrepagati().reduce((t, p) => t + p.valore, 0);
 
   const attivo = [
     { v:'Immobilizzazioni materiali', n:immobilizzazioni, sub:`${ecoEur(P.immobiliMateriali)} al costo, ${ecoEur(-P.fondoAmmortamento)} ammortizzati` },
     { v:'Crediti verso clienti', n:crediti, sub:`abbonamenti fatturati e non ancora incassati, ${ECO_CASSA.giorniIncasso} giorni medi` },
     { v:'Crediti tributari', n:P.creditiTributari, sub:'credito d’imposta maturato' },
+    { v:'Servizi prepagati non consumati', n:prepagato,
+      sub:'credito acquistato e non ancora usato: denaro già uscito che non è ancora costo' },
     { v:'Disponibilità liquide', n:cassa, sub:`banca ${ecoEur(ECO_CASSA.saldoBanca)}` },
   ];
   const totAttivo = attivo.reduce((t, x) => t + x.n, 0);
@@ -347,11 +395,13 @@ function ecoStatoPatrimoniale(mix) {
   ];
   const totPassivo = passivo.reduce((t, x) => t + x.n, 0);
 
-  return { attivo, passivo, totAttivo, totPassivo, pn, perditePortateANuovo,
+  return { attivo, passivo, totAttivo, totPassivo, pn, perditePortateANuovo, prepagato,
     sbilancio: totAttivo - totPassivo,
     ce, cassa, crediti, debitiFornitori, ivaDebito, immobilizzazioni };
 }
 
+window.ecoPrepagati = ecoPrepagati;
+window.ecoRiacquisti = ecoRiacquisti;
 window.ecoIvaAcquisti = ecoIvaAcquisti;
 window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;

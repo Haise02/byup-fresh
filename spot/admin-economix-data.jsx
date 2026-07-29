@@ -263,8 +263,6 @@ const ECO_SCADENZE = [
     importo:0, nota:'Come sopra: nessun acconto dovuto finche l\'imposta di riferimento resta zero.' },
   { id:'S4', voce:'Rinnovo assicurazione RC professionale', tipo:'fornitore', quando:new Date(ECO_OGGI.getFullYear() + 1, 0, 15),
     importo:1450, nota:'Annuale, esce in un colpo solo.' },
-  { id:'S5', voce:'Rinnovo pacchetto trasmissioni OpenAPI', tipo:'fornitore', quando:new Date(ECO_OGGI.getFullYear(), 8, 5),
-    importo:950, nota:'Credito prepagato: esce prima di essere consumato.' },
 ];
 
 // ─── Stato patrimoniale ────────────────────────────────────────────────────
@@ -279,7 +277,7 @@ const ECO_PATRIMONIO = {
   // toglie l'unico numero che poteva invecchiare in silenzio.
   // Somma dei versamenti effettivamente fatti dai soci: non un numero tondo
   // perche non lo e mai — sono piu bonifici in momenti diversi.
-  versamentiSoci: 218103,
+  versamentiSoci: 218284,
   immobiliMateriali: 4800,       // portatili e attrezzatura
   fondoAmmortamento: -1920,
   creditiTributari: 3200,        // credito d'imposta R&S maturato
