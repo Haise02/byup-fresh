@@ -55,8 +55,6 @@ const CFR_STATO = {
   trattato:  { tono:'OK',      label:'Trattato' },
   accettato: { tono:'NEUTRAL', label:'Accettato' },
 };
-const CFR_CRIT_RANK = { alta:3, media:2, bassa:1 };
-const cfrCap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '—');
 
 const cfrMesiFa = (d) => (d ? Math.max(0, Math.round((Date.now() - d.getTime()) / 2629800000)) : null);
 const cfrQuandoFa = (d) => {
@@ -110,19 +108,10 @@ function CfrLivello({ p, i, forte, nota, notaTono }) {
   );
 }
 
-function CfrCriticita({ liv }) {
-  const alta = liv === 'alta';
-  return (
-    <span style={{display:'inline-flex', alignItems:'center', padding:'2px 9px', borderRadius:6,
-      background: alta ? ADM.PINK : liv === 'media' ? 'rgba(49,53,61,0.10)' : 'rgba(49,53,61,0.05)',
-      color: alta ? '#fff' : ADM.INK, fontSize:11.6, fontWeight:700, textTransform:'capitalize'}}>{liv}</span>
-  );
-}
-
 // Coppia etichetta/valore per le fasce di dettaglio in linea.
-function CfrVoce({ k, v, tono }) {
+function CfrVoce({ k, v, tono, span }) {
   return (
-    <div>
+    <div style={span ? {gridColumn:'1 / -1'} : undefined}>
       <div style={{fontSize:11.2, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:700}}>{k}</div>
       <div style={{fontSize:12.8, fontWeight:600, color: tono ? CF_TONO(tono) : ADM.TEXT, marginTop:3, lineHeight:1.4}}>{v}</div>
     </div>
@@ -1002,19 +991,232 @@ function CfRischi() {
 }
 
 // ─── Registro dei fornitori ────────────────────────────────────────────────
-function CfFornitori() {
-  const [aperto, setAperto]   = useStateCfr(null);
-  const [conferma, setConferma] = useStateCfr(null);
-  const [, forza]             = useStateCfr(0);
+// Ridotto a ciò che un auditor chiede davvero: chi è, che servizio rende, se
+// esiste il contratto sul trattamento e da quando, e quando l'avete riguardato.
+// Dati trattati, paese e certificazioni restano nel dettaglio della riga: sono
+// informazioni che si leggono quando si apre un fornitore, non che si scorrono.
+// La criticità è sparita del tutto — era un giudizio nostro su una scala
+// inventata, e non alimentava nessuna decisione.
 
-  // I problemi vanno in cima, e fra i problemi prima chi è più critico: un
-  // fornitore senza contratto che tratta dati di pagamento non può stare
-  // in fondo alla lista solo perché la lista è in ordine alfabetico.
+const CFR_DPA_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:9,
+  fontSize:13.6, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+  boxSizing:'border-box', lineHeight:1.4 };
+
+// Modale del DPA: una sola, due modi. Se il documento c'è si legge, se manca si
+// carica — è lo stesso oggetto visto da due stati diversi.
+function CfrModaleDpa({ fornitore, modo, onChiudi, onSalva }) {
+  const vedi = modo === 'vedi';
+  const [file, setFile] = useStateCfr(null);
+  const [data, setData] = useStateCfr('');
+  const puoSalvare = !!file && !!data;
+
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="dpa" onClick={e=>e.stopPropagation()} style={{width:560, maxWidth:'92%', background:'#fff',
+        borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
+
+        <div style={{padding:'20px 24px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
+            {vedi ? 'Accordo sul trattamento dei dati' : `Caricare il DPA di ${fornitore.nome}`}
+          </div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            {vedi
+              ? `${fornitore.nome} · ${fornitore.id}`
+              : 'L’art. 28 del GDPR lo pretende per chiunque tratti dati personali per conto di Byup, e A.5.20 chiede che i requisiti di sicurezza siano scritti nel contratto.'}
+          </div>
+        </div>
+
+        <div style={{padding:'20px 24px 22px', overflowY:'auto', flex:1, minHeight:0}}>
+          {vedi ? (
+            <React.Fragment>
+              <div style={{display:'flex', alignItems:'center', gap:13, padding:'15px 16px', borderRadius:12,
+                border:`1px solid ${ADM.BORDER}`, background:'#FCFCFD'}}>
+                <div style={{width:38, height:46, borderRadius:5, background:'#fff', flexShrink:0,
+                  border:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  <BuIcons.paperclip size={17} color={ADM.MUTED_SOFT}/>
+                </div>
+                <div style={{minWidth:0, flex:1}}>
+                  <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, wordBreak:'break-all'}}>
+                    {String(fornitore.doc).split('/').pop()}
+                  </div>
+                  <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:3, wordBreak:'break-all'}}>{fornitore.doc}</div>
+                </div>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16, marginTop:18}}>
+                <CfrVoce k="Firmato il" v={cfFmt(fornitore.dpaFirmatoIl)}/>
+                <CfrVoce k="Ultimo riesame"
+                  v={fornitore.ultimoRiesame ? cfFmt(fornitore.ultimoRiesame) : 'mai riesaminato'}
+                  tono={fornitore.ultimoRiesame ? null : 'WARN'}/>
+              </div>
+              <div style={{marginTop:18, padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT,
+                fontSize:12.4, color:ADM.MUTED, lineHeight:1.6}}>
+                Il file vive nel gestore documentale, non in Spot: qui c’è il riferimento e la data,
+                che è ciò che il registro deve dimostrare. La copia firmata si apre su Drive.
+              </div>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <label style={{display:'block', marginBottom:16}}>
+                <span style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                  letterSpacing:'0.05em', display:'block', marginBottom:6}}>Documento firmato</span>
+                <div className="adm-card-interactive" style={{border:`1.5px dashed ${file ? ADM.OK : ADM.BORDER}`,
+                  borderRadius:11, padding:'20px 16px', textAlign:'center', cursor:'pointer',
+                  background: file ? ADM.OK_SOFT : '#FCFCFD'}}>
+                  <div style={{fontSize:13.4, fontWeight:700, color: file ? ADM.OK : ADM.TEXT}}>
+                    {file ? file : 'Scegli il file del DPA'}
+                  </div>
+                  <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:4}}>
+                    {file ? 'verrà archiviato in Fornitori/' + fornitore.nome : 'PDF firmato dalle due parti'}
+                  </div>
+                  <input type="file" style={{display:'none'}}
+                    onChange={e => setFile(e.target.files && e.target.files[0] ? e.target.files[0].name : null)}/>
+                </div>
+              </label>
+
+              <label style={{display:'block'}}>
+                <span style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                  letterSpacing:'0.05em', display:'block', marginBottom:6}}>Data della firma</span>
+                <input type="date" value={data} onChange={e=>setData(e.target.value)} style={CFR_DPA_INP}/>
+                <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.45}}>
+                  È la data che conta in sede di verifica: dice da quando il trattamento è coperto.
+                </div>
+              </label>
+            </React.Fragment>
+          )}
+        </div>
+
+        <div style={{padding:'14px 24px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1, lineHeight:1.45}}>
+            {vedi ? '' : puoSalvare ? 'Il fornitore risulterà coperto da accordo.' : 'Servono il file e la data della firma.'}
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>{vedi ? 'Chiudi' : 'Annulla'}</AdmButton>
+          {vedi
+            ? <AdmButton variant="primary" size="sm" onClick={onChiudi}>Apri su Drive</AdmButton>
+            : <AdmButton variant="primary" size="sm" disabled={!puoSalvare}
+                onClick={()=>onSalva({ file, data })}>Registra il DPA</AdmButton>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Campo etichettato della scheda fornitore. A livello di MODULO, mai dentro il
+// componente: un sotto-componente dichiarato nel corpo di un altro è una
+// funzione nuova a ogni render, React lo rimonta e l'input perde il fuoco a
+// ogni carattere digitato.
+function CfrCampoF({ etichetta, aiuto, span, children }) {
+  return (
+    <div style={span ? {gridColumn:'1 / -1'} : undefined}>
+      <label style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+        letterSpacing:'0.05em', display:'block', marginBottom:6}}>{etichetta}</label>
+      {children}
+      {aiuto && <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.45}}>{aiuto}</div>}
+    </div>
+  );
+}
+
+// Nuovo fornitore. Chiede tutto quello che il registro deve poter mostrare: se
+// si potesse aggiungere un nome e basta, il registro nascerebbe già incompleto.
+function CfrModaleFornitore({ onChiudi, onSalva }) {
+  const [b, setB] = useStateCfr({
+    nome:'', servizio:'', dati:'', paese:'', certificazioni:'',
+    dpa:false, doc:'', dpaFirmatoIl:'',
+  });
+  const agg = (k, v) => setB(x => ({ ...x, [k]: v }));
+  const puoSalvare = b.nome.trim().length > 1 && b.servizio.trim().length > 2 && b.dati.trim().length > 2;
+
+  return (
+    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+      <div data-modale="fornitore" onClick={e=>e.stopPropagation()} style={{width:680, maxWidth:'92%', background:'#fff',
+        borderRadius:16, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+        maxHeight:'100%', display:'flex', flexDirection:'column'}}>
+
+        <div style={{padding:'20px 26px 15px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>Aggiungere un fornitore</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>
+            Va censito chiunque tratti dati per conto di Byup, anche quando il servizio sembra
+            marginale: è l’elenco che dimostra di sapere a chi sono stati dati i dati.
+          </div>
+        </div>
+
+        <div style={{padding:'20px 26px 24px', overflowY:'auto', flex:1, minHeight:0,
+          display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16, alignContent:'start'}}>
+          <CfrCampoF etichetta="Fornitore">
+            <input value={b.nome} onChange={e=>agg('nome', e.target.value)} style={CFR_DPA_INP}
+              placeholder="Ragione sociale o nome del servizio"/>
+          </CfrCampoF>
+          <CfrCampoF etichetta="Paese di elaborazione" aiuto="Fuori dall’Unione serve una base per il trasferimento">
+            <input value={b.paese} onChange={e=>agg('paese', e.target.value)} style={CFR_DPA_INP}
+              placeholder="Italia · UE, oppure USA · SCC"/>
+          </CfrCampoF>
+          <CfrCampoF etichetta="Servizio reso" span>
+            <input value={b.servizio} onChange={e=>agg('servizio', e.target.value)} style={CFR_DPA_INP}
+              placeholder="Che cosa fa per Byup"/>
+          </CfrCampoF>
+          <CfrCampoF etichetta="Dati trattati" span
+            aiuto="Di chi sono e di che tipo: è la domanda da cui parte ogni verifica sui fornitori.">
+            <input value={b.dati} onChange={e=>agg('dati', e.target.value)} style={CFR_DPA_INP}
+              placeholder="Quali dati passano da lui"/>
+          </CfrCampoF>
+          <CfrCampoF etichetta="Certificazioni" span aiuto="Separate da virgola. Lasciare vuoto se non ne dichiara.">
+            <input value={b.certificazioni} onChange={e=>agg('certificazioni', e.target.value)} style={CFR_DPA_INP}
+              placeholder="ISO 27001, SOC 2 Type II"/>
+          </CfrCampoF>
+
+          <div style={{gridColumn:'1 / -1', border:`1px solid ${ADM.BORDER}`, borderRadius:12,
+            padding:'14px 16px', background:'#FCFCFD'}}>
+            <label style={{display:'flex', alignItems:'center', gap:9, cursor:'pointer'}}>
+              <input type="checkbox" checked={b.dpa} onChange={e=>agg('dpa', e.target.checked)}
+                style={{width:16, height:16, accentColor:ADM.PINK, cursor:'pointer'}}/>
+              <span style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>Il DPA è già firmato</span>
+            </label>
+            {b.dpa ? (
+              <div style={{display:'grid', gridTemplateColumns:'minmax(0,1.6fr) minmax(0,1fr)', gap:12, marginTop:13}}>
+                <input value={b.doc} onChange={e=>agg('doc', e.target.value)} style={CFR_DPA_INP}
+                  placeholder="Nome del file, es. DPA-2026.pdf"/>
+                <input type="date" value={b.dpaFirmatoIl} onChange={e=>agg('dpaFirmatoIl', e.target.value)} style={CFR_DPA_INP}/>
+              </div>
+            ) : (
+              <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:9, lineHeight:1.5}}>
+                Il fornitore entra segnalato in rosso e in cima all’elenco, e ci resta finché il
+                documento non viene caricato. È corretto così: senza accordo il trattamento è scoperto.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{padding:'14px 26px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+          alignItems:'center', gap:10, flexShrink:0}}>
+          <span style={{fontSize:12.2, color:ADM.MUTED, flex:1, lineHeight:1.45}}>
+            {puoSalvare ? 'Entra nel registro come mai riesaminato.' : 'Servono fornitore, servizio e dati trattati.'}
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" disabled={!puoSalvare} onClick={()=>onSalva(b)}>
+            Aggiungi al registro
+          </AdmButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CfFornitori() {
+  const [aperto, setAperto]     = useStateCfr(null);
+  const [conferma, setConferma] = useStateCfr(null);
+  const [dpa, setDpa]           = useStateCfr(null);   // { fornitore, modo }
+  const [nuovo, setNuovo]       = useStateCfr(false);
+  const [, forza]               = useStateCfr(0);
+
+  // I problemi vanno in cima: un fornitore senza contratto non può stare in
+  // fondo alla lista solo perché la lista è in ordine alfabetico.
   const peso = (f) => (f.dpa ? 0 : 2) + (f.ultimoRiesame ? 0 : 1);
-  const righe = FORNITORI.slice().sort((a, b) =>
-    peso(b) - peso(a)
-    || (CFR_CRIT_RANK[b.criticita] || 0) - (CFR_CRIT_RANK[a.criticita] || 0)
-    || a.nome.localeCompare(b.nome));
+  const righe = FORNITORI.slice().sort((a, b) => peso(b) - peso(a) || a.nome.localeCompare(b.nome));
 
   const confermaFornitore = () => {
     if (!conferma) return;
@@ -1024,22 +1226,45 @@ function CfFornitori() {
     forza(n => n + 1);
   };
 
-  const GRID = 'minmax(0,2fr) minmax(0,1.7fr) 96px minmax(0,1.6fr) 1.25fr 1.15fr 1.05fr 30px';
-  // Nessun cappello: né KPI né striscia di riepilogo. Su sette righe contare le
-  // righe non è un dato, e riassumere le eccezioni sopra una tabella che le
-  // mette già in cima, colorate e con la nota, è dire due volte la stessa cosa.
-  // Lo spazio va al registro.
+  const salvaDpa = ({ file, data }) => {
+    const f = dpa.fornitore;
+    f.dpa = true;
+    f.doc = `Drive · Fornitori/${f.nome}/${file}`;
+    f.dpaFirmatoIl = new Date(data + 'T12:00:00');
+    setDpa(null);
+    forza(n => n + 1);
+  };
+
+  const salvaFornitore = (b) => {
+    const num = FORNITORI.reduce((m, f) => Math.max(m, parseInt(f.id.slice(1), 10) || 0), 0) + 1;
+    FORNITORI.push({
+      id: 'F' + String(num).padStart(2, '0'),
+      nome:b.nome.trim(), servizio:b.servizio.trim(), dati:b.dati.trim(),
+      paese:b.paese.trim() || '—',
+      certificazioni: b.certificazioni.split(',').map(s => s.trim()).filter(Boolean),
+      dpa: b.dpa,
+      dpaFirmatoIl: b.dpa && b.dpaFirmatoIl ? new Date(b.dpaFirmatoIl + 'T12:00:00') : null,
+      doc: b.dpa && b.doc.trim() ? `Drive · Fornitori/${b.nome.trim()}/${b.doc.trim()}` : null,
+      ultimoRiesame:null, esito:null,
+    });
+    setNuovo(false);
+    forza(n => n + 1);
+  };
+
+  const GRID = 'minmax(0,1.5fr) minmax(0,2fr) minmax(0,1.75fr) 1fr 1.15fr 30px';
 
   return (
-    <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
+    <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:12, position:'relative'}}>
+
+      <div style={{display:'flex', justifyContent:'flex-end'}}>
+        <AdmButton variant="primary" size="sm" onClick={()=>setNuovo(true)}>Aggiungi un fornitore</AdmButton>
+      </div>
 
       <div>
-        {/* Nessuna intestazione di sezione: la tab si chiama già Fornitori, e
-            l'ordinamento si vede — i due con un buco sono le prime due righe. */}
         <div style={CF_CARD}>
           <div style={{...CF_TH, display:'grid', gridTemplateColumns:GRID, gap:10}}>
-            <div>Fornitore</div><div>Dati trattati</div><div>Criticità</div><div>DPA e documento</div>
-            <div>Certificazioni</div><div>Paese</div><div>Ultimo riesame</div><div/>
+            <div>Fornitore</div><div>Servizio</div><div>DPA</div><div>Firmato il</div>
+            <div>Ultimo riesame</div><div/>
           </div>
 
           {righe.map((f, idx) => {
@@ -1060,35 +1285,46 @@ function CfFornitori() {
                   <div style={{display:'grid', gridTemplateColumns:GRID, gap:10, alignItems:'center'}}>
                     <div style={{minWidth:0}}>
                       <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{f.nome}</div>
-                      <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:3, lineHeight:1.35}}>{f.servizio}</div>
+                      <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2,
+                        fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace'}}>{f.id}</div>
                     </div>
 
-                    <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4}}>{f.dati}</div>
+                    <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.4}}>{f.servizio}</div>
 
-                    <div><CfrCriticita liv={f.criticita}/></div>
-
-                    <div style={{minWidth:0}}>
-                      <CfPill tono={f.dpa ? 'OK' : 'DANGER'}>{f.dpa ? 'DPA firmato' : 'Nessun DPA'}</CfPill>
-                      {/* In riga solo il nome del file: il percorso intero sta nella
-                          fascia di dettaglio, dove c'è lo spazio per leggerlo. */}
-                      <div style={{marginTop:5, overflow:'hidden', whiteSpace:'nowrap'}}>
-                        <CfDoc doc={f.doc ? String(f.doc).split('/').pop() : null}/>
-                      </div>
+                    {/* Il documento è l'oggetto della colonna, non uno stato da
+                        leggere: se c'è si apre, se manca si carica. */}
+                    <div style={{minWidth:0}} onClick={e=>e.stopPropagation()}>
+                      {f.dpa && f.doc ? (
+                        <button onClick={()=>setDpa({ fornitore:f, modo:'vedi' })}
+                          className="adm-card-interactive"
+                          style={{display:'inline-flex', alignItems:'center', gap:7, maxWidth:'100%',
+                            padding:'5px 10px', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
+                            border:`1px solid ${ADM.BORDER}`, background:'#fff'}}>
+                          <BuIcons.paperclip size={13} color={ADM.MUTED_SOFT}/>
+                          <span style={{fontSize:12.2, fontWeight:600, color:ADM.TEXT, overflow:'hidden',
+                            whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
+                            {String(f.doc).split('/').pop()}
+                          </span>
+                        </button>
+                      ) : (
+                        <AdmButton variant="secondary" size="sm"
+                          onClick={()=>setDpa({ fornitore:f, modo:'carica' })} style={{fontSize:12}}>
+                          Carica il DPA
+                        </AdmButton>
+                      )}
                     </div>
 
-                    <div><CfrChips items={f.certificazioni}/></div>
-
-                    <div>
-                      <div style={{fontSize:12.2, color:ADM.TEXT, lineHeight:1.35}}>{f.paese}</div>
-                      {extraUe && <div style={{fontSize:11, color:ADM.MUTED_SOFT, marginTop:2}}>trasferimento extra-UE</div>}
+                    <div style={{fontSize:12.6, color: f.dpaFirmatoIl ? ADM.TEXT : ADM.DANGER,
+                      fontWeight: f.dpaFirmatoIl ? 500 : 700}}>
+                      {f.dpaFirmatoIl ? cfFmt(f.dpaFirmatoIl) : 'assente'}
                     </div>
 
                     <div>
                       {f.ultimoRiesame ? (
-                        <>
+                        <React.Fragment>
                           <div style={{fontSize:12.6, color:ADM.TEXT}}>{cfFmt(f.ultimoRiesame)}</div>
                           <div style={{fontSize:11.2, color:ADM.MUTED_SOFT, marginTop:2}}>{cfrQuandoFa(f.ultimoRiesame)}</div>
-                        </>
+                        </React.Fragment>
                       ) : (
                         <div style={{fontSize:12.6, color:ADM.WARN, fontWeight:700}}>mai</div>
                       )}
@@ -1112,27 +1348,19 @@ function CfFornitori() {
                     <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
                       <CfrVoce k="Fornitore" v={`${f.nome} · ${f.id}`}/>
                       <CfrVoce k="Servizio" v={f.servizio}/>
-                      <CfrVoce k="Criticità" v={cfrCap(f.criticita)}/>
-                      <CfrVoce k="Paese e trasferimento" v={f.paese}/>
-                      <CfrVoce k="Dati trattati" v={f.dati}/>
-                      <CfrVoce k="Accordo sul trattamento" v={f.dpa ? 'DPA firmato' : 'assente'} tono={f.dpa ? null : 'DANGER'}/>
+                      <CfrVoce k="Paese di elaborazione" v={extraUe ? `${f.paese} · trasferimento extra-UE` : f.paese}/>
                       <CfrVoce k="Certificazioni" v={(f.certificazioni || []).join(' · ') || '—'}/>
+                      <CfrVoce k="Dati trattati" v={f.dati} span/>
+                      <CfrVoce k="Accordo sul trattamento"
+                        v={f.dpa ? `firmato il ${cfFmt(f.dpaFirmatoIl)}` : 'assente'}
+                        tono={f.dpa ? null : 'DANGER'}/>
+                      <CfrVoce k="Documento" v={f.doc || 'nessun documento collegato'} tono={f.doc ? null : 'WARN'}/>
                       <CfrVoce k="Ultimo riesame"
                         v={f.ultimoRiesame ? `${cfFmt(f.ultimoRiesame)} · esito ${f.esito || '—'}` : 'mai riesaminato'}
                         tono={f.ultimoRiesame ? null : 'WARN'}/>
                     </div>
-
-                    <div style={{display:'flex', alignItems:'center', gap:10, marginTop:14, paddingTop:12,
-                      borderTop:`1px dashed ${ADM.BORDER}`}}>
-                      <CfDoc doc={f.doc}/>
-                      <div style={{flex:1}}/>
-                      <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(f)}>Conferma il fornitore</AdmButton>
-                    </div>
-
-                    <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.55, marginTop:12}}>
-                      {extraUe
-                        ? 'Il trasferimento fuori dall’Unione regge sulle clausole contrattuali standard: al riesame va verificato che siano ancora quelle in vigore e che il fornitore non abbia spostato la regione di elaborazione.'
-                        : 'Elaborazione dentro l’Unione: nessuna garanzia aggiuntiva per il trasferimento da mantenere aggiornata.'}
+                    <div style={{display:'flex', justifyContent:'flex-end', marginTop:16}}>
+                      <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(f)}>Riesamina</AdmButton>
                     </div>
                   </div>
                 )}
@@ -1142,11 +1370,14 @@ function CfFornitori() {
         </div>
 
         <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.55}}>
-          Il riesame annuale serve a rispondere a una domanda sola: questo fornitore fa ancora
-          quello che c&rsquo;è scritto qui, con gli stessi dati e le stesse certificazioni? I documenti
-          restano su Drive, il registro ci punta.
+          Il registro dei fornitori non serve a elencare chi vi fattura: serve a dimostrare di sapere
+          a chi sono stati affidati i dati, con quale contratto e da quando.
         </div>
       </div>
+
+      {nuovo && <CfrModaleFornitore onChiudi={()=>setNuovo(false)} onSalva={salvaFornitore}/>}
+      {dpa && <CfrModaleDpa key={dpa.fornitore.id + dpa.modo} fornitore={dpa.fornitore} modo={dpa.modo}
+        onChiudi={()=>setDpa(null)} onSalva={salvaDpa}/>}
 
       {/* Popup conferma fornitore */}
       {conferma && (
@@ -1162,12 +1393,11 @@ function CfFornitori() {
               sono ancora quelli scritti nel registro. La data di oggi diventa l&rsquo;ultimo riesame e
               fa ripartire la cadenza annuale.
             </div>
-            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
               {[
                 ['Servizio', conferma.servizio],
                 ['Dati trattati', conferma.dati],
-                ['Criticità', cfrCap(conferma.criticita)],
-                ['Paese', conferma.paese],
+                ['Accordo', conferma.dpa ? `firmato il ${cfFmt(conferma.dpaFirmatoIl)}` : 'assente'],
                 ['Riesame precedente', conferma.ultimoRiesame ? cfFmt(conferma.ultimoRiesame) : 'mai eseguito'],
               ].map(([k, v]) => (
                 <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
@@ -1176,16 +1406,6 @@ function CfFornitori() {
                 </div>
               ))}
             </div>
-            {!conferma.dpa && (
-              <div style={{display:'flex', alignItems:'flex-start', gap:8, padding:'10px 12px', borderRadius:10,
-                background:ADM.DANGER_SOFT, marginBottom:16}}>
-                <span style={{width:6, height:6, borderRadius:'50%', background:ADM.DANGER, marginTop:5, flexShrink:0}}/>
-                <span style={{fontSize:12.2, color:'#7F1D1D', lineHeight:1.5}}>
-                  Manca il DPA. Confermare il fornitore aggiorna la data ma non chiude il rilievo:
-                  finché il contratto non è firmato, il riesame certifica un rapporto senza base.
-                </span>
-              </div>
-            )}
             <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
               <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(null)}>Annulla</AdmButton>
               <AdmButton variant="primary" size="sm" onClick={confermaFornitore}>Registra il riesame</AdmButton>
