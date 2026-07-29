@@ -1370,32 +1370,38 @@ function CfFornitori() {
 
                     <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.4}}>{f.servizio}</div>
 
-                    {/* Un riquadro per documento richiesto: quali siano dipende da
-                        che cosa tratta e da dove. Se c'è si apre, se manca si carica. */}
-                    <div style={{minWidth:0, display:'flex', flexDirection:'column', gap:5}}
-                      onClick={e=>e.stopPropagation()}>
+                    {/* Una casella per documento richiesto, tutte della stessa forma:
+                        cambia il riempimento, non la sagoma, così la colonna si
+                        legge come una fila di caselle piene e vuote.
+                        alignItems flex-start perché in colonna i figli flex si
+                        stirano, ed è da lì che venivano quei pulsanti larghissimi. */}
+                    <div style={{minWidth:0, display:'flex', flexDirection:'column',
+                      alignItems:'flex-start', gap:4}} onClick={e=>e.stopPropagation()}>
                       {richiesti.length === 0 && (
                         <span style={{fontSize:12, color:ADM.MUTED_SOFT}}>nessuno richiesto</span>
                       )}
-                      {richiesti.map(d => cfrDocPresente(f, d.tipo) ? (
-                        <button key={d.tipo} onClick={()=>setDocM({ fornitore:f, doc:d, modo:'vedi' })}
-                          className="adm-card-interactive" title={d.esteso}
-                          style={{display:'inline-flex', alignItems:'center', gap:7, maxWidth:'100%',
-                            padding:'4px 9px', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
-                            border:`1px solid ${ADM.BORDER}`, background:'#fff'}}>
-                          <BuIcons.paperclip size={12} color={ADM.MUTED_SOFT}/>
-                          <span style={{fontSize:11, fontWeight:800, color:ADM.MUTED_SOFT}}>{d.nome}</span>
-                          <span style={{fontSize:12, fontWeight:600, color:ADM.TEXT, overflow:'hidden',
-                            whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
-                            {String(cfrDocFile(f, d.tipo)).split('/').pop()}
-                          </span>
-                        </button>
-                      ) : (
-                        <AdmButton key={d.tipo} variant="secondary" size="sm" title={d.perche}
-                          onClick={()=>setDocM({ fornitore:f, doc:d, modo:'carica' })} style={{fontSize:12}}>
-                          Carica {d.nome}
-                        </AdmButton>
-                      ))}
+                      {richiesti.map(d => {
+                        const c = cfrDocPresente(f, d.tipo);
+                        return (
+                          <button key={d.tipo} className="adm-card-interactive"
+                            title={c ? d.esteso : d.perche}
+                            onClick={()=>setDocM({ fornitore:f, doc:d, modo: c ? 'vedi' : 'carica' })}
+                            style={{display:'inline-flex', alignItems:'center', gap:6, maxWidth:'100%',
+                              padding:'3px 10px 3px 4px', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
+                              border:`1px ${c ? 'solid' : 'dashed'} ${c ? ADM.BORDER : '#F0A9AC'}`,
+                              background: c ? '#fff' : ADM.DANGER_SOFT}}>
+                            <span style={{fontSize:9.6, fontWeight:800, letterSpacing:'0.05em', flexShrink:0,
+                              padding:'3px 6px', borderRadius:5,
+                              background: c ? 'rgba(49,53,61,0.08)' : 'rgba(255,90,95,0.16)',
+                              color: c ? ADM.INK : ADM.DANGER}}>{d.nome}</span>
+                            <span style={{fontSize:12.2, fontWeight: c ? 500 : 700,
+                              color: c ? ADM.TEXT : ADM.DANGER, overflow:'hidden',
+                              whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
+                              {c ? String(cfrDocFile(f, d.tipo)).split('/').pop() : 'carica'}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div>
