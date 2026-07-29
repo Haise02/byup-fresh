@@ -202,14 +202,14 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
             padding: '14px 16px',
           }}>
             <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Servizi disponibili</div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 14}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14}}>
               {SERVICE_TILES.servizi.map(s => (
                 <ServiceTile key={s.label} {...s} on={!!services[s.label]}
                   onToggle={() => {setServices(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
               ))}
             </div>
             <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Accessibilità</div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 8}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 8}}>
               {SERVICE_TILES.accessibilita.map(s => (
                 <ServiceTile key={s.label} {...s} on={!!access[s.label]}
                   onToggle={() => {setAccess(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
@@ -624,29 +624,37 @@ function VIconChip({ name, on, size = 38 }) {
   );
 }
 
+// Niente descrizioni: sono interruttori, non voci di catalogo. «Rete libera per
+// gli ospiti» sotto «WiFi gratuito» non aggiunge niente a chi deve solo decidere
+// se accenderlo, e triplica l'altezza della tessera.
 const SERVICE_TILES = {
   servizi: [
-    { label: 'Parcheggio custodito', icon: 'shield', desc: 'Posto auto sorvegliato per i clienti' },
-    { label: 'Parcheggio riservato', icon: 'car',    desc: 'Posti dedicati davanti al locale' },
-    { label: 'WiFi gratuito',        icon: 'wifi',   desc: 'Rete libera per gli ospiti' },
-    { label: 'Animali ammessi',      icon: 'paw',    desc: 'Amici a quattro zampe benvenuti' },
-    { label: 'Compleanni',           icon: 'cake',   desc: 'Torta, allestimento e festeggiati' },
+    { label: 'Parcheggio custodito', icon: 'shield' },
+    { label: 'Parcheggio',           icon: 'car'    },
+    { label: 'WiFi gratuito',        icon: 'wifi'   },
+    { label: 'Animali ammessi',      icon: 'paw'    },
+    { label: 'Compleanni',           icon: 'cake'   },
   ],
   accessibilita: [
-    { label: 'Rampa per disabili',   icon: 'wheelchair', desc: 'Ingresso senza barriere' },
-    { label: 'Menù per non vedenti', icon: 'braille',    desc: 'Disponibile anche in Braille' },
-    { label: 'Servizio al tavolo',   icon: 'bell',       desc: 'Il personale serve al tavolo' },
+    { label: 'Rampa per disabili',   icon: 'wheelchair' },
+    { label: 'Menù per non vedenti', icon: 'braille'    },
+    { label: 'Servizio al tavolo',   icon: 'bell'       },
   ],
 };
 
-function ServiceTile({ label, icon, desc, on, onToggle }) {
+// Tessera quasi quadrata: icona sopra, etichetta sotto, contenuto centrato.
+// Senza la descrizione la tessera si accorcia e ne stanno tre per riga invece di
+// due, e tre stanno meglio perche i gruppi sono da cinque e da tre.
+function ServiceTile({ label, icon, on, onToggle }) {
   const [hover, setHover] = React.useState(false);
   return (
     <button onClick={onToggle}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        position: 'relative', textAlign: 'left',
-        padding: '14px 14px 12px', borderRadius: 12,
+        position: 'relative', textAlign: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', gap: 8, minHeight: 104,
+        padding: '12px 8px', borderRadius: 12,
         border: `1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
         background: on ? PN.PINK_SOFT : PN.WHITE,
         cursor: 'pointer', fontFamily: 'inherit',
@@ -655,8 +663,8 @@ function ServiceTile({ label, icon, desc, on, onToggle }) {
       }}>
       {on && (
         <span style={{
-          position: 'absolute', top: 10, right: 10,
-          width: 20, height: 20, borderRadius: '50%',
+          position: 'absolute', top: 8, right: 8,
+          width: 18, height: 18, borderRadius: '50%',
           background: PN.PINK, display: 'grid', placeItems: 'center',
           boxShadow: '0 2px 6px rgba(255, 90, 95, 0.40)',
         }}>
@@ -665,9 +673,9 @@ function ServiceTile({ label, icon, desc, on, onToggle }) {
           </svg>
         </span>
       )}
-      <div style={{marginBottom: 9}}><VIconChip name={icon} on={on}/></div>
-      <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{label}</div>
-      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{desc}</div>
+      <VIconChip name={icon} on={on}/>
+      <div style={{fontSize: 13.4, fontWeight: 700, lineHeight: 1.25,
+        color: on ? PN.PINK_DARK : PN.TEXT}}>{label}</div>
     </button>
   );
 }
