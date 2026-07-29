@@ -1834,7 +1834,9 @@ function ConfirmDialog({ title, msg, danger, confirmLabel, cancelLabel, singleAc
 // solo a fine animazione tavoli e QR vengono eliminati davvero da tutte le sale.
 function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
   const [burning, setBurning] = React.useState(false);
-  const shown = tavoli.slice(0, 12); // anteprima: max 12 card
+  // 9 e non 12: con le tessere vere della mappa (sedie comprese) tre colonne
+  // respirano meglio di quattro, e tre righe bastano a dire "questi muoiono".
+  const shown = tavoli.slice(0, 9);
   const extra = tavoli.length - shown.length;
 
   // Particelle di cenere per card, generate una sola volta al mount
@@ -1858,49 +1860,75 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
     setTimeout(onConfirmed, 950 + shown.length * 90 + 400);
   };
 
+  // Il tavolo dentro la card e la STESSA tessera della mappa — TableTile con
+  // corpo glass, sedie e numero — cosi quello che brucia e riconoscibile come
+  // quello che si e appena disegnato. unit piccola, orientazione forzata a
+  // orizzontale: qui e una galleria d'addio, non una planimetria.
+  const U = 40;
+  const tessera = (t) => {
+    const numero = (String(t.name || '').match(/\d+/) || [t.name || '?'])[0];
+    const seats = t.coperti || 4;
+    return (
+      <TableTile
+        numero={numero}
+        status="libero"
+        seats={seats}
+        shape={ttSeatShape(seats)}
+        orientation="h"
+        hideStatusLabel
+        dim={t.disabled}
+        unit={U}
+      >
+        {!t.disabled && (
+          <div style={{
+            position:'absolute', left:0, right:0, bottom: Math.max(4, U * 0.10),
+            textAlign:'center', pointerEvents:'none', lineHeight:1,
+            fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4,
+            color: '#15803D', opacity: 0.85,
+          }}>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 2}}>
+              <BuIcons.chair size={9}/> {t.coperti}
+            </span>
+          </div>
+        )}
+        {t.disabled && (
+          <div style={{
+            position:'absolute', bottom: -16,
+            left:'50%', transform:'translateX(-50%)',
+            fontSize: 9, fontWeight: 800, letterSpacing: 0.4,
+            color: PN.MUTED, background: '#EEF0F3',
+            padding:'1px 5px', borderRadius: 3,
+            whiteSpace:'nowrap',
+          }}>DISATTIVATO</div>
+        )}
+      </TableTile>
+    );
+  };
+
   return (
     <div onClick={burning ? undefined : onClose} style={{
       position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 150, padding: 20,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20, width: 540, maxWidth:'100%',
-        animation:'dialogIn 0.2s ease-out', position:'relative',
-      }}>
-        <button onClick={onClose} disabled={burning} title="Chiudi" style={{
-          position:'absolute', top: 16, right: 16,
-          width: 32, height: 32, borderRadius:'50%',
-          background:'rgba(15,17,21,0.05)', border:'none',
-          cursor: burning ? 'default' : 'pointer',
-          display:'grid', placeItems:'center', color: PN.MUTED,
-          opacity: burning ? 0.4 : 1,
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-        <div style={{padding: '24px 24px 16px'}}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            background: PN.PINK_SOFT, color: PN.PINK_DARK,
-            display:'grid', placeItems:'center', marginBottom: 14,
-          }}><BuIcons.alert size={20}/></div>
-          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>
-            Disattivare la sala?
-          </div>
-          <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>
+      {/* Stesso foglio bianco di «Nuova sala» e «Nuovo tavolo posizionato»:
+          la conferma distruttiva non ha bisogno di un vestito suo. */}
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, animation:'dialogIn 0.2s ease-out'}}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>Disattivare la sala?</div>
+          <div style={MODAL_SUB}>
             {tavoli.length > 0 ? (
-              <>Disattivando la sala verranno <strong style={{color: PN.TEXT}}>eliminati
-              definitivamente {tavoli.length} {tavoli.length === 1 ? 'tavolo' : 'tavoli'}</strong> e
-              i relativi QR code. Riattivando la sala dovrai ricrearli da zero.</>
+              <>Verranno <strong style={{color: PN.TEXT}}>eliminati definitivamente {tavoli.length} {tavoli.length === 1 ? 'tavolo' : 'tavoli'}</strong> e i relativi QR code. Riattivando la sala dovrai ricrearli da zero.</>
             ) : (
               'La sezione Sala non sarà più visibile nel gestionale. Potrai riattivarla in ogni momento.'
             )}
           </div>
+          <button onClick={onClose} disabled={burning} style={{...MODAL_X, opacity: burning ? 0.4 : 1, cursor: burning ? 'default' : 'pointer'}}><PnI.X size={14}/></button>
         </div>
 
         {shown.length > 0 && (
-          <div style={{padding: '4px 24px 18px'}}>
+          <div style={MODAL_BODY}>
             <div style={{
-              display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10,
+              display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 10,
               padding: 14, borderRadius: 14,
               background:'#FAFBFC', border:`1px dashed ${PN.BORDER}`,
             }}>
@@ -1909,12 +1937,16 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
                   {/* La card svanisce; le particelle sono fuori dal nodo animato
                       per non ereditarne opacità e blur */}
                   <div style={{
-                    display:'flex', flexDirection:'column', alignItems:'center', gap: 5,
-                    padding:'10px 6px', borderRadius: 10,
+                    display:'flex', flexDirection:'column', alignItems:'center', gap: 6,
+                    padding:'12px 6px 10px', borderRadius: 10,
                     background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
                     animation: burning ? `salaAshCard 950ms ease-in ${i * 90}ms forwards` : 'none',
                   }}>
-                    <TavoloShape shape={t.shape} size={28} active={!t.disabled} coperti={t.coperti}/>
+                    {/* Cella a altezza fissa: le sedie sporgono dal corpo e
+                        vivono in questo margine, come nel gutter della mappa */}
+                    <div style={{height: 74, display:'grid', placeItems:'center'}}>
+                      {tessera(t)}
+                    </div>
                     <div style={{fontSize: 12, fontWeight: 700, color: PN.TEXT}}>{t.name}</div>
                     <div style={{
                       fontSize: 10, fontWeight: 700, letterSpacing: 0.4, color: PN.MUTED,
@@ -1941,14 +1973,11 @@ function DisattivaSalaModal({ tavoli, onClose, onConfirmed }) {
           </div>
         )}
 
-        <div style={{padding: '14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
-          <button onClick={confirm} disabled={burning} style={{
-            padding: '9px 16px', borderRadius: 8,
-            background: PN.PINK_DARK, color: PN.WHITE,
-            border:'none', cursor: burning ? 'default' : 'pointer',
-            fontSize: 15, fontWeight: 700, fontFamily:'inherit',
-            opacity: burning ? 0.7 : 1,
-          }}>{burning ? 'Eliminazione…' : 'Disattiva ed elimina'}</button>
+        <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose} disabled={burning} style={{padding:'11px 22px', borderRadius: 11, fontSize: 16}}>Annulla</ImpButton>
+          <ImpButton variant="danger" onClick={confirm} disabled={burning} style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}}>
+            {burning ? 'Eliminazione…' : 'Disattiva ed elimina'}
+          </ImpButton>
         </div>
       </div>
     </div>
