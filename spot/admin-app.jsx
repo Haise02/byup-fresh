@@ -17,7 +17,7 @@ const NAV_SYSTEM = [
   // La nav di sistema è per la governance, non per l'operatività quotidiana:
   // la conformità si consulta quando serve, come le impostazioni.
   { id: 'economix',     label: 'Economix',           icon: 'euroFill' },
-  { id: 'conformita',   label: 'Conformità',         icon: 'shield',
+  { id: 'conformita',   label: 'Risk Management',    icon: 'gaugeFill',
     badge: ADEMPIMENTI.filter(a => { const s = cfStatoAdempimento(a); return s.stato === 'scaduto' || s.stato === 'mai'; }).length || null },
   // Chi ha accesso, che cosa ha fatto e come stanno i sistemi sono la stessa
   // domanda vista da tre lati: stanno insieme e non dentro le impostazioni,
@@ -190,7 +190,7 @@ function AdminApp({ tweaks }) {
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
     hr:           { t:'Risorse Umane', s:'Formazione del personale ed evidenze per la A.6.3' },
     economix:     { t:'Economix', s:'Costi, conto economico, cassa e patrimonio di Byup' },
-    conformita:   { t:'Conformità', s:'Registri ed evidenze per ISO/IEC 27001 e ISO 9001' },
+    conformita:   { t:'Risk Management', s:'Rischi, adempimenti ed evidenze per ISO/IEC 27001 e ISO 9001' },
     profilo:      { t:'Profilo', s:'Account e sicurezza' },
   };
 

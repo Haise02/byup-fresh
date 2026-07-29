@@ -394,7 +394,7 @@ const PERMESSI = [
   // dell'applicazione: finche non c'erano, «7 aree su 7» voleva dire accesso a
   // tutto mentre due sezioni restavano fuori dal conteggio.
   { id: 'economix',       label: 'Economix',               desc: 'Costi, conto economico, cassa e stato patrimoniale' },
-  { id: 'conformita',     label: 'Conformità',             desc: 'Adempimenti, rischi, fornitori, incidenti e audit' },
+  { id: 'conformita',     label: 'Risk Management',        desc: 'Rischi, adempimenti, fornitori, incidenti e audit' },
   { id: 'sicurezza',      label: 'Sicurezza e sistemi',    desc: 'Membri del team, riesame degli accessi, audit log e diagnostica' },
   { id: 'hr',             label: 'Risorse Umane',          desc: 'Registro della formazione del personale' },
   { id: 'team',           label: 'Impostazioni piattaforma', desc: 'Configurazione tecnica e parametri della piattaforma' },
