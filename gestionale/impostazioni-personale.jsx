@@ -1465,9 +1465,11 @@ const STEP_DEVICES = [
 ];
 // Due passi e non tre: il terzo — «conferma il collegamento» — descriveva quello
 // che succede DOPO aver premuto la CTA, cioe una cosa che l'utente non deve fare.
+// Ognuno e una riga sola: le descrizioni ripetevano il titolo con altre parole
+// («Scegli il dispositivo» / «Seleziona il dispositivo che vuoi configurare»).
 const DEVICE_STEPS = [
-  { icon: 'monitor', t: 'Scegli il dispositivo',            d: 'Seleziona il dispositivo che vuoi configurare.' },
-  { icon: 'plug',    t: 'Collega alla rete o alimentazione', d: 'Connetti il dispositivo alla rete Wi-Fi o all\'alimentazione.' },
+  'Scegli il dispositivo',
+  'Collegalo alla rete Wi-Fi o all\'alimentazione',
 ];
 
 const STEP_ROLES = [
@@ -1519,37 +1521,33 @@ function DispositivoStep({ setTeam }) {
           ))}
         </div>
 
+        {/* Suggerimento, non un passo dell'interfaccia. Con bordo, fondo bianco e
+            pastiglie rosa pesava quanto le card selezionabili qui sopra, e la
+            gerarchia diceva il falso: li si sceglie, qui si legge e basta.
+            Fondo incassato, niente bordo, una riga sola. */}
         <div style={{
-          marginTop: 12, padding:'14px 16px', borderRadius: 12,
-          border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
-          display:'grid', gridTemplateColumns:'1fr auto 1fr', gap: 10, alignItems:'center',
+          marginTop: 10, padding: '9px 12px', borderRadius: 10, background: PN.BG,
+          display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap', rowGap: 5,
         }}>
+          <span style={{display:'inline-flex', color: PN.MUTED, flexShrink: 0}}>
+            {BuIcons.bulb({size: 14, color:'currentColor'})}
+          </span>
           {/* Freccia disegnata a mano: le icone di PnI non inoltrano `style`,
               quindi ruotare una chevron non funziona. */}
-          {DEVICE_STEPS.map((p, i) => (
-            <React.Fragment key={p.t}>
+          {DEVICE_STEPS.map((t, i) => (
+            <React.Fragment key={t}>
               {i > 0 && (
-                <span style={{display:'flex', alignItems:'center', color: PN.BORDER}}>
-                  <svg width="46" height="10" viewBox="0 0 46 10" fill="none" stroke="currentColor"
-                    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="1" y1="5" x2="36" y2="5" strokeDasharray="4 4"/>
-                    <polyline points="40,1.6 44,5 40,8.4"/>
+                <span style={{display:'inline-flex', alignItems:'center', color: PN.BORDER, flexShrink: 0}}>
+                  <svg width="26" height="8" viewBox="0 0 26 8" fill="none" stroke="currentColor"
+                    strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="1" y1="4" x2="18" y2="4" strokeDasharray="3 3"/>
+                    <polyline points="21,1.2 24,4 21,6.8"/>
                   </svg>
                 </span>
               )}
-              <div style={{display:'flex', gap: 10, alignItems:'flex-start', minWidth: 0}}>
-                <span style={{
-                  width: 34, height: 34, borderRadius:'50%', flexShrink: 0,
-                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                  display:'grid', placeItems:'center',
-                }}>{(BuIcons[p.icon]||BuIcons.check)({size: 15, color:'currentColor'})}</span>
-                <div style={{minWidth: 0}}>
-                  <div style={{fontSize: 13, fontWeight: 700, color: PN.TEXT, lineHeight: 1.3}}>
-                    <span style={{color: PN.PINK, marginRight: 5}}>{i + 1}</span>{p.t}
-                  </div>
-                  <div style={{fontSize: 12.2, color: PN.MUTED, lineHeight: 1.4, marginTop: 2}}>{p.d}</div>
-                </div>
-              </div>
+              <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.45}}>
+                <span style={{fontWeight: 700, marginRight: 2}}>{i + 1}</span>{' '}{t}
+              </span>
             </React.Fragment>
           ))}
         </div>
