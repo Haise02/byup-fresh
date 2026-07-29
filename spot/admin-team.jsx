@@ -946,28 +946,33 @@ function AccessReview() {
         background: chiusa ? ADM.OK_SOFT : scaduta ? ADM.DANGER_SOFT : '#FFF7E6',
         border:`1px solid ${chiusa ? '#BBF7D0' : scaduta ? '#FECACA' : '#FDE68A'}`,
       }}>
-        <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:14.5, fontWeight:800, color: chiusa ? '#065F46' : scaduta ? '#7F1D1D' : '#78350F'}}>
-            {chiusa
-              ? `Riesame ${camp.periodo} chiuso e firmato`
-              : `Riesame ${camp.periodo} · ${scaduta ? `scaduto da ${-ggScadenza} giorni` : `scade fra ${ggScadenza} giorni`}`}
+        {/* A campagna aperta la banda mostra solo l'avanzamento e il pulsante:
+            il conteggio dice gia a che punto sei. A campagna chiusa il testo
+            resta, perche senza di lui la banda direbbe soltanto «scarica» e non
+            si capirebbe che cosa e stato firmato e da chi. */}
+        {chiusa && (
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:14.5, fontWeight:800, color:'#065F46'}}>
+              Riesame {camp.periodo} chiuso e firmato
+            </div>
+            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
+              Firmato da {chiusa.revisore} il {raFmtDataOra(chiusa.chiusaIl)} · {chiusa.confermati} confermati, {chiusa.revocati} revocati
+            </div>
           </div>
-          <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-            {chiusa
-              ? `Firmato da ${chiusa.revisore} il ${raFmtDataOra(chiusa.chiusaIl)} · ${chiusa.confermati} confermati, ${chiusa.revocati} revocati`
-              : `Aperto il ${raFmtData(camp.apertaIl)} · scadenza ${raFmtData(camp.scadenza)} · cadenza ogni ${RIESAME_CADENZA_MESI} mesi · revisore ${camp.revisore}`}
-          </div>
-        </div>
+        )}
         {!chiusa && (
-          <div style={{textAlign:'right', flexShrink:0}}>
+          <div style={{flexShrink:0}}>
             <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
               {decisi}<span style={{fontSize:14, fontWeight:600, color:ADM.MUTED}}> / {totale}</span>
             </div>
             <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:3}}>utenze esaminate</div>
           </div>
         )}
+        {/* La barra prende lo spazio che avanza invece di lasciarlo vuoto: senza
+            il testo a sinistra, una banda larga con tutto ammassato a destra
+            sembrava un blocco a cui manca qualcosa. */}
         {!chiusa && (
-          <div style={{width:150, height:8, borderRadius:99, background:'#fff', overflow:'hidden', flexShrink:0, border:`1px solid ${ADM.BORDER}`}}>
+          <div style={{flex:1, minWidth:80, height:8, borderRadius:99, background:'#fff', overflow:'hidden', border:`1px solid ${ADM.BORDER}`}}>
             <div style={{width:`${totale ? (decisi/totale)*100 : 0}%`, height:'100%', background:ADM.INK, borderRadius:99, transition:'width 220ms ease'}}/>
           </div>
         )}
