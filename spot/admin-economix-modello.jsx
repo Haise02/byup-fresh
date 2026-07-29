@@ -443,7 +443,6 @@ function ecoLiquidazioneIva(mix) {
 // e le ricariche dei prepagati. Prima erano tre elenchi in tre posti, e nessuno
 // rispondeva alla domanda vera — che cosa pago nelle prossime settimane.
 const ecoChiave = (id, d) => `${id}@${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-const ecoDataScadenza = (chiave, originale) => ECO_RINVII[chiave] || originale;
 
 function ecoScadenzario(mesiAvanti) {
   const out = [];
@@ -454,10 +453,8 @@ function ecoScadenzario(mesiAvanti) {
   const spingi = (r) => {
     const chiave = r.chiave;
     if (ECO_PAGATI[chiave]) return;                       // gia pagata: fuori dall'elenco
-    r.data = ecoDataScadenza(chiave, r.data);
     if (!dentro(r.data)) return;
     r.giorni = Math.ceil((r.data.getTime() - oggi.getTime()) / 86400000);
-    r.rinviata = !!ECO_RINVII[chiave];
     out.push(r);
   };
 
@@ -523,7 +520,39 @@ function ecoSegnaPagata(riga) {
       fornitore:riga.fornitore || '—', piva:'', fattura:null });
   }
 }
-const ecoRimanda = (riga, nuovaData) => { ECO_RINVII[riga.chiave] = nuovaData; };
+
+// Eliminare un costo non vuol dire cancellarne la storia. Una voce periodica si
+// CHIUDE alla data da cui non vale piu: i mesi gia passati l'hanno avuta davvero,
+// e toglierla anche da li riscriverebbe consuntivi gia chiusi — compresi quelli
+// su cui e stato calcolato un risultato d'esercizio.
+// Solo le una tantum, che hanno una sola occorrenza, si rimuovono del tutto.
+function ecoEliminaCosto(costo, daQuando) {
+  const k = ECO_FISSI.indexOf(costo);
+  if (k < 0) return { modo:'assente' };
+  const inizio = new Date(costo.dal.getFullYear(), costo.dal.getMonth(), 1);
+  const da = new Date(daQuando.getFullYear(), daQuando.getMonth(), 1);
+  if (costo.periodicita === 'una-tantum' || da <= inizio) {
+    ECO_FISSI.splice(k, 1);
+    return { modo:'rimossa' };
+  }
+  // Ultimo giorno del mese precedente: da li in poi la voce non compare piu.
+  costo.a = new Date(da.getFullYear(), da.getMonth(), 0, 23, 59);
+  return { modo:'chiusa', a:costo.a };
+}
+
+// Quante occorrenze spariscono e quante restano, dato il punto da cui si taglia.
+function ecoImpattoEliminazione(costo, daQuando) {
+  const conta = (filtro) => ECO_STORICO.filter(m => {
+    const dm = new Date(m.data.getFullYear(), m.data.getMonth(), 1);
+    if (dm < new Date(costo.dal.getFullYear(), costo.dal.getMonth(), 1)) return false;
+    if (costo.a && dm > costo.a) return false;
+    if (costo.periodicita === 'una-tantum')
+      return costo.dal.getFullYear() === dm.getFullYear() && costo.dal.getMonth() === dm.getMonth();
+    return filtro(dm);
+  }).length;
+  const da = new Date(daQuando.getFullYear(), daQuando.getMonth(), 1);
+  return { restano: conta(dm => dm < da), spariscono: conta(dm => dm >= da) };
+}
 
 // Autonomia. DUE letture, e non sono intercambiabili:
 //  - col ricavo: cassa diviso il bruciato NETTO (costi meno incassi). E la
@@ -619,7 +648,8 @@ window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;
 window.ecoScadenzario = ecoScadenzario;
 window.ecoSegnaPagata = ecoSegnaPagata;
-window.ecoRimanda = ecoRimanda;
+window.ecoEliminaCosto = ecoEliminaCosto;
+window.ecoImpattoEliminazione = ecoImpattoEliminazione;
 window.ecoRunway = ecoRunway;
 window.ecoRunwaySenzaRicavi = ecoRunwaySenzaRicavi;
 window.ecoStatoPatrimoniale = ecoStatoPatrimoniale;

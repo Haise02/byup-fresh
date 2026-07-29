@@ -273,11 +273,14 @@ const ECO_CASSA = {
   fidoBancario: 0,
 };
 
-// Registro dei pagamenti effettuati e dei rinvii. La chiave identifica la
-// SINGOLA occorrenza — "F-01@2026-08" — non la voce: un canone mensile pagato
-// ad agosto deve restare da pagare a settembre.
+// Registro dei pagamenti effettuati. La chiave identifica la SINGOLA occorrenza
+// — "F-01@2026-08" — non la voce: un canone mensile pagato ad agosto deve
+// restare da pagare a settembre.
+//
+// I rinvii non esistono piu come meccanismo a parte: spostare una scadenza
+// significa cambiare la data del costo, e averlo in due posti avrebbe creato
+// due date in disaccordo sulla stessa cosa.
 const ECO_PAGATI = {};
-const ECO_RINVII = {};
 
 // Scadenze con un calendario proprio, che non si deducono dai costi ricorrenti.
 // `costo:false` sulle voci che sono movimenti di cassa ma NON costi: l'IVA si
@@ -377,5 +380,4 @@ window.ECO_STORICO = ECO_STORICO;
 window.ECO_CASSA = ECO_CASSA;
 window.ECO_SCADENZE = ECO_SCADENZE;
 window.ECO_PAGATI = ECO_PAGATI;
-window.ECO_RINVII = ECO_RINVII;
 window.ECO_PATRIMONIO = ECO_PATRIMONIO;

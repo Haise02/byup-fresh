@@ -355,35 +355,49 @@ function EcoDoc({ fattura }) {
 // Eliminare un costo ricorrente non tocca un mese: li tocca tutti, passati
 // compresi. Va detto prima, con i numeri, perche l'effetto non e visibile dal
 // punto in cui si preme.
-function EcoConfermaElimina({ costo, mesiTocc, onChiudi, onConferma }) {
+function EcoConfermaElimina({ costo, daQuando, onChiudi, onConferma }) {
+  const imp = ecoImpattoEliminazione(costo, daQuando);
+  const unaTantum = costo.periodicita === 'una-tantum';
+  const daMese = `${ECO_MESI_LUNGHI[daQuando.getMonth()]} ${daQuando.getFullYear()}`;
   return (
     <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
       display:'flex', alignItems:'center', justifyContent:'center', padding:24,
       backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-      <div data-modale="elimina" onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'92%', background:'#fff',
+      <div data-modale="elimina" onClick={e=>e.stopPropagation()} style={{width:520, maxWidth:'92%', background:'#fff',
         borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
         animation:'admModalIn 0.18s ease'}}>
         <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
           Eliminare {costo.voce}?
         </div>
+        {/* Il passato non si riscrive: i mesi gia trascorsi quel costo l'hanno
+            avuto davvero, e toglierlo anche da li cambierebbe consuntivi chiusi. */}
         <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:15}}>
-          {costo.periodicita === 'una-tantum'
-            ? `Sparisce dal mese di ${cfFmt(costo.dal)} e dal conto economico.`
-            : `È una voce ${ECO_PERIODICITA[costo.periodicita].toLowerCase()}: sparisce da tutti i mesi in cui compare, non solo da quello che stai guardando.`}
+          {unaTantum
+            ? `È una voce una tantum: sparisce dal mese di ${cfFmt(costo.dal)} e dal conto economico.`
+            : imp.restano === 0
+              ? `È una voce ${ECO_PERIODICITA[costo.periodicita].toLowerCase()} che non ha mesi precedenti: sparisce del tutto.`
+              : `È una voce ${ECO_PERIODICITA[costo.periodicita].toLowerCase()}: sparisce da ${daMese} in poi. I mesi precedenti restano come sono — quel costo l’hanno avuto davvero.`}
         </div>
         <div style={{padding:'13px 15px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
+          {/* «Mesi che spariscono» sarebbe una mezza verita su un ricorrente: nello
+              storico ne trova uno, ma la voce sarebbe andata avanti all'infinito.
+              Si dice invece cosa resta a consuntivo e da quando smette di contare. */}
           {[['Importo', `${ecoEur2(costo.importo)}${costo.iva ? ` più ${ecoEur2(costo.iva)} di IVA` : ''}`],
-            ['Mesi interessati', mesiTocc === 1 ? '1 mese' : `${mesiTocc} mesi`],
+            ...(unaTantum || imp.restano === 0 ? [] : [
+              ['Resta a consuntivo', imp.restano === 1 ? '1 mese' : `${imp.restano} mesi`],
+              ['Non conteggiato da', daMese]]),
             ['Documento', costo.fattura ? 'una fattura resta collegata' : 'nessuno']].map(([k, v]) => (
             <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
-              <span style={{color:ADM.MUTED, width:140, flexShrink:0}}>{k}</span>
+              <span style={{color:ADM.MUTED, width:150, flexShrink:0}}>{k}</span>
               <span style={{color:ADM.TEXT, fontWeight:600}}>{v}</span>
             </div>
           ))}
         </div>
         <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
           <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
-          <AdmButton variant="primary" size="sm" onClick={onConferma}>Elimina</AdmButton>
+          <AdmButton variant="primary" size="sm" onClick={onConferma}>
+            {unaTantum || imp.restano === 0 ? 'Elimina' : `Elimina da ${ECO_MESI[daQuando.getMonth()]}`}
+          </AdmButton>
         </div>
       </div>
     </div>
@@ -461,17 +475,6 @@ function EcoCosti({ mix, forza }) {
         tot: ECO_STORICO.filter(m => m.anno === a).reduce((t, m) =>
           t + ecoCostiVariabili(m) * frazioneDi(m) + ecoFissiDelMese(new Date(m.data.getFullYear(), m.data.getMonth(), 1)), 0) }));
   const maxSerie = Math.max.apply(null, serie.map(x => x.tot)) || 1;
-
-  // Su quanti mesi dello storico compare la voce: serve alla conferma, perche
-  // eliminare un ricorrente non tocca il mese che si sta guardando ma tutti.
-  const mesiInteressati = (f) => ECO_STORICO.filter(m => {
-    const dm = new Date(m.data.getFullYear(), m.data.getMonth(), 1);
-    if (f.dal && dm < new Date(f.dal.getFullYear(), f.dal.getMonth(), 1)) return false;
-    if (f.a && dm > f.a) return false;
-    if (f.periodicita === 'una-tantum')
-      return f.dal.getFullYear() === dm.getFullYear() && f.dal.getMonth() === dm.getMonth();
-    return true;
-  }).length;
 
   const salva = (b) => {
     const quando = new Date(b.dal + 'T12:00:00');
@@ -640,13 +643,11 @@ function EcoCosti({ mix, forza }) {
           });
           setModifica(null); forza();
         }}/>}
-      {elimina && <EcoConfermaElimina costo={elimina} mesiTocc={mesiInteressati(elimina)}
+      {/* Si taglia dal mese che si sta guardando: e il punto da cui l'utente
+          sta ragionando, e su un ricorrente e l'unica scelta sensata. */}
+      {elimina && <EcoConfermaElimina costo={elimina} daQuando={d.data}
         onChiudi={()=>setElimina(null)}
-        onConferma={()=>{
-          const k = ECO_FISSI.indexOf(elimina);
-          if (k >= 0) ECO_FISSI.splice(k, 1);
-          setElimina(null); setModifica(null); forza();
-        }}/>}
+        onConferma={()=>{ ecoEliminaCosto(elimina, d.data); setElimina(null); setModifica(null); forza(); }}/>}
       {allega && <EcoModaleAllega voce={allega} onChiudi={()=>setAllega(null)} onSalva={(b)=>{
         const iva = parseFloat(String(b.iva).replace(',', '.')) || 0;
         const id = `FT-${ultimo.data.getFullYear()}-${String(ECO_FATTURE.length + 1).padStart(3, '0')}`;
@@ -673,6 +674,8 @@ const ECO_DRIVER_LABEL = {
 };
 
 window.EcoCosti = EcoCosti;
+window.EcoModaleCosto = EcoModaleCosto;
+window.EcoConfermaElimina = EcoConfermaElimina;
 window.ECO_CARD = ECO_CARD;
 window.ECO_TH = ECO_TH;
 window.ECO_H = ECO_H;

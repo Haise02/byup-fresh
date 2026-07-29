@@ -1,36 +1,5 @@
 // Economix — cassa e stato patrimoniale.
 
-// Rimandare non e cancellare: la voce resta, cambia la data, e la riga lo
-// dichiara. Una scadenza che sparisce perche e stata spostata e il modo piu
-// facile per dimenticarsene.
-function EcoModaleRimanda({ riga, onChiudi, onSalva }) {
-  const [d, setD] = useStateEco(new Date(riga.data.getTime() + 15 * 86400000).toISOString().slice(0, 10));
-  return (
-    <div onClick={onChiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-      display:'flex', alignItems:'center', justifyContent:'center', padding:24,
-      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-      <div data-modale="rimanda" onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'92%', background:'#fff',
-        borderRadius:16, padding:'22px 24px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
-        animation:'admModalIn 0.18s ease'}}>
-        <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT, marginBottom:5}}>Rimandare {riga.voce}</div>
-        <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
-          Era prevista il {cfFmt(riga.data)}
-          {riga.importo != null && riga.importo > 0 && ` per ${ecoEur2(riga.importo)}`}.
-          La voce resta nello scadenzario con la nuova data, segnalata come rinviata.
-        </div>
-        <label style={{fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-          letterSpacing:'0.05em', display:'block', marginBottom:6}}>Nuova data</label>
-        <input type="date" value={d} onChange={e=>setD(e.target.value)} style={ECO_INP}/>
-        <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:18}}>
-          <AdmButton variant="secondary" size="sm" onClick={onChiudi}>Annulla</AdmButton>
-          <AdmButton variant="primary" size="sm" disabled={!d}
-            onClick={()=>onSalva(new Date(d + 'T12:00:00'))}>Rimanda</AdmButton>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ═══ CASSA ══════════════════════════════════════════════════════════════ */
 function EcoCassa({ mix, leve, forza }) {
   const flussi = ecoProiezioneCassa(mix, leve);
@@ -43,7 +12,9 @@ function EcoCassa({ mix, leve, forza }) {
   const ggConsenso = banca ? ecoGiorniConsenso(banca) : null;
   const ritardo = ecoRitardoRendiconto(banca);
   const senzaRicavi = ecoRunwaySenzaRicavi(flussi, saldoOggi);
-  const [rimanda, setRimanda] = useStateEco(null);
+  const [modifica, setModifica] = useStateEco(null);
+  const [elimina, setElimina] = useStateEco(null);
+  const [daScadenza, setDaScadenza] = useStateEco(ECO_OGGI);
   const [nuovaScad, setNuovaScad] = useStateEco(false);
   // Dodici mesi e non sei: con sei le voci annuali — la polizza a gennaio, il
   // dominio a febbraio — non comparirebbero mai, e lo scadenzario sembrerebbe
@@ -196,7 +167,7 @@ function EcoCassa({ mix, leve, forza }) {
         <div style={ECO_CARD}>
           <div style={{...ECO_TH, display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI, gap:10}}>
             <div>Mese</div><div>Incassi</div><div>IVA incassata</div><div>Pagamenti</div>
-            <div>IVA versata</div><div>Scadenze</div><div>Netto</div><div>Saldo</div>
+            <div>IVA versata</div><div>Altre uscite</div><div>Netto</div><div>Saldo</div>
           </div>
           {storici.map((x, i) => (
             <div key={x.d.mese} style={{display:'grid', gridTemplateColumns:ECO_GRID_FLUSSI,
@@ -242,25 +213,32 @@ function EcoCassa({ mix, leve, forza }) {
         {/* Dieci righe a vista, poi scorre da dentro: su quarantacinque voci
             l'elenco intero spingerebbe fuori pagina tutto il resto, e lo
             scadenzario si guarda dalle prime — quelle vicine. */}
-        <div style={{...ECO_CARD, maxHeight:ECO_ALTEZZA_SCAD, display:'flex', flexDirection:'column'}}>
+        <div style={{...ECO_CARD, display:'flex', flexDirection:'column'}}>
           {scadenze.length === 0 && (
             <div style={{padding:'22px 16px', textAlign:'center', fontSize:13, color:ADM.MUTED}}>
               Nessuna scadenza nei prossimi dodici mesi.
             </div>
           )}
-          <div style={{overflowY:'auto', minHeight:0}}>
+          {/* L'altezza di dieci righe si MISURA, non si stima: le righe con la
+              nota sono piu alte, e un tetto in pixel ne mostrava sei. */}
+          <div ref={ecoDieciRighe} style={{overflowY:'auto', minHeight:0}}>
           {scadenze.map((x, i) => {
             const dovuta = x.giorni <= 0;
+            // Solo le righe che sono davvero un costo si aprono: l'IVA, gli
+            // acconti e le ricariche calcolate non hanno una scheda da mostrare,
+            // e renderle cliccabili sarebbe una promessa vuota.
+            const apribile = !!(x.rif && x.rif.periodicita);
             return (
-              <div key={x.chiave} style={{display:'grid', gridTemplateColumns:ECO_GRID_SCAD, gap:12,
-                alignItems:'center', padding:'12px 16px',
+              <div key={x.chiave} className={apribile ? 'adm-row-open' : undefined}
+                onClick={apribile ? ()=>{ setModifica(x.rif); setDaScadenza(x.data); } : undefined}
+                style={{display:'grid', gridTemplateColumns:ECO_GRID_SCAD, gap:12,
+                alignItems:'center', padding:'12px 16px', cursor: apribile ? 'pointer' : 'default',
                 background: dovuta ? '#FFFBFB' : '#fff',
                 borderBottom: i < scadenze.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
                 <div style={{minWidth:0}}>
                   <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{x.voce}</div>
                   <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.45}}>
                     {x.fornitore || x.nota || '—'}
-                    {x.rinviata && <span style={{color:ADM.WARN, fontWeight:700}}> · rinviata</span>}
                   </div>
                 </div>
                 <div style={{fontSize:11.4, color:ADM.MUTED}}>{x.origine}</div>
@@ -276,14 +254,11 @@ function EcoCassa({ mix, leve, forza }) {
                 {/* I pulsanti compaiono il giorno della scadenza: prima non c'e
                     niente da decidere, e mostrarli invita a saldare in anticipo
                     cose che hanno una data per un motivo. */}
-                <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}
+                  onClick={e=>e.stopPropagation()}>
                   {dovuta ? (
-                    <React.Fragment>
-                      <AdmButton variant="ghost" size="sm" style={{fontSize:12}}
-                        onClick={()=>setRimanda(x)}>Rimanda</AdmButton>
-                      <AdmButton variant="primary" size="sm" style={{fontSize:12}}
-                        onClick={()=>{ ecoSegnaPagata(x); forza(); }}>Pagato</AdmButton>
-                    </React.Fragment>
+                    <AdmButton variant="primary" size="sm" style={{fontSize:12}}
+                      onClick={()=>{ ecoSegnaPagata(x); forza(); }}>Pagato</AdmButton>
                   ) : (
                     <span style={{fontSize:11.4, color:ADM.MUTED_LIGHT}}>—</span>
                   )}
@@ -300,8 +275,24 @@ function EcoCassa({ mix, leve, forza }) {
         )}
       </div>
 
-      {rimanda && <EcoModaleRimanda riga={rimanda} onChiudi={()=>setRimanda(null)}
-        onSalva={(d)=>{ ecoRimanda(rimanda, d); setRimanda(null); forza(); }}/>}
+      {modifica && <EcoModaleCosto key={modifica.id} costo={modifica}
+        onChiudi={()=>setModifica(null)} onDoc={()=>setModifica(null)}
+        onElimina={(c)=>setElimina({ costo:c, da:daScadenza })}
+        onSalva={(b)=>{
+          const imp = parseFloat(String(b.importo).replace(',', '.')) || 0;
+          Object.assign(modifica, {
+            voce:b.voce.trim(), categoria:b.categoria, importo:imp,
+            iva: Math.round(imp * (parseFloat(b.aliquota) || 0)) / 100,
+            periodicita:b.periodicita, dal:new Date(b.dal + 'T12:00:00'),
+            fornitore:b.fornitore.trim() || '—', piva:b.piva.trim(),
+          });
+          setModifica(null); forza();
+        }}/>}
+      {/* Dallo scadenzario si taglia dall'occorrenza cliccata: e la scadenza
+          che si sta guardando, non il mese corrente. */}
+      {elimina && <EcoConfermaElimina costo={elimina.costo} daQuando={elimina.da}
+        onChiudi={()=>setElimina(null)}
+        onConferma={()=>{ ecoEliminaCosto(elimina.costo, elimina.da); setElimina(null); setModifica(null); forza(); }}/>}
       {nuovaScad && <EcoModaleCosto onChiudi={()=>setNuovaScad(false)} onSalva={(b)=>{
         const quando = new Date(b.dal + 'T12:00:00');
         const imp = parseFloat(String(b.importo).replace(',', '.')) || 0;
@@ -394,7 +385,18 @@ function EcoPatrimonio({ mix }) {
 
 const ECO_GRID_SCAD = 'minmax(0,2fr) 108px 108px 118px 120px 172px';
 
-const ECO_ALTEZZA_SCAD = 10 * 62 + 4;   // dieci righe piu il filo
+// Ref di misura: dieci righe esatte, poi si scorre. Si SOMMANO le altezze
+// invece di leggere offsetTop dell'undicesima, perche offsetTop si misura
+// dall'antenato posizionato e non dal contenitore — con la card non
+// posizionata restituiva un numero che non c'entrava nulla.
+const ECO_RIGHE_SCAD = 10;
+const ecoDieciRighe = (el) => {
+  if (!el) return;
+  const f = Array.from(el.children);
+  el.style.maxHeight = f.length > ECO_RIGHE_SCAD
+    ? f.slice(0, ECO_RIGHE_SCAD).reduce((t, r) => t + r.offsetHeight, 0) + 'px'
+    : '';
+};
 const ECO_GRID_FLUSSI = '88px 1fr 1.05fr 1.05fr 1fr 1fr 1.05fr 1.15fr';
 
 window.EcoCassa = EcoCassa;
