@@ -1222,12 +1222,13 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
         ]}
         attivo={filtro} onSegmento={setFiltro}
         azione={
-          <div style={{display:'flex', gap:9}}>
-            <AdmButton variant="secondary" icon="plus" onClick={()=>setEditorArg({ nuovo:true, dati:{
-              nome:'', descrizione:'', icona:'list' } })}>Aggiungi argomento</AdmButton>
-            <AdmButton variant="cta" icon="plus" disabled={argomenti.length === 0}
-              onClick={()=>nuovaGuida(argomenti[0] && argomenti[0].id)}>Aggiungi guida</AdmButton>
-          </div>
+          /* Una sola azione in cima. Il video non si crea da qui: sta sempre
+             dentro un argomento, e il pulsante che lo aggiunge vive nella
+             riga di quell'argomento. Da qui si creava «nel primo argomento
+             della lista», che è una scelta fatta dal codice al posto di chi
+             pubblica. */
+          <AdmButton variant="cta" icon="plus" onClick={()=>setEditorArg({ nuovo:true, dati:{
+            nome:'', descrizione:'', icona:'list' } })}>Aggiungi argomento</AdmButton>
         }
       />
 
@@ -1256,7 +1257,10 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
                 letterSpacing:'0.07em'}}>{a.nome}</span>
               <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:500, flex:1, minWidth:0,
                 whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.descrizione}</span>
-              <AdmButton variant="ghost" size="sm" icon="plus" onClick={()=>nuovaGuida(a.id)}>Guida</AdmButton>
+              {/* Unica via per creare un video: qui l'argomento è già scelto,
+                  è quello della riga. */}
+              <AdmButton variant="secondary" size="sm" icon="plus"
+                onClick={()=>nuovaGuida(a.id)}>Aggiungi video</AdmButton>
               <AdmIconBtn icon="pencil" label="Modifica argomento" size={28} color={ADM.MUTED_LIGHT}
                 onClick={()=>setEditorArg({ nuovo:false, dati:{ ...a } })}/>
               {/* Un argomento con guide dentro non si cancella: la cancellazione
