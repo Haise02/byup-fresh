@@ -1734,6 +1734,35 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
   const k = useMemoSrv(() => srvKpi(richiamate || RICHIAMATE, TICKET_SRV, guide || GUIDE_SRV),
     [richiamate, guide]);
   const s = k.soddisfazione;
+
+  // ── Chi chiama, e quanto ──────────────────────────────────────────────────
+  //
+  // La coda e i numeri non raggiunti stavano qui come numeri da guardare, ma
+  // sono lavoro da fare: si vedono in Assistenza → Chiamate, dove c'è il
+  // pulsante per farlo. Qui interessa un'altra cosa — quanto ci costa in
+  // chiamate un cliente dei piani alti, e quali locali pesano più degli altri.
+  const [classifica, setClassifica] = useStateSrv(false);
+  const perLocale = useMemoSrv(() => {
+    const m = new Map();
+    (richiamate || RICHIAMATE).forEach(r => {
+      const e = m.get(r.localeId) || { id:r.localeId, nome:r.localeNome, piano:r.piano,
+        citta:(typeof LOCALI !== 'undefined' ? (LOCALI.find(l => l.id === r.localeId) || {}).citta : null),
+        n:0, perse:0, ultima:null };
+      e.n++;
+      if (r.stato === 'persa') e.perse++;
+      if (!e.ultima || r.prenotataIl > e.ultima) e.ultima = r.prenotataIl;
+      m.set(r.localeId, e);
+    });
+    return [...m.values()].sort((a, b) => b.n - a.n || b.ultima - a.ultima);
+  }, [richiamate]);
+
+  const conDiritto = typeof LOCALI !== 'undefined'
+    ? LOCALI.filter(l => srvHaChiamata(l.piano)).length : 0;
+  // La media è sui locali che hanno chiamato davvero: dividere per tutti quelli
+  // che ne avrebbero diritto darebbe un numero sotto l'uno, vero ma inutile —
+  // la domanda è quante volte chiama chi chiama.
+  const mediaPerLocale = perLocale.length ? k.richiamate.totali / perLocale.length : 0;
+  const primo = perLocale[0];
   const maxVoti = Math.max(...s.distribuzione.map(d => d.n), 1);
   // Il tempo di chiusura migliora quando SCENDE: il segno del delta va
   // rovesciato prima di darlo al badge, che colora il positivo di verde.
@@ -1745,23 +1774,27 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
     <div style={{padding:'24px 28px 28px', display:'flex', flexDirection:'column', gap:20}}>
 
       {/* ── Chiamate ── */}
-      <SectionLabel first title="Chiamate" desc="La coda e la puntualità con cui la smaltiamo"/>
+      <SectionLabel first title="Chiamate" desc="Chi ci chiama, quanto spesso, e con che puntualità rispondiamo"/>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        <DashStatCard label="Chiamate medie per locale" accent="PURPLE"
+          value={mediaPerLocale.toFixed(1)}
+          sub={`${k.richiamate.totali} chiamate da ${perLocale.length} locali · ${conDiritto} hanno diritto a chiamare`}/>
+        <DashStatCard label="Chi chiama di più" accent="INFO"
+          value={primo ? `${primo.n}` : '—'}
+          sub={primo ? `${primo.nome} · ${classifica ? 'chiudi la classifica' : 'apri la classifica'}` : 'Nessuna chiamata'}
+          onClick={()=>setClassifica(x => !x)} selected={classifica}/>
         <DashStatCard label="Chiamate in tempo" accent="OK"
           value={`${k.richiamate.pctInTempo}%`}
           sub={`${k.richiamate.inTempo} su ${k.richiamate.chiuse} entro la scadenza`}
           ratio={{ a:k.richiamate.inTempo, b:k.richiamate.inRitardo, aLabel:'in tempo', bLabel:'in ritardo', aColor:ADM.OK }}/>
-        <DashStatCard label="In coda adesso"
-          value={k.richiamate.attesa}
-          sub={k.richiamate.scadute === 0 ? 'Tutte ancora dentro l\'SLA' : null}
-          alertText={k.richiamate.scadute > 0 ? `${k.richiamate.scadute} oltre la scadenza` : null}/>
         <DashStatCard label="Attesa media" accent="INFO"
           value={srvMinuti(k.richiamate.attesaMediaMin)}
           sub="Dalla prenotazione alla chiamata"/>
-        <DashStatCard label="Numeri non raggiunti"
-          value={k.richiamate.perse}
-          sub={`Su ${k.richiamate.totali} chiamate prenotate · contate a parte, non fra le riuscite`}/>
       </div>
+
+      {classifica && (
+        <SrvClassificaChiamanti locali={perLocale} onChiudi={()=>setClassifica(false)}/>
+      )}
 
       {/* ── Soddisfazione ── */}
       <SectionLabel title="Soddisfazione" desc="Il voto da 1 a 5 chiesto al ristoratore dopo la chiamata"/>
@@ -1978,6 +2011,72 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
         {k.video.length === 0 && <AdmEmpty icon="monitor" title="Nessun video" desc="Nessuna guida ha ancora un video allegato"/>}
       </AdmCard>
     </div>
+  );
+}
+
+// La classifica di chi chiama. Cinquanta righe al massimo: sotto la
+// cinquantesima ci sono i locali che hanno chiamato una volta sola, che non
+// sono una classifica ma un elenco.
+//
+// La barra accanto al numero non è decorazione: il punto di questa tabella è
+// vedere se le chiamate sono sparse o se ci sono tre locali che pesano come
+// venti, e una colonna di cifre quella forma non la fa vedere.
+function SrvClassificaChiamanti({ locali, onChiudi }) {
+  const primi = locali.slice(0, 50);
+  const max = primi.length ? primi[0].n : 1;
+  return (
+    <AdmCard padding={0} style={{overflow:'hidden'}}>
+      <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+        display:'flex', alignItems:'center', gap:12}}>
+        <div style={{width:4, height:20, borderRadius:3, background:ADM.INFO, flexShrink:0}}/>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Chi chiama di più</div>
+          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>
+            {locali.length} locali hanno chiamato
+            {locali.length > 50 ? ' · in classifica i primi 50' : ''}
+          </div>
+        </div>
+        <button onClick={onChiudi} className="adm-iconbtn" title="Chiudi"
+          style={{width:28, height:28, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT,
+            color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center', flexShrink:0}}>
+          <BuIcons.x size={16}/>
+        </button>
+      </div>
+      <div className="adm-scroll" style={{maxHeight:430, overflowY:'auto'}}>
+        {primi.map((l, i) => (
+          <div key={l.id} style={{display:'grid',
+            gridTemplateColumns:'34px minmax(0,1fr) 140px 200px 92px', alignItems:'center', gap:12,
+            padding:'10px 20px', borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+            <span style={{fontSize:12.4, fontWeight:700, fontVariantNumeric:'tabular-nums',
+              color: i < 3 ? ADM.TEXT : ADM.MUTED_LIGHT}}>{i + 1}</span>
+            <span style={{minWidth:0}}>
+              <span style={{display:'block', fontSize:13.6, fontWeight:600, color:ADM.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</span>
+              <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:1}}>
+                {[l.citta, l.piano ? l.piano.charAt(0).toUpperCase() + l.piano.slice(1) : null]
+                  .filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <span style={{height:6, borderRadius:99, background:ADM.NEUTRAL_SOFT, overflow:'hidden'}}>
+              <span style={{display:'block', width:`${Math.round(l.n / max * 100)}%`, height:'100%',
+                borderRadius:99, background:ADM.INFO}}/>
+            </span>
+            <span style={{fontSize:13, color:ADM.TEXT, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>
+              {l.n} {l.n === 1 ? 'chiamata' : 'chiamate'}
+              {l.perse > 0 && (
+                <span style={{color:ADM.MUTED_LIGHT, fontWeight:500}}>
+                  {' '}· {l.perse} non {l.perse === 1 ? 'risposta' : 'risposte'}
+                </span>
+              )}
+            </span>
+            <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, textAlign:'right'}}>
+              {fmtRelative(l.ultima)}
+            </span>
+          </div>
+        ))}
+        {primi.length === 0 && <AdmEmpty icon="phone" title="Nessuna chiamata" desc="Non ha ancora chiamato nessuno"/>}
+      </div>
+    </AdmCard>
   );
 }
 
