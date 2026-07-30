@@ -20,7 +20,7 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 | **Locali** | Ristoranti registrati e onboarding | — |
 | **Staff** | Camerieri, cassa, proprietari, dispositivi dei locali | — |
 | **Utenti App** | Clienti finali | — |
-| **Assistenza** | Quattro tab: Chiamate (coda con SLA), Ticket (richieste, segnalazioni, certificazioni), FAQ, Guide | — |
+| **Assistenza** | Quattro tab: Chiamate (solo Plus e Business, scadenza scelta dal ristoratore), Ticket (tutti i piani), FAQ, Guide | — |
 | **Promozioni** | Campagne e broadcast | — |
 | **Economix** | Costi, conto economico, cassa, patrimonio di byup | [Economix.md](Economix.md) |
 | **Risk Management** | Rischi, adempimenti ed evidenze ISO 27001 / 9001 | [Risk-Management.md](Risk-Management.md) |

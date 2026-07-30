@@ -335,6 +335,15 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
           );
         })}
         <div style={{flex:1}}/>
+        {/* La regola di ammissibilità detta in chiaro: senza, un operatore che
+            non vede mai un locale Starter qui potrebbe pensare a un filtro
+            rotto invece che a una prestazione di piano. */}
+        <span style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:12.4, color:ADM.MUTED_SOFT,
+          whiteSpace:'nowrap'}}>
+          <BuIcons.info size={14} color={ADM.MUTED_LIGHT}/>
+          Solo <b style={{color:ADM.MUTED, fontWeight:600}}>Plus</b> e <b style={{color:ADM.MUTED, fontWeight:600}}>Business</b>
+          {' '}possono prenotare una chiamata · gli altri piani hanno i ticket
+        </span>
       </div>
 
       <div style={{flex:1, display:'flex', minHeight:0}}>
@@ -415,9 +424,15 @@ function SrvVoceCoda({ r, attiva, onClick }) {
             </span>
           : <span style={{flexShrink:0, fontSize:12, color:ADM.MUTED_SOFT}}>{fmtRelative(r.prenotataIl)}</span>}
       </div>
+      {/* Accanto al titolare, la fascia che ha chiesto: senza, il countdown
+          dice quanto manca ma non a cosa ci eravamo impegnati, e «−3h» su una
+          richiesta «in mattinata» pesa diverso che su una da 30 minuti. */}
       <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:2, paddingLeft:15, whiteSpace:'nowrap',
         overflow:'hidden', textOverflow:'ellipsis'}}>
         {r.titolare}
+        {r.stato === 'attesa' && (
+          <span style={{color:ADM.MUTED_LIGHT}}> · chiesta {SRV_FASCE[r.fascia].breve}</span>
+        )}
       </div>
       {r.problema && (
         <div style={{fontSize:12.8, color:ADM.MUTED_SOFT, marginTop:4, paddingLeft:15, lineHeight:1.4,
@@ -471,7 +486,6 @@ function SrvPastiglia({ testo, tono, piena }) {
 }
 
 function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
-  const cat = SRV_CATEGORIE[r.categoria];
   const locale = LOCALI.find(l => l.id === r.localeId);
   const mancano = srvMinutiAScadere(r);
   const scaduta = r.stato === 'attesa' && mancano < 0;
@@ -542,9 +556,15 @@ function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
                   {scaduta ? srvMinuti(-mancano) : srvMinuti(mancano)}
                 </div>
               </div>
+              {/* La scadenza è quella che ha chiesto lui, non una che gli
+                  abbiamo assegnato noi: vale la pena dirlo, perché cambia il
+                  tono con cui si affronta un ritardo. */}
               <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
                 fontSize:12.4, color:ADM.MUTED}}>
-                SLA {cat.label.toLowerCase()} · {srvMinuti(cat.slaMin)} dalla prenotazione
+                Ha chiesto: <b style={{color:ADM.TEXT}}>{SRV_FASCE[r.fascia].label.toLowerCase()}</b>
+                {SRV_FASCE[r.fascia].tipo === 'finestra'
+                  ? ` (${SRV_FASCE[r.fascia].da}:00–${SRV_FASCE[r.fascia].a}:00)`
+                  : ' dalla prenotazione'}
               </div>
             </AdmCard>
           )}
@@ -1695,8 +1715,8 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
         <DashStatCard label="Chiamate per locale" accent="INFO"
           value={k.perLocale.chiamateMedie.toFixed(1).replace('.', ',')}
-          sub={`${k.perLocale.localiCheChiamano} locali su ${k.perLocale.localiTotali} hanno prenotato almeno una chiamata`}
-          ratio={{ a:k.perLocale.localiCheChiamano, b:k.perLocale.localiTotali - k.perLocale.localiCheChiamano,
+          sub={`${k.perLocale.localiCheChiamano} su ${k.perLocale.localiAmmessi} locali Plus e Business hanno prenotato almeno una chiamata`}
+          ratio={{ a:k.perLocale.localiCheChiamano, b:k.perLocale.localiAmmessi - k.perLocale.localiCheChiamano,
             aLabel:'hanno chiamato', bLabel:'mai', aColor:ADM.INFO }}/>
         <DashStatCard label="Ticket aperti per locale" accent="WARN"
           value={k.perLocale.apertiMedi.toFixed(1).replace('.', ',')}
