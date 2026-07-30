@@ -527,24 +527,27 @@ function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
         {/* Il numero e la scadenza, affiancati: sono le due cose che decidono
             cosa fare adesso, e stanno sopra tutto il resto. */}
         <div style={{display:'grid', gridTemplateColumns:'minmax(0,1.15fr) minmax(0,1fr)', gap:14}}>
+          {/* Niente link `tel:`: su una console desktop il più delle volte non
+              c'è nulla registrato per quel protocollo e il click non fa
+              niente, senza dire perché. Il numero grande e il copia bastano —
+              chi ha il centralino a parte incolla, chi ha il telefono in mano
+              legge. Se un giorno Spot avrà un centralino integrato, quello
+              sarà un pulsante che compone davvero e registra la durata. */}
           <AdmCard padding={0} style={{overflow:'hidden'}}>
-            <div style={{padding:'14px 18px 15px'}}>
+            <div style={{padding:'14px 18px 16px'}}>
               <div style={SRV_ETI}>Numero da chiamare</div>
-              <div style={{display:'flex', alignItems:'center', gap:12, marginTop:9}}>
-                <span style={{flex:1, minWidth:0, fontSize:26, fontWeight:800, color:ADM.TEXT,
+              <div style={{display:'flex', alignItems:'center', gap:14, marginTop:10}}>
+                <span style={{flex:1, minWidth:0, fontSize:28, fontWeight:800, color:ADM.TEXT,
                   letterSpacing:'-0.01em', fontVariantNumeric:'tabular-nums'}}>{r.tel}</span>
-                <AdmIconBtn icon={copiato ? 'check' : 'copy'} label="Copia il numero"
-                  onClick={copia} color={copiato ? ADM.OK : ADM.MUTED} size={32}/>
+                {/* `border` intero e non `borderColor`: AdmButton imposta già
+                    lo shorthand, e mescolare i due fa avvisare React perché
+                    al rerender la proprietà lunga viene rimossa. */}
+                <AdmButton variant="secondary" icon={copiato ? 'check' : 'copy'} onClick={copia}
+                  style={copiato ? { color:ADM.OK, border:`1px solid ${ADM.OK}55` } : undefined}>
+                  {copiato ? 'Copiato' : 'Copia'}
+                </AdmButton>
               </div>
             </div>
-            <a href={`tel:${r.tel.replace(/\s/g, '')}`} className="adm-actionrow" style={{
-              display:'flex', alignItems:'center', gap:8, padding:'10px 18px',
-              borderTop:`1px solid ${ADM.BORDER_SOFT}`, textDecoration:'none',
-              color:ADM.PINK_DARK, fontSize:13.4, fontWeight:700}}>
-              <BuIcons.phone size={15}/> Chiama dal dispositivo
-              <div style={{flex:1}}/>
-              <BuIcons.chevronRight size={14} color={ADM.MUTED_LIGHT}/>
-            </a>
           </AdmCard>
 
           {r.stato === 'attesa' && (
