@@ -40,6 +40,9 @@ const MODAL_INPUT = {
   width: '100%', padding: '13px 14px', border: `1px solid ${PN.BORDER}`, borderRadius: 12,
   fontSize: 16, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT,
 };
+// Anche le altre tab vestono i loro fogli con questa ricetta (POS e
+// integrazioni): l'HTML carica questo file prima di loro.
+Object.assign(window, { MODAL_PANEL, MODAL_HEAD, MODAL_TITLE, MODAL_SUB, MODAL_BODY, MODAL_FOOT, MODAL_X, MODAL_LABEL, MODAL_INPUT });
 
 // Sort numerico-aware: "Tavolo 2" prima di "Tavolo 10"
 function naturalCompare(a, b) {

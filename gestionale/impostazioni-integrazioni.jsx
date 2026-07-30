@@ -149,15 +149,31 @@ function ImpIntegrazioni() {
   );
 }
 
+// Marchio Byup Staff in tessera: la panna del logo sul gradiente della
+// fascia — lo stesso pezzo, a qualsiasi taglia serva.
+function MarkStaffTile({ size = 44, radius = 12, style }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius, background: GRAD_STAFF,
+      display:'grid', placeItems:'center', flexShrink: 0, ...style,
+    }}>
+      <img src="Fresh-mark.png" alt="" style={{
+        width: Math.round(size * 0.62), height: Math.round(size * 0.62),
+        objectFit:'contain', filter:'brightness(0) invert(1)', opacity: 0.96,
+      }}/>
+    </div>
+  );
+}
+
 function ByupPayHero({ devices, onAdd }) {
   const [list, setList] = React.useState(devices);
+  // Conferma di scollegamento su foglio nostro, non sul confirm del browser:
+  // stessa ricetta MODAL_* dei fogli di Sala e tavoli.
+  const [daScollegare, setDaScollegare] = React.useState(null);
+  const dev = list.find(d => d.id === daScollegare);
   const onlineCount = list.filter(d => d.online).length;
 
-  const handleUnlink = (id) => {
-    if (window.confirm('Scollegare questo dispositivo? L\'app non potrà più accettare pagamenti finché non viene ricollegata.')) {
-      setList(list.filter(d => d.id !== id));
-    }
-  };
+  const handleUnlink = (id) => setDaScollegare(id);
 
   return (
     <section style={{
@@ -261,6 +277,27 @@ function ByupPayHero({ devices, onAdd }) {
           </div>
         )}
       </div>
+
+      {dev && (
+        <div onClick={() => setDaScollegare(null)} style={{
+          position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex: 150, padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 460}}>
+            <div style={MODAL_HEAD}>
+              <div style={MODAL_TITLE}>Scollegare il dispositivo?</div>
+              <div style={MODAL_SUB}>
+                <strong style={{color: PN.TEXT}}>{dev.name}</strong> di {dev.user} non potrà più accettare pagamenti finché non viene ricollegato.
+              </div>
+              <button onClick={() => setDaScollegare(null)} style={MODAL_X}><PnI.X size={14}/></button>
+            </div>
+            <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setDaScollegare(null)} style={{padding:'11px 22px', borderRadius: 11, fontSize: 16}}>Annulla</ImpButton>
+              <ImpButton variant="danger" onClick={() => { setList(l => l.filter(x => x.id !== daScollegare)); setDaScollegare(null); }} style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}}>Scollega</ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -269,109 +306,97 @@ function ByupPayQrModal({ onClose }) {
   return (
     <div onClick={onClose} style={{
       position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-      display:'grid', placeItems:'center', zIndex: 100,
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20,
-        width: 420, padding: 28, position:'relative',
-      }}>
-        <button onClick={onClose} style={{
-          position:'absolute', top: 14, right: 14,
-          width: 32, height: 32, borderRadius: 8,
-          background:'#F4F5F7', border:'none', cursor:'pointer',
-          display:'grid', placeItems:'center',
-        }}><PnI.X size={14}/></button>
-
-        <div style={{textAlign:'center', marginBottom: 18}}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 14,
-            background: PN.PINK, color: PN.WHITE,
-            display:'inline-grid', placeItems:'center',
-            fontSize: 28, fontWeight: 800,
-            marginBottom: 12, fontStyle:'italic',
-          }}>b</div>
-          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 4}}>Collega un dispositivo</div>
-          <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5}}>
-            Scansiona il QR con il dispositivo che vuoi collegare a Byup Staff
+      {/* Stesso foglio bianco dei modali di Sala e tavoli; il marchio in
+          testa e al centro del QR e quello della fascia Byup Staff. */}
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 480}}>
+        <div style={{...MODAL_HEAD, display:'flex', alignItems:'center', gap: 14}}>
+          <MarkStaffTile size={48} radius={13}/>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{...MODAL_TITLE, fontSize: 22, paddingRight: 40}}>Collega un dispositivo</div>
+            <div style={{...MODAL_SUB, marginTop: 2, paddingRight: 40}}>
+              Scansiona il QR con il dispositivo che vuoi collegare a Byup Staff
+            </div>
           </div>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
 
-        {/* QR mock */}
-        <div style={{
-          width: 220, height: 220, margin:'0 auto 18px',
-          background: `repeating-conic-gradient(${PN.TEXT} 0% 25%, transparent 0% 50%) 0 0/14px 14px`,
-          border: `4px solid ${PN.WHITE}`,
-          boxShadow: `0 0 0 2px ${PN.BORDER}, 0 8px 24px rgba(0,0,0,0.08)`,
-          borderRadius: 12,
-          position:'relative',
-        }}>
-          {/* finder corner mocks */}
-          {[
-            {top: 8, left: 8},
-            {top: 8, right: 8},
-            {bottom: 8, left: 8},
-          ].map((pos, i) => (
-            <div key={i} style={{
-              position:'absolute', ...pos,
-              width: 36, height: 36,
-              border: `4px solid ${PN.TEXT}`,
-              background: PN.WHITE,
-              borderRadius: 4,
+        <div style={MODAL_BODY}>
+          {/* QR mock */}
+          <div style={{
+            width: 220, height: 220, margin:'0 auto 18px',
+            background: `repeating-conic-gradient(${PN.TEXT} 0% 25%, transparent 0% 50%) 0 0/14px 14px`,
+            border: `4px solid ${PN.WHITE}`,
+            boxShadow: `0 0 0 2px ${PN.BORDER}, 0 8px 24px rgba(0,0,0,0.08)`,
+            borderRadius: 12,
+            position:'relative',
+          }}>
+            {/* finder corner mocks */}
+            {[
+              {top: 8, left: 8},
+              {top: 8, right: 8},
+              {bottom: 8, left: 8},
+            ].map((pos, i) => (
+              <div key={i} style={{
+                position:'absolute', ...pos,
+                width: 36, height: 36,
+                border: `4px solid ${PN.TEXT}`,
+                background: PN.WHITE,
+                borderRadius: 4,
+              }}>
+                <div style={{
+                  position:'absolute', inset: 4,
+                  background: PN.TEXT, borderRadius: 1,
+                }}/>
+              </div>
+            ))}
+            {/* marchio Staff al centro del codice */}
+            <MarkStaffTile size={46} radius={11} style={{
+              position:'absolute', top:'50%', left:'50%',
+              transform:'translate(-50%,-50%)',
+              border: `3px solid ${PN.WHITE}`,
+              boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
+            }}/>
+          </div>
+
+          {/* Store badges */}
+          <div style={{display:'flex', gap: 10}}>
+            <div style={{
+              flex: 1,
+              padding:'10px 14px', borderRadius: 9,
+              background: PN.TEXT, color: PN.WHITE,
+              display:'flex', alignItems:'center', gap: 9,
+              cursor:'pointer',
             }}>
-              <div style={{
-                position:'absolute', inset: 4,
-                background: PN.TEXT, borderRadius: 1,
-              }}/>
+              <span style={{fontSize: 24}}></span>
+              <div>
+                <div style={{fontSize: 11, opacity: 0.7, lineHeight: 1}}>Disponibile su</div>
+                <div style={{fontSize: 15, fontWeight: 700, lineHeight: 1.2}}>App Store</div>
+              </div>
             </div>
-          ))}
-          {/* center b */}
-          <div style={{
-            position:'absolute', top:'50%', left:'50%',
-            transform:'translate(-50%,-50%)',
-            width: 44, height: 44, borderRadius: 10,
-            background: PN.PINK, color: PN.WHITE,
-            display:'grid', placeItems:'center',
-            fontSize: 24, fontWeight: 800, fontStyle:'italic',
-            border: `3px solid ${PN.WHITE}`,
-          }}>b</div>
-        </div>
-
-        {/* Store badges */}
-        <div style={{display:'flex', gap: 10}}>
-          <div style={{
-            flex: 1,
-            padding:'10px 14px', borderRadius: 9,
-            background: PN.TEXT, color: PN.WHITE,
-            display:'flex', alignItems:'center', gap: 9,
-            cursor:'pointer',
-          }}>
-            <span style={{fontSize: 24}}></span>
-            <div>
-              <div style={{fontSize: 11, opacity: 0.7, lineHeight: 1}}>Disponibile su</div>
-              <div style={{fontSize: 15, fontWeight: 700, lineHeight: 1.2}}>App Store</div>
+            <div style={{
+              flex: 1,
+              padding:'10px 14px', borderRadius: 9,
+              background: PN.TEXT, color: PN.WHITE,
+              display:'flex', alignItems:'center', gap: 9,
+              cursor:'pointer',
+            }}>
+              <span style={{fontSize: 24}}>▶</span>
+              <div>
+                <div style={{fontSize: 11, opacity: 0.7, lineHeight: 1}}>Disponibile su</div>
+                <div style={{fontSize: 15, fontWeight: 700, lineHeight: 1.2}}>Google Play</div>
+              </div>
             </div>
           </div>
-          <div style={{
-            flex: 1,
-            padding:'10px 14px', borderRadius: 9,
-            background: PN.TEXT, color: PN.WHITE,
-            display:'flex', alignItems:'center', gap: 9,
-            cursor:'pointer',
-          }}>
-            <span style={{fontSize: 24}}>▶</span>
-            <div>
-              <div style={{fontSize: 11, opacity: 0.7, lineHeight: 1}}>Disponibile su</div>
-              <div style={{fontSize: 15, fontWeight: 700, lineHeight: 1.2}}>Google Play</div>
-            </div>
-          </div>
-        </div>
 
-        <div style={{
-          marginTop: 14, padding:'10px 14px',
-          background:'#FAFBFC', borderRadius: 9,
-          fontSize: 13.5, color: PN.MUTED, textAlign:'center',
-        }}>
-          Se l'app non è ancora installata, scaricala dallo store. Poi accedi con le credenziali del gestionale per completare il collegamento.
+          <div style={{
+            marginTop: 14, padding:'10px 14px',
+            background:'#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
+            fontSize: 13.5, color: PN.MUTED, textAlign:'center',
+          }}>
+            Se l'app non è ancora installata, scaricala dallo store. Poi accedi con le credenziali del gestionale per completare il collegamento.
+          </div>
         </div>
       </div>
     </div>
