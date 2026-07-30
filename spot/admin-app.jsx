@@ -90,7 +90,7 @@ function GlobalSearch({ onClose, go }) {
         .map(c => ({ key:c.id, title:c.oggetto, sub:`${c.senderName} · ${c.id}`, go:()=>go('comunicazioni',{openComm:c.id}) })) },
     // Il numero di telefono è indicizzato apposta: capita di avere il display
     // acceso con un numero che richiama e di dover capire chi è.
-    { group:'Richiamate', icon:'headsetFill', items: RICHIAMATE.filter(r => match(r.localeNome, r.titolare, r.tel, r.problema, r.id)).slice(0,5)
+    { group:'Chiamate', icon:'headsetFill', items: RICHIAMATE.filter(r => match(r.localeNome, r.titolare, r.tel, r.problema, r.id)).slice(0,5)
         .map(r => ({ key:r.id, title:`${r.localeNome} · ${r.tel}`, sub:`${SRV_CATEGORIE[r.categoria].label} · ${r.id}`, go:()=>go('assistenza',{tab:'richiamate'}) })) },
     { group:'FAQ e guide', icon:'chatFill', items: [
         ...FAQ_SRV.filter(f => match(f.domanda, f.risposta, f.categoria)).slice(0,3)
@@ -205,7 +205,7 @@ function AdminApp({ tweaks }) {
     camerieri:    { t:'Staff', s:'Staff registrato sui locali · camerieri, cassa, proprietari, dispositivi' },
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
     comunicazioni: { t:'Ticket', s:'Richieste, segnalazioni e certificazioni aperte dai locali' },
-    assistenza:   { t:'Chiamata assistenza', s:'Richiamate prenotate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
+    assistenza:   { t:'Chiamata assistenza', s:'Chiamate prenotate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Impostazioni Admin', s:'Configurazione tecnica e parametri della piattaforma' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },

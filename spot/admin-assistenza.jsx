@@ -205,7 +205,7 @@ function AdmAssistenzaPage({ initialTab }) {
   const inAttesa = richiamate.filter(r => r.stato === 'attesa').length;
 
   const tabs = [
-    { id:'richiamate', label:'Richiamate', badge: inAttesa },
+    { id:'richiamate', label:'Chiamate', badge: inAttesa },
     { id:'faq',        label:'FAQ' },
     { id:'guide',      label:'Guide' },
     { id:'kpi',        label:'Andamento' },
@@ -246,8 +246,8 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
   const scadute = richiamate.filter(r => r.stato === 'attesa' && srvMinutiAScadere(r) < 0);
 
   const viste = [
-    { id:'attesa', label:'Da richiamare', count:nAttesa },
-    { id:'fatta',  label:'Richiamate',    count:nFatte },
+    { id:'attesa', label:'Da chiamare', count:nAttesa },
+    { id:'fatta',  label:'Chiamate',    count:nFatte },
     { id:'persa',  label:'Non risponde',  count:nPerse },
     { id:'tutte',  label:'Tutte',         count:richiamate.length },
   ];
@@ -314,11 +314,11 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
             </div>
           </div>
           <div style={{padding:'9px 16px 7px', fontSize:12.8, color:ADM.MUTED, fontWeight:500}}>
-            {elenco.length} {elenco.length === 1 ? 'richiamata' : 'richiamate'}
+            {elenco.length} {elenco.length === 1 ? 'chiamata' : 'chiamate'}
             <span style={{color:ADM.MUTED_SOFT}}> · {viste.find(v=>v.id===vista).label.toLowerCase()}</span>
           </div>
           <div style={{flex:1, overflowY:'auto'}}>
-            {elenco.length === 0 && <AdmEmpty icon="phone" title="Nessuna richiamata"
+            {elenco.length === 0 && <AdmEmpty icon="phone" title="Nessuna chiamata"
               desc={cerca ? 'Nessun risultato per questa ricerca' : 'La coda è vuota'}/>}
             {elenco.map(r => (
               <SrvVoceCoda key={r.id} r={r} attiva={sel && sel.id === r.id} onClick={()=>setSelId(r.id)}/>
@@ -330,7 +330,7 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
         <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
           {sel
             ? <SrvDettaglioRichiamata r={sel} tutte={richiamate} onEsito={(e)=>segna(sel.id, e)}/>
-            : <AdmEmpty icon="phone" title="Seleziona una richiamata" desc="Dall'elenco a sinistra"/>}
+            : <AdmEmpty icon="phone" title="Seleziona una chiamata" desc="Dall'elenco a sinistra"/>}
         </div>
       </div>
     </div>
@@ -371,7 +371,7 @@ function SrvVoceCoda({ r, attiva, onClick }) {
       </div>
       <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:2, paddingLeft:15, whiteSpace:'nowrap',
         overflow:'hidden', textOverflow:'ellipsis'}}>
-        {r.titolare} · {cat.label}
+        {r.titolare}
       </div>
       {r.problema && (
         <div style={{fontSize:12.8, color:ADM.MUTED_SOFT, marginTop:4, paddingLeft:15, lineHeight:1.4,
@@ -481,7 +481,7 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
                 <div style={SRV_ETI}>Esito</div>
                 <div style={{fontSize:19, fontWeight:800, marginTop:9,
                   color: r.inTempo ? ADM.OK : ADM.WARN, letterSpacing:'-0.01em'}}>
-                  {r.inTempo ? 'Richiamato in tempo' : 'Richiamato in ritardo'}
+                  {r.inTempo ? 'Chiamato in tempo' : 'Chiamato in ritardo'}
                 </div>
                 <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4}}>
                   Dopo {srvMinuti(Math.round((r.richiamataIl - r.prenotataIl) / 60000))} · su un SLA di {srvMinuti(cat.slaMin)}
@@ -552,13 +552,13 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
           <span style={{flex:1, fontSize:12.8, color:ADM.MUTED}}>
             {r.stato === 'attesa'
               ? 'Registra l\'esito appena riagganci: la puntualità si misura da qui.'
-              : 'Se stavolta risponde, l\'esito torna fra le richiamate riuscite.'}
+              : 'Se stavolta risponde, l\'esito torna fra le chiamate riuscite.'}
           </span>
           {r.stato === 'attesa' && (
             <AdmButton variant="secondary" icon="x" onClick={()=>onEsito('persa')}>Non risponde</AdmButton>
           )}
           <AdmButton variant="success" icon="check" onClick={()=>onEsito('fatta')}>
-            {r.stato === 'attesa' ? 'Richiamato' : 'Riprova ora'}
+            {r.stato === 'attesa' ? 'Chiamato' : 'Riprova ora'}
           </AdmButton>
         </div>
       )}
@@ -608,7 +608,7 @@ function SrvContesto({ r, locale, tutte }) {
         <AdmCard padding={0} style={{overflow:'hidden'}}>
           {precedenti.length === 0
             ? <div style={{padding:'14px 18px', fontSize:13, color:ADM.MUTED_SOFT}}>
-                È la prima richiamata che prenota.
+                È la prima chiamata che prenota.
               </div>
             : precedenti.map((p, i) => {
               const c = SRV_CATEGORIE[p.categoria];
@@ -1246,10 +1246,10 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
   return (
     <div style={{padding:'24px 28px 28px', display:'flex', flexDirection:'column', gap:20}}>
 
-      {/* ── Richiamate ── */}
-      <SectionLabel first title="Richiamate" desc="La coda e la puntualità con cui la smaltiamo"/>
+      {/* ── Chiamate ── */}
+      <SectionLabel first title="Chiamate" desc="La coda e la puntualità con cui la smaltiamo"/>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
-        <DashStatCard label="Richiamate in tempo" accent="OK"
+        <DashStatCard label="Chiamate in tempo" accent="OK"
           value={`${k.richiamate.pctInTempo}%`}
           sub={`${k.richiamate.inTempo} su ${k.richiamate.chiuse} entro la scadenza`}
           ratio={{ a:k.richiamate.inTempo, b:k.richiamate.inRitardo, aLabel:'in tempo', bLabel:'in ritardo', aColor:ADM.OK }}/>
@@ -1262,7 +1262,7 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
           sub="Dalla prenotazione alla chiamata"/>
         <DashStatCard label="Numeri non raggiunti"
           value={k.richiamate.perse}
-          sub={`Su ${k.richiamate.totali} richiamate prenotate · contate a parte, non fra le riuscite`}/>
+          sub={`Su ${k.richiamate.totali} chiamate prenotate · contate a parte, non fra le riuscite`}/>
       </div>
 
       {/* ── Soddisfazione ── */}
@@ -1339,7 +1339,7 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
           arrivino. Detto esplicitamente, altrimenti i due numeri sembrano lo
           stesso dato sbagliato. */}
       <SectionLabel title="Richieste di assistenza"
-        desc="Da tutti i canali — ticket scritti, chat, richiamate, gestionale · la finestra «oggi» è bassa per costruzione"/>
+        desc="Da tutti i canali — ticket scritti, chat, chiamate, gestionale · la finestra «oggi» è bassa per costruzione"/>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         {k.ticket.finestre.map(f => (
           <AdmCard key={f.label} padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
@@ -1374,7 +1374,7 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
         <DashStatCard label="Chiamate per locale" accent="INFO"
           value={k.perLocale.chiamateMedie.toFixed(1).replace('.', ',')}
-          sub={`${k.perLocale.localiCheChiamano} locali su ${k.perLocale.localiTotali} hanno prenotato almeno una richiamata`}
+          sub={`${k.perLocale.localiCheChiamano} locali su ${k.perLocale.localiTotali} hanno prenotato almeno una chiamata`}
           ratio={{ a:k.perLocale.localiCheChiamano, b:k.perLocale.localiTotali - k.perLocale.localiCheChiamano,
             aLabel:'hanno chiamato', bLabel:'mai', aColor:ADM.INFO }}/>
         <DashStatCard label="Ticket aperti per locale" accent="WARN"
@@ -1393,7 +1393,7 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
           </div>
           <div style={{flex:1}}>
             {k.perLocale.topChiamate.length === 0
-              ? <div style={{padding:'0 16px 16px', fontSize:12.8, color:ADM.MUTED_SOFT}}>Nessuna richiamata.</div>
+              ? <div style={{padding:'0 16px 16px', fontSize:12.8, color:ADM.MUTED_SOFT}}>Nessuna chiamata.</div>
               : k.perLocale.topChiamate.map((t, i) => (
                 <div key={t.localeId} style={{display:'flex', alignItems:'center', gap:10, padding:'7px 16px',
                   borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
@@ -1406,7 +1406,7 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
               ))}
           </div>
           <div style={{padding:'9px 16px 12px', fontSize:11.8, color:ADM.MUTED_LIGHT}}>
-            Richiamate prenotate negli ultimi 7 giorni
+            Chiamate prenotate negli ultimi 7 giorni
           </div>
         </AdmCard>
       </div>
