@@ -598,14 +598,86 @@ function DashOrdiniCard({ mese, media, anno, extraMese, extraMedia, extraAnno, s
 }
 
 // ---------- GENERALE ----------
+// ─── Affidabilità · le cinque cose che fanno perdere un locale ──────────────
+function DashAffidabilita({ a }) {
+  const box = (tono, titolo, valore, sotto, allarme) => (
+    <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+      <div style={{padding:'15px 16px 14px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
+        <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+          letterSpacing:'0.04em'}}>{titolo}</span>
+        <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
+          <span style={{fontSize:26.6, fontWeight:800, color: tono ? ADM[tono] : ADM.TEXT,
+            letterSpacing:'-0.02em', lineHeight:1}}>{valore}</span>
+        </div>
+        <span style={{fontSize:12.5, color:ADM.MUTED, lineHeight:1.45}}>{sotto}</span>
+        {allarme && (
+          <span style={{fontSize:12.3, fontWeight:700, color:ADM.WARN, display:'inline-flex',
+            alignItems:'center', gap:6, marginTop:'auto', paddingTop:4}}>
+            <span style={{width:6, height:6, borderRadius:'50%', background:ADM.WARN, flexShrink:0}}/>
+            {allarme}
+          </span>
+        )}
+      </div>
+    </AdmCard>
+  );
+  const c = a.corrispettivi, p = a.pagamenti, u = a.uptime;
+  return (
+    <React.Fragment>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        {box(c.pct >= 2 ? 'DANGER' : 'WARN', 'Corrispettivi rifiutati dall\'AdE',
+          `${c.pct}%`,
+          `${fmtNum(c.rifiutati30g)} su ${fmtNum(c.trasmessi30g)} trasmessi in 30 giorni · ${c.localiCoinvolti} locali coinvolti`,
+          `Il più vecchio non risolto da ${c.piuVecchioOre}h · ${c.causaPrima}`)}
+        {box(p.pct >= 2 ? 'DANGER' : 'WARN', 'Pagamenti falliti',
+          `${p.pct}%`,
+          `${fmtNum(p.falliti30g)} transazioni su ${fmtNum(p.transazioni30g)} · ${fmtEur(p.importoFallito)} non incassati`,
+          `Il retry ne recupera il ${p.pctRecuperati}% da solo · ${fmtNum(p.falliti30g - p.recuperati30g)} restano persi`)}
+        {box(null, 'Rimborsi',
+          fmtEur(a.rimborsi.importo),
+          `${a.rimborsi.n30g} rimborsi in 30 giorni · il ${a.rimborsi.pctSuIncassato}% dell'incassato`,
+          null)}
+        {/* L'uptime a 24 ore è una media che le notti tranquille tengono alta:
+            quello che conta è il servizio, pranzo e cena. */}
+        {box(u.picco < 99.9 ? 'WARN' : 'OK', 'Uptime nelle fasce di picco',
+          `${u.picco}%`,
+          `${u.minutiGiuPicco30g} minuti giù nel servizio, su ${u.minutiGiuTotali30g} totali del mese`,
+          `Sulle 24 ore sarebbe ${u.globale}% · peggior finestra ${u.peggiorGiorno}`)}
+      </div>
+
+      {/* La coda di retry è lo stato ADESSO, non una media: se invecchia, è un
+          incidente che sta maturando mentre lo guardiamo. */}
+      <AdmCard padding={0} style={{overflow:'hidden'}}>
+        <div style={{padding:'13px 18px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap'}}>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.04em'}}>Coda di retry, adesso</span>
+          <span style={{fontSize:20, fontWeight:800, color: a.retry.piuVecchioMin > 30 ? ADM.WARN : ADM.TEXT,
+            letterSpacing:'-0.02em'}}>{a.retry.inCoda}</span>
+          <span style={{fontSize:12.8, color:ADM.MUTED}}>
+            elementi · il più vecchio da <b style={{color: a.retry.piuVecchioMin > 30 ? ADM.WARN : ADM.TEXT}}>{a.retry.piuVecchioMin} min</b>
+          </span>
+          <span style={{flex:1}}/>
+          {a.retry.composizione.map(x => (
+            <span key={x.tipo} style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:12.5, color:ADM.MUTED}}>
+              <b style={{color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{x.n}</b> {x.tipo}
+            </span>
+          ))}
+        </div>
+      </AdmCard>
+    </React.Fragment>
+  );
+}
+
 function DashGenerale({ onNav }) {
   // === LOCALI ===
-  const totLocali = LOCALI.length;
-  const attivi = LOCALI.filter(l => l.stato === 'active').length;
+  // Le categorie arrivano da LOC (admin-data.jsx), che le definisce una volta
+  // sola: qui non se ne inventano di nuove, si contano quelle.
+  const totLocali = LOC.totali;
+  const attivi = LOC.attivi.length;
   const setupIniziale = LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding').length;
   const onbIncompleto = LOCALI.filter(l => l.stato === 'skipped').length;
-  const inOnbTot = setupIniziale + onbIncompleto;
-  const inattivi = LOCALI.filter(l => l.stato === 'inactive' || l.stato === 'churned').length;
+  const inOnbTot = LOC.inOnboarding.length;
+  const inattivi = LOC.inattivi.length;
+  const churned = LOC.churned.length;
 
   // === AGING ONBOARDING · quanti fermi da più di 7gg (azionabile) ===
   const onbLocaliDetail = LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding')
@@ -616,12 +688,14 @@ function DashGenerale({ onNav }) {
     ? [...onbLocaliDetail].sort((a,b)=>a.age-b.age)[Math.floor(onbLocaliDetail.length/2)].age
     : 0;
 
-  // Piani: free vs paganti (solo locali "live": active + inactive)
-  const livePool = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive');
-  const freeCount = livePool.filter(l => l.piano === 'free').length;
-  const freeActive = LOCALI.filter(l => l.piano === 'free' && l.stato === 'active').length;
-  const freeInactive = LOCALI.filter(l => l.piano === 'free' && l.stato === 'inactive').length;
-  const payingPool = livePool.filter(l => l.piano !== 'free');
+  // Piani: si contano sulla BASE INSTALLATA (attivi + inattivi), che è la sola
+  // popolazione che un piano ce l'ha. Chi è in onboarding non ha ancora
+  // scelto, chi ha disdetto non paga più.
+  const livePool = LOC.live;
+  const freeCount = LOC.gratuiti.length;
+  const freeActive = LOC.gratuiti.filter(locAttivo).length;
+  const freeInactive = LOC.gratuiti.filter(locInattivo).length;
+  const payingPool = LOC.paganti;
   const paying = payingPool.length;
   const planCount = (pid) => livePool.filter(l => l.piano === pid).length;
 
@@ -647,8 +721,10 @@ function DashGenerale({ onNav }) {
   const attivi7g = APP_METRICS.wau;
   const attivi30g = APP_METRICS.mau;
 
-  // Guest log: stima accessi guest 30g + ordini effettuati
-  const guestLog30g = Math.round(APP_METRICS.ordiniGuest30g * 1.85);
+  // Accessi guest: la costante, non una stima ricavata dagli ordini. Erano due
+  // numeri per la stessa cosa — 15,6k qui e 26,4k in APP_METRICS — e la
+  // conversione che ne usciva era quella del numero sbagliato.
+  const guestLog30g = APP_METRICS.sessioniGuest30g;
   const ordiniGuest30g = APP_METRICS.ordiniGuest30g;
 
 
@@ -659,9 +735,13 @@ function DashGenerale({ onNav }) {
   const lastRevTot = mese.sub + mese.extra;
   const ordiniSerie12 = last12.map(m => Math.round((m.sub+m.extra) * totOrdiniMese / lastRevTot));
   const ordiniMoM = (() => { const a=ordiniSerie12[ordiniSerie12.length-1]||0, b=ordiniSerie12[ordiniSerie12.length-2]||a; return b ? ((a-b)/b*100) : 0; })();
-  // Extra come conteggio: derivato dai € extra (≈€0,30/ordine extra medio — mock).
-  const extraOrdMese = Math.round(mrrExtraMese / 0.30);
-  const extraOrdAnno = Math.round(extraAnno / 0.30);
+  // Ordini oltre piano: si contano dai locali, uno per uno. Prima si
+  // dividevano gli euro di extra per «≈0,30 a ordine», un prezzo medio
+  // inventato quando il listino ne ha quattro veri (0,45 / 0,34 / 0,23 /
+  // 0,12) e i locali che sfondano si sanno per nome.
+  const extraOrdMese = ESPANSIONE.sopraSoglia.reduce((s2, l) => s2 + (l.ordiniOltre || 0), 0);
+  const prezzoExtraMedio = extraOrdMese ? mrrExtraMese / extraOrdMese : 0.3;
+  const extraOrdAnno = prezzoExtraMedio ? Math.round(extraAnno / prezzoExtraMedio) : 0;
   const extraOrdMedia = Math.round(extraOrdAnno / 12);
 
   // Tier 0 · richiede attenzione — dati azionabili prima nascosti nei popup.
@@ -697,8 +777,17 @@ function DashGenerale({ onNav }) {
 
       {attentionItems.length > 0 && <AttentionStrip items={attentionItems}/>}
 
+      {/* ═══════════ Tier 0 · Affidabilità — prima di ogni altra cosa ═══════════ */}
+      {/* Sta in cima perché è il modo in cui si perde un locale davvero: non
+          un voto basso, ma il sabato sera in cui il conto non si chiude o il
+          corrispettivo non arriva all'Agenzia. Tutti i numeri sono sulla
+          finestra in cui il danno succede, non sulla media dell'anno. */}
+      <SectionLabel first title="Affidabilità"
+        desc="Soldi e adempimenti · gli ultimi 30 giorni, e le fasce in cui un minuto giù si vede"/>
+      <DashAffidabilita a={AFFIDABILITA}/>
+
       {/* ═══════════ Tier 1 · Andamento — il polso della piattaforma ═══════════ */}
-      <SectionLabel title="Andamento" desc="La salute della piattaforma in sintesi" first/>
+      <SectionLabel title="Andamento" desc="La salute della piattaforma in sintesi"/>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
         <DashHero
@@ -719,10 +808,16 @@ function DashGenerale({ onNav }) {
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        {/* La scomposizione copre tutti e cinquanta: attivi, inattivi, in
+            onboarding, disdetti. La barra sotto NON è su questo totale ma
+            sulla base installata, ed è scritto — prima diceva 24 paganti e 7
+            gratuiti sotto un totale di 50, lasciando diciannove locali senza
+            collocazione. */}
         <DashStatCard
           label="Locali totali" value={fmtNum(totLocali)} accent="INK"
-          sub={`${attivi} attivi · ${inattivi} inattivi`}
-          ratio={{ a: paying, b: freeCount, aLabel:'paganti', bLabel:'free', aColor: ADM.INK }}
+          sub={`${attivi} attivi · ${inattivi} inattivi · ${inOnbTot} in onboarding · ${churned} disdetti`}
+          ratio={{ a: paying, b: freeCount, aLabel:`paganti (su ${livePool.length} con un piano)`,
+            bLabel:'gratuiti', aColor: ADM.INK }}
         />
         <DashStatCard
           label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
@@ -967,6 +1062,14 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
   return (
     <div>
       <TooltipTitle>Spaccato per piano</TooltipTitle>
+      {/* La base va dichiarata: le percentuali qui sotto sono sui locali che un
+          piano ce l'hanno — chi è in onboarding non l'ha ancora scelto, chi ha
+          disdetto non paga più. Senza questa riga sembrava uno spaccato dei
+          cinquanta locali che ne copriva sessantadue. */}
+      <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:-4, marginBottom:12, lineHeight:1.45}}>
+        Su <b style={{color:ADM.TEXT}}>{paying + free} locali con un piano attivo</b> (attivi e inattivi).
+        Gli altri {LOC.totali - (paying + free)} sono in onboarding o hanno disdetto.
+      </div>
 
       {/* Free vs Paganti */}
       <div style={{marginBottom:16}}>
@@ -1517,25 +1620,102 @@ function DashLocali({ onNav }) {
   ];
 
   // ── LTV / CAC per piano · economia per locale ──────────────────────────
-  // LTV = MRR × tenure (mesi) · CAC: dati interni mock realistic
-  const ltvByPlan = [
-    { id:'free',     label:'Gratuito',     mrr:  0, tenure: 8.5, cac: 45, ltv:    0, color:'PLAN_FREE'     },
-    { id:'starter',  label:'Starter',  mrr: 49, tenure:14.2, cac:120, ltv:  696, color:'PLAN_STARTER'  },
-    { id:'plus',     label:'Plus',     mrr: 99, tenure:21.0, cac:180, ltv: 2079, color:'PLAN_PLUS'     },
-    { id:'business', label:'Business', mrr:249, tenure:28.4, cac:340, ltv: 7072, color:'PLAN_BUSINESS' },
+  //
+  // L'LTV qui è a MARGINE, non a ricavo. Il ricavo per tenure è il numero che
+  // un investitore dimezza in due domande, perché su ogni euro incassato ce ne
+  // sono tre che escono prima di diventare margine:
+  //
+  //   Stripe          1,5% + 0,25 € a transazione sull'incassato del locale,
+  //                   non sull'abbonamento: chi fa volume ci costa di più
+  //   infrastruttura  la quota AWS per locale — compute, RDS, banda, storage
+  //                   dei media — che sale col traffico
+  //   assistenza      il costo del supporto: i ticket che quel piano apre per
+  //                   il costo pieno di un'ora di operatore
+  //
+  // I prezzi sono quelli veri del listino (PIANI), non 49/99/249 scritti a
+  // mano: erano un terzo listino, diverso sia dal gestionale sia da qui.
+  // Le commissioni Stripe che paghiamo NOI sono quelle sul canone che
+  // incassiamo: quelle sull'incassato del locale le paga il locale sul suo
+  // connected account, e metterle a carico nostro faceva uscire un margine
+  // negativo del 300% — un modello in cui più il cliente lavora, più ci
+  // costa, che non è il nostro.
+  const COSTI = {
+    stripePct: 0.015, stripeFisso: 0.25,     // sul canone
+    riconciliazione: 0.02,                    // a ordine: Connect, riconciliazione, dispute
+    awsBase: 2.4, awsPerOrdine: 0.004,
+    oraOperatore: 35,                         // costo azienda, non retribuzione
+    minutiPerTicket: 25,
+    quotaConOperatore: 0.45,                  // il resto si chiude da solo fra FAQ e bot
+  };
+  // I ticket per piano non sono una stima: sono quelli aperti davvero, contati
+  // sui locali di quel piano. È la voce che decide se un piano sta in piedi.
+  const ticketMesePerPiano = (pid) => {
+    if (typeof TICKET_SRV === 'undefined') return 0;
+    const suoi = LOC.live.filter(l => l.piano === pid);
+    if (!suoi.length) return 0;
+    const ids = suoi.map(l => l.id);
+    const da = Date.now() - 30 * 86400000;
+    const n = TICKET_SRV.filter(t => t.apertoIl.getTime() >= da && ids.indexOf(t.localeId) !== -1).length;
+    return n / suoi.length;
+  };
+  const ordiniMediPiano = (pid) => {
+    const suoi = LOC.live.filter(l => l.piano === pid);
+    return suoi.length ? suoi.reduce((a2, l) => a2 + (l.ordiniMese || 0), 0) / suoi.length : 0;
+  };
+  const ltvBase = [
+    { id:'free',     label:'Gratuito', tenure: 8.5, cac: 45,  color:'PLAN_FREE'     },
+    { id:'starter',  label:'Starter',  tenure:14.2, cac:120,  color:'PLAN_STARTER'  },
+    { id:'plus',     label:'Plus',     tenure:21.0, cac:180,  color:'PLAN_PLUS'     },
+    { id:'business', label:'Business', tenure:28.4, cac:340,  color:'PLAN_BUSINESS' },
   ];
-  // Aggregate (escludiamo Free dato CAC > LTV)
-  const ltvPaying = ltvByPlan.filter(p => p.ltv > 0);
-  const avgLTV = Math.round(ltvPaying.reduce((s,p)=>s+p.ltv,0) / ltvPaying.length);
-  const avgCAC = Math.round(ltvPaying.reduce((s,p)=>s+p.cac,0) / ltvPaying.length);
+  const costoTicket = COSTI.oraOperatore * (COSTI.minutiPerTicket / 60) * COSTI.quotaConOperatore;
+  const ltvByPlan = ltvBase.map(p => {
+    const listino = (PIANI.find(x => x.id === p.id) || {}).price || 0;
+    const ordini = ordiniMediPiano(p.id);
+    const ticket = ticketMesePerPiano(p.id);
+    const costoStripe = listino ? listino * COSTI.stripePct + COSTI.stripeFisso : 0;
+    const costoPagamenti = ordini * COSTI.riconciliazione;
+    const costoAws = COSTI.awsBase + ordini * COSTI.awsPerOrdine;
+    const costoSupporto = ticket * costoTicket;
+    const costoTot = costoStripe + costoPagamenti + costoAws + costoSupporto;
+    const margineMese = listino - costoTot;
+    return {
+      ...p,
+      mrr: Math.round(listino),
+      ticketMese: +ticket.toFixed(1),
+      costoMese: Math.round(costoTot),
+      costoStripe: +costoStripe.toFixed(2),
+      costoPagamenti: Math.round(costoPagamenti),
+      costoAws: Math.round(costoAws),
+      costoSupporto: Math.round(costoSupporto),
+      margineMese: Math.round(margineMese),
+      marginePct: listino ? Math.round(margineMese / listino * 100) : 0,
+      ltv: Math.round(margineMese * p.tenure),
+      ltvRicavo: Math.round(listino * p.tenure),
+    };
+  });
+  // Aggregate (escludiamo Free: non paga, e il suo margine è per definizione
+  // negativo — è costo di acquisizione, non un cliente)
+  const ltvPaying = ltvByPlan.filter(p => p.mrr > 0);
+  // Medie PONDERATE su quanti locali stanno davvero su ogni piano: la media
+  // dei tre listini darebbe lo stesso peso a un piano con nove clienti e a uno
+  // con otto, e su ventiquattro paganti si vede.
+  const pesoPiano = (id) => LOC.paganti.filter(l => l.piano === id).length;
+  const pesiTot = ltvPaying.reduce((s,p)=>s+pesoPiano(p.id),0) || 1;
+  const pond = (f) => Math.round(ltvPaying.reduce((s,p)=>s + f(p)*pesoPiano(p.id), 0) / pesiTot);
+  const avgLTV = pond(p => p.ltv);
+  const avgLTVRicavo = pond(p => p.ltvRicavo);
+  const avgMarginePct = pond(p => p.marginePct);
+  const avgCAC = pond(p => p.cac);
   const ratioLTVCAC = avgCAC > 0 ? (avgLTV/avgCAC) : 0;
-  const avgPayback = ltvPaying.reduce((s,p)=>s + (p.cac/p.mrr),0) / ltvPaying.length; // mesi medi
+  // Payback: mesi di MARGINE per rientrare del CAC, non mesi di fatturato.
+  const avgPayback = ltvPaying.reduce((s,p)=>s + (p.cac/Math.max(1,p.margineMese)),0) / ltvPaying.length;
   // Curva LTV cumulativa: ricavi medi mensili × mesi (sottratto CAC iniziale)
   const ltvCurveMonths = [0,1,3,6,9,12,18,24,30];
   const ltvCurveByPlan = ltvPaying.map(p => ({
     plan: p.label,
     color: ADM[p.color],
-    points: ltvCurveMonths.map(m => ({ x: m, y: m === 0 ? -p.cac : (m * p.mrr) - p.cac })),
+    points: ltvCurveMonths.map(m => ({ x: m, y: m === 0 ? -p.cac : (m * p.margineMese) - p.cac })),
   }));
   const ltvCurveMin = Math.min(...ltvCurveByPlan.flatMap(c=>c.points.map(p=>p.y)));
   const ltvCurveMax = Math.max(...ltvCurveByPlan.flatMap(c=>c.points.map(p=>p.y)));
@@ -1623,12 +1803,17 @@ function DashLocali({ onNav }) {
   });
 
   // KPI spostate qui dalla pagina-lista Locali (le liste restano operative).
-  const activeLocali = LOCALI.filter(l => l.stato === 'active');
-  const mrrTot = activeLocali.reduce((s2,l)=>s2+l.mrr+l.extras,0);
+  const activeLocali = LOC.attivi;
+  // MRR e ARPA vengono da MRR_ORA, che li conta sui PAGANTI della base
+  // installata col listino vero. Prima l'MRR sommava i soli locali attivi
+  // (extra inclusi) e l'ARPA lo divideva per i paganti fra quelli: due
+  // popolazioni diverse sopra e sotto la frazione, e usciva un ARPA che non
+  // corrispondeva a nessun piano.
+  const mrrTot = MRR_ORA.totale;
   const ticketMedio = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.ticketMedio,0)/activeLocali.length) : 0;
   const coperturaMedia = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.copertura,0)/activeLocali.length) : 0;
-  const pagantiAttivi = activeLocali.filter(l => l.piano !== 'free').length;
-  const arpa = pagantiAttivi ? Math.round(mrrTot / pagantiAttivi) : 0;
+  const pagantiAttivi = LOC.paganti.length;
+  const arpa = MRR_ORA.arpa;
 
   // ── FOOD COST / MARGINALITÀ per categoria ──────────────────────────────
   // Stimato sul ~38% del catalogo Byup con ingredient labeling completato.
@@ -1666,11 +1851,11 @@ function DashLocali({ onNav }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <DashStatCard
           label="MRR totale" value={fmtEur(mrrTot)} accent="INK"
-          sub="Locali attivi · piano + extra"
+          sub={`${fmtEur(MRR_ORA.abbonamenti)} abbonamenti di ${pagantiAttivi} paganti · ${fmtEur(MRR_ORA.extra)} extra ordini`}
         />
         <DashStatCard
           label="ARPA" value={`${fmtEur(arpa)}/mese`} accent="INK"
-          sub="Ricavo medio per locale pagante · piano + extra"
+          sub={`Abbonamento medio dei ${pagantiAttivi} paganti · gli extra ordini restano fuori`}
         />
         <DashStatCard
           label="Scontrino medio" value={fmtEur(ticketMedio)} accent="INK"
@@ -2086,14 +2271,88 @@ function DashLocali({ onNav }) {
         </AdmCard>
       </div>
 
+      {/* ═════ ESPANSIONE ═════ */}
+      {/* Su venticinque locali attivi la crescita non la fa l'acquisizione: la
+          fa chi già c'è e comincia a stare stretto nel suo piano. Il ricavo da
+          extra ordini è il segnale grezzo, il tasso di upgrade è la risposta —
+          e finora nessuna delle due era in pagina. */}
+      <SectionLabel title="Espansione"
+        desc="Chi sfonda il piano e chi poi passa a quello sopra · l'unica crescita raccontabile su una base di questa taglia"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        <DashStatCard
+          label="Locali oltre il loro piano" value={fmtNum(ESPANSIONE.nSopraSoglia)} accent="WARN"
+          sub={`Il ${ESPANSIONE.pctSopraSoglia}% della base installata consuma più ordini di quanti il piano ne includa`}
+          ratio={{ a: ESPANSIONE.nSopraSoglia, b: LOC.live.length - ESPANSIONE.nSopraSoglia,
+            aLabel:'oltre soglia', bLabel:'dentro il piano', aColor: ADM.WARN }}
+        />
+        <DashStatCard
+          label="Ricavo da extra ordini" value={`${fmtEur(ESPANSIONE.extraMese)}/mese`} accent="INK"
+          sub="Ordini oltre soglia al prezzo unitario del piano · è quello che l'upgrade trasformerebbe in canone"
+        />
+        <DashStatCard
+          label="Upgrade negli ultimi 90g" value={fmtNum(ESPANSIONE.nUpgrade90g)}
+          accent={ESPANSIONE.tassoUpgrade >= 40 ? 'OK' : 'WARN'}
+          sub={`Il ${ESPANSIONE.tassoUpgrade}% dei ${ESPANSIONE.candidati} candidati del periodo — chi sfonda il piano — è passato a quello sopra. Gli altri continuano a pagare gli extra`}
+        />
+        <DashStatCard
+          label="Upside da upgrade" value={`${fmtEur(ESPANSIONE.upsidePotenziale)}/mese`} accent="INK"
+          sub={`Se tutti i ${ESPANSIONE.nSopraSoglia} passassero al piano sopra · solo il delta di canone, non il canone intero`}
+        />
+      </div>
+
+      {ESPANSIONE.sopraSoglia.length > 0 && (
+        <AdmCard padding={0} style={{overflow:'hidden'}}>
+          <div style={{padding:'13px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+            fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.04em'}}>
+            Chi sta stretto nel suo piano · dal più sopra soglia
+          </div>
+          <div className="adm-scroll" style={{maxHeight:300, overflowY:'auto'}}>
+            {ESPANSIONE.sopraSoglia.slice(0, 12).map((l, i) => {
+              const idx = PIANI.findIndex(p => p.id === l.piano);
+              const sopra = PIANI[Math.min(PIANI.length - 1, idx + 1)];
+              return (
+                <div key={l.id} style={{display:'grid',
+                  gridTemplateColumns:'minmax(0,1fr) 150px 170px 180px', alignItems:'center', gap:12,
+                  padding:'10px 20px', borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                  <span style={{minWidth:0}}>
+                    <span style={{display:'block', fontSize:13.6, fontWeight:600, color:ADM.TEXT,
+                      whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</span>
+                    <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:1}}>
+                      {l.citta} · {(PIANI.find(p => p.id === l.piano) || {}).label}
+                    </span>
+                  </span>
+                  <span style={{fontSize:12.8, color:ADM.MUTED}}>
+                    <b style={{color:ADM.TEXT}}>{fmtNum(l.ordiniMese)}</b> ordini · {fmtNum(l.ordiniInclusi)} inclusi
+                  </span>
+                  <span style={{fontSize:12.8, color:ADM.WARN, fontWeight:600}}>
+                    +{fmtNum(l.ordiniOltre)} oltre soglia · {fmtEur(l.extras)}/mese di extra
+                  </span>
+                  <span style={{fontSize:12.4, color:ADM.MUTED_LIGHT, textAlign:'right'}}>
+                    {l.upgradeIl
+                      ? `Già passato a ${(PIANI.find(p => p.id === l.piano) || {}).label} ${fmtRelative(l.upgradeIl)}`
+                      : `Da portare a ${sopra.label} (+${fmtEur(sopra.price - PIANI[idx].price)}/mese)`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </AdmCard>
+      )}
+
       {/* ═════ LTV / CAC ═════ */}
-      <SectionLabel title="LTV / CAC locale" desc="Economia per locale · la prima metrica che ti chiederà un investitore pre-seed"/>
+      <SectionLabel title="LTV / CAC locale"
+        desc="Economia per locale, al netto di Stripe, infrastruttura e assistenza · la prima metrica che ti chiederà un investitore pre-seed"/>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <AdmCard padding={18}>
-          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>LTV medio</div>
+          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>LTV medio · a margine</div>
           <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{fmtEur(avgLTV)}</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Media paganti · MRR × tenure</div>
+          {/* Il ricavo per tenure sta scritto sotto, in chiaro e più piccolo:
+              è il numero che si dice in giro, ma non è quello che resta. */}
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>
+            Margine × tenure · {avgMarginePct}% di margine sul canone<br/>
+            <span style={{color:ADM.MUTED_LIGHT}}>A ricavo sarebbe {fmtEur(avgLTVRicavo)}</span>
+          </div>
         </AdmCard>
         <AdmCard padding={18}>
           <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>CAC medio</div>
@@ -2119,7 +2378,7 @@ function DashLocali({ onNav }) {
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
           <div>
             <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>LTV cumulativo per piano</div>
-            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Ricavo cumulativo netto dal mese di attivazione · LTV - CAC</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Margine cumulato dal mese di attivazione, CAC già sottratto</div>
           </div>
           <div style={{display:'flex', gap:14, fontSize:13.3, color:ADM.TEXT, fontWeight:600}}>
             {ltvCurveByPlan.map(c => (
@@ -2169,8 +2428,34 @@ function DashLocali({ onNav }) {
             </div>
           );
         })()}
+        {/* Niente numeri scritti a mano nel testo: i mesi di rientro si
+            leggono dagli stessi dati che disegnano la curva sopra. */}
         <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
-          <strong style={{color:ADM.TEXT}}>Business recupera il CAC in 1.4 mesi, Plus in 1.8</strong>. Da quel momento ogni mese è puro margine fino all'abbandono. LTV/CAC <strong style={{color:ADM.OK}}>{ratioLTVCAC.toFixed(1)}×</strong> è ampiamente sopra la soglia investitori del 3× → pronto per il pitch.
+          {(() => {
+            const rientro = (id) => {
+              const p = ltvPaying.find(x => x.id === id);
+              return p && p.margineMese > 0 ? (p.cac / p.margineMese).toFixed(1) : '—';
+            };
+            // Un piano che non rientra del CAC entro la sua tenure media non
+            // è un cliente: è un costo che abbiamo deciso di sostenere. Va
+            // detto qui, non lasciato dedurre dal grafico.
+            const inPerdita = ltvPaying.filter(p => p.ltv <= 0 || (p.cac / Math.max(1, p.margineMese)) > p.tenure);
+            return <React.Fragment>
+              <strong style={{color:ADM.TEXT}}>Business rientra del CAC in {rientro('business')} mesi di margine, Plus in {rientro('plus')}</strong>.
+              Da lì in poi ogni mese è margine fino all'abbandono. LTV/CAC{' '}
+              <strong style={{color:ADM.OK}}>{ratioLTVCAC.toFixed(1)}×</strong>{' '}
+              è calcolato sul margine, non sul fatturato: a ricavo sarebbe {(avgLTVRicavo/avgCAC).toFixed(1)}×,
+              ed è la differenza che un investitore trova da solo.
+              {inPerdita.length > 0 && (
+                <span style={{display:'block', marginTop:8, color:ADM.DANGER, fontWeight:600}}>
+                  {inPerdita.map(p => p.label).join(' e ')}{' '}
+                  {inPerdita.length > 1 ? 'non rientrano' : 'non rientra'} del CAC prima
+                  dell'abbandono: {inPerdita.map(p => `${p.label} incassa ${fmtEur(p.mrr)} e ne spende ${fmtEur(p.costoMese)}, di cui ${fmtEur(p.costoSupporto)} di assistenza su ${p.ticketMese} ticket al mese`).join('; ')}.
+                  Su questa fascia o si alza il prezzo o si abbassano i ticket.
+                </span>
+              )}
+            </React.Fragment>;
+          })()}
         </div>
       </AdmCard>
 

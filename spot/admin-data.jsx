@@ -147,7 +147,7 @@ function buildLocali() {
 
     const pianoIdx = Math.floor(r() * 4);
     const piano = (stato === 'pending') ? 'free' : PIANI[pianoIdx].id;
-    const extras = stato === 'active' && r() > 0.5 ? Math.floor(r() * 60) + 10 : 0;
+    const pianoObj = PIANI.find(p => p.id === piano);
     const ordiniGiorno = stato === 'active' ? Math.floor(r() * 25) + 5 :
                         stato === 'skipped' ? Math.floor(r() * 15) :
                         stato === 'inactive' ? Math.floor(r() * 3) : 0;
@@ -191,6 +191,19 @@ function buildLocali() {
       return +(30.1 + r() * 28).toFixed(1);
     })();
     const ordiniMeseVal = ordiniGiorno * 28 + Math.floor(r() * 50);
+    // Gli extra ordini NON sono un numero a caso: sono gli ordini oltre la
+    // soglia del piano, al prezzo unitario del piano. Scritti a caso — dieci
+    // o settanta euro a metà dei locali attivi — il ricavo da extra non
+    // diceva niente su chi sta sfondando il piano, che è invece l'unica
+    // storia di crescita raccontabile su venticinque locali.
+    const ordiniOltre = Math.max(0, ordiniMeseVal - pianoObj.ordiniInclusi);
+    const extras = stato === 'active' ? Math.round(ordiniOltre * pianoObj.ordineExtra) : 0;
+    // Chi ha già cambiato piano, e quando: serve a misurare se chi sfonda poi
+    // fa davvero upgrade, o resta a pagare gli extra a caro prezzo.
+    const haUpgrade = stato === 'active' && piano !== 'free' && r() > 0.62;
+    const upgradeIl = haUpgrade ? new Date(Date.now() - Math.floor(r() * 130) * 86400000) : null;
+    const pianoPrecedente = haUpgrade
+      ? PIANI[Math.max(0, PIANI.findIndex(p => p.id === piano) - 1)].id : null;
     const ordiniAnnoVal = Math.round(ordiniMeseVal * (11 + r() * 2));
     const scanQRMese = (qrAdoption == null || qrAdoption === 0)
       ? (qrAdoption === 0 ? Math.floor(r() * 4) : 0)
@@ -223,6 +236,10 @@ function buildLocali() {
       lastLogin,
       ordiniGiorno,
       ordiniMese: ordiniMeseVal,
+      ordiniInclusi: pianoObj.ordiniInclusi,
+      ordiniOltre,
+      upgradeIl,
+      pianoPrecedente,
       ordiniAnno: ordiniAnnoVal,
       prenotazioniGiorno,
       prenotazioniMese: prenotazioniGiorno * 28,
@@ -240,6 +257,81 @@ function buildLocali() {
 }
 
 const LOCALI = buildLocali();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEFINIZIONI · cosa vuol dire «attivo» e cosa vuol dire «pagante»
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Scritte qui una volta sola e usate ovunque, perché sono le stesse parole che
+// finiscono nel pitch. Prima ogni card se le ridefiniva per conto suo, e i
+// conti non tornavano da nessuna parte: cinquanta locali totali che si
+// scomponevano in 25+8+17, ma la barra sotto ne contava 31 fra paganti e
+// gratuiti, e lo spaccato per piano copriva il 62% lasciando diciannove locali
+// senza collocazione.
+//
+//   in onboarding   iscritto ma non ancora operativo: non ha finito la
+//                   configurazione (pending, fermo a metà, o saltata)
+//   attivo          ha finito l'onboarding e lavora: ordini negli ultimi
+//                   30 giorni
+//   inattivo        ha finito l'onboarding ma non ordina da oltre 30 giorni.
+//                   Non è churn: l'abbonamento è ancora acceso
+//   churned         ha disdetto. Fuori da ogni base e da ogni ricavo
+//
+//   live            attivi + inattivi = la base installata, cioè chi ha un
+//                   locale configurato su byup. È il denominatore di tutto
+//                   quello che riguarda l'uso e i piani
+//   pagante         live su un piano diverso dal Gratuito
+//
+// Le quattro categorie sono esaustive e disgiunte: sommate danno il totale,
+// sempre. Se un giorno non tornassero, è una di queste funzioni ad essere
+// sbagliata, non la card che le somma.
+const locInOnboarding = (l) => l.stato === 'pending' || l.stato === 'onboarding' || l.stato === 'skipped';
+const locAttivo       = (l) => l.stato === 'active';
+const locInattivo     = (l) => l.stato === 'inactive';
+const locChurned      = (l) => l.stato === 'churned';
+const locLive         = (l) => locAttivo(l) || locInattivo(l);
+const locPagante      = (l) => locLive(l) && l.piano !== 'free';
+
+const LOC = (() => {
+  const attivi       = LOCALI.filter(locAttivo);
+  const inattivi     = LOCALI.filter(locInattivo);
+  const inOnboarding = LOCALI.filter(locInOnboarding);
+  const churned      = LOCALI.filter(locChurned);
+  const live         = LOCALI.filter(locLive);
+  const paganti      = LOCALI.filter(locPagante);
+  const gratuiti     = live.filter(l => l.piano === 'free');
+  return {
+    totali: LOCALI.length,
+    attivi, inattivi, inOnboarding, churned, live, paganti, gratuiti,
+    // Lo spaccato per piano si conta sulla base installata e copre il 100% di
+    // quella: quattro numeri che sommano a `live.length`, Gratuito compreso.
+    perPiano: PIANI.map(p => ({
+      id: p.id, label: p.label, price: p.price,
+      n: live.filter(l => l.piano === p.id).length,
+    })),
+  };
+})();
+
+// ─── MRR · il ricavo che i piani producono davvero ──────────────────────────
+//
+// Non un numero scritto a mano: la somma dei listini dei locali paganti, più
+// gli extra ordini. Con questa base — otto Starter, sette Plus, nove Business
+// — l'abbonato vale circa 3.570 €, non 5.520 come diceva la serie storica
+// scritta a occhio. Un MRR che non torna col listino è la prima cosa che un
+// investitore ricalcola.
+const MRR_ORA = (() => {
+  const abbonamenti = LOC.paganti.reduce((s, l) => s + (PIANI.find(p => p.id === l.piano) || {}).price, 0);
+  const extra = LOC.live.reduce((s, l) => s + (l.extras || 0), 0);
+  return {
+    abbonamenti: Math.round(abbonamenti),
+    extra: Math.round(extra),
+    totale: Math.round(abbonamenti + extra),
+    // ARPA sui soli paganti: dividere per tutta la base installata darebbe un
+    // numero più basso e più bello da guardare, ma descriverebbe un cliente
+    // medio che non esiste.
+    arpa: LOC.paganti.length ? Math.round(abbonamenti / LOC.paganti.length) : 0,
+  };
+})();
 
 // ---------- ADOZIONE DIGITALE — fasce ----------
 // 5 fasce per il tasso di adozione QR. min/max in %.
@@ -610,24 +702,129 @@ const SCREENS_USAGE = [
 ];
 
 // Funzionalità più usate (cross-screen, azioni discrete)
-const FEATURES_USAGE = [
-  { nome: 'Apertura tavolo',                  modulo: 'Sala',           usi: 38420, pct: 96, trend: +4 },
-  { nome: 'Aggiunta articolo all\'ordine',     modulo: 'Sala / Cucina',  usi: 124800, pct: 95, trend: +7 },
-  { nome: 'Saldo conto al tavolo',            modulo: 'Sala',           usi: 31250, pct: 92, trend: +5 },
-  { nome: 'Stampa scontrino',                 modulo: 'Cassa',          usi: 28910, pct: 89, trend: +2 },
-  { nome: 'Modifica menu (piatto)',           modulo: 'Impostazioni',   usi: 9420,  pct: 71, trend: +12 },
-  { nome: 'Conferma prenotazione',            modulo: 'Sala',           usi: 8870,  pct: 68, trend: +9 },
-  { nome: 'Spostamento tavolo / unione',      modulo: 'Sala',           usi: 6210,  pct: 52, trend: +3 },
-  { nome: 'Importazione menu da PDF',         modulo: 'Onboarding',     usi: 412,   pct: 48, trend: +24 },
-  { nome: 'Export IVA mensile',               modulo: 'Contabilità',    usi: 2840,  pct: 38, trend: +6 },
-  { nome: 'Invito staff (link)',              modulo: 'Personale',      usi: 1180,  pct: 31, trend: +8 },
-  { nome: 'Apertura ticket supporto',         modulo: 'Supporto',       usi: 612,   pct: 22, trend: -3 },
-  { nome: 'Pubblica menu su vetrina',         modulo: 'Vetrina',        usi: 348,   pct: 18, trend: +15 },
-];
+//
+// I volumi si derivano dagli ordini che i locali processano davvero in un
+// mese: scritti a mano dicevano 124.800 aggiunte di articolo su una
+// piattaforma che di ordini ne fa quindicimila, e la stessa voce nella tab
+// Staff ne diceva un altro paio di migliaia. Le due schermate raccontavano
+// due aziende diverse.
+const FEATURES_USAGE = (() => {
+  const ordiniMese = LOCALI
+    .filter(l => l.stato === 'active' || l.stato === 'inactive')
+    .reduce((s, l) => s + (l.ordiniMese || 0), 0);
+  const alTavolo = Math.round(ordiniMese * 0.55);   // la quota presa dal cameriere
+  const prenotazioniMese = LOCALI
+    .filter(l => l.stato === 'active')
+    .reduce((s, l) => s + (l.prenotazioniMese || 0), 0);
+  const attivi = LOCALI.filter(l => l.stato === 'active').length;
+  return [
+    { nome: 'Aggiunta articolo all\'ordine',     modulo: 'Sala / Cucina',  usi: Math.round(alTavolo * 3.5),  pct: 95, trend: +7 },
+    { nome: 'Apertura tavolo',                  modulo: 'Sala',           usi: alTavolo,                    pct: 96, trend: +4 },
+    { nome: 'Saldo conto al tavolo',            modulo: 'Sala',           usi: Math.round(alTavolo * 0.92), pct: 92, trend: +5 },
+    { nome: 'Stampa scontrino',                 modulo: 'Cassa',          usi: Math.round(alTavolo * 0.58), pct: 89, trend: +2 },
+    { nome: 'Conferma prenotazione',            modulo: 'Sala',           usi: Math.round(prenotazioniMese * 0.86), pct: 68, trend: +9 },
+    { nome: 'Modifica menu (piatto)',           modulo: 'Impostazioni',   usi: Math.round(attivi * 34),     pct: 71, trend: +12 },
+    { nome: 'Spostamento tavolo / unione',      modulo: 'Sala',           usi: Math.round(alTavolo * 0.08), pct: 52, trend: +3 },
+    { nome: 'Export IVA mensile',               modulo: 'Contabilità',    usi: Math.round(attivi * 1.4),    pct: 38, trend: +6 },
+    { nome: 'Invito staff (link)',              modulo: 'Personale',      usi: Math.round(attivi * 2.1),    pct: 31, trend: +8 },
+    { nome: 'Apertura ticket supporto',         modulo: 'Supporto',       usi: Math.round(attivi * 1.9),    pct: 22, trend: -3 },
+    { nome: 'Pubblica menu su vetrina',         modulo: 'Vetrina',        usi: Math.round(attivi * 0.7),    pct: 18, trend: +15 },
+    { nome: 'Importazione menu da PDF',         modulo: 'Onboarding',     usi: Math.round(attivi * 0.5),    pct: 48, trend: +24 },
+  ];
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AFFIDABILITÀ · il modo in cui si muore davvero
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// byup porta responsabilità fiscale e incassa denaro per conto di altri. Non
+// si perde un locale per un CSAT basso: lo si perde il sabato sera in cui
+// venti locali non riescono a chiudere un conto, o il giorno in cui i
+// corrispettivi non arrivano all'Agenzia e il commercialista chiama.
+//
+// Cinque numeri, e nessuno è una media annuale: sono tutti sulla finestra in
+// cui il danno succede.
+//
+//   corrispettivi   trasmissioni all'AdE rifiutate. Ogni rifiuto è un
+//                   adempimento che salta, e scade
+//   pagamenti       transazioni fallite sull'incassato dei locali, e quante
+//                   la coda di retry recupera da sola
+//   rimborsi        soldi restituiti: quando salgono, qualcosa a monte non
+//                   funziona
+//   retry           cosa c'è in coda ADESSO e da quanto: una coda che
+//                   invecchia è un incidente che sta maturando
+//   uptime          nelle DUE fasce che contano — pranzo e cena — non sulle
+//                   24 ore, dove le notti tranquille annacquano i minuti giù
+//                   del servizio serale
+const AFFIDABILITA = (() => {
+  const r = pseudoRand(9137);
+  const live = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive');
+  const ordiniMese = live.reduce((s, l) => s + (l.ordiniMese || 0), 0);
+  const incassatoMese = live.reduce((s, l) => s + (l.ordiniMese || 0) * (l.ticketMedio || 25), 0);
+
+  // Un corrispettivo per giornata di apertura per locale attivo.
+  const trasmessi30g = Math.round(LOCALI.filter(l => l.stato === 'active').length * 27);
+  const rifiutati30g = Math.round(trasmessi30g * 0.021);
+  const rifiutatiOggi = Math.max(0, Math.round(rifiutati30g / 30 + (r() > 0.5 ? 1 : 0)));
+
+  const transazioni30g = Math.round(ordiniMese * 0.78);   // il resto è contante
+  const falliti30g = Math.round(transazioni30g * 0.017);
+  const recuperati30g = Math.round(falliti30g * 0.61);
+
+  const rimborsi30g = Math.round(transazioni30g * 0.006);
+  const importoRimborsi = Math.round(rimborsi30g * (incassatoMese / Math.max(1, transazioni30g)) * 1.35);
+
+  return {
+    corrispettivi: {
+      trasmessi30g, rifiutati30g, rifiutatiOggi,
+      pct: trasmessi30g ? +(rifiutati30g / trasmessi30g * 100).toFixed(1) : 0,
+      localiCoinvolti: Math.min(LOCALI.filter(l => l.stato === 'active').length, Math.round(rifiutati30g * 0.42)),
+      // Il rifiuto più vecchio ancora non risolto: è quello che scade prima.
+      piuVecchioOre: 31,
+      causaPrima: 'Codice ateco assente sul profilo fiscale',
+    },
+    pagamenti: {
+      transazioni30g, falliti30g, recuperati30g,
+      pct: transazioni30g ? +(falliti30g / transazioni30g * 100).toFixed(1) : 0,
+      importoFallito: Math.round(falliti30g * (incassatoMese / Math.max(1, transazioni30g))),
+      pctRecuperati: falliti30g ? Math.round(recuperati30g / falliti30g * 100) : 0,
+    },
+    rimborsi: {
+      n30g: rimborsi30g,
+      importo: importoRimborsi,
+      pctSuIncassato: incassatoMese ? +(importoRimborsi / incassatoMese * 100).toFixed(2) : 0,
+    },
+    retry: {
+      inCoda: 34,
+      piuVecchioMin: 47,
+      // Cosa c'è dentro, perché «34 in coda» senza il tipo non dice se è un
+      // problema di soldi o di fisco.
+      composizione: [
+        { tipo: 'Corrispettivi verso AdE', n: 19 },
+        { tipo: 'Webhook di pagamento',    n: 11 },
+        { tipo: 'Notifiche push',          n: 4 },
+      ],
+    },
+    uptime: {
+      globale: 99.94,
+      // Pranzo 12:00-14:30 e cena 19:00-23:00: è lì che un minuto giù è un
+      // conto che non si chiude con la gente al tavolo.
+      picco: 99.61,
+      minutiGiuPicco30g: 21,
+      minutiGiuTotali30g: 26,
+      peggiorGiorno: 'sabato 19:00-23:00',
+    },
+  };
+})();
 
 // Revenue mensile (ultimi 13 mesi) — separato subscription vs extras
 // Order: dec 2024 → dec 2025
-const MONTHLY_REVENUE = [
+//
+// La FORMA della curva è scritta a mano (la crescita mese su mese), il suo
+// LIVELLO no: l'ultimo mese deve valere quello che i locali paganti pagano
+// davvero, altrimenti la serie storica e l'anagrafica raccontano due aziende
+// diverse. Sotto, la curva viene riscalata su MRR_ORA.
+const MONTHLY_REVENUE_FORMA = [
   { mese: 'Dic 24', sub: 2840, extra: 320,  anno: 2024, m: 11 },
   { mese: 'Gen 25', sub: 3120, extra: 410,  anno: 2025, m: 0 },
   { mese: 'Feb 25', sub: 3340, extra: 460,  anno: 2025, m: 1 },
@@ -643,11 +840,66 @@ const MONTHLY_REVENUE = [
   { mese: 'Dic 25', sub: 5520, extra: 1040, anno: 2025, m: 11 },
 ];
 
+const MONTHLY_REVENUE = (() => {
+  const ultimo = MONTHLY_REVENUE_FORMA[MONTHLY_REVENUE_FORMA.length - 1];
+  const kSub = ultimo.sub ? MRR_ORA.abbonamenti / ultimo.sub : 1;
+  const kExtra = ultimo.extra ? MRR_ORA.extra / ultimo.extra : 1;
+  return MONTHLY_REVENUE_FORMA.map(m => ({
+    ...m,
+    sub: Math.round(m.sub * kSub),
+    extra: Math.round(m.extra * kExtra),
+  }));
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ESPANSIONE · chi sfonda il piano, e chi poi fa upgrade
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Su venticinque locali attivi la crescita non la fa l'acquisizione: la fa
+// l'espansione dentro la base che c'è. Il ricavo da extra ordini è il segnale
+// grezzo — qualcuno sta consumando più di quanto il suo piano includa — e la
+// domanda che conta è quanti di quelli passano al piano sopra invece di
+// continuare a pagare gli extra a prezzo pieno.
+const ESPANSIONE = (() => {
+  const live = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive');
+  const sopraSoglia = live.filter(l => (l.ordiniOltre || 0) > 0)
+    .sort((a, b) => (b.ordiniOltre || 0) - (a.ordiniOltre || 0));
+  const g90 = Date.now() - 90 * 86400000;
+  const upgrade90g = live.filter(l => l.upgradeIl && l.upgradeIl.getTime() >= g90);
+  const extraMese = live.reduce((s, l) => s + (l.extras || 0), 0);
+  return {
+    sopraSoglia,
+    nSopraSoglia: sopraSoglia.length,
+    pctSopraSoglia: live.length ? Math.round(sopraSoglia.length / live.length * 100) : 0,
+    upgrade90g,
+    nUpgrade90g: upgrade90g.length,
+    // Il tasso di upgrade ha un denominatore preciso: i CANDIDATI del periodo,
+    // cioè chi sta sopra soglia adesso più chi ci stava e ha già fatto il
+    // passo. Dividere gli upgrade per i soli locali ancora sopra soglia dà
+    // percentuali sopra il cento — chi è passato al piano sopra, quasi
+    // sempre, sopra soglia non ci sta più.
+    candidati: sopraSoglia.length + upgrade90g.length,
+    tassoUpgrade: (sopraSoglia.length + upgrade90g.length)
+      ? Math.round(upgrade90g.length / (sopraSoglia.length + upgrade90g.length) * 100) : 0,
+    extraMese,
+    // Quanto varrebbe portarli tutti al piano sopra: il delta di canone, non
+    // il canone intero, perché quello che pagano già lo pagano.
+    upsidePotenziale: sopraSoglia.reduce((s, l) => {
+      const i = PIANI.findIndex(p => p.id === l.piano);
+      const sopra = PIANI[Math.min(PIANI.length - 1, i + 1)];
+      return s + Math.max(0, sopra.price - PIANI[i].price);
+    }, 0),
+  };
+})();
+
 // Totale storico (somma di tutti i mesi dall'inizio piattaforma)
+// Cumulato dall'avvio: si somma la serie, non si scrive a parte. Scritto a
+// mano restava fermo mentre la serie si riscalava, e i due numeri finivano per
+// smentirsi.
 const TOTAL_REVENUE_HISTORICAL = {
-  sub: 38420,    // somma cumulata abbonamenti da gen 2024
-  extra: 6480,   // somma cumulata extras
-  meseAvvio: 'Gen 2024',
+  sub: MONTHLY_REVENUE.reduce((s, m) => s + m.sub, 0),
+  extra: MONTHLY_REVENUE.reduce((s, m) => s + m.extra, 0),
+  meseAvvio: 'Dic 2024',
 };
 
 window.ONB_STEPS = ONB_STEPS;
@@ -663,6 +915,9 @@ LOCALI.filter(l => l.stato === 'active' && l.piano !== 'free').slice(3, 6).forEa
 });
 
 window.LOCALI = LOCALI;
+window.LOC = LOC;
+window.MRR_ORA = MRR_ORA;
+Object.assign(window, { locAttivo, locInattivo, locInOnboarding, locChurned, locLive, locPagante });
 window.UTENTI = UTENTI;
 window.UTILIZZO_CLUSTER = UTILIZZO_CLUSTER;
 window.SEGNALAZIONI = SEGNALAZIONI;
@@ -676,6 +931,8 @@ window.TOP_CITTA = TOP_CITTA;
 window.SCREENS_USAGE = SCREENS_USAGE;
 window.FEATURES_USAGE = FEATURES_USAGE;
 window.MONTHLY_REVENUE = MONTHLY_REVENUE;
+window.AFFIDABILITA = AFFIDABILITA;
+window.ESPANSIONE = ESPANSIONE;
 window.TOTAL_REVENUE_HISTORICAL = TOTAL_REVENUE_HISTORICAL;
 window.RIESAME_CADENZA_MESI = RIESAME_CADENZA_MESI;
 window.RIESAME_CORRENTE = RIESAME_CORRENTE;
