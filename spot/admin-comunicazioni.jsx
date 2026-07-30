@@ -566,20 +566,22 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               <BuIcons.check size={16}/> Assegnata a te
             </span>
           )}
+          {/* Prendere in carico è l'azione primaria di un ticket non assegnato:
+              finché nessuno lo fa, il ticket non è di nessuno. Era un bottone
+              bianco bordato uguale a tutti gli altri e si leggeva come un
+              contorno, non come la cosa da fare. */}
           {canSelfAssign && (
-            <button onClick={takeOver} style={{
-              display:'inline-flex', alignItems:'center', gap:6,
-              padding:'5px 11px',
-              background:'#fff', color:ADM.TEXT,
-              border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:13.3, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
-              letterSpacing:'-0.005em',
-              transition:'all 0.14s ease',
-            }}
-              onMouseEnter={e=>{ e.currentTarget.style.background = ADM.PANEL_SOFT; e.currentTarget.style.borderColor = ADM.MUTED_LIGHT; }}
-              onMouseLeave={e=>{ e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = ADM.BORDER; }}>
-              <BuIcons.user size={16}/> Prendi in carico
-            </button>
+            <AdmButton variant="primary" size="sm" icon="user" onClick={takeOver}>Prendi in carico</AdmButton>
+          )}
+          {/* «Marca risolta» compare solo a ticket preso in carico — prima non
+              ha senso chiudere qualcosa che nessuno ha guardato — ed è
+              secondaria: bianca contro il nero del «Prendi in carico», perché
+              chiudere non deve essere più invitante che lavorarci. */}
+          {item.assignedTo && item.stato !== 'risolta' && !item.certRequest && (
+            <AdmButton variant="secondary" size="sm" icon="check"
+              onClick={()=>onUpdate({ stato:'risolta', resolvedBy: MY_ID, resolvedAt: new Date() })}>
+              Marca risolta
+            </AdmButton>
           )}
           {canTakeOver && (
             <span style={{display:'inline-flex', alignItems:'center', gap:8, fontSize:13.3, color:ADM.MUTED}}>
@@ -748,24 +750,35 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
         </div>
       </div>
 
-      {/* Composer — collassato finché non serve: il thread ha la priorità */}
+      {/* Composer — collassato finché non serve: il thread ha la priorità.
+          Il nastro ha fondo tenue: il campo di risposta era grigio su bianco e
+          spariva. Adesso è bianco su tenue, con bordo pieno e una leggera
+          ombra — si legge come una casella in cui si scrive, che è quello che è. */}
       {!item.certRequest && item.stato !== 'risolta' && !composerOpen && (
-        <div style={{flexShrink:0, padding:'12px 32px', background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', gap:8, alignItems:'center'}}>
-          <button onClick={()=>{ setComposerOpen(true); setShowInternal(false); }} style={{
-            flex:1, textAlign:'left', padding:'10px 16px', borderRadius:99,
-            border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT,
-            color:ADM.MUTED, fontSize:14, fontFamily:'inherit', cursor:'text',
-          }}>Rispondi a {item.senderName.split(' ')[0]}…</button>
-          <button onClick={()=>{ setComposerOpen(true); setShowInternal(true); }} style={{
-            display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px',
-            background:'#fff', color:ADM.MUTED, border:`1px solid ${ADM.BORDER}`, borderRadius:99,
-            fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
-          }}><BuIcons.bell size={15}/> Nota interna</button>
-          <button onClick={()=>{ onUpdate({ stato:'risolta', resolvedBy: MY_ID, resolvedAt: new Date() }); }} style={{
-            display:'inline-flex', alignItems:'center', gap:6, padding:'9px 14px',
-            background:'#fff', color:ADM.MUTED, border:`1px solid ${ADM.BORDER}`, borderRadius:99,
-            fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
-          }}><BuIcons.check size={15}/> Marca risolta</button>
+        <div style={{flexShrink:0, padding:'12px 32px', background:ADM.PANEL_SOFT,
+          borderTop:`1px solid ${ADM.BORDER}`, display:'flex', gap:10, alignItems:'center'}}>
+          <button onClick={()=>{ setComposerOpen(true); setShowInternal(false); }}
+            className="adm-btn"
+            style={{
+              flex:1, display:'flex', alignItems:'center', gap:9,
+              textAlign:'left', padding:'11px 18px', borderRadius:99,
+              border:`1px solid ${ADM.BORDER}`, background:'#fff',
+              color:ADM.MUTED, fontSize:14, fontFamily:'inherit', cursor:'text',
+              boxShadow:'0 1px 2px rgba(15,17,21,0.05)',
+            }}>
+            <BuIcons.send size={15} color={ADM.MUTED_SOFT}/>
+            Rispondi a {item.senderName.split(' ')[0]}…
+          </button>
+          {/* Bordo scuro e ombra: bianco su bianco con un filetto chiaro non si
+              distingueva dal fondo e non sembrava premibile. */}
+          <button onClick={()=>{ setComposerOpen(true); setShowInternal(true); }} className="adm-btn"
+            style={{
+              display:'inline-flex', alignItems:'center', gap:7, padding:'10px 16px',
+              background:'#fff', color:ADM.TEXT,
+              border:'1px solid rgba(15,17,21,0.30)', borderRadius:99,
+              fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+              boxShadow:'0 1px 3px rgba(15,17,21,0.14)',
+            }}><BuIcons.bell size={15}/> Nota interna</button>
         </div>
       )}
       {!item.certRequest && item.stato !== 'risolta' && composerOpen && (
