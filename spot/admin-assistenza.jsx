@@ -1456,6 +1456,15 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
   const v = g.video;
   const voti = v ? v.utile + v.nonUtile : 0;
   const completamento = v && v.durataSec ? Math.round(v.tempoMedioSec / v.durataSec * 100) : null;
+  // I numeri del video, quelli che restano da scrivere. Si compongono in una
+  // lista e si uniscono dopo: infilare i «·» dentro ai pezzi condizionali
+  // lascia un puntino orfano ogni volta che un pezzo manca.
+  const conti = !v ? [] : [
+    v.pesoByte ? srvPeso(v.pesoByte) : null,
+    v.views > 0 ? `${fmtNum(v.views)} visualizzazioni` : null,
+    completamento != null && v.views > 0 ? `guardato al ${completamento}%` : null,
+    voti > 0 ? `${Math.round(v.utile / voti * 100)}% «utile»` : null,
+  ].filter(Boolean);
   // Senza titolo non si pubblica: nel gestionale sarebbe una riga vuota da
   // cliccare. Tutto il resto — descrizione, video — può mancare.
   const pubblicabile = g.titolo.trim().length > 0;
@@ -1544,13 +1553,14 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
                 whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                 {v.file || v.titolo || 'Video caricato'}
               </span>
-              <span style={{display:'block', fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:3}}>
-                {srvDurata(v.durataSec)}
-                {v.pesoByte ? ` · ${srvPeso(v.pesoByte)}` : ''}
-                {v.views > 0 && ` · ${fmtNum(v.views)} visualizzazioni`}
-                {completamento != null && v.views > 0 && ` · guardato al ${completamento}%`}
-                {voti > 0 && ` · ${Math.round(v.utile / voti * 100)}% «utile»`}
-              </span>
+              {/* La durata non si scrive: sta incisa nell'angolo della
+                  miniatura, qui accanto. Restano i numeri che la miniatura
+                  non sa dire. */}
+              {conti.length > 0 && (
+                <span style={{display:'block', fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:3}}>
+                  {conti.join(' · ')}
+                </span>
+              )}
             </span>
             {/* «Guarda» non c'è: la miniatura ha già il triangolo sopra, ed è
                 lì che si va a cliccare per vedere un video. Un pulsante che
