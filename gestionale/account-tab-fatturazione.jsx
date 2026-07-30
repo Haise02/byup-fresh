@@ -126,6 +126,10 @@ function AcPayCardPreview({ num, holder, exp, cvc, flipped }) {
 }
 
 // Overlay + pannello glass condivisi dai tre modali della card pagamento.
+// Foglio modale: BIANCO, con la stessa ricetta delle finestre di Impostazioni
+// → Sala e tavoli (MODAL_PANEL e compagnia, in panoramica-tokens.jsx). Era di
+// vetro, e sopra una pagina già chiara il vetro non stacca: qui dentro si
+// disdice un abbonamento, e serve una finestra che si veda tutta.
 function AcPayModal({ onClose, width, children }) {
   return (
     <div onClick={onClose} style={{
@@ -134,10 +138,8 @@ function AcPayModal({ onClose, width, children }) {
       animation: 'acPayFade 180ms ease both',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG,
-        borderRadius: 20, width: width || 420, maxWidth: '100%',
-        padding: '22px 22px 20px',
-        display: 'flex', flexDirection: 'column', gap: 16,
+        ...MODAL_PANEL,
+        width: width || MODAL_PANEL.width,
         animation: 'acPayPop 300ms cubic-bezier(.2,.8,.25,1) both',
       }}>
         {children}
@@ -148,20 +150,29 @@ function AcPayModal({ onClose, width, children }) {
 
 function AcPayModalHeader({ title, subtitle, onClose }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-      <div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: PN.TEXT }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 14.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45 }}>{subtitle}</div>}
-      </div>
-      <button onClick={onClose} style={{
-        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-        background: 'rgba(255,255,255,0.95)', border: 'none', cursor: 'pointer',
-        display: 'grid', placeItems: 'center',
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    <div style={MODAL_HEAD}>
+      <div style={MODAL_TITLE}>{title}</div>
+      {subtitle && <div style={MODAL_SUB}>{subtitle}</div>}
+      <button onClick={onClose} style={MODAL_X} aria-label="Chiudi">
+        <PnI.X size={14}/>
       </button>
     </div>
   );
+}
+
+// Corpo e piede: il contenuto respira nel corpo, i bottoni stanno sul piede
+// dietro a un filetto — così in tutte e cinque le finestre di questa tab il
+// «cosa succede se clicco» sta sempre nello stesso posto.
+function AcPayModalBody({ children, style = {} }) {
+  return (
+    <div style={{ ...MODAL_BODY, display: 'flex', flexDirection: 'column', gap: 14, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function AcPayModalFoot({ children }) {
+  return <div style={{ ...MODAL_FOOT, justifyContent: 'flex-end' }}>{children}</div>;
 }
 
 // Flusso "Aggiungi metodo di pagamento": anteprima carta live + form con
@@ -215,7 +226,7 @@ function AcPayAddModal({ onClose, onAdd }) {
         subtitle="La carta verrà usata per gli addebiti mensili." onClose={onClose}/>
 
       {saved ? (
-        <div style={{ display: 'grid', placeItems: 'center', padding: '26px 0 18px', gap: 12 }}>
+        <div style={{ display: 'grid', placeItems: 'center', padding: '34px 24px 30px', gap: 12 }}>
           <span style={{
             width: 62, height: 62, borderRadius: '50%',
             background: PN.GREEN_SOFT, display: 'grid', placeItems: 'center',
@@ -227,6 +238,7 @@ function AcPayAddModal({ onClose, onAdd }) {
         </div>
       ) : (
         <React.Fragment>
+          <AcPayModalBody>
           <AcPayCardPreview num={num} holder={holder} exp={exp} cvc={cvc} flipped={cvcFocus}/>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -254,16 +266,19 @@ function AcPayAddModal({ onClose, onAdd }) {
               </div>
             </div>
           </div>
+          </AcPayModalBody>
 
-          <button onClick={submit} disabled={!ready} style={{
-            padding: '11px 18px', borderRadius: 999, border: 'none',
-            background: ready ? PN.BTN_DARK : PN.WHITE_FROST,
-            color: ready ? PN.WHITE : PN.MUTED_SOFT,
-            fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
-            cursor: ready ? 'pointer' : 'not-allowed',
-            boxShadow: ready ? PN.INSET_HIGHLIGHT_DARK : 'none',
-            transition: 'background 200ms, color 200ms',
-          }}>Aggiungi carta</button>
+          <AcPayModalFoot>
+            <button onClick={submit} disabled={!ready} style={{
+              padding: '11px 18px', borderRadius: 999, border: 'none',
+              background: ready ? PN.BTN_DARK : PN.WHITE_FROST,
+              color: ready ? PN.WHITE : PN.MUTED_SOFT,
+              fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+              cursor: ready ? 'pointer' : 'not-allowed',
+              boxShadow: ready ? PN.INSET_HIGHLIGHT_DARK : 'none',
+              transition: 'background 200ms, color 200ms',
+            }}>Aggiungi carta</button>
+          </AcPayModalFoot>
         </React.Fragment>
       )}
     </AcPayModal>
@@ -290,12 +305,31 @@ function AccFatturazione() {
     setPromoteTick(t => t + 1);
   };
 
-  // Annulla abbonamento: doppio step — conferma, poi digitare la frase esatta.
-  const [cancelStep, setCancelStep] = React.useState(null); // null | 'confirm' | 'type' | 'done'
+  // Annulla abbonamento: tre passi — perché te ne vai, conferma, e poi la
+  // frase da scrivere a mano.
+  //
+  // I motivi si chiedono PRIMA, non dopo: dopo la disdetta il ristoratore ha
+  // già chiuso la pagina, e quella è l'unica occasione in cui ci dice perché
+  // — l'unico dato che possiamo usare per non perdere il prossimo. Si può
+  // sceglierne più di uno, perché di solito non se ne va per una ragione sola.
+  const [cancelStep, setCancelStep] = React.useState(null); // null | 'motivi' | 'confirm' | 'type' | 'done'
   const [cancelText, setCancelText] = React.useState('');
+  const [motivi, setMotivi] = React.useState([]);
+  const [motivoNota, setMotivoNota] = React.useState('');
+  const MOTIVI = [
+    { id:'prezzo',      label:'Costa troppo per quanto lo usiamo' },
+    { id:'poco_uso',    label:'Non lo usiamo abbastanza' },
+    { id:'funzioni',    label:'Mancano funzioni che ci servono' },
+    { id:'concorrente', label:'Passiamo a un altro gestionale' },
+    { id:'complesso',   label:'Troppo complicato da usare' },
+    { id:'tecnico',     label:'Problemi tecnici o lentezza' },
+    { id:'assistenza',  label:'Assistenza non all\'altezza' },
+    { id:'chiusura',    label:'Chiusura o stagionalità del locale' },
+  ];
+  const toggleMotivo = (id) => setMotivi(m => m.includes(id) ? m.filter(x => x !== id) : [...m, id]);
   const CANCEL_PHRASE = 'Annulla abbonamento';
   const cancelReady = cancelText.trim().toLowerCase() === CANCEL_PHRASE.toLowerCase();
-  const closeCancel = () => { setCancelStep(null); setCancelText(''); };
+  const closeCancel = () => { setCancelStep(null); setCancelText(''); setMotivi([]); setMotivoNota(''); };
   const confirmCancel = () => {
     if (!cancelReady) return;
     setCancelStep('done');
@@ -370,18 +404,20 @@ function AccFatturazione() {
         <AcPayModal onClose={() => setBlockOpen(false)} width={400}>
           <AcPayModalHeader title="Non puoi rimuovere questa carta"
             subtitle="È l'unico metodo di pagamento del tuo account." onClose={() => setBlockOpen(false)}/>
-          <div style={{
-            display: 'flex', gap: 10, alignItems: 'flex-start',
-            padding: '12px 14px', borderRadius: 12,
-            background: PN.AMBER_SOFT, border: `1px solid ${PN.AMBER}33`,
-            fontSize: 14.5, color: AC_FATTURA_INK, lineHeight: 1.5,
-          }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
-              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            Aggiungi prima un altro metodo di pagamento: serve almeno una carta attiva per gli addebiti mensili del tuo piano.
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <AcPayModalBody>
+            <div style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+              padding: '12px 14px', borderRadius: 12,
+              background: PN.AMBER_SOFT, border: `1px solid ${PN.AMBER}33`,
+              fontSize: 14.5, color: AC_FATTURA_INK, lineHeight: 1.5,
+            }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Aggiungi prima un altro metodo di pagamento: serve almeno una carta attiva per gli addebiti mensili del tuo piano.
+            </div>
+          </AcPayModalBody>
+          <AcPayModalFoot>
             <button onClick={() => setBlockOpen(false)} style={AcBtnGhost}>Chiudi</button>
             <button onClick={() => { setBlockOpen(false); setAddOpen(true); }} style={{
               padding: '9px 16px', borderRadius: 999, border: 'none',
@@ -389,7 +425,7 @@ function AccFatturazione() {
               fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
               boxShadow: PN.INSET_HIGHLIGHT_DARK,
             }}>Aggiungi un metodo</button>
-          </div>
+          </AcPayModalFoot>
         </AcPayModal>
       )}
 
@@ -398,25 +434,27 @@ function AccFatturazione() {
         <AcPayModal onClose={() => setConfirmId(null)} width={400}>
           <AcPayModalHeader title="Rimuovere questa carta?"
             subtitle="L'operazione non può essere annullata." onClose={() => setConfirmId(null)}/>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '12px 14px', borderRadius: 12,
-            background: 'rgba(255,255,255,0.75)', border: `1px solid ${PN.BORDER}`,
-          }}>
-            <AcPayBadge brand={confirmCard.brand} small/>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>•••• •••• •••• {confirmCard.last4}</div>
-              <div style={{ fontSize: 13.5, color: PN.MUTED }}>Scade {confirmCard.exp} · {confirmCard.holder}</div>
+          <AcPayModalBody>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 14px', borderRadius: 12,
+              background: PN.SIDE_BG, border: `1px solid ${PN.BORDER}`,
+            }}>
+              <AcPayBadge brand={confirmCard.brand} small/>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>•••• •••• •••• {confirmCard.last4}</div>
+                <div style={{ fontSize: 13.5, color: PN.MUTED }}>Scade {confirmCard.exp} · {confirmCard.holder}</div>
+              </div>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          </AcPayModalBody>
+          <AcPayModalFoot>
             <button onClick={() => setConfirmId(null)} style={AcBtnGhost}>Annulla</button>
             <button onClick={() => doRemove(confirmCard.id)} style={{
               padding: '9px 16px', borderRadius: 999, border: 'none',
               background: PN.RED, color: PN.WHITE,
               fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
             }}>Rimuovi carta</button>
-          </div>
+          </AcPayModalFoot>
         </AcPayModal>
       )}
 
@@ -506,7 +544,7 @@ function AccFatturazione() {
           <div style={{flex: 1, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
             Una volta annullato, perderai accesso ai menu digitali extra, ai membri staff aggiuntivi e al supporto telefonico (se inclusi nel tuo piano).
           </div>
-          <button onClick={() => setCancelStep('confirm')} style={{
+          <button onClick={() => setCancelStep('motivi')} style={{
             padding:'9px 16px', borderRadius: 999,
             background: PN.WHITE, color: PN.MUTED,
             border:`1px solid ${PN.BORDER}`,
@@ -516,23 +554,70 @@ function AccFatturazione() {
         </div>
       </AcCard>
 
-      {/* Annulla abbonamento — step 1: conferma */}
+      {/* Annulla abbonamento — passo 1: perché te ne vai */}
+      {cancelStep === 'motivi' && (
+        <AcPayModal onClose={closeCancel} width={480}>
+          <AcPayModalHeader title="Perché te ne vai?"
+            subtitle="Scegli tutti i motivi che valgono per te. Ci serve per capire dove stiamo sbagliando." onClose={closeCancel}/>
+          <AcPayModalBody style={{gap: 8}}>
+            {MOTIVI.map(m => {
+              const scelto = motivi.includes(m.id);
+              return (
+                <label key={m.id} style={{
+                  display:'flex', alignItems:'center', gap: 12, padding:'12px 14px', cursor:'pointer',
+                  borderRadius: 12, background: scelto ? PN.PINK_BG_SOFT : PN.WHITE,
+                  border:`1px solid ${scelto ? 'rgba(255, 90, 95, 0.35)' : PN.BORDER}`,
+                  transition:'background 140ms ease, border-color 140ms ease',
+                }}>
+                  <input type="checkbox" checked={scelto} onChange={() => toggleMotivo(m.id)}
+                    style={{width: 18, height: 18, accentColor: PN.PINK, cursor:'pointer', flexShrink: 0}}/>
+                  <span style={{fontSize: 15, color: PN.TEXT, fontWeight: scelto ? 600 : 500}}>{m.label}</span>
+                </label>
+              );
+            })}
+            <div style={{marginTop: 6}}>
+              <div style={MODAL_LABEL}>Vuoi aggiungere qualcosa? (facoltativo)</div>
+              <textarea value={motivoNota} onChange={e => setMotivoNota(e.target.value)}
+                placeholder="Cosa avremmo dovuto fare diversamente"
+                style={{...MODAL_INPUT, minHeight: 78, resize:'vertical', fontSize: 15}}/>
+            </div>
+          </AcPayModalBody>
+          <AcPayModalFoot>
+            <button onClick={closeCancel} style={AcBtnGhost}>Torna indietro</button>
+            {/* Almeno un motivo: è l'unica cosa che chiediamo in cambio, e
+                senza non ha senso aver aperto questa finestra. */}
+            <button onClick={() => setCancelStep('confirm')} disabled={motivi.length === 0} style={{
+              padding: '9px 16px', borderRadius: 999, border: 'none',
+              background: motivi.length ? PN.BTN_DARK : PN.WHITE_FROST,
+              color: motivi.length ? PN.WHITE : PN.MUTED_SOFT,
+              fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit',
+              cursor: motivi.length ? 'pointer' : 'not-allowed',
+              boxShadow: motivi.length ? PN.INSET_HIGHLIGHT_DARK : 'none',
+              transition: 'background 200ms, color 200ms',
+            }}>Continua</button>
+          </AcPayModalFoot>
+        </AcPayModal>
+      )}
+
+      {/* Annulla abbonamento — passo 2: conferma */}
       {cancelStep === 'confirm' && (
-        <AcPayModal onClose={closeCancel} width={410}>
+        <AcPayModal onClose={closeCancel} width={480}>
           <AcPayModalHeader title="Vuoi annullare l'abbonamento?"
             subtitle="Resterà attivo fino alla fine del periodo già pagato, poi passerai al piano Gratuito." onClose={closeCancel}/>
-          <div style={{
-            display: 'flex', gap: 10, alignItems: 'flex-start',
-            padding: '12px 14px', borderRadius: 12,
-            background: PN.AMBER_SOFT, border: `1px solid ${PN.AMBER}33`,
-            fontSize: 14.5, color: AC_FATTURA_INK, lineHeight: 1.5,
-          }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
-              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            Perderai i menu digitali extra, i membri staff aggiuntivi e il supporto telefonico inclusi nel tuo piano.
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <AcPayModalBody>
+            <div style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+              padding: '12px 14px', borderRadius: 12,
+              background: PN.AMBER_SOFT, border: `1px solid ${PN.AMBER}33`,
+              fontSize: 14.5, color: AC_FATTURA_INK, lineHeight: 1.5,
+            }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Perderai i menu digitali extra, i membri staff aggiuntivi e il supporto telefonico inclusi nel tuo piano.
+            </div>
+          </AcPayModalBody>
+          <AcPayModalFoot>
             <button onClick={closeCancel} style={AcBtnGhost}>No, mantieni</button>
             <button onClick={() => setCancelStep('type')} style={{
               padding: '9px 16px', borderRadius: 999, border: 'none',
@@ -540,15 +625,15 @@ function AccFatturazione() {
               fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
               boxShadow: PN.INSET_HIGHLIGHT_DARK,
             }}>Sì, continua</button>
-          </div>
+          </AcPayModalFoot>
         </AcPayModal>
       )}
 
-      {/* Annulla abbonamento — step 2: digita la frase per disdire */}
+      {/* Annulla abbonamento — passo 3: digita la frase per disdire */}
       {(cancelStep === 'type' || cancelStep === 'done') && (
-        <AcPayModal onClose={closeCancel} width={410}>
+        <AcPayModal onClose={closeCancel} width={480}>
           {cancelStep === 'done' ? (
-            <div style={{ display: 'grid', placeItems: 'center', padding: '26px 0 18px', gap: 12 }}>
+            <div style={{ display: 'grid', placeItems: 'center', padding: '34px 24px 30px', gap: 12 }}>
               <span style={{
                 width: 62, height: 62, borderRadius: '50%',
                 background: PN.AMBER_SOFT, display: 'grid', placeItems: 'center',
@@ -563,18 +648,17 @@ function AccFatturazione() {
             <React.Fragment>
               <AcPayModalHeader title="Conferma la disdetta"
                 subtitle={`Per disdire, scrivi "${CANCEL_PHRASE}" qui sotto.`} onClose={closeCancel}/>
-              <input value={cancelText} onChange={e => setCancelText(e.target.value)}
-                placeholder={CANCEL_PHRASE} autoFocus
-                onKeyDown={e => { if (e.key === 'Enter') confirmCancel(); }}
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  padding: '11px 12px', borderRadius: 10,
-                  border: `1px solid ${cancelReady ? PN.GREEN : PN.BORDER}`,
-                  background: PN.WHITE, outline: 'none',
-                  fontSize: 15, color: PN.TEXT, fontFamily: 'inherit',
-                  transition: 'border-color 180ms ease',
-                }}/>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <AcPayModalBody>
+                <input value={cancelText} onChange={e => setCancelText(e.target.value)}
+                  placeholder={CANCEL_PHRASE} autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') confirmCancel(); }}
+                  style={{
+                    ...MODAL_INPUT, boxSizing: 'border-box', fontSize: 15,
+                    borderColor: cancelReady ? PN.GREEN : PN.BORDER,
+                    transition: 'border-color 180ms ease',
+                  }}/>
+              </AcPayModalBody>
+              <AcPayModalFoot>
                 <button onClick={closeCancel} style={AcBtnGhost}>Torna indietro</button>
                 <button onClick={confirmCancel} disabled={!cancelReady} style={{
                   padding: '9px 16px', borderRadius: 999, border: 'none',
@@ -584,7 +668,7 @@ function AccFatturazione() {
                   cursor: cancelReady ? 'pointer' : 'not-allowed',
                   transition: 'background 200ms, color 200ms',
                 }}>Disdici abbonamento</button>
-              </div>
+              </AcPayModalFoot>
             </React.Fragment>
           )}
         </AcPayModal>

@@ -18,31 +18,10 @@ const GLASS_MENU = {
 // sono vetro: il vetro va bene per un menu che sfiora la pagina, non per un
 // modulo da compilare. Bianco pieno, respiro largo, titolo che si legge da
 // lontano. (PN e gia definito: panoramica-tokens.jsx e caricato prima.)
-const MODAL_PANEL = {
-  background: PN.WHITE, borderRadius: 22, width: 540, maxWidth: '100%',
-  boxShadow: '0 32px 80px -24px rgba(15, 17, 21, 0.38), 0 0 0 1px rgba(15, 17, 21, 0.05)',
-};
-const MODAL_HEAD  = { padding: '26px 28px 20px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, position: 'relative' };
-const MODAL_TITLE = { fontSize: 25, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT, paddingRight: 44 };
-const MODAL_SUB   = { fontSize: 15, color: PN.MUTED, marginTop: 4, paddingRight: 44 };
-const MODAL_BODY  = { padding: '22px 28px' };
-const MODAL_FOOT  = { padding: '18px 28px', borderTop: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', gap: 10 };
-const MODAL_X     = {
-  position: 'absolute', top: 24, right: 24, width: 38, height: 38, borderRadius: 11,
-  background: PN.WHITE, border: `1px solid ${PN.BORDER}`, cursor: 'pointer',
-  display: 'grid', placeItems: 'center', color: PN.TEXT,
-};
-const MODAL_LABEL = {
-  fontSize: 13, fontWeight: 700, color: PN.MUTED,
-  letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
-};
-const MODAL_INPUT = {
-  width: '100%', padding: '13px 14px', border: `1px solid ${PN.BORDER}`, borderRadius: 12,
-  fontSize: 16, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT,
-};
-// Anche le altre tab vestono i loro fogli con questa ricetta (POS e
-// integrazioni): l'HTML carica questo file prima di loro.
-Object.assign(window, { MODAL_PANEL, MODAL_HEAD, MODAL_TITLE, MODAL_SUB, MODAL_BODY, MODAL_FOOT, MODAL_X, MODAL_LABEL, MODAL_INPUT });
+// I token della modale (MODAL_PANEL, MODAL_HEAD, ...) vivono in
+// panoramica-tokens.jsx: li vestono anche fogli che stanno su altre pagine —
+// il profilo, per dirne una — e tenerli qui li legava all'ordine di
+// caricamento di questo file.
 
 // Sort numerico-aware: "Tavolo 2" prima di "Tavolo 10"
 function naturalCompare(a, b) {

@@ -236,3 +236,32 @@ window.PN = PN;
   `;
   document.head.appendChild(st);
 })();
+
+// La ricetta del foglio modale, nata in Impostazioni → Sala e tavoli e
+// diventata la forma standard delle finestre del gestionale: pannello BIANCO
+// (non vetro: sopra a una pagina già chiara il vetro non stacca), testata con
+// titolo grosso e filetto, corpo, piede con i bottoni. Sta qui e non nella
+// pagina che l'ha inventata perché la usano anche fogli di altre pagine.
+const MODAL_PANEL = {
+  background: PN.WHITE, borderRadius: 22, width: 540, maxWidth: '100%',
+  boxShadow: '0 32px 80px -24px rgba(15, 17, 21, 0.38), 0 0 0 1px rgba(15, 17, 21, 0.05)',
+};
+const MODAL_HEAD  = { padding: '26px 28px 20px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, position: 'relative' };
+const MODAL_TITLE = { fontSize: 25, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT, paddingRight: 44 };
+const MODAL_SUB   = { fontSize: 15, color: PN.MUTED, marginTop: 4, paddingRight: 44 };
+const MODAL_BODY  = { padding: '22px 28px' };
+const MODAL_FOOT  = { padding: '18px 28px', borderTop: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', gap: 10 };
+const MODAL_X     = {
+  position: 'absolute', top: 24, right: 24, width: 38, height: 38, borderRadius: 11,
+  background: PN.WHITE, border: `1px solid ${PN.BORDER}`, cursor: 'pointer',
+  display: 'grid', placeItems: 'center', color: PN.TEXT,
+};
+const MODAL_LABEL = {
+  fontSize: 13, fontWeight: 700, color: PN.MUTED,
+  letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
+};
+const MODAL_INPUT = {
+  width: '100%', padding: '13px 14px', border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+  fontSize: 16, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT,
+};
+Object.assign(window, { MODAL_PANEL, MODAL_HEAD, MODAL_TITLE, MODAL_SUB, MODAL_BODY, MODAL_FOOT, MODAL_X, MODAL_LABEL, MODAL_INPUT });
