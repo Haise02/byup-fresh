@@ -421,7 +421,8 @@ function DishImage({ name, img, kind = 'piatto', style }) {
 // un'azione sempre sicura (invia) e una che, sbagliata, lascia un piatto senza
 // nessuno che lo prepari.
 //
-// Solo swipe a sinistra: niente affordance visibile sulla riga. Il tap continua
+// Swipe in entrambe le direzioni: la mano che tiene il tablet non deve pensare
+// da che parte tirare. Niente affordance visibile sulla riga; il tap continua
 // a selezionare, quindi la riga non ha comandi propri.
 // Pointer events, non touch: così funziona anche col mouse nel frame iOS.
 function SwipeDaInviare({ it, on, accent, bg, rowBg, onTap, onPortaIo }) {
@@ -437,10 +438,11 @@ function SwipeDaInviare({ it, on, accent, bg, rowBg, onTap, onPortaIo }) {
   // che segue il pointerup) lo vedrebbero entrambe a false, sganciando due volte
   // onPortaIo. La seconda si porterebbe via la riga successiva, perché gli
   // indici si ricompattano dopo la prima.
-  const esci = () => {
+  // La riga esce dal lato verso cui è stata tirata.
+  const esci = (verso) => {
     if (uscito.current) return;
     uscito.current = true;
-    setUscita(true); setDx(-MAX); setTimeout(onPortaIo, 180);
+    setUscita(true); setDx(verso * MAX); setTimeout(onPortaIo, 180);
   };
 
   const giu = (e) => {
@@ -458,18 +460,21 @@ function SwipeDaInviare({ it, on, accent, bg, rowBg, onTap, onPortaIo }) {
       d.attivo = true;
     }
     d.mosso = true;
-    setDx(ddx >= 0 ? 0 : Math.max(-MAX, ddx));
+    setDx(Math.max(-MAX, Math.min(MAX, ddx)));
   };
   const su = () => {
     const d = drag.current;
     drag.current = null;
     if (!d) return;
-    if (-dx >= SOGLIA) { esci(); return; }
+    if (Math.abs(dx) >= SOGLIA) { esci(Math.sign(dx)); return; }
     setDx(0);
     if (!d.mosso) onTap();
   };
 
-  const armato = -dx >= SOGLIA;
+  const armato = Math.abs(dx) >= SOGLIA;
+  // L'etichetta sta dal lato da cui la riga si sta scoprendo: tiro a sinistra e
+  // spunta a destra, e viceversa. A riposo (dx 0) è nascosta comunque.
+  const verso = dx > 0 ? 1 : -1;
 
   return (
     <div style={{
@@ -481,7 +486,8 @@ function SwipeDaInviare({ it, on, accent, bg, rowBg, onTap, onPortaIo }) {
       <div aria-hidden="true" style={{
         position: 'absolute', inset: 0, borderRadius: ST.R_SM,
         background: armato ? ST.ST_READY : 'rgba(190, 24, 93, 0.14)',
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        display: 'flex', alignItems: 'center',
+        justifyContent: verso > 0 ? 'flex-start' : 'flex-end',
         padding: '0 14px',
         transition: 'background 120ms ease-out',
       }}>
