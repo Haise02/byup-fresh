@@ -4449,6 +4449,12 @@ function DashMercato() {
           <strong style={{color:ADM.TEXT}}>Come leggere:</strong> il grafico in alto mostra il prezzo medio nel tempo per i piatti selezionati (Giu 25 → Mag 26). Cambia <strong style={{color:ADM.TEXT}}>area</strong> per vedere la curva di una singola città. Sotto, per ogni piatto, lo snapshot per città al mese corrente (Mag 26) con spread vs media. <strong>Dato vendibile</strong> a brand alimentari, consulenti di pricing e media.
         </div>
       </AdmCard>
+
+      {/* Il menu come dato · admin-mercato.jsx. Sta in coda perché è l'unica
+          parte di questa tab che non è benchmark di settore ma misura nostra:
+          la carta di ogni locale letta in forma strutturata, e le sette cose
+          che ne scendono. */}
+      {window.MercatoMenuDato ? <MercatoMenuDato/> : null}
     </div>
   );
 }
