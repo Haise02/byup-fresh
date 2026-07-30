@@ -1182,20 +1182,10 @@ function SrvInterruttorePubblica({ live, onChange, acceso, spento }) {
 // azioni sull'argomento stavano in mezzo alle sue guide.
 //
 // A destra non si apre una modale per scrivere: i campi sono quelli, e sono
-// lì. Titolo, descrizione, e il video quando c'è. Il tempo di lettura non si
-// dichiara — si stima dalla descrizione, che è il testo che il ristoratore
-// leggerà davvero. Il video non serve: una guida può essere solo un titolo e
-// due righe. Quello che decide se il ristoratore la vede è un'unica cosa,
-// l'interruttore «Pubblica».
-
-// ~200 parole al minuto: la velocità di lettura su schermo di un testo che
-// spiega come si fa una cosa. Sotto il minuto si dice «meno di un minuto»
-// invece di arrotondare a 1: una riga e mezza non è un minuto di lettura.
-const srvParole = (testo) => String(testo || '').trim().split(/\s+/).filter(Boolean).length;
-const srvMinLettura = (testo) => Math.max(1, Math.round(srvParole(testo) / 200));
-const srvLetturaTesto = (testo) => srvParole(testo) < 100
-  ? 'meno di 1 min di lettura'
-  : `${srvMinLettura(testo)} min di lettura`;
+// lì. Titolo, descrizione, tempo di lettura, e il video quando c'è. Il video
+// non serve: una guida può essere solo un titolo e due righe. Quello che
+// decide se il ristoratore la vede è un'unica cosa, l'interruttore
+// «Pubblica».
 
 function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
   const [selArg, setSelArg] = useStateSrv(argomenti[0] ? argomenti[0].id : null);
@@ -1243,7 +1233,7 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
     if (!arg) return;
     const id = 'G-' + String(Date.now()).slice(-5);
     setGuide(prev => [...prev, { id, argomentoId:arg.id, titolo:'', descrizione:'',
-      minLettura:1, live:false, video:null, letture:0, aggiornataIl:new Date() }]);
+      minLettura:5, live:false, video:null, letture:0, aggiornataIl:new Date() }]);
     setCerca('');
     setNuovaId(id);
   };
@@ -1469,19 +1459,26 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
       </div>
 
       {/* Descrizione: è il testo della guida, quello che il ristoratore legge
-          nel Centro assistenza. Il tempo di lettura si conta da qui. */}
+          nel Centro assistenza. */}
       <div>
         <textarea value={g.descrizione}
-          onChange={e=>onCambia({ descrizione:e.target.value, minLettura:srvMinLettura(e.target.value) })}
+          onChange={e=>onCambia({ descrizione:e.target.value })}
           placeholder="Cosa impara chi la legge. Anche solo due righe."
           style={{...SRV_TXT, minHeight:76}}/>
-        <div style={{display:'flex', alignItems:'center', gap:10, marginTop:7, flexWrap:'wrap'}}>
-          <SrvChip><BuIcons.clock size={12} color={ADM.MUTED}/> {srvLetturaTesto(g.descrizione)}</SrvChip>
-          <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT}}>
-            stimato dalla descrizione, non si scrive a mano
+        <div style={{display:'flex', alignItems:'center', gap:9, marginTop:8, flexWrap:'wrap'}}>
+          {/* Il tempo di lettura lo scrive chi pubblica: la guida non è solo
+              queste due righe — è anche quanto ci si mette a fare la cosa che
+              spiega, e quello lo sa lui, non un conteggio di parole. */}
+          <span style={{display:'inline-flex', alignItems:'center', gap:7}}>
+            <BuIcons.clock size={13} color={ADM.MUTED_SOFT}/>
+            <span style={{fontSize:12.6, color:ADM.MUTED}}>Tempo di lettura</span>
+            <input type="number" min="1" max="90" value={g.minLettura}
+              onChange={e=>onCambia({ minLettura: Math.max(1, Math.min(90, parseInt(e.target.value, 10) || 1)) })}
+              style={{...SRV_INP, width:64, padding:'5px 8px', fontSize:12.8, textAlign:'center'}}/>
+            <span style={{fontSize:12.6, color:ADM.MUTED}}>min</span>
           </span>
           {!pubblicabile && (
-            <span style={{fontSize:11.8, color:ADM.WARN, fontWeight:600}}>
+            <span style={{fontSize:11.8, color:ADM.WARN, fontWeight:600, marginLeft:4}}>
               Senza titolo resta in bozza
             </span>
           )}
