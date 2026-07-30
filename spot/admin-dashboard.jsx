@@ -406,6 +406,10 @@ function AdmDashboard({ onNav }) {
           // servizio clienti è una delle facce dello stato della piattaforma,
           // non un capitolo a parte da andarsi a cercare.
           { id:'servizio', label:'Servizio Clienti' },
+          // Ultima, e staccata di senso dalle altre: le cinque prima dicono
+          // come sta byup, questa com'è il mercato in cui sta. Dentro Locali,
+          // il food cost dei ristoranti sembrava una nostra metrica.
+          { id:'mercato',  label:'Mercato' },
         ]} active={tab} onChange={setTab}/>
         <div style={{flex:1}}/>
         {reportSent
@@ -418,6 +422,7 @@ function AdmDashboard({ onNav }) {
         {tab === 'utentiapp' && <DashUtentiApp/>}
         {tab === 'camerieri' && <DashCamerieri/>}
         {tab === 'servizio'  && (window.AdmServizioClientiKPI ? <AdmServizioClientiKPI/> : null)}
+        {tab === 'mercato'   && <DashMercato/>}
       </div>
     </div>
   );
@@ -809,7 +814,7 @@ function DashGenerale({ onNav }) {
         <DashStatCard
           label="Accessi guest · 30gg" value={fmtNum(guestLog30g)} accent="INK"
           trend={moM(TS.guestAccessi).delta} trendLabel="30gg"
-          sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(ordiniGuest30g)}</b> ordini · <b style={{color:ADM.TEXT}}>{Math.round(ordiniGuest30g/guestLog30g*100)}%</b> conversione</span>}
+          sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(ordiniGuest30g)}</b> ordini · il guest si legge in Utenti App</span>}
           data={TS.guestAccessi.slice(-30)} gradId="grad-gue"
         />
       </div>
@@ -1530,29 +1535,6 @@ function DashLocali({ onNav }) {
     { n:'Altro / Non specificato',       pct: 4, color:ADM.MUTED_LIGHT, icon:'help' },
   ];
 
-  // ── TEMPO MEDIO SERVIZIO · da ordine confermato a chiusura conto ────────
-  // Industria horeca: pizzeria 25-45 min, trattoria 50-90 min, ristorante 70-120 min
-  const serviceByType = [
-    { tipo:'Pizzeria',   media:38, median:34, p75:52,  n: 9, color:ADM.PINK },
-    { tipo:'Trattoria',  media:68, median:62, p75: 86, n:11, color:ADM.WARN },
-    { tipo:'Osteria',    media:74, median:70, p75: 94, n: 7, color:ADM.DANGER },
-    { tipo:'Ristorante', media:92, median:88, p75:118, n:12, color:ADM.PURPLE },
-    { tipo:'Bistrot',    media:54, median:50, p75: 72, n: 6, color:ADM.INFO },
-    { tipo:'Pub',        media:46, median:42, p75: 60, n: 3, color:ADM.OK },
-  ];
-  const serviceOverall = Math.round(
-    serviceByType.reduce((s,t) => s + t.media*t.n, 0) / serviceByType.reduce((s,t)=>s+t.n,0)
-  );
-  // Distribuzione tempo servizio (% locali per fascia minuti)
-  const serviceDist = [
-    { range:'< 30 min',  pct: 8, label:'Fast' },
-    { range:'30-45',     pct:18, label:'Veloce' },
-    { range:'45-60',     pct:22, label:'Standard' },
-    { range:'60-90',     pct:28, label:'Medio' },
-    { range:'90-120',    pct:16, label:'Lento' },
-    { range:'> 120 min', pct: 8, label:'Critico' },
-  ];
-
   // ── CANNIBALIZZAZIONE CANALI · evoluzione mix 12 mesi (Byup-wide) ──────
   // % ordini per canale aggregato (cameriere / QR-tavolo / app cliente)
   const channelMix = [
@@ -1684,88 +1666,6 @@ function DashLocali({ onNav }) {
   const ltvCurveMin = Math.min(...ltvCurveByPlan.flatMap(c=>c.points.map(p=>p.y)));
   const ltvCurveMax = Math.max(...ltvCurveByPlan.flatMap(c=>c.points.map(p=>p.y)));
 
-  // ── PRENOTAZIONI NO-SHOW · pain point ristoratore ──────────────────────
-  // Industria: 5-10% no-show su prenotato (peggio venerdì/sabato sera)
-  const noShowRate = 7.4; // %
-  const totPrenot30g = 16700;
-  const noShowCount30g = Math.round(totPrenot30g * noShowRate / 100);
-  const noShowTrend = [
-    { m:'Giu 25', pct:6.2 },{ m:'Lug 25', pct:6.8 },{ m:'Ago 25', pct:7.4 },
-    { m:'Set 25', pct:6.9 },{ m:'Ott 25', pct:6.5 },{ m:'Nov 25', pct:7.1 },
-    { m:'Dic 25', pct:8.4 },{ m:'Gen 26', pct:7.8 },{ m:'Feb 26', pct:7.0 },
-    { m:'Mar 26', pct:7.2 },{ m:'Apr 26', pct:7.6 },{ m:'Mag 26', pct:7.4 },
-  ];
-  // Heatmap giorno × fascia oraria: % no-show
-  const noShowHeat = [
-    { g:'Lun', vals:[3.4, 4.1, 4.8, 5.2, 6.1] },
-    { g:'Mar', vals:[3.6, 4.3, 5.0, 5.4, 6.4] },
-    { g:'Mer', vals:[3.8, 4.5, 5.4, 5.8, 6.8] },
-    { g:'Gio', vals:[4.2, 5.0, 6.0, 6.8, 8.2] },
-    { g:'Ven', vals:[5.0, 6.2, 7.4, 9.2,11.4] },
-    { g:'Sab', vals:[5.6, 6.8, 8.6,10.4,12.8] },
-    { g:'Dom', vals:[4.6, 5.4, 6.2, 7.0, 7.8] },
-  ];
-  const noShowSlots = [
-    { label:'Pranzo',      range:'12–14h' },
-    { label:'Pomeriggio',  range:'14–19h' },
-    { label:'Pre-cena',    range:'19–20h' },
-    { label:'Cena',        range:'20–21h' },
-    { label:'Serale',      range:'21–23h' },
-  ];
-  const noShowMax = Math.max(...noShowHeat.flatMap(d => d.vals));
-
-  // ───── Posizionamento prezzi · centinaia di piatti × 8 città × 12 mesi ─
-  // Modello: prezzo_T0(piatto, città) = basePrice(piatto) × multCittà[× override
-  // del piatto-icona]. La serie 12 mesi applica inflazione lineare per piatto +
-  // una piccola componente stagionale. Tutti i dati derivano dal DISH_CATALOG
-  // a livello modulo, quindi centinaia di piatti sono già selezionabili.
-  const priceMonths = ['Giu 25','Lug 25','Ago 25','Set 25','Ott 25','Nov 25','Dic 25','Gen 26','Feb 26','Mar 26','Apr 26','Mag 26'];
-  const priceCities = Object.keys(CITY_PRICE_MULT);
-  const priceCityList = ['Tutta Italia', ...priceCities];
-  const pricePalette = ['#0F1115', '#FF5A5F', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#EF4444'];
-  // Prezzo mensile T+i per piatto×città (Mag 26 = base attuale, cioè i=11)
-  const priceSeries = (dish, city) => {
-    const base = dishPriceForCity(dish, city);
-    const seasonal = DISH_PRICE_SEASONAL[dish] || DISH_PRICE_SEASONAL_DEFAULT;
-    const inflTot = DISH_INFLATION[dish] || DISH_INFLATION.default;
-    return priceMonths.map((_, i) => {
-      const inflAt = inflTot * (i / 11);
-      const seasPct = seasonal[i] / 100;
-      // Riportiamo i prezzi indietro nel tempo: il mese N=11 = base attuale
-      const factor = 1 + seasPct - (inflTot/100) + (inflAt/100);
-      return Math.round(base * factor * 100) / 100;
-    });
-  };
-  const [priceRegion, setPriceRegion] = useStateDash('Tutta Italia');
-  const [priceSel, setPriceSel] = useStateDash(['Pizza Margherita', 'Carbonara', 'Spritz Aperol']);
-  const [priceQuery, setPriceQuery] = useStateDash('');
-  const [pricePickerOpen, setPricePickerOpen] = useStateDash(false);
-  const priceMaxPick = 10;
-  // Series media per regione selezionata (Tutta Italia = media città)
-  const priceSeriesByDish = priceSel.map(d => {
-    const cities = priceRegion === 'Tutta Italia' ? priceCities : [priceRegion];
-    const allSeries = cities.map(c => priceSeries(d, c));
-    const avg = Array.from({length:12}, (_, i) => {
-      const sum = allSeries.reduce((s, ser) => s + ser[i], 0);
-      return Math.round((sum / cities.length) * 100) / 100;
-    });
-    return { name:d, vals:avg };
-  });
-  const priceAllVals = priceSeriesByDish.flatMap(d => d.vals);
-  const priceTimeMin = priceAllVals.length ? Math.min(...priceAllVals) : 0;
-  const priceTimeMax = priceAllVals.length ? Math.max(...priceAllVals) : 20;
-  // Per ogni piatto selezionato: snapshot città al mese corrente (Mag 26 = ultimo)
-  const priceCitySnapshot = (dish) => {
-    return priceCities
-      .map(c => ({ city: c, price: priceSeries(dish, c)[11] }))
-      .sort((a,b) => b.price - a.price);
-  };
-  const priceFiltered = DISH_CATALOG.filter(d => {
-    const q = priceQuery.trim().toLowerCase();
-    if (!q) return true;
-    return d.n.toLowerCase().includes(q) || d.cat.toLowerCase().includes(q);
-  });
-
   // KPI spostate qui dalla pagina-lista Locali (le liste restano operative).
   const activeLocali = LOC.attivi;
   // MRR e ARPA vengono da MRR_ORA, che li conta sui PAGANTI della base
@@ -1778,28 +1678,6 @@ function DashLocali({ onNav }) {
   const coperturaMedia = activeLocali.length ? Math.round(activeLocali.reduce((s2,l)=>s2+l.copertura,0)/activeLocali.length) : 0;
   const pagantiAttivi = LOC.paganti.length;
   const arpa = MRR_ORA.arpa;
-
-  // ── FOOD COST / MARGINALITÀ per categoria ──────────────────────────────
-  // Stimato sul ~38% del catalogo Byup con ingredient labeling completato.
-  // Food cost % = costo materie prime / prezzo di vendita medio (standard horeca).
-  // Industria: pizza 22-28%, primi 20-25%, secondi 30-40%, drinks 12-18%.
-  const foodCostCats = [
-    { cat:'Pizza',         prezzo:11.50, foodCost:24, ord:48200, color:ADM.PINK },
-    { cat:'Primi',         prezzo:12.80, foodCost:22, ord:38400, color:ADM.WARN },
-    { cat:'Secondi carne', prezzo:18.40, foodCost:36, ord:22600, color:ADM.DANGER },
-    { cat:'Secondi pesce', prezzo:22.80, foodCost:42, ord:14800, color:ADM.INFO },
-    { cat:'Antipasti',     prezzo: 8.20, foodCost:28, ord:18200, color:ADM.OK },
-    { cat:'Dolci',         prezzo: 6.40, foodCost:21, ord:14200, color:ADM.PURPLE },
-    { cat:'Drinks',        prezzo: 7.20, foodCost:16, ord:32800, color:'#0EA5E9' },
-  ];
-  // Margine lordo % (semplice: prezzo - food cost - 0 altri costi qui)
-  // GP = (1 - foodCost%/100)
-  const foodCostEnriched = foodCostCats.map(c => ({
-    ...c,
-    margine: 100 - c.foodCost,
-    margineEur: c.prezzo * (100 - c.foodCost)/100,
-    ricavi: c.prezzo * c.ord,
-  })).sort((a,b) => b.margine - a.margine);
 
   // Dettaglio in-linea (stesso pattern del Generale): click sulla card → fascia
   // sotto la riga; ri-click chiude.
@@ -2091,7 +1969,7 @@ function DashLocali({ onNav }) {
       <SectionLabel title="Utilizzo del prodotto" desc="Dove sono i locali e cosa usano del gestionale"/>
 
       <AdmCard padding={20}>
-        <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Top città</div>
+        <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Dove sono i locali</div>
         <div style={{display:'flex', flexDirection:'column', gap:9}}>
           {TOP_CITTA.map((c, i) => (
             <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'4px 0'}}>
@@ -2107,7 +1985,10 @@ function DashLocali({ onNav }) {
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <ScreensCard/>
-        <FeaturesCard/>
+        {/* «Funzionalità più usate» stava qui e in Staff → Attività
+            operativa: stesso dato, stesse voci, due tab. Le azioni le fa lo
+            staff, e in Staff è rimasta. Qui resta «Schermate più usate», che
+            è un'altra cosa — dove va il titolare quando apre il gestionale. */}
       </div>
 
       {/* ═════ CHURN LOCALI ═════ */}
@@ -2499,449 +2380,6 @@ function DashLocali({ onNav }) {
         </div>
       </AdmCard>
 
-      {/* ═════ TEMPO MEDIO DI SERVIZIO ═════ */}
-      <SectionLabel title="Tempo medio di servizio" desc="Dall'ordine confermato alla chiusura conto · media di settore"/>
-
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Distribuzione locali</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Per fascia di tempo medio</div>
-          <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:18}}>
-            <div style={{fontSize:32.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{serviceOverall}</div>
-            <div style={{fontSize:14.4, color:ADM.MUTED, fontWeight:600}}>min media piattaforma</div>
-          </div>
-          <div style={{display:'flex', flexDirection:'column', gap:9}}>
-            {serviceDist.map((d,i) => {
-              const tone = i < 2 ? ADM.OK : i < 4 ? ADM.WARN : ADM.DANGER;
-              return (
-                <div key={i}>
-                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
-                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600}}>{d.range} <span style={{color:ADM.MUTED, fontWeight:500}}>· {d.label}</span></span>
-                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{d.pct}%</span>
-                  </div>
-                  <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                    <div style={{width:`${d.pct*3.3}%`, height:'100%', background:tone, borderRadius:99}}/>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={20}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
-            <div>
-              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Per tipo locale</div>
-              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Mediana · P75 · campione di locali</div>
-            </div>
-            <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>min</div>
-          </div>
-          <div style={{display:'flex', flexDirection:'column', gap:14}}>
-            {serviceByType.map((t,i) => {
-              const maxV = Math.max(...serviceByType.map(x=>x.p75));
-              return (
-                <div key={i}>
-                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:6}}>
-                    <span style={{fontSize:14, color:ADM.TEXT, fontWeight:700}}>{t.tipo}</span>
-                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>n={t.n}</span>
-                  </div>
-                  {/* Box-plot-ish: line min-max, dot mediana, marker P75 */}
-                  <div style={{position:'relative', height:24, background:'#F4F5F7', borderRadius:8, overflow:'hidden'}}>
-                    <div style={{
-                      position:'absolute', left:0, top:0, bottom:0,
-                      width:`${(t.median/maxV)*100}%`,
-                      background:ADM.INK,
-                    }}/>
-                    <div style={{
-                      position:'absolute', left:`${(t.p75/maxV)*100}%`,
-                      top:'50%', transform:'translate(-50%, -50%)',
-                      width:3, height:18, background:'#0F1115', borderRadius:1, opacity:0.4,
-                    }}/>
-                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${ADM.INK}`}}/>
-                    <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
-                    <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:12.6, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
-            <strong style={{color:ADM.TEXT}}>Pizzeria è il tipo più efficiente</strong> (38 min media), Ristorante il più lento (92 min). I locali con tempi oltre 90 min hanno satisfaction più bassa del 18%. <strong>Dato vendibile</strong> come punto di riferimento di settore (oggi assente sul mercato IT).
-          </div>
-        </AdmCard>
-      </div>
-
-      {/* ═════ PRENOTAZIONI NO-SHOW ═════ */}
-      <SectionLabel title="No show prenotazioni" desc="Prima causa di sofferenza del ristoratore"/>
-
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
-        <AdmCard padding={20}>
-          <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
-            <div style={{width:40, height:40, borderRadius:10, background:ADM.DANGER_SOFT, color:ADM.DANGER, display:'grid', placeItems:'center', flexShrink:0}}>
-              <BuIcons.alertTriangle size={23}/>
-            </div>
-            <div>
-              <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tasso di no show · 30g</div>
-              <div style={{display:'flex', alignItems:'baseline', gap:6, marginTop:3}}>
-                <div style={{fontSize:28.1, fontWeight:800, color:ADM.DANGER, letterSpacing:'-0.025em', lineHeight:1}}>{noShowRate}%</div>
-                <span style={{fontSize:13.7, color:ADM.MUTED, fontWeight:600}}>≈ {fmtNum(noShowCount30g)} prenotazioni</span>
-              </div>
-            </div>
-          </div>
-          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}><span>Media di settore IT</span><strong style={{color:ADM.TEXT}}>8-12%</strong></div>
-            <div style={{display:'flex', justifyContent:'space-between'}}><span>Posizione Byup</span><strong style={{color:ADM.OK}}>↓ sotto la media</strong></div>
-          </div>
-          {/* Line chart 12 mesi con banda benchmark di settore */}
-          <div>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8}}>
-              <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Andamento ultimi 12 mesi</div>
-              {(() => {
-                const last = noShowTrend[noShowTrend.length-1].pct;
-                const prev = noShowTrend[noShowTrend.length-2].pct;
-                const d = last - prev;
-                return <span style={{fontSize:13, fontWeight:700, color: d > 0 ? ADM.DANGER : d < 0 ? ADM.OK : ADM.MUTED, fontVariantNumeric:'tabular-nums'}}>{d>=0?'+':''}{d.toFixed(1)}pp vs mese prec.</span>;
-              })()}
-            </div>
-            {(() => {
-              const W = 320, H = 110, padX = 26, padY = 14;
-              const plotW = W - padX*2, plotH = H - padY*2;
-              const benchLo = 8, benchHi = 12;
-              const yLo = 4, yHi = 14;
-              const range = yHi - yLo;
-              const xFor = (i) => padX + (i/(noShowTrend.length-1)) * plotW;
-              const yFor = (v) => padY + (1 - (v - yLo)/range) * plotH;
-              const linePath = noShowTrend.map((m,i) => `${i===0?'M':'L'} ${xFor(i)} ${yFor(m.pct)}`).join(' ');
-              const areaPath = `${linePath} L ${xFor(noShowTrend.length-1)} ${yFor(yLo)} L ${xFor(0)} ${yFor(yLo)} Z`;
-              const last = noShowTrend[noShowTrend.length-1];
-              return (
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:120, display:'block'}}>
-                  {/* Banda benchmark di settore */}
-                  <rect x={padX} y={yFor(benchHi)} width={plotW} height={yFor(benchLo)-yFor(benchHi)} fill={ADM.WARN} opacity={0.10}/>
-                  <line x1={padX} x2={W-padX} y1={yFor(benchLo)} y2={yFor(benchLo)} stroke={ADM.WARN} strokeDasharray="3 4" strokeOpacity={0.55}/>
-                  <line x1={padX} x2={W-padX} y1={yFor(benchHi)} y2={yFor(benchHi)} stroke={ADM.WARN} strokeDasharray="3 4" strokeOpacity={0.55}/>
-                  <text x={W-padX-2} y={yFor(benchHi)-2} textAnchor="end" fontSize="9" fill={ADM.WARN} fontWeight="700">settore 8-12%</text>
-                  {/* Y axis labels */}
-                  {[yLo, 10, yHi].map((t,i) => (
-                    <text key={i} x={padX-6} y={yFor(t)+3} textAnchor="end" fontSize="9.5" fill={ADM.MUTED_SOFT} fontWeight="600">{t}%</text>
-                  ))}
-                  {/* Area + line */}
-                  <path d={areaPath} fill={ADM.DANGER} opacity={0.10}/>
-                  <path d={linePath} fill="none" stroke={ADM.DANGER} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
-                  {noShowTrend.map((m,i) => (
-                    <circle key={i} cx={xFor(i)} cy={yFor(m.pct)} r={i === noShowTrend.length-1 ? 4 : 2.2} fill={i === noShowTrend.length-1 ? ADM.DANGER : '#fff'} stroke={ADM.DANGER} strokeWidth="1.6"/>
-                  ))}
-                  {/* X labels (ogni 2 mesi) */}
-                  {noShowTrend.map((m,i) => (i % 2 === 0 || i === noShowTrend.length-1) && (
-                    <text key={i} x={xFor(i)} y={H-2} textAnchor="middle" fontSize="9" fill={ADM.MUTED} fontWeight="600">{m.m.split(' ')[0]}</text>
-                  ))}
-                  {/* Label sull'ultimo punto */}
-                  <text x={xFor(noShowTrend.length-1)} y={yFor(last.pct)-9} textAnchor="end" fontSize="10" fill={ADM.DANGER} fontWeight="800">{last.pct.toFixed(1)}%</text>
-                </svg>
-              );
-            })()}
-            <div style={{display:'flex', justifyContent:'space-between', fontSize:12.6, color:ADM.MUTED, marginTop:6, fontWeight:600}}>
-              <span><span style={{display:'inline-block', width:10, height:2, background:ADM.DANGER, verticalAlign:'middle', marginRight:5}}/>Byup</span>
-              <span><span style={{display:'inline-block', width:10, height:8, background:ADM.WARN, opacity:0.25, verticalAlign:'middle', marginRight:5}}/>Banda settore</span>
-            </div>
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Dove succede di più</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>% di no show per <strong style={{color:ADM.TEXT}}>giorno della settimana</strong> × <strong style={{color:ADM.TEXT}}>fascia oraria del giorno</strong></div>
-          <div style={{display:'grid', gridTemplateColumns:`66px repeat(${noShowSlots.length}, 1fr)`, gap:4}}>
-            <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'flex-end', paddingBottom:6}}>Giorno</div>
-            {noShowSlots.map(s => (
-              <div key={s.label} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'4px 0'}}>
-                <span style={{fontSize:11.9, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>{s.label}</span>
-                <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums'}}>{s.range}</span>
-              </div>
-            ))}
-            {noShowHeat.map(row => (
-              <React.Fragment key={row.g}>
-                <div style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, display:'flex', alignItems:'center'}}>{row.g}</div>
-                {row.vals.map((v,j) => {
-                  const intensity = v / noShowMax;
-                  return (
-                    <div key={j} style={{
-                      padding:'10px 4px', borderRadius:7, textAlign:'center',
-                      // Ramp mono-hue coral, cap morbido: solo il picco è pieno.
-                      background: intensity > 0.82 ? ADM.PINK : intensity < 0.1 ? '#F4F5F7' : `rgba(49,53,61,${(0.05 + intensity*0.42).toFixed(2)})`,
-                    }}>
-                      <span style={{fontSize:13, fontWeight:700, color: intensity > 0.55 ? '#fff' : ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{v.toFixed(1)}</span>
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-          {/* Legenda scala */}
-          <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:8, marginTop:10}}>
-            <span style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Intensità no show</span>
-            <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>basso</span>
-            <span style={{display:'inline-flex', borderRadius:99, overflow:'hidden', border:`1px solid ${ADM.BORDER_SOFT}`}}>
-              {[0.1,0.3,0.5,0.7,0.9].map((t,i) => (
-                <span key={i} style={{width:18, height:10, background:`rgba(220,38,38,${0.10 + t*0.80})`}}/>
-              ))}
-            </span>
-            <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>alto</span>
-          </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
-            <strong style={{color:ADM.TEXT}}>Sabato sera 21-23 è il punto critico (12.8%)</strong>. Andamento weekend serale comune all'intero settore. Servono <strong>conferma automatica 24h prima</strong>, deposito, waitlist intelligente.
-          </div>
-        </AdmCard>
-      </div>
-
-      {/* ═════ PREZZO MEDIO PIATTO · POSIZIONAMENTO CITTÀ ═════ */}
-      {/* ═══════════ Economia del menu (spostata dal Generale) ═══════════ */}
-      <SectionLabel title="Economia del menu" desc="Food cost e marginalità stimati sul catalogo della rete"/>
-
-
-      <AdmCard padding={0}>
-        <div style={{padding:'14px 22px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Food cost & marginalità per categoria</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Margine lordo stimato · proxy del valore di un marketplace fornitori</div>
-          <div style={{fontSize:12, color:ADM.MUTED_SOFT, marginTop:7, display:'flex', alignItems:'center', gap:6}}>
-            <BuIcons.info size={13} color={ADM.MUTED_SOFT}/>
-            <span>Stima su <strong style={{color:ADM.MUTED, fontWeight:700}}>38% del catalogo</strong> · food-cost di settore come riferimento (±2-3 pt di accuratezza)</span>
-          </div>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18, padding:'12px 22px', background:ADM.PANEL_SOFT, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div>Categoria</div>
-          <div style={{textAlign:'right'}}>Prezzo vendita</div>
-          <div style={{textAlign:'right'}}>Food cost</div>
-          <div>Margine lordo</div>
-          <div style={{textAlign:'right'}}>Ordini / mese</div>
-        </div>
-        {foodCostEnriched.map((c, i) => {
-          const marginTone = c.margine >= 80 ? ADM.OK : c.margine >= 70 ? ADM.WARN : ADM.DANGER;
-          return (
-            <div key={c.cat} style={{
-              display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18,
-              padding:'14px 22px', alignItems:'center',
-              borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-            }}>
-              <div style={{display:'flex', alignItems:'center', gap:10}}>
-                <span style={{width:8, height:30, borderRadius:3, background:marginTone, flexShrink:0}}/>
-                <div>
-                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>{c.cat}</div>
-                  <div style={{fontSize:12.6, color:ADM.MUTED}}>Ricavi/mese {fmtEur(Math.round(c.ricavi))}</div>
-                </div>
-              </div>
-              <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtEur(c.prezzo)}</div>
-              <div style={{fontSize:14.4, fontWeight:700, color:ADM.DANGER, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.foodCost}%</div>
-              <div style={{display:'flex', alignItems:'center', gap:10}}>
-                <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden', maxWidth:180}}>
-                  <div style={{width:`${c.margine}%`, height:'100%', background:`linear-gradient(90deg, ${marginTone}, ${marginTone}DD)`, borderRadius:99}}/>
-                </div>
-                <span style={{fontSize:14.4, fontWeight:800, color:marginTone, minWidth:42, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.margine}%</span>
-              </div>
-              <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtNum(c.ord)}</div>
-            </div>
-          );
-        })}
-        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5}}>
-          <strong style={{color:ADM.TEXT}}>Insight:</strong> Drinks ha il margine lordo più alto (84%) ma volume medio basso · Pizza è il <strong>sweet spot</strong> con margine 76% e oltre 48k ordini/mese · Secondi di pesce sono i meno marginali (58%) ma a prezzo unitario più alto. Drive opportunità marketplace fornitori: chi rifornisce gli ingredienti chiave delle prime due categorie controlla il 70% del valore.
-        </div>
-      </AdmCard>
-
-      <SectionLabel title="Posizionamento prezzi per città" desc="Listino medio dei locali partner · benchmark territoriale"/>
-
-      <AdmCard padding={20}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
-          <div style={{minWidth:0, flex:'1 1 300px'}}>
-            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Prezzo medio per città · andamento 12 mesi</div>
-            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Prezzo medio del piatto sui menù dei locali partner. Confronta fino a {priceMaxPick} piatti e osserva il trend nel tempo.</div>
-          </div>
-          {/* Region selector */}
-          <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
-            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
-            <select value={priceRegion} onChange={(e)=>setPriceRegion(e.target.value)} style={{
-              padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
-              appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
-              backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
-            }}>
-              {priceCityList.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Multi-select piatti — searchable, max 10 su catalogo completo */}
-        <div style={{marginBottom:18}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8}}>
-            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Piatti da confrontare</span>
-            <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>{priceSel.length} / {priceMaxPick}</span>
-          </div>
-          <div style={{display:'flex', flexWrap:'wrap', gap:6, padding:'8px 8px', border:`1px solid ${ADM.BORDER}`, borderRadius:9, background:'#fff', minHeight:42, alignItems:'center', cursor:'text', position:'relative'}} onClick={()=>setPricePickerOpen(true)}>
-            {priceSel.map((name, i) => {
-              const c = pricePalette[i % pricePalette.length];
-              return (
-                <span key={name} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px 4px 10px', background:`${c}14`, border:`1px solid ${c}40`, borderRadius:99, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
-                  <span style={{width:8, height:8, borderRadius:'50%', background:c}}/>
-                  {name}
-                  <button onClick={(e)=>{e.stopPropagation(); if (priceSel.length > 1) setPriceSel(priceSel.filter(x=>x!==name));}} style={{background:'transparent', border:'none', padding:0, margin:'0 0 0 2px', cursor:'pointer', color:ADM.MUTED, fontSize:15.1, lineHeight:1, fontFamily:'inherit', width:16, height:16, display:'inline-grid', placeItems:'center'}} aria-label={`Rimuovi ${name}`}>×</button>
-                </span>
-              );
-            })}
-            <input
-              type="text"
-              value={priceQuery}
-              onChange={(e)=>{setPriceQuery(e.target.value); setPricePickerOpen(true);}}
-              onFocus={()=>setPricePickerOpen(true)}
-              onBlur={()=>setTimeout(()=>setPricePickerOpen(false), 180)}
-              placeholder={priceSel.length === 0 ? 'Cerca tra centinaia di piatti…' : priceSel.length >= priceMaxPick ? `Massimo ${priceMaxPick} piatti — rimuovine uno per aggiungerne altri` : 'Aggiungi piatto…'}
-              disabled={priceSel.length >= priceMaxPick}
-              style={{flex:'1 1 160px', minWidth:140, border:'none', outline:'none', fontSize:13.7, color:ADM.TEXT, fontFamily:'inherit', padding:'4px 6px', background:'transparent'}}
-            />
-            {pricePickerOpen && (
-              <div style={{position:'absolute', top:'100%', left:0, right:0, marginTop:6, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:9, boxShadow:'0 8px 24px rgba(15,17,21,0.10)', maxHeight:280, overflowY:'auto', zIndex:30}}>
-                {priceFiltered.length === 0 ? (
-                  <div style={{padding:'12px 14px', fontSize:13.7, color:ADM.MUTED}}>Nessun piatto corrisponde a "{priceQuery}"</div>
-                ) : (() => {
-                  const byCat = priceFiltered.reduce((acc, d) => { (acc[d.cat] = acc[d.cat] || []).push(d); return acc; }, {});
-                  return Object.entries(byCat).map(([cat, items]) => (
-                    <div key={cat}>
-                      <div style={{padding:'8px 14px 4px', fontSize:12.6, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', background:ADM.PANEL_SOFT, position:'sticky', top:0}}>{cat}</div>
-                      {items.map(d => {
-                        const selected = priceSel.includes(d.n);
-                        const disabled = !selected && priceSel.length >= priceMaxPick;
-                        return (
-                          <button
-                            key={d.n}
-                            onMouseDown={(e)=>e.preventDefault()}
-                            onClick={()=>{
-                              if (selected) { if (priceSel.length > 1) setPriceSel(priceSel.filter(x=>x!==d.n)); }
-                              else if (!disabled) setPriceSel([...priceSel, d.n]);
-                            }}
-                            disabled={disabled}
-                            style={{
-                              width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
-                              padding:'8px 14px', border:'none', background: selected ? ADM.PINK_BG_SOFT : 'transparent',
-                              cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'inherit',
-                              opacity: disabled ? 0.4 : 1, color: ADM.TEXT, fontSize:13.7, fontWeight: selected ? 700 : 500,
-                            }}>
-                            <span style={{width:14, height:14, borderRadius:4, border:`1.5px solid ${selected ? ADM.PINK_DARK : ADM.BORDER}`, background: selected ? ADM.PINK_DARK : '#fff', display:'inline-grid', placeItems:'center', color:'#fff', fontSize:12.2, fontWeight:800}}>{selected?'✓':''}</span>
-                            <span style={{flex:1}}>{d.n}</span>
-                            <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>{fmtEur(dishBasePrice(d.n).toFixed(2))}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ));
-                })()}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Line chart 12 mesi × N piatti */}
-        {(() => {
-          if (priceSeriesByDish.length === 0) return null;
-          const W = 1200, H = 220, padX = 48, padY = 26;
-          const plotW = W - padX*2, plotH = H - padY*2;
-          const yLo = Math.max(0, Math.floor(priceTimeMin*0.92));
-          const yHi = Math.ceil(priceTimeMax*1.06);
-          const range = yHi - yLo || 1;
-          const xFor = (i) => padX + (i/11) * plotW;
-          const yFor = (v) => padY + (1 - (v - yLo)/range) * plotH;
-          const yTicks = [yLo, (yLo+yHi)/2, yHi].map(v => Math.round(v*10)/10);
-          return (
-            <div style={{overflow:'hidden', marginBottom:18}}>
-              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:240}}>
-                {yTicks.map((t,i) => (
-                  <g key={i}>
-                    <line x1={padX} x2={W-padX} y1={yFor(t)} y2={yFor(t)} stroke={ADM.BORDER_SOFT} strokeDasharray="3 4"/>
-                    <text x={padX-8} y={yFor(t)+4} textAnchor="end" fontSize="11" fill={ADM.MUTED_SOFT} fontWeight="600">€ {t.toFixed(t<10?1:0)}</text>
-                  </g>
-                ))}
-                {priceMonths.map((m, i) => (
-                  <text key={i} x={xFor(i)} y={H-6} textAnchor="middle" fontSize="10.5" fill={ADM.MUTED} fontWeight="600">{m}</text>
-                ))}
-                {priceSeriesByDish.map((d, di) => {
-                  const c = pricePalette[di % pricePalette.length];
-                  const path = d.vals.map((v,i) => `${i===0?'M':'L'} ${xFor(i)} ${yFor(v)}`).join(' ');
-                  return (
-                    <g key={d.name}>
-                      <path d={path} fill="none" stroke={c} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-                      {d.vals.map((v,i) => (
-                        <circle key={i} cx={xFor(i)} cy={yFor(v)} r={3.2} fill="#fff" stroke={c} strokeWidth="2"/>
-                      ))}
-                    </g>
-                  );
-                })}
-              </svg>
-              <div style={{display:'flex', flexWrap:'wrap', gap:'6px 16px', marginTop:10, justifyContent:'center'}}>
-                {priceSeriesByDish.map((d, di) => {
-                  const c = pricePalette[di % pricePalette.length];
-                  const first = d.vals[0], last = d.vals[11];
-                  const deltaPct = ((last - first) / first) * 100;
-                  return (
-                    <span key={d.name} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
-                      <span style={{width:16, height:3, borderRadius:2, background:c}}/>
-                      {d.name}
-                      <span style={{fontSize:12.6, color: deltaPct >= 1 ? ADM.DANGER : deltaPct <= -1 ? ADM.OK : ADM.MUTED, fontWeight:700, fontVariantNumeric:'tabular-nums'}}>
-                        {deltaPct>=0?'+':''}{deltaPct.toFixed(1)}% / 12m
-                      </span>
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Per ogni piatto selezionato: snapshot città (Mag 26) */}
-        <div style={{display:'flex', flexDirection:'column', gap:14}}>
-          {priceSel.map((dish, di) => {
-            const c = pricePalette[di % pricePalette.length];
-            const snap = priceCitySnapshot(dish);
-            const mn = snap[snap.length-1].price;
-            const mx = snap[0].price;
-            const avg = snap.reduce((s,r)=>s+r.price,0) / snap.length;
-            const varPct = ((mx - mn) / mn) * 100;
-            return (
-              <div key={dish} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderLeft:`3px solid ${c}`, borderRadius:9}}>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10, marginBottom:12}}>
-                  <div style={{display:'flex', alignItems:'center', gap:8}}>
-                    <span style={{width:9, height:9, borderRadius:'50%', background:c}}/>
-                    <span style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{dish}</span>
-                  </div>
-                  <div style={{display:'flex', gap:14, alignItems:'baseline', fontSize:13.3, color:ADM.MUTED}}>
-                    <span>Più bassa <strong style={{color:ADM.OK}}>{fmtEur(mn)}</strong> {snap[snap.length-1].city}</span>
-                    <span>Media <strong style={{color:ADM.TEXT}}>{fmtEur(avg.toFixed(2))}</strong></span>
-                    <span>Più alta <strong style={{color:ADM.DANGER}}>{fmtEur(mx)}</strong> {snap[0].city}</span>
-                    <span>Spread <strong style={{color:ADM.PINK_DARK}}>+{Math.round(varPct)}%</strong></span>
-                  </div>
-                </div>
-                <div style={{display:'flex', flexDirection:'column', gap:6}}>
-                  {snap.map((r, i) => {
-                    const ratio = (r.price - mn) / (mx - mn || 1);
-                    const tone = ratio > 0.66 ? ADM.DANGER : ratio > 0.33 ? ADM.WARN : ADM.OK;
-                    const delta = ((r.price - avg) / avg) * 100;
-                    return (
-                      <div key={r.city} style={{display:'flex', alignItems:'center', gap:10}}>
-                        <span style={{fontSize:12.2, fontWeight:800, color:ADM.MUTED_SOFT, width:14, textAlign:'right'}}>{i+1}</span>
-                        <span style={{fontSize:13.3, fontWeight:600, color:ADM.TEXT, width:78}}>{r.city}</span>
-                        <div style={{flex:1, height:7, background:ADM.PANEL_SOFT, borderRadius:99, overflow:'hidden'}}>
-                          <div style={{width:`${20 + ratio*80}%`, height:'100%', background:`linear-gradient(90deg, ${tone}AA, ${tone})`, borderRadius:99}}/>
-                        </div>
-                        <span style={{fontSize:13.7, fontWeight:800, color:ADM.TEXT, width:54, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtEur(r.price)}</span>
-                        <span style={{fontSize:12.6, fontWeight:700, color: delta > 5 ? ADM.DANGER : delta < -5 ? ADM.OK : ADM.MUTED, width:46, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{delta >= 0 ? '+' : ''}{delta.toFixed(0)}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
-          <strong style={{color:ADM.TEXT}}>Come leggere:</strong> il grafico in alto mostra il prezzo medio nel tempo per i piatti selezionati (Giu 25 → Mag 26). Cambia <strong style={{color:ADM.TEXT}}>area</strong> per vedere la curva di una singola città. Sotto, per ogni piatto, lo snapshot per città al mese corrente (Mag 26) con spread vs media. <strong>Dato vendibile</strong> a brand alimentari, consulenti di pricing e media.
-        </div>
-      </AdmCard>
 
     </div>
   );
@@ -3400,6 +2838,39 @@ function DashUtentiApp() {
     { range: '€ 100+',    pct:  2, color: '#31353D' },
   ];
 
+  // ── PRENOTAZIONI NO-SHOW · pain point ristoratore ──────────────────────
+  // Industria: 5-10% no-show su prenotato (peggio venerdì/sabato sera)
+  const noShowRate = 7.4; // %
+  // Il prenotato del mese non è più un numero a sé: è quello che i locali
+  // vivi ricevono davvero, e il no-show è una quota di quello.
+  const totPrenot30g = LOC.live.reduce((s2, l) => s2 + (l.prenotazioniMese || 0), 0);
+  const noShowCount30g = Math.round(totPrenot30g * noShowRate / 100);
+  const noShowTrend = [
+    { m:'Giu 25', pct:6.2 },{ m:'Lug 25', pct:6.8 },{ m:'Ago 25', pct:7.4 },
+    { m:'Set 25', pct:6.9 },{ m:'Ott 25', pct:6.5 },{ m:'Nov 25', pct:7.1 },
+    { m:'Dic 25', pct:8.4 },{ m:'Gen 26', pct:7.8 },{ m:'Feb 26', pct:7.0 },
+    { m:'Mar 26', pct:7.2 },{ m:'Apr 26', pct:7.6 },{ m:'Mag 26', pct:7.4 },
+  ];
+  // Heatmap giorno × fascia oraria: % no-show
+  const noShowHeat = [
+    { g:'Lun', vals:[3.4, 4.1, 4.8, 5.2, 6.1] },
+    { g:'Mar', vals:[3.6, 4.3, 5.0, 5.4, 6.4] },
+    { g:'Mer', vals:[3.8, 4.5, 5.4, 5.8, 6.8] },
+    { g:'Gio', vals:[4.2, 5.0, 6.0, 6.8, 8.2] },
+    { g:'Ven', vals:[5.0, 6.2, 7.4, 9.2,11.4] },
+    { g:'Sab', vals:[5.6, 6.8, 8.6,10.4,12.8] },
+    { g:'Dom', vals:[4.6, 5.4, 6.2, 7.0, 7.8] },
+  ];
+  const noShowSlots = [
+    { label:'Pranzo',      range:'12–14h' },
+    { label:'Pomeriggio',  range:'14–19h' },
+    { label:'Pre-cena',    range:'19–20h' },
+    { label:'Cena',        range:'20–21h' },
+    { label:'Serale',      range:'21–23h' },
+  ];
+  const noShowMax = Math.max(...noShowHeat.flatMap(d => d.vals));
+
+
   // Frequenza ordini/utente/mese per fascia età
   // Frequenza d'ordine per fascia d'età: contata sugli utenti, non scritta a
   // mano. I valori a mano dicevano 1,8-3,4 ordini al mese quando la media
@@ -3613,7 +3084,7 @@ function DashUtentiApp() {
         {/* Le guest sono sessioni, non persone: stanno qui sotto e non dentro
             DAU/WAU/MAU, che contano solo chi ha un account. */}
         <SparkStat label="Ordini da Guest (30g)" value={fmtNum(APP_METRICS.ordiniGuest30g)}
-          sub={`Su ${fmtNum(APP_METRICS.sessioniGuest30g)} sessioni anonime · fuori dal conto degli utenti`}
+          sub={`Su ${fmtNum(APP_METRICS.sessioniGuest30g)} sessioni anonime · ${Math.round(APP_METRICS.ordiniGuest30g / APP_METRICS.sessioniGuest30g * 100)}% converte in ordine · fuori dal conto degli utenti`}
           accent="INK" icon="receipt"
           trend={guestW.delta} trendLabel="vs 7gg" spark={TS.ordiniGuest.slice(-30)}/>
         <SparkStat label="Prenotazioni da app (30g)" value={fmtNum(APP_METRICS.prenotazioniApp30g)}
@@ -3728,6 +3199,157 @@ function DashUtentiApp() {
           </div>
         </AdmCard>
       </div>
+
+      {/* ═══════════ Prenotazioni e no-show ═══════════ */}
+      {/* Le prenotazioni erano in tre pezzi su due tab: il totale in Locali,
+          quelle da app qui, i no-show di nuovo in Locali. Ma chi prenota e chi
+          poi non si presenta è il cliente finale: stanno tutte qui, e in
+          Locali resta il totale. */}
+      <SectionLabel title="Prenotazioni e no-show"
+        desc="Chi prenota dall'app e quanti tavoli restano vuoti · la prima sofferenza che il ristoratore ci gira"/>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
+        <AdmCard padding={20}>
+          <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
+            <div style={{width:40, height:40, borderRadius:10, background:ADM.DANGER_SOFT, color:ADM.DANGER, display:'grid', placeItems:'center', flexShrink:0}}>
+              <BuIcons.alertTriangle size={23}/>
+            </div>
+            <div>
+              <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Tasso di no show · 30g</div>
+              <div style={{display:'flex', alignItems:'baseline', gap:6, marginTop:3}}>
+                <div style={{fontSize:28.1, fontWeight:800, color:ADM.DANGER, letterSpacing:'-0.025em', lineHeight:1}}>{noShowRate}%</div>
+                <span style={{fontSize:13.7, color:ADM.MUTED, fontWeight:600}}>≈ {fmtNum(noShowCount30g)} prenotazioni</span>
+              </div>
+            </div>
+          </div>
+          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+            <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}><span>Media di settore IT</span><strong style={{color:ADM.TEXT}}>8-12%</strong></div>
+            <div style={{display:'flex', justifyContent:'space-between'}}><span>Posizione Byup</span><strong style={{color:ADM.OK}}>↓ sotto la media</strong></div>
+          </div>
+          {/* Line chart 12 mesi con banda benchmark di settore */}
+          <div>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8}}>
+              <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Andamento ultimi 12 mesi</div>
+              {(() => {
+                const last = noShowTrend[noShowTrend.length-1].pct;
+                const prev = noShowTrend[noShowTrend.length-2].pct;
+                const d = last - prev;
+                return <span style={{fontSize:13, fontWeight:700, color: d > 0 ? ADM.DANGER : d < 0 ? ADM.OK : ADM.MUTED, fontVariantNumeric:'tabular-nums'}}>{d>=0?'+':''}{d.toFixed(1)}pp vs mese prec.</span>;
+              })()}
+            </div>
+            {(() => {
+              const W = 320, H = 110, padX = 26, padY = 14;
+              const plotW = W - padX*2, plotH = H - padY*2;
+              const benchLo = 8, benchHi = 12;
+              const yLo = 4, yHi = 14;
+              const range = yHi - yLo;
+              const xFor = (i) => padX + (i/(noShowTrend.length-1)) * plotW;
+              const yFor = (v) => padY + (1 - (v - yLo)/range) * plotH;
+              const linePath = noShowTrend.map((m,i) => `${i===0?'M':'L'} ${xFor(i)} ${yFor(m.pct)}`).join(' ');
+              const areaPath = `${linePath} L ${xFor(noShowTrend.length-1)} ${yFor(yLo)} L ${xFor(0)} ${yFor(yLo)} Z`;
+              const last = noShowTrend[noShowTrend.length-1];
+              return (
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:120, display:'block'}}>
+                  {/* Banda benchmark di settore */}
+                  <rect x={padX} y={yFor(benchHi)} width={plotW} height={yFor(benchLo)-yFor(benchHi)} fill={ADM.WARN} opacity={0.10}/>
+                  <line x1={padX} x2={W-padX} y1={yFor(benchLo)} y2={yFor(benchLo)} stroke={ADM.WARN} strokeDasharray="3 4" strokeOpacity={0.55}/>
+                  <line x1={padX} x2={W-padX} y1={yFor(benchHi)} y2={yFor(benchHi)} stroke={ADM.WARN} strokeDasharray="3 4" strokeOpacity={0.55}/>
+                  <text x={W-padX-2} y={yFor(benchHi)-2} textAnchor="end" fontSize="9" fill={ADM.WARN} fontWeight="700">settore 8-12%</text>
+                  {/* Y axis labels */}
+                  {[yLo, 10, yHi].map((t,i) => (
+                    <text key={i} x={padX-6} y={yFor(t)+3} textAnchor="end" fontSize="9.5" fill={ADM.MUTED_SOFT} fontWeight="600">{t}%</text>
+                  ))}
+                  {/* Area + line */}
+                  <path d={areaPath} fill={ADM.DANGER} opacity={0.10}/>
+                  <path d={linePath} fill="none" stroke={ADM.DANGER} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+                  {noShowTrend.map((m,i) => (
+                    <circle key={i} cx={xFor(i)} cy={yFor(m.pct)} r={i === noShowTrend.length-1 ? 4 : 2.2} fill={i === noShowTrend.length-1 ? ADM.DANGER : '#fff'} stroke={ADM.DANGER} strokeWidth="1.6"/>
+                  ))}
+                  {/* X labels (ogni 2 mesi) */}
+                  {noShowTrend.map((m,i) => (i % 2 === 0 || i === noShowTrend.length-1) && (
+                    <text key={i} x={xFor(i)} y={H-2} textAnchor="middle" fontSize="9" fill={ADM.MUTED} fontWeight="600">{m.m.split(' ')[0]}</text>
+                  ))}
+                  {/* Label sull'ultimo punto */}
+                  <text x={xFor(noShowTrend.length-1)} y={yFor(last.pct)-9} textAnchor="end" fontSize="10" fill={ADM.DANGER} fontWeight="800">{last.pct.toFixed(1)}%</text>
+                </svg>
+              );
+            })()}
+            <div style={{display:'flex', justifyContent:'space-between', fontSize:12.6, color:ADM.MUTED, marginTop:6, fontWeight:600}}>
+              <span><span style={{display:'inline-block', width:10, height:2, background:ADM.DANGER, verticalAlign:'middle', marginRight:5}}/>Byup</span>
+              <span><span style={{display:'inline-block', width:10, height:8, background:ADM.WARN, opacity:0.25, verticalAlign:'middle', marginRight:5}}/>Banda settore</span>
+            </div>
+          </div>
+        </AdmCard>
+
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Dove succede di più</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>% di no show per <strong style={{color:ADM.TEXT}}>giorno della settimana</strong> × <strong style={{color:ADM.TEXT}}>fascia oraria del giorno</strong></div>
+          <div style={{display:'grid', gridTemplateColumns:`66px repeat(${noShowSlots.length}, 1fr)`, gap:4}}>
+            <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'flex-end', paddingBottom:6}}>Giorno</div>
+            {noShowSlots.map(s => (
+              <div key={s.label} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'4px 0'}}>
+                <span style={{fontSize:11.9, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>{s.label}</span>
+                <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums'}}>{s.range}</span>
+              </div>
+            ))}
+            {noShowHeat.map(row => (
+              <React.Fragment key={row.g}>
+                <div style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, display:'flex', alignItems:'center'}}>{row.g}</div>
+                {row.vals.map((v,j) => {
+                  const intensity = v / noShowMax;
+                  return (
+                    <div key={j} style={{
+                      padding:'10px 4px', borderRadius:7, textAlign:'center',
+                      // Ramp mono-hue coral, cap morbido: solo il picco è pieno.
+                      background: intensity > 0.82 ? ADM.PINK : intensity < 0.1 ? '#F4F5F7' : `rgba(49,53,61,${(0.05 + intensity*0.42).toFixed(2)})`,
+                    }}>
+                      <span style={{fontSize:13, fontWeight:700, color: intensity > 0.55 ? '#fff' : ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{v.toFixed(1)}</span>
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+          {/* Legenda scala */}
+          <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:8, marginTop:10}}>
+            <span style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Intensità no show</span>
+            <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>basso</span>
+            <span style={{display:'inline-flex', borderRadius:99, overflow:'hidden', border:`1px solid ${ADM.BORDER_SOFT}`}}>
+              {[0.1,0.3,0.5,0.7,0.9].map((t,i) => (
+                <span key={i} style={{width:18, height:10, background:`rgba(220,38,38,${0.10 + t*0.80})`}}/>
+              ))}
+            </span>
+            <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>alto</span>
+          </div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
+            <strong style={{color:ADM.TEXT}}>Sabato sera 21-23 è il punto critico (12.8%)</strong>. Andamento weekend serale comune all'intero settore. Servono <strong>conferma automatica 24h prima</strong>, deposito, waitlist intelligente.
+          </div>
+        </AdmCard>
+      </div>
+
+      {(() => { const vApp = (() => {
+        const d = VALUTAZIONE_APP.distribuzione;
+        const n = d.reduce((a, x) => a + x.n, 0);
+        return { n, media: n ? d.reduce((a, x) => a + x.voto * x.n, 0) / n : 0 };
+      })(); return (<React.Fragment>
+      {/* Il voto sta in Servizio Clienti insieme agli altri due, perché il
+          valore è il confronto fra i tre mestieri. Qui ne resta il numero:
+          chi apre questa tab se lo aspetta, e non deve andarlo a cercare. */}
+      <AdmCard padding={0} style={{overflow:'hidden'}}>
+        <div style={{padding:'13px 20px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap'}}>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.04em'}}>Valutazione dell'app</span>
+          <span style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>
+            {vApp.media.toFixed(1).replace('.', ',')}
+          </span>
+          <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>/ 5 su {fmtNum(vApp.n)} risposte</span>
+          <span style={{flex:1}}/>
+          <span style={{fontSize:12.6, color:ADM.MUTED_LIGHT}}>
+            Distribuzione e commenti in Dashboard → Servizio Clienti
+          </span>
+        </div>
+      </AdmCard>
+</React.Fragment>); })()}
 
       {/* ═══════════ Chi sono gli utenti ═══════════ */}
       <SectionLabel title="Chi sono gli utenti" desc="Demografia della base installata"/>
@@ -4193,7 +3815,7 @@ function DashUtentiApp() {
       <AdmCard padding={0}>
         <div style={{padding:'16px 20px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
           <div>
-            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Top città · volume ordini & scontrino</div>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Dove ordinano i clienti · volume e scontrino</div>
             <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Ordini mensili aggregati e scontrino medio</div>
           </div>
         </div>
@@ -4599,12 +4221,377 @@ function DashUtentiApp() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// MERCATO · com'è il settore, non come stiamo noi
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Questi due blocchi stavano in Locali, in mezzo a churn, NRR e LTV. Ma non
+// dicono niente su byup: dicono quanto rende un piatto e quanto costa a Milano
+// rispetto a Napoli. Sono domande del RISTORATORE, e la tab che le ospitava
+// finiva per rispondere a due domande diverse nella stessa pagina — «come
+// stiamo andando» e «com'è il mercato».
+//
+// Stanno qui perché servono lo stesso, ma per un altro mestiere: sono il
+// benchmark che portiamo a chi vendiamo e la base per capire dove il prodotto
+// può spingere. Non sono KPI di piattaforma e non vanno letti come tali.
+function DashMercato() {
+  // ── FOOD COST / MARGINALITÀ per categoria ──────────────────────────────
+  // Stimato sul ~38% del catalogo Byup con ingredient labeling completato.
+  // Food cost % = costo materie prime / prezzo di vendita medio (standard horeca).
+  // Industria: pizza 22-28%, primi 20-25%, secondi 30-40%, drinks 12-18%.
+  const foodCostCats = [
+    { cat:'Pizza',         prezzo:11.50, foodCost:24, ord:48200, color:ADM.PINK },
+    { cat:'Primi',         prezzo:12.80, foodCost:22, ord:38400, color:ADM.WARN },
+    { cat:'Secondi carne', prezzo:18.40, foodCost:36, ord:22600, color:ADM.DANGER },
+    { cat:'Secondi pesce', prezzo:22.80, foodCost:42, ord:14800, color:ADM.INFO },
+    { cat:'Antipasti',     prezzo: 8.20, foodCost:28, ord:18200, color:ADM.OK },
+    { cat:'Dolci',         prezzo: 6.40, foodCost:21, ord:14200, color:ADM.PURPLE },
+    { cat:'Drinks',        prezzo: 7.20, foodCost:16, ord:32800, color:'#0EA5E9' },
+  ];
+  // Margine lordo % (semplice: prezzo - food cost - 0 altri costi qui)
+  // GP = (1 - foodCost%/100)
+  const foodCostEnriched = foodCostCats.map(c => ({
+    ...c,
+    margine: 100 - c.foodCost,
+    margineEur: c.prezzo * (100 - c.foodCost)/100,
+    ricavi: c.prezzo * c.ord,
+  })).sort((a,b) => b.margine - a.margine);
+
+
+  // ───── Posizionamento prezzi · centinaia di piatti × 8 città × 12 mesi ─
+  // Modello: prezzo_T0(piatto, città) = basePrice(piatto) × multCittà[× override
+  // del piatto-icona]. La serie 12 mesi applica inflazione lineare per piatto +
+  // una piccola componente stagionale. Tutti i dati derivano dal DISH_CATALOG
+  // a livello modulo, quindi centinaia di piatti sono già selezionabili.
+  const priceMonths = ['Giu 25','Lug 25','Ago 25','Set 25','Ott 25','Nov 25','Dic 25','Gen 26','Feb 26','Mar 26','Apr 26','Mag 26'];
+  const priceCities = Object.keys(CITY_PRICE_MULT);
+  const priceCityList = ['Tutta Italia', ...priceCities];
+  const pricePalette = ['#0F1115', '#FF5A5F', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#EF4444'];
+  // Prezzo mensile T+i per piatto×città (Mag 26 = base attuale, cioè i=11)
+  const priceSeries = (dish, city) => {
+    const base = dishPriceForCity(dish, city);
+    const seasonal = DISH_PRICE_SEASONAL[dish] || DISH_PRICE_SEASONAL_DEFAULT;
+    const inflTot = DISH_INFLATION[dish] || DISH_INFLATION.default;
+    return priceMonths.map((_, i) => {
+      const inflAt = inflTot * (i / 11);
+      const seasPct = seasonal[i] / 100;
+      // Riportiamo i prezzi indietro nel tempo: il mese N=11 = base attuale
+      const factor = 1 + seasPct - (inflTot/100) + (inflAt/100);
+      return Math.round(base * factor * 100) / 100;
+    });
+  };
+  const [priceRegion, setPriceRegion] = useStateDash('Tutta Italia');
+  const [priceSel, setPriceSel] = useStateDash(['Pizza Margherita', 'Carbonara', 'Spritz Aperol']);
+  const [priceQuery, setPriceQuery] = useStateDash('');
+  const [pricePickerOpen, setPricePickerOpen] = useStateDash(false);
+  const priceMaxPick = 10;
+  // Series media per regione selezionata (Tutta Italia = media città)
+  const priceSeriesByDish = priceSel.map(d => {
+    const cities = priceRegion === 'Tutta Italia' ? priceCities : [priceRegion];
+    const allSeries = cities.map(c => priceSeries(d, c));
+    const avg = Array.from({length:12}, (_, i) => {
+      const sum = allSeries.reduce((s, ser) => s + ser[i], 0);
+      return Math.round((sum / cities.length) * 100) / 100;
+    });
+    return { name:d, vals:avg };
+  });
+  const priceAllVals = priceSeriesByDish.flatMap(d => d.vals);
+  const priceTimeMin = priceAllVals.length ? Math.min(...priceAllVals) : 0;
+  const priceTimeMax = priceAllVals.length ? Math.max(...priceAllVals) : 20;
+  // Per ogni piatto selezionato: snapshot città al mese corrente (Mag 26 = ultimo)
+  const priceCitySnapshot = (dish) => {
+    return priceCities
+      .map(c => ({ city: c, price: priceSeries(dish, c)[11] }))
+      .sort((a,b) => b.price - a.price);
+  };
+  const priceFiltered = DISH_CATALOG.filter(d => {
+    const q = priceQuery.trim().toLowerCase();
+    if (!q) return true;
+    return d.n.toLowerCase().includes(q) || d.cat.toLowerCase().includes(q);
+  });
+  return (
+    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
+      <SectionLabel first title="Economia del menu"
+        desc="Food cost e marginalità stimati sul catalogo della rete · quanto rende un piatto a chi lo vende"/>
+
+
+      <AdmCard padding={0}>
+        <div style={{padding:'14px 22px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Food cost & marginalità per categoria</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Margine lordo stimato · proxy del valore di un marketplace fornitori</div>
+          <div style={{fontSize:12, color:ADM.MUTED_SOFT, marginTop:7, display:'flex', alignItems:'center', gap:6}}>
+            <BuIcons.info size={13} color={ADM.MUTED_SOFT}/>
+            <span>Stima su <strong style={{color:ADM.MUTED, fontWeight:700}}>38% del catalogo</strong> · food-cost di settore come riferimento (±2-3 pt di accuratezza)</span>
+          </div>
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18, padding:'12px 22px', background:ADM.PANEL_SOFT, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div>Categoria</div>
+          <div style={{textAlign:'right'}}>Prezzo vendita</div>
+          <div style={{textAlign:'right'}}>Food cost</div>
+          <div>Margine lordo</div>
+          <div style={{textAlign:'right'}}>Ordini / mese</div>
+        </div>
+        {foodCostEnriched.map((c, i) => {
+          const marginTone = c.margine >= 80 ? ADM.OK : c.margine >= 70 ? ADM.WARN : ADM.DANGER;
+          return (
+            <div key={c.cat} style={{
+              display:'grid', gridTemplateColumns:'1.4fr 0.9fr 0.9fr 1.3fr 1fr', columnGap:18,
+              padding:'14px 22px', alignItems:'center',
+              borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <span style={{width:8, height:30, borderRadius:3, background:marginTone, flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>{c.cat}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>Ricavi/mese {fmtEur(Math.round(c.ricavi))}</div>
+                </div>
+              </div>
+              <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtEur(c.prezzo)}</div>
+              <div style={{fontSize:14.4, fontWeight:700, color:ADM.DANGER, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.foodCost}%</div>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden', maxWidth:180}}>
+                  <div style={{width:`${c.margine}%`, height:'100%', background:`linear-gradient(90deg, ${marginTone}, ${marginTone}DD)`, borderRadius:99}}/>
+                </div>
+                <span style={{fontSize:14.4, fontWeight:800, color:marginTone, minWidth:42, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{c.margine}%</span>
+              </div>
+              <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600, textAlign:'right', fontFamily:'ui-monospace, monospace'}}>{fmtNum(c.ord)}</div>
+            </div>
+          );
+        })}
+        <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5}}>
+          <strong style={{color:ADM.TEXT}}>Insight:</strong> Drinks ha il margine lordo più alto (84%) ma volume medio basso · Pizza è il <strong>sweet spot</strong> con margine 76% e oltre 48k ordini/mese · Secondi di pesce sono i meno marginali (58%) ma a prezzo unitario più alto. Drive opportunità marketplace fornitori: chi rifornisce gli ingredienti chiave delle prime due categorie controlla il 70% del valore.
+        </div>
+      </AdmCard>
+
+      <SectionLabel title="Posizionamento prezzi per città" desc="Listino medio dei locali partner · benchmark territoriale"/>
+
+      <AdmCard padding={20}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
+          <div style={{minWidth:0, flex:'1 1 300px'}}>
+            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Prezzo medio per città · andamento 12 mesi</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Prezzo medio del piatto sui menù dei locali partner. Confronta fino a {priceMaxPick} piatti e osserva il trend nel tempo.</div>
+          </div>
+          {/* Region selector */}
+          <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
+            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
+            <select value={priceRegion} onChange={(e)=>setPriceRegion(e.target.value)} style={{
+              padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
+              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
+              appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
+              backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
+            }}>
+              {priceCityList.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Multi-select piatti — searchable, max 10 su catalogo completo */}
+        <div style={{marginBottom:18}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8}}>
+            <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Piatti da confrontare</span>
+            <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>{priceSel.length} / {priceMaxPick}</span>
+          </div>
+          <div style={{display:'flex', flexWrap:'wrap', gap:6, padding:'8px 8px', border:`1px solid ${ADM.BORDER}`, borderRadius:9, background:'#fff', minHeight:42, alignItems:'center', cursor:'text', position:'relative'}} onClick={()=>setPricePickerOpen(true)}>
+            {priceSel.map((name, i) => {
+              const c = pricePalette[i % pricePalette.length];
+              return (
+                <span key={name} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px 4px 10px', background:`${c}14`, border:`1px solid ${c}40`, borderRadius:99, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
+                  <span style={{width:8, height:8, borderRadius:'50%', background:c}}/>
+                  {name}
+                  <button onClick={(e)=>{e.stopPropagation(); if (priceSel.length > 1) setPriceSel(priceSel.filter(x=>x!==name));}} style={{background:'transparent', border:'none', padding:0, margin:'0 0 0 2px', cursor:'pointer', color:ADM.MUTED, fontSize:15.1, lineHeight:1, fontFamily:'inherit', width:16, height:16, display:'inline-grid', placeItems:'center'}} aria-label={`Rimuovi ${name}`}>×</button>
+                </span>
+              );
+            })}
+            <input
+              type="text"
+              value={priceQuery}
+              onChange={(e)=>{setPriceQuery(e.target.value); setPricePickerOpen(true);}}
+              onFocus={()=>setPricePickerOpen(true)}
+              onBlur={()=>setTimeout(()=>setPricePickerOpen(false), 180)}
+              placeholder={priceSel.length === 0 ? 'Cerca tra centinaia di piatti…' : priceSel.length >= priceMaxPick ? `Massimo ${priceMaxPick} piatti — rimuovine uno per aggiungerne altri` : 'Aggiungi piatto…'}
+              disabled={priceSel.length >= priceMaxPick}
+              style={{flex:'1 1 160px', minWidth:140, border:'none', outline:'none', fontSize:13.7, color:ADM.TEXT, fontFamily:'inherit', padding:'4px 6px', background:'transparent'}}
+            />
+            {pricePickerOpen && (
+              <div style={{position:'absolute', top:'100%', left:0, right:0, marginTop:6, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:9, boxShadow:'0 8px 24px rgba(15,17,21,0.10)', maxHeight:280, overflowY:'auto', zIndex:30}}>
+                {priceFiltered.length === 0 ? (
+                  <div style={{padding:'12px 14px', fontSize:13.7, color:ADM.MUTED}}>Nessun piatto corrisponde a "{priceQuery}"</div>
+                ) : (() => {
+                  const byCat = priceFiltered.reduce((acc, d) => { (acc[d.cat] = acc[d.cat] || []).push(d); return acc; }, {});
+                  return Object.entries(byCat).map(([cat, items]) => (
+                    <div key={cat}>
+                      <div style={{padding:'8px 14px 4px', fontSize:12.6, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', background:ADM.PANEL_SOFT, position:'sticky', top:0}}>{cat}</div>
+                      {items.map(d => {
+                        const selected = priceSel.includes(d.n);
+                        const disabled = !selected && priceSel.length >= priceMaxPick;
+                        return (
+                          <button
+                            key={d.n}
+                            onMouseDown={(e)=>e.preventDefault()}
+                            onClick={()=>{
+                              if (selected) { if (priceSel.length > 1) setPriceSel(priceSel.filter(x=>x!==d.n)); }
+                              else if (!disabled) setPriceSel([...priceSel, d.n]);
+                            }}
+                            disabled={disabled}
+                            style={{
+                              width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
+                              padding:'8px 14px', border:'none', background: selected ? ADM.PINK_BG_SOFT : 'transparent',
+                              cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'inherit',
+                              opacity: disabled ? 0.4 : 1, color: ADM.TEXT, fontSize:13.7, fontWeight: selected ? 700 : 500,
+                            }}>
+                            <span style={{width:14, height:14, borderRadius:4, border:`1.5px solid ${selected ? ADM.PINK_DARK : ADM.BORDER}`, background: selected ? ADM.PINK_DARK : '#fff', display:'inline-grid', placeItems:'center', color:'#fff', fontSize:12.2, fontWeight:800}}>{selected?'✓':''}</span>
+                            <span style={{flex:1}}>{d.n}</span>
+                            <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>{fmtEur(dishBasePrice(d.n).toFixed(2))}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Line chart 12 mesi × N piatti */}
+        {(() => {
+          if (priceSeriesByDish.length === 0) return null;
+          const W = 1200, H = 220, padX = 48, padY = 26;
+          const plotW = W - padX*2, plotH = H - padY*2;
+          const yLo = Math.max(0, Math.floor(priceTimeMin*0.92));
+          const yHi = Math.ceil(priceTimeMax*1.06);
+          const range = yHi - yLo || 1;
+          const xFor = (i) => padX + (i/11) * plotW;
+          const yFor = (v) => padY + (1 - (v - yLo)/range) * plotH;
+          const yTicks = [yLo, (yLo+yHi)/2, yHi].map(v => Math.round(v*10)/10);
+          return (
+            <div style={{overflow:'hidden', marginBottom:18}}>
+              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:240}}>
+                {yTicks.map((t,i) => (
+                  <g key={i}>
+                    <line x1={padX} x2={W-padX} y1={yFor(t)} y2={yFor(t)} stroke={ADM.BORDER_SOFT} strokeDasharray="3 4"/>
+                    <text x={padX-8} y={yFor(t)+4} textAnchor="end" fontSize="11" fill={ADM.MUTED_SOFT} fontWeight="600">€ {t.toFixed(t<10?1:0)}</text>
+                  </g>
+                ))}
+                {priceMonths.map((m, i) => (
+                  <text key={i} x={xFor(i)} y={H-6} textAnchor="middle" fontSize="10.5" fill={ADM.MUTED} fontWeight="600">{m}</text>
+                ))}
+                {priceSeriesByDish.map((d, di) => {
+                  const c = pricePalette[di % pricePalette.length];
+                  const path = d.vals.map((v,i) => `${i===0?'M':'L'} ${xFor(i)} ${yFor(v)}`).join(' ');
+                  return (
+                    <g key={d.name}>
+                      <path d={path} fill="none" stroke={c} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                      {d.vals.map((v,i) => (
+                        <circle key={i} cx={xFor(i)} cy={yFor(v)} r={3.2} fill="#fff" stroke={c} strokeWidth="2"/>
+                      ))}
+                    </g>
+                  );
+                })}
+              </svg>
+              <div style={{display:'flex', flexWrap:'wrap', gap:'6px 16px', marginTop:10, justifyContent:'center'}}>
+                {priceSeriesByDish.map((d, di) => {
+                  const c = pricePalette[di % pricePalette.length];
+                  const first = d.vals[0], last = d.vals[11];
+                  const deltaPct = ((last - first) / first) * 100;
+                  return (
+                    <span key={d.name} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.3, fontWeight:600, color:ADM.TEXT}}>
+                      <span style={{width:16, height:3, borderRadius:2, background:c}}/>
+                      {d.name}
+                      <span style={{fontSize:12.6, color: deltaPct >= 1 ? ADM.DANGER : deltaPct <= -1 ? ADM.OK : ADM.MUTED, fontWeight:700, fontVariantNumeric:'tabular-nums'}}>
+                        {deltaPct>=0?'+':''}{deltaPct.toFixed(1)}% / 12m
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Per ogni piatto selezionato: snapshot città (Mag 26) */}
+        <div style={{display:'flex', flexDirection:'column', gap:14}}>
+          {priceSel.map((dish, di) => {
+            const c = pricePalette[di % pricePalette.length];
+            const snap = priceCitySnapshot(dish);
+            const mn = snap[snap.length-1].price;
+            const mx = snap[0].price;
+            const avg = snap.reduce((s,r)=>s+r.price,0) / snap.length;
+            const varPct = ((mx - mn) / mn) * 100;
+            return (
+              <div key={dish} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderLeft:`3px solid ${c}`, borderRadius:9}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10, marginBottom:12}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8}}>
+                    <span style={{width:9, height:9, borderRadius:'50%', background:c}}/>
+                    <span style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{dish}</span>
+                  </div>
+                  <div style={{display:'flex', gap:14, alignItems:'baseline', fontSize:13.3, color:ADM.MUTED}}>
+                    <span>Più bassa <strong style={{color:ADM.OK}}>{fmtEur(mn)}</strong> {snap[snap.length-1].city}</span>
+                    <span>Media <strong style={{color:ADM.TEXT}}>{fmtEur(avg.toFixed(2))}</strong></span>
+                    <span>Più alta <strong style={{color:ADM.DANGER}}>{fmtEur(mx)}</strong> {snap[0].city}</span>
+                    <span>Spread <strong style={{color:ADM.PINK_DARK}}>+{Math.round(varPct)}%</strong></span>
+                  </div>
+                </div>
+                <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                  {snap.map((r, i) => {
+                    const ratio = (r.price - mn) / (mx - mn || 1);
+                    const tone = ratio > 0.66 ? ADM.DANGER : ratio > 0.33 ? ADM.WARN : ADM.OK;
+                    const delta = ((r.price - avg) / avg) * 100;
+                    return (
+                      <div key={r.city} style={{display:'flex', alignItems:'center', gap:10}}>
+                        <span style={{fontSize:12.2, fontWeight:800, color:ADM.MUTED_SOFT, width:14, textAlign:'right'}}>{i+1}</span>
+                        <span style={{fontSize:13.3, fontWeight:600, color:ADM.TEXT, width:78}}>{r.city}</span>
+                        <div style={{flex:1, height:7, background:ADM.PANEL_SOFT, borderRadius:99, overflow:'hidden'}}>
+                          <div style={{width:`${20 + ratio*80}%`, height:'100%', background:`linear-gradient(90deg, ${tone}AA, ${tone})`, borderRadius:99}}/>
+                        </div>
+                        <span style={{fontSize:13.7, fontWeight:800, color:ADM.TEXT, width:54, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{fmtEur(r.price)}</span>
+                        <span style={{fontSize:12.6, fontWeight:700, color: delta > 5 ? ADM.DANGER : delta < -5 ? ADM.OK : ADM.MUTED, width:46, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{delta >= 0 ? '+' : ''}{delta.toFixed(0)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+          <strong style={{color:ADM.TEXT}}>Come leggere:</strong> il grafico in alto mostra il prezzo medio nel tempo per i piatti selezionati (Giu 25 → Mag 26). Cambia <strong style={{color:ADM.TEXT}}>area</strong> per vedere la curva di una singola città. Sotto, per ogni piatto, lo snapshot per città al mese corrente (Mag 26) con spread vs media. <strong>Dato vendibile</strong> a brand alimentari, consulenti di pricing e media.
+        </div>
+      </AdmCard>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // CAMERIERI · ristrutturata con la prospettiva da data scientist
 // Coverage, ratio, retention, benchmark, trend per azione, heatmap settimanale.
 // ════════════════════════════════════════════════════════════════════════════
 function DashCamerieri() {
   // ── 1. Coverage · locali che HANNO configurato lo staff vs senza
   const liveLocali = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped');
+
+  // ── TEMPO MEDIO SERVIZIO · da ordine confermato a chiusura conto ────────
+  // Industria horeca: pizzeria 25-45 min, trattoria 50-90 min, ristorante 70-120 min
+  const serviceByType = [
+    { tipo:'Pizzeria',   media:38, median:34, p75:52,  n: 9, color:ADM.PINK },
+    { tipo:'Trattoria',  media:68, median:62, p75: 86, n:11, color:ADM.WARN },
+    { tipo:'Osteria',    media:74, median:70, p75: 94, n: 7, color:ADM.DANGER },
+    { tipo:'Ristorante', media:92, median:88, p75:118, n:12, color:ADM.PURPLE },
+    { tipo:'Bistrot',    media:54, median:50, p75: 72, n: 6, color:ADM.INFO },
+    { tipo:'Pub',        media:46, median:42, p75: 60, n: 3, color:ADM.OK },
+  ];
+  const serviceOverall = Math.round(
+    serviceByType.reduce((s,t) => s + t.media*t.n, 0) / serviceByType.reduce((s,t)=>s+t.n,0)
+  );
+  // Distribuzione tempo servizio (% locali per fascia minuti)
+  const serviceDist = [
+    { range:'< 30 min',  pct: 8, label:'Fast' },
+    { range:'30-45',     pct:18, label:'Veloce' },
+    { range:'45-60',     pct:22, label:'Standard' },
+    { range:'60-90',     pct:28, label:'Medio' },
+    { range:'90-120',    pct:16, label:'Lento' },
+    { range:'> 120 min', pct: 8, label:'Critico' },
+  ];
   const totLiveLocali = liveLocali.length;
   // assunzione: locali con staff configurato hanno completato step "team_staff" o sono active e non skipped
   const configurati = liveLocali.filter(STAFF_CONFIGURATO);
@@ -4856,6 +4843,107 @@ function DashCamerieri() {
           </React.Fragment>
         );
       })()}
+
+      {(() => { const vStaff = (() => {
+        const d = VALUTAZIONE_STAFF.distribuzione;
+        const n = d.reduce((a, x) => a + x.n, 0);
+        return { n, media: n ? d.reduce((a, x) => a + x.voto * x.n, 0) / n : 0 };
+      })(); return (<React.Fragment>
+      {/* Il voto sta in Servizio Clienti insieme agli altri due, perché il
+          valore è il confronto fra i tre mestieri. Qui ne resta il numero:
+          chi apre questa tab se lo aspetta, e non deve andarlo a cercare. */}
+      <AdmCard padding={0} style={{overflow:'hidden'}}>
+        <div style={{padding:'13px 20px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap'}}>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.04em'}}>Valutazione di Byup Staff</span>
+          <span style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>
+            {vStaff.media.toFixed(1).replace('.', ',')}
+          </span>
+          <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>/ 5 su {fmtNum(vStaff.n)} risposte</span>
+          <span style={{flex:1}}/>
+          <span style={{fontSize:12.6, color:ADM.MUTED_LIGHT}}>
+            Distribuzione e commenti in Dashboard → Servizio Clienti
+          </span>
+        </div>
+      </AdmCard>
+</React.Fragment>); })()}
+
+      {/* ═══════════ Tempo medio di servizio ═══════════ */}
+      {/* Stava in Locali, fra il churn e il food cost. È invece l'ESITO del
+          lavoro in sala: quanto ci mette un tavolo dall'ordine confermato al
+          conto chiuso misura proprio quello che i due blocchi qui sopra
+          descrivono — chi c'è in sala, e quanto usa il gestionale. */}
+      <SectionLabel title="Tempo medio di servizio"
+        desc="Dall'ordine confermato alla chiusura conto · il risultato di come lavora la sala"/>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Distribuzione locali</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Per fascia di tempo medio</div>
+          <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:18}}>
+            <div style={{fontSize:32.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>{serviceOverall}</div>
+            <div style={{fontSize:14.4, color:ADM.MUTED, fontWeight:600}}>min media piattaforma</div>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:9}}>
+            {serviceDist.map((d,i) => {
+              const tone = i < 2 ? ADM.OK : i < 4 ? ADM.WARN : ADM.DANGER;
+              return (
+                <div key={i}>
+                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                    <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600}}>{d.range} <span style={{color:ADM.MUTED, fontWeight:500}}>· {d.label}</span></span>
+                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{d.pct}%</span>
+                  </div>
+                  <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
+                    <div style={{width:`${d.pct*3.3}%`, height:'100%', background:tone, borderRadius:99}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </AdmCard>
+
+        <AdmCard padding={20}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
+            <div>
+              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Per tipo locale</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Mediana · P75 · campione di locali</div>
+            </div>
+            <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>min</div>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:14}}>
+            {serviceByType.map((t,i) => {
+              const maxV = Math.max(...serviceByType.map(x=>x.p75));
+              return (
+                <div key={i}>
+                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:6}}>
+                    <span style={{fontSize:14, color:ADM.TEXT, fontWeight:700}}>{t.tipo}</span>
+                    <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>n={t.n}</span>
+                  </div>
+                  {/* Box-plot-ish: line min-max, dot mediana, marker P75 */}
+                  <div style={{position:'relative', height:24, background:'#F4F5F7', borderRadius:8, overflow:'hidden'}}>
+                    <div style={{
+                      position:'absolute', left:0, top:0, bottom:0,
+                      width:`${(t.median/maxV)*100}%`,
+                      background:ADM.INK,
+                    }}/>
+                    <div style={{
+                      position:'absolute', left:`${(t.p75/maxV)*100}%`,
+                      top:'50%', transform:'translate(-50%, -50%)',
+                      width:3, height:18, background:'#0F1115', borderRadius:1, opacity:0.4,
+                    }}/>
+                    <div style={{position:'absolute', left:`calc(${(t.median/maxV)*100}% - 4px)`, top:'50%', transform:'translateY(-50%)', width:8, height:8, borderRadius:'50%', background:'#fff', border:`2px solid ${ADM.INK}`}}/>
+                    <span style={{position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', fontSize:13, fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textShadow:'0 0 4px rgba(0,0,0,0.4)'}}>{t.median} min</span>
+                    <span style={{position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:12.6, fontWeight:700, color:ADM.MUTED}}>P75 {t.p75}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
+            <strong style={{color:ADM.TEXT}}>Pizzeria è il tipo più efficiente</strong> (38 min media), Ristorante il più lento (92 min). I locali con tempi oltre 90 min hanno satisfaction più bassa del 18%. <strong>Dato vendibile</strong> come punto di riferimento di settore (oggi assente sul mercato IT).
+          </div>
+        </AdmCard>
+      </div>
 
       {/* ═══════════ Attività operativa ═══════════ */}
       <SectionLabel title="Attività operativa" desc="Quando e come lo staff usa il gestionale"/>
@@ -5109,33 +5197,5 @@ function ScreensCard() {
   );
 }
 
-function FeaturesCard() {
-  return (
-    <AdmCard padding={20}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
-        <div>
-          <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Funzionalità più usate</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Azioni dei gestori</div>
-        </div>
-        <span style={{fontSize:12.6, color:ADM.MUTED_SOFT}}>Ultimi 30 giorni</span>
-      </div>
-      <div style={{display:'flex', flexDirection:'column'}}>
-        {FEATURES_USAGE.slice(0, 9).map((f, i) => (
-          <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'7.5px 0', borderBottom: i === 8 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-            <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:700, width:18}}>{i+1}</div>
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:14, color:ADM.TEXT, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{f.nome}</div>
-              <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{f.modulo}</div>
-            </div>
-            <div style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, width:74, textAlign:'right'}}>{fmtNum(f.usi)}</div>
-            <div style={{width:36, textAlign:'right'}}>
-              <span style={{fontSize:12.6, fontWeight:600, color: f.trend >= 0 ? ADM.OK : ADM.DANGER}}>{f.trend >= 0 ? '↑' : '↓'} {Math.abs(f.trend)}%</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </AdmCard>
-  );
-}
 
 window.AdmDashboard = AdmDashboard;
