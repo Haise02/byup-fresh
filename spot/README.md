@@ -25,7 +25,7 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 | **Economix** | Costi, conto economico, cassa, patrimonio di byup | [Economix.md](Economix.md) |
 | **Risk Management** | Rischi, adempimenti ed evidenze ISO 27001 / 9001 | [Risk-Management.md](Risk-Management.md) |
 | **Sicurezza e sistemi** | Accessi, audit log, diagnostica | [Riesame-Accessi.md](Riesame-Accessi.md) |
-| **Impostazioni Admin** | Configurazione della piattaforma (piani, prezzi) | — |
+| **Piattaforma** | Tre tab: Piani e prezzi, Peso ordini, Discovery nell'app | — |
 
 ---
 

@@ -33,7 +33,7 @@ const NAV_SYSTEM = [
   // domanda vista da tre lati: stanno insieme e non dentro le impostazioni,
   // dove finivano solo perche non c'era un altro posto.
   { id: 'sicurezza',    label: 'Sicurezza e sistemi', icon: 'lockFill' },
-  { id: 'team',         label: 'Impostazioni Admin', icon: 'shieldUserFill' },
+  { id: 'team',         label: 'Piattaforma', icon: 'shieldUserFill' },
 ];
 
 // Nav item — stile gestionale: attivo = fondo pesca + testo/coral, icona
@@ -155,7 +155,7 @@ function AdminApp({ tweaks }) {
   const [commOpen, setCommOpen] = useStateApp(null);
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
   const [confTab, setConfTab] = useStateApp(null);   // tab della Conformità aperta da un link esterno
-  const [teamTab, setTeamTab] = useStateApp(null);   // idem per Impostazioni Admin
+  const [teamTab, setTeamTab] = useStateApp(null);   // idem per Piattaforma
   const [searchOpen, setSearchOpen] = useStateApp(false);
   const [notifOpen, setNotifOpen] = useStateApp(false);
   const [notifRead, setNotifRead] = useStateApp(false);
@@ -215,7 +215,7 @@ function AdminApp({ tweaks }) {
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
     assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
-    team:         { t:'Impostazioni Admin', s:'Configurazione tecnica e parametri della piattaforma' },
+    team:         { t:'Piattaforma', s:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
     economix:     { t:'Economix', s:'Costi, conto economico, cassa e patrimonio di Byup' },
     conformita:   { t:'Risk Management', s:'Rischi, adempimenti ed evidenze per ISO/IEC 27001 e ISO 9001' },

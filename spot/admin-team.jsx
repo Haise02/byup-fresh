@@ -452,9 +452,43 @@ function PlatformConfig() {
   const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
   const lab = {fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
   const doSave = () => { setConfirm(false); setSaved(true); setTimeout(()=>setSaved(false), 3000); };
+
+  // Tre leve diverse in tre tab. Erano tre titoli uno sotto l'altro in una
+  // pagina che si scorreva tutta per arrivare al fondo, e chi entrava per
+  // cambiare un raggio della discovery passava comunque davanti ai prezzi.
+  //
+  // Il salvataggio invece resta FUORI dalle tab e sempre visibile: la
+  // configurazione è una sola e si applica tutta insieme: metterlo dentro
+  // farebbe credere che ogni tab si salvi per conto suo, e uno che tocca i
+  // prezzi e poi passa a Discovery penserebbe di aver già salvato.
+  const [vista, setVista] = React.useState('piani');
+  const viste = [
+    { id:'piani',     label:'Piani e prezzi' },
+    { id:'pesi',      label:'Peso ordini' },
+    { id:'discovery', label:'Discovery' },
+  ];
+
   return (
-    <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:14, position:'relative'}}>
-      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Piani e prezzi</div>
+    <div style={{padding:'16px 22px 20px', display:'flex', flexDirection:'column', gap:14, position:'relative'}}>
+      <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+        {viste.map(v => {
+          const attiva = vista === v.id;
+          return (
+            <button key={v.id} className="adm-pill" onClick={()=>setVista(v.id)} style={{
+              padding:'7px 14px', borderRadius:99,
+              background: attiva ? ADM.TEXT : '#fff', color: attiva ? '#fff' : ADM.TEXT,
+              border:`1px solid ${attiva ? ADM.TEXT : ADM.BORDER}`,
+              fontSize:13.2, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+            }}>{v.label}</button>
+          );
+        })}
+      </div>
+
+      {vista === 'piani' && (
+      <React.Fragment>
+      <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.5}}>
+        Prezzo, ordini inclusi e costo dell'ordine fuori pacchetto, per ciascun piano.
+      </div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         {Object.entries(cfg).map(([id, p]) => (
           <div key={id} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
@@ -475,9 +509,12 @@ function PlatformConfig() {
           </div>
         ))}
       </div>
+      </React.Fragment>
+      )}
 
-      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginTop:6}}>Peso dell'ordine per canale</div>
-      <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:-6, lineHeight:1.5}}>
+      {vista === 'pesi' && (
+      <React.Fragment>
+      <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.5}}>
         Quanto ogni ordine consuma del pacchetto incluso nel piano. L'app pesa meno per
         incentivarne l'adozione — è il meccanismo che tiene insieme locale e cliente finale.
       </div>
@@ -501,9 +538,12 @@ function PlatformConfig() {
           );
         })}
       </div>
+      </React.Fragment>
+      )}
 
-      <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginTop:6}}>Discovery nell'app</div>
-      <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:-6, lineHeight:1.5}}>
+      {vista === 'discovery' && (
+      <React.Fragment>
+      <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.5}}>
         Il <strong>raggio</strong> definisce entro che distanza dal GPS dell'utente cercare i locali;
         la <strong>soglia</strong> quanti devono essercene perché la ricerca si accenda. Sotto soglia
         l'app non mostra la discovery: meglio niente che una mappa vuota.
@@ -534,9 +574,16 @@ function PlatformConfig() {
           </div>
         ))}
       </div>
+      </React.Fragment>
+      )}
 
-      <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10}}>
+      {/* Fuori dalle tab: si salva tutto, non la tab aperta. */}
+      <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10,
+        paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
         {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Configurazione salvata e registrata in audit</span>}
+        <span style={{flex:1, fontSize:12.2, color:ADM.MUTED_SOFT}}>
+          Il salvataggio applica tutte e tre le sezioni, non solo quella aperta.
+        </span>
         <AdmButton variant="primary" size="md" icon="check" onClick={()=>setConfirm(true)}>Salva configurazione</AdmButton>
       </div>
 

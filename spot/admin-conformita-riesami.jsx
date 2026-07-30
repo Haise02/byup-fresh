@@ -1,6 +1,6 @@
 // Conformità — Audit interni e riesame di direzione (CfAudit), registri di
 // formazione (CfFormazione) e test di ripristino (CfTestRipristino): entrambi
-// resi in Impostazioni Admin, non piu fra i registri di Conformita.
+// resi in Piattaforma, non piu fra i registri di Conformita.
 //
 // Il pezzo che conta è il riesame di direzione: la §9.3 impone che la riunione
 // parta da una lista fissa di input, e la fatica non è decidere, è raccogliere

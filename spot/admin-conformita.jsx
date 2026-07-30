@@ -255,7 +255,7 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
 
   // Accetta sia una tab di Conformita (stringa) sia una destinazione altrove
   // (oggetto con route): da quando formazione e ripristino vivono in
-  // Impostazioni Admin, un link del cruscotto puo uscire da questa sezione.
+  // Piattaforma, un link del cruscotto puo uscire da questa sezione.
   const vai = (dest) => {
     if (!dest) return;
     if (typeof dest === 'string') { setTab(dest); return; }

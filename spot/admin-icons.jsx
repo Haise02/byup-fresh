@@ -87,7 +87,7 @@ const ICON_FILLED = {
   euroFill: 'M18.73 5.7A8 8 0 1 0 18.73 18.3L16.88 15.94A5 5 0 1 1 16.88 8.06z|M5.85 8.95h7.75a1.25 1.25 0 0 1 0 2.5H5.85a1.25 1.25 0 0 1 0-2.5z|M5.85 12.55h7.75a1.25 1.25 0 0 1 0 2.5H5.85a1.25 1.25 0 0 1 0-2.5z',
   // Indicatore a lancetta: il rischio si misura, non si respinge — uno scudo
   // dice «protetto», un quadrante dice «a che livello siamo». E lo scudo era gia
-  // preso da Impostazioni Admin, che nella stessa colonna e a due voci di
+  // preso da Piattaforma, che nella stessa colonna e a due voci di
   // distanza. Tre forme che si uniscono: corona, lancetta, perno.
   gaugeFill: 'M2.5 16A9.5 9.5 0 0 1 21.5 16L17.2 16A5.2 5.2 0 0 0 6.8 16Z|M17 10.2L13.29 17.11L10.71 14.89Z|M12 13.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z',
   // Lucchetto pieno: corpo con il buco della serratura ricavato per evenodd
