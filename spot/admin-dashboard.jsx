@@ -653,8 +653,6 @@ function DashGenerale({ onNav }) {
   // === UTENTI APP ===
   const totUtenti = UTENTI_BASE;
   const attivi24 = APP_METRICS.dau;
-  const attivi7g = APP_METRICS.wau;
-  const attivi30g = APP_METRICS.mau;
 
   // Accessi guest: la costante, non una stima ricavata dagli ordini. Erano due
   // numeri per la stessa cosa — 15,6k qui e 26,4k in APP_METRICS — e la
@@ -678,11 +676,6 @@ function DashGenerale({ onNav }) {
   const prezzoExtraMedio = extraOrdMese ? mrrExtraMese / extraOrdMese : 0.3;
   const extraOrdAnno = prezzoExtraMedio ? Math.round(extraAnno / prezzoExtraMedio) : 0;
   const extraOrdMedia = Math.round(extraOrdAnno / 12);
-
-  // Dettaglio in-linea aperto (o null). Click su una card → apre la fascia sotto;
-  // ri-click sulla stessa la chiude.
-  const [detail, setDetail] = React.useState(null);
-  const toggleDetail = (cfg) => setDetail(d => (d && d.key === cfg.key) ? null : cfg);
 
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
@@ -739,17 +732,15 @@ function DashGenerale({ onNav }) {
           sub={`${setupIniziale} in setup · ${onbIncompleto} da completare · l'elenco è in Locali`}
           data={TS.inOnboardCount.slice(-30)} gradId="grad-onb"
         />
+        {/* Non si apre più: l'espansione mostrava attivi a 24h/7g/30g, cioè
+            DAU, WAU e MAU, che nel tab Utenti App sono già tre card intere
+            con serie storica e variazione. Qui resta il totale con l'attività
+            di oggi, e il resto si legge dove vive. */}
         <DashStatCard
           label="Utenti totali" value={fmtNum(totUtenti)} accent="INK"
           trend={woW(TS.utentiTot).delta} trendLabel="7gg"
-          sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(attivi24)}</b> attivi oggi · <b style={{color:ADM.TEXT}}>{Math.round(attivi24/totUtenti*100)}%</b> dei registrati</span>}
+          sub={<span><b style={{color:ADM.TEXT}}>{fmtNum(attivi24)}</b> attivi oggi · <b style={{color:ADM.TEXT}}>{Math.round(attivi24/totUtenti*100)}%</b> dei registrati · il dettaglio è in Utenti App</span>}
           data={TS.utentiTot.slice(-30)} gradId="grad-ute"
-          selected={detail?.key === 'utenti'}
-          onClick={()=>toggleDetail({
-            key:'utenti', title:'Utenti · dettaglio', subtitle:'Attività dell\'app', accent:ADM.PINK,
-            content:<UtentiTooltip tot={totUtenti} attivi24={attivi24} attivi7g={attivi7g} attivi30g={attivi30g}/>,
-            pageLabel:'Apri elenco Utenti', onPage:()=>onNav('utenti'),
-          })}
         />
         <DashStatCard
           label="Accessi guest · 30gg" value={fmtNum(guestLog30g)} accent="INK"
@@ -758,8 +749,6 @@ function DashGenerale({ onNav }) {
           data={TS.guestAccessi.slice(-30)} gradId="grad-gue"
         />
       </div>
-
-      {detail && <InlineDetail detail={detail} onClose={()=>setDetail(null)}/>}
 
       {/* ═══════════ In dettaglio — gli approfondimenti chiave, a vista ═══════════ */}
       <SectionLabel title="In dettaglio" desc="Gli approfondimenti chiave, sempre visibili"/>
@@ -1249,33 +1238,6 @@ function TempoMedioSetupTooltip({ media, mediana, minV, maxV, campione, buckets,
           })}
         </div>
       </div>
-    </div>
-  );
-}
-
-function UtentiTooltip({ tot, attivi24, attivi7g, attivi30g }) {
-  return (
-    <div>
-      <TooltipTitle>Utenti attivi sull'app</TooltipTitle>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
-        <ActiveCell label="Attivi nelle ultime 24h" val={attivi24} tot={tot} color="PINK"/>
-        <ActiveCell label="Attivi negli ultimi 7 giorni" val={attivi7g} tot={tot} color="INFO"/>
-        <ActiveCell label="Attivi negli ultimi 30 giorni" val={attivi30g} tot={tot} color="OK"/>
-      </div>
-      <div style={{marginTop:12, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.3, color:ADM.MUTED, lineHeight:1.5}}>
-        <strong style={{color:ADM.TEXT}}>Fedeltà.</strong> {Math.round((attivi24/attivi30g)*100)}% degli utenti attivi nel mese ha usato l'app anche oggi.
-      </div>
-    </div>
-  );
-}
-
-function ActiveCell({ label, val, tot, color }) {
-  const pct = tot > 0 ? Math.round((val / tot) * 100) : 0;
-  return (
-    <div style={{padding:'10px 12px', background:ADM[color+'_SOFT'], borderRadius:8}}>
-      <div style={{fontSize:12.2, fontWeight:700, color:ADM[color], textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
-      <div style={{fontSize:18, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.02em'}}>{fmtNum(val)}</div>
-      <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600, marginTop:2}}>{pct}% del totale</div>
     </div>
   );
 }
@@ -2723,6 +2685,7 @@ function DashUtentiApp() {
   // Benchmark di settore food/lifestyle apps · DAU/MAU 20% = ottimo, 10-20% = buono, <10% = basso
   const stickinessTone = stickiness >= 20 ? 'OK' : stickiness >= 10 ? 'WARN' : 'DANGER';
   const stickinessLabel = stickiness >= 20 ? 'frequenza d’uso eccellente' : stickiness >= 10 ? 'frequenza d’uso in linea' : 'frequenza d’uso sotto la media';
+  const quotaRegistrati = (n) => Math.round(n / totUtenti * 100);
 
   // demografia mock
   const genere = { F: 0.54, M: 0.44, altro: 0.02 };
@@ -2989,15 +2952,21 @@ function DashUtentiApp() {
           sub={`+${fmtNum(APP_METRICS.newRegistrazioni30g)} ultimi 30g`}
           accent="INK" icon="users"
           trend={totW.delta} trendLabel="vs 7gg" spark={TS.utentiTot.slice(-30)}/>
+        {/* La quota sui registrati arriva dall'espansione «Utenti · dettaglio»
+            che stava in Analisi Dati → Generale: diceva questi stessi tre
+            numeri come percentuale della base iscritta. È l'unica cosa che qui
+            mancava — DAU su MAU e WAU su MAU c'erano già — e adesso sta
+            attaccata ai numeri che descrive. */}
         <SparkStat label="DAU · giornalieri" value={fmtNum(APP_METRICS.dau)}
-          sub={<><strong style={{color:ADM[stickinessTone]}}>{stickiness}%</strong> degli utenti mensili li usa ogni giorno <span style={{color:ADM.MUTED}}>· {stickinessLabel}</span></>}
+          sub={<><strong style={{color:ADM[stickinessTone]}}>{stickiness}%</strong> degli utenti mensili li usa ogni giorno <span style={{color:ADM.MUTED}}>· {stickinessLabel} · {quotaRegistrati(APP_METRICS.dau)}% dei registrati</span></>}
           accent="INK" icon="trendUp"
           trend={dauW.delta} trendLabel="vs 7gg" spark={TS.dau.slice(-30)}/>
         <SparkStat label="WAU · settimanali" value={fmtNum(APP_METRICS.wau)}
-          sub={`${Math.round(APP_METRICS.wau/APP_METRICS.mau*100)}% del MAU`}
+          sub={`${Math.round(APP_METRICS.wau/APP_METRICS.mau*100)}% del MAU · ${quotaRegistrati(APP_METRICS.wau)}% dei registrati`}
           accent="INK" icon="trendUp"
           trend={wauW.delta} trendLabel="vs 7gg" spark={TS.wau.slice(-30)}/>
         <SparkStat label="MAU · mensili" value={fmtNum(APP_METRICS.mau)}
+          sub={`${quotaRegistrati(APP_METRICS.mau)}% dei registrati ha usato l'app nel mese`}
           accent="INK" icon="trendUp"
           trend={mauW.delta} trendLabel="vs 30gg" spark={TS.mau.slice(-30)}/>
       </div>
