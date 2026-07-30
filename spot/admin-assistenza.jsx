@@ -203,7 +203,6 @@ function AdmAssistenzaPage({ initialTab }) {
   const [guide, setGuide] = useStateSrv(GUIDE_SRV);
 
   const inAttesa = richiamate.filter(r => r.stato === 'attesa').length;
-  const bozze = faq.filter(f => !f.live).length + guide.filter(g => !g.live).length;
 
   const tabs = [
     { id:'richiamate', label:'Richiamate', badge: inAttesa },
@@ -221,12 +220,6 @@ function AdmAssistenzaPage({ initialTab }) {
       <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`,
         display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
         <AdmTabBar tabs={tabs} active={tab} onChange={setTab}/>
-        <div style={{flex:1}}/>
-        {bozze > 0 && (
-          <span style={{fontSize:12.5, color:ADM.MUTED, whiteSpace:'nowrap'}}>
-            <b style={{color:ADM.TEXT}}>{bozze}</b> {bozze === 1 ? 'contenuto' : 'contenuti'} in bozza
-          </span>
-        )}
       </div>
       <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column',
         overflow: coda ? 'hidden' : 'auto'}}>
@@ -251,7 +244,6 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
   const nFatte  = richiamate.filter(r => r.stato === 'fatta').length;
   const nPerse  = richiamate.filter(r => r.stato === 'persa').length;
   const scadute = richiamate.filter(r => r.stato === 'attesa' && srvMinutiAScadere(r) < 0);
-  const piuVecchia = scadute.reduce((o, r) => !o || r.entro < o.entro ? r : o, null);
 
   const viste = [
     { id:'attesa', label:'Da richiamare', count:nAttesa },
@@ -305,16 +297,6 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
           );
         })}
         <div style={{flex:1}}/>
-        {scadute.length > 0 && (
-          <button onClick={()=>{ setVista('attesa'); setSelId(piuVecchia.id); }} className="adm-textlink"
-            style={{display:'inline-flex', alignItems:'center', gap:7, background:'none', border:'none',
-              cursor:'pointer', fontFamily:'inherit', fontSize:12.8, fontWeight:600, color:ADM.DANGER}}>
-            <span style={{width:7, height:7, borderRadius:'50%', background:ADM.DANGER,
-              boxShadow:`0 0 0 3px ${ADM.DANGER}1F`}}/>
-            {scadute.length} oltre la scadenza · la più vecchia da {srvMinuti(-srvMinutiAScadere(piuVecchia))}
-            <BuIcons.chevronRight size={13}/>
-          </button>
-        )}
       </div>
 
       <div style={{flex:1, display:'flex', minHeight:0}}>
