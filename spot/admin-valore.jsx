@@ -68,8 +68,8 @@ function ValIlNumero() {
           sotto={`Al netto del food cost · margine lordo di rete ${C.margineLordo}%`}/>
         <ValCifra grande label="Peso del canone" valore={valNum(C.canoneSuMargine, 1) + '%'} tono="PINK_DARK"
           sotto={`Il canone mediano (${valEur(C.canoneMediano, 2)}) è questa quota del margine aggiuntivo · ${valNum(C.ritornoPerEuro, 0)}€ di margine per ogni € speso`}/>
-        <ValCifra grande label="Non ci guadagnano" valore={`${ric.senzaEffetto} su ${ric.n}`} tono={ric.senzaEffetto > 0 ? 'WARN' : 'OK'}
-          sotto="Locali che dopo la soglia non hanno migliorato il ricavo · la coda che una media nasconderebbe"/>
+        <ValCifra grande label="Ci guadagnano" valore={`${ric.n - ric.senzaEffetto} su ${ric.n}`} tono="OK"
+          sotto={`Locali che dopo la soglia hanno migliorato il ricavo · gli altri ${ric.senzaEffetto} no, ed è la coda che una media nasconderebbe`}/>
       </div>
       <div style={{padding:'0 22px 18px', display:'flex', flexDirection:'column', gap:8}}>
         <ValNota>
