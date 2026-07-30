@@ -68,7 +68,7 @@ const COMUNICAZIONI = (() => {
     { id:'M101', localeId:'L1005', oggetto:'Posso anticipare l\'orario di apertura sulla mia scheda Byup?', desc:'Buongiorno,\n\nda lunedì prossimo inizieremo i pranzi alle 12:00 invece che alle 12:30. Riuscite ad aggiornare gli orari di apertura sul nostro profilo Byup? Grazie mille.\n\nA presto,', data:new Date(Date.now() - 35*60000) },
     { id:'M102', localeId:'L1012', oggetto:'Come riattivo le notifiche di prenotazione?', desc:'Salve,\n\ndopo l\'ultimo aggiornamento dell\'app non mi arrivano più le notifiche delle nuove prenotazioni. Ho controllato le impostazioni del telefono e sembrano a posto. Mi potete aiutare?\n\nGrazie.', data:new Date(Date.now() - 2.5*3600000) },
     { id:'M103', localeId:'L1020', oggetto:'Vorrei programmare una demo del piano Plus', desc:'Buongiorno,\n\nstiamo valutando il passaggio al piano Plus. Possiamo fissare una call di 20 minuti per capire bene cosa cambia rispetto allo Starter e quali funzionalità aggiuntive avremmo a disposizione?\n\nDisponibilità preferita: pomeriggio dopo le 16.\n\nGrazie,', data:new Date(Date.now() - 18*3600000), tags:['lead-upgrade'] },
-    { id:'M104', localeId:'L1029', oggetto:'Errore export contabilità maggio', desc:'Buongiorno,\n\nquando provo a esportare la contabilità di maggio dal gestionale, mi compare "errore 502" e il file non si scarica. Sto preparando i documenti per il commercialista.\n\nUrgente, grazie.', data:new Date(Date.now() - 8*3600000), tags:['contabilita'] },
+    { id:'M104', localeId:'L1029', oggetto:'Errore export contabilità maggio', desc:'Buongiorno,\n\nquando provo a esportare la contabilità di maggio dal gestionale, mi compare "errore 502" e il file non si scarica. Sto preparando i documenti per il commercialista.\n\nUrgente, grazie.', data:new Date(Date.now() - 8*3600000), tags:['contabilita'], assignedTo:'support2' },
     { id:'M105', localeId:'L1034', oggetto:'Aggiornamento stickers QR per la sala', desc:'Salve,\n\nabbiamo cambiato la disposizione dei tavoli e mi servirebbero nuovi sticker QR aggiornati con i nuovi numeri tavolo. Come posso richiederli?\n\nGrazie!', data:new Date(Date.now() - 26*3600000) },
     { id:'M106', localeId:'L1041', oggetto:'Recensione offensiva da rimuovere', desc:'Buongiorno,\n\nieri sera abbiamo ricevuto una recensione contenente insulti personali al titolare. Vi chiedo gentilmente di valutarne la rimozione secondo le linee guida della community Byup.\n\nGrazie.', data:new Date(Date.now() - 4*3600000), tags:['moderazione'],
       moderazione: { utenteId:'U2007', rating:1, dataRecensione:new Date(Date.now() - 26*3600000), segnalataDa:'locale', motivoSegnalazione:'Insulti personali al titolare',
@@ -93,7 +93,10 @@ const COMUNICAZIONI = (() => {
       data: e.data,
       stato: e.stato || 'nuova',
       tags: e.tags || [],
-      assignedTo: null,
+      // Serve almeno un ticket in mano a un collega, altrimenti lo stato «ci
+      // sta già lavorando qualcun altro» non si vede mai e non si può
+      // verificare che il blocco alla risposta funzioni anche lì.
+      assignedTo: e.assignedTo || null,
     };
   });
 
@@ -543,7 +546,6 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
   const ageH = Math.floor((Date.now() - item.data.getTime()) / 3600000);
   const isAssignedToMe = item.assignedTo === MY_ID;
   const assignedTeam = item.assignedTo ? TEAM.find(t => t.id === item.assignedTo) : null;
-  const canSelfAssign = !item.assignedTo && (item.stato === 'nuova' || item.stato === 'in_corso');
   const canTakeOver   = item.assignedTo && !isAssignedToMe && (item.stato === 'nuova' || item.stato === 'in_corso');
   const certTipo = item.certRequest ? CERT_TIPI[item.certTipo] : null;
 
@@ -566,35 +568,24 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               <BuIcons.check size={16}/> Assegnata a te
             </span>
           )}
-          {/* Prendere in carico è l'azione primaria di un ticket non assegnato:
-              finché nessuno lo fa, il ticket non è di nessuno. Era un bottone
-              bianco bordato uguale a tutti gli altri e si leggeva come un
-              contorno, non come la cosa da fare. */}
-          {canSelfAssign && (
-            <AdmButton variant="primary" size="sm" icon="user" onClick={takeOver}>Prendi in carico</AdmButton>
+          {/* L'assegnazione NON si fa più da qui: il pulsante sta in mezzo al
+              thread, sotto al messaggio, dove serve. Qui resta solo lo stato —
+              di chi è — perché due pulsanti che fanno la stessa cosa a due
+              centimetri di distanza si annullano a vicenda. */}
+          {canTakeOver && (
+            <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:13.3, color:ADM.MUTED}}>
+              <AdmAvatar name={assignedTeam?.nome || ''} size={23}/>
+              <span>Assegnata a <b style={{color:ADM.TEXT, fontWeight:600}}>{assignedTeam?.nome?.split(' ')[0]}</b></span>
+            </span>
           )}
-          {/* «Marca risolta» compare solo a ticket preso in carico — prima non
-              ha senso chiudere qualcosa che nessuno ha guardato — ed è
-              secondaria: bianca contro il nero del «Prendi in carico», perché
-              chiudere non deve essere più invitante che lavorarci. */}
-          {item.assignedTo && item.stato !== 'risolta' && !item.certRequest && (
+          {/* «Marca risolta» solo a ticket già tuo — è la fine del lavoro, non
+              un modo per liberarsene senza averlo preso — e secondaria, perché
+              chiudere non deve risultare più invitante che rispondere. */}
+          {isAssignedToMe && item.stato !== 'risolta' && !item.certRequest && (
             <AdmButton variant="secondary" size="sm" icon="check"
               onClick={()=>onUpdate({ stato:'risolta', resolvedBy: MY_ID, resolvedAt: new Date() })}>
               Marca risolta
             </AdmButton>
-          )}
-          {canTakeOver && (
-            <span style={{display:'inline-flex', alignItems:'center', gap:8, fontSize:13.3, color:ADM.MUTED}}>
-              <span style={{display:'inline-flex', alignItems:'center', gap:5}}>
-                <AdmAvatar name={assignedTeam?.nome || ''} size={23}/>
-                <span>{assignedTeam?.nome?.split(' ')[0]}</span>
-              </span>
-              <button onClick={takeOver} style={{
-                padding:'4px 9px', background:'transparent', color:ADM.PINK,
-                border:`1px solid ${ADM.PINK}40`, borderRadius:7,
-                fontSize:13, fontWeight:600, fontFamily:'inherit', cursor:'pointer', letterSpacing:'-0.005em',
-              }}>Subentra</button>
-            </span>
           )}
         </div>
 
@@ -747,6 +738,49 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               <AdmButton variant="ghost" size="sm" onClick={()=>onUpdate({ stato:'nuova', resolvedBy:null, resolvedAt:null })}>Riapri</AdmButton>
             </div>
           )}
+
+          {/* Il messaggio si legge sempre, ma non si risponde a un ticket che
+              non è tuo: senza assegnazione il campo di scrittura non esiste
+              proprio, e al suo posto c'è l'unica cosa da fare. È la regola che
+              impedisce a due operatori di rispondere alla stessa persona senza
+              saperlo — e con la casella lì pronta sarebbe successo, perché
+              scrivere è più immediato che ricordarsi di assegnarsi prima. */}
+          {!item.certRequest && item.stato !== 'risolta' && !isAssignedToMe && (
+            <div style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:11,
+              padding:'26px 24px 28px', borderRadius:14,
+              background:'#fff', border:`1px dashed ${ADM.BORDER}`,
+            }}>
+              {assignedTeam ? (
+                <React.Fragment>
+                  <div style={{display:'flex', alignItems:'center', gap:9}}>
+                    <AdmAvatar name={assignedTeam.nome} size={26}/>
+                    <span style={{fontSize:14.6, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>
+                      Ci sta lavorando {assignedTeam.nome.split(' ')[0]}
+                    </span>
+                  </div>
+                  <div style={{fontSize:13.2, color:ADM.MUTED, textAlign:'center', maxWidth:400, lineHeight:1.5}}>
+                    Per rispondere devi prima prenderlo tu: così {assignedTeam.nome.split(' ')[0]} vede
+                    che è passato di mano e non scrivete in due.
+                  </div>
+                  <AdmButton variant="secondary" size="md" icon="user" onClick={takeOver}
+                    style={{marginTop:3}}>Prendi tu il ticket</AdmButton>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <div style={{fontSize:15, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>
+                    Questo ticket non è assegnato a nessuno
+                  </div>
+                  <div style={{fontSize:13.2, color:ADM.MUTED, textAlign:'center', maxWidth:380, lineHeight:1.5}}>
+                    Assegnatelo per poter rispondere: finché è di nessuno, chiunque potrebbe
+                    scrivere a {item.senderName.split(' ')[0]} nello stesso momento.
+                  </div>
+                  <AdmButton variant="primary" size="lg" icon="user" onClick={takeOver}
+                    style={{marginTop:5, paddingLeft:26, paddingRight:26}}>Assegna a me</AdmButton>
+                </React.Fragment>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -754,7 +788,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           Il nastro ha fondo tenue: il campo di risposta era grigio su bianco e
           spariva. Adesso è bianco su tenue, con bordo pieno e una leggera
           ombra — si legge come una casella in cui si scrive, che è quello che è. */}
-      {!item.certRequest && item.stato !== 'risolta' && !composerOpen && (
+      {!item.certRequest && item.stato !== 'risolta' && isAssignedToMe && !composerOpen && (
         <div style={{flexShrink:0, padding:'12px 32px', background:ADM.PANEL_SOFT,
           borderTop:`1px solid ${ADM.BORDER}`, display:'flex', gap:10, alignItems:'center'}}>
           <button onClick={()=>{ setComposerOpen(true); setShowInternal(false); }}
@@ -781,7 +815,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
             }}><BuIcons.bell size={15}/> Nota interna</button>
         </div>
       )}
-      {!item.certRequest && item.stato !== 'risolta' && composerOpen && (
+      {!item.certRequest && item.stato !== 'risolta' && isAssignedToMe && composerOpen && (
         <div style={{flexShrink:0, padding:'14px 32px 18px', background:'#fff', borderTop:`1px solid ${ADM.BORDER}`}}>
           <div style={{display:'flex', gap:6, marginBottom:10, alignItems:'center'}}>
             <ComposerTab active={!showInternal} onClick={()=>setShowInternal(false)} label={`Rispondi a ${item.senderName.split(' ')[0]}`} icon="send"/>
