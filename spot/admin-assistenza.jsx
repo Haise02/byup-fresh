@@ -1807,7 +1807,7 @@ function AdmServizioClientiKPI({ richiamate }) {
           arrivino. Detto esplicitamente, altrimenti i due numeri sembrano lo
           stesso dato sbagliato. */}
       <SectionLabel title="Richieste di assistenza"
-        desc="Da tutti i canali — ticket scritti, chat, chiamate, gestionale · la finestra «oggi» è bassa per costruzione"/>
+        desc="Da tutti i canali — ticket scritti, chat, chiamate, gestionale"/>
       <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:14}}>
         {k.ticket.finestre.map(f => (
           <AdmCard key={f.label} padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
