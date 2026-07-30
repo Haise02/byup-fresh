@@ -288,6 +288,12 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
             { id:'incidenti', label:'Incidenti' },
             { id:'nc',        label:'Non conformità' },
             { id:'audit',     label:'Audit e riesami' },
+            // Il registro della formazione stava in Risorse Umane, che non
+            // esiste più come sezione. La sua casa naturale è questa: il
+            // componente vive già qui (CfFormazione è in conformita-riesami),
+            // l'obbligo è la A.6.3 e gli adempimenti che ci puntano partono
+            // dal Cruscotto qui accanto.
+            { id:'formazione', label:'Formazione' },
           ]} active={tab} onChange={setTab}/>
         </div>
 
@@ -299,6 +305,7 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
         {/* onVai accende i collegamenti del pacchetto di input verso i registri:
             senza, il riesame di direzione elenca i numeri ma non ci porta. */}
         {tab === 'audit'     && (window.CfAudit         ? <CfAudit onVai={vai}/> : manca('Audit e riesami'))}
+        {tab === 'formazione'&& (window.CfFormazione    ? <CfFormazione/>    : manca('Formazione'))}
       </AdmCard>
     </div>
   );

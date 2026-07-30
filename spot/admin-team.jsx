@@ -7,7 +7,9 @@ const { useState: useStateTeam } = React;
 // `sezione` decide quali tab mostrare, non quali esistono.
 const ADM_SEZIONI = {
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'] },
-  hr:           { pred:'formazione',  tabs:['formazione'] },
+  // Niente `hr`: Risorse Umane non esiste più come sezione e il registro
+  // della formazione è passato sotto Risk Management, dove il componente
+  // (CfFormazione) già viveva e dove punta l'adempimento della A.6.3.
   impostazioni: { pred:'piattaforma', tabs:['piattaforma'] },
 };
 
@@ -54,7 +56,6 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             // nomi, le stesse email, gli stessi ruoli, con due colonne diverse in
             // fondo. Ora la lista e una e il riesame e uno stato in cui si trova.
             { id:'accessi',     label:'Accessi',         badge:members.length },
-            { id:'formazione',  label:'Formazione' },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
             { id:'diagnostica', label:'Diagnostica' },
@@ -84,7 +85,6 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             <RuoliMatrix/>
           </React.Fragment>
         )}
-        {tab === 'formazione' && (window.CfFormazione ? <CfFormazione/> : null)}
         {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}

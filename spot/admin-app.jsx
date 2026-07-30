@@ -33,7 +33,6 @@ const NAV_SYSTEM = [
   // domanda vista da tre lati: stanno insieme e non dentro le impostazioni,
   // dove finivano solo perche non c'era un altro posto.
   { id: 'sicurezza',    label: 'Sicurezza e sistemi', icon: 'lockFill' },
-  { id: 'hr',           label: 'Risorse Umane',      icon: 'capFill' },
   { id: 'team',         label: 'Impostazioni Admin', icon: 'shieldUserFill' },
 ];
 
@@ -218,7 +217,6 @@ function AdminApp({ tweaks }) {
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Impostazioni Admin', s:'Configurazione tecnica e parametri della piattaforma' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
-    hr:           { t:'Risorse Umane', s:'Formazione del personale ed evidenze per la A.6.3' },
     economix:     { t:'Economix', s:'Costi, conto economico, cassa e patrimonio di Byup' },
     conformita:   { t:'Risk Management', s:'Rischi, adempimenti ed evidenze per ISO/IEC 27001 e ISO 9001' },
     profilo:      { t:'Profilo', s:'Account e sicurezza' },
@@ -380,7 +378,6 @@ function AdminApp({ tweaks }) {
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
           {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
-          {route === 'hr'           && <AdmTeamPage search={''} initialTab={teamTab} sezione="hr"/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
           {route === 'economix'     && (window.Economix ? <Economix/> : null)}
           {route === 'conformita'   && <AdmConformitaPage initialTab={confTab}

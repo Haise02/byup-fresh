@@ -90,12 +90,6 @@ const ICON_FILLED = {
   // preso da Impostazioni Admin, che nella stessa colonna e a due voci di
   // distanza. Tre forme che si uniscono: corona, lancetta, perno.
   gaugeFill: 'M2.5 16A9.5 9.5 0 0 1 21.5 16L17.2 16A5.2 5.2 0 0 0 6.8 16Z|M17 10.2L13.29 17.11L10.71 14.89Z|M12 13.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z',
-  // Tocco accademico. Ogni altra idea per Risorse Umane finiva per contenere
-  // una persona — cartellino, scudo, sagoma — e nella colonna ce ne sono gia
-  // due: la silhouette umana non e piu un segno distintivo qui. Il tocco ha una
-  // sagoma che non somiglia a niente altro nel set, e dice quello che la sezione
-  // contiene davvero: il registro della formazione.
-  capFill: 'M11.55 2.6a1 1 0 0 1 .9 0l9.1 4.1a.55.55 0 0 1 0 1l-9.1 4.1a1 1 0 0 1-.9 0L2.45 7.7a.55.55 0 0 1 0-1l9.1-4.1z|M6.9 10.55l4.35 1.96a1.8 1.8 0 0 0 1.5 0l4.35-1.96v3.6c0 1.85-2.33 3.15-5.1 3.15s-5.1-1.3-5.1-3.15v-3.6z|M20.95 8.5a.85.85 0 0 1 .85.85v4.35a1.7 1.7 0 1 1-1.7 0V9.35a.85.85 0 0 1 .85-.85z',
   // Lucchetto pieno: corpo con il buco della serratura ricavato per evenodd
   // nello STESSO d — sottotracciati in path separati non si bucherebbero — e
   // l'arco superiore come forma a se, che si unisce per sovrapposizione.

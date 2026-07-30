@@ -25,14 +25,13 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 | **Economix** | Costi, conto economico, cassa, patrimonio di byup | [Economix.md](Economix.md) |
 | **Risk Management** | Rischi, adempimenti ed evidenze ISO 27001 / 9001 | [Risk-Management.md](Risk-Management.md) |
 | **Sicurezza e sistemi** | Accessi, audit log, diagnostica | [Riesame-Accessi.md](Riesame-Accessi.md) |
-| **Risorse Umane** | Formazione del personale, uscite dal team | — |
 | **Impostazioni Admin** | Configurazione della piattaforma (piani, prezzi) | — |
 
 ---
 
 ## Ruoli e permessi
 
-Sette ruoli su dodici aree. La matrice sta in **Sicurezza e sistemi → Accessi**,
+Sei ruoli su undici aree. La matrice sta in **Sicurezza e sistemi → Accessi**,
 in fondo alla pagina; i dati in [admin-data.jsx](admin-data.jsx) (`RUOLI`,
 `PERMESSI`).
 
@@ -43,15 +42,17 @@ in fondo alla pagina; i dati in [admin-data.jsx](admin-data.jsx) (`RUOLI`,
 | **Marketing** | dashboard, messaggi |
 | **AFC** | dashboard, Economix, Risk Management |
 | **ICT** | dashboard, Sicurezza e sistemi |
-| **HR** | dashboard, Risorse Umane |
 | **Viewer** | dashboard |
 
-Due scelte deliberate: **le impostazioni della piattaforma restano al solo Super
+Una scelta deliberata: **le impostazioni della piattaforma restano al solo Super
 Admin** — sono leve commerciali (prezzi, piani, soglie), e ICT amministra i
-sistemi ma non decide quanto costa un piano. E **HR non vede gli accessi**: dare
-a chi gestisce le persone anche la visione di chi può fare cosa è l'allargamento
-che il riesame trimestrale esiste per impedire. Fra le due sezioni passa **un
-dato solo**, la data di uscita.
+sistemi ma non decide quanto costa un piano.
+
+Non esiste più un ruolo HR né una sezione Risorse Umane: il registro della
+formazione è un'evidenza ISO (A.6.3) e sta dove stanno le altre, in **Risk
+Management → Formazione**. La data di uscita di una persona (`uscitaIl` su
+`TEAM`) resta, ma la legge il riesame degli accessi: «esce fra 12 giorni» è un
+account da revocare, non una pratica del personale.
 
 ---
 

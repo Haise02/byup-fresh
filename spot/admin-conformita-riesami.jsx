@@ -209,7 +209,7 @@ function riePacchetto() {
       dettaglio:`${reg.ok} su ${reg.totale} in regola · ${frScad} scadute, ${frMai} mai svolte, ${assenti.length} non presenti nel registro`,
       // Il registro non e piu in Conformita: il pacchetto di input del riesame
       // deve portare dove la formazione si legge davvero.
-      tono: (frMai + frScad + assenti.length) ? 'WARN' : 'OK', vaiA:{route:'hr', tab:'formazione'} },
+      tono: (frMai + frScad + assenti.length) ? 'WARN' : 'OK', vaiA:{route:'conformita', tab:'formazione'} },
   ];
 
   return { voci, dec, decAperte, ultimoAudit, ultimoRiesame };
@@ -795,9 +795,10 @@ function CfFormazione() {
 
       </div>
 
-      {/* Uscite dal team. HR registra una data — e un fatto suo, come la
-          formazione — e da li in poi l'elenco accessi sa che quell'account ha una
-          scadenza. HR non vede i permessi di nessuno: passa un dato solo. */}
+      {/* Uscite dal team: si registra una data e basta, e da li in poi l'elenco
+          accessi sa che quell'account ha una scadenza. Il campo e volutamente
+          povero — nessun motivo, nessuna pratica — perche chi tiene gli accessi
+          deve sapere entro quando revocare, non perche quella persona se ne va. */}
       <div>
         <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
           letterSpacing:'0.08em', marginBottom:4}}>Uscite dal team</div>

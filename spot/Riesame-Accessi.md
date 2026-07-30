@@ -90,19 +90,19 @@ acceduto → dormiente (oltre 90 giorni) → permessi aumentati → mai riesamin
 invariato. Un riesame si guarda dall'anomalia in giù; ordinato per nome si timbra
 dall'alto senza leggere.
 
-**L'uscita arriva da HR e batte tutto il resto.** È il rilievo più comune di un
+**La data di uscita batte tutto il resto.** È il rilievo più comune di un
 audit 27001 — «non lavora più qui e ha ancora l'account» — e prima si
 intercettava solo di rimbalzo, quando l'utenza restava ferma novanta giorni. Ma
 *dormiente non vuol dire uscito*: si può essere in congedo senza essere usciti, e
-usciti ieri con l'account usato ancora oggi. Ora chi tiene le Risorse Umane
-registra la data dell'ultimo giorno di lavoro (campo `uscitaIl` su `TEAM`), e
+usciti ieri con l'account usato ancora oggi. Ora si registra la data dell'ultimo giorno di lavoro (campo `uscitaIl` su `TEAM`), e
 quel dato — uno solo, in una direzione sola — compare qui come classificazione a
 priorità massima: *«Esce il 10 ago 2026 · l'accesso va revocato quel giorno»*,
 oppure *«Uscito da N giorni · andava revocato allora»*.
 
-Il confine è voluto: **HR non vede i permessi di nessuno e non entra in Sicurezza
-e sistemi**, e chi tiene gli accessi non deve chiedere a nessuno perché
-quell'account ha una scadenza. Passa un dato, non un accesso.
+Il campo è deliberatamente povero: **una data, senza motivo né pratica**. Chi
+tiene gli accessi non ha bisogno di sapere perché quella persona se ne va, gli
+basta sapere entro quando chiudere l'account — e tenere fuori il resto è ciò che
+permette di registrare l'uscita senza aprire una sezione del personale.
 
 **Gli invariati si confermano in blocco** ed è legittimo proprio perché il
 confronto con la campagna precedente è calcolato: si attesta che non è cambiato

@@ -25,7 +25,7 @@ dal Cruscotto — il codice vive ancora qui, cambia solo dove si legge:
 |---|---|---|
 | Riesame dei diritti di accesso | A.5.18 | Sicurezza e sistemi → Accessi ([Riesame-Accessi.md](Riesame-Accessi.md)) |
 | Test di ripristino dei backup | A.8.13 | Sicurezza e sistemi → Diagnostica |
-| Formazione del personale | A.6.3 | Risorse Umane |
+| Formazione del personale | A.6.3 | Risk Management → Formazione |
 
 Il criterio è lo stesso in tutti e tre i casi: **il registro sta dove lavora chi
 lo compila**, non dove lo cerca l'auditor. L'auditor ci arriva comunque, perché
@@ -109,7 +109,7 @@ admin attivi, non fidandosi di una casella.
 
 **Formazione (A.6.3) e test di ripristino (A.8.13).** Non stanno più fra queste
 tab: solo l'evidenza — chi, quando, esito — e si compilano dove si lavora
-(Risorse Umane, Diagnostica). Il Cruscotto tiene l'obbligo e ci porta.
+(Formazione, Diagnostica). Il Cruscotto tiene l'obbligo e ci porta.
 
 Sul ripristino vale la pena dire una cosa che il registro da solo non dice: **la
 tabella non è il test.** Il test si fa altrove, ripristinando uno snapshot su
