@@ -1061,7 +1061,6 @@ function SrvFaq({ faq, setFaq }) {
 }
 
 function SrvRigaFaq({ f, ultima, aperta, onApri, onLive, onModifica, onElimina }) {
-  const voti = f.utile + f.nonUtile;
   return (
     <div style={{borderBottom: ultima ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
       background: aperta ? ADM.PANEL_SOFT : 'transparent'}}>
@@ -1080,21 +1079,6 @@ function SrvRigaFaq({ f, ultima, aperta, onApri, onLive, onModifica, onElimina }
             </span>
           </span>
         </button>
-
-        {/* Numeri allineati a destra in colonne fisse: scorrendo l'elenco si
-            confrontano fra loro, e non ballano con la lunghezza del titolo. */}
-        <span style={{width:70, textAlign:'right', flexShrink:0}}>
-          <span style={{display:'block', fontSize:12.6, color:ADM.TEXT, fontWeight:600,
-            fontVariantNumeric:'tabular-nums'}}>{f.viste > 0 ? fmtNum(f.viste) : '—'}</span>
-          <span style={{display:'block', fontSize:11.2, color:ADM.MUTED_LIGHT, marginTop:1}}>viste</span>
-        </span>
-        <span style={{width:56, textAlign:'right', flexShrink:0}}>
-          <span style={{display:'block', fontSize:12.6, fontWeight:600, fontVariantNumeric:'tabular-nums',
-            color: voti === 0 ? ADM.MUTED_LIGHT : (f.utile / voti) >= 0.9 ? ADM.OK : ADM.WARN}}>
-            {voti > 0 ? `${Math.round(f.utile / voti * 100)}%` : '—'}
-          </span>
-          <span style={{display:'block', fontSize:11.2, color:ADM.MUTED_LIGHT, marginTop:1}}>utile</span>
-        </span>
 
         <span style={{width:52, display:'flex', justifyContent:'flex-end', flexShrink:0}}>
           <AdmSwitch size="sm" checked={f.live} onChange={onLive}/>
