@@ -66,18 +66,21 @@ const SRV_URGENZE = {
   critica: { label: 'Critica', color: 'DANGER',  nota: 'Il locale non sta incassando: torna subito sul pezzo' },
 };
 
-// Quando il ristoratore non risponde non lo lasciamo cadere: parte una mail
-// automatica. Quale delle due la sceglie l'operatore, perché «ho provato e
-// riprovo io» e «dimmi tu quando» sono messaggi diversi.
-const SRV_EMAIL_ESITO = {
-  conferma: {
-    label: 'Conferma del tentativo',
-    desc: 'Gli diciamo che abbiamo provato a chiamarlo e che ci riproviamo noi entro la giornata.',
-  },
-  appuntamento: {
-    label: 'Proposta di nuovo appuntamento',
-    desc: 'Gli mandiamo il link per riprenotare la chiamata nella fascia che preferisce.',
-  },
+// Quando il ristoratore non risponde parte questa mail, sempre la stessa.
+// Non è una scelta dell'operatore, perché non c'è niente da scegliere: non
+// gli promettiamo di richiamarlo — l'impegno preso l'abbiamo già onorato,
+// l'abbiamo chiamato entro la scadenza. Gli diciamo che ci abbiamo provato e
+// che se il problema è ancora lì la prossima mossa è sua.
+//
+// Il tono è deliberatamente leggero sul «speriamo si sia risolto»: chiudere
+// dicendo «non ti abbiamo trovato» e basta suonerebbe come un rimprovero, e
+// il caso più comune è che nel frattempo se la sia cavata da solo.
+const SRV_MAIL_NON_RISPOSTA = {
+  oggetto: 'Abbiamo provato a chiamarti',
+  corpo: 'Abbiamo provato a chiamarti, ma non ti abbiamo trovato disponibile. '
+       + 'Speriamo che il tuo problema si sia risolto!',
+  chiusura: 'Se non fosse così, prenota pure un altro appuntamento quando ti è comodo.',
+  cta: 'Prenota un altro appuntamento',
 };
 
 // Le richiamate chiuse portano l'esito: quando è stata fatta davvero (da cui
@@ -160,7 +163,6 @@ const RICHIAMATE = (() => {
     // ritardo» — resta fuori dal rapporto sulla puntualità, ma dentro il
     // Non risolto, perché il problema del ristoratore è ancora lì.
     { id:'RC-222', localeId:'L1008', cat:'configurazione', da:3.8*SRV_GIORNO, persa:true, tentativi:3, op:'support2',
-      email:'appuntamento',
       note:'Tre tentativi in due fasce diverse, sempre segreteria. Mandato il link per riprenotare.' },
     { id:'RC-221', localeId:'L1025', cat:'blocco',      da:4.2*SRV_GIORNO, fattaDopo:52*SRV_MIN, op:'support3', durata:13, voto:5,
       prob:'tecnico', risolto:true,
@@ -217,7 +219,6 @@ const RICHIAMATE = (() => {
       risolto: g.risolto == null ? null : g.risolto,
       urgenza: g.urg || null,
       noteOperatore: g.note || null,
-      emailEsito: g.email || null,
       // Puntuale = chiamato entro la scadenza. Le non risposte non sono
       // puntuali né in ritardo: restano fuori dal rapporto.
       inTempo: richiamataIl ? richiamataIl <= entro : null,
@@ -583,7 +584,7 @@ function srvOre(ore) {
 }
 
 Object.assign(window, {
-  SRV_CATEGORIE, SRV_PROBLEMI, SRV_URGENZE, SRV_EMAIL_ESITO,
+  SRV_CATEGORIE, SRV_PROBLEMI, SRV_URGENZE, SRV_MAIL_NON_RISPOSTA,
   RICHIAMATE, TICKET_SRV,
   FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV,
   srvKpi, srvMinutiAScadere, srvNonRisolto, srvDurata, srvMinuti, srvOre,

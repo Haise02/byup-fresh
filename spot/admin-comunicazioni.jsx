@@ -163,8 +163,11 @@ function AdmComunicazioniPage({ openId }) {
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
-      {/* Barra filtri — i filtri sono navigazione, non KPI: lo spazio va all'inbox. */}
-      <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'14px 32px', flexShrink:0, display:'flex', flexDirection:'column', gap:10}}>
+      {/* Barra filtri — i filtri sono navigazione, non KPI: lo spazio va
+          all'inbox. Fondo tenue e non bianco: sotto al tab bar di Assistenza,
+          due nastri bianchi accostati diventerebbero una fascia sola alta il
+          doppio, e le pillole si perderebbero dentro. */}
+      <div style={{background:ADM.PANEL_SOFT, borderBottom:`1px solid ${ADM.BORDER}`, padding:'11px 28px', flexShrink:0, display:'flex', flexDirection:'column', gap:10}}>
         <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
           {views.map(v => {
             const active = view === v.id;

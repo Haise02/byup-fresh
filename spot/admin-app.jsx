@@ -10,15 +10,17 @@ const NAV_MAIN = [
   { id: 'locali',       label: 'Locali',       icon: 'storeFill', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
   { id: 'camerieri',    label: 'Staff',        icon: 'staffFill' },
   { id: 'utenti',       label: 'Utenti App',   icon: 'phoneFill' },
-  // «Ticket» e non più «Comunicazioni»: quello che arriva qui non è posta da
-  // leggere, è una pratica che si apre, si prende in carico e si chiude. La
-  // rotta interna resta `comunicazioni` — rinominarla non cambierebbe niente
-  // per chi usa la console e toccherebbe una dozzina di file.
-  { id: 'comunicazioni', label: 'Ticket', icon: 'ticketFill', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length) },
-  // Sotto i Ticket perché è la stessa relazione col ristoratore, ma per voce
-  // sua: un ticket si legge quando si può, una richiamata ha una scadenza.
-  // Il badge conta la coda, non i non letti.
-  { id: 'assistenza',   label: 'Chiamata assistenza', icon: 'headsetFill', badge: RICHIAMATE.filter(r=>r.stato==='attesa').length },
+  // Una voce sola per l'assistenza. Ticket e chiamate erano due sezioni
+  // separate, ma sono lo stesso lavoro fatto su due canali: chi sta al
+  // supporto passa dall'una all'altra di continuo, e con due voci di menu non
+  // esisteva un posto dove vedere tutto quello che un locale ha aperto con
+  // noi. Dentro ci stanno anche le FAQ e le guide, che sono la stessa
+  // assistenza scritta una volta per tutte invece che ripetuta al telefono.
+  // Il badge somma le due code; il dettaglio lo danno i tab.
+  { id: 'assistenza',   label: 'Assistenza', icon: 'headsetFill',
+    badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length
+          + CERTIFICAZIONI.filter(c=>c.stato==='pending').length
+          + RICHIAMATE.filter(r=>r.stato==='attesa').length) },
   { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphoneFill' },
 ];
 const NAV_SYSTEM = [
@@ -187,13 +189,21 @@ function AdminApp({ tweaks }) {
   // setRoute esteso: setRoute('locali', { openLocale: l }) apre direttamente
   // il drawer di dettaglio sul locale passato. Navigando altrove o tornando
   // su 'locali' senza opts, il prefill è azzerato.
-  const setRoute = (next, opts) => {
-    setLocaliOpenLocale(next === 'locali' && opts?.openLocale ? opts.openLocale : null);
-    setUtentiOpen(next === 'utenti' && opts?.openUtente ? opts.openUtente : null);
-    setStaffOpen(next === 'camerieri' && opts?.openStaff ? opts.openStaff : null);
-    setCommOpen(next === 'comunicazioni' && opts?.openComm ? opts.openComm : null);
-    setAssistenzaTab(next === 'assistenza' && opts?.tab ? opts.tab : null);
-    setRouteRaw(next);
+  //
+  // I ticket non hanno più una rotta propria: sono un tab di Assistenza. Qui
+  // si traduce `comunicazioni` in `assistenza` + tab, così le notifiche, la
+  // striscia della Dashboard e la ricerca globale continuano a puntare dove
+  // puntavano senza doverle riscrivere una per una — e senza lasciare in giro
+  // una rotta morta che un domani nessuno saprebbe più perché esiste.
+  const setRoute = (nextRaw, opts) => {
+    const verso = nextRaw === 'comunicazioni' ? 'assistenza' : nextRaw;
+    const tab = nextRaw === 'comunicazioni' ? 'ticket' : (opts && opts.tab) || null;
+    setLocaliOpenLocale(verso === 'locali' && opts?.openLocale ? opts.openLocale : null);
+    setUtentiOpen(verso === 'utenti' && opts?.openUtente ? opts.openUtente : null);
+    setStaffOpen(verso === 'camerieri' && opts?.openStaff ? opts.openStaff : null);
+    setCommOpen(verso === 'assistenza' && opts?.openComm ? opts.openComm : null);
+    setAssistenzaTab(verso === 'assistenza' ? tab : null);
+    setRouteRaw(verso);
   };
 
   const openMessageModal = (type, ids = []) => setMessageModal({ type, ids });
@@ -204,8 +214,7 @@ function AdminApp({ tweaks }) {
     locali:       { t:'Locali', s:'Ristoranti registrati e relativo onboarding' },
     camerieri:    { t:'Staff', s:'Staff registrato sui locali · camerieri, cassa, proprietari, dispositivi' },
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
-    comunicazioni: { t:'Ticket', s:'Richieste, segnalazioni e certificazioni aperte dai locali' },
-    assistenza:   { t:'Chiamata assistenza', s:'Chiamate prenotate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
+    assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Impostazioni Admin', s:'Configurazione tecnica e parametri della piattaforma' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
@@ -369,8 +378,7 @@ function AdminApp({ tweaks }) {
           {route === 'locali'       && <AdmLocaliPage search={''} openLocale={localiOpenLocale} openMessageModal={openMessageModal}/>}
           {route === 'camerieri'    && <AdmCamerieriPage search={''} openStaff={staffOpen}/>}
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
-          {route === 'comunicazioni' && <AdmComunicazioniPage openId={commOpen}/>}
-          {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab}/>}
+          {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
           {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
           {route === 'hr'           && <AdmTeamPage search={''} initialTab={teamTab} sezione="hr"/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}

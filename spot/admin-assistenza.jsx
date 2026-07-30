@@ -1,30 +1,35 @@
-// Byup Spot — Chiamata assistenza
+// Byup Spot — Assistenza
 //
 // Quattro tab, un solo tema: il rapporto fra byup e il ristoratore quando
 // qualcosa non va.
 //
-//   Richiamate  la coda operativa — chi va richiamato, entro quando
-//   FAQ         le risposte scritte, pubblicabili una per una
-//   Guide       gli articoli con video, raggruppati per argomento
-//   Andamento   i KPI, gli stessi che il tab «Servizio Clienti» della
-//               Dashboard mostra — stessa funzione, non due conti paralleli
+//   Chiamate  la coda con l'orologio — chi va chiamato, entro quando
+//   Ticket    la posta in arrivo: richieste, segnalazioni, certificazioni
+//             (vive in admin-comunicazioni.jsx, qui è solo montata)
+//   FAQ       le risposte scritte, pubblicabili una per una
+//   Guide     gli articoli con video, raggruppati per argomento
 //
-// Il tab Andamento e il tab della Dashboard renderizzano lo STESSO componente
-// (AdmServizioClientiKPI). Duplicarne il calcolo significherebbe, prima o poi,
-// due schermate che dicono numeri diversi sulla stessa cosa.
+// Chiamate e Ticket erano due sezioni di menu separate. Sono lo stesso lavoro
+// fatto su due canali — chi sta al supporto passa dall'una all'altra di
+// continuo — e tenerle divise voleva dire non avere nessun posto in cui
+// vedere tutto quello che un locale ha aperto con noi. Chiamate viene prima
+// perché è l'unica delle due che scade.
+//
+// I KPI NON stanno qui: vivono solo in Dashboard → Servizio Clienti, che è
+// dove si va a guardare i numeri. Il componente che li disegna
+// (AdmServizioClientiKPI) resta però in questo file, perché è qui che stanno
+// i dati che misura.
 //
 // ─── Impianto visivo ────────────────────────────────────────────────────────
 // La sezione non inventa un proprio linguaggio: prende in prestito i due
 // idiomi che Spot ha già.
 //
-//   Richiamate → l'inbox a due pannelli della sezione Ticket. È la stessa cosa
-//     (una coda di richieste che arrivano dai locali, una alla volta da
-//     lavorare), quindi deve avere la stessa forma: elenco fitto a sinistra,
+//   Chiamate, Ticket → l'inbox a due pannelli: elenco fitto a sinistra,
 //     dettaglio a destra, azioni ancorate in fondo. La versione a card
 //     impilate a tutta larghezza costringeva a scorrere per contare la coda e
 //     ripeteva su ogni riga informazioni che servono solo su quella aperta.
 //
-//   FAQ, Guide, Andamento → le rubriche e i tier della Dashboard. Titoli come
+//   FAQ, Guide → le rubriche e i tier della Dashboard. Titoli come
 //     SectionLabel (maiuscoletto tenue + descrizione accanto), non come
 //     intestazioni nere; contenuto dentro POCHE card grandi divise da filetti,
 //     non tante card piccole affiancate.
@@ -188,32 +193,37 @@ function SrvChip({ children, tono }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // Pagina
 // ═══════════════════════════════════════════════════════════════════════════
-function AdmAssistenzaPage({ initialTab }) {
+function AdmAssistenzaPage({ initialTab, openTicket }) {
+  // Chiamate prima dei Ticket: è l'unica delle due code che ha un orologio
+  // che diventa rosso. Un ticket lo leggi quando puoi, una chiamata scade.
   const [tab, setTab] = useStateSrv(initialTab || 'richiamate');
-  // Se si arriva qui dalla ricerca globale mentre la pagina è già montata, lo
-  // stato iniziale non basta: il tab va seguito anche dopo il primo render.
+  // Se si arriva qui dalla ricerca globale o da una notifica mentre la pagina
+  // è già montata, lo stato iniziale non basta: il tab va seguito anche dopo
+  // il primo render.
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
+  React.useEffect(() => { if (openTicket) setTab('ticket'); }, [openTicket]);
 
   // Lo stato vive qui e non nei singoli tab: cambiando tab e tornando indietro
-  // le modifiche devono esserci ancora, e il tab Andamento deve calcolare i KPI
-  // sui dati aggiornati, non su quelli di partenza.
+  // le modifiche devono esserci ancora.
   const [richiamate, setRichiamate] = useStateSrv(RICHIAMATE);
   const [faq, setFaq] = useStateSrv(FAQ_SRV);
   const [argomenti, setArgomenti] = useStateSrv(GUIDE_ARGOMENTI);
   const [guide, setGuide] = useStateSrv(GUIDE_SRV);
 
   const inAttesa = richiamate.filter(r => r.stato === 'attesa').length;
+  const ticketAperti = (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : [])
+    .filter(c => c.stato === 'nuova' || c.stato === 'in_corso').length;
 
   const tabs = [
     { id:'richiamate', label:'Chiamate', badge: inAttesa },
+    { id:'ticket',     label:'Ticket',   badge: ticketAperti },
     { id:'faq',        label:'FAQ' },
     { id:'guide',      label:'Guide' },
-    { id:'kpi',        label:'Andamento' },
   ];
 
-  // La coda vuole tutta l'altezza (elenco e dettaglio scorrono per conto loro);
-  // gli altri tab sono pagine lunghe che scorrono intere.
-  const coda = tab === 'richiamate';
+  // Le due code vogliono tutta l'altezza (elenco e dettaglio scorrono per
+  // conto loro); FAQ e Guide sono pagine lunghe che scorrono intere.
+  const aDuePannelli = tab === 'richiamate' || tab === 'ticket';
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
@@ -222,11 +232,11 @@ function AdmAssistenzaPage({ initialTab }) {
         <AdmTabBar tabs={tabs} active={tab} onChange={setTab}/>
       </div>
       <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column',
-        overflow: coda ? 'hidden' : 'auto'}}>
+        overflow: aDuePannelli ? 'hidden' : 'auto'}}>
         {tab === 'richiamate' && <SrvRichiamate richiamate={richiamate} setRichiamate={setRichiamate}/>}
+        {tab === 'ticket'     && <AdmComunicazioniPage openId={openTicket}/>}
         {tab === 'faq'        && <SrvFaq faq={faq} setFaq={setFaq}/>}
         {tab === 'guide'      && <SrvGuide argomenti={argomenti} setArgomenti={setArgomenti} guide={guide} setGuide={setGuide}/>}
-        {tab === 'kpi'        && <AdmServizioClientiKPI richiamate={richiamate} guide={guide}/>}
       </div>
     </div>
   );
@@ -288,19 +298,19 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
         return { ...r, stato:'persa', risposto:false,
           tentativi:(r.tentativi || 0) + 1, operatore: SRV_IO, richiamataIl: adesso,
           inTempo: adesso <= r.entro,
-          emailEsito: esito.email, noteOperatore: esito.note || null,
+          noteOperatore: esito.note || null,
           problemaCat: null, risolto: null, urgenza: null };
       }
       return { ...r, stato:'fatta', risposto:true, richiamataIl: adesso, operatore: SRV_IO,
         inTempo: adesso <= r.entro,
         problemaCat: esito.problemaCat, risolto: esito.risolto,
         urgenza: esito.risolto ? null : esito.urgenza,
-        noteOperatore: esito.note || null, emailEsito: null };
+        noteOperatore: esito.note || null };
     }));
     setEsitoPer(null);
     // La mail parte solo quando non ha risposto: è lì che il ristoratore
     // resta senza notizie e va rassicurato.
-    if (!esito.risposto) setMailInviata({ r: richiamate.find(x => x.id === id), tipo: esito.email });
+    if (!esito.risposto) setMailInviata(richiamate.find(x => x.id === id));
   };
 
   return (
@@ -368,7 +378,7 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
           onSalva={(e)=>applicaEsito(esitoPer.id, e)}/>
       )}
       {mailInviata && (
-        <SrvMailInviata r={mailInviata.r} tipo={mailInviata.tipo} onChiudi={()=>setMailInviata(null)}/>
+        <SrvMailInviata r={mailInviata} onChiudi={()=>setMailInviata(null)}/>
       )}
     </div>
   );
@@ -587,7 +597,7 @@ function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
               <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
                 fontSize:12.4, color:ADM.MUTED}}>
                 {(TEAM.find(t => t.id === r.operatore) || {}).nome || '—'}
-                {r.emailEsito && ` · inviata: ${SRV_EMAIL_ESITO[r.emailEsito].label.toLowerCase()}`}
+                {' · mail di riprenotazione inviata'}
               </div>
             </AdmCard>
           )}
@@ -752,11 +762,12 @@ function SrvEsitoModale({ r, onChiudi, onSalva }) {
   const [problemaCat, setProblemaCat] = useStateSrv(null);
   const [risolto, setRisolto] = useStateSrv(null);
   const [urgenza, setUrgenza] = useStateSrv(null);
-  const [email, setEmail] = useStateSrv('conferma');
   const [note, setNote] = useStateSrv('');
 
+  // Se non ha risposto non c'è altro da chiedere: la mail è una sola e parte
+  // uguale sempre, quindi basta aver scelto «No».
   const valida = risposto === false
-    ? !!email
+    ? true
     : risposto === true
       ? !!problemaCat && risolto != null && (risolto || !!urgenza)
       : false;
@@ -765,7 +776,7 @@ function SrvEsitoModale({ r, onChiudi, onSalva }) {
     if (!valida) return;
     onSalva(risposto
       ? { risposto:true, problemaCat, risolto, urgenza: risolto ? null : urgenza, note: note.trim() }
-      : { risposto:false, email, note: note.trim() });
+      : { risposto:false, note: note.trim() });
   };
 
   return (
@@ -857,17 +868,6 @@ function SrvEsitoModale({ r, onChiudi, onSalva }) {
           </React.Fragment>
         )}
 
-        {risposto === false && (
-          <div>
-            <div style={SRV_SEZ}>Che mail gli mandiamo</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
-              {Object.entries(SRV_EMAIL_ESITO).map(([id, e]) => (
-                <SrvScelta key={id} attiva={email === id} tono="INFO"
-                  titolo={e.label} nota={e.desc} onClick={()=>setEmail(id)}/>
-              ))}
-            </div>
-          </div>
-        )}
 
         {risposto != null && (
           <SrvCampo etichetta={risposto ? 'Cosa hai fatto e cosa resta da fare' : 'Note del tentativo'}
@@ -913,32 +913,42 @@ function SrvScelta({ attiva, tono, titolo, nota, onClick, grande }) {
   );
 }
 
-// La conferma che segue una non risposta. Non è decorativa: dice a chi ha
-// appena registrato l'esito che il ristoratore è stato avvisato, così non
-// resta il dubbio di doverlo fare a mano.
-function SrvMailInviata({ r, tipo, onChiudi }) {
-  const e = SRV_EMAIL_ESITO[tipo];
+// La conferma che segue una non risposta. Fa vedere la mail vera, non una
+// descrizione della mail: l'operatore deve sapere con quali parole il
+// ristoratore è stato liquidato, perché se quello richiama arrabbiato è a
+// quel testo che si riferisce.
+function SrvMailInviata({ r, onChiudi }) {
+  const m = SRV_MAIL_NON_RISPOSTA;
   const locale = LOCALI.find(l => l.id === r.localeId);
   return (
     <SrvModale
-      titolo="Il ristoratore è stato avvisato"
-      larghezza={520}
+      titolo="Chiamata chiusa, ristoratore avvisato"
+      larghezza={540}
+      nota="Da parte nostra è chiusa: l'abbiamo chiamato entro la scadenza. Per riparlarne tocca a lui riprenotare."
       onChiudi={onChiudi}
       piede={<AdmButton variant="primary" onClick={onChiudi}>Ho capito</AdmButton>}>
-      <div style={{display:'flex', flexDirection:'column', gap:16}}>
-        <div style={{display:'flex', alignItems:'flex-start', gap:13, padding:'14px 16px', borderRadius:12,
-          background:ADM.INFO_SOFT, border:`1px solid ${ADM.INFO}33`}}>
-          <span style={{width:34, height:34, borderRadius:9, background:'#fff', color:ADM.INFO,
-            display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.mail size={17}/></span>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>{e.label}</div>
-            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>{e.desc}</div>
-          </div>
+      <div style={{display:'flex', flexDirection:'column', gap:14}}>
+        <div style={{display:'flex', alignItems:'center', gap:9, fontSize:12.6, color:ADM.MUTED}}>
+          <BuIcons.mail size={15} color={ADM.MUTED_SOFT}/>
+          A <b style={{color:ADM.TEXT}}>{locale?.email || r.titolare}</b>
         </div>
-        <div style={{fontSize:13.4, color:ADM.TEXT, lineHeight:1.6}}>
-          Inviata a <b>{locale?.email || r.titolare}</b>. La chiamata si chiude qui da parte
-          nostra — l'abbiamo fatta entro l'SLA — e <b>non entra fra le non risolte</b>:
-          per riparlarne tocca a lui riprenotare.
+
+        {/* Anteprima della mail: bordo e fondo la staccano dalla console, così
+            si legge come un messaggio e non come un'altra scheda dell'admin. */}
+        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden',
+          background:'#fff'}}>
+          <div style={{padding:'11px 16px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+            background:ADM.PANEL_SOFT, fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>
+            {m.oggetto}
+          </div>
+          <div style={{padding:'16px 18px 18px', display:'flex', flexDirection:'column', gap:12}}>
+            <div style={{fontSize:13.8, color:ADM.TEXT, lineHeight:1.65}}>{m.corpo}</div>
+            <div style={{fontSize:13.8, color:ADM.TEXT, lineHeight:1.65}}>{m.chiusura}</div>
+            <span style={{alignSelf:'flex-start', marginTop:2, padding:'9px 16px', borderRadius:9,
+              background:'linear-gradient(180deg, #FF6F73 0%, #E04347 100%)', color:'#fff',
+              fontSize:13.4, fontWeight:700,
+              boxShadow:'0 4px 12px -4px rgba(255,90,95,0.55)'}}>{m.cta}</span>
+          </div>
         </div>
       </div>
     </SrvModale>

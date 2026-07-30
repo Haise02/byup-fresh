@@ -391,7 +391,7 @@ const PERMESSI = [
   // Separato da «segnalazioni» perché è un'altra cosa: qui si chiama un
   // numero entro una scadenza e si pubblica la base di conoscenza, e la
   // pubblicazione è un potere che non si dà a chiunque legga i ticket.
-  { id: 'assistenza',     label: 'Chiamata assistenza',    desc: 'Coda delle richiamate, FAQ e guide pubblicate ai ristoratori' },
+  { id: 'assistenza',     label: 'Chiamate e knowledge base', desc: 'Coda delle chiamate, FAQ e guide pubblicate ai ristoratori' },
   { id: 'certificazioni', label: 'Certificazioni',         desc: 'Revisiona le certificazioni alimentari' },
   { id: 'messaggi',       label: 'Messaggi & Broadcast',   desc: 'Invia comunicazioni agli utenti' },
   // Economix e Conformita mancavano dalla matrice pur essendo due sezioni intere
