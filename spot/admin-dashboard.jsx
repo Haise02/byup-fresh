@@ -8,24 +8,73 @@ if (!window.ADM.INK) { window.ADM.INK = '#31353D'; window.ADM.INK_SOFT = '#C9CDD
 const { useState: useStateDash, useMemo: useMemoDash } = React;
 
 // --- Costanti app-side (mock metrics) ---
-// UTENTI è un sample; per le metriche app stimiamo la base reale × 312
+//
+// Due popolazioni che non vanno mai sommate né divise l'una per l'altra:
+//
+//   registrati        hanno un account, uno storico e una carta salvata. Si
+//                     contano come persone.
+//   sessioni guest    la webapp aperta col QR, senza registrazione. NON sono
+//                     persone: lo stesso cliente che inquadra il QR due sere
+//                     di fila conta due volte e noi non possiamo saperlo.
+//
+// DAU, WAU e MAU contano solo i primi. Prima il MAU includeva anche le
+// sessioni guest mentre al denominatore c'erano i soli registrati: 42.180
+// attivi su 12.480 iscritti, il 338%. Un tasso di attività sopra il cento per
+// cento non è un numero ottimista, è il segno che stiamo dividendo due cose
+// diverse — e con quello rotto sono rotte anche la stickiness e la fedeltà,
+// che ci si appoggiano sopra.
+//
+// UTENTI è un sample: per le metriche di piattaforma la base si stima × 312.
 const UTENTI_BASE = UTENTI.length * 312;
 const APP_METRICS = {
   totUtenti: UTENTI_BASE,
-  dau: 4820,
-  wau: 18420,
-  mau: 42180,
-  newRegistrazioni30g: 3240,
+  // Quote dei registrati, non numeri liberi: per costruzione nessuna finestra
+  // può contenere più persone di quante ne siano iscritte.
+  mau: Math.round(UTENTI_BASE * 0.34),
+  wau: Math.round(UTENTI_BASE * 0.148),
+  dau: Math.round(UTENTI_BASE * 0.072),
+  newRegistrazioni30g: Math.round(UTENTI_BASE * 0.058),
+  // Le guest vivono a parte e non entrano in nessuno dei numeri sopra.
+  sessioniGuest30g: 26400,
   ordiniGuest30g: 8420,
-  prenotazioniApp30g: 12480,
+  // Le prenotazioni sono un'AZIONE, non una persona: si contano sugli attivi
+  // del mese. Prima valeva 12.480, cioè esattamente UTENTI_BASE — la stessa
+  // variabile letta due volte e presentata come due misure.
+  prenotazioniApp30g: Math.round(UTENTI_BASE * 0.34 * 0.62),
   ticketMedioApp: 32,
   avgSessioneMin: 6.4,
 };
+
+// Lo staff si conta sui locali che ci sono, non a occhio: 1.840 camerieri su
+// una piattaforma di cinquanta locali facevano trentasei dipendenti a testa,
+// e la card che li divideva per i locali configurati ne dichiarava 73,6.
+// Nessun ristorante ha settantaquattro dipendenti.
+//
+// Qui la squadra la si stima dal volume del locale — chi fa nove ordini al
+// giorno non ha la brigata di chi ne fa trenta — con un minimo di tre: sotto
+// non ci si sta in sala nemmeno a pranzo.
+//
+// Ha una squadra chi è vivo E ha configurato lo staff: la stessa regola che
+// la card «Locali con staff» usa per contarli, così i due numeri della stessa
+// riga non contano due popolazioni diverse.
+const STAFF_CONFIGURATO = (l) =>
+  (l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped')
+  && l.completedSteps && (l.completedSteps.includes('team_staff') || l.stato === 'active');
+const STAFF_PER_LOCALE = LOCALI.map(l => ({
+  localeId: l.id,
+  n: STAFF_CONFIGURATO(l)
+    ? Math.max(3, Math.min(14, Math.round(3 + (l.ordiniGiorno || 0) / 3.2)))
+    : 0,
+}));
+const STAFF_TOT = STAFF_PER_LOCALE.reduce((s, x) => s + x.n, 0);
 const STAFF_METRICS = {
-  totCamerieri: 1840,
-  activeOggi: 612,
-  ordiniPresi30g: 124800,
-  azioneMediaSettimana: 142,
+  totCamerieri: STAFF_TOT,
+  // Un terzo scarso è in turno oggi: il resto è part-time, riposo, stagionali.
+  activeOggi: Math.round(STAFF_TOT * 0.33),
+  // Nuovi registrati del mese: un FLUSSO, e va tenuto separato dallo stock.
+  // La card prima lo ricavava dalla differenza fra due somme di trenta giorni
+  // di una serie di livelli, e dichiarava +1.900 nuovi su un totale di 1.840.
+  nuovi30g: Math.round(STAFF_TOT * 0.06),
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -3221,7 +3270,10 @@ function DashUtentiApp() {
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        {/* Le guest sono sessioni, non persone: stanno qui sotto e non dentro
+            DAU/WAU/MAU, che contano solo chi ha un account. */}
         <SparkStat label="Ordini da Guest (30g)" value={fmtNum(APP_METRICS.ordiniGuest30g)}
+          sub={`Su ${fmtNum(APP_METRICS.sessioniGuest30g)} sessioni anonime · fuori dal conto degli utenti`}
           accent="INK" icon="receipt"
           trend={guestW.delta} trendLabel="vs 7gg" spark={TS.ordiniGuest.slice(-30)}/>
         <SparkStat label="Prenotazioni da app (30g)" value={fmtNum(APP_METRICS.prenotazioniApp30g)}
@@ -4105,10 +4157,21 @@ function DashCamerieri() {
   const liveLocali = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped');
   const totLiveLocali = liveLocali.length;
   // assunzione: locali con staff configurato hanno completato step "team_staff" o sono active e non skipped
-  const configurati = liveLocali.filter(l => l.completedSteps && (l.completedSteps.includes('team_staff') || l.stato === 'active'));
+  const configurati = liveLocali.filter(STAFF_CONFIGURATO);
   const senzaStaff = liveLocali.filter(l => !configurati.includes(l));
   const coverageRate = totLiveLocali > 0 ? Math.round((configurati.length / totLiveLocali) * 100) : 0;
-  const ratioMedio = configurati.length > 0 ? (STAFF_METRICS.totCamerieri / configurati.length) : 0;
+  // Media e mediana si contano sulle SQUADRE dei locali, una per una. Prima
+  // era il totale dei camerieri diviso i locali configurati — due popolazioni
+  // diverse, un totale di piattaforma sopra un sottoinsieme — e usciva 73,6
+  // dipendenti a locale. La «mediana» era quel numero arrotondato: due volte
+  // lo stesso dato spacciato per due statistiche che si confermano a vicenda.
+  const squadre = STAFF_PER_LOCALE.filter(s => s.n > 0).map(s => s.n).sort((a, b) => a - b);
+  const ratioMedio = squadre.length ? squadre.reduce((s, n) => s + n, 0) / squadre.length : 0;
+  const ratioMediana = squadre.length
+    ? (squadre.length % 2
+        ? squadre[(squadre.length - 1) / 2]
+        : (squadre[squadre.length / 2 - 1] + squadre[squadre.length / 2]) / 2)
+    : 0;
 
   // ── 2. Retention staff · % attivi ultimi 7gg / totale (media di settore: 60-75%)
   const activeRate = Math.round(STAFF_METRICS.activeOggi / STAFF_METRICS.totCamerieri * 100);
@@ -4127,13 +4190,25 @@ function DashCamerieri() {
   });
 
   // ── 4. Azioni con trend (WoW) · ogni azione ha una mini-serie generata
+  //
+  // I volumi non sono scritti a mano: si derivano dagli ordini che i locali
+  // processano davvero in un mese, perché è quello che i camerieri toccano.
+  // Scritti a mano dicevano 124.800 «aggiunte articolo» al mese su una
+  // piattaforma che di ordini ne fa tredicimila e mezzo — un numero che
+  // sopravvive solo finché nessuno lo divide per un altro.
+  const ordiniMesePiattaforma = LOCALI.reduce((s, l) => s + (l.ordiniMese || 0), 0);
+  const ordiniAlTavolo = Math.round(ordiniMesePiattaforma * 0.55);
+  const azione = (n, usi, trend, seme, drift, weekend, noise) =>
+    ({ nome: n, usi, trend, spark: genDaily(seme, 30, Math.max(1, Math.round(usi / 30)), drift, weekend, noise) });
   const topActions = [
-    { nome:'Apertura tavolo', usi: 38420, trend: +8.2, spark: genDaily(201, 30, 1280, 0.012, 0.18, 0.05) },
-    { nome:'Aggiunta articolo all\'ordine', usi: 124800, trend: +5.4, spark: genDaily(202, 30, 4160, 0.010, 0.22, 0.04) },
-    { nome:'Saldo conto al tavolo', usi: 31250, trend: +6.8, spark: genDaily(203, 30, 1040, 0.011, 0.16, 0.05) },
-    { nome:'Stampa scontrino', usi: 28910, trend: +2.1, spark: genDaily(204, 30, 963, 0.005, 0.15, 0.04) },
-    { nome:'Spostamento tavolo / unione', usi: 6210, trend: +12.4, spark: genDaily(205, 30, 207, 0.018, 0.12, 0.07) },
-    { nome:'Trasferimento staff su altro turno', usi: 1480, trend: -3.2, spark: genDaily(206, 30, 49, -0.005, 0, 0.10) },
+    // Un ordine al tavolo si apre una volta e si salda una volta; gli articoli
+    // sono tre e mezzo a ordine, ed è per questo che stanno in cima.
+    azione('Aggiunta articolo all\'ordine', Math.round(ordiniAlTavolo * 3.5), +5.4, 202, 0.010, 0.22, 0.04),
+    azione('Apertura tavolo', ordiniAlTavolo, +8.2, 201, 0.012, 0.18, 0.05),
+    azione('Saldo conto al tavolo', Math.round(ordiniAlTavolo * 0.92), +6.8, 203, 0.011, 0.16, 0.05),
+    azione('Stampa scontrino', Math.round(ordiniAlTavolo * 0.58), +2.1, 204, 0.005, 0.15, 0.04),
+    azione('Spostamento tavolo / unione', Math.round(ordiniAlTavolo * 0.08), +12.4, 205, 0.018, 0.12, 0.07),
+    azione('Trasferimento staff su altro turno', Math.round(STAFF_METRICS.totCamerieri * 1.2), -3.2, 206, -0.005, 0, 0.10),
   ];
 
   // ── 5. Heatmap giorno × fascia · pattern di utilizzo settimanale
@@ -4164,8 +4239,12 @@ function DashCamerieri() {
 
       {/* Riga 1 · KPI principali con trend e benchmark */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        {/* Il «+N ultimi 30gg» ora è il flusso dei nuovi registrati. Prima era
+            la differenza fra due somme di trenta giorni di una serie di
+            LIVELLI: su uno stock quel conto vale trenta volte la crescita
+            vera, e infatti dichiarava +1.900 nuovi su 1.840 totali. */}
         <SparkStat label="Staff registrati" value={fmtNum(STAFF_METRICS.totCamerieri)}
-          sub={`+${Math.round(totRegW.last - totRegW.prev)} ultimi 30gg`}
+          sub={`+${fmtNum(STAFF_METRICS.nuovi30g)} ultimi 30gg`}
           accent="INK" icon="users"
           trend={totRegW.delta} trendLabel="vs 30gg" spark={TS.staffTot.slice(-30)}/>
         <SparkStat label="Attivi oggi" value={fmtNum(STAFF_METRICS.activeOggi)}
@@ -4176,8 +4255,8 @@ function DashCamerieri() {
           sub={`${configurati.length} su ${totLiveLocali} live · ${senzaStaff.length} ancora senza`}
           accent="INK" icon="store"
           trend={+2.1} trendLabel="vs mese prec."/>
-        <SparkStat label="Staff per locale" value={ratioMedio.toFixed(1)}
-          sub={`Media su ${configurati.length} locali · mediana ${Math.round(ratioMedio)}`}
+        <SparkStat label="Staff per locale" value={ratioMedio.toFixed(1).replace('.', ',')}
+          sub={`Media sulle squadre di ${squadre.length} locali · mediana ${String(ratioMediana).replace('.', ',')} · il più grande ne ha ${squadre[squadre.length - 1] || 0}`}
           accent="INK" icon="users"/>
       </div>
 

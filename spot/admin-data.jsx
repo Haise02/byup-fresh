@@ -283,10 +283,26 @@ function buildUtenti() {
     const sesso = i % 2 === 0 ? 'F' : 'M';
     const eta = 20 + Math.floor(r() * 50);
     const c = citta[i % citta.length];
-    const ordini = Math.floor(r() * 80);
-    const prenotazioni = Math.floor(r() * 30);
     const localiPref = Math.floor(r() * 12);
     const regOffset = Math.floor(r() * 365);
+    // Gli ordini di un utente non sono un numero a caso fra 0 e 80: sono la
+    // sua frequenza mensile per da quanto è iscritto. Sorteggiati liberi
+    // davano quaranta ordini di media in sei mesi — sei al mese — mentre la
+    // card accanto dichiara che il segmento più assiduo ne fa 3,4 e la media
+    // app 2,1, e la spesa lifetime che ne usciva (1.188 € a scontrino 32)
+    // smentiva la card di fianco senza che nessuna delle due fosse sbagliata
+    // per conto suo.
+    //
+    // La frequenza sta fra 0,4 e 3,5 ordini al mese, che è la forbice
+    // dichiarata per fascia d'età: da qui in giù ogni conto derivato — spesa
+    // lifetime, orizzonte, valore per fascia — torna con quello che la
+    // Dashboard racconta altrove.
+    const mesiIscritto = Math.max(1, regOffset / 30);
+    const freqMese = 0.4 + r() * 3.1;
+    const ordini = Math.round(freqMese * mesiIscritto);
+    // Si prenota molto meno di quanto si ordini: una cena su tre, e non da
+    // tutti.
+    const prenotazioni = Math.round(ordini * (0.12 + r() * 0.3));
     // distribuzione last session più ampia per coprire tutte le cluster di utilizzo
     const lastSessionDays = Math.floor(r() * 75); // 0..74 giorni
     // categorie utilizzo:
@@ -319,7 +335,9 @@ function buildUtenti() {
       ordini,
       prenotazioni,
       localiPreferiti: localiPref,
-      spesaTotale: ordini * (20 + Math.floor(r() * 30)),
+      // Scontrino personale attorno ai 32 € dichiarati come media app, non una
+      // forbice inventata a parte.
+      spesaTotale: ordini * (26 + Math.floor(r() * 13)),
       utilizzo,
       attivo,
     };
