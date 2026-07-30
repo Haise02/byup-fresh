@@ -7,7 +7,8 @@
 //   Ticket    la posta in arrivo: richieste, segnalazioni, certificazioni
 //             (vive in admin-comunicazioni.jsx, qui è solo montata)
 //   FAQ       le risposte scritte, pubblicabili una per una
-//   Guide     gli articoli con video, raggruppati per argomento
+//   Guide     gli articoli con video facoltativo. L'argomento è un campo
+//             della guida, non un oggetto a parte: serve a raggrupparle
 //
 // Chiamate e Ticket erano due sezioni di menu separate. Sono lo stesso lavoro
 // fatto su due canali — chi sta al supporto passa dall'una all'altra di
@@ -1172,9 +1173,14 @@ function SrvInterruttorePubblica({ live, onChange, acceso, spento }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 3. Guide — un blocco per argomento, righe orizzontali di altezza uniforme
 // ═══════════════════════════════════════════════════════════════════════════
+//
+// Si crea UNA cosa sola: la guida. L'argomento non è un oggetto da creare e
+// cancellare a parte — è un campo della guida, e l'elenco lo usa per
+// raggruppare. Quindi un argomento esiste finché almeno una guida lo usa e
+// sparisce da solo quando l'ultima se ne va: non esistono argomenti vuoti da
+// riempire, né argomenti pieni che non si possono cancellare.
 function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
   const [editorGuida, setEditorGuida] = useStateSrv(null);
-  const [editorArg, setEditorArg] = useStateSrv(null);
   const [aperta, setAperta] = useStateSrv(null);
   const [cerca, setCerca] = useStateSrv('');
   const [filtro, setFiltro] = useStateSrv('tutte');
@@ -1191,23 +1197,33 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
     return r;
   }, [guide, filtro, cerca]);
 
-  const salvaGuida = (dati) => {
-    setGuide(prev => dati.id
-      ? prev.map(g => g.id === dati.id ? { ...g, ...dati, aggiornataIl:new Date() } : g)
-      : [...prev, { ...dati, id:'G-' + String(Date.now()).slice(-5), letture:0, aggiornataIl:new Date() }]);
+  // Salvare la guida può portare con sé un argomento nuovo: l'editor lo passa
+  // per nome in `argomentoNuovo` e l'id nasce qui, dove vive l'elenco.
+  const salvaGuida = ({ argomentoNuovo, ...dati }) => {
+    let argId = dati.argomentoId;
+    const nome = String(argomentoNuovo || '').trim();
+    if (nome) {
+      const esistente = argomenti.find(a => a.nome.toLowerCase() === nome.toLowerCase());
+      if (esistente) argId = esistente.id;
+      else {
+        argId = 'A-' + String(Date.now()).slice(-5);
+        setArgomenti(prev => [...prev, { id:argId, nome, descrizione:'', icona:'list' }]);
+      }
+    }
+    const g = { ...dati, argomentoId: argId };
+    setGuide(prev => g.id
+      ? prev.map(x => x.id === g.id ? { ...x, ...g, aggiornataIl:new Date() } : x)
+      : [...prev, { ...g, id:'G-' + String(Date.now()).slice(-5), letture:0, aggiornataIl:new Date() }]);
     setEditorGuida(null);
   };
-  const salvaArg = (dati) => {
-    setArgomenti(prev => dati.id
-      ? prev.map(a => a.id === dati.id ? { ...a, ...dati } : a)
-      : [...prev, { ...dati, id:'A-' + String(Date.now()).slice(-5) }]);
-    setEditorArg(null);
-  };
-  const nuovaGuida = (argomentoId) => setEditorGuida({ nuova:true, dati:{
-    argomentoId, titolo:'', descrizione:'', minLettura:5, live:false, video:null } });
+  const nuovaGuida = () => setEditorGuida({ nuova:true, dati:{
+    argomentoId: conGuide[0] ? conGuide[0].id : '', argomentoNuovo:'',
+    titolo:'', descrizione:'', minLettura:5, live:false, video:null } });
 
-  const conRisultati = argomenti.filter(a => visibili.some(g => g.argomentoId === a.id));
-  const mostraTutti = cerca.trim() === '' && filtro === 'tutte';
+  // Un argomento senza nemmeno una guida non è una riga vuota da mostrare:
+  // non esiste più.
+  const conGuide = argomenti.filter(a => guide.some(g => g.argomentoId === a.id));
+  const conRisultati = conGuide.filter(a => visibili.some(g => g.argomentoId === a.id));
 
   return (
     <div style={{padding:'22px 28px 28px', display:'flex', flexDirection:'column', gap:14}}>
@@ -1222,32 +1238,27 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
         ]}
         attivo={filtro} onSegmento={setFiltro}
         azione={
-          /* Una sola azione in cima. Il video non si crea da qui: sta sempre
-             dentro un argomento, e il pulsante che lo aggiunge vive nella
-             riga di quell'argomento. Da qui si creava «nel primo argomento
-             della lista», che è una scelta fatta dal codice al posto di chi
-             pubblica. */
-          <AdmButton variant="cta" icon="plus" onClick={()=>setEditorArg({ nuovo:true, dati:{
-            nome:'', descrizione:'', icona:'list' } })}>Aggiungi argomento</AdmButton>
+          /* L'unica cosa che si crea. L'argomento si scrive dentro la guida. */
+          <AdmButton variant="cta" icon="plus" onClick={nuovaGuida}>Aggiungi guida</AdmButton>
         }
       />
 
-      {argomenti.length === 0 && (
-        <AdmCard><AdmEmpty icon="list" title="Nessun argomento"
-          desc="Le guide vivono dentro un argomento: creane uno per iniziare"/></AdmCard>
+      {guide.length === 0 && (
+        <AdmCard><AdmEmpty icon="list" title="Nessuna guida"
+          desc="Crea la prima: l'argomento lo scegli mentre la scrivi"/></AdmCard>
       )}
-      {argomenti.length > 0 && conRisultati.length === 0 && (
+      {guide.length > 0 && conRisultati.length === 0 && (
         <AdmCard><AdmEmpty icon="list" title="Nessuna guida" desc="Cambia filtro o cancella la ricerca"/></AdmCard>
       )}
 
-      {(mostraTutti ? argomenti : conRisultati).map(a => {
+      {conRisultati.map(a => {
         const sue = visibili.filter(g => g.argomentoId === a.id);
-        const tutte = guide.filter(g => g.argomentoId === a.id);
         const AIcon = BuIcons[a.icona] || BuIcons.list;
         return (
           <div key={a.id} style={{display:'flex', flexDirection:'column', gap:9}}>
             {/* Rubrica dell'argomento: leggera, allineata alle SectionLabel
-                della Dashboard. Non è una card dentro una card. */}
+                della Dashboard. Non è una card dentro una card, e non ha
+                azioni: l'argomento si cambia dalla guida che lo usa. */}
             <div style={{display:'flex', alignItems:'center', gap:11, paddingTop:6}}>
               <span style={{width:26, height:26, borderRadius:8, background:ADM.PINK_BG_SOFT,
                 color:ADM.PINK_DARK, display:'grid', placeItems:'center', flexShrink:0}}>
@@ -1257,46 +1268,27 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
                 letterSpacing:'0.07em'}}>{a.nome}</span>
               <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:500, flex:1, minWidth:0,
                 whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.descrizione}</span>
-              {/* Unica via per creare un video: qui l'argomento è già scelto,
-                  è quello della riga. */}
-              <AdmButton variant="secondary" size="sm" icon="plus"
-                onClick={()=>nuovaGuida(a.id)}>Aggiungi video</AdmButton>
-              <AdmIconBtn icon="pencil" label="Modifica argomento" size={28} color={ADM.MUTED_LIGHT}
-                onClick={()=>setEditorArg({ nuovo:false, dati:{ ...a } })}/>
-              {/* Un argomento con guide dentro non si cancella: la cancellazione
-                  porterebbe via articoli che nessuno ha chiesto di eliminare. */}
-              {tutte.length === 0
-                ? <SrvEliminaInline onElimina={()=>setArgomenti(prev => prev.filter(x => x.id !== a.id))}/>
-                : <span title={`Contiene ${tutte.length} guide: spostale o eliminale prima`}
-                    style={{width:28, display:'grid', placeItems:'center', color:ADM.MUTED_LIGHT}}>
-                    <BuIcons.lock size={14}/>
-                  </span>}
+              <span style={{fontSize:12.4, color:ADM.MUTED_LIGHT, fontWeight:500, flexShrink:0}}>
+                {sue.length === 1 ? '1 guida' : `${sue.length} guide`}
+              </span>
             </div>
 
-            {sue.length === 0
-              ? <AdmCard style={{fontSize:13, color:ADM.MUTED_SOFT, padding:'14px 20px'}}>
-                  Nessuna guida in questo argomento.
-                </AdmCard>
-              : (
-                <AdmCard padding={0} style={{overflow:'hidden'}}>
-                  {sue.map((g, i) => (
-                    <SrvRigaGuida key={g.id} g={g} ultima={i === sue.length - 1}
-                      aperta={aperta === g.id}
-                      onApri={()=>setAperta(aperta === g.id ? null : g.id)}
-                      onModifica={()=>setEditorGuida({ nuova:false, dati:{ ...g } })}
-                      onLive={(v)=>setGuide(prev => prev.map(x => x.id === g.id ? { ...x, live:v } : x))}
-                      onElimina={()=>setGuide(prev => prev.filter(x => x.id !== g.id))}/>
-                  ))}
-                </AdmCard>
-              )}
+            <AdmCard padding={0} style={{overflow:'hidden'}}>
+              {sue.map((g, i) => (
+                <SrvRigaGuida key={g.id} g={g} ultima={i === sue.length - 1}
+                  aperta={aperta === g.id}
+                  onApri={()=>setAperta(aperta === g.id ? null : g.id)}
+                  onModifica={()=>setEditorGuida({ nuova:false, dati:{ ...g, argomentoNuovo:'' } })}
+                  onLive={(v)=>setGuide(prev => prev.map(x => x.id === g.id ? { ...x, live:v } : x))}
+                  onElimina={()=>setGuide(prev => prev.filter(x => x.id !== g.id))}/>
+              ))}
+            </AdmCard>
           </div>
         );
       })}
 
-      {editorGuida && <SrvGuidaEditor stato={editorGuida} argomenti={argomenti}
+      {editorGuida && <SrvGuidaEditor stato={editorGuida} argomenti={conGuide}
         onChiudi={()=>setEditorGuida(null)} onSalva={salvaGuida}/>}
-      {editorArg && <SrvArgomentoEditor stato={editorArg}
-        onChiudi={()=>setEditorArg(null)} onSalva={salvaArg}/>}
     </div>
   );
 }
@@ -1383,9 +1375,32 @@ function SrvRigaGuida({ g, ultima, aperta, onApri, onModifica, onLive, onElimina
   );
 }
 
+// ─── Il video allegato alla guida ───────────────────────────────────────────
+//
+// Il video finisce nel gestionale, in Supporto → Centro assistenza, e lo
+// guardano dei ristoratori spesso in sala col telefono sotto rete mobile.
+// Quindi due vincoli, non uno:
+//
+//   formato  MP4 con video H.264 e audio AAC. È l'unica combinazione che parte
+//            su tutti i browser senza transcodifica lato nostro. MOV e WebM
+//            non li accettiamo più: il primo su Chrome Android non parte, il
+//            secondo su Safari nemmeno.
+//   peso     50 MB. Sono ~3-4 minuti di schermo registrato a 1080p con bitrate
+//            2 Mbps, che è la durata giusta per un tutorial. Il tetto non
+//            serve a risparmiare disco — costa poco — ma banda a ogni
+//            visualizzazione e attesa a chi guarda: un catalogo di venti
+//            guide da 200 MB si carica una volta e si paga per sempre.
+const SRV_VIDEO_MAX_MB = 50;
+const SRV_VIDEO_FORMATO = 'MP4 · H.264 + AAC · 1080p · max ' + SRV_VIDEO_MAX_MB + ' MB';
+
+const srvPeso = (byte) => byte >= 1024 * 1024
+  ? (byte / 1024 / 1024).toFixed(byte >= 10 * 1024 * 1024 ? 0 : 1) + ' MB'
+  : Math.max(1, Math.round(byte / 1024)) + ' KB';
+
 // Legge la durata reale dal file scelto. Non serve un server: il browser
 // carica i metadati del video locale e la durata la sa lui. Se il codec non è
-// leggibile torna null e il campo resta a mano.
+// leggibile torna null — e allora il file non ci serve: un video di cui non
+// sappiamo la durata non può dichiararla al ristoratore.
 function srvDurataDaFile(file) {
   return new Promise(resolve => {
     const url = URL.createObjectURL(file);
@@ -1399,45 +1414,60 @@ function srvDurataDaFile(file) {
 
 function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
   const [d, setD] = useStateSrv(stato.dati);
-  const [durataTesto, setDurataTesto] = useStateSrv(stato.dati.video ? srvDurata(stato.dati.video.durataSec) : '');
+  // Senza argomenti in elenco — prima guida in assoluto — l'unica strada è
+  // scriverne uno: la tendina non avrebbe niente da offrire.
+  const [nuovoArg, setNuovoArg] = useStateSrv(argomenti.length === 0);
+  const [erroreVideo, setErroreVideo] = useStateSrv(null);
+  const [leggendo, setLeggendo] = useStateSrv(false);
   const agg = (k, v) => setD(x => ({ ...x, [k]: v }));
   const aggVideo = (k, v) => setD(x => ({ ...x, video: { ...(x.video || {}), [k]: v } }));
 
+  const argOk = nuovoArg ? d.argomentoNuovo.trim().length > 2 : !!d.argomentoId;
   const valida = d.titolo.trim().length > 4 && d.descrizione.trim().length > 10
-    && d.minLettura > 0 && !!d.argomentoId
+    && d.minLettura > 0 && argOk
     && (!d.video || d.video.durataSec > 0);
 
+  // Il file va controllato prima di prenderlo: formato, peso e — solo se
+  // quelli passano — durata. Un errore qui non lascia mezzo video attaccato
+  // alla guida, il video di prima resta dov'è.
   const scegliVideo = async (e) => {
     const file = e.target.files && e.target.files[0];
+    e.target.value = '';               // così riscegliere lo stesso file rifà il controllo
     if (!file) return;
+    setErroreVideo(null);
+    const estensione = (file.name.split('.').pop() || '').toLowerCase();
+    if (file.type !== 'video/mp4' && estensione !== 'mp4') {
+      setErroreVideo(`Serve un MP4: questo è un .${estensione || 'file sconosciuto'}. Riesportalo in MP4 (H.264 + AAC), è l'unico formato che parte su tutti i browser.`);
+      return;
+    }
+    if (file.size > SRV_VIDEO_MAX_MB * 1024 * 1024) {
+      setErroreVideo(`Pesa ${srvPeso(file.size)}, il tetto è ${SRV_VIDEO_MAX_MB} MB. Riesporta a 1080p con bitrate 2 Mbps, oppure taglialo in due guide più corte.`);
+      return;
+    }
+    setLeggendo(true);
     const durata = await srvDurataDaFile(file);
+    setLeggendo(false);
+    if (!durata) {
+      setErroreVideo('Non riusciamo a leggere la durata di questo file: il browser non lo sa aprire, e senza durata la guida non può dichiararla. Riesportalo in MP4 (H.264 + AAC).');
+      return;
+    }
     setD(x => ({ ...x, video: {
       titolo: (x.video && x.video.titolo) || file.name.replace(/\.[^.]+$/, ''),
-      durataSec: durata || (x.video && x.video.durataSec) || 0,
+      durataSec: durata,
       descrizioneSotto: (x.video && x.video.descrizioneSotto) || '',
       views: (x.video && x.video.views) || 0,
       tempoMedioSec: (x.video && x.video.tempoMedioSec) || 0,
       utile: (x.video && x.video.utile) || 0,
       nonUtile: (x.video && x.video.nonUtile) || 0,
-      file: file.name,
+      file: file.name, pesoByte: file.size,
     }}));
-    setDurataTesto(durata ? srvDurata(durata) : '');
-  };
-
-  // «7:08» → 428 secondi. Accetta anche i secondi secchi.
-  const applicaDurata = (testo) => {
-    setDurataTesto(testo);
-    const p = testo.split(':').map(x => parseInt(x, 10));
-    const sec = p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]) ? p[0] * 60 + p[1]
-      : p.length === 1 && !isNaN(p[0]) ? p[0] : null;
-    if (sec != null) aggVideo('durataSec', sec);
   };
 
   return (
     <SrvModale
       titolo={stato.nuova ? 'Nuova guida' : 'Modifica la guida'}
       larghezza={780}
-      nota="Il tempo di lettura e la durata del video compaiono affiancati sulla scheda: il ristoratore sceglie in base a quanto tempo ha, quindi vanno dichiarati onestamente."
+      nota="Il tempo di lettura lo dichiari tu, la durata del video la leggiamo dal file: sulla scheda compaiono affiancati e il ristoratore sceglie in base a quanto tempo ha."
       onChiudi={onChiudi}
       piede={
         <React.Fragment>
@@ -1452,10 +1482,32 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
         <div>
           <div style={SRV_SEZ}>L'articolo</div>
           <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
-            <SrvCampo etichetta="Argomento">
-              <select value={d.argomentoId} onChange={e=>agg('argomentoId', e.target.value)} style={SRV_SEL}>
-                {argomenti.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-              </select>
+            {/* L'argomento è un campo di QUESTA guida: o uno di quelli in uso,
+                o uno nuovo scritto qui. Non c'è un posto separato dove si
+                creano — nasce con la prima guida che lo nomina. */}
+            <SrvCampo etichetta="Argomento"
+              aiuto={nuovoArg ? 'Raggruppa le guide nel Centro assistenza del gestionale.' : null}>
+              {nuovoArg ? (
+                <div style={{display:'flex', gap:8}}>
+                  <input value={d.argomentoNuovo} onChange={e=>agg('argomentoNuovo', e.target.value)}
+                    style={{...SRV_INP, flex:1}} placeholder="Incassi e contabilità" autoFocus/>
+                  {argomenti.length > 0 && (
+                    <button onClick={()=>{ setNuovoArg(false); agg('argomentoNuovo', ''); }} className="adm-btn"
+                      style={{padding:'0 12px', borderRadius:9, border:`1px solid ${ADM.BORDER}`, background:'#fff',
+                        color:ADM.MUTED, fontSize:12.6, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+                        whiteSpace:'nowrap'}}>Annulla</button>
+                  )}
+                </div>
+              ) : (
+                <select value={d.argomentoId}
+                  onChange={e=>{
+                    if (e.target.value === '__nuovo') { setNuovoArg(true); return; }
+                    agg('argomentoId', e.target.value);
+                  }} style={SRV_SEL}>
+                  {argomenti.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                  <option value="__nuovo">＋ Nuovo argomento…</option>
+                </select>
+              )}
             </SrvCampo>
             <SrvCampo etichetta="Tempo medio di lettura (minuti)">
               <input type="number" min="1" max="90" value={d.minLettura}
@@ -1475,30 +1527,55 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
         <div>
           <div style={SRV_SEZ}>Il video (facoltativo)</div>
           {!d.video ? (
-            <label style={{display:'flex', alignItems:'center', gap:13, padding:'16px 18px', borderRadius:12,
-              border:`1.5px dashed ${ADM.BORDER}`, background:ADM.PANEL_SOFT, cursor:'pointer'}}>
-              <span style={{width:38, height:38, borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`,
-                display:'grid', placeItems:'center', color:ADM.MUTED, flexShrink:0}}>
-                <BuIcons.download size={18}/>
-              </span>
-              <span style={{flex:1, minWidth:0}}>
-                <span style={{display:'block', fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>Carica un video</span>
-                <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:2}}>
-                  MP4 o MOV. La durata viene letta dal file e mostrata accanto al tempo di lettura.
+            <div style={{display:'flex', flexDirection:'column', gap:9}}>
+              <label style={{display:'flex', alignItems:'center', gap:13, padding:'16px 18px', borderRadius:12,
+                border:`1.5px dashed ${erroreVideo ? ADM.DANGER : ADM.BORDER}`,
+                background:ADM.PANEL_SOFT, cursor: leggendo ? 'progress' : 'pointer'}}>
+                <span style={{width:38, height:38, borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`,
+                  display:'grid', placeItems:'center', color:ADM.MUTED, flexShrink:0}}>
+                  <BuIcons.download size={18}/>
                 </span>
-              </span>
-              <input type="file" accept="video/*" onChange={scegliVideo} style={{display:'none'}}/>
-            </label>
+                <span style={{flex:1, minWidth:0}}>
+                  <span style={{display:'block', fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>
+                    {leggendo ? 'Stiamo leggendo il file…' : 'Carica un video'}
+                  </span>
+                  {/* Il formato non è un consiglio: è quello che parte sul
+                      telefono del ristoratore quando apre il Centro
+                      assistenza del gestionale. Scritto qui, prima della
+                      scelta, non dentro un errore dopo. */}
+                  <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:2}}>
+                    {SRV_VIDEO_FORMATO} — la durata la leggiamo dal file, non c'è da scriverla.
+                  </span>
+                </span>
+                <input type="file" accept="video/mp4" onChange={scegliVideo} style={{display:'none'}}/>
+              </label>
+              {erroreVideo
+                ? <div style={{fontSize:12.6, color:ADM.DANGER, lineHeight:1.5, fontWeight:500}}>{erroreVideo}</div>
+                : <div style={{fontSize:12.2, color:ADM.MUTED_LIGHT, lineHeight:1.5}}>
+                    Il tetto di {SRV_VIDEO_MAX_MB} MB sono ~3-4 minuti di schermo registrato a 1080p: pesa su chi
+                    guarda da rete mobile, non sul nostro disco. Una guida più lunga di così conviene spezzarla in due.
+                  </div>}
+            </div>
           ) : (
             <div style={{display:'flex', flexDirection:'column', gap:16}}>
               <div style={{display:'flex', alignItems:'center', gap:13, padding:'12px 14px', borderRadius:11,
                 background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
                 <SrvMiniatura video={d.video} w={92}/>
-                <span style={{flex:1, minWidth:0, fontSize:13.4, fontWeight:600, color:ADM.TEXT,
-                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                  {d.video.file || d.video.titolo || 'Video caricato'}
+                <span style={{flex:1, minWidth:0}}>
+                  <span style={{display:'block', fontSize:13.4, fontWeight:600, color:ADM.TEXT,
+                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                    {d.video.file || d.video.titolo || 'Video caricato'}
+                  </span>
+                  {/* Durata e peso: due numeri che non si scrivono a mano, si
+                      leggono dal file. Stanno qui perché sono il resoconto di
+                      cosa è stato caricato. */}
+                  <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:2}}>
+                    {d.video.pesoByte
+                      ? `${srvDurata(d.video.durataSec)} di video · ${srvPeso(d.video.pesoByte)} · letti dal file`
+                      : `${srvDurata(d.video.durataSec)} di video · letta dal file`}
+                  </span>
                 </span>
-                <button onClick={()=>{ agg('video', null); setDurataTesto(''); }} className="adm-btn" style={{
+                <button onClick={()=>{ agg('video', null); setErroreVideo(null); }} className="adm-btn" style={{
                   padding:'5px 11px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, background:'#fff',
                   color:ADM.DANGER, fontSize:12.3, fontWeight:600, fontFamily:'inherit', cursor:'pointer'}}>
                   Rimuovi
@@ -1506,12 +1583,8 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
               </div>
 
               <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
-                <SrvCampo etichetta="Titolo del video">
+                <SrvCampo etichetta="Titolo del video" span>
                   <input value={d.video.titolo || ''} onChange={e=>aggVideo('titolo', e.target.value)} style={SRV_INP}/>
-                </SrvCampo>
-                <SrvCampo etichetta="Durata (m:ss)"
-                  aiuto={d.video.durataSec > 0 ? `Comparirà come «${srvDurata(d.video.durataSec)} di video».` : 'Non è stato possibile leggerla dal file: inseriscila a mano.'}>
-                  <input value={durataTesto} onChange={e=>applicaDurata(e.target.value)} style={SRV_INP} placeholder="7:08"/>
                 </SrvCampo>
                 <SrvCampo etichetta="Descrizione sotto al video" span
                   aiuto="Le avvertenze che servono a chi ha appena guardato: differenze fra dispositivi, passaggi che nel video non si vedono, eccezioni.">
@@ -1526,56 +1599,6 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
         <SrvInterruttorePubblica live={d.live} onChange={(v)=>agg('live', v)}
           acceso="La guida comparirà nell'argomento appena salvi."
           spento="Resta in bozza: visibile solo qui in console."/>
-      </div>
-    </SrvModale>
-  );
-}
-
-function SrvArgomentoEditor({ stato, onChiudi, onSalva }) {
-  const [d, setD] = useStateSrv(stato.dati);
-  const agg = (k, v) => setD(x => ({ ...x, [k]: v }));
-  const valida = d.nome.trim().length > 2;
-  const icone = ['store', 'utensils', 'list', 'receipt', 'card', 'chart', 'settings', 'help', 'phone', 'shield'];
-
-  return (
-    <SrvModale
-      titolo={stato.nuovo ? 'Nuovo argomento' : 'Modifica l\'argomento'}
-      nota="L'argomento è il raccoglitore: contiene più guide sullo stesso tema. Se ne serve uno per una guida sola, probabilmente la guida va in un argomento che esiste già."
-      onChiudi={onChiudi}
-      piede={
-        <React.Fragment>
-          <AdmButton variant="ghost" onClick={onChiudi}>Annulla</AdmButton>
-          <AdmButton variant="primary" icon="check" disabled={!valida} onClick={()=>valida && onSalva(d)}>
-            {stato.nuovo ? 'Crea' : 'Salva'}
-          </AdmButton>
-        </React.Fragment>
-      }>
-      <div style={{display:'flex', flexDirection:'column', gap:18}}>
-        <SrvCampo etichetta="Nome">
-          <input value={d.nome} onChange={e=>agg('nome', e.target.value)} style={SRV_INP}
-            placeholder="Incassi e contabilità"/>
-        </SrvCampo>
-        <SrvCampo etichetta="Descrizione">
-          <input value={d.descrizione} onChange={e=>agg('descrizione', e.target.value)} style={SRV_INP}
-            placeholder="Cassa, corrispettivi, IVA ed esportazioni."/>
-        </SrvCampo>
-        <SrvCampo etichetta="Icona">
-          <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
-            {icone.map(nome => {
-              const Ico = BuIcons[nome];
-              const scelta = d.icona === nome;
-              return (
-                <button key={nome} onClick={()=>agg('icona', nome)} className="adm-btn" style={{
-                  width:40, height:40, borderRadius:10, cursor:'pointer',
-                  background: scelta ? ADM.PINK_BG_SOFT : '#fff',
-                  border:`1px solid ${scelta ? ADM.PINK : ADM.BORDER}`,
-                  color: scelta ? ADM.PINK_DARK : ADM.MUTED,
-                  display:'grid', placeItems:'center',
-                }}><Ico size={19}/></button>
-              );
-            })}
-          </div>
-        </SrvCampo>
       </div>
     </SrvModale>
   );
