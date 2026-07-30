@@ -1820,8 +1820,14 @@ function AdmServizioClientiKPI({ richiamate }) {
                 <b style={{color:ADM.TEXT}}>{fmtNum(f.chiusi)}</b> con ticket chiuso · <b style={{color:ADM.TEXT}}>{f.pct}%</b>
               </span>
             </div>
+            {/* Solo la barra, senza «N chiusi / N aperti» sotto: i chiusi
+                sono già scritti due righe più su, e gli aperti sono gli altri.
+                Tre volte lo stesso conto in nove centimetri di card. */}
             <div style={{padding:'0 16px 14px'}}>
-              <MiniRatioBar a={f.chiusi} b={f.avviati - f.chiusi} aLabel="chiusi" bLabel="aperti" aColor={ADM.OK}/>
+              <div style={{display:'flex', height:6, borderRadius:99, overflow:'hidden',
+                background:ADM.BORDER_SOFT}}>
+                <div style={{width:`${f.avviati ? f.chiusi / f.avviati * 100 : 0}%`, background:ADM.OK}}/>
+              </div>
             </div>
           </AdmCard>
         ))}
