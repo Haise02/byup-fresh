@@ -1328,7 +1328,7 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
             {/* Testata: il nome dell'argomento in grande, una riga di conti
                 sotto. Non è una barra piena di comandi — l'unico comando è
                 quello che serve qui. */}
-            <div style={{padding:'20px 30px 16px', flexShrink:0, maxWidth:960, boxSizing:'border-box',
+            <div style={{padding:'20px 30px 16px', flexShrink:0,
               display:'flex', alignItems:'flex-end', gap:16}}>
               <div style={{minWidth:0, flex:1}}>
                 <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em',
@@ -1353,10 +1353,11 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
               <AdmButton variant="cta" icon="plus" onClick={nuovaGuida}>Aggiungi guida</AdmButton>
             </div>
 
-            {/* Colonna di lettura larga quanto un testo si legge: oltre i 900
-                px una riga di descrizione diventa un nastro. */}
+            {/* Le card prendono tutta la larghezza del pannello: una colonna
+                stretta lasciava mezza finestra vuota a destra, e in una
+                console larga quello spazio è spazio pagato. */}
             <div className="adm-scroll" style={{flex:1, overflowY:'auto', minHeight:0, padding:'0 30px 32px'}}>
-              <div style={{maxWidth:900, display:'flex', flexDirection:'column', gap:16}}>
+              <div style={{display:'flex', flexDirection:'column', gap:16}}>
                 {sue.length === 0 && (
                   <AdmCard><AdmEmpty icon="list"
                     title={cerca ? 'Nessun risultato' : 'Nessuna guida qui'}
@@ -1557,16 +1558,24 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
                 leggere. */}
             <SrvAzioneTesto onClick={rimuoviVideo} colore={ADM.DANGER}>Rimuovi</SrvAzioneTesto>
           </div>
-          {guarda && (
-            <video src={srvVideoSrc(v)} controls autoPlay preload="metadata" playsInline
-              style={{width:'100%', maxWidth:480, aspectRatio:'16/9', display:'block', borderRadius:12,
-                background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
-          )}
-          <SrvTesto multi value={v.descrizioneSotto || ''}
-            onChange={t=>onCambia({ video: { ...v, descrizioneSotto:t } })}
-            placeholder="Nota sotto al video (facoltativa): le avvertenze per chi ha appena guardato."
-            stile={{marginLeft:-10, padding:'7px 10px', fontSize:13.2, lineHeight:1.55,
-              color:ADM.MUTED, minHeight:32}}/>
+          {/* Col player aperto la nota gli si mette a fianco invece che
+              sotto: un video largo 480 e una nota larga tutta la card, una
+              sopra l'altra, sono due misure che non si parlano. */}
+          <div style={{display:'flex', alignItems:'flex-start', gap:18,
+            flexDirection: guarda ? 'row' : 'column'}}>
+            {guarda && (
+              <video src={srvVideoSrc(v)} controls autoPlay preload="metadata" playsInline
+                style={{width:480, maxWidth:'100%', aspectRatio:'16/9', display:'block', flexShrink:0,
+                  borderRadius:12, background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
+            )}
+            <div style={{flex:1, minWidth:0, alignSelf:'stretch'}}>
+              <SrvTesto multi value={v.descrizioneSotto || ''}
+                onChange={t=>onCambia({ video: { ...v, descrizioneSotto:t } })}
+                placeholder="Nota sotto al video (facoltativa): le avvertenze per chi ha appena guardato."
+                stile={{marginLeft:-10, padding:'7px 10px', fontSize:13.2, lineHeight:1.55,
+                  color:ADM.MUTED, minHeight:32}}/>
+            </div>
+          </div>
         </div>
       ) : (
         <div style={{marginTop:12}}>
