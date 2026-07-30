@@ -1552,12 +1552,11 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
                 {voti > 0 && ` · ${Math.round(v.utile / voti * 100)}% «utile»`}
               </span>
             </span>
-            <span style={{display:'flex', alignItems:'center', gap:10, flexShrink:0}}>
-              <SrvAzioneTesto onClick={()=>setGuarda(x => !x)} colore={ADM.TEXT}>
-                {guarda ? 'Chiudi' : 'Guarda'}
-              </SrvAzioneTesto>
-              <SrvAzioneTesto onClick={rimuoviVideo} colore={ADM.DANGER}>Rimuovi</SrvAzioneTesto>
-            </span>
+            {/* «Guarda» non c'è: la miniatura ha già il triangolo sopra, ed è
+                lì che si va a cliccare per vedere un video. Un pulsante che
+                ripete la stessa cosa accanto è solo un'altra parola da
+                leggere. */}
+            <SrvAzioneTesto onClick={rimuoviVideo} colore={ADM.DANGER}>Rimuovi</SrvAzioneTesto>
           </div>
           {guarda && (
             <video src={srvVideoSrc(v)} controls autoPlay preload="metadata" playsInline
