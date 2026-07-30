@@ -1840,7 +1840,7 @@ function AdmServizioClientiKPI({ richiamate }) {
             «Per locale» che ripeteva in altra forma le due card in cima alla
             pagina. Tolte quelle, restava questa da sola, e sta bene qui —
             dove ci sono gli altri conti sui ticket. */}
-        <DashStatCard label="Ticket aperti per locale" accent="WARN"
+        <DashStatCard label="Ticket medi aperti per locale" accent="WARN"
           value={k.perLocale.apertiMedi.toFixed(1).replace('.', ',')}
           sub={`${k.ticket.apertiOra} ticket aperti su ${k.perLocale.localiConAperti} locali · il più carico ne ha ${k.perLocale.maxAperti}`}
           ratio={{ a:k.perLocale.localiConAperti, b:k.perLocale.localiTotali - k.perLocale.localiConAperti,
