@@ -2118,7 +2118,13 @@ function DashLocali({ onNav }) {
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18}}>
           <div>
             <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Tasso di abbandono per piano</div>
-            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Annualizzato · vs media di settore food-service · tempo medio di permanenza prima dell'abbandono</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Annualizzato · vs media di settore food-service</div>
+            {/* «Tenure» sotto ogni piano non si spiega da sola: detta una
+                volta qui, sopra le card che la usano. */}
+            <div style={{fontSize:13, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.45}}>
+              <b style={{color:ADM.MUTED}}>Tenure</b> = quanti mesi resta un locale prima di disdire, in media.
+              È il moltiplicatore dell'LTV: a parità di canone, un piano che tiene il doppio vale il doppio.
+            </div>
           </div>
           <div style={{display:'flex', alignItems:'center', gap:6, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
             <span style={{display:'inline-flex', alignItems:'center', gap:5}}>
@@ -2317,15 +2323,21 @@ function DashLocali({ onNav }) {
               textTransform:'uppercase', letterSpacing:'0.06em'}}>NRR · netta</div>
             <div style={{fontSize:26.6, fontWeight:800, color: RITENZIONE.nrr >= 100 ? ADM.OK : ADM.TEXT,
               marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{RITENZIONE.nrr}%</div>
-            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>
-              Con gli upgrade · sopra il 100% la base cresce da sola
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.45}}>
+              <b style={{color:ADM.TEXT}}>Net Revenue Retention</b>: quanto vale oggi il canone dei soli
+              locali che c'erano 90 giorni fa, senza contare quelli nuovi.<br/>
+              <span style={{color:ADM.MUTED_LIGHT}}>(base + espansione − contrazione − churn) ÷ base.
+              Sopra il 100% la base cresce da sola.</span>
             </div>
           </AdmCard>
           <AdmCard padding={18}>
             <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>GRR · lorda</div>
             <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{RITENZIONE.grr}%</div>
-            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>
-              Senza l'aiuto degli upgrade · quanto tiene la base da sola
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.45}}>
+              <b style={{color:ADM.TEXT}}>Gross Revenue Retention</b>: lo stesso conto senza gli upgrade,
+              cioè quanto tiene la base da sola.<br/>
+              <span style={{color:ADM.MUTED_LIGHT}}>(base − contrazione − churn) ÷ base. Non può superare
+              il 100%, ed è il pavimento sotto la NRR.</span>
             </div>
           </AdmCard>
         </div>
@@ -2372,7 +2384,8 @@ function DashLocali({ onNav }) {
           {/* Il ricavo per tenure sta scritto sotto, in chiaro e più piccolo:
               è il numero che si dice in giro, ma non è quello che resta. */}
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>
-            Margine × tenure · {avgMarginePct}% di margine sul canone<br/>
+            Margine mensile × <b style={{color:ADM.TEXT}}>tenure</b> (i mesi che un locale resta prima
+            di disdire) · {avgMarginePct}% di margine sul canone<br/>
             <span style={{color:ADM.MUTED_LIGHT}}>A ricavo sarebbe {fmtEur(avgLTVRicavo)}</span>
           </div>
         </AdmCard>
