@@ -983,7 +983,6 @@ function SrvMailInviata({ r, onChiudi }) {
 function SrvFaq({ faq, setFaq }) {
   const [filtro, setFiltro] = useStateSrv('tutte');
   const [cerca, setCerca] = useStateSrv('');
-  const [aperta, setAperta] = useStateSrv(null);
   const [editor, setEditor] = useStateSrv(null); // { nuova:bool, dati }
 
   const online = faq.filter(f => f.live).length;
@@ -1012,8 +1011,7 @@ function SrvFaq({ faq, setFaq }) {
 
   return (
     <div style={{padding:'22px 28px 28px', display:'flex', flexDirection:'column', gap:14}}>
-      <SectionLabel first title="Domande frequenti"
-        desc={`${faq.length} risposte · ${online} online nel gestionale, ${faq.length - online} in bozza`}/>
+      <SectionLabel first title="Domande frequenti"/>
 
       <SrvBarraStrumenti
         cerca={cerca} onCerca={setCerca} placeholder="Cerca fra domande e risposte…"
@@ -1024,7 +1022,7 @@ function SrvFaq({ faq, setFaq }) {
         ]}
         attivo={filtro} onSegmento={setFiltro}
         azione={<AdmButton variant="cta" icon="plus" onClick={()=>setEditor({ nuova:true, dati:{
-          categoria: FAQ_CATEGORIE[0], domanda:'', risposta:'', live:false } })}>Nuova FAQ</AdmButton>}
+          categoria: FAQ_CATEGORIE[0], domanda:'', risposta:'', live:false } })}>Aggiungi FAQ</AdmButton>}
       />
 
       {gruppi.length === 0
@@ -1044,57 +1042,71 @@ function SrvFaq({ faq, setFaq }) {
                 {g.righe.map((f, i) => (
                   <SrvRigaFaq key={f.id} f={f}
                     ultima={i === g.righe.length - 1}
-                    aperta={aperta === f.id}
-                    onApri={()=>setAperta(aperta === f.id ? null : f.id)}
-                    onLive={(v)=>setFaq(prev => prev.map(x => x.id === f.id ? { ...x, live:v } : x))}
-                    onModifica={()=>setEditor({ nuova:false, dati:{ ...f } })}
-                    onElimina={()=>setFaq(prev => prev.filter(x => x.id !== f.id))}/>
+                    onApri={()=>setEditor({ nuova:false, dati:{ ...f } })}
+                    onLive={(v)=>setFaq(prev => prev.map(x => x.id === f.id ? { ...x, live:v } : x))}/>
                 ))}
               </div>
             ))}
           </AdmCard>
         )}
 
-      {editor && <SrvFaqEditor stato={editor} onChiudi={()=>setEditor(null)} onSalva={salva}/>}
+      {editor && <SrvFaqEditor stato={editor} onChiudi={()=>setEditor(null)} onSalva={salva}
+        onElimina={(id)=>{ setFaq(prev => prev.filter(x => x.id !== id)); setEditor(null); }}/>}
     </div>
   );
 }
 
-function SrvRigaFaq({ f, ultima, aperta, onApri, onLive, onModifica, onElimina }) {
+// La riga non si espande più: cliccarla apre direttamente la modifica. Il
+// pannello a fisarmonica mostrava la risposta in sola lettura e poi serviva
+// comunque la matita per cambiarla — due gesti per arrivare dove il primo
+// poteva già portare. Sparite con lui anche matita e cestino: la modifica è
+// il click sulla riga, e la cancellazione vive dentro il modale, che è
+// l'unico posto dove hai la domanda davanti mentre decidi di buttarla.
+function SrvRigaFaq({ f, ultima, onApri, onLive }) {
   return (
     <div style={{borderBottom: ultima ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-      background: aperta ? ADM.PANEL_SOFT : 'transparent'}}>
-      <div style={{display:'flex', alignItems:'center', gap:14, padding:'12px 20px'}}>
-        <button onClick={onApri} style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:11,
+      display:'flex', alignItems:'center', gap:14, padding:'12px 20px'}}>
+      <button onClick={onApri} className="adm-row-open"
+        style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:11,
           textAlign:'left', background:'none', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit'}}>
-          <span style={{color:ADM.MUTED_LIGHT, transform: aperta ? 'rotate(90deg)' : 'none',
-            transition:'transform 0.16s ease', display:'inline-flex', flexShrink:0}}>
-            <BuIcons.chevronRight size={14}/>
+        <span style={{flex:1, minWidth:0}}>
+          <span style={{display:'block', fontSize:14.4, fontWeight:600,
+            color: f.live ? ADM.TEXT : ADM.MUTED, lineHeight:1.4}}>{f.domanda}</span>
+          <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:3}}>
+            Aggiornata {fmtRelative(f.aggiornataIl)}
           </span>
-          <span style={{flex:1, minWidth:0}}>
-            <span style={{display:'block', fontSize:14.4, fontWeight:600,
-              color: f.live ? ADM.TEXT : ADM.MUTED, lineHeight:1.4}}>{f.domanda}</span>
-            <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:3}}>
-              Aggiornata {fmtRelative(f.aggiornataIl)}
-            </span>
-          </span>
-        </button>
-
-        <span style={{width:52, display:'flex', justifyContent:'flex-end', flexShrink:0}}>
-          <AdmSwitch size="sm" checked={f.live} onChange={onLive}/>
         </span>
-        <AdmIconBtn icon="pencil" label="Modifica" size={28} onClick={onModifica} color={ADM.MUTED_SOFT}/>
-        <SrvEliminaInline onElimina={onElimina}/>
-      </div>
-      {aperta && (
-        <div style={{padding:'0 20px 16px 45px', fontSize:13.8, color:ADM.TEXT, lineHeight:1.65,
-          whiteSpace:'pre-line', maxWidth:900}}>{f.risposta}</div>
-      )}
+        <span className="adm-row-chev" style={{color:ADM.MUTED_LIGHT, flexShrink:0}}>
+          <BuIcons.chevronRight size={15}/>
+        </span>
+      </button>
+      <SrvChipStato attivo={f.live} onCambia={()=>onLive(!f.live)}/>
     </div>
   );
 }
 
-function SrvFaqEditor({ stato, onChiudi, onSalva }) {
+// Chip cliccabile al posto dell'interruttore: dice a parole in che stato sei
+// — «Attivo» / «Disattivo» — invece di chiedere di dedurlo da un pallino
+// spostato a destra o a sinistra.
+function SrvChipStato({ attivo, onCambia }) {
+  const c = attivo ? ADM.OK : ADM.MUTED;
+  return (
+    <button onClick={onCambia} className="adm-pill"
+      title={attivo ? 'Clicca per disattivarla' : 'Clicca per attivarla'}
+      style={{
+        display:'inline-flex', alignItems:'center', gap:7, flexShrink:0,
+        padding:'5px 13px', borderRadius:99, cursor:'pointer', fontFamily:'inherit',
+        background: attivo ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT,
+        color: c, border:`1px solid ${attivo ? `${ADM.OK}33` : ADM.BORDER}`,
+        fontSize:12.4, fontWeight:700, whiteSpace:'nowrap',
+      }}>
+      <span style={{width:7, height:7, borderRadius:'50%', background:c}}/>
+      {attivo ? 'Attivo' : 'Disattivo'}
+    </button>
+  );
+}
+
+function SrvFaqEditor({ stato, onChiudi, onSalva, onElimina }) {
   const [d, setD] = useStateSrv(stato.dati);
   const agg = (k, v) => setD(x => ({ ...x, [k]: v }));
   const valida = d.domanda.trim().length > 5 && d.risposta.trim().length > 15;
@@ -1106,6 +1118,15 @@ function SrvFaqEditor({ stato, onChiudi, onSalva }) {
       onChiudi={onChiudi}
       piede={
         <React.Fragment>
+          {/* Cancellare si fa da qui, non dall'elenco: è l'unico posto in cui
+              hai la domanda e la risposta davanti agli occhi mentre decidi di
+              buttarle. Sta a sinistra, staccata dalle azioni di conferma. */}
+          {!stato.nuova && (
+            <React.Fragment>
+              <SrvEliminaInline onElimina={()=>onElimina(d.id)}/>
+              <div style={{flex:1}}/>
+            </React.Fragment>
+          )}
           <AdmButton variant="ghost" onClick={onChiudi}>Annulla</AdmButton>
           <AdmButton variant="primary" icon="check" disabled={!valida} onClick={()=>valida && onSalva(d)}>
             {stato.nuova ? 'Crea' : 'Salva'}
@@ -1190,8 +1211,7 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
 
   return (
     <div style={{padding:'22px 28px 28px', display:'flex', flexDirection:'column', gap:14}}>
-      <SectionLabel first title="Guide"
-        desc={`${argomenti.length} argomenti · ${guide.length} guide, ${online} online`}/>
+      <SectionLabel first title="Guide"/>
 
       <SrvBarraStrumenti
         cerca={cerca} onCerca={setCerca} placeholder="Cerca fra le guide…"
@@ -1204,9 +1224,9 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
         azione={
           <div style={{display:'flex', gap:9}}>
             <AdmButton variant="secondary" icon="plus" onClick={()=>setEditorArg({ nuovo:true, dati:{
-              nome:'', descrizione:'', icona:'list' } })}>Argomento</AdmButton>
+              nome:'', descrizione:'', icona:'list' } })}>Aggiungi argomento</AdmButton>
             <AdmButton variant="cta" icon="plus" disabled={argomenti.length === 0}
-              onClick={()=>nuovaGuida(argomenti[0] && argomenti[0].id)}>Nuova guida</AdmButton>
+              onClick={()=>nuovaGuida(argomenti[0] && argomenti[0].id)}>Aggiungi guida</AdmButton>
           </div>
         }
       />
