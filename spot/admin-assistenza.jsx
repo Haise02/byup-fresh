@@ -1443,14 +1443,15 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
 
   const v = g.video;
   const voti = v ? v.utile + v.nonUtile : 0;
-  const completamento = v && v.durataSec ? Math.round(v.tempoMedioSec / v.durataSec * 100) : null;
   // I numeri del video, quelli che restano da scrivere. Si compongono in una
   // lista e si uniscono dopo: infilare i «·» dentro ai pezzi condizionali
   // lascia un puntino orfano ogni volta che un pezzo manca.
   const conti = !v ? [] : [
     v.pesoByte ? srvPeso(v.pesoByte) : null,
     v.views > 0 ? `${fmtNum(v.views)} visualizzazioni` : null,
-    completamento != null && v.views > 0 ? `guardato al ${completamento}%` : null,
+    // Il minuto a cui la gente arriva, non la percentuale: «guardato al 71%»
+    // costringe a fare il conto sulla durata per capire dove si fermano.
+    v.views > 0 && v.tempoMedioSec > 0 ? `tempo medio di visualizzazione ${srvDurata(v.tempoMedioSec)}` : null,
     voti > 0 ? `${Math.round(v.utile / voti * 100)}% «utile»` : null,
   ].filter(Boolean);
   // Senza titolo non si pubblica: nel gestionale sarebbe una riga vuota da
