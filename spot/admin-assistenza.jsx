@@ -12,6 +12,22 @@
 // Il tab Andamento e il tab della Dashboard renderizzano lo STESSO componente
 // (AdmServizioClientiKPI). Duplicarne il calcolo significherebbe, prima o poi,
 // due schermate che dicono numeri diversi sulla stessa cosa.
+//
+// ─── Impianto visivo ────────────────────────────────────────────────────────
+// La sezione non inventa un proprio linguaggio: prende in prestito i due
+// idiomi che Spot ha già.
+//
+//   Richiamate → l'inbox a due pannelli di Comunicazioni. È la stessa cosa
+//     (una coda di richieste che arrivano dai locali, una alla volta da
+//     lavorare), quindi deve avere la stessa forma: elenco fitto a sinistra,
+//     dettaglio a destra, azioni ancorate in fondo. La versione a card
+//     impilate a tutta larghezza costringeva a scorrere per contare la coda e
+//     ripeteva su ogni riga informazioni che servono solo su quella aperta.
+//
+//   FAQ, Guide, Andamento → le rubriche e i tier della Dashboard. Titoli come
+//     SectionLabel (maiuscoletto tenue + descrizione accanto), non come
+//     intestazioni nere; contenuto dentro POCHE card grandi divise da filetti,
+//     non tante card piccole affiancate.
 
 const { useState: useStateSrv, useMemo: useMemoSrv } = React;
 
@@ -30,6 +46,9 @@ const SRV_SEL = { ...SRV_INP, appearance:'none', WebkitAppearance:'none', MozApp
   backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
 const SRV_SEZ = { fontSize:11.4, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
   letterSpacing:'0.06em', marginBottom:12 };
+// Etichetta dei riquadri dentro il dettaglio.
+const SRV_ETI = { fontSize:10.8, color:ADM.MUTED_SOFT, fontWeight:700, textTransform:'uppercase',
+  letterSpacing:'0.07em' };
 
 // A livello di modulo, non dentro i componenti: rimontato a ogni render, un
 // campo di input perderebbe il fuoco a ogni carattere digitato.
@@ -44,14 +63,18 @@ function SrvCampo({ etichetta, aiuto, span, children }) {
   );
 }
 
-// Intestazione di blocco dentro una pagina lunga.
-function SrvTitoloSezione({ titolo, nota, azione }) {
+// Barra di strumenti sopra un elenco: ricerca a sinistra, segmentato, CTA.
+function SrvBarraStrumenti({ cerca, onCerca, placeholder, segmenti, attivo, onSegmento, azione }) {
   return (
-    <div style={{display:'flex', alignItems:'flex-end', gap:14, marginBottom:2}}>
-      <div style={{flex:1, minWidth:0}}>
-        <div style={{fontSize:16.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.015em'}}>{titolo}</div>
-        {nota && <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{nota}</div>}
+    <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+      <div style={{position:'relative', width:300}}>
+        <span style={{position:'absolute', left:11, top:'50%', transform:'translateY(-50%)',
+          color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={16}/></span>
+        <input value={cerca} onChange={e=>onCerca(e.target.value)} placeholder={placeholder}
+          style={{...SRV_INP, paddingLeft:33, borderRadius:99}}/>
       </div>
+      {segmenti && <AdmTabBar variant="segmented" tabs={segmenti} active={attivo} onChange={onSegmento}/>}
+      <div style={{flex:1}}/>
       {azione}
     </div>
   );
@@ -80,7 +103,7 @@ function SrvModale({ titolo, nota, larghezza = 700, onChiudi, children, piede })
   );
 }
 
-// Cinque stelle con l'ultima parziale: la media è 4,3 e va vista come 4,3,
+// Cinque stelle con l'ultima parziale: la media è 4,2 e va vista come 4,2,
 // non arrotondata a 4 — l'arrotondamento è esattamente il decimo di voto su
 // cui si discute quando il numero peggiora.
 function SrvStelle({ valore, size = 15 }) {
@@ -106,37 +129,59 @@ function SrvStelle({ valore, size = 15 }) {
   );
 }
 
-// Pastiglia di stato pubblicazione. Online / Bozza è una distinzione che vale
-// sia per le FAQ sia per le guide, ed è la sola informazione che deve saltare
-// all'occhio scorrendo un elenco lungo.
-function SrvStatoPub({ live }) {
-  return (
-    <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'3px 10px', borderRadius:99,
-      background: live ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: live ? ADM.OK : ADM.MUTED,
-      fontSize:11.8, fontWeight:700, whiteSpace:'nowrap'}}>
-      <span style={{width:6, height:6, borderRadius:'50%', background:'currentColor'}}/>
-      {live ? 'Online' : 'Bozza'}
-    </span>
-  );
-}
-
 // Conferma di cancellazione in linea. Un modale per «vuoi davvero?» è troppo
 // per una FAQ, ma un click secco su un cestino è troppo poco: due click
 // consapevoli sulla riga stessa sono la misura giusta.
-function SrvEliminaInline({ onElimina, etichetta = 'Eliminare?' }) {
+function SrvEliminaInline({ onElimina }) {
   const [chiesto, setChiesto] = useStateSrv(false);
   if (!chiesto) {
     return <AdmIconBtn icon="trash" label="Elimina" onClick={()=>setChiesto(true)} color={ADM.MUTED_SOFT} size={28}/>;
   }
   return (
-    <span style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:12.5, color:ADM.DANGER, fontWeight:600}}>
-      {etichetta}
-      <button onClick={onElimina} className="adm-btn" style={{padding:'3px 10px', borderRadius:7, border:'none',
-        background:ADM.DANGER, color:'#fff', fontSize:12, fontWeight:700, fontFamily:'inherit', cursor:'pointer'}}>Sì</button>
-      <button onClick={()=>setChiesto(false)} className="adm-btn" style={{padding:'3px 10px', borderRadius:7,
-        border:`1px solid ${ADM.BORDER}`, background:'#fff', color:ADM.TEXT, fontSize:12, fontWeight:600,
+    <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
+      <button onClick={onElimina} className="adm-btn" style={{padding:'4px 10px', borderRadius:7, border:'none',
+        background:ADM.DANGER, color:'#fff', fontSize:12, fontWeight:700, fontFamily:'inherit', cursor:'pointer'}}>Elimina</button>
+      <button onClick={()=>setChiesto(false)} className="adm-btn" style={{padding:'4px 9px', borderRadius:7,
+        border:`1px solid ${ADM.BORDER}`, background:'#fff', color:ADM.MUTED, fontSize:12, fontWeight:600,
         fontFamily:'inherit', cursor:'pointer'}}>No</button>
     </span>
+  );
+}
+
+// Miniatura del video: 16:9, piccola, con la durata incisa nell'angolo. Prima
+// era una fascia nera a tutta larghezza in cima alla card — occupava il posto
+// del titolo e faceva pesare l'elenco come una galleria.
+function SrvMiniatura({ video, w = 128 }) {
+  const h = Math.round(w * 9 / 16);
+  if (!video) {
+    return (
+      <div style={{width:w, height:h, borderRadius:9, flexShrink:0, background:ADM.NEUTRAL_SOFT,
+        border:`1px solid ${ADM.BORDER_SOFT}`, display:'grid', placeItems:'center', color:ADM.MUTED_LIGHT}}>
+        <BuIcons.list size={19}/>
+      </div>
+    );
+  }
+  return (
+    <div style={{width:w, height:h, borderRadius:9, flexShrink:0, position:'relative', overflow:'hidden',
+      background:'linear-gradient(140deg, #2B2F37 0%, #14161B 100%)', display:'grid', placeItems:'center'}}>
+      <span style={{width:28, height:28, borderRadius:'50%', background:'rgba(255,255,255,0.16)',
+        border:'1px solid rgba(255,255,255,0.24)', display:'grid', placeItems:'center'}}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5z"/></svg>
+      </span>
+      <span style={{position:'absolute', right:6, bottom:5, padding:'1px 6px', borderRadius:5,
+        background:'rgba(0,0,0,0.66)', color:'#fff', fontSize:10.5, fontWeight:700,
+        fontVariantNumeric:'tabular-nums'}}>{srvDurata(video.durataSec)}</span>
+    </div>
+  );
+}
+
+// Chip neutra per i metadati (tempo di lettura, durata video, categoria).
+function SrvChip({ children, tono }) {
+  const c = tono ? ADM[tono] : ADM.MUTED;
+  return (
+    <span style={{display:'inline-flex', alignItems:'center', gap:5, padding:'3px 9px', borderRadius:7,
+      background: tono ? `${c}12` : ADM.NEUTRAL_SOFT, color: tono ? c : ADM.TEXT,
+      fontSize:12, fontWeight:600, whiteSpace:'nowrap'}}>{children}</span>
   );
 }
 
@@ -148,6 +193,7 @@ function AdmAssistenzaPage({ initialTab }) {
   // Se si arriva qui dalla ricerca globale mentre la pagina è già montata, lo
   // stato iniziale non basta: il tab va seguito anche dopo il primo render.
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
+
   // Lo stato vive qui e non nei singoli tab: cambiando tab e tornando indietro
   // le modifiche devono esserci ancora, e il tab Andamento deve calcolare i KPI
   // sui dati aggiornati, non su quelli di partenza.
@@ -157,8 +203,7 @@ function AdmAssistenzaPage({ initialTab }) {
   const [guide, setGuide] = useStateSrv(GUIDE_SRV);
 
   const inAttesa = richiamate.filter(r => r.stato === 'attesa').length;
-  const bozzeFaq = faq.filter(f => !f.live).length;
-  const bozzeGuide = guide.filter(g => !g.live).length;
+  const bozze = faq.filter(f => !f.live).length + guide.filter(g => !g.live).length;
 
   const tabs = [
     { id:'richiamate', label:'Richiamate', badge: inAttesa },
@@ -167,40 +212,46 @@ function AdmAssistenzaPage({ initialTab }) {
     { id:'kpi',        label:'Andamento' },
   ];
 
+  // La coda vuole tutta l'altezza (elenco e dettaglio scorrono per conto loro);
+  // gli altri tab sono pagine lunghe che scorrono intere.
+  const coda = tab === 'richiamate';
+
   return (
-    <div style={{display:'flex', flexDirection:'column'}}>
+    <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
       <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`,
-        display:'flex', alignItems:'center', gap:12}}>
+        display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
         <AdmTabBar tabs={tabs} active={tab} onChange={setTab}/>
         <div style={{flex:1}}/>
-        {(bozzeFaq > 0 || bozzeGuide > 0) && (
+        {bozze > 0 && (
           <span style={{fontSize:12.5, color:ADM.MUTED, whiteSpace:'nowrap'}}>
-            {bozzeFaq > 0 && <React.Fragment><b style={{color:ADM.TEXT}}>{bozzeFaq}</b> FAQ in bozza</React.Fragment>}
-            {bozzeFaq > 0 && bozzeGuide > 0 && ' · '}
-            {bozzeGuide > 0 && <React.Fragment><b style={{color:ADM.TEXT}}>{bozzeGuide}</b> {bozzeGuide === 1 ? 'guida' : 'guide'} in bozza</React.Fragment>}
+            <b style={{color:ADM.TEXT}}>{bozze}</b> {bozze === 1 ? 'contenuto' : 'contenuti'} in bozza
           </span>
         )}
       </div>
-      {tab === 'richiamate' && <SrvRichiamate richiamate={richiamate} setRichiamate={setRichiamate}/>}
-      {tab === 'faq'        && <SrvFaq faq={faq} setFaq={setFaq}/>}
-      {tab === 'guide'      && <SrvGuide argomenti={argomenti} setArgomenti={setArgomenti} guide={guide} setGuide={setGuide}/>}
-      {tab === 'kpi'        && <AdmServizioClientiKPI richiamate={richiamate} guide={guide}/>}
+      <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column',
+        overflow: coda ? 'hidden' : 'auto'}}>
+        {tab === 'richiamate' && <SrvRichiamate richiamate={richiamate} setRichiamate={setRichiamate}/>}
+        {tab === 'faq'        && <SrvFaq faq={faq} setFaq={setFaq}/>}
+        {tab === 'guide'      && <SrvGuide argomenti={argomenti} setArgomenti={setArgomenti} guide={guide} setGuide={setGuide}/>}
+        {tab === 'kpi'        && <AdmServizioClientiKPI richiamate={richiamate} guide={guide}/>}
+      </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 1. Richiamate
+// 1. Richiamate — elenco a sinistra, dettaglio a destra
 // ═══════════════════════════════════════════════════════════════════════════
 function SrvRichiamate({ richiamate, setRichiamate }) {
   const [vista, setVista] = useStateSrv('attesa');
   const [cerca, setCerca] = useStateSrv('');
-  const [copiato, setCopiato] = useStateSrv(null);
+  const [selId, setSelId] = useStateSrv(null);
 
   const nAttesa = richiamate.filter(r => r.stato === 'attesa').length;
   const nFatte  = richiamate.filter(r => r.stato === 'fatta').length;
   const nPerse  = richiamate.filter(r => r.stato === 'persa').length;
   const scadute = richiamate.filter(r => r.stato === 'attesa' && srvMinutiAScadere(r) < 0);
+  const piuVecchia = scadute.reduce((o, r) => !o || r.entro < o.entro ? r : o, null);
 
   const viste = [
     { id:'attesa', label:'Da richiamare', count:nAttesa },
@@ -221,6 +272,8 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
       : b.prenotataIl - a.prenotataIl);
   }, [richiamate, vista, cerca]);
 
+  const sel = elenco.find(r => r.id === selId) || elenco[0];
+
   const segna = (id, esito) => setRichiamate(prev => prev.map(r => {
     if (r.id !== id) return r;
     if (esito === 'persa') return { ...r, stato:'persa', tentativi:(r.tentativi || 0) + 1, operatore: SRV_IO };
@@ -229,202 +282,404 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
       inTempo: adesso <= r.entro, durataMin: null };
   }));
 
-  const copia = (r) => {
-    if (navigator.clipboard) navigator.clipboard.writeText(r.tel).catch(()=>{});
-    setCopiato(r.id);
-    setTimeout(() => setCopiato(c => c === r.id ? null : c), 1600);
-  };
-
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:18}}>
-      {scadute.length > 0 && (
-        <AttentionStrip items={[{
-          tone:'DANGER',
-          label: `${scadute.length} ${scadute.length === 1 ? 'richiamata scaduta' : 'richiamate scadute'} · la più vecchia da ${srvMinuti(-srvMinutiAScadere(scadute.reduce((o, r) => !o || r.entro < o.entro ? r : o, null)))}`,
-          onClick: ()=>setVista('attesa'),
-        }]}/>
-      )}
-
-      <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+    <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column'}}>
+      {/* Barra dei filtri: fondo tenue, non un secondo nastro bianco sotto al
+          tab bar. Le scadute sono un avviso in linea, non una fascia a parte. */}
+      <div style={{padding:'11px 28px', background:ADM.PANEL_SOFT, borderBottom:`1px solid ${ADM.BORDER}`,
+        display:'flex', alignItems:'center', gap:8, flexShrink:0, flexWrap:'wrap'}}>
         {viste.map(v => {
           const attivo = vista === v.id;
           return (
-            <button key={v.id} className="adm-pill" onClick={()=>setVista(v.id)} style={{
-              display:'inline-flex', alignItems:'center', gap:7, padding:'7px 13px', borderRadius:99,
+            <button key={v.id} className="adm-pill" onClick={()=>{ setVista(v.id); setSelId(null); }} style={{
+              display:'inline-flex', alignItems:'center', gap:7, padding:'6px 13px', borderRadius:99,
               background: attivo ? ADM.TEXT : '#fff', color: attivo ? '#fff' : ADM.TEXT,
               border:`1px solid ${attivo ? ADM.TEXT : ADM.BORDER}`,
-              fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+              fontSize:13.2, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
             }}>
+              {v.id === 'attesa' && scadute.length > 0 && !attivo &&
+                <span style={{width:6, height:6, borderRadius:'50%', background:ADM.DANGER}}/>}
               {v.label}
-              <span style={{fontWeight:700, fontSize:12.5, color: attivo ? 'rgba(255,255,255,0.75)' : ADM.MUTED_SOFT}}>{v.count}</span>
+              <span style={{fontWeight:700, fontSize:12.4, color: attivo ? 'rgba(255,255,255,0.75)' : ADM.MUTED_SOFT}}>{v.count}</span>
             </button>
           );
         })}
         <div style={{flex:1}}/>
-        <div style={{position:'relative', width:280}}>
-          <span style={{position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}>
-            <BuIcons.search size={16}/>
-          </span>
-          <input value={cerca} onChange={e=>setCerca(e.target.value)} placeholder="Numero, locale, problema…"
-            style={{...SRV_INP, paddingLeft:33, borderRadius:99}}/>
-        </div>
+        {scadute.length > 0 && (
+          <button onClick={()=>{ setVista('attesa'); setSelId(piuVecchia.id); }} className="adm-textlink"
+            style={{display:'inline-flex', alignItems:'center', gap:7, background:'none', border:'none',
+              cursor:'pointer', fontFamily:'inherit', fontSize:12.8, fontWeight:600, color:ADM.DANGER}}>
+            <span style={{width:7, height:7, borderRadius:'50%', background:ADM.DANGER,
+              boxShadow:`0 0 0 3px ${ADM.DANGER}1F`}}/>
+            {scadute.length} oltre la scadenza · la più vecchia da {srvMinuti(-srvMinutiAScadere(piuVecchia))}
+            <BuIcons.chevronRight size={13}/>
+          </button>
+        )}
       </div>
 
-      {elenco.length === 0
-        ? <AdmEmpty icon="phone" title="Nessuna richiamata" desc={cerca ? 'Nessun risultato per questa ricerca' : 'La coda è vuota'}/>
-        : (
-          <div style={{display:'flex', flexDirection:'column', gap:10}}>
+      <div style={{flex:1, display:'flex', minHeight:0}}>
+        {/* Elenco */}
+        <div style={{width:400, flexShrink:0, borderRight:`1px solid ${ADM.BORDER}`, background:'#fff',
+          display:'flex', flexDirection:'column', minHeight:0}}>
+          <div style={{padding:'12px 14px 10px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute', left:11, top:'50%', transform:'translateY(-50%)',
+                color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={17}/></span>
+              <input value={cerca} onChange={e=>setCerca(e.target.value)} placeholder="Numero, locale, problema…"
+                style={{width:'100%', padding:'8px 12px 8px 33px', border:'none', borderRadius:8,
+                  fontSize:14, fontFamily:'inherit', outline:'none', background:ADM.PANEL_SOFT,
+                  boxSizing:'border-box', color:ADM.TEXT}}/>
+            </div>
+          </div>
+          <div style={{padding:'9px 16px 7px', fontSize:12.8, color:ADM.MUTED, fontWeight:500}}>
+            {elenco.length} {elenco.length === 1 ? 'richiamata' : 'richiamate'}
+            <span style={{color:ADM.MUTED_SOFT}}> · {viste.find(v=>v.id===vista).label.toLowerCase()}</span>
+          </div>
+          <div style={{flex:1, overflowY:'auto'}}>
+            {elenco.length === 0 && <AdmEmpty icon="phone" title="Nessuna richiamata"
+              desc={cerca ? 'Nessun risultato per questa ricerca' : 'La coda è vuota'}/>}
             {elenco.map(r => (
-              <SrvRigaRichiamata key={r.id} r={r} copiato={copiato === r.id}
-                onCopia={()=>copia(r)} onEsito={(e)=>segna(r.id, e)}/>
+              <SrvVoceCoda key={r.id} r={r} attiva={sel && sel.id === r.id} onClick={()=>setSelId(r.id)}/>
             ))}
           </div>
-        )}
+        </div>
+
+        {/* Dettaglio */}
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
+          {sel
+            ? <SrvDettaglioRichiamata r={sel} tutte={richiamate} onEsito={(e)=>segna(sel.id, e)}/>
+            : <AdmEmpty icon="phone" title="Seleziona una richiamata" desc="Dall'elenco a sinistra"/>}
+        </div>
+      </div>
     </div>
   );
 }
 
-function SrvRigaRichiamata({ r, copiato, onCopia, onEsito }) {
+// Voce dell'elenco: nome del locale, chi ha chiamato e perché, e il tempo che
+// resta. Il numero di telefono NON sta qui — serve una volta sola, quando si
+// compone, e nel dettaglio può stare in cifre leggibili invece che compresso.
+function SrvVoceCoda({ r, attiva, onClick }) {
   const cat = SRV_CATEGORIE[r.categoria];
   const catCol = ADM[cat.color];
   const mancano = srvMinutiAScadere(r);
   const scaduta = r.stato === 'attesa' && mancano < 0;
-  // Sotto i 15 minuti la pastiglia diventa ambra anche se il tempo c'è ancora:
-  // è la soglia oltre la quale mettersi al telefono non è più rimandabile.
   const urgente = r.stato === 'attesa' && mancano >= 0 && mancano <= 15;
-  const bordo = scaduta ? ADM.DANGER : urgente ? ADM.WARN : ADM.BORDER;
 
   return (
-    <AdmCard padding={0} style={{overflow:'hidden', borderColor:bordo,
-      boxShadow: scaduta ? `0 0 0 3px ${ADM.DANGER}14` : ADM.CARD_SHADOW}}>
-      <div style={{display:'flex', alignItems:'stretch'}}>
-        <div style={{width:4, background:catCol, flexShrink:0}}/>
-        <div style={{flex:1, minWidth:0, padding:'14px 18px', display:'flex', flexDirection:'column', gap:10}}>
-
-          {/* Riga 1 — chi, che categoria, che piano */}
-          <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'3px 9px', borderRadius:7,
-              background:`${catCol}14`, color:catCol, fontSize:11.5, fontWeight:700, whiteSpace:'nowrap'}}>
-              {cat.label}
+    <button onClick={onClick} className="adm-actionrow" style={{
+      display:'block', width:'100%', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
+      padding:'11px 16px 12px 13px', border:'none',
+      borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+      borderLeft:`3px solid ${attiva ? ADM.PINK : 'transparent'}`,
+      background: attiva ? ADM.PINK_BG_SOFT : 'transparent',
+    }}>
+      <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+        <span style={{width:7, height:7, borderRadius:'50%', background:catCol, flexShrink:0,
+          transform:'translateY(-1px)'}}/>
+        <span style={{flex:1, minWidth:0, fontSize:14.2, fontWeight:700, color:ADM.TEXT,
+          letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+          {r.localeNome}
+        </span>
+        {r.stato === 'attesa'
+          ? <span style={{flexShrink:0, fontSize:12.4, fontWeight:700, fontVariantNumeric:'tabular-nums',
+              color: scaduta ? ADM.DANGER : urgente ? ADM.WARN : ADM.MUTED}}>
+              {scaduta ? `−${srvMinuti(-mancano).replace('−','')}` : srvMinuti(mancano)}
             </span>
-            <span style={{fontSize:15, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{r.localeNome}</span>
-            <span style={{fontSize:13.3, color:ADM.MUTED}}>{r.titolare}</span>
-            <AdmPlanBadge piano={r.piano}/>
-            <div style={{flex:1}}/>
-            <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, fontWeight:600}}>{r.id}</span>
-          </div>
+          : <span style={{flexShrink:0, fontSize:12, color:ADM.MUTED_SOFT}}>{fmtRelative(r.prenotataIl)}</span>}
+      </div>
+      <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:2, paddingLeft:15, whiteSpace:'nowrap',
+        overflow:'hidden', textOverflow:'ellipsis'}}>
+        {r.titolare} · {cat.label}
+      </div>
+      {r.problema && (
+        <div style={{fontSize:12.8, color:ADM.MUTED_SOFT, marginTop:4, paddingLeft:15, lineHeight:1.4,
+          display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>
+          {r.problema}
+        </div>
+      )}
+      {r.stato === 'fatta' && (
+        <div style={{paddingLeft:15, marginTop:5, display:'flex', alignItems:'center', gap:7}}>
+          <span style={{fontSize:11.5, fontWeight:700, color: r.inTempo ? ADM.OK : ADM.WARN}}>
+            {r.inTempo ? 'In tempo' : 'In ritardo'}
+          </span>
+          {r.voto != null && <SrvStelle valore={r.voto} size={11}/>}
+        </div>
+      )}
+      {r.stato === 'persa' && (
+        <div style={{paddingLeft:15, marginTop:5, fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT}}>
+          Non risponde · {r.tentativi} {r.tentativi === 1 ? 'tentativo' : 'tentativi'}
+        </div>
+      )}
+    </button>
+  );
+}
 
-          {/* Riga 2 — il numero da comporre. È il dato per cui l'operatore apre
-              questa schermata: sta in cifre grandi, cliccabile e copiabile. */}
-          <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-            <a href={`tel:${r.tel.replace(/\s/g, '')}`} className="adm-pill" style={{
-              display:'inline-flex', alignItems:'center', gap:9, padding:'7px 14px', borderRadius:10,
-              background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, textDecoration:'none',
-              color:ADM.TEXT, fontSize:17, fontWeight:700, letterSpacing:'0.01em',
-              fontVariantNumeric:'tabular-nums',
-            }}>
-              <BuIcons.phone size={17} color={ADM.MUTED}/>{r.tel}
-            </a>
-            <button onClick={onCopia} className="adm-btn" style={{
-              display:'inline-flex', alignItems:'center', gap:6, padding:'6px 11px', borderRadius:8,
-              background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor:'pointer', fontFamily:'inherit',
-              fontSize:12.5, fontWeight:600, color: copiato ? ADM.OK : ADM.MUTED,
-            }}>
-              {copiato ? <BuIcons.check size={14}/> : <BuIcons.copy size={14}/>}
-              {copiato ? 'Copiato' : 'Copia'}
-            </button>
-            <span style={{fontSize:12.8, color:ADM.MUTED}}>
-              prenotata alle <b style={{color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>
-                {r.prenotataIl.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})}</b>
-              {' · '}{fmtRelative(r.prenotataIl)}
-            </span>
-          </div>
+function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
+  const cat = SRV_CATEGORIE[r.categoria];
+  const catCol = ADM[cat.color];
+  const locale = LOCALI.find(l => l.id === r.localeId);
+  const mancano = srvMinutiAScadere(r);
+  const scaduta = r.stato === 'attesa' && mancano < 0;
+  const urgente = r.stato === 'attesa' && mancano >= 0 && mancano <= 15;
+  const [copiato, setCopiato] = useStateSrv(false);
 
-          {/* Riga 3 — il problema dichiarato */}
-          {r.problema && (
-            <div style={{fontSize:13.6, color:ADM.TEXT, lineHeight:1.5, paddingLeft:12,
-              borderLeft:`2px solid ${ADM.BORDER}`}}>{r.problema}</div>
-          )}
+  const copia = () => {
+    if (navigator.clipboard) navigator.clipboard.writeText(r.tel).catch(()=>{});
+    setCopiato(true);
+    setTimeout(() => setCopiato(false), 1600);
+  };
 
-          {/* Riga 4 — scadenza ed esito */}
-          <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', paddingTop:2}}>
-            {r.stato === 'attesa' && (
-              <React.Fragment>
-                <span style={{display:'inline-flex', alignItems:'center', gap:7, padding:'6px 12px', borderRadius:99,
-                  background: scaduta ? ADM.DANGER : urgente ? ADM.WARN : ADM.NEUTRAL_SOFT,
-                  color: (scaduta || urgente) ? '#fff' : ADM.TEXT,
-                  fontSize:13, fontWeight:700, whiteSpace:'nowrap'}}>
-                  <BuIcons.clock size={14}/>
-                  {scaduta ? `Scaduta da ${srvMinuti(-mancano)}` : `Da richiamare entro ${srvMinuti(mancano)}`}
-                </span>
-                <span style={{fontSize:12.2, color:ADM.MUTED_SOFT}}>
-                  SLA {cat.label.toLowerCase()} · {srvMinuti(cat.slaMin)}
-                </span>
-                <div style={{flex:1}}/>
-                <AdmButton variant="secondary" size="sm" icon="x" onClick={()=>onEsito('persa')}>Non risponde</AdmButton>
-                <AdmButton variant="success" size="sm" icon="check" onClick={()=>onEsito('fatta')}>Richiamato</AdmButton>
-              </React.Fragment>
-            )}
+  const tonoScad = scaduta ? ADM.DANGER : urgente ? ADM.WARN : ADM.TEXT;
 
-            {r.stato === 'fatta' && (
-              <React.Fragment>
-                <span style={{display:'inline-flex', alignItems:'center', gap:7, padding:'5px 11px', borderRadius:99,
-                  background: r.inTempo ? ADM.OK_SOFT : ADM.WARN_SOFT, color: r.inTempo ? ADM.OK : ADM.WARN,
-                  fontSize:12.6, fontWeight:700, whiteSpace:'nowrap'}}>
-                  {r.inTempo ? <BuIcons.check size={13}/> : <BuIcons.clock size={13}/>}
-                  {r.inTempo ? 'Richiamato in tempo' : 'Richiamato in ritardo'}
-                  {' · '}{srvMinuti(Math.round((r.richiamataIl - r.prenotataIl) / 60000))}
-                </span>
-                <span style={{fontSize:12.6, color:ADM.MUTED}}>
-                  {(TEAM.find(t => t.id === r.operatore) || {}).nome || '—'}
-                  {r.durataMin ? ` · chiamata di ${r.durataMin} min` : ''}
-                </span>
-                <div style={{flex:1}}/>
-                {r.voto != null
-                  ? <span style={{display:'inline-flex', alignItems:'center', gap:7}}>
-                      <SrvStelle valore={r.voto}/>
-                      <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>{r.voto}/5</span>
-                    </span>
-                  : <span style={{fontSize:12.4, color:ADM.MUTED_LIGHT}}>Sondaggio non compilato</span>}
-              </React.Fragment>
-            )}
-
-            {r.stato === 'persa' && (
-              <React.Fragment>
-                <span style={{display:'inline-flex', alignItems:'center', gap:7, padding:'5px 11px', borderRadius:99,
-                  background:ADM.NEUTRAL_SOFT, color:ADM.MUTED, fontSize:12.6, fontWeight:700}}>
-                  <BuIcons.x size={13}/> Non risponde · {r.tentativi} {r.tentativi === 1 ? 'tentativo' : 'tentativi'}
-                </span>
-                <div style={{flex:1}}/>
-                <AdmButton variant="secondary" size="sm" icon="phone" onClick={()=>onEsito('fatta')}>Riprova ora</AdmButton>
-              </React.Fragment>
-            )}
-          </div>
-
-          {r.recensione && (
-            <div style={{marginTop:2, padding:'10px 13px', borderRadius:10, background:ADM.PANEL_SOFT,
-              border:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.2, color:ADM.TEXT, lineHeight:1.5, fontStyle:'italic'}}>
-              «{r.recensione}»
-            </div>
-          )}
+  return (
+    <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column'}}>
+      {/* Intestazione — come il thread di Comunicazioni: bianca, con chi è e
+          da quando aspetta, senza ripetere niente di quello che sta sotto. */}
+      <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'16px 26px 15px', flexShrink:0}}>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:7}}>
+          <span style={{fontSize:12, color:ADM.MUTED_LIGHT, fontWeight:600}}>{r.id}</span>
+          <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.2,
+            fontWeight:700, color:catCol}}>
+            <span style={{width:7, height:7, borderRadius:'50%', background:catCol}}/>{cat.label}
+          </span>
+        </div>
+        <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.2}}>
+          {r.localeNome}
+        </div>
+        <div style={{display:'flex', alignItems:'center', gap:9, marginTop:6, flexWrap:'wrap'}}>
+          <span style={{fontSize:13.6, color:ADM.TEXT, fontWeight:500}}>{r.titolare}</span>
+          {locale && <span style={{fontSize:13.4, color:ADM.MUTED}}>{locale.citta}</span>}
+          <AdmPlanBadge piano={r.piano}/>
+          <span style={{fontSize:13.4, color:ADM.MUTED_SOFT}}>
+            Prenotata {fmtDateTime(r.prenotataIl)} · {fmtRelative(r.prenotataIl)}
+          </span>
         </div>
       </div>
-    </AdmCard>
+
+      <div style={{flex:1, overflowY:'auto', padding:'20px 26px 24px', display:'flex',
+        flexDirection:'column', gap:16}}>
+
+        {/* Il numero e la scadenza, affiancati: sono le due cose che decidono
+            cosa fare adesso, e stanno sopra tutto il resto. */}
+        <div style={{display:'grid', gridTemplateColumns:'minmax(0,1.15fr) minmax(0,1fr)', gap:14}}>
+          <AdmCard padding={0} style={{overflow:'hidden'}}>
+            <div style={{padding:'14px 18px 15px'}}>
+              <div style={SRV_ETI}>Numero da chiamare</div>
+              <div style={{display:'flex', alignItems:'center', gap:12, marginTop:9}}>
+                <span style={{flex:1, minWidth:0, fontSize:26, fontWeight:800, color:ADM.TEXT,
+                  letterSpacing:'-0.01em', fontVariantNumeric:'tabular-nums'}}>{r.tel}</span>
+                <AdmIconBtn icon={copiato ? 'check' : 'copy'} label="Copia il numero"
+                  onClick={copia} color={copiato ? ADM.OK : ADM.MUTED} size={32}/>
+              </div>
+            </div>
+            <a href={`tel:${r.tel.replace(/\s/g, '')}`} className="adm-actionrow" style={{
+              display:'flex', alignItems:'center', gap:8, padding:'10px 18px',
+              borderTop:`1px solid ${ADM.BORDER_SOFT}`, textDecoration:'none',
+              color:ADM.PINK_DARK, fontSize:13.4, fontWeight:700}}>
+              <BuIcons.phone size={15}/> Chiama dal dispositivo
+              <div style={{flex:1}}/>
+              <BuIcons.chevronRight size={14} color={ADM.MUTED_LIGHT}/>
+            </a>
+          </AdmCard>
+
+          {r.stato === 'attesa' && (
+            <AdmCard padding={0} style={{overflow:'hidden',
+              borderColor: scaduta ? `${ADM.DANGER}55` : urgente ? `${ADM.WARN}55` : ADM.BORDER}}>
+              <div style={{padding:'14px 18px 15px'}}>
+                <div style={SRV_ETI}>{scaduta ? 'Scaduta da' : 'Da richiamare entro'}</div>
+                <div style={{fontSize:26, fontWeight:800, color:tonoScad, letterSpacing:'-0.01em', marginTop:9}}>
+                  {scaduta ? srvMinuti(-mancano) : srvMinuti(mancano)}
+                </div>
+              </div>
+              <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+                fontSize:12.4, color:ADM.MUTED}}>
+                SLA {cat.label.toLowerCase()} · {srvMinuti(cat.slaMin)} dalla prenotazione
+              </div>
+            </AdmCard>
+          )}
+
+          {r.stato === 'fatta' && (
+            <AdmCard padding={0} style={{overflow:'hidden'}}>
+              <div style={{padding:'14px 18px 15px'}}>
+                <div style={SRV_ETI}>Esito</div>
+                <div style={{fontSize:19, fontWeight:800, marginTop:9,
+                  color: r.inTempo ? ADM.OK : ADM.WARN, letterSpacing:'-0.01em'}}>
+                  {r.inTempo ? 'Richiamato in tempo' : 'Richiamato in ritardo'}
+                </div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4}}>
+                  Dopo {srvMinuti(Math.round((r.richiamataIl - r.prenotataIl) / 60000))} · su un SLA di {srvMinuti(cat.slaMin)}
+                </div>
+              </div>
+              <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+                fontSize:12.4, color:ADM.MUTED}}>
+                {(TEAM.find(t => t.id === r.operatore) || {}).nome || '—'}
+                {r.durataMin ? ` · chiamata di ${r.durataMin} min` : ''}
+              </div>
+            </AdmCard>
+          )}
+
+          {r.stato === 'persa' && (
+            <AdmCard padding={0} style={{overflow:'hidden'}}>
+              <div style={{padding:'14px 18px 15px'}}>
+                <div style={SRV_ETI}>Esito</div>
+                <div style={{fontSize:19, fontWeight:800, color:ADM.MUTED, marginTop:9, letterSpacing:'-0.01em'}}>
+                  Non risponde
+                </div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4}}>
+                  {r.tentativi} {r.tentativi === 1 ? 'tentativo' : 'tentativi'} senza risposta
+                </div>
+              </div>
+              <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+                fontSize:12.4, color:ADM.MUTED}}>
+                {(TEAM.find(t => t.id === r.operatore) || {}).nome || '—'}
+              </div>
+            </AdmCard>
+          )}
+        </div>
+
+        {r.problema && (
+          <div>
+            <div style={{...SRV_ETI, marginBottom:8}}>Problema dichiarato</div>
+            <AdmCard style={{fontSize:14.4, color:ADM.TEXT, lineHeight:1.6}}>{r.problema}</AdmCard>
+          </div>
+        )}
+
+        {r.voto != null && (
+          <div>
+            <div style={{...SRV_ETI, marginBottom:8}}>Come è andata, secondo il ristoratore</div>
+            <AdmCard>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <SrvStelle valore={r.voto} size={18}/>
+                <span style={{fontSize:15, fontWeight:800, color:ADM.TEXT}}>{r.voto}<span style={{color:ADM.MUTED_SOFT, fontWeight:600}}>/5</span></span>
+              </div>
+              {r.recensione && (
+                <div style={{fontSize:14, color:ADM.TEXT, lineHeight:1.6, marginTop:11, paddingTop:11,
+                  borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontStyle:'italic'}}>«{r.recensione}»</div>
+              )}
+            </AdmCard>
+          </div>
+        )}
+
+        {/* Chi si sta per chiamare. Sapere che è un locale da 620 ordini al mese
+            che ha già chiamato due volte questa settimana cambia il tono della
+            telefonata, e sono dati che l'operatore altrimenti va a cercare
+            aprendo un'altra sezione mentre il telefono squilla. */}
+        <SrvContesto r={r} locale={locale} tutte={tutte}/>
+      </div>
+
+      {/* Azioni ancorate in fondo, come la barra di risposta di Comunicazioni:
+          non si scorre per trovarle. */}
+      {r.stato !== 'fatta' && (
+        <div style={{background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, padding:'13px 26px',
+          display:'flex', alignItems:'center', gap:11, flexShrink:0}}>
+          <span style={{flex:1, fontSize:12.8, color:ADM.MUTED}}>
+            {r.stato === 'attesa'
+              ? 'Registra l\'esito appena riagganci: la puntualità si misura da qui.'
+              : 'Se stavolta risponde, l\'esito torna fra le richiamate riuscite.'}
+          </span>
+          {r.stato === 'attesa' && (
+            <AdmButton variant="secondary" icon="x" onClick={()=>onEsito('persa')}>Non risponde</AdmButton>
+          )}
+          <AdmButton variant="success" icon="check" onClick={()=>onEsito('fatta')}>
+            {r.stato === 'attesa' ? 'Richiamato' : 'Riprova ora'}
+          </AdmButton>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Contesto: la scheda del locale e le volte precedenti. Due colonne, così il
+// dettaglio non finisce a metà pagina con mezzo pannello vuoto sotto.
+function SrvContesto({ r, locale, tutte }) {
+  const precedenti = (tutte || RICHIAMATE)
+    .filter(x => x.localeId === r.localeId && x.id !== r.id)
+    .slice(0, 4);
+  const ticketAperti = TICKET_SRV.filter(t => t.localeId === r.localeId && !t.chiusoIl).length;
+
+  const fatti = locale ? [
+    ['Ordini al mese', fmtNum(locale.ordiniMese)],
+    ['Adozione QR', locale.qrAdoption == null ? '—' : `${locale.qrAdoption}%`],
+    ['Abbonamento', fmtEur(locale.mrr) + '/mese'],
+    ['Cliente dal', fmtDate(locale.dataIscrizione)],
+    ['Ultimo accesso', fmtRelative(locale.lastLogin)],
+    ['Ticket aperti', String(ticketAperti)],
+  ] : [];
+
+  return (
+    <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap:14}}>
+      <div>
+        <div style={{...SRV_ETI, marginBottom:8}}>Il locale</div>
+        <AdmCard padding={0} style={{overflow:'hidden'}}>
+          {fatti.length === 0
+            ? <div style={{padding:'14px 18px', fontSize:13, color:ADM.MUTED_SOFT}}>Locale non trovato.</div>
+            : fatti.map(([k, v], i) => (
+              <div key={k} style={{display:'flex', alignItems:'center', gap:12, padding:'9px 18px',
+                borderBottom: i === fatti.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+                <span style={{flex:1, fontSize:12.8, color:ADM.MUTED}}>{k}</span>
+                <span style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT,
+                  fontVariantNumeric:'tabular-nums'}}>{v}</span>
+              </div>
+            ))}
+        </AdmCard>
+      </div>
+
+      <div>
+        <div style={{...SRV_ETI, marginBottom:8}}>
+          Ha già chiamato {precedenti.length > 0 && <span style={{color:ADM.MUTED_LIGHT}}>{precedenti.length} volte</span>}
+        </div>
+        <AdmCard padding={0} style={{overflow:'hidden'}}>
+          {precedenti.length === 0
+            ? <div style={{padding:'14px 18px', fontSize:13, color:ADM.MUTED_SOFT}}>
+                È la prima richiamata che prenota.
+              </div>
+            : precedenti.map((p, i) => {
+              const c = SRV_CATEGORIE[p.categoria];
+              const esito = p.stato === 'attesa' ? { t:'In coda', col:ADM.MUTED }
+                : p.stato === 'persa' ? { t:'Non risponde', col:ADM.MUTED_SOFT }
+                : p.inTempo ? { t:'In tempo', col:ADM.OK } : { t:'In ritardo', col:ADM.WARN };
+              return (
+                <div key={p.id} style={{display:'flex', alignItems:'center', gap:11, padding:'9px 18px',
+                  borderBottom: i === precedenti.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+                  <span style={{width:6, height:6, borderRadius:'50%', background:ADM[c.color], flexShrink:0}}/>
+                  <span style={{flex:1, minWidth:0, fontSize:12.8, color:ADM.TEXT, whiteSpace:'nowrap',
+                    overflow:'hidden', textOverflow:'ellipsis'}}>{c.label}</span>
+                  <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, flexShrink:0}}>{fmtRelative(p.prenotataIl)}</span>
+                  <span style={{fontSize:11.8, fontWeight:700, color:esito.col, flexShrink:0, width:78,
+                    textAlign:'right'}}>{esito.t}</span>
+                </div>
+              );
+            })}
+        </AdmCard>
+      </div>
+    </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. FAQ
+// 2. FAQ — una card, righe divise da filetti, raggruppate per categoria
 // ═══════════════════════════════════════════════════════════════════════════
 function SrvFaq({ faq, setFaq }) {
   const [filtro, setFiltro] = useStateSrv('tutte');
+  const [cerca, setCerca] = useStateSrv('');
   const [aperta, setAperta] = useStateSrv(null);
   const [editor, setEditor] = useStateSrv(null); // { nuova:bool, dati }
 
   const online = faq.filter(f => f.live).length;
-  const elenco = filtro === 'tutte' ? faq
-    : filtro === 'bozze' ? faq.filter(f => !f.live)
-    : faq.filter(f => f.categoria === filtro);
+
+  const elenco = useMemoSrv(() => {
+    const q = cerca.trim().toLowerCase();
+    let r = filtro === 'online' ? faq.filter(f => f.live)
+          : filtro === 'bozze'  ? faq.filter(f => !f.live)
+          : faq;
+    if (q) r = r.filter(f => [f.domanda, f.risposta, f.categoria].some(v => v.toLowerCase().includes(q)));
+    return r;
+  }, [faq, filtro, cerca]);
+
+  // Il raggruppamento per categoria sostituisce la fila di pastiglie-filtro:
+  // le categorie sono sei e servono a orientarsi scorrendo, non a filtrare.
+  const gruppi = FAQ_CATEGORIE.map(c => ({ categoria:c, righe: elenco.filter(f => f.categoria === c) }))
+    .filter(g => g.righe.length > 0);
 
   const salva = (dati) => {
     setFaq(prev => dati.id
@@ -435,82 +690,101 @@ function SrvFaq({ faq, setFaq }) {
   };
 
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:16}}>
-      <SrvTitoloSezione
-        titolo="Domande frequenti"
-        nota={`${faq.length} risposte · ${online} online nel gestionale, ${faq.length - online} in bozza. Mettere una risposta in bozza la toglie dal gestionale senza cancellarla: si corregge e si ripubblica.`}
+    <div style={{padding:'22px 28px 28px', display:'flex', flexDirection:'column', gap:14}}>
+      <SectionLabel first title="Domande frequenti"
+        desc={`${faq.length} risposte · ${online} online nel gestionale, ${faq.length - online} in bozza`}/>
+
+      <SrvBarraStrumenti
+        cerca={cerca} onCerca={setCerca} placeholder="Cerca fra domande e risposte…"
+        segmenti={[
+          { id:'tutte',  label:'Tutte',  badge:faq.length },
+          { id:'online', label:'Online', badge:online },
+          { id:'bozze',  label:'Bozze',  badge:faq.length - online },
+        ]}
+        attivo={filtro} onSegmento={setFiltro}
         azione={<AdmButton variant="cta" icon="plus" onClick={()=>setEditor({ nuova:true, dati:{
           categoria: FAQ_CATEGORIE[0], domanda:'', risposta:'', live:false } })}>Nuova FAQ</AdmButton>}
       />
 
-      <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
-        {[{ id:'tutte', label:'Tutte', n:faq.length },
-          { id:'bozze', label:'In bozza', n:faq.length - online },
-          ...FAQ_CATEGORIE.map(c => ({ id:c, label:c, n:faq.filter(f => f.categoria === c).length }))
-        ].filter(p => p.n > 0 || p.id === 'tutte').map(p => {
-          const attivo = filtro === p.id;
-          return (
-            <button key={p.id} className="adm-pill" onClick={()=>setFiltro(p.id)} style={{
-              display:'inline-flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:99,
-              background: attivo ? ADM.TEXT : '#fff', color: attivo ? '#fff' : ADM.TEXT,
-              border:`1px solid ${attivo ? ADM.TEXT : ADM.BORDER}`,
-              fontSize:13, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
-            }}>
-              {p.label}
-              <span style={{fontWeight:700, fontSize:12, color: attivo ? 'rgba(255,255,255,0.75)' : ADM.MUTED_SOFT}}>{p.n}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {elenco.length === 0
-        ? <AdmEmpty icon="help" title="Nessuna FAQ in questo filtro" desc="Cambia filtro o creane una nuova"/>
+      {gruppi.length === 0
+        ? <AdmCard><AdmEmpty icon="help" title="Nessuna FAQ" desc="Cambia filtro o creane una nuova"/></AdmCard>
         : (
-          <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            {elenco.map(f => {
-              const apertaOra = aperta === f.id;
-              const votiTot = f.utile + f.nonUtile;
-              return (
-                <AdmCard key={f.id} padding={0} style={{overflow:'hidden', opacity: f.live ? 1 : 0.82}}>
-                  <div style={{display:'flex', alignItems:'flex-start', gap:12, padding:'14px 18px'}}>
-                    <button onClick={()=>setAperta(apertaOra ? null : f.id)} style={{
-                      flex:1, minWidth:0, display:'flex', alignItems:'flex-start', gap:11, textAlign:'left',
-                      background:'none', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit',
-                    }}>
-                      <span style={{marginTop:2, color:ADM.MUTED_SOFT, transform: apertaOra ? 'rotate(90deg)' : 'none',
-                        transition:'transform 0.16s ease', display:'inline-flex'}}>
-                        <BuIcons.chevronRight size={15}/>
-                      </span>
-                      <span style={{flex:1, minWidth:0}}>
-                        <span style={{display:'block', fontSize:14.6, fontWeight:600, color:ADM.TEXT, lineHeight:1.4}}>{f.domanda}</span>
-                        <span style={{display:'block', fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:4}}>
-                          {f.categoria} · aggiornata {fmtRelative(f.aggiornataIl)}
-                          {f.viste > 0 && ` · ${fmtNum(f.viste)} viste`}
-                          {votiTot > 0 && ` · ${Math.round(f.utile / votiTot * 100)}% utile su ${votiTot} voti`}
-                        </span>
-                      </span>
-                    </button>
-                    <div style={{display:'flex', alignItems:'center', gap:10, flexShrink:0}}>
-                      <SrvStatoPub live={f.live}/>
-                      <AdmSwitch size="sm" checked={f.live}
-                        onChange={(v)=>setFaq(prev => prev.map(x => x.id === f.id ? { ...x, live:v } : x))}/>
-                      <AdmIconBtn icon="pencil" label="Modifica" size={28}
-                        onClick={()=>setEditor({ nuova:false, dati:{ ...f } })}/>
-                      <SrvEliminaInline onElimina={()=>setFaq(prev => prev.filter(x => x.id !== f.id))}/>
-                    </div>
-                  </div>
-                  {apertaOra && (
-                    <div style={{padding:'0 18px 16px 44px', borderTop:`1px solid ${ADM.BORDER_SOFT}`, paddingTop:14}}>
-                      <div style={{fontSize:13.8, color:ADM.TEXT, lineHeight:1.62, whiteSpace:'pre-line'}}>{f.risposta}</div>
-                    </div>
-                  )}
-                </AdmCard>
-              );
-            })}
-          </div>
+          <AdmCard padding={0} style={{overflow:'hidden'}}>
+            {gruppi.map((g, gi) => (
+              <div key={g.categoria}>
+                <div style={{padding:'9px 20px', background:ADM.PANEL_SOFT,
+                  borderTop: gi === 0 ? 'none' : `1px solid ${ADM.BORDER}`,
+                  borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+                  fontSize:11.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
+                  letterSpacing:'0.06em', display:'flex', alignItems:'center', gap:8}}>
+                  {g.categoria}
+                  <span style={{color:ADM.MUTED_LIGHT, fontWeight:600}}>{g.righe.length}</span>
+                </div>
+                {g.righe.map((f, i) => (
+                  <SrvRigaFaq key={f.id} f={f}
+                    ultima={i === g.righe.length - 1}
+                    aperta={aperta === f.id}
+                    onApri={()=>setAperta(aperta === f.id ? null : f.id)}
+                    onLive={(v)=>setFaq(prev => prev.map(x => x.id === f.id ? { ...x, live:v } : x))}
+                    onModifica={()=>setEditor({ nuova:false, dati:{ ...f } })}
+                    onElimina={()=>setFaq(prev => prev.filter(x => x.id !== f.id))}/>
+                ))}
+              </div>
+            ))}
+          </AdmCard>
         )}
 
       {editor && <SrvFaqEditor stato={editor} onChiudi={()=>setEditor(null)} onSalva={salva}/>}
+    </div>
+  );
+}
+
+function SrvRigaFaq({ f, ultima, aperta, onApri, onLive, onModifica, onElimina }) {
+  const voti = f.utile + f.nonUtile;
+  return (
+    <div style={{borderBottom: ultima ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+      background: aperta ? ADM.PANEL_SOFT : 'transparent'}}>
+      <div style={{display:'flex', alignItems:'center', gap:14, padding:'12px 20px'}}>
+        <button onClick={onApri} style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:11,
+          textAlign:'left', background:'none', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit'}}>
+          <span style={{color:ADM.MUTED_LIGHT, transform: aperta ? 'rotate(90deg)' : 'none',
+            transition:'transform 0.16s ease', display:'inline-flex', flexShrink:0}}>
+            <BuIcons.chevronRight size={14}/>
+          </span>
+          <span style={{flex:1, minWidth:0}}>
+            <span style={{display:'block', fontSize:14.4, fontWeight:600,
+              color: f.live ? ADM.TEXT : ADM.MUTED, lineHeight:1.4}}>{f.domanda}</span>
+            <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:3}}>
+              Aggiornata {fmtRelative(f.aggiornataIl)}
+            </span>
+          </span>
+        </button>
+
+        {/* Numeri allineati a destra in colonne fisse: scorrendo l'elenco si
+            confrontano fra loro, e non ballano con la lunghezza del titolo. */}
+        <span style={{width:70, textAlign:'right', flexShrink:0}}>
+          <span style={{display:'block', fontSize:12.6, color:ADM.TEXT, fontWeight:600,
+            fontVariantNumeric:'tabular-nums'}}>{f.viste > 0 ? fmtNum(f.viste) : '—'}</span>
+          <span style={{display:'block', fontSize:11.2, color:ADM.MUTED_LIGHT, marginTop:1}}>viste</span>
+        </span>
+        <span style={{width:56, textAlign:'right', flexShrink:0}}>
+          <span style={{display:'block', fontSize:12.6, fontWeight:600, fontVariantNumeric:'tabular-nums',
+            color: voti === 0 ? ADM.MUTED_LIGHT : (f.utile / voti) >= 0.9 ? ADM.OK : ADM.WARN}}>
+            {voti > 0 ? `${Math.round(f.utile / voti * 100)}%` : '—'}
+          </span>
+          <span style={{display:'block', fontSize:11.2, color:ADM.MUTED_LIGHT, marginTop:1}}>utile</span>
+        </span>
+
+        <span style={{width:52, display:'flex', justifyContent:'flex-end', flexShrink:0}}>
+          <AdmSwitch size="sm" checked={f.live} onChange={onLive}/>
+        </span>
+        <AdmIconBtn icon="pencil" label="Modifica" size={28} onClick={onModifica} color={ADM.MUTED_SOFT}/>
+        <SrvEliminaInline onElimina={onElimina}/>
+      </div>
+      {aperta && (
+        <div style={{padding:'0 20px 16px 45px', fontSize:13.8, color:ADM.TEXT, lineHeight:1.65,
+          whiteSpace:'pre-line', maxWidth:900}}>{f.risposta}</div>
+      )}
     </div>
   );
 }
@@ -548,29 +822,48 @@ function SrvFaqEditor({ stato, onChiudi, onSalva }) {
           <textarea value={d.risposta} onChange={e=>agg('risposta', e.target.value)} style={{...SRV_TXT, minHeight:180}}
             placeholder="Nell'ordine: 1) …"/>
         </SrvCampo>
-        <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 14px', borderRadius:10,
-          background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <AdmSwitch checked={d.live} onChange={(v)=>agg('live', v)}/>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT}}>Pubblica nel gestionale</div>
-            <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:2}}>
-              {d.live ? 'I ristoratori la vedranno appena salvi.' : 'Resta visibile solo qui in console.'}
-            </div>
-          </div>
-        </div>
+        <SrvInterruttorePubblica live={d.live} onChange={(v)=>agg('live', v)}
+          acceso="I ristoratori la vedranno appena salvi."
+          spento="Resta visibile solo qui in console."/>
       </div>
     </SrvModale>
   );
 }
 
+function SrvInterruttorePubblica({ live, onChange, acceso, spento }) {
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 14px', borderRadius:10,
+      background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
+      <AdmSwitch checked={live} onChange={onChange}/>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT}}>Pubblica nel gestionale</div>
+        <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:2}}>{live ? acceso : spento}</div>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. Guide
+// 3. Guide — un blocco per argomento, righe orizzontali di altezza uniforme
 // ═══════════════════════════════════════════════════════════════════════════
 function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
   const [editorGuida, setEditorGuida] = useStateSrv(null);
   const [editorArg, setEditorArg] = useStateSrv(null);
+  const [aperta, setAperta] = useStateSrv(null);
+  const [cerca, setCerca] = useStateSrv('');
+  const [filtro, setFiltro] = useStateSrv('tutte');
 
   const online = guide.filter(g => g.live).length;
+
+  const visibili = useMemoSrv(() => {
+    const q = cerca.trim().toLowerCase();
+    let r = filtro === 'online' ? guide.filter(g => g.live)
+          : filtro === 'bozze'  ? guide.filter(g => !g.live)
+          : guide;
+    if (q) r = r.filter(g => [g.titolo, g.descrizione, g.video && g.video.titolo]
+      .some(v => String(v || '').toLowerCase().includes(q)));
+    return r;
+  }, [guide, filtro, cerca]);
 
   const salvaGuida = (dati) => {
     setGuide(prev => dati.id
@@ -584,66 +877,88 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
       : [...prev, { ...dati, id:'A-' + String(Date.now()).slice(-5) }]);
     setEditorArg(null);
   };
+  const nuovaGuida = (argomentoId) => setEditorGuida({ nuova:true, dati:{
+    argomentoId, titolo:'', descrizione:'', minLettura:5, live:false, video:null } });
+
+  const conRisultati = argomenti.filter(a => visibili.some(g => g.argomentoId === a.id));
+  const mostraTutti = cerca.trim() === '' && filtro === 'tutte';
 
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:22}}>
-      <SrvTitoloSezione
-        titolo="Guide"
-        nota={`${argomenti.length} argomenti · ${guide.length} guide, ${online} online. L'argomento raccoglie le guide di uno stesso tema; la guida è l'articolo che il ristoratore apre.`}
+    <div style={{padding:'22px 28px 28px', display:'flex', flexDirection:'column', gap:14}}>
+      <SectionLabel first title="Guide"
+        desc={`${argomenti.length} argomenti · ${guide.length} guide, ${online} online`}/>
+
+      <SrvBarraStrumenti
+        cerca={cerca} onCerca={setCerca} placeholder="Cerca fra le guide…"
+        segmenti={[
+          { id:'tutte',  label:'Tutte',  badge:guide.length },
+          { id:'online', label:'Online', badge:online },
+          { id:'bozze',  label:'Bozze',  badge:guide.length - online },
+        ]}
+        attivo={filtro} onSegmento={setFiltro}
         azione={
           <div style={{display:'flex', gap:9}}>
             <AdmButton variant="secondary" icon="plus" onClick={()=>setEditorArg({ nuovo:true, dati:{
-              nome:'', descrizione:'', icona:'list' } })}>Nuovo argomento</AdmButton>
-            <AdmButton variant="cta" icon="plus" onClick={()=>setEditorGuida({ nuova:true, dati:{
-              argomentoId: argomenti[0]?.id, titolo:'', descrizione:'', minLettura:5, live:false, video:null } })}
-              disabled={argomenti.length === 0}>Nuova guida</AdmButton>
+              nome:'', descrizione:'', icona:'list' } })}>Argomento</AdmButton>
+            <AdmButton variant="cta" icon="plus" disabled={argomenti.length === 0}
+              onClick={()=>nuovaGuida(argomenti[0] && argomenti[0].id)}>Nuova guida</AdmButton>
           </div>
         }
       />
 
       {argomenti.length === 0 && (
-        <AdmEmpty icon="list" title="Nessun argomento" desc="Le guide vivono dentro un argomento: creane uno per iniziare"/>
+        <AdmCard><AdmEmpty icon="list" title="Nessun argomento"
+          desc="Le guide vivono dentro un argomento: creane uno per iniziare"/></AdmCard>
+      )}
+      {argomenti.length > 0 && conRisultati.length === 0 && (
+        <AdmCard><AdmEmpty icon="list" title="Nessuna guida" desc="Cambia filtro o cancella la ricerca"/></AdmCard>
       )}
 
-      {argomenti.map(a => {
-        const sue = guide.filter(g => g.argomentoId === a.id);
+      {(mostraTutti ? argomenti : conRisultati).map(a => {
+        const sue = visibili.filter(g => g.argomentoId === a.id);
+        const tutte = guide.filter(g => g.argomentoId === a.id);
         const AIcon = BuIcons[a.icona] || BuIcons.list;
         return (
-          <div key={a.id} style={{display:'flex', flexDirection:'column', gap:12}}>
-            <div style={{display:'flex', alignItems:'center', gap:13, paddingBottom:11,
-              borderBottom:`1px solid ${ADM.BORDER}`}}>
-              <span style={{width:36, height:36, borderRadius:10, background:ADM.PINK_BG_SOFT, color:ADM.PINK_DARK,
-                display:'grid', placeItems:'center', flexShrink:0}}><AIcon size={19}/></span>
-              <div style={{flex:1, minWidth:0}}>
-                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{a.nome}</div>
-                <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:2}}>
-                  {a.descrizione}{a.descrizione ? ' · ' : ''}{sue.length} {sue.length === 1 ? 'guida' : 'guide'}
-                </div>
-              </div>
-              <AdmButton variant="ghost" size="sm" icon="plus" onClick={()=>setEditorGuida({ nuova:true, dati:{
-                argomentoId:a.id, titolo:'', descrizione:'', minLettura:5, live:false, video:null } })}>Guida</AdmButton>
-              <AdmIconBtn icon="pencil" label="Modifica argomento" size={28}
+          <div key={a.id} style={{display:'flex', flexDirection:'column', gap:9}}>
+            {/* Rubrica dell'argomento: leggera, allineata alle SectionLabel
+                della Dashboard. Non è una card dentro una card. */}
+            <div style={{display:'flex', alignItems:'center', gap:11, paddingTop:6}}>
+              <span style={{width:26, height:26, borderRadius:8, background:ADM.PINK_BG_SOFT,
+                color:ADM.PINK_DARK, display:'grid', placeItems:'center', flexShrink:0}}>
+                <AIcon size={14}/>
+              </span>
+              <span style={{fontSize:13, fontWeight:700, color:ADM.TEXT, textTransform:'uppercase',
+                letterSpacing:'0.07em'}}>{a.nome}</span>
+              <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:500, flex:1, minWidth:0,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.descrizione}</span>
+              <AdmButton variant="ghost" size="sm" icon="plus" onClick={()=>nuovaGuida(a.id)}>Guida</AdmButton>
+              <AdmIconBtn icon="pencil" label="Modifica argomento" size={28} color={ADM.MUTED_LIGHT}
                 onClick={()=>setEditorArg({ nuovo:false, dati:{ ...a } })}/>
               {/* Un argomento con guide dentro non si cancella: la cancellazione
                   porterebbe via articoli che nessuno ha chiesto di eliminare. */}
-              {sue.length === 0
+              {tutte.length === 0
                 ? <SrvEliminaInline onElimina={()=>setArgomenti(prev => prev.filter(x => x.id !== a.id))}/>
-                : <span title="Sposta o elimina prima le guide" style={{fontSize:11.8, color:ADM.MUTED_LIGHT, whiteSpace:'nowrap'}}>
-                    contiene {sue.length}
+                : <span title={`Contiene ${tutte.length} guide: spostale o eliminale prima`}
+                    style={{width:28, display:'grid', placeItems:'center', color:ADM.MUTED_LIGHT}}>
+                    <BuIcons.lock size={14}/>
                   </span>}
             </div>
 
             {sue.length === 0
-              ? <div style={{fontSize:13, color:ADM.MUTED_SOFT, padding:'2px 0 6px 49px'}}>Nessuna guida in questo argomento.</div>
+              ? <AdmCard style={{fontSize:13, color:ADM.MUTED_SOFT, padding:'14px 20px'}}>
+                  Nessuna guida in questo argomento.
+                </AdmCard>
               : (
-                <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
-                  {sue.map(g => (
-                    <SrvCardGuida key={g.id} g={g}
+                <AdmCard padding={0} style={{overflow:'hidden'}}>
+                  {sue.map((g, i) => (
+                    <SrvRigaGuida key={g.id} g={g} ultima={i === sue.length - 1}
+                      aperta={aperta === g.id}
+                      onApri={()=>setAperta(aperta === g.id ? null : g.id)}
                       onModifica={()=>setEditorGuida({ nuova:false, dati:{ ...g } })}
                       onLive={(v)=>setGuide(prev => prev.map(x => x.id === g.id ? { ...x, live:v } : x))}
                       onElimina={()=>setGuide(prev => prev.filter(x => x.id !== g.id))}/>
                   ))}
-                </div>
+                </AdmCard>
               )}
           </div>
         );
@@ -657,76 +972,85 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
   );
 }
 
-function SrvCardGuida({ g, onModifica, onLive, onElimina }) {
+function SrvRigaGuida({ g, ultima, aperta, onApri, onModifica, onLive, onElimina }) {
   const v = g.video;
   const voti = v ? v.utile + v.nonUtile : 0;
+  const completamento = v ? Math.round(v.tempoMedioSec / v.durataSec * 100) : null;
   return (
-    <AdmCard padding={0} style={{overflow:'hidden', display:'flex', flexDirection:'column', opacity: g.live ? 1 : 0.82}}>
-      {/* Il posto del video. Non c'è un file vero da riprodurre in un
-          prototipo, ma lo spazio che occuperebbe sì — e la durata va vista
-          prima di aprire, non dopo. */}
-      {v && (
-        <div style={{position:'relative', height:104, background:'linear-gradient(135deg, #23262D 0%, #0F1115 100%)',
-          display:'grid', placeItems:'center'}}>
-          <span style={{width:42, height:42, borderRadius:'50%', background:'rgba(255,255,255,0.14)',
-            border:'1px solid rgba(255,255,255,0.22)', display:'grid', placeItems:'center'}}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5z"/></svg>
+    <div style={{borderBottom: ultima ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+      background: aperta ? ADM.PANEL_SOFT : 'transparent'}}>
+      <div style={{display:'flex', alignItems:'center', gap:16, padding:'13px 20px'}}>
+        <button onClick={onApri} style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:14,
+          textAlign:'left', background:'none', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit'}}>
+          <SrvMiniatura video={v}/>
+          <span style={{flex:1, minWidth:0}}>
+            <span style={{display:'block', fontSize:14.6, fontWeight:700,
+              color: g.live ? ADM.TEXT : ADM.MUTED, letterSpacing:'-0.01em', lineHeight:1.35}}>{g.titolo}</span>
+            <span style={{display:'block', fontSize:12.8, color:ADM.MUTED, marginTop:3, lineHeight:1.45,
+              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{g.descrizione}</span>
+            {/* Lettura e video affiancati: sono due modi di consumare la stessa
+                guida, e la scelta si fa confrontando i due tempi. */}
+            <span style={{display:'flex', alignItems:'center', gap:7, marginTop:7}}>
+              <SrvChip><BuIcons.clock size={12} color={ADM.MUTED}/> {g.minLettura} min di lettura</SrvChip>
+              {v && <SrvChip tono="INFO">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+                {srvDurata(v.durataSec)} di video
+              </SrvChip>}
+              {v && v.descrizioneSotto && !aperta && (
+                <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT}}>+ nota sotto al video</span>
+              )}
+            </span>
           </span>
-          <span style={{position:'absolute', right:10, bottom:9, padding:'2px 8px', borderRadius:6,
-            background:'rgba(0,0,0,0.62)', color:'#fff', fontSize:11.5, fontWeight:700,
-            fontVariantNumeric:'tabular-nums'}}>{srvDurata(v.durataSec)}</span>
-          <span style={{position:'absolute', left:11, bottom:9, fontSize:11.8, color:'rgba(255,255,255,0.72)',
-            fontWeight:600, maxWidth:'62%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-            {v.titolo}
+        </button>
+
+        <span style={{width:92, textAlign:'right', flexShrink:0}}>
+          <span style={{display:'block', fontSize:12.6, color:ADM.TEXT, fontWeight:600,
+            fontVariantNumeric:'tabular-nums'}}>{g.letture > 0 ? fmtNum(g.letture) : '—'}</span>
+          <span style={{display:'block', fontSize:11.2, color:ADM.MUTED_LIGHT, marginTop:1}}>letture</span>
+        </span>
+        <span style={{width:92, textAlign:'right', flexShrink:0}}>
+          <span style={{display:'block', fontSize:12.6, fontWeight:600, fontVariantNumeric:'tabular-nums',
+            color: completamento == null ? ADM.MUTED_LIGHT
+              : completamento >= 65 ? ADM.OK : completamento >= 45 ? ADM.WARN : ADM.DANGER}}>
+            {completamento != null ? `${completamento}%` : '—'}
           </span>
+          <span style={{display:'block', fontSize:11.2, color:ADM.MUTED_LIGHT, marginTop:1}}>video guardato</span>
+        </span>
+        <span style={{width:76, textAlign:'right', flexShrink:0}}>
+          <span style={{display:'block', fontSize:12.6, fontWeight:600, fontVariantNumeric:'tabular-nums',
+            color: voti === 0 ? ADM.MUTED_LIGHT : (v.utile / voti) >= 0.9 ? ADM.OK : ADM.WARN}}>
+            {voti > 0 ? `${Math.round(v.utile / voti * 100)}%` : '—'}
+          </span>
+          <span style={{display:'block', fontSize:11.2, color:ADM.MUTED_LIGHT, marginTop:1}}>utile</span>
+        </span>
+
+        <span style={{width:52, display:'flex', justifyContent:'flex-end', flexShrink:0}}>
+          <AdmSwitch size="sm" checked={g.live} onChange={onLive}/>
+        </span>
+        <AdmIconBtn icon="pencil" label="Modifica" size={28} onClick={onModifica} color={ADM.MUTED_SOFT}/>
+        <SrvEliminaInline onElimina={onElimina}/>
+      </div>
+
+      {aperta && (
+        <div style={{padding:'0 20px 16px 162px', display:'flex', flexDirection:'column', gap:12, maxWidth:1000}}>
+          <div style={{fontSize:13.8, color:ADM.TEXT, lineHeight:1.6}}>{g.descrizione}</div>
+          {v && (
+            <div style={{display:'flex', flexDirection:'column', gap:7}}>
+              <div style={SRV_ETI}>Video · {v.titolo}</div>
+              <div style={{fontSize:12.8, color:ADM.MUTED}}>
+                {srvDurata(v.durataSec)} · visto in media {srvDurata(v.tempoMedioSec)} su {fmtNum(v.views)} visualizzazioni
+                {voti > 0 && ` · ${v.utile} «utile», ${v.nonUtile} «non utile»`}
+              </div>
+              {v.descrizioneSotto && (
+                <div style={{fontSize:13.4, color:ADM.TEXT, lineHeight:1.6, paddingLeft:12,
+                  borderLeft:`2px solid ${ADM.BORDER}`}}>{v.descrizioneSotto}</div>
+              )}
+            </div>
+          )}
+          <div style={{fontSize:11.8, color:ADM.MUTED_LIGHT}}>Aggiornata {fmtRelative(g.aggiornataIl)}</div>
         </div>
       )}
-
-      <div style={{padding:'14px 16px', display:'flex', flexDirection:'column', gap:9, flex:1}}>
-        <div style={{display:'flex', alignItems:'flex-start', gap:10}}>
-          <div style={{flex:1, minWidth:0, fontSize:14.8, fontWeight:700, color:ADM.TEXT, lineHeight:1.35,
-            letterSpacing:'-0.01em'}}>{g.titolo}</div>
-          <SrvStatoPub live={g.live}/>
-        </div>
-
-        <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5}}>{g.descrizione}</div>
-
-        {/* Lettura e video affiancati: sono due modi di consumare la stessa
-            guida, e la scelta si fa confrontando i due tempi. */}
-        <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-          <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:99,
-            background:ADM.NEUTRAL_SOFT, color:ADM.TEXT, fontSize:12.3, fontWeight:600}}>
-            <BuIcons.clock size={13} color={ADM.MUTED}/> {g.minLettura} min di lettura
-          </span>
-          {v && (
-            <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:99,
-              background:ADM.INFO_SOFT, color:ADM.INFO, fontSize:12.3, fontWeight:600}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
-              {srvDurata(v.durataSec)} di video
-            </span>
-          )}
-        </div>
-
-        {v && v.descrizioneSotto && (
-          <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.5, paddingLeft:11,
-            borderLeft:`2px solid ${ADM.BORDER}`}}>{v.descrizioneSotto}</div>
-        )}
-
-        <div style={{flex:1}}/>
-
-        <div style={{display:'flex', alignItems:'center', gap:10, paddingTop:10,
-          borderTop:`1px solid ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
-          <span style={{fontSize:12, color:ADM.MUTED_SOFT, flex:1, minWidth:0}}>
-            {g.letture > 0 ? `${fmtNum(g.letture)} letture` : 'Mai letta'}
-            {v && ` · ${fmtNum(v.views)} visualizzazioni · ${Math.round(v.tempoMedioSec / v.durataSec * 100)}% guardato`}
-            {voti > 0 && ` · ${Math.round(v.utile / voti * 100)}% utile`}
-          </span>
-          <AdmSwitch size="sm" checked={g.live} onChange={onLive}/>
-          <AdmIconBtn icon="pencil" label="Modifica" size={28} onClick={onModifica}/>
-          <SrvEliminaInline onElimina={onElimina}/>
-        </div>
-      </div>
-    </AdmCard>
+    </div>
   );
 }
 
@@ -838,12 +1162,9 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
             </label>
           ) : (
             <div style={{display:'flex', flexDirection:'column', gap:16}}>
-              <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 14px', borderRadius:11,
+              <div style={{display:'flex', alignItems:'center', gap:13, padding:'12px 14px', borderRadius:11,
                 background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
-                <span style={{width:34, height:34, borderRadius:9, background:'#0F1115', display:'grid',
-                  placeItems:'center', flexShrink:0}}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5z"/></svg>
-                </span>
+                <SrvMiniatura video={d.video} w={92}/>
                 <span style={{flex:1, minWidth:0, fontSize:13.4, fontWeight:600, color:ADM.TEXT,
                   whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                   {d.video.file || d.video.titolo || 'Video caricato'}
@@ -873,16 +1194,9 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
           )}
         </div>
 
-        <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 14px', borderRadius:10,
-          background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <AdmSwitch checked={d.live} onChange={(v)=>agg('live', v)}/>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT}}>Pubblica nel gestionale</div>
-            <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:2}}>
-              {d.live ? 'La guida comparirà nell\'argomento appena salvi.' : 'Resta in bozza: visibile solo qui in console.'}
-            </div>
-          </div>
-        </div>
+        <SrvInterruttorePubblica live={d.live} onChange={(v)=>agg('live', v)}
+          acceso="La guida comparirà nell'argomento appena salvi."
+          spento="Resta in bozza: visibile solo qui in console."/>
       </div>
     </SrvModale>
   );
@@ -953,201 +1267,194 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
     : null;
 
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:22}}>
+    <div style={{padding:'24px 28px 28px', display:'flex', flexDirection:'column', gap:20}}>
 
       {/* ── Richiamate ── */}
-      <div style={{display:'flex', flexDirection:'column', gap:12}}>
-        <SrvTitoloSezione titolo="Richiamate"
-          nota="La puntualità si misura solo sulle richiamate effettuate: le chiamate a vuoto sono contate a parte, altrimenti gonfierebbero la percentuale invece di pesarla."/>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
-          <DashStatCard label="Richiamate in tempo" accent="OK"
-            value={`${k.richiamate.pctInTempo}%`}
-            sub={`${k.richiamate.inTempo} su ${k.richiamate.chiuse} entro la scadenza`}
-            ratio={{ a:k.richiamate.inTempo, b:k.richiamate.inRitardo, aLabel:'in tempo', bLabel:'in ritardo', aColor:ADM.OK }}/>
-          <DashStatCard label="In coda adesso"
-            value={k.richiamate.attesa}
-            sub={k.richiamate.scadute === 0 ? 'Tutte ancora dentro l\'SLA' : null}
-            alertText={k.richiamate.scadute > 0 ? `${k.richiamate.scadute} oltre la scadenza` : null}/>
-          <DashStatCard label="Attesa media" accent="INFO"
-            value={srvMinuti(k.richiamate.attesaMediaMin)}
-            sub="Dalla prenotazione alla chiamata"/>
-          <DashStatCard label="Numeri non raggiunti"
-            value={k.richiamate.perse}
-            sub={`Su ${k.richiamate.totali} richiamate prenotate`}/>
-        </div>
+      <SectionLabel first title="Richiamate" desc="La coda e la puntualità con cui la smaltiamo"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        <DashStatCard label="Richiamate in tempo" accent="OK"
+          value={`${k.richiamate.pctInTempo}%`}
+          sub={`${k.richiamate.inTempo} su ${k.richiamate.chiuse} entro la scadenza`}
+          ratio={{ a:k.richiamate.inTempo, b:k.richiamate.inRitardo, aLabel:'in tempo', bLabel:'in ritardo', aColor:ADM.OK }}/>
+        <DashStatCard label="In coda adesso"
+          value={k.richiamate.attesa}
+          sub={k.richiamate.scadute === 0 ? 'Tutte ancora dentro l\'SLA' : null}
+          alertText={k.richiamate.scadute > 0 ? `${k.richiamate.scadute} oltre la scadenza` : null}/>
+        <DashStatCard label="Attesa media" accent="INFO"
+          value={srvMinuti(k.richiamate.attesaMediaMin)}
+          sub="Dalla prenotazione alla chiamata"/>
+        <DashStatCard label="Numeri non raggiunti"
+          value={k.richiamate.perse}
+          sub={`Su ${k.richiamate.totali} richiamate prenotate · contate a parte, non fra le riuscite`}/>
       </div>
 
       {/* ── Soddisfazione ── */}
-      <div style={{display:'flex', flexDirection:'column', gap:12}}>
-        <SrvTitoloSezione titolo="Soddisfazione del cliente"
-          nota="Voto da 1 a 5 chiesto al ristoratore dopo la chiamata, con il commento quando lo lascia."/>
-        <div style={{display:'grid', gridTemplateColumns:'320px minmax(0,1fr)', gap:14}}>
-          <AdmCard>
-            <div style={{display:'flex', flexDirection:'column', gap:14, height:'100%'}}>
-              <div style={{display:'flex', alignItems:'baseline', gap:12}}>
-                <span style={{fontSize:46, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>
-                  {s.media.toFixed(1).replace('.', ',')}
+      <SectionLabel title="Soddisfazione" desc="Il voto da 1 a 5 chiesto al ristoratore dopo la chiamata"/>
+      {/* alignItems:start — la card del voto ha un'altezza naturale corta, e
+          stirarla per pareggiare quella delle recensioni le lascerebbe dentro
+          un vuoto largo quanto mezza card. */}
+      <div style={{display:'grid', gridTemplateColumns:'300px minmax(0,1fr)', gap:14, alignItems:'start'}}>
+        <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+          <div style={{padding:'16px 18px 14px'}}>
+            <div style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+              letterSpacing:'0.04em'}}>Voto medio</div>
+            <div style={{display:'flex', alignItems:'baseline', gap:9, marginTop:8}}>
+              <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>
+                {s.media.toFixed(1).replace('.', ',')}
+              </span>
+              <span style={{fontSize:14, color:ADM.MUTED_SOFT, fontWeight:600}}>/ 5</span>
+            </div>
+            <div style={{display:'flex', alignItems:'center', gap:9, marginTop:9}}>
+              <SrvStelle valore={s.media} size={17}/>
+              <span style={{fontSize:12.5, color:ADM.MUTED}}>su {s.n} risposte</span>
+            </div>
+          </div>
+          <div style={{padding:'13px 18px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+            display:'flex', flexDirection:'column', gap:7}}>
+            {[...s.distribuzione].reverse().map(d => (
+              <div key={d.voto} style={{display:'flex', alignItems:'center', gap:9}}>
+                <span style={{fontSize:12, color:ADM.MUTED, fontWeight:700, width:10, textAlign:'right'}}>{d.voto}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" style={{flexShrink:0}}>
+                  <path d="M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 17l-5.4 2.7 1-6L3.4 9.4l6-.9L12 3z"/>
+                </svg>
+                <span style={{flex:1, height:6, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
+                  <span style={{display:'block', width:`${d.n / maxVoti * 100}%`, height:'100%',
+                    background: d.voto >= 4 ? ADM.OK : d.voto === 3 ? ADM.WARN : ADM.DANGER, borderRadius:99}}/>
                 </span>
-                <span style={{fontSize:15, color:ADM.MUTED_SOFT, fontWeight:600}}>/ 5</span>
+                <span style={{fontSize:12, color:ADM.TEXT, fontWeight:600, width:14, textAlign:'right'}}>{d.n}</span>
               </div>
-              <div style={{display:'flex', alignItems:'center', gap:9}}>
-                <SrvStelle valore={s.media} size={19}/>
-                <span style={{fontSize:12.8, color:ADM.MUTED}}>su {s.n} risposte</span>
-              </div>
-              <div style={{display:'flex', flexDirection:'column', gap:6, paddingTop:4,
-                borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-                {[...s.distribuzione].reverse().map(d => (
-                  <div key={d.voto} style={{display:'flex', alignItems:'center', gap:9}}>
-                    <span style={{fontSize:12, color:ADM.MUTED, fontWeight:700, width:12, textAlign:'right'}}>{d.voto}</span>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="#F59E0B" style={{flexShrink:0}}>
-                      <path d="M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 17l-5.4 2.7 1-6L3.4 9.4l6-.9L12 3z"/>
-                    </svg>
-                    <span style={{flex:1, height:7, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
-                      <span style={{display:'block', width:`${d.n / maxVoti * 100}%`, height:'100%',
-                        background: d.voto >= 4 ? ADM.OK : d.voto === 3 ? ADM.WARN : ADM.DANGER, borderRadius:99}}/>
-                    </span>
-                    <span style={{fontSize:12, color:ADM.TEXT, fontWeight:600, width:16}}>{d.n}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{flex:1}}/>
-              <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, lineHeight:1.5, paddingTop:10,
-                borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-                Il sondaggio parte dieci minuti dopo la chiamata e resta aperto un giorno.
-                {' '}{s.recensioni.length} su {s.n} hanno lasciato anche un commento.
-              </div>
-            </div>
-          </AdmCard>
+            ))}
+          </div>
+          <div style={{padding:'10px 18px 12px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+            fontSize:11.8, color:ADM.MUTED_LIGHT, lineHeight:1.5}}>
+            Il sondaggio parte dieci minuti dopo la chiamata e resta aperto un giorno.
+          </div>
+        </AdmCard>
 
-          <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
-            <div style={{padding:'13px 18px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-              fontSize:12.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>
-              Recensioni · {s.recensioni.length}
-            </div>
-            <div style={{maxHeight:290, overflowY:'auto'}}>
-              {s.recensioni.map((r, i) => (
-                <div key={r.id} style={{padding:'13px 18px',
-                  borderBottom: i === s.recensioni.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-                  <div style={{display:'flex', alignItems:'center', gap:9, marginBottom:5}}>
-                    <SrvStelle valore={r.voto} size={13}/>
-                    <span style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{r.localeNome}</span>
-                    <span style={{fontSize:12.2, color:ADM.MUTED_SOFT}}>{r.titolare}</span>
-                    <div style={{flex:1}}/>
-                    <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT}}>{fmtRelative(r.richiamataIl)}</span>
-                  </div>
-                  <div style={{fontSize:13.2, color:ADM.TEXT, lineHeight:1.55}}>«{r.recensione}»</div>
+        <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+          <div style={{padding:'13px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+            fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
+            letterSpacing:'0.04em', display:'flex', alignItems:'center', gap:8}}>
+            Recensioni <span style={{color:ADM.MUTED_LIGHT}}>{s.recensioni.length}</span>
+          </div>
+          <div style={{flex:1, minHeight:0, maxHeight:322, overflowY:'auto'}}>
+            {s.recensioni.map((r, i) => (
+              <div key={r.id} style={{padding:'12px 20px',
+                borderBottom: i === s.recensioni.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+                <div style={{display:'flex', alignItems:'center', gap:9, marginBottom:5}}>
+                  <SrvStelle valore={r.voto} size={12}/>
+                  <span style={{fontSize:13, fontWeight:700, color:ADM.TEXT}}>{r.localeNome}</span>
+                  <span style={{fontSize:12, color:ADM.MUTED_SOFT}}>{r.titolare}</span>
+                  <div style={{flex:1}}/>
+                  <span style={{fontSize:11.5, color:ADM.MUTED_LIGHT}}>{fmtRelative(r.richiamataIl)}</span>
                 </div>
-              ))}
-              {s.recensioni.length === 0 && <AdmEmpty icon="star" title="Nessuna recensione" desc="Nessuno ha ancora lasciato un commento"/>}
-            </div>
-          </AdmCard>
-        </div>
+                <div style={{fontSize:13.2, color:ADM.TEXT, lineHeight:1.55}}>«{r.recensione}»</div>
+              </div>
+            ))}
+            {s.recensioni.length === 0 && <AdmEmpty icon="star" title="Nessuna recensione" desc="Nessuno ha ancora lasciato un commento"/>}
+          </div>
+        </AdmCard>
       </div>
 
       {/* ── Richieste e ticket ── */}
-      <div style={{display:'flex', flexDirection:'column', gap:12}}>
-        <SrvTitoloSezione titolo="Richieste di assistenza"
-          nota="Quanti ristoratori hanno aperto una richiesta nella finestra e quanti di quelli hanno già il ticket chiuso. La finestra «oggi» ha per forza una percentuale bassa: molti ticket di oggi sono ancora aperti."/>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
-          {k.ticket.finestre.map(f => (
-            <AdmCard key={f.label} padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
-              <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
-                <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-                  letterSpacing:'0.04em'}}>{f.label}</span>
-                <div style={{display:'flex', alignItems:'baseline', gap:8}}>
-                  <span style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
-                    {fmtNum(f.avviati)}
-                  </span>
-                  <span style={{fontSize:12.8, color:ADM.MUTED}}>richieste avviate</span>
-                </div>
-                <span style={{fontSize:12.5, color:ADM.MUTED}}>
-                  <b style={{color:ADM.TEXT}}>{fmtNum(f.chiusi)}</b> con ticket chiuso · <b style={{color:ADM.TEXT}}>{f.pct}%</b>
+      <SectionLabel title="Richieste di assistenza"
+        desc="Quante ne arrivano e quante si chiudono · la finestra «oggi» è bassa per costruzione"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        {k.ticket.finestre.map(f => (
+          <AdmCard key={f.label} padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+            <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
+              <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+                letterSpacing:'0.04em'}}>{f.label}</span>
+              <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+                <span style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
+                  {fmtNum(f.avviati)}
                 </span>
+                <span style={{fontSize:12.8, color:ADM.MUTED}}>richieste avviate</span>
               </div>
-              <div style={{padding:'0 16px 14px'}}>
-                <MiniRatioBar a={f.chiusi} b={f.avviati - f.chiusi} aLabel="chiusi" bLabel="aperti" aColor={ADM.OK}/>
-              </div>
-            </AdmCard>
-          ))}
-          <DashStatCard label="Chiusura media di un ticket" accent="INFO"
-            value={srvOre(k.ticket.chiusuraMediaOre)}
-            trend={deltaChiusura} trendLabel="vs mese precedente"
-            sub={`${k.ticket.apertiOra} ticket aperti in questo momento`}
-            data={k.ticket.serie} gradId="grad-srv-ticket"/>
-        </div>
+              <span style={{fontSize:12.5, color:ADM.MUTED}}>
+                <b style={{color:ADM.TEXT}}>{fmtNum(f.chiusi)}</b> con ticket chiuso · <b style={{color:ADM.TEXT}}>{f.pct}%</b>
+              </span>
+            </div>
+            <div style={{padding:'0 16px 14px'}}>
+              <MiniRatioBar a={f.chiusi} b={f.avviati - f.chiusi} aLabel="chiusi" bLabel="aperti" aColor={ADM.OK}/>
+            </div>
+          </AdmCard>
+        ))}
+        <DashStatCard label="Chiusura media di un ticket" accent="INFO"
+          value={srvOre(k.ticket.chiusuraMediaOre)}
+          trend={deltaChiusura} trendLabel="vs mese precedente"
+          sub={`${k.ticket.apertiOra} ticket aperti in questo momento`}
+          data={k.ticket.serie} gradId="grad-srv-ticket"/>
       </div>
 
       {/* ── Video ── */}
-      <div style={{display:'flex', flexDirection:'column', gap:12}}>
-        <SrvTitoloSezione titolo="Video delle guide"
-          nota="Quanto di ogni video viene effettivamente guardato, e cosa ha risposto chi ha premuto «utile» o «non utile». Un video con molte visualizzazioni ma poco guardato è un video troppo lungo, non un video di successo."/>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
-          <DashStatCard label="Tempo medio di visualizzazione" accent="INFO"
-            value={srvDurata(k.videoMedia.tempoMedioSec)}
-            sub={`${k.videoMedia.completamento}% della durata, su ${fmtNum(k.videoMedia.views)} visualizzazioni`}/>
-          <DashStatCard label="Video giudicati utili" accent="OK"
-            value={k.videoMedia.pctUtile != null ? `${k.videoMedia.pctUtile}%` : '—'}
-            sub={`${k.videoMedia.utile} «utile» · ${k.videoMedia.nonUtile} «non utile»`}
-            ratio={{ a:k.videoMedia.utile, b:k.videoMedia.nonUtile, aLabel:'utile', bLabel:'non utile', aColor:ADM.OK }}/>
-          <DashStatCard label="Video pubblicati"
-            value={k.video.length}
-            sub={`Su ${(guide || GUIDE_SRV).length} guide in catalogo`}/>
-        </div>
-
-        <AdmCard padding={0} style={{overflow:'hidden'}}>
-          <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 90px 130px 150px 130px 170px',
-            gap:12, padding:'11px 18px', background:ADM.PANEL_SOFT, borderBottom:`1px solid ${ADM.BORDER}`,
-            fontSize:11.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>
-            <span>Video</span>
-            <span style={{textAlign:'right'}}>Durata</span>
-            <span style={{textAlign:'right'}}>Visto in media</span>
-            <span>Completamento</span>
-            <span style={{textAlign:'right'}}>Visualizzazioni</span>
-            <span>Utile / Non utile</span>
-          </div>
-          {k.video.map((v, i) => (
-            <div key={v.guidaId} style={{display:'grid',
-              gridTemplateColumns:'minmax(0,1fr) 90px 130px 150px 130px 170px', gap:12,
-              padding:'12px 18px', alignItems:'center',
-              borderBottom: i === k.video.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-              background: i % 2 ? ADM.ROW_STRIPE : 'transparent'}}>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap',
-                  overflow:'hidden', textOverflow:'ellipsis'}}>{v.titolo}</div>
-                <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:2, whiteSpace:'nowrap',
-                  overflow:'hidden', textOverflow:'ellipsis'}}>{v.guidaTitolo}</div>
-              </div>
-              <span style={{textAlign:'right', fontSize:13, color:ADM.MUTED, fontVariantNumeric:'tabular-nums'}}>
-                {srvDurata(v.durataSec)}
-              </span>
-              <span style={{textAlign:'right', fontSize:13.6, fontWeight:700, color:ADM.TEXT,
-                fontVariantNumeric:'tabular-nums'}}>{srvDurata(v.tempoMedioSec)}</span>
-              <div style={{display:'flex', alignItems:'center', gap:8}}>
-                <span style={{flex:1, height:6, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
-                  <span style={{display:'block', width:`${v.completamento}%`, height:'100%', borderRadius:99,
-                    background: v.completamento >= 65 ? ADM.OK : v.completamento >= 45 ? ADM.WARN : ADM.DANGER}}/>
-                </span>
-                <span style={{fontSize:12.3, fontWeight:700, color:ADM.TEXT, width:32, textAlign:'right'}}>{v.completamento}%</span>
-              </div>
-              <span style={{textAlign:'right', fontSize:13, color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>
-                {fmtNum(v.views)}
-              </span>
-              <div style={{display:'flex', alignItems:'center', gap:9}}>
-                <span style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12.5, fontWeight:700, color:ADM.OK}}>
-                  <BuIcons.thumbUp size={14}/>{v.utile}
-                </span>
-                <span style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12.5, fontWeight:700, color:ADM.MUTED}}>
-                  <BuIcons.thumbDown size={14}/>{v.nonUtile}
-                </span>
-                {v.pctUtile != null && (
-                  <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600}}>({v.pctUtile}%)</span>
-                )}
-              </div>
-            </div>
-          ))}
-          {k.video.length === 0 && <AdmEmpty icon="monitor" title="Nessun video" desc="Nessuna guida ha ancora un video allegato"/>}
-        </AdmCard>
+      <SectionLabel title="Video delle guide"
+        desc="Quanto viene guardato davvero, e chi ha premuto «utile» o «non utile»"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
+        <DashStatCard label="Tempo medio di visualizzazione" accent="INFO"
+          value={srvDurata(k.videoMedia.tempoMedioSec)}
+          sub={`${k.videoMedia.completamento}% della durata, su ${fmtNum(k.videoMedia.views)} visualizzazioni`}/>
+        <DashStatCard label="Video giudicati utili" accent="OK"
+          value={k.videoMedia.pctUtile != null ? `${k.videoMedia.pctUtile}%` : '—'}
+          sub={`${k.videoMedia.utile} «utile» · ${k.videoMedia.nonUtile} «non utile»`}
+          ratio={{ a:k.videoMedia.utile, b:k.videoMedia.nonUtile, aLabel:'utile', bLabel:'non utile', aColor:ADM.OK }}/>
+        <DashStatCard label="Video pubblicati"
+          value={k.video.length}
+          sub={`Su ${(guide || GUIDE_SRV).length} guide in catalogo`}/>
       </div>
+
+      <AdmCard padding={0} style={{overflow:'hidden'}}>
+        <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 82px 118px 152px 118px 150px',
+          gap:12, padding:'11px 20px', background:ADM.PANEL_SOFT, borderBottom:`1px solid ${ADM.BORDER}`,
+          fontSize:11.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>
+          <span>Video</span>
+          <span style={{textAlign:'right'}}>Durata</span>
+          <span style={{textAlign:'right'}}>Visto in media</span>
+          <span>Completamento</span>
+          <span style={{textAlign:'right'}}>Visualizzazioni</span>
+          <span>Utile / Non utile</span>
+        </div>
+        {k.video.map((v, i) => (
+          <div key={v.guidaId} style={{display:'grid',
+            gridTemplateColumns:'minmax(0,1fr) 82px 118px 152px 118px 150px', gap:12,
+            padding:'12px 20px', alignItems:'center',
+            borderBottom: i === k.video.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap',
+                overflow:'hidden', textOverflow:'ellipsis'}}>{v.titolo}</div>
+              <div style={{fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:2, whiteSpace:'nowrap',
+                overflow:'hidden', textOverflow:'ellipsis'}}>{v.guidaTitolo}</div>
+            </div>
+            <span style={{textAlign:'right', fontSize:13, color:ADM.MUTED, fontVariantNumeric:'tabular-nums'}}>
+              {srvDurata(v.durataSec)}
+            </span>
+            <span style={{textAlign:'right', fontSize:13.6, fontWeight:700, color:ADM.TEXT,
+              fontVariantNumeric:'tabular-nums'}}>{srvDurata(v.tempoMedioSec)}</span>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
+              <span style={{flex:1, height:6, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
+                <span style={{display:'block', width:`${v.completamento}%`, height:'100%', borderRadius:99,
+                  background: v.completamento >= 65 ? ADM.OK : v.completamento >= 45 ? ADM.WARN : ADM.DANGER}}/>
+              </span>
+              <span style={{fontSize:12.3, fontWeight:700, color:ADM.TEXT, width:32, textAlign:'right'}}>{v.completamento}%</span>
+            </div>
+            <span style={{textAlign:'right', fontSize:13, color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>
+              {fmtNum(v.views)}
+            </span>
+            <div style={{display:'flex', alignItems:'center', gap:9}}>
+              <span style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12.5, fontWeight:700, color:ADM.OK}}>
+                <BuIcons.thumbUp size={14}/>{v.utile}
+              </span>
+              <span style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12.5, fontWeight:700, color:ADM.MUTED}}>
+                <BuIcons.thumbDown size={14}/>{v.nonUtile}
+              </span>
+              {v.pctUtile != null && (
+                <span style={{fontSize:12, color:ADM.MUTED_LIGHT, fontWeight:600}}>({v.pctUtile}%)</span>
+              )}
+            </div>
+          </div>
+        ))}
+        {k.video.length === 0 && <AdmEmpty icon="monitor" title="Nessun video" desc="Nessuna guida ha ancora un video allegato"/>}
+      </AdmCard>
     </div>
   );
 }
