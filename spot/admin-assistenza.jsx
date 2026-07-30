@@ -1220,19 +1220,6 @@ function SrvTesto({ multi, value, onChange, placeholder, titolo, stile = {}, inn
   );
 }
 
-// Pastiglia di stato: un pallino e una parola. Sostituisce la scritta verde
-// «Online» sparata accanto alla levetta.
-function SrvStato({ live }) {
-  return (
-    <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'3px 10px 3px 8px',
-      borderRadius:99, background: live ? `${ADM.OK}14` : ADM.NEUTRAL_SOFT,
-      color: live ? ADM.OK : ADM.MUTED, fontSize:12, fontWeight:600, whiteSpace:'nowrap'}}>
-      <span style={{width:6, height:6, borderRadius:99, background: live ? ADM.OK : ADM.MUTED_LIGHT}}/>
-      {live ? 'Online' : 'Bozza'}
-    </span>
-  );
-}
-
 // Azione scritta, non un bottone pieno: dentro una card di contenuto un
 // bottone grigio pesa come il contenuto.
 function SrvAzioneTesto({ onClick, colore, children }) {
@@ -1521,13 +1508,15 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
           placeholder="Titolo della guida" titolo="Il titolo che compare nel Centro assistenza"
           stile={{flex:1, minWidth:0, marginLeft:-10, padding:'5px 10px',
             fontSize:18, fontWeight:700, letterSpacing:'-0.015em', lineHeight:1.3}}/>
-        <span style={{display:'flex', alignItems:'center', gap:9, flexShrink:0, paddingTop:3}}>
-          <SrvStato live={g.live && pubblicabile}/>
-          <span title={pubblicabile ? 'Pubblica nel gestionale' : 'Serve un titolo per pubblicarla'}
-            style={{display:'inline-flex', opacity: pubblicabile ? 1 : 0.45}}>
-            <AdmSwitch size="sm" checked={g.live && pubblicabile}
-              onChange={(x)=>{ if (pubblicabile) onCambia({ live:x }); }}/>
-          </span>
+        {/* Una cosa sola: la pastiglia È l'interruttore, come nelle FAQ.
+            Pastiglia più levetta erano due comandi per un unico stato, e la
+            levetta ripeteva a destra quello che la pastiglia diceva a
+            sinistra. */}
+        <span style={{flexShrink:0, paddingTop:3, display:'inline-flex',
+          opacity: pubblicabile ? 1 : 0.5}}
+          title={pubblicabile ? undefined : 'Serve un titolo per attivarla'}>
+          <SrvChipStato attivo={g.live && pubblicabile}
+            onCambia={()=>{ if (pubblicabile) onCambia({ live: !g.live }); }}/>
         </span>
       </div>
 
