@@ -280,10 +280,16 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
     setRichiamate(prev => prev.map(r => {
       if (r.id !== id) return r;
       if (!esito.risposto) {
+        // `inTempo` si conserva anche qui: è la prova che l'impegno l'abbiamo
+        // onorato — abbiamo chiamato entro la scadenza — ed è proprio il
+        // motivo per cui la pratica non entra fra le non risolte. Resta però
+        // fuori dal rapporto sulla puntualità, che si calcola sulle sole
+        // chiamate a cui qualcuno ha risposto.
         return { ...r, stato:'persa', risposto:false,
           tentativi:(r.tentativi || 0) + 1, operatore: SRV_IO, richiamataIl: adesso,
+          inTempo: adesso <= r.entro,
           emailEsito: esito.email, noteOperatore: esito.note || null,
-          problemaCat: null, risolto: null, urgenza: null, inTempo: null };
+          problemaCat: null, risolto: null, urgenza: null };
       }
       return { ...r, stato:'fatta', risposto:true, richiamataIl: adesso, operatore: SRV_IO,
         inTempo: adesso <= r.entro,
@@ -415,17 +421,13 @@ function SrvVoceCoda({ r, attiva, onClick }) {
           qui, non solo nel dettaglio. */}
       {srvNonRisolto(r) && (
         <div style={{paddingLeft:15, marginTop:6, display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
-          {r.stato === 'persa'
-            ? <SrvPastiglia testo={`Non ha risposto · ${r.tentativi} ${r.tentativi === 1 ? 'tentativo' : 'tentativi'}`}/>
-            : <React.Fragment>
-                {r.urgenza && <SrvPastiglia testo={`Urgenza ${SRV_URGENZE[r.urgenza].label.toLowerCase()}`}
-                  tono={SRV_URGENZE[r.urgenza].color} piena/>}
-                {r.problemaCat && <SrvPastiglia testo={SRV_PROBLEMI[r.problemaCat].label}
-                  tono={SRV_PROBLEMI[r.problemaCat].color}/>}
-              </React.Fragment>}
+          {r.urgenza && <SrvPastiglia testo={`Urgenza ${SRV_URGENZE[r.urgenza].label.toLowerCase()}`}
+            tono={SRV_URGENZE[r.urgenza].color} piena/>}
+          {r.problemaCat && <SrvPastiglia testo={SRV_PROBLEMI[r.problemaCat].label}
+            tono={SRV_PROBLEMI[r.problemaCat].color}/>}
         </div>
       )}
-      {r.stato === 'fatta' && !srvNonRisolto(r) && (
+      {r.stato === 'fatta' && r.risolto && (
         <div style={{paddingLeft:15, marginTop:5, display:'flex', alignItems:'center', gap:7}}>
           <span style={{fontSize:11.5, fontWeight:700, color:ADM.OK}}>Risolto</span>
           <span style={{fontSize:11.5, color:ADM.MUTED_LIGHT}}>·</span>
@@ -433,6 +435,13 @@ function SrvVoceCoda({ r, attiva, onClick }) {
             {r.inTempo ? 'in tempo' : 'in ritardo'}
           </span>
           {r.voto != null && <SrvStelle valore={r.voto} size={11}/>}
+        </div>
+      )}
+      {/* Non ha risposto: chiusa da parte nostra, quindi non è più una riga
+          della coda — ma in «Tutte» va comunque riconosciuta a colpo d'occhio. */}
+      {r.stato === 'persa' && (
+        <div style={{paddingLeft:15, marginTop:5, fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT}}>
+          Non ha risposto · {r.tentativi} {r.tentativi === 1 ? 'tentativo' : 'tentativi'} · tocca a lui riprenotare
         </div>
       )}
     </button>
@@ -560,15 +569,19 @@ function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
             </AdmCard>
           )}
 
+          {/* Non ha risposto: l'impegno preso l'abbiamo mantenuto — chiamato
+              entro l'SLA, mail partita. Da parte nostra è chiusa, e il
+              riquadro lo dice invece di lasciarla in un limbo ambrato. */}
           {r.stato === 'persa' && (
-            <AdmCard padding={0} style={{overflow:'hidden', borderColor:`${ADM.WARN}55`}}>
+            <AdmCard padding={0} style={{overflow:'hidden'}}>
               <div style={{padding:'14px 18px 15px'}}>
                 <div style={SRV_ETI}>Esito</div>
-                <div style={{fontSize:19, fontWeight:800, color:ADM.WARN, marginTop:9, letterSpacing:'-0.01em'}}>
+                <div style={{fontSize:19, fontWeight:800, color:ADM.MUTED, marginTop:9, letterSpacing:'-0.01em'}}>
                   Non ha risposto
                 </div>
                 <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4}}>
                   {r.tentativi} {r.tentativi === 1 ? 'tentativo' : 'tentativi'} senza risposta
+                  {r.inTempo === false ? ' · fuori SLA' : ''}
                 </div>
               </div>
               <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
@@ -640,6 +653,20 @@ function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
           <AdmButton variant="success" icon="check" onClick={onRegistra}>
             {r.stato === 'attesa' ? 'Chiamato' : 'Registra nuovo esito'}
           </AdmButton>
+        </div>
+      )}
+
+      {/* Nessun pulsante quando non ha risposto: non c'è niente che
+          l'operatore debba fare, e mettere un'azione qui vorrebbe dire
+          rimettersi in carico un impegno che abbiamo già onorato. */}
+      {r.stato === 'persa' && (
+        <div style={{background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, padding:'13px 26px',
+          display:'flex', alignItems:'center', gap:9, flexShrink:0}}>
+          <BuIcons.check size={15} color={ADM.OK}/>
+          <span style={{flex:1, fontSize:12.8, color:ADM.MUTED}}>
+            Chiusa da parte nostra: l'abbiamo chiamato entro l'SLA e gli è partita la mail.
+            Per riparlarne deve riprenotare lui.
+          </span>
         </div>
       )}
     </div>
@@ -909,8 +936,9 @@ function SrvMailInviata({ r, tipo, onChiudi }) {
           </div>
         </div>
         <div style={{fontSize:13.4, color:ADM.TEXT, lineHeight:1.6}}>
-          Inviata a <b>{locale?.email || r.titolare}</b>. La chiamata resta in{' '}
-          <b>Non risolto</b> finché non riuscite a parlarvi.
+          Inviata a <b>{locale?.email || r.titolare}</b>. La chiamata si chiude qui da parte
+          nostra — l'abbiamo fatta entro l'SLA — e <b>non entra fra le non risolte</b>:
+          per riparlarne tocca a lui riprenotare.
         </div>
       </div>
     </SrvModale>

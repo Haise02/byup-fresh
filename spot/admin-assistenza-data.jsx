@@ -231,16 +231,25 @@ function srvMinutiAScadere(r) {
   return Math.round((r.entro.getTime() - Date.now()) / SRV_MIN);
 }
 
-// «Non risolto» tiene insieme due situazioni diverse che per il ristoratore
-// sono la stessa cosa — il suo problema è ancora lì:
-//   · l'abbiamo sentito ma il problema è rimasto aperto;
-//   · non ha risposto, quindi non sappiamo nemmeno se sia risolto.
-// Le chiamate ancora in coda non ci finiscono: quelle non le abbiamo
-// nemmeno fatte, e stanno in «Da chiamare».
+// «Non risolto» è la coda di lavoro di byup, non l'elenco dei problemi aperti
+// del mondo: ci finisce solo ciò su cui tocca a noi tornare, cioè le chiamate
+// fatte in cui il problema è rimasto aperto.
+//
+// Restano fuori due casi, per ragioni opposte:
+//   · le chiamate ancora in attesa — quelle non le abbiamo nemmeno fatte, e
+//     hanno una coda loro («Da chiamare»);
+//   · le chiamate a cui il ristoratore non ha risposto — lì l'impegno preso
+//     l'abbiamo mantenuto, l'abbiamo chiamato entro l'SLA e gli è partita la
+//     mail con il link per riprenotare. La palla è sua. Contarle come nostro
+//     arretrato gonfierebbe la coda con righe su cui l'operatore non può
+//     fare niente, e la prima cosa che si smette di guardare è una coda piena
+//     di roba che non si può chiudere.
+//
+// Che i tentativi a vuoto siano comunque tracciati non si perde: il KPI
+// «Numeri non raggiunti» li conta a parte, ed è lì che si vede se il problema
+// diventa sistematico.
 function srvNonRisolto(r) {
-  if (r.stato === 'attesa') return false;
-  if (r.stato === 'persa') return true;
-  return r.risolto === false;
+  return r.stato === 'fatta' && r.risolto === false;
 }
 
 // ─── 2. Ticket di assistenza ────────────────────────────────────────────────
