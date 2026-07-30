@@ -1762,7 +1762,6 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
   // che ne avrebbero diritto darebbe un numero sotto l'uno, vero ma inutile —
   // la domanda è quante volte chiama chi chiama.
   const mediaPerLocale = perLocale.length ? k.richiamate.totali / perLocale.length : 0;
-  const primo = perLocale[0];
   const maxVoti = Math.max(...s.distribuzione.map(d => d.n), 1);
   // Il tempo di chiusura migliora quando SCENDE: il segno del delta va
   // rovesciato prima di darlo al badge, che colora il positivo di verde.
@@ -1779,10 +1778,8 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
         <DashStatCard label="Chiamate medie per locale" accent="PURPLE"
           value={mediaPerLocale.toFixed(1)}
           sub={`${k.richiamate.totali} chiamate da ${perLocale.length} locali · ${conDiritto} hanno diritto a chiamare`}/>
-        <DashStatCard label="Chi chiama di più" accent="INFO"
-          value={primo ? `${primo.n}` : '—'}
-          sub={primo ? `${primo.nome} · ${classifica ? 'chiudi la classifica' : 'apri la classifica'}` : 'Nessuna chiamata'}
-          onClick={()=>setClassifica(x => !x)} selected={classifica}/>
+        <SrvTopChiamanti locali={perLocale} aperta={classifica}
+          onClick={()=>setClassifica(x => !x)}/>
         <DashStatCard label="Chiamate in tempo" accent="OK"
           value={`${k.richiamate.pctInTempo}%`}
           sub={`${k.richiamate.inTempo} su ${k.richiamate.chiuse} entro la scadenza`}
@@ -2014,9 +2011,54 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
   );
 }
 
+// I primi tre, in cima. Un numero solo col nome del primo diceva chi sta in
+// testa ma non se dietro c'è qualcuno che gli sta addosso, che è metà della
+// notizia. Cliccata, la card apre la classifica intera.
+function SrvTopChiamanti({ locali, aperta, onClick }) {
+  const primi = locali.slice(0, 3);
+  return (
+    <AdmCard padding={0} interactive onClick={onClick}
+      style={{display:'flex', flexDirection:'column', cursor:'pointer', overflow:'hidden',
+        ...(aperta ? { border:`1px solid ${ADM.PINK}`, boxShadow:`0 0 0 3px ${ADM.PINK}38` } : {})}}>
+      <div style={{padding:'15px 16px 14px', display:'flex', flexDirection:'column', gap:9, flex:1}}>
+        <div style={{display:'flex', alignItems:'center', gap:7}}>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.04em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden',
+            textOverflow:'ellipsis'}}>Chi chiama di più</span>
+          <span className="adm-open-chip" style={{width:22, height:22}}><BuIcons.chevronRight size={13}/></span>
+        </div>
+        {primi.length === 0 ? (
+          <span style={{fontSize:12.5, color:ADM.MUTED}}>Non ha ancora chiamato nessuno</span>
+        ) : (
+          <div style={{display:'flex', flexDirection:'column', gap:6, flex:1}}>
+            {primi.map((l, i) => (
+              <div key={l.id} style={{display:'flex', alignItems:'baseline', gap:8}}>
+                <span style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED_LIGHT, width:10,
+                  fontVariantNumeric:'tabular-nums'}}>{i + 1}</span>
+                <span style={{flex:1, minWidth:0, fontSize:13.4, fontWeight:600, color:ADM.TEXT,
+                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</span>
+                <span style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT,
+                  fontVariantNumeric:'tabular-nums'}}>{l.n}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT}}>
+          {aperta ? 'Chiudi la classifica'
+            : `Apri la classifica${locali.length > 3 ? ` · altri ${locali.length - 3}` : ''}`}
+        </span>
+      </div>
+    </AdmCard>
+  );
+}
+
 // La classifica di chi chiama. Cinquanta righe al massimo: sotto la
 // cinquantesima ci sono i locali che hanno chiamato una volta sola, che non
 // sono una classifica ma un elenco.
+//
+// Niente testata: il titolo lo porta già la card che l'ha aperta, e ripeterlo
+// a due centimetri di distanza allontanava la prima riga per niente. Resta la
+// croce, appoggiata in alto a destra.
 //
 // La barra accanto al numero non è decorazione: il punto di questa tabella è
 // vedere se le chiamate sono sparse o se ci sono tre locali che pesano come
@@ -2025,28 +2067,20 @@ function SrvClassificaChiamanti({ locali, onChiudi }) {
   const primi = locali.slice(0, 50);
   const max = primi.length ? primi[0].n : 1;
   return (
-    <AdmCard padding={0} style={{overflow:'hidden'}}>
-      <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-        display:'flex', alignItems:'center', gap:12}}>
-        <div style={{width:4, height:20, borderRadius:3, background:ADM.INFO, flexShrink:0}}/>
-        <div style={{flex:1, minWidth:0}}>
-          <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Chi chiama di più</div>
-          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>
-            {locali.length} locali hanno chiamato
-            {locali.length > 50 ? ' · in classifica i primi 50' : ''}
-          </div>
-        </div>
-        <button onClick={onChiudi} className="adm-iconbtn" title="Chiudi"
-          style={{width:28, height:28, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT,
-            color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center', flexShrink:0}}>
-          <BuIcons.x size={16}/>
-        </button>
-      </div>
+    <AdmCard padding={0} style={{overflow:'hidden', position:'relative'}}>
+      <button onClick={onChiudi} className="adm-iconbtn" title="Chiudi la classifica"
+        style={{position:'absolute', top:10, right:12, zIndex:2,
+          width:28, height:28, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT,
+          color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center'}}>
+        <BuIcons.x size={16}/>
+      </button>
       <div className="adm-scroll" style={{maxHeight:430, overflowY:'auto'}}>
         {primi.map((l, i) => (
           <div key={l.id} style={{display:'grid',
             gridTemplateColumns:'34px minmax(0,1fr) 140px 200px 92px', alignItems:'center', gap:12,
-            padding:'10px 20px', borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+            // La prima riga si scansa dalla croce, che le sta sopra.
+            padding: i === 0 ? '10px 52px 10px 20px' : '10px 20px',
+            borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
             <span style={{fontSize:12.4, fontWeight:700, fontVariantNumeric:'tabular-nums',
               color: i < 3 ? ADM.TEXT : ADM.MUTED_LIGHT}}>{i + 1}</span>
             <span style={{minWidth:0}}>
