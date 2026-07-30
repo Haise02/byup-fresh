@@ -33,6 +33,53 @@ const SRV_MIN = 60000;
 const SRV_ORA = 3600000;
 const SRV_GIORNO = 86400000;
 
+// ─── L'esito della chiamata ─────────────────────────────────────────────────
+//
+// Due tassonomie diverse che è facile confondere, quindi vale la pena dirlo:
+//
+//   SRV_CATEGORIE  è come il RISTORATORE ha classificato il problema quando ha
+//                  prenotato. Serve a stabilire l'SLA, cioè entro quando lo
+//                  richiamiamo, e non cambia più.
+//   SRV_PROBLEMI   è come l'OPERATORE lo classifica dopo aver riagganciato,
+//                  cioè che cosa si è rivelato davvero. Le due spesso non
+//                  coincidono — «locale fermo» che si scopre essere una
+//                  domanda su come si usa il gestionale è il caso tipico — ed
+//                  è proprio dallo scarto fra le due che si capisce quali
+//                  problemi la piattaforma non sa spiegare da sola.
+const SRV_PROBLEMI = {
+  tecnico:        { label: 'Tecnico',            color: 'DANGER', nota: 'Guasto o malfunzionamento della piattaforma' },
+  configurazione: { label: 'Configurazione',     color: 'TEAL',   nota: 'Impostazioni del locale, menu, sala, dispositivi' },
+  pagamenti:      { label: 'Pagamenti e incassi', color: 'GREEN', nota: 'Accrediti, transazioni, POS, IBAN' },
+  contabile:      { label: 'Contabilità e fisco', color: 'INFO',  nota: 'Corrispettivi, IVA, esportazioni, commercialista' },
+  commerciale:    { label: 'Commerciale',        color: 'PURPLE', nota: 'Piani, prezzi, upgrade, disdette' },
+  informazione:   { label: 'Informazione',       color: 'NEUTRAL', nota: 'Domanda su come funziona: nessun problema reale' },
+  reclamo:        { label: 'Reclamo',            color: 'WARN',   nota: 'Lamentela sul servizio o sull\'assistenza ricevuta' },
+};
+
+// Urgenza: la mette l'operatore SOLO quando il problema resta aperto. È una
+// cosa diversa dall'SLA della prenotazione — quello diceva entro quando
+// chiamare, questa dice entro quando tornare sul problema.
+const SRV_URGENZE = {
+  bassa:   { label: 'Bassa',   color: 'NEUTRAL', nota: 'Nessun impatto sul servizio, si riprende quando capita' },
+  media:   { label: 'Media',   color: 'INFO',    nota: 'Da riprendere entro la settimana' },
+  alta:    { label: 'Alta',    color: 'WARN',    nota: 'Da riprendere in giornata' },
+  critica: { label: 'Critica', color: 'DANGER',  nota: 'Il locale non sta incassando: torna subito sul pezzo' },
+};
+
+// Quando il ristoratore non risponde non lo lasciamo cadere: parte una mail
+// automatica. Quale delle due la sceglie l'operatore, perché «ho provato e
+// riprovo io» e «dimmi tu quando» sono messaggi diversi.
+const SRV_EMAIL_ESITO = {
+  conferma: {
+    label: 'Conferma del tentativo',
+    desc: 'Gli diciamo che abbiamo provato a chiamarlo e che ci riproviamo noi entro la giornata.',
+  },
+  appuntamento: {
+    label: 'Proposta di nuovo appuntamento',
+    desc: 'Gli mandiamo il link per riprenotare la chiamata nella fascia che preferisce.',
+  },
+};
+
 // Le richiamate chiuse portano l'esito: quando è stata fatta davvero (da cui
 // «in tempo» o no), chi l'ha fatta, e — se il ristoratore ha risposto al
 // sondaggio — voto da 1 a 5 con l'eventuale commento.
@@ -56,41 +103,87 @@ const RICHIAMATE = (() => {
     { id:'RC-235', localeId:'L1014', cat:'servizio',    da:5*SRV_ORA,
       problema:'La stampante di cucina salta le comande dei dolci.' },
 
-    // ── Richiamate fatte in giornata ───────────────────────────────────────
+    // ── Chiamate fatte in giornata ─────────────────────────────────────────
+    // `prob` è la classificazione dell'operatore a chiamata finita; `risolto`
+    // dice se il problema è chiuso. Se resta aperto servono `urg` e `note`:
+    // sono le tre cose che chi la riprende in mano deve trovare scritte.
     { id:'RC-234', localeId:'L1006', cat:'blocco',      da:7*SRV_ORA,   fattaDopo:24*SRV_MIN,  op:'support1', durata:11, voto:5,
+      prob:'tecnico', risolto:true,
+      note:'Servizio di stampa in stallo sul concentratore. Riavviato da remoto, comande ripartite mentre eravamo al telefono.',
       recensione:'Richiamato in venti minuti e risolto al telefono. Non me lo aspettavo a quell\'ora.' },
     { id:'RC-233', localeId:'L1018', cat:'configurazione', da:9*SRV_ORA, fattaDopo:3.1*SRV_ORA, op:'support2', durata:18, voto:4,
+      prob:'configurazione', risolto:true,
+      note:'Non trovava la rigenerazione dei QR dopo aver rinumerato i tavoli. Fatta insieme, PDF scaricato.',
       recensione:'Tutto chiarito, ma ho dovuto aspettare il pomeriggio.' },
-    { id:'RC-232', localeId:'L1002', cat:'servizio',    da:10*SRV_ORA,  fattaDopo:47*SRV_MIN,  op:'support1', durata:9,  voto:5 },
+    // Il caso che giustifica due tassonomie: prenotata come «servizio
+    // degradato», si è rivelata una domanda su come si usa il gestionale.
+    { id:'RC-232', localeId:'L1002', cat:'servizio',    da:10*SRV_ORA,  fattaDopo:47*SRV_MIN,  op:'support1', durata:9,  voto:5,
+      prob:'informazione', risolto:true,
+      note:'Nessun guasto: cercava il filtro per data nello storico ordini. Indicato dove sta.' },
     { id:'RC-231', localeId:'L1027', cat:'contabilita', da:11*SRV_ORA,  fattaDopo:2.2*SRV_ORA, op:'support3', durata:26, voto:5,
+      prob:'contabile', risolto:true,
+      note:'Aliquota ridotta non applicata sull\'asporto. Corretta l\'impostazione fiscale del menu e rigenerato il corrispettivo.',
       recensione:'Mi hanno seguito passo passo sull\'IVA di giugno. Competenti.' },
-    { id:'RC-230', localeId:'L1009', cat:'commerciale', da:1*SRV_GIORNO, fattaDopo:4.5*SRV_ORA, op:'support2', durata:22, voto:4 },
+    { id:'RC-230', localeId:'L1009', cat:'commerciale', da:1*SRV_GIORNO, fattaDopo:4.5*SRV_ORA, op:'support2', durata:22, voto:4,
+      prob:'commerciale', risolto:false, urg:'bassa',
+      note:'Valuta il passaggio a Plus ma vuole prima vedere i numeri del trimestre. Da risentire a inizio mese con il confronto costi già pronto.' },
 
     // ── Ieri e giorni scorsi ───────────────────────────────────────────────
-    { id:'RC-229', localeId:'L1031', cat:'blocco',      da:1.3*SRV_GIORNO, fattaDopo:38*SRV_MIN, op:'support1', durata:14, voto:5 },
+    { id:'RC-229', localeId:'L1031', cat:'blocco',      da:1.3*SRV_GIORNO, fattaDopo:38*SRV_MIN, op:'support1', durata:14, voto:5,
+      prob:'tecnico', risolto:true,
+      note:'Tablet di sala fuori dalla rete dopo il cambio router. Riconnesso e fissato l\'IP.' },
     // Fuori tempo massimo: 3 ore su un SLA di 2. Il voto lo racconta.
     { id:'RC-228', localeId:'L1034', cat:'servizio',    da:1.5*SRV_GIORNO, fattaDopo:3*SRV_ORA,  op:'support3', durata:7,  voto:2,
+      prob:'tecnico', risolto:true,
+      note:'Comande dei dolci perse: regola di instradamento verso la stampante sbagliata. Corretta.',
       recensione:'Il problema è stato risolto, ma ho perso il servizio della sera aspettando la chiamata.' },
     { id:'RC-227', localeId:'L1015', cat:'configurazione', da:2*SRV_GIORNO, fattaDopo:5.4*SRV_ORA, op:'support2', durata:31, voto:4,
+      prob:'configurazione', risolto:true,
+      note:'Rifatta insieme la mappa sala su due sale separate.',
       recensione:'Spiegazione chiara sulla mappa sala. Un po\' lunga la trafila.' },
     { id:'RC-226', localeId:'L1037', cat:'blocco',      da:2.2*SRV_GIORNO, fattaDopo:41*SRV_MIN, op:'support1', durata:16, voto:5,
+      prob:'tecnico', risolto:true,
+      note:'Cassa bloccata in apertura turno per una sessione rimasta appesa. Chiusa lato server.',
       recensione:'Sara è stata precisa e veloce, ci ha rimesso in piedi prima della cena.' },
+    // Aperta e urgente: l'export non funziona e la scadenza fiscale incombe.
     { id:'RC-225', localeId:'L1005', cat:'contabilita', da:2.6*SRV_GIORNO, fattaDopo:6.8*SRV_ORA, op:'support3', durata:12, voto:3,
+      prob:'contabile', risolto:false, urg:'alta',
+      note:'Export di maggio va in 502 su tre tentativi: il file supera i 40 MB e il generatore va in timeout. Passato allo sviluppo, al ristoratore serve entro venerdì per il commercialista.',
       recensione:'Risposta corretta ma sono stato richiamato quasi a fine giornata.' },
-    { id:'RC-224', localeId:'L1044', cat:'servizio',    da:3*SRV_GIORNO,   fattaDopo:1.1*SRV_ORA, op:'support2', durata:19, voto:5 },
-    { id:'RC-223', localeId:'L1011', cat:'commerciale', da:3.4*SRV_GIORNO, fattaDopo:3.9*SRV_ORA, op:'support1', durata:24, voto:4 },
-    // Persa: il numero non risponde a tre tentativi. Non è «in tempo» né
-    // «in ritardo» — è una categoria a sé, e va contata separatamente perché
-    // gonfierebbe la puntualità se la si buttasse fra le riuscite.
-    { id:'RC-222', localeId:'L1008', cat:'configurazione', da:3.8*SRV_GIORNO, persa:true, tentativi:3, op:'support2' },
-    { id:'RC-221', localeId:'L1025', cat:'blocco',      da:4.2*SRV_GIORNO, fattaDopo:52*SRV_MIN, op:'support3', durata:13, voto:5 },
-    { id:'RC-220', localeId:'L1019', cat:'servizio',    da:4.6*SRV_GIORNO, fattaDopo:1.4*SRV_ORA, op:'support1', durata:8,  voto:4 },
+    { id:'RC-224', localeId:'L1044', cat:'servizio',    da:3*SRV_GIORNO,   fattaDopo:1.1*SRV_ORA, op:'support2', durata:19, voto:5,
+      prob:'configurazione', risolto:true,
+      note:'Notifiche prenotazioni disattivate sul profilo del titolare dopo l\'aggiornamento. Riattivate.' },
+    { id:'RC-223', localeId:'L1011', cat:'commerciale', da:3.4*SRV_GIORNO, fattaDopo:3.9*SRV_ORA, op:'support1', durata:24, voto:4,
+      prob:'commerciale', risolto:true,
+      note:'Chiarita la differenza fra ordini inclusi ed extra. Resta su Starter, consapevole.' },
+    // Non ha risposto: parte la mail automatica. Non è «in tempo» né «in
+    // ritardo» — resta fuori dal rapporto sulla puntualità, ma dentro il
+    // Non risolto, perché il problema del ristoratore è ancora lì.
+    { id:'RC-222', localeId:'L1008', cat:'configurazione', da:3.8*SRV_GIORNO, persa:true, tentativi:3, op:'support2',
+      email:'appuntamento',
+      note:'Tre tentativi in due fasce diverse, sempre segreteria. Mandato il link per riprenotare.' },
+    { id:'RC-221', localeId:'L1025', cat:'blocco',      da:4.2*SRV_GIORNO, fattaDopo:52*SRV_MIN, op:'support3', durata:13, voto:5,
+      prob:'tecnico', risolto:true,
+      note:'QR che rimandavano a un menu archiviato. Ripubblicato quello corrente.' },
+    { id:'RC-220', localeId:'L1019', cat:'servizio',    da:4.6*SRV_GIORNO, fattaDopo:1.4*SRV_ORA, op:'support1', durata:8,  voto:4,
+      prob:'informazione', risolto:true,
+      note:'Voleva sapere come si annulla una comanda già inviata. Spiegato.' },
     { id:'RC-219', localeId:'L1030', cat:'contabilita', da:5.1*SRV_GIORNO, fattaDopo:4.1*SRV_ORA, op:'support2', durata:21, voto:5,
+      prob:'pagamenti', risolto:true,
+      note:'Accredito settimanale non arrivato: IBAN aggiornato di recente e bonifico respinto. Rilanciato.',
       recensione:'Ho avuto la fattura corretta nel giro di mezz\'ora dalla chiamata.' },
+    // Reclamo aperto: il problema tecnico è chiuso ma la lamentela sull'attesa
+    // no, ed è quella che va ripresa in mano.
     { id:'RC-218', localeId:'L1034', cat:'blocco',      da:5.5*SRV_GIORNO, fattaDopo:1.8*SRV_ORA, op:'support3', durata:15, voto:1,
+      prob:'reclamo', risolto:false, urg:'media',
+      note:'Terza chiamata di questo locale in una settimana, due servite in ritardo. Chiede un referente fisso e un rimborso del canone del mese. Da portare al responsabile assistenza prima di rispondere.',
       recensione:'Un\'ora e tre quarti con il locale fermo è troppo. Il tecnico è stato bravo, l\'attesa no.' },
-    { id:'RC-217', localeId:'L1016', cat:'configurazione', da:6*SRV_GIORNO, fattaDopo:2.9*SRV_ORA, op:'support1', durata:27, voto:5 },
-    { id:'RC-216', localeId:'L1022', cat:'commerciale', da:6.4*SRV_GIORNO, fattaDopo:5.2*SRV_ORA, op:'support2', durata:17, voto:4 },
+    { id:'RC-217', localeId:'L1016', cat:'configurazione', da:6*SRV_GIORNO, fattaDopo:2.9*SRV_ORA, op:'support1', durata:27, voto:5,
+      prob:'configurazione', risolto:true,
+      note:'Importato il menu dal file Excel del locale, 84 piatti con allergeni.' },
+    { id:'RC-216', localeId:'L1022', cat:'commerciale', da:6.4*SRV_GIORNO, fattaDopo:5.2*SRV_ORA, op:'support2', durata:17, voto:4,
+      prob:'informazione', risolto:true,
+      note:'Domande sul funzionamento degli extra oltre piano. Chiarite.' },
   ];
 
   return grezze.map(g => {
@@ -118,8 +211,15 @@ const RICHIAMATE = (() => {
       tentativi: g.tentativi || null,
       voto: g.voto || null,
       recensione: g.recensione || null,
-      // Puntuale = richiamato entro la scadenza. Le perse non sono puntuali né
-      // in ritardo: restano fuori dal rapporto.
+      // ── L'esito registrato dall'operatore a chiamata finita ──
+      risposto: stato === 'attesa' ? null : stato === 'fatta',
+      problemaCat: g.prob || null,
+      risolto: g.risolto == null ? null : g.risolto,
+      urgenza: g.urg || null,
+      noteOperatore: g.note || null,
+      emailEsito: g.email || null,
+      // Puntuale = chiamato entro la scadenza. Le non risposte non sono
+      // puntuali né in ritardo: restano fuori dal rapporto.
       inTempo: richiamataIl ? richiamataIl <= entro : null,
     };
   }).sort((a, b) => b.prenotataIl - a.prenotataIl);
@@ -129,6 +229,18 @@ const RICHIAMATE = (() => {
 // render: è un conto alla rovescia, non un dato salvato.
 function srvMinutiAScadere(r) {
   return Math.round((r.entro.getTime() - Date.now()) / SRV_MIN);
+}
+
+// «Non risolto» tiene insieme due situazioni diverse che per il ristoratore
+// sono la stessa cosa — il suo problema è ancora lì:
+//   · l'abbiamo sentito ma il problema è rimasto aperto;
+//   · non ha risposto, quindi non sappiamo nemmeno se sia risolto.
+// Le chiamate ancora in coda non ci finiscono: quelle non le abbiamo
+// nemmeno fatte, e stanno in «Da chiamare».
+function srvNonRisolto(r) {
+  if (r.stato === 'attesa') return false;
+  if (r.stato === 'persa') return true;
+  return r.risolto === false;
 }
 
 // ─── 2. Ticket di assistenza ────────────────────────────────────────────────
@@ -462,7 +574,8 @@ function srvOre(ore) {
 }
 
 Object.assign(window, {
-  SRV_CATEGORIE, RICHIAMATE, TICKET_SRV,
+  SRV_CATEGORIE, SRV_PROBLEMI, SRV_URGENZE, SRV_EMAIL_ESITO,
+  RICHIAMATE, TICKET_SRV,
   FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV,
-  srvKpi, srvMinutiAScadere, srvDurata, srvMinuti, srvOre,
+  srvKpi, srvMinutiAScadere, srvNonRisolto, srvDurata, srvMinuti, srvOre,
 });

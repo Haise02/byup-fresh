@@ -240,22 +240,29 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
   const [cerca, setCerca] = useStateSrv('');
   const [selId, setSelId] = useStateSrv(null);
 
+  // Modale di registrazione esito + la conferma che segue una non risposta.
+  const [esitoPer, setEsitoPer] = useStateSrv(null);
+  const [mailInviata, setMailInviata] = useStateSrv(null);
+
   const nAttesa = richiamate.filter(r => r.stato === 'attesa').length;
-  const nFatte  = richiamate.filter(r => r.stato === 'fatta').length;
-  const nPerse  = richiamate.filter(r => r.stato === 'persa').length;
+  const nNonRisolto = richiamate.filter(srvNonRisolto).length;
   const scadute = richiamate.filter(r => r.stato === 'attesa' && srvMinutiAScadere(r) < 0);
 
+  // Tre viste sole: quelle da fare, quelle che hanno lasciato un problema
+  // aperto, e tutto. Le chiamate andate a buon fine non hanno una vista loro
+  // perché non c'è niente da farci — si trovano in «Tutte» quando servono.
   const viste = [
-    { id:'attesa', label:'Da chiamare', count:nAttesa },
-    { id:'fatta',  label:'Chiamate',    count:nFatte },
-    { id:'persa',  label:'Non risponde',  count:nPerse },
-    { id:'tutte',  label:'Tutte',         count:richiamate.length },
+    { id:'attesa',     label:'Da chiamare', count:nAttesa },
+    { id:'nonrisolto', label:'Non risolto', count:nNonRisolto },
+    { id:'tutte',      label:'Tutte',       count:richiamate.length },
   ];
 
   const elenco = useMemoSrv(() => {
     const q = cerca.trim().toLowerCase();
-    let r = vista === 'tutte' ? richiamate : richiamate.filter(x => x.stato === vista);
-    if (q) r = r.filter(x => [x.localeNome, x.titolare, x.tel, x.problema, x.id]
+    let r = vista === 'attesa'     ? richiamate.filter(x => x.stato === 'attesa')
+          : vista === 'nonrisolto' ? richiamate.filter(srvNonRisolto)
+          : richiamate;
+    if (q) r = r.filter(x => [x.localeNome, x.titolare, x.tel, x.problema, x.noteOperatore, x.id]
       .some(v => String(v || '').toLowerCase().includes(q)));
     // In coda si ordina per scadenza, non per arrivo: chi ha meno tempo sta
     // in cima anche se ha chiamato dopo. Nelle viste storiche torna il tempo.
@@ -266,13 +273,29 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
 
   const sel = elenco.find(r => r.id === selId) || elenco[0];
 
-  const segna = (id, esito) => setRichiamate(prev => prev.map(r => {
-    if (r.id !== id) return r;
-    if (esito === 'persa') return { ...r, stato:'persa', tentativi:(r.tentativi || 0) + 1, operatore: SRV_IO };
+  // Un solo punto d'ingresso per l'esito: quello che l'operatore compila nel
+  // modale. Niente più scorciatoie che scrivono uno stato senza dire perché.
+  const applicaEsito = (id, esito) => {
     const adesso = new Date();
-    return { ...r, stato:'fatta', richiamataIl: adesso, operatore: SRV_IO,
-      inTempo: adesso <= r.entro, durataMin: null };
-  }));
+    setRichiamate(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      if (!esito.risposto) {
+        return { ...r, stato:'persa', risposto:false,
+          tentativi:(r.tentativi || 0) + 1, operatore: SRV_IO, richiamataIl: adesso,
+          emailEsito: esito.email, noteOperatore: esito.note || null,
+          problemaCat: null, risolto: null, urgenza: null, inTempo: null };
+      }
+      return { ...r, stato:'fatta', risposto:true, richiamataIl: adesso, operatore: SRV_IO,
+        inTempo: adesso <= r.entro,
+        problemaCat: esito.problemaCat, risolto: esito.risolto,
+        urgenza: esito.risolto ? null : esito.urgenza,
+        noteOperatore: esito.note || null, emailEsito: null };
+    }));
+    setEsitoPer(null);
+    // La mail parte solo quando non ha risposto: è lì che il ristoratore
+    // resta senza notizie e va rassicurato.
+    if (!esito.risposto) setMailInviata({ r: richiamate.find(x => x.id === id), tipo: esito.email });
+  };
 
   return (
     <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column'}}>
@@ -329,10 +352,18 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
         {/* Dettaglio */}
         <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
           {sel
-            ? <SrvDettaglioRichiamata r={sel} tutte={richiamate} onEsito={(e)=>segna(sel.id, e)}/>
+            ? <SrvDettaglioRichiamata r={sel} tutte={richiamate} onRegistra={()=>setEsitoPer(sel)}/>
             : <AdmEmpty icon="phone" title="Seleziona una chiamata" desc="Dall'elenco a sinistra"/>}
         </div>
       </div>
+
+      {esitoPer && (
+        <SrvEsitoModale r={esitoPer} onChiudi={()=>setEsitoPer(null)}
+          onSalva={(e)=>applicaEsito(esitoPer.id, e)}/>
+      )}
+      {mailInviata && (
+        <SrvMailInviata r={mailInviata.r} tipo={mailInviata.tipo} onChiudi={()=>setMailInviata(null)}/>
+      )}
     </div>
   );
 }
@@ -379,24 +410,49 @@ function SrvVoceCoda({ r, attiva, onClick }) {
           {r.problema}
         </div>
       )}
-      {r.stato === 'fatta' && (
-        <div style={{paddingLeft:15, marginTop:5, display:'flex', alignItems:'center', gap:7}}>
-          <span style={{fontSize:11.5, fontWeight:700, color: r.inTempo ? ADM.OK : ADM.WARN}}>
-            {r.inTempo ? 'In tempo' : 'In ritardo'}
-          </span>
-          {r.voto != null && <SrvStelle valore={r.voto} size={11}/>}
+      {/* Scorrendo il «Non risolto» le due cose che servono per decidere da
+          quale ripartire sono l'urgenza e di che problema si tratta: stanno
+          qui, non solo nel dettaglio. */}
+      {srvNonRisolto(r) && (
+        <div style={{paddingLeft:15, marginTop:6, display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
+          {r.stato === 'persa'
+            ? <SrvPastiglia testo={`Non ha risposto · ${r.tentativi} ${r.tentativi === 1 ? 'tentativo' : 'tentativi'}`}/>
+            : <React.Fragment>
+                {r.urgenza && <SrvPastiglia testo={`Urgenza ${SRV_URGENZE[r.urgenza].label.toLowerCase()}`}
+                  tono={SRV_URGENZE[r.urgenza].color} piena/>}
+                {r.problemaCat && <SrvPastiglia testo={SRV_PROBLEMI[r.problemaCat].label}
+                  tono={SRV_PROBLEMI[r.problemaCat].color}/>}
+              </React.Fragment>}
         </div>
       )}
-      {r.stato === 'persa' && (
-        <div style={{paddingLeft:15, marginTop:5, fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT}}>
-          Non risponde · {r.tentativi} {r.tentativi === 1 ? 'tentativo' : 'tentativi'}
+      {r.stato === 'fatta' && !srvNonRisolto(r) && (
+        <div style={{paddingLeft:15, marginTop:5, display:'flex', alignItems:'center', gap:7}}>
+          <span style={{fontSize:11.5, fontWeight:700, color:ADM.OK}}>Risolto</span>
+          <span style={{fontSize:11.5, color:ADM.MUTED_LIGHT}}>·</span>
+          <span style={{fontSize:11.5, fontWeight:600, color: r.inTempo ? ADM.MUTED : ADM.WARN}}>
+            {r.inTempo ? 'in tempo' : 'in ritardo'}
+          </span>
+          {r.voto != null && <SrvStelle valore={r.voto} size={11}/>}
         </div>
       )}
     </button>
   );
 }
 
-function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
+// Pastiglia minuta per urgenza e categoria di problema. `piena` la rende a
+// fondo colorato: l'urgenza deve battere la categoria a colpo d'occhio.
+function SrvPastiglia({ testo, tono, piena }) {
+  const c = tono ? (ADM[tono] || tono) : ADM.MUTED;
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', padding:'2px 8px', borderRadius:6,
+      background: piena ? c : `${c}14`, color: piena ? '#fff' : c,
+      fontSize:11, fontWeight:700, whiteSpace:'nowrap', letterSpacing:'0.01em',
+    }}>{testo}</span>
+  );
+}
+
+function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
   const cat = SRV_CATEGORIE[r.categoria];
   const locale = LOCALI.find(l => l.id === r.localeId);
   const mancano = srvMinutiAScadere(r);
@@ -475,32 +531,41 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
             </AdmCard>
           )}
 
+          {/* Chiamata fatta: quello che conta non è più la scadenza ma se il
+              problema è chiuso. Il rispetto dell'SLA scende a riga di
+              servizio — è un dato per il rapporto, non per chi lavora. */}
           {r.stato === 'fatta' && (
-            <AdmCard padding={0} style={{overflow:'hidden'}}>
+            <AdmCard padding={0} style={{overflow:'hidden',
+              borderColor: r.risolto ? ADM.BORDER : `${ADM.WARN}55`}}>
               <div style={{padding:'14px 18px 15px'}}>
                 <div style={SRV_ETI}>Esito</div>
-                <div style={{fontSize:19, fontWeight:800, marginTop:9,
-                  color: r.inTempo ? ADM.OK : ADM.WARN, letterSpacing:'-0.01em'}}>
-                  {r.inTempo ? 'Chiamato in tempo' : 'Chiamato in ritardo'}
+                <div style={{fontSize:19, fontWeight:800, marginTop:9, letterSpacing:'-0.01em',
+                  color: r.risolto ? ADM.OK : ADM.WARN}}>
+                  {r.risolto ? 'Problema risolto' : 'Problema ancora aperto'}
                 </div>
-                <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4}}>
-                  Dopo {srvMinuti(Math.round((r.richiamataIl - r.prenotataIl) / 60000))} · su un SLA di {srvMinuti(cat.slaMin)}
+                <div style={{display:'flex', alignItems:'center', gap:7, marginTop:8, flexWrap:'wrap'}}>
+                  {r.problemaCat && <SrvPastiglia testo={SRV_PROBLEMI[r.problemaCat].label}
+                    tono={SRV_PROBLEMI[r.problemaCat].color}/>}
+                  {!r.risolto && r.urgenza && <SrvPastiglia testo={`Urgenza ${SRV_URGENZE[r.urgenza].label.toLowerCase()}`}
+                    tono={SRV_URGENZE[r.urgenza].color} piena/>}
                 </div>
               </div>
               <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
                 fontSize:12.4, color:ADM.MUTED}}>
                 {(TEAM.find(t => t.id === r.operatore) || {}).nome || '—'}
-                {r.durataMin ? ` · chiamata di ${r.durataMin} min` : ''}
+                {r.durataMin ? ` · ${r.durataMin} min` : ''}
+                {' · '}<span style={{color: r.inTempo ? ADM.MUTED : ADM.WARN, fontWeight:600}}>
+                  {r.inTempo ? 'chiamato in tempo' : 'chiamato in ritardo'}</span>
               </div>
             </AdmCard>
           )}
 
           {r.stato === 'persa' && (
-            <AdmCard padding={0} style={{overflow:'hidden'}}>
+            <AdmCard padding={0} style={{overflow:'hidden', borderColor:`${ADM.WARN}55`}}>
               <div style={{padding:'14px 18px 15px'}}>
                 <div style={SRV_ETI}>Esito</div>
-                <div style={{fontSize:19, fontWeight:800, color:ADM.MUTED, marginTop:9, letterSpacing:'-0.01em'}}>
-                  Non risponde
+                <div style={{fontSize:19, fontWeight:800, color:ADM.WARN, marginTop:9, letterSpacing:'-0.01em'}}>
+                  Non ha risposto
                 </div>
                 <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4}}>
                   {r.tentativi} {r.tentativi === 1 ? 'tentativo' : 'tentativi'} senza risposta
@@ -509,10 +574,26 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
               <div style={{padding:'9px 18px 10px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
                 fontSize:12.4, color:ADM.MUTED}}>
                 {(TEAM.find(t => t.id === r.operatore) || {}).nome || '—'}
+                {r.emailEsito && ` · inviata: ${SRV_EMAIL_ESITO[r.emailEsito].label.toLowerCase()}`}
               </div>
             </AdmCard>
           )}
         </div>
+
+        {/* Chi la riprende in mano deve trovare scritto cosa è già stato
+            fatto, non ricostruirlo dalla voce del ristoratore. */}
+        {r.noteOperatore && (
+          <div>
+            <div style={{...SRV_ETI, marginBottom:8}}>
+              Come è stata gestita
+              <span style={{textTransform:'none', letterSpacing:0, fontWeight:500, color:ADM.MUTED_LIGHT}}>
+                {' — '}{(TEAM.find(t => t.id === r.operatore) || {}).nome || '—'}
+                {r.richiamataIl ? `, ${fmtDateTime(r.richiamataIl)}` : ''}
+              </span>
+            </div>
+            <AdmCard style={{fontSize:14.2, color:ADM.TEXT, lineHeight:1.6}}>{r.noteOperatore}</AdmCard>
+          </div>
+        )}
 
         {r.problema && (
           <div>
@@ -545,20 +626,19 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
       </div>
 
       {/* Azioni ancorate in fondo, come la barra di risposta dei Ticket:
-          non si scorre per trovarle. */}
-      {r.stato !== 'fatta' && (
+          non si scorre per trovarle. Un solo pulsante, che apre il modale
+          dell'esito: «ha risposto?» e «è risolto?» sono due domande diverse e
+          due bottoni affiancati le confondevano in una sola. */}
+      {(r.stato === 'attesa' || srvNonRisolto(r)) && (
         <div style={{background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, padding:'13px 26px',
           display:'flex', alignItems:'center', gap:11, flexShrink:0}}>
           <span style={{flex:1, fontSize:12.8, color:ADM.MUTED}}>
             {r.stato === 'attesa'
               ? 'Registra l\'esito appena riagganci: la puntualità si misura da qui.'
-              : 'Se stavolta risponde, l\'esito torna fra le chiamate riuscite.'}
+              : 'Il problema è ancora aperto: quando lo riprendi, registra il nuovo esito.'}
           </span>
-          {r.stato === 'attesa' && (
-            <AdmButton variant="secondary" icon="x" onClick={()=>onEsito('persa')}>Non risponde</AdmButton>
-          )}
-          <AdmButton variant="success" icon="check" onClick={()=>onEsito('fatta')}>
-            {r.stato === 'attesa' ? 'Chiamato' : 'Riprova ora'}
+          <AdmButton variant="success" icon="check" onClick={onRegistra}>
+            {r.stato === 'attesa' ? 'Chiamato' : 'Registra nuovo esito'}
           </AdmButton>
         </div>
       )}
@@ -630,6 +710,210 @@ function SrvContesto({ r, locale, tutte }) {
         </AdmCard>
       </div>
     </div>
+  );
+}
+
+// ─── Registrazione dell'esito ───────────────────────────────────────────────
+//
+// Il modale segue l'ordine in cui l'operatore ha le informazioni in testa
+// appena riaggancia: prima «ho parlato con qualcuno?», e solo se sì ha senso
+// chiedere di che problema si trattava e se è chiuso. Chiedere la categoria
+// prima di sapere se ha risposto vorrebbe dire far compilare campi che
+// nella metà dei casi vanno buttati.
+function SrvEsitoModale({ r, onChiudi, onSalva }) {
+  const [risposto, setRisposto] = useStateSrv(null);
+  const [problemaCat, setProblemaCat] = useStateSrv(null);
+  const [risolto, setRisolto] = useStateSrv(null);
+  const [urgenza, setUrgenza] = useStateSrv(null);
+  const [email, setEmail] = useStateSrv('conferma');
+  const [note, setNote] = useStateSrv('');
+
+  const valida = risposto === false
+    ? !!email
+    : risposto === true
+      ? !!problemaCat && risolto != null && (risolto || !!urgenza)
+      : false;
+
+  const salva = () => {
+    if (!valida) return;
+    onSalva(risposto
+      ? { risposto:true, problemaCat, risolto, urgenza: risolto ? null : urgenza, note: note.trim() }
+      : { risposto:false, email, note: note.trim() });
+  };
+
+  return (
+    <SrvModale
+      titolo="Com'è andata la chiamata?"
+      larghezza={720}
+      nota={`${r.localeNome} · ${r.titolare} · ${r.tel}`}
+      onChiudi={onChiudi}
+      piede={
+        <React.Fragment>
+          <AdmButton variant="ghost" onClick={onChiudi}>Annulla</AdmButton>
+          <AdmButton variant="primary" icon="check" disabled={!valida} onClick={salva}>Registra l'esito</AdmButton>
+        </React.Fragment>
+      }>
+      <div style={{display:'flex', flexDirection:'column', gap:24}}>
+
+        <div>
+          <div style={SRV_SEZ}>Ha risposto?</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+            <SrvScelta grande attiva={risposto === true} tono="OK"
+              titolo="Sì, ho parlato con lui"
+              nota="Registra di che problema si trattava e se è chiuso."
+              onClick={()=>setRisposto(true)}/>
+            <SrvScelta grande attiva={risposto === false} tono="WARN"
+              titolo="No, non ha risposto"
+              nota="Parte una mail automatica: non lo lasciamo senza notizie."
+              onClick={()=>setRisposto(false)}/>
+          </div>
+        </div>
+
+        {risposto === true && (
+          <React.Fragment>
+            <div>
+              <div style={SRV_SEZ}>Che problema era davvero</div>
+              <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+                {Object.entries(SRV_PROBLEMI).map(([id, p]) => (
+                  <button key={id} onClick={()=>setProblemaCat(id)} className="adm-pill"
+                    title={p.nota}
+                    style={{
+                      display:'inline-flex', alignItems:'center', gap:7, padding:'7px 13px', borderRadius:99,
+                      background: problemaCat === id ? ADM[p.color] : '#fff',
+                      color: problemaCat === id ? '#fff' : ADM.TEXT,
+                      border:`1px solid ${problemaCat === id ? ADM[p.color] : ADM.BORDER}`,
+                      fontSize:13.2, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+                    }}>
+                    <span style={{width:7, height:7, borderRadius:'50%',
+                      background: problemaCat === id ? 'rgba(255,255,255,0.8)' : ADM[p.color]}}/>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {problemaCat && (
+                <div style={{fontSize:12, color:ADM.MUTED_SOFT, marginTop:9}}>{SRV_PROBLEMI[problemaCat].nota}</div>
+              )}
+            </div>
+
+            <div>
+              <div style={SRV_SEZ}>Il problema adesso</div>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+                <SrvScelta attiva={risolto === true} tono="OK" titolo="Risolto"
+                  nota="Chiuso durante la chiamata, non serve tornarci."
+                  onClick={()=>{ setRisolto(true); setUrgenza(null); }}/>
+                <SrvScelta attiva={risolto === false} tono="WARN" titolo="Ancora aperto"
+                  nota="Resta da lavorare: finisce in «Non risolto»."
+                  onClick={()=>setRisolto(false)}/>
+              </div>
+            </div>
+
+            {risolto === false && (
+              <div>
+                <div style={SRV_SEZ}>Con quanta urgenza va ripreso</div>
+                <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+                  {Object.entries(SRV_URGENZE).map(([id, u]) => (
+                    <button key={id} onClick={()=>setUrgenza(id)} className="adm-pill" title={u.nota}
+                      style={{
+                        padding:'7px 15px', borderRadius:99,
+                        background: urgenza === id ? ADM[u.color] : '#fff',
+                        color: urgenza === id ? '#fff' : ADM.TEXT,
+                        border:`1px solid ${urgenza === id ? ADM[u.color] : ADM.BORDER}`,
+                        fontSize:13.2, fontWeight:700, fontFamily:'inherit', cursor:'pointer',
+                      }}>{u.label}</button>
+                  ))}
+                </div>
+                {urgenza && (
+                  <div style={{fontSize:12, color:ADM.MUTED_SOFT, marginTop:9}}>{SRV_URGENZE[urgenza].nota}</div>
+                )}
+              </div>
+            )}
+          </React.Fragment>
+        )}
+
+        {risposto === false && (
+          <div>
+            <div style={SRV_SEZ}>Che mail gli mandiamo</div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+              {Object.entries(SRV_EMAIL_ESITO).map(([id, e]) => (
+                <SrvScelta key={id} attiva={email === id} tono="INFO"
+                  titolo={e.label} nota={e.desc} onClick={()=>setEmail(id)}/>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {risposto != null && (
+          <SrvCampo etichetta={risposto ? 'Cosa hai fatto e cosa resta da fare' : 'Note del tentativo'}
+            aiuto={risposto
+              ? 'Lo legge chi riprende in mano la pratica: scrivi cosa hai già provato, non solo il sintomo.'
+              : 'Fasce orarie tentate, numeri alternativi, chiunque abbia risposto.'}>
+            <textarea value={note} onChange={e=>setNote(e.target.value)} style={{...SRV_TXT, minHeight:90}}
+              placeholder={risposto
+                ? 'Regola di instradamento verso la stampante sbagliata. Corretta.'
+                : 'Tre tentativi in due fasce diverse, sempre segreteria.'}/>
+          </SrvCampo>
+        )}
+      </div>
+    </SrvModale>
+  );
+}
+
+// Riquadro di scelta: un titolo, una riga di conseguenza. Le opzioni che
+// cambiano dove finisce la pratica meritano più di un radio button.
+function SrvScelta({ attiva, tono, titolo, nota, onClick, grande }) {
+  const c = ADM[tono] || ADM.PINK;
+  return (
+    <button onClick={onClick} className="adm-btn" style={{
+      textAlign:'left', padding: grande ? '14px 16px' : '12px 14px', borderRadius:12,
+      background: attiva ? `${c}10` : '#fff',
+      border:`1.5px solid ${attiva ? c : ADM.BORDER}`,
+      cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'flex-start', gap:11,
+    }}>
+      <span style={{
+        width:18, height:18, borderRadius:'50%', flexShrink:0, marginTop:1,
+        border:`1.5px solid ${attiva ? c : ADM.MUTED_LIGHT}`,
+        background: attiva ? c : '#fff',
+        display:'grid', placeItems:'center',
+      }}>
+        {attiva && <BuIcons.check size={11} color="#fff" strokeWidth={3.4}/>}
+      </span>
+      <span style={{flex:1, minWidth:0}}>
+        <span style={{display:'block', fontSize: grande ? 14.6 : 13.8, fontWeight:700,
+          color: attiva ? c : ADM.TEXT, letterSpacing:'-0.01em'}}>{titolo}</span>
+        <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{nota}</span>
+      </span>
+    </button>
+  );
+}
+
+// La conferma che segue una non risposta. Non è decorativa: dice a chi ha
+// appena registrato l'esito che il ristoratore è stato avvisato, così non
+// resta il dubbio di doverlo fare a mano.
+function SrvMailInviata({ r, tipo, onChiudi }) {
+  const e = SRV_EMAIL_ESITO[tipo];
+  const locale = LOCALI.find(l => l.id === r.localeId);
+  return (
+    <SrvModale
+      titolo="Il ristoratore è stato avvisato"
+      larghezza={520}
+      onChiudi={onChiudi}
+      piede={<AdmButton variant="primary" onClick={onChiudi}>Ho capito</AdmButton>}>
+      <div style={{display:'flex', flexDirection:'column', gap:16}}>
+        <div style={{display:'flex', alignItems:'flex-start', gap:13, padding:'14px 16px', borderRadius:12,
+          background:ADM.INFO_SOFT, border:`1px solid ${ADM.INFO}33`}}>
+          <span style={{width:34, height:34, borderRadius:9, background:'#fff', color:ADM.INFO,
+            display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.mail size={17}/></span>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>{e.label}</div>
+            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>{e.desc}</div>
+          </div>
+        </div>
+        <div style={{fontSize:13.4, color:ADM.TEXT, lineHeight:1.6}}>
+          Inviata a <b>{locale?.email || r.titolare}</b>. La chiamata resta in{' '}
+          <b>Non risolto</b> finché non riuscite a parlarvi.
+        </div>
+      </div>
+    </SrvModale>
   );
 }
 
