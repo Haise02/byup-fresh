@@ -598,75 +598,6 @@ function DashOrdiniCard({ mese, media, anno, extraMese, extraMedia, extraAnno, s
 }
 
 // ---------- GENERALE ----------
-// ─── Affidabilità · le cinque cose che fanno perdere un locale ──────────────
-function DashAffidabilita({ a }) {
-  const box = (tono, titolo, valore, sotto, allarme) => (
-    <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
-      <div style={{padding:'15px 16px 14px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
-        <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-          letterSpacing:'0.04em'}}>{titolo}</span>
-        <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
-          <span style={{fontSize:26.6, fontWeight:800, color: tono ? ADM[tono] : ADM.TEXT,
-            letterSpacing:'-0.02em', lineHeight:1}}>{valore}</span>
-        </div>
-        <span style={{fontSize:12.5, color:ADM.MUTED, lineHeight:1.45}}>{sotto}</span>
-        {allarme && (
-          <span style={{fontSize:12.3, fontWeight:700, color:ADM.WARN, display:'inline-flex',
-            alignItems:'center', gap:6, marginTop:'auto', paddingTop:4}}>
-            <span style={{width:6, height:6, borderRadius:'50%', background:ADM.WARN, flexShrink:0}}/>
-            {allarme}
-          </span>
-        )}
-      </div>
-    </AdmCard>
-  );
-  const c = a.corrispettivi, p = a.pagamenti, u = a.uptime;
-  return (
-    <React.Fragment>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
-        {box(c.pct >= 2 ? 'DANGER' : 'WARN', 'Corrispettivi rifiutati dall\'AdE',
-          `${c.pct}%`,
-          `${fmtNum(c.rifiutati30g)} su ${fmtNum(c.trasmessi30g)} trasmessi in 30 giorni · ${c.localiCoinvolti} locali coinvolti`,
-          `Il più vecchio non risolto da ${c.piuVecchioOre}h · ${c.causaPrima}`)}
-        {box(p.pct >= 2 ? 'DANGER' : 'WARN', 'Pagamenti falliti',
-          `${p.pct}%`,
-          `${fmtNum(p.falliti30g)} transazioni su ${fmtNum(p.transazioni30g)} · ${fmtEur(p.importoFallito)} non incassati`,
-          `Il retry ne recupera il ${p.pctRecuperati}% da solo · ${fmtNum(p.falliti30g - p.recuperati30g)} restano persi`)}
-        {box(null, 'Rimborsi',
-          fmtEur(a.rimborsi.importo),
-          `${a.rimborsi.n30g} rimborsi in 30 giorni · il ${a.rimborsi.pctSuIncassato}% dell'incassato`,
-          null)}
-        {/* L'uptime a 24 ore è una media che le notti tranquille tengono alta:
-            quello che conta è il servizio, pranzo e cena. */}
-        {box(u.picco < 99.9 ? 'WARN' : 'OK', 'Uptime nelle fasce di picco',
-          `${u.picco}%`,
-          `${u.minutiGiuPicco30g} minuti giù nel servizio, su ${u.minutiGiuTotali30g} totali del mese`,
-          `Sulle 24 ore sarebbe ${u.globale}% · peggior finestra ${u.peggiorGiorno}`)}
-      </div>
-
-      {/* La coda di retry è lo stato ADESSO, non una media: se invecchia, è un
-          incidente che sta maturando mentre lo guardiamo. */}
-      <AdmCard padding={0} style={{overflow:'hidden'}}>
-        <div style={{padding:'13px 18px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap'}}>
-          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-            letterSpacing:'0.04em'}}>Coda di retry, adesso</span>
-          <span style={{fontSize:20, fontWeight:800, color: a.retry.piuVecchioMin > 30 ? ADM.WARN : ADM.TEXT,
-            letterSpacing:'-0.02em'}}>{a.retry.inCoda}</span>
-          <span style={{fontSize:12.8, color:ADM.MUTED}}>
-            elementi · il più vecchio da <b style={{color: a.retry.piuVecchioMin > 30 ? ADM.WARN : ADM.TEXT}}>{a.retry.piuVecchioMin} min</b>
-          </span>
-          <span style={{flex:1}}/>
-          {a.retry.composizione.map(x => (
-            <span key={x.tipo} style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:12.5, color:ADM.MUTED}}>
-              <b style={{color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{x.n}</b> {x.tipo}
-            </span>
-          ))}
-        </div>
-      </AdmCard>
-    </React.Fragment>
-  );
-}
-
 function DashGenerale({ onNav }) {
   // === LOCALI ===
   // Le categorie arrivano da LOC (admin-data.jsx), che le definisce una volta
@@ -746,7 +677,23 @@ function DashGenerale({ onNav }) {
 
   // Tier 0 · richiede attenzione — dati azionabili prima nascosti nei popup.
   const pagFalliti = LOCALI.filter(l => l.pagamentoFallito).length;
+  // L'affidabilità in dettaglio vive in Sicurezza e sistemi → Diagnostica. Qui
+  // ne resta il richiamo, e solo quando serve: una fascia che dice «tutto a
+  // posto» ogni giorno smette di essere letta il terzo giorno.
+  const affGuai = [
+    AFFIDABILITA.corrispettivi.rifiutati30g > 0 && {
+      label: `${AFFIDABILITA.corrispettivi.rifiutati30g} corrispettivi rifiutati dall'AdE · ${AFFIDABILITA.corrispettivi.localiCoinvolti} locali`,
+      tone: AFFIDABILITA.corrispettivi.pct >= 2 ? 'DANGER' : 'WARN' },
+    AFFIDABILITA.uptime.picco < 99.9 && {
+      label: `Uptime ${AFFIDABILITA.uptime.picco}% nelle fasce di picco · ${AFFIDABILITA.uptime.minutiGiuPicco30g} minuti giù nel servizio`,
+      tone: 'WARN' },
+    AFFIDABILITA.retry.piuVecchioMin > 30 && {
+      label: `Coda di retry ferma da ${AFFIDABILITA.retry.piuVecchioMin} minuti · ${AFFIDABILITA.retry.inCoda} elementi`,
+      tone: 'WARN' },
+  ].filter(Boolean).map(x => ({ ...x, onClick: ()=>onNav('sicurezza', { tab:'diagnostica' }) }));
+
   const attentionItems = [
+    ...affGuai,
     pagFalliti > 0 && { label: `${pagFalliti} addebiti falliti da recuperare`, tone:'DANGER', onClick: ()=>onNav('locali') },
     stuckOver7 > 0 && { label: `${stuckOver7} onboarding fermi da oltre 7 giorni`, tone:'WARN',    onClick: ()=>onNav('locali') },
     segHi > 0       && { label: `${segHi} segnalazioni ad alta priorità`,          tone:'DANGER',  onClick: ()=>onNav('comunicazioni') },
@@ -777,17 +724,9 @@ function DashGenerale({ onNav }) {
 
       {attentionItems.length > 0 && <AttentionStrip items={attentionItems}/>}
 
-      {/* ═══════════ Tier 0 · Affidabilità — prima di ogni altra cosa ═══════════ */}
-      {/* Sta in cima perché è il modo in cui si perde un locale davvero: non
-          un voto basso, ma il sabato sera in cui il conto non si chiude o il
-          corrispettivo non arriva all'Agenzia. Tutti i numeri sono sulla
-          finestra in cui il danno succede, non sulla media dell'anno. */}
-      <SectionLabel first title="Affidabilità"
-        desc="Soldi e adempimenti · gli ultimi 30 giorni, e le fasce in cui un minuto giù si vede"/>
-      <DashAffidabilita a={AFFIDABILITA}/>
 
       {/* ═══════════ Tier 1 · Andamento — il polso della piattaforma ═══════════ */}
-      <SectionLabel title="Andamento" desc="La salute della piattaforma in sintesi"/>
+      <SectionLabel title="Andamento" desc="La salute della piattaforma in sintesi" first/>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
         <DashHero

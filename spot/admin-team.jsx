@@ -605,6 +605,84 @@ function PlatformConfig() {
   );
 }
 
+// ─── Affidabilità · le cinque cose che fanno perdere un locale ──────────────
+//
+// Vive in Diagnostica, non in Dashboard: chi apre questa pagina sta chiedendo
+// se la piattaforma regge, ed è la stessa domanda. In Dashboard resta solo il
+// richiamo nella fascia degli avvisi, e solo quando c'è qualcosa che non va.
+//
+// Non si perde un locale per un voto basso: lo si perde il sabato sera in cui
+// il conto non si chiude, o il giorno in cui i corrispettivi non arrivano
+// all'Agenzia. Tutti i numeri sono sulla finestra in cui il danno succede, non
+// sulla media dell'anno.
+function DashAffidabilita({ a }) {
+  const box = (tono, titolo, valore, sotto, allarme) => (
+    <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+      <div style={{padding:'15px 16px 14px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
+        <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+          letterSpacing:'0.04em'}}>{titolo}</span>
+        <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
+          <span style={{fontSize:26.6, fontWeight:800, color: tono ? ADM[tono] : ADM.TEXT,
+            letterSpacing:'-0.02em', lineHeight:1}}>{valore}</span>
+        </div>
+        <span style={{fontSize:12.5, color:ADM.MUTED, lineHeight:1.45}}>{sotto}</span>
+        {allarme && (
+          <span style={{fontSize:12.3, fontWeight:700, color:ADM.WARN, display:'inline-flex',
+            alignItems:'center', gap:6, marginTop:'auto', paddingTop:4}}>
+            <span style={{width:6, height:6, borderRadius:'50%', background:ADM.WARN, flexShrink:0}}/>
+            {allarme}
+          </span>
+        )}
+      </div>
+    </AdmCard>
+  );
+  const c = a.corrispettivi, p = a.pagamenti, u = a.uptime;
+  return (
+    <React.Fragment>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        {box(c.pct >= 2 ? 'DANGER' : 'WARN', 'Corrispettivi rifiutati dall\'AdE',
+          `${c.pct}%`,
+          `${fmtNum(c.rifiutati30g)} su ${fmtNum(c.trasmessi30g)} trasmessi in 30 giorni · ${c.localiCoinvolti} locali coinvolti`,
+          `Il più vecchio non risolto da ${c.piuVecchioOre}h · ${c.causaPrima}`)}
+        {box(p.pct >= 2 ? 'DANGER' : 'WARN', 'Pagamenti falliti',
+          `${p.pct}%`,
+          `${fmtNum(p.falliti30g)} transazioni su ${fmtNum(p.transazioni30g)} · ${fmtEur(p.importoFallito)} non incassati`,
+          `Il retry ne recupera il ${p.pctRecuperati}% da solo · ${fmtNum(p.falliti30g - p.recuperati30g)} restano persi`)}
+        {box(null, 'Rimborsi',
+          fmtEur(a.rimborsi.importo),
+          `${a.rimborsi.n30g} rimborsi in 30 giorni · il ${a.rimborsi.pctSuIncassato}% dell'incassato`,
+          null)}
+        {/* L'uptime a 24 ore è una media che le notti tranquille tengono alta:
+            quello che conta è il servizio, pranzo e cena. */}
+        {box(u.picco < 99.9 ? 'WARN' : 'OK', 'Uptime nelle fasce di picco',
+          `${u.picco}%`,
+          `${u.minutiGiuPicco30g} minuti giù nel servizio, su ${u.minutiGiuTotali30g} totali del mese`,
+          `Sulle 24 ore sarebbe ${u.globale}% · peggior finestra ${u.peggiorGiorno}`)}
+      </div>
+
+      {/* La coda di retry è lo stato ADESSO, non una media: se invecchia, è un
+          incidente che sta maturando mentre lo guardiamo. */}
+      <AdmCard padding={0} style={{overflow:'hidden'}}>
+        <div style={{padding:'13px 18px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap'}}>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.04em'}}>Coda di retry, adesso</span>
+          <span style={{fontSize:20, fontWeight:800, color: a.retry.piuVecchioMin > 30 ? ADM.WARN : ADM.TEXT,
+            letterSpacing:'-0.02em'}}>{a.retry.inCoda}</span>
+          <span style={{fontSize:12.8, color:ADM.MUTED}}>
+            elementi · il più vecchio da <b style={{color: a.retry.piuVecchioMin > 30 ? ADM.WARN : ADM.TEXT}}>{a.retry.piuVecchioMin} min</b>
+          </span>
+          <span style={{flex:1}}/>
+          {a.retry.composizione.map(x => (
+            <span key={x.tipo} style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:12.5, color:ADM.MUTED}}>
+              <b style={{color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{x.n}</b> {x.tipo}
+            </span>
+          ))}
+        </div>
+      </AdmCard>
+    </React.Fragment>
+  );
+}
+
 // ─── Diagnostica piattaforma ─────────────────────────────────────────────────
 // Salute tecnica trasversale: uptime dei servizi, errori di pagamento aggregati,
 // code di elaborazione, ultimi incidenti. Dati mock. Colore solo per gli stati.
@@ -616,12 +694,17 @@ function PlatformDiagnostica() {
     { nome:'Pagamenti (Stripe)',uptime:'99,71%', latenza:'310 ms', stato:'warn', nota:'errori 3DS sopra la media da 2 giorni' },
     { nome:'Notifiche push',    uptime:'99,92%', latenza:'—',      stato:'ok' },
   ];
+  // I motivi dei pagamenti falliti dei CLIENTI nei locali: stessa popolazione
+  // della card «Pagamenti falliti» qui sopra, quindi il totale è quello — non
+  // un altro numero che sembra la stessa cosa e non torna. Le quote sono
+  // quelle tipiche di un circuito carte italiano.
+  const totFalliti = (typeof AFFIDABILITA !== 'undefined' ? AFFIDABILITA.pagamenti.falliti30g : 47);
   const ERRORI_PAG = [
-    { motivo:'Carta scaduta',          n:18 },
-    { motivo:'Fondi insufficienti',    n:14 },
-    { motivo:'3DS non completato',     n:9 },
-    { motivo:'Carta bloccata',         n:6 },
-  ];
+    { motivo:'Carta scaduta',          quota:0.38 },
+    { motivo:'Fondi insufficienti',    quota:0.30 },
+    { motivo:'3DS non completato',     quota:0.19 },
+    { motivo:'Carta bloccata',         quota:0.13 },
+  ].map(x => ({ ...x, n: Math.round(totFalliti * x.quota) }));
   const totErr = ERRORI_PAG.reduce((a,e)=>a+e.n,0);
   const maxErr = Math.max(...ERRORI_PAG.map(e=>e.n));
   const CODE = [
@@ -653,6 +736,15 @@ function PlatformDiagnostica() {
         <span style={{fontSize:12.5, color:ADM.MUTED}}>· ultimo controllo 2 min fa · uptime rete ultimi 90 giorni</span>
       </div>
 
+      {/* Soldi e adempimenti prima dei servizi: un uptime del 99,9% con i
+          corrispettivi che rimbalzano non è una piattaforma che regge. */}
+      <div>
+        <div style={H}>Affidabilità · ultimi 30 giorni</div>
+        <div style={{display:'flex', flexDirection:'column', gap:14}}>
+          <DashAffidabilita a={AFFIDABILITA}/>
+        </div>
+      </div>
+
       {/* Servizi */}
       <div>
         <div style={H}>Servizi</div>
@@ -674,8 +766,8 @@ function PlatformDiagnostica() {
       <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap:14}}>
         {/* Errori di pagamento aggregati */}
         <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, padding:'14px 16px'}}>
-          <div style={H}>Errori di pagamento · ultimi 30 giorni</div>
-          <div style={{fontSize:24, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginBottom:10}}>{totErr} <span style={{fontSize:13, fontWeight:600, color:ADM.MUTED}}>addebiti falliti</span></div>
+          <div style={H}>Perché falliscono i pagamenti · ultimi 30 giorni</div>
+          <div style={{fontSize:24, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginBottom:10}}>{fmtNum(totErr)} <span style={{fontSize:13, fontWeight:600, color:ADM.MUTED}}>pagamenti falliti nei locali</span></div>
           {ERRORI_PAG.map(e => (
             <div key={e.motivo} style={{display:'flex', alignItems:'center', gap:10, marginBottom:7}}>
               <span style={{fontSize:12.8, color:ADM.TEXT, width:150, flexShrink:0}}>{e.motivo}</span>
@@ -686,7 +778,8 @@ function PlatformDiagnostica() {
             </div>
           ))}
           <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, paddingTop:9, borderTop:`1px dashed ${ADM.BORDER_SOFT}`}}>
-            3 locali hanno ancora un addebito da recuperare — li trovi nella sezione <strong>Locali</strong> con il badge rosso.
+            Il canone di byup è un'altra cosa e si conta a parte: {LOCALI.filter(l=>l.pagamentoFallito).length} locali
+            hanno un addebito <strong>nostro</strong> da recuperare — li trovi in <strong>Locali</strong> col badge rosso.
           </div>
         </div>
 

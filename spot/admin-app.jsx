@@ -202,6 +202,9 @@ function AdminApp({ tweaks }) {
     setStaffOpen(verso === 'camerieri' && opts?.openStaff ? opts.openStaff : null);
     setCommOpen(verso === 'assistenza' && opts?.openComm ? opts.openComm : null);
     setAssistenzaTab(verso === 'assistenza' ? tab : null);
+    // Anche Sicurezza e sistemi ha i suoi tab: chi ci arriva da un avviso
+    // deve atterrare su quello che l'avviso riguarda, non sul primo.
+    if (verso === 'sicurezza' || verso === 'team') setTeamTab(tab || null);
     setRouteRaw(verso);
   };
 
