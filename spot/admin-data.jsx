@@ -145,17 +145,55 @@ function buildLocali() {
       completedSteps = ONB_MANDATORY.map(s => s.id);
     }
 
-    const pianoIdx = Math.floor(r() * 4);
-    const piano = (stato === 'pending') ? 'free' : PIANI[pianoIdx].id;
+    // ── Volume, e il piano che ne consegue ────────────────────────────────
+    //
+    // Prima gli ordini erano 5-29 al giorno e il piano un sorteggio: un
+    // ristorante da nove coperti al giorno, e un Business assegnato a caso a
+    // chi ne fa dodici. Da lì in poi non tornava più niente — le soglie dei
+    // piani (550 / 1.850 / 7.500 / 15.000 transazioni) non le sfondava
+    // nessuno, e gli ordini che l'app poteva produrre non bastavano a coprire
+    // quelli che gli utenti dichiaravano di aver fatto.
+    //
+    // Ora il volume è quello di locali veri — da una gastronomia che fa otto
+    // ordini al giorno a una pizzeria che ne fa duecento — e IL PIANO SEGUE IL
+    // VOLUME, che è come funziona un listino a consumo. Chi sfonda la soglia
+    // paga gli extra: se ci restasse per sempre pagherebbe più del piano
+    // sopra, ed è esattamente la leva commerciale del modello.
+    // Distribuzione a coda lunga, come sono i ristoranti veri: tanti piccoli
+    // da qualche decina di ordini al giorno, pochi grandi da qualche
+    // centinaio. Senza la coda, il piano Business — 15.000 transazioni
+    // incluse, cioè cinquecento al giorno — non lo prenderebbe mai nessuno.
+    const grandezza = Math.pow(r(), 2.1);      // schiacciata verso il basso
+    const ordiniGiorno = stato === 'active' ? Math.round(8 + grandezza * 620) :
+                        stato === 'skipped' ? Math.floor(r() * 40) :
+                        stato === 'inactive' ? Math.floor(r() * 12) : 0;
+    const ordiniMeseStima = ordiniGiorno * 28;
+    // Il piano giusto per quel volume…
+    const pianoDaVolume = ordiniMeseStima > 7500 ? 'business'
+      : ordiniMeseStima > 1850 ? 'plus'
+      : ordiniMeseStima > 550 ? 'starter' : 'free';
+    // …e un quarto dei locali sta un gradino sotto, perché è cresciuto e non
+    // ha ancora cambiato: sono quelli che pagano le eccedenze, cioè i
+    // candidati all'upgrade che la Dashboard elenca.
+    const idxGiusto = PIANI.findIndex(p => p.id === pianoDaVolume);
+    // …ma ci resta solo finché l'eccedenza costa meno di metà del canone che
+    // eviterebbe: oltre, il conto lo fa da solo e passa al piano sopra. Senza
+    // questo limite uscivano Gratuiti con mille euro al mese di eccedenze,
+    // che è una cosa che non esiste.
+    const sottoIdx = Math.max(0, idxGiusto - 1);
+    const eccedenzaSeSotto = Math.max(0, ordiniMeseStima - PIANI[sottoIdx].ordiniInclusi) * PIANI[sottoIdx].ordineExtra;
+    const sottoPiano = r() < 0.55 && idxGiusto > 0 && eccedenzaSeSotto < PIANI[idxGiusto].price * 0.9;
+    const piano = (stato === 'pending') ? 'free'
+      : PIANI[Math.max(0, idxGiusto - (sottoPiano ? 1 : 0))].id;
     const pianoObj = PIANI.find(p => p.id === piano);
-    const ordiniGiorno = stato === 'active' ? Math.floor(r() * 25) + 5 :
-                        stato === 'skipped' ? Math.floor(r() * 15) :
-                        stato === 'inactive' ? Math.floor(r() * 3) : 0;
     const prenotazioniGiorno = stato === 'active' ? Math.floor(r() * 40) + 5 :
                               stato === 'skipped' ? Math.floor(r() * 10) : 0;
 
-    const baseDate = new Date(2025, 8, 1); // 1 sett 2025
-    const iscrizioneOffset = Math.floor(r() * 220);
+    // I ricavi partono da dicembre 2024: i locali devono esistere da prima,
+    // altrimenti la coorte a dodici mesi è vuota e la ritenzione non si può
+    // nemmeno calcolare.
+    const baseDate = new Date(2024, 9, 1); // 1 ott 2024
+    const iscrizioneOffset = Math.floor(r() * 540);
     const dataIscrizione = new Date(baseDate.getTime() + iscrizioneOffset * 86400000);
     const lastLoginDays = stato === 'inactive' ? 30 + Math.floor(r() * 90) :
                          stato === 'churned' ? 60 + Math.floor(r() * 120) :
@@ -363,6 +401,19 @@ function bandOf(qrAdoption) {
 }
 
 // ---------- UTENTI APP ----------
+// Quanti ordini al mese può fare un utente registrato, in media: è la quota
+// app degli ordini di piattaforma divisa per la base registrata stimata. Non
+// è una preferenza di prodotto, è un vincolo di aritmetica — se la si ignora
+// gli utenti dichiarano più ordini di quanti il canale ne abbia prodotti.
+//
+//   quota app   la media degli ultimi 12 mesi del mix canali (dal 4% al 20%)
+//   base        UTENTI del campione × 312, la stessa scala della Dashboard
+const ORDINI_MESE_PIATTAFORMA = LOCALI
+  .filter(l => l.stato === 'active' || l.stato === 'inactive')
+  .reduce((s2, l) => s2 + (l.ordiniMese || 0), 0);
+const QUOTA_APP_MEDIA_12M = 0.115;
+const UTENTI_FREQ_BASE = (ORDINI_MESE_PIATTAFORMA * QUOTA_APP_MEDIA_12M) / (40 * 312);
+
 function buildUtenti() {
   const nomi = [
     'Marco Bianchi','Sofia Greco','Andrea Conti','Giulia Rossi','Luca Romano',
@@ -387,20 +438,23 @@ function buildUtenti() {
     const c = citta[i % citta.length];
     const localiPref = Math.floor(r() * 12);
     const regOffset = Math.floor(r() * 365);
-    // Gli ordini di un utente non sono un numero a caso fra 0 e 80: sono la
-    // sua frequenza mensile per da quanto è iscritto. Sorteggiati liberi
-    // davano quaranta ordini di media in sei mesi — sei al mese — mentre la
-    // card accanto dichiara che il segmento più assiduo ne fa 3,4 e la media
-    // app 2,1, e la spesa lifetime che ne usciva (1.188 € a scontrino 32)
-    // smentiva la card di fianco senza che nessuna delle due fosse sbagliata
-    // per conto suo.
+    // Gli ordini di un utente sono la sua frequenza mensile per da quanto è
+    // iscritto — ma la frequenza non è libera: è vincolata dagli ordini che
+    // l'app produce davvero.
     //
-    // La frequenza sta fra 0,4 e 3,5 ordini al mese, che è la forbice
-    // dichiarata per fascia d'età: da qui in giù ogni conto derivato — spesa
-    // lifetime, orizzonte, valore per fascia — torna con quello che la
-    // Dashboard racconta altrove.
+    // Il conto che non tornava: 12.480 registrati a due ordini al mese fanno
+    // 139.000 ordini via app, mentre col mix di canale (l'app è passata dal
+    // 4% al 20% in dodici mesi) l'app ne può aver prodotti sì e no
+    // ventimila. Il tetto lo mette il canale, non la voglia dell'utente.
+    //
+    // Quindi: quota app degli ordini di piattaforma ÷ base registrata = quanti
+    // ordini al mese può fare un utente medio. Chi è attivo ne fa di più, chi
+    // è fermo zero, e la media resta quella che il canale consente.
     const mesiIscritto = Math.max(1, regOffset / 30);
-    const freqMese = 0.4 + r() * 3.1;
+    // Il moltiplicatore per utente va da un quinto a poco meno del doppio
+    // della media: la media di UTENTI_FREQ_BASE deve restare quella, perché è
+    // il budget di ordini che il canale app produce.
+    const freqMese = UTENTI_FREQ_BASE * (0.2 + r() * 1.7);
     const ordini = Math.round(freqMese * mesiIscritto);
 
     // Si prenota molto meno di quanto si ordini: una cena su tre, e non da
@@ -902,11 +956,50 @@ const RETE = (() => {
   ];
   const mediaCross = cross.length
     ? cross.reduce((s, u) => s + u.localiOrdinati, 0) / cross.length : 0;
-  // Chi gira fra più locali ordina di più: è la ragione economica per cui la
-  // rete conviene anche al singolo ristoratore, non solo a noi.
   const ordiniMediCross = cross.length ? cross.reduce((s,u)=>s+u.ordini,0)/cross.length : 0;
   const ordiniMediSolo = (conOrdini.length - cross.length)
     ? conOrdini.filter(u => !u.crossLocale).reduce((s,u)=>s+u.ordini,0) / (conOrdini.length - cross.length) : 0;
+
+  // ── Normalizzato per densità ────────────────────────────────────────────
+  //
+  // Il tasso complessivo non misura l'effetto rete: misura Milano. Dove
+  // abbiamo dodici locali il secondo ordine altrove è meccanicamente
+  // possibile, dove ne abbiamo uno è impossibile per costruzione — e un
+  // utente di Cuneo che non gira non ci sta dicendo che la rete non funziona,
+  // ci sta dicendo che a Cuneo non c'è.
+  //
+  // È la stessa logica della soglia di densità della discovery: sotto un
+  // certo numero di locali nel raggio, la funzione non si accende. Qui sotto
+  // un certo numero di locali in città, il numero non si legge.
+  const localiPerCitta = {};
+  LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive')
+    .forEach(l => { localiPerCitta[l.citta] = (localiPerCitta[l.citta] || 0) + 1; });
+  // Le soglie sono quelle che la rete di oggi consente di distinguere: con
+  // trenta locali su venti città, «cinque o più» sarebbe una fascia vuota e
+  // non direbbe niente. Vanno rialzate appena la rete cresce.
+  const FASCE = [
+    { id:'densa',  label:'4 o più locali in città', min:4,  max:99 },
+    { id:'media',  label:'2-3 locali',              min:2,  max:3  },
+    { id:'sottile',label:'1 locale',                min:0,  max:1  },
+  ];
+  const perDensita = FASCE.map(f => {
+    const suoi = conOrdini.filter(u => {
+      const n = localiPerCitta[u.citta] || 0;
+      return n >= f.min && n <= f.max;
+    });
+    const suoiCross = suoi.filter(u => u.crossLocale);
+    return {
+      ...f,
+      utenti: suoi.length,
+      cross: suoiCross.length,
+      pct: suoi.length ? Math.round(suoiCross.length / suoi.length * 100) : null,
+      citta: Object.keys(localiPerCitta).filter(c => {
+        const n = localiPerCitta[c];
+        return n >= f.min && n <= f.max;
+      }).length,
+    };
+  });
+
   return {
     conOrdini: conOrdini.length,
     cross: cross.length,
@@ -915,6 +1008,8 @@ const RETE = (() => {
     mediaCross,
     ordiniMediCross,
     ordiniMediSolo,
+    perDensita,
+    localiPerCitta,
   };
 })();
 
@@ -981,30 +1076,87 @@ const ESPANSIONE = (() => {
 // La finestra è 90 giorni, la stessa dei cambi di piano registrati.
 const RITENZIONE = (() => {
   const prezzo = (id) => (PIANI.find(p => p.id === id) || {}).price || 0;
-  const g90 = Date.now() - 90 * 86400000;
+  const inclusi = (id) => (PIANI.find(p => p.id === id) || {}).ordiniInclusi || 0;
+  const extraUnit = (id) => (PIANI.find(p => p.id === id) || {}).ordineExtra || 0;
+  const A12M = Date.now() - 365 * 86400000;
 
-  const upgrade = LOCALI.filter(l => l.upgradeIl && l.upgradeIl.getTime() >= g90);
-  const downgrade = LOCALI.filter(l => l.downgradeIl && l.downgradeIl.getTime() >= g90);
-  const espansione = upgrade.reduce((s, l) => s + Math.max(0, prezzo(l.piano) - prezzo(l.pianoPrecedente)), 0);
-  const contrazione = downgrade.reduce((s, l) => s + Math.max(0, prezzo(l.pianoPrecedente) - prezzo(l.piano)), 0);
-  // I churned: il canone che pagavano non c'è più. In assenza di uno storico
-  // vero si prende il listino del piano su cui erano.
-  const persi = LOCALI.filter(locChurned);
-  const churn = persi.reduce((s, l) => s + prezzo(l.piano), 0);
+  // Il ricavo di un locale è canone PIÙ eccedenze. Un locale che paga 124 € al
+  // mese di extra senza aver cambiato piano è espansione a tutti gli effetti:
+  // contarlo solo se firma un upgrade vuol dire non vederlo. Da qui in giù,
+  // «ricavo» vuol dire sempre canone + extra.
+  //
+  // Le eccedenze si contano fino a quanto costerebbe il piano sopra: oltre
+  // quella cifra nessuno ci resta — il conto lo fa da solo e cambia piano — e
+  // ricostruire un passato con mille euro di eccedenze fabbricherebbe una
+  // contrazione che non c'è mai stata.
+  const tetto = (piano) => {
+    const i = PIANI.findIndex(p => p.id === piano);
+    return i >= 0 && i < PIANI.length - 1 ? PIANI[i + 1].price * 0.9 : Infinity;
+  };
+  const ricavo = (piano, ordiniMese) => prezzo(piano)
+    + Math.min(tetto(piano), Math.max(0, ordiniMese - inclusi(piano)) * extraUnit(piano));
 
-  // La base di partenza è quella di 90 giorni fa: il canone di oggi, meno
-  // quello che nel frattempo è cresciuto, più quello che è calato o sparito.
-  const oggi = MRR_ORA.abbonamenti;
-  const base = oggi - espansione + contrazione + churn;
+  // Dodici mesi, non novanta giorni: su ventotto locali un trimestre contiene
+  // due disdette e tre downgrade, e un singolo locale sposta l'indice di tre
+  // punti. La finestra annuale è anche quella che chiedono.
+  //
+  // Lo stato di dodici mesi fa non è archiviato: si ricostruisce da quello che
+  // sappiamo — il piano di allora (se il cambio è nell'anno) e il volume di
+  // allora, riportato indietro con la crescita degli ordini di piattaforma.
+  const CRESCITA_ORDINI_12M = 1.42;
+  const statoAllora = (l) => {
+    const cambioNellAnno = (l.upgradeIl && l.upgradeIl.getTime() >= A12M)
+      || (l.downgradeIl && l.downgradeIl.getTime() >= A12M);
+    return {
+      piano: cambioNellAnno && l.pianoPrecedente ? l.pianoPrecedente : l.piano,
+      ordiniMese: Math.round((l.ordiniMese || 0) / CRESCITA_ORDINI_12M),
+    };
+  };
+
+  // La coorte: chi era cliente dodici mesi fa. I locali entrati dopo non
+  // c'entrano — la ritenzione si misura sulla base di allora, senza l'aiuto
+  // dei nuovi.
+  const coorte = LOCALI.filter(l => (locLive(l) || locChurned(l))
+    && l.dataIscrizione && l.dataIscrizione.getTime() <= A12M);
+  const persi = coorte.filter(locChurned);
+  const rimasti = coorte.filter(locLive);
+
+  const base = coorte.reduce((s, l) => { const a = statoAllora(l); return s + ricavo(a.piano, a.ordiniMese); }, 0);
+  const churn = persi.reduce((s, l) => { const a = statoAllora(l); return s + ricavo(a.piano, a.ordiniMese); }, 0);
+
+  let espansione = 0, contrazione = 0;
+  rimasti.forEach(l => {
+    const a = statoAllora(l);
+    const delta = ricavo(l.piano, l.ordiniMese || 0) - ricavo(a.piano, a.ordiniMese);
+    if (delta >= 0) espansione += delta; else contrazione += -delta;
+  });
+
+  const oggi = rimasti.reduce((s, l) => s + ricavo(l.piano, l.ordiniMese || 0), 0);
+  const cambi = (dir) => rimasti.filter(l => dir === 'up'
+    ? (l.upgradeIl && l.upgradeIl.getTime() >= A12M)
+    : (l.downgradeIl && l.downgradeIl.getTime() >= A12M)).length;
+
   return {
+    finestra: '12 mesi',
+    // Su cosa si calcola, scritto una volta e usato ovunque.
+    definizione: 'canone + eccedenze oltre soglia',
+    coorte: coorte.length,
     base: Math.round(base),
     espansione: Math.round(espansione),
     contrazione: Math.round(contrazione),
     churn: Math.round(churn),
     oggi: Math.round(oggi),
-    nUpgrade: upgrade.length,
-    nDowngrade: downgrade.length,
+    nUpgrade: cambi('up'),
+    nDowngrade: cambi('down'),
     nChurn: persi.length,
+    // Quanta parte dell'espansione arriva dalle eccedenze e non dagli upgrade:
+    // è il pezzo che prima non si vedeva.
+    espansioneDaExtra: Math.round(rimasti.reduce((s, l) => {
+      const a = statoAllora(l);
+      const extraOggi = Math.max(0, (l.ordiniMese || 0) - inclusi(l.piano)) * extraUnit(l.piano);
+      const extraAllora = Math.max(0, a.ordiniMese - inclusi(a.piano)) * extraUnit(a.piano);
+      return s + Math.max(0, extraOggi - extraAllora);
+    }, 0)),
     nrr: base ? Math.round((base + espansione - contrazione - churn) / base * 100) : 0,
     grr: base ? Math.round((base - contrazione - churn) / base * 100) : 0,
   };

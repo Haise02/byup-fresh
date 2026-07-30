@@ -2315,7 +2315,7 @@ function DashLocali({ onNav }) {
           o di meno — e per comporlo serviva il terzo pezzo che mancava: la
           contrazione, cioè chi resta ma passa al piano sotto. */}
       <SectionLabel title="Ritenzione del ricavo"
-        desc="NRR e GRR sugli ultimi 90 giorni · espansione, contrazione e churn sulla stessa base"/>
+        desc={`NRR e GRR sugli ultimi 12 mesi · su ${RITENZIONE.definizione}, per ${RITENZIONE.coorte} locali che c'erano già allora`}/>
       <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14, alignItems:'start'}}>
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
           <AdmCard padding={18}>
@@ -2324,17 +2324,17 @@ function DashLocali({ onNav }) {
             <div style={{fontSize:26.6, fontWeight:800, color: RITENZIONE.nrr >= 100 ? ADM.OK : ADM.TEXT,
               marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{RITENZIONE.nrr}%</div>
             <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.45}}>
-              <b style={{color:ADM.TEXT}}>Net Revenue Retention</b>: quanto vale oggi il canone dei soli
-              locali che c'erano 90 giorni fa, senza contare quelli nuovi.<br/>
-              <span style={{color:ADM.MUTED_LIGHT}}>(base + espansione − contrazione − churn) ÷ base.
-              Sopra il 100% la base cresce da sola.</span>
+              <b style={{color:ADM.TEXT}}>Net Revenue Retention</b>: quanto vale oggi il ricavo dei soli
+              locali che c'erano un anno fa, senza contare quelli nuovi.<br/>
+              <span style={{color:ADM.MUTED_LIGHT}}>(base + espansione − contrazione − churn) ÷ base ·
+              su {RITENZIONE.definizione}, non sul solo canone. Sopra il 100% la base cresce da sola.</span>
             </div>
           </AdmCard>
           <AdmCard padding={18}>
             <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>GRR · lorda</div>
             <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{RITENZIONE.grr}%</div>
             <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.45}}>
-              <b style={{color:ADM.TEXT}}>Gross Revenue Retention</b>: lo stesso conto senza gli upgrade,
+              <b style={{color:ADM.TEXT}}>Gross Revenue Retention</b>: lo stesso conto senza l'espansione,
               cioè quanto tiene la base da sola.<br/>
               <span style={{color:ADM.MUTED_LIGHT}}>(base − contrazione − churn) ÷ base. Non può superare
               il 100%, ed è il pavimento sotto la NRR.</span>
@@ -2348,11 +2348,11 @@ function DashLocali({ onNav }) {
           <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Come si compone</div>
           <div style={{display:'flex', flexDirection:'column', gap:9}}>
             {[
-              { l:`Base di 90 giorni fa`, v: RITENZIONE.base, c: ADM.MUTED, n: null },
-              { l:`Espansione · ${RITENZIONE.nUpgrade} upgrade`, v: RITENZIONE.espansione, c: ADM.OK, segno:'+' },
-              { l:`Contrazione · ${RITENZIONE.nDowngrade} downgrade`, v: -RITENZIONE.contrazione, c: ADM.WARN, segno:'−' },
+              { l:`Base di 12 mesi fa · ${RITENZIONE.coorte} locali`, v: RITENZIONE.base, c: ADM.MUTED, n: null },
+              { l:`Espansione · ${RITENZIONE.nUpgrade} upgrade e le eccedenze`, v: RITENZIONE.espansione, c: ADM.OK, segno:'+' },
+              { l:`Contrazione · ${RITENZIONE.nDowngrade} downgrade e cali di volume`, v: -RITENZIONE.contrazione, c: ADM.WARN, segno:'−' },
               { l:`Churn · ${RITENZIONE.nChurn} disdette`, v: -RITENZIONE.churn, c: ADM.DANGER, segno:'−' },
-              { l:'Base di oggi', v: RITENZIONE.oggi, c: ADM.TEXT, forte:true },
+              { l:'Ricavo di oggi, stessi locali', v: RITENZIONE.oggi, c: ADM.TEXT, forte:true },
             ].map((r, i2) => (
               <div key={r.l} style={{display:'flex', alignItems:'center', gap:12,
                 paddingTop: r.forte ? 9 : 0, borderTop: r.forte ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
@@ -2366,9 +2366,14 @@ function DashLocali({ onNav }) {
           </div>
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5, paddingTop:12,
             borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+            {/* Da dove viene l'espansione: gli upgrade si vedono, le eccedenze
+                no — e sono la parte che un modello a consumo produce da sola. */}
+            Dell'espansione, <b style={{color:ADM.TEXT}}>{fmtEur(RITENZIONE.espansioneDaExtra)}</b> arriva
+            dalle eccedenze oltre soglia di chi non ha cambiato piano: senza contarle, questo numero non
+            esisterebbe.{' '}
             {RITENZIONE.nrr >= 100
-              ? <React.Fragment>Gli upgrade coprono contrazione e churn: la base di ieri oggi vale di più anche senza clienti nuovi.</React.Fragment>
-              : <React.Fragment>Gli upgrade non coprono ancora contrazione e churn: ogni mese si riparte da un gradino più basso, e la crescita deve venire tutta da locali nuovi.</React.Fragment>}
+              ? <React.Fragment>Espansione e eccedenze coprono contrazione e churn: la base di un anno fa oggi vale di più anche senza clienti nuovi.</React.Fragment>
+              : <React.Fragment>L'espansione non copre ancora contrazione e churn: ogni anno si riparte da un gradino più basso, e la crescita deve venire tutta da locali nuovi.</React.Fragment>}
           </div>
         </AdmCard>
       </div>
@@ -3396,13 +3401,26 @@ function DashUtentiApp() {
   ];
 
   // Frequenza ordini/utente/mese per fascia età
-  const freqByAge = [
-    { age:'18-25', orders:1.8, trend:-0.2 },
-    { age:'26-35', orders:3.4, trend:+0.4 },
-    { age:'36-45', orders:2.7, trend:+0.1 },
-    { age:'46-55', orders:1.6, trend:0.0 },
-    { age:'56+',   orders:0.9, trend:+0.2 },
-  ];
+  // Frequenza d'ordine per fascia d'età: contata sugli utenti, non scritta a
+  // mano. I valori a mano dicevano 1,8-3,4 ordini al mese quando la media
+  // consentita dal canale app è mezzo ordine — e la card accanto, che la
+  // spesa la calcola dai dati, li smentiva.
+  const freqByAge = (() => {
+    const fasce = [
+      { age:'18-25', min:18, max:25, trend:-0.2 },
+      { age:'26-35', min:26, max:35, trend:+0.4 },
+      { age:'36-45', min:36, max:45, trend:+0.1 },
+      { age:'46-55', min:46, max:55, trend: 0.0 },
+      { age:'56+',   min:56, max:200, trend:+0.2 },
+    ];
+    return fasce.map(f => {
+      const suoi = UTENTI.filter(u => u.eta >= f.min && u.eta <= f.max);
+      const mesi = suoi.reduce((a, u) => a + Math.max(1,
+        (Date.now() - new Date(u.dataRegistrazione).getTime()) / 86400000 / 30), 0);
+      const ordini = suoi.reduce((a, u) => a + u.ordini, 0);
+      return { ...f, orders: mesi ? +(ordini / mesi).toFixed(2) : 0 };
+    });
+  })();
   const freqMax = Math.max(...freqByAge.map(f=>f.orders));
 
   // Top 3 categorie piatti per cohort (8 cohort: 4 fasce × 2 sessi più ricche)
@@ -3653,6 +3671,53 @@ function DashUtentiApp() {
               );
             })}
           </div>
+          {/* Normalizzato per densità: il tasso complessivo non misura
+              l'effetto rete, misura Milano. Dove abbiamo un locale solo il
+              secondo ordine altrove è impossibile per costruzione, e un
+              utente che non gira non ci dice che la rete non funziona — ci
+              dice che lì la rete non c'è. Stessa logica della soglia di
+              densità della discovery. */}
+          <div style={{marginTop:16, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
+              letterSpacing:'0.05em', marginBottom:10}}>Per densità della città</div>
+            <div style={{display:'flex', flexDirection:'column', gap:9}}>
+              {RETE.perDensita.map(f => (
+                <div key={f.id} style={{display:'flex', alignItems:'center', gap:12}}>
+                  <span style={{width:150, fontSize:13.4, color:ADM.TEXT, fontWeight:600}}>{f.label}</span>
+                  <span style={{flex:1, height:9, borderRadius:99, background:'#F4F5F7', overflow:'hidden'}}>
+                    <span style={{display:'block', width:`${f.pct == null ? 0 : f.pct}%`, height:'100%', borderRadius:99,
+                      background: f.id === 'densa' ? ADM.INK : f.id === 'media' ? ADM.MUTED : ADM.MUTED_LIGHT}}/>
+                  </span>
+                  <span style={{fontSize:13.6, fontWeight:800, color: f.pct == null ? ADM.MUTED_LIGHT : ADM.TEXT,
+                    width:44, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>
+                    {f.pct == null ? '—' : `${f.pct}%`}
+                  </span>
+                  <span style={{fontSize:12.2, color:ADM.MUTED_LIGHT, width:150, textAlign:'right'}}>
+                    {f.citta} città · {fmtNum(Math.round(f.utenti * scalaUtenti))} clienti
+                  </span>
+                </div>
+              ))}
+            </div>
+            {(() => {
+              const densa = RETE.perDensita.find(f => f.id === 'densa');
+              // La città con più locali, presa dai dati: scriverne una a mano
+              // significa sbagliarla il giorno in cui la rete cresce altrove.
+              const cittaPiuDensa = Object.keys(RETE.localiPerCitta)
+                .sort((a, b) => RETE.localiPerCitta[b] - RETE.localiPerCitta[a])[0] || '—';
+              const sottile = RETE.perDensita.find(f => f.id === 'sottile');
+              if (!densa || !sottile || densa.pct == null || sottile.pct == null) return null;
+              return (
+                <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:12, lineHeight:1.5}}>
+                  Dove abbiamo almeno quattro locali gira il <b style={{color:ADM.TEXT}}>{densa.pct}%</b>, dove
+                  ce n'è uno solo il <b style={{color:ADM.TEXT}}>{sottile.pct}%</b>: l'effetto rete è la
+                  differenza fra i due, non il numero complessivo — il {RETE.pct}% della prima card è, in
+                  buona parte, la densità di {cittaPiuDensa}. Con {RETE.perDensita[0].utenti} clienti nella
+                  fascia densa il dato è ancora fragile: si legge come direzione, non come misura.
+                </div>
+              );
+            })()}
+          </div>
+
           {/* Il perché la rete conviene anche al singolo ristoratore, non solo
               a noi: chi gira ordina di più, anche da lui. */}
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5, paddingTop:12,
@@ -3967,13 +4032,17 @@ function DashUtentiApp() {
           </div>
           {(() => {
             const freqAvg = freqByAge.reduce((s,f)=>s+f.orders,0) / freqByAge.length;
-            const benchmark = 1.6;
+            // Le etichette si danno RISPETTO alla media della base, non su
+            // soglie assolute: scritte a mano (≥3 assiduo, ≥2 frequente)
+            // valevano solo per la frequenza inventata di prima, e con quella
+            // vera avrebbero chiamato «dormiente» anche il segmento migliore.
             const sortedFreq = [...freqByAge].sort((a,b)=>b.orders-a.orders);
             const peak = sortedFreq[0];
             const classifyFreq = (o) => {
-              if (o >= 3) return { label:'Assiduo', tone: ADM.PINK_DARK, bg: ADM.PINK_BG_SOFT };
-              if (o >= 2) return { label:'Frequente', tone: ADM.OK, bg: '#E6F5EC' };
-              if (o >= 1.2) return { label:'Saltuario', tone: ADM.WARN, bg: '#FEF3C7' };
+              const k = freqAvg ? o / freqAvg : 0;
+              if (k >= 1.5) return { label:'Assiduo', tone: ADM.PINK_DARK, bg: ADM.PINK_BG_SOFT };
+              if (k >= 1.0) return { label:'Frequente', tone: ADM.OK, bg: '#E6F5EC' };
+              if (k >= 0.6) return { label:'Saltuario', tone: ADM.WARN, bg: '#FEF3C7' };
               return { label:'Dormiente', tone: ADM.DANGER, bg: ADM.DANGER_SOFT };
             };
             return (
@@ -4002,8 +4071,8 @@ function DashUtentiApp() {
                         <span style={{fontSize:13.7, fontWeight:700, color: isPeak ? ADM.TEXT : ADM.MUTED, letterSpacing:'-0.005em'}}>{f.age}</span>
                         <div style={{display:'flex', alignItems:'center', gap:10, minWidth:0}}>
                           <div style={{flex:1, height:10, background:'#F4F5F7', borderRadius:99, overflow:'hidden', position:'relative'}}>
-                            {/* benchmark marker */}
-                            <div style={{position:'absolute', left:`${(benchmark/freqMax)*100}%`, top:-3, bottom:-3, width:2, background:ADM.MUTED_SOFT, opacity:0.55}}/>
+                            {/* riferimento: la media della base */}
+                            <div style={{position:'absolute', left:`${(freqAvg/freqMax)*100}%`, top:-3, bottom:-3, width:2, background:ADM.MUTED_SOFT, opacity:0.55}}/>
                             <div style={{width:`${(f.orders/freqMax)*100}%`, height:'100%', background: isPeak ? `linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})` : cls.tone, borderRadius:99}}/>
                           </div>
                           <span style={{fontSize:15.8, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', minWidth:34, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{f.orders.toFixed(1)}</span>
@@ -4020,13 +4089,17 @@ function DashUtentiApp() {
                 <div style={{display:'flex', alignItems:'center', gap:14, marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
                   <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
                     <span style={{width:2, height:12, background:ADM.MUTED_SOFT, opacity:0.7}}/>
-                    Benchmark settore <strong style={{color:ADM.TEXT}}>{benchmark.toFixed(1)}</strong>
+                    Media della base <strong style={{color:ADM.TEXT}}>{freqAvg.toFixed(2)}</strong> ordini/mese
                   </span>
                   <span style={{color:ADM.BORDER}}>·</span>
-                  <span>Media app <strong style={{color:ADM.TEXT}}>{freqAvg.toFixed(1)}</strong></span>
+                  <span>Il tetto lo mette il canale: l'app fa il {Math.round(QUOTA_APP_MEDIA_12M * 100)}% degli ordini della rete</span>
                 </div>
                 <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:10, lineHeight:1.5}}>
-                  Picco sul segmento <strong style={{color:ADM.TEXT}}>26-35 · assidui</strong>. Over 56 sotto 1 ordine/mese = <strong style={{color:ADM.DANGER}}>a rischio abbandono</strong>: attivare workflow di riattivazione dopo 45gg senza ordine.
+                  Picco sul segmento <strong style={{color:ADM.TEXT}}>{peak.age}</strong>, che ordina
+                  il <strong style={{color:ADM.TEXT}}>{freqAvg ? Math.round((peak.orders/freqAvg - 1) * 100) : 0}%</strong> in
+                  più della media. Il fondo della classifica —{' '}
+                  <strong style={{color:ADM.DANGER}}>{sortedFreq[sortedFreq.length-1].age}</strong> — è il
+                  bersaglio della riattivazione dopo 45 giorni senza ordine.
                 </div>
               </React.Fragment>
             );
