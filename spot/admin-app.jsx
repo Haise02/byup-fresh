@@ -11,6 +11,10 @@ const NAV_MAIN = [
   { id: 'camerieri',    label: 'Staff',        icon: 'staffFill' },
   { id: 'utenti',       label: 'Utenti App',   icon: 'phoneFill' },
   { id: 'comunicazioni', label: 'Comunicazioni', icon: 'chatFill', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length) },
+  // Sotto Comunicazioni perché è la stessa relazione col ristoratore, ma per
+  // voce sua: le comunicazioni si leggono quando si può, una richiamata ha una
+  // scadenza. Il badge conta la coda, non i non letti.
+  { id: 'assistenza',   label: 'Chiamata assistenza', icon: 'headsetFill', badge: RICHIAMATE.filter(r=>r.stato==='attesa').length },
   { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphoneFill' },
 ];
 const NAV_SYSTEM = [
@@ -80,6 +84,16 @@ function GlobalSearch({ onClose, go }) {
         .map(st => ({ key:st.id, title:st.nome, sub:`${st.localeNome} · ${st.id}`, go:()=>go('camerieri',{openStaff:st}) })) },
     { group:'Comunicazioni', icon:'chatFill', items: (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : []).filter(c => match(c.oggetto, c.senderName, c.id)).slice(0,5)
         .map(c => ({ key:c.id, title:c.oggetto, sub:`${c.senderName} · ${c.id}`, go:()=>go('comunicazioni',{openComm:c.id}) })) },
+    // Il numero di telefono è indicizzato apposta: capita di avere il display
+    // acceso con un numero che richiama e di dover capire chi è.
+    { group:'Richiamate', icon:'headsetFill', items: RICHIAMATE.filter(r => match(r.localeNome, r.titolare, r.tel, r.problema, r.id)).slice(0,5)
+        .map(r => ({ key:r.id, title:`${r.localeNome} · ${r.tel}`, sub:`${SRV_CATEGORIE[r.categoria].label} · ${r.id}`, go:()=>go('assistenza',{tab:'richiamate'}) })) },
+    { group:'FAQ e guide', icon:'chatFill', items: [
+        ...FAQ_SRV.filter(f => match(f.domanda, f.risposta, f.categoria)).slice(0,3)
+          .map(f => ({ key:f.id, title:f.domanda, sub:`FAQ · ${f.categoria}`, go:()=>go('assistenza',{tab:'faq'}) })),
+        ...GUIDE_SRV.filter(g => match(g.titolo, g.descrizione)).slice(0,3)
+          .map(g => ({ key:g.id, title:g.titolo, sub:`Guida · ${(GUIDE_ARGOMENTI.find(a=>a.id===g.argomentoId)||{}).nome || '—'}`, go:()=>go('assistenza',{tab:'guide'}) })),
+      ] },
   ].filter(g => g.items.length > 0);
   const flat = results.flatMap(g => g.items);
   return (
@@ -134,6 +148,7 @@ function AdminApp({ tweaks }) {
   const [utentiOpen, setUtentiOpen] = useStateApp(null);
   const [staffOpen, setStaffOpen] = useStateApp(null);
   const [commOpen, setCommOpen] = useStateApp(null);
+  const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
   const [confTab, setConfTab] = useStateApp(null);   // tab della Conformità aperta da un link esterno
   const [teamTab, setTeamTab] = useStateApp(null);   // idem per Impostazioni Admin
   const [searchOpen, setSearchOpen] = useStateApp(false);
@@ -173,6 +188,7 @@ function AdminApp({ tweaks }) {
     setUtentiOpen(next === 'utenti' && opts?.openUtente ? opts.openUtente : null);
     setStaffOpen(next === 'camerieri' && opts?.openStaff ? opts.openStaff : null);
     setCommOpen(next === 'comunicazioni' && opts?.openComm ? opts.openComm : null);
+    setAssistenzaTab(next === 'assistenza' && opts?.tab ? opts.tab : null);
     setRouteRaw(next);
   };
 
@@ -185,6 +201,7 @@ function AdminApp({ tweaks }) {
     camerieri:    { t:'Staff', s:'Staff registrato sui locali · camerieri, cassa, proprietari, dispositivi' },
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
     comunicazioni: { t:'Comunicazioni', s:'Email, richieste e segnalazioni dai locali Byup Spot' },
+    assistenza:   { t:'Chiamata assistenza', s:'Richiamate prenotate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Impostazioni Admin', s:'Configurazione tecnica e parametri della piattaforma' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
@@ -349,6 +366,7 @@ function AdminApp({ tweaks }) {
           {route === 'camerieri'    && <AdmCamerieriPage search={''} openStaff={staffOpen}/>}
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
           {route === 'comunicazioni' && <AdmComunicazioniPage openId={commOpen}/>}
+          {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab}/>}
           {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
           {route === 'hr'           && <AdmTeamPage search={''} initialTab={teamTab} sezione="hr"/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}

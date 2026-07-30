@@ -53,6 +53,14 @@ const ICON_PATHS = {
   chat:          'M21 12a8 8 0 1 1-3-6.2L21 4l-1 3.5A8 8 0 0 1 21 12z',
   utensils:      'M6 3v8a2 2 0 0 0 4 0V3M8 11v10|M16 3c-2 0-3 2-3 5s1 4 3 4v9',
   star:          'M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 17l-5.4 2.7 1-6L3.4 9.4l6-.9L12 3z',
+  // Matita e cestino: fino a Chiamata assistenza «modifica» era l'ingranaggio
+  // e «elimina» la croce, due segni che nel resto della console vogliono dire
+  // «impostazioni» e «chiudi». Su un elenco di FAQ e guide, dove le due azioni
+  // stanno affiancate su ogni riga, l'ambiguità si paga a ogni click.
+  pencil:        'M4 20h4L18.5 9.5a2.6 2.6 0 0 0-3.7-3.7L4 16.3V20z|M14 7l3.7 3.7',
+  trash:         'M4 7h16|M10 4h4a1 1 0 0 1 1 1v2H9V5a1 1 0 0 1 1-1z|M6.5 7l.9 12.1a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9L17.5 7|M10.5 11v6M13.5 11v6',
+  thumbUp:       'M7.5 21V10.2l4.6-6.6a1.9 1.9 0 0 1 3.3 1.7L14.5 10h4.7a2 2 0 0 1 2 2.3l-1.1 6.9a2.4 2.4 0 0 1-2.4 2H7.5z|M7.5 10.2H4.4a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h3.1',
+  thumbDown:     'M16.5 3v10.8l-4.6 6.6a1.9 1.9 0 0 1-3.3-1.7L9.5 14H4.8a2 2 0 0 1-2-2.3l1.1-6.9A2.4 2.4 0 0 1 6.3 3h10.2z|M16.5 13.8h3.1a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1h-3.1',
 };
 
 // ─── Icone PIENE per la sidebar (stile gestionale). fill=colore, niente stroke;
@@ -85,6 +93,11 @@ const ICON_FILLED = {
   // l'arco superiore come forma a se, che si unisce per sovrapposizione.
   lockFill: 'M6.5 9.5h11A2.5 2.5 0 0 1 20 12v7.5A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5V12a2.5 2.5 0 0 1 2.5-2.5zM12 13.1a1.9 1.9 0 0 0-.9 3.57V18a.9.9 0 0 0 1.8 0v-1.33A1.9 1.9 0 0 0 12 13.1z|M12 2a5 5 0 0 0-5 5v3h2.6V7a2.4 2.4 0 0 1 4.8 0v3H17V7a5 5 0 0 0-5-5z',
   shieldUserFill: 'M11.6 1.9a1.2 1.2 0 0 1 .8 0l7.2 2.6c.48.17.8.62.8 1.13V11c0 5.13-3.44 9.36-8.06 10.9a1.2 1.2 0 0 1-.68 0C7.04 20.36 3.6 16.13 3.6 11V5.63c0-.51.32-.96.8-1.13l7.2-2.6zM12 7a2.4 2.4 0 1 0 0 4.8A2.4 2.4 0 0 0 12 7zm0 6.2c-2.16 0-4 1.3-4.67 3.13a8.55 8.55 0 0 0 4.67 2.96 8.55 8.55 0 0 0 4.67-2.96C16 14.5 14.16 13.2 12 13.2z',
+  // Cuffia con microfono per Chiamata assistenza. Lo smartphone (phoneFill) è
+  // già di Utenti App e la cornetta da sola direbbe «telefonata», non
+  // «qualcuno dall'altra parte che risponde». Cinque forme che si uniscono per
+  // sovrapposizione: archetto, due padiglioni, braccio e capsula.
+  headsetFill: 'M2.4 13.6A9.6 9.6 0 0 1 21.6 13.6H19.8A7.8 7.8 0 0 0 4.2 13.6Z|M2.4 14.2a2.5 2.5 0 0 1 5 0v3.2a2.5 2.5 0 0 1-5 0z|M16.6 14.2a2.5 2.5 0 0 1 5 0v3.2a2.5 2.5 0 0 1-5 0z|M19.1 18.6h2.5v1.6a2.3 2.3 0 0 1-2.3 2.3h-4a1.25 1.25 0 0 1 0-2.5h2.55a1.25 1.25 0 0 0 1.25-1.25z|M15.3 19.3a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8z',
 };
 
 function renderIconParts(spec) {

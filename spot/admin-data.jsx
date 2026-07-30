@@ -388,6 +388,10 @@ const PERMESSI = [
   { id: 'locali',         label: 'Gestione Locali e staff', desc: 'Visualizza e modifica locali e camerieri' },
   { id: 'utenti',         label: 'Gestione utenti',        desc: 'Visualizza e modifica gli utenti app' },
   { id: 'segnalazioni',   label: 'Segnalazioni',           desc: 'Gestisce ticket e segnalazioni' },
+  // Separato da «segnalazioni» perché è un'altra cosa: qui si chiama un
+  // numero entro una scadenza e si pubblica la base di conoscenza, e la
+  // pubblicazione è un potere che non si dà a chiunque legga i ticket.
+  { id: 'assistenza',     label: 'Chiamata assistenza',    desc: 'Coda delle richiamate, FAQ e guide pubblicate ai ristoratori' },
   { id: 'certificazioni', label: 'Certificazioni',         desc: 'Revisiona le certificazioni alimentari' },
   { id: 'messaggi',       label: 'Messaggi & Broadcast',   desc: 'Invia comunicazioni agli utenti' },
   // Economix e Conformita mancavano dalla matrice pur essendo due sezioni intere
@@ -401,8 +405,8 @@ const PERMESSI = [
 ];
 
 const RUOLI = {
-  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni','messaggi','economix','conformita','sicurezza','hr','team'] },
-  support:     { label: 'Support',    desc: 'Segnalazioni e certificazioni', color: 'INFO',            permessi: ['dashboard','locali','utenti','segnalazioni','certificazioni'] },
+  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','assistenza','certificazioni','messaggi','economix','conformita','sicurezza','hr','team'] },
+  support:     { label: 'Support',    desc: 'Segnalazioni, richiamate e certificazioni', color: 'INFO', permessi: ['dashboard','locali','utenti','segnalazioni','assistenza','certificazioni'] },
   marketing:   { label: 'Marketing',  desc: 'Campagne e broadcast', color: 'WARN',                      permessi: ['dashboard','messaggi'] },
   // AFC: i conti e i controlli, senza toccare l'operativita. Non ha accesso a
   // locali, utenti e segnalazioni perche non gli servono per il suo lavoro, e

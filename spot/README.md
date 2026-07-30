@@ -21,6 +21,7 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 | **Staff** | Camerieri, cassa, proprietari, dispositivi dei locali | — |
 | **Utenti App** | Clienti finali | — |
 | **Comunicazioni** | Email, richieste, segnalazioni, certificazioni alimentari | — |
+| **Chiamata assistenza** | Coda delle richiamate prenotate dai ristoratori, FAQ e guide | — |
 | **Promozioni** | Campagne e broadcast | — |
 | **Economix** | Costi, conto economico, cassa, patrimonio di byup | [Economix.md](Economix.md) |
 | **Risk Management** | Rischi, adempimenti ed evidenze ISO 27001 / 9001 | [Risk-Management.md](Risk-Management.md) |
@@ -32,14 +33,14 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 
 ## Ruoli e permessi
 
-Sette ruoli su undici aree. La matrice sta in **Sicurezza e sistemi → Accessi**,
+Sette ruoli su dodici aree. La matrice sta in **Sicurezza e sistemi → Accessi**,
 in fondo alla pagina; i dati in [admin-data.jsx](admin-data.jsx) (`RUOLI`,
 `PERMESSI`).
 
 | Ruolo | Accede a |
 |---|---|
 | **Super Admin** | tutto |
-| **Support** | dashboard, locali, utenti, segnalazioni, certificazioni |
+| **Support** | dashboard, locali, utenti, segnalazioni, chiamata assistenza, certificazioni |
 | **Marketing** | dashboard, messaggi |
 | **AFC** | dashboard, Economix, Risk Management |
 | **ICT** | dashboard, Sicurezza e sistemi |

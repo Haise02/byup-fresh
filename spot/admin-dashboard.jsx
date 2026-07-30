@@ -327,6 +327,11 @@ function AdmDashboard({ onNav }) {
           { id:'locali',   label:'Locali' },
           { id:'utentiapp',label:'Utenti App' },
           { id:'camerieri',label:'Staff' },
+          // Stesso componente della sezione Chiamata assistenza → Andamento.
+          // Qui i KPI stanno accanto a locali, utenti e staff perché il
+          // servizio clienti è una delle facce dello stato della piattaforma,
+          // non un capitolo a parte da andarsi a cercare.
+          { id:'servizio', label:'Servizio Clienti' },
         ]} active={tab} onChange={setTab}/>
         <div style={{flex:1}}/>
         {reportSent
@@ -338,6 +343,7 @@ function AdmDashboard({ onNav }) {
         {tab === 'locali'    && <DashLocali onNav={onNav}/>}
         {tab === 'utentiapp' && <DashUtentiApp/>}
         {tab === 'camerieri' && <DashCamerieri/>}
+        {tab === 'servizio'  && (window.AdmServizioClientiKPI ? <AdmServizioClientiKPI/> : null)}
       </div>
     </div>
   );
