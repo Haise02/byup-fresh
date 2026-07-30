@@ -16,7 +16,7 @@
 // vedere tutto quello che un locale ha aperto con noi. Chiamate viene prima
 // perché è l'unica delle due che scade.
 //
-// I KPI NON stanno qui: vivono solo in Dashboard → Servizio Clienti, che è
+// I KPI NON stanno qui: vivono solo in Analisi Dati → Servizio Clienti, che è
 // dove si va a guardare i numeri. Il componente che li disegna
 // (AdmServizioClientiKPI) resta però in questo file, perché è qui che stanno
 // i dati che misura.

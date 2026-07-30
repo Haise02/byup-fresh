@@ -494,39 +494,6 @@ function MiniRatioBar({ a, b, aLabel, bLabel, aColor }) {
   );
 }
 
-// Striscia "richiede attenzione" — porta a galla i dati azionabili (onboarding
-// fermi, segnalazioni, certificazioni) che prima erano sepolti nei popup.
-function AttentionStrip({ items }) {
-  const toneCol = { WARN: ADM.WARN, DANGER: ADM.DANGER, INFO: ADM.INFO, NEUTRAL: ADM.MUTED };
-  return (
-    <div style={{
-      display:'flex', alignItems:'center', gap:12, flexWrap:'wrap',
-      padding:'10px 14px', borderRadius:12,
-      background:'linear-gradient(180deg, #FFFBF3 0%, #FFF7EA 100%)',
-      border:`1px solid ${ADM.WARN}33`,
-    }}>
-      <div style={{display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
-        <span style={{width:8, height:8, borderRadius:'50%', background:ADM.WARN, boxShadow:`0 0 0 4px ${ADM.WARN}22`}}/>
-        <span style={{fontSize:12, fontWeight:700, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.05em'}}>Richiede attenzione</span>
-      </div>
-      <div style={{display:'flex', gap:8, flexWrap:'wrap', flex:1}}>
-        {items.map((it, i) => (
-          <button key={i} onClick={it.onClick} className="adm-btn"
-            style={{display:'inline-flex', alignItems:'center', gap:8, padding:'6px 10px 6px 11px',
-              borderRadius:99, background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor:'pointer',
-              fontFamily:'inherit', fontSize:13, fontWeight:600, color:ADM.TEXT}}>
-            <span style={{width:7, height:7, borderRadius:'50%', background: toneCol[it.tone] || ADM.MUTED, flexShrink:0}}/>
-            <span>{it.label}</span>
-            <BuIcons.chevronRight size={14} color={ADM.MUTED_SOFT}/>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Hero KPI (Tier 1) — numero grande a sinistra, area chart che riempie la
-// destra: la card usa finalmente tutta la sua larghezza.
 function DashHero({ label, value, trend, trendLabel, sub, detail, data, accent, onClick, selected }) {
   const c = accent || ADM.PINK;
   return (
@@ -672,11 +639,6 @@ function DashGenerale({ onNav }) {
   const paying = payingPool.length;
   const planCount = (pid) => livePool.filter(l => l.piano === pid).length;
 
-  // === ALERT ===
-  const segOpen = SEGNALAZIONI.filter(s => s.stato !== 'risolta').length;
-  const segHi = SEGNALAZIONI.filter(s => s.priorita==='alta'&&s.stato!=='risolta').length;
-  const certPending = CERTIFICAZIONI.filter(c => c.stato === 'pending').length;
-
   // === RICAVI ===
   const mese = MONTHLY_REVENUE[MONTHLY_REVENUE.length - 1];
   const mrrSubMese = mese.sub;
@@ -717,45 +679,6 @@ function DashGenerale({ onNav }) {
   const extraOrdAnno = prezzoExtraMedio ? Math.round(extraAnno / prezzoExtraMedio) : 0;
   const extraOrdMedia = Math.round(extraOrdAnno / 12);
 
-  // Tier 0 · richiede attenzione — dati azionabili prima nascosti nei popup.
-  const pagFalliti = LOCALI.filter(l => l.pagamentoFallito).length;
-  // L'affidabilità in dettaglio vive in Sicurezza e sistemi → Diagnostica. Qui
-  // ne resta il richiamo, e solo quando serve: una fascia che dice «tutto a
-  // posto» ogni giorno smette di essere letta il terzo giorno.
-  const affGuai = [
-    AFFIDABILITA.corrispettivi.rifiutati30g > 0 && {
-      label: `${AFFIDABILITA.corrispettivi.rifiutati30g} corrispettivi rifiutati dall'AdE · ${AFFIDABILITA.corrispettivi.localiCoinvolti} locali`,
-      tone: AFFIDABILITA.corrispettivi.pct >= 2 ? 'DANGER' : 'WARN' },
-    AFFIDABILITA.uptime.picco < 99.9 && {
-      label: `Uptime ${AFFIDABILITA.uptime.picco}% nelle fasce di picco · ${AFFIDABILITA.uptime.minutiGiuPicco30g} minuti giù nel servizio`,
-      tone: 'WARN' },
-    AFFIDABILITA.retry.piuVecchioMin > 30 && {
-      label: `Coda di retry ferma da ${AFFIDABILITA.retry.piuVecchioMin} minuti · ${AFFIDABILITA.retry.inCoda} elementi`,
-      tone: 'WARN' },
-  ].filter(Boolean).map(x => ({ ...x, onClick: ()=>onNav('sicurezza', { tab:'diagnostica' }) }));
-
-  const attentionItems = [
-    ...affGuai,
-    pagFalliti > 0 && { label: `${pagFalliti} addebiti falliti da recuperare`, tone:'DANGER', onClick: ()=>onNav('locali') },
-    stuckOver7 > 0 && { label: `${stuckOver7} onboarding fermi da oltre 7 giorni`, tone:'WARN',    onClick: ()=>onNav('locali') },
-    segHi > 0       && { label: `${segHi} segnalazioni ad alta priorità`,          tone:'DANGER',  onClick: ()=>onNav('comunicazioni') },
-    (segOpen-segHi) > 0 && { label: `${segOpen-segHi} segnalazioni aperte`,          tone:'NEUTRAL', onClick: ()=>onNav('comunicazioni') },
-    certPending > 0 && { label: `${certPending} certificazioni da validare`,        tone:'INFO',    onClick: ()=>onNav('comunicazioni') },
-    // Il riesame degli accessi ha una scadenza, e una scadenza che non si vede
-    // slitta: qui è l'unico posto dove la si incrocia senza andarla a cercare.
-    (() => {
-      const gg = Math.ceil((RIESAME_CORRENTE.scadenza.getTime() - Date.now()) / 86400000);
-      if (RIESAME_CORRENTE.stato !== 'aperta' || gg > 14) return null;
-      return {
-        label: gg < 0
-          ? `Riesame accessi ${RIESAME_CORRENTE.periodo} scaduto da ${-gg} giorni`
-          : `Riesame accessi ${RIESAME_CORRENTE.periodo} · scade fra ${gg} giorni`,
-        tone: gg < 0 ? 'DANGER' : 'WARN',
-        onClick: ()=>onNav('team'),
-      };
-    })(),
-  ].filter(Boolean);
-
   // Dettaglio in-linea aperto (o null). Click su una card → apre la fascia sotto;
   // ri-click sulla stessa la chiude.
   const [detail, setDetail] = React.useState(null);
@@ -764,7 +687,13 @@ function DashGenerale({ onNav }) {
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
 
-      {attentionItems.length > 0 && <AttentionStrip items={attentionItems}/>}
+      {/* La fascia «Richiede attenzione» stava qui e non c'è più. Questa
+          schermata si chiama Analisi Dati e serve a leggere come sta la
+          piattaforma: una coda di cose da fare in cima le dava un compito che
+          non è il suo, e ogni voce viveva comunque nella sezione che quella
+          cosa la risolve — i corrispettivi e la coda di retry in Diagnostica,
+          gli addebiti falliti e gli onboarding fermi in Locali, segnalazioni e
+          certificazioni in Assistenza. */}
 
 
       {/* ═══════════ Tier 1 · Andamento — il polso della piattaforma ═══════════ */}
@@ -3338,7 +3267,7 @@ function DashUtentiApp() {
           <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>/ 5 su {fmtNum(vApp.n)} risposte</span>
           <span style={{flex:1}}/>
           <span style={{fontSize:12.6, color:ADM.MUTED_LIGHT}}>
-            Distribuzione e commenti in Dashboard → Servizio Clienti
+            Distribuzione e commenti in Analisi Dati → Servizio Clienti
           </span>
         </div>
       </AdmCard>
@@ -4855,7 +4784,7 @@ function DashCamerieri() {
           <span style={{fontSize:13, color:ADM.MUTED_SOFT}}>/ 5 su {fmtNum(vStaff.n)} risposte</span>
           <span style={{flex:1}}/>
           <span style={{fontSize:12.6, color:ADM.MUTED_LIGHT}}>
-            Distribuzione e commenti in Dashboard → Servizio Clienti
+            Distribuzione e commenti in Analisi Dati → Servizio Clienti
           </span>
         </div>
       </AdmCard>

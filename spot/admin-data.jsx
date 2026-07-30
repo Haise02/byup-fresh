@@ -590,7 +590,7 @@ const CERTIFICAZIONI = [
 
 // ---------- TEAM ADMIN ----------
 const PERMESSI = [
-  { id: 'dashboard',      label: 'Dashboard',              desc: 'Accesso alla dashboard principale' },
+  { id: 'dashboard',      label: 'Analisi Dati',           desc: 'Accesso alle analisi della piattaforma' },
   { id: 'locali',         label: 'Gestione Locali e staff', desc: 'Visualizza e modifica locali e camerieri' },
   { id: 'utenti',         label: 'Gestione utenti',        desc: 'Visualizza e modifica gli utenti app' },
   { id: 'segnalazioni',   label: 'Ticket',                 desc: 'Gestisce i ticket aperti dai locali: richieste e segnalazioni' },

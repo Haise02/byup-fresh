@@ -6,7 +6,7 @@ const { useState: useStateApp } = React;
 // staccato in basso. Niente micro-header maiuscoli (Operatività/Marketing…):
 // le icone + label bastano, e la sidebar respira.
 const NAV_MAIN = [
-  { id: 'dashboard',    label: 'Dashboard',    icon: 'homeFill' },
+  { id: 'dashboard',    label: 'Analisi Dati', icon: 'chartFill' },
   { id: 'locali',       label: 'Locali',       icon: 'storeFill', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
   { id: 'camerieri',    label: 'Staff',        icon: 'staffFill' },
   { id: 'utenti',       label: 'Utenti App',   icon: 'phoneFill' },
@@ -212,7 +212,7 @@ function AdminApp({ tweaks }) {
   const closeMessageModal = () => setMessageModal(null);
 
   const pageTitles = {
-    dashboard:    { t:'Dashboard', s:'Quadro generale e analytics della piattaforma' },
+    dashboard:    { t:'Analisi Dati', s:'Come sta la piattaforma, letta dai numeri' },
     locali:       { t:'Locali', s:'Ristoranti registrati e relativo onboarding' },
     camerieri:    { t:'Staff', s:'Staff registrato sui locali · camerieri, cassa, proprietari, dispositivi' },
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
