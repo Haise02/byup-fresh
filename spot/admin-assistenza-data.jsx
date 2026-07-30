@@ -1,12 +1,13 @@
 // Byup Spot — Chiamata assistenza · dati
 //
-// Quattro corpi di dati che vivono nella stessa sezione perché rispondono alla
-// stessa domanda — «come stiamo assistendo i ristoratori?» — da quattro lati:
+// Cinque corpi di dati che vivono nella stessa sezione perché rispondono alla
+// stessa domanda — «come stiamo andando con chi ci usa?» — da lati diversi:
 //
 //   1. RICHIAMATE   le prenotazioni di richiamata prese dai ristoratori (la coda)
 //   2. TICKET_SRV   le richieste di assistenza aperte, per i volumi e i tempi
 //   3. FAQ_SRV      la base di conoscenza pubblicata nel gestionale
 //   4. GUIDE_SRV    le guide, raggruppate per argomento, con il video allegato
+//   5. VALUTAZIONE_APP  il voto che il cliente finale lascia dentro l'app
 //
 // Le date sono ancorate a `Date.now()` e non a costanti: un dataset con date
 // fisse invecchia e dopo qualche settimana la coda mostra scadenze tutte rosse.
@@ -463,12 +464,53 @@ const GUIDE_SRV = [
     video: null },
 ];
 
+// ─── 5. Valutazione della Byup App ──────────────────────────────────────────
+//
+// L'altro voto da 1 a 5 che riceviamo, e non ha niente a che vedere con
+// l'assistenza: lo lascia il cliente finale dentro l'app, non il ristoratore
+// dopo una chiamata. Sta in questo file perché la Dashboard li mette a
+// confronto nella stessa sezione — sono i due modi in cui qualcuno ci dice
+// come stiamo andando — ma vanno tenuti distinti in ogni conto: mescolarli
+// darebbe una media che non descrive nessuno dei due.
+//
+// La distribuzione è a J, come tutte le valutazioni volontarie: tanti 5,
+// pochi 4, e una coda bassa di 1 che pesa più di quanto dica il numero.
+const VALUTAZIONE_APP = {
+  distribuzione: [
+    { voto: 1, n: 47 },
+    { voto: 2, n: 63 },
+    { voto: 3, n: 186 },
+    { voto: 4, n: 742 },
+    { voto: 5, n: 1594 },
+  ],
+  recensioni: [
+    { id:'VA-09', chi:'Martina C.', dove:'Roma',    voto:5, da:4*SRV_ORA,
+      testo:'Ordinato e pagato dal tavolo senza aspettare nessuno. Il conto diviso in quattro ha funzionato al primo colpo.' },
+    { id:'VA-08', chi:'Alessio D.', dove:'Milano',  voto:4, da:9*SRV_ORA,
+      testo:'Comoda per ordinare, ma la ricerca dei locali mi mostra ancora posti a venti minuti di macchina.' },
+    { id:'VA-07', chi:'Giulia P.',  dove:'Napoli',  voto:5, da:1.2*SRV_GIORNO,
+      testo:'Le promozioni del locale sotto casa mi arrivano puntuali e le uso davvero.' },
+    { id:'VA-06', chi:'Marco T.',   dove:'Torino',  voto:2, da:1.6*SRV_GIORNO,
+      testo:'Due volte su tre il pagamento con Apple Pay si blocca e devo rifare tutto dall\'inizio.' },
+    { id:'VA-05', chi:'Sara V.',    dove:'Bologna', voto:5, da:2.1*SRV_GIORNO,
+      testo:'Prenotazione in tre tocchi e conferma immediata. Non torno più a telefonare.' },
+    { id:'VA-04', chi:'Luca B.',    dove:'Firenze', voto:3, da:2.8*SRV_GIORNO,
+      testo:'Funziona, ma il menu di alcuni locali è fermo a mesi fa e i prezzi non tornano.' },
+    { id:'VA-03', chi:'Elena R.',   dove:'Bari',    voto:5, da:3.4*SRV_GIORNO,
+      testo:'Adoro non dover chiedere il conto. L\'ho fatta scaricare a tutto il gruppo.' },
+    { id:'VA-02', chi:'Davide M.',  dove:'Verona',  voto:1, da:4*SRV_GIORNO,
+      testo:'Ordine partito due volte e addebitato due volte. Rimborsato dopo tre giorni, ma la serata l\'ho passata a scrivere all\'assistenza.' },
+    { id:'VA-01', chi:'Chiara F.',  dove:'Palermo', voto:4, da:5.2*SRV_GIORNO,
+      testo:'Interfaccia chiara. Manca solo poter salvare un ordine come preferito.' },
+  ].map(r => ({ ...r, il: new Date(Date.now() - r.da) })),
+};
+
 // ─── KPI derivati ───────────────────────────────────────────────────────────
 //
 // Una sola funzione, usata sia dalla sezione Chiamata assistenza sia dal tab
 // «Servizio Clienti» della Dashboard: due schermate che mostrassero numeri
 // diversi per la stessa cosa sarebbero peggio di una schermata sola.
-function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV, guide = GUIDE_SRV) {
+function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
   const ora = Date.now();
 
   // ── Richiamate ──
@@ -528,25 +570,17 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV, guide = GUIDE_SRV)
     return ticket.filter(t => t.apertoIl.getTime() >= da && t.apertoIl.getTime() < a).length;
   });
 
-  // ── Pressione per locale ──
+  // ── Pressione da ticket, per locale ──
   //
-  // Due medie che rispondono alla stessa domanda da due lati: quanto pesa
-  // l'assistenza sul singolo cliente. La base è chi ha davvero aperto qualcosa,
-  // NON tutti i locali della piattaforma: dividere per 50 darebbe «0,5 chiamate
-  // a locale», un numero vero e inutile, perché nasconde che i locali che
-  // chiamano lo fanno più di una volta. Quanti siano quei locali sta accanto
-  // alla media, così la base resta leggibile.
-  const perLocaleChiamate = {};
-  richiamate.forEach(r => { perLocaleChiamate[r.localeId] = (perLocaleChiamate[r.localeId] || 0) + 1; });
-  const localiCheChiamano = Object.keys(perLocaleChiamate).length;
-  const topChiamate = Object.entries(perLocaleChiamate)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([localeId, n]) => ({
-      localeId, n,
-      nome: (richiamate.find(r => r.localeId === localeId) || {}).localeNome || localeId,
-    }));
-
+  // Quanto pesa l'assistenza scritta sul singolo cliente. La base è chi ha
+  // davvero aperto qualcosa, NON tutti i locali della piattaforma: dividere
+  // per 50 darebbe «0,5 ticket a locale», un numero vero e inutile, perché
+  // nasconde che chi apre un ticket ne apre più di uno. Quanti siano quei
+  // locali sta accanto alla media, così la base resta leggibile.
+  //
+  // Le stesse medie sulle CHIAMATE non si contano più qui: la Dashboard le
+  // calcola per conto suo, e vivono in cima alla pagina insieme alla
+  // classifica di chi chiama.
   const apertiPerLocale = {};
   ticket.filter(t => !t.chiusoIl).forEach(t => {
     apertiPerLocale[t.localeId] = (apertiPerLocale[t.localeId] || 0) + 1;
@@ -555,60 +589,10 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV, guide = GUIDE_SRV)
   const maxAperti = Object.values(apertiPerLocale).reduce((m, n) => Math.max(m, n), 0);
 
   const perLocale = {
-    chiamateMedie: localiCheChiamano ? richiamate.length / localiCheChiamano : 0,
-    localiCheChiamano,
-    // Il denominatore delle chiamate NON è la piattaforma intera ma i soli
-    // locali che hanno diritto alla chiamata: mettere a confronto chi chiama
-    // con tutti e 50 farebbe sembrare bassissimo un tasso che si misura solo
-    // sui Plus e Business. I ticket invece li può aprire chiunque, e lì il
-    // paragone con tutta la base è quello giusto.
-    localiAmmessi: LOCALI.filter(l => srvHaChiamata(l.piano)).length,
     localiTotali: LOCALI.length,
-    topChiamate,
     apertiMedi: localiConAperti ? apertiOra / localiConAperti : 0,
     localiConAperti,
     maxAperti,
-  };
-
-  // ── Video ──
-  const video = guide.filter(g => g.video).map(g => {
-    const v = g.video;
-    const voti = v.utile + v.nonUtile;
-    return {
-      guidaId: g.id,
-      guidaTitolo: g.titolo,
-      argomentoId: g.argomentoId,
-      titolo: v.titolo,
-      durataSec: v.durataSec,
-      tempoMedioSec: v.tempoMedioSec,
-      // Quanto del video viene effettivamente guardato. È il numero che dice
-      // se un video è troppo lungo, molto più della somma delle view.
-      completamento: Math.round(v.tempoMedioSec / v.durataSec * 100),
-      views: v.views,
-      utile: v.utile,
-      nonUtile: v.nonUtile,
-      voti,
-      pctUtile: voti ? Math.round(v.utile / voti * 100) : null,
-    };
-  }).sort((a, b) => b.views - a.views);
-
-  const videoTot = video.reduce((acc, v) => ({
-    views: acc.views + v.views,
-    utile: acc.utile + v.utile,
-    nonUtile: acc.nonUtile + v.nonUtile,
-    pesoTempo: acc.pesoTempo + v.tempoMedioSec * v.views,
-    pesoDurata: acc.pesoDurata + v.durataSec * v.views,
-  }), { views: 0, utile: 0, nonUtile: 0, pesoTempo: 0, pesoDurata: 0 });
-  const videoMedia = {
-    views: videoTot.views,
-    utile: videoTot.utile,
-    nonUtile: videoTot.nonUtile,
-    pctUtile: (videoTot.utile + videoTot.nonUtile)
-      ? Math.round(videoTot.utile / (videoTot.utile + videoTot.nonUtile) * 100) : null,
-    // Media pesata sulle view: un video visto 50 volte non deve spostare la
-    // media quanto uno visto 2.600.
-    tempoMedioSec: videoTot.views ? Math.round(videoTot.pesoTempo / videoTot.views) : 0,
-    completamento: videoTot.pesoDurata ? Math.round(videoTot.pesoTempo / videoTot.pesoDurata * 100) : 0,
   };
 
   return {
@@ -626,7 +610,6 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV, guide = GUIDE_SRV)
     soddisfazione: { media, n: votati.length, distribuzione, recensioni },
     ticket: { finestre, chiusuraMediaOre, chiusuraPrecOre, apertiOra, serie: serieTicket },
     perLocale,
-    video, videoMedia,
   };
 }
 
@@ -654,6 +637,6 @@ Object.assign(window, {
   SRV_CATEGORIE, SRV_PROBLEMI, SRV_URGENZE, SRV_MAIL_NON_RISPOSTA,
   SRV_FASCE, SRV_PIANI_CON_CHIAMATA, srvHaChiamata, srvScadenza,
   RICHIAMATE, TICKET_SRV,
-  FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV,
+  FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV, VALUTAZIONE_APP,
   srvKpi, srvMinutiAScadere, srvNonRisolto, srvDurata, srvMinuti, srvOre,
 });

@@ -1730,10 +1730,15 @@ function SrvArgomentoEditor({ stato, onChiudi, onSalva }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 4. KPI — condivisi con il tab «Servizio Clienti» della Dashboard
 // ═══════════════════════════════════════════════════════════════════════════
-function AdmServizioClientiKPI({ richiamate, guide }) {
-  const k = useMemoSrv(() => srvKpi(richiamate || RICHIAMATE, TICKET_SRV, guide || GUIDE_SRV),
-    [richiamate, guide]);
+function AdmServizioClientiKPI({ richiamate }) {
+  const k = useMemoSrv(() => srvKpi(richiamate || RICHIAMATE, TICKET_SRV), [richiamate]);
   const s = k.soddisfazione;
+
+  // Il voto dell'app arriva già in distribuzione: media e totale si contano da
+  // lì, senza tenere in giro due numeri che possono smentirsi a vicenda.
+  const appN = VALUTAZIONE_APP.distribuzione.reduce((t, d) => t + d.n, 0);
+  const appMedia = appN
+    ? VALUTAZIONE_APP.distribuzione.reduce((t, d) => t + d.voto * d.n, 0) / appN : 0;
 
   // ── Chi chiama, e quanto ──────────────────────────────────────────────────
   //
@@ -1762,7 +1767,6 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
   // che ne avrebbero diritto darebbe un numero sotto l'uno, vero ma inutile —
   // la domanda è quante volte chiama chi chiama.
   const mediaPerLocale = perLocale.length ? k.richiamate.totali / perLocale.length : 0;
-  const maxVoti = Math.max(...s.distribuzione.map(d => d.n), 1);
   // Il tempo di chiusura migliora quando SCENDE: il segno del delta va
   // rovesciato prima di darlo al badge, che colora il positivo di verde.
   const deltaChiusura = k.ticket.chiusuraPrecOre
@@ -1793,74 +1797,6 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
         <SrvClassificaChiamanti locali={perLocale} onChiudi={()=>setClassifica(false)}/>
       )}
 
-      {/* ── Soddisfazione ── */}
-      <SectionLabel title="Soddisfazione" desc="Il voto da 1 a 5 chiesto al ristoratore dopo la chiamata"/>
-      {/* alignItems:start — la card del voto ha un'altezza naturale corta, e
-          stirarla per pareggiare quella delle recensioni le lascerebbe dentro
-          un vuoto largo quanto mezza card. */}
-      <div style={{display:'grid', gridTemplateColumns:'300px minmax(0,1fr)', gap:14, alignItems:'start'}}>
-        <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
-          <div style={{padding:'16px 18px 14px'}}>
-            <div style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-              letterSpacing:'0.04em'}}>Voto medio</div>
-            <div style={{display:'flex', alignItems:'baseline', gap:9, marginTop:8}}>
-              <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>
-                {s.media.toFixed(1).replace('.', ',')}
-              </span>
-              <span style={{fontSize:14, color:ADM.MUTED_SOFT, fontWeight:600}}>/ 5</span>
-            </div>
-            <div style={{display:'flex', alignItems:'center', gap:9, marginTop:9}}>
-              <SrvStelle valore={s.media} size={17}/>
-              <span style={{fontSize:12.5, color:ADM.MUTED}}>su {s.n} risposte</span>
-            </div>
-          </div>
-          <div style={{padding:'13px 18px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
-            display:'flex', flexDirection:'column', gap:7}}>
-            {[...s.distribuzione].reverse().map(d => (
-              <div key={d.voto} style={{display:'flex', alignItems:'center', gap:9}}>
-                <span style={{fontSize:12, color:ADM.MUTED, fontWeight:700, width:10, textAlign:'right'}}>{d.voto}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" style={{flexShrink:0}}>
-                  <path d="M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 17l-5.4 2.7 1-6L3.4 9.4l6-.9L12 3z"/>
-                </svg>
-                <span style={{flex:1, height:6, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
-                  <span style={{display:'block', width:`${d.n / maxVoti * 100}%`, height:'100%',
-                    background: d.voto >= 4 ? ADM.OK : d.voto === 3 ? ADM.WARN : ADM.DANGER, borderRadius:99}}/>
-                </span>
-                <span style={{fontSize:12, color:ADM.TEXT, fontWeight:600, width:14, textAlign:'right'}}>{d.n}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{padding:'10px 18px 12px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
-            fontSize:11.8, color:ADM.MUTED_LIGHT, lineHeight:1.5}}>
-            Il sondaggio parte dieci minuti dopo la chiamata e resta aperto un giorno.
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
-          <div style={{padding:'13px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-            fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
-            letterSpacing:'0.04em', display:'flex', alignItems:'center', gap:8}}>
-            Recensioni <span style={{color:ADM.MUTED_LIGHT}}>{s.recensioni.length}</span>
-          </div>
-          <div style={{flex:1, minHeight:0, maxHeight:322, overflowY:'auto'}}>
-            {s.recensioni.map((r, i) => (
-              <div key={r.id} style={{padding:'12px 20px',
-                borderBottom: i === s.recensioni.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-                <div style={{display:'flex', alignItems:'center', gap:9, marginBottom:5}}>
-                  <SrvStelle valore={r.voto} size={12}/>
-                  <span style={{fontSize:13, fontWeight:700, color:ADM.TEXT}}>{r.localeNome}</span>
-                  <span style={{fontSize:12, color:ADM.MUTED_SOFT}}>{r.titolare}</span>
-                  <div style={{flex:1}}/>
-                  <span style={{fontSize:11.5, color:ADM.MUTED_LIGHT}}>{fmtRelative(r.richiamataIl)}</span>
-                </div>
-                <div style={{fontSize:13.2, color:ADM.TEXT, lineHeight:1.55}}>«{r.recensione}»</div>
-              </div>
-            ))}
-            {s.recensioni.length === 0 && <AdmEmpty icon="star" title="Nessuna recensione" desc="Nessuno ha ancora lasciato un commento"/>}
-          </div>
-        </AdmCard>
-      </div>
-
       {/* ── Richieste e ticket ── */}
       {/* Il conteggio è più largo della sezione Ticket: là ci sono le richieste
           scritte, qui tutte quelle che aprono una pratica, da qualunque canale
@@ -1868,7 +1804,7 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
           stesso dato sbagliato. */}
       <SectionLabel title="Richieste di assistenza"
         desc="Da tutti i canali — ticket scritti, chat, chiamate, gestionale · la finestra «oggi» è bassa per costruzione"/>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:14}}>
         {k.ticket.finestre.map(f => (
           <AdmCard key={f.label} padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
             <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
@@ -1894,120 +1830,130 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
           trend={deltaChiusura} trendLabel="vs mese precedente"
           sub={`${k.ticket.apertiOra} ticket aperti in questo momento`}
           data={k.ticket.serie} gradId="grad-srv-ticket"/>
-      </div>
-
-      {/* ── Pressione per locale ── */}
-      <SectionLabel title="Per locale"
-        desc="Quanto pesa l'assistenza sul singolo cliente · le medie sono su chi ha davvero aperto qualcosa"/>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
-        <DashStatCard label="Chiamate per locale" accent="INFO"
-          value={k.perLocale.chiamateMedie.toFixed(1).replace('.', ',')}
-          sub={`${k.perLocale.localiCheChiamano} su ${k.perLocale.localiAmmessi} locali Plus e Business hanno prenotato almeno una chiamata`}
-          ratio={{ a:k.perLocale.localiCheChiamano, b:k.perLocale.localiAmmessi - k.perLocale.localiCheChiamano,
-            aLabel:'hanno chiamato', bLabel:'mai', aColor:ADM.INFO }}/>
+        {/* Quanto pesano i ticket sul singolo cliente: stava in una sezione
+            «Per locale» che ripeteva in altra forma le due card in cima alla
+            pagina. Tolte quelle, restava questa da sola, e sta bene qui —
+            dove ci sono gli altri conti sui ticket. */}
         <DashStatCard label="Ticket aperti per locale" accent="WARN"
           value={k.perLocale.apertiMedi.toFixed(1).replace('.', ',')}
           sub={`${k.ticket.apertiOra} ticket aperti su ${k.perLocale.localiConAperti} locali · il più carico ne ha ${k.perLocale.maxAperti}`}
           ratio={{ a:k.perLocale.localiConAperti, b:k.perLocale.localiTotali - k.perLocale.localiConAperti,
             aLabel:'con ticket aperti', bLabel:'puliti', aColor:ADM.WARN }}/>
-
-        {/* Il terzo riquadro non è una media: è il nome. Una media alta non
-            dice su chi intervenire, la classifica sì — e un locale che chiama
-            tre volte in una settimana è un problema di prodotto, non di coda. */}
-        <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
-          <div style={{padding:'15px 16px 10px'}}>
-            <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
-              letterSpacing:'0.04em'}}>Chi chiama di più</span>
-          </div>
-          <div style={{flex:1}}>
-            {k.perLocale.topChiamate.length === 0
-              ? <div style={{padding:'0 16px 16px', fontSize:12.8, color:ADM.MUTED_SOFT}}>Nessuna chiamata.</div>
-              : k.perLocale.topChiamate.map((t, i) => (
-                <div key={t.localeId} style={{display:'flex', alignItems:'center', gap:10, padding:'7px 16px',
-                  borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-                  <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_LIGHT, width:12}}>{i + 1}</span>
-                  <span style={{flex:1, minWidth:0, fontSize:13.2, fontWeight:600, color:ADM.TEXT,
-                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{t.nome}</span>
-                  <span style={{fontSize:13, fontWeight:700, color: t.n >= 3 ? ADM.DANGER : ADM.TEXT,
-                    fontVariantNumeric:'tabular-nums'}}>{t.n}</span>
-                </div>
-              ))}
-          </div>
-          <div style={{padding:'9px 16px 12px', fontSize:11.8, color:ADM.MUTED_LIGHT}}>
-            Chiamate prenotate negli ultimi 7 giorni
-          </div>
-        </AdmCard>
       </div>
 
-      {/* ── Video ── */}
-      <SectionLabel title="Video delle guide"
-        desc="Quanto viene guardato davvero, e chi ha premuto «utile» o «non utile»"/>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
-        <DashStatCard label="Tempo medio di visualizzazione" accent="INFO"
-          value={srvDurata(k.videoMedia.tempoMedioSec)}
-          sub={`${k.videoMedia.completamento}% della durata, su ${fmtNum(k.videoMedia.views)} visualizzazioni`}/>
-        <DashStatCard label="Video giudicati utili" accent="OK"
-          value={k.videoMedia.pctUtile != null ? `${k.videoMedia.pctUtile}%` : '—'}
-          sub={`${k.videoMedia.utile} «utile» · ${k.videoMedia.nonUtile} «non utile»`}
-          ratio={{ a:k.videoMedia.utile, b:k.videoMedia.nonUtile, aLabel:'utile', bLabel:'non utile', aColor:ADM.OK }}/>
-        <DashStatCard label="Video pubblicati"
-          value={k.video.length}
-          sub={`Su ${(guide || GUIDE_SRV).length} guide in catalogo`}/>
+      {/* ── Soddisfazione, in fondo ── */}
+      {/* Due voti che NON si sommano: uno lo lascia il ristoratore dopo una
+          chiamata, l'altro il cliente finale dentro l'app. Vicini perché sono
+          i due modi in cui qualcuno ci dice come stiamo andando, separati
+          perché una media unica non descriverebbe nessuno dei due. */}
+      <SectionLabel title="Soddisfazione"
+        desc="Il voto da 1 a 5 sull'assistenza, chiesto dopo la chiamata, e quello sull'app, chiesto dentro l'app"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14, alignItems:'start'}}>
+        <SrvValutazione
+          titolo="Valutazione Assistenza"
+          media={s.media} n={s.n} distribuzione={s.distribuzione}
+          nota="Il sondaggio parte dieci minuti dopo la chiamata e resta aperto un giorno."
+          recensioni={s.recensioni.map(r => ({ id:r.id, voto:r.voto, chi:r.localeNome,
+            dove:r.titolare, il:r.richiamataIl, testo:r.recensione }))}/>
+        <SrvValutazione
+          titolo="Valutazione App"
+          media={appMedia} n={appN} distribuzione={VALUTAZIONE_APP.distribuzione}
+          nota="Chiesta dentro l'app dopo il decimo ordine, una volta sola."
+          recensioni={VALUTAZIONE_APP.recensioni}/>
       </div>
 
-      <AdmCard padding={0} style={{overflow:'hidden'}}>
-        <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 82px 118px 152px 118px 150px',
-          gap:12, padding:'11px 20px', background:ADM.PANEL_SOFT, borderBottom:`1px solid ${ADM.BORDER}`,
-          fontSize:11.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>
-          <span>Video</span>
-          <span style={{textAlign:'right'}}>Durata</span>
-          <span style={{textAlign:'right'}}>Visto in media</span>
-          <span>Completamento</span>
-          <span style={{textAlign:'right'}}>Visualizzazioni</span>
-          <span>Utile / Non utile</span>
+    </div>
+  );
+}
+
+// ─── Una valutazione da 1 a 5 ───────────────────────────────────────────────
+//
+// Serve due volte con dati di provenienza diversa — l'assistenza e l'app — e
+// il conto è lo stesso: media grande, distribuzione, e i commenti.
+//
+// I commenti stanno chiusi. Aperti a tutta larghezza erano la cosa più grossa
+// della pagina: nove paragrafi che si leggono uno alla volta occupavano più
+// spazio di tutti i numeri messi insieme, e i numeri sono il motivo per cui si
+// entra in una Dashboard. Chi vuole leggerli fa un clic e ci scorre dentro.
+function SrvValutazione({ titolo, media, n, distribuzione, recensioni = [], nota }) {
+  const [aperte, setAperte] = useStateSrv(false);
+  const max = Math.max(...distribuzione.map(d => d.n), 1);
+  return (
+    <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+      <div style={{padding:'16px 18px 14px'}}>
+        <div style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+          letterSpacing:'0.04em'}}>{titolo}</div>
+        <div style={{display:'flex', alignItems:'baseline', gap:9, marginTop:8}}>
+          <span style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1}}>
+            {media.toFixed(1).replace('.', ',')}
+          </span>
+          <span style={{fontSize:14, color:ADM.MUTED_SOFT, fontWeight:600}}>/ 5</span>
         </div>
-        {k.video.map((v, i) => (
-          <div key={v.guidaId} style={{display:'grid',
-            gridTemplateColumns:'minmax(0,1fr) 82px 118px 152px 118px 150px', gap:12,
-            padding:'12px 20px', alignItems:'center',
-            borderBottom: i === k.video.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap',
-                overflow:'hidden', textOverflow:'ellipsis'}}>{v.titolo}</div>
-              <div style={{fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:2, whiteSpace:'nowrap',
-                overflow:'hidden', textOverflow:'ellipsis'}}>{v.guidaTitolo}</div>
-            </div>
-            <span style={{textAlign:'right', fontSize:13, color:ADM.MUTED, fontVariantNumeric:'tabular-nums'}}>
-              {srvDurata(v.durataSec)}
+        <div style={{display:'flex', alignItems:'center', gap:9, marginTop:9}}>
+          <SrvStelle valore={media} size={17}/>
+          <span style={{fontSize:12.5, color:ADM.MUTED}}>su {fmtNum(n)} risposte</span>
+        </div>
+      </div>
+
+      <div style={{padding:'13px 18px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+        display:'flex', flexDirection:'column', gap:7}}>
+        {[...distribuzione].reverse().map(d => (
+          <div key={d.voto} style={{display:'flex', alignItems:'center', gap:9}}>
+            <span style={{fontSize:12, color:ADM.MUTED, fontWeight:700, width:10, textAlign:'right'}}>{d.voto}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" style={{flexShrink:0}}>
+              <path d="M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 17l-5.4 2.7 1-6L3.4 9.4l6-.9L12 3z"/>
+            </svg>
+            <span style={{flex:1, height:6, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
+              <span style={{display:'block', width:`${d.n / max * 100}%`, height:'100%',
+                background: d.voto >= 4 ? ADM.OK : d.voto === 3 ? ADM.WARN : ADM.DANGER, borderRadius:99}}/>
             </span>
-            <span style={{textAlign:'right', fontSize:13.6, fontWeight:700, color:ADM.TEXT,
-              fontVariantNumeric:'tabular-nums'}}>{srvDurata(v.tempoMedioSec)}</span>
-            <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <span style={{flex:1, height:6, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
-                <span style={{display:'block', width:`${v.completamento}%`, height:'100%', borderRadius:99,
-                  background: v.completamento >= 65 ? ADM.OK : v.completamento >= 45 ? ADM.WARN : ADM.DANGER}}/>
-              </span>
-              <span style={{fontSize:12.3, fontWeight:700, color:ADM.TEXT, width:32, textAlign:'right'}}>{v.completamento}%</span>
-            </div>
-            <span style={{textAlign:'right', fontSize:13, color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>
-              {fmtNum(v.views)}
-            </span>
-            <div style={{display:'flex', alignItems:'center', gap:9}}>
-              <span style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12.5, fontWeight:700, color:ADM.OK}}>
-                <BuIcons.thumbUp size={14}/>{v.utile}
-              </span>
-              <span style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12.5, fontWeight:700, color:ADM.MUTED}}>
-                <BuIcons.thumbDown size={14}/>{v.nonUtile}
-              </span>
-              {v.pctUtile != null && (
-                <span style={{fontSize:12, color:ADM.MUTED_LIGHT, fontWeight:600}}>({v.pctUtile}%)</span>
-              )}
-            </div>
+            <span style={{fontSize:12, color:ADM.TEXT, fontWeight:600, minWidth:26, textAlign:'right',
+              fontVariantNumeric:'tabular-nums'}}>{fmtNum(d.n)}</span>
           </div>
         ))}
-        {k.video.length === 0 && <AdmEmpty icon="monitor" title="Nessun video" desc="Nessuna guida ha ancora un video allegato"/>}
-      </AdmCard>
-    </div>
+      </div>
+
+      <button onClick={()=>setAperte(x => !x)} className="adm-btn" disabled={recensioni.length === 0}
+        style={{display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left',
+          padding:'11px 18px', border:'none', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+          background: aperte ? ADM.PANEL_SOFT : 'transparent',
+          fontFamily:'inherit', fontSize:12.8, fontWeight:600,
+          color: recensioni.length === 0 ? ADM.MUTED_LIGHT : ADM.TEXT,
+          cursor: recensioni.length === 0 ? 'default' : 'pointer'}}>
+        <span style={{display:'inline-flex', color:ADM.MUTED_SOFT,
+          transform: aperte ? 'rotate(90deg)' : 'none', transition:'transform 150ms ease'}}>
+          <BuIcons.chevronRight size={14}/>
+        </span>
+        {recensioni.length === 0 ? 'Nessun commento'
+          : aperte ? 'Chiudi i commenti'
+          : `Leggi ${recensioni.length} commenti`}
+      </button>
+
+      {aperte && (
+        <div className="adm-scroll" style={{maxHeight:300, overflowY:'auto',
+          borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+          {recensioni.map((r, i) => (
+            <div key={r.id} style={{padding:'11px 18px',
+              borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
+                <SrvStelle valore={r.voto} size={11}/>
+                <span style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT, minWidth:0,
+                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.chi}</span>
+                {r.dove && <span style={{fontSize:11.8, color:ADM.MUTED_SOFT, whiteSpace:'nowrap'}}>{r.dove}</span>}
+                <div style={{flex:1}}/>
+                <span style={{fontSize:11.3, color:ADM.MUTED_LIGHT, whiteSpace:'nowrap'}}>{fmtRelative(r.il)}</span>
+              </div>
+              <div style={{fontSize:12.8, color:ADM.TEXT, lineHeight:1.55}}>«{r.testo}»</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {nota && (
+        <div style={{padding:'10px 18px 12px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+          fontSize:11.8, color:ADM.MUTED_LIGHT, lineHeight:1.5}}>{nota}</div>
+      )}
+    </AdmCard>
   );
 }
 
