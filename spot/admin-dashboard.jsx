@@ -417,6 +417,11 @@ function AdmDashboard({ onNav }) {
         <AdmTabBar tabs={[
           { id:'generale', label:'Generale' },
           { id:'locali',   label:'Locali' },
+          // Subito dopo Locali, perché è la stessa popolazione letta dal lato
+          // del ristoratore: non «come vanno i nostri locali» ma «i nostri
+          // locali ci guadagnano». Era la domanda senza risposta di tutta la
+          // sezione, ed è quella che il 34% degli abbandoni ci fa in faccia.
+          { id:'valore',   label:'Valore per il locale' },
           { id:'utentiapp',label:'Utenti App' },
           { id:'camerieri',label:'Staff' },
           // Stesso componente della sezione Chiamata assistenza → Andamento.
@@ -437,6 +442,7 @@ function AdmDashboard({ onNav }) {
       <div>
         {tab === 'generale'  && <DashGenerale onNav={onNav}/>}
         {tab === 'locali'    && <DashLocali onNav={onNav}/>}
+        {tab === 'valore'    && (window.DashValore ? <DashValore/> : null)}
         {tab === 'utentiapp' && <DashUtentiApp/>}
         {tab === 'camerieri' && <DashCamerieri/>}
         {tab === 'servizio'  && (window.AdmServizioClientiKPI ? <AdmServizioClientiKPI/> : null)}
