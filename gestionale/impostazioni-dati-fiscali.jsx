@@ -79,66 +79,69 @@ function ImpDatiFiscali() {
       {/* 2-column layout: form a sx, anteprima scontrino a dx */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 320px', gap: 18, alignItems:'flex-start'}}>
         <div>
-          <ImpCard title="Dati anagrafici" sub="Informazioni fiscali del titolare dell'attività">
-            <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
+          {/* Anagrafica e sede fianco a fianco: sono due meta dello stesso
+              gesto — chi sei e dove stampi — e in colonna costringevano a
+              scorrere per vedere la seconda. Le righe interne sono ripensate
+              per la mezza larghezza: un campo pieno per riga, le coppie solo
+              dove i valori sono corti. height 100% pareggia le altezze. */}
+          <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', gap: 16, alignItems:'stretch', marginBottom: 16}}>
+            <ImpCard title="Dati anagrafici" sub="Informazioni fiscali del titolare dell'attività" style={{marginBottom: 0, height: '100%'}}>
               <ImpField label="Ragione sociale" hint="Come risulta a registro imprese">
                 <ImpInput value={data.ragione} onChange={e => set('ragione', e.target.value)}/>
               </ImpField>
-              <ImpField label="Regime fiscale">
-                <select value={data.regime} onChange={e => set('regime', e.target.value)} style={{
-                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                  borderRadius:9, fontSize:15.5, background:PN.WHITE, fontFamily:'inherit',
-                }}>
-                  <option>Ordinario</option>
-                  <option>Forfettario</option>
-                  <option>Semplificato</option>
-                </select>
-              </ImpField>
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14, marginTop: 4}}>
               <ImpField label="Insegna" hint="Stampata in cima allo scontrino">
                 <ImpInput value={data.insegna} onChange={e => set('insegna', e.target.value)}/>
               </ImpField>
-              <ImpField label="Codice ATECO">
-                <ImpInput value={data.ateco} onChange={e => set('ateco', e.target.value)}/>
-              </ImpField>
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginTop: 4}}>
-              <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata con l\'Agenzia delle Entrate' : 'Inserisci 11 cifre con prefisso IT'}>
-                <div style={{position:'relative'}}>
-                  <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
-                  {data.piva.length === 13 && (
-                    <span style={{
-                      position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)',
-                      color: PN.GREEN, display:'inline-flex',
-                    }}><BuIcons.check size={14}/></span>
-                  )}
-                </div>
-              </ImpField>
-              <ImpField label="Codice fiscale">
-                <ImpInput value={data.cf} onChange={e => set('cf', e.target.value)}/>
-              </ImpField>
-            </div>
-          </ImpCard>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata (AdE)' : 'Inserisci 11 cifre con prefisso IT'}>
+                  <div style={{position:'relative'}}>
+                    <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
+                    {data.piva.length === 13 && (
+                      <span style={{
+                        position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)',
+                        color: PN.GREEN, display:'inline-flex',
+                      }}><BuIcons.check size={14}/></span>
+                    )}
+                  </div>
+                </ImpField>
+                <ImpField label="Codice fiscale">
+                  <ImpInput value={data.cf} onChange={e => set('cf', e.target.value)}/>
+                </ImpField>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginTop: 4}}>
+                <ImpField label="Regime fiscale">
+                  <select value={data.regime} onChange={e => set('regime', e.target.value)} style={{
+                    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
+                    borderRadius:9, fontSize:15.5, background:PN.WHITE, fontFamily:'inherit',
+                  }}>
+                    <option>Ordinario</option>
+                    <option>Forfettario</option>
+                    <option>Semplificato</option>
+                  </select>
+                </ImpField>
+                <ImpField label="Codice ATECO">
+                  <ImpInput value={data.ateco} onChange={e => set('ateco', e.target.value)}/>
+                </ImpField>
+              </div>
+            </ImpCard>
 
-          <ImpCard title="Sede operativa" sub="Indirizzo stampato in cima allo scontrino">
-            <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
+            <ImpCard title="Sede operativa" sub="Indirizzo stampato in cima allo scontrino" style={{marginBottom: 0, height: '100%'}}>
               <ImpField label="Indirizzo">
                 <ImpInput value={data.indirizzo} onChange={e => set('indirizzo', e.target.value)}/>
               </ImpField>
-              <ImpField label="CAP">
-                <ImpInput value={data.cap} onChange={e => set('cap', e.target.value)}/>
-              </ImpField>
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14, marginTop: 4}}>
               <ImpField label="Città">
                 <ImpInput value={data.citta} onChange={e => set('citta', e.target.value)}/>
               </ImpField>
-              <ImpField label="Provincia">
-                <ImpInput value={data.prov} onChange={e => set('prov', e.target.value)}/>
-              </ImpField>
-            </div>
-          </ImpCard>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                <ImpField label="CAP">
+                  <ImpInput value={data.cap} onChange={e => set('cap', e.target.value)}/>
+                </ImpField>
+                <ImpField label="Provincia">
+                  <ImpInput value={data.prov} onChange={e => set('prov', e.target.value)}/>
+                </ImpField>
+              </div>
+            </ImpCard>
+          </div>
 
           <ImpCard
             title="Dati fatturazione"

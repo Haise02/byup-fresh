@@ -92,7 +92,9 @@ function ImpSubTabs({ tabs, active, onChange }) {
   );
 }
 
-function ImpCard({ title, sub, children, action, aurora, anchor }) {
+// `style`: override del contenitore — la coppia Dati anagrafici / Sede
+// operativa lo usa per pareggiare le altezze dentro la griglia.
+function ImpCard({ title, sub, children, action, aurora, anchor, style }) {
   // L2 Aurora soft wash multi-color — pink + lavender + cream mesh su base
   // sfumata pink→lavender. Stesso DNA della variant L2 nella preview themes.
   // Sistema 75/15/10.
@@ -107,6 +109,7 @@ function ImpCard({ title, sub, children, action, aurora, anchor }) {
       border: `1px solid ${aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
       borderRadius: 14,
       marginBottom: 16,
+      ...style,
     }}>
       {(title || action) && (
         <div style={{
