@@ -1851,8 +1851,8 @@ function AdmServizioClientiKPI({ richiamate }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14, alignItems:'start'}}>
         <SrvValutazione
           titolo="Valutazione Assistenza"
-          media={s.media} n={s.n} distribuzione={s.distribuzione}
-          nota="Il sondaggio parte dieci minuti dopo la chiamata e resta aperto un giorno."
+          media={s.media} n={s.n} distribuzione={s.distribuzione} perPiano={s.perPiano}
+          nota={`Chiesta dopo ogni chiamata e alla chiusura di ogni ticket: ${fmtNum(s.nChiamate)} voti dalle chiamate, ${fmtNum(s.nTicket)} dai ticket. Gratuito e Starter non hanno la chiamata, e votano solo sui ticket.`}
           recensioni={s.recensioni.map(r => ({ id:r.id, voto:r.voto, chi:r.localeNome,
             dove:r.titolare, il:r.richiamataIl, testo:r.recensione }))}/>
         <SrvValutazione
@@ -1875,7 +1875,7 @@ function AdmServizioClientiKPI({ richiamate }) {
 // della pagina: nove paragrafi che si leggono uno alla volta occupavano più
 // spazio di tutti i numeri messi insieme, e i numeri sono il motivo per cui si
 // entra in una Dashboard. Chi vuole leggerli fa un clic e ci scorre dentro.
-function SrvValutazione({ titolo, media, n, distribuzione, recensioni = [], nota }) {
+function SrvValutazione({ titolo, media, n, distribuzione, recensioni = [], nota, perPiano }) {
   const [aperte, setAperte] = useStateSrv(false);
   const max = Math.max(...distribuzione.map(d => d.n), 1);
   return (
@@ -1912,6 +1912,38 @@ function SrvValutazione({ titolo, media, n, distribuzione, recensioni = [], nota
           </div>
         ))}
       </div>
+
+      {/* Lo spaccato per piano: quattro righe, la media di ognuno su una
+          scala da 1 a 5 sempre lunga uguale — così le barre si confrontano fra
+          loro invece che con la più alta del gruppo, che le farebbe sembrare
+          distanti anche quando differiscono di un decimo. */}
+      {perPiano && (
+        <div style={{padding:'12px 18px 13px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+          display:'flex', flexDirection:'column', gap:8}}>
+          <div style={{fontSize:11, color:ADM.MUTED_LIGHT, fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.06em'}}>Per piano</div>
+          {perPiano.map(p => (
+            <div key={p.piano} style={{display:'flex', alignItems:'center', gap:9}}>
+              <span style={{width:66, fontSize:12.2, fontWeight:600, color:ADM.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.label}</span>
+              <span style={{flex:1, height:6, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden'}}>
+                {p.media != null && (
+                  <span style={{display:'block', width:`${p.media / 5 * 100}%`, height:'100%', borderRadius:99,
+                    background: p.media >= 4.2 ? ADM.OK : p.media >= 3.5 ? ADM.WARN : ADM.DANGER}}/>
+                )}
+              </span>
+              <span style={{fontSize:12.4, fontWeight:700, color: p.media == null ? ADM.MUTED_LIGHT : ADM.TEXT,
+                width:26, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>
+                {p.media != null ? p.media.toFixed(1).replace('.', ',') : '—'}
+              </span>
+              <span style={{fontSize:11.4, color:ADM.MUTED_LIGHT, width:74, textAlign:'right',
+                whiteSpace:'nowrap'}}>
+                {p.n > 0 ? `${fmtNum(p.n)} voti` : 'nessun voto'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <button onClick={()=>setAperte(x => !x)} className="adm-btn" disabled={recensioni.length === 0}
         style={{display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left',

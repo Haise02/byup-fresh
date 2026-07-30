@@ -322,6 +322,27 @@ function srvNonRisolto(r) {
   return r.stato === 'fatta' && r.risolto === false;
 }
 
+// Il voto che il ristoratore lascia alla chiusura del ticket. Circa un terzo
+// risponde — chi è arrabbiato e chi è contento rispondono più degli altri, e
+// il risultato è la solita distribuzione a J.
+//
+// Il voto pende col piano, e non per compiacenza verso chi paga: i piani alti
+// hanno la chiamata con richiamo entro 30 minuti, i bassi solo la posta. È
+// esattamente la differenza che stiamo vendendo, e se nei dati non si vedesse
+// vorrebbe dire che non la stiamo mantenendo.
+function srvVotoTicket(piano, rnd) {
+  if (rnd() > 0.34) return null;              // non tutti rispondono al sondaggio
+  const soglie = {
+    business: [0.02, 0.05, 0.13, 0.40],       // → 1, 2, 3, 4, resto 5
+    plus:     [0.03, 0.07, 0.18, 0.47],
+    starter:  [0.07, 0.15, 0.34, 0.68],
+    free:     [0.12, 0.25, 0.48, 0.79],
+  }[piano] || [0.08, 0.18, 0.38, 0.70];
+  const x = rnd();
+  for (let i = 0; i < soglie.length; i++) if (x < soglie[i]) return i + 1;
+  return 5;
+}
+
 // ─── 2. Ticket di assistenza ────────────────────────────────────────────────
 //
 // Ogni richiesta di assistenza — da qualunque canale arrivi — apre un ticket.
@@ -349,12 +370,20 @@ const TICKET_SRV = (() => {
       const restaAperto = rnd() < (g < 2 ? 0.42 : g < 7 ? 0.14 : 0.03);
       const durataOre = 0.4 + rnd() * rnd() * 34;   // distribuzione a coda lunga
       const chiusoIl = restaAperto ? null : new Date(apertoIl.getTime() + durataOre * SRV_ORA);
+      const locale = LOCALI[Math.floor(rnd() * LOCALI.length)];
+      const chiuso = chiusoIl && chiusoIl.getTime() <= Date.now() ? chiusoIl : null;
       out.push({
         id: 'TK-' + String(4000 + n++),
-        localeId: LOCALI[Math.floor(rnd() * LOCALI.length)].id,
+        localeId: locale.id,
+        piano: locale.piano,
         canale: canali[Math.floor(rnd() * canali.length)],
         apertoIl,
-        chiusoIl: chiusoIl && chiusoIl.getTime() > Date.now() ? null : chiusoIl,
+        chiusoIl: chiuso,
+        // Alla chiusura parte il sondaggio, e risponde circa un terzo. È da
+        // qui che viene il voto dei piani bassi: Gratuito e Starter non hanno
+        // la chiamata, e senza i ticket la loro soddisfazione non la
+        // misureremmo affatto.
+        voto: chiuso ? srvVotoTicket(locale.piano, rnd) : null,
       });
     }
   }
@@ -523,12 +552,39 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
   const attesaMediaMin = chiuse.length === 0 ? 0
     : Math.round(chiuse.reduce((s, r) => s + (r.richiamataIl - r.prenotataIl), 0) / chiuse.length / SRV_MIN);
 
-  // ── Soddisfazione ──
-  const votati = richiamate.filter(r => r.voto != null);
+  // ── Soddisfazione dell'assistenza ──
+  //
+  // Due sondaggi, un solo voto: quello dopo la chiamata e quello alla chiusura
+  // del ticket. Tenerli separati darebbe due medie che parlano dello stesso
+  // servizio, e una delle due — quella delle chiamate — esisterebbe solo per
+  // Plus e Business, cioè per un terzo dei clienti.
+  //
+  // I commenti invece restano quelli delle chiamate: il sondaggio del ticket
+  // chiede il voto e basta.
+  const votiChiamate = richiamate.filter(r => r.voto != null)
+    .map(r => ({ voto: r.voto, piano: r.piano }));
+  const votiTicket = ticket.filter(t => t.voto != null)
+    .map(t => ({ voto: t.voto, piano: t.piano }));
+  const votati = votiChiamate.concat(votiTicket);
   const media  = votati.length === 0 ? 0
-    : votati.reduce((s, r) => s + r.voto, 0) / votati.length;
-  const distribuzione = [1, 2, 3, 4, 5].map(v => ({ voto: v, n: votati.filter(r => r.voto === v).length }));
+    : votati.reduce((s, v) => s + v.voto, 0) / votati.length;
+  const distribuzione = [1, 2, 3, 4, 5].map(v => ({ voto: v, n: votati.filter(x => x.voto === v).length }));
   const recensioni = richiamate.filter(r => r.recensione).sort((a, b) => b.richiamataIl - a.richiamataIl);
+
+  // Lo spaccato per piano. Non è un dettaglio: è la prova che quello che
+  // vendiamo ai piani alti — la chiamata, il richiamo entro 30 minuti — si
+  // sente. Se il voto del Gratuito pareggiasse quello del Business, staremmo
+  // facendo pagare una cosa che non cambia niente.
+  const perPiano = PIANI.map(p => {
+    const suoi = votati.filter(v => v.piano === p.id);
+    return {
+      piano: p.id,
+      label: p.label,
+      n: suoi.length,
+      media: suoi.length ? suoi.reduce((s, v) => s + v.voto, 0) / suoi.length : null,
+      conChiamata: srvHaChiamata(p.id),
+    };
+  });
 
   // ── Ticket per finestra ──
   // Una finestra si descrive con due numeri soli: quanti ne sono arrivati e
@@ -607,7 +663,8 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
       scadute: scadute.length,
       attesaMediaMin,
     },
-    soddisfazione: { media, n: votati.length, distribuzione, recensioni },
+    soddisfazione: { media, n: votati.length, distribuzione, recensioni, perPiano,
+      nChiamate: votiChiamate.length, nTicket: votiTicket.length },
     ticket: { finestre, chiusuraMediaOre, chiusuraPrecOre, apertiOra, serie: serieTicket },
     perLocale,
   };
