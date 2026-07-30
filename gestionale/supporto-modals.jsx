@@ -333,27 +333,13 @@ function SupTutorialPlayer({ tutorial, onClose }) {
           <button onClick={onClose} aria-label="Chiudi" style={{background:'transparent', border:'none', cursor:'pointer', padding: 4, display:'grid', placeItems:'center'}}><BuIcons.x size={18} color={PN.MUTED}/></button>
         </div>
 
-        {/* Video placeholder */}
-        <div style={{
-          aspectRatio: '16/9',
-          background: 'linear-gradient(135deg, #1f2937, #111827)',
-          display:'grid', placeItems:'center', position:'relative',
-        }}>
-          <button aria-label="Riproduci" style={{
-            width: 64, height: 64, borderRadius:'50%',
-            background:'rgba(255,255,255,0.95)',
-            border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-            color: PN.TEXT, paddingLeft: 4,
-            boxShadow:'0 8px 24px rgba(0,0,0,0.3)',
-          }}><BuIcons.play size={26} color={PN.TEXT}/></button>
-          <div style={{position:'absolute', bottom: 12, left: 16, right: 16, display:'flex', alignItems:'center', gap: 10}}>
-            <div style={{flex: 1, height: 3, background:'rgba(255,255,255,0.3)', borderRadius: 2, overflow:'hidden'}}>
-              <div style={{width: '12%', height:'100%', background: PN.PINK}}/>
-            </div>
-            <div style={{fontSize: 13, color:'rgba(255,255,255,0.85)', fontWeight: 600}}>0:00 / {tutorial.mins}:00</div>
-          </div>
-        </div>
+        {/* Il video, per davvero. Prima qui c'era un finto player: un tasto
+            play che non partiva e una barra di avanzamento ferma al 12% —
+            così il tutorial si apriva e non si guardava. `controls` porta con
+            sé play, avanzamento, volume e tutto schermo, che è quello che
+            serve a chi guarda in sala col telefono in mano. */}
+        <video src={tutorial.video || SUP_VIDEO_DEMO} controls preload="metadata" playsInline
+          style={{width:'100%', aspectRatio:'16/9', display:'block', background:'#111827'}}/>
 
         {/* Body */}
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: '18px 22px 22px'}}>

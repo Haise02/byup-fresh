@@ -1356,8 +1356,17 @@ function SrvRigaGuida({ g, ultima, aperta, onApri, onModifica, onLive, onElimina
         <div style={{padding:'0 20px 16px 162px', display:'flex', flexDirection:'column', gap:12, maxWidth:1000}}>
           <div style={{fontSize:13.8, color:ADM.TEXT, lineHeight:1.6}}>{g.descrizione}</div>
           {v && (
-            <div style={{display:'flex', flexDirection:'column', gap:7}}>
+            <div style={{display:'flex', flexDirection:'column', gap:9}}>
               <div style={SRV_ETI}>Video · {v.titolo}</div>
+              {/* Il video si guarda qui dentro. La miniatura col triangolo
+                  prometteva una riproduzione che non c'era: per sapere cosa
+                  stavamo pubblicando bisognava fidarsi del titolo. `controls`
+                  porta con sé anche il tutto schermo, non serve rifarlo.
+                  `preload=metadata` scarica il primo fotogramma e la durata,
+                  non il file: aprire una riga non deve costare 30 MB. */}
+              <video src={srvVideoSrc(v)} controls preload="metadata" playsInline
+                style={{width:'100%', maxWidth:520, aspectRatio:'16/9', display:'block',
+                  borderRadius:12, background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
               <div style={{fontSize:12.8, color:ADM.MUTED}}>
                 {srvDurata(v.durataSec)} · visto in media {srvDurata(v.tempoMedioSec)} su {fmtNum(v.views)} visualizzazioni
                 {voti > 0 && ` · ${v.utile} «utile», ${v.nonUtile} «non utile»`}
@@ -1393,6 +1402,14 @@ function SrvRigaGuida({ g, ultima, aperta, onApri, onModifica, onLive, onElimina
 const SRV_VIDEO_MAX_MB = 50;
 const SRV_VIDEO_FORMATO = 'MP4 · H.264 + AAC · 1080p · max ' + SRV_VIDEO_MAX_MB + ' MB';
 
+// Da dove il player prende il file. Un video appena caricato ce l'ha davvero:
+// l'editor si tiene l'URL del file scelto e quello parte. Le guide dei dati
+// demo non hanno un file dietro — in una console senza server non ce l'avranno
+// mai — e in mancanza suona l'unico mp4 del repo, così il player si prova per
+// quello che è: un player, non un rettangolo nero col triangolo disegnato.
+const SRV_VIDEO_DEMO = '../gestionale/login-bg-0518.mp4';
+const srvVideoSrc = (v) => (v && v.src) || SRV_VIDEO_DEMO;
+
 const srvPeso = (byte) => byte >= 1024 * 1024
   ? (byte / 1024 / 1024).toFixed(byte >= 10 * 1024 * 1024 ? 0 : 1) + ' MB'
   : Math.max(1, Math.round(byte / 1024)) + ' KB';
@@ -1419,6 +1436,9 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
   const [nuovoArg, setNuovoArg] = useStateSrv(argomenti.length === 0);
   const [erroreVideo, setErroreVideo] = useStateSrv(null);
   const [leggendo, setLeggendo] = useStateSrv(false);
+  // Il player nell'editor sta chiuso: serve a controllare cosa si sta
+  // pubblicando, non ogni volta che si corregge una virgola nel titolo.
+  const [guarda, setGuarda] = useStateSrv(false);
   const agg = (k, v) => setD(x => ({ ...x, [k]: v }));
   const aggVideo = (k, v) => setD(x => ({ ...x, video: { ...(x.video || {}), [k]: v } }));
 
@@ -1459,8 +1479,16 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
       tempoMedioSec: (x.video && x.video.tempoMedioSec) || 0,
       utile: (x.video && x.video.utile) || 0,
       nonUtile: (x.video && x.video.nonUtile) || 0,
-      file: file.name, pesoByte: file.size,
+      // L'URL del file scelto: serve a rivederlo prima di pubblicare. Vive
+      // quanto la pagina, e tanto basta — il caricamento vero è di un server
+      // che qui non c'è.
+      file: file.name, pesoByte: file.size, src: URL.createObjectURL(file),
     }}));
+  };
+
+  const rimuoviVideo = () => {
+    if (d.video && d.video.src && d.video.src.startsWith('blob:')) URL.revokeObjectURL(d.video.src);
+    agg('video', null); setErroreVideo(null); setGuarda(false);
   };
 
   return (
@@ -1558,9 +1586,13 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
             </div>
           ) : (
             <div style={{display:'flex', flexDirection:'column', gap:16}}>
-              <div style={{display:'flex', alignItems:'center', gap:13, padding:'12px 14px', borderRadius:11,
+              <div style={{display:'flex', flexDirection:'column', gap:11, padding:'12px 14px', borderRadius:11,
                 background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
-                <SrvMiniatura video={d.video} w={92}/>
+               <div style={{display:'flex', alignItems:'center', gap:13}}>
+                <button onClick={()=>setGuarda(x => !x)} title={guarda ? 'Chiudi il video' : 'Guarda il video'}
+                  style={{padding:0, background:'none', border:'none', cursor:'pointer', display:'block'}}>
+                  <SrvMiniatura video={d.video} w={92}/>
+                </button>
                 <span style={{flex:1, minWidth:0}}>
                   <span style={{display:'block', fontSize:13.4, fontWeight:600, color:ADM.TEXT,
                     whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
@@ -1575,11 +1607,24 @@ function SrvGuidaEditor({ stato, argomenti, onChiudi, onSalva }) {
                       : `${srvDurata(d.video.durataSec)} di video · letta dal file`}
                   </span>
                 </span>
-                <button onClick={()=>{ agg('video', null); setErroreVideo(null); }} className="adm-btn" style={{
+                <button onClick={()=>setGuarda(x => !x)} className="adm-btn" style={{
+                  padding:'5px 11px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, background:'#fff',
+                  color:ADM.TEXT, fontSize:12.3, fontWeight:600, fontFamily:'inherit', cursor:'pointer'}}>
+                  {guarda ? 'Chiudi' : 'Guarda'}
+                </button>
+                <button onClick={rimuoviVideo} className="adm-btn" style={{
                   padding:'5px 11px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, background:'#fff',
                   color:ADM.DANGER, fontSize:12.3, fontWeight:600, fontFamily:'inherit', cursor:'pointer'}}>
                   Rimuovi
                 </button>
+               </div>
+               {/* Chiuso di default, aperto quando serve: un video appena
+                   caricato si guarda una volta, prima di pubblicare. */}
+               {guarda && (
+                 <video src={srvVideoSrc(d.video)} controls autoPlay preload="metadata" playsInline
+                   style={{width:'100%', maxWidth:460, aspectRatio:'16/9', display:'block', borderRadius:9,
+                     background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
+               )}
               </div>
 
               <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:16}}>
