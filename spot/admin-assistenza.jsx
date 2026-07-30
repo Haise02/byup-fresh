@@ -183,16 +183,6 @@ function SrvMiniatura({ video, w = 128 }) {
   );
 }
 
-// Chip neutra per i metadati (tempo di lettura, durata video, categoria).
-function SrvChip({ children, tono }) {
-  const c = tono ? ADM[tono] : ADM.MUTED;
-  return (
-    <span style={{display:'inline-flex', alignItems:'center', gap:5, padding:'3px 9px', borderRadius:7,
-      background: tono ? `${c}12` : ADM.NEUTRAL_SOFT, color: tono ? c : ADM.TEXT,
-      fontSize:12, fontWeight:600, whiteSpace:'nowrap'}}>{children}</span>
-  );
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Pagina
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1187,12 +1177,83 @@ function SrvInterruttorePubblica({ live, onChange, acceso, spento }) {
 // decide se il ristoratore la vede è un'unica cosa, l'interruttore
 // «Pubblica».
 
+// ─── Campi che sembrano testo ───────────────────────────────────────────────
+//
+// In una pagina di redazione i campi sono quasi tutto: se ognuno porta il suo
+// riquadro grigio, la guida si legge come un modulo dell'anagrafe invece che
+// come la guida che sarà. Quindi il bordo non c'è: compare sfiorando il campo
+// col mouse e si accende quando ci si scrive dentro. La forma è la stessa per
+// titolo, descrizione e note, così una card è tre righe di testo e non tre
+// controlli diversi.
+const SRV_QUIETO = {
+  width:'100%', boxSizing:'border-box', display:'block',
+  borderRadius:9, fontFamily:'inherit', outline:'none', resize:'none',
+  color:ADM.TEXT, transition:'background 130ms ease, border-color 130ms ease',
+};
+
+function SrvTesto({ multi, value, onChange, placeholder, titolo, stile = {}, innerRef }) {
+  const [hover, setHover] = useStateSrv(false);
+  const [fuoco, setFuoco] = useStateSrv(false);
+  const mio = React.useRef(null);
+  const ref = innerRef || mio;
+
+  // Il testo lungo non finisce in una finestrella con la barra: la casella
+  // cresce con quello che si scrive, come una pagina.
+  React.useLayoutEffect(() => {
+    if (!multi || !ref.current) return;
+    ref.current.style.height = 'auto';
+    ref.current.style.height = ref.current.scrollHeight + 'px';
+  }, [value, multi, ref]);
+
+  const T = multi ? 'textarea' : 'input';
+  return (
+    <T ref={ref} value={value} onChange={e=>onChange(e.target.value)}
+      placeholder={placeholder} title={titolo} rows={multi ? 1 : undefined}
+      onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+      onFocus={()=>setFuoco(true)} onBlur={()=>setFuoco(false)}
+      style={{
+        ...SRV_QUIETO,
+        border:`1px solid ${fuoco ? ADM.BORDER : hover ? ADM.BORDER_SOFT : 'transparent'}`,
+        background: fuoco ? '#fff' : hover ? ADM.NEUTRAL_SOFT : 'transparent',
+        ...stile,
+      }}/>
+  );
+}
+
+// Pastiglia di stato: un pallino e una parola. Sostituisce la scritta verde
+// «Online» sparata accanto alla levetta.
+function SrvStato({ live }) {
+  return (
+    <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'3px 10px 3px 8px',
+      borderRadius:99, background: live ? `${ADM.OK}14` : ADM.NEUTRAL_SOFT,
+      color: live ? ADM.OK : ADM.MUTED, fontSize:12, fontWeight:600, whiteSpace:'nowrap'}}>
+      <span style={{width:6, height:6, borderRadius:99, background: live ? ADM.OK : ADM.MUTED_LIGHT}}/>
+      {live ? 'Online' : 'Bozza'}
+    </span>
+  );
+}
+
+// Azione scritta, non un bottone pieno: dentro una card di contenuto un
+// bottone grigio pesa come il contenuto.
+function SrvAzioneTesto({ onClick, colore, children }) {
+  const [hover, setHover] = useStateSrv(false);
+  return (
+    <button onClick={onClick} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+      style={{padding:'4px 8px', marginRight:-8, borderRadius:7, border:'none',
+        background: hover ? ADM.NEUTRAL_SOFT : 'transparent',
+        color: colore || ADM.MUTED, fontSize:12.6, fontWeight:600, fontFamily:'inherit',
+        cursor:'pointer', whiteSpace:'nowrap', transition:'background 130ms ease, color 130ms ease'}}>
+      {children}
+    </button>
+  );
+}
+
 function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
   const [selArg, setSelArg] = useStateSrv(argomenti[0] ? argomenti[0].id : null);
   const [editorArg, setEditorArg] = useStateSrv(null);
   const [cerca, setCerca] = useStateSrv('');
-  // La guida appena creata è vuota: nasce aperta e col fuoco nel titolo,
-  // altrimenti comparirebbe una card senza nome e senza dire cosa farne.
+  // La guida appena creata è vuota: nasce col fuoco nel titolo, altrimenti
+  // comparirebbe una card senza nome e senza dire cosa farne.
   const [nuovaId, setNuovaId] = useStateSrv(null);
 
   const arg = argomenti.find(a => a.id === selArg) || argomenti[0] || null;
@@ -1238,22 +1299,23 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
     setNuovaId(id);
   };
 
+  const n = arg ? contaArg(arg.id) : 0;
+
   return (
     <div style={{flex:1, minHeight:0, display:'flex'}}>
 
       {/* ─── Sinistra: gli argomenti ─────────────────────────────────────── */}
-      <div style={{width:322, flexShrink:0, borderRight:`1px solid ${ADM.BORDER}`, background:'#fff',
+      <div style={{width:300, flexShrink:0, borderRight:`1px solid ${ADM.BORDER}`, background:'#fff',
         display:'flex', flexDirection:'column', minHeight:0}}>
-        <div style={{padding:'13px 16px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-          display:'flex', alignItems:'center', gap:10}}>
-          <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
-            letterSpacing:'0.07em', flex:1}}>Argomenti</span>
-          <AdmButton variant="secondary" size="sm" icon="plus"
+        <div style={{padding:'16px 18px 12px', display:'flex', alignItems:'baseline', gap:10}}>
+          <span style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase',
+            letterSpacing:'0.09em', flex:1}}>Argomenti</span>
+          <SrvAzioneTesto colore={ADM.PINK}
             onClick={()=>setEditorArg({ nuovo:true, dati:{ nome:'', descrizione:'', icona:'list' } })}>
-            Nuovo
-          </AdmButton>
+            + Nuovo
+          </SrvAzioneTesto>
         </div>
-        <div style={{flex:1, overflowY:'auto', minHeight:0}}>
+        <div className="adm-scroll" style={{flex:1, overflowY:'auto', minHeight:0, padding:'0 10px 12px'}}>
           {argomenti.length === 0 && (
             <AdmEmpty icon="list" title="Nessun argomento"
               desc="Le guide vivono in un argomento: creane uno con «Nuovo»"/>
@@ -1276,45 +1338,52 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
           <AdmEmpty icon="list" title="Nessun argomento" desc="Creane uno a sinistra per cominciare"/>
         ) : (
           <React.Fragment>
-            <div style={{padding:'14px 24px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`,
-              display:'flex', alignItems:'center', gap:14, flexShrink:0}}>
+            {/* Testata: il nome dell'argomento in grande, una riga di conti
+                sotto. Non è una barra piena di comandi — l'unico comando è
+                quello che serve qui. */}
+            <div style={{padding:'20px 30px 16px', flexShrink:0, maxWidth:960, boxSizing:'border-box',
+              display:'flex', alignItems:'flex-end', gap:16}}>
               <div style={{minWidth:0, flex:1}}>
-                <div style={{fontSize:16.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em',
+                <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em',
                   whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{arg.nome}</div>
-                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, whiteSpace:'nowrap',
+                <div style={{fontSize:13, color:ADM.MUTED_SOFT, marginTop:4, whiteSpace:'nowrap',
                   overflow:'hidden', textOverflow:'ellipsis'}}>
-                  {contaArg(arg.id)} {contaArg(arg.id) === 1 ? 'guida' : 'guide'} · {onlineArg(arg.id)} online
+                  {n === 0 ? 'nessuna guida' : `${n} ${n === 1 ? 'guida' : 'guide'}, ${onlineArg(arg.id)} online`}
                   {arg.descrizione ? ` · ${arg.descrizione}` : ''}
                 </div>
               </div>
-              {contaArg(arg.id) > 2 && (
-                <div style={{position:'relative', width:210, flexShrink:0}}>
-                  <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)',
-                    color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={15}/></span>
-                  <input value={cerca} onChange={e=>setCerca(e.target.value)} placeholder="Cerca in questo argomento…"
-                    style={{width:'100%', padding:'7px 11px 7px 31px', border:'none', borderRadius:8,
-                      fontSize:13.4, fontFamily:'inherit', outline:'none', background:ADM.PANEL_SOFT,
+              {n > 2 && (
+                <div style={{position:'relative', width:206, flexShrink:0}}>
+                  <span style={{position:'absolute', left:11, top:'50%', transform:'translateY(-50%)',
+                    color:ADM.MUTED_LIGHT, pointerEvents:'none'}}><BuIcons.search size={15}/></span>
+                  <input value={cerca} onChange={e=>setCerca(e.target.value)} placeholder="Cerca qui dentro…"
+                    style={{width:'100%', padding:'8px 12px 8px 32px', borderRadius:9,
+                      border:`1px solid ${ADM.BORDER_SOFT}`, background:'#fff',
+                      fontSize:13.2, fontFamily:'inherit', outline:'none',
                       boxSizing:'border-box', color:ADM.TEXT}}/>
                 </div>
               )}
               <AdmButton variant="cta" icon="plus" onClick={nuovaGuida}>Aggiungi guida</AdmButton>
             </div>
 
-            <div className="adm-scroll" style={{flex:1, overflowY:'auto', minHeight:0,
-              padding:'18px 24px 28px', display:'flex', flexDirection:'column', gap:14}}>
-              {sue.length === 0 && (
-                <AdmCard><AdmEmpty icon="list"
-                  title={cerca ? 'Nessun risultato' : 'Nessuna guida qui'}
-                  desc={cerca ? 'Cancella la ricerca per vederle tutte'
-                    : 'Con «Aggiungi guida»: bastano un titolo e due righe, il video è facoltativo'}/></AdmCard>
-              )}
-              {sue.map(g => (
-                <SrvCardGuida key={g.id} g={g}
-                  nuova={g.id === nuovaId}
-                  argomenti={argomenti}
-                  onCambia={(campi)=>aggiornaGuida(g.id, campi)}
-                  onElimina={()=>{ eliminaGuida(g.id); if (nuovaId === g.id) setNuovaId(null); }}/>
-              ))}
+            {/* Colonna di lettura larga quanto un testo si legge: oltre i 900
+                px una riga di descrizione diventa un nastro. */}
+            <div className="adm-scroll" style={{flex:1, overflowY:'auto', minHeight:0, padding:'0 30px 32px'}}>
+              <div style={{maxWidth:900, display:'flex', flexDirection:'column', gap:16}}>
+                {sue.length === 0 && (
+                  <AdmCard><AdmEmpty icon="list"
+                    title={cerca ? 'Nessun risultato' : 'Nessuna guida qui'}
+                    desc={cerca ? 'Cancella la ricerca per vederle tutte'
+                      : 'Con «Aggiungi guida»: bastano un titolo e due righe, il video è facoltativo'}/></AdmCard>
+                )}
+                {sue.map(g => (
+                  <SrvCardGuida key={g.id} g={g}
+                    nuova={g.id === nuovaId}
+                    argomenti={argomenti}
+                    onCambia={(campi)=>aggiornaGuida(g.id, campi)}
+                    onElimina={()=>{ eliminaGuida(g.id); if (nuovaId === g.id) setNuovaId(null); }}/>
+                ))}
+              </div>
             </div>
           </React.Fragment>
         )}
@@ -1326,43 +1395,43 @@ function SrvGuide({ argomenti, setArgomenti, guide, setGuide }) {
   );
 }
 
-// Voce dell'elenco a sinistra. Le azioni non stanno dietro un menu: sono due,
-// e in una console di redazione si usano di continuo. L'eliminazione è protetta
-// solo quando porterebbe via delle guide con sé.
+// Voce dell'elenco a sinistra: una pastiglia, non una riga di tabella. Le
+// azioni compaiono sfiorandola — ferme su ogni riga sarebbero venti bersagli
+// in una colonna che serve a scegliere.
 function SrvVoceArgomento({ a, n, online, attivo, onClick, onModifica, onElimina }) {
   const [hover, setHover] = useStateSrv(false);
   const AIcon = BuIcons[a.icona] || BuIcons.list;
   return (
     <div onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
-      style={{display:'flex', alignItems:'center', gap:10, padding:'11px 14px 11px 13px',
-        borderBottom:`1px solid ${ADM.BORDER_SOFT}`, position:'relative',
-        background: attivo ? ADM.PANEL_SOFT : hover ? ADM.NEUTRAL_SOFT : '#fff'}}>
-      {attivo && <span style={{position:'absolute', left:0, top:0, bottom:0, width:3, background:ADM.PINK}}/>}
+      style={{display:'flex', alignItems:'center', gap:9, padding:'9px 8px 9px 10px',
+        borderRadius:11, marginBottom:2,
+        background: attivo ? ADM.PINK_BG_SOFT : hover ? ADM.NEUTRAL_SOFT : 'transparent',
+        transition:'background 130ms ease'}}>
       <button onClick={onClick} style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:11,
         background:'none', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit', textAlign:'left'}}>
-        <span style={{width:28, height:28, borderRadius:8, flexShrink:0, display:'grid', placeItems:'center',
-          background: attivo ? ADM.PINK_BG_SOFT : ADM.NEUTRAL_SOFT,
-          color: attivo ? ADM.PINK_DARK : ADM.MUTED}}>
+        <span style={{width:30, height:30, borderRadius:9, flexShrink:0, display:'grid', placeItems:'center',
+          background: attivo ? '#fff' : ADM.NEUTRAL_SOFT,
+          color: attivo ? ADM.PINK : ADM.MUTED_SOFT,
+          boxShadow: attivo ? '0 1px 2px rgba(15,17,21,0.06)' : 'none'}}>
           <AIcon size={15}/>
         </span>
         <span style={{minWidth:0, flex:1}}>
-          <span style={{display:'block', fontSize:13.8, fontWeight: attivo ? 700 : 600, color:ADM.TEXT,
+          <span style={{display:'block', fontSize:13.8, fontWeight: attivo ? 700 : 600,
+            color: attivo ? ADM.PINK_DARK : ADM.TEXT,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.nome}</span>
-          <span style={{display:'block', fontSize:12, color:ADM.MUTED_SOFT, marginTop:1}}>
+          <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:2}}>
             {n === 0 ? 'nessuna guida' : `${n} ${n === 1 ? 'guida' : 'guide'} · ${online} online`}
           </span>
         </span>
       </button>
-      {/* Le icone compaiono su hover o sulla voce scelta: ferme su ogni riga
-          sarebbero dieci bersagli in una colonna che serve a scegliere. */}
-      <span style={{display:'flex', alignItems:'center', gap:2, flexShrink:0,
-        opacity: hover || attivo ? 1 : 0, transition:'opacity 120ms ease'}}>
+      <span style={{display:'flex', alignItems:'center', gap:1, flexShrink:0,
+        opacity: hover ? 1 : 0, transition:'opacity 130ms ease'}}>
         <AdmIconBtn icon="pencil" label="Modifica argomento" size={26} color={ADM.MUTED_LIGHT}
           onClick={onModifica}/>
         {n === 0
           ? <SrvEliminaInline onElimina={onElimina}/>
           : <span title={`Contiene ${n} ${n === 1 ? 'guida' : 'guide'}: spostale o eliminale prima`}
-              style={{width:28, display:'grid', placeItems:'center', color:ADM.MUTED_LIGHT}}>
+              style={{width:26, display:'grid', placeItems:'center', color:ADM.MUTED_LIGHT}}>
               <BuIcons.lock size={13}/>
             </span>}
       </span>
@@ -1372,14 +1441,15 @@ function SrvVoceArgomento({ a, n, online, attivo, onClick, onModifica, onElimina
 
 // ─── La guida, scritta dove si legge ────────────────────────────────────────
 //
-// Nessuna modale: i campi sono nella card. Si scrive e resta scritto — la sola
-// cosa che cambia qualcosa fuori da qui è «Pubblica», e quella è una levetta.
+// La card è la guida: titolo grande, testo sotto, e in fondo una riga sola di
+// numeri. Niente riquadri dentro riquadri — il video è una riga con la sua
+// miniatura, non un pannello grigio con dentro un altro campo. Si scrive e
+// resta scritto: la sola cosa che cambia qualcosa fuori da qui è «Pubblica».
 function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
   const [guarda, setGuarda] = useStateSrv(false);
   const [erroreVideo, setErroreVideo] = useStateSrv(null);
   const [leggendo, setLeggendo] = useStateSrv(false);
-  const [hoverTitolo, setHoverTitolo] = useStateSrv(false);
-  const [fuocoTitolo, setFuocoTitolo] = useStateSrv(false);
+  const [hoverCard, setHoverCard] = useStateSrv(false);
   const titoloRef = React.useRef(null);
   React.useEffect(() => { if (nuova && titoloRef.current) titoloRef.current.focus(); }, [nuova]);
 
@@ -1389,8 +1459,6 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
   // Senza titolo non si pubblica: nel gestionale sarebbe una riga vuota da
   // cliccare. Tutto il resto — descrizione, video — può mancare.
   const pubblicabile = g.titolo.trim().length > 0;
-
-  const cambiaVideo = (campi) => onCambia({ video: { ...(g.video || {}), ...campi } });
 
   const scegliVideo = async (e) => {
     const file = e.target.files && e.target.files[0];
@@ -1429,149 +1497,139 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
   };
 
   return (
-    <AdmCard style={{padding:'16px 18px', display:'flex', flexDirection:'column', gap:13}}>
+    <div onMouseEnter={()=>setHoverCard(true)} onMouseLeave={()=>setHoverCard(false)}
+      style={{background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:16,
+        padding:'20px 22px 14px', boxShadow: hoverCard
+          ? '0 6px 20px -10px rgba(15,17,21,0.14), 0 1px 2px rgba(15,17,21,0.04)'
+          : '0 1px 2px rgba(15,17,21,0.04)',
+        transition:'box-shadow 160ms ease'}}>
 
-      {/* Titolo + interruttore + cestino sulla stessa riga: il titolo è il
-          campo, non un'intestazione da leggere. */}
-      <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
-        {/* Sembra un titolo e si comporta da campo. Il bordo compare al
-            passaggio del mouse: senza, un titolo scritto in grande non dice
-            di essere scrivibile. */}
-        <input ref={titoloRef} value={g.titolo} onChange={e=>onCambia({ titolo:e.target.value })}
-          placeholder="Titolo della guida"
-          onMouseEnter={()=>setHoverTitolo(true)} onMouseLeave={()=>setHoverTitolo(false)}
-          onFocus={()=>setFuocoTitolo(true)} onBlur={()=>setFuocoTitolo(false)}
-          style={{flex:1, minWidth:0, padding:'6px 10px', marginLeft:-10, borderRadius:8,
-            border:`1px solid ${fuocoTitolo ? ADM.BORDER : hoverTitolo ? ADM.BORDER_SOFT : 'transparent'}`,
-            background: fuocoTitolo ? '#fff' : hoverTitolo ? ADM.NEUTRAL_SOFT : 'transparent',
-            fontSize:16.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em',
-            fontFamily:'inherit', outline:'none',
-            transition:'background 120ms ease, border-color 120ms ease'}}/>
-        <span style={{display:'flex', alignItems:'center', gap:8, flexShrink:0, paddingTop:2}}>
-          <span title={pubblicabile ? (g.live ? 'Online nel gestionale' : 'In bozza') : 'Serve un titolo per pubblicarla'}
-            style={{fontSize:12.4, fontWeight:600, color: g.live ? ADM.OK : ADM.MUTED_SOFT}}>
-            {g.live ? 'Online' : 'Bozza'}
+      {/* Titolo e stato. La levetta sta accanto alla pastiglia perché è quella
+          che la cambia; il cestino è in fondo alla card, con le altre cose che
+          si fanno raramente. */}
+      <div style={{display:'flex', alignItems:'flex-start', gap:14}}>
+        <SrvTesto innerRef={titoloRef} value={g.titolo} onChange={t=>onCambia({ titolo:t })}
+          placeholder="Titolo della guida" titolo="Il titolo che compare nel Centro assistenza"
+          stile={{flex:1, minWidth:0, marginLeft:-10, padding:'5px 10px',
+            fontSize:18, fontWeight:700, letterSpacing:'-0.015em', lineHeight:1.3}}/>
+        <span style={{display:'flex', alignItems:'center', gap:9, flexShrink:0, paddingTop:3}}>
+          <SrvStato live={g.live && pubblicabile}/>
+          <span title={pubblicabile ? 'Pubblica nel gestionale' : 'Serve un titolo per pubblicarla'}
+            style={{display:'inline-flex', opacity: pubblicabile ? 1 : 0.45}}>
+            <AdmSwitch size="sm" checked={g.live && pubblicabile}
+              onChange={(x)=>{ if (pubblicabile) onCambia({ live:x }); }}/>
           </span>
-          <AdmSwitch size="sm" checked={g.live && pubblicabile}
-            onChange={(x)=>{ if (pubblicabile) onCambia({ live:x }); }}/>
-          <SrvEliminaInline onElimina={onElimina}/>
         </span>
       </div>
 
-      {/* Descrizione: è il testo della guida, quello che il ristoratore legge
-          nel Centro assistenza. */}
-      <div>
-        <textarea value={g.descrizione}
-          onChange={e=>onCambia({ descrizione:e.target.value })}
+      {/* Il testo della guida: quello che il ristoratore legge davvero. */}
+      <div style={{marginTop:4}}>
+        <SrvTesto multi value={g.descrizione} onChange={t=>onCambia({ descrizione:t })}
           placeholder="Cosa impara chi la legge. Anche solo due righe."
-          style={{...SRV_TXT, minHeight:76}}/>
-        <div style={{display:'flex', alignItems:'center', gap:9, marginTop:8, flexWrap:'wrap'}}>
-          {/* Il tempo di lettura lo scrive chi pubblica: la guida non è solo
-              queste due righe — è anche quanto ci si mette a fare la cosa che
-              spiega, e quello lo sa lui, non un conteggio di parole. */}
-          <span style={{display:'inline-flex', alignItems:'center', gap:7}}>
-            <BuIcons.clock size={13} color={ADM.MUTED_SOFT}/>
-            <span style={{fontSize:12.6, color:ADM.MUTED}}>Tempo di lettura</span>
-            <input type="number" min="1" max="90" value={g.minLettura}
-              onChange={e=>onCambia({ minLettura: Math.max(1, Math.min(90, parseInt(e.target.value, 10) || 1)) })}
-              style={{...SRV_INP, width:64, padding:'5px 8px', fontSize:12.8, textAlign:'center'}}/>
-            <span style={{fontSize:12.6, color:ADM.MUTED}}>min</span>
-          </span>
-          {!pubblicabile && (
-            <span style={{fontSize:11.8, color:ADM.WARN, fontWeight:600, marginLeft:4}}>
-              Senza titolo resta in bozza
-            </span>
-          )}
-        </div>
+          stile={{marginLeft:-10, padding:'7px 10px', fontSize:14.2, lineHeight:1.62,
+            color: g.descrizione ? ADM.TEXT : ADM.MUTED, minHeight:34}}/>
       </div>
 
-      {/* Il video, quando c'è. Non è un requisito: una guida può essere due
-          righe di testo, e queste due righe bastano a pubblicarla. */}
-      {!v ? (
-        <div style={{display:'flex', flexDirection:'column', gap:7}}>
-          <label style={{display:'flex', alignItems:'center', gap:11, padding:'11px 13px', borderRadius:10,
-            border:`1.5px dashed ${erroreVideo ? ADM.DANGER : ADM.BORDER}`, background:ADM.PANEL_SOFT,
-            cursor: leggendo ? 'progress' : 'pointer'}}>
-            <span style={{width:32, height:32, borderRadius:9, background:'#fff', border:`1px solid ${ADM.BORDER}`,
-              display:'grid', placeItems:'center', color:ADM.MUTED, flexShrink:0}}>
-              <BuIcons.download size={16}/>
-            </span>
+      {/* Il video, quando c'è: una riga, non un pannello. Miniatura, cosa è,
+          e le due azioni scritte in chiaro. */}
+      {v ? (
+        <div style={{marginTop:14, display:'flex', flexDirection:'column', gap:10}}>
+          <div style={{display:'flex', alignItems:'center', gap:14}}>
+            <button onClick={()=>setGuarda(x => !x)} title={guarda ? 'Chiudi il video' : 'Guarda il video'}
+              style={{padding:0, background:'none', border:'none', cursor:'pointer', display:'block'}}>
+              <SrvMiniatura video={v} w={104}/>
+            </button>
             <span style={{flex:1, minWidth:0}}>
-              <span style={{display:'block', fontSize:13.2, fontWeight:600, color:ADM.TEXT}}>
-                {leggendo ? 'Stiamo leggendo il file…' : 'Aggiungi un video (facoltativo)'}
+              <span style={{display:'block', fontSize:13.6, fontWeight:600, color:ADM.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                {v.file || v.titolo || 'Video caricato'}
               </span>
-              <span style={{display:'block', fontSize:12, color:ADM.MUTED, marginTop:1}}>
-                {SRV_VIDEO_FORMATO} — la durata la leggiamo dal file
+              <span style={{display:'block', fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:3}}>
+                {srvDurata(v.durataSec)}
+                {v.pesoByte ? ` · ${srvPeso(v.pesoByte)}` : ''}
+                {v.views > 0 && ` · ${fmtNum(v.views)} visualizzazioni`}
+                {completamento != null && v.views > 0 && ` · guardato al ${completamento}%`}
+                {voti > 0 && ` · ${Math.round(v.utile / voti * 100)}% «utile»`}
               </span>
+            </span>
+            <span style={{display:'flex', alignItems:'center', gap:10, flexShrink:0}}>
+              <SrvAzioneTesto onClick={()=>setGuarda(x => !x)} colore={ADM.TEXT}>
+                {guarda ? 'Chiudi' : 'Guarda'}
+              </SrvAzioneTesto>
+              <SrvAzioneTesto onClick={rimuoviVideo} colore={ADM.DANGER}>Rimuovi</SrvAzioneTesto>
+            </span>
+          </div>
+          {guarda && (
+            <video src={srvVideoSrc(v)} controls autoPlay preload="metadata" playsInline
+              style={{width:'100%', maxWidth:480, aspectRatio:'16/9', display:'block', borderRadius:12,
+                background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
+          )}
+          <SrvTesto multi value={v.descrizioneSotto || ''}
+            onChange={t=>onCambia({ video: { ...v, descrizioneSotto:t } })}
+            placeholder="Nota sotto al video (facoltativa): le avvertenze per chi ha appena guardato."
+            stile={{marginLeft:-10, padding:'7px 10px', fontSize:13.2, lineHeight:1.55,
+              color:ADM.MUTED, minHeight:32}}/>
+        </div>
+      ) : (
+        <div style={{marginTop:12}}>
+          {/* Senza video la card non deve mostrare un buco grande quanto un
+              player: una riga sola, che si apre solo se serve. */}
+          <label style={{display:'inline-flex', alignItems:'center', gap:9, padding:'7px 12px 7px 9px',
+            borderRadius:99, border:`1px dashed ${erroreVideo ? ADM.DANGER : ADM.BORDER}`,
+            background: erroreVideo ? `${ADM.DANGER}08` : 'transparent',
+            cursor: leggendo ? 'progress' : 'pointer', maxWidth:'100%'}}>
+            <span style={{color:ADM.MUTED_SOFT, display:'inline-flex'}}><BuIcons.download size={15}/></span>
+            <span style={{fontSize:12.8, fontWeight:600, color:ADM.MUTED, whiteSpace:'nowrap'}}>
+              {leggendo ? 'Stiamo leggendo il file…' : 'Aggiungi un video'}
+            </span>
+            <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, whiteSpace:'nowrap'}}>
+              facoltativo · {SRV_VIDEO_FORMATO}
             </span>
             <input type="file" accept="video/mp4" onChange={scegliVideo} style={{display:'none'}}/>
           </label>
           {erroreVideo && (
-            <div style={{fontSize:12.4, color:ADM.DANGER, lineHeight:1.5, fontWeight:500}}>{erroreVideo}</div>
+            <div style={{fontSize:12.4, color:ADM.DANGER, lineHeight:1.5, fontWeight:500, marginTop:7}}>
+              {erroreVideo}
+            </div>
           )}
-        </div>
-      ) : (
-        <div style={{display:'flex', flexDirection:'column', gap:11, padding:'11px 13px', borderRadius:10,
-          background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <div style={{display:'flex', alignItems:'center', gap:12}}>
-            <button onClick={()=>setGuarda(x => !x)} title={guarda ? 'Chiudi il video' : 'Guarda il video'}
-              style={{padding:0, background:'none', border:'none', cursor:'pointer', display:'block'}}>
-              <SrvMiniatura video={v} w={86}/>
-            </button>
-            <span style={{flex:1, minWidth:0}}>
-              <span style={{display:'block', fontSize:13.2, fontWeight:600, color:ADM.TEXT,
-                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                {v.file || v.titolo || 'Video caricato'}
-              </span>
-              <span style={{display:'block', fontSize:12, color:ADM.MUTED, marginTop:2}}>
-                {v.pesoByte
-                  ? `${srvDurata(v.durataSec)} di video · ${srvPeso(v.pesoByte)} · letti dal file`
-                  : `${srvDurata(v.durataSec)} di video · letta dal file`}
-                {v.views > 0 && ` · ${fmtNum(v.views)} visualizzazioni`}
-                {completamento != null && v.views > 0 && `, guardato al ${completamento}%`}
-                {voti > 0 && ` · ${Math.round(v.utile / voti * 100)}% «utile»`}
-              </span>
-            </span>
-            <button onClick={()=>setGuarda(x => !x)} className="adm-btn" style={{
-              padding:'5px 11px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, background:'#fff',
-              color:ADM.TEXT, fontSize:12.3, fontWeight:600, fontFamily:'inherit', cursor:'pointer'}}>
-              {guarda ? 'Chiudi' : 'Guarda'}
-            </button>
-            <button onClick={rimuoviVideo} className="adm-btn" style={{
-              padding:'5px 11px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, background:'#fff',
-              color:ADM.DANGER, fontSize:12.3, fontWeight:600, fontFamily:'inherit', cursor:'pointer'}}>
-              Rimuovi
-            </button>
-          </div>
-          {guarda && (
-            <video src={srvVideoSrc(v)} controls autoPlay preload="metadata" playsInline
-              style={{width:'100%', maxWidth:460, aspectRatio:'16/9', display:'block', borderRadius:9,
-                background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
-          )}
-          <SrvCampo etichetta="Nota sotto al video"
-            aiuto="Le avvertenze che servono a chi ha appena guardato: differenze fra dispositivi, passaggi che nel video non si vedono, eccezioni.">
-            <textarea value={v.descrizioneSotto || ''} onChange={e=>cambiaVideo({ descrizioneSotto:e.target.value })}
-              style={{...SRV_TXT, minHeight:60}}/>
-          </SrvCampo>
         </div>
       )}
 
-      {/* Riga di chiusura: dove vive la guida e da quanto. L'argomento è un
-          campo, non un destino: si sposta da qui. */}
-      <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap',
-        paddingTop:2, borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginTop:1}}>
-        <span style={{fontSize:12.2, color:ADM.MUTED_SOFT, paddingTop:11}}>Argomento</span>
-        <select value={g.argomentoId} onChange={e=>onCambia({ argomentoId:e.target.value })}
-          style={{...SRV_SEL, width:'auto', minWidth:190, padding:'6px 30px 6px 10px', fontSize:12.8, marginTop:11}}>
-          {argomenti.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-        </select>
-        <span style={{flex:1}}/>
-        <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, paddingTop:11}}>
-          {g.letture > 0 && `${fmtNum(g.letture)} letture · `}
-          Aggiornata {fmtRelative(g.aggiornataIl)}
+      {/* Riga di chiusura: i numeri della guida e le cose che si fanno una
+          volta — spostarla, buttarla. Un filetto sopra, non una fascia. */}
+      <div style={{marginTop:14, paddingTop:11, borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+        display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+        <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.4, color:ADM.MUTED}}>
+          <BuIcons.clock size={13} color={ADM.MUTED_LIGHT}/>
+          {/* Il tempo di lettura lo scrive chi pubblica. È un numero dentro una
+              frase, non un campo con l'etichetta sopra. */}
+          <input type="number" min="1" max="90" value={g.minLettura}
+            title="Tempo di lettura, in minuti"
+            onChange={e=>onCambia({ minLettura: Math.max(1, Math.min(90, parseInt(e.target.value, 10) || 1)) })}
+            style={{width:44, padding:'3px 4px', textAlign:'center', borderRadius:7,
+              border:`1px solid ${ADM.BORDER_SOFT}`, background:'#fff',
+              fontSize:12.4, fontWeight:700, color:ADM.TEXT, fontFamily:'inherit', outline:'none'}}/>
+          min di lettura
+        </span>
+        <span style={{color:ADM.BORDER}}>·</span>
+        <span style={{fontSize:12.4, color:ADM.MUTED_SOFT}}>
+          {g.letture > 0 ? `${fmtNum(g.letture)} letture · ` : ''}
+          aggiornata {fmtRelative(g.aggiornataIl)}
+        </span>
+        <span style={{flex:1, minWidth:20}}/>
+        <span style={{display:'flex', alignItems:'center', gap:8,
+          opacity: hoverCard ? 1 : 0.45, transition:'opacity 140ms ease'}}>
+          <span style={{fontSize:12.2, color:ADM.MUTED_LIGHT}}>Argomento</span>
+          <select value={g.argomentoId} onChange={e=>onCambia({ argomentoId:e.target.value })}
+            title="Sposta la guida in un altro argomento"
+            style={{...SRV_SEL, width:'auto', maxWidth:200, padding:'4px 28px 4px 9px', fontSize:12.4,
+              borderColor:ADM.BORDER_SOFT, backgroundPosition:'right 9px center'}}>
+            {argomenti.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          </select>
+          <SrvEliminaInline onElimina={onElimina}/>
         </span>
       </div>
-    </AdmCard>
+    </div>
   );
 }
 
