@@ -1480,7 +1480,7 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
     }
     onCambia({ video: {
       titolo: file.name.replace(/\.[^.]+$/, ''),
-      durataSec: durata, descrizioneSotto: '',
+      durataSec: durata,
       views: 0, tempoMedioSec: 0, utile: 0, nonUtile: 0,
       file: file.name, pesoByte: file.size, src: URL.createObjectURL(file),
     }});
@@ -1558,24 +1558,13 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
                 leggere. */}
             <SrvAzioneTesto onClick={rimuoviVideo} colore={ADM.DANGER}>Rimuovi</SrvAzioneTesto>
           </div>
-          {/* Col player aperto la nota gli si mette a fianco invece che
-              sotto: un video largo 480 e una nota larga tutta la card, una
-              sopra l'altra, sono due misure che non si parlano. */}
-          <div style={{display:'flex', alignItems:'flex-start', gap:18,
-            flexDirection: guarda ? 'row' : 'column'}}>
-            {guarda && (
-              <video src={srvVideoSrc(v)} controls autoPlay preload="metadata" playsInline
-                style={{width:480, maxWidth:'100%', aspectRatio:'16/9', display:'block', flexShrink:0,
-                  borderRadius:12, background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
-            )}
-            <div style={{flex:1, minWidth:0, alignSelf:'stretch'}}>
-              <SrvTesto multi value={v.descrizioneSotto || ''}
-                onChange={t=>onCambia({ video: { ...v, descrizioneSotto:t } })}
-                placeholder="Nota sotto al video (facoltativa): le avvertenze per chi ha appena guardato."
-                stile={{marginLeft:-10, padding:'7px 10px', fontSize:13.2, lineHeight:1.55,
-                  color:ADM.MUTED, minHeight:32}}/>
-            </div>
-          </div>
+          {/* Niente nota sotto al video: quello che c'è da dire sta nella
+              descrizione della guida, e diceva le stesse cose due volte. */}
+          {guarda && (
+            <video src={srvVideoSrc(v)} controls autoPlay preload="metadata" playsInline
+              style={{width:480, maxWidth:'100%', aspectRatio:'16/9', display:'block',
+                borderRadius:12, background:'#0B0C0E', border:`1px solid ${ADM.BORDER_SOFT}`}}/>
+          )}
         </div>
       ) : (
         <div style={{marginTop:12}}>
