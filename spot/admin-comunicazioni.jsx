@@ -851,12 +851,14 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               borderTop:`1px solid ${showInternal ? '#FCD34D40' : ADM.BORDER_SOFT}`,
               flexWrap:'wrap',
             }}>
+              {/* Niente «marca risolta» accanto a «Invia»: chiudere il ticket
+                  vive in testata e basta. Qui affiancava l'azione di scrittura
+                  a quella che la annulla, con il rischio di chiudere per
+                  sbaglio invece di rispondere — e comunque la stessa azione
+                  ripetuta in due punti non aiuta a capire dove sta di casa. */}
               <AdmIconBtn icon="paperclip" label="Allega file"/>
               <AdmIconBtn icon="image" label="Inserisci immagine"/>
               <div style={{flex:1}}/>
-              <AdmButton variant="ghost" size="sm" icon="check" onClick={()=>{ onUpdate({ stato:'risolta', resolvedBy: MY_ID, resolvedAt: new Date() }); }}>
-                Marca come risolta
-              </AdmButton>
               {(() => {
                 const ReplyIcon = BuIcons[showInternal ? 'bell' : 'send'];
                 const handleSend = () => {
