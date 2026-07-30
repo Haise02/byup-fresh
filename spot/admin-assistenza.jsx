@@ -398,7 +398,6 @@ function SrvVoceCoda({ r, attiva, onClick }) {
 
 function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
   const cat = SRV_CATEGORIE[r.categoria];
-  const catCol = ADM[cat.color];
   const locale = LOCALI.find(l => l.id === r.localeId);
   const mancano = srvMinutiAScadere(r);
   const scaduta = r.stato === 'attesa' && mancano < 0;
@@ -420,10 +419,6 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
       <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'16px 26px 15px', flexShrink:0}}>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:7}}>
           <span style={{fontSize:12, color:ADM.MUTED_LIGHT, fontWeight:600}}>{r.id}</span>
-          <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.2,
-            fontWeight:700, color:catCol}}>
-            <span style={{width:7, height:7, borderRadius:'50%', background:catCol}}/>{cat.label}
-          </span>
         </div>
         <div style={{fontSize:21, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.2}}>
           {r.localeNome}
