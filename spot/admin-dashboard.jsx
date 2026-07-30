@@ -389,6 +389,24 @@ function ageDaysInOnboarding(locale) {
   return Math.max(0, Math.floor((Date.now() - lastStepTime) / 86400000));
 }
 
+// Chi è fermo in onboarding, e da quanto. Sta a livello di modulo perché lo
+// leggono due tab: Generale per il numero, Locali per l'elenco di chi
+// richiamare.
+function onboardingFermi() {
+  const dettaglio = LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding')
+    .map(l => ({ l, age: ageDaysInOnboarding(l) }));
+  const ordinati = [...dettaglio].sort((a, b) => a.age - b.age);
+  return {
+    dettaglio,
+    stuckOver7: dettaglio.filter(x => x.age >= 7).length,
+    stuckOver14: dettaglio.filter(x => x.age >= 14).length,
+    ageMedian: ordinati.length ? ordinati[Math.floor(ordinati.length / 2)].age : 0,
+    setupIniziale: LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding').length,
+    onbIncompleto: LOCALI.filter(l => l.stato === 'skipped').length,
+  };
+}
+
+
 function AdmDashboard({ onNav }) {
   const [tab, setTab] = useStateDash('generale');
   const [reportSent, setReportSent] = useStateDash(false);
@@ -641,13 +659,7 @@ function DashGenerale({ onNav }) {
   const churned = LOC.churned.length;
 
   // === AGING ONBOARDING · quanti fermi da più di 7gg (azionabile) ===
-  const onbLocaliDetail = LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding')
-    .map(l => ({ l, age: ageDaysInOnboarding(l) }));
-  const stuckOver7 = onbLocaliDetail.filter(x => x.age >= 7).length;
-  const stuckOver14 = onbLocaliDetail.filter(x => x.age >= 14).length;
-  const ageMedian = onbLocaliDetail.length
-    ? [...onbLocaliDetail].sort((a,b)=>a.age-b.age)[Math.floor(onbLocaliDetail.length/2)].age
-    : 0;
+  const { dettaglio: onbLocaliDetail, stuckOver7, stuckOver14, ageMedian } = onboardingFermi();
 
   // Piani: si contano sulla BASE INSTALLATA (attivi + inattivi), che è la sola
   // popolazione che un piano ce l'ha. Chi è in onboarding non ha ancora
@@ -788,16 +800,15 @@ function DashGenerale({ onNav }) {
           ratio={{ a: paying, b: freeCount, aLabel:`paganti (su ${livePool.length} con un piano)`,
             bLabel:'gratuiti', aColor: ADM.INK }}
         />
+        {/* Non si apre più: l'elenco di chi è fermo era una lista di telefonate
+            da fare nascosta dietro un clic, in una schermata che serve a dire
+            come sta la piattaforma. Vive in Locali → Onboarding e adozione,
+            accanto al funnel che dice DOVE si bloccano. */}
         <DashStatCard
           label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
-          alertText={stuckOver7 > 0 ? `${stuckOver7} fermi da oltre 7gg` : `${setupIniziale} setup · ${onbIncompleto} da completare`}
+          alertText={stuckOver7 > 0 ? `${stuckOver7} fermi da oltre 7gg · l'elenco è in Locali` : null}
+          sub={`${setupIniziale} in setup · ${onbIncompleto} da completare · l'elenco è in Locali`}
           data={TS.inOnboardCount.slice(-30)} gradId="grad-onb"
-          selected={detail?.key === 'onboarding'}
-          onClick={()=>toggleDetail({
-            key:'onboarding', title:'Onboarding · dettaglio', subtitle:`${inOnbTot} locali in onboarding`, accent:ADM.WARN,
-            content:<OnboardingTooltip setupIniziale={setupIniziale} onbIncompleto={onbIncompleto} stuckOver7={stuckOver7} stuckOver14={stuckOver14} ageMedian={ageMedian} detail={onbLocaliDetail} onNav={(r)=>{ setDetail(null); onNav(r); }}/>,
-            pageLabel:'Apri elenco Locali', onPage:()=>onNav('locali'),
-          })}
         />
         <DashStatCard
           label="Utenti totali" value={fmtNum(totUtenti)} accent="INK"
@@ -1114,104 +1125,84 @@ function SplitRow({ color, label, val, pct }) {
   );
 }
 
-function OnboardingTooltip({ setupIniziale, onbIncompleto, stuckOver7=0, stuckOver14=0, ageMedian=0, detail=[], onNav }) {
-  const stuck = [...detail].sort((a,b)=>b.age-a.age).slice(0, 6);
+// I locali fermi in onboarding: una card, non un pannello che si apre.
+//
+// Stava dietro il clic sulla card «Locali in onboarding» in Generale, e non è
+// un approfondimento: è una lista di telefonate da fare — chi è fermo, da
+// quanti giorni, e il link per aprirlo. Una coda di lavoro dietro un clic, in
+// una schermata di sintesi, è una coda che non smaltisce nessuno.
+//
+// Vive in Locali → Onboarding e adozione, sotto il funnel: il funnel dice a
+// quale passo si bloccano, questa dice chi si è bloccato.
+function OnboardingDaSeguire({ onNav }) {
+  const { dettaglio, stuckOver7, stuckOver14, ageMedian, setupIniziale, onbIncompleto } = onboardingFermi();
+  const ordinati = [...dettaglio].sort((a, b) => b.age - a.age);
   return (
-    <div>
-      <TooltipTitle>Locali da seguire</TooltipTitle>
-
-      {/* Aging banner · il valore aggiunto azionabile */}
-      {stuckOver7 > 0 && (
-        <div style={{
-          padding:'11px 13px', borderRadius:9,
-          background: stuckOver14 > 0 ? ADM.DANGER_SOFT : ADM.WARN_SOFT,
-          border: `1px solid ${stuckOver14 > 0 ? ADM.DANGER : ADM.WARN}30`,
-          marginBottom:14, display:'flex', alignItems:'center', gap:11,
-        }}>
-          <span style={{
-            width:32, height:32, borderRadius:8,
-            background: stuckOver14 > 0 ? ADM.DANGER : ADM.WARN, color:'#fff',
-            display:'grid', placeItems:'center', flexShrink:0,
-          }}>
-            <BuIcons.clock size={20}/>
+    <AdmCard padding={0} style={{overflow:'hidden'}}>
+      <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+        display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+        <div style={{width:4, height:20, borderRadius:3, background: stuckOver14 > 0 ? ADM.DANGER : ADM.WARN, flexShrink:0}}/>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Locali da seguire</div>
+          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>
+            {dettaglio.length} in onboarding · mediana {ageMedian} giorni · dal più fermo
+          </div>
+        </div>
+        {stuckOver7 > 0 && (
+          <span style={{fontSize:12.6, fontWeight:700, color: stuckOver14 > 0 ? ADM.DANGER : ADM.WARN,
+            background: stuckOver14 > 0 ? ADM.DANGER_SOFT : ADM.WARN_SOFT,
+            padding:'5px 11px', borderRadius:99, whiteSpace:'nowrap'}}>
+            {stuckOver7} fermi da oltre 7 giorni{stuckOver14 > 0 ? ` · ${stuckOver14} oltre 14` : ''}
           </span>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>
-              {stuckOver7} fermi da oltre 7 giorni
-              {stuckOver14 > 0 && <span style={{color:ADM.DANGER, fontWeight:800}}> · {stuckOver14} oltre 14gg</span>}
-            </div>
-            <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>
-              Tempo mediano in onboarding: <strong style={{color:ADM.TEXT}}>{ageMedian} giorni</strong>. Candidati per contatto commerciale.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Top più vecchi · lista azionabile */}
-      {stuck.length > 0 && (
-        <div style={{marginBottom:14}}>
-          <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:7}}>Top più vecchi</div>
-          <div style={{display:'flex', flexDirection:'column', gap:1, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:8, overflow:'hidden'}}>
-            {stuck.map(({l, age}, i) => {
-              const tone = age >= 14 ? ADM.DANGER : age >= 7 ? ADM.WARN : ADM.MUTED;
-              return (
-                <button key={l.id} onClick={()=>onNav && onNav('locali', { openLocale: l })} style={{
-                  all:'unset', cursor:'pointer', display:'flex', alignItems:'center', gap:10,
-                  padding:'8px 11px', background:'#fff',
-                  borderBottom: i === stuck.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-                  transition:'background 0.12s',
-                }}
-                onMouseEnter={e=>e.currentTarget.style.background = ADM.PANEL_SOFT}
-                onMouseLeave={e=>e.currentTarget.style.background = '#fff'}>
-                  <span style={{width:6, height:6, borderRadius:'50%', background:tone, flexShrink:0}}/>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontSize:13.7, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
-                    <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{l.citta} · {l.stato === 'pending' ? 'Setup iniziale' : 'Onboarding'}</div>
-                  </div>
-                  <span style={{fontSize:13.7, fontWeight:800, color:tone, fontFamily:'ui-monospace, monospace', whiteSpace:'nowrap'}}>{age}gg</span>
-                  <span style={{color:ADM.MUTED}}><BuIcons.chevronRight size={17}/></span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <OnbRow
-        count={setupIniziale}
-        label="Setup iniziale da completare"
-        desc="Iscritti che non hanno ancora terminato la configurazione di base — non operano ancora"
-        color="WARN"
-      />
-      <div style={{height:1, background:ADM.BORDER_SOFT, margin:'12px 0'}}/>
-      <OnbRow
-        count={onbIncompleto}
-        label="Onboarding completo da finire"
-        desc="Locali già operativi che hanno saltato alcuni step (integrazioni, vetrina, staff…)"
-        color="INFO"
-      />
-    </div>
-  );
-}
-
-function OnbRow({ count, label, desc, color }) {
-  return (
-    <div style={{display:'flex', gap:14, alignItems:'flex-start'}}>
-      <div style={{
-        width:46, height:46, borderRadius:10,
-        background:ADM[color+'_SOFT'], color:ADM[color],
-        display:'grid', placeItems:'center', flexShrink:0,
-        fontSize:19.4, fontWeight:800, letterSpacing:'-0.02em',
-      }}>{count}</div>
-      <div>
-        <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT}}>{label}</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{desc}</div>
+        )}
       </div>
-    </div>
+
+      <div className="adm-scroll" style={{maxHeight:330, overflowY:'auto'}}>
+        {ordinati.map(({ l, age }, i) => {
+          const tono = age >= 14 ? ADM.DANGER : age >= 7 ? ADM.WARN : ADM.MUTED_LIGHT;
+          return (
+            <button key={l.id} onClick={()=>onNav && onNav('locali', { openLocale: l })} style={{
+              all:'unset', cursor:'pointer', width:'100%', boxSizing:'border-box',
+              display:'grid', gridTemplateColumns:'10px minmax(0,1fr) 190px 70px 20px',
+              alignItems:'center', gap:12, padding:'10px 20px',
+              borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
+            }}
+              onMouseEnter={e=>e.currentTarget.style.background = ADM.PANEL_SOFT}
+              onMouseLeave={e=>e.currentTarget.style.background = 'transparent'}>
+              <span style={{width:7, height:7, borderRadius:'50%', background:tono}}/>
+              <span style={{minWidth:0}}>
+                <span style={{display:'block', fontSize:13.6, fontWeight:600, color:ADM.TEXT,
+                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</span>
+                <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:1}}>{l.citta}</span>
+              </span>
+              <span style={{fontSize:12.8, color:ADM.MUTED}}>
+                {l.stato === 'pending' ? 'Non ha ancora iniziato' : `Fermo a «${(ONB_STEPS.find(s2 => s2.id === l.stoppedAt) || {}).label || '—'}»`}
+              </span>
+              <span style={{fontSize:13.6, fontWeight:800, color:tono, textAlign:'right',
+                fontVariantNumeric:'tabular-nums'}}>{age} gg</span>
+              <span style={{color:ADM.MUTED_LIGHT, display:'grid', placeItems:'center'}}><BuIcons.chevronRight size={15}/></span>
+            </button>
+          );
+        })}
+        {ordinati.length === 0 && <AdmEmpty icon="store" title="Nessuno fermo" desc="Tutti hanno finito la configurazione"/>}
+      </div>
+
+      {/* La scomposizione dei numeri della card in Generale: «17 di che tipo?»
+          è la prima domanda che si fa chi la legge, e la risposta è qui. */}
+      <div style={{padding:'13px 20px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+        display:'flex', gap:26, flexWrap:'wrap'}}>
+        <span style={{fontSize:12.8, color:ADM.MUTED}}>
+          <b style={{color:ADM.TEXT}}>{setupIniziale}</b> non hanno finito la configurazione di base — non operano ancora
+        </span>
+        <span style={{fontSize:12.8, color:ADM.MUTED}}>
+          <b style={{color:ADM.TEXT}}>{onbIncompleto}</b> operano ma hanno saltato degli step (vetrina, staff, integrazioni)
+        </span>
+      </div>
+    </AdmCard>
   );
 }
 
-// Tooltip: Conversion Onboarding — spaccato stati iscritti
+
 function ConvOnboardingTooltip({ tot, completati, tentati, convRate, pending, inOnboarding, skipped }) {
   const rows = [
     { label: 'Completati · Go-live',     desc: 'Onboarding obbligatorio completato',        count: completati,  color: 'OK',     base: tentati },
@@ -1856,6 +1847,8 @@ function DashLocali({ onNav }) {
       </AdmCard>
         );
       })()}
+
+      <OnboardingDaSeguire onNav={onNav}/>
 
       <AdozioneDigitaleCard onNav={onNav}/>
 

@@ -189,11 +189,22 @@ function buildLocali() {
     const prenotazioniGiorno = stato === 'active' ? Math.floor(r() * 40) + 5 :
                               stato === 'skipped' ? Math.floor(r() * 10) : 0;
 
-    // I ricavi partono da dicembre 2024: i locali devono esistere da prima,
-    // altrimenti la coorte a dodici mesi è vuota e la ritenzione non si può
-    // nemmeno calcolare.
+    // I ricavi partono da dicembre 2024: i locali OPERATIVI devono esistere da
+    // prima, altrimenti la coorte a dodici mesi è vuota e la ritenzione non si
+    // può nemmeno calcolare.
+    //
+    // Chi è ancora in onboarding, invece, si è iscritto da poco: un locale non
+    // resta fermo alla configurazione per due anni — o la finisce, o sparisce,
+    // e a quel punto è un abbandono silenzioso, non un onboarding lungo.
+    // Senza questa distinzione la card «Locali da seguire» dichiarava gente
+    // ferma da seicento giorni.
     const baseDate = new Date(2024, 9, 1); // 1 ott 2024
-    const iscrizioneOffset = Math.floor(r() * 540);
+    const giorniDaAllora = Math.floor((Date.now() - baseDate.getTime()) / 86400000);
+    const iscrizioneOffset = (stato === 'pending' || stato === 'onboarding')
+      ? giorniDaAllora - Math.floor(r() * 40)          // ultime sei settimane
+      : stato === 'skipped'
+        ? giorniDaAllora - Math.floor(r() * 150)       // ultimi cinque mesi
+        : Math.floor(r() * Math.max(1, giorniDaAllora - 30));
     const dataIscrizione = new Date(baseDate.getTime() + iscrizioneOffset * 86400000);
     const lastLoginDays = stato === 'inactive' ? 30 + Math.floor(r() * 90) :
                          stato === 'churned' ? 60 + Math.floor(r() * 120) :
