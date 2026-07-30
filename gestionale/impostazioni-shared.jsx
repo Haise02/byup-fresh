@@ -557,8 +557,12 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
           fontFamily: "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif",
           color: A.TEXT,
         }}>
-          {/* Contenuto scrollabile: rotella del mouse sopra il telefono */}
-          <div ref={scrollRef} className="vetp-scroll" style={{position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden'}}>
+          {/* Contenuto scrollabile: rotella del mouse sopra il telefono.
+              `isolation: isolate` chiude qui dentro gli z-index del contenuto:
+              senza, i reel «Dalla cucina» (z-index fino a 10) salivano sopra la
+              barra «Vedi menù / Prenota un tavolo» mentre le scorrevano
+              davanti. Le CTA e la island sono la cornice: stanno sempre sopra. */}
+          <div ref={scrollRef} className="vetp-scroll" style={{position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden', isolation: 'isolate'}}>
             <div style={{zoom: k, width: 390, position: 'relative'}}>
 
               {/* Hero — carosello scorrevole come nella vetrina vera */}
