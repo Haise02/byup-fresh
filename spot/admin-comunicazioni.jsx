@@ -515,14 +515,13 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
   const locale = LOCALI.find(l => l.id === item.localeId);
   const piano = locale ? PIANI.find(p => p.id === locale.piano) : null;
   const [reply, setReply] = useStateCom('');
-  const [showInternal, setShowInternal] = useStateCom(false);
   const [tagInput, setTagInput] = useStateCom('');
   const [rejectMode, setRejectMode] = useStateCom(false);
   const [rejectReason, setRejectReason] = useStateCom('');
   const [composerOpen, setComposerOpen] = useStateCom(false);
 
   React.useEffect(() => {
-    setReply(''); setShowInternal(false); setTagInput('');
+    setReply(''); setTagInput('');
     setRejectMode(false); setRejectReason('');
     setComposerOpen(false);
   }, [item.id]);
@@ -791,7 +790,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
       {!item.certRequest && item.stato !== 'risolta' && isAssignedToMe && !composerOpen && (
         <div style={{flexShrink:0, padding:'12px 32px', background:ADM.PANEL_SOFT,
           borderTop:`1px solid ${ADM.BORDER}`, display:'flex', gap:10, alignItems:'center'}}>
-          <button onClick={()=>{ setComposerOpen(true); setShowInternal(false); }}
+          <button onClick={()=>setComposerOpen(true)}
             className="adm-btn"
             style={{
               flex:1, display:'flex', alignItems:'center', gap:9,
@@ -803,23 +802,17 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
             <BuIcons.send size={15} color={ADM.MUTED_SOFT}/>
             Rispondi a {item.senderName.split(' ')[0]}…
           </button>
-          {/* Bordo scuro e ombra: bianco su bianco con un filetto chiaro non si
-              distingueva dal fondo e non sembrava premibile. */}
-          <button onClick={()=>{ setComposerOpen(true); setShowInternal(true); }} className="adm-btn"
-            style={{
-              display:'inline-flex', alignItems:'center', gap:7, padding:'10px 16px',
-              background:'#fff', color:ADM.TEXT,
-              border:'1px solid rgba(15,17,21,0.30)', borderRadius:99,
-              fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
-              boxShadow:'0 1px 3px rgba(15,17,21,0.14)',
-            }}><BuIcons.bell size={15}/> Nota interna</button>
         </div>
       )}
       {!item.certRequest && item.stato !== 'risolta' && isAssignedToMe && composerOpen && (
         <div style={{flexShrink:0, padding:'14px 32px 18px', background:'#fff', borderTop:`1px solid ${ADM.BORDER}`}}>
+          {/* Un solo modo di scrivere: al ristoratore. La nota interna era una
+              seconda scrittura che restava in casa, e non c'è più. */}
           <div style={{display:'flex', gap:6, marginBottom:10, alignItems:'center'}}>
-            <ComposerTab active={!showInternal} onClick={()=>setShowInternal(false)} label={`Rispondi a ${item.senderName.split(' ')[0]}`} icon="send"/>
-            <ComposerTab active={showInternal} onClick={()=>setShowInternal(true)} label="Nota interna" icon="bell" accent="WARN"/>
+            <span style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:13.4,
+              fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>
+              <BuIcons.send size={15} color={ADM.PINK}/> Rispondi a {item.senderName.split(' ')[0]}
+            </span>
             <div style={{flex:1}}/>
             <button onClick={()=>setComposerOpen(false)} title="Chiudi" className="adm-iconbtn" style={{width:28, height:28, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT, color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center'}}>
               <BuIcons.x size={16}/>
@@ -827,16 +820,16 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           </div>
 
           <div style={{
-            border:`1.5px solid ${showInternal ? '#FCD34D' : ADM.BORDER}`,
+            border:`1.5px solid ${ADM.BORDER}`,
             borderRadius:10,
-            background: showInternal ? '#FFFDF7' : '#fff',
+            background:'#fff',
             transition:'all 0.15s',
           }}>
             <textarea
               autoFocus
               value={reply}
               onChange={e=>setReply(e.target.value)}
-              placeholder={showInternal ? 'Nota visibile solo al team byup…' : `Rispondi a ${item.senderName.split(' ')[0]}…`}
+              placeholder={`Rispondi a ${item.senderName.split(' ')[0]}…`}
               style={{
                 width:'100%', minHeight:80, padding:'12px 14px',
                 border:'none', borderRadius:10,
@@ -848,7 +841,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
             <div style={{
               display:'flex', alignItems:'center', gap:7,
               padding:'8px 12px',
-              borderTop:`1px solid ${showInternal ? '#FCD34D40' : ADM.BORDER_SOFT}`,
+              borderTop:`1px solid ${ADM.BORDER_SOFT}`,
               flexWrap:'wrap',
             }}>
               {/* Niente «marca risolta» accanto a «Invia»: chiudere il ticket
@@ -860,31 +853,26 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               <AdmIconBtn icon="image" label="Inserisci immagine"/>
               <div style={{flex:1}}/>
               {(() => {
-                const ReplyIcon = BuIcons[showInternal ? 'bell' : 'send'];
                 const handleSend = () => {
                   if (!reply.trim()) return;
-                  if (!showInternal) onUpdate({ stato:'in_corso', assignedTo: item.assignedTo || MY_ID });
+                  onUpdate({ stato:'in_corso', assignedTo: item.assignedTo || MY_ID });
                   setReply('');
                 };
                 return (
                   <button onClick={handleSend} disabled={!reply.trim()} style={{
                     display:'inline-flex', alignItems:'center', gap:6,
                     padding:'8px 14px',
-                    background: !reply.trim() ? '#E5E7EB' :
-                                showInternal ? ADM.WARN :
-                                'linear-gradient(135deg, #FF5A5F, #E04347)',
+                    background: !reply.trim() ? '#E5E7EB' : 'linear-gradient(135deg, #FF5A5F, #E04347)',
                     color:'#fff', border:'none', borderRadius:8,
                     fontSize:14, fontWeight:700,
                     cursor: !reply.trim() ? 'not-allowed' : 'pointer',
                     fontFamily:'inherit', letterSpacing:'-0.005em',
                     whiteSpace:'nowrap',
-                    boxShadow: !reply.trim() ? 'none' :
-                               showInternal ? `0 4px 12px -4px ${ADM.WARN}80` :
-                               '0 4px 12px -4px rgba(255,90,95,0.55)',
+                    boxShadow: !reply.trim() ? 'none' : '0 4px 12px -4px rgba(255,90,95,0.55)',
                     transition:'all 0.15s',
                   }}>
-                    <ReplyIcon size={17}/>
-                    {showInternal ? 'Aggiungi nota' : 'Invia risposta'}
+                    <BuIcons.send size={17}/>
+                    Invia risposta
                   </button>
                 );
               })()}
@@ -975,25 +963,6 @@ function CertCard({ certTipo, scadenza, senderName, senderEmail, localeId, local
         </div>
       </div>
     </div>
-  );
-}
-
-function ComposerTab({ active, onClick, label, icon, accent }) {
-  const Icon = BuIcons[icon];
-  const c = accent ? ADM[accent] : ADM.PINK;
-  return (
-    <button className="adm-pill" onClick={onClick} style={{
-      display:'inline-flex', alignItems:'center', gap:6,
-      padding:'6px 11px',
-      background: active ? (accent ? `${c}1A` : ADM.PINK_BG_SOFT) : 'transparent',
-      color: active ? c : ADM.MUTED,
-      border:`1px solid ${active ? c : ADM.BORDER}`,
-      borderRadius:7, fontSize:13.3, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-      transition:'all 0.15s',
-    }}>
-      <Icon size={16}/>
-      {label}
-    </button>
   );
 }
 
