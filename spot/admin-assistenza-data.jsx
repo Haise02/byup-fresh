@@ -162,8 +162,10 @@ const RICHIAMATE = (() => {
     // Non ha risposto: parte la mail automatica. Non è «in tempo» né «in
     // ritardo» — resta fuori dal rapporto sulla puntualità, ma dentro il
     // Non risolto, perché il problema del ristoratore è ancora lì.
-    { id:'RC-222', localeId:'L1008', cat:'configurazione', da:3.8*SRV_GIORNO, persa:true, tentativi:3, op:'support2',
-      note:'Tre tentativi in due fasce diverse, sempre segreteria. Mandato il link per riprenotare.' },
+    // Niente `note` sulle non risposte: la UI non le chiede più, e un dato di
+    // esempio che l'interfaccia non sa produrre è una finzione che poi qualcuno
+    // prende per specifica.
+    { id:'RC-222', localeId:'L1008', cat:'configurazione', da:3.8*SRV_GIORNO, persa:true, tentativi:3, op:'support2' },
     { id:'RC-221', localeId:'L1025', cat:'blocco',      da:4.2*SRV_GIORNO, fattaDopo:52*SRV_MIN, op:'support3', durata:13, voto:5,
       prob:'tecnico', risolto:true,
       note:'QR che rimandavano a un menu archiviato. Ripubblicato quello corrente.' },

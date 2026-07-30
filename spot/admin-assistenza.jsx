@@ -298,8 +298,7 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
         return { ...r, stato:'persa', risposto:false,
           tentativi:(r.tentativi || 0) + 1, operatore: SRV_IO, richiamataIl: adesso,
           inTempo: adesso <= r.entro,
-          noteOperatore: esito.note || null,
-          problemaCat: null, risolto: null, urgenza: null };
+          noteOperatore: null, problemaCat: null, risolto: null, urgenza: null };
       }
       return { ...r, stato:'fatta', risposto:true, richiamataIl: adesso, operatore: SRV_IO,
         inTempo: adesso <= r.entro,
@@ -776,7 +775,7 @@ function SrvEsitoModale({ r, onChiudi, onSalva }) {
     if (!valida) return;
     onSalva(risposto
       ? { risposto:true, problemaCat, risolto, urgenza: risolto ? null : urgenza, note: note.trim() }
-      : { risposto:false, note: note.trim() });
+      : { risposto:false });
   };
 
   return (
@@ -869,15 +868,15 @@ function SrvEsitoModale({ r, onChiudi, onSalva }) {
         )}
 
 
-        {risposto != null && (
-          <SrvCampo etichetta={risposto ? 'Cosa hai fatto e cosa resta da fare' : 'Note del tentativo'}
-            aiuto={risposto
-              ? 'Lo legge chi riprende in mano la pratica: scrivi cosa hai già provato, non solo il sintomo.'
-              : 'Fasce orarie tentate, numeri alternativi, chiunque abbia risposto.'}>
+        {/* Le note si chiedono solo se ha risposto. Su un tentativo a vuoto non
+            c'è niente da annotare che qualcuno leggerà: la pratica si chiude,
+            nessuno la riprende in mano, e un campo che si compila per nessuno
+            è solo un attrito in più fra l'operatore e la chiamata dopo. */}
+        {risposto === true && (
+          <SrvCampo etichetta="Cosa hai fatto e cosa resta da fare"
+            aiuto="Lo legge chi riprende in mano la pratica: scrivi cosa hai già provato, non solo il sintomo.">
             <textarea value={note} onChange={e=>setNote(e.target.value)} style={{...SRV_TXT, minHeight:90}}
-              placeholder={risposto
-                ? 'Regola di instradamento verso la stampante sbagliata. Corretta.'
-                : 'Tre tentativi in due fasce diverse, sempre segreteria.'}/>
+              placeholder="Regola di instradamento verso la stampante sbagliata. Corretta."/>
           </SrvCampo>
         )}
       </div>
