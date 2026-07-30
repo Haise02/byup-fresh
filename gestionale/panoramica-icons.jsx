@@ -18,6 +18,22 @@ const PnI = {
     }}/>
   ),
 
+  // Marchio byup in bianco, da mettere DENTRO i bollini col gradiente del
+  // brand: coperti collegati all'app in Sala, utente app in Contabilita,
+  // prenotazioni arrivate dall'app nel calendario. brightness(0) appiattisce
+  // il PNG corallo tenendo l'alfa, invert(1) lo porta a bianco; l'occhio del
+  // segno resta trasparente e lascia passare il fondo, come nel logo.
+  // La taglia sta al ~60% del tondo: a filo del bordo due bollini
+  // sovrapposti si leggono come una macchia sola.
+  MarkWhite: (p) => (
+    <img src="Fresh-mark.png" alt="" style={{
+      width: p.size || 10, height: p.size || 10,
+      objectFit: 'contain', display: 'block', flexShrink: 0,
+      filter: 'brightness(0) invert(1)', opacity: 0.97,
+      pointerEvents: 'none',
+    }}/>
+  ),
+
   Calendar: (p) => (
     <svg width={p.size||18} height={p.size||18} viewBox="0 0 24 24" fill="none" stroke={p.color||'currentColor'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2"/>

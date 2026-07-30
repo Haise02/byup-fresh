@@ -159,9 +159,7 @@ function SalaCalendario({ tweaks, onNuova, onModifica }) {
             <div style={{display:'flex', alignItems:'center', gap:10}}>
               <div style={{width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg, #FF5A5F, #B53338)',
                 display:'grid', placeItems:'center', flexShrink:0}}>
-                <span style={{fontSize:22, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
-                  fontFamily:'-apple-system,system-ui,sans-serif', display:'inline-block', transform:'translateY(-1px)',
-                }}>b</span>
+                <PnI.MarkWhite size={21}/>
               </div>
               <div style={{fontSize:19, fontWeight:700, color:'#0F1115', letterSpacing:-0.3}}>
                 Attenzione
@@ -813,9 +811,7 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
                         width:18, height:18, borderRadius:'50%', background:'linear-gradient(135deg, #FF5A5F, #B53338)',
                         display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0,
                       }}>
-                        <span style={{fontSize:16, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:-0.5,
-                          fontFamily:'-apple-system,system-ui,sans-serif', display:'inline-block', transform:'translateY(-0.5px)',
-                        }}>b</span>
+                        <PnI.MarkWhite size={11}/>
                       </span>
                     )}
                   </span>

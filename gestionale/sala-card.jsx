@@ -199,20 +199,12 @@ function PeopleIcon({ size = 13, color = 'currentColor' }) {
   );
 }
 
-// Marchio byup compatto — dentro gli avatar dei coperti collegati all'app.
-// Non piu la lettera "b" scritta col font di sistema: il segno vero
-// (Fresh-mark.png) sbiancato via CSS — brightness(0) appiattisce tenendo
-// l'alfa, invert(1) porta a bianco — sullo stesso gradiente di prima.
-// La taglia arriva a ~60% del tondo: il marchio vuole aria attorno, come
-// nel logo — a filo del bordo i bollini sovrapposti si confondevano.
+// Marchio byup compatto dentro gli avatar dei coperti collegati all'app —
+// non piu la lettera "b" col font di sistema, ma il segno vero sbiancato.
+// Vive in PnI.MarkWhite perche lo stesso bollino torna in Contabilita e nel
+// calendario delle prenotazioni.
 function ByupB({ size = 9 }) {
-  return (
-    <img src="Fresh-mark.png" alt="" style={{
-      width: size, height: size, objectFit:'contain',
-      filter:'brightness(0) invert(1)', opacity: 0.97,
-      display:'inline-block', pointerEvents:'none',
-    }}/>
-  );
+  return <PnI.MarkWhite size={size}/>;
 }
 
 // Avatar group — un colpo d'occhio sui coperti seduti e su chi è collegato a byup

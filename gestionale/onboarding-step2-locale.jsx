@@ -527,11 +527,17 @@ function QrMock({size = 132}) {
         width: size * 0.26, height: size * 0.26,
         borderRadius: size * 0.075,
         background: `linear-gradient(135deg, ${STAFF.RED}, ${STAFF.ORANGE})`,
-        color: STAFF.CREAM,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: size * 0.17, fontWeight: 800, fontStyle: 'italic',
         border: `${Math.round(size * 0.028)}px solid ${STAFF.CREAM}`,
-      }}>b</div>
+      }}>
+        {/* Marchio byup in panna al centro del codice — img inline e non
+            PnI.MarkWhite: questa pagina non carica panoramica-icons. */}
+        <img src="Fresh-mark.png" alt="" style={{
+          width: size * 0.15, height: size * 0.15, objectFit: 'contain',
+          filter: 'brightness(0) invert(1)', opacity: 0.97,
+          display: 'block', pointerEvents: 'none',
+        }}/>
+      </div>
     </div>
   );
 }

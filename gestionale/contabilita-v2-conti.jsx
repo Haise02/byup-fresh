@@ -137,18 +137,16 @@ function oraChiusura(conto) {
   return fmtOra(ps[ps.length - 1].ora);
 }
 
-// Logo Byup inline — gradiente brand con la "b" di Byup (stesso trattamento
-// degli avatar app in sala e dell'avatar profilo in sidebar).
+// Logo Byup inline — gradiente brand col MARCHIO byup (stesso trattamento
+// degli avatar app in sala e dei badge del calendario).
 // Segnala che il riferimento è un utente loggato sulla Byup App.
 function ByupMark({ size = 16 }) {
   return (
     <span title="Utente Byup App" style={{
       display:'inline-flex', alignItems:'center', justifyContent:'center',
       width: size, height: size, borderRadius:'50%', flexShrink:0,
-      background: 'linear-gradient(135deg, #FF5A5F, #B53338)', color:'#fff',
-      fontSize: size * 0.66, fontWeight: 800, lineHeight: 1,
-      fontFamily:'inherit',
-    }}>b</span>
+      background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
+    }}><PnI.MarkWhite size={Math.round(size * 0.6)}/></span>
   );
 }
 
