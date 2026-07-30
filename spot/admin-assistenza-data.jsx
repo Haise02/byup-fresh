@@ -323,6 +323,35 @@ function srvNonRisolto(r) {
   return r.stato === 'fatta' && r.risolto === false;
 }
 
+// ─── Perché ci hanno scritto ────────────────────────────────────────────────
+//
+// Ogni ticket porta la causa, e non è una tassonomia per fare ordine
+// nell'archivio: è la domanda «questo carico ce lo siamo dati da soli?». Un
+// motivo che vale un ticket su cinque non è assistenza da smaltire meglio, è
+// un difetto di prodotto che si sistema una volta e non torna più.
+//
+// I pesi sommano a 1 e sono deliberatamente sbilanciati sul primo: nei
+// prodotti veri è quasi sempre così, e una distribuzione piatta nasconderebbe
+// esattamente la cosa che questa colonna serve a far vedere.
+const SRV_CAUSE = [
+  { id:'qr_menu',      label:'QR e menu non aggiornati',           peso:0.22, prodotto:true },
+  { id:'comande',      label:'Comande che non arrivano in cucina', peso:0.14, prodotto:true },
+  { id:'incassi',      label:'Incassi e accrediti',                peso:0.13 },
+  { id:'accessi',      label:'Accessi e password dello staff',     peso:0.11, prodotto:true },
+  { id:'fiscale',      label:'Corrispettivi e chiusure fiscali',   peso:0.10 },
+  { id:'dispositivi',  label:'Dispositivi e rete in sala',         peso:0.09 },
+  { id:'prenotazioni', label:'Prenotazioni e notifiche',           peso:0.08 },
+  { id:'comefa',       label:'Come si fa (nessun guasto)',         peso:0.08 },
+  { id:'canone',       label:'Piano, canone e fatture',            peso:0.05 },
+];
+
+function srvCausa(rnd) {
+  const x = rnd();
+  let acc = 0;
+  for (const c of SRV_CAUSE) { acc += c.peso; if (x < acc) return c.id; }
+  return SRV_CAUSE[SRV_CAUSE.length - 1].id;
+}
+
 // Il voto che il ristoratore lascia alla chiusura del ticket. Circa un terzo
 // risponde — chi è arrabbiato e chi è contento rispondono più degli altri, e
 // il risultato è la solita distribuzione a J.
@@ -355,6 +384,20 @@ const TICKET_SRV = (() => {
   const canali = ['richiamata', 'email', 'chat', 'gestionale'];
   const out = [];
   let n = 1;
+  // Chi apre i ticket non è estratto a caso fra i locali: chi usa di più il
+  // prodotto ne apre di più, e sorteggiare a caso avrebbe dato alla trattoria
+  // da duecento ordini gli stessi ticket del pub da ottomila — cioè avrebbe
+  // messo nei dati proprio la distorsione che il conto «ogni mille ordini»
+  // serve a smontare. Il peso è il volume del mese; il +60 tiene in gioco chi
+  // ordina poco, e un locale ogni sette ne apre il triplo a parità di volume:
+  // sono quelli che il conto normalizzato deve far saltare fuori.
+  const pesi = LOCALI.map((l, i) => ((l.ordiniMese || 0) + 60) * (i % 7 === 3 ? 3 : 1));
+  const pesoTot = pesi.reduce((s, p) => s + p, 0);
+  const sorteggiaLocale = () => {
+    let x = rnd() * pesoTot;
+    for (let i = 0; i < LOCALI.length; i++) { x -= pesi[i]; if (x <= 0) return LOCALI[i]; }
+    return LOCALI[LOCALI.length - 1];
+  };
   for (let g = 119; g >= 0; g--) {
     // Volume giornaliero: più basso nel weekend, il ristoratore chiama quando
     // ha il locale aperto ma il problema non è ancora sotto il servizio.
@@ -371,15 +414,29 @@ const TICKET_SRV = (() => {
       const restaAperto = rnd() < (g < 2 ? 0.42 : g < 7 ? 0.14 : 0.03);
       const durataOre = 0.4 + rnd() * rnd() * 34;   // distribuzione a coda lunga
       const chiusoIl = restaAperto ? null : new Date(apertoIl.getTime() + durataOre * SRV_ORA);
-      const locale = LOCALI[Math.floor(rnd() * LOCALI.length)];
+      const locale = sorteggiaLocale();
       const chiuso = chiusoIl && chiusoIl.getTime() <= Date.now() ? chiusoIl : null;
+      const causa = srvCausa(rnd);
+      // Riaperture: un ticket su sei circa torna indietro, e torna presto —
+      // fra il giorno dopo e i quattro giorni. È la differenza fra aver
+      // risolto e aver premuto «chiudi»: senza questa colonna il 93% di
+      // chiusure racconta la nostra velocità, non l'esito.
+      //
+      // I motivi di prodotto rientrano di più: se il difetto è nel prodotto,
+      // chiudere il ticket non lo toglie di mezzo e il locale ci riscrive.
+      const diProdotto = (SRV_CAUSE.find(c => c.id === causa) || {}).prodotto;
+      const riaperto = chiuso && rnd() < (diProdotto ? 0.23 : 0.11);
+      const riapertoIl = riaperto
+        ? new Date(chiuso.getTime() + (18 + rnd() * 78) * SRV_ORA) : null;
       out.push({
         id: 'TK-' + String(4000 + n++),
         localeId: locale.id,
         piano: locale.piano,
         canale: canali[Math.floor(rnd() * canali.length)],
+        causa,
         apertoIl,
         chiusoIl: chiuso,
+        riapertoIl: riapertoIl && riapertoIl.getTime() <= Date.now() ? riapertoIl : null,
         // Alla chiusura parte il sondaggio, e risponde circa un terzo. È da
         // qui che viene il voto dei piani bassi: Gratuito e Starter non hanno
         // la chiamata, e senza i ticket la loro soddisfazione non la
@@ -587,8 +644,17 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
   const inRitardo = chiuse.filter(r => !r.inTempo);
   const attesa    = richiamate.filter(r => r.stato === 'attesa');
   const scadute   = attesa.filter(r => r.entro.getTime() < ora);
-  const attesaMediaMin = chiuse.length === 0 ? 0
-    : Math.round(chiuse.reduce((s, r) => s + (r.richiamataIl - r.prenotataIl), 0) / chiuse.length / SRV_MIN);
+  const atteseMin = chiuse.map(r => (r.richiamataIl - r.prenotataIl) / SRV_MIN)
+    .sort((a, b) => a - b);
+  const attesaMediaMin = atteseMin.length === 0 ? 0
+    : Math.round(atteseMin.reduce((s, m) => s + m, 0) / atteseMin.length);
+  // Il p90 è il tempo entro cui abbiamo risposto a nove chiamate su dieci. La
+  // media dice com'è andata in generale, il p90 dice com'è andata a chi è
+  // andata peggio — e sono quelli che poi ne parlano in giro. Venti risposte
+  // in dieci minuti e tre dopo quattordici ore fanno una media presentabile e
+  // tre clienti furiosi che la media non nomina.
+  const attesaP90Min = atteseMin.length === 0 ? 0
+    : Math.round(atteseMin[Math.max(0, Math.ceil(atteseMin.length * 0.9) - 1)]);
 
   // ── Soddisfazione dell'assistenza ──
   //
@@ -600,9 +666,9 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
   // I commenti invece restano quelli delle chiamate: il sondaggio del ticket
   // chiede il voto e basta.
   const votiChiamate = richiamate.filter(r => r.voto != null)
-    .map(r => ({ voto: r.voto, piano: r.piano }));
+    .map(r => ({ voto: r.voto, piano: r.piano, localeId: r.localeId, il: r.richiamataIl }));
   const votiTicket = ticket.filter(t => t.voto != null)
-    .map(t => ({ voto: t.voto, piano: t.piano }));
+    .map(t => ({ voto: t.voto, piano: t.piano, localeId: t.localeId, il: t.chiusoIl }));
   const votati = votiChiamate.concat(votiTicket);
   const media  = votati.length === 0 ? 0
     : votati.reduce((s, v) => s + v.voto, 0) / votati.length;
@@ -623,6 +689,35 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
       conChiamata: srvHaChiamata(p.id),
     };
   });
+
+  // ── I locali che stanno sotto ──
+  //
+  // La media è un voto solo per tutta la piattaforma: se dieci locali danno 2
+  // e novanta danno 4, resta 3,8 e quei dieci diventano invisibili — fino al
+  // mese in cui disdicono. Quello che serve non è la media: è l'elenco di chi
+  // sta sotto la soglia, dal peggiore in giù, con un nome su cui chiamare.
+  //
+  // Due voti minimi perché un locale che ha votato una volta sola e male non è
+  // un cliente insoddisfatto, è una brutta giornata.
+  const SOGLIA_CRITICA = 3;
+  const perLocaleVoti = {};
+  votati.forEach(v => {
+    const e = perLocaleVoti[v.localeId] || (perLocaleVoti[v.localeId] = { voti: [], ultimo: null });
+    e.voti.push(v.voto);
+    if (v.il && (!e.ultimo || v.il > e.ultimo)) e.ultimo = v.il;
+  });
+  const localiCritici = Object.entries(perLocaleVoti)
+    .map(([localeId, e]) => {
+      const l = LOCALI.find(x => x.id === localeId) || {};
+      return {
+        localeId, nome: l.nome || localeId, citta: l.citta || null, piano: l.piano || null,
+        n: e.voti.length,
+        media: e.voti.reduce((s, v) => s + v, 0) / e.voti.length,
+        ultimo: e.ultimo,
+      };
+    })
+    .filter(l => l.n >= 2 && l.media <= SOGLIA_CRITICA)
+    .sort((a, b) => a.media - b.media || b.n - a.n);
 
   // ── Ticket per finestra ──
   // Una finestra si descrive con due numeri soli: quanti ne sono arrivati e
@@ -664,17 +759,74 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
     return ticket.filter(t => t.apertoIl.getTime() >= da && t.apertoIl.getTime() < a).length;
   });
 
+  // ── Riaperture ──
+  //
+  // Quante volte chiudiamo un ticket e il locale lo riapre perché il problema
+  // era ancora lì. Senza questo numero, «339 chiusi su 363» misura la nostra
+  // velocità nel premere «chiudi», non la risoluzione: un quarto che rientra
+  // dopo due giorni farebbe la stessa bella percentuale.
+  const chiusiMese = ticket.filter(t => t.chiusoIl && t.chiusoIl.getTime() >= ora - 30 * SRV_GIORNO);
+  const riapertiMese = chiusiMese.filter(t => t.riapertoIl);
+  const riaperture = {
+    chiusi: chiusiMese.length,
+    riaperti: riapertiMese.length,
+    pct: chiusiMese.length ? Math.round(riapertiMese.length / chiusiMese.length * 100) : 0,
+    // Quanto ci mette a tornare indietro: se rientra il giorno dopo, il ticket
+    // non era risolto quando l'abbiamo chiuso.
+    oreMedie: riapertiMese.length
+      ? riapertiMese.reduce((s, t) => s + (t.riapertoIl - t.chiusoIl), 0) / riapertiMese.length / SRV_ORA
+      : 0,
+  };
+
+  // ── Le cause ricorrenti ──
+  //
+  // Il conto che trasforma il carico di assistenza in una lista di cose da
+  // sistemare. Se ottanta ticket su 363 sono lo stesso identico motivo, quello
+  // non è lavoro da smaltire meglio: è un difetto che si ripara una volta e
+  // toglie un ticket su cinque per sempre.
+  const delMese = ticket.filter(t => t.apertoIl.getTime() >= ora - 30 * SRV_GIORNO);
+  const cause = SRV_CAUSE.map(c => {
+    const suoi = delMese.filter(t => t.causa === c.id);
+    const riap = suoi.filter(t => t.riapertoIl).length;
+    return {
+      id: c.id, label: c.label, prodotto: !!c.prodotto,
+      n: suoi.length,
+      pct: delMese.length ? Math.round(suoi.length / delMese.length * 100) : 0,
+      // Una causa che rientra più delle altre è una che non stiamo risolvendo,
+      // solo chiudendo.
+      pctRiaperti: suoi.filter(t => t.chiusoIl).length
+        ? Math.round(riap / suoi.filter(t => t.chiusoIl).length * 100) : 0,
+    };
+  }).sort((a, b) => b.n - a.n);
+
   // ── Pressione da ticket, per locale ──
   //
-  // Quanto pesa l'assistenza scritta sul singolo cliente. La base è chi ha
-  // davvero aperto qualcosa, NON tutti i locali della piattaforma: dividere
-  // per 50 darebbe «0,5 ticket a locale», un numero vero e inutile, perché
-  // nasconde che chi apre un ticket ne apre più di uno. Quanti siano quei
-  // locali sta accanto alla media, così la base resta leggibile.
+  // Il conto grezzo — ticket diviso locali — mette sullo stesso piano chi fa
+  // duecento ordini al mese e chi ne fa ottomila. Il secondo apre più ticket
+  // perché usa di più il prodotto, non perché stia andando peggio.
   //
-  // Le stesse medie sulle CHIAMATE non si contano più qui: la Dashboard le
-  // calcola per conto suo, e vivono in cima alla pagina insieme alla
-  // classifica di chi chiama.
+  // Ogni mille ordini, invece, i due diventano confrontabili: il piccolo che
+  // ne apre quattro salta fuori come caso critico, il grande che ne apre sei
+  // risulta normale. La soglia dei 150 ordini al mese tiene fuori i locali
+  // fermi o appena iscritti: con un denominatore di trenta ordini, un ticket
+  // solo vale trentatré ogni mille e la classifica la guiderebbe il rumore.
+  const ticketPerLocaleMese = {};
+  delMese.forEach(t => { ticketPerLocaleMese[t.localeId] = (ticketPerLocaleMese[t.localeId] || 0) + 1; });
+  const ordiniTotaliMese = LOCALI.reduce((s, l) => s + (l.ordiniMese || 0), 0);
+  const ticketPerMille = ordiniTotaliMese ? delMese.length / ordiniTotaliMese * 1000 : 0;
+  const intensita = Object.entries(ticketPerLocaleMese)
+    .map(([localeId, n]) => {
+      const l = LOCALI.find(x => x.id === localeId) || {};
+      const ordini = l.ordiniMese || 0;
+      return {
+        localeId, nome: l.nome || localeId, citta: l.citta || null, piano: l.piano || null,
+        n, ordini,
+        perMille: ordini ? n / ordini * 1000 : null,
+      };
+    })
+    .filter(l => l.ordini >= 150 && l.perMille != null)
+    .sort((a, b) => b.perMille - a.perMille);
+
   const apertiPerLocale = {};
   ticket.filter(t => !t.chiusoIl).forEach(t => {
     apertiPerLocale[t.localeId] = (apertiPerLocale[t.localeId] || 0) + 1;
@@ -684,6 +836,9 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
 
   const perLocale = {
     localiTotali: LOCALI.length,
+    ticketPerMille,
+    ordiniTotaliMese,
+    intensita,
     apertiMedi: localiConAperti ? apertiOra / localiConAperti : 0,
     localiConAperti,
     maxAperti,
@@ -700,10 +855,13 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
       attesa: attesa.length,
       scadute: scadute.length,
       attesaMediaMin,
+      attesaP90Min,
     },
     soddisfazione: { media, n: votati.length, distribuzione, recensioni, perPiano,
-      nChiamate: votiChiamate.length, nTicket: votiTicket.length },
-    ticket: { finestre, chiusuraMediaOre, chiusuraPrecOre, apertiOra, serie: serieTicket },
+      nChiamate: votiChiamate.length, nTicket: votiTicket.length,
+      localiCritici, sogliaCritica: SOGLIA_CRITICA },
+    ticket: { finestre, chiusuraMediaOre, chiusuraPrecOre, apertiOra, serie: serieTicket,
+      riaperture, cause },
     perLocale,
   };
 }
@@ -730,7 +888,7 @@ function srvOre(ore) {
 
 Object.assign(window, {
   SRV_CATEGORIE, SRV_PROBLEMI, SRV_URGENZE, SRV_MAIL_NON_RISPOSTA,
-  SRV_FASCE, SRV_PIANI_CON_CHIAMATA, srvHaChiamata, srvScadenza,
+  SRV_FASCE, SRV_PIANI_CON_CHIAMATA, SRV_CAUSE, srvHaChiamata, srvScadenza,
   RICHIAMATE, TICKET_SRV,
   FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV, VALUTAZIONE_APP, VALUTAZIONE_STAFF,
   srvKpi, srvMinutiAScadere, srvNonRisolto, srvDurata, srvMinuti, srvOre,

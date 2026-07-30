@@ -1751,6 +1751,7 @@ function AdmServizioClientiKPI({ richiamate }) {
   // pulsante per farlo. Qui interessa un'altra cosa — quanto ci costa in
   // chiamate un cliente dei piani alti, e quali locali pesano più degli altri.
   const [classifica, setClassifica] = useStateSrv(false);
+  const [intensita, setIntensita] = useStateSrv(false);
   const perLocale = useMemoSrv(() => {
     const m = new Map();
     (richiamate || RICHIAMATE).forEach(r => {
@@ -1792,9 +1793,17 @@ function AdmServizioClientiKPI({ richiamate }) {
           value={`${k.richiamate.pctInTempo}%`}
           sub={`${k.richiamate.inTempo} su ${k.richiamate.chiuse} entro la scadenza`}
           ratio={{ a:k.richiamate.inTempo, b:k.richiamate.inRitardo, aLabel:'in tempo', bLabel:'in ritardo', aColor:ADM.OK }}/>
+        {/* La media da sola è una bugia gentile: venti risposte in dieci
+            minuti e tre dopo quattordici ore fanno «2h 43m» e tre clienti
+            furiosi che il numero non nomina. Il p90 è il tempo entro cui
+            abbiamo risposto a nove su dieci, e sta accanto alla media perché
+            è leggendo le due insieme che si capisce se il problema è il
+            livello del servizio o la coda lunga. */}
         <DashStatCard label="Attesa media" accent="INFO"
           value={srvMinuti(k.richiamate.attesaMediaMin)}
-          sub="Dalla prenotazione alla chiamata"/>
+          sub={`Dalla prenotazione alla chiamata · p90 ${srvMinuti(k.richiamate.attesaP90Min)}: una chiamata su dieci ha aspettato di più`}
+          alertText={k.richiamate.attesaP90Min >= k.richiamate.attesaMediaMin * 3
+            ? `Coda lunga: p90 ${srvMinuti(k.richiamate.attesaP90Min)}, oltre il triplo della media` : null}/>
       </div>
 
       {classifica && (
@@ -1808,7 +1817,7 @@ function AdmServizioClientiKPI({ richiamate }) {
           stesso dato sbagliato. */}
       <SectionLabel title="Richieste di assistenza"
         desc="Da tutti i canali — ticket scritti, chat, chiamate, gestionale"/>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         {k.ticket.finestre.map(f => (
           <AdmCard key={f.label} padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
             <div style={{padding:'15px 16px 12px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
@@ -1840,16 +1849,32 @@ function AdmServizioClientiKPI({ richiamate }) {
           trend={deltaChiusura} trendLabel="vs mese precedente"
           sub={`${k.ticket.apertiOra} ticket aperti in questo momento`}
           data={k.ticket.serie} gradId="grad-srv-ticket"/>
-        {/* Quanto pesano i ticket sul singolo cliente: stava in una sezione
-            «Per locale» che ripeteva in altra forma le due card in cima alla
-            pagina. Tolte quelle, restava questa da sola, e sta bene qui —
-            dove ci sono gli altri conti sui ticket. */}
-        <DashStatCard label="Ticket medi aperti per locale" accent="WARN"
-          value={k.perLocale.apertiMedi.toFixed(1).replace('.', ',')}
-          sub={`${k.ticket.apertiOra} ticket aperti su ${k.perLocale.localiConAperti} locali · il più carico ne ha ${k.perLocale.maxAperti}`}
-          ratio={{ a:k.perLocale.localiConAperti, b:k.perLocale.localiTotali - k.perLocale.localiConAperti,
-            aLabel:'con ticket aperti', bLabel:'puliti', aColor:ADM.WARN }}/>
       </div>
+
+      {/* La riga di sopra dice quanti ne arrivano e quanto ci mettiamo a
+          chiuderli: due numeri di produzione. Questa dice se li stiamo
+          risolvendo, su chi pesano davvero e perché arrivano. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14, alignItems:'start'}}>
+        {/* Senza questo numero, «339 chiusi su 363» misura la velocità con cui
+            premiamo «chiudi», non la risoluzione. */}
+        <DashStatCard label="Tasso di riapertura"
+          accent={k.ticket.riaperture.pct >= 15 ? 'DANGER' : 'WARN'}
+          value={`${k.ticket.riaperture.pct}%`}
+          sub={`${k.ticket.riaperture.riaperti} dei ${k.ticket.riaperture.chiusi} ticket chiusi nel mese sono tornati indietro, in media dopo ${srvOre(k.ticket.riaperture.oreMedie)}`}
+          ratio={{ a:k.ticket.riaperture.chiusi - k.ticket.riaperture.riaperti, b:k.ticket.riaperture.riaperti,
+            aLabel:'risolti', bLabel:'riaperti', aColor:ADM.OK }}/>
+
+        {/* Ticket diviso locali metteva sullo stesso piano chi fa duecento
+            ordini al mese e chi ne fa ottomila. Ogni mille ordini, invece, i
+            due si confrontano. */}
+        <SrvCardIntensita k={k} aperta={intensita} onClick={()=>setIntensita(x => !x)}/>
+
+        <SrvCauseRicorrenti cause={k.ticket.cause} totale={k.ticket.finestre[2].avviati}/>
+      </div>
+
+      {intensita && (
+        <SrvClassificaIntensita locali={k.perLocale.intensita} onChiudi={()=>setIntensita(false)}/>
+      )}
 
       {/* ── Soddisfazione, in fondo ── */}
       {/* Due voti che NON si sommano: uno lo lascia il ristoratore dopo una
@@ -1877,7 +1902,201 @@ function AdmServizioClientiKPI({ richiamate }) {
           recensioni={VALUTAZIONE_STAFF.recensioni}/>
       </div>
 
+      {/* Il 3,8 è un voto solo per tutta la piattaforma: se dieci locali danno
+          2 e novanta danno 4, resta 3,8 e quei dieci spariscono — fino al mese
+          in cui disdicono. Questo è l'elenco di chi sta sotto, dal peggiore in
+          giù, che è la sola forma su cui si può fare qualcosa. */}
+      <SrvLocaliCritici locali={s.localiCritici} soglia={s.sogliaCritica}/>
+
     </div>
+  );
+}
+
+// ─── Chi ci ha dato un voto basso ───────────────────────────────────────────
+//
+// Non una media, un elenco: nome, quanto ha dato, quante volte, e quando è
+// stata l'ultima. Sono le telefonate da fare questa settimana, e finché
+// restavano dentro il 3,8 non le faceva nessuno.
+function SrvLocaliCritici({ locali, soglia }) {
+  const sogliaTesto = soglia.toFixed(1).replace('.', ',');
+  return (
+    <AdmCard padding={0} style={{overflow:'hidden'}}>
+      <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+        display:'flex', alignItems:'center', gap:12}}>
+        <div style={{width:4, height:20, borderRadius:3, background:ADM.DANGER, flexShrink:0}}/>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>
+            Locali insoddisfatti
+          </div>
+          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>
+            Chi ha una media di {sogliaTesto} o meno su almeno due voti · dal peggiore
+          </div>
+        </div>
+        <span style={{fontSize:13, fontWeight:700, color: locali.length ? ADM.DANGER : ADM.OK,
+          fontVariantNumeric:'tabular-nums'}}>{locali.length}</span>
+      </div>
+      <div className="adm-scroll" style={{maxHeight:340, overflowY:'auto'}}>
+        {locali.map((l, i) => (
+          <div key={l.localeId} style={{display:'grid',
+            gridTemplateColumns:'minmax(0,1fr) 150px 130px 96px', alignItems:'center', gap:12,
+            padding:'10px 20px', borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+            <span style={{minWidth:0}}>
+              <span style={{display:'block', fontSize:13.6, fontWeight:600, color:ADM.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</span>
+              <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:1}}>
+                {[l.citta, l.piano ? l.piano.charAt(0).toUpperCase() + l.piano.slice(1) : null]
+                  .filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <span style={{display:'flex', alignItems:'center', gap:8}}>
+              <SrvStelle valore={l.media} size={12}/>
+            </span>
+            <span style={{fontSize:13, fontWeight:700, fontVariantNumeric:'tabular-nums',
+              color: l.media <= 2 ? ADM.DANGER : ADM.WARN}}>
+              {l.media.toFixed(1).replace('.', ',')}
+              <span style={{color:ADM.MUTED_LIGHT, fontWeight:500}}> su {l.n} voti</span>
+            </span>
+            <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, textAlign:'right'}}>
+              {l.ultimo ? fmtRelative(l.ultimo) : '—'}
+            </span>
+          </div>
+        ))}
+        {locali.length === 0 && (
+          <AdmEmpty icon="star" title="Nessun locale sotto la soglia"
+            desc={`Nessuno ha una media di ${sogliaTesto} o meno con almeno due voti`}/>
+        )}
+      </div>
+    </AdmCard>
+  );
+}
+
+// ─── Quanto pesiamo su chi ci usa ───────────────────────────────────────────
+//
+// Ticket ogni mille ordini, non ticket per locale: normalizzato sul volume, un
+// pub che fa ottomila ordini e ne apre sei sta meglio della trattoria che ne
+// fa duecento e ne apre quattro. Il numero grezzo diceva il contrario.
+function SrvCardIntensita({ k, aperta, onClick }) {
+  const peggiore = k.perLocale.intensita[0];
+  return (
+    <AdmCard padding={0} interactive onClick={onClick}
+      style={{display:'flex', flexDirection:'column', cursor:'pointer', overflow:'hidden',
+        ...(aperta ? { border:`1px solid ${ADM.PINK}`, boxShadow:`0 0 0 3px ${ADM.PINK}38` } : {})}}>
+      <div style={{padding:'15px 16px 14px', display:'flex', flexDirection:'column', gap:7, flex:1}}>
+        <div style={{display:'flex', alignItems:'center', gap:7}}>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+            letterSpacing:'0.04em', flex:1, minWidth:0}}>Ticket ogni 1.000 ordini</span>
+          <span className="adm-open-chip" style={{width:22, height:22}}><BuIcons.chevronRight size={13}/></span>
+        </div>
+        <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+          <span style={{fontSize:29, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
+            {k.perLocale.ticketPerMille.toFixed(1).replace('.', ',')}
+          </span>
+          <span style={{fontSize:12.8, color:ADM.MUTED}}>sulla piattaforma</span>
+        </div>
+        <span style={{fontSize:12.5, color:ADM.MUTED, lineHeight:1.45}}>
+          {peggiore
+            ? <React.Fragment>
+                Il più critico è <b style={{color:ADM.TEXT}}>{peggiore.nome}</b>: {peggiore.perMille.toFixed(1).replace('.', ',')} ogni
+                mille, con {fmtNum(peggiore.ordini)} ordini nel mese
+              </React.Fragment>
+            : 'Nessun ticket nel mese'}
+        </span>
+        <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:'auto'}}>
+          {aperta ? 'Chiudi la classifica' : 'Apri la classifica dei locali'}
+        </span>
+      </div>
+    </AdmCard>
+  );
+}
+
+// I locali che pesano di più a parità di volume. Stessa forma della classifica
+// di chi chiama: barra, numeri, e il nome su cui si può chiamare.
+function SrvClassificaIntensita({ locali, onChiudi }) {
+  const primi = locali.slice(0, 50);
+  const max = primi.length ? primi[0].perMille : 1;
+  return (
+    <AdmCard padding={0} style={{overflow:'hidden', position:'relative'}}>
+      <button onClick={onChiudi} className="adm-iconbtn" title="Chiudi la classifica"
+        style={{position:'absolute', top:10, right:12, zIndex:2,
+          width:28, height:28, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT,
+          color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center'}}>
+        <BuIcons.x size={16}/>
+      </button>
+      <div className="adm-scroll" style={{maxHeight:430, overflowY:'auto'}}>
+        {primi.map((l, i) => (
+          <div key={l.localeId} style={{display:'grid',
+            gridTemplateColumns:'34px minmax(0,1fr) 140px 200px 120px', alignItems:'center', gap:12,
+            padding: i === 0 ? '10px 52px 10px 20px' : '10px 20px',
+            borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+            <span style={{fontSize:12.4, fontWeight:700, fontVariantNumeric:'tabular-nums',
+              color: i < 3 ? ADM.TEXT : ADM.MUTED_LIGHT}}>{i + 1}</span>
+            <span style={{minWidth:0}}>
+              <span style={{display:'block', fontSize:13.6, fontWeight:600, color:ADM.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</span>
+              <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:1}}>
+                {[l.citta, l.piano ? l.piano.charAt(0).toUpperCase() + l.piano.slice(1) : null]
+                  .filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <span style={{height:6, borderRadius:99, background:ADM.NEUTRAL_SOFT, overflow:'hidden'}}>
+              <span style={{display:'block', width:`${Math.round(l.perMille / max * 100)}%`, height:'100%',
+                borderRadius:99, background: l.perMille >= max * 0.6 ? ADM.WARN : ADM.INFO}}/>
+            </span>
+            <span style={{fontSize:13, color:ADM.TEXT, fontWeight:600, fontVariantNumeric:'tabular-nums'}}>
+              {l.perMille.toFixed(1).replace('.', ',')} ogni 1.000
+            </span>
+            <span style={{fontSize:11.8, color:ADM.MUTED_LIGHT, textAlign:'right'}}>
+              {l.n} {l.n === 1 ? 'ticket' : 'ticket'} · {fmtNum(l.ordini)} ordini
+            </span>
+          </div>
+        ))}
+        {primi.length === 0 && <AdmEmpty icon="doc" title="Nessun ticket nel mese"
+          desc="Nessun locale sopra la soglia dei 50 ordini ha aperto qualcosa"/>}
+      </div>
+    </AdmCard>
+  );
+}
+
+// ─── Perché ci scrivono ─────────────────────────────────────────────────────
+//
+// Le prime tre cause e quanto pesano insieme. Il numero che conta è in fondo:
+// se tre motivi fanno metà dei ticket, quella metà non si smaltisce meglio —
+// si toglie di mezzo una volta.
+function SrvCauseRicorrenti({ cause, totale }) {
+  const prime = cause.slice(0, 3);
+  const somma = prime.reduce((s, c) => s + c.n, 0);
+  const max = prime.length ? prime[0].n : 1;
+  return (
+    <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+      <div style={{padding:'15px 16px 12px'}}>
+        <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+          letterSpacing:'0.04em'}}>Le tre cause ricorrenti</span>
+      </div>
+      <div style={{flex:1, display:'flex', flexDirection:'column', gap:10, padding:'0 16px 12px'}}>
+        {prime.map(c => (
+          <div key={c.id}>
+            <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+              <span style={{flex:1, minWidth:0, fontSize:13, fontWeight:600, color:ADM.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.label}</span>
+              <span style={{fontSize:13, fontWeight:700, color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>
+                {c.n}
+              </span>
+              <span style={{fontSize:12, color:ADM.MUTED_SOFT, width:34, textAlign:'right'}}>{c.pct}%</span>
+            </div>
+            <div style={{height:5, borderRadius:99, background:ADM.BORDER_SOFT, overflow:'hidden', marginTop:5}}>
+              <div style={{width:`${c.n / max * 100}%`, height:'100%', borderRadius:99,
+                background: c.prodotto ? ADM.WARN : ADM.INFO}}/>
+            </div>
+          </div>
+        ))}
+        {prime.length === 0 && <span style={{fontSize:12.8, color:ADM.MUTED_SOFT}}>Nessun ticket nel mese.</span>}
+      </div>
+      <div style={{padding:'10px 16px 13px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+        fontSize:11.8, color:ADM.MUTED, lineHeight:1.5}}>
+        {somma} dei {fmtNum(totale)} ticket del mese, il {totale ? Math.round(somma / totale * 100) : 0}%.
+        {prime.some(c => c.prodotto) && ' In ambra i motivi che sono difetti da riparare, non domande a cui rispondere.'}
+      </div>
+    </AdmCard>
   );
 }
 
