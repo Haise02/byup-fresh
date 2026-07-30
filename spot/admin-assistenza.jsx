@@ -1734,11 +1734,15 @@ function AdmServizioClientiKPI({ richiamate }) {
   const k = useMemoSrv(() => srvKpi(richiamate || RICHIAMATE, TICKET_SRV), [richiamate]);
   const s = k.soddisfazione;
 
-  // Il voto dell'app arriva già in distribuzione: media e totale si contano da
-  // lì, senza tenere in giro due numeri che possono smentirsi a vicenda.
-  const appN = VALUTAZIONE_APP.distribuzione.reduce((t, d) => t + d.n, 0);
-  const appMedia = appN
-    ? VALUTAZIONE_APP.distribuzione.reduce((t, d) => t + d.voto * d.n, 0) / appN : 0;
+  // I voti dell'app e di Byup Staff arrivano già in distribuzione: media e
+  // totale si contano da lì, senza tenere in giro due numeri che possono
+  // smentirsi a vicenda.
+  const conta = (distribuzione) => {
+    const n = distribuzione.reduce((t, d) => t + d.n, 0);
+    return { n, media: n ? distribuzione.reduce((t, d) => t + d.voto * d.n, 0) / n : 0 };
+  };
+  const { n: appN, media: appMedia } = conta(VALUTAZIONE_APP.distribuzione);
+  const { n: staffN, media: staffMedia } = conta(VALUTAZIONE_STAFF.distribuzione);
 
   // ── Chi chiama, e quanto ──────────────────────────────────────────────────
   //
@@ -1853,8 +1857,8 @@ function AdmServizioClientiKPI({ richiamate }) {
           i due modi in cui qualcuno ci dice come stiamo andando, separati
           perché una media unica non descriverebbe nessuno dei due. */}
       <SectionLabel title="Soddisfazione"
-        desc="Il voto da 1 a 5 sull'assistenza, chiesto dopo la chiamata, e quello sull'app, chiesto dentro l'app"/>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14, alignItems:'start'}}>
+        desc="Tre voti da 1 a 5 e tre mestieri diversi: il ristoratore che ci chiama, il cliente che ordina, il cameriere che incassa"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14, alignItems:'start'}}>
         <SrvValutazione
           titolo="Valutazione Assistenza"
           media={s.media} n={s.n} distribuzione={s.distribuzione} perPiano={s.perPiano}
@@ -1866,6 +1870,11 @@ function AdmServizioClientiKPI({ richiamate }) {
           media={appMedia} n={appN} distribuzione={VALUTAZIONE_APP.distribuzione}
           nota="Chiesta dentro l'app dopo il decimo ordine, una volta sola."
           recensioni={VALUTAZIONE_APP.recensioni}/>
+        <SrvValutazione
+          titolo="Valutazione Byup Staff"
+          media={staffMedia} n={staffN} distribuzione={VALUTAZIONE_STAFF.distribuzione}
+          nota="Chiesta al cameriere dentro Byup Staff, dopo un mese di turni. Le risposte sono meno: la platea è qualche cameriere per locale, non tutti i clienti."
+          recensioni={VALUTAZIONE_STAFF.recensioni}/>
       </div>
 
     </div>

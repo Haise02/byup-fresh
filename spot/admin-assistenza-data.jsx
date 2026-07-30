@@ -1,13 +1,14 @@
 // Byup Spot — Chiamata assistenza · dati
 //
-// Cinque corpi di dati che vivono nella stessa sezione perché rispondono alla
+// Sei corpi di dati che vivono nella stessa sezione perché rispondono alla
 // stessa domanda — «come stiamo andando con chi ci usa?» — da lati diversi:
 //
 //   1. RICHIAMATE   le prenotazioni di richiamata prese dai ristoratori (la coda)
 //   2. TICKET_SRV   le richieste di assistenza aperte, per i volumi e i tempi
 //   3. FAQ_SRV      la base di conoscenza pubblicata nel gestionale
 //   4. GUIDE_SRV    le guide, raggruppate per argomento, con il video allegato
-//   5. VALUTAZIONE_APP  il voto che il cliente finale lascia dentro l'app
+//   5. VALUTAZIONE_APP    il voto del cliente finale, dentro l'app
+//   6. VALUTAZIONE_STAFF  il voto del cameriere su Byup Staff, il POS di sala
 //
 // Le date sono ancorate a `Date.now()` e non a costanti: un dataset con date
 // fisse invecchia e dopo qualche settimana la coda mostra scadenze tutte rosse.
@@ -534,6 +535,43 @@ const VALUTAZIONE_APP = {
   ].map(r => ({ ...r, il: new Date(Date.now() - r.da) })),
 };
 
+// ─── 6. Valutazione di Byup Staff ───────────────────────────────────────────
+//
+// Il terzo voto, e il terzo mestiere: qui a rispondere è chi incassa in sala
+// col telefono in mano. Non è il ristoratore che paga il canone né il cliente
+// che ordina — è il cameriere, e quando l'app lo rallenta se ne accorge
+// durante il servizio, non a fine mese.
+//
+// Le risposte sono meno di quelle dell'app perché la platea è più piccola:
+// qualche cameriere per locale, non tutti i clienti che hanno ordinato.
+const VALUTAZIONE_STAFF = {
+  distribuzione: [
+    { voto: 1, n: 11 },
+    { voto: 2, n: 19 },
+    { voto: 3, n: 48 },
+    { voto: 4, n: 163 },
+    { voto: 5, n: 287 },
+  ],
+  recensioni: [
+    { id:'VS-08', chi:'Nicola R.', dove:'Osteria San Pietro',   voto:5, da:6*SRV_ORA,
+      testo:'Tap to Pay sul mio telefono, zero POS da rincorrere. Incasso al tavolo mentre finisco il giro.' },
+    { id:'VS-07', chi:'Ilaria M.', dove:'Bistrot Aurora',       voto:4, da:11*SRV_ORA,
+      testo:'La coda di incasso è chiara. Manca poter tornare indietro di un conto se sbaglio a selezionare.' },
+    { id:'VS-06', chi:'Youssef B.', dove:'Pub The Crown',       voto:5, da:1.1*SRV_GIORNO,
+      testo:'Il sabato sera facciamo duecento conti e non si è mai piantata.' },
+    { id:'VS-05', chi:'Federica L.', dove:'Trattoria del Borgo', voto:2, da:1.7*SRV_GIORNO,
+      testo:'Nella saletta in fondo prende male e l\'incasso resta appeso: devo tornare al bancone per chiudere.' },
+    { id:'VS-04', chi:'Andrea P.', dove:'Pizzeria Sorbillo',    voto:5, da:2.3*SRV_GIORNO,
+      testo:'Il conto diviso lo fa lui, non devo più fare i conti a mano sul blocchetto.' },
+    { id:'VS-03', chi:'Giada S.',  dove:'Enoteca Vinitalia',    voto:3, da:3.1*SRV_GIORNO,
+      testo:'Va bene, ma la mancia va chiesta prima di appoggiare la carta e a volte me ne dimentico.' },
+    { id:'VS-02', chi:'Matteo C.', dove:'Ristorante Fior di Loto', voto:4, da:4.2*SRV_GIORNO,
+      testo:'Comoda. Il riepilogo di fine turno mi fa chiudere cassa in due minuti.' },
+    { id:'VS-01', chi:'Sonia D.',  dove:'Osteria del Vicolo',   voto:5, da:5.6*SRV_GIORNO,
+      testo:'Imparata in una serata dalla ragazza nuova, senza che nessuno le spiegasse niente.' },
+  ].map(r => ({ ...r, il: new Date(Date.now() - r.da) })),
+};
+
 // ─── KPI derivati ───────────────────────────────────────────────────────────
 //
 // Una sola funzione, usata sia dalla sezione Chiamata assistenza sia dal tab
@@ -694,6 +732,6 @@ Object.assign(window, {
   SRV_CATEGORIE, SRV_PROBLEMI, SRV_URGENZE, SRV_MAIL_NON_RISPOSTA,
   SRV_FASCE, SRV_PIANI_CON_CHIAMATA, srvHaChiamata, srvScadenza,
   RICHIAMATE, TICKET_SRV,
-  FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV, VALUTAZIONE_APP,
+  FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV, VALUTAZIONE_APP, VALUTAZIONE_STAFF,
   srvKpi, srvMinutiAScadere, srvNonRisolto, srvDurata, srvMinuti, srvOre,
 });
