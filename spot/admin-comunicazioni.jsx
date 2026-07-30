@@ -114,12 +114,6 @@ function AdmComunicazioniPage({ openId }) {
   const cMine     = items.filter(i => i.assignedTo === MY_ID && (i.stato === 'nuova' || i.stato === 'in_corso')).length;
   const cResolved = items.filter(i => i.stato === 'risolta' || i.stato === 'approvata' || i.stato === 'rifiutata').length;
 
-  const aperte = items.filter(i => i.stato === 'nuova' || i.stato === 'in_corso');
-  const attesaMediaH = aperte.length === 0 ? 0
-    : Math.round(aperte.reduce((acc, i) => acc + (Date.now() - i.data.getTime()), 0) / aperte.length / 3600000);
-  const oldest = aperte.reduce((o, i) => !o || i.data < o.data ? i : o, null);
-  const oldestH = oldest ? Math.floor((Date.now() - oldest.data.getTime()) / 3600000) : 0;
-
   const filtered = useMemoCom(() => {
     let r = items;
     if (view === 'open')     r = r.filter(i => i.stato === 'nuova' || i.stato === 'in_corso');
@@ -165,37 +159,12 @@ function AdmComunicazioniPage({ openId }) {
     { id:'all',      label:'Tutte',          count:cAll },
   ];
 
-  const over48Open   = aperte.filter(i => (Date.now() - i.data.getTime()) > 48*3600000).length;
   const certUrgent   = items.filter(i => i.certRequest && i.stato === 'nuova' && (Date.now() - i.data.getTime()) > 24*3600000).length;
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
-      {/* Barra filtri compatta + striscia SLA — i filtri sono navigazione,
-          non KPI: lo spazio va all'inbox. */}
+      {/* Barra filtri — i filtri sono navigazione, non KPI: lo spazio va all'inbox. */}
       <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'14px 32px', flexShrink:0, display:'flex', flexDirection:'column', gap:10}}>
-        {(over48Open > 0 || certUrgent > 0) && (
-          <div style={{
-            display:'flex', alignItems:'center', gap:10, flexWrap:'wrap',
-            padding:'8px 12px', borderRadius:10,
-            background:'linear-gradient(180deg, #FFFBF3 0%, #FFF7EA 100%)',
-            border:`1px solid ${ADM.WARN}33`,
-          }}>
-            <span style={{width:7, height:7, borderRadius:'50%', background:ADM.WARN, boxShadow:`0 0 0 3px ${ADM.WARN}22`, flexShrink:0}}/>
-            <span style={{fontSize:11.5, fontWeight:700, color:ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.05em'}}>Richiede attenzione</span>
-            {over48Open > 0 && (
-              <button onClick={()=>setView('open')} className="adm-btn" style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:99, background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:600, color:ADM.TEXT}}>
-                {over48Open} aperte da oltre 48h <BuIcons.chevronRight size={13} color={ADM.MUTED_SOFT}/>
-              </button>
-            )}
-            {certUrgent > 0 && (
-              <button onClick={()=>setView('cert')} className="adm-btn" style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:99, background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:600, color:ADM.TEXT}}>
-                {certUrgent} certificazioni urgenti <BuIcons.chevronRight size={13} color={ADM.MUTED_SOFT}/>
-              </button>
-            )}
-            <div style={{flex:1}}/>
-            <span style={{fontSize:12.5, color:ADM.MUTED}}>Più vecchia <strong style={{color: oldestH > 48 ? ADM.DANGER : ADM.TEXT}}>{oldestH}h</strong> · attesa media <strong style={{color:ADM.TEXT}}>{attesaMediaH}h</strong></span>
-          </div>
-        )}
         <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
           {views.map(v => {
             const active = view === v.id;
