@@ -1818,7 +1818,11 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                 </ImpField>
               )}
               {!fromLibrary && catName && (
-                <ImpField label={`Prezzo (€, IVA escl.)`} style={{flex:'0 0 130px'}}>
+                {/* IVA inclusa: il ristoratore scrive il prezzo di listino,
+                    quello che il cliente paga — lo scorporo e un lavoro del
+                    gestionale, non suo. Il food cost accanto resta netto:
+                    viene da fatture fornitore B2B. */}
+                <ImpField label={`Prezzo (€, IVA incl.)`} style={{flex:'0 0 130px'}}>
                   <input value={initialPrice} onChange={e=>setInitialPrice(e.target.value)} placeholder="0,00" style={{
                     width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none',
                   }}/>
