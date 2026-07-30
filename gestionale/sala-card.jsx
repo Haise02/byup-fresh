@@ -199,15 +199,19 @@ function PeopleIcon({ size = 13, color = 'currentColor' }) {
   );
 }
 
-// Logo "b" byup compatto — usato dentro gli avatar dei coperti collegati all'app
-function ByupB({ size = 11 }) {
+// Marchio byup compatto — dentro gli avatar dei coperti collegati all'app.
+// Non piu la lettera "b" scritta col font di sistema: il segno vero
+// (Fresh-mark.png) sbiancato via CSS — brightness(0) appiattisce tenendo
+// l'alfa, invert(1) porta a bianco — sullo stesso gradiente di prima.
+// La taglia arriva a ~60% del tondo: il marchio vuole aria attorno, come
+// nel logo — a filo del bordo i bollini sovrapposti si confondevano.
+function ByupB({ size = 9 }) {
   return (
-    <span style={{
-      fontSize: size, fontWeight: 900, color:'#fff',
-      lineHeight: 1, letterSpacing: -0.5,
-      fontFamily:'-apple-system, system-ui, sans-serif',
-      display:'inline-block', transform:'translateY(-0.5px)',
-    }}>b</span>
+    <img src="Fresh-mark.png" alt="" style={{
+      width: size, height: size, objectFit:'contain',
+      filter:'brightness(0) invert(1)', opacity: 0.97,
+      display:'inline-block', pointerEvents:'none',
+    }}/>
   );
 }
 
@@ -261,7 +265,7 @@ function GuestAvatars({ byup = 0, byupWeb = 0, expanded }) {
               boxShadow: kind === 'byup' ? '0 1px 2px rgba(255,90,95,0.30)' : '0 1px 2px rgba(37,99,235,0.28)',
             }}>
               {kind === 'byup'
-                ? <ByupB size={expanded ? 13 : 11}/>
+                ? <ByupB size={expanded ? 11 : 9}/>
                 : <span style={{width: expanded ? 7 : 6, height: expanded ? 7 : 6, borderRadius:'50%', background:'#FFFFFF'}}/>
               }
             </div>
