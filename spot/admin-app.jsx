@@ -373,7 +373,7 @@ function AdminApp({ tweaks }) {
 
         <div style={{flex:1, overflow:'auto'}}>
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
-          {route === 'locali'       && <AdmLocaliPage search={''} openLocale={localiOpenLocale} openMessageModal={openMessageModal}/>}
+          {route === 'locali'       && <AdmLocaliPage search={''} openLocale={localiOpenLocale}/>}
           {route === 'camerieri'    && <AdmCamerieriPage search={''} openStaff={staffOpen}/>}
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}

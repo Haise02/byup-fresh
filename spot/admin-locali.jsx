@@ -2,7 +2,7 @@
 
 const { useState: useStateLoc, useMemo: useMemoLoc, useEffect: useEffectLoc } = React;
 
-function AdmLocaliPage({ search, openLocale, openMessageModal }) {
+function AdmLocaliPage({ search, openLocale }) {
   const [stato, setStato] = useStateLoc('active'); // default → Attivi
   const [piano, setPiano] = useStateLoc('all');
   const [regione, setRegione] = useStateLoc('all');
@@ -10,9 +10,6 @@ function AdmLocaliPage({ search, openLocale, openMessageModal }) {
   const [selected, setSelected] = useStateLoc(null);
   const [sort, setSort] = useStateLoc('mrr_desc');
   const [localSearch, setLocalSearch] = useStateLoc('');
-  // Bulk: selezione multipla per messaggi/export
-  const [sel, setSel] = useStateLoc(() => new Set());
-  const toggleSel = (id) => setSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   // Viste salvate (filtri correnti con nome, in localStorage)
   const [viste, setViste] = useStateLoc(() => { try { return JSON.parse(localStorage.getItem('adm_locali_viste') || '[]'); } catch(e) { return []; } });
   const [salvaVistaOpen, setSalvaVistaOpen] = useStateLoc(false);
@@ -84,7 +81,8 @@ function AdmLocaliPage({ search, openLocale, openMessageModal }) {
   const cittaList = useMemoLoc(() => [...new Set(LOCALI.map(l => l.citta))].sort(), []);
 
   // CSV export — solo schermata Locali (Operatività)
-  const downloadCSV = (rowsOverride) => {
+  // Esporta sempre la vista filtrata: l'export della selezione non esiste più.
+  const downloadCSV = () => {
     const cols = [
       { k: 'id',           label: 'ID' },
       { k: 'nome',         label: 'Nome' },
@@ -114,7 +112,7 @@ function AdmLocaliPage({ search, openLocale, openMessageModal }) {
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const fmtDate = (d) => d ? new Date(d).toISOString().slice(0,10) : '';
-    const rows = (rowsOverride || filtered).map(l => {
+    const rows = filtered.map(l => {
       const tot = (l.mrr || 0) + (l.extras || 0);
       const map = {
         ...l,
@@ -210,16 +208,6 @@ function AdmLocaliPage({ search, openLocale, openMessageModal }) {
           <AdmButton variant="ghost" size="sm" icon="star" onClick={()=>setSalvaVistaOpen(true)}>Salva vista</AdmButton>
         </div>
 
-        {sel.size > 0 && (
-          <div style={{padding:'10px 18px', display:'flex', alignItems:'center', gap:10, background:ADM.PINK_BG_SOFT, borderBottom:`1px solid ${ADM.PINK_SOFT}`, flexWrap:'wrap'}}>
-            <span style={{fontSize:13, fontWeight:700, color:ADM.PINK_DARK}}>{sel.size} {sel.size === 1 ? 'locale selezionato' : 'locali selezionati'}</span>
-            <div style={{flex:1}}/>
-            <AdmButton variant="secondary" size="sm" icon="send" onClick={()=>openMessageModal && openMessageModal('locali', [...sel])}>Invia messaggio</AdmButton>
-            <AdmButton variant="secondary" size="sm" icon="download" onClick={()=>downloadCSV(filtered.filter(l => sel.has(l.id)))}>Esporta selezione</AdmButton>
-            <AdmButton variant="ghost" size="sm" icon="x" onClick={()=>setSel(new Set())}>Deseleziona</AdmButton>
-          </div>
-        )}
-
         {/* Table */}
         <div>
           <div style={{
@@ -239,7 +227,7 @@ function AdmLocaliPage({ search, openLocale, openMessageModal }) {
           </div>
           <div>
             {filtered.length === 0 && <AdmEmpty title="Nessun locale trovato" desc="Modifica i filtri o cancella la ricerca"/>}
-            {filtered.map((l, i) => <LocaleRow key={l.id} locale={l} onClick={()=>setSelected(l)} striped={i%2===1} checked={sel.has(l.id)} onCheck={()=>toggleSel(l.id)}/>)}
+            {filtered.map((l, i) => <LocaleRow key={l.id} locale={l} onClick={()=>setSelected(l)} striped={i%2===1}/>)}
           </div>
         </div>
       </AdmCard>
@@ -289,7 +277,7 @@ function FilterDropdown({ label, value, onChange, options }) {
   );
 }
 
-function LocaleRow({ locale: l, onClick, striped, checked, onCheck }) {
+function LocaleRow({ locale: l, onClick, striped }) {
   const [hover, setHover] = useStateLoc(false);
   const piano = PIANI.find(p => p.id === l.piano);
   const totMese = l.mrr + l.extras;
@@ -309,8 +297,6 @@ function LocaleRow({ locale: l, onClick, striped, checked, onCheck }) {
         transition:'background 0.08s',
       }}>
       <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
-        <input type="checkbox" checked={!!checked} onChange={onCheck} onClick={e=>e.stopPropagation()}
-          style={{width:15, height:15, accentColor:'#FF5A5F', cursor:'pointer', flexShrink:0}}/>
         <div style={{
           width:34, height:34, borderRadius:8,
           background: `hsl(${(l.id.charCodeAt(1)+l.id.charCodeAt(3))*3 % 360}, 35%, 55%)`,
