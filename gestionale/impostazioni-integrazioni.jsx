@@ -18,7 +18,7 @@ const INTEGRATIONS = [
   { id:'deliveroo', name:'Deliveroo', cat:'delivery', logo:'D', bg:'#00CCBC', desc:'Delivery & ordini', status:'available' },
   { id:'glovo', name:'Glovo', cat:'delivery', logo:'G', bg:'#FFC244', color:'#0A1929', desc:'Delivery & quick commerce', status:'available' },
   // Marketing
-  { id:'gmb', name:'Google My Business', cat:'marketing', logo:'G', bg:'#fff', borderless:true, color:'#4285F4', desc:'Recensioni & orari Maps', status:'todo', detail:'Da configurare · richiesto' },
+  { id:'gmb', name:'Google My Business', cat:'marketing', logo:'G', bg:'#fff', borderless:true, color:'#4285F4', desc:'Recensioni & orari Maps', status:'available' },
   { id:'brevo', name:'Brevo', cat:'marketing', logo:'B', bg:'#0B996E', desc:'Email marketing & newsletter', status:'available' },
   { id:'mailchimp', name:'Mailchimp', cat:'marketing', logo:'M', bg:'#FFE01B', color:'#241C15', desc:'Email marketing', status:'available' },
   // Automazione
@@ -44,14 +44,12 @@ function ImpIntegrazioni() {
   const counts = {
     all: INTEGRATIONS.length,
     connected: INTEGRATIONS.filter(i => i.status === 'connected').length,
-    todo: INTEGRATIONS.filter(i => i.status === 'todo').length,
     available: INTEGRATIONS.filter(i => i.status === 'available' || i.status === 'disconnected').length,
   };
 
   const filterChips = [
     { id: 'all', label: 'Tutti', count: counts.all },
     { id: 'connected', label: 'Connessi', count: counts.connected },
-    { id: 'todo', label: 'Da configurare', count: counts.todo },
     { id: 'available', label: 'Disponibili', count: counts.available },
   ];
 
