@@ -243,14 +243,14 @@ const INCIDENTI = [
 ];
 
 // ─── Non conformità e azioni correttive (§10.2) ────────────────────────────
-// Il cuore della 9001. La materia prima arriva già da Comunicazioni: qui le
+// Il cuore della 9001. La materia prima arriva già da Ticket: qui le
 // segnalazioni che sono davvero non conformità vengono classificate e chiuse
 // con la verifica di efficacia, che è il passaggio che quasi tutti saltano.
 const NON_CONFORMITA = [
   { id:'NC-2026-006', data:cfGiorni(-9), origine:'Segnalazione locale', tipo:'processo',
     descrizione:'Ritardo di oltre 48 ore nella risposta a tre segnalazioni ad alta priorità',
     causaRadice:'Nessuna regola di presa in carico: i ticket alta priorità entravano nella coda comune',
-    azione:'Introdotta la striscia SLA in Comunicazioni e la presa in carico esplicita',
+    azione:'Introdotta la striscia SLA in Ticket e la presa in carico esplicita',
     responsabile:'Sara Conti', scadenza:cfGiorni(12), efficacia:null, stato:'in corso' },
   { id:'NC-2026-005', data:new Date('2026-06-20'), origine:'Audit interno', tipo:'documentale',
     descrizione:'Registro dei fornitori non aggiornato da oltre 8 mesi',

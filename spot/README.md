@@ -20,7 +20,7 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 | **Locali** | Ristoranti registrati e onboarding | — |
 | **Staff** | Camerieri, cassa, proprietari, dispositivi dei locali | — |
 | **Utenti App** | Clienti finali | — |
-| **Comunicazioni** | Email, richieste, segnalazioni, certificazioni alimentari | — |
+| **Ticket** | Richieste, segnalazioni, certificazioni alimentari dai locali | — |
 | **Chiamata assistenza** | Coda delle richiamate prenotate dai ristoratori, FAQ e guide | — |
 | **Promozioni** | Campagne e broadcast | — |
 | **Economix** | Costi, conto economico, cassa, patrimonio di byup | [Economix.md](Economix.md) |
@@ -40,7 +40,7 @@ in fondo alla pagina; i dati in [admin-data.jsx](admin-data.jsx) (`RUOLI`,
 | Ruolo | Accede a |
 |---|---|
 | **Super Admin** | tutto |
-| **Support** | dashboard, locali, utenti, segnalazioni, chiamata assistenza, certificazioni |
+| **Support** | dashboard, locali, utenti, ticket, chiamata assistenza, certificazioni |
 | **Marketing** | dashboard, messaggi |
 | **AFC** | dashboard, Economix, Risk Management |
 | **ICT** | dashboard, Sicurezza e sistemi |

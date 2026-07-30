@@ -95,7 +95,7 @@ si modificano a mano — non tutti arrivano da un sistema, e quelli che contano 
 più quasi mai.
 
 **Non conformità (§10.2).** Il cuore della 9001, alimentato dalle segnalazioni
-che arrivano già in Comunicazioni. Il passaggio che quasi tutti saltano è la
+che arrivano già in Ticket. Il passaggio che quasi tutti saltano è la
 **verifica di efficacia**: un'azione chiusa senza verificare che abbia funzionato
 non chiude la non conformità — e infatti se la verifica è negativa la NC torna
 aperta invece di chiudersi lo stesso.

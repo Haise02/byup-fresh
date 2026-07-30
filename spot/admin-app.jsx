@@ -10,10 +10,14 @@ const NAV_MAIN = [
   { id: 'locali',       label: 'Locali',       icon: 'storeFill', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
   { id: 'camerieri',    label: 'Staff',        icon: 'staffFill' },
   { id: 'utenti',       label: 'Utenti App',   icon: 'phoneFill' },
-  { id: 'comunicazioni', label: 'Comunicazioni', icon: 'chatFill', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length) },
-  // Sotto Comunicazioni perché è la stessa relazione col ristoratore, ma per
-  // voce sua: le comunicazioni si leggono quando si può, una richiamata ha una
-  // scadenza. Il badge conta la coda, non i non letti.
+  // «Ticket» e non più «Comunicazioni»: quello che arriva qui non è posta da
+  // leggere, è una pratica che si apre, si prende in carico e si chiude. La
+  // rotta interna resta `comunicazioni` — rinominarla non cambierebbe niente
+  // per chi usa la console e toccherebbe una dozzina di file.
+  { id: 'comunicazioni', label: 'Ticket', icon: 'ticketFill', badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length + CERTIFICAZIONI.filter(c=>c.stato==='pending').length) },
+  // Sotto i Ticket perché è la stessa relazione col ristoratore, ma per voce
+  // sua: un ticket si legge quando si può, una richiamata ha una scadenza.
+  // Il badge conta la coda, non i non letti.
   { id: 'assistenza',   label: 'Chiamata assistenza', icon: 'headsetFill', badge: RICHIAMATE.filter(r=>r.stato==='attesa').length },
   { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphoneFill' },
 ];
@@ -70,7 +74,7 @@ function AdmNavItem({ item, active, onClick, muted, collapsed }) {
   );
 }
 
-// ─── Ricerca globale (⌘K): locali, utenti, staff, comunicazioni ─────────────
+// ─── Ricerca globale (⌘K): locali, utenti, staff, ticket ───────────────────────────────
 function GlobalSearch({ onClose, go }) {
   const [q, setQ] = useStateApp('');
   const query = q.trim().toLowerCase();
@@ -82,7 +86,7 @@ function GlobalSearch({ onClose, go }) {
         .map(u => ({ key:u.id, title:u.nome, sub:`${u.citta} · ${u.id}`, go:()=>go('utenti',{openUtente:u}) })) },
     { group:'Staff', icon:'staffFill', items: (typeof STAFF !== 'undefined' ? STAFF : []).filter(st => match(st.nome, st.localeNome, st.id)).slice(0,5)
         .map(st => ({ key:st.id, title:st.nome, sub:`${st.localeNome} · ${st.id}`, go:()=>go('camerieri',{openStaff:st}) })) },
-    { group:'Comunicazioni', icon:'chatFill', items: (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : []).filter(c => match(c.oggetto, c.senderName, c.id)).slice(0,5)
+    { group:'Ticket', icon:'ticketFill', items: (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : []).filter(c => match(c.oggetto, c.senderName, c.id)).slice(0,5)
         .map(c => ({ key:c.id, title:c.oggetto, sub:`${c.senderName} · ${c.id}`, go:()=>go('comunicazioni',{openComm:c.id}) })) },
     // Il numero di telefono è indicizzato apposta: capita di avere il display
     // acceso con un numero che richiama e di dover capire chi è.
@@ -103,7 +107,7 @@ function GlobalSearch({ onClose, go }) {
           <BuIcons.search size={19} color={ADM.MUTED}/>
           <input autoFocus value={q} onChange={e=>setQ(e.target.value)}
             onKeyDown={e=>{ if (e.key === 'Enter' && flat[0]) { flat[0].go(); onClose(); } }}
-            placeholder="Cerca locali, utenti, staff, comunicazioni…"
+            placeholder="Cerca locali, utenti, staff, ticket…"
             style={{flex:1, border:'none', outline:'none', fontSize:15.5, fontFamily:'inherit', color:ADM.TEXT, background:'transparent'}}/>
           <span style={{fontSize:11, fontWeight:700, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, borderRadius:5, padding:'2px 6px', color:ADM.MUTED_SOFT}}>ESC</span>
         </div>
@@ -200,7 +204,7 @@ function AdminApp({ tweaks }) {
     locali:       { t:'Locali', s:'Ristoranti registrati e relativo onboarding' },
     camerieri:    { t:'Staff', s:'Staff registrato sui locali · camerieri, cassa, proprietari, dispositivi' },
     utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
-    comunicazioni: { t:'Comunicazioni', s:'Email, richieste e segnalazioni dai locali Byup Spot' },
+    comunicazioni: { t:'Ticket', s:'Richieste, segnalazioni e certificazioni aperte dai locali' },
     assistenza:   { t:'Chiamata assistenza', s:'Richiamate prenotate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Impostazioni Admin', s:'Configurazione tecnica e parametri della piattaforma' },
@@ -337,7 +341,7 @@ function AdminApp({ tweaks }) {
                   {[
                     { icon:'card', tone:ADM.DANGER, text:`${LOCALI.filter(l=>l.pagamentoFallito).length} addebiti falliti da recuperare`, when:'2 g fa', go:()=>setRoute('locali') },
                     { icon:'shield', tone:ADM.WARN, text:`${CERTIFICAZIONI.filter(c=>c.stato==='pending').length} certificazioni in attesa di revisione`, when:'oggi', go:()=>setRoute('comunicazioni') },
-                    { icon:'chat', tone:ADM.PINK, text:`${SEGNALAZIONI.filter(x=>x.stato==='nuova').length} nuove segnalazioni dai locali`, when:'35 min fa', go:()=>setRoute('comunicazioni') },
+                    { icon:'ticket', tone:ADM.PINK, text:`${SEGNALAZIONI.filter(x=>x.stato==='nuova').length} nuove segnalazioni dai locali`, when:'35 min fa', go:()=>setRoute('comunicazioni') },
                     { icon:'clock', tone:ADM.WARN, text:'13 onboarding fermi da oltre 7 giorni', when:'ieri', go:()=>setRoute('locali') },
                   ].map((n, i) => {
                     const NIcon = BuIcons[n.icon];

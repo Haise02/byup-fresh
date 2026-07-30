@@ -51,6 +51,7 @@ const ICON_PATHS = {
   monitor:       'rect:2,4,20,13,2|M8 21h8M12 17v4',
   waiter:        'circle:12,5,2|M5 20c1-4 4-6 7-6s6 2 7 6|M3 13h18',
   chat:          'M21 12a8 8 0 1 1-3-6.2L21 4l-1 3.5A8 8 0 0 1 21 12z',
+  ticket:        'M4 6h16a1 1 0 0 1 1 1v2.2a2.8 2.8 0 0 0 0 5.6V17a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2.2a2.8 2.8 0 0 0 0-5.6V7a1 1 0 0 1 1-1z|M12 6.8v2M12 11v2M12 15.2v2',
   utensils:      'M6 3v8a2 2 0 0 0 4 0V3M8 11v10|M16 3c-2 0-3 2-3 5s1 4 3 4v9',
   star:          'M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 17l-5.4 2.7 1-6L3.4 9.4l6-.9L12 3z',
   // Matita e cestino: fino a Chiamata assistenza «modifica» era l'ingranaggio
@@ -71,6 +72,13 @@ const ICON_FILLED = {
   staffFill: 'M9.2 11.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z|M2 19.3c0-3.3 3.22-5.9 7.2-5.9s7.2 2.6 7.2 5.9c0 .7-.55 1.2-1.22 1.2H3.22A1.21 1.21 0 0 1 2 19.3z|M16.6 11a3.1 3.1 0 0 0 0-6.2c-.34 0-.66.05-.97.15a5.2 5.2 0 0 1 .02 5.9c.3.1.62.15.95.15z|M17.5 13.7c1.4 1.14 2.3 2.76 2.3 4.6 0 .44-.1.85-.3 1.2h1.44c.58 0 1.06-.47 1.06-1.05 0-2.4-1.87-4.34-4.5-4.75z',
   phoneFill: 'M8 1.5h8A2.5 2.5 0 0 1 18.5 4v16a2.5 2.5 0 0 1-2.5 2.5H8A2.5 2.5 0 0 1 5.5 20V4A2.5 2.5 0 0 1 8 1.5zm2.2 17.2a.85.85 0 0 0 0 1.7h3.6a.85.85 0 0 0 0-1.7h-3.6z',
   chatFill: 'M12 2.5c5.52 0 10 3.8 10 8.5s-4.48 8.5-10 8.5c-1.2 0-2.35-.18-3.41-.5-1.35.9-3 1.5-4.84 1.5a.66.66 0 0 1-.48-1.12c.83-.86 1.44-1.93 1.68-3.1A8.06 8.06 0 0 1 2 11c0-4.7 4.48-8.5 10-8.5z',
+  // Biglietto con gli scontri laterali e la linea di strappo. La nuvoletta
+  // (chatFill) diceva «conversazione»: giusta finché la sezione si chiamava
+  // Comunicazioni, sbagliata per una coda di pratiche che si aprono e si
+  // chiudono. Gli scontri sono cavati dal contorno stesso — un cerchio
+  // sovrapposto in bianco si vedrebbe sul fondo pesca della voce attiva — e
+  // la perforazione centrale è un foro evenodd nello stesso path.
+  ticketFill: 'M5 5H19A2.5 2.5 0 0 1 21.5 7.5V10.1A1.9 1.9 0 0 0 21.5 13.9V16.5A2.5 2.5 0 0 1 19 19H5A2.5 2.5 0 0 1 2.5 16.5V13.9A1.9 1.9 0 0 0 2.5 10.1V7.5A2.5 2.5 0 0 1 5 5ZM12 7.9a.7.7 0 0 1 .7.7v.8a.7.7 0 0 1-1.4 0v-.8a.7.7 0 0 1 .7-.7zM12 10.9a.7.7 0 0 1 .7.7v.8a.7.7 0 0 1-1.4 0v-.8a.7.7 0 0 1 .7-.7zM12 13.9a.7.7 0 0 1 .7.7v.8a.7.7 0 0 1-1.4 0v-.8a.7.7 0 0 1 .7-.7z',
   megaphoneFill: 'M19.8 2.7a1.2 1.2 0 0 1 1.7 1.1v13.4a1.2 1.2 0 0 1-1.7 1.1l-7.3-3.3H6.3A3.3 3.3 0 0 1 3 11.7v-2.4A3.3 3.3 0 0 1 6.3 6h6.2l7.3-3.3z|M6.2 16.3h3.4l.75 3.9a1.2 1.2 0 0 1-1.18 1.4H8a1.2 1.2 0 0 1-1.18-.97l-.62-4.33z',
   // Euro pieno, costruito come il resto della famiglia: forme solide, nessuno
   // stroke. La C e un settore di corona circolare — arco esterno in senso

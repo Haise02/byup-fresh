@@ -343,6 +343,44 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV, guide = GUIDE_SRV)
     return ticket.filter(t => t.apertoIl.getTime() >= da && t.apertoIl.getTime() < a).length;
   });
 
+  // ── Pressione per locale ──
+  //
+  // Due medie che rispondono alla stessa domanda da due lati: quanto pesa
+  // l'assistenza sul singolo cliente. La base è chi ha davvero aperto qualcosa,
+  // NON tutti i locali della piattaforma: dividere per 50 darebbe «0,5 chiamate
+  // a locale», un numero vero e inutile, perché nasconde che i locali che
+  // chiamano lo fanno più di una volta. Quanti siano quei locali sta accanto
+  // alla media, così la base resta leggibile.
+  const perLocaleChiamate = {};
+  richiamate.forEach(r => { perLocaleChiamate[r.localeId] = (perLocaleChiamate[r.localeId] || 0) + 1; });
+  const localiCheChiamano = Object.keys(perLocaleChiamate).length;
+  const topChiamate = Object.entries(perLocaleChiamate)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([localeId, n]) => ({
+      localeId, n,
+      nome: (richiamate.find(r => r.localeId === localeId) || {}).localeNome || localeId,
+    }));
+
+  const apertiPerLocale = {};
+  ticket.filter(t => !t.chiusoIl).forEach(t => {
+    apertiPerLocale[t.localeId] = (apertiPerLocale[t.localeId] || 0) + 1;
+  });
+  const localiConAperti = Object.keys(apertiPerLocale).length;
+  const maxAperti = Object.values(apertiPerLocale).reduce((m, n) => Math.max(m, n), 0);
+
+  const perLocale = {
+    chiamateMedie: localiCheChiamano ? richiamate.length / localiCheChiamano : 0,
+    localiCheChiamano,
+    // Su quanti locali della piattaforma: serve a leggere la media come «su
+    // 22 locali su 50 che hanno chiamato», non come un dato assoluto.
+    localiTotali: LOCALI.length,
+    topChiamate,
+    apertiMedi: localiConAperti ? apertiOra / localiConAperti : 0,
+    localiConAperti,
+    maxAperti,
+  };
+
   // ── Video ──
   const video = guide.filter(g => g.video).map(g => {
     const v = g.video;
@@ -398,6 +436,7 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV, guide = GUIDE_SRV)
     },
     soddisfazione: { media, n: votati.length, distribuzione, recensioni },
     ticket: { finestre, chiusuraMediaOre, chiusuraPrecOre, apertiOra, serie: serieTicket },
+    perLocale,
     video, videoMedia,
   };
 }

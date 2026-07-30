@@ -387,7 +387,7 @@ const PERMESSI = [
   { id: 'dashboard',      label: 'Dashboard',              desc: 'Accesso alla dashboard principale' },
   { id: 'locali',         label: 'Gestione Locali e staff', desc: 'Visualizza e modifica locali e camerieri' },
   { id: 'utenti',         label: 'Gestione utenti',        desc: 'Visualizza e modifica gli utenti app' },
-  { id: 'segnalazioni',   label: 'Segnalazioni',           desc: 'Gestisce ticket e segnalazioni' },
+  { id: 'segnalazioni',   label: 'Ticket',                 desc: 'Gestisce i ticket aperti dai locali: richieste e segnalazioni' },
   // Separato da «segnalazioni» perché è un'altra cosa: qui si chiama un
   // numero entro una scadenza e si pubblica la base di conoscenza, e la
   // pubblicazione è un potere che non si dà a chiunque legga i ticket.

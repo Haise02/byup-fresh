@@ -17,7 +17,7 @@
 // La sezione non inventa un proprio linguaggio: prende in prestito i due
 // idiomi che Spot ha già.
 //
-//   Richiamate → l'inbox a due pannelli di Comunicazioni. È la stessa cosa
+//   Richiamate → l'inbox a due pannelli della sezione Ticket. È la stessa cosa
 //     (una coda di richieste che arrivano dai locali, una alla volta da
 //     lavorare), quindi deve avere la stessa forma: elenco fitto a sinistra,
 //     dettaglio a destra, azioni ancorate in fondo. La versione a card
@@ -31,7 +31,7 @@
 
 const { useState: useStateSrv, useMemo: useMemoSrv } = React;
 
-// Chi sta usando la console. Non riuso MY_ID di Comunicazioni: che le due
+// Chi sta usando la console. Non riuso MY_ID della sezione Ticket: che le due
 // sezioni abbiano lo stesso operatore è una coincidenza dei dati demo, non un
 // legame da rendere strutturale.
 const SRV_IO = 'support1';
@@ -433,7 +433,7 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
 
   return (
     <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column'}}>
-      {/* Intestazione — come il thread di Comunicazioni: bianca, con chi è e
+      {/* Intestazione — come il thread di un ticket: bianca, con chi è e
           da quando aspetta, senza ripetere niente di quello che sta sotto. */}
       <div style={{background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, padding:'16px 26px 15px', flexShrink:0}}>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:7}}>
@@ -567,7 +567,7 @@ function SrvDettaglioRichiamata({ r, tutte, onEsito }) {
         <SrvContesto r={r} locale={locale} tutte={tutte}/>
       </div>
 
-      {/* Azioni ancorate in fondo, come la barra di risposta di Comunicazioni:
+      {/* Azioni ancorate in fondo, come la barra di risposta dei Ticket:
           non si scorre per trovarle. */}
       {r.stato !== 'fatta' && (
         <div style={{background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, padding:'13px 26px',
@@ -1357,8 +1357,12 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
       </div>
 
       {/* ── Richieste e ticket ── */}
+      {/* Il conteggio è più largo della sezione Ticket: là ci sono le richieste
+          scritte, qui tutte quelle che aprono una pratica, da qualunque canale
+          arrivino. Detto esplicitamente, altrimenti i due numeri sembrano lo
+          stesso dato sbagliato. */}
       <SectionLabel title="Richieste di assistenza"
-        desc="Quante ne arrivano e quante si chiudono · la finestra «oggi» è bassa per costruzione"/>
+        desc="Da tutti i canali — ticket scritti, chat, richiamate, gestionale · la finestra «oggi» è bassa per costruzione"/>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         {k.ticket.finestre.map(f => (
           <AdmCard key={f.label} padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
@@ -1385,6 +1389,49 @@ function AdmServizioClientiKPI({ richiamate, guide }) {
           trend={deltaChiusura} trendLabel="vs mese precedente"
           sub={`${k.ticket.apertiOra} ticket aperti in questo momento`}
           data={k.ticket.serie} gradId="grad-srv-ticket"/>
+      </div>
+
+      {/* ── Pressione per locale ── */}
+      <SectionLabel title="Per locale"
+        desc="Quanto pesa l'assistenza sul singolo cliente · le medie sono su chi ha davvero aperto qualcosa"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
+        <DashStatCard label="Chiamate per locale" accent="INFO"
+          value={k.perLocale.chiamateMedie.toFixed(1).replace('.', ',')}
+          sub={`${k.perLocale.localiCheChiamano} locali su ${k.perLocale.localiTotali} hanno prenotato almeno una richiamata`}
+          ratio={{ a:k.perLocale.localiCheChiamano, b:k.perLocale.localiTotali - k.perLocale.localiCheChiamano,
+            aLabel:'hanno chiamato', bLabel:'mai', aColor:ADM.INFO }}/>
+        <DashStatCard label="Ticket aperti per locale" accent="WARN"
+          value={k.perLocale.apertiMedi.toFixed(1).replace('.', ',')}
+          sub={`${k.ticket.apertiOra} ticket aperti su ${k.perLocale.localiConAperti} locali · il più carico ne ha ${k.perLocale.maxAperti}`}
+          ratio={{ a:k.perLocale.localiConAperti, b:k.perLocale.localiTotali - k.perLocale.localiConAperti,
+            aLabel:'con ticket aperti', bLabel:'puliti', aColor:ADM.WARN }}/>
+
+        {/* Il terzo riquadro non è una media: è il nome. Una media alta non
+            dice su chi intervenire, la classifica sì — e un locale che chiama
+            tre volte in una settimana è un problema di prodotto, non di coda. */}
+        <AdmCard padding={0} style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+          <div style={{padding:'15px 16px 10px'}}>
+            <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
+              letterSpacing:'0.04em'}}>Chi chiama di più</span>
+          </div>
+          <div style={{flex:1}}>
+            {k.perLocale.topChiamate.length === 0
+              ? <div style={{padding:'0 16px 16px', fontSize:12.8, color:ADM.MUTED_SOFT}}>Nessuna richiamata.</div>
+              : k.perLocale.topChiamate.map((t, i) => (
+                <div key={t.localeId} style={{display:'flex', alignItems:'center', gap:10, padding:'7px 16px',
+                  borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+                  <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_LIGHT, width:12}}>{i + 1}</span>
+                  <span style={{flex:1, minWidth:0, fontSize:13.2, fontWeight:600, color:ADM.TEXT,
+                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{t.nome}</span>
+                  <span style={{fontSize:13, fontWeight:700, color: t.n >= 3 ? ADM.DANGER : ADM.TEXT,
+                    fontVariantNumeric:'tabular-nums'}}>{t.n}</span>
+                </div>
+              ))}
+          </div>
+          <div style={{padding:'9px 16px 12px', fontSize:11.8, color:ADM.MUTED_LIGHT}}>
+            Richiamate prenotate negli ultimi 7 giorni
+          </div>
+        </AdmCard>
       </div>
 
       {/* ── Video ── */}

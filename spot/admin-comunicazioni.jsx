@@ -1,4 +1,7 @@
-// Comunicazioni — inbox unificata Byup Spot
+// Ticket — inbox unificata Byup Spot
+// La sezione si chiama Ticket in interfaccia: quello che arriva qui non è
+// posta da leggere, è una pratica che si apre, si assegna e si chiude. Gli
+// identificatori interni (rotta, componente, file) restano «comunicazioni».
 // Email-like: mittente (titolare locale) · ristorante · oggetto · tag · piano · tempo
 // Richieste di certificazione alimentare: oggetto standard + allegati (no testo, no select locale)
 
@@ -9,7 +12,7 @@ const MY_ID = 'support1';
 const CERT_OGGETTO = 'Richiesta certificazione alimentare';
 
 // ─── Costruzione dataset unificato ──────────────────────────────────────────
-// Tutte le comunicazioni arrivano dal titolare di un locale.
+// Tutti i ticket arrivano dal titolare di un locale.
 // Le richieste di cert sono "standardizzate": oggetto fisso, no body, solo allegati.
 const COMUNICAZIONI = (() => {
   const fromCert = CERTIFICAZIONI.map(c => {
@@ -235,7 +238,7 @@ function AdmComunicazioniPage({ openId }) {
 
           <div style={{padding:'10px 18px 8px', fontSize:13.3, color:ADM.MUTED, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
             <span>
-              {filtered.length} {filtered.length === 1 ? 'comunicazione' : 'comunicazioni'}
+              {filtered.length} ticket
               {view !== 'all' && <span style={{color:ADM.MUTED_SOFT}}> · filtro: <strong style={{color:ADM.TEXT, fontWeight:600}}>{views.find(v=>v.id===view)?.label || 'Tutte'}</strong></span>}
             </span>
             {filtered.some(i=>i.stato==='nuova') && (
@@ -243,7 +246,7 @@ function AdmComunicazioniPage({ openId }) {
             )}
           </div>
           <div style={{flex:1, overflowY:'auto'}}>
-            {filtered.length === 0 && <AdmEmpty title="Nessuna comunicazione" desc="Cambia vista o cancella la ricerca"/>}
+            {filtered.length === 0 && <AdmEmpty title="Nessun ticket" desc="Cambia vista o cancella la ricerca"/>}
             {filtered.map(i => (
               <InboxItem key={i.id} item={i} active={selected?.id===i.id} onClick={()=>setSelectedId(i.id)}/>
             ))}
@@ -254,7 +257,7 @@ function AdmComunicazioniPage({ openId }) {
         <div style={{flex:1, display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT, overflow:'hidden', minWidth:0}}>
           {selected
             ? <Thread item={selected} onUpdate={(patch)=>updateItem(selected.id, patch)} onAddTag={(t)=>addTag(selected.id, t)} onRemoveTag={(t)=>removeTag(selected.id, t)}/>
-            : <AdmEmpty title="Seleziona una comunicazione" desc="Dalla lista a sinistra"/>}
+            : <AdmEmpty title="Seleziona un ticket" desc="Dalla lista a sinistra"/>}
         </div>
       </div>
     </div>
