@@ -243,14 +243,9 @@ function ByupPayHero({ devices, onAdd }) {
                   <div style={{fontSize: 14, color: PN.TEXT, marginBottom: 2}}>
                     <b>{d.user}</b> <span style={{color: PN.MUTED}}>· {d.email}</span>
                   </div>
-                  {/* Solo il segnale vivo: «Online ora» quando c'e. Ultimo
-                      utilizzo e data di collegamento erano cronologia, non
-                      stato — e la riga sopra dice gia di chi e il telefono. */}
-                  {d.online && (
-                    <div style={{fontSize: 13, color: PN.GREEN, fontWeight: 500}}>
-                      ● Online ora
-                    </div>
-                  )}
+                  {/* Niente stato sulla riga: chi e online lo dice gia la
+                      fascia in alto («N online ora») — qui bastano il
+                      telefono e la persona che lo porta in tasca. */}
                 </div>
                 <button
                   onClick={() => handleUnlink(d.id)}
