@@ -1854,7 +1854,7 @@ function AdmServizioClientiKPI({ richiamate }) {
       {/* La riga di sopra dice quanti ne arrivano e quanto ci mettiamo a
           chiuderli: due numeri di produzione. Questa dice se li stiamo
           risolvendo, su chi pesano davvero e perché arrivano. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14, alignItems:'start'}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14, alignItems:'start'}}>
         {/* Senza questo numero, «339 chiusi su 363» misura la velocità con cui
             premiamo «chiudi», non la risoluzione. */}
         <DashStatCard label="Tasso di riapertura"
@@ -1870,6 +1870,14 @@ function AdmServizioClientiKPI({ richiamate }) {
         <SrvCardIntensita k={k} aperta={intensita} onClick={()=>setIntensita(x => !x)}/>
 
         <SrvCauseRicorrenti cause={k.ticket.cause} totale={k.ticket.finestre[2].avviati}/>
+
+        {/* I rimborsi stavano in Diagnostica, fra i sistemi. Ma un rimborso non
+            è un guasto: è un cliente a cui abbiamo ridato i soldi, cioè
+            l'esito peggiore di una richiesta di assistenza. Sta qui, accanto
+            alle richieste e alle loro cause. */}
+        <DashStatCard label="Rimborsi" accent="WARN"
+          value={fmtEur(AFFIDABILITA.rimborsi.importo)}
+          sub={`${AFFIDABILITA.rimborsi.n30g} rimborsi nel mese · il ${AFFIDABILITA.rimborsi.pctSuIncassato}% dell'incassato dei locali`}/>
       </div>
 
       {intensita && (

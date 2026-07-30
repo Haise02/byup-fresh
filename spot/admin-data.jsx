@@ -198,12 +198,21 @@ function buildLocali() {
     // storia di crescita raccontabile su venticinque locali.
     const ordiniOltre = Math.max(0, ordiniMeseVal - pianoObj.ordiniInclusi);
     const extras = stato === 'active' ? Math.round(ordiniOltre * pianoObj.ordineExtra) : 0;
-    // Chi ha già cambiato piano, e quando: serve a misurare se chi sfonda poi
-    // fa davvero upgrade, o resta a pagare gli extra a caro prezzo.
-    const haUpgrade = stato === 'active' && piano !== 'free' && r() > 0.62;
-    const upgradeIl = haUpgrade ? new Date(Date.now() - Math.floor(r() * 130) * 86400000) : null;
-    const pianoPrecedente = haUpgrade
-      ? PIANI[Math.max(0, PIANI.findIndex(p => p.id === piano) - 1)].id : null;
+    // Chi ha cambiato piano, quando, e in che direzione. Gli upgrade dicono se
+    // chi sfonda il piano poi fa il passo; i DOWNGRADE sono l'altra metà della
+    // ritenzione del ricavo — un cliente che resta ma paga meno non è churn e
+    // non è espansione, è contrazione, e senza quella la NRR non si compone.
+    const idxPiano = PIANI.findIndex(p => p.id === piano);
+    const dado = r();
+    const cambio = stato !== 'active' ? null
+      : (dado > 0.62 && idxPiano > 0)
+        ? { tipo:'upgrade',   il: new Date(Date.now() - Math.floor(r() * 130) * 86400000), da: PIANI[idxPiano - 1].id }
+      : (dado < 0.14 && idxPiano < PIANI.length - 1)
+        ? { tipo:'downgrade', il: new Date(Date.now() - Math.floor(r() * 130) * 86400000), da: PIANI[idxPiano + 1].id }
+      : null;
+    const upgradeIl = cambio && cambio.tipo === 'upgrade' ? cambio.il : null;
+    const downgradeIl = cambio && cambio.tipo === 'downgrade' ? cambio.il : null;
+    const pianoPrecedente = cambio ? cambio.da : null;
     const ordiniAnnoVal = Math.round(ordiniMeseVal * (11 + r() * 2));
     const scanQRMese = (qrAdoption == null || qrAdoption === 0)
       ? (qrAdoption === 0 ? Math.floor(r() * 4) : 0)
@@ -239,6 +248,7 @@ function buildLocali() {
       ordiniInclusi: pianoObj.ordiniInclusi,
       ordiniOltre,
       upgradeIl,
+      downgradeIl,
       pianoPrecedente,
       ordiniAnno: ordiniAnnoVal,
       prenotazioniGiorno,
@@ -392,9 +402,27 @@ function buildUtenti() {
     const mesiIscritto = Math.max(1, regOffset / 30);
     const freqMese = 0.4 + r() * 3.1;
     const ordini = Math.round(freqMese * mesiIscritto);
+
     // Si prenota molto meno di quanto si ordini: una cena su tre, e non da
     // tutti.
     const prenotazioni = Math.round(ordini * (0.12 + r() * 0.3));
+    // In quanti locali DIVERSI ha ordinato. È il numero che dice se byup è una
+    // rete o venticinque app separate: chi ordina solo dove ha ordinato la
+    // prima volta ha scaricato l'app di quel ristorante, non la nostra.
+    //
+    // La fedeltà a un locale solo dipende da quanto ordina: chi ordina poco
+    // torna dove è già stato, chi ordina spesso finisce per provare il locale
+    // accanto. Slegare le due cose faceva uscire che i clienti «di rete»
+    // ordinano MENO degli altri — il contrario del motivo per cui la rete ci
+    // interessa.
+    const soloUno = r() < Math.max(0.28, 0.95 - ordini * 0.045);
+    // Un locale in più alla volta, con probabilità che cala: la distribuzione
+    // vera è decrescente — tanti a uno, meno a due, pochi a cinque — e la
+    // formula a radice quadrata saltava proprio il gradino del due, che è
+    // quello che conta.
+    let quantiLocali = 1;
+    while (quantiLocali < 8 && r() < Math.min(0.58, 0.10 + ordini * 0.022)) quantiLocali++;
+    const localiOrdinati = ordini === 0 ? 0 : soloUno ? 1 : Math.min(ordini, quantiLocali);
     // distribuzione last session più ampia per coprire tutte le cluster di utilizzo
     const lastSessionDays = Math.floor(r() * 75); // 0..74 giorni
     // categorie utilizzo:
@@ -427,6 +455,9 @@ function buildUtenti() {
       ordini,
       prenotazioni,
       localiPreferiti: localiPref,
+      localiOrdinati,
+      // Cross-locale: ha ordinato in almeno due locali diversi.
+      crossLocale: localiOrdinati > 1,
       // Scontrino personale attorno ai 32 € dichiarati come media app, non una
       // forbice inventata a parte.
       spesaTotale: ordini * (26 + Math.floor(r() * 13)),
@@ -852,6 +883,42 @@ const MONTHLY_REVENUE = (() => {
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RETE · la prova che i locali non sono venticinque app separate
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Un utente che ordina solo dove ha ordinato la prima volta ha scaricato
+// l'app di quel ristorante. Uno che ordina in un secondo locale ha scaricato
+// byup. La differenza fra le due cose è tutto il modello: il flywheel B2B2C
+// esiste solo se il consumatore porta byup da un locale all'altro, e questo è
+// l'unico numero che lo dice.
+const RETE = (() => {
+  const conOrdini = UTENTI.filter(u => u.ordini > 0);
+  const cross = conOrdini.filter(u => u.crossLocale);
+  const distribuzione = [
+    { label:'1 locale',    n: conOrdini.filter(u => u.localiOrdinati === 1).length },
+    { label:'2 locali',    n: conOrdini.filter(u => u.localiOrdinati === 2).length },
+    { label:'3-4 locali',  n: conOrdini.filter(u => u.localiOrdinati >= 3 && u.localiOrdinati <= 4).length },
+    { label:'5 o più',     n: conOrdini.filter(u => u.localiOrdinati >= 5).length },
+  ];
+  const mediaCross = cross.length
+    ? cross.reduce((s, u) => s + u.localiOrdinati, 0) / cross.length : 0;
+  // Chi gira fra più locali ordina di più: è la ragione economica per cui la
+  // rete conviene anche al singolo ristoratore, non solo a noi.
+  const ordiniMediCross = cross.length ? cross.reduce((s,u)=>s+u.ordini,0)/cross.length : 0;
+  const ordiniMediSolo = (conOrdini.length - cross.length)
+    ? conOrdini.filter(u => !u.crossLocale).reduce((s,u)=>s+u.ordini,0) / (conOrdini.length - cross.length) : 0;
+  return {
+    conOrdini: conOrdini.length,
+    cross: cross.length,
+    pct: conOrdini.length ? Math.round(cross.length / conOrdini.length * 100) : 0,
+    distribuzione,
+    mediaCross,
+    ordiniMediCross,
+    ordiniMediSolo,
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ESPANSIONE · chi sfonda il piano, e chi poi fa upgrade
 // ═══════════════════════════════════════════════════════════════════════════
 //
@@ -889,6 +956,57 @@ const ESPANSIONE = (() => {
       const sopra = PIANI[Math.min(PIANI.length - 1, i + 1)];
       return s + Math.max(0, sopra.price - PIANI[i].price);
     }, 0),
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RITENZIONE DEL RICAVO · NRR e GRR
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Il churn per piano dice quanti se ne vanno, l'espansione dice quanti
+// crescono. Nessuno dei due, da solo, dice se il ricavo della base di ieri
+// oggi vale di più o di meno — che è la prima domanda che fa un investitore,
+// e la si compone con TRE pezzi, non due:
+//
+//   espansione    chi è passato al piano sopra (+ delta di canone)
+//   contrazione   chi è passato al piano sotto: resta cliente, paga meno.
+//                 Non è churn e non è espansione, e senza di lui la NRR non
+//                 si può calcolare
+//   churn         chi ha disdetto: il canone sparisce
+//
+//   NRR = (base + espansione − contrazione − churn) / base
+//   GRR = (base − contrazione − churn) / base, cioè senza l'aiuto degli
+//         upgrade: dice quanto tiene la base da sola
+//
+// La finestra è 90 giorni, la stessa dei cambi di piano registrati.
+const RITENZIONE = (() => {
+  const prezzo = (id) => (PIANI.find(p => p.id === id) || {}).price || 0;
+  const g90 = Date.now() - 90 * 86400000;
+
+  const upgrade = LOCALI.filter(l => l.upgradeIl && l.upgradeIl.getTime() >= g90);
+  const downgrade = LOCALI.filter(l => l.downgradeIl && l.downgradeIl.getTime() >= g90);
+  const espansione = upgrade.reduce((s, l) => s + Math.max(0, prezzo(l.piano) - prezzo(l.pianoPrecedente)), 0);
+  const contrazione = downgrade.reduce((s, l) => s + Math.max(0, prezzo(l.pianoPrecedente) - prezzo(l.piano)), 0);
+  // I churned: il canone che pagavano non c'è più. In assenza di uno storico
+  // vero si prende il listino del piano su cui erano.
+  const persi = LOCALI.filter(locChurned);
+  const churn = persi.reduce((s, l) => s + prezzo(l.piano), 0);
+
+  // La base di partenza è quella di 90 giorni fa: il canone di oggi, meno
+  // quello che nel frattempo è cresciuto, più quello che è calato o sparito.
+  const oggi = MRR_ORA.abbonamenti;
+  const base = oggi - espansione + contrazione + churn;
+  return {
+    base: Math.round(base),
+    espansione: Math.round(espansione),
+    contrazione: Math.round(contrazione),
+    churn: Math.round(churn),
+    oggi: Math.round(oggi),
+    nUpgrade: upgrade.length,
+    nDowngrade: downgrade.length,
+    nChurn: persi.length,
+    nrr: base ? Math.round((base + espansione - contrazione - churn) / base * 100) : 0,
+    grr: base ? Math.round((base - contrazione - churn) / base * 100) : 0,
   };
 })();
 
@@ -932,6 +1050,8 @@ window.SCREENS_USAGE = SCREENS_USAGE;
 window.FEATURES_USAGE = FEATURES_USAGE;
 window.MONTHLY_REVENUE = MONTHLY_REVENUE;
 window.AFFIDABILITA = AFFIDABILITA;
+window.RETE = RETE;
+window.RITENZIONE = RITENZIONE;
 window.ESPANSIONE = ESPANSIONE;
 window.TOTAL_REVENUE_HISTORICAL = TOTAL_REVENUE_HISTORICAL;
 window.RIESAME_CADENZA_MESI = RIESAME_CADENZA_MESI;

@@ -639,7 +639,11 @@ function DashAffidabilita({ a }) {
   const c = a.corrispettivi, p = a.pagamenti, u = a.uptime;
   return (
     <React.Fragment>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+      {/* Tre card, non quattro: i rimborsi sono passati in Dashboard →
+          Servizio Clienti, che è dove si guarda cosa è andato storto col
+          cliente. Qui restano i soldi che non entrano e i sistemi che li
+          fanno non entrare. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
         {box(c.pct >= 2 ? 'DANGER' : 'WARN', 'Corrispettivi rifiutati dall\'AdE',
           `${c.pct}%`,
           `${fmtNum(c.rifiutati30g)} su ${fmtNum(c.trasmessi30g)} trasmessi in 30 giorni · ${c.localiCoinvolti} locali coinvolti`,
@@ -648,10 +652,6 @@ function DashAffidabilita({ a }) {
           `${p.pct}%`,
           `${fmtNum(p.falliti30g)} transazioni su ${fmtNum(p.transazioni30g)} · ${fmtEur(p.importoFallito)} non incassati`,
           `Il retry ne recupera il ${p.pctRecuperati}% da solo · ${fmtNum(p.falliti30g - p.recuperati30g)} restano persi`)}
-        {box(null, 'Rimborsi',
-          fmtEur(a.rimborsi.importo),
-          `${a.rimborsi.n30g} rimborsi in 30 giorni · il ${a.rimborsi.pctSuIncassato}% dell'incassato`,
-          null)}
         {/* L'uptime a 24 ore è una media che le notti tranquille tengono alta:
             quello che conta è il servizio, pranzo e cena. */}
         {box(u.picco < 99.9 ? 'WARN' : 'OK', 'Uptime nelle fasce di picco',

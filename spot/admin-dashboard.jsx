@@ -60,13 +60,38 @@ const APP_METRICS = {
 const STAFF_CONFIGURATO = (l) =>
   (l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped')
   && l.completedSteps && (l.completedSteps.includes('team_staff') || l.stato === 'active');
-const STAFF_PER_LOCALE = LOCALI.map(l => ({
+const STAFF_PER_LOCALE_BASE = LOCALI.map(l => ({
   localeId: l.id,
   n: STAFF_CONFIGURATO(l)
     ? Math.max(3, Math.min(14, Math.round(3 + (l.ordiniGiorno || 0) / 3.2)))
     : 0,
 }));
+const STAFF_PER_LOCALE = STAFF_PER_LOCALE_BASE;
 const STAFF_TOT = STAFF_PER_LOCALE.reduce((s, x) => s + x.n, 0);
+// Quanto lo staff USA il prodotto, locale per locale. Contare i camerieri
+// registrati non dice niente: la sala che non apre l'app è il modo più comune
+// in cui un'adozione muore, e il titolare ci mette settimane ad accorgersene —
+// se se ne accorge. Il tasso di attivazione della sala segue l'adozione
+// digitale del locale, perché è la stessa cosa vista da due lati.
+const STAFF_USO = LOCALI.map((l, i) => {
+  const squadra = (STAFF_PER_LOCALE_BASE[i] || {}).n || 0;
+  if (!squadra) return { localeId: l.id, nome: l.nome, citta: l.citta, squadra: 0, attivi: 0, pct: 0, azioniTurno: 0, qr: l.qrAdoption };
+  // Chi ha i QR fermi ha quasi sempre la sala ferma: la quota di camerieri che
+  // aprono il gestionale in settimana va con l'adozione, non a caso.
+  const q = l.qrAdoption == null ? 20 : l.qrAdoption;
+  const quota = Math.max(0.12, Math.min(0.95, 0.18 + q / 55));
+  const attivi = Math.max(0, Math.round(squadra * quota));
+  return {
+    localeId: l.id, nome: l.nome, citta: l.citta,
+    squadra, attivi,
+    pct: Math.round(attivi / squadra * 100),
+    // Azioni per turno di chi lavora: se sono meno di dieci, il cameriere
+    // apre l'app e poi torna al blocchetto.
+    azioniTurno: Math.round(4 + quota * 38),
+    qr: l.qrAdoption,
+  };
+});
+
 const STAFF_METRICS = {
   totCamerieri: STAFF_TOT,
   // Un terzo scarso è in turno oggi: il resto è part-time, riposo, stagionali.
@@ -2278,6 +2303,64 @@ function DashLocali({ onNav }) {
         </AdmCard>
       )}
 
+      {/* ═════ RITENZIONE DEL RICAVO ═════ */}
+      {/* Il churn dice quanti se ne vanno, l'espansione quanti crescono.
+          Nessuno dei due dice se il ricavo della base di ieri oggi vale di più
+          o di meno — e per comporlo serviva il terzo pezzo che mancava: la
+          contrazione, cioè chi resta ma passa al piano sotto. */}
+      <SectionLabel title="Ritenzione del ricavo"
+        desc="NRR e GRR sugli ultimi 90 giorni · espansione, contrazione e churn sulla stessa base"/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14, alignItems:'start'}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
+          <AdmCard padding={18}>
+            <div style={{fontSize:13, fontWeight:700, color: RITENZIONE.nrr >= 100 ? ADM.OK : ADM.WARN,
+              textTransform:'uppercase', letterSpacing:'0.06em'}}>NRR · netta</div>
+            <div style={{fontSize:26.6, fontWeight:800, color: RITENZIONE.nrr >= 100 ? ADM.OK : ADM.TEXT,
+              marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{RITENZIONE.nrr}%</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>
+              Con gli upgrade · sopra il 100% la base cresce da sola
+            </div>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>GRR · lorda</div>
+            <div style={{fontSize:26.6, fontWeight:800, color:ADM.TEXT, marginTop:6, letterSpacing:'-0.03em', lineHeight:1}}>{RITENZIONE.grr}%</div>
+            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>
+              Senza l'aiuto degli upgrade · quanto tiene la base da sola
+            </div>
+          </AdmCard>
+        </div>
+
+        {/* I quattro pezzi in fila: da quanto valeva la base a quanto vale
+            oggi, con in mezzo quello che l'ha mossa. */}
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Come si compone</div>
+          <div style={{display:'flex', flexDirection:'column', gap:9}}>
+            {[
+              { l:`Base di 90 giorni fa`, v: RITENZIONE.base, c: ADM.MUTED, n: null },
+              { l:`Espansione · ${RITENZIONE.nUpgrade} upgrade`, v: RITENZIONE.espansione, c: ADM.OK, segno:'+' },
+              { l:`Contrazione · ${RITENZIONE.nDowngrade} downgrade`, v: -RITENZIONE.contrazione, c: ADM.WARN, segno:'−' },
+              { l:`Churn · ${RITENZIONE.nChurn} disdette`, v: -RITENZIONE.churn, c: ADM.DANGER, segno:'−' },
+              { l:'Base di oggi', v: RITENZIONE.oggi, c: ADM.TEXT, forte:true },
+            ].map((r, i2) => (
+              <div key={r.l} style={{display:'flex', alignItems:'center', gap:12,
+                paddingTop: r.forte ? 9 : 0, borderTop: r.forte ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                <span style={{flex:1, fontSize:13.6, color: r.forte ? ADM.TEXT : ADM.MUTED,
+                  fontWeight: r.forte ? 700 : 500}}>{r.l}</span>
+                <span style={{fontSize:14.6, fontWeight:700, color: r.c, fontVariantNumeric:'tabular-nums'}}>
+                  {r.segno || ''}{fmtEur(Math.abs(r.v))}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5, paddingTop:12,
+            borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+            {RITENZIONE.nrr >= 100
+              ? <React.Fragment>Gli upgrade coprono contrazione e churn: la base di ieri oggi vale di più anche senza clienti nuovi.</React.Fragment>
+              : <React.Fragment>Gli upgrade non coprono ancora contrazione e churn: ogni mese si riparte da un gradino più basso, e la crescita deve venire tutta da locali nuovi.</React.Fragment>}
+          </div>
+        </AdmCard>
+      </div>
+
       {/* ═════ LTV / CAC ═════ */}
       <SectionLabel title="LTV / CAC locale"
         desc="Economia per locale, al netto di Stripe, infrastruttura e assistenza · la prima metrica che ti chiederà un investitore pre-seed"/>
@@ -3254,6 +3337,8 @@ function SottoMediaKpi({ label, value, sub, highlight }) {
 }
 
 // ---------- UTENTI APP tab ----------
+const scalaUtenti = UTENTI_BASE / UTENTI.length;
+
 function DashUtentiApp() {
   const totUtenti = UTENTI_BASE;
   const stickiness = Math.round(APP_METRICS.dau/APP_METRICS.mau*100);
@@ -3509,6 +3594,61 @@ function DashUtentiApp() {
         <SparkStat label="Sessione media" value={`${APP_METRICS.avgSessioneMin} min`}
           accent="INK" icon="clock"
           trend={+0.6} trendLabel="vs mese prec."/>
+      </div>
+
+      {/* ═══════════ La rete ═══════════ */}
+      {/* Il campione è di quaranta utenti: la piattaforma ne dichiara 12.480,
+          e i due numeri stanno sulla stessa pagina. La scala è la stessa che
+          costruisce UTENTI_BASE. */}
+      {/* Il numero che dice se byup è una rete o venticinque app separate: un
+          utente che ordina solo dove ha ordinato la prima volta ha scaricato
+          l'app di quel ristorante, non la nostra. */}
+      <SectionLabel title="La rete" desc="Quanti clienti girano fra più locali · è il flywheel, misurato"/>
+      <div style={{display:'grid', gridTemplateColumns:'320px minmax(0,1fr)', gap:14, alignItems:'stretch'}}>
+        <AdmCard padding={20} style={{display:'flex', flexDirection:'column', justifyContent:'center'}}>
+          <div style={{fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>
+            Ordinano in più di un locale
+          </div>
+          <div style={{fontSize:40, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1, marginTop:8}}>
+            {RETE.pct}%
+          </div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:8, lineHeight:1.45}}>
+            {/* Come le altre card di questa schermata, i conteggi sono sulla
+                base stimata (il campione × 312), non sulle quaranta righe del
+                campione: due scale nella stessa riga non si possono leggere. */}
+            {fmtNum(Math.round(RETE.cross * scalaUtenti))} clienti su {fmtNum(Math.round(RETE.conOrdini * scalaUtenti))} che
+            hanno ordinato almeno una volta · in media in <b style={{color:ADM.TEXT}}>{RETE.mediaCross.toFixed(1).replace('.', ',')} locali</b>
+          </div>
+        </AdmCard>
+        <AdmCard padding={20}>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>In quanti locali diversi ordinano</div>
+          <div style={{display:'flex', flexDirection:'column', gap:10}}>
+            {RETE.distribuzione.map((d, i2) => {
+              const max = Math.max(...RETE.distribuzione.map(x => x.n), 1);
+              const pct = RETE.conOrdini ? Math.round(d.n / RETE.conOrdini * 100) : 0;
+              return (
+                <div key={d.label} style={{display:'flex', alignItems:'center', gap:12}}>
+                  <span style={{width:78, fontSize:13.6, color:ADM.TEXT, fontWeight:600}}>{d.label}</span>
+                  <span style={{flex:1, height:9, borderRadius:99, background:'#F4F5F7', overflow:'hidden'}}>
+                    <span style={{display:'block', width:`${d.n / max * 100}%`, height:'100%', borderRadius:99,
+                      background: i2 === 0 ? ADM.MUTED_LIGHT : ADM.INK}}/>
+                  </span>
+                  <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, width:52, textAlign:'right',
+                    fontVariantNumeric:'tabular-nums'}}>{fmtNum(Math.round(d.n * scalaUtenti))}</span>
+                  <span style={{fontSize:12.6, color:ADM.MUTED, width:38, textAlign:'right'}}>{pct}%</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Il perché la rete conviene anche al singolo ristoratore, non solo
+              a noi: chi gira ordina di più, anche da lui. */}
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5, paddingTop:12,
+            borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+            Chi gira fra più locali ordina <strong style={{color:ADM.TEXT}}>{RETE.ordiniMediSolo ? (RETE.ordiniMediCross / RETE.ordiniMediSolo).toFixed(1).replace('.', ',') : '—'}×</strong> di
+            chi resta in uno solo ({RETE.ordiniMediCross.toFixed(1).replace('.', ',')} contro {RETE.ordiniMediSolo.toFixed(1).replace('.', ',')} ordini
+            a testa): la rete non conviene solo a noi, conviene anche al locale che l'ha portato dentro.
+          </div>
+        </AdmCard>
       </div>
 
       {/* ═══════════ Chi sono gli utenti ═══════════ */}
@@ -4547,6 +4687,89 @@ function DashCamerieri() {
           )}
         </AdmCard>
       </div>
+
+      {/* ═══════════ La sala usa il prodotto? ═══════════ */}
+      {/* Contare i camerieri registrati non dice niente: quello che fa fallire
+          un'adozione, quasi sempre, è la sala che non apre l'app — e il
+          titolare ci mette settimane ad accorgersene. Questo blocco mette
+          l'adozione digitale del locale accanto allo stato della sua sala:
+          dove i QR sono fermi, quasi sempre è ferma anche lei. */}
+      <SectionLabel title="La sala usa il prodotto?"
+        desc="Camerieri che aprono davvero il gestionale, locale per locale · è il primo posto in cui un'adozione muore"/>
+      {(() => {
+        const conSquadra = STAFF_USO.filter(x => x.squadra > 0);
+        const attiviTot = conSquadra.reduce((a, x) => a + x.attivi, 0);
+        const squadraTot = conSquadra.reduce((a, x) => a + x.squadra, 0);
+        const pctRete = squadraTot ? Math.round(attiviTot / squadraTot * 100) : 0;
+        // I locali sotto la soglia di adozione sono gli stessi che il blocco
+        // «da attivare» conta in Locali — tutti, anche quelli senza nemmeno un
+        // cameriere registrato, che sono il caso peggiore e vanno visti.
+        const sotto = STAFF_USO.filter(x => x.qr != null && x.qr < 5)
+          .sort((a, b) => (a.squadra ? a.pct : -1) - (b.squadra ? b.pct : -1));
+        const sottoConSquadra = sotto.filter(x => x.squadra > 0);
+        const sottoSenzaSquadra = sotto.filter(x => x.squadra === 0);
+        const sopra = conSquadra.filter(x => x.qr != null && x.qr >= 15);
+        const media = (arr) => arr.length ? Math.round(arr.reduce((a, x) => a + x.pct, 0) / arr.length) : 0;
+        const azioni = (arr) => arr.length ? Math.round(arr.reduce((a, x) => a + x.azioniTurno, 0) / arr.length) : 0;
+        return (
+          <React.Fragment>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:14}}>
+              <SparkStat label="Camerieri che usano il gestionale" value={`${pctRete}%`}
+                sub={`${attiviTot} su ${squadraTot} registrati hanno aperto il gestionale in settimana`}
+                accent="INK" icon="users"/>
+              <SparkStat label="Sala ferma dove i QR sono fermi" value={`${media(sottoConSquadra)}%`}
+                sub={`Nei ${sotto.length} locali sotto la soglia · ${azioni(sottoConSquadra)} azioni per turno${sottoSenzaSquadra.length ? ` · ${sottoSenzaSquadra.length} non hanno nemmeno un cameriere registrato` : ''}`}
+                accent="INK" icon="store"/>
+              <SparkStat label="Sala viva dove i QR girano" value={`${media(sopra)}%`}
+                sub={`Nei ${sopra.length} locali sopra il 15% di adozione · ${azioni(sopra)} azioni per turno`}
+                accent="INK" icon="check"/>
+            </div>
+
+            <AdmCard padding={0} style={{overflow:'hidden'}}>
+              <div style={{padding:'13px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+                fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.04em'}}>
+                Dove la sala si è fermata · dal peggiore
+              </div>
+              <div className="adm-scroll" style={{maxHeight:320, overflowY:'auto'}}>
+                {sotto.slice(0, 12).map((x, i2) => (
+                  <div key={x.localeId} style={{display:'grid',
+                    gridTemplateColumns:'minmax(0,1fr) 150px 150px 130px', alignItems:'center', gap:12,
+                    padding:'10px 20px', borderTop: i2 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                    <span style={{minWidth:0}}>
+                      <span style={{display:'block', fontSize:13.6, fontWeight:600, color:ADM.TEXT,
+                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{x.nome}</span>
+                      <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:1}}>{x.citta}</span>
+                    </span>
+                    <span style={{display:'flex', alignItems:'center', gap:9}}>
+                      <span style={{flex:1, height:6, borderRadius:99, background:ADM.NEUTRAL_SOFT, overflow:'hidden'}}>
+                        <span style={{display:'block', width:`${x.pct}%`, height:'100%', borderRadius:99,
+                          background: x.pct < 30 ? ADM.DANGER : ADM.WARN}}/>
+                      </span>
+                      <span style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, width:36, textAlign:'right'}}>{x.pct}%</span>
+                    </span>
+                    <span style={{fontSize:12.8, color:ADM.MUTED}}>
+                      {x.squadra === 0
+                        ? <b style={{color:ADM.DANGER}}>Nessun cameriere registrato</b>
+                        : <React.Fragment><b style={{color:ADM.TEXT}}>{x.attivi}</b> su {x.squadra} in sala · {x.azioniTurno} azioni/turno</React.Fragment>}
+                    </span>
+                    <span style={{fontSize:12.4, color:ADM.MUTED_LIGHT, textAlign:'right'}}>
+                      QR al {x.qr == null ? '—' : `${x.qr.toFixed(1)}%`}
+                    </span>
+                  </div>
+                ))}
+                {sotto.length === 0 && <AdmEmpty icon="users" title="Nessun locale con la sala ferma"
+                  desc="Tutti i locali sotto adozione hanno comunque lo staff che lavora"/>}
+              </div>
+              <div style={{padding:'12px 20px', borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+                fontSize:13, color:ADM.MUTED, lineHeight:1.5}}>
+                Nei locali che non adottano, in sala apre il gestionale il <b style={{color:ADM.TEXT}}>{media(sottoConSquadra)}%</b> dei
+                camerieri contro il <b style={{color:ADM.TEXT}}>{media(sopra)}%</b> di quelli che girano.
+                Prima di rifare formazione al titolare, conviene guardare chi c'è in sala il sabato sera.
+              </div>
+            </AdmCard>
+          </React.Fragment>
+        );
+      })()}
 
       {/* ═══════════ Attività operativa ═══════════ */}
       <SectionLabel title="Attività operativa" desc="Quando e come lo staff usa il gestionale"/>
