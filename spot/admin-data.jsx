@@ -641,7 +641,24 @@ const TEAM = [
   // mostrerebbe sette persone tutte attive oggi e non dimostrerebbe nulla.
   { id: 'mkt3', nome: 'Elena Ricci', email: 'e.ricci@byup.it', ruolo: 'marketing', avatar: 'ER', avatarBg: '#0891B2', lastActive: new Date(Date.now() - 86400000 * 142), addedBy: 'Paola Esposito', due_fa: true, attivo: true, addedOn: new Date('2025-06-10') },
   { id: 'support3', nome: 'Nicola Ferrara', email: 'n.ferrara@byup.it', ruolo: 'support', avatar: 'NF', avatarBg: '#4F46E5', lastActive: new Date(Date.now() - 86400000 * 3), addedBy: 'Sara Conti', due_fa: true, attivo: true, addedOn: new Date('2026-07-08') },
-  { id: 'support4', nome: 'Chiara Fumagalli', email: 'c.fumagalli@byup.it', ruolo: 'support', avatar: 'CF', avatarBg: '#9333EA', lastActive: null, addedBy: 'Tu', due_fa: false, attivo: true, pending: true, addedOn: new Date('2026-06-20') },
+];
+
+// ─── Inviti non ancora accettati ────────────────────────────────────────────
+// Chi non ha accettato NON è nel team: non ha una password, non ha una sessione,
+// non ha ancora accesso a niente. Stava in TEAM con `pending: true` e finiva
+// nell'elenco del riesame accessi classificato «Mai acceduto», dove non c'entra
+// — il riesame guarda chi ha accesso, non chi potrebbe averlo. Vive qui, e qui
+// il numero che conta è da quanto l'invito è fermo: un invito vecchio con
+// permessi già assegnati è una porta socchiusa che nessuno sta guardando.
+const INVITI_PENDENTI = [
+  { nome:'Sara Greco',       email:'sara.greco@byup.it', ruolo:'support',
+    inviato:new Date(Date.now() - 86400000 * 2),  scade:new Date(Date.now() + 86400000 * 5) },
+  { nome:'Davide Conti',     email:'davide.c@byup.it',   ruolo:'operations',
+    inviato:new Date(Date.now() - 86400000 * 4),  scade:new Date(Date.now() + 86400000 * 3) },
+  // Invitata il 20 giu 2026 e mai accettato: l'invito è scaduto da un mese e i
+  // permessi Support sono già stati decisi. È il caso che deve saltare all'occhio.
+  { nome:'Chiara Fumagalli', email:'c.fumagalli@byup.it', ruolo:'support',
+    inviato:new Date('2026-06-20'),               scade:new Date('2026-06-27') },
 ];
 
 // ─── Riesame periodico dei diritti di accesso (ISO/IEC 27001 A.5.18) ─────────
@@ -1206,6 +1223,7 @@ window.SEGNALAZIONI = SEGNALAZIONI;
 window.CERTIFICAZIONI = CERTIFICAZIONI;
 window.CERT_TIPI = CERT_TIPI;
 window.TEAM = TEAM;
+window.INVITI_PENDENTI = INVITI_PENDENTI;
 window.RUOLI = RUOLI;
 window.PERMESSI = PERMESSI;
 window.TOP_PIATTI = TOP_PIATTI;

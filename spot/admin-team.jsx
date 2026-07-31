@@ -19,7 +19,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza', onNavRoute }) 
   // Un link da un'altra sezione — «Apri» su un adempimento del cruscotto — deve
   // poter arrivare sulla tab giusta, non sulla prima.
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
-  const [invitiOpen, setInvitiOpen] = useStateTeam(false);
+  const [ruoliOpen, setRuoliOpen] = useStateTeam(false);
   const [members, setMembers] = useStateTeam(TEAM);
   const [inviteOpen, setInviteOpen] = useStateTeam(false);
 
@@ -61,36 +61,43 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza', onNavRoute }) 
             { id:'diagnostica', label:'Diagnostica' },
           ].filter(t => sez.tabs.indexOf(t.id) !== -1)} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
+          {/* La matrice ruoli è materiale di consultazione: non cambia mai e non
+              si agisce su di lei. Come sezione in fondo alla pagina occupava
+              mezzo schermo per non essere quasi mai letta; come tab avrebbe
+              promesso un posto dove si fa qualcosa. È un bottone. */}
+          {tab === 'accessi' && (
+            <AdmButton variant="secondary" size="sm" onClick={()=>setRuoliOpen(true)}>Ruoli &amp; permessi</AdmButton>
+          )}
           {tab === 'accessi' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
         </div>
 
-        {tab === 'accessi' && (
-          <React.Fragment>
-            {/* La lista sta qui dentro: il riesame la porta gia con nome, email,
-                ruolo e ultimo accesso. Sotto restano le due cose che erano solo
-                del Team — chi e stato invitato e cosa puo fare ogni ruolo. */}
-            <AccessReview onNavRoute={onNavRoute}/>
-
-            <div className="adm-row-open" onClick={()=>setInvitiOpen(o=>!o)} style={{padding:'16px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none'}}>
-              <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Inviti pendenti</span>
-              <span style={{fontSize:12.2, fontWeight:700, background:'rgba(120,120,128,0.15)', color:ADM.MUTED, padding:'1px 7px', borderRadius:999}}>2</span>
-              <span className="adm-row-chev" style={{display:'inline-flex', color:ADM.MUTED_SOFT, transform:invitiOpen?'rotate(90deg)':'none', transition:'transform 0.15s ease'}}><BuIcons.chevronRight size={16}/></span>
-              {!invitiOpen && <span style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>Sara Greco, Davide Conti · clicca per espandere</span>}
-            </div>
-            {invitiOpen && <InvitiPending/>}
-
-            <div style={{padding:'20px 22px 0', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:8}}>
-              <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Ruoli & permessi</span>
-            </div>
-            <RuoliMatrix/>
-          </React.Fragment>
-        )}
+        {/* Il riesame rende anche gli inviti in attesa, subito sotto la banda
+            della scadenza: sono roba da sbrigare, non una nota a piè di pagina. */}
+        {tab === 'accessi' && <AccessReview onNavRoute={onNavRoute}/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>
 
       <InviteMemberModal open={inviteOpen} onClose={()=>setInviteOpen(false)} onInvite={handleInvite}/>
+      {ruoliOpen && (
+        <div onClick={()=>setRuoliOpen(false)} style={{position:'fixed', inset:0, zIndex:60,
+          background:'rgba(15,17,21,0.42)', display:'flex', alignItems:'center', justifyContent:'center',
+          padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:1040, maxWidth:'95%', maxHeight:'88%',
+            background:'#fff', borderRadius:14, boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+            animation:'admModalIn 0.18s ease', display:'flex', flexDirection:'column'}}>
+            <div style={{padding:'18px 22px 14px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex',
+              alignItems:'center', gap:12, flexShrink:0}}>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>Ruoli &amp; permessi</div>
+              </div>
+              <AdmIconBtn icon="x" onClick={()=>setRuoliOpen(false)} label="Chiudi"/>
+            </div>
+            <div style={{overflow:'auto', flex:1, minHeight:0}}><RuoliMatrix/></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -278,30 +285,51 @@ function RuoliMatrix() {
 }
 
 function InvitiPending() {
-  const inviti = [
-    { nome:'Sara Greco', email:'sara.greco@byup.it', ruolo:'support', inviato: new Date(Date.now()-86400000*2), scade: new Date(Date.now()+86400000*5) },
-    { nome:'Davide Conti', email:'davide.c@byup.it', ruolo:'operations', inviato: new Date(Date.now()-86400000*4), scade: new Date(Date.now()+86400000*3) },
-  ];
+  const inviti = (typeof INVITI_PENDENTI !== 'undefined' ? INVITI_PENDENTI : []);
+  if (!inviti.length) return null;
+  const gg = (d) => Math.round((d.getTime() - Date.now()) / 86400000);
+  const fermi = inviti.filter(i => gg(i.scade) < 0).length;
   return (
-    <div>
-      {inviti.map((inv, i) => (
-        <div key={i} style={{display:'grid', gridTemplateColumns:'minmax(0,2fr) 1.2fr 1.2fr 1.2fr 160px', padding:'14px 22px', borderBottom: i === inviti.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`, alignItems:'center'}}>
-          <div style={{display:'flex', alignItems:'center', gap:11}}>
-            <div style={{width:34, height:34, borderRadius:'50%', background:'#F0F1F3', display:'grid', placeItems:'center', color:ADM.MUTED}}><BuIcons.mail size={20}/></div>
-            <div>
-              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{inv.nome}</div>
-              <div style={{fontSize:13.3, color:ADM.MUTED}}>{inv.email}</div>
+    <div style={{border:`1px solid ${fermi ? '#FDE68A' : ADM.BORDER}`, borderRadius:10, overflow:'hidden',
+      background: fermi ? '#FFFDF7' : '#fff'}}>
+      <div style={{display:'flex', alignItems:'baseline', gap:9, padding:'10px 16px',
+        borderBottom:`1px solid ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
+        <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
+          letterSpacing:'0.06em'}}>Inviti in attesa</span>
+        <span style={{fontSize:12.2, fontWeight:700, background:'rgba(120,120,128,0.15)', color:ADM.MUTED,
+          padding:'1px 7px', borderRadius:999}}>{inviti.length}</span>
+        <span style={{fontSize:12.4, color: fermi ? ADM.WARN : ADM.MUTED, fontWeight: fermi ? 700 : 400}}>
+          {fermi
+            ? `${fermi} ${fermi === 1 ? 'invito scaduto' : 'inviti scaduti'}: permessi già assegnati a chi non è mai entrato`
+            : 'non hanno ancora accettato, quindi non sono nel riesame degli accessi'}
+        </span>
+      </div>
+      {inviti.map((inv, i) => {
+        const g = gg(inv.scade);
+        return (
+          <div key={inv.email} style={{display:'grid', gridTemplateColumns:'minmax(0,1.9fr) 1.1fr 1fr 1.2fr 150px',
+            gap:10, padding:'10px 16px', alignItems:'center',
+            borderBottom: i === inviti.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{display:'flex', alignItems:'center', gap:10, minWidth:0}}>
+              <div style={{width:28, height:28, borderRadius:'50%', background:'#F0F1F3', display:'grid',
+                placeItems:'center', color:ADM.MUTED, flexShrink:0}}><BuIcons.mail size={15}/></div>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{inv.nome}</div>
+                <div style={{fontSize:11.8, color:ADM.MUTED_SOFT}}>{inv.email}</div>
+              </div>
+            </div>
+            <div><AdmBadge color={RUOLI[inv.ruolo].color} size="xs">{RUOLI[inv.ruolo].label}</AdmBadge></div>
+            <div style={{fontSize:12.4, color:ADM.MUTED}}>Inviato {fmtRelative(inv.inviato)}</div>
+            <div style={{fontSize:12.4, fontWeight:700, color: g < 0 ? ADM.DANGER : ADM.WARN}}>
+              {g < 0 ? `Scaduto da ${-g} ${-g === 1 ? 'giorno' : 'giorni'}` : `Scade fra ${Math.max(1, g)} giorni`}
+            </div>
+            <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+              <AdmButton variant="ghost" size="sm">Rinvia</AdmButton>
+              <AdmButton variant="ghost" size="sm">Revoca</AdmButton>
             </div>
           </div>
-          <div><AdmBadge color={RUOLI[inv.ruolo].color} size="xs">{RUOLI[inv.ruolo].label}</AdmBadge></div>
-          <div style={{fontSize:13.7, color:ADM.MUTED}}>Inviato {fmtRelative(inv.inviato)}</div>
-          <div style={{fontSize:13.7, color:ADM.WARN, fontWeight:500}}>Scade tra {Math.max(1, Math.round((inv.scade - Date.now()) / 86400000))} giorni</div>
-          <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
-            <AdmButton variant="ghost" size="sm">Rinvia</AdmButton>
-            <AdmButton variant="ghost" size="sm">Revoca</AdmButton>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -892,7 +920,7 @@ function raClassifica(m) {
   const lbl = (r) => (RUOLI[r] && RUOLI[r].label) || r;
 
   if (!m.lastActive) return { rank:0, key:'mai', tono:'DANGER', label:'Mai acceduto',
-    nota:`Invitato ${raGiorniFa(m.addedOn)} giorni fa, non ha mai effettuato l'accesso` };
+    nota:`Nel team dal ${raFmtData(m.addedOn)}, non ha mai effettuato l'accesso` };
   if (gg >= RA_DORMIENTE_GG) return { rank:1, key:'dormiente', tono:'DANGER', label:'Dormiente',
     nota:`Nessun accesso da ${gg} giorni, ma l'utenza è ancora abilitata` };
   if (prec && permOra > permPrima) return { rank:2, key:'escalation', tono:'WARN', label:'Permessi aumentati',
@@ -958,7 +986,9 @@ function AccessReview({ onNavRoute }) {
   const cadenza = raCadenzaMesi();
   const inScadenza = ggScadenza <= RA_PREAVVISO_GG;   // da qui in poi la banda chiama all'azione
 
-  const membri = TEAM.filter(m => m.attivo !== false);
+  // Chi non ha ancora accettato l'invito non ha accesso: sta negli inviti in
+  // attesa, non in un riesame che guarda chi l'accesso ce l'ha già.
+  const membri = TEAM.filter(m => m.attivo !== false && !m.pending);
   const righe = membri
     .map(m => ({ m, cls: raClassifica(m), prec: raUltimoRiesame(m.id) }))
     .sort((a, b) => a.cls.rank - b.cls.rank || a.m.nome.localeCompare(b.m.nome));
@@ -1114,6 +1144,8 @@ function AccessReview({ onNavRoute }) {
               lo stesso bottone due volte nella stessa schermata. */}
         </div>
       )}
+
+      <InvitiPending/>
 
       {chiusa && (
         <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,

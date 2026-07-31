@@ -8,8 +8,21 @@ bocciate perché lo gestiscono con un foglio Excel.
 > stesse persone con gli stessi ruoli e due colonne diverse in fondo. Le due sono
 > state fuse: **l'elenco è uno solo**, ed è quello del riesame — era già il
 > sovrainsieme. 2FA e stato dell'utenza, che erano le uniche colonne in più della
-> vecchia tab Team, sono diventate pastiglie accanto al nome. Sotto l'elenco
-> restano gli inviti pendenti e la matrice ruoli & permessi.
+> vecchia tab Team, sono diventate pastiglie accanto al nome.
+
+**Chi non ha ancora accettato l'invito non è nel riesame.** Non ha una password,
+non ha una sessione, non ha accesso a niente: sta negli **inviti in attesa**, che
+non sono più una riga da espandere in fondo alla pagina ma un riquadro in alto,
+subito sotto la banda della scadenza. Lì il numero che conta non è il ruolo ma da
+quanto l'invito è fermo: un invito scaduto con i permessi già assegnati è una
+porta socchiusa che nessuno sta guardando, e in fondo alla pagina non la vedeva
+nessuno. Fonte unica: `INVITI_PENDENTI` in [admin-data.jsx](admin-data.jsx).
+
+**La matrice ruoli & permessi è un bottone, non una sezione.** È materiale di
+consultazione: non cambia mai e non ci si agisce sopra. In fondo alla pagina
+occupava mezzo schermo per non essere quasi mai letta; come tab avrebbe promesso
+un posto dove si fa qualcosa. Si apre da «Ruoli & permessi» accanto a «Invita
+membro».
 
 **Ambito: solo il team admin di Byup.** Lo staff dei locali resta fuori — l'ISMS
 è quello di Byup, e Byup non può certificare che un cameriere lavori ancora in
