@@ -198,7 +198,29 @@ function SubStepInfo({venue, v}) {
               value={venue.phone} onChange={(x) => v('phone', x)}
               placeholder="06 1234 5678"/>
           </div>
+          {/* Il capo che riceve l'invito. Senza questo campo il codice che un
+              locale (o un cliente dall'app) condivide non ha dove atterrare:
+              si promette un premio e non si dà modo di riscuoterlo.
+              Sta qui, opzionale e in fondo, perché non deve rallentare chi
+              arriva da solo. */}
+          <div style={{gridColumn: 'span 8'}}>
+            <OnbField label="Codice invito" optional
+              value={venue.codiceInvito}
+              onChange={(x) => v('codiceInvito', x.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              placeholder="es. DAMARIO07"/>
+          </div>
         </div>
+        {venue.codiceInvito && venue.codiceInvito.length >= 4 && (
+          <div style={{
+            marginTop: 12, padding: '10px 13px', borderRadius: 10,
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            fontSize: 15, color: ONB.TEXT, lineHeight: 1.45,
+          }}>
+            Con questo codice hai <b>2 mesi gratis</b> quando attivi un abbonamento —
+            e due vanno a chi te l'ha passato.
+          </div>
+        )}
       </OnbCard>
 
       <OnbCard>

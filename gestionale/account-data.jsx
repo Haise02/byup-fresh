@@ -105,8 +105,35 @@ const ACC_SESSIONI = [
   { device: 'iPad · Safari', loc: 'Milano, IT', when: '3 giorni fa' },
 ];
 
+// ─── Referral fra locali ───────────────────────────────────────────────────
+// Ogni ristorante portato vale due mesi gratis a testa: al locale che invita e
+// a quello che arriva.
+const ACC_REFERRAL = {
+  mesiPerLato: 2,
+  aperture: 12,   // quante volte è stato aperto il link
+  iscritti: 3,    // quanti hanno creato un account
+  attivi: 1,      // quanti hanno attivato un abbonamento → mesi maturati
+};
+
+// Il codice sta sul LOCALE e non sulla persona: se domani cambia il titolare,
+// i mesi guadagnati restano al locale che li ha portati. Le due cifre finali
+// non sono un anno — sono una firma ricavata dal nome, così due «Da Mario» in
+// due città diverse non si ritrovano con lo stesso codice.
+function accCodiceInvito(nome) {
+  const pulito = (nome || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]/g, '')
+    .slice(0, 12);
+  const base = pulito || 'BYUP';
+  let firma = 7;
+  for (let i = 0; i < base.length; i++) firma = (firma * 31 + base.charCodeAt(i)) % 100;
+  return base + String(firma).padStart(2, '0');
+}
+
 window.ACC_DATI = ACC_DATI;
 window.ACC_PIANI = ACC_PIANI;
 window.ACC_PACCHETTI = ACC_PACCHETTI;
 window.ACC_FATTURE = ACC_FATTURE;
 window.ACC_SESSIONI = ACC_SESSIONI;
+window.ACC_REFERRAL = ACC_REFERRAL;
+window.accCodiceInvito = accCodiceInvito;

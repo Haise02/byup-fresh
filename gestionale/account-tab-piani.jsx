@@ -39,6 +39,23 @@ function AccPianiAbbonamenti() {
     ordiniExtraRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
   };
 
+  // Deep-link ?invita=1 (dalla scorciatoia in Panoramica): porta la card
+  // dell'invito sotto gli occhi e la illumina per un attimo, altrimenti si
+  // atterra su una pagina lunga senza sapere dove guardare.
+  const invitaRef = React.useRef(null);
+  const [evidenziaInvito, setEvidenziaInvito] = React.useState(false);
+  React.useEffect(() => {
+    let chiede = false;
+    try { chiede = new URLSearchParams(window.location.search).get('invita') === '1'; } catch (e) {}
+    if (!chiede) return;
+    const t1 = setTimeout(() => {
+      invitaRef.current?.scrollIntoView({behavior: 'smooth', block: 'center'});
+      setEvidenziaInvito(true);
+    }, 260);
+    const t2 = setTimeout(() => setEvidenziaInvito(false), 2600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
   const fmtPrice = (n) => {
     if (n === 0) return '0';
     if (Number.isInteger(n)) return String(n);
@@ -204,8 +221,16 @@ function AccPianiAbbonamenti() {
         />
       </div>
 
-      {/* Riga 2 — Cambia piano: subito sotto le 2 card, è la decisione successiva
-          naturale dopo aver visto risparmio + utilizzo. */}
+      {/* Riga 2 — Porta un ristorante: sta PRIMA di «Cambia piano» e dei
+          pacchetti perché è l'unica voce della pagina che fa scendere il conto.
+          Le due sotto sono due modi di spendere di più; questa sta col
+          risparmio, che è la stessa storia raccontata sopra. */}
+      <div ref={invitaRef} style={{scrollMarginTop: 12}}>
+        <InvitaRistoranteCard current={current} fmtPrice={fmtPrice} evidenzia={evidenziaInvito}/>
+      </div>
+
+      {/* Riga 3 — Cambia piano: la decisione successiva naturale dopo aver
+          visto risparmio + utilizzo. */}
       <AcCard title="Cambia piano" subtitle="Passa a un piano superiore per avere più ordini, più menù e più membri nel tuo team.">
 
         {/* Toggle mensile / annuale */}
@@ -722,6 +747,182 @@ const AURORA_TEXT_GRADIENT = {
   backgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// PORTA UN RISTORANTE — referral fra locali
+// ─────────────────────────────────────────────────────────────────────────
+// Due mesi gratis a testa: a chi invita e a chi arriva. È un'offerta, quindi
+// aurora; gli stati (quanti sono arrivati) restano in nero neutro.
+//
+// Il link viene prima del codice perché un ristoratore lo manda su WhatsApp,
+// non lo detta. Il codice resta per quando lo dice a voce — ed è quello che
+// l'altro digiterà nell'onboarding.
+function InvitaRistoranteCard({ current, fmtPrice, evidenzia }) {
+  const locale = (typeof window.byupReadLocale === 'function' ? window.byupReadLocale() : null) || { nome: 'Byup' };
+  const codice = accCodiceInvito(locale.nome);
+  const link = `byup.it/r/${codice}`;
+  const linkPieno = `https://${link}`;
+  const mesi = ACC_REFERRAL.mesiPerLato;
+  const gratuito = !current.prezzo;
+  const valore = current.prezzo * mesi;
+  const mesiMaturati = ACC_REFERRAL.attivi * mesi;
+
+  const [copiato, setCopiato] = React.useState(null); // 'link' | 'codice'
+  const timer = React.useRef(null);
+  const copia = (che, testo) => {
+    // writeText restituisce una Promise: senza .catch un rifiuto del browser
+    // (pagina non a fuoco, permesso negato) finisce in console come errore non
+    // gestito. Il feedback lo diamo comunque — l'utente vedrà il testo o no.
+    try { navigator.clipboard && navigator.clipboard.writeText(testo).catch(() => {}); } catch (e) {}
+    setCopiato(che);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopiato(null), 1800);
+  };
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+
+  const messaggio = `Ti passo il mio codice byup: ${codice}. Se attivi un abbonamento, ${mesi} mesi gratis a te e ${mesi} a me. ${linkPieno}`;
+  const condividi = () => {
+    if (navigator.share) {
+      navigator.share({ title: 'byup', text: messaggio, url: linkPieno }).catch(() => {});
+      return;
+    }
+    // Senza Web Share (desktop) si apre WhatsApp col messaggio già scritto:
+    // è il canale su cui un ristoratore parla con un altro ristoratore.
+    window.open(`https://wa.me/?text=${encodeURIComponent(messaggio)}`, '_blank', 'noopener');
+  };
+
+  const riquadro = {
+    padding: '10px 13px', borderRadius: 10,
+    background: 'rgba(255,255,255,0.72)',
+    border: '1px solid rgba(190, 175, 220, 0.30)',
+    minWidth: 0,
+  };
+  const etichetta = {
+    fontSize: 12, fontWeight: 700, color: PN.MUTED,
+    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
+  };
+
+  return (
+    <div style={{
+      borderRadius: 14,
+      transition: 'box-shadow 300ms ease',
+      boxShadow: evidenzia ? '0 0 0 3px rgba(167,139,250,0.45)' : 'none',
+    }}>
+      <AcCard
+        aurora
+        title="Porta un ristorante su byup"
+        subtitle={gratuito
+          ? `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te — validi da quando passi a un piano a pagamento.`
+          : `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te: ${fmtPrice(valore)} € sul tuo piano ${current.nome}.`}
+        action={
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '5px 12px', borderRadius: 999,
+            border: '1px solid rgba(124, 58, 237, 0.25)',
+            background: 'rgba(255,255,255,0.72)',
+            fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+          }}>
+            <span style={AURORA_TEXT_GRADIENT}>{mesi} mesi gratis a testa</span>
+          </span>
+        }>
+
+        <div style={{display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'stretch'}}>
+          <div style={{...riquadro, flex: '1 1 280px'}}>
+            <div style={etichetta}>Il tuo link</div>
+            <div style={{
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: 15, color: PN.TEXT,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{link}</div>
+          </div>
+          <div style={{...riquadro, flex: '0 1 auto'}}>
+            <div style={etichetta}>Oppure il codice</div>
+            <div style={{
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: 15, fontWeight: 700, letterSpacing: 1.5, color: PN.TEXT, whiteSpace: 'nowrap',
+            }}>{codice}</div>
+          </div>
+        </div>
+
+        <div style={{display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap'}}>
+          <button onClick={() => copia('link', linkPieno)}
+            style={{
+              padding: '9px 16px', borderRadius: 999,
+              fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              ...AURORA_CTA_STYLE,
+            }}>
+            {copiato === 'link' ? <PnI.Check size={14}/> : <IconaCopia/>}
+            {copiato === 'link' ? 'Link copiato' : 'Copia link'}
+          </button>
+          <button onClick={() => copia('codice', codice)} style={AcBtnInvitoGhost}>
+            {copiato === 'codice' ? <PnI.Check size={14}/> : <IconaCopia/>}
+            {copiato === 'codice' ? 'Codice copiato' : 'Copia codice'}
+          </button>
+          <button onClick={condividi} style={AcBtnInvitoGhost}>
+            <IconaCondividi/>
+            Condividi
+          </button>
+        </div>
+
+        {/* Stato: le stesse tre misure con cui byup legge le campagne referral
+            dal suo pannello — aperture, iscritti, chi ha davvero attivato. */}
+        <div style={{
+          marginTop: 14, paddingTop: 12,
+          borderTop: '1px solid rgba(190, 175, 220, 0.25)',
+          display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
+          fontSize: 13.5, color: PN.MUTED,
+        }}>
+          <span><b style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.aperture}</b> aperture</span>
+          <span style={{color: PN.BORDER}}>·</span>
+          <span><b style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.iscritti}</b> iscritti</span>
+          <span style={{color: PN.BORDER}}>·</span>
+          <span>
+            <b style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.attivi}</b>{' '}
+            {ACC_REFERRAL.attivi === 1 ? 'ha attivato' : 'hanno attivato'}
+          </span>
+          <span style={{flex: 1}}/>
+          {mesiMaturati > 0 && (
+            <span style={{fontWeight: 700, ...AURORA_TEXT_GRADIENT}}>
+              {mesiMaturati} mesi già guadagnati
+            </span>
+          )}
+        </div>
+      </AcCard>
+    </div>
+  );
+}
+
+const AcBtnInvitoGhost = {
+  padding: '9px 16px', borderRadius: 999,
+  background: 'rgba(255,255,255,0.78)', color: PN.TEXT,
+  border: '1px solid rgba(190, 175, 220, 0.40)',
+  fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+  display: 'inline-flex', alignItems: 'center', gap: 7,
+};
+
+// PnI non ha «copia» né «condividi»: due glifi inline, stessa gabbia 24×24 e
+// stesso tratto degli altri, invece di aggiungere due icone al set per due usi.
+function IconaCopia() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+      <rect x="9" y="9" width="12" height="12" rx="2.5"/>
+      <path d="M15 5.5A2.5 2.5 0 0 0 12.5 3h-7A2.5 2.5 0 0 0 3 5.5v7A2.5 2.5 0 0 0 5.5 15"/>
+    </svg>
+  );
+}
+
+function IconaCondividi() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+      <path d="M12 15V3.5"/>
+      <path d="M7.5 8 12 3.5 16.5 8"/>
+      <path d="M5 13v6.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V13"/>
+    </svg>
+  );
+}
 
 function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
   const isCurrent = p.current;

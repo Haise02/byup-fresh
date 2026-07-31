@@ -48,6 +48,7 @@ function OnboardingApp() {
     city: 'Roma',
     phone: '',
     regime: 'ordinario',
+    codiceInvito: '',
   });
   const [payments, setPayments] = React.useState({
     stripeStatus: 'disconnected',

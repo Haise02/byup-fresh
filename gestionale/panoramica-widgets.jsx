@@ -837,6 +837,9 @@ function WidgetAzioni({ size }) {
     { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA', href: 'byup Impostazioni.html?page=sala' },
     { label: 'Invita membro del team', icon: 'people-staff-group',  color: '#A78BFA', href: 'byup Impostazioni.html?page=personale&invita=1' },
     { label: 'Esporta dati del giorno', icon: 'download',            color: '#22D3EE', href: 'byup Contabilita.html?tab=export' },
+    // Il referral vive in Profilo → Piani, dove il premio si incassa. Qui c'è
+    // solo la porta: nei tab dell'account non ci va a curiosare nessuno.
+    { label: 'Invita un ristorante', icon: 'place-restaurant',     color: '#F0ABFC', href: 'byup Profilo.html?tab=piani&invita=1' },
   ];
 
   const w = (size && size.w) || 1;
@@ -845,6 +848,9 @@ function WidgetAzioni({ size }) {
   // resta per robustezza se la griglia clampa le colonne su schermi stretti.
   const isFullBanner = w === 4 && h >= 2;
   const showLabels = isFullBanner;
+  // Colonne scelte per far stare tutto in due righe: 3 fino a sei azioni,
+  // 4 da sette in poi.
+  const colonne = actions.length > 6 ? 4 : 3;
 
   return (
     <GlassDarkBox
@@ -871,12 +877,15 @@ function WidgetAzioni({ size }) {
         // + ombra) della prima riga non viene tagliato dal margine superiore.
         margin: '-6px -8px -4px', padding: '6px 8px 4px',
         display: 'grid',
-        // Launcher esteso: 3 colonne — con 6 azioni la griglia è un 3×2
-        // perfettamente bilanciato (niente ultima riga sbilenca).
+        // Launcher esteso: le colonne si scelgono per stare in DUE righe, che è
+        // l'altezza del widget a catalogo. Con sei azioni sono tre (3×2, il
+        // bilanciamento originale); da sette in poi diventano quattro (4+3),
+        // altrimenti la settima resterebbe sola in una terza riga — l'orfano
+        // che le tre colonne erano state scelte per evitare.
         gridTemplateColumns: isFullBanner
-          ? 'repeat(3, 1fr)'
+          ? `repeat(${colonne}, 1fr)`
           : 'repeat(auto-fit, minmax(54px, 1fr))',
-        gridTemplateRows: isFullBanner ? `repeat(${Math.max(2, Math.ceil(actions.length / 3))}, 1fr)` : 'none',
+        gridTemplateRows: isFullBanner ? `repeat(${Math.max(2, Math.ceil(actions.length / colonne))}, 1fr)` : 'none',
         gridAutoRows: isFullBanner ? undefined : 'minmax(54px, 1fr)',
         gap: isFullBanner ? 10 : 6,
         alignContent: 'start',
