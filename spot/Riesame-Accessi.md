@@ -17,7 +17,10 @@ un certo locale: quello lo sa il titolare.
 
 Codice: [admin-team.jsx](admin-team.jsx) (componente `AccessReview` e funzioni
 `ra*`), dati in [admin-data.jsx](admin-data.jsx) (`RIESAME_CORRENTE`,
-`RIESAMI_CHIUSI`, `RIESAME_CADENZA_MESI`).
+`RIESAMI_CHIUSI`). La **cadenza** vive nell'adempimento `acc` del Cruscotto di
+Risk Management ([admin-conformita-data.jsx](admin-conformita-data.jsx)) ed è lì
+che si cambia: è l'unico posto, e la scadenza della campagna si calcola da
+quella.
 
 ---
 
@@ -53,10 +56,11 @@ sessioni sono state terminate», ma è una frase. Il backend ha già l'entità
 dell'operazione registrato nell'attestazione. È la differenza tra «abbiamo
 riesaminato» e «abbiamo riesaminato e rimediato» — cioè tra un rilievo e un pass.
 
-**Apertura automatica della campagna** alla scadenza della cadenza
-(`RIESAME_CADENZA_MESI`, oggi **3 mesi**: le campagne sono trimestrali, Q1…Q4),
-con promemoria al revisore. Il chip nella striscia «Richiede attenzione» del
-Generale c'è già e compare sotto i 14 giorni.
+**Apertura automatica della campagna** alla scadenza, con promemoria al
+revisore. In pagina la banda gialla c'è già e compare da quattordici giorni prima
+(`RA_PREAVVISO_GG`), insieme al chip nella striscia «Richiede attenzione» del
+Generale: quello che manca è che alla scadenza si apra davvero una campagna
+nuova, invece di lasciare aperta quella vecchia.
 
 **Export PDF** oltre al CSV: l'auditor di solito vuole un documento firmato,
 il CSV è per le carte di lavoro.
@@ -92,6 +96,29 @@ sfacchinata, e le sfacchinate si rimandano.
 
 L'unica eccezione resta il **Super Admin titolare**, e non è una scorciatoia: non
 c'è niente da decidere, perché l'accesso gli viene dal ruolo.
+
+**Confermare un'anomalia richiede di scrivere perché.** Sulle utenze invariate
+no — il perché l'ha già scritto il confronto con la campagna precedente — ma su
+un'anomalia sì: senza, nel verbale resta «dormiente da 142 giorni, confermata» e
+la domanda successiva dell'auditor è *su quale base*. È anche la risposta al caso
+più probabile, cioè il riesame che **non trova nessuno da revocare**: se le
+revoche si fanno subito quando una persona esce — ed è giusto così — il riesame
+periodico serve a verificare che il processo veloce non abbia lasciato indietro
+niente, e il suo contenuto diventa il perché le anomalie vanno bene. Zero revoche
+è l'esito sano; cinque utenze stantie ogni trimestre vorrebbe dire che
+l'offboarding è rotto.
+
+**La revoca multipla esiste ma dichiara il proprio limite.** Un motivo solo per N
+persone regge quando la ragione È una sola — «chiusura del progetto X, tre
+collaboratori esterni» — e la modale lo dice: se sono diverse, si revoca una per
+una, perché l'auditor legge il motivo riga per riga. In modalità selezione
+l'intestazione dell'elenco cede il posto alla barra: due serie di comandi
+contemporaneamente sulla stessa tabella si pestano i piedi.
+
+**Lo storico porta tutte e quattro le cose su ogni riga** — chi, che decisione,
+quando e perché — non «o il motivo o il responsabile». Senza il quando non si
+dimostra che qualcuno ha guardato in quella data; senza il chi non c'è un
+responsabile a cui l'attestazione risale. È la schermata che si gira all'auditor.
 
 **Confermare e revocare non sono bottoni da elenco.** Nessuna riga li espone: la
 riga dice soltanto a che punto è (*Da decidere*, *Confermato*, *Revocato*) e si

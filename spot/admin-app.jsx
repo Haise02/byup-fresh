@@ -380,7 +380,10 @@ function AdminApp({ tweaks }) {
           {route === 'camerieri'    && <AdmCamerieriPage search={''} openStaff={staffOpen}/>}
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
-          {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
+          {/* onNavRoute serve al riesame accessi per portare al Cruscotto degli
+              adempimenti, che è dove si cambia la cadenza del riesame. */}
+          {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"
+            onNavRoute={(r, t)=>{ setConfTab(t || null); setRoute(r); }}/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
           {route === 'economix'     && (window.Economix ? <Economix/> : null)}
           {route === 'conformita'   && <AdmConformitaPage initialTab={confTab}

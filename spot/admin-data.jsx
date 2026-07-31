@@ -648,15 +648,19 @@ const TEAM = [
 // Il controllo non è "esiste una lista": è poter dimostrare che a una certa
 // data una persona ha guardato chi ha accesso a cosa e ha deciso, e che le
 // revoche sono state eseguite. Ambito = solo il team admin di Byup.
-const RIESAME_CADENZA_MESI = 3;
-
-// Campagna in corso: aperta il 1 lug, scade il 31. Gli esiti si accumulano qui
-// mentre il revisore lavora; la campagna si chiude solo quando sono tutti decisi.
+//
+// La CADENZA non sta qui. Sta nell'adempimento `acc` del Cruscotto di Risk
+// Management (admin-conformita-data.jsx), insieme agli altri obblighi
+// ricorrenti, ed è lì che si cambia. Averla anche qui voleva dire due numeri da
+// tenere allineati a mano: c'era una costante `RIESAME_CADENZA_MESI = 3` che
+// nessuno leggeva, e una `scadenza` scritta a mano che non si muoveva se la
+// cadenza cambiava. Ora la scadenza si calcola — vedi raScadenza in
+// admin-team.jsx — da ultima esecuzione + cadenza, come per ogni altro
+// adempimento.
 const RIESAME_CORRENTE = {
   id: 'RA-2026-Q3',
   periodo: 'Q3 2026',
   apertaIl: new Date('2026-07-01T09:00:00'),
-  scadenza: new Date('2026-07-31T23:59:59'),
   revisore: 'Marco Rinaldi',
   stato: 'aperta',
   esiti: [],
@@ -1214,6 +1218,5 @@ window.RETE = RETE;
 window.RITENZIONE = RITENZIONE;
 window.ESPANSIONE = ESPANSIONE;
 window.TOTAL_REVENUE_HISTORICAL = TOTAL_REVENUE_HISTORICAL;
-window.RIESAME_CADENZA_MESI = RIESAME_CADENZA_MESI;
 window.RIESAME_CORRENTE = RIESAME_CORRENTE;
 window.RIESAMI_CHIUSI = RIESAMI_CHIUSI;
