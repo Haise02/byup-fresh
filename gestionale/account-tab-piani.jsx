@@ -211,20 +211,33 @@ function AccPianiAbbonamenti() {
         />
       </div>
 
-      {/* Porta un ristorante — una riga sola, nello stesso tono della nota sul
-          piano Gratuito in fondo a «Cambia piano»: è un'occasione, non una
-          decisione da prendere adesso. Tutto il resto — codice, copia,
-          condivisione — sta nel popup. */}
-      <div style={{textAlign: 'center', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
-        Porta un ristorante su byup: quando attiva un abbonamento,{' '}
-        <strong style={{color: PN.TEXT}}>{ACC_REFERRAL.mesiPerLato} mesi gratis a testa</strong>.{' '}
-        <button
-          onClick={() => setInvitaModal(true)}
-          style={{
-            background: 'none', border: 'none', padding: 0,
-            color: PN.PINK_DARK, fontWeight: 600, fontSize: 13.5,
-            cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
-          }}>Invita un ristorante</button>
+      {/* Porta un ristorante — una fascia bassa, non una card: l'offerta si vede
+          e si clicca, ma non prende l'altezza di una decisione. Il fondo aurora
+          la stacca dal bianco delle card intorno (da testo nudo in mezzo alla
+          pagina non si leggeva né si trovava) e il bottone bianco ci risalta
+          sopra senza mettersi in gara con le CTA dei piani qui sotto.
+          Tutto il resto — codice, copia, condivisione — sta nel popup. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 14, flexWrap: 'wrap',
+        padding: '13px 18px', borderRadius: 14,
+        background: AURORA_CARD_BG,
+        border: '1px solid rgba(190, 175, 220, 0.22)',
+      }}>
+        <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45, minWidth: 220, flex: 1}}>
+          <strong style={{color: PN.TEXT, fontWeight: 700}}>Porta un ristorante su byup</strong>
+          {' '}— quando attiva un abbonamento,{' '}
+          <strong style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.mesiPerLato} mesi gratis a testa</strong>.
+        </div>
+        <button onClick={() => setInvitaModal(true)} style={{
+          flexShrink: 0,
+          padding: '9px 17px', borderRadius: 999,
+          background: PN.WHITE, color: PN.TEXT,
+          border: '1px solid rgba(190, 175, 220, 0.55)',
+          boxShadow: '0 1px 2px rgba(15,17,21,0.05)',
+          fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          whiteSpace: 'nowrap',
+        }}>Invita un ristorante</button>
       </div>
 
       {/* Cambia piano: la decisione successiva naturale dopo aver
