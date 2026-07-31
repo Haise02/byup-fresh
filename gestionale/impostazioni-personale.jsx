@@ -11,30 +11,36 @@ const GLASS_MENU_PERSONALE = {
   borderRadius: 10,
 };
 
+// I ruoli del personale sono tre: chi incassa, chi possiede il locale, chi
+// serve ai tavoli. «Manager» non c'era fra questi — chi gestisce il locale è il
+// titolare, che il gestionale ce l'ha già — e «Cucina» non era una persona da
+// invitare ma il Kitchen Monitor, che entra come dispositivo.
+// Oltre a questi ci sono i dispositivi e, se il locale se li è creati, i ruoli
+// personalizzati: sono le altre due voci della colonna a sinistra.
 const ROLES = [
   {
-    id: 'proprietario',
-    label: 'Proprietario',
+    id: 'cassa',
+    label: 'Cassa',
+    desc: 'Prende ordini e incassa dalla cassa del locale',
+    color: PN.BLUE, bg: PN.BLUE_SOFT,
+    icon: 'receipt',
+    areas: ['vendita','sala'],
+  },
+  {
+    id: 'titolare',
+    label: 'Titolare',
     desc: 'Vede tutto · uno solo, è chi ha creato il gestionale',
     color: PN.WINE, bg: PN.WINE_SOFT,
     icon: 'crown',
     locked: true,
-    areas: ['panoramica','sala','cucina','app','statistiche','contabilita','supporto','impostazioni'],
-  },
-  {
-    id: 'manager',
-    label: 'Manager',
-    desc: 'Vede Sala & Prenotazioni e Panoramica',
-    color: PN.BLUE, bg: PN.BLUE_SOFT,
-    icon: 'user',
-    areas: ['panoramica','sala'],
+    areas: ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
   },
   {
     id: 'cameriere',
     label: 'Cameriere',
     desc: 'Visibilità solo dall\'app cameriere',
     color: PN.PINK_DARK, bg: PN.PINK_SOFT,
-    icon: 'user',
+    icon: 'waiter',
     areas: ['app'],
   },
 ];
@@ -91,9 +97,13 @@ const MENUS = [
   },
 ];
 
+// «Vendita diretta» è la cassa del locale: era una sezione del gestionale che
+// nel modello dei permessi non esisteva, e senza di lei il ruolo Cassa non
+// avrebbe avuto niente da vedere.
 const ALL_AREAS = [
   { id: 'panoramica', label: 'Panoramica', icon: 'stats' },
   { id: 'sala', label: 'Sala e prenotazioni', icon: 'utensils' },
+  { id: 'vendita', label: 'Vendita diretta', icon: 'receipt' },
   { id: 'cucina', label: 'Cucina', icon: 'chef' },
   { id: 'app', label: 'App cameriere', icon: 'phone' },
   { id: 'statistiche', label: 'Statistiche', icon: 'stats' },
@@ -113,8 +123,8 @@ const SETTINGS_PAGES = [
 ];
 
 const PERSONS = [
-  { name: 'Marco Silvestri', email: 'marco@delborgo.it', role: 'proprietario', last: 'ora', online: true, color: '#7c2436' },
-  { name: 'Davide Rossi', email: 'davide@delborgo.it', role: 'manager', last: 'ieri', online: false, color: '#85B8CB' },
+  { name: 'Marco Silvestri', email: 'marco@delborgo.it', role: 'titolare', last: 'ora', online: true, color: '#7c2436' },
+  { name: 'Davide Rossi', email: 'davide@delborgo.it', role: 'cassa', last: 'ieri', online: false, color: '#85B8CB' },
   { name: 'Giovanni Rana', email: 'giovanni@delborgo.it', role: 'cameriere', last: '2 min fa', online: true, color: '#E8A87C' },
   { name: 'Sara Conti', email: 'sara@delborgo.it', role: 'cameriere', last: '1 ora fa', online: false, color: '#FFC09F' },
   { name: 'Luca Ferretti', email: 'luca@delborgo.it', role: 'sommelier', last: '3 ore fa', online: false, color: '#7C3AED', active: false },
@@ -180,7 +190,7 @@ function ImpPersonale() {
   // costringeva a guardare in due posti per rispondere.
   const righe = [
     ...PERSONS.map(p => {
-      const ruolo = allRoles.find(r => r.id === p.role) || CUCINA_ROLE;
+      const ruolo = allRoles.find(r => r.id === p.role) || RUOLO_IGNOTO;
       return {
         key: `p-${p.email}`, tipo: 'persona', dato: p,
         nome: p.name, sotto: p.email, colore: p.color,
@@ -457,8 +467,11 @@ const DEVICE_ROLE = {
 // Che cosa vede davvero un ruolo, detto in due righe: la prima le sezioni,
 // la seconda quante sono sul totale. Si ricava dalle aree, non si scrive a
 // mano: se domani un ruolo guadagna una sezione, qui cambia da solo.
+// L'ordine è quello dichiarato dal ruolo, non quello del menu: il titolo mostra
+// la prima area, e per la Cassa deve essere «Vendita diretta» — che è il suo
+// mestiere — non «Sala e prenotazioni» solo perché la sala viene prima nel menu.
 function accessoDelRuolo(role) {
-  const aree = ALL_AREAS.filter(a => (role.areas || []).includes(a.id));
+  const aree = (role.areas || []).map(id => ALL_AREAS.find(a => a.id === id)).filter(Boolean);
   if (aree.length === ALL_AREAS.length) return { titolo: 'Accesso completo', sotto: 'Tutte le sezioni', tutte: 'Tutte le sezioni' };
   if (aree.length === 0) return { titolo: 'Nessuna sezione', sotto: 'Solo il proprio profilo', tutte: 'Nessuna sezione' };
   return {
@@ -590,7 +603,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
       {/* Azioni */}
       <div style={{display:'flex', justifyContent:'flex-end'}}>
         {bloccato ? (
-          <span title="Il proprietario non si modifica" style={{fontSize: 13, opacity: 0.5}}>🔒</span>
+          <span title="Il titolare non si modifica" style={{fontSize: 13, opacity: 0.5}}>🔒</span>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); setOpenMenu(aperto ? null : r.key); }}
@@ -668,25 +681,28 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
   );
 }
 
-// Ruolo "Cucina": selezionabile negli inviti (persona che guarda le comande),
-// non è una sezione del Personale finché nessuno lo ricopre.
-const CUCINA_ROLE = {
-  id: 'cucina',
-  label: 'Cucina',
-  desc: 'Visualizza le comande in cucina',
+// Ripiego per una persona il cui ruolo non esiste più — un ruolo personalizzato
+// cancellato, per dire. Prima al suo posto c'era un ruolo «Cucina» invitabile
+// per email: ma chi guarda le comande è il Kitchen Monitor, che si collega come
+// dispositivo con username e password locali, non con un invito.
+const RUOLO_IGNOTO = {
+  id: '_ignoto',
+  label: 'Ruolo rimosso',
+  desc: 'Il ruolo di questa persona non esiste più: riassegnalo',
   color: '#475569', bg: '#F1F5F9',
-  icon: 'chef',
-  areas: ['cucina'],
+  icon: 'user',
+  areas: [],
 };
 
 // Etichette leggibili dei permessi mostrati nel riquadro del ruolo.
 const PERM_LABELS = {
-  panoramica: 'Panoramica', sala: 'Sala e prenotazioni', cucina: 'Comande in cucina',
+  panoramica: 'Panoramica', sala: 'Sala e prenotazioni', vendita: 'Vendita diretta',
+  cucina: 'Comande in cucina',
   app: 'App staff', statistiche: 'Statistiche', contabilita: 'Contabilità',
   supporto: 'Supporto', impostazioni: 'Impostazioni',
 };
 const PERM_ICONS = {
-  panoramica: 'stats', sala: 'utensils', cucina: 'chef', app: 'phone',
+  panoramica: 'stats', sala: 'utensils', vendita: 'receipt', cucina: 'chef', app: 'phone',
   statistiche: 'stats', contabilita: 'money', supporto: 'chat', impostazioni: 'settings',
 };
 
@@ -1028,7 +1044,7 @@ function InviteModal({ onClose, prefill }) {
   const initialKind = prefill?.kind === 'device' ? 'device' : 'person';
   // Se prefill.roleId è quello di un ruolo selezionabile, usa quello; altrimenti default
   const prefillRoleSelectable = prefill?.roleId
-    && [...ROLES, CUCINA_ROLE, ...CUSTOM_ROLES].some(r => r.id === prefill.roleId && !r.locked);
+    && [...ROLES, ...CUSTOM_ROLES].some(r => r.id === prefill.roleId && !r.locked);
   const [kind, setKind] = React.useState(initialKind);
 
   // Persona
@@ -1036,7 +1052,7 @@ function InviteModal({ onClose, prefill }) {
   const [email, setEmail] = React.useState('');
   const [roleId, setRoleId] = React.useState(prefillRoleSelectable ? prefill.roleId : 'cameriere');
   const [msg, setMsg] = React.useState('');
-  const allRolesForInvite = [...ROLES, CUCINA_ROLE, ...CUSTOM_ROLES];
+  const allRolesForInvite = [...ROLES, ...CUSTOM_ROLES];
   const role = allRolesForInvite.find(r => r.id === roleId) || ROLES[0];
   const personValid = /\S+@\S+\.\S+/.test(email);
   // Riquadro permessi del ruolo selezionato
@@ -1101,7 +1117,7 @@ function InviteModal({ onClose, prefill }) {
               padding: 4, background:'#F4F5F7', borderRadius: 10,
             }}>
               {[
-                { id:'person', label:'Persona con email', sub:'cameriere, manager…', icon:'user' },
+                { id:'person', label:'Persona con email', sub:'cameriere, cassa…', icon:'user' },
                 { id:'device', label:'Dispositivo', sub:'monitor cucina', icon:'monitor' },
               ].map(opt => {
                 const on = kind === opt.id;
@@ -1543,7 +1559,7 @@ const DEVICE_STEPS = [
 
 // I ruoli del personale sono due, e sono i due modi in cui si prende un ordine:
 // dalla cassa del locale o dall'app in sala. «Manager» non era un ruolo del
-// personale — chi gestisce il locale è il proprietario, che il gestionale ce
+// personale — chi gestisce il locale è il titolare, che il gestionale ce
 // l'ha già; e «Cucina» non era una persona da invitare ma il Kitchen Monitor,
 // che si collega come dispositivo nella sezione qui sotto.
 // Cameriere per primo, ed è il ruolo da cui parte l'invito: è quello che un
