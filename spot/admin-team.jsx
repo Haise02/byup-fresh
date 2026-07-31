@@ -81,7 +81,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza', onNavRoute }) 
             della scadenza: sono roba da sbrigare, non una nota a piè di pagina. */}
         {tab === 'accessi' && <AccessReview onNavRoute={onNavRoute}/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
-        {tab === 'diagnostica' && <PlatformDiagnostica/>}
+        {tab === 'diagnostica' && <PlatformDiagnostica onNavRoute={onNavRoute}/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>
 
@@ -784,12 +784,12 @@ function DashAffidabilita({ a }) {
 // ─── Diagnostica piattaforma ─────────────────────────────────────────────────
 // Salute tecnica trasversale: uptime dei servizi, errori di pagamento aggregati,
 // code di elaborazione, ultimi incidenti. Dati mock. Colore solo per gli stati.
-function PlatformDiagnostica() {
+function PlatformDiagnostica({ onNavRoute }) {
   const SERVIZI = [
     { nome:'App cliente',       uptime:'99,98%', latenza:'142 ms', stato:'ok' },
     { nome:'Gestionale',        uptime:'99,95%', latenza:'188 ms', stato:'ok' },
     { nome:'API ordini',        uptime:'99,99%', latenza:'96 ms',  stato:'ok' },
-    { nome:'Pagamenti (Stripe)',uptime:'99,71%', latenza:'310 ms', stato:'warn', nota:'errori 3DS sopra la media da 2 giorni' },
+    { nome:'Pagamenti (Stripe)',uptime:'99,71%', latenza:'310 ms', stato:'warn', nota:'uptime sotto la soglia interna del 99,9%' },
     { nome:'Notifiche push',    uptime:'99,92%', latenza:'—',      stato:'ok' },
   ];
   // I motivi dei pagamenti falliti dei CLIENTI nei locali: stessa popolazione
@@ -811,15 +811,35 @@ function PlatformDiagnostica() {
     { nome:'Webhook gestionale',  inCoda:45,  fallite:1 },
     { nome:'Export CSV',          inCoda:2,   fallite:0 },
   ];
-  const INCIDENTI = [
-    { data:'14 lug 2026', servizio:'Pagamenti (Stripe)', durata:'23 min', desc:'Timeout sugli addebiti ricorrenti — riprocessati automaticamente' },
-    { data:'02 lug 2026', servizio:'Notifiche push',     durata:'1h 10m', desc:'Ritardo consegna su Android — coda smaltita' },
-    { data:'18 giu 2026', servizio:'API ordini',         durata:'8 min',  desc:'Picco 5xx durante il deploy — rollback immediato' },
-  ];
+  // Gli incidenti sono UNA lista sola: il registro di Conformità (A.5.24–5.28).
+  // Qui si legge la stessa fonte con l'altra domanda in testa — «la piattaforma
+  // ha retto?» — quindi restano fuori quelli che non hanno toccato un servizio
+  // (durataMin 0) e si mostra la durata del fermo, che nel registro non è la
+  // colonna che conta. Prima gli aperti: se un incidente è ancora in corso,
+  // vederlo sotto a tre «Risolto» è il modo migliore per non accorgersene.
+  const REGISTRO = (typeof INCIDENTI !== 'undefined' ? INCIDENTI : []);
+  const APERTI = REGISTRO.filter(i => i.stato !== 'chiuso');
+  const INC = REGISTRO.filter(i => i.durataMin !== 0)
+    .sort((a,b) => (a.stato === 'chiuso') - (b.stato === 'chiuso') || b.data - a.data)
+    .slice(0, 4);
+  const durata = (m) => m == null ? '—'
+    : m < 60 ? `${m} min` : `${Math.floor(m/60)}h${m % 60 ? ` ${m % 60}m` : ''}`;
+  const daGiorni = (d) => Math.max(0, Math.round((Date.now() - d.getTime()) / 86400000));
+  const dura = (d) => { const g = daGiorni(d); return g === 0 ? 'da oggi' : g === 1 ? 'da ieri' : `da ${g} giorni`; };
+  const fmtData = (d) => typeof cfFmt === 'function' ? cfFmt(d)
+    : d.toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
+
   const dot = (stato) => (
     <span style={{width:9, height:9, borderRadius:'50%', background: stato==='ok' ? ADM.OK : ADM.WARN, display:'inline-block', flexShrink:0}}/>
   );
-  const degradati = SERVIZI.filter(x=>x.stato!=='ok').length;
+  // Un servizio con un incidente aperto è degradato per definizione: lo stato
+  // scritto a mano qui sopra vale finché il registro non dice altro.
+  const STATO_SERVIZI = SERVIZI.map(sv => {
+    const inc = APERTI.find(i => i.servizio === sv.nome);
+    return { ...sv, stato: inc ? 'warn' : sv.stato, inc,
+      nota: inc ? `${inc.titolo} · aperto ${dura(inc.data)}` : sv.nota };
+  });
+  const degradati = STATO_SERVIZI.filter(x=>x.stato!=='ok').length;
   const H = {fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10};
 
   return (
@@ -847,7 +867,7 @@ function PlatformDiagnostica() {
       <div>
         <div style={H}>Servizi</div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:10}}>
-          {SERVIZI.map(sv => (
+          {STATO_SERVIZI.map(sv => (
             <div key={sv.nome} style={{border:`1px solid ${sv.stato==='ok' ? ADM.BORDER : '#FDE68A'}`, borderRadius:10, padding:'12px 14px', background: sv.stato==='ok' ? '#fff' : '#FFFBEB'}}>
               <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:8}}>
                 {dot(sv.stato)}
@@ -897,19 +917,47 @@ function PlatformDiagnostica() {
         </div>
       </div>
 
-      {/* Ultimi incidenti */}
+      {/* Ultimi incidenti — righe del registro, non una copia: si aprono là */}
       <div>
-        <div style={H}>Ultimi incidenti</div>
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={{...H, marginBottom:0}}>Ultimi incidenti</div>
+          <span style={{fontSize:12.2, color:ADM.MUTED}}>quelli che hanno fermato o degradato un servizio</span>
+          <span style={{flex:1}}/>
+          {typeof onNavRoute === 'function' && REGISTRO.length > 0 && (
+            <span onClick={()=>onNavRoute('conformita', 'incidenti')}
+              style={{fontSize:12.4, color:ADM.PINK, fontWeight:700, cursor:'pointer'}}>Registro completo</span>
+          )}
+        </div>
         <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
-          {INCIDENTI.map((inc, i) => (
-            <div key={i} style={{display:'flex', alignItems:'center', gap:14, padding:'11px 16px', borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none', flexWrap:'wrap'}}>
-              <span style={{fontSize:12.7, color:ADM.MUTED, width:88, flexShrink:0}}>{inc.data}</span>
-              <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, width:170, flexShrink:0}}>{inc.servizio}</span>
-              <span style={{fontSize:12.5, color:ADM.MUTED, flex:1, minWidth:200}}>{inc.desc}</span>
-              <span style={{fontSize:12.3, color:ADM.MUTED, fontWeight:600}}>{inc.durata}</span>
-              <AdmBadge color="OK" size="xs">Risolto</AdmBadge>
+          {INC.length === 0 && (
+            <div style={{padding:'16px', fontSize:13, color:ADM.MUTED}}>
+              Nessun incidente ha toccato un servizio.
             </div>
-          ))}
+          )}
+          {INC.map((inc, i) => {
+            const aperto = inc.stato !== 'chiuso';
+            return (
+              <div key={inc.id} className="adm-row-open"
+                onClick={()=> onNavRoute && onNavRoute('conformita', 'incidenti', inc.id)}
+                style={{display:'flex', alignItems:'center', gap:14, padding:'11px 16px',
+                  borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none', flexWrap:'wrap',
+                  background: aperto ? '#FFFBEB' : '#fff',
+                  cursor: onNavRoute ? 'pointer' : 'default'}}>
+                <span style={{fontSize:12.7, color:ADM.MUTED, width:88, flexShrink:0}}>{fmtData(inc.data)}</span>
+                <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, width:170, flexShrink:0}}>{inc.servizio}</span>
+                <span style={{fontSize:12.5, color:ADM.MUTED, flex:1, minWidth:200}}>
+                  {inc.titolo}{inc.azione ? <span style={{color:ADM.MUTED_SOFT}}> — {inc.azione}</span> : null}
+                </span>
+                {/* Su un incidente aperto la durata del fermo non è ancora un
+                    numero: quello che si può dire è da quanto sta durando. */}
+                <span style={{fontSize:12.3, color: aperto ? ADM.WARN : ADM.MUTED, fontWeight:600}}>
+                  {aperto ? dura(inc.data) : durata(inc.durataMin)}
+                </span>
+                <AdmBadge color={aperto ? 'WARN' : 'OK'} size="xs">{aperto ? 'Aperto' : 'Risolto'}</AdmBadge>
+                {onNavRoute && <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>}
+              </div>
+            );
+          })}
         </div>
       </div>
 

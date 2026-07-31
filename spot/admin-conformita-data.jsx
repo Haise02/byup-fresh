@@ -213,28 +213,44 @@ const RISCHI = [
 // incidente o conferma un rischio gia censito, o ne rivela uno che manca.
 // `origine` distingue cio che il monitoraggio ha visto da solo da cio che ha
 // dovuto segnalare una persona: la seconda categoria e la maggioranza.
+// `durataMin` e il tempo in cui il servizio e rimasto fermo o degradato, ed e
+// quello che Diagnostica va a leggere: 0 vuol dire che il servizio non si e
+// mai fermato (un'email spedita all'indirizzo sbagliato e grave, ma non e un
+// down), null che l'incidente e ancora aperto e la durata non si puo scrivere.
+// Questo registro e l'unica lista degli incidenti: Diagnostica non ne tiene
+// una sua: mostra questi, filtrati per impatto sul servizio.
 const INCIDENTI = [
-  { id:'INC-2026-004', data:cfGiorni(-4), titolo:'Errori 3DS sopra la media sugli addebiti ricorrenti',
+  { id:'INC-2026-005', data:cfGiorni(-4), titolo:'Errori 3DS sopra la media sugli addebiti ricorrenti',
     categoria:'fornitore', origine:'automatico', rischioCollegato:'R02',
-    servizio:'Pagamenti (Stripe)', gravita:'media', dataBreach:false,
+    servizio:'Pagamenti (Stripe)', gravita:'media', dataBreach:false, durataMin:null,
     causaRadice:'Cambio di policy dell\'emittente su una fascia di carte, non gestito dal retry',
     azione:'Aggiunto fallback su 3DS2 e allerta automatica sopra il 2% di fallimenti',
     stato:'in corso', chiusuraIl:null, responsabile:'Marco Rinaldi' },
-  { id:'INC-2026-003', data:new Date('2026-07-14'), titolo:'Timeout sugli addebiti ricorrenti',
+  { id:'INC-2026-004', data:new Date('2026-07-14'), titolo:'Timeout sugli addebiti ricorrenti',
     categoria:'indisponibilita', origine:'automatico', rischioCollegato:'R02',
-    servizio:'Pagamenti (Stripe)', gravita:'media', dataBreach:false,
+    servizio:'Pagamenti (Stripe)', gravita:'media', dataBreach:false, durataMin:23,
     causaRadice:'Picco di latenza del fornitore durante la finestra di addebito notturna',
     azione:'Riprocessati automaticamente, finestra spostata e allarme sulla coda',
     stato:'chiuso', chiusuraIl:new Date('2026-07-16'), responsabile:'Marco Rinaldi' },
-  { id:'INC-2026-002', data:new Date('2026-07-02'), titolo:'Ritardo nella consegna delle notifiche su Android',
+  { id:'INC-2026-003', data:new Date('2026-07-02'), titolo:'Ritardo nella consegna delle notifiche su Android',
     categoria:'indisponibilita', origine:'manuale', rischioCollegato:null,
-    servizio:'Notifiche push', gravita:'bassa', dataBreach:false,
+    servizio:'Notifiche push', gravita:'bassa', dataBreach:false, durataMin:70,
     causaRadice:'Coda FCM satura per un invio broadcast non scaglionato',
     azione:'Introdotto scaglionamento degli invii massivi',
     stato:'chiuso', chiusuraIl:new Date('2026-07-03'), responsabile:'Paola Esposito' },
+  // Viveva solo dentro Diagnostica, come riga scritta a mano: un picco di 5xx
+  // in produzione e un incidente a tutti gli effetti, e qui si vede che nessun
+  // rischio censito copre i rilasci difettosi — il buco che A.5.27 chiede di
+  // riportare nel registro dei rischi.
+  { id:'INC-2026-002', data:new Date('2026-06-18'), titolo:'Picco di errori 5xx sulle API ordini durante un rilascio',
+    categoria:'indisponibilita', origine:'automatico', rischioCollegato:null,
+    servizio:'API ordini', gravita:'media', dataBreach:false, durataMin:8,
+    causaRadice:'Migrazione di schema non retrocompatibile inclusa nel rilascio',
+    azione:'Rollback immediato; le migrazioni di schema viaggiano in un rilascio separato dal codice',
+    stato:'chiuso', chiusuraIl:new Date('2026-06-18'), responsabile:'Marco Di Meo' },
   { id:'INC-2026-001', data:new Date('2026-03-11'), titolo:'Invio di un\'email di servizio a un indirizzo errato',
     categoria:'dati', origine:'manuale', rischioCollegato:'R04',
-    servizio:'Email transazionali', gravita:'alta', dataBreach:true,
+    servizio:'Email transazionali', gravita:'alta', dataBreach:true, durataMin:0,
     breachNotificato:true, breachNotificaIl:new Date('2026-03-12'),
     breachInteressati:1, breachValutazione:'Rischio basso per i diritti dell\'interessato: nessun dato di pagamento, destinatario unico identificato e collaborativo',
     causaRadice:'Errore di digitazione nell\'indirizzo durante una risposta manuale a un ticket',

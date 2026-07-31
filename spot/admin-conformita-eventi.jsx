@@ -393,8 +393,9 @@ function CfEvConfermaNotifica({ incidente, onChiudi, onConferma }) {
   );
 }
 
-function CfIncidenti() {
-  const [apri, setApri] = useStateEv(null);
+function CfIncidenti({ apriId }) {
+  const [apri, setApri] = useStateEv(apriId || null);
+  useEffectEv(() => { if (apriId) setApri(apriId); }, [apriId]);
   const [modale, setModale] = useStateEv(null);   // { incidente } — null = chiusa, {incidente:null} = nuovo
   const [notifica, setNotifica] = useStateEv(null);  // incidente in attesa di conferma della notifica
   const [, setTick] = useStateEv(0);

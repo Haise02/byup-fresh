@@ -636,18 +636,25 @@ function CfCruscotto({ onNav }) {
 }
 
 // ─── Guscio ────────────────────────────────────────────────────────────────
-function AdmConformitaPage({ initialTab, onNavRoute }) {
+function AdmConformitaPage({ initialTab, initialApri, onNavRoute }) {
   const [tab, setTab] = useStateConf(initialTab || 'cruscotto');
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
+
+  // La riga da aprire vale per l'arrivo, non per sempre: appena si cambia tab
+  // a mano il link è servito, e tornando su Incidenti si trova il registro
+  // chiuso come lo si lascerebbe.
+  const [apri, setApri] = useStateConf(initialApri || null);
+  React.useEffect(() => { setApri(initialApri || null); }, [initialApri]);
+  const cambiaTab = (t) => { setApri(null); setTab(t); };
 
   // Accetta sia una tab di Conformita (stringa) sia una destinazione altrove
   // (oggetto con route): da quando formazione e ripristino vivono in
   // Piattaforma, un link del cruscotto puo uscire da questa sezione.
   const vai = (dest) => {
     if (!dest) return;
-    if (typeof dest === 'string') { setTab(dest); return; }
+    if (typeof dest === 'string') { cambiaTab(dest); return; }
     if (dest.route && dest.route !== 'conformita') { onNavRoute && onNavRoute(dest.route, dest.tab); return; }
-    setTab(dest.tab || 'cruscotto');
+    cambiaTab(dest.tab || 'cruscotto');
   };
 
   // Le tab vivono in file separati: se uno non è ancora caricato la pagina non
@@ -681,13 +688,15 @@ function AdmConformitaPage({ initialTab, onNavRoute }) {
             // l'obbligo è la A.6.3 e gli adempimenti che ci puntano partono
             // dal Cruscotto qui accanto.
             { id:'formazione', label:'Formazione' },
-          ]} active={tab} onChange={setTab}/>
+          ]} active={tab} onChange={cambiaTab}/>
         </div>
 
         {tab === 'cruscotto' && <CfCruscotto onNav={vai}/>}
         {tab === 'rischi'    && (window.CfRischi        ? <CfRischi/>        : manca('Rischi'))}
         {tab === 'fornitori' && (window.CfFornitori     ? <CfFornitori/>     : manca('Fornitori'))}
-        {tab === 'incidenti' && (window.CfIncidenti     ? <CfIncidenti/>     : manca('Incidenti'))}
+        {/* apriId: chi arriva da «Ultimi incidenti» in Diagnostica ha già scelto
+            la riga, e deve trovarla aperta invece di doverla ricercare. */}
+        {tab === 'incidenti' && (window.CfIncidenti     ? <CfIncidenti apriId={apri}/> : manca('Incidenti'))}
         {tab === 'nc'        && (window.CfNonConformita ? <CfNonConformita/> : manca('Non conformità'))}
         {/* onVai accende i collegamenti del pacchetto di input verso i registri:
             senza, il riesame di direzione elenca i numeri ma non ci porta. */}

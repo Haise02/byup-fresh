@@ -155,6 +155,7 @@ function AdminApp({ tweaks }) {
   const [commOpen, setCommOpen] = useStateApp(null);
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
   const [confTab, setConfTab] = useStateApp(null);   // tab della Conformità aperta da un link esterno
+  const [confApri, setConfApri] = useStateApp(null); // riga da aprire in quella tab (es. un incidente)
   const [teamTab, setTeamTab] = useStateApp(null);   // idem per Piattaforma
   const [searchOpen, setSearchOpen] = useStateApp(false);
   const [notifOpen, setNotifOpen] = useStateApp(false);
@@ -381,12 +382,13 @@ function AdminApp({ tweaks }) {
           {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
           {/* onNavRoute serve al riesame accessi per portare al Cruscotto degli
-              adempimenti, che è dove si cambia la cadenza del riesame. */}
+              adempimenti, che è dove si cambia la cadenza del riesame, e a
+              Diagnostica per aprire nel registro l'incidente su cui si clicca. */}
           {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"
-            onNavRoute={(r, t)=>{ setConfTab(t || null); setRoute(r); }}/>}
+            onNavRoute={(r, t, apri)=>{ setConfTab(t || null); setConfApri(apri || null); setRoute(r); }}/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
           {route === 'economix'     && (window.Economix ? <Economix/> : null)}
-          {route === 'conformita'   && <AdmConformitaPage initialTab={confTab}
+          {route === 'conformita'   && <AdmConformitaPage initialTab={confTab} initialApri={confApri}
             onNavRoute={(r, t)=>{ setTeamTab(t || null); setRoute(r); }}/>}
           {route === 'promozioni'   && <AdmPromozioniPage onNew={()=>openMessageModal('utenti', [])}/>}
           {route === 'profilo'      && <ProfiloPage/>}
