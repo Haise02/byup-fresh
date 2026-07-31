@@ -91,7 +91,6 @@ function cfEvMancanti(i) {
   return out;
 }
 
-const cfEvTonoGravita = (g) => g === 'alta' ? 'DANGER' : g === 'media' ? 'WARN' : 'NEUTRAL';
 
 const CF_EV_GRID_INC = '96px 88px minmax(0,2.3fr) minmax(0,1.25fr) 76px 100px 98px minmax(0,1.15fr) 26px';
 

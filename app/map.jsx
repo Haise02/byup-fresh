@@ -2,7 +2,6 @@
 // When Google Maps key is ready: swap LeafletMap init for google.maps.Map
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
-const PINK_LIGHT = '#FBD8DE';
 const ORANGE = '#FF8C2B';
 const PLUM = '#3a1d2c';
 const __BYUP_DARK = (() => { try { const x = localStorage.getItem('byup.themeMode')||'light'; if(x==='dark')return true; if(x==='auto')return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches); return false; } catch { return false; } })();
@@ -270,14 +269,6 @@ const VENUES_BY_CITY = {
   ],
 };
 
-const CITIES = [
-  { id: 'roma',    name: 'Roma',    count: 35, x: 0.51, y: 0.55 },
-  { id: 'firenze', name: 'Firenze', count: 8,  x: 0.47, y: 0.40 },
-  { id: 'venezia', name: 'Venezia', count: 6,  x: 0.55, y: 0.22 },
-  { id: 'milano',  name: 'Milano',  count: 8,  x: 0.36, y: 0.18 },
-  { id: 'napoli',  name: 'Napoli',  count: 7,  x: 0.62, y: 0.70 },
-  { id: 'palermo', name: 'Palermo', count: 5,  x: 0.50, y: 0.92 },
-];
 
 // ─── Helper: generate DivIcon HTML for a venue pin ────────────────
 function createPinHTML(venue, isSelected) {

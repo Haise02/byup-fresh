@@ -146,7 +146,6 @@ const anPerRuolo = (locali = AN_LOCALI) => AN_RUOLI.map(ruolo => {
     adozioneSenza: senza.length ? parMediana(senza.map(l => l.adozione)) : null,
   };
 });
-const AN_PER_RUOLO = anPerRuolo();
 
 // ════════════════════════════════════════════════════════════════════════════
 // 2 · ATTIVAZIONE · quanto ci mette un locale ad arrivare alla soglia
@@ -213,7 +212,6 @@ const anCurva = (att = AN_ATTIVAZIONE) => [0, 15, 30, 45, 60, 90, 120, 180].map(
     quota: esposti.length ? (arrivati.length / esposti.length) * 100 : 0,
   };
 });
-const AN_CURVA_ATTIVAZIONE = anCurva();
 
 // Per dotazione: la stessa curva, spaccata. È il confronto che dice se la
 // cucina collegata accorcia davvero i tempi.
@@ -227,7 +225,6 @@ const anAttPerDotazione = (att = AN_ATTIVAZIONE) => Object.keys(AN_DOTAZIONI).ma
     quotaArrivati: g.length ? (conSoglia.length / g.length) * 100 : 0,
   };
 });
-const AN_ATTIVAZIONE_DOTAZIONE = anAttPerDotazione();
 
 // ════════════════════════════════════════════════════════════════════════════
 // 3 · RITENZIONE UTENTI · quanti restano, per mese di iscrizione
@@ -358,7 +355,6 @@ const anAcquisizione = (locali = AN_LOCALI) => AN_CANALI.map(c => {
     payback: c.costo === 0 ? 0 : (mrrMedio > 0 ? c.costo / (mrrMedio * 0.72) : null),
   };
 });
-const AN_ACQUISIZIONE = anAcquisizione();
 
 // ════════════════════════════════════════════════════════════════════════════
 // 3b · COME ARRIVANO GLI UTENTI · invito e webapp
@@ -652,19 +648,15 @@ window.AN_DOTAZIONI = AN_DOTAZIONI;
 window.AN_RUOLI = AN_RUOLI;
 window.AN_LOCALI = AN_LOCALI;
 window.AN_PER_DOTAZIONE = AN_PER_DOTAZIONE;
-window.AN_PER_RUOLO = AN_PER_RUOLO;
 window.AN_TAPPE = AN_TAPPE;
 window.AN_ATTIVAZIONE = AN_ATTIVAZIONE;
 window.AN_ATTIVAZIONE_TAPPE = AN_ATTIVAZIONE_TAPPE;
-window.AN_CURVA_ATTIVAZIONE = AN_CURVA_ATTIVAZIONE;
-window.AN_ATTIVAZIONE_DOTAZIONE = AN_ATTIVAZIONE_DOTAZIONE;
 window.AN_RITENZIONE = AN_RITENZIONE;
 window.AN_SECONDO_ORDINE = AN_SECONDO_ORDINE;
 window.AN_INVITI = AN_INVITI;
 window.AN_WEBAPP = AN_WEBAPP;
 window.AN_DEFLECTION = AN_DEFLECTION;
 window.AN_CANALI = AN_CANALI;
-window.AN_ACQUISIZIONE = AN_ACQUISIZIONE;
 window.anAcquisizione = anAcquisizione;
 window.anContribuzione = anContribuzione;
 window.anPerDotazione = anPerDotazione;

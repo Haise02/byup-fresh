@@ -31,7 +31,6 @@
 
 const VAL_SOGLIA = 15;              // % di ordini digitali · soglia commerciale
 const VAL_MARGINE_LORDO = 68;       // % · margine lordo medio di rete (tab Mercato)
-const VAL_COSTO_ORA_SALA = 13.20;   // €/h lordo azienda, contratto pubblici esercizi
 const VAL_MESI = ['Giu','Lug','Ago','Set','Ott','Nov','Dic','Gen','Feb','Mar','Apr','Mag'];
 
 // Solo i locali attivi: gli inattivi non sono un termine di paragone, sono

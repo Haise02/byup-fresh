@@ -190,13 +190,6 @@ const SALA_CONTI_APERTI = [
   { tavolo: 'Tavolo 5',  liberato: '19:20', cliente: 'Luca Greco',      totTavolo: 52.00,  daSaldare: 16.00, oreFa: 0.3666666666666667 },
 ];
 
-// Soglie default (configurabili via tweaks)
-const SALA_THRESHOLDS = {
-  noOrderWarn: 15,
-  noOrderAlert: 25,
-  overstay: 90,
-  oldBillHours: 3,
-};
 
 // Soglie temporali progressive — single source of truth (vedi CLAUDE.md NOTE SISTEMA)
 const PULIRE_WARNING_MIN  = 10;
@@ -340,7 +333,6 @@ function getOccupiedAlert(t) {
 
 window.SALA_TAVOLI = SALA_TAVOLI;
 window.SALA_CONTI_APERTI = SALA_CONTI_APERTI;
-window.SALA_THRESHOLDS = SALA_THRESHOLDS;
 window.SALA_MENU = SALA_MENU;
 window.getOccupiedAlert = getOccupiedAlert;
 window.PULIRE_WARNING_MIN  = PULIRE_WARNING_MIN;

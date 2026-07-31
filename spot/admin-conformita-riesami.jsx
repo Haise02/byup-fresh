@@ -85,7 +85,6 @@ const RIE_ESEMPI = {
   modifiche:'Es. Portare il riesame dei log da trimestrale a mensile',
   risorse:'Es. Affidare a un consulente 3 giornate per la gestione delle vulnerabilità',
 };
-const rieTipoLabel = (id) => (RIE_TIPI.find(t => t.id === id) || {}).label || null;
 
 // Lo storico contiene decisioni scritte prima che esistesse il tipo: si legge
 // sia la stringa nuda sia l'oggetto, senza riscrivere i dati vecchi.
@@ -126,8 +125,6 @@ function rieStatoDecisione(testo) {
   return v.calcola();
 }
 
-const RIE_TONO_DEC = { fatta:'OK', parziale:'WARN', aperta:'DANGER', 'da verificare':'NEUTRAL' };
-const RIE_LABEL_DEC = { fatta:'Completata', parziale:'Parziale', aperta:'Aperta', 'da verificare':'Da verificare' };
 
 // ─── Il pacchetto di input del riesame (§9.3) ──────────────────────────────
 // Nessun numero scritto a mano: ogni voce interroga il suo registro adesso.

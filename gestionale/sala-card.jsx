@@ -77,10 +77,6 @@ function getOpenDurationSeverity(totalMinutes) {
   if (totalMinutes >= WARNING_DURATION_MIN) return 'warning';
   return 'normal';
 }
-function getOpenDurationColor(totalMinutes) {
-  const sev = getOpenDurationSeverity(totalMinutes);
-  return sev === 'critical' ? '#DC2626' : (sev === 'warning' ? '#D97706' : '#0F1115');
-}
 
 // ─────────────────────────────────────────────────────────
 // Tooltip leggero — appare al hover, dark, non clippato grazie a position:fixed

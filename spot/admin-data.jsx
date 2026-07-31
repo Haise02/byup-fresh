@@ -816,37 +816,6 @@ const SCREENS_USAGE = [
   ] },
 ];
 
-// Funzionalità più usate (cross-screen, azioni discrete)
-//
-// I volumi si derivano dagli ordini che i locali processano davvero in un
-// mese: scritti a mano dicevano 124.800 aggiunte di articolo su una
-// piattaforma che di ordini ne fa quindicimila, e la stessa voce nella tab
-// Staff ne diceva un altro paio di migliaia. Le due schermate raccontavano
-// due aziende diverse.
-const FEATURES_USAGE = (() => {
-  const ordiniMese = LOCALI
-    .filter(l => l.stato === 'active' || l.stato === 'inactive')
-    .reduce((s, l) => s + (l.ordiniMese || 0), 0);
-  const alTavolo = Math.round(ordiniMese * 0.55);   // la quota presa dal cameriere
-  const prenotazioniMese = LOCALI
-    .filter(l => l.stato === 'active')
-    .reduce((s, l) => s + (l.prenotazioniMese || 0), 0);
-  const attivi = LOCALI.filter(l => l.stato === 'active').length;
-  return [
-    { nome: 'Aggiunta articolo all\'ordine',     modulo: 'Sala / Cucina',  usi: Math.round(alTavolo * 3.5),  pct: 95, trend: +7 },
-    { nome: 'Apertura tavolo',                  modulo: 'Sala',           usi: alTavolo,                    pct: 96, trend: +4 },
-    { nome: 'Saldo conto al tavolo',            modulo: 'Sala',           usi: Math.round(alTavolo * 0.92), pct: 92, trend: +5 },
-    { nome: 'Stampa scontrino',                 modulo: 'Cassa',          usi: Math.round(alTavolo * 0.58), pct: 89, trend: +2 },
-    { nome: 'Conferma prenotazione',            modulo: 'Sala',           usi: Math.round(prenotazioniMese * 0.86), pct: 68, trend: +9 },
-    { nome: 'Modifica menu (piatto)',           modulo: 'Impostazioni',   usi: Math.round(attivi * 34),     pct: 71, trend: +12 },
-    { nome: 'Spostamento tavolo / unione',      modulo: 'Sala',           usi: Math.round(alTavolo * 0.08), pct: 52, trend: +3 },
-    { nome: 'Export IVA mensile',               modulo: 'Contabilità',    usi: Math.round(attivi * 1.4),    pct: 38, trend: +6 },
-    { nome: 'Invito staff (link)',              modulo: 'Personale',      usi: Math.round(attivi * 2.1),    pct: 31, trend: +8 },
-    { nome: 'Apertura ticket supporto',         modulo: 'Supporto',       usi: Math.round(attivi * 1.9),    pct: 22, trend: -3 },
-    { nome: 'Pubblica menu su vetrina',         modulo: 'Vetrina',        usi: Math.round(attivi * 0.7),    pct: 18, trend: +15 },
-    { nome: 'Importazione menu da PDF',         modulo: 'Onboarding',     usi: Math.round(attivi * 0.5),    pct: 48, trend: +24 },
-  ];
-})();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AFFIDABILITÀ · il modo in cui si muore davvero
@@ -1230,7 +1199,6 @@ window.PERMESSI = PERMESSI;
 window.TOP_PIATTI = TOP_PIATTI;
 window.TOP_CITTA = TOP_CITTA;
 window.SCREENS_USAGE = SCREENS_USAGE;
-window.FEATURES_USAGE = FEATURES_USAGE;
 window.MONTHLY_REVENUE = MONTHLY_REVENUE;
 window.AFFIDABILITA = AFFIDABILITA;
 window.RETE = RETE;

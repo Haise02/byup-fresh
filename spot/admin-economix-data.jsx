@@ -43,12 +43,6 @@ const ECO_REGIME = {
   perditePregresse: 128400,      // € riportabili
   primiTreEsercizi: true,        // perdite utilizzabili al 100% invece che all'80%
 };
-const ECO_REGIMI = {
-  innovativa: { label:'Startup innovativa',
-    nota:'Nessuno sconto su IRES o IRAP: il vantaggio fiscale è per chi investe, non per la società. Qui contano le perdite pregresse.' },
-  ordinaria:  { label:'Regime ordinario',
-    nota:'Stesse aliquote. Cambiano gli obblighi societari e l’uso delle perdite oltre il terzo esercizio, limitate all’80% del reddito.' },
-};
 
 // ─── Servizi a consumo ─────────────────────────────────────────────────────
 // `driver` dice DA COSA dipende il consumo, `perUnita` quanto se ne consuma per
@@ -448,7 +442,6 @@ window.ecoSegno = ecoSegno;
 window.ecoEur = ecoEur;
 window.ecoEur2 = ecoEur2;
 window.ECO_REGIME = ECO_REGIME;
-window.ECO_REGIMI = ECO_REGIMI;
 window.ECO_SERVIZI = ECO_SERVIZI;
 window.ECO_CONNESSIONI = ECO_CONNESSIONI;
 window.ECO_PACCHETTI = ECO_PACCHETTI;

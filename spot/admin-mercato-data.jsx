@@ -26,7 +26,6 @@
 // più. È lo stesso perimetro di LOC.live, non una popolazione inventata qui.
 const MKT_LOCALI = LOCALI.filter(locLive);
 const MKT_ORDINI_TOT = MKT_LOCALI.reduce((s, l) => s + l.ordiniMese, 0);
-const MKT_COPERTI_TOT = MKT_LOCALI.reduce((s, l) => s + l.coperti, 0);
 // Voci di menu per locale: una carta vera sta fra le 40 e le 120 voci.
 const MKT_VOCI_PER_LOCALE = (l) => {
   const r = pseudoRand(l.id.charCodeAt(3) * 31 + l.nome.length);

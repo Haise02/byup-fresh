@@ -981,7 +981,6 @@ function PlatformDiagnostica({ onNavRoute }) {
    ═══════════════════════════════════════════════════════════════════════════ */
 const RA_DORMIENTE_GG = 90;
 const RA_PREAVVISO_GG = 14;   // da quanti giorni prima la scadenza chiama all'azione
-const RA_GRID_STORICO = 'minmax(0,1.3fr) 0.95fr 0.9fr 130px 1fr minmax(0,2.1fr)';
 
 
 // La cadenza del riesame è UNA e vive nell'adempimento `acc` del Cruscotto di

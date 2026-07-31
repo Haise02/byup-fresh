@@ -14,7 +14,6 @@ const __BYUP_DARK = (() => {
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
 const WINE = __BYUP_DARK ? '#ef6389' : '#8B1A3A';     // accento menu (più chiaro in dark per contrasto)
-const WINE_DARK = '#5a1a2e';
 const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
 const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
 const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
@@ -1911,37 +1910,6 @@ function EmptyHint({ text }) {
   );
 }
 
-function ModeCard({ active, onClick, title, desc, emoji }) {
-  return (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 14,
-      padding: '14px 16px', borderRadius: 16,
-      background: active ? SURF : SURF,
-      border: `1.5px solid ${active ? WINE : BORDER}`,
-      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-      width: '100%', position: 'relative',
-    }}>
-      <div style={{
-        width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-        background: active ? TINT : BG_GRAY,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 22, transition: 'background 0.18s',
-      }}>{emoji}</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{title}</div>
-        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{desc}</div>
-      </div>
-      <div style={{
-        width: 22, height: 22, borderRadius: 999,
-        border: `2px solid ${active ? WINE : '#d0d0d0'}`,
-        background: active ? WINE : SURF,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {active && <I.Check size={13} color="#fff"/>}
-      </div>
-    </button>
-  );
-}
 
 function Avatar({ name, initials, guest, size = 38 }) {
   const colors = ['#7a4458','#4a6580','#5a7a45','#80654a','#65457a'];
@@ -2320,42 +2288,6 @@ function TakeawayCard({ order, expanded, setExpanded, onReorder }) {
   );
 }
 
-// Helper riusabili per i tre consumer del GuestsSheet (Payment / Menu / Home)
-const addGuestToOrder = (setState) => setState(s => {
-  const ao = s.activeOrder;
-  if (!ao) return s;
-  const guests = ao.guests || [];
-  const nextN = guests.filter(g => g.isGuest).length + 1;
-  const newGuest = {
-    id: `og-${Date.now()}`,
-    name: `Ospite ${nextN}`,
-    initial: '?',
-    isGuest: true,
-  };
-  return {
-    ...s,
-    activeOrder: {
-      ...ao,
-      guests: [...guests, newGuest],
-      covers: (ao.covers || guests.length) + 1,
-    },
-  };
-});
-
-const removeGuestFromOrder = (setState, id) => setState(s => {
-  const ao = s.activeOrder;
-  if (!ao) return s;
-  const guests = ao.guests || [];
-  const newGuests = guests.filter(g => g.id !== id);
-  return {
-    ...s,
-    activeOrder: {
-      ...ao,
-      guests: newGuests,
-      covers: Math.max(1, (ao.covers || guests.length) - 1),
-    },
-  };
-});
 
 // Porta il numero di partecipanti a `n` sincronizzando i segnaposto "Ospite":
 // gli utenti reali (app/webapp) non si toccano, i segnaposto si aggiungono o
@@ -3248,10 +3180,6 @@ function seedSettled(order) {
 }
 function lineRemaining(order, it, settled = seedSettled(order)) {
   return Math.max(0, it.price * it.qty - (settled[it.lineId] || 0));
-}
-function tableRemaining(order) {
-  const settled = seedSettled(order);
-  return order.items.reduce((s, it) => s + lineRemaining(order, it, settled), 0);
 }
 // I coperti valgono per tutta la serata al tavolo, ma la SPA smonta MenuApp
 // ogni volta che si torna in home: tenendoli nel solo state, "Salda il resto"

@@ -117,12 +117,6 @@ function ecoRitardoRendiconto(conn) {
 }
 const ecoBanca = () => ECO_CONNESSIONI.find(c => c.cassa) || null;
 
-// Da quanti giorni una sorgente non risponde. Finche non risponde, le sue righe
-// sono stime: il numero di giorni dice quanto e vecchia l'ultima verita.
-function ecoGiorniInErrore(conn) {
-  if (conn.stato !== 'errore' || !conn.erroreDal) return 0;
-  return Math.max(1, Math.round((Date.now() - conn.erroreDal.getTime()) / 86400000));
-}
 
 const ecoCostiVariabili = (d) => ECO_SERVIZI.reduce((tot, s) => tot + ecoCostoServizio(s, d), 0);
 
@@ -303,49 +297,6 @@ function ecoContoEconomico(mesi, mix, regime) {
   };
 }
 
-// ─── Il mese in corso, mentre si spende ────────────────────────────────────
-// Consuntivo a oggi e proiezione a fine mese. La proiezione lineare sui giorni
-// trascorsi è grezza ma onesta: sui costi a consumo il ritmo è quasi costante.
-function ecoMeseCorrente(mix) {
-  const d = ECO_STORICO[ECO_STORICO.length - 1];
-  const giorni = ecoGiorniNelMese(ECO_OGGI);
-  const trascorsi = ECO_OGGI.getDate();
-  const frazione = trascorsi / giorni;
-  const righe = ECO_SERVIZI.map(s => {
-    const l = ecoLettura(s, d, frazione);
-    return { s, l, aOggi:l.aOggi, fineMese:l.valoreMese, consumoPieno: ecoConsumo(s, d) };
-  });
-  const variabiliOggi = righe.reduce((t, r) => t + r.aOggi, 0);
-  const variabiliFine = righe.reduce((t, r) => t + r.fineMese, 0);
-  const fissi = ecoFissiDelMese(new Date(ECO_OGGI.getFullYear(), ECO_OGGI.getMonth(), 1));
-  const ric = ecoRicavi(d, mix);
-  return { d, giorni, trascorsi, frazione, righe, variabiliOggi, variabiliFine,
-    fissi, ricavi:ric, bruciatoOggi: variabiliOggi + fissi * frazione,
-    bruciatoFine: variabiliFine + fissi };
-}
-
-// ─── Flussi di cassa ───────────────────────────────────────────────────────
-// Un mese di cassa non e un mese di conto economico: gli incassi arrivano con
-// pochi giorni di ritardo, i pagamenti con trenta. Su un mese solo la differenza
-// e piccola; su una societa che cresce e' esattamente il buco che ti fa mancare
-// i soldi mentre il conto economico migliora.
-function ecoFlussiMese(m, mix) {
-  const ric = ecoRicavi(m, mix);
-  const prec = ECO_STORICO[ECO_STORICO.indexOf(m) - 1] || m;
-  const dataM = new Date(m.data.getFullYear(), m.data.getMonth(), 1);
-  // Incassi: ricavi del mese, con lo sfasamento medio dell'addebito.
-  const incassi = ric.totale;
-  // Pagamenti: i costi di competenza del mese PRECEDENTE, perche si pagano a 30
-  // giorni. I costi a consumo del mese in corso escono il mese prossimo.
-  const uscite = ecoCostiVariabili(prec) + ecoFissiDelMese(new Date(prec.data.getFullYear(), prec.data.getMonth(), 1));
-  // IVA: a debito sulle vendite, a credito sugli acquisti nazionali. I fornitori
-  // esteri sono in reverse charge e non generano credito.
-  const ivaVendite = ric.totale * 0.22;
-  const ivaAcquisti = ecoIvaAcquisti(dataM);
-  return { m, incassi, uscite, ivaVendite, ivaAcquisti, ivaNetta: ivaVendite - ivaAcquisti,
-    netto: incassi - uscite };
-}
-
 // Proiezione della cassa: saldo di partenza, poi mese per mese entrate meno
 // uscite meno IVA versata. Il numero che conta e uno solo — quando finisce.
 // Il mese chiude un periodo IVA? E il mese in cui si versa quello chiuso prima?
@@ -518,7 +469,6 @@ function ecoFlussiStorici(mix) {
 // Due periodi contano sempre: quello CHIUSO che sta per essere versato, e
 // quello IN MATURAZIONE che si sta accumulando adesso. Mostrarne uno solo
 // lascia scoperta meta della domanda.
-function ecoTrimestre(d) { return Math.floor(d.getMonth() / 3); }
 function ecoScadenzaIva(anno, periodo, regime) {
   if (regime === 'mensile') {
     // entro il 16 del mese successivo
@@ -909,7 +859,6 @@ window.ecoFinePeriodoIva = ecoFinePeriodoIva;
 window.ecoIvaPeriodi = ecoIvaPeriodi;
 window.ecoIvaVersataNelMese = ecoIvaVersataNelMese;
 window.ecoSaldoIva = ecoSaldoIva;
-window.ecoFlussiMese = ecoFlussiMese;
 window.ecoProiezioneCassa = ecoProiezioneCassa;
 window.ecoScadenzario = ecoScadenzario;
 window.ecoSegnaPagata = ecoSegnaPagata;
@@ -924,7 +873,6 @@ window.ecoProiettaDriver = ecoProiettaDriver;
 window.ecoConsumo = ecoConsumo;
 window.ecoPrezzo = ecoPrezzo;
 window.ecoLettura = ecoLettura;
-window.ecoGiorniInErrore = ecoGiorniInErrore;
 window.ecoCostoServizio = ecoCostoServizio;
 window.ecoCostiVariabili = ecoCostiVariabili;
 window.ecoFissiDelMese = ecoFissiDelMese;
@@ -933,4 +881,3 @@ window.ecoMixPiani = ecoMixPiani;
 window.ecoRicavi = ecoRicavi;
 window.ecoImposte = ecoImposte;
 window.ecoContoEconomico = ecoContoEconomico;
-window.ecoMeseCorrente = ecoMeseCorrente;

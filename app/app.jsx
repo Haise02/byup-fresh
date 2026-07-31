@@ -18,7 +18,6 @@ const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
 const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
 const SURF = __BYUP_DARK ? '#211f22' : '#fff';
 const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea';
-const BG_CHIP = '#f6e9e4';
 
 // Design system condiviso — byup-app-kit.jsx DEVE essere caricato prima di questo file.
 const BK = window.ByupKit;
@@ -306,27 +305,6 @@ const BRAND_CATS = [
   { id: 'torta',     label: 'Torta' },
 ];
 
-// ─── Quick filter chip ──────────────────────────────────────
-function FilterChip({ label, active, onClick, leading }) {
-  const [T] = BK.useByupTheme();
-  return (
-    <button className="bk-press" onClick={() => { BK.haptic.selection(); onClick?.(); }} style={{
-      flex: '0 0 auto', height: 36, padding: '0 15px',
-      borderRadius: 999, border: `1.5px solid ${active ? T.primary : T.line}`,
-      background: active ? T.accentSoft : T.surface,
-      color: active ? T.primary : T.text,
-      fontSize: 13.5, fontWeight: active ? 700 : 600,
-      fontFamily: BK.TYPE.sans, cursor: 'pointer',
-      display: 'flex', alignItems: 'center', gap: 6,
-      transition: `all 0.2s ${BK.SPRING}`,
-      boxShadow: active ? T.shadowSoft : 'none',
-    }}>
-      {leading}
-      {label}
-    </button>
-  );
-}
-
 // ─── Favorite card (compact, horizontal) ────────────────────
 function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, closeHour, open, premium, onClick, onUnfav }) {
   // hours can be 'HH:MM – HH:MM' format; split in two
@@ -384,107 +362,6 @@ function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, clos
         <div style={{ fontSize: 11, color: T.textDim, marginTop: 4 }}>
           <span>{oh} – {ch}</span>
         </div>
-      </div>
-    </button>
-  );
-}
-
-// ─── Event card (large with date badge) ─────────────────────
-function EventCard({ title, place, tone, photo, date, time, onClick }) {
-  return (
-    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
-      flex: '0 0 auto', width: 210, height: 175, borderRadius: 22, overflow: 'hidden',
-      position: 'relative', border: 'none', padding: 0, cursor: 'pointer',
-      boxShadow: '0 14px 32px -18px rgba(227,36,89,.38)',
-      fontFamily: BK.TYPE.sans, textAlign: 'left',
-    }}>
-      <Photo src={photo} label={title} tone={tone}/>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(28,6,16,0.08) 0%, rgba(28,6,16,0.78) 100%)',
-      }}/>
-      {/* EVENTO label top-right */}
-      <div style={{
-        position: 'absolute', top: 11, right: 11,
-        background: 'rgba(250,227,222,0.2)', backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(250,227,222,0.35)',
-        color: '#fff', fontSize: 9.5, fontWeight: 800, letterSpacing: 1,
-        padding: '3px 8px', borderRadius: 999, textTransform: 'uppercase',
-      }}>Evento</div>
-      {/* date badge top-left */}
-      {date && (
-        <div style={{
-          position: 'absolute', top: 11, left: 11,
-          background: SURF, borderRadius: 12,
-          padding: '4px 9px', textAlign: 'center', minWidth: 38,
-        }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: PINK, letterSpacing: 0.6, lineHeight: 1.1 }}>{date.month}</div>
-          <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, color: '#1c0f15', lineHeight: 1, marginTop: 1 }}>{date.day}</div>
-        </div>
-      )}
-      <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, color: '#fff',
-        borderRadius: 15, padding: '9px 11px',
-        background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.28)',
-        backdropFilter: 'blur(12px) saturate(170%)', WebkitBackdropFilter: 'blur(12px) saturate(170%)',
-        boxShadow: '0 8px 20px -10px rgba(20,8,12,.45)' }}>
-        <div style={{ fontFamily: BK.TYPE.display, fontSize: 16.5, fontWeight: 600, lineHeight: 1.15,
-          textShadow: '0 2px 8px rgba(20,8,12,.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 11.5,
-          fontWeight: 600, color: 'rgba(255,255,255,.9)' }}>
-          <Icon.Pin size={10} color="#ffd3de"/>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place}</span>
-          {time && <>
-            <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)', flexShrink: 0 }}/>
-            <Icon.Clock size={10} color="#ffd3de"/>
-            <span style={{ flexShrink: 0 }}>{time}</span>
-          </>}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-// ─── Promo card ──────────────────────────────────────────────
-function PromoCard({ title, place, tone, photo, discount, hours, onClick }) {
-  return (
-    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
-      flex: '0 0 auto', width: 175, height: 210, borderRadius: 22, overflow: 'hidden',
-      position: 'relative', border: 'none', padding: 0, cursor: 'pointer',
-      boxShadow: '0 14px 32px -18px rgba(227,36,89,.38)',
-      fontFamily: BK.TYPE.sans, textAlign: 'left',
-    }}>
-      <Photo src={photo} label={place} tone={tone}/>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(28,6,16,0) 30%, rgba(28,6,16,0.8) 100%)',
-      }}/>
-      {discount && (
-        <div style={{
-          position: 'absolute', top: 12, left: 12,
-          background: PINK, color: '#fff',
-          padding: '7px 12px', borderRadius: 14,
-          boxShadow: '0 8px 20px -6px rgba(227,36,89,0.6)',
-          transform: 'rotate(-3deg)',
-        }}>
-          <div style={{ fontFamily: BK.TYPE.display, fontSize: 22, fontWeight: 600, lineHeight: 1 }}>{discount}</div>
-        </div>
-      )}
-      <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, color: '#fff',
-        borderRadius: 15, padding: '9px 11px',
-        background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.28)',
-        backdropFilter: 'blur(12px) saturate(170%)', WebkitBackdropFilter: 'blur(12px) saturate(170%)',
-        boxShadow: '0 8px 20px -10px rgba(20,8,12,.45)' }}>
-        <div style={{ fontFamily: BK.TYPE.display, fontSize: 15.5, fontWeight: 600, lineHeight: 1.15,
-          textShadow: '0 2px 8px rgba(20,8,12,.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 11,
-          fontWeight: 600, color: 'rgba(255,255,255,.9)' }}>
-          <Icon.Pin size={10} color="#ffd3de"/>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place}</span>
-        </div>
-        {hours && <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, fontSize: 10.5,
-          fontWeight: 600, color: 'rgba(255,255,255,.8)' }}>
-          <Icon.Clock size={10} color="#ffd3de"/> {hours}
-        </div>}
       </div>
     </button>
   );
@@ -751,13 +628,6 @@ function NotifSheet({ open, onClose }) {
 }
 
 // ─── Search overlay (recenti + popolari) ────────────────────
-const SEARCH_RECENTS = [
-  'Pizzeria napoletana',
-  'Sushi all you can eat',
-  'Aperitivo con vista',
-  'Brunch domenicale',
-  'Cocktail bar',
-];
 const SEARCH_POPULAR = [
   'Ristorante italiano',
   'Ristorante giapponese',
@@ -5025,16 +4895,6 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
 }
 window.BottomTabBar = BottomTabBar;
 
-function HScroll({ children }) {
-  return (
-    <div style={{
-      display: 'flex', gap: 12, padding: '0 22px', overflowX: 'auto',
-      scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
-    }} className="hscroll">
-      {children}
-    </div>
-  );
-}
 
 // ─── Mount ─────────────────────────────────────────────────
 function ShortcutsPanel() {

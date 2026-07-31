@@ -87,16 +87,6 @@ const salaGrid = (s) => ({
 const salaMaxTavoli = (s) =>
   Math.max(1, Math.floor(((s?.widthM || DEF_W) * (s?.depthM || DEF_D)) / MQ_PER_TAVOLO));
 
-function TavoloShape({ shape, size = 36, active = true, coperti }) {
-  const fill = active ? PN.PINK_SOFT : '#F4F5F7';
-  const border = active ? PN.PINK : PN.BORDER;
-  const text = active ? PN.PINK_DARK : PN.MUTED;
-  const common = { background: fill, border: `2px solid ${border}`, color: text, display:'grid', placeItems:'center', fontSize: 13, fontWeight: 800 };
-  if (shape === 'round') return <div style={{...common, width: size, height: size, borderRadius: '50%'}}>{coperti}</div>;
-  if (shape === 'rect') return <div style={{...common, width: size * 1.5, height: size * 0.7, borderRadius: 6}}>{coperti}</div>;
-  return <div style={{...common, width: size, height: size, borderRadius: 6}}>{coperti}</div>;
-}
-window.TavoloShape = TavoloShape;
 
 function ImpSalaTavoli() {
   const [sale, setSale] = React.useState(() => {

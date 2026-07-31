@@ -232,34 +232,6 @@
   [data-tip-pos="below"]:focus::before { bottom: auto; top: calc(100% + 2px); }
   @keyframes tipIn { from { opacity:0; transform: translateX(-50%) translateY(2px);} to { opacity:1; transform: translateX(-50%) translateY(0);} }
 
-  /* CTA Nuovo messaggio — shine + lift */
-  .adm-cta-msg { will-change: transform; }
-  .adm-cta-msg:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(232,87,128,0.55), 0 1px 0 rgba(255,255,255,0.3) inset !important; }
-  .adm-cta-msg:active { transform: translateY(0); }
-  .adm-cta-msg__shine {
-    position:absolute; top:0; left:-60%; width:50%; height:100%;
-    background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
-    transform: skewX(-20deg);
-    pointer-events:none;
-    animation: ctaShine 4.5s ease-in-out infinite;
-  }
-  @keyframes ctaShine {
-    0% { left: -60%; }
-    35% { left: 130%; }
-    100% { left: 130%; }
-  }
-  .adm-cta-pulse-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #FF5A5F;
-    box-shadow: 0 0 0 0 rgba(255,90,95,0.7);
-    animation: ctaPulse 1.8s ease-out infinite;
-  }
-  @keyframes ctaPulse {
-    0% { box-shadow: 0 0 0 0 rgba(255,90,95,0.6); }
-    70% { box-shadow: 0 0 0 8px rgba(255,90,95,0); }
-    100% { box-shadow: 0 0 0 0 rgba(255,90,95,0); }
-  }
-
   /* ═══════════════════════════════════════════════════════════════════════
      RESPONSIVE — Apple-style
      ─────────────────────────────────────────────────────────────────────
