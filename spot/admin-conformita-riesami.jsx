@@ -216,27 +216,39 @@ function riePacchetto() {
 }
 
 // ─── Riga del pacchetto ────────────────────────────────────────────────────
-const RIE_GRID_VOCE = '62px minmax(0,1.35fr) minmax(0,2.1fr) 30px';
+// Il numero sta attaccato alla sua unità di misura, non in una colonna a sé:
+// «2» da solo non vuol dire niente, e leggerlo qui e leggere «azioni non ancora
+// chiuse» quattrocento pixel più in là costa due saccadi per ogni riga.
+const RIE_GRID_VOCE = 'minmax(0,1.15fr) 215px minmax(0,1.55fr) 26px';
+
+function RieVerdetto({ voce, compatto }) {
+  const forte = voce.tono === 'DANGER' || voce.tono === 'WARN';
+  return (
+    <div style={{display:'flex', alignItems:'baseline', gap:6, minWidth:0}}>
+      <span style={{fontSize: compatto ? 15 : 20, fontWeight:800, letterSpacing:'-0.02em',
+        color: forte ? CF_TONO(voce.tono) : ADM.INK, flexShrink:0}}>{voce.n}</span>
+      {/* Solo il numero prende il colore dello stato: colorare anche la frase
+          fa urlare sette righe su otto e il segnale si perde nel rumore. */}
+      <span style={{fontSize: compatto ? 12 : 12.6, lineHeight:1.35, fontWeight:600,
+        color: forte ? ADM.TEXT : ADM.MUTED}}>{voce.unita}</span>
+    </div>
+  );
+}
 
 function RieVoce({ voce, ultima, cliccabile, onApri }) {
-  const forte = voce.tono === 'DANGER' || voce.tono === 'WARN';
   return (
     <div className={cliccabile ? 'adm-row-open' : undefined}
       onClick={cliccabile ? onApri : undefined}
-      style={{display:'grid', gridTemplateColumns:RIE_GRID_VOCE, gap:12, alignItems:'center',
+      style={{display:'grid', gridTemplateColumns:RIE_GRID_VOCE, gap:14, alignItems:'center',
         padding:'12px 16px', cursor: cliccabile ? 'pointer' : 'default',
         borderBottom: ultima ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
         background: voce.tono === 'DANGER' ? '#FFFBFB' : '#fff'}}>
-      <div style={{fontSize:23, fontWeight:800, letterSpacing:'-0.02em', lineHeight:1,
-        color: forte ? CF_TONO(voce.tono) : ADM.INK}}>{voce.n}</div>
       <div style={{minWidth:0}}>
         <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{voce.titolo}</div>
         <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2}}>{voce.rif}</div>
       </div>
-      <div style={{minWidth:0}}>
-        <div style={{fontSize:12.8, color:ADM.TEXT, fontWeight:600}}>{voce.unita}</div>
-        <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{voce.dettaglio}</div>
-      </div>
+      <RieVerdetto voce={voce}/>
+      <div style={{fontSize:12.2, color:ADM.MUTED, lineHeight:1.45, minWidth:0}}>{voce.dettaglio}</div>
       {cliccabile
         ? <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
         : <span/>}
@@ -246,23 +258,68 @@ function RieVoce({ voce, ultima, cliccabile, onApri }) {
 
 // Versione compatta usata dentro la modale di preparazione.
 function RieVoceCompatta({ voce }) {
-  const forte = voce.tono === 'DANGER' || voce.tono === 'WARN';
   return (
-    <div style={{display:'grid', gridTemplateColumns:'32px minmax(0,1fr)', gap:10, alignItems:'baseline',
-      padding:'7px 0', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
-      <div style={{fontSize:14.5, fontWeight:800, lineHeight:1.2, letterSpacing:'-0.01em',
-        color: forte ? CF_TONO(voce.tono) : ADM.INK}}>{voce.n}</div>
+    <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 165px', gap:12, alignItems:'center',
+      padding:'8px 0', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
       <div style={{minWidth:0}}>
-        <div style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>{voce.titolo} <span style={{fontWeight:600, color:ADM.MUTED}}>— {voce.unita}</span></div>
-        <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{voce.dettaglio}</div>
+        <div style={{fontSize:12.6, fontWeight:700, color:ADM.TEXT}}>{voce.titolo}</div>
+        <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{voce.dettaglio}</div>
       </div>
+      <RieVerdetto voce={voce} compatto/>
     </div>
   );
 }
 
 // ─── Audit interni e riesame di direzione ──────────────────────────────────
-const RIE_GRID_AUDIT   = 'minmax(0,1.05fr) 0.75fr minmax(0,1.4fr) minmax(0,1.7fr) 1.2fr 0.75fr minmax(0,1.55fr)';
+const RIE_GRID_AUDIT   = '104px 78px minmax(0,1.1fr) minmax(0,1.3fr) 134px 80px minmax(0,1.58fr)';
 const RIE_GRID_STORICO = 'minmax(0,1fr) minmax(0,1.7fr) minmax(0,1.25fr) minmax(0,1.7fr) 30px';
+const RIE_GRID_DEC     = 'minmax(0,1.5fr) 118px minmax(0,1.6fr) 24px';
+
+// Intestazione di sezione: titolo, riga di contesto, e l'azione ancorata a
+// destra. Prima il bottone galleggiava a mezz'aria accanto a un titolino
+// minuscolo e pesava più del titolo stesso.
+function RieSezione({ titolo, nota, destra }) {
+  return (
+    <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10, flexWrap:'wrap'}}>
+      <div style={{...CF_H, marginBottom:0}}>{titolo}</div>
+      {nota && <span style={{fontSize:12.4, color:ADM.MUTED, flex:1, minWidth:200}}>{nota}</span>}
+      {destra}
+    </div>
+  );
+}
+
+// Testata: i due adempimenti che questa pagina documenta, affiancati. Sono due
+// obblighi distinti con due scadenze distinte, e la prima domanda di chi apre
+// la pagina è a che punto sta ognuno — non che cosa dice il registro.
+function RieTestata({ titolo, rif, stato, riga, sotto, chi, azione }) {
+  const b = rieBanda(stato.stato === 'ok' ? 'NEUTRAL' : stato.tono);
+  return (
+    <div style={{flex:'1 1 320px', minWidth:0, border:`1px solid ${b.bd}`, borderRadius:12,
+      background: b.bg === ADM.NEUTRAL_SOFT ? '#fff' : b.bg,
+      padding:'14px 16px 13px', display:'flex', flexDirection:'column', gap:9}}>
+      <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0}}>
+        <span style={{fontSize:11.4, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase',
+          letterSpacing:'0.07em', whiteSpace:'nowrap'}}>{titolo}</span>
+        <span style={{fontSize:11.6, color:ADM.MUTED_SOFT, whiteSpace:'nowrap'}}>{rif}</span>
+        <div style={{flex:1}}/>
+        <CfPill tono={stato.tono}>{stato.label}</CfPill>
+      </div>
+      <div>
+        <div style={{fontSize:14.6, fontWeight:800, color:b.fg, letterSpacing:'-0.01em', lineHeight:1.3}}>{riga}</div>
+        <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:3, lineHeight:1.45}}>{sotto}</div>
+        {chi && <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:2, lineHeight:1.45}}>{chi}</div>}
+      </div>
+      <div style={{flex:1, minHeight:4}}/>
+      <div style={{display:'flex', alignItems:'center', gap:10}}>
+        <span style={{fontSize:11.8, color:ADM.MUTED_SOFT}}>
+          {stato.prossima ? `prossimo entro il ${cfFmt(stato.prossima)}` : 'nessuna scadenza calcolabile'}
+        </span>
+        <div style={{flex:1}}/>
+        {azione}
+      </div>
+    </div>
+  );
+}
 
 function CfAudit({ onVai }) {
   const [prepara, setPrepara]           = useStateRie(false);
@@ -280,7 +337,7 @@ function CfAudit({ onVai }) {
   const sDir   = cfStatoAdempimento(rieAdemp('dir') || {});
   const ultimo = pk.ultimoAudit;
   const senzaDoc = AUDIT_INTERNI.filter(a => !a.doc).length;
-  const bAudit = rieBanda(sAudit.stato === 'ok' ? 'NEUTRAL' : sAudit.tono);
+  const daPortare = pk.voci.filter(v => v.tono !== 'OK').length;
 
   // Una riga per decisione, dentro la casella che le dà il tipo.
   const righeDecisioni = RIE_TIPI.flatMap(t =>
@@ -315,37 +372,144 @@ function CfAudit({ onVai }) {
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:22, position:'relative'}}>
 
-      {/* ── Audit interni ─────────────────────────────────────────────── */}
+      {/* ── Testata: a che punto stanno i due adempimenti ─────────────── */}
+      <div style={{display:'flex', gap:12, flexWrap:'wrap'}}>
+        <RieTestata titolo="Audit interno" rif="§9.2" stato={sAudit}
+          riga={ultimo ? `Ultimo audit il ${cfFmt(ultimo.data)}` : 'Nessun audit interno registrato'}
+          sotto={ultimo
+            ? `${ultimo.rilievi} ${ultimo.rilievi === 1 ? 'rilievo' : 'rilievi'} · ${ultimo.maggiori} ${ultimo.maggiori === 1 ? 'maggiore' : 'maggiori'}, ${ultimo.minori} ${ultimo.minori === 1 ? 'minore' : 'minori'}, ${ultimo.osservazioni} ${ultimo.osservazioni === 1 ? 'osservazione' : 'osservazioni'}`
+            : 'Un solo audit copre entrambe le certificazioni'}
+          chi={ultimo ? ultimo.auditor : null}/>
+        <RieTestata titolo="Riesame di direzione" rif="§9.3" stato={sDir}
+          riga={pk.ultimoRiesame ? `Ultimo riesame il ${cfFmt(pk.ultimoRiesame.data)}` : 'Nessun riesame registrato'}
+          sotto={pk.dec.length
+            ? `${pk.dec.length} ${pk.dec.length === 1 ? 'decisione presa' : 'decisioni prese'} · ${pk.decAperte ? `${pk.decAperte} ancora da chiudere` : 'tutte confermate dai registri'}`
+            : 'Nessuna decisione nello storico'}
+          chi={pk.ultimoRiesame ? pk.ultimoRiesame.partecipanti : null}
+          azione={<AdmButton variant="primary" size="sm" onClick={()=>setPrepara(true)}>Prepara il riesame</AdmButton>}/>
+      </div>
+
+      {/* ── Il pacchetto di input: è il pezzo per cui si apre la pagina ── */}
       <div>
-        <div style={{...RIE_BANDA, background:bAudit.bg, border:`1px solid ${bAudit.bd}`, marginBottom:14}}>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14.5, fontWeight:800, color:bAudit.fg}}>
-              {ultimo
-                ? `Ultimo audit interno il ${cfFmt(ultimo.data)} · ${ultimo.rilievi} ${ultimo.rilievi === 1 ? 'rilievo' : 'rilievi'}, ${ultimo.maggiori} ${ultimo.maggiori === 1 ? 'maggiore' : 'maggiori'}`
-                : 'Nessun audit interno registrato'}
-            </div>
-            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-              {ultimo ? `${ultimo.auditor} · ${ultimo.aree.toLowerCase()} · cadenza ogni 12 mesi` : 'ISO 27001 §9.2 · ISO 9001 §9.2'}
-            </div>
+        <RieSezione titolo="Pacchetto di input · §9.3.2"
+          nota={`Gli ${pk.voci.length} dati da cui la norma impone che parta la riunione · ${daPortare ? `${daPortare} con qualcosa da portare al tavolo` : 'nessuno segnala problemi'}`}/>
+
+        <div style={CF_CARD}>
+          <div style={{...CF_TH, display:'grid', gridTemplateColumns:RIE_GRID_VOCE, gap:14}}>
+            <div>Input richiesto</div><div>Come sta adesso</div>
+            <div>Dal registro</div><div/>
           </div>
-          <div style={{textAlign:'right', flexShrink:0}}>
-            <CfPill tono={sAudit.tono}>{sAudit.label}</CfPill>
-            <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:5}}>
-              prossimo entro il {cfFmt(sAudit.prossima)}
-            </div>
-          </div>
+          {pk.voci.map((v, i) => (
+            <RieVoce key={v.id} voce={v} ultima={i === pk.voci.length - 1}
+              cliccabile={!!((v.tab || v.vaiA) && navigabile)} onApri={()=>vai(v.vaiA || v.tab)}/>
+          ))}
         </div>
 
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...CF_H, marginBottom:0}}>Audit interni</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>§9.2 di entrambe le norme — un solo audit copre le due certificazioni</span>
+        <div style={{...RIE_NOTA, marginTop:9}}>
+          Raccogliere questi dati a mano è il motivo per cui il riesame slitta: qui nessun numero
+          è scritto a mano, ognuno è calcolato adesso dal registro che lo contiene.
         </div>
+      </div>
+
+      {/* ── Storico dei riesami: è quello che l'auditor chiede di vedere ── */}
+      <div>
+        <RieSezione titolo="Riesami svolti"
+          nota={pk.decAperte
+            ? `${pk.decAperte} decisioni dell'ultimo riesame non ancora chiuse`
+            : 'tutte le decisioni precedenti risultano chiuse dai registri'}/>
+
+        <div style={CF_CARD}>
+          {RIESAMI_DIREZIONE.map((r, i) => {
+            const dec = (r.decisioni || [])
+              .map(d => Object.assign({ testo:rieTestoDec(d), tipo:rieTipoDec(d) }, rieStatoDecisione(rieTestoDec(d))));
+            const aperte = dec.filter(d => d.stato !== 'fatta').length;
+            const espanso = aperto === r.id;
+            // Le decisioni si leggono raggruppate per le tre uscite della
+            // §9.3.3: l'auditor le cerca separatamente, e in un elenco piatto
+            // la terza — le risorse — si confonde con le altre.
+            const gruppi = RIE_TIPI.map(t => ({ t, righe: dec.filter(d => d.tipo === t.id) }))
+              .filter(g => g.righe.length)
+              .concat(dec.some(d => !d.tipo) ? [{ t:{ id:'_', label:'Altre decisioni' }, righe: dec.filter(d => !d.tipo) }] : []);
+            return (
+              <div key={r.id} style={{borderBottom: i < RIESAMI_DIREZIONE.length - 1 || espanso ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                <div className="adm-row-open" onClick={()=>setAperto(espanso ? null : r.id)}
+                  style={{display:'grid', gridTemplateColumns:RIE_GRID_STORICO, gap:10, alignItems:'center',
+                    padding:'12px 16px', cursor:'pointer'}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{r.id}</div>
+                    <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2}}>{cfFmt(r.data)}</div>
+                  </div>
+                  <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.35}}>{r.partecipanti}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>
+                    {dec.length} {dec.length === 1 ? 'decisione' : 'decisioni'}
+                    {aperte > 0 && <span style={{color:ADM.WARN, fontWeight:700}}> · {aperte} da chiudere</span>}
+                  </div>
+                  <div style={{minWidth:0, overflow:'hidden'}}><CfDoc doc={r.doc} breve/></div>
+                  <span className="adm-open-chip" style={{width:24, height:24, flexShrink:0,
+                    transform: espanso ? 'rotate(90deg)' : 'none'}}><BuIcons.chevronRight size={14}/></span>
+                </div>
+
+                {espanso && (
+                  <div style={{padding:'12px 16px 14px', background:ADM.PANEL_SOFT}}>
+                    {r.nuovo && (
+                      <div style={{fontSize:12.2, color:ADM.WARN, fontWeight:700, marginBottom:10}}>
+                        Registrato ora in Spot — il verbale firmato va archiviato nel gestore documentale e collegato qui.
+                      </div>
+                    )}
+                    {dec.length === 0 && (
+                      <div style={{fontSize:12.6, color:ADM.MUTED}}>Nessuna decisione registrata.</div>
+                    )}
+                    {gruppi.map((g, gi) => (
+                      <div key={g.t.id} style={{marginTop: gi ? 14 : 2}}>
+                        <div style={{fontSize:10.8, fontWeight:800, color:ADM.MUTED_SOFT,
+                          textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4}}>{g.t.label}</div>
+                        {g.righe.map((d, k) => {
+                          const clic = !!(d.tab && navigabile);
+                          return (
+                            <div key={k} className={clic ? 'adm-row-open' : undefined}
+                              onClick={clic ? ()=>vai(d.tab) : undefined}
+                              style={{display:'grid', gridTemplateColumns:RIE_GRID_DEC, gap:10,
+                                alignItems:'center', padding:'8px 0', cursor: clic ? 'pointer' : 'default',
+                                borderBottom: k < g.righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                              <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:600, lineHeight:1.4, minWidth:0}}>{d.testo}</div>
+                              <div><CfPill tono={RIE_TONO_DEC[d.stato] || 'NEUTRAL'}>{RIE_LABEL_DEC[d.stato] || d.stato}</CfPill></div>
+                              <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4, minWidth:0}}>{d.nota}</div>
+                              {clic
+                                ? <BuIcons.chevronRight size={14} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
+                                : <span/>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                    {dec.length > 0 && (
+                      <div style={{fontSize:12, color:ADM.MUTED, marginTop:12, lineHeight:1.5}}>
+                        Lo stato di ogni decisione non è una spunta: è il registro che dovrebbe essere
+                        cambiato, riletto adesso. È così che una decisione non si trascina per un anno.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Registro degli audit interni ──────────────────────────────── */}
+      <div>
+        <RieSezione titolo="Audit interni"
+          nota="§9.2 di entrambe le norme — un solo audit copre le due certificazioni"/>
 
         <div style={CF_CARD}>
           <div style={{...CF_TH, display:'grid', gridTemplateColumns:RIE_GRID_AUDIT, gap:10}}>
             <div>Audit</div><div>Ambito</div><div>Auditor</div><div>Aree coperte</div><div>Rilievi</div><div>Stato</div><div>Rapporto</div>
           </div>
-          {AUDIT_INTERNI.map((a, i) => (
+          {AUDIT_INTERNI.map((a, i) => {
+            // «Studio Bianchi & Associati · esterno» su una colonna stretta
+            // andava a capo in mezzo al nome: il chi e il come sono due righe.
+            const [chi, come] = String(a.auditor).split(' · ');
+            return (
             <div key={a.id} style={{display:'grid', gridTemplateColumns:RIE_GRID_AUDIT, gap:10, alignItems:'center',
               padding:'12px 16px', borderBottom: i < AUDIT_INTERNI.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
               background: a.doc ? '#fff' : '#FFFDF7'}}>
@@ -354,137 +518,30 @@ function CfAudit({ onVai }) {
                 <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2}}>{cfFmt(a.data)}</div>
               </div>
               <div><CfNorma norme={a.ambito}/></div>
-              <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.35}}>{a.auditor}</div>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.35}}>{chi}</div>
+                {come && <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2}}>{come}</div>}
+              </div>
               <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.35}}>{a.aree}</div>
               <div>
-                <div style={{fontSize:12.8, color:ADM.TEXT}}>
-                  <strong style={{fontWeight:800}}>{a.rilievi}</strong> in totale
+                <div style={{fontSize:13, fontWeight:700, color:ADM.TEXT}}>
+                  {a.rilievi} {a.rilievi === 1 ? 'rilievo' : 'rilievi'}
                 </div>
-                <div style={{fontSize:11.8, marginTop:2, color:ADM.MUTED}}>
-                  <span style={{color: a.maggiori ? ADM.DANGER : ADM.MUTED, fontWeight: a.maggiori ? 700 : 500}}>{a.maggiori} maggiori</span>
-                  {` · ${a.minori} minori · ${a.osservazioni} oss.`}
+                <div style={{fontSize:11.6, marginTop:2, color:ADM.MUTED, whiteSpace:'nowrap'}}>
+                  <span style={{color: a.maggiori ? ADM.DANGER : ADM.MUTED, fontWeight: a.maggiori ? 700 : 500}}>{a.maggiori} magg.</span>
+                  {` · ${a.minori} min. · ${a.osservazioni} oss.`}
                 </div>
               </div>
               <div><CfPill tono={a.stato === 'chiuso' ? 'OK' : 'WARN'}>{a.stato === 'chiuso' ? 'Chiuso' : a.stato}</CfPill></div>
-              <div style={{minWidth:0, overflow:'hidden'}}><CfDoc doc={a.doc}/></div>
+              <div style={{minWidth:0, overflow:'hidden'}}><CfDoc doc={a.doc} breve/></div>
             </div>
-          ))}
+          );})}
         </div>
 
         <div style={{fontSize:12.2, color: senzaDoc ? ADM.WARN : ADM.MUTED, marginTop:9, lineHeight:1.5, fontWeight: senzaDoc ? 700 : 400}}>
           {senzaDoc
             ? `${senzaDoc} audit senza rapporto collegato: senza il documento la riga non è evidenza, è un ricordo.`
             : 'Ogni audit punta al proprio rapporto nel gestore documentale: il registro dice quando e cosa, il rapporto dice come.'}
-        </div>
-      </div>
-
-      {/* ── Riesame di direzione ──────────────────────────────────────── */}
-      <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:8}}>
-          <div style={{...CF_H, marginBottom:0}}>Riesame di direzione</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>
-            §9.3 · ultimo il {cfFmt(rieAdemp('dir') && rieAdemp('dir').ultima)}
-          </span>
-          <div style={{flex:1}}/>
-          <CfPill tono={sDir.tono}>{sDir.label}</CfPill>
-          <AdmButton variant="primary" size="sm" onClick={()=>setPrepara(true)}>Prepara il riesame</AdmButton>
-        </div>
-
-        <div style={{fontSize:12.6, color:ADM.MUTED, lineHeight:1.6, marginBottom:12, maxWidth:900}}>
-          La norma non chiede una riunione: chiede che la riunione parta da una lista fissa di input.
-          Raccoglierli a mano è il motivo per cui il riesame slitta. Sono gli stessi dati che i registri
-          di Spot aggiornano ogni giorno, quindi il pacchetto qui sotto è già pronto: nessuno di questi
-          numeri è scritto a mano, ognuno è calcolato adesso dal registro che lo contiene.
-        </div>
-
-        <div style={CF_CARD}>
-          <div style={{...CF_TH, display:'grid', gridTemplateColumns:RIE_GRID_VOCE, gap:12}}>
-            <div/><div>Input richiesto</div>
-            <div>Dal registro{navigabile ? ' · apri' : ''}</div><div/>
-          </div>
-          {pk.voci.map((v, i) => (
-            <RieVoce key={v.id} voce={v} ultima={i === pk.voci.length - 1}
-              cliccabile={!!((v.tab || v.vaiA) && navigabile)} onApri={()=>vai(v.vaiA || v.tab)}/>
-          ))}
-        </div>
-
-        {/* Storico: è quello che l'auditor chiede di vedere */}
-        <div style={{marginTop:20}}>
-          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-            <div style={{...CF_H, marginBottom:0}}>Riesami svolti</div>
-            <span style={{fontSize:12.4, color:ADM.MUTED}}>
-              {pk.decAperte
-                ? `${pk.decAperte} decisioni dell'ultimo riesame non ancora chiuse`
-                : 'tutte le decisioni precedenti risultano chiuse dai registri'}
-            </span>
-          </div>
-
-          <div style={CF_CARD}>
-            {RIESAMI_DIREZIONE.map((r, i) => {
-              const dec = (r.decisioni || [])
-                .map(d => Object.assign({ testo:rieTestoDec(d), tipo:rieTipoDec(d) }, rieStatoDecisione(rieTestoDec(d))));
-              const aperte = dec.filter(d => d.stato !== 'fatta').length;
-              const espanso = aperto === r.id;
-              return (
-                <div key={r.id} style={{borderBottom: i < RIESAMI_DIREZIONE.length - 1 || espanso ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-                  <div className="adm-row-open" onClick={()=>setAperto(espanso ? null : r.id)}
-                    style={{display:'grid', gridTemplateColumns:RIE_GRID_STORICO, gap:10, alignItems:'center',
-                      padding:'12px 16px', cursor:'pointer'}}>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{r.id}</div>
-                      <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2}}>{cfFmt(r.data)}</div>
-                    </div>
-                    <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.35}}>{r.partecipanti}</div>
-                    <div style={{fontSize:12.6, color:ADM.MUTED}}>
-                      {dec.length} {dec.length === 1 ? 'decisione' : 'decisioni'}
-                      {aperte > 0 && <span style={{color:ADM.WARN, fontWeight:700}}> · {aperte} da chiudere</span>}
-                    </div>
-                    <div style={{minWidth:0, overflow:'hidden'}}><CfDoc doc={r.doc}/></div>
-                    <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
-                  </div>
-
-                  {espanso && (
-                    <div style={{padding:'12px 16px 16px', background:ADM.PANEL_SOFT}}>
-                      {r.nuovo && (
-                        <div style={{fontSize:12.2, color:ADM.WARN, fontWeight:700, marginBottom:10}}>
-                          Registrato ora in Spot — il verbale firmato va archiviato nel gestore documentale e collegato qui.
-                        </div>
-                      )}
-                      {dec.length === 0 && (
-                        <div style={{fontSize:12.6, color:ADM.MUTED}}>Nessuna decisione registrata.</div>
-                      )}
-                      {dec.map((d, k) => {
-                        const clic = !!(d.tab && navigabile);
-                        return (
-                          <div key={k} className={clic ? 'adm-row-open' : undefined}
-                            onClick={clic ? ()=>vai(d.tab) : undefined}
-                            style={{display:'grid', gridTemplateColumns:'minmax(0,1.6fr) 130px minmax(0,1.5fr) 26px', gap:10,
-                              alignItems:'center', padding:'8px 0', cursor: clic ? 'pointer' : 'default',
-                              borderBottom: k < dec.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-                            <div style={{minWidth:0}}>
-                              <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:600, lineHeight:1.4}}>{d.testo}</div>
-                              {rieTipoLabel(d.tipo) && (
-                                <div style={{fontSize:11, color:ADM.MUTED_SOFT, marginTop:2}}>{rieTipoLabel(d.tipo)}</div>
-                              )}
-                            </div>
-                            <div><CfPill tono={RIE_TONO_DEC[d.stato] || 'NEUTRAL'}>{RIE_LABEL_DEC[d.stato] || d.stato}</CfPill></div>
-                            <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4}}>{d.nota}</div>
-                            {clic
-                              ? <BuIcons.chevronRight size={14} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
-                              : <span/>}
-                          </div>
-                        );
-                      })}
-                      <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.5}}>
-                        Lo stato di ogni decisione non è una spunta: è il registro che dovrebbe essere
-                        cambiato, riletto adesso. È così che una decisione non si trascina per un anno.
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
 
@@ -499,7 +556,7 @@ function CfAudit({ onVai }) {
               Riesame di direzione · {cfFmt(new Date())}
             </div>
             <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
-              Gli otto input richiesti dalla §9.3, compilati dai registri un istante fa.
+              Gli {pk.voci.length} input richiesti dalla §9.3, compilati dai registri un istante fa.
               Non c'è niente da raccogliere: resta da decidere.
             </div>
 

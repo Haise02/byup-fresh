@@ -69,11 +69,17 @@ const CF_TH = { padding:'9px 16px', background:'#FAFAFB', borderBottom:`1px soli
 
 // Riquadro "documento su Drive": i documenti non vivono in Spot, i registri ci
 // puntano. Se manca il collegamento è un buco da colmare, non un dettaglio.
-function CfDoc({ doc }) {
+// `breve` mostra il solo nome del file: dentro una colonna di tabella il
+// percorso intero manda la cella a tre righe e la cartella non aggiunge nulla
+// che il titolo non dica già. Il percorso completo resta nel tooltip.
+function CfDoc({ doc, breve }) {
   if (!doc) return <span style={{fontSize:12, color:ADM.WARN, fontWeight:700}}>documento mancante</span>;
+  const testo = breve ? String(doc).split('/').pop() : doc;
   return (
-    <span style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12, color:ADM.MUTED}}>
-      <BuIcons.paperclip size={13} color={ADM.MUTED_SOFT}/>{doc}
+    <span title={doc} style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:12,
+      color:ADM.MUTED, minWidth:0, maxWidth:'100%'}}>
+      <BuIcons.paperclip size={13} color={ADM.MUTED_SOFT}/>
+      <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{testo}</span>
     </span>
   );
 }
