@@ -402,30 +402,6 @@ function ValPotenziale() {
   );
 }
 
-// ═══════════ 7 · I limiti ═══════════════════════════════════════════════════
-function ValLimiti() {
-  const voci = [
-    ['Nessun «prima di byup»', 'i dati cominciano quando il locale si iscrive: il confronto è fra i suoi mesi bassi e i suoi mesi alti, non fra prima e dopo di noi'],
-    ['Non è un esperimento', 'l’adozione non è stata assegnata a caso: togliere l’andamento della rete elimina la stagionalità, non le altre decisioni del proprietario'],
-    ['Chi sceglie il QR', 'nel confronto fra canali resta dentro il tipo di tavolo: sei ragazzi ordinano diversamente da una coppia'],
-    ['Il passo che manca', 'spingere il digitale a scaglioni su locali simili — metà adesso, metà fra due mesi — e confrontare i due gruppi: un trimestre, e da associazione diventa prova'],
-  ];
-  return (
-    <ValCard titolo="Cosa non dimostra" sotto={`${VAL_STORIE_VALIDE.length} locali con due fasi confrontabili · da sapere prima di portarla dove qualcuno fa domande`}>
-      <div style={{padding:'16px 22px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 26px'}}>
-        {voci.map(([t, d]) => (
-          <div key={t} style={{display:'flex', gap:9, alignItems:'flex-start'}}>
-            <span style={{width:5, height:5, borderRadius:'50%', background:ADM.MUTED_LIGHT, marginTop:7, flexShrink:0}}/>
-            <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.5}}>
-              <strong style={{color:ADM.TEXT}}>{t}:</strong> {d}
-            </div>
-          </div>
-        ))}
-      </div>
-    </ValCard>
-  );
-}
-
 // ═══════════ La tab ═════════════════════════════════════════════════════════
 function DashValore() {
   return (
@@ -447,8 +423,6 @@ function DashValore() {
         <ValChurn/>
         <ValPotenziale/>
       </div>
-
-      <ValLimiti/>
     </div>
   );
 }
