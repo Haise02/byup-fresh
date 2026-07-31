@@ -457,7 +457,7 @@ function AnAcquisizione({ filtri }) {
   return (
     <AnCard
       titolo="Da dove arrivano i locali"
-      sotto="Il CAC senza il canale dice quanto costa un cliente, non dove andare a prenderne un altro"
+      sotto="Ogni canale ha il suo link tracciato · il passaparola arriva dal codice invito, il contatto diretto lo registra chi ci va"
       piede={<>Il <strong style={{color:ADM.TEXT}}>rientro</strong> è quanti mesi di margine sul canone servono a ripagare il costo di acquisizione:
         sotto i 12 mesi il canale si autofinanzia entro l’anno, sopra i 24 si sta comprando crescita col capitale.</>}
     >
@@ -502,7 +502,7 @@ function AnContribuzione({ filtri }) {
   return (
     <AnCard
       titolo="Quanto resta di un locale"
-      sotto="Il canone è ricavo, non margine: sopra ci vanno assistenza, infrastruttura e commissioni"
+      sotto="Il canone è ricavo, non margine: sopra ci vanno l’assistenza che genera e l’infrastruttura che occupa"
       destra={
         <div style={{textAlign:'right'}}>
           <div style={{fontSize:24, fontWeight:800, color: C.totale >= 0 ? ADM.OK : ADM.DANGER, letterSpacing:'-0.03em', lineHeight:1}}>{anEur(C.totale)}</div>
@@ -510,10 +510,17 @@ function AnContribuzione({ filtri }) {
         </div>
       }
       piede={<>
-        <AnFormula>canone − ticket × {anEur(PAR.COSTO_TICKET, 2)} − ordini/1000 × {anEur(PAR.COSTO_MILLE_ORDINI, 2)} − commissioni Stripe</AnFormula>
-        {C.inPerdita.length > 0
-          ? <> · <strong style={{color:ADM.DANGER}}>{C.inPerdita.length} local{C.inPerdita.length === 1 ? 'e costa' : 'i costano'} più di quanto rende</strong>: sono i Gratuiti che chiamano l’assistenza, ed è il prezzo della prova gratuita — finché resta piccolo.</>
-          : <> · nessun locale in perdita.</>}
+        <AnFormula>canone − assistenza − infrastruttura</AnFormula>
+        <div style={{marginTop:8, lineHeight:1.55}}>
+          <strong style={{color:ADM.TEXT}}>Assistenza</strong>: {PAR.MINUTI_TICKET} minuti a ticket × {anEur(PAR.COSTO_ORA_SUPPORTO, 2)}/h = {anEur(PAR.COSTO_TICKET, 2)}.
+          I minuti sono un’<strong style={{color:ADM.WARN}}>ipotesi</strong>: il tempo di lavorazione di un ticket oggi non è cronometrato, e finché non lo è questa riga resta la più debole della pagina.
+          <br/>
+          <strong style={{color:ADM.TEXT}}>Infrastruttura</strong>: {anEur(PAR.INFRA_PER_LOCALE, 2)} di compute e database per locale attivo — un locale tiene sessioni aperte anche a sala vuota —
+          più {anEur(PAR.COSTO_TRASMISSIONE, 3)} per ogni trasmissione fiscale, che facciamo solo sui pagamenti che passano da noi. Prezzi unitari da Economix → Costi.
+          Immagini dei menu, mappe e notifiche seguono gli utenti app: non sono attribuibili a un locale e restano costi di piattaforma.
+          <br/>
+          <strong style={{color:ADM.TEXT}}>Le commissioni Stripe non ci sono</strong>: sull’abbonamento sono ribaltate al locale, quindi per noi non sono un costo.
+        </div>
       </>}
     >
       <div style={{padding:'18px 22px', display:'flex', flexDirection:'column', gap:11}}>
@@ -545,9 +552,10 @@ function AnDispositivi({ filtri }) {
       <AnCard
         titolo="Come arriva la comanda in cucina"
         sotto="Tre modi, tre livelli di digitalizzazione · è la cosa che spiega quasi tutto il resto"
-        piede={<>Il verso della freccia non lo sappiamo: se il monitor porta adozione o se chi è già digitale prende il monitor.
-          Quello che si può dire è che <strong style={{color:ADM.TEXT}}>i due gruppi non si somigliano</strong> su nessuno degli indicatori qui sotto,
-          e che chi non ha collegato la cucina usa byup come una cassa.</>}
+        piede={<>La colonna <strong style={{color:ADM.TEXT}}>attesa cucina</strong> è vuota per chi stampa e per chi non ha collegato niente, e non è un buco nei dati:
+          su carta non esiste una spunta di presa in carico, e senza collegamento la comanda in byup non passa proprio. Chi stampa non sa cosa succede
+          fra il tavolo e la cucina — e non lo sappiamo nemmeno noi. Sul resto: il verso della freccia non è dimostrato, se sia il monitor a portare
+          adozione o il contrario.</>}
       >
         <div style={{display:'grid', gridTemplateColumns:'1.6fr 1fr 0.85fr 0.95fr 0.95fr 0.9fr', columnGap:14, padding:'11px 22px', fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
           <div>Dotazione</div><div>Quanti</div>
@@ -574,7 +582,9 @@ function AnDispositivi({ filtri }) {
               <span style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, width:64, textAlign:'right', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>{d.n} · {anPct(d.quota, 0)}</span>
             </div>
             <div style={{fontSize:13.6, fontWeight:800, color: d.adozione >= PAR.SOGLIA_DIGITALE ? ADM.OK : ADM.WARN, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anPct(d.adozione)}</div>
-            <div style={{fontSize:13, color:ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anNum(d.minutiInCucina, 1)}′</div>
+            <div style={{fontSize:13, textAlign:'right', fontVariantNumeric:'tabular-nums', color: d.minutiInCucina == null ? ADM.MUTED_LIGHT : ADM.TEXT}}>
+              {d.minutiInCucina == null ? '—' : `${anNum(d.minutiInCucina, 1)}′`}
+            </div>
             <div style={{fontSize:13, color: d.comandeRifatte > 2.5 ? ADM.DANGER : ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anNum(d.comandeRifatte, 1)}%</div>
             <div style={{fontSize:13, fontWeight:700, color: d.quotaFermi > 20 ? ADM.DANGER : d.quotaFermi > 0 ? ADM.WARN : ADM.OK, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anPct(d.quotaFermi, 0)}</div>
           </div>
@@ -588,14 +598,13 @@ function AnDispositivi({ filtri }) {
               { tono:'DANGER', testo:'Un terzo o più non ha mai acceso il prodotto: sono clienti che pagano una cassa.' },
             ]}
             sotto={niente ? `Adozione mediana ${anPct(niente.adozione)} contro ${anPct(monitor ? monitor.adozione : 0)} di chi ha il monitor` : null}/>
-          <AnMetrica label="Tempo comanda → cucina" valore={monitor ? `${anNum(monitor.minutiInCucina, 1)}′` : '—'} num={monitor ? monitor.minutiInCucina : 0}
-            formula="conferma di presa in carico − invio comanda"
+          <AnMetrica label="Attesa cucina · solo col monitor" valore={monitor && monitor.minutiInCucina != null ? `${anNum(monitor.minutiInCucina, 1)}′` : '—'}
+            num={monitor && monitor.minutiInCucina != null ? monitor.minutiInCucina : 0}
+            formula="spunta di presa in carico − invio comanda"
             fasce={[
-              { fino:2, tono:'OK', testo:'La cucina vede la comanda quasi subito: è il comportamento del monitor.' },
-              { fino:4, tono:'WARN', testo:'Qualche minuto di ritardo: succede quando la comanda passa dalla carta.' },
-              { tono:'DANGER', testo:'Oltre quattro minuti: la comanda la porta una persona, e si vede.' },
+              { fino:2, tono:'OK' }, { fino:4, tono:'WARN' }, { tono:'DANGER' },
             ]}
-            sotto="Con la comanda stampata questo tempo non esiste: la carta non dice quando è stata presa in carico"/>
+            sotto={`Sugli altri ${(niente ? niente.n : 0) + (AN_PER_DOTAZIONE.find(x => x.k === 'stampa') || { n:0 }).n} locali il dato non esiste: su carta non c’è una spunta, e senza collegamento non c’è nemmeno la comanda`}/>
           <AnMetrica label="Byup Staff attivi" valore={anNum(locali.reduce((s, l) => s + l.posAttivi, 0))} num={locali.reduce((s, l) => s + l.posAttivi, 0)}
             formula="dispositivi POS con almeno un incasso nel mese"
             fasce={[
@@ -708,19 +717,19 @@ function AnCrescita() {
   return (
     <>
       <AnCard
-        titolo="Inviti condivisi e riscattati"
-        sotto="Chi lo passa, chi lo usa · l’unico canale di acquisizione che non costa"
-        piede={<>Un locale che arriva da un invito costa <strong style={{color:ADM.TEXT}}>zero</strong> di acquisizione:
-          i {anNum(I.versoLocale)} di quest’anno valgono {anEur(I.cacRisparmiato)} di campagne non spese
-          (al costo per locale del canale a pagamento, in Locali → Da dove arrivano).</>}
+        titolo="Inviti mandati e riscattati"
+        sotto="Chi apre la condivisione, chi riscatta il codice · l’unico canale di acquisizione che non costa"
+        piede={<>Si conta il <strong style={{color:ADM.TEXT}}>click sul pulsante di condivisione</strong>, non l’invio: se il messaggio sia poi partito non lo sappiamo,
+          ma chi arriva a quel punto ha già scelto il destinatario. Contare i codici generati sarebbe un numero più grande e più falso — un codice si crea
+          anche solo aprendo la schermata. I {anNum(I.versoLocale)} locali arrivati così valgono {anEur(I.cacRisparmiato)} di campagne non spese.</>}
       >
         <div style={{padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-          <AnMetrica label="Inviti condivisi" valore={anNum(I.condivisi)} num={I.condivisi}
-            formula="codici generati e mandati fuori, 12 mesi"
+          <AnMetrica label="Condivisioni avviate" valore={anNum(I.condivisi)} num={I.condivisi}
+            formula="click sul pulsante che apre WhatsApp o il pannello di condivisione, 12 mesi"
             sotto={`${anPct(I.origini[0].condivisi / I.condivisi * 100, 0)} dai locali, il resto dagli utenti`}/>
           <AnMetrica label="Riscattati" valore={anNum(I.riscattati)} num={I.tassoRiscatto}
             sotto={`${anPct(I.tassoRiscatto, 0)} degli inviti condivisi`}
-            formula="inviti usati ÷ inviti condivisi"
+            formula="riscatti ÷ condivisioni avviate"
             fasce={[
               { fino:10, tono:'DANGER', testo:'Quasi nessuno li usa: il codice gira ma non convince.' },
               { fino:25, tono:'WARN', testo:`${anPct(I.tassoRiscatto, 0)} di riscatto. Normale per un codice stampato, basso per uno mandato a mano.` },
@@ -739,7 +748,7 @@ function AnCrescita() {
         </div>
 
         <div style={{display:'grid', gridTemplateColumns:'1.4fr 1.2fr 0.9fr 1.1fr 1.1fr', columnGap:14, padding:'11px 22px', fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderTop:`1px solid ${ADM.BORDER}`, borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div>Chi lo condivide</div><div>Condivisi</div>
+          <div>Chi lo manda</div><div>Condivisioni</div>
           <div style={{textAlign:'right'}}>Riscattati</div><div style={{textAlign:'right'}}>→ nuovi utenti</div><div style={{textAlign:'right'}}>→ nuovi locali</div>
         </div>
         {I.origini.map((o, i) => (
@@ -763,7 +772,7 @@ function AnCrescita() {
         ))}
 
         <div style={{padding:'16px 22px 18px', borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>Mese per mese · condivisi e riscattati</div>
+          <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>Mese per mese · condivisioni e riscatti</div>
           <div style={{display:'flex', alignItems:'flex-end', gap:6, height:96}}>
             {I.serie.map(m => (
               <div key={m.t} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
@@ -775,7 +784,7 @@ function AnCrescita() {
             ))}
           </div>
           <div style={{display:'flex', gap:16, marginTop:10, fontSize:12.4, color:ADM.MUTED}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:10, height:10, borderRadius:2, background:ADM.NEUTRAL_SOFT, border:`1px solid ${ADM.BORDER}`}}/>condivisi</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:10, height:10, borderRadius:2, background:ADM.NEUTRAL_SOFT, border:`1px solid ${ADM.BORDER}`}}/>condivisioni avviate</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:10, height:10, borderRadius:2, background:ADM.OK}}/>riscattati</span>
           </div>
         </div>
@@ -784,8 +793,9 @@ function AnCrescita() {
       <AnCard
         titolo="Dalla webapp all’app"
         sotto="Chi ordina col QR senza scaricare niente, e poi scarica · è il ponte fra i due mondi"
-        piede={<>Dalla webapp <strong style={{color:ADM.TEXT}}>non si paga</strong>: chi vuole chiudere il conto dal tavolo deve scaricare l’app.
-          È la ragione per cui questo numero esiste, ed è anche la leva su cui si può agire — se il momento del pagamento non lo propone bene, si perde lì.</>}
+        piede={<>Il collegamento non è una stima: dopo l’ordine la webapp dà un <strong style={{color:ADM.TEXT}}>codice</strong>, e l’app alla prima apertura chiede
+          se hai già ordinato e se ce l’hai. Chi lo inserisce si attacca al suo ordine, e la conversione si conta una per una. Chi scarica senza inserirlo
+          finisce fra gli altri iscritti: il numero qui è quindi un <strong style={{color:ADM.TEXT}}>minimo</strong>, non una media.</>}
       >
         <div style={{padding:'20px 22px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
           {[

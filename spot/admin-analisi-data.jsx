@@ -84,12 +84,13 @@ const AN_LOCALI = AN_UNIVERSO.map((l, i) => {
   const quotaIncassoPos = posAttivi === 0 ? 0
     : Math.min(92, Math.round((22 + spinta * 45 + r() * 18)));
 
-  // Tempo dalla comanda alla cucina: è la misura che la stampa perde per
-  // strada, perché una comanda stampata non dice quando è stata presa in
-  // carico. Qui è il tempo fino alla conferma di preparazione.
-  const minutiInCucina = dotazione === 'monitor' ? 1.2 + r() * 1.4
-                       : dotazione === 'stampa' ? 3.1 + r() * 2.2
-                       : 5.4 + r() * 3.0;
+  // Tempo dalla comanda alla presa in carico in cucina. ESISTE SOLO COL
+  // MONITOR: la comanda si spunta a schermo, e quello è l'evento. Su carta
+  // l'evento non c'è — sappiamo quando è partita la stampa, non quando
+  // qualcuno l'ha guardata — e senza collegamento non c'è nemmeno la comanda.
+  // Il vuoto non è un buco: è il risultato. Chi stampa non sa cosa succede in
+  // cucina, e non lo sappiamo nemmeno noi.
+  const minutiInCucina = dotazione === 'monitor' ? 1.2 + r() * 1.4 : null;
 
   // Comande rifatte: il piatto sbagliato che torna indietro. Con la carta
   // succede di più, perché non c'è modo di correggere una comanda già uscita.
@@ -122,7 +123,7 @@ const anPerDotazione = (locali = AN_LOCALI) => Object.keys(AN_DOTAZIONI).map(k =
     n: g.length,
     quota: locali.length ? (g.length / locali.length) * 100 : 0,
     adozione: parMediana(g.map(l => l.adozione)),
-    minutiInCucina: parMediana(g.map(l => l.minutiInCucina)),
+    minutiInCucina: g.some(l => l.minutiInCucina != null) ? parMediana(g.filter(l => l.minutiInCucina != null).map(l => l.minutiInCucina)) : null,
     comandeRifatte: parMediana(g.map(l => l.comandeRifatte)),
     posAttivi: parMediana(g.map(l => l.posAttivi)),
     quotaIncassoPos: parMediana(g.map(l => l.quotaIncassoPos)),
@@ -379,8 +380,11 @@ const AN_ACQUISIZIONE = anAcquisizione();
 //            se la webapp è una porta o un vicolo cieco.
 const AN_INVITI = (() => {
   const mesi = ['Giu','Lug','Ago','Set','Ott','Nov','Dic','Gen','Feb','Mar','Apr','Mag'];
-  // Chi condivide, e con che frequenza. I locali condividono per mestiere —
-  // il codice è stampato accanto al QR — gli utenti solo quando si trovano bene.
+  // Quello che si conta è il CLICK sul pulsante che apre WhatsApp o il pannello
+  // di condivisione: se l'invio sia poi partito non lo sappiamo, ma chi arriva
+  // a quel punto ha già scelto il destinatario, e la distanza fra le due cose è
+  // trascurabile. Contare i codici generati sarebbe un numero più grande e più
+  // falso: un codice si genera anche solo aprendo la schermata.
   const perOrigine = [
     { id:'locale', label:'Condivisi da un locale', desc:'Codice sul QR del tavolo, o nel messaggio dopo il conto', base: 0.62 },
     { id:'utente', label:'Condivisi da un utente', desc:'Passaparola vero: qualcuno lo manda a un amico', base: 0.38 },
@@ -431,14 +435,17 @@ const AN_WEBAPP = (() => {
   // sono quelli già dichiarati in Utenti App, non una seconda stima.
   const sessioni = typeof APP_METRICS !== 'undefined' ? APP_METRICS.sessioniGuest30g : 0;
   const ordini = typeof APP_METRICS !== 'undefined' ? APP_METRICS.ordiniGuest30g : 0;
-  // Chi scarica l'app dopo aver ordinato da guest. La spinta è il pagamento:
-  // dalla webapp non si paga, e chi vuole pagare dal tavolo deve scaricare.
+  // Chi scarica l'app dopo aver ordinato da guest. Il collegamento non è una
+  // stima statistica: dopo l'ordine la webapp dà un codice, e l'app alla prima
+  // apertura chiede se hai già ordinato e se ce l'hai. Chi lo inserisce si
+  // attacca al suo ordine — è un abbinamento uno a uno, non un'attribuzione
+  // probabilistica. Chi scarica senza inserirlo resta fra gli altri iscritti,
+  // quindi questo numero è un MINIMO.
   //
-  // Il verso del conto conta: il numero di partenza è quanti dei NUOVI ISCRITTI
-  // del mese arrivano da un ordine guest, e da lì si ricava la percentuale di
-  // conversione. Partendo dall'altra parte — «il 12% degli ordini guest scarica»
-  // — usciva che i download da guest erano più delle registrazioni totali, cioè
-  // il 144% di un numero che non può superare il 100.
+  // Il verso del conto conta lo stesso: si parte da quanti dei nuovi iscritti
+  // hanno inserito un codice, e da lì si ricava la conversione. Partendo
+  // dall'altra parte usciva che i download da guest erano il 144% delle
+  // registrazioni totali, cioè più del totale.
   const nuovi = typeof APP_METRICS !== 'undefined' ? APP_METRICS.newRegistrazioni30g : 0;
   const quotaSuNuovi = 45;                        // % dei nuovi iscritti che nasce da un tavolo
   const scaricano = Math.round(nuovi * quotaSuNuovi / 100);
@@ -474,10 +481,13 @@ const anContribuzione = (locali = AN_LOCALI) => {
   const righe = locali.map(l => {
     const ricavo = l.mrr;
     const costoSupporto = ticketPerLocale(l) * PAR.COSTO_TICKET;
-    const costoInfra = (l.ordiniMese / 1000) * PAR.COSTO_MILLE_ORDINI;
-    const feeStripe = ricavo > 0 ? PAR.FEE_STRIPE_FISSA + ricavo * PAR.FEE_STRIPE_PCT / 100 : 0;
-    const margine = ricavo - costoSupporto - costoInfra - feeStripe;
-    return { ...l, ricavo, costoSupporto, costoInfra, feeStripe, margine,
+    // Compute e database per locale attivo, più una trasmissione fiscale per
+    // ogni pagamento che passa da noi: se il locale incassa dalla sua cassa,
+    // quella trasmissione la fa lui e a noi non costa niente.
+    const trasmissioni = l.ordiniMese * ((l.quotaIncassoPos || 0) / 100);
+    const costoInfra = PAR.INFRA_PER_LOCALE + trasmissioni * PAR.COSTO_TRASMISSIONE;
+    const margine = ricavo - costoSupporto - costoInfra;
+    return { ...l, ricavo, costoSupporto, costoInfra, trasmissioni, margine,
       marginePct: ricavo > 0 ? (margine / ricavo) * 100 : null };
   });
   const perPiano = PIANI.map(p => {
@@ -487,7 +497,7 @@ const anContribuzione = (locali = AN_LOCALI) => {
       ricavo: g.reduce((s, l) => s + l.ricavo, 0),
       margine: g.reduce((s, l) => s + l.margine, 0),
       margineMedio: g.length ? g.reduce((s, l) => s + l.margine, 0) / g.length : 0,
-      costoMedio: g.length ? g.reduce((s, l) => s + (l.costoSupporto + l.costoInfra + l.feeStripe), 0) / g.length : 0,
+      costoMedio: g.length ? g.reduce((s, l) => s + (l.costoSupporto + l.costoInfra), 0) / g.length : 0,
       inPerdita: g.filter(l => l.margine < 0).length,
     };
   });

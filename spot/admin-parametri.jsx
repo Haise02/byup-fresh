@@ -38,11 +38,32 @@ const PAR = {
   // La soglia commerciale: sotto, il ritorno non si vede (tab Valore)
   SOGLIA_DIGITALE: 15,
 
-  // Costi unitari nostri, usati dal margine di contribuzione
-  COSTO_TICKET: 8.40,         // € · costo medio di gestione di un ticket
-  COSTO_MILLE_ORDINI: 0.62,   // € · infrastruttura AWS ogni mille ordini
-  FEE_STRIPE_FISSA: 0.25,     // € per addebito dell'abbonamento
-  FEE_STRIPE_PCT: 1.5,        // % dell'abbonamento
+  // ── I costi nostri per locale, usati dal margine di contribuzione ───────
+  //
+  // Le commissioni Stripe NON stanno qui: sull'abbonamento la commissione è
+  // ribaltata al locale, quindi per byup non è un costo e non entra nel
+  // margine. Metterla sarebbe contarsi addosso una spesa che paga un altro.
+  //
+  // ASSISTENZA · questo è il numero più debole della pagina, e va detto: il
+  // tempo di lavorazione di un ticket OGGI NON È TRACCIATO. Non esiste un
+  // cronometro fra apertura e chiusura al netto delle attese, quindi i minuti
+  // qui sotto sono un'ipotesi dichiarata, non una misura. Per trasformarli in
+  // un dato serve registrare il tempo che una persona passa davvero su un
+  // ticket — è una riga di prodotto, non un calcolo diverso.
+  MINUTI_TICKET: 23,          // ipotesi · da sostituire con il tempo tracciato
+  COSTO_ORA_SUPPORTO: 22.00,  // €/h lordo azienda di chi risponde
+  get COSTO_TICKET() { return (this.MINUTI_TICKET / 60) * this.COSTO_ORA_SUPPORTO; },
+
+  // INFRASTRUTTURA · non è una costante inventata: sono i prezzi unitari che
+  // stanno in Economix → Costi, applicati ai driver del singolo locale.
+  //   · compute e database seguono i LOCALI ATTIVI (un locale tiene sessioni
+  //     aperte anche a sala vuota): Fargate 2,4 vCPU-ora × 0,0445 + RDS 1,85
+  //   · la trasmissione fiscale segue i PAGAMENTI che passano da noi: 0,019 a
+  //     trasmissione, e se il locale incassa dalla sua cassa non ne facciamo
+  // Quello che dipende dagli utenti app — immagini dei menu, mappe, notifiche —
+  // non è attribuibile a un locale: resta un costo di piattaforma.
+  INFRA_PER_LOCALE: 2.4 * 0.0445 + 1.85,
+  COSTO_TRASMISSIONE: 0.019,
 };
 
 // ── La lettura del numero ─────────────────────────────────────────────────
