@@ -76,17 +76,22 @@ tenere una sezione del personale per alimentare una riga sola non valeva il
 prezzo. Chi non lavora più qui viene intercettato come **dormiente**, dalla
 mancanza di accessi.
 
-**Si decide solo sulle anomalie; il resto parte confermato d'ufficio.** Due
-utenze su tre non hanno niente da decidere, e chiedere un clic anche per quelle
-trasforma il riesame in una sfacchinata — e le sfacchinate si rimandano. Partono
-confermate le invariate, perché «invariata» non è un'opinione ma il confronto con
-la campagna precedente calcolato dal codice, e il Super Admin titolare. Le
-anomalie no: quelle **sono** il riesame, e restano da decidere a mano. Ogni
-conferma d'ufficio porta il proprio motivo scritto ed è marcata come tale
-nell'attestazione: dichiararle è ciò che le rende difendibili, nasconderle
-sarebbe un timbro. Una riga confermata d'ufficio si può comunque revocare — se il
-revisore vede qualcosa che il confronto automatico non poteva vedere, la porta
-deve restare aperta.
+**Nessuna utenza si conferma da sola all'apertura della pagina.** Per un giorno
+le invariate sono partite già confermate d'ufficio, per risparmiare cinque clic:
+è stato un errore, ed è utile sapere perché. Una conferma decisa dal codice al
+primo render porta un orario che dice quando hai *aperto la pagina*, non quando
+hai *guardato*; nell'attestazione è indistinguibile dal non aver guardato
+affatto, ed è esattamente il rilievo che svuota questo controllo.
+
+**Gli invariati si confermano in blocco**, che è un'altra cosa: è un atto del
+revisore, con un nome e un'ora, su un insieme di persone che la modale elenca per
+nome prima di chiedere il consenso. Ed è legittimo proprio perché il confronto
+con la campagna precedente l'ha fatto il codice: si attesta che non è cambiato
+nulla, non si timbra alla cieca. Senza questo un riesame trimestrale diventa una
+sfacchinata, e le sfacchinate si rimandano.
+
+L'unica eccezione resta il **Super Admin titolare**, e non è una scorciatoia: non
+c'è niente da decidere, perché l'accesso gli viene dal ruolo.
 
 **Confermare e revocare non sono bottoni da elenco.** Nessuna riga li espone: la
 riga dice soltanto a che punto è (*Da decidere*, *Confermato*, *Revocato*) e si

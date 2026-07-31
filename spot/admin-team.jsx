@@ -907,6 +907,7 @@ function AccessReview() {
   const [revoca, setRevoca] = useStateTeam(null);        // { id, nome }
   const [motivo, setMotivo] = useStateTeam('');
   const [dettaglio, setDettaglio] = useStateTeam(null);  // riga aperta: { m, cls, prec }
+  const [confermaBlocco, setConfermaBlocco] = useStateTeam(false);
   const [storico, setStorico] = useStateTeam(null);      // campagna chiusa aperta in dettaglio
 
   const camp = RIESAME_CORRENTE;
@@ -925,33 +926,27 @@ function AccessReview() {
   const tuttiDecisi = decisi === totale;
   const revocati = Object.values(esiti).filter(e => e.decisione === 'revocato').length;
   const daGuardare = righe.filter(r => r.cls.rank <= 4 && !esiti[r.m.id]).length;
+  const invariatiAperti = righe.filter(r => r.cls.key === 'invariato' && !esiti[r.m.id] && !r.m.isYou);
 
-  // Due utenze su tre non hanno niente da decidere, e chiedere un clic anche
-  // per quelle trasforma il riesame in una sfacchinata che si rimanda. Partono
-  // confermate d'ufficio, ognuna col proprio perché scritto:
-  //  - il Super Admin titolare, perché l'accesso gli viene dal ruolo e il ruolo
-  //    cambia fuori da qui;
-  //  - le invariate, perché «invariata» non è un'opinione ma il confronto con
-  //    la campagna precedente, calcolato dal codice.
-  // Le anomalie no: quelle sono il riesame, e restano da decidere a mano.
-  // L'attestazione porta il flag `automatico` e il motivo, quindi le conferme
-  // d'ufficio non si confondono con quelle esaminate una per una — dichiararle
-  // è ciò che le rende difendibili.
+  // Nessuna utenza si conferma da sola all'apertura della pagina. Una conferma
+  // decisa dal codice al primo render porta un orario che dice quando hai
+  // aperto la pagina, non quando hai guardato: nell'attestazione è indistin-
+  // guibile dal non aver guardato affatto, ed è il rilievo che svuota questo
+  // controllo. Le invariate si confermano in blocco, che è un atto del revisore
+  // con un'ora e un nome — vedi confermaInvariati.
+  //
+  // L'unica eccezione resta il Super Admin titolare, e non è una scorciatoia: è
+  // che l'accesso gli viene dal ruolo e il ruolo cambia fuori da qui, quindi non
+  // c'è niente da decidere. Il buco di segregazione dei compiti che ne deriva si
+  // dichiara nella valutazione del rischio, non si tappa con un clic.
   React.useEffect(() => {
-    const quando = new Date();
-    const dufficio = {};
-    righe.forEach(({ m, cls }) => {
-      if (m.isYou) {
-        dufficio[m.id] = { decisione:'confermato', automatico:true, chi:'d\'ufficio', quando,
-          nota:'titolare — cambia solo al cambio di ruolo',
-          motivo:'Super Admin titolare — accesso per definizione del ruolo, cambia solo al cambio di ruolo' };
-      } else if (cls.key === 'invariato') {
-        dufficio[m.id] = { decisione:'confermato', automatico:true, chi:'d\'ufficio', quando,
-          nota:'nessuna variazione dall\'ultima campagna',
-          motivo:`Nessuna variazione rispetto alla campagna precedente, verificata sul confronto di ruolo e permessi` };
-      }
-    });
-    setEsiti(prev => Object.assign({}, dufficio, prev));
+    const io = membri.find(m => m.isYou);
+    if (!io || esiti[io.id]) return;
+    setEsiti(prev => ({ ...prev, [io.id]: {
+      decisione:'confermato', automatico:true, chi:'d\'ufficio', quando:new Date(),
+      nota:'titolare — cambia solo al cambio di ruolo',
+      motivo:'Super Admin titolare — accesso per definizione del ruolo, cambia solo al cambio di ruolo',
+    } }));
   }, []);
 
   // Ogni decisione lascia traccia nell'audit log: è lì che l'auditor va a
@@ -966,6 +961,27 @@ function AccessReview() {
       icon: decisione === 'revocato' ? 'lock' : 'check',
       color: decisione === 'revocato' ? 'DANGER' : 'OK',
       tipo: 'accessi', when: quando,
+    });
+  };
+
+  // Confermare in blocco le invariate è legittimo proprio perché il confronto
+  // con la campagna precedente l'ha fatto il codice: si attesta che non è
+  // cambiato nulla, non si timbra alla cieca. La modale elenca i nomi prima di
+  // chiedere il consenso, e ogni riga esce con il suo motivo, il revisore e
+  // l'ora — quindi nello storico si può puntare il dito su una qualsiasi e dire
+  // chi l'ha guardata e quando.
+  const confermaInvariati = () => {
+    const quando = new Date();
+    setEsiti(prev => {
+      const next = { ...prev };
+      invariatiAperti.forEach(r => { next[r.m.id] = { decisione:'confermato', chi:IO, quando,
+        motivo:'Nessuna variazione rispetto alla campagna precedente, verificata sul confronto di ruolo e permessi' }; });
+      return next;
+    });
+    AUDIT_EVENTS.unshift({
+      who:IO, action:'ha confermato in blocco gli accessi invariati',
+      target:`${invariatiAperti.length} utenze · riesame ${camp.periodo}`,
+      icon:'check', color:'OK', tipo:'accessi', when: quando,
     });
   };
 
@@ -1022,9 +1038,8 @@ function AccessReview() {
           <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10, flexWrap:'wrap'}}>
             <div style={{...H, marginBottom:0}}>Chi ha accesso a cosa</div>
             <span style={{fontSize:12.4, color:ADM.MUTED, flex:1, minWidth:200}}>
-              {daGuardare > 0
-                ? `${daGuardare} da decidere su ${totale} · le altre confermate d'ufficio`
-                : `nessuna anomalia · tutte e ${totale} esaminate`}
+              {daGuardare > 0 ? `${daGuardare} da guardare con attenzione` : 'nessuna anomalia aperta'}
+              {tuttiDecisi ? ` · tutte e ${totale} esaminate` : ` · ${totale - decisi} da esaminare`}
               {' · '}
               <span style={{color: scaduta ? ADM.DANGER : ADM.MUTED, fontWeight: scaduta ? 700 : 400}}>
                 {scaduta
@@ -1032,6 +1047,11 @@ function AccessReview() {
                   : `entro il ${raFmtData(camp.scadenza)}`}
               </span>
             </span>
+            {invariatiAperti.length > 1 && (
+              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
+                Conferma le {invariatiAperti.length} invariate
+              </AdmButton>
+            )}
             {/* Finché mancano decisioni la firma non è disponibile e non deve
                 pesare come se lo fosse: resta un bottone quieto e si accende
                 quando l'elenco è finito davvero. */}
@@ -1298,25 +1318,13 @@ function AccessReview() {
                 <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
                   {dec.automatico
                     ? <span>Confermato d'ufficio: <strong style={{color:ADM.TEXT}}>{dec.motivo}</strong>.
-                        {m.isYou
-                          ? ' Il Super Admin titolare non si conferma né si revoca da solo — l\'accesso gli viene dal ruolo, e il ruolo cambia fuori da qui.'
-                          : ' La conferma d\'ufficio resta dichiarata come tale nell\'attestazione: se qui c\'è qualcosa che non torna, revoca — la revoca vale su qualsiasi riga.'}</span>
+                        Il Super Admin titolare non si conferma né si revoca da solo — l'accesso gli viene
+                        dal ruolo, e il ruolo cambia fuori da qui.</span>
                     : <span><strong style={{color: dec.decisione === 'revocato' ? ADM.DANGER : ADM.OK}}>
                         {dec.decisione === 'revocato' ? 'Accesso revocato' : 'Accesso confermato'}</strong> da {dec.chi} il {raFmtDataOra(dec.quando)}.
                         {dec.motivo ? ` Motivo: ${dec.motivo}` : ''} La decisione è già nell'audit log: per cambiarla serve una campagna nuova.</span>}
                 </div>
-                {/* Una conferma d'ufficio non è una decisione presa: è il caso
-                    in cui non c'era niente da decidere. Se il revisore vede
-                    qualcosa che il confronto automatico non poteva vedere, la
-                    revoca deve restare a portata di mano — altrimenti il
-                    pre-conferma diventa una porta chiusa. Le decisioni prese a
-                    mano invece sono già nell'audit log e non si ritoccano. */}
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  {dec.automatico && !m.isYou && (
-                    <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, borderColor:'rgba(220,38,38,0.28)'}}
-                      onClick={()=>{ setRevoca(m); setMotivo(''); setDettaglio(null); }}>Revoca</AdmButton>
-                  )}
-                  <div style={{flex:1}}/>
+                <div style={{display:'flex', justifyContent:'flex-end'}}>
                   <AdmButton variant="secondary" size="sm" onClick={()=>setDettaglio(null)}>Chiudi</AdmButton>
                 </div>
               </React.Fragment>
@@ -1343,6 +1351,35 @@ function AccessReview() {
         </div>
         );
       })()}
+
+      {/* Popup conferma in blocco — i nomi si vedono prima di attestare */}
+      {confermaBlocco && (
+        <div onClick={()=>setConfermaBlocco(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
+            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+              Confermare {invariatiAperti.length} accessi invariati?
+            </div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
+              Sono le utenze senza variazioni di ruolo o permessi dall'ultima campagna.
+              Confermarle in blocco è legittimo proprio perché il confronto è stato calcolato:
+              stai attestando che non è cambiato nulla, non stai timbrando alla cieca. Ognuna
+              esce con il tuo nome e l'ora, e nello storico si legge riga per riga.
+            </div>
+            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16,
+              fontSize:12.8, color:ADM.TEXT, lineHeight:1.7}}>
+              {invariatiAperti.map(r => (r.m.nomeCompleto || r.m.nome)).join(' · ')}
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(false)}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="sm" onClick={()=>{ confermaInvariati(); setConfermaBlocco(false); }}>
+                Conferma le {invariatiAperti.length} utenze
+              </AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Popup chiusura — la firma */}
       {confermaChiusura && (
