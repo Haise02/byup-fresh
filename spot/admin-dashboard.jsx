@@ -701,9 +701,10 @@ function DashGenerale({ onNav, filtri }) {
           certificazioni in Assistenza. */}
 
 
-      {/* La riga di salute apre la sezione: sei numeri con la loro formula e
-          cosa vogliono dire, invece di far dedurre lo stato da otto card. */}
-      <SectionLabel title="In sintesi" desc="Le sei righe che rispondono a «stiamo andando bene?»" first/>
+      {/* La riga di salute apre la sezione. L'intestazione «In sintesi» che
+          stava qui sopra ripeteva parola per parola il titolo della card che
+          segue: una delle due era di troppo, ed era quella che non porta
+          numeri. */}
       {window.AnSalute ? <AnSalute onNav={onNav}/> : null}
 
       {/* ═══════════ Tier 1 · Andamento — il polso della piattaforma ═══════════ */}
