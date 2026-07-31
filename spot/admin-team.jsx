@@ -1,3 +1,9 @@
+                  {/* Lo stato della riga non ha più una colonna: si legge dal
+                      fondo — verde tenue confermata, rosso tenue revocata,
+                      bianco da decidere — e per esteso nel dettaglio, che è
+                      dove si decide. Resta il chevron, perché una riga
+                      cliccabile deve dire di esserlo. */}
+                  <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
 // Admin Team: gestione utenti dello staff con ruoli e permessi
 
 const { useState: useStateTeam } = React;
@@ -1118,7 +1124,7 @@ function AccessReview({ onNavRoute }) {
   };
 
   const H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 };
-  const GRID = 'minmax(0,2.6fr) 1.15fr 1fr 1fr 176px';
+  const GRID = 'minmax(0,2.6fr) 1.15fr 1fr 1fr 26px';
   const tonoCol = { DANGER: ADM.DANGER, WARN: ADM.WARN, INFO: ADM.INFO, NEUTRAL: ADM.MUTED };
   const tonoBg  = { DANGER: ADM.DANGER_SOFT, WARN: ADM.WARN_SOFT, INFO: ADM.INFO_SOFT || '#E7F0FE', NEUTRAL: ADM.NEUTRAL_SOFT };
 
@@ -1152,9 +1158,22 @@ function AccessReview({ onNavRoute }) {
               )}
             </div>
           </div>
-          {/* Nessun comando qui: stanno tutti nell'intestazione dell'elenco su
-              cui agiscono, tre righe più sotto. Metterli anche qui voleva dire
-              lo stesso bottone due volte nella stessa schermata. */}
+          {/* I due comandi che sbrigano il grosso stanno qui, dove si legge che
+              il riesame è dovuto: quando la banda c'è, l'intestazione qui sotto
+              non li ripete — lo stesso bottone due volte nella stessa schermata
+              è un bottone di troppo. «Chiudi e firma» resta invece accanto
+              all'elenco, perché è l'ultimo gesto e si fa quando l'elenco è
+              finito, non quando lo si apre. */}
+          {invariatiAperti.length > 1 && (
+            <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
+              Conferma le {invariatiAperti.length} invariate
+            </AdmButton>
+          )}
+          {aperte.length > 1 && (
+            <AdmButton variant="secondary" size="sm" onClick={()=>{ setSelezione([]); setMotivo(''); }}>
+              Revoca più utenze
+            </AdmButton>
+          )}
         </div>
       )}
 
@@ -1223,14 +1242,14 @@ function AccessReview({ onNavRoute }) {
             {/* I comandi restano insieme: o stanno in riga col titolo, o vanno a
                 capo tutti e tre, mai uno solo spaiato sotto agli altri. */}
             <div style={{display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
-              {invariatiAperti.length > 1 && (
+              {!inScadenza && invariatiAperti.length > 1 && (
                 <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
                   Conferma le {invariatiAperti.length} invariate
                 </AdmButton>
               )}
               {/* Compare solo se c'è più di una riga su cui potrebbe servire:
                   per revocare una persona sola basta aprirla. */}
-              {aperte.length > 1 && (
+              {!inScadenza && aperte.length > 1 && (
                 <AdmButton variant="quiet" size="sm" onClick={()=>{ setSelezione([]); setMotivo(''); }}>
                   Revoca più utenze
                 </AdmButton>
@@ -1250,7 +1269,7 @@ function AccessReview({ onNavRoute }) {
             <div style={{display:'grid', gridTemplateColumns:GRID, padding:'9px 16px', background:ADM.PANEL_SOFT || '#FAFAFB',
               borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.8, fontWeight:700, color:ADM.MUTED,
               textTransform:'uppercase', letterSpacing:'0.06em'}}>
-              <div>Soggetto</div><div>Ruolo</div><div>Ultimo accesso</div><div>Ultima verifica</div><div style={{textAlign:'right'}}>Decisione</div>
+              <div>Soggetto</div><div>Ruolo</div><div>Ultimo accesso</div><div>Ultima verifica</div><div/>
             </div>
 
             {righe.map(({ m, cls, prec }, i) => {
@@ -1282,29 +1301,19 @@ function AccessReview({ onNavRoute }) {
                     <div style={{minWidth:0}}>
                       <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nomeCompleto || m.nome}</div>
                       <div style={{fontSize:12, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.email}</div>
-                      {/* 2FA e stato erano le due sole colonne che la vecchia tab
-                          Team aveva in piu: qui stanno accanto al nome, dove si
-                          leggono insieme alla persona invece che a due colonne
-                          di distanza. */}
-                      <div style={{display:'flex', alignItems:'center', gap:6, marginTop:5, flexWrap:'wrap'}}>
+                      {/* La pastiglia dello stato e la riga di dettaglio sotto
+                          — «nessun accesso da 142 giorni», «aggiunto il …» —
+                          stavano qui e facevano tre righe per persona. Il
+                          rilievo per esteso vive nel dettaglio, che è dove si
+                          decide. Qui resta il 2FA, che è un fatto sulla
+                          persona e non un giudizio del riesame. */}
                       {!m.due_fa && (
                         <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 7px',
-                          borderRadius:99, background:ADM.WARN_SOFT}}>
+                          borderRadius:99, background:ADM.WARN_SOFT, marginTop:5}}>
                           <BuIcons.shield size={12} color={ADM.WARN}/>
                           <span style={{fontSize:11.2, fontWeight:700, color:ADM.WARN}}>2FA off</span>
                         </span>
                       )}
-                      {m.pending && (
-                        <span style={{padding:'2px 7px', borderRadius:99, background:ADM.WARN_SOFT,
-                          fontSize:11.2, fontWeight:700, color:ADM.WARN}}>Invitato</span>
-                      )}
-                      <div style={{display:'inline-flex', alignItems:'center', gap:6,
-                        padding:'2px 8px', borderRadius:99, background: tonoBg[cls.tono], maxWidth:'100%'}}>
-                        <span style={{width:6, height:6, borderRadius:'50%', background: tonoCol[cls.tono], flexShrink:0}}/>
-                        <span style={{fontSize:11.4, fontWeight:700, color: tonoCol[cls.tono], whiteSpace:'nowrap'}}>{cls.label}</span>
-                      </div>
-                      </div>
-                      <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:4, lineHeight:1.35}}>{cls.nota}</div>
                     </div>
                   </div>
 
@@ -1318,31 +1327,14 @@ function AccessReview({ onNavRoute }) {
 
                   <div style={{fontSize:12.8, color:ADM.TEXT}}>
                     {prec ? raFmtData(prec.campagna.chiusaIl) : <span style={{color:ADM.WARN, fontWeight:700}}>mai</span>}
-                    {prec && <div style={{fontSize:11.4, color:ADM.MUTED, marginTop:2}}>{prec.campagna.periodo}</div>}
                   </div>
 
-                  {/* Confermare e revocare non sono due bottoni da elenco: sono
-                      attestazioni che si firmano col proprio nome. Qui la
-                      colonna dice soltanto a che punto è la riga; si decide
-                      dentro il dettaglio, dopo aver visto di chi si tratta. */}
-                  <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:8}}>
-                    <div style={{textAlign:'right', minWidth:0}}>
-                      {dec ? (
-                        <React.Fragment>
-                          <div style={{fontSize:12.6, fontWeight:700,
-                            color: dec.decisione === 'revocato' ? ADM.DANGER : dec.automatico ? ADM.MUTED : ADM.OK}}>
-                            {dec.decisione === 'revocato' ? 'Revocato' : dec.automatico ? 'Confermato d\'ufficio' : 'Confermato'}
-                          </div>
-                          <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:2, lineHeight:1.35}}>
-                            {dec.automatico ? dec.nota : `da ${dec.chi}`}
-                          </div>
-                        </React.Fragment>
-                      ) : (
-                        <div style={{fontSize:12.6, fontWeight:700, color:ADM.WARN}}>Da decidere</div>
-                      )}
-                    </div>
-                    <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
-                  </div>
+                  {/* Lo stato della riga non ha più una colonna: si legge dal
+                      fondo — verde tenue confermata, rosso tenue revocata,
+                      bianco da decidere — e per esteso nel dettaglio, che è
+                      dove si decide. Resta il chevron, perché una riga
+                      cliccabile deve dire di esserlo. */}
+                  <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
                 </div>
               );
             })}
@@ -1386,7 +1378,7 @@ function AccessReview({ onNavRoute }) {
 
       {/* Storico: è quello che si mostra all'auditor */}
       <div>
-        <div style={H}>Campagne precedenti</div>
+        <div style={H}>Esami accessi precedenti</div>
         <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
           {RIESAMI_CHIUSI.map((c, i) => {
             const rev = c.esiti.filter(e => e.decisione === 'revocato').length;
