@@ -67,8 +67,8 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
         {tab === 'accessi' && (
           <React.Fragment>
             {/* La lista sta qui dentro: il riesame la porta gia con nome, email,
-                ruolo, aree e ultimo accesso. Sotto restano le due cose che erano
-                solo del Team — chi e stato invitato e cosa puo fare ogni ruolo. */}
+                ruolo e ultimo accesso. Sotto restano le due cose che erano solo
+                del Team — chi e stato invitato e cosa puo fare ogni ruolo. */}
             <AccessReview/>
 
             <div className="adm-row-open" onClick={()=>setInvitiOpen(o=>!o)} style={{padding:'16px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none'}}>
@@ -936,7 +936,7 @@ function AccessReview() {
   const [confermaChiusura, setConfermaChiusura] = useStateTeam(false);
   const [revoca, setRevoca] = useStateTeam(null);        // { id, nome }
   const [motivo, setMotivo] = useStateTeam('');
-  const [conferma, setConferma] = useStateTeam(null);    // singola conferma da confermare
+  const [dettaglio, setDettaglio] = useStateTeam(null);  // riga aperta: { m, cls, prec }
   const [confermaBlocco, setConfermaBlocco] = useStateTeam(false);
   const [storico, setStorico] = useStateTeam(null);      // campagna chiusa aperta in dettaglio
   const [sigillo, setSigillo] = useStateTeam(RA_SIGILLO);
@@ -1067,17 +1067,14 @@ function AccessReview() {
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
 
-      {/* Stato della campagna — la scadenza è la cosa che fa slittare il controllo */}
-      <div style={{
-        display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
-        background: chiusa ? ADM.OK_SOFT : scaduta ? ADM.DANGER_SOFT : '#FFF7E6',
-        border:`1px solid ${chiusa ? '#BBF7D0' : scaduta ? '#FECACA' : '#FDE68A'}`,
-      }}>
-        {/* A campagna aperta la banda mostra solo l'avanzamento e il pulsante:
-            il conteggio dice gia a che punto sei. A campagna chiusa il testo
-            resta, perche senza di lui la banda direbbe soltanto «scarica» e non
-            si capirebbe che cosa e stato firmato e da chi. */}
-        {chiusa && (
+      {/* A campagna chiusa la banda dice che cosa è stato firmato e da chi, e
+          porta l'evidenza da scaricare. A campagna aperta non c'è nessuna banda:
+          il contatore con la barra diceva in grande una cosa che l'elenco qui
+          sotto mostra già riga per riga, e la scadenza — che è la cosa che fa
+          slittare il controllo — sta ora nella riga di contesto del titolo. */}
+      {chiusa && (
+        <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
+          background:ADM.OK_SOFT, border:'1px solid #BBF7D0'}}>
           <div style={{flex:1, minWidth:0}}>
             <div style={{fontSize:14.5, fontWeight:800, color:'#065F46'}}>
               Riesame {camp.periodo} chiuso e firmato
@@ -1086,61 +1083,55 @@ function AccessReview() {
               Firmato da {chiusa.revisore} il {raFmtDataOra(chiusa.chiusaIl)} · {chiusa.confermati} confermati, {chiusa.revocati} revocati
             </div>
           </div>
-        )}
-        {!chiusa && (
-          <div style={{flexShrink:0}}>
-            <div style={{fontSize:22, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
-              {decisi}<span style={{fontSize:14, fontWeight:600, color:ADM.MUTED}}> / {totale}</span>
-            </div>
-            <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:3}}>utenze esaminate</div>
-          </div>
-        )}
-        {/* La barra prende lo spazio che avanza invece di lasciarlo vuoto: senza
-            il testo a sinistra, una banda larga con tutto ammassato a destra
-            sembrava un blocco a cui manca qualcosa. */}
-        {!chiusa && (
-          <div style={{flex:1, minWidth:80, height:8, borderRadius:99, background:'#fff', overflow:'hidden', border:`1px solid ${ADM.BORDER}`}}>
-            <div style={{width:`${totale ? (decisi/totale)*100 : 0}%`, height:'100%', background:ADM.INK, borderRadius:99, transition:'width 220ms ease'}}/>
-          </div>
-        )}
-        {chiusa
-          ? <AdmButton variant="secondary" size="sm" icon="download" onClick={()=>raScaricaCSV(camp, chiusa.dettaglio)}>Scarica evidenza</AdmButton>
-          : <AdmButton variant="primary" size="sm" disabled={!tuttiDecisi} onClick={()=>setConfermaChiusura(true)}>
-              {tuttiDecisi ? 'Chiudi e firma' : `Mancano ${totale - decisi}`}
-            </AdmButton>}
-      </div>
+          <AdmButton variant="secondary" size="sm" icon="download" onClick={()=>raScaricaCSV(camp, chiusa.dettaglio)}>Scarica evidenza</AdmButton>
+        </div>
+      )}
 
       {/* Elenco degli accessi */}
       {!chiusa && (
         <div>
-          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10, flexWrap:'wrap'}}>
             <div style={{...H, marginBottom:0}}>Chi ha accesso a cosa</div>
-            <span style={{fontSize:12.4, color:ADM.MUTED}}>
-              {daGuardare > 0 ? `${daGuardare} da guardare con attenzione, in cima` : 'nessuna anomalia aperta'}
+            <span style={{fontSize:12.4, color:ADM.MUTED, flex:1, minWidth:200}}>
+              {daGuardare > 0 ? `${daGuardare} da guardare con attenzione` : 'nessuna anomalia aperta'}
+              {tuttiDecisi ? ` · tutte e ${totale} esaminate` : ` · ${totale - decisi} da esaminare`}
+              {' · '}
+              <span style={{color: scaduta ? ADM.DANGER : ADM.MUTED, fontWeight: scaduta ? 700 : 400}}>
+                {scaduta
+                  ? `scaduto da ${-ggScadenza} ${-ggScadenza === 1 ? 'giorno' : 'giorni'}`
+                  : `entro il ${raFmtData(camp.scadenza)}`}
+              </span>
             </span>
-            <div style={{flex:1}}/>
             {invariatiAperti.length > 1 && (
               <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
                 Conferma i {invariatiAperti.length} invariati
               </AdmButton>
             )}
+            {/* Finché mancano decisioni la firma non è disponibile e non deve
+                pesare come se lo fosse: resta un bottone quieto e si accende
+                quando l'elenco è finito davvero. */}
+            <AdmButton variant={tuttiDecisi ? 'primary' : 'secondary'} size="sm"
+              disabled={!tuttiDecisi} onClick={()=>setConfermaChiusura(true)}>
+              Chiudi e firma
+            </AdmButton>
           </div>
 
           <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
             <div style={{display:'grid', gridTemplateColumns:GRID, padding:'9px 16px', background:ADM.PANEL_SOFT || '#FAFAFB',
               borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.8, fontWeight:700, color:ADM.MUTED,
               textTransform:'uppercase', letterSpacing:'0.06em'}}>
-              <div>Soggetto</div><div>Ruolo e aree</div><div>Ultimo accesso</div><div>Ultima verifica</div><div style={{textAlign:'right'}}>Decisione</div>
+              <div>Soggetto</div><div>Ruolo</div><div>Ultimo accesso</div><div>Ultima verifica</div><div style={{textAlign:'right'}}>Decisione</div>
             </div>
 
             {righe.map(({ m, cls, prec }, i) => {
               const dec = esiti[m.id];
               const gg = raGiorniFa(m.lastActive);
-              const nAree = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
               return (
-                <div key={m.id} style={{
+                <div key={m.id} className="adm-row-open"
+                  onClick={()=>setDettaglio({ m, cls, prec })}
+                  style={{
                   display:'grid', gridTemplateColumns:GRID, alignItems:'center', gap:8,
-                  padding:'12px 16px',
+                  padding:'12px 16px', cursor:'pointer',
                   borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
                   background: dec ? (dec.decisione === 'revocato' ? '#FFF7F7' : '#FBFDFB') : '#fff',
                 }}>
@@ -1177,7 +1168,6 @@ function AccessReview() {
 
                   <div>
                     <AdmBadge color={(RUOLI[m.ruolo] && RUOLI[m.ruolo].color) || 'PLAN_FREE'}>{(RUOLI[m.ruolo] && RUOLI[m.ruolo].label) || m.ruolo}</AdmBadge>
-                    <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:5}}>{nAree} {nAree === 1 ? 'area' : 'aree'} su {PERMESSI.length}</div>
                   </div>
 
                   <div style={{fontSize:12.8, color: cls.key === 'dormiente' || cls.key === 'mai' ? ADM.DANGER : ADM.TEXT, fontWeight: cls.key === 'dormiente' || cls.key === 'mai' ? 700 : 500}}>
@@ -1189,24 +1179,27 @@ function AccessReview() {
                     {prec && <div style={{fontSize:11.4, color:ADM.MUTED, marginTop:2}}>{prec.campagna.periodo}</div>}
                   </div>
 
-                  <div style={{display:'flex', justifyContent:'flex-end', gap:6}}>
-                    {dec ? (
-                      <div style={{textAlign:'right'}}>
-                        <div style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.6, fontWeight:700,
-                          color: dec.decisione === 'revocato' ? ADM.DANGER : dec.automatico ? ADM.MUTED : ADM.OK}}>
-                          {dec.decisione === 'revocato' ? 'Revocato' : dec.automatico ? 'Confermato d\'ufficio' : 'Confermato'}
-                        </div>
-                        <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:2, lineHeight:1.35}}>
-                          {dec.automatico ? 'Titolare — cambia solo al cambio di ruolo' : `da ${dec.chi}`}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <AdmButton variant="secondary" size="sm" onClick={()=>setConferma({ m, cls })}>Conferma</AdmButton>
-                        <AdmButton variant="ghost" size="sm" onClick={()=>{ setRevoca(m); setMotivo(''); }}
-                          style={{color:ADM.DANGER, borderColor:'rgba(220,38,38,0.28)'}}>Revoca</AdmButton>
-                      </>
-                    )}
+                  {/* Confermare e revocare non sono due bottoni da elenco: sono
+                      attestazioni che si firmano col proprio nome. Qui la
+                      colonna dice soltanto a che punto è la riga; si decide
+                      dentro il dettaglio, dopo aver visto di chi si tratta. */}
+                  <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:8}}>
+                    <div style={{textAlign:'right', minWidth:0}}>
+                      {dec ? (
+                        <React.Fragment>
+                          <div style={{fontSize:12.6, fontWeight:700,
+                            color: dec.decisione === 'revocato' ? ADM.DANGER : dec.automatico ? ADM.MUTED : ADM.OK}}>
+                            {dec.decisione === 'revocato' ? 'Revocato' : dec.automatico ? 'Confermato d\'ufficio' : 'Confermato'}
+                          </div>
+                          <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:2, lineHeight:1.35}}>
+                            {dec.automatico ? 'Titolare — cambia solo al cambio di ruolo' : `da ${dec.chi}`}
+                          </div>
+                        </React.Fragment>
+                      ) : (
+                        <div style={{fontSize:12.6, fontWeight:700, color:ADM.WARN}}>Da decidere</div>
+                      )}
+                    </div>
+                    <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
                   </div>
                 </div>
               );
@@ -1394,25 +1387,43 @@ function AccessReview() {
         </div>
       )}
 
-      {/* Popup conferma — confermare un accesso è un'attestazione, non un click */}
-      {conferma && (
-        <div onClick={()=>setConferma(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+      {/* Dettaglio della riga — è qui che si decide. Confermare un accesso è
+          un'attestazione firmata col proprio nome, non un click di passaggio in
+          un elenco: prima si guarda chi è, che cosa può raggiungere e da quanto
+          non entra, poi si sceglie. Le due decisioni vivono solo qui dentro. */}
+      {dettaglio && (() => {
+        const m = dettaglio.m, cls = dettaglio.cls, prec = dettaglio.prec;
+        const dec = esiti[m.id];
+        const nAree = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
+        const ggM = raGiorniFa(m.lastActive);
+        return (
+        <div onClick={()=>setDettaglio(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
           display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:480, maxWidth:'90%', background:'#fff', borderRadius:14,
+          <div onClick={e=>e.stopPropagation()} style={{width:520, maxWidth:'92%', background:'#fff', borderRadius:14,
             padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
-              Confermare l'accesso di {conferma.m.nomeCompleto || conferma.m.nome}?
+
+            <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
+              <AdmAvatar name={m.nome} bg={m.avatarBg} size={40}/>
+              <div style={{minWidth:0, flex:1}}>
+                <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT}}>{m.nomeCompleto || m.nome}</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.email}</div>
+              </div>
+              <div style={{display:'inline-flex', alignItems:'center', gap:6, flexShrink:0,
+                padding:'3px 9px', borderRadius:99, background: tonoBg[cls.tono]}}>
+                <span style={{width:6, height:6, borderRadius:'50%', background: tonoCol[cls.tono]}}/>
+                <span style={{fontSize:11.4, fontWeight:700, color: tonoCol[cls.tono], whiteSpace:'nowrap'}}>{cls.label}</span>
+              </div>
             </div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
-              Stai attestando che questa persona deve continuare ad avere questi permessi.
-              La conferma finisce nell'attestazione e nell'audit log con il tuo nome e l'orario.
-            </div>
-            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16}}>
+
+            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
               {[
-                ['Ruolo', (RUOLI[conferma.m.ruolo] && RUOLI[conferma.m.ruolo].label) || conferma.m.ruolo],
-                ['Aree accessibili', `${(RUOLI[conferma.m.ruolo] && RUOLI[conferma.m.ruolo].permessi || []).length} su ${PERMESSI.length}`],
-                ['Ultimo accesso', conferma.m.lastActive ? `${raGiorniFa(conferma.m.lastActive)} giorni fa` : 'mai'],
-                ['Rilievo', conferma.cls.nota],
+                ['Ruolo', (RUOLI[m.ruolo] && RUOLI[m.ruolo].label) || m.ruolo],
+                ['Aree accessibili', `${nAree} su ${PERMESSI.length}`],
+                ['Nel team dal', raFmtData(m.addedOn)],
+                ['Ultimo accesso', m.lastActive ? (ggM === 0 ? 'oggi' : ggM === 1 ? 'ieri' : `${ggM} giorni fa`) : 'mai'],
+                ['Ultima verifica', prec ? `${raFmtData(prec.campagna.chiusaIl)} · ${prec.campagna.periodo}` : 'mai riesaminato'],
+                ['Secondo fattore', m.due_fa ? 'attivo' : 'non attivo'],
+                ['Rilievo', cls.nota],
               ].map(([k, v]) => (
                 <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
                   <span style={{color:ADM.MUTED, width:126, flexShrink:0}}>{k}</span>
@@ -1420,16 +1431,43 @@ function AccessReview() {
                 </div>
               ))}
             </div>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(null)}>Annulla</AdmButton>
-              <AdmButton variant="primary" size="sm"
-                onClick={()=>{ registra(conferma.m, 'confermato', '', IO); setConferma(null); }}>
-                Conferma accesso
-              </AdmButton>
-            </div>
+
+            {dec ? (
+              <React.Fragment>
+                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
+                  {dec.automatico
+                    ? <span>Confermato d'ufficio: <strong style={{color:ADM.TEXT}}>{dec.motivo}</strong>. Il Super Admin titolare non si conferma né si revoca da solo — l'accesso gli viene dal ruolo, e il ruolo cambia fuori da qui.</span>
+                    : <span><strong style={{color: dec.decisione === 'revocato' ? ADM.DANGER : ADM.OK}}>
+                        {dec.decisione === 'revocato' ? 'Accesso revocato' : 'Accesso confermato'}</strong> da {dec.chi} il {raFmtDataOra(dec.quando)}.
+                        {dec.motivo ? ` Motivo: ${dec.motivo}` : ''} La decisione è già nell'audit log: per cambiarla serve una campagna nuova.</span>}
+                </div>
+                <div style={{display:'flex', justifyContent:'flex-end'}}>
+                  <AdmButton variant="secondary" size="sm" onClick={()=>setDettaglio(null)}>Chiudi</AdmButton>
+                </div>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
+                  Decidendo attesti che questa persona deve — o non deve — continuare ad avere
+                  questi permessi. La decisione finisce nell'attestazione e nell'audit log con il
+                  tuo nome e l'orario.
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:8}}>
+                  <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, borderColor:'rgba(220,38,38,0.28)'}}
+                    onClick={()=>{ setRevoca(m); setMotivo(''); setDettaglio(null); }}>Revoca</AdmButton>
+                  <div style={{flex:1}}/>
+                  <AdmButton variant="secondary" size="sm" onClick={()=>setDettaglio(null)}>Annulla</AdmButton>
+                  <AdmButton variant="primary" size="sm"
+                    onClick={()=>{ registra(m, 'confermato', '', IO); setDettaglio(null); }}>
+                    Conferma
+                  </AdmButton>
+                </div>
+              </React.Fragment>
+            )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Popup conferma in blocco */}
       {confermaBlocco && (

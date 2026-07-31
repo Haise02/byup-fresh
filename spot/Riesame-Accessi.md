@@ -101,11 +101,17 @@ confronto con la campagna precedente è calcolato: si attesta che non è cambiat
 nulla, non si timbra alla cieca. Senza questo, un riesame semestrale diventa una
 sfacchinata e le sfacchinate si rimandano.
 
-**Ogni azione passa da una conferma esplicita**, revoca e conferma. La revoca
-chiede un **motivo obbligatorio**: senza motivo non è evidenza, è un click.
+**Confermare e revocare non sono bottoni da elenco.** Nessuna riga li espone: la
+riga dice soltanto a che punto è (*Da decidere*, *Confermato*, *Revocato*) e si
+apre sul dettaglio del soggetto — ruolo, aree raggiungibili, da quanto non entra,
+ultima verifica, secondo fattore, rilievo. Le due decisioni stanno lì dentro, in
+fondo, dopo che si è visto di chi si tratta: confermare un accesso è
+un'attestazione firmata col proprio nome, non un click di passaggio. La revoca
+chiede in più un **motivo obbligatorio**: senza motivo non è evidenza.
 
-**Il Super Admin titolare è confermato d'ufficio**, senza pulsanti sulla sua
-riga: l'accesso gli viene dal ruolo e il ruolo cambia fuori da qui. La
+**Il Super Admin titolare è confermato d'ufficio.** La sua riga si apre come
+tutte le altre, ma il dettaglio non offre decisioni: spiega perché non ce ne
+sono. L'accesso gli viene dal ruolo e il ruolo cambia fuori da qui. La
 limitazione della segregazione dei compiti che ne deriva — in una struttura
 piccola il titolare non ha un pari che lo verifichi — **non si risolve
 nell'interfaccia**: va dichiarata e compensata nella valutazione del rischio e
