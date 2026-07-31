@@ -1,206 +1,122 @@
 // ════════════════════════════════════════════════════════════════════════════
-// VALORE PER IL LOCALE · byup fa guadagnare chi lo usa? — il modello
+// VALORE PER IL LOCALE · il modello
 // ════════════════════════════════════════════════════════════════════════════
 //
-// È la domanda che non trovava risposta da nessuna parte in Spot. Avevamo
-// adozione QR, scontrino medio, tempo di servizio e coperti — tutti separati,
-// e nessuno confrontato fra chi adotta e chi no. Il 34% degli abbandoni dice
-// «scarse prenotazioni / ordini»: è un locale che non ha visto il ritorno.
+// ── IL VINCOLO ────────────────────────────────────────────────────────────
+// Di un locale non sappiamo come stava PRIMA di byup: i dati cominciano il
+// giorno in cui si iscrive. Ma da quel giorno in poi sappiamo tutto, mese per
+// mese — e l'adozione digitale non è un interruttore: parte da zero e sale.
+// Sora Lella è passata dal 7% al 42% in sei mesi.
 //
-// ── PERCHÉ QUESTI INDICATORI E NON ALTRI ──────────────────────────────────
-// La regola di scelta è una sola: devono stare nel conto economico DEL LOCALE,
-// non nel nostro cruscotto d'uso. Scan QR, sessioni e adozione dicono se ci
-// usano; non dicono se ci guadagnano. Gli otto qui sotto sono le leve con cui
-// un ristoratore fa margine, nell'ordine in cui le guarda lui:
+// Da qui i due tagli, in ordine di pulizia:
 //
-//   1. spesa per coperto      → quanto lascia ogni cliente
-//   2. coperti serviti/giorno → quante persone passano
-//   3. turni per servizio     → la leva vera di un locale: girare i tavoli
-//   4. tempo di servizio      → cos'è che permette di girarli
-//   5. RevPASH                → ricavo per posto per ora, l'indice sintetico
-//                               che l'industria usa da vent'anni: mette
-//                               insieme prezzo, riempimento e velocità
-//   6. costo di sala/coperto  → il risparmio, non solo il ricavo
-//   7. clienti che tornano    → se il valore si ripete o è un colpo solo
-//   8. ricavo mensile         → la riga in fondo, in euro
+//   1. LO STESSO LOCALE CON SÉ STESSO NEL TEMPO
+//      I suoi mesi a bassa adozione contro i suoi mesi ad alta. Stessa cucina,
+//      stesso quartiere, stesso proprietario, stessa clientela: l'unica cosa
+//      cambiata è l'adozione. Poi si toglie l'andamento della rete negli
+//      stessi mesi, altrimenti la stagionalità si spaccia per effetto — se il
+//      suo scontrino sale dell'8% mentre la rete sale del 2%, il numero è 6.
 //
-// Restano fuori di proposito: scan QR e sessioni (uso, non risultato), NPS e
-// valutazioni (percezione, non conto economico), numero di menu pubblicati
-// (configurazione). Non provano niente sul guadagno.
+//   2. LO STESSO LOCALE, LA STESSA SERA, DUE CANALI
+//      Per il solo scontrino c'è un taglio ancora più pulito: dentro lo stesso
+//      servizio, il valore degli ordini via QR e app contro quelli passati dal
+//      cameriere. Stessi tavoli, stesso menu, stessa cucina, stessa sera.
+//      L'unica variabile è il canale.
 //
-// ── COME SI MISURA, E COSA NON DIMOSTRA ───────────────────────────────────
-// La differenza grezza fra adottanti e non adottanti NON è l'effetto di byup:
-// dentro c'è la selezione, perché chi adotta è mediamente un locale già
-// gestito meglio. Per questo il modello produce tre letture distinte:
-//
-//   grezza      — i due gruppi come stanno. Sovrastima, e lo dichiara.
-//   appaiata    — ogni adottante confrontato con un non adottante dello stesso
-//                 tipo e di taglia simile. Toglie una parte della selezione.
-//   prima/dopo  — lo stesso locale prima e dopo aver superato il 15%, al netto
-//                 di quanto si è mosso nello stesso periodo chi NON ha
-//                 superato la soglia (differenza-nelle-differenze). È la
-//                 lettura più vicina a un effetto causale che si possa avere
-//                 senza randomizzare.
-//
-// Il numero da portare fuori è quello prima/dopo, non quello grezzo.
+// Quello che resta fuori, e va detto: il taglio 1 non è un esperimento — nessuno
+// ha assegnato l'adozione a caso, e un locale che spinge il digitale magari sta
+// migliorando anche altro nello stesso periodo. Il taglio 2 non controlla CHI
+// sceglie il QR: un tavolo di sei ragazzi ordina diversamente da una coppia, e
+// una parte di quel premio è composizione del tavolo, non canale.
 
-const VAL_SOGLIA = 15;            // % di ordini digitali che separa i due gruppi
-const VAL_ORE_SERVIZIO = 6.5;     // pranzo + cena, ore di sala aperta
-const VAL_MARGINE_LORDO = 68;     // % · media pesata del food cost di rete (tab Mercato)
-const VAL_COSTO_ORA_SALA = 13.20; // €/h lordo azienda, contratto pubblici esercizi
+const VAL_SOGLIA = 15;              // % di ordini digitali · soglia commerciale
+const VAL_MARGINE_LORDO = 68;       // % · margine lordo medio di rete (tab Mercato)
+const VAL_COSTO_ORA_SALA = 13.20;   // €/h lordo azienda, contratto pubblici esercizi
+const VAL_MESI = ['Giu','Lug','Ago','Set','Ott','Nov','Dic','Gen','Feb','Mar','Apr','Mag'];
 
-// Universo: i locali operativi. Chi è in onboarding non ha ancora una sala da
-// misurare, chi ha disdetto non manda più dati.
-const VAL_UNIVERSO = LOCALI.filter(locLive);
+// Solo i locali attivi: gli inattivi non sono un termine di paragone, sono
+// locali che hanno smesso di lavorare. Stanno nel blocco sull'abbandono.
+const VAL_UNIVERSO = LOCALI.filter(locAttivo);
 
-// Tempo di servizio di partenza per tipo di locale (minuti, ordine → conto
-// chiuso). Sono le stesse fasce del tab Staff: una pizzeria non diventa un
-// ristorante perché adotta il QR.
+// ── Le basi per mestiere ──────────────────────────────────────────────────
 const VAL_TEMPO_BASE = {
   'Pizzeria':38, 'Pub':46, 'Bar':30, 'Bistrot':54, 'Enoteca':60,
   'Trattoria':68, 'Osteria':74, 'Ristorante':92,
 };
-// Minuti di sala per coperto di partenza (tab Mercato · intensità di lavoro).
-const VAL_MINUTI_SALA = {
-  'Ristorante':6.8, 'Osteria':5.4, 'Trattoria':5.1, 'Bistrot':4.6,
-  'Enoteca':4.2, 'Pizzeria':3.4, 'Pub':2.9, 'Bar':2.1,
+const VAL_QUOTA_SALA = {
+  'Ristorante':0.88, 'Trattoria':0.86, 'Osteria':0.85, 'Enoteca':0.80,
+  'Bistrot':0.72, 'Pub':0.74, 'Pizzeria':0.46, 'Bar':0.34,
 };
-// Quota di clienti che tornano entro 60 giorni, di partenza.
-const VAL_RITORNO_BASE = {
-  'Bar':46, 'Pub':38, 'Pizzeria':34, 'Trattoria':30, 'Bistrot':28,
-  'Osteria':26, 'Enoteca':24, 'Ristorante':19,
+const VAL_NOSHOW_BASE = {
+  'Ristorante':14, 'Enoteca':12, 'Osteria':11, 'Trattoria':10,
+  'Bistrot':9, 'Pizzeria':8, 'Pub':7, 'Bar':5,
 };
 
-// ── L'EFFETTO, COME È MODELLATO ───────────────────────────────────────────
-// Saturante, non lineare: i primi punti di adozione valgono molto, il
-// cinquantesimo quasi niente. e(x) = EMAX · x/(x+k), con k=12. A 15% si è a
-// poco più della metà dell'effetto massimo, a 30% ai tre quarti.
-// I tetti sono deliberatamente prudenti: la letteratura di settore sull'ordine
-// digitale al tavolo sta fra il 5 e il 15% di scontrino, e prendere il numero
-// alto della forchetta è il modo più rapido per farsi smontare la slide.
-const VAL_EMAX = {
-  spesa:      0.085,   // +8,5% al massimo · meno fretta, suggerimenti a schermo
-  coperti:    0.065,   // +6,5% · tavoli che girano
-  tempo:     -0.180,   // −18% sul tempo di servizio
-  costoSala: -0.220,   // −22% sui minuti di sala per coperto
-  ritorno:    0.140,   // +14% relativo sui clienti che tornano
-};
-const VAL_K = 12;
-const valEffetto = (adozione, chiave) => {
+// ── Come l'adozione si lega agli indicatori ───────────────────────────────
+// Saturante: i primi punti valgono molto, il cinquantesimo quasi niente.
+const VAL_MAX = { spesa:0.120, coperti:0.090, tempo:-0.220, noshow:-0.420 };
+const VAL_K = 18;
+const valCurva = (adozione, chiave) => {
   const x = Math.max(0, adozione || 0);
-  return VAL_EMAX[chiave] * (x / (x + VAL_K));
+  return VAL_MAX[chiave] * (x / (x + VAL_K));
 };
 
-// Il locale, con i suoi indicatori di esercizio.
-const VAL_LOCALI = VAL_UNIVERSO.map((l, i) => {
+// ── L'andamento della rete, mese per mese ─────────────────────────────────
+// Stagionalità vera del fuori casa: agosto e dicembre tirano, gennaio e
+// febbraio no. Più una deriva di fondo — i listini salgono, i coperti no. È
+// esattamente la cosa che va tolta prima di attribuirsi un merito.
+const VAL_STAGIONE = {
+  spesa:   [1.00, 1.02, 1.05, 0.99, 0.99, 1.00, 1.06, 0.96, 0.97, 0.99, 1.01, 1.02],
+  coperti: [1.03, 1.08, 1.12, 0.98, 0.96, 0.97, 1.07, 0.88, 0.90, 0.95, 1.00, 1.04],
+  tempo:   [1.01, 1.03, 1.05, 1.00, 0.99, 0.99, 1.04, 0.97, 0.97, 0.99, 1.00, 1.01],
+  noshow:  [1.02, 1.05, 1.08, 1.00, 0.98, 0.99, 1.09, 0.94, 0.95, 0.98, 1.00, 1.02],
+};
+const VAL_DERIVA_ANNO = { spesa: 0.028, coperti: 0.006, tempo: 0.004, noshow: 0.010 };
+const valDeriva = (t, k) => 1 + VAL_DERIVA_ANNO[k] * (t / 11);
+
+// ── Il pannello mensile, locale per locale ────────────────────────────────
+const VAL_PANEL = VAL_UNIVERSO.map((l, i) => {
   const r = pseudoRand(i * 19 + 41);
-  const adozione = l.qrAdoption ?? 0;
-  const adottante = adozione >= VAL_SOGLIA;
+  const oggi = l.qrAdoption ?? 0;
 
-  // ── La selezione, resa esplicita ────────────────────────────────────────
-  // `qualita` è il fattore latente che non vediamo mai nei dati veri: la mano
-  // di chi gestisce. Alza i risultati DA SOLA, ed è più alta fra chi adotta —
-  // è precisamente ciò che rende la differenza grezza una sovrastima. Sta qui
-  // scritto perché l'analisi qui accanto serve a toglierlo di mezzo.
-  const qualita = Math.min(1, 0.62 * Math.min(1, adozione / 40) + 0.38 * r());
-  const spintaQualita = 0.09 * qualita;
+  // Il percorso di adozione: si parte bassi e si sale, con un mese di svolta —
+  // quello in cui i QR arrivano sui tavoli e il personale comincia a nominarli.
+  const partenza = Math.min(oggi * 0.35, 1.5 + r() * 3.5);
+  const svolta = 3 + Math.floor(r() * 5);            // fra il quarto e l'ottavo mese
+  const pendenza = 0.55 + r() * 0.9;
+  const adozioneAl = (t) => {
+    const s = 1 / (1 + Math.exp(-pendenza * (t - svolta)));
+    const s0 = 1 / (1 + Math.exp(-pendenza * (0 - svolta)));
+    const s1 = 1 / (1 + Math.exp(-pendenza * (11 - svolta)));
+    const q = (s - s0) / ((s1 - s0) || 1);
+    return +(partenza + (oggi - partenza) * q).toFixed(1);
+  };
 
-  const commensali = 1.7 + r() * 1.1;                 // persone per ordine
-  const posti = l.coperti;                            // posti a sedere
-  // Non tutti gli ordini occupano una sedia: in pizzeria e al bar metà se ne
-  // va d'asporto, e contarli come coperti gonfierebbe la rotazione dei tavoli.
-  const quotaSala = { 'Ristorante':0.88, 'Trattoria':0.86, 'Osteria':0.85, 'Enoteca':0.80,
-                      'Bistrot':0.72, 'Pub':0.74, 'Pizzeria':0.46, 'Bar':0.34 }[l.tipo] ?? 0.75;
+  // Basi del locale, ferme nel tempo: sono la sua cucina e il suo quartiere.
+  const commensali = 1.7 + r() * 1.1;
+  const spesaBase = l.ticketMedio / commensali;
+  const copertiBase = l.ordiniGiorno * commensali * (VAL_QUOTA_SALA[l.tipo] ?? 0.75);
+  const tempoBase = (VAL_TEMPO_BASE[l.tipo] || 60) * (0.9 + r() * 0.2);
+  const noshowBase = (VAL_NOSHOW_BASE[l.tipo] || 10) * (0.8 + r() * 0.5);
+  const rumore = () => 1 + (r() - 0.5) * 0.09;       // rumore mensile, ±4,5%
 
-  // ── I valori di PARTENZA ────────────────────────────────────────────────
-  // «Partenza» = come starebbe lo stesso locale senza adozione digitale, con
-  // la sua taglia, il suo mestiere e la sua gestione. Contiene già la spinta
-  // di qualità: è il punto che rende leggibile il prima/dopo, perché quella
-  // spinta c'era anche prima e quindi si annulla nella differenza.
-  //
-  // Volume e scontrino NON sono inventati qui: sono gli stessi ordini/giorno e
-  // lo stesso ticket medio che stanno nel registro locali e che fanno l'MRR.
-  // Un secondo modello di ricavo, scollegato da quello, sarebbe l'errore più
-  // grave possibile in una pagina che serve a dimostrare un numero.
-  const eSpesa = valEffetto(adozione, 'spesa');
-  const eCoperti = valEffetto(adozione, 'coperti');
-  const eTempo = valEffetto(adozione, 'tempo');
-  const eCosto = valEffetto(adozione, 'costoSala');
-  const eRitorno = valEffetto(adozione, 'ritorno');
-  // Rumore vero, ±14%: c'è chi adotta e non ne ricava niente, e quella coda
-  // deve restare visibile invece di sparire dentro una media.
-  const rumore = () => (r() - 0.5) * 0.28;
-
-  const spesaOggi = (l.ticketMedio / commensali);
-  const copertiOggi = l.ordiniGiorno * commensali * quotaSala;
-  const spesaPre = spesaOggi / (1 + eSpesa);
-  const copertiPre = copertiOggi / (1 + eCoperti);
-
-  // Il rumore si applica solo al «dopo»: è la variabilità di risultato fra
-  // locali che partono uguali.
-  const spesa = spesaPre * (1 + eSpesa) * (1 + rumore());
-  const coperti = copertiPre * (1 + eCoperti) * (1 + rumore() * 0.7);
-
-  const tempoPre = (VAL_TEMPO_BASE[l.tipo] || 60) * (0.9 + r() * 0.2) * (1 - spintaQualita * 0.5);
-  const tempo = tempoPre * (1 + eTempo) * (1 + rumore() * 0.5);
-  const minutiSalaPre = (VAL_MINUTI_SALA[l.tipo] || 4.5) * (0.9 + r() * 0.2) * (1 - spintaQualita * 0.4);
-  const minutiSala = minutiSalaPre * (1 + eCosto) * (1 + rumore() * 0.5);
-  const ritornoPre = (VAL_RITORNO_BASE[l.tipo] || 30) * (0.85 + r() * 0.3) * (1 + spintaQualita * 0.6);
-  const ritorno = ritornoPre * (1 + eRitorno) * (1 + rumore() * 0.6);
-
-  const turni = coperti / posti;
-  const turniPre = copertiPre / posti;
-  const ricavoGiorno = coperti * spesa;
-  const ricavoMese = ricavoGiorno * 28;
-  const ricavoMesePre = copertiPre * spesaPre * 28;
-  const revpash = ricavoGiorno / (posti * VAL_ORE_SERVIZIO);
-  const revpashPre = (copertiPre * spesaPre) / (posti * VAL_ORE_SERVIZIO);
-  const costoSalaCoperto = (minutiSala / 60) * VAL_COSTO_ORA_SALA;
-  const costoSalaCopertoPre = (minutiSalaPre / 60) * VAL_COSTO_ORA_SALA;
-
-  // Quando ha superato la soglia (solo per chi l'ha superata): serve al
-  // prima/dopo. Chi l'ha passata da meno di 90 giorni non entra nel confronto,
-  // perché non ha ancora una finestra «dopo» degna del nome.
-  const giorniDaSoglia = adottante ? 90 + Math.floor(r() * 260) : null;
+  const mesi = VAL_MESI.map((nome, t) => {
+    const ad = adozioneAl(t);
+    return {
+      t, nome, adozione: ad,
+      spesa:   spesaBase   * (1 + valCurva(ad, 'spesa'))   * VAL_STAGIONE.spesa[t]   * valDeriva(t, 'spesa')   * rumore(),
+      coperti: copertiBase * (1 + valCurva(ad, 'coperti')) * VAL_STAGIONE.coperti[t] * valDeriva(t, 'coperti') * rumore(),
+      tempo:   tempoBase   * (1 + valCurva(ad, 'tempo'))   * VAL_STAGIONE.tempo[t]   * valDeriva(t, 'tempo')   * rumore(),
+      noshow:  noshowBase  * (1 + valCurva(ad, 'noshow'))  * VAL_STAGIONE.noshow[t]  * valDeriva(t, 'noshow')  * rumore(),
+    };
+  });
 
   return {
     id: l.id, nome: l.nome, tipo: l.tipo, citta: l.citta, piano: l.piano,
-    stato: l.stato, canone: l.mrr, ordiniGiorno: l.ordiniGiorno,
-    adozione, adottante, posti, commensali, qualita, giorniDaSoglia,
-    // osservati oggi
-    spesa, coperti, turni, tempo, revpash, costoSalaCoperto, ritorno,
-    ricavoGiorno, ricavoMese,
-    // di partenza (stesso locale, senza adozione)
-    spesaPre, copertiPre, turniPre, tempoPre, revpashPre, costoSalaCopertoPre,
-    ritornoPre, ricavoMesePre, minutiSalaPre,
+    canone: l.mrr, ordiniGiorno: l.ordiniGiorno, posti: l.coperti,
+    adozioneOggi: oggi, commensali, mesi,
   };
 });
-
-const VAL_ADOTTANTI = VAL_LOCALI.filter(l => l.adottante);
-const VAL_SOTTO = VAL_LOCALI.filter(l => !l.adottante);
-
-// ── Gli indicatori, con la direzione «buona» dichiarata ───────────────────
-const VAL_INDICATORI = [
-  // `taglia: true` = grandezza di livello, non un tasso. Fra due locali diversi
-  // dice quanto sono grandi, non quanto funzionano: il confronto fra gruppi su
-  // queste righe va letto come un avvertimento, non come un risultato.
-  { k:'spesa', label:'Spesa per coperto', unita:'€', dec:2, verso:'su',
-    formula:'scontrino ÷ commensali', perche:'Quanto lascia ogni cliente' },
-  { k:'coperti', label:'Coperti serviti', unita:'', dec:0, verso:'su', taglia:true,
-    formula:'ordini × commensali × quota sala', perche:'Quante persone passano al tavolo' },
-  { k:'turni', label:'Coperti per posto', unita:'×', dec:1, verso:'su', taglia:true,
-    formula:'coperti ÷ posti a sedere', perche:'Quante volte si rigira lo stesso tavolo' },
-  { k:'tempo', label:'Tempo di servizio', unita:'min', dec:0, verso:'giu',
-    formula:'chiusura conto − conferma ordine', perche:'Quello che rende possibile il turno in più' },
-  { k:'revpash', label:'RevPASH', unita:'€', dec:2, verso:'su', taglia:true,
-    formula:'ricavo ÷ (posti × ore di servizio)', perche:'Prezzo, riempimento e velocità in un numero solo' },
-  { k:'costoSalaCoperto', label:'Costo di sala per coperto', unita:'€', dec:2, verso:'giu',
-    formula:'minuti di sala ÷ 60 × € 13,20/h', perche:'Il risparmio, non solo il ricavo' },
-  { k:'ritorno', label:'Clienti che tornano', unita:'%', dec:0, verso:'su',
-    formula:'clienti con ≥2 visite in 60gg ÷ clienti unici', perche:'Dice se il valore si ripete o è un colpo solo' },
-  { k:'ricavoMese', label:'Ricavo mensile', unita:'€', dec:0, verso:'su', taglia:true,
-    formula:'coperti × spesa per coperto × 28', perche:'La riga in fondo, in euro' },
-];
 
 const valMediana = (arr) => {
   if (!arr.length) return 0;
@@ -208,184 +124,212 @@ const valMediana = (arr) => {
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
-const valMedia = (arr) => arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : 0;
 
-// ── LETTURA 1 · grezza ────────────────────────────────────────────────────
-const VAL_GREZZA = VAL_INDICATORI.map(ind => {
-  const a = VAL_ADOTTANTI.map(l => l[ind.k]);
-  const b = VAL_SOTTO.map(l => l[ind.k]);
-  const ma = valMediana(a), mb = valMediana(b);
-  const delta = mb !== 0 ? ((ma - mb) / mb) * 100 : 0;
-  return { ...ind, adottanti: ma, sotto: mb, delta, mediaA: valMedia(a), mediaB: valMedia(b) };
-});
+// ── Il salto di ciascuno, e chi è rimasto fermo ───────────────────────────
+// Le due fasi si tagliano sui terzili DELL'ADOZIONE DI QUEL LOCALE, non su una
+// soglia comune: ogni locale ha la sua storia, e quello che conta è il suo
+// salto. Servono almeno quattro mesi per parte e dieci punti di salto,
+// altrimenti si confronta rumore con rumore.
+const VAL_SALTO_MINIMO = 10;
+const VAL_MESI_MINIMI = 4;
+const valFasi = (p) => {
+  const ord = [...p.mesi].sort((a, b) => a.adozione - b.adozione);
+  const q = Math.max(VAL_MESI_MINIMI, Math.round(p.mesi.length / 3));
+  const bassi = ord.slice(0, q);
+  const alti = ord.slice(-q);
+  const adBassa = valMediana(bassi.map(m => m.adozione));
+  const adAlta = valMediana(alti.map(m => m.adozione));
+  return { bassi, alti, adBassa, adAlta, salto: adAlta - adBassa };
+};
+const VAL_FASI = VAL_PANEL.map(p => ({ p, ...valFasi(p) }));
 
-// ── LETTURA 2 · appaiata ──────────────────────────────────────────────────
-// Ogni adottante trova il non adottante più simile per tipo e taglia (posti).
-// Un non adottante può essere usato una volta sola: senza questo vincolo lo
-// stesso locale piccolo farebbe da controllo a mezza rete.
-const VAL_COPPIE = (() => {
-  const liberi = [...VAL_SOTTO];
-  const coppie = [];
-  [...VAL_ADOTTANTI].sort((x, y) => y.ordiniGiorno - x.ordiniGiorno).forEach(a => {
-    if (!liberi.length) return;
-    const stessoTipo = liberi.filter(b => b.tipo === a.tipo);
-    const pool = stessoTipo.length ? stessoTipo : liberi;
-    let best = pool[0], bestD = Infinity;
-    pool.forEach(b => {
-      const d = Math.abs(b.ordiniGiorno - a.ordiniGiorno) / Math.max(1, a.ordiniGiorno);
-      if (d < bestD) { bestD = d; best = b; }
-    });
-    // Oltre il 60% di differenza di volume non è più un abbinamento: è un
-    // accostamento, e i numeri che ne escono non valgono niente.
-    if (bestD > 0.6) return;
-    coppie.push({ a, b: best, stessoTipo: best.tipo === a.tipo, distanza: bestD });
-    liberi.splice(liberi.indexOf(best), 1);
+// ── Il gruppo di controllo ────────────────────────────────────────────────
+// «L'andamento della rete» NON è la mediana di tutti: in dodici mesi quasi
+// tutti stanno salendo di adozione, e sottrarre una mediana che contiene lo
+// stesso effetto che si vuole misurare lo cancella. Il controllo giusto sono i
+// locali che in quei mesi l'adozione NON l'hanno mossa: hanno vissuto la stessa
+// stagione, gli stessi rincari e la stessa domanda, ma non hanno fatto il salto.
+const VAL_SALTO_FERMO = 5;
+const VAL_CONTROLLO = VAL_FASI.filter(f => f.salto < VAL_SALTO_FERMO).map(f => f.p);
+const VAL_RETE = VAL_MESI.map((nome, t) => ({
+  t, nome,
+  spesa: valMediana(VAL_CONTROLLO.map(p => p.mesi[t].spesa)),
+  coperti: valMediana(VAL_CONTROLLO.map(p => p.mesi[t].coperti)),
+  tempo: valMediana(VAL_CONTROLLO.map(p => p.mesi[t].tempo)),
+  noshow: valMediana(VAL_CONTROLLO.map(p => p.mesi[t].noshow)),
+}));
+
+// ── Gli indicatori ────────────────────────────────────────────────────────
+const VAL_INDICATORI = [
+  { k:'spesa', label:'Spesa per coperto', unita:'€', dec:2, verso:'su', perno:true,
+    formula:'valore del conto ÷ commensali', perche:'Quanto lascia ogni cliente' },
+  { k:'coperti', label:'Coperti al giorno', unita:'', dec:0, verso:'su',
+    formula:'ordini al tavolo × commensali', perche:'Quante persone passano davvero' },
+  { k:'tempo', label:'Tempo di servizio', unita:'min', dec:0, verso:'giu',
+    formula:'chiusura conto − conferma ordine', perche:'Quello che libera il tavolo prima' },
+  { k:'noshow', label:'Prenotazioni a vuoto', unita:'%', dec:1, verso:'giu',
+    formula:'chi non si presenta ÷ prenotazioni', perche:'Il tavolo tenuto per nessuno' },
+];
+const VAL_PERNO = VAL_INDICATORI.find(i => i.perno);
+
+// ── TAGLIO 1 · lo stesso locale, mesi bassi contro mesi alti ──────────────
+const VAL_STORIE = VAL_FASI.map(f => {
+  const { p, bassi, alti, adBassa, adAlta, salto } = f;
+  const per = {};
+  VAL_INDICATORI.forEach(ind => {
+    const suoBasso = valMediana(bassi.map(m => m[ind.k]));
+    const suoAlto = valMediana(alti.map(m => m[ind.k]));
+    // Il controllo NEGLI STESSI MESI: se un locale ha i mesi alti d'estate e
+    // d'estate salgono tutti, quella salita non è merito dell'adozione.
+    const cBasso = valMediana(bassi.map(m => VAL_RETE[m.t][ind.k]));
+    const cAlto = valMediana(alti.map(m => VAL_RETE[m.t][ind.k]));
+    const suo = suoBasso ? ((suoAlto - suoBasso) / suoBasso) * 100 : 0;
+    const rete = cBasso ? ((cAlto - cBasso) / cBasso) * 100 : 0;
+    per[ind.k] = { basso: suoBasso, alto: suoAlto, suo, rete, netto: suo - rete };
   });
-  return coppie;
+  return { ...p, bassi, alti, adBassa, adAlta, salto, per, valido: salto >= VAL_SALTO_MINIMO };
+}).sort((a, b) => b.salto - a.salto);
+
+const VAL_STORIE_VALIDE = VAL_STORIE.filter(s => s.valido);
+// Il locale da raccontare: il salto più grande fra quelli validi.
+const VAL_ESEMPIO = VAL_STORIE_VALIDE[0] || VAL_STORIE[0];
+
+const VAL_ENTRO = VAL_INDICATORI.map(ind => {
+  const netti = VAL_STORIE_VALIDE.map(s => s.per[ind.k].netto);
+  const suoi = VAL_STORIE_VALIDE.map(s => s.per[ind.k].suo);
+  const reti = VAL_STORIE_VALIDE.map(s => s.per[ind.k].rete);
+  const concordi = netti.filter(d => (ind.verso === 'su' ? d > 0 : d < 0)).length;
+  const n = netti.length;
+  const ordinati = [...netti].sort((a, b) => a - b);
+  return {
+    ...ind,
+    suo: valMediana(suoi), rete: valMediana(reti), delta: valMediana(netti),
+    n, concordi, netti,
+    // Quartili invece di un intervallo di confidenza: con venti locali dice la
+    // stessa cosa senza far finta di avere una distribuzione.
+    q1: ordinati[Math.floor(n * 0.25)] ?? 0,
+    q3: ordinati[Math.ceil(n * 0.75) - 1] ?? 0,
+    solido: n > 0 && concordi / n >= 0.7,
+  };
+});
+
+// ── TAGLIO 2 · lo stesso servizio, due canali ─────────────────────────────
+// Il confronto più pulito che abbiamo sullo scontrino: stessa sera, stessi
+// tavoli, stesso menu. Il conto si fa a parità di numero di commensali e di
+// fascia oraria — un tavolo da sei alle nove non è una coppia a mezzogiorno —
+// ma resta dentro CHI sceglie il QR, e quello non lo controlliamo.
+const VAL_CANALE = (() => {
+  const righe = VAL_PANEL.map((p, i) => {
+    const r = pseudoRand(i * 31 + 7);
+    // Il premio del canale digitale: il menu con le foto, i suggerimenti, e
+    // soprattutto il secondo giro che al cameriere non chiedi.
+    const premio = 0.06 + valCurva(p.adozioneOggi, 'spesa') * 0.9 + (r() - 0.5) * 0.05;
+    const cameriere = p.mesi[11].spesa * (1 - premio * 0.35);
+    const digitale = cameriere * (1 + premio);
+    const portateCam = 2.2 + r() * 0.5;
+    const portateDig = portateCam * (1 + premio * 0.75);
+    return {
+      id: p.id, nome: p.nome, tipo: p.tipo, citta: p.citta,
+      adozione: p.adozioneOggi, coperti: p.mesi[11].coperti,
+      cameriere, digitale, premio: ((digitale - cameriere) / cameriere) * 100,
+      portateCam, portateDig,
+    };
+  }).filter(x => x.adozione >= 2)   // sotto il 2% gli ordini digitali sono troppo pochi
+    .sort((a, b) => b.premio - a.premio);
+  const premi = righe.map(x => x.premio);
+  const ordinati = [...premi].sort((a, b) => a - b);
+  return {
+    righe,
+    mediano: valMediana(premi),
+    q1: ordinati[Math.floor(premi.length * 0.25)] ?? 0,
+    q3: ordinati[Math.ceil(premi.length * 0.75) - 1] ?? 0,
+    concordi: premi.filter(v => v > 0).length,
+    n: premi.length,
+    portateDelta: valMediana(righe.map(x => ((x.portateDig - x.portateCam) / x.portateCam) * 100)),
+    scontrinoCam: valMediana(righe.map(x => x.cameriere)),
+    scontrinoDig: valMediana(righe.map(x => x.digitale)),
+  };
 })();
-const VAL_APPAIATA = VAL_INDICATORI.map(ind => {
-  const deltas = VAL_COPPIE.map(c => c.b[ind.k] !== 0 ? ((c.a[ind.k] - c.b[ind.k]) / c.b[ind.k]) * 100 : 0);
-  return { ...ind, delta: valMediana(deltas), n: VAL_COPPIE.length, deltas };
-});
-
-// ── LETTURA 3 · prima/dopo, con differenza-nelle-differenze ───────────────
-// Il locale è il controllo di sé stesso: la mano del gestore, la posizione e
-// la clientela sono le stesse prima e dopo, quindi si annullano. Resta la
-// deriva di mercato, che si toglie sottraendo quanto si è mosso nello stesso
-// periodo chi la soglia non l'ha superata.
-const VAL_DERIVA = { spesa: 2.1, coperti: -0.8, turni: -0.6, tempo: 0.9, revpash: 1.2, costoSalaCoperto: 1.4, ritorno: -1.1, ricavoMese: 1.3 };
-const VAL_CROSSERS = VAL_ADOTTANTI.filter(l => l.giorniDaSoglia !== null);
-const VAL_PREPOST = VAL_INDICATORI.map(ind => {
-  const baseK = {
-    spesa:'spesaPre', coperti:'copertiPre', turni:'turniPre', tempo:'tempoPre',
-    revpash:'revpashPre', costoSalaCoperto:'costoSalaCopertoPre', ritorno:'ritornoPre', ricavoMese:'ricavoMesePre',
-  }[ind.k];
-  const variazioni = VAL_CROSSERS.map(l => l[baseK] !== 0 ? ((l[ind.k] - l[baseK]) / l[baseK]) * 100 : 0);
-  const lordo = valMediana(variazioni);
-  const netto = lordo - (VAL_DERIVA[ind.k] || 0);
-  return {
-    ...ind, lordo, deriva: VAL_DERIVA[ind.k] || 0, delta: netto, n: VAL_CROSSERS.length,
-    variazioni,
-    // La coda che una media nasconde: quanti, fra chi ha adottato, non hanno
-    // guadagnato niente su questo indicatore.
-    senzaEffetto: variazioni.filter(v => (ind.verso === 'su' ? v <= 0 : v >= 0)).length,
-  };
-});
-
-// ── DOSE-RISPOSTA ─────────────────────────────────────────────────────────
-// Se l'effetto fosse un artefatto, le fasce non sarebbero ordinate. Che lo
-// siano non prova la causalità, ma è la prima cosa che si guarda per escludere
-// che sia rumore.
-// Attenzione a come si legge: NON è la media della fascia messa accanto a
-// quella della fascia sotto. Fra fasce cambiano i locali, e con loro la taglia:
-// la fascia 5-15% qui dentro ha una pizzeria da quattrocento coperti al giorno
-// e quella 0-5% una gastronomia che ne fa sette. Confrontare i livelli
-// direbbe che l'adozione moltiplica il fatturato per quaranta.
-//
-// Quello che si confronta è la variazione di OGNI locale rispetto a sé stesso,
-// mediana per fascia, tolta la deriva di mercato. Così la taglia sparisce e
-// resta solo la forma della curva — che è la cosa che si voleva vedere.
-const VAL_FASCE = [
-  { label:'0 – 5%',   min:0,  max:5 },
-  { label:'5 – 15%',  min:5,  max:15 },
-  { label:'15 – 30%', min:15, max:30 },
-  { label:'oltre 30%',min:30, max:1000 },
-].map(f => {
-  const g = VAL_LOCALI.filter(l => l.adozione >= f.min && l.adozione < f.max);
-  const varz = (k, kPre) => valMediana(g.map(l => l[kPre] ? ((l[k] - l[kPre]) / l[kPre]) * 100 : 0)) - (VAL_DERIVA[k] || 0);
-  return {
-    ...f, n: g.length,
-    adozioneMediana: valMediana(g.map(l => l.adozione)),
-    spesa: varz('spesa', 'spesaPre'),
-    coperti: varz('coperti', 'copertiPre'),
-    turni: varz('turni', 'turniPre'),
-    tempo: varz('tempo', 'tempoPre'),
-    revpash: varz('revpash', 'revpashPre'),
-    ricavoMese: varz('ricavoMese', 'ricavoMesePre'),
-  };
-});
 
 // ── IL CONTO IN EURO ──────────────────────────────────────────────────────
-// Il ricavo aggiuntivo non è margine: sopra ci va il food cost. Il margine
-// lordo medio della rete è il 68%, e il confronto col canone si fa su quello —
-// altrimenti si vende un ritorno che non esiste.
 const VAL_CONTO = (() => {
-  const delta = VAL_PREPOST.find(i => i.k === 'ricavoMese');
-  const ricaviBase = VAL_CROSSERS.map(l => l.ricavoMesePre);
-  const ricavoMedianoBase = valMediana(ricaviBase);
-  const ricavoAggiuntivo = ricavoMedianoBase * (delta.delta / 100);
-  const margineAggiuntivo = ricavoAggiuntivo * (VAL_MARGINE_LORDO / 100);
-  const canoni = VAL_CROSSERS.map(l => l.canone).filter(c => c > 0);
-  const canoneMediano = canoni.length ? valMediana(canoni) : PIANI[1].price;
+  const spesa = VAL_ENTRO.find(i => i.k === 'spesa');
+  const coperti = VAL_ENTRO.find(i => i.k === 'coperti');
+  // Nel conto entrano SOLO le voci che reggono: se i coperti si muovono ma la
+  // metà dei locali va dall'altra parte, quel pezzo di ricavo non si mette in
+  // una slide. Si scrive che c'è e che non tiene.
+  const componenti = [spesa, coperti].filter(c => c.solido);
+  const esclusi = [spesa, coperti].filter(c => !c.solido);
+  const moltiplicatore = componenti.reduce((m, c) => m * (1 + c.delta / 100), 1);
+
+  const copertiMese = valMediana(VAL_PANEL.map(p => p.mesi[11].coperti)) * 28;
+  const spesaOggi = valMediana(VAL_PANEL.map(p => p.mesi[11].spesa));
+  const ricavoMese = copertiMese * spesaOggi;
+  const deltaRicavo = ricavoMese * (moltiplicatore - 1);
+  const margine = deltaRicavo * (VAL_MARGINE_LORDO / 100);
+  const canoneMediano = valMediana(VAL_PANEL.map(p => p.canone).filter(c => c > 0)) || PIANI[1].price;
   return {
-    ricavoMedianoBase, ricavoAggiuntivo, margineAggiuntivo, canoneMediano,
-    ritornoPerEuro: canoneMediano > 0 ? margineAggiuntivo / canoneMediano : 0,
-    // Il canone come quota del margine aggiuntivo: si legge meglio di un
-    // moltiplicatore a due cifre, che sembra sempre una promessa gonfiata.
-    canoneSuMargine: margineAggiuntivo > 0 ? (canoneMediano / margineAggiuntivo) * 100 : null,
-    // Prova di sensibilità: lo stesso effetto su un locale da 15.000 €/mese di
-    // ricavo, che è la taglia in cui la rete deve ancora entrare. Il ritorno
-    // resta positivo ma il moltiplicatore si sgonfia, ed è giusto dirlo prima
-    // che lo dica qualcun altro.
-    piccolo: (() => {
-      const ricavoPiccolo = 15000;
-      const marg = ricavoPiccolo * (delta.delta / 100) * (VAL_MARGINE_LORDO / 100);
-      const canone = PIANI[1].price;
-      return { ricavo: ricavoPiccolo, margine: marg, canone, volte: marg / canone };
-    })(),
-    // Quanti, fra chi ha superato la soglia, non coprono nemmeno il canone.
-    sottoCosto: VAL_CROSSERS.filter(l => (l.ricavoMese - l.ricavoMesePre) * (VAL_MARGINE_LORDO / 100) < l.canone).length,
+    copertiMese, spesaOggi, ricavoMese, deltaRicavo, margine, moltiplicatore,
+    componenti: componenti.map(c => ({ label: c.label, delta: c.delta })),
+    esclusi: esclusi.map(c => ({ label: c.label, delta: c.delta, concordi: c.concordi, n: c.n })),
+    canoneMediano, volte: canoneMediano ? margine / canoneMediano : 0,
     margineLordo: VAL_MARGINE_LORDO,
+    locali: VAL_STORIE_VALIDE.length, totali: VAL_PANEL.length,
+    concordi: spesa.concordi, n: spesa.n,
+    piccolo: (() => {
+      const cop = 100 * 28;
+      const d = cop * spesaOggi * (moltiplicatore - 1);
+      const m = d * (VAL_MARGINE_LORDO / 100);
+      return { coperti: 100, margine: m, canone: PIANI[1].price, volte: m / PIANI[1].price };
+    })(),
   };
 })();
 
-// ── IL PONTE COL CHURN ────────────────────────────────────────────────────
-// «Scarse prenotazioni / ordini» è il 34% degli abbandoni (exit interview, tab
-// Locali). Se quel 34% sta tutto sotto soglia, l'antidoto al churn e
-// l'argomento di vendita sono lo stesso numero.
+// ── IL LEGAME CON L'ABBANDONO ─────────────────────────────────────────────
 const VAL_CHURN = (() => {
-  const inattivi = VAL_LOCALI.filter(l => l.stato === 'inactive');
-  const attivi = VAL_LOCALI.filter(l => l.stato === 'active');
+  const ad = (l) => l.qrAdoption ?? 0;
+  const inattivi = LOCALI.filter(locInattivo);
+  const attivi = LOCALI.filter(locAttivo);
   return {
     motivoPct: 34,
-    adozioneMedianaInattivi: valMediana(inattivi.map(l => l.adozione)),
-    adozioneMedianaAttivi: valMediana(attivi.map(l => l.adozione)),
-    inattiviSottoSoglia: inattivi.filter(l => !l.adottante).length,
+    adozioneMedianaAttivi: valMediana(attivi.map(ad)),
+    adozioneMedianaInattivi: valMediana(inattivi.map(ad)),
+    inattiviSottoSoglia: inattivi.filter(l => ad(l) < VAL_SOGLIA).length,
     inattiviTot: inattivi.length,
     churnedTot: LOCALI.filter(locChurned).length,
   };
 })();
 
-// ── LA LISTA DA CHIAMARE ──────────────────────────────────────────────────
-// Chi sta sotto soglia, ordinato per quanto ci guadagnerebbe a superarla. È la
-// stessa misura letta al contrario: non «quanto valiamo» ma «con chi vale la
-// pena parlarne domani».
-const VAL_POTENZIALE = VAL_SOTTO.map(l => {
-  // Portarlo appena sopra soglia, a 18%: non è una promessa di 40%.
-  const target = 18;
-  const guadagnoSpesa = valEffetto(target, 'spesa') - valEffetto(l.adozione, 'spesa');
-  const guadagnoCoperti = valEffetto(target, 'coperti') - valEffetto(l.adozione, 'coperti');
-  const nuovoRicavo = l.ricavoMese * (1 + guadagnoSpesa) * (1 + guadagnoCoperti);
-  const delta = nuovoRicavo - l.ricavoMese;
-  return {
-    ...l, deltaRicavo: delta, deltaMargine: delta * (VAL_MARGINE_LORDO / 100),
-    puntiDaFare: Math.max(0, +(target - l.adozione).toFixed(1)),
-  };
-}).sort((a, b) => b.deltaMargine - a.deltaMargine);
+// ── CON CHI PARLARNE ──────────────────────────────────────────────────────
+// Chi non ha ancora fatto il salto, ordinato per quanto varrebbe il salto sul
+// suo volume. È una proiezione, ed è scritta come tale.
+const VAL_POTENZIALE = VAL_PANEL
+  .filter(p => p.adozioneOggi < VAL_SOGLIA)
+  .map(p => {
+    const ricavoMese = p.mesi[11].coperti * 28 * p.mesi[11].spesa;
+    const delta = ricavoMese * (VAL_CONTO.moltiplicatore - 1);
+    return {
+      ...p, ricavoMese, deltaRicavo: delta, deltaMargine: delta * (VAL_MARGINE_LORDO / 100),
+      puntiDaFare: Math.max(0, +(VAL_SOGLIA + 3 - p.adozioneOggi).toFixed(1)),
+    };
+  })
+  .sort((a, b) => b.deltaMargine - a.deltaMargine);
 
 window.VAL_SOGLIA = VAL_SOGLIA;
-window.VAL_ORE_SERVIZIO = VAL_ORE_SERVIZIO;
-window.VAL_LOCALI = VAL_LOCALI;
-window.VAL_ADOTTANTI = VAL_ADOTTANTI;
-window.VAL_SOTTO = VAL_SOTTO;
+window.VAL_MESI = VAL_MESI;
+window.VAL_PANEL = VAL_PANEL;
+window.VAL_RETE = VAL_RETE;
 window.VAL_INDICATORI = VAL_INDICATORI;
-window.VAL_GREZZA = VAL_GREZZA;
-window.VAL_APPAIATA = VAL_APPAIATA;
-window.VAL_COPPIE = VAL_COPPIE;
-window.VAL_PREPOST = VAL_PREPOST;
-window.VAL_CROSSERS = VAL_CROSSERS;
-window.VAL_FASCE = VAL_FASCE;
+window.VAL_PERNO = VAL_PERNO;
+window.VAL_STORIE = VAL_STORIE;
+window.VAL_STORIE_VALIDE = VAL_STORIE_VALIDE;
+window.VAL_ESEMPIO = VAL_ESEMPIO;
+window.VAL_ENTRO = VAL_ENTRO;
+window.VAL_CANALE = VAL_CANALE;
 window.VAL_CONTO = VAL_CONTO;
 window.VAL_CHURN = VAL_CHURN;
 window.VAL_POTENZIALE = VAL_POTENZIALE;
+window.VAL_SALTO_MINIMO = VAL_SALTO_MINIMO;
+window.VAL_CONTROLLO = VAL_CONTROLLO;
+window.VAL_SALTO_FERMO = VAL_SALTO_FERMO;
 window.valMediana = valMediana;
