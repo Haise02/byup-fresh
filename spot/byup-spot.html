@@ -160,10 +160,26 @@
   .adm-textlink { transition: opacity 0.12s ease; }
   .adm-textlink:hover { opacity: 0.65; }
 
-  /* Righe di lista cliccabili: la freccia si accende e scivola in hover */
+  /* Righe di lista cliccabili: la freccia si accende e scivola in hover, e la
+     riga stessa si vela e si preme. La velatura è un background-IMAGE, non un
+     background-color: le righe portano il colore di stato nello stile inline
+     (rosso tenue per una scadenza mancata, giallo per un non applicabile) e
+     sostituirlo cancellerebbe il segnale. Un gradiente uniforme si sovrappone
+     al colore che c'è, qualunque sia, e sta SOTTO ai figli — pastiglie e badge
+     restano pieni invece di essere velati anche loro.
+     Serve !important perché lo shorthand `background` inline azzera
+     background-image, e solo una dichiarazione !important dell'autore batte
+     lo stile inline. */
   .adm-row-chev { transition: color 0.15s ease, transform 0.15s ease; display: inline-flex; }
-  .adm-row-open { cursor: pointer; }
+  .adm-row-open { cursor: pointer; transition: background-image 0.12s ease; }
   .adm-row-open:hover .adm-row-chev { color: #FF5A5F; transform: translateX(3px); }
+  .adm-row-open:hover {
+    background-image: linear-gradient(rgba(15,17,21,0.038), rgba(15,17,21,0.038)) !important;
+  }
+  .adm-row-open:active {
+    background-image: linear-gradient(rgba(15,17,21,0.085), rgba(15,17,21,0.085)) !important;
+    transition-duration: 0s;
+  }
 
   /* Inputs */
   input, textarea, select {
@@ -319,41 +335,41 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-<script type="text/babel" src="admin-tokens.jsx?v=244"></script>
-<script type="text/babel" src="admin-icons.jsx?v=244"></script>
-<script type="text/babel" src="admin-data.jsx?v=244"></script>
-<script type="text/babel" src="admin-parametri.jsx?v=244"></script>
-<script type="text/babel" src="admin-atoms.jsx?v=244"></script>
-<script type="text/babel" src="admin-dashboard.jsx?v=244"></script>
-<script type="text/babel" src="admin-mercato-data.jsx?v=244"></script>
-<script type="text/babel" src="admin-valore-data.jsx?v=244"></script>
-<script type="text/babel" src="admin-valore.jsx?v=244"></script>
-<script type="text/babel" src="admin-mercato.jsx?v=244"></script>
-<script type="text/babel" src="admin-locale-detail.jsx?v=244"></script>
-<script type="text/babel" src="admin-locali.jsx?v=244"></script>
-<script type="text/babel" src="admin-utenti.jsx?v=244"></script>
-<script type="text/babel" src="admin-camerieri.jsx?v=244"></script>
-<script type="text/babel" src="admin-comunicazioni.jsx?v=244"></script>
-<script type="text/babel" src="admin-assistenza-data.jsx?v=244"></script>
-<script type="text/babel" src="admin-assistenza.jsx?v=244"></script>
-<script type="text/babel" src="admin-analisi-data.jsx?v=244"></script>
-<script type="text/babel" src="admin-analisi.jsx?v=244"></script>
-<script type="text/babel" src="admin-promozioni.jsx?v=244"></script>
-<script type="text/babel" src="admin-workflow-email.jsx?v=244"></script>
-<script type="text/babel" src="admin-team.jsx?v=244"></script>
-<script type="text/babel" src="admin-message-modal.jsx?v=244"></script>
-<script type="text/babel" src="admin-conformita-data.jsx?v=244"></script>
-<script type="text/babel" src="admin-economix-data.jsx?v=244"></script>
-<script type="text/babel" src="admin-economix-modello.jsx?v=244"></script>
-<script type="text/babel" src="admin-economix.jsx?v=244"></script>
-<script type="text/babel" src="admin-economix-bilancio.jsx?v=244"></script>
-<script type="text/babel" src="admin-economix-cassa.jsx?v=244"></script>
-<script type="text/babel" src="admin-economix-proiezione.jsx?v=244"></script>
-<script type="text/babel" src="admin-conformita.jsx?v=244"></script>
-<script type="text/babel" src="admin-conformita-registri.jsx?v=244"></script>
-<script type="text/babel" src="admin-conformita-eventi.jsx?v=244"></script>
-<script type="text/babel" src="admin-conformita-riesami.jsx?v=244"></script>
-<script type="text/babel" src="admin-app.jsx?v=244"></script>
+<script type="text/babel" src="admin-tokens.jsx?v=245"></script>
+<script type="text/babel" src="admin-icons.jsx?v=245"></script>
+<script type="text/babel" src="admin-data.jsx?v=245"></script>
+<script type="text/babel" src="admin-parametri.jsx?v=245"></script>
+<script type="text/babel" src="admin-atoms.jsx?v=245"></script>
+<script type="text/babel" src="admin-dashboard.jsx?v=245"></script>
+<script type="text/babel" src="admin-mercato-data.jsx?v=245"></script>
+<script type="text/babel" src="admin-valore-data.jsx?v=245"></script>
+<script type="text/babel" src="admin-valore.jsx?v=245"></script>
+<script type="text/babel" src="admin-mercato.jsx?v=245"></script>
+<script type="text/babel" src="admin-locale-detail.jsx?v=245"></script>
+<script type="text/babel" src="admin-locali.jsx?v=245"></script>
+<script type="text/babel" src="admin-utenti.jsx?v=245"></script>
+<script type="text/babel" src="admin-camerieri.jsx?v=245"></script>
+<script type="text/babel" src="admin-comunicazioni.jsx?v=245"></script>
+<script type="text/babel" src="admin-assistenza-data.jsx?v=245"></script>
+<script type="text/babel" src="admin-assistenza.jsx?v=245"></script>
+<script type="text/babel" src="admin-analisi-data.jsx?v=245"></script>
+<script type="text/babel" src="admin-analisi.jsx?v=245"></script>
+<script type="text/babel" src="admin-promozioni.jsx?v=245"></script>
+<script type="text/babel" src="admin-workflow-email.jsx?v=245"></script>
+<script type="text/babel" src="admin-team.jsx?v=245"></script>
+<script type="text/babel" src="admin-message-modal.jsx?v=245"></script>
+<script type="text/babel" src="admin-conformita-data.jsx?v=245"></script>
+<script type="text/babel" src="admin-economix-data.jsx?v=245"></script>
+<script type="text/babel" src="admin-economix-modello.jsx?v=245"></script>
+<script type="text/babel" src="admin-economix.jsx?v=245"></script>
+<script type="text/babel" src="admin-economix-bilancio.jsx?v=245"></script>
+<script type="text/babel" src="admin-economix-cassa.jsx?v=245"></script>
+<script type="text/babel" src="admin-economix-proiezione.jsx?v=245"></script>
+<script type="text/babel" src="admin-conformita.jsx?v=245"></script>
+<script type="text/babel" src="admin-conformita-registri.jsx?v=245"></script>
+<script type="text/babel" src="admin-conformita-eventi.jsx?v=245"></script>
+<script type="text/babel" src="admin-conformita-riesami.jsx?v=245"></script>
+<script type="text/babel" src="admin-app.jsx?v=245"></script>
 
 <script type="text/babel">
   const root = ReactDOM.createRoot(document.getElementById('root'));
