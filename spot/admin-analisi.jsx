@@ -51,9 +51,11 @@ function AnCard({ titolo, sotto, destra, children, piede }) {
 // Il riquadro standard di questa sezione: nome, valore, formula, e la lettura
 // che dipende dal valore. `fasce` arriva già ordinata dal caso peggiore.
 function AnMetrica({ label, valore, num, formula, fasce, sotto, grande }) {
-  // `num` è il valore grezzo su cui si sceglie la fascia: `valore` è già
-  // formattato per essere letto, e su una stringa un confronto non significa
-  // niente — la lettura uscirebbe sempre l'ultima.
+  // Le fasce servono solo a scegliere il COLORE: il commento a parole non si
+  // stampa. Un numero verde o rosso dice già da che parte sta, e la frase che
+  // lo ripeteva a parole era rumore. `num` è il valore grezzo su cui si sceglie
+  // la fascia — su una stringa già formattata il confronto non significherebbe
+  // niente.
   const lettura = fasce ? parLettura(Number(num ?? 0), fasce) : null;
   const tono = lettura ? (ADM[lettura.tono] || ADM.TEXT) : ADM.TEXT;
   return (
@@ -61,7 +63,6 @@ function AnMetrica({ label, valore, num, formula, fasce, sotto, grande }) {
       <div style={{fontSize:11.8, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
       <div style={{fontSize: grande ? 30 : 25, fontWeight:800, color:tono, letterSpacing:'-0.03em', lineHeight:1}}>{valore}</div>
       {formula && <div><AnFormula>{formula}</AnFormula></div>}
-      {lettura && <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.45}}>{lettura.testo}</div>}
       {sotto && <div style={{fontSize:12.4, color:ADM.MUTED_SOFT, lineHeight:1.45}}>{sotto}</div>}
     </div>
   );
@@ -172,7 +173,7 @@ function AnSalute({ onNav }) {
       ], valoreFascia: S.mrr,
     },
     {
-      label:'Crescita mensile', valore: anSegno(S.crescita),
+      label:'Crescita mensile', valore: anSegno(S.crescita), sotto:`Da ${anEur(S.mrr / (1 + S.crescita / 100))} del mese prima`,
       formula:'(mese − mese prima) ÷ mese prima',
       fasce:[
         { fino:0, tono:'DANGER', testo:'Si sta restringendo: o si è perso un cliente grosso, o gli extra sono calati.' },
@@ -193,6 +194,7 @@ function AnSalute({ onNav }) {
     },
     {
       label:'Abbandono annuo', valore: anPct(S.churnAnnuo),
+      sotto:`Su ${AN_CHURN.churned} disdette · forbice ${anPct(AN_CHURN.incertezza[0], 1)}–${anPct(AN_CHURN.incertezza[1], 1)}`,
       formula:'disdette ÷ base × 12 mesi',
       fasce:[
         { fino:5, tono:'OK', testo:`Basso, ma su ${AN_CHURN.churned} disdette osservate: la forbice vera è ${anPct(AN_CHURN.incertezza[0], 0)}–${anPct(AN_CHURN.incertezza[1], 0)}.` },
@@ -201,7 +203,7 @@ function AnSalute({ onNav }) {
       ], valoreFascia: S.churnAnnuo,
     },
     {
-      label:'Locali fermi', valore: anNum(S.aRischio),
+      label:'Locali fermi', valore: anNum(S.aRischio), sotto:`${anPct(AN_CHURN.quotaARischio, 0)} della base installata`,
       formula:'attivi che non entrano da oltre 30 giorni',
       fasce:[
         { fino:1, tono:'OK', testo:'Nessuno fermo: tutti hanno lavorato nell’ultimo mese.' },
@@ -210,7 +212,7 @@ function AnSalute({ onNav }) {
       ], valoreFascia: S.aRischio,
     },
     {
-      label:'Attivati sopra soglia', valore: anPct(S.quotaSopraSoglia, 0),
+      label:'Attivati sopra soglia', valore: anPct(S.quotaSopraSoglia, 0), sotto:`${S.sopraSoglia} locali su ${S.attivi} attivi`,
       formula:`attivi oltre il ${PAR.SOGLIA_DIGITALE}% di ordini digitali ÷ attivi`,
       fasce:[
         { fino:30, tono:'DANGER', testo:'Due terzi della base non ha ancora acceso il prodotto: il valore promesso non lo stanno vedendo.' },
@@ -222,13 +224,11 @@ function AnSalute({ onNav }) {
   return (
     <AnCard
       titolo="Stiamo andando bene?"
-      sotto="Le sei righe che rispondono in cinque secondi · ognuna con la formula e cosa vuol dire questo valore"
-      piede={<>Margine di contribuzione della base installata: <strong style={{color:ADM.TEXT}}>{anEur(S.margineContribuzione)}</strong> al mese,
-        di cui {S.localiInPerdita} local{S.localiInPerdita === 1 ? 'e costa' : 'i costano'} più di quanto rende. Il dettaglio è in Locali.</>}
+      sotto="Sei numeri, la formula di ciascuno, e il colore che dice da che parte stanno"
     >
       <div style={{padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
         {voci.map(v => (
-          <AnMetrica key={v.label} label={v.label} valore={v.valore} num={v.valoreFascia} formula={v.formula} fasce={v.fasce}/>
+          <AnMetrica key={v.label} label={v.label} valore={v.valore} num={v.valoreFascia} formula={v.formula} fasce={v.fasce} sotto={v.sotto}/>
         ))}
       </div>
     </AnCard>
@@ -398,6 +398,7 @@ function AnChurn() {
             { tono:'DANGER', testo:'Abbastanza da fare una statistica, e da doverla spiegare.' },
           ]}/>
         <AnMetrica label="Tasso annuo" valore={anPct(C.tassoAnnuo)} num={C.tassoAnnuo}
+          sotto={`Forbice al 90%: ${anPct(C.incertezza[0], 1)} – ${anPct(C.incertezza[1], 1)}`}
           formula="disdette ÷ base × 12"
           fasce={[
             { fino:5, tono:'OK', testo:'Sotto la media di settore, ma su pochissimi eventi.' },
@@ -405,12 +406,14 @@ function AnChurn() {
             { tono:'DANGER', testo:'Sopra la media: l’acquisizione non basta a compensare.' },
           ]}/>
         <AnMetrica label="Ricavo perso" valore={anEur(C.mrrPerso)} num={C.mrrPerso}
+          sotto={`${anPct(C.churnRicavoAnnuo)} del ricavo della base installata`}
           formula="somma dei canoni delle disdette"
           fasce={[
             { fino:1, tono:'OK', testo:'Chi se n’è andato non pagava: perdita di ricavo nulla.' },
             { tono:'WARN', testo:`È ${anPct(C.churnRicavoAnnuo)} del ricavo della base installata.` },
           ]}/>
         <AnMetrica label="Locali fermi" valore={anNum(C.aRischio)} num={C.aRischio}
+          sotto={`${anPct(C.quotaARischio, 0)} della base installata`}
           formula="attivi senza accessi da oltre 30 giorni"
           fasce={[
             { fino:1, tono:'OK', testo:'Nessuno fermo.' },
@@ -599,7 +602,7 @@ function AnDispositivi({ filtri }) {
               { fino:1, tono:'DANGER', testo:'Nessun dispositivo in mano ai camerieri: si incassa solo alla cassa fissa.' },
               { tono:'OK', testo:`Mediana ${anNum(parMediana(locali.map(l => l.posAttivi)), 0)} per locale · ${anPct(parMediana(locali.map(l => l.quotaIncassoPos)), 0)} degli incassi passa da lì.` },
             ]}
-            sotto={`${locali.filter(l => l.posAttivi === 0).length} locali non hanno nessun dispositivo attivo`}/>
+            sotto={`Mediana ${anNum(parMediana(locali.map(l => l.posAttivi)), 0)} per locale · ${anPct(parMediana(locali.map(l => l.quotaIncassoPos)), 0)} degli incassi ci passa · ${locali.filter(l => l.posAttivi === 0).length} locali senza nessun dispositivo`}/>
         </div>
       </AnCard>
 
@@ -714,8 +717,9 @@ function AnCrescita() {
         <div style={{padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
           <AnMetrica label="Inviti condivisi" valore={anNum(I.condivisi)} num={I.condivisi}
             formula="codici generati e mandati fuori, 12 mesi"
-            fasce={[{ tono:'TEXT', testo:`${anPct(I.origini[0].condivisi / I.condivisi * 100, 0)} li mandano i locali, il resto gli utenti.` }]}/>
+            sotto={`${anPct(I.origini[0].condivisi / I.condivisi * 100, 0)} dai locali, il resto dagli utenti`}/>
           <AnMetrica label="Riscattati" valore={anNum(I.riscattati)} num={I.tassoRiscatto}
+            sotto={`${anPct(I.tassoRiscatto, 0)} degli inviti condivisi`}
             formula="inviti usati ÷ inviti condivisi"
             fasce={[
               { fino:10, tono:'DANGER', testo:'Quasi nessuno li usa: il codice gira ma non convince.' },
@@ -726,6 +730,7 @@ function AnCrescita() {
             formula="riscatti da parte di una persona"
             fasce={[{ tono:'TEXT', testo:'Clienti nuovi arrivati senza spendere in campagne.' }]}/>
           <AnMetrica label="Diventati locali" valore={anNum(I.versoLocale)} num={I.versoLocale}
+            sotto={`${anPct(I.quotaVersoLocale, 0)} dei riscatti`}
             formula="riscatti da parte di un ristoratore"
             fasce={[
               { fino:1, tono:'WARN', testo:'Nessun ristoratore ne ha portato un altro: il passaparola fra locali non è partito.' },
@@ -835,7 +840,7 @@ function AnDeflection() {
       <div style={{padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
         <AnMetrica label="Consultazioni" valore={anNum(D.aperture)} num={D.aperture}
           formula={`${D.faq} FAQ + ${D.guide} guide, aperture del mese`}
-          fasce={[{ tono:'TEXT', testo:`${anNum(D.apertureFaq)} sulle FAQ, ${anNum(D.apertureGuide)} sulle guide.` }]}/>
+          sotto={`${anNum(D.apertureFaq)} sulle FAQ, ${anNum(D.apertureGuide)} sulle guide`}/>
         <AnMetrica label="Si risolvono da soli" valore={anPct(D.quotaRisolta, 0)} num={D.quotaRisolta}
           formula="letture senza ticket entro 48h ÷ letture"
           fasce={[
@@ -844,11 +849,9 @@ function AnDeflection() {
             { tono:'OK', testo:'La maggioranza si risolve da sola. Le pagine stanno lavorando.' },
           ]}/>
         <AnMetrica label="Ticket evitati" valore={anNum(D.evitati)} num={D.evitati}
-          formula="letture risolte ÷ 6,2 letture per ticket evitato"
-          fasce={[{ tono:'OK', testo:'Al mese. È il carico che l’assistenza non ha dovuto gestire.' }]}/>
+          formula="letture risolte ÷ 6,2 letture per ticket evitato" sotto="Al mese"/>
         <AnMetrica label="Costo evitato" valore={anEur(D.costoEvitato)} num={D.costoEvitato}
-          formula={`ticket evitati × ${anEur(PAR.COSTO_TICKET, 2)}`}
-          fasce={[{ tono:'OK', testo:'Al mese. È il ritorno del tempo speso a scrivere le pagine.' }]}/>
+          formula={`ticket evitati × ${anEur(PAR.COSTO_TICKET, 2)}`} sotto="Al mese"/>
       </div>
       {D.top.length > 0 && (
         <div style={{padding:'0 22px 18px'}}>
