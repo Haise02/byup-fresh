@@ -184,14 +184,22 @@ const VAL_INDICATORI = [
   // `taglia: true` = grandezza di livello, non un tasso. Fra due locali diversi
   // dice quanto sono grandi, non quanto funzionano: il confronto fra gruppi su
   // queste righe va letto come un avvertimento, non come un risultato.
-  { k:'spesa',            label:'Spesa per coperto',        unita:'€',      dec:2, verso:'su',  perche:'Quanto lascia ogni cliente · la leva più diretta sul ricavo' },
-  { k:'coperti',          label:'Coperti serviti al giorno',unita:'',       dec:0, verso:'su',  taglia:true, perche:'Quante persone passano davvero dal locale · solo quelle servite al tavolo, l’asporto non occupa una sedia' },
-  { k:'turni',            label:'Coperti per posto al giorno', unita:'×',   dec:1, verso:'su',  taglia:true, perche:'Quante volte si rigira lo stesso tavolo in una giornata: la leva che un ristoratore guarda per prima' },
-  { k:'tempo',            label:'Tempo di servizio',        unita:'min',    dec:0, verso:'giu', perche:'Ordine → conto chiuso · è quello che rende possibile il turno in più' },
-  { k:'revpash',          label:'RevPASH',                  unita:'€',      dec:2, verso:'su',  taglia:true, perche:'Ricavo per posto per ora · l’indice sintetico dell’industria: prezzo, riempimento e velocità in un numero' },
-  { k:'costoSalaCoperto', label:'Costo di sala per coperto',unita:'€',      dec:2, verso:'giu', perche:'Il risparmio, non solo il ricavo · meno gesti per servire lo stesso tavolo' },
-  { k:'ritorno',          label:'Clienti che tornano',      unita:'%',      dec:0, verso:'su',  perche:'Entro 60 giorni · dice se il valore si ripete o è un colpo solo' },
-  { k:'ricavoMese',       label:'Ricavo mensile',           unita:'€',      dec:0, verso:'su',  taglia:true, perche:'La riga in fondo, in euro' },
+  { k:'spesa', label:'Spesa per coperto', unita:'€', dec:2, verso:'su',
+    formula:'scontrino ÷ commensali', perche:'Quanto lascia ogni cliente' },
+  { k:'coperti', label:'Coperti serviti', unita:'', dec:0, verso:'su', taglia:true,
+    formula:'ordini × commensali × quota sala', perche:'Quante persone passano al tavolo' },
+  { k:'turni', label:'Coperti per posto', unita:'×', dec:1, verso:'su', taglia:true,
+    formula:'coperti ÷ posti a sedere', perche:'Quante volte si rigira lo stesso tavolo' },
+  { k:'tempo', label:'Tempo di servizio', unita:'min', dec:0, verso:'giu',
+    formula:'chiusura conto − conferma ordine', perche:'Quello che rende possibile il turno in più' },
+  { k:'revpash', label:'RevPASH', unita:'€', dec:2, verso:'su', taglia:true,
+    formula:'ricavo ÷ (posti × ore di servizio)', perche:'Prezzo, riempimento e velocità in un numero solo' },
+  { k:'costoSalaCoperto', label:'Costo di sala per coperto', unita:'€', dec:2, verso:'giu',
+    formula:'minuti di sala ÷ 60 × € 13,20/h', perche:'Il risparmio, non solo il ricavo' },
+  { k:'ritorno', label:'Clienti che tornano', unita:'%', dec:0, verso:'su',
+    formula:'clienti con ≥2 visite in 60gg ÷ clienti unici', perche:'Dice se il valore si ripete o è un colpo solo' },
+  { k:'ricavoMese', label:'Ricavo mensile', unita:'€', dec:0, verso:'su', taglia:true,
+    formula:'coperti × spesa per coperto × 28', perche:'La riga in fondo, in euro' },
 ];
 
 const valMediana = (arr) => {

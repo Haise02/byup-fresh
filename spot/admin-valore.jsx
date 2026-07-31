@@ -1,482 +1,432 @@
 // ════════════════════════════════════════════════════════════════════════════
-// VALORE PER IL LOCALE · la tab che dimostra il ritorno — le viste
+// VALORE PER IL LOCALE · le viste
 // ════════════════════════════════════════════════════════════════════════════
 //
-// Una sola domanda, e in ordine: quanto vale, per chi, quanto è solido, e con
-// chi bisogna parlarne domani mattina. Il modello sta in admin-valore-data.jsx.
+// Una domanda sola: byup fa guadagnare chi lo usa? Sotto, in ordine: quanto,
+// su cosa, da che punto in poi, a chi, e con chi parlarne domani. Il modello —
+// e tutta la discussione sul metodo — sta in admin-valore-data.jsx.
 
 const valNum = (v, dec = 0) => Number(v).toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const valEur = (v, dec = 0) => '€ ' + valNum(v, dec);
-const valSegno = (v, dec = 1) => (v >= 0 ? '+' : '') + valNum(v, dec) + '%';
-// Un valore va scritto con la sua unità: 4,8 turni non è 4,8 euro.
+const valSegno = (v, dec = 1) => {
+  const arrotondato = Number(Math.abs(v).toFixed(dec));
+  if (arrotondato === 0) return '0%';                       // niente «−0%»
+  return (v >= 0 ? '+' : '−') + valNum(arrotondato, dec) + '%';
+};
 const valConUnita = (v, ind) => ind.unita === '€' ? valEur(v, ind.dec)
   : ind.unita === '%' ? valNum(v, ind.dec) + '%'
   : ind.unita === '×' ? valNum(v, ind.dec) + '×'
-  : ind.unita === 'min' ? valNum(v, ind.dec) + ' min'
+  : ind.unita === 'min' ? valNum(v, ind.dec) + '′'
   : valNum(v, ind.dec);
-// «Meglio» non è sempre «di più»: sul tempo di servizio e sul costo di sala,
-// il segno buono è quello negativo.
-const valBuono = (delta, ind) => ind.verso === 'su' ? delta > 0 : delta < 0;
-const valTono = (delta, ind) => Math.abs(delta) < 0.5 ? ADM.MUTED : valBuono(delta, ind) ? ADM.OK : ADM.DANGER;
+// «Meglio» non è sempre «di più»: sul tempo e sul costo il segno buono è il meno.
+const valTono = (d, ind) => Math.abs(d) < 0.5 ? ADM.MUTED_LIGHT
+  : (ind.verso === 'su' ? d > 0 : d < 0) ? ADM.OK : ADM.DANGER;
 
-function ValCifra({ label, valore, sotto, tono = 'TEXT', grande }) {
+const VAL_MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace';
+
+// Una formula si legge come una formula, quindi va scritta come una formula.
+function ValFormula({ children, chiaro }) {
   return (
-    <div style={{padding: grande ? '18px 20px' : '14px 16px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:10}}>
-      <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
-      <div style={{fontSize: grande ? 34 : 26, fontWeight:800, color:ADM[tono] || ADM.TEXT, letterSpacing:'-0.03em', marginTop:5, lineHeight:1}}>{valore}</div>
-      {sotto && <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:6, lineHeight:1.45}}>{sotto}</div>}
-    </div>
+    <span style={{
+      fontFamily: VAL_MONO, fontSize:11.6, letterSpacing:'-0.01em',
+      color: chiaro ? ADM.MUTED_SOFT : ADM.MUTED,
+      background: chiaro ? 'transparent' : ADM.NEUTRAL_SOFT,
+      padding: chiaro ? 0 : '2px 6px', borderRadius:5, whiteSpace:'nowrap',
+    }}>{children}</span>
   );
 }
 
-function ValNota({ children, tono = 'neutro' }) {
-  const c = tono === 'cauto' ? ADM.WARN : ADM.MUTED;
+function ValCard({ titolo, sotto, destra, children, piede }) {
   return (
-    <div style={{display:'flex', gap:8, alignItems:'flex-start', fontSize:12.8, color:c, lineHeight:1.5}}>
-      <span style={{flexShrink:0, marginTop:2}}><BuIcons.info size={13} color={c}/></span>
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function ValTestata({ titolo, sotto, destra }) {
-  return (
-    <div style={{padding:'14px 22px 12px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16, flexWrap:'wrap'}}>
-      <div style={{minWidth:0}}>
-        <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{titolo}</div>
-        {sotto && <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{sotto}</div>}
+    <AdmCard padding={0}>
+      <div style={{padding:'15px 22px 13px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', justifyContent:'space-between', alignItems:'center', gap:16, flexWrap:'wrap'}}>
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{titolo}</div>
+          {sotto && <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>{sotto}</div>}
+        </div>
+        {destra}
       </div>
-      {destra}
-    </div>
+      {children}
+      {piede && (
+        <div style={{padding:'12px 22px', borderTop:`1px solid ${ADM.BORDER_SOFT}`, background:ADM.PANEL_SOFT, fontSize:12.6, color:ADM.MUTED, lineHeight:1.5}}>
+          {piede}
+        </div>
+      )}
+    </AdmCard>
   );
 }
 
 // ═══════════ 1 · Il numero ══════════════════════════════════════════════════
-function ValIlNumero() {
+function ValHero() {
   const ric = VAL_PREPOST.find(i => i.k === 'ricavoMese');
   const C = VAL_CONTO;
+  const vincono = ric.n - ric.senzaEffetto;
   return (
-    <AdmCard padding={0}>
-      <ValTestata
-        titolo="Quanto vale byup per un locale che lo usa"
-        sotto={`Confronto prima/dopo dentro lo stesso locale, al netto della deriva di mercato · ${ric.n} locali che hanno superato il ${VAL_SOGLIA}% di ordini digitali`}
-      />
-      <div style={{padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-        <ValCifra grande label="Ricavo mensile" valore={valSegno(ric.delta)} tono="OK"
-          sotto={`Mediana · ${valEur(C.ricavoAggiuntivo)} in più al mese su ${valEur(C.ricavoMedianoBase)} di partenza`}/>
-        <ValCifra grande label="Margine aggiuntivo" valore={valEur(C.margineAggiuntivo)}
-          sotto={`Al netto del food cost · margine lordo di rete ${C.margineLordo}%`}/>
-        <ValCifra grande label="Peso del canone" valore={valNum(C.canoneSuMargine, 1) + '%'} tono="PINK_DARK"
-          sotto={`Il canone mediano (${valEur(C.canoneMediano, 2)}) è questa quota del margine aggiuntivo · ${valNum(C.ritornoPerEuro, 0)}€ di margine per ogni € speso`}/>
-        <ValCifra grande label="Ci guadagnano" valore={`${ric.n - ric.senzaEffetto} su ${ric.n}`} tono="OK"
-          sotto={`Locali che dopo la soglia hanno migliorato il ricavo · gli altri ${ric.senzaEffetto} no, ed è la coda che una media nasconderebbe`}/>
-      </div>
-      <div style={{padding:'0 22px 18px', display:'flex', flexDirection:'column', gap:8}}>
-        <ValNota>
-          <strong style={{color:ADM.TEXT}}>La frase, se serve dirla in una riga:</strong> un locale che porta gli ordini digitali sopra il {VAL_SOGLIA}% fa
-          circa <strong style={{color:ADM.TEXT}}>{valSegno(ric.delta, 0)}</strong> di ricavo, che al margine sono {valEur(C.margineAggiuntivo)} al mese —
-          contro un canone di {valEur(C.canoneMediano, 2)}. Il resto di questa pagina serve a difendere quel numero.
-        </ValNota>
-        <ValNota tono="cauto">
-          <strong style={{color:ADM.TEXT}}>Non è una promessa.</strong> È la mediana di {ric.n} locali, {ric.senzaEffetto} dei quali non ne hanno tratto nulla,
-          e {C.sottoCosto} non coprono nemmeno il canone. Chi vende deve dire la mediana <em>e</em> la coda.
-        </ValNota>
-        <ValNota tono="cauto">
-          <strong style={{color:ADM.TEXT}}>Il moltiplicatore dipende da quanto è grande chi lo riceve.</strong> La rete di oggi è fatta di locali ad alto volume
-          — il ricavo mediano di partenza è {valEur(C.ricavoMedianoBase)} al mese, che è ordini/giorno × scontrino medio del registro locali —
-          e su quella taglia qualunque canone sparisce. Su un locale da {valEur(C.piccolo.ricavo)} al mese lo stesso effetto vale {valEur(C.piccolo.margine)} di margine
-          contro {valEur(C.piccolo.canone, 2)} di Starter: {valNum(C.piccolo.volte, 1)}× invece di {valNum(C.ritornoPerEuro, 0)}×. Positivo lo stesso, ma è l'ordine di grandezza da usare
-          quando si parla con un locale piccolo.
-        </ValNota>
+    <AdmCard padding={0} style={{overflow:'hidden'}}>
+      <div style={{display:'grid', gridTemplateColumns:'minmax(290px, 0.8fr) 1.2fr'}}>
+        {/* Il numero, e basta */}
+        <div style={{padding:'30px 28px', background:`linear-gradient(160deg, ${ADM.PINK_BG_SOFT}, #fff 78%)`, borderRight:`1px solid ${ADM.BORDER_SOFT}`}}>
+          <div style={{fontSize:12.2, fontWeight:700, color:ADM.PINK_DARK, textTransform:'uppercase', letterSpacing:'0.07em'}}>
+            Ricavo mensile
+          </div>
+          <div style={{fontSize:70, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.045em', lineHeight:1, margin:'10px 0 4px'}}>
+            {valSegno(ric.delta)}
+          </div>
+          <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:600}}>
+            {valEur(C.ricavoAggiuntivo)} in più al mese
+          </div>
+          <div style={{marginTop:16, paddingTop:14, borderTop:`1px solid ${ADM.PINK_SOFT}`}}>
+            <ValFormula>(dopo − prima) ÷ prima − deriva</ValFormula>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:9, lineHeight:1.55}}>
+              Mediana di <strong style={{color:ADM.TEXT}}>{ric.n} locali</strong> misurati prima e dopo aver superato
+              il <strong style={{color:ADM.TEXT}}>{VAL_SOGLIA}%</strong> di ordini digitali, su {valEur(C.ricavoMedianoBase)} di partenza.
+              La deriva è quanto si è mosso, nello stesso periodo, chi la soglia non l'ha superata.
+            </div>
+          </div>
+        </div>
+
+        {/* Cosa ne resta in tasca, e a quanti */}
+        <div style={{padding:'26px 28px', display:'flex', flexDirection:'column', gap:18}}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:20}}>
+            <div>
+              <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Margine</div>
+              <div style={{fontSize:30, fontWeight:800, color:ADM.OK, letterSpacing:'-0.03em', lineHeight:1.1, margin:'5px 0 6px'}}>{valEur(C.margineAggiuntivo)}</div>
+              <ValFormula chiaro>ricavo in più × {C.margineLordo}% margine lordo</ValFormula>
+            </div>
+            <div>
+              <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Canone</div>
+              <div style={{fontSize:30, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', lineHeight:1.1, margin:'5px 0 6px'}}>{valEur(C.canoneMediano, 2)}</div>
+              <ValFormula chiaro>il {valNum(C.canoneSuMargine, 1)}% di quel margine</ValFormula>
+            </div>
+          </div>
+
+          {/* Quanti hanno visto il ritorno, uno per barretta */}
+          <div>
+            <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:8}}>
+              <span style={{fontSize:19, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{vincono} su {ric.n}</span>
+              <span style={{fontSize:13, color:ADM.MUTED}}>hanno migliorato il ricavo · {ric.senzaEffetto} no</span>
+            </div>
+            <div style={{display:'flex', gap:5}}>
+              {Array.from({length: ric.n}, (_, i) => (
+                <span key={i} style={{
+                  flex:1, height:9, borderRadius:3,
+                  background: i < vincono ? ADM.OK : ADM.NEUTRAL_SOFT,
+                  border: i < vincono ? 'none' : `1px solid ${ADM.BORDER}`,
+                }}/>
+              ))}
+            </div>
+          </div>
+
+          <div style={{fontSize:12.6, color:ADM.MUTED, lineHeight:1.55, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+            Su un locale piccolo il conto si sgonfia ma resta positivo: {valEur(C.piccolo.ricavo)} di ricavo → {valEur(C.piccolo.margine)} di margine
+            contro {valEur(C.piccolo.canone, 2)} di Starter, cioè <strong style={{color:ADM.TEXT}}>{valNum(C.piccolo.volte, 1)}×</strong> invece
+            di {valNum(C.ritornoPerEuro, 0)}× — la rete di oggi è fatta di locali grandi, e su quelli qualunque canone sparisce.
+          </div>
+        </div>
       </div>
     </AdmCard>
   );
 }
 
-// ═══════════ 2 · Le due popolazioni ═════════════════════════════════════════
-function ValPopolazioni() {
-  const gruppi = [
-    { nome: `Adottanti · oltre il ${VAL_SOGLIA}%`, arr: VAL_ADOTTANTI, colore: ADM.OK },
-    { nome: `Sotto soglia · fino al ${VAL_SOGLIA}%`, arr: VAL_SOTTO, colore: ADM.MUTED },
-  ];
-  const car = [
-    { label:'Locali', f: (g) => valNum(g.length) },
-    { label:'Adozione mediana', f: (g) => valNum(valMediana(g.map(l => l.adozione)), 1) + '%' },
-    { label:'Posti a sedere (mediana)', f: (g) => valNum(valMediana(g.map(l => l.posti))) },
-    { label:'Ordini/giorno (mediana)', f: (g) => valNum(valMediana(g.map(l => l.ordiniGiorno))) },
-    { label:'Tipi prevalenti', f: (g) => {
-        const c = {}; g.forEach(l => { c[l.tipo] = (c[l.tipo] || 0) + 1; });
-        return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} ${n}`).join(' · ');
-      } },
-  ];
+// ═══════════ 2 · Il confronto ═══════════════════════════════════════════════
+// Un dot plot per riga: la stessa differenza misurata in tre modi, sulla stessa
+// scala. Più il pallino vuoto è lontano da quello pieno, più il confronto
+// ingenuo — adottanti contro non adottanti — sta esagerando.
+const VAL_CHIAVE_PRE = {
+  spesa:'spesaPre', coperti:'copertiPre', turni:'turniPre', tempo:'tempoPre',
+  revpash:'revpashPre', costoSalaCoperto:'costoSalaCopertoPre', ritorno:'ritornoPre', ricavoMese:'ricavoMesePre',
+};
+function ValConfronto() {
+  const post = (k) => valMediana(VAL_CROSSERS.map(l => l[k]));
+  const pre = (k, delta) => post(k) / (1 + delta / 100);
   return (
-    <AdmCard padding={0}>
-      <ValTestata
-        titolo="I due gruppi, prima di confrontarli"
-        sotto="Chi sono, e quanto si somigliano · se non si somigliano, la differenza grezza non misura byup"
-      />
-      <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr', columnGap:16, padding:'11px 22px', fontSize:12.4, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER}`}}>
-        <div>Caratteristica</div>
-        {gruppi.map(g => <div key={g.nome} style={{textAlign:'right'}}>{g.nome}</div>)}
-      </div>
-      {car.map((c, i) => (
-        <div key={c.label} style={{display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr', columnGap:16, padding:'11px 22px', alignItems:'center', borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-          <div style={{fontSize:13.4, color:ADM.TEXT, fontWeight:500}}>{c.label}</div>
-          {gruppi.map(g => (
-            <div key={g.nome} style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{c.f(g.arr)}</div>
+    <ValCard
+      titolo="Gli otto indicatori del conto economico di un locale"
+      sotto="Ognuno con la sua formula, e la stessa differenza misurata in tre modi"
+      destra={
+        <div style={{display:'flex', gap:15, alignItems:'center', fontSize:12.2, color:ADM.MUTED}}>
+          <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
+            <span style={{width:9, height:9, borderRadius:'50%', border:`1.5px solid ${ADM.MUTED_LIGHT}`, background:'#fff'}}/>grezzo
+          </span>
+          <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
+            <span style={{width:9, height:9, borderRadius:'50%', background:ADM.INK_SOFT}}/>appaiato
+          </span>
+          <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
+            <span style={{width:11, height:11, borderRadius:'50%', background:ADM.TEXT}}/><strong style={{color:ADM.TEXT}}>prima/dopo</strong>
+          </span>
+        </div>
+      }
+      piede={<>
+        <strong style={{color:ADM.TEXT}}>Pieno</strong> = lo stesso locale prima e dopo, l'unica lettura attribuibile a noi.
+        <strong style={{color:ADM.TEXT}}> Appaiato</strong> = adottante contro non adottante di pari volume.
+        <strong style={{color:ADM.TEXT}}> Vuoto</strong> = i due gruppi come stanno: sulle grandezze di livello misura soprattutto che chi adotta è
+        un locale più grande, e sul ricavo arriva a dire {valSegno(VAL_GREZZA.find(x => x.k === 'ricavoMese').delta, 0)}.
+      </>}
+    >
+      {VAL_GREZZA.map((g, i) => {
+        const ap = VAL_APPAIATA.find(x => x.k === g.k);
+        const pp = VAL_PREPOST.find(x => x.k === g.k);
+        const scala = Math.max(Math.abs(g.delta), Math.abs(ap.delta), Math.abs(pp.delta), 1);
+        const x = (d) => 50 + (d / scala) * 46;
+        const tono = valTono(pp.delta, g);
+        return (
+          <div key={g.k} style={{
+            display:'grid', gridTemplateColumns:'minmax(0,2.05fr) 0.95fr minmax(140px,1.2fr) 0.58fr', columnGap:18,
+            padding:'13px 22px', alignItems:'center',
+            borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+          }}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:14, color:ADM.TEXT, letterSpacing:'-0.005em', lineHeight:1.35}}>
+                <strong style={{fontWeight:700}}>{g.label}</strong>
+                <span style={{color:ADM.MUTED_SOFT, fontWeight:500}}> · {g.perche}</span>
+              </div>
+              <div style={{marginTop:5}}><ValFormula>{g.formula}</ValFormula></div>
+            </div>
+
+            {/* prima → dopo, dentro lo stesso locale */}
+            <div style={{display:'flex', alignItems:'baseline', gap:7, justifyContent:'flex-end', fontVariantNumeric:'tabular-nums'}}>
+              <span style={{fontSize:13.4, color:ADM.MUTED_SOFT}}>{valConUnita(pre(g.k, pp.delta), g)}</span>
+              <span style={{fontSize:12, color:ADM.MUTED_LIGHT}}>→</span>
+              <span style={{fontSize:15, fontWeight:700, color:ADM.TEXT}}>{valConUnita(post(g.k), g)}</span>
+            </div>
+
+            {/* le tre letture, sulla stessa scala */}
+            <div style={{position:'relative', height:26}}>
+              <div style={{position:'absolute', left:0, right:0, top:'50%', height:1, background:ADM.BORDER}}/>
+              <div style={{position:'absolute', left:'50%', top:3, bottom:3, width:1, background:ADM.INK_SOFT}}/>
+              <span style={{position:'absolute', left:`${x(g.delta)}%`, top:'50%', width:11, height:11, marginLeft:-5.5, marginTop:-5.5, borderRadius:'50%', background:'#fff', border:`1.5px solid ${ADM.MUTED_LIGHT}`}}/>
+              <span style={{position:'absolute', left:`${x(ap.delta)}%`, top:'50%', width:10, height:10, marginLeft:-5, marginTop:-5, borderRadius:'50%', background:ADM.INK_SOFT}}/>
+              <span style={{position:'absolute', left:`${x(pp.delta)}%`, top:'50%', width:13, height:13, marginLeft:-6.5, marginTop:-6.5, borderRadius:'50%', background:tono, boxShadow:'0 0 0 3px #fff'}}/>
+            </div>
+
+            <div style={{fontSize:17, fontWeight:800, color:tono, textAlign:'right', letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums'}}>
+              {valSegno(pp.delta)}
+            </div>
+          </div>
+        );
+      })}
+    </ValCard>
+  );
+}
+
+// ═══════════ 3 · La curva ═══════════════════════════════════════════════════
+function ValCurva() {
+  const f = VAL_FASCE.filter(x => x.n > 0);
+  const W = 820, H = 220, padX = 52, padY = 30;
+  const serie = [
+    { k:'ricavoMese', label:'Ricavo', colore:ADM.OK, dy:-13 },
+    { k:'tempo', label:'Tempo di servizio', colore:ADM.INFO, dy:19 },
+  ];
+  const vals = serie.flatMap(s => f.map(b => b[s.k]));
+  const lo = Math.min(...vals, 0) - 2, hi = Math.max(...vals, 0) + 3;
+  const range = (hi - lo) || 1;
+  const xFor = (i) => padX + (i / Math.max(1, f.length - 1)) * (W - padX * 2);
+  const yFor = (v) => padY + (1 - (v - lo) / range) * (H - padY * 2);
+  const iSoglia = f.findIndex(b => b.min >= VAL_SOGLIA);
+  return (
+    <ValCard
+      titolo="Da che punto in poi il ritorno si vede"
+      sotto="Variazione di ogni locale rispetto a sé stesso, mediana per fascia · così la taglia esce dal conto"
+      destra={
+        <div style={{display:'flex', gap:15}}>
+          {serie.map(s => (
+            <span key={s.k} style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.4, color:ADM.TEXT, fontWeight:600}}>
+              <span style={{width:16, height:3, borderRadius:2, background:s.colore}}/>{s.label}
+            </span>
           ))}
         </div>
-      ))}
-      <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:8}}>
-        <ValNota tono="cauto">
-          <strong style={{color:ADM.TEXT}}>Qui sta il trucco di tutti i confronti fatti male.</strong> Chi adotta è mediamente un locale più grande e gestito
-          meglio: parte da più in alto <em>prima</em> di byup. Se ci si ferma alla colonna «grezza» della tabella qui sotto, si sta vendendo
-          la bravura del ristoratore come se fosse merito nostro.
-        </ValNota>
-        <ValNota>
-          Per questo le letture sono tre, e l'unica da portare fuori è la terza: lo stesso locale prima e dopo, con la deriva di mercato tolta.
-        </ValNota>
+      }
+      piede={<>L'effetto <strong style={{color:ADM.TEXT}}>satura</strong>: i primi punti di adozione valgono molto, dal 30% in su si guadagna poco altro.
+        Per questo la soglia commerciale sta al {VAL_SOGLIA}% e non al 40% — è lì che il salto è quasi tutto fatto, ed è un obiettivo raggiungibile.</>}
+    >
+      <div style={{padding:'16px 22px 24px'}}>
+        <svg viewBox={`0 0 ${W} ${H + 14}`} style={{width:'100%', height:250}}>
+          {iSoglia > 0 && (() => {
+            const x0 = (xFor(iSoglia - 1) + xFor(iSoglia)) / 2;
+            return <g>
+              <rect x={x0} y={padY - 12} width={W - padX / 2 - x0} height={H - padY * 2 + 24} fill={ADM.PINK} opacity="0.05"/>
+              <line x1={x0} x2={x0} y1={padY - 12} y2={H - padY + 12} stroke={ADM.PINK_SOFT} strokeWidth="1.5" strokeDasharray="4 4"/>
+              <text x={x0 + 8} y={padY - 2} fontSize="11.5" fill={ADM.PINK_DARK} fontWeight="700">soglia {VAL_SOGLIA}%</text>
+            </g>;
+          })()}
+          <line x1={padX - 14} x2={W - padX / 2} y1={yFor(0)} y2={yFor(0)} stroke={ADM.BORDER} strokeDasharray="3 4"/>
+          <text x={padX - 20} y={yFor(0) + 4} textAnchor="end" fontSize="11" fill={ADM.MUTED_SOFT} fontWeight="600">0%</text>
+          {serie.map(s => (
+            <g key={s.k}>
+              <path d={f.map((b, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(b[s.k])}`).join(' ')}
+                fill="none" stroke={s.colore} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+              {f.map((b, i) => (
+                <g key={i}>
+                  <circle cx={xFor(i)} cy={yFor(b[s.k])} r="4.6" fill="#fff" stroke={s.colore} strokeWidth="2.4"/>
+                  <text x={xFor(i)} y={yFor(b[s.k]) + s.dy} textAnchor="middle" fontSize="12" fill={s.colore} fontWeight="700">
+                    {valSegno(b[s.k], 1)}
+                  </text>
+                </g>
+              ))}
+            </g>
+          ))}
+          {f.map((b, i) => (
+            <g key={i}>
+              <text x={xFor(i)} y={H - 2} textAnchor="middle" fontSize="12.5" fill={ADM.TEXT} fontWeight="700">{b.label}</text>
+              <text x={xFor(i)} y={H + 12} textAnchor="middle" fontSize="11" fill={ADM.MUTED_SOFT}>{b.n} locali</text>
+            </g>
+          ))}
+        </svg>
       </div>
-    </AdmCard>
+    </ValCard>
   );
 }
 
-// ═══════════ 3 · Il confronto, tre letture ══════════════════════════════════
-function ValConfronto() {
-  const [aperto, setAperto] = useStateDash(null);
-  const perK = (arr, k) => arr.find(x => x.k === k);
-  return (
-    <AdmCard padding={0}>
-      <ValTestata
-        titolo="Gli otto indicatori, letti in tre modi"
-        sotto="Grezzo (da non usare da solo) · appaiato sul volume di ordini · prima/dopo dentro lo stesso locale, netto deriva"
-      />
-      <div style={{display:'grid', gridTemplateColumns:'1.9fr 1.15fr 1.15fr 0.95fr 0.95fr 1.1fr', columnGap:14, padding:'11px 22px', fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.04em', borderBottom:`1px solid ${ADM.BORDER}`}}>
-        <div>Indicatore</div>
-        <div style={{textAlign:'right'}}>Adottanti</div>
-        <div style={{textAlign:'right'}}>Sotto soglia</div>
-        <div style={{textAlign:'right'}}>Grezzo</div>
-        <div style={{textAlign:'right'}}>Appaiato</div>
-        <div style={{textAlign:'right'}}>Prima/dopo</div>
-      </div>
-      {VAL_GREZZA.map((g, i) => {
-        const ap = perK(VAL_APPAIATA, g.k);
-        const pp = perK(VAL_PREPOST, g.k);
-        const isOpen = aperto === g.k;
-        return (
-          <div key={g.k} style={{borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-            <div
-              onClick={() => setAperto(isOpen ? null : g.k)}
-              className="adm-row"
-              style={{
-                display:'grid', gridTemplateColumns:'1.9fr 1.15fr 1.15fr 0.95fr 0.95fr 1.1fr', columnGap:14,
-                padding:'12px 22px', alignItems:'center', cursor:'pointer',
-                background: isOpen ? ADM.PANEL_SOFT : 'transparent',
-              }}>
-              <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0}}>
-                <span style={{transform: isOpen ? 'rotate(90deg)' : 'none', transition:'transform .15s', display:'inline-flex', color:ADM.MUTED_SOFT}}>
-                  <BuIcons.chevronRight size={13}/>
-                </span>
-                <span style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{g.label}</span>
-              </div>
-              <div style={{fontSize:13.8, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valConUnita(g.adottanti, g)}</div>
-              <div style={{fontSize:13.8, color:ADM.MUTED, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valConUnita(g.sotto, g)}</div>
-              <div style={{fontSize:13.4, fontWeight:700, textAlign:'right', fontVariantNumeric:'tabular-nums', color: g.taglia ? ADM.WARN : ADM.MUTED_SOFT}}>
-                {g.taglia && <BuIcons.info size={11} color={ADM.WARN}/>} {valSegno(g.delta)}
-              </div>
-              <div style={{fontSize:13.4, fontWeight:700, color:ADM.MUTED, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valSegno(ap.delta)}</div>
-              <div style={{fontSize:14.6, fontWeight:800, color: valTono(pp.delta, g), textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valSegno(pp.delta)}</div>
-            </div>
-            {isOpen && (
-              <div style={{padding:'2px 22px 18px 44px', background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:10}}>
-                <div style={{fontSize:13.2, color:ADM.MUTED, lineHeight:1.5}}>
-                  <strong style={{color:ADM.TEXT}}>Perché è qui.</strong> {g.perche}.
-                  {' '}Direzione buona: {g.verso === 'su' ? 'più alto' : 'più basso'}.
-                </div>
-                <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
-                  <div style={{padding:'10px 12px', background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:9}}>
-                    <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>Grezzo</div>
-                    <div style={{fontSize:17, fontWeight:800, color:ADM.MUTED, marginTop:3}}>{valSegno(g.delta)}</div>
-                    <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:4, lineHeight:1.45}}>
-                      Mediana dei {VAL_ADOTTANTI.length} adottanti contro i {VAL_SOTTO.length} sotto soglia.
-                      {g.taglia
-                        ? <> <strong style={{color:ADM.WARN}}>Da buttare via:</strong> è una grandezza di livello, e fra due locali diversi dice quanto sono grandi, non quanto funzionano.</>
-                        : <> Dentro c'è la selezione: chi adotta parte già da più in alto.</>}
-                    </div>
-                  </div>
-                  <div style={{padding:'10px 12px', background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:9}}>
-                    <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>Appaiato</div>
-                    <div style={{fontSize:17, fontWeight:800, color:ADM.TEXT, marginTop:3}}>{valSegno(ap.delta)}</div>
-                    <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:4, lineHeight:1.45}}>
-                      {ap.n} coppie appaiate sul volume di ordini — il confondente vero — e, dove possibile, sullo stesso mestiere.
-                      Toglie la taglia, non la bravura.
-                    </div>
-                  </div>
-                  <div style={{padding:'10px 12px', background:'#fff', border:`1px solid ${ADM.PINK_SOFT}`, borderRadius:9}}>
-                    <div style={{fontSize:12, fontWeight:700, color:ADM.PINK_DARK, textTransform:'uppercase', letterSpacing:'0.05em'}}>Prima / dopo</div>
-                    <div style={{fontSize:17, fontWeight:800, color: valTono(pp.delta, g), marginTop:3}}>{valSegno(pp.delta)}</div>
-                    <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:4, lineHeight:1.45}}>
-                      Variazione dentro lo stesso locale {valSegno(pp.lordo)}, meno la deriva di chi non ha superato la soglia ({valSegno(pp.deriva)}).
-                      {pp.senzaEffetto > 0 && <> {pp.senzaEffetto} su {pp.n} non migliorano.</>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-      <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:8}}>
-        <ValNota>
-          <strong style={{color:ADM.TEXT}}>Come leggere le tre colonne.</strong> La prima è il confronto che verrebbe naturale fare, e sulle righe segnate
-          in arancione è proprio quello che non si deve fare: dicono <em>+{valNum(Math.abs(VAL_GREZZA.find(x => x.k === 'ricavoMese').delta), 0)}%</em> di ricavo perché
-          chi adotta è un locale più grande, non perché byup moltiplichi il fatturato per tre. La seconda toglie la taglia appaiando sul volume.
-          La terza è l'unica attribuibile a noi. Clicca una riga per il conto per esteso.
-        </ValNota>
-        <ValNota>
-          <strong style={{color:ADM.TEXT}}>Perché sulla spesa per coperto il grezzo dice il contrario.</strong> Fra locali diversi lo scontrino dipende dal
-          mestiere prima che dall'adozione: una pizzeria che adotta resta sotto una trattoria che non adotta, e la differenza fra gruppi finisce per misurare
-          la composizione dei due insiemi. Dentro lo stesso locale quel problema non esiste — è l'altra faccia della stessa ragione per cui la terza colonna è quella buona.
-        </ValNota>
-        <ValNota tono="cauto">
-          <strong style={{color:ADM.TEXT}}>Numeri piccoli.</strong> Le coppie appaiate sono {VAL_APPAIATA[0].n} e i locali con un prima/dopo sono {VAL_PREPOST[0].n}:
-          bastano per orientare una scelta, non per un claim pubblicitario. Il modo per irrobustirlo esiste ed è noto: attivare la soglia
-          a scaglioni su locali simili e confrontare chi parte prima con chi parte dopo.
-        </ValNota>
-      </div>
-    </AdmCard>
-  );
-}
-
-// ═══════════ 4 · Dose-risposta ══════════════════════════════════════════════
-function ValDoseRisposta() {
-  const colonne = [
-    { k:'spesa', label:'Spesa/coperto' },
-    { k:'coperti', label:'Coperti/giorno' },
-    { k:'turni', label:'Coperti per posto' },
-    { k:'tempo', label:'Servizio', giu:true },
-    { k:'revpash', label:'RevPASH' },
-    { k:'ricavoMese', label:'Ricavo/mese' },
-  ];
-  const fasce = VAL_FASCE.filter(f => f.n > 0);
-  const mx = Math.max(...fasce.map(f => Math.abs(f.ricavoMese)), 1);
-  return (
-    <AdmCard padding={0}>
-      <ValTestata
-        titolo="Più adozione, più risultato?"
-        sotto="Variazione di ogni locale rispetto a sé stesso, mediana per fascia, netto deriva · se le fasce non fossero ordinate, sarebbe rumore"
-      />
-      <div style={{display:'grid', gridTemplateColumns:`1.3fr repeat(${colonne.length}, minmax(0,1fr)) 1.2fr`, columnGap:12, padding:'11px 22px', fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.04em', borderBottom:`1px solid ${ADM.BORDER}`}}>
-        <div>Fascia di adozione</div>
-        {colonne.map(c => <div key={c.k} style={{textAlign:'right'}}>{c.label}</div>)}
-        <div>Ricavo, in scala</div>
-      </div>
-      {fasce.map((f, i) => {
-        const sopraSoglia = f.min >= VAL_SOGLIA;
-        return (
-          <div key={f.label} style={{
-            display:'grid', gridTemplateColumns:`1.3fr repeat(${colonne.length}, minmax(0,1fr)) 1.2fr`, columnGap:12,
-            padding:'12px 22px', alignItems:'center',
-            borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-            background: sopraSoglia ? ADM.PINK_BG_SOFT : 'transparent',
-          }}>
-            <div>
-              <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT}}>{f.label}</div>
-              <div style={{fontSize:12.2, color:ADM.MUTED}}>{f.n} local{f.n === 1 ? 'e' : 'i'} · mediana {valNum(f.adozioneMediana, 1)}%</div>
-            </div>
-            {colonne.map(c => {
-              const v = f[c.k];
-              const buono = c.giu ? v < -0.5 : v > 0.5;
-              const neutro = Math.abs(v) < 0.5;
-              return (
-                <div key={c.k} style={{fontSize:13.6, fontWeight:700, textAlign:'right', fontVariantNumeric:'tabular-nums',
-                  color: neutro ? ADM.MUTED_SOFT : buono ? ADM.OK : ADM.DANGER}}>
-                  {valSegno(v, 1)}
-                </div>
-              );
-            })}
-            <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                <div style={{width:`${Math.min(100, (Math.abs(f.ricavoMese) / mx) * 100)}%`, height:'100%', background: f.ricavoMese >= 0 ? ADM.OK : ADM.DANGER, borderRadius:99}}/>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-      <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:8}}>
-        <ValNota>
-          <strong style={{color:ADM.TEXT}}>Perché non ci sono i livelli.</strong> Mettere accanto la spesa media di due fasce direbbe soprattutto che in una
-          ci sono locali più grandi che nell'altra: fra fasce cambiano i locali. Qui ogni locale è confrontato con sé stesso, quindi la taglia sparisce.
-        </ValNota>
-        <ValNota>
-          L'effetto <strong style={{color:ADM.TEXT}}>satura</strong>: i primi punti di adozione valgono molto, dal 30% in su si guadagna poco altro.
-          È il motivo per cui la soglia commerciale sta al {VAL_SOGLIA}% e non al 40%: è lì che il salto è quasi tutto fatto, ed è un obiettivo che un locale può davvero raggiungere.
-        </ValNota>
-        <ValNota tono="cauto">
-          Le fasce alte hanno pochi locali dentro: l'ordine è coerente, ma un singolo locale può spostare una riga.
-        </ValNota>
-      </div>
-    </AdmCard>
-  );
-}
-
-// ═══════════ 5 · La distribuzione, non la media ═════════════════════════════
-function ValDistribuzione() {
+// ═══════════ 4 · La coda ════════════════════════════════════════════════════
+function ValCoda() {
   const pp = VAL_PREPOST.find(i => i.k === 'ricavoMese');
-  const dati = VAL_CROSSERS.map((l, i) => ({
-    nome: l.nome, citta: l.citta, adozione: l.adozione,
+  const dati = VAL_CROSSERS.map(l => ({
+    id: l.id, nome: l.nome, adozione: l.adozione,
     delta: l.ricavoMesePre ? ((l.ricavoMese - l.ricavoMesePre) / l.ricavoMesePre) * 100 - pp.deriva : 0,
     euro: (l.ricavoMese - l.ricavoMesePre) * (VAL_CONTO.margineLordo / 100),
     canone: l.canone,
   })).sort((a, b) => b.delta - a.delta);
   const mx = Math.max(...dati.map(d => Math.abs(d.delta)), 1);
+  const coprono = dati.filter(d => d.euro >= d.canone).length;
   return (
-    <AdmCard padding={0}>
-      <ValTestata
-        titolo="Locale per locale, non in media"
-        sotto="Variazione di ricavo dopo la soglia, netto deriva · e se copre il canone o no"
-      />
-      <div style={{padding:'16px 22px', display:'flex', flexDirection:'column', gap:8}}>
+    <ValCard
+      titolo="Locale per locale"
+      sotto="La mediana, aperta · un numero da solo non si difende"
+      destra={
+        <div style={{display:'flex', alignItems:'center', gap:8, fontSize:12.4, color:ADM.MUTED}}>
+          <span style={{width:8, height:8, borderRadius:'50%', background:ADM.OK}}/>
+          <span><strong style={{color:ADM.TEXT}}>{coprono}</strong> coprono il canone</span>
+          <span style={{width:8, height:8, borderRadius:'50%', background:ADM.WARN, marginLeft:8}}/>
+          <span><strong style={{color:ADM.TEXT}}>{dati.length - coprono}</strong> no</span>
+        </div>
+      }
+      piede={<>La cifra in euro è il <strong style={{color:ADM.TEXT}}>margine</strong> aggiuntivo mensile — quella da confrontare col canone, non il ricavo.</>}
+    >
+      <div style={{padding:'14px 22px 18px', display:'flex', flexDirection:'column', gap:7}}>
         {dati.map(d => {
           const copre = d.euro >= d.canone;
           return (
-            <div key={d.nome} style={{display:'flex', alignItems:'center', gap:10}}>
-              <span style={{fontSize:13.2, color:ADM.TEXT, fontWeight:500, width:190, flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.nome}</span>
-              <span style={{fontSize:12.2, color:ADM.MUTED_SOFT, width:58, flexShrink:0, fontVariantNumeric:'tabular-nums'}}>{valNum(d.adozione, 1)}%</span>
-              {/* Barra centrata sullo zero: chi sta a sinistra ha peggiorato */}
-              <div style={{flex:1, height:14, position:'relative', background:'#F4F5F7', borderRadius:4}}>
-                <div style={{position:'absolute', left:'50%', top:-2, bottom:-2, width:1.5, background:ADM.INK_SOFT}}/>
+            <div key={d.id} style={{display:'flex', alignItems:'center', gap:12}}>
+              <span style={{fontSize:13.2, color:ADM.TEXT, fontWeight:500, width:200, flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.nome}</span>
+              <span style={{fontSize:12.2, color:ADM.MUTED_SOFT, width:44, flexShrink:0, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valNum(d.adozione, 0)}%</span>
+              <div style={{flex:1, height:16, position:'relative'}}>
+                <div style={{position:'absolute', left:'50%', top:0, bottom:0, width:1, background:ADM.BORDER}}/>
                 <div style={{
-                  position:'absolute', top:2, bottom:2, borderRadius:3,
+                  position:'absolute', top:3, bottom:3, borderRadius:3,
                   background: d.delta >= 0 ? ADM.OK : ADM.DANGER,
+                  opacity: Math.abs(d.delta) < 1 ? 0.4 : 1,
                   left: d.delta >= 0 ? '50%' : `${50 - (Math.abs(d.delta) / mx) * 50}%`,
-                  width: `${(Math.abs(d.delta) / mx) * 50}%`,
+                  width: `${Math.max(0.5, (Math.abs(d.delta) / mx) * 50)}%`,
                 }}/>
               </div>
-              <span style={{fontSize:13.2, fontWeight:700, color: d.delta >= 0 ? ADM.OK : ADM.DANGER, width:52, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valSegno(d.delta, 0)}</span>
-              <span style={{fontSize:12.6, color:ADM.MUTED, width:74, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valEur(d.euro)}</span>
-              <span style={{
-                fontSize:12, fontWeight:700, width:96, textAlign:'right',
-                color: copre ? ADM.OK : ADM.WARN,
-              }}>{copre ? 'copre il canone' : 'sotto il canone'}</span>
+              <span style={{fontSize:13.4, fontWeight:700, color: d.delta >= 0 ? ADM.OK : ADM.DANGER, width:50, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valSegno(d.delta, 0)}</span>
+              <span style={{fontSize:12.8, color:ADM.MUTED, width:78, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valEur(d.euro)}</span>
+              <span style={{width:8, height:8, borderRadius:'50%', flexShrink:0, background: copre ? ADM.OK : ADM.WARN}}/>
             </div>
           );
         })}
       </div>
-      <div style={{padding:'0 22px 18px'}}>
-        <ValNota>
-          La colonna in euro è il <strong style={{color:ADM.TEXT}}>margine</strong> aggiuntivo mensile, non il ricavo: è la cifra da confrontare col canone.
-          Mostrare questa lista invece della sola mediana è ciò che rende il numero difendibile davanti a chi lo contesta.
-        </ValNota>
-      </div>
-    </AdmCard>
+    </ValCard>
   );
 }
 
-// ═══════════ 6 · Il ponte col churn ═════════════════════════════════════════
+// ═══════════ 5 · Il legame con l'abbandono ══════════════════════════════════
 function ValChurn() {
   const C = VAL_CHURN;
+  const barre = [
+    { label:'Chi è attivo', v: C.adozioneMedianaAttivi, colore: ADM.OK },
+    { label:'Chi si è fermato', v: C.adozioneMedianaInattivi, colore: ADM.WARN },
+  ];
+  const mx = Math.max(...barre.map(b => b.v), VAL_SOGLIA) * 1.2;
   return (
-    <AdmCard padding={0}>
-      <ValTestata
-        titolo="Perché questo numero è anche l'antidoto al churn"
-        sotto="«Scarse prenotazioni / ordini» è il primo motivo di abbandono · e non è un problema di prodotto, è un problema di adozione"
-      />
-      <div style={{padding:'16px 22px', display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-        <ValCifra label="Abbandoni per «scarse prenotazioni»" valore={`${C.motivoPct}%`} tono="DANGER"
-          sotto="Primo motivo dichiarato in uscita · exit interview, tab Locali"/>
-        <ValCifra label="Adozione mediana · chi è attivo" valore={valNum(C.adozioneMedianaAttivi, 1) + '%'} tono="OK"
-          sotto="Ordini digitali sul totale"/>
-        <ValCifra label="Adozione mediana · chi si è fermato" valore={valNum(C.adozioneMedianaInattivi, 1) + '%'} tono="WARN"
-          sotto={`${C.inattiviSottoSoglia} dei ${C.inattiviTot} locali fermi stanno sotto la soglia`}/>
-        <ValCifra label="Disdette osservate" valore={valNum(C.churnedTot)}
-          sotto="Poche: la relazione qui accanto è un indizio, non una prova"/>
-      </div>
-      <div style={{padding:'0 22px 18px', display:'flex', flexDirection:'column', gap:8}}>
-        <ValNota>
-          Il locale che se ne va dicendo «non mi ha portato ordini» quasi sempre non ha mai superato la soglia: non ha visto il ritorno
-          perché non è mai arrivato al punto in cui il ritorno comincia. Fa dell'adozione una <strong style={{color:ADM.TEXT}}>metrica di
-          sopravvivenza del cliente</strong>, non un vezzo di prodotto — e dà al servizio clienti una lista, non un'impressione.
-        </ValNota>
-        <ValNota tono="cauto">
-          <strong style={{color:ADM.TEXT}}>La freccia potrebbe puntare al contrario.</strong> Un locale che sta chiudendo smette anche di spingere il QR:
-          bassa adozione e abbandono possono avere entrambi la stessa causa a monte. Per distinguerli serve guardare quale dei due si muove per primo,
-          e con {C.churnedTot} disdette non si può ancora dire.
-        </ValNota>
-      </div>
-    </AdmCard>
-  );
-}
-
-// ═══════════ 7 · Con chi parlarne domani ════════════════════════════════════
-function ValPotenziale() {
-  const lista = VAL_POTENZIALE.filter(l => l.stato === 'active').slice(0, 12);
-  const totale = VAL_POTENZIALE.filter(l => l.stato === 'active').reduce((s, l) => s + l.deltaMargine, 0);
-  return (
-    <AdmCard padding={0}>
-      <ValTestata
-        titolo="Chi sta lasciando valore sul tavolo"
-        sotto={`Locali attivi sotto il ${VAL_SOGLIA}%, ordinati per quanto guadagnerebbero a superarlo · ${valEur(totale)}/mese di margine complessivo`}
-      />
-      <div style={{display:'grid', gridTemplateColumns:'2fr 0.9fr 1fr 1.1fr 1.1fr', columnGap:14, padding:'11px 22px', fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.04em', borderBottom:`1px solid ${ADM.BORDER}`}}>
-        <div>Locale</div>
-        <div style={{textAlign:'right'}}>Adozione</div>
-        <div style={{textAlign:'right'}}>Punti da fare</div>
-        <div style={{textAlign:'right'}}>Ricavo in più</div>
-        <div style={{textAlign:'right'}}>Margine in più</div>
-      </div>
-      {lista.map((l, i) => (
-        <div key={l.id} style={{
-          display:'grid', gridTemplateColumns:'2fr 0.9fr 1fr 1.1fr 1.1fr', columnGap:14,
-          padding:'11px 22px', alignItems:'center',
-          borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-        }}>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{l.nome}</div>
-            <div style={{fontSize:12.2, color:ADM.MUTED}}>{l.tipo} · {l.citta} · piano {l.piano}</div>
-          </div>
-          <div style={{fontSize:13.4, fontWeight:700, color: l.adozione < 5 ? ADM.DANGER : ADM.WARN, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valNum(l.adozione, 1)}%</div>
-          <div style={{fontSize:13.4, color:ADM.MUTED, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>+{valNum(l.puntiDaFare, 1)} pt</div>
-          <div style={{fontSize:13.4, color:ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valEur(l.deltaRicavo)}</div>
-          <div style={{fontSize:13.8, fontWeight:800, color:ADM.OK, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valEur(l.deltaMargine)}</div>
+    <ValCard
+      titolo="Lo stesso numero, letto come rischio"
+      sotto="Adozione mediana · chi se ne va non ha quasi mai superato la soglia"
+      piede={<>Con {C.churnedTot} disdette osservate la freccia potrebbe puntare al contrario: un locale che sta chiudendo smette anche di spingere il QR.
+        Indizio forte, non ancora prova.</>}
+    >
+      <div style={{padding:'18px 22px 16px', display:'flex', flexDirection:'column', gap:14}}>
+        <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+          <span style={{fontSize:32, fontWeight:800, color:ADM.DANGER, letterSpacing:'-0.03em', lineHeight:1}}>{C.motivoPct}%</span>
+          <span style={{fontSize:13, color:ADM.MUTED, lineHeight:1.4}}>degli abbandoni dice <strong style={{color:ADM.TEXT}}>«scarse prenotazioni / ordini»</strong></span>
         </div>
-      ))}
-      <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:8}}>
-        <ValNota>
-          La stima porta ciascuno al <strong style={{color:ADM.TEXT}}>18%</strong>, appena sopra soglia — non al 40%. È un obiettivo che si raggiunge con
-          i QR sui tavoli e il personale che li nomina, non con un progetto.
-        </ValNota>
-        <ValNota tono="cauto">
-          Vale se il locale è come i {VAL_CROSSERS.length} su cui l'effetto è misurato. Un locale che vive di asporto o di clientela di passaggio può non muoversi affatto:
-          la cifra è una priorità di chiamata, non un impegno da mettere per iscritto al cliente.
-        </ValNota>
+        {barre.map(b => (
+          <div key={b.label} style={{display:'flex', alignItems:'center', gap:12}}>
+            <span style={{fontSize:13.4, color:ADM.TEXT, fontWeight:500, width:132, flexShrink:0}}>{b.label}</span>
+            <div style={{flex:1, height:22, background:ADM.PANEL_SOFT, borderRadius:6, position:'relative', overflow:'hidden'}}>
+              <div style={{position:'absolute', left:0, top:0, bottom:0, width:`${(b.v / mx) * 100}%`, background:b.colore, borderRadius:6}}/>
+              <div style={{position:'absolute', left:`${(VAL_SOGLIA / mx) * 100}%`, top:0, bottom:0, width:2, background:ADM.INK}}/>
+            </div>
+            <span style={{fontSize:14.4, fontWeight:800, color:b.colore, width:48, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valNum(b.v, 1)}%</span>
+          </div>
+        ))}
+        <div style={{fontSize:12.4, color:ADM.MUTED, display:'flex', alignItems:'center', gap:8, paddingLeft:144}}>
+          <span style={{width:2, height:12, background:ADM.INK, display:'inline-block', flexShrink:0}}/>
+          soglia {VAL_SOGLIA}% · {C.inattiviSottoSoglia} dei {C.inattiviTot} locali fermi non l'hanno mai raggiunta
+        </div>
       </div>
-    </AdmCard>
+    </ValCard>
   );
 }
 
-// ═══════════ 8 · Cosa non dimostriamo ═══════════════════════════════════════
-function ValLimiti() {
+// ═══════════ 6 · Con chi parlarne ═══════════════════════════════════════════
+function ValPotenziale() {
+  const tutti = VAL_POTENZIALE.filter(l => l.stato === 'active');
+  const lista = tutti.slice(0, 8);
+  const totale = tutti.reduce((s, l) => s + l.deltaMargine, 0);
+  const mx = Math.max(...lista.map(l => l.deltaMargine), 1);
   return (
-    <AdmCard padding={0}>
-      <ValTestata titolo="Cosa questa pagina non dimostra" sotto="Da leggere prima di portarla in una stanza dove qualcuno fa domande"/>
-      <div style={{padding:'16px 22px', display:'flex', flexDirection:'column', gap:12}}>
-        {[
-          ['Non è un esperimento.', `Nessuno ha assegnato l'adozione a caso: i locali ci sono arrivati da soli. Il prima/dopo con la deriva tolta è la cosa più solida che si possa fare senza randomizzare, ma resta un'inferenza.`],
-          ['I numeri sono piccoli.', `${VAL_CROSSERS.length} locali con un prima/dopo e ${VAL_COPPIE.length} coppie appaiate. Bastano a decidere dove spingere, non a stampare una percentuale su una brochure.`],
-          ['La finestra è corta.', `Chi ha superato la soglia da meno di novanta giorni non entra nel conto: prima di allora si misura la novità, non l'abitudine.`],
-          ['Il margine è una media.', `Il ricavo aggiuntivo è convertito in margine al 68%, che è la media di rete. Un locale con food cost al 42% ne vede meno, e va detto a lui, non nascosto nella media.`],
-          ['Il passo successivo è noto.', `Attivare la soglia a scaglioni su locali simili — metà adesso, metà fra due mesi — e confrontare i due gruppi. Costa un trimestre e trasforma questa pagina da argomento in prova.`],
-        ].map(([t, d]) => (
-          <div key={t} style={{display:'flex', gap:10, alignItems:'flex-start'}}>
-            <span style={{width:6, height:6, borderRadius:'50%', background:ADM.MUTED_LIGHT, marginTop:7, flexShrink:0}}/>
-            <div style={{fontSize:13.2, color:ADM.MUTED, lineHeight:1.55}}>
-              <strong style={{color:ADM.TEXT}}>{t}</strong> {d}
+    <ValCard
+      titolo="Con chi parlarne domani"
+      sotto={`Attivi sotto il ${VAL_SOGLIA}%, in ordine di quanto guadagnerebbero a superarlo`}
+      piede={<>La stima porta ciascuno al <strong style={{color:ADM.TEXT}}>18%</strong>, appena sopra soglia — non al 40%.
+        È una priorità di chiamata, non un impegno da scrivere al cliente.</>}
+    >
+      <div style={{padding:'18px 22px 18px', display:'flex', flexDirection:'column', gap:9}}>
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:4}}>
+          <span style={{fontSize:32, fontWeight:800, color:ADM.OK, letterSpacing:'-0.03em', lineHeight:1}}>{valEur(totale)}</span>
+          <span style={{fontSize:13, color:ADM.MUTED}}>di margine al mese in gioco, su {tutti.length} locali</span>
+        </div>
+        {lista.map(l => (
+          <div key={l.id} style={{display:'flex', alignItems:'center', gap:11}}>
+            <div style={{width:172, flexShrink:0, minWidth:0}}>
+              <div style={{fontSize:13.2, fontWeight:600, color:ADM.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{l.nome}</div>
+              <div style={{fontSize:11.6, color:ADM.MUTED_SOFT}}>{l.tipo} · {l.citta}</div>
+            </div>
+            <span style={{fontSize:12.6, fontWeight:700, color: l.adozione < 5 ? ADM.DANGER : ADM.WARN, width:38, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valNum(l.adozione, 0)}%</span>
+            <span style={{fontSize:11.6, color:ADM.MUTED_LIGHT, flexShrink:0}}>→18%</span>
+            <div style={{flex:1, height:10, background:ADM.PANEL_SOFT, borderRadius:99, overflow:'hidden'}}>
+              <div style={{width:`${(l.deltaMargine / mx) * 100}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.OK}88, ${ADM.OK})`, borderRadius:99}}/>
+            </div>
+            <span style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, width:74, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valEur(l.deltaMargine)}</span>
+          </div>
+        ))}
+      </div>
+    </ValCard>
+  );
+}
+
+// ═══════════ 7 · I limiti ═══════════════════════════════════════════════════
+function ValLimiti() {
+  const voci = [
+    ['Non è un esperimento', 'l’adozione non è stata assegnata a caso: resta un’inferenza, per quanto solida'],
+    ['I numeri sono piccoli', `${VAL_CROSSERS.length} locali con un prima/dopo, ${VAL_COPPIE.length} coppie appaiate`],
+    ['Il margine è una media', 'il 68% è di rete: un locale con food cost al 42% ne vede meno'],
+    ['Il passo che manca', 'attivare la soglia a scaglioni su locali simili e confrontare i due gruppi: un trimestre, e diventa prova'],
+  ];
+  return (
+    <ValCard titolo="Cosa non dimostra" sotto="Da sapere prima di portarla dove qualcuno fa domande">
+      <div style={{padding:'16px 22px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 26px'}}>
+        {voci.map(([t, d]) => (
+          <div key={t} style={{display:'flex', gap:9, alignItems:'flex-start'}}>
+            <span style={{width:5, height:5, borderRadius:'50%', background:ADM.MUTED_LIGHT, marginTop:7, flexShrink:0}}/>
+            <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.5}}>
+              <strong style={{color:ADM.TEXT}}>{t}:</strong> {d}
             </div>
           </div>
         ))}
       </div>
-    </AdmCard>
+    </ValCard>
   );
 }
 
@@ -484,36 +434,24 @@ function ValLimiti() {
 function DashValore() {
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
-      <SectionLabel first title="Il ritorno, in una cifra"
-        desc={`Chi porta gli ordini digitali oltre il ${VAL_SOGLIA}% guadagna di più? Di quanto, e rispetto a cosa`}/>
-      <ValIlNumero/>
+      <SectionLabel first title="Il ritorno" desc={`Quanto guadagna in più un locale che porta gli ordini digitali oltre il ${VAL_SOGLIA}%`}/>
+      <ValHero/>
 
-      <SectionLabel title="Chi confrontiamo con chi"
-        desc="I due gruppi e quanto si somigliano · la parte che rende onesto tutto il resto"/>
-      <ValPopolazioni/>
-
-      <SectionLabel title="Il confronto"
-        desc="Gli otto indicatori del conto economico del locale, in tre letture"/>
+      <SectionLabel title="Su cosa" desc="Gli indicatori, la formula di ciascuno, e di quanto si muovono"/>
       <ValConfronto/>
 
-      <SectionLabel title="La curva"
-        desc="Come cambia il risultato al crescere dell'adozione"/>
-      <ValDoseRisposta/>
+      <SectionLabel title="La curva" desc="Da che punto in poi si vede"/>
+      <ValCurva/>
 
-      <SectionLabel title="La coda"
-        desc="Locale per locale, perché una mediana da sola non si difende"/>
-      <ValDistribuzione/>
+      <SectionLabel title="La coda" desc="Chi ci guadagna, chi no, e di quanto"/>
+      <ValCoda/>
 
-      <SectionLabel title="Il legame con l'abbandono"
-        desc="Lo stesso numero, letto come rischio di perdere il cliente"/>
-      <ValChurn/>
+      <SectionLabel title="L'altra faccia" desc="Lo stesso numero come antidoto all'abbandono, e come lista di chiamate"/>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, alignItems:'start'}}>
+        <ValChurn/>
+        <ValPotenziale/>
+      </div>
 
-      <SectionLabel title="Da fare"
-        desc="La lista di chi chiamare, in ordine di valore"/>
-      <ValPotenziale/>
-
-      <SectionLabel title="Onestà"
-        desc="I limiti, scritti prima che li trovi qualcun altro"/>
       <ValLimiti/>
     </div>
   );
