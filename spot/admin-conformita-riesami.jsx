@@ -271,9 +271,6 @@ function RieVoceCompatta({ voce }) {
 }
 
 // ─── Audit interni e riesame di direzione ──────────────────────────────────
-const RIE_GRID_AUDIT   = '104px 78px minmax(0,1.1fr) minmax(0,1.3fr) 134px 80px minmax(0,1.58fr)';
-const RIE_GRID_STORICO = 'minmax(0,1fr) minmax(0,1.7fr) minmax(0,1.25fr) minmax(0,1.7fr) 30px';
-const RIE_GRID_DEC     = 'minmax(0,1.5fr) 118px minmax(0,1.6fr) 24px';
 
 // Intestazione di sezione: titolo, riga di contesto, e l'azione ancorata a
 // destra. Prima il bottone galleggiava a mezz'aria accanto a un titolino
@@ -326,7 +323,6 @@ function CfAudit({ onVai }) {
   const [conferma, setConferma]         = useStateRie(false);
   const [decisioni, setDecisioni]       = useStateRie({ miglioramento:'', modifiche:'', risorse:'' });
   const [partecipanti, setPartecipanti] = useStateRie((RIESAMI_DIREZIONE[0] && RIESAMI_DIREZIONE[0].partecipanti) || '');
-  const [aperto, setAperto]             = useStateRie(RIESAMI_DIREZIONE[0] ? RIESAMI_DIREZIONE[0].id : null);
   const [versione, setVersione]         = useStateRie(0);
 
   const pk = riePacchetto();
@@ -365,7 +361,6 @@ function CfAudit({ onVai }) {
     setConferma(false);
     setPrepara(false);
     setDecisioni('');
-    setAperto(nuovo.id);
     setVersione(versione + 1);
   };
 
@@ -411,139 +406,12 @@ function CfAudit({ onVai }) {
         </div>
       </div>
 
-      {/* ── Storico dei riesami: è quello che l'auditor chiede di vedere ── */}
-      <div>
-        <RieSezione titolo="Riesami svolti"
-          nota={pk.decAperte
-            ? `${pk.decAperte} decisioni dell'ultimo riesame non ancora chiuse`
-            : 'tutte le decisioni precedenti risultano chiuse dai registri'}/>
-
-        <div style={CF_CARD}>
-          {RIESAMI_DIREZIONE.map((r, i) => {
-            const dec = (r.decisioni || [])
-              .map(d => Object.assign({ testo:rieTestoDec(d), tipo:rieTipoDec(d) }, rieStatoDecisione(rieTestoDec(d))));
-            const aperte = dec.filter(d => d.stato !== 'fatta').length;
-            const espanso = aperto === r.id;
-            // Le decisioni si leggono raggruppate per le tre uscite della
-            // §9.3.3: l'auditor le cerca separatamente, e in un elenco piatto
-            // la terza — le risorse — si confonde con le altre.
-            const gruppi = RIE_TIPI.map(t => ({ t, righe: dec.filter(d => d.tipo === t.id) }))
-              .filter(g => g.righe.length)
-              .concat(dec.some(d => !d.tipo) ? [{ t:{ id:'_', label:'Altre decisioni' }, righe: dec.filter(d => !d.tipo) }] : []);
-            return (
-              <div key={r.id} style={{borderBottom: i < RIESAMI_DIREZIONE.length - 1 || espanso ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-                <div className="adm-row-open" onClick={()=>setAperto(espanso ? null : r.id)}
-                  style={{display:'grid', gridTemplateColumns:RIE_GRID_STORICO, gap:10, alignItems:'center',
-                    padding:'12px 16px', cursor:'pointer'}}>
-                  <div style={{minWidth:0}}>
-                    <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{r.id}</div>
-                    <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2}}>{cfFmt(r.data)}</div>
-                  </div>
-                  <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.35}}>{r.partecipanti}</div>
-                  <div style={{fontSize:12.6, color:ADM.MUTED}}>
-                    {dec.length} {dec.length === 1 ? 'decisione' : 'decisioni'}
-                    {aperte > 0 && <span style={{color:ADM.WARN, fontWeight:700}}> · {aperte} da chiudere</span>}
-                  </div>
-                  <div style={{minWidth:0, overflow:'hidden'}}><CfDoc doc={r.doc} breve/></div>
-                  <span className="adm-open-chip" style={{width:24, height:24, flexShrink:0,
-                    transform: espanso ? 'rotate(90deg)' : 'none'}}><BuIcons.chevronRight size={14}/></span>
-                </div>
-
-                {espanso && (
-                  <div style={{padding:'12px 16px 14px', background:ADM.PANEL_SOFT}}>
-                    {r.nuovo && (
-                      <div style={{fontSize:12.2, color:ADM.WARN, fontWeight:700, marginBottom:10}}>
-                        Registrato ora in Spot — il verbale firmato va archiviato nel gestore documentale e collegato qui.
-                      </div>
-                    )}
-                    {dec.length === 0 && (
-                      <div style={{fontSize:12.6, color:ADM.MUTED}}>Nessuna decisione registrata.</div>
-                    )}
-                    {gruppi.map((g, gi) => (
-                      <div key={g.t.id} style={{marginTop: gi ? 14 : 2}}>
-                        <div style={{fontSize:10.8, fontWeight:800, color:ADM.MUTED_SOFT,
-                          textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4}}>{g.t.label}</div>
-                        {g.righe.map((d, k) => {
-                          const clic = !!(d.tab && navigabile);
-                          return (
-                            <div key={k} className={clic ? 'adm-row-open' : undefined}
-                              onClick={clic ? ()=>vai(d.tab) : undefined}
-                              style={{display:'grid', gridTemplateColumns:RIE_GRID_DEC, gap:10,
-                                alignItems:'center', padding:'8px 0', cursor: clic ? 'pointer' : 'default',
-                                borderBottom: k < g.righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-                              <div style={{fontSize:12.6, color:ADM.TEXT, fontWeight:600, lineHeight:1.4, minWidth:0}}>{d.testo}</div>
-                              <div><CfPill tono={RIE_TONO_DEC[d.stato] || 'NEUTRAL'}>{RIE_LABEL_DEC[d.stato] || d.stato}</CfPill></div>
-                              <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4, minWidth:0}}>{d.nota}</div>
-                              {clic
-                                ? <BuIcons.chevronRight size={14} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
-                                : <span/>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                    {dec.length > 0 && (
-                      <div style={{fontSize:12, color:ADM.MUTED, marginTop:12, lineHeight:1.5}}>
-                        Lo stato di ogni decisione non è una spunta: è il registro che dovrebbe essere
-                        cambiato, riletto adesso. È così che una decisione non si trascina per un anno.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Registro degli audit interni ──────────────────────────────── */}
-      <div>
-        <RieSezione titolo="Audit interni"
-          nota="§9.2 di entrambe le norme — un solo audit copre le due certificazioni"/>
-
-        <div style={CF_CARD}>
-          <div style={{...CF_TH, display:'grid', gridTemplateColumns:RIE_GRID_AUDIT, gap:10}}>
-            <div>Audit</div><div>Ambito</div><div>Auditor</div><div>Aree coperte</div><div>Rilievi</div><div>Stato</div><div>Rapporto</div>
-          </div>
-          {AUDIT_INTERNI.map((a, i) => {
-            // «Studio Bianchi & Associati · esterno» su una colonna stretta
-            // andava a capo in mezzo al nome: il chi e il come sono due righe.
-            const [chi, come] = String(a.auditor).split(' · ');
-            return (
-            <div key={a.id} style={{display:'grid', gridTemplateColumns:RIE_GRID_AUDIT, gap:10, alignItems:'center',
-              padding:'12px 16px', borderBottom: i < AUDIT_INTERNI.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
-              background: a.doc ? '#fff' : '#FFFDF7'}}>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{a.id}</div>
-                <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2}}>{cfFmt(a.data)}</div>
-              </div>
-              <div><CfNorma norme={a.ambito}/></div>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.35}}>{chi}</div>
-                {come && <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2}}>{come}</div>}
-              </div>
-              <div style={{fontSize:12.4, color:ADM.TEXT, lineHeight:1.35}}>{a.aree}</div>
-              <div>
-                <div style={{fontSize:13, fontWeight:700, color:ADM.TEXT}}>
-                  {a.rilievi} {a.rilievi === 1 ? 'rilievo' : 'rilievi'}
-                </div>
-                <div style={{fontSize:11.6, marginTop:2, color:ADM.MUTED, whiteSpace:'nowrap'}}>
-                  <span style={{color: a.maggiori ? ADM.DANGER : ADM.MUTED, fontWeight: a.maggiori ? 700 : 500}}>{a.maggiori} magg.</span>
-                  {` · ${a.minori} min. · ${a.osservazioni} oss.`}
-                </div>
-              </div>
-              <div><CfPill tono={a.stato === 'chiuso' ? 'OK' : 'WARN'}>{a.stato === 'chiuso' ? 'Chiuso' : a.stato}</CfPill></div>
-              <div style={{minWidth:0, overflow:'hidden'}}><CfDoc doc={a.doc} breve/></div>
-            </div>
-          );})}
-        </div>
-
-        <div style={{fontSize:12.2, color: senzaDoc ? ADM.WARN : ADM.MUTED, marginTop:9, lineHeight:1.5, fontWeight: senzaDoc ? 700 : 400}}>
-          {senzaDoc
-            ? `${senzaDoc} audit senza rapporto collegato: senza il documento la riga non è evidenza, è un ricordo.`
-            : 'Ogni audit punta al proprio rapporto nel gestore documentale: il registro dice quando e cosa, il rapporto dice come.'}
-        </div>
-      </div>
+      {/* Qui c'erano lo storico dei riesami svolti e il registro degli audit
+          interni. Sono le esecuzioni passate di due adempimenti — §9.3 e §9.2 —
+          e un auditor le chiede a partire dall'adempimento, non dalla sezione:
+          ora si aprono dal Cruscotto, cliccando la riga corrispondente. Questa
+          tab resta quello che serve a chi deve FARE il riesame: il pacchetto di
+          input, e il bottone per prepararlo. */}
 
       {/* ── Modale: pacchetto pronto + decisioni ──────────────────────── */}
       {prepara && (
@@ -654,9 +522,7 @@ function CfAudit({ onVai }) {
 
 // ─── Registro della formazione (A.6.3) ─────────────────────────────────────
 const RIE_GRID_FORM = 'minmax(0,1.25fr) minmax(0,2fr) 1fr 1fr 1.3fr';
-const RIE_GRID_REST = '1fr minmax(0,2.1fr) 1.05fr 1.35fr 1.05fr minmax(0,2fr)';
 
-const rieTonoEsito = (e) => e === 'riuscito' ? 'OK' : e === 'riuscito con osservazioni' ? 'WARN' : 'DANGER';
 
 // ─── Registrare una formazione ─────────────────────────────────────────────
 // Il campo sta FUORI dal componente: dichiararlo dentro lo farebbe rimontare a
@@ -875,21 +741,16 @@ function CfFormazione() {
 // che si e spostato e il posto dove si legge il registro.
 function CfTestRipristino() {
   // La pagina si apre per sapere se le cose funzionano ADESSO: la risposta e una
-  // riga — ultimo test, tempo, entro o fuori obiettivo. Lo storico e archivio e
-  // sta dietro un clic. Il test vero, va detto, si fa altrove: qui c'e il
-  // registro, e il numero che vale e il tempo contro l'obiettivo, non l'esito.
-  const [aperto, setAperto] = useStateRie(false);
+  // riga — ultimo test, tempo, entro o fuori obiettivo. Il test vero, va detto,
+  // si fa altrove: qui c'e il registro, e il numero che vale e il tempo contro
+  // l'obiettivo, non l'esito.
   const sRest = cfStatoAdempimento(rieAdemp('rest') || {});
   const ripristini = RIPRISTINI.slice().sort((a, b) => b.data.getTime() - a.data.getTime());
   const ultimoRest = ripristini[0];
   const bRest = rieBanda(!ultimoRest ? 'DANGER' : sRest.stato === 'ok' ? 'NEUTRAL' : sRest.tono);
-  const conOsservazioni = ripristini.filter(r => r.esito !== 'riuscito').length;
-
   return (
       <div>
-        <div onClick={()=>setAperto(a => !a)} className="adm-card-interactive"
-          style={{...RIE_BANDA, background:bRest.bg, border:`1px solid ${bRest.bd}`,
-            marginBottom: aperto ? 14 : 0, cursor:'pointer'}}>
+        <div style={{...RIE_BANDA, background:bRest.bg, border:`1px solid ${bRest.bd}`}}>
           <div style={{flex:1, minWidth:0}}>
             <div style={{fontSize:14.5, fontWeight:800, color:bRest.fg}}>
               {ultimoRest
@@ -906,57 +767,14 @@ function CfTestRipristino() {
             <CfPill tono={sRest.tono}>{sRest.label}</CfPill>
             <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:5}}>prossimo entro il {cfFmt(sRest.prossima)}</div>
           </div>
-          <span className="adm-open-chip" style={{width:24, height:24, flexShrink:0,
-            transform: aperto ? 'rotate(90deg)' : 'none'}}><BuIcons.chevronRight size={14}/></span>
         </div>
 
-        {aperto && (
-        <React.Fragment>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...CF_H, marginBottom:0}}>Storico dei ripristini</div>
-          <span style={{fontSize:12.4, color:ADM.MUTED}}>il tempo contro l’obiettivo è la misura: «riuscito» da solo non dice se saresti arrivato in tempo</span>
-        </div>
+        {/* Lo storico dei ripristini è passato nel Cruscotto, dentro
+            l'adempimento A.8.13: è lì che un auditor chiede «e la volta
+            prima?», e lì c'è anche la scadenza che quella domanda genera. Qui
+            resta l'unica cosa che serve a chi apre Diagnostica: se il
+            ripristino funziona adesso, e in quanto tempo. */}
 
-        <div style={CF_CARD}>
-          <div style={{...CF_TH, display:'grid', gridTemplateColumns:RIE_GRID_REST, gap:10}}>
-            <div>Data</div><div>Cosa è stato ripristinato</div><div>Tempo</div><div>Esito</div><div>Chi</div><div>Note</div>
-          </div>
-          {ripristini.map((r, i) => {
-            const oltre = r.tempoMin > RIE_RTO_MIN;
-            return (
-              <div key={r.data.toISOString() + r.oggetto} style={{display:'grid', gridTemplateColumns:RIE_GRID_REST, gap:10,
-                alignItems:'center', padding:'12px 16px',
-                borderBottom: i < ripristini.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
-                background: r.esito === 'riuscito' ? '#fff' : '#FFFDF7'}}>
-                <div style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT}}>{cfFmt(r.data)}</div>
-                <div style={{fontSize:12.6, color:ADM.TEXT, lineHeight:1.35}}>{r.oggetto}</div>
-                <div>
-                  <div style={{fontSize:13.4, fontWeight:800, letterSpacing:'-0.01em',
-                    color: oltre ? ADM.WARN : ADM.INK}}>{r.tempoMin} min</div>
-                  <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>
-                    {oltre ? `oltre l'obiettivo di ${RIE_RTO_MIN}` : `obiettivo ${RIE_RTO_MIN} min`}
-                  </div>
-                </div>
-                <div><CfPill tono={rieTonoEsito(r.esito)}>{r.esito}</CfPill></div>
-                <div style={{fontSize:12.6, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.chi}</div>
-                <div style={{fontSize:12, color:ADM.MUTED, lineHeight:1.4}}>{r.note || '—'}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{...RIE_NOTA, marginTop:10}}>
-          {conOsservazioni > 0
-            ? <span>Il test del <strong>14 nov 2025</strong> è finito in 52 minuti contro un obiettivo di 45:
-                registrato come <strong>riuscito con osservazioni</strong>, ha prodotto l'aumento della classe
-                dell'istanza di ripristino — e il test successivo è sceso a 38 minuti. Un registro in cui tutti
-                i test risultano perfetti è un registro che nessuno legge davvero: è l'osservazione che dimostra
-                che la prova è stata fatta sul serio.</span>
-            : <span>Ogni test registra tempo impiegato ed esito rispetto all'obiettivo dichiarato di {RIE_RTO_MIN} minuti:
-                senza il tempo, «riuscito» non dice se il ripristino sarebbe arrivato in tempo.</span>}
-        </div>
-        </React.Fragment>
-        )}
       </div>
   );
 }

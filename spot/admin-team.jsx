@@ -1040,7 +1040,6 @@ function AccessReview({ onNavRoute }) {
   const [motivoConferma, setMotivoConferma] = useStateTeam('');
   const [dettaglio, setDettaglio] = useStateTeam(null);  // riga aperta: { m, cls, prec }
   const [confermaBlocco, setConfermaBlocco] = useStateTeam(false);
-  const [storico, setStorico] = useStateTeam(null);      // campagna chiusa aperta in dettaglio
   // Revoca multipla. `selezione` è null quando la modalità è spenta e un array
   // di id quando è accesa: null e [] sono due stati diversi — «non sto
   // selezionando» e «sto selezionando, non ho ancora scelto nessuno».
@@ -1429,76 +1428,13 @@ function AccessReview({ onNavRoute }) {
         </div>
       )}
 
-      {/* Storico: è quello che si mostra all'auditor */}
-      <div>
-        <div style={H}>Esami accessi precedenti</div>
-        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
-          {RIESAMI_CHIUSI.map((c, i) => {
-            const rev = c.esiti.filter(e => e.decisione === 'revocato').length;
-            return (
-              <div key={c.id} className="adm-row-open" onClick={()=>setStorico(storico === c.id ? null : c.id)}
-                style={{display:'grid', gridTemplateColumns:'1.1fr 1fr 1.5fr 1.4fr 30px', alignItems:'center', gap:10,
-                  padding:'12px 16px', cursor:'pointer',
-                  borderBottom: i < RIESAMI_CHIUSI.length - 1 || storico === c.id ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
-                <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{c.periodo}</div>
-                <div style={{fontSize:12.6, color:ADM.MUTED}}>{c.id}</div>
-                <div style={{fontSize:12.8, color:ADM.TEXT}}>Chiusa il {raFmtData(c.chiusaIl)} da {c.revisore}</div>
-                <div style={{fontSize:12.6, color:ADM.MUTED}}>
-                  {c.esiti.length} esaminate · {rev > 0 ? <span style={{color:ADM.DANGER, fontWeight:700}}>{rev} revocate</span> : 'nessuna revoca'}
-                </div>
-                <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
-              </div>
-            );
-          })}
-          {storico && (() => {
-            const c = RIESAMI_CHIUSI.find(x => x.id === storico);
-            return (
-              <div style={{padding:'14px 16px', background:ADM.PANEL_SOFT || '#FAFAFB'}}>
-                {/* È la schermata che si gira all'auditor. Su ogni riga devono
-                    esserci tutte e quattro le cose insieme — chi, che decisione,
-                    quando, e perché — non «o il motivo o il responsabile» come
-                    prima: senza il quando non si dimostra che qualcuno ha
-                    guardato in quella data, e senza il chi non c'è un
-                    responsabile a cui l'attestazione risale. */}
-                <div style={{display:'grid', gridTemplateColumns:RA_GRID_STORICO, gap:10, padding:'0 0 7px',
-                  fontSize:11, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase',
-                  letterSpacing:'0.06em', borderBottom:`1px solid ${ADM.BORDER}`}}>
-                  <span>Soggetto</span><span>Ruolo allora</span><span>Decisione</span>
-                  <span>Decisa il</span><span>Da</span><span>Motivo</span>
-                </div>
-                {c.esiti.map(e => {
-                  const sog = TEAM.find(t => t.id === e.soggettoId);
-                  const nome = sog ? (sog.nomeCompleto || sog.nome) : (e.nomeStorico || e.soggettoId);
-                  return (
-                    <div key={e.soggettoId} style={{display:'grid', gridTemplateColumns:RA_GRID_STORICO, gap:10,
-                      padding:'8px 0', fontSize:12.4, alignItems:'baseline', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
-                      <span style={{fontWeight:600, color:ADM.TEXT}}>{nome}</span>
-                      <span style={{color:ADM.MUTED}}>{(RUOLI[e.ruoloAllora] && RUOLI[e.ruoloAllora].label) || e.ruoloAllora}</span>
-                      <span style={{fontWeight:700, color: e.decisione === 'revocato' ? ADM.DANGER : ADM.OK}}>
-                        {e.decisione === 'revocato' ? 'Revocato' : 'Confermato'}
-                      </span>
-                      <span style={{color:ADM.MUTED, whiteSpace:'nowrap'}}>{raFmtDataOra(e.quando)}</span>
-                      <span style={{color:ADM.MUTED}}>{e.chi}</span>
-                      <span style={{color: e.motivo ? ADM.TEXT : ADM.MUTED_SOFT, lineHeight:1.4}}>
-                        {e.motivo || '—'}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div style={{marginTop:12}}>
-                  <AdmButton variant="secondary" size="sm" icon="download"
-                    onClick={()=>raScaricaCSV(c, c.esiti.map(e => {
-                      const sog = TEAM.find(t => t.id === e.soggettoId);
-                      return { nome: sog ? (sog.nomeCompleto || sog.nome) : (e.nomeStorico || e.soggettoId), email: sog ? sog.email : '—',
-                        ruolo: (RUOLI[e.ruoloAllora] && RUOLI[e.ruoloAllora].label) || e.ruoloAllora,
-                        lastActive: sog ? sog.lastActive : null, decisione: e.decisione, motivo: e.motivo, chi: e.chi, quando: e.quando };
-                    }))}>Scarica evidenza {c.periodo}</AdmButton>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      </div>
+      {/* Lo storico dei riesami passati non vive più qui. Un auditor che chiede
+          «e la volta prima?» lo chiede su un adempimento, non su una sezione, e
+          se ogni sezione tiene il proprio storico con la propria forma lui deve
+          girare quattro schermate per rispondere a una domanda sola. Ora sta nel
+          Cruscotto di Risk Management, dentro l'adempimento A.5.18: si apre la
+          riga e ci sono tutte le campagne chiuse. Qui resta la campagna in
+          corso, che è l'unica cosa su cui si agisce. */}
 
       {/* Popup revoca — il motivo è obbligatorio, senza non è evidenza */}
       {revoca && (

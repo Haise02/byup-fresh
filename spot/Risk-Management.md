@@ -100,6 +100,15 @@ che arrivano già in Ticket. Il passaggio che quasi tutti saltano è la
 non chiude la non conformità — e infatti se la verifica è negativa la NC torna
 aperta invece di chiudersi lo stesso.
 
+**Il Cruscotto è il posto dello storico.** Cliccando un adempimento si aprono le
+sue esecuzioni passate — quando, che cosa, con che esito, chi, con quale
+evidenza — normalizzate da quattro registri che prima si leggevano in quattro
+sezioni diverse: le campagne del riesame accessi, i riesami di direzione, gli
+audit interni e i test di ripristino. È lì che nasce la domanda («questo è
+scaduto») e lì deve stare la risposta («e la volta prima?»). Gli adempimenti
+senza un registro dedicato mostrano la sola data dell'ultima esecuzione, e lo
+dicono: una data sola non dimostra una cadenza, dimostra un episodio.
+
 **Audit e riesami (§9.2, §9.3).** Il riesame di direzione si porta dietro un
 **pacchetto di input che si compila da solo** leggendo i registri: nessun numero
 è scritto a mano. È la riunione che tutti odiano preparare, ridotta a mezz'ora.

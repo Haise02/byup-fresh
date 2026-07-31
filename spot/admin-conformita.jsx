@@ -58,6 +58,7 @@ function CfPill({ tono, children }) {
 }
 
 const CF_H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 };
+const CF_GRID_ST = '104px minmax(0,1.5fr) minmax(0,1.7fr) minmax(0,1.2fr) minmax(0,1.3fr)';
 const CF_GRID_AD = 'minmax(0,2.6fr) 0.9fr 0.85fr 1fr 1.25fr 1.15fr 150px';
 const CF_INP = { width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
   fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box' };
@@ -84,11 +85,59 @@ function CfDoc({ doc, breve }) {
   );
 }
 
+// ─── Storico di un adempimento ─────────────────────────────────────────────
+// «Quando l'avete fatto la volta prima? E quella prima ancora?» è la domanda
+// con cui un auditor smonta un adempimento che sulla carta è in regola: una
+// data sola non dimostra una cadenza, dimostra un episodio. Lo storico non è
+// un dato nuovo — vive già nei registri delle sezioni — ma andava letto in
+// quattro posti diversi, ognuno con la sua forma. Qui si normalizza e si legge
+// dove si guarda la scadenza, che è dove nasce la domanda.
+//
+// Gli adempimenti senza un registro dedicato hanno solo la data dell'ultima
+// esecuzione: si mostra quella, dichiarando che è l'unica cosa registrata.
+// Fingere una storia che non c'è sarebbe peggio di ammetterlo.
+function cfStorico(a) {
+  const arr = (x) => (typeof x !== 'undefined' && x) ? x : [];
+  if (a.id === 'acc') {
+    return arr(window.RIESAMI_CHIUSI).map(c => {
+      const rev = c.esiti.filter(e => e.decisione === 'revocato').length;
+      return { data:c.chiusaIl, titolo:c.periodo, rif:c.id, chi:c.revisore,
+        esito:`${c.esiti.length} utenze esaminate · ${rev ? `${rev} revocate` : 'nessuna revoca'}`,
+        tono: rev ? 'WARN' : 'OK', evidenza:'attestazione firmata · CSV' };
+    });
+  }
+  if (a.id === 'dir') {
+    return arr(window.RIESAMI_DIREZIONE).map(r => ({
+      data:r.data, titolo:'Riesame di direzione', rif:r.id, chi:r.partecipanti,
+      esito:`${(r.decisioni || []).length} ${(r.decisioni || []).length === 1 ? 'decisione presa' : 'decisioni prese'}`,
+      tono:'OK', doc:r.doc }));
+  }
+  if (a.id === 'audit') {
+    return arr(window.AUDIT_INTERNI).map(x => ({
+      data:x.data, titolo:x.aree, rif:x.id, chi:x.auditor,
+      esito:`${x.rilievi} ${x.rilievi === 1 ? 'rilievo' : 'rilievi'} · ${x.maggiori} ${x.maggiori === 1 ? 'maggiore' : 'maggiori'}, ${x.minori} ${x.minori === 1 ? 'minore' : 'minori'}, ${x.osservazioni} oss.`,
+      tono: x.maggiori ? 'DANGER' : 'OK', doc:x.doc }));
+  }
+  if (a.id === 'rest') {
+    return arr(window.RIPRISTINI).slice().sort((x, y) => y.data - x.data).map(r => ({
+      data:r.data, titolo:r.oggetto, rif:null, chi:r.chi,
+      esito:`${r.esito} in ${r.tempoMin} minuti`,
+      tono: r.esito === 'riuscito' ? 'OK' : r.esito === 'riuscito con osservazioni' ? 'WARN' : 'DANGER',
+      evidenza:'registro dei ripristini', nota:r.note }));
+  }
+  if (a.ultima) {
+    return [{ data:a.ultima, titolo:'Eseguito', rif:null, chi:a.responsabile,
+      esito:'registrata solo la data', tono:'NEUTRAL', evidenza:'—', sola:true }];
+  }
+  return [];
+}
+
 // ─── Cruscotto degli adempimenti ───────────────────────────────────────────
 function CfCruscotto({ onNav }) {
   const [modifica, setModifica] = useStateConf(null);   // adempimento in modifica
   const [bozza, setBozza] = useStateConf(null);
   const [, forzaCf] = useStateConf(0);
+  const [storico, setStorico] = useStateConf(null);   // adempimento aperto sullo storico
 
   // I non applicabili scendono in fondo: restano a vista come evidenza, ma non
   // devono competere con le scadenze vere per l'attenzione.
@@ -140,9 +189,9 @@ function CfCruscotto({ onNav }) {
           {righe.map(({ a, s }, i) => {
             const na = s.stato === 'na';
             return (
-              <div key={a.id}
+              <div key={a.id} className="adm-row-open" onClick={()=>setStorico(a)}
                 style={{display:'grid', gridTemplateColumns:CF_GRID_AD, gap:10,
-                  alignItems:'center', padding:'12px 16px',
+                  alignItems:'center', padding:'12px 16px', cursor:'pointer',
                   borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
                   background: na ? '#FCFCFD' : (s.stato === 'scaduto' || s.stato === 'mai') ? '#FFFBFB' : '#fff',
                   opacity: na ? 0.72 : 1}}>
@@ -168,11 +217,12 @@ function CfCruscotto({ onNav }) {
                   )}
                 </div>
                 <div style={{fontSize:12.6, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.responsabile}</div>
-                <div style={{display:'flex', justifyContent:'flex-end', gap:4}}>
-                  <AdmButton variant="ghost" size="sm" onClick={()=>apriModifica(a)} style={{fontSize:12}}>Modifica</AdmButton>
+                <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:4}}>
+                  <AdmButton variant="ghost" size="sm" onClick={(e)=>{ e.stopPropagation(); apriModifica(a); }} style={{fontSize:12}}>Modifica</AdmButton>
                   {a.vaiA && !na && (
-                    <AdmButton variant="ghost" size="sm" onClick={()=>onNav && onNav(a.vaiA)} style={{fontSize:12}}>Apri</AdmButton>
+                    <AdmButton variant="ghost" size="sm" onClick={(e)=>{ e.stopPropagation(); onNav && onNav(a.vaiA); }} style={{fontSize:12}}>Apri</AdmButton>
                   )}
+                  <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
                 </div>
               </div>
             );
@@ -250,6 +300,112 @@ function CfCruscotto({ onNav }) {
           </div>
         </div>
       )}
+
+      {/* Storico dell'adempimento — è la schermata che si gira all'auditor
+          quando chiede «e la volta prima?». */}
+      {storico && (() => {
+        const a = storico, s = cfStatoAdempimento(a), righeSt = cfStorico(a);
+        return (
+        <div onClick={()=>setStorico(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:820, maxWidth:'94%', maxHeight:'88%', background:'#fff',
+            borderRadius:14, boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease',
+            display:'flex', flexDirection:'column'}}>
+
+            <div style={{padding:'18px 22px 14px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+              <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>{a.nome}</div>
+                  <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:3, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+                    <CfNorma norme={a.norme}/>{a.rif}
+                    <span style={{color:ADM.MUTED_SOFT}}>·</span>
+                    {s.stato === 'na' ? 'non applicabile' : s.imposta ? 'data imposta dall’ente' : `ogni ${a.cadenzaMesi} mesi`}
+                    <span style={{color:ADM.MUTED_SOFT}}>·</span>
+                    {a.responsabile}
+                  </div>
+                </div>
+                {s.stato !== 'na' && (
+                  <div style={{textAlign:'right', flexShrink:0}}>
+                    <CfPill tono={s.tono}>{s.label}</CfPill>
+                    {s.prossima && <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:4}}>prossima {cfFmt(s.prossima)}</div>}
+                  </div>
+                )}
+              </div>
+              {a.nonApplicabile && (
+                <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:10, lineHeight:1.5}}>{a.nonApplicabile}</div>
+              )}
+            </div>
+
+            <div style={{padding:'16px 22px 20px', overflowY:'auto', flex:1, minHeight:0}}>
+              <div style={{...CF_H, marginBottom:8}}>
+                {righeSt.length ? `Esecuzioni registrate · ${righeSt.length}` : 'Esecuzioni registrate'}
+              </div>
+
+              {righeSt.length === 0 ? (
+                <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.6, padding:'14px 16px',
+                  borderRadius:10, background:ADM.NEUTRAL_SOFT}}>
+                  {a.nonApplicabile
+                    ? 'Dichiarato non applicabile: non ci sono esecuzioni da registrare, e la motivazione qui sopra è l’evidenza.'
+                    : 'Mai eseguito. Per l’auditor un adempimento dichiarato con una cadenza e senza nemmeno una esecuzione è un rilievo aperto: la prima volta che lo si svolge, la data registrata qui fa partire la scadenza.'}
+                </div>
+              ) : (
+                <React.Fragment>
+                  <div style={CF_CARD}>
+                    <div style={{...CF_TH, display:'grid', gridTemplateColumns:CF_GRID_ST, gap:10}}>
+                      <div>Quando</div><div>Che cosa</div><div>Esito</div><div>Chi</div><div>Evidenza</div>
+                    </div>
+                    {righeSt.map((r, i) => (
+                      <div key={i} style={{display:'grid', gridTemplateColumns:CF_GRID_ST, gap:10, alignItems:'baseline',
+                        padding:'11px 16px', borderBottom: i < righeSt.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                        <div style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap'}}>{cfFmt(r.data)}</div>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontSize:12.6, color:ADM.TEXT, lineHeight:1.35}}>{r.titolo}</div>
+                          {r.rif && <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, marginTop:2}}>{r.rif}</div>}
+                        </div>
+                        <div style={{fontSize:12.4, lineHeight:1.35,
+                          color: r.tono === 'DANGER' ? ADM.DANGER : r.tono === 'WARN' ? ADM.WARN : ADM.TEXT,
+                          fontWeight: r.tono === 'DANGER' || r.tono === 'WARN' ? 700 : 500}}>
+                          {r.esito}
+                          {r.nota && <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:2, fontWeight:400}}>{r.nota}</div>}
+                        </div>
+                        <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.35}}>{r.chi}</div>
+                        <div style={{minWidth:0, overflow:'hidden'}}>
+                          {r.evidenza
+                            ? <span style={{fontSize:12, color:ADM.MUTED_SOFT}}>{r.evidenza}</span>
+                            : <CfDoc doc={r.doc} breve/>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {righeSt.length === 1 && righeSt[0].sola && (
+                    <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:10, lineHeight:1.55}}>
+                      Di questo adempimento è registrata solo la data dell’ultima esecuzione: non c’è
+                      un registro dedicato che ne conservi le volte precedenti. Una data sola non
+                      dimostra una cadenza, dimostra un episodio — e «e la volta prima?» è la domanda
+                      con cui un auditor smonta un adempimento che sulla carta è in regola.
+                    </div>
+                  )}
+                </React.Fragment>
+              )}
+            </div>
+
+            <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
+              alignItems:'center', gap:8, flexShrink:0}}>
+              <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
+                {a.vaiA ? 'Il registro completo vive nella sezione che lo produce.' : ''}
+              </span>
+              <AdmButton variant="secondary" size="sm" onClick={()=>setStorico(null)}>Chiudi</AdmButton>
+              {a.vaiA && s.stato !== 'na' && (
+                <AdmButton variant="primary" size="sm" onClick={()=>{ setStorico(null); onNav && onNav(a.vaiA); }}>
+                  Apri il registro
+                </AdmButton>
+              )}
+            </div>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
 }

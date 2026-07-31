@@ -151,6 +151,13 @@ nell'interfaccia**: va dichiarata e compensata nella valutazione del rischio e
 nella Dichiarazione di Applicabilità dell'ISMS. Quando ci saranno due Super
 Admin potranno verificarsi a vicenda e il punto decade.
 
+**Lo storico delle campagne chiuse non vive più qui.** Un auditor che chiede «e
+la volta prima?» lo chiede su un **adempimento**, non su una sezione: se ogni
+sezione tiene il proprio storico con la propria forma, lui deve girare quattro
+schermate per rispondere a una domanda sola. Le campagne chiuse si aprono dal
+Cruscotto di Risk Management, cliccando la riga dell'adempimento A.5.18. Qui
+resta la campagna in corso, che è l'unica cosa su cui si agisce.
+
 **Una campagna chiusa non si modifica.** Non esistono comandi di modifica o
 riapertura: una correzione è una campagna nuova. L'assenza del comando è il
 segnale più forte di immutabilità, più di un lucchetto disegnato.
