@@ -655,8 +655,9 @@ const INVITI_PENDENTI = [
     inviato:new Date(Date.now() - 86400000 * 2),  scade:new Date(Date.now() + 86400000 * 5) },
   { nome:'Davide Conti',     email:'davide.c@byup.it',   ruolo:'operations',
     inviato:new Date(Date.now() - 86400000 * 4),  scade:new Date(Date.now() + 86400000 * 3) },
-  // Invitata il 20 giu 2026 e mai accettato: l'invito è scaduto da un mese e i
-  // permessi Support sono già stati decisi. È il caso che deve saltare all'occhio.
+  // Invitata il 20 giu e mai accettato: alla scadenza l'invito si è annullato da
+  // solo, quindi non compare più fra quelli in attesa. Resta nei dati perché il
+  // filtro che lo esclude è la regola, e va vista funzionare.
   { nome:'Chiara Fumagalli', email:'c.fumagalli@byup.it', ruolo:'support',
     inviato:new Date('2026-06-20'),               scade:new Date('2026-06-27') },
 ];

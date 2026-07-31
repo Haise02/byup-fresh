@@ -291,17 +291,40 @@ function RuoliMatrix() {
 }
 
 // Contratto di default: sta in alto perché si veda, non perché occupi spazio.
-// L'intestazione da sola dice già tutto quello che serve per decidere se aprirlo
-// — quanti sono, se ce n'è uno scaduto, e i nomi.
+// Un invito scaduto si annulla da solo — non esiste una lista di inviti morti da
+// guardare, e il filtro qui sotto è la regola: se la scadenza è passata, quello
+// non è più un invito in attesa. Per questo l'intestazione non ha niente da
+// segnalare oltre a quanti sono e chi sono.
 function InvitiPending() {
   const [aperto, setAperto] = useStateTeam(false);
-  const inviti = (typeof INVITI_PENDENTI !== 'undefined' ? INVITI_PENDENTI : []);
-  if (!inviti.length) return null;
+  const [conferma, setConferma] = useStateTeam(null);   // { inv, azione: 'invia' | 'annulla' }
+  const [, ridisegna] = useStateTeam(0);
   const gg = (d) => Math.round((d.getTime() - Date.now()) / 86400000);
-  const fermi = inviti.filter(i => gg(i.scade) < 0).length;
+  const tutti = (typeof INVITI_PENDENTI !== 'undefined' ? INVITI_PENDENTI : []);
+  const inviti = tutti.filter(i => !i.annullato && gg(i.scade) >= 0);
+  if (!inviti.length) return null;
+
+  const esegui = () => {
+    const { inv, azione } = conferma;
+    if (azione === 'annulla') {
+      inv.annullato = true;
+    } else {
+      inv.inviato = new Date();
+      inv.scade = new Date(Date.now() + 86400000 * 7);
+    }
+    AUDIT_EVENTS.unshift({
+      who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
+      action: azione === 'annulla' ? "ha annullato l'invito di" : "ha inviato di nuovo l'invito a",
+      target: `${inv.nome} · ${(RUOLI[inv.ruolo] && RUOLI[inv.ruolo].label) || inv.ruolo}`,
+      icon: azione === 'annulla' ? 'lock' : 'send',
+      color: azione === 'annulla' ? 'DANGER' : 'INFO',
+      tipo: 'team', when: new Date(),
+    });
+    setConferma(null); ridisegna(x => x + 1);
+  };
+
   return (
-    <div style={{border:`1px solid ${fermi ? '#FDE68A' : ADM.BORDER}`, borderRadius:10, overflow:'hidden',
-      background: fermi ? '#FFFDF7' : '#fff'}}>
+    <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden', background:'#fff'}}>
       <div className="adm-row-open" onClick={()=>setAperto(a => !a)}
         style={{display:'flex', alignItems:'center', gap:9, padding:'10px 16px', cursor:'pointer',
         userSelect:'none', borderBottom: aperto ? `1px solid ${ADM.BORDER_SOFT}` : 'none', flexWrap:'wrap'}}>
@@ -312,17 +335,11 @@ function InvitiPending() {
         <span className="adm-row-chev" style={{display:'inline-flex', color:ADM.MUTED_SOFT,
           transform: aperto ? 'rotate(90deg)' : 'none', transition:'transform 0.15s ease'}}>
           <BuIcons.chevronRight size={15}/></span>
-        <span style={{fontSize:12.4, color: fermi ? ADM.WARN : ADM.MUTED, fontWeight: fermi ? 700 : 400}}>
-          {fermi
-            ? `${fermi} ${fermi === 1 ? 'invito scaduto' : 'inviti scaduti'}: permessi già assegnati a chi non è mai entrato`
-            : 'non hanno ancora accettato, quindi non sono nel riesame degli accessi'}
-        </span>
         {!aperto && (
-          <span style={{fontSize:12.4, color:ADM.MUTED_SOFT}}>
-            · {inviti.map(i => i.nome).join(', ')}
-          </span>
+          <span style={{fontSize:12.4, color:ADM.MUTED_SOFT}}>{inviti.map(i => i.nome).join(', ')}</span>
         )}
       </div>
+
       {aperto && inviti.map((inv, i) => {
         const g = gg(inv.scade);
         return (
@@ -339,16 +356,50 @@ function InvitiPending() {
             </div>
             <div><AdmBadge color={RUOLI[inv.ruolo].color} size="xs">{RUOLI[inv.ruolo].label}</AdmBadge></div>
             <div style={{fontSize:12.4, color:ADM.MUTED}}>Inviato {fmtRelative(inv.inviato)}</div>
-            <div style={{fontSize:12.4, fontWeight:700, color: g < 0 ? ADM.DANGER : ADM.WARN}}>
-              {g < 0 ? `Scaduto da ${-g} ${-g === 1 ? 'giorno' : 'giorni'}` : `Scade fra ${Math.max(1, g)} giorni`}
+            <div style={{fontSize:12.4, fontWeight:700, color:ADM.WARN}}>
+              Scade fra {Math.max(1, g)} {Math.max(1, g) === 1 ? 'giorno' : 'giorni'}
             </div>
             <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
-              <AdmButton variant="ghost" size="sm">Invia di nuovo</AdmButton>
-              <AdmButton variant="ghost" size="sm">Revoca</AdmButton>
+              <AdmButton variant="ghost" size="sm" onClick={()=>setConferma({ inv, azione:'invia' })}>Invia di nuovo</AdmButton>
+              <AdmButton variant="ghost" size="sm" onClick={()=>setConferma({ inv, azione:'annulla' })}>Annulla</AdmButton>
             </div>
           </div>
         );
       })}
+
+      {/* Rimandare un invito e annullarlo sono due cose che partono da un
+          indirizzo email e non si possono disfare: la prima manda una mail a una
+          persona vera, la seconda chiude una porta che qualcuno sta aspettando
+          di varcare. Nessuna delle due si fa con un clic di passaggio. */}
+      {conferma && (() => {
+        const annulla = conferma.azione === 'annulla';
+        return (
+        <div onClick={()=>setConferma(null)} style={{position:'fixed', inset:0, zIndex:60,
+          background:'rgba(15,17,21,0.42)', display:'flex', alignItems:'center', justifyContent:'center',
+          padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:460, maxWidth:'90%', background:'#fff',
+            borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)',
+            animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
+              {annulla
+                ? `Annullare l'invito di ${conferma.inv.nome}?`
+                : `Inviare di nuovo l'invito a ${conferma.inv.nome}?`}
+            </div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
+              {annulla
+                ? <span>Il collegamento smette di funzionare subito e <strong style={{color:ADM.TEXT}}>{conferma.inv.email}</strong> non potrà più accedere con quell'invito. Per farlo entrare servirà invitarlo di nuovo.</span>
+                : <span>Parte una mail a <strong style={{color:ADM.TEXT}}>{conferma.inv.email}</strong> con un collegamento nuovo, valido altri sette giorni. Il precedente smette di funzionare.</span>}
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="secondary" size="sm" onClick={()=>setConferma(null)}>Lascia stare</AdmButton>
+              <AdmButton variant={annulla ? 'danger' : 'primary'} size="sm" onClick={esegui}>
+                {annulla ? "Annulla l'invito" : 'Invia di nuovo'}
+              </AdmButton>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1232,12 +1283,12 @@ function AccessReview({ onNavRoute }) {
             {/* Quando il banner è a video ha già detto scadenza e cadenza: qui
                 resta solo quello che il banner non dice, altrimenti la stessa
                 riga si legge due volte a dieci centimetri di distanza. */}
+            {/* Il conteggio l'ha già la banda in testa: qui resta solo quello
+                che la banda non dice, e solo quando la banda non c'è. */}
             <span style={{fontSize:12.4, color:ADM.MUTED, flex:1, minWidth:170}}>
-              {daGuardare > 0 ? `${daGuardare} da guardare con attenzione` : 'nessuna anomalia aperta'}
-              {tuttiDecisi ? ` · tutte e ${totale} esaminate` : ` · ${totale - decisi} da esaminare`}
               {!inScadenza && (
                 <React.Fragment>
-                  {' · '}<span>entro il {raFmtData(scadenza)}</span>
+                  <span>entro il {raFmtData(scadenza)}</span>
                   {' · ogni '}{cadenza} mesi
                   {typeof onNavRoute === 'function' && (
                     <React.Fragment>{' · '}
