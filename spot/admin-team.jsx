@@ -1221,12 +1221,12 @@ function AccessReview({ onNavRoute }) {
               bottone di troppo. */}
           {!tuttiDecisi && invariatiAperti.length > 1 && (
             <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
-              Conferma le {invariatiAperti.length} invariate
+              Conferma utenze
             </AdmButton>
           )}
           {!tuttiDecisi && aperte.length > 1 && (
             <AdmButton variant="secondary" size="sm" onClick={()=>{ setSelezione([]); setMotivo(''); }}>
-              Revoca più utenze
+              Revoca utenze
             </AdmButton>
           )}
           {tuttiDecisi && (
@@ -1304,14 +1304,14 @@ function AccessReview({ onNavRoute }) {
             <div style={{display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
               {!inScadenza && invariatiAperti.length > 1 && (
                 <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
-                  Conferma le {invariatiAperti.length} invariate
+                  Conferma utenze
                 </AdmButton>
               )}
               {/* Compare solo se c'è più di una riga su cui potrebbe servire:
                   per revocare una persona sola basta aprirla. */}
               {!inScadenza && aperte.length > 1 && (
                 <AdmButton variant="quiet" size="sm" onClick={()=>{ setSelezione([]); setMotivo(''); }}>
-                  Revoca più utenze
+                  Revoca utenze
                 </AdmButton>
               )}
             </div>
