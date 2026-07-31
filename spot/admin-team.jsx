@@ -1131,25 +1131,32 @@ function AccessReview({ onNavRoute }) {
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
 
-      {/* La banda alla scadenza. Non è il vecchio contatore «1 / 10» che stava
-          sempre lì a ripetere l'elenco: compare solo quando il riesame è dovuto
-          e sparisce appena tutto è deciso. È la cosa che manca quando un riesame
-          slitta — nessuno lo dimentica per cattiva fede, lo dimentica e basta. */}
-      {!chiusa && !tuttiDecisi && inScadenza && (
+      {/* Una banda sola, che cambia mestiere. Finché ci sono utenze da decidere
+          dice che il riesame è dovuto e porta i due comandi che sbrigano il
+          grosso; quando sono tutte decise diventa la firma. «Chiudi e firma»
+          non ha più un posto fisso nell'intestazione, dove stava grigio e
+          inerte per tutto il tempo in cui non si poteva premere: compare qui,
+          acceso, nel momento esatto in cui serve. */}
+      {!chiusa && (inScadenza || tuttiDecisi) && (
         <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
-          background: scaduta ? ADM.DANGER_SOFT : '#FFF7E6',
-          border:`1px solid ${scaduta ? '#FECACA' : '#FDE68A'}`, flexWrap:'wrap'}}>
+          background: tuttiDecisi ? ADM.OK_SOFT : scaduta ? ADM.DANGER_SOFT : '#FFF7E6',
+          border:`1px solid ${tuttiDecisi ? '#BBF7D0' : scaduta ? '#FECACA' : '#FDE68A'}`, flexWrap:'wrap'}}>
           <div style={{flex:1, minWidth:260}}>
-            <div style={{fontSize:14.5, fontWeight:800, color: scaduta ? '#7F1D1D' : '#78350F'}}>
-              {scaduta
-                ? `Il riesame ${camp.periodo} è scaduto da ${-ggScadenza} ${-ggScadenza === 1 ? 'giorno' : 'giorni'}`
-                : ggScadenza === 0
-                  ? `Il riesame ${camp.periodo} scade oggi`
-                  : `Il riesame ${camp.periodo} scade fra ${ggScadenza} ${ggScadenza === 1 ? 'giorno' : 'giorni'}`}
+            <div style={{fontSize:14.5, fontWeight:800,
+              color: tuttiDecisi ? '#065F46' : scaduta ? '#7F1D1D' : '#78350F'}}>
+              {tuttiDecisi
+                ? `Il riesame ${camp.periodo} è pronto da firmare`
+                : scaduta
+                  ? `Il riesame ${camp.periodo} è scaduto da ${-ggScadenza} ${-ggScadenza === 1 ? 'giorno' : 'giorni'}`
+                  : ggScadenza === 0
+                    ? `Il riesame ${camp.periodo} scade oggi`
+                    : `Il riesame ${camp.periodo} scade fra ${ggScadenza} ${ggScadenza === 1 ? 'giorno' : 'giorni'}`}
             </div>
             <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-              {totale - decisi} {totale - decisi === 1 ? 'utenza' : 'utenze'} da confermare o revocare
-              {daGuardare > 0 && `, di cui ${daGuardare} con un'anomalia`} · A.5.18, ogni {cadenza} mesi
+              {tuttiDecisi
+                ? `${totale} utenze esaminate · ${totale - revocati} confermate, ${revocati} ${revocati === 1 ? 'revocata' : 'revocate'}`
+                : `${totale - decisi} ${totale - decisi === 1 ? 'utenza' : 'utenze'} da confermare o revocare${daGuardare > 0 ? `, di cui ${daGuardare} con un'anomalia` : ''}`}
+              {' · A.5.18, ogni '}{cadenza} mesi
               {typeof onNavRoute === 'function' && (
                 <React.Fragment>{' · '}
                   <span onClick={()=>onNavRoute('conformita', 'cruscotto')}
@@ -1158,20 +1165,22 @@ function AccessReview({ onNavRoute }) {
               )}
             </div>
           </div>
-          {/* I due comandi che sbrigano il grosso stanno qui, dove si legge che
-              il riesame è dovuto: quando la banda c'è, l'intestazione qui sotto
-              non li ripete — lo stesso bottone due volte nella stessa schermata
-              è un bottone di troppo. «Chiudi e firma» resta invece accanto
-              all'elenco, perché è l'ultimo gesto e si fa quando l'elenco è
-              finito, non quando lo si apre. */}
-          {invariatiAperti.length > 1 && (
+          {/* Quando la banda c'è, l'intestazione qui sotto non ripete questi
+              comandi: lo stesso bottone due volte nella stessa schermata è un
+              bottone di troppo. */}
+          {!tuttiDecisi && invariatiAperti.length > 1 && (
             <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
               Conferma le {invariatiAperti.length} invariate
             </AdmButton>
           )}
-          {aperte.length > 1 && (
+          {!tuttiDecisi && aperte.length > 1 && (
             <AdmButton variant="secondary" size="sm" onClick={()=>{ setSelezione([]); setMotivo(''); }}>
               Revoca più utenze
+            </AdmButton>
+          )}
+          {tuttiDecisi && (
+            <AdmButton variant="primary" size="sm" onClick={()=>setConfermaChiusura(true)}>
+              Chiudi e firma
             </AdmButton>
           )}
         </div>
@@ -1254,13 +1263,6 @@ function AccessReview({ onNavRoute }) {
                   Revoca più utenze
                 </AdmButton>
               )}
-              {/* Finché mancano decisioni la firma non è disponibile e non deve
-                  pesare come se lo fosse: resta un bottone quieto e si accende
-                  quando l'elenco è finito davvero. */}
-              <AdmButton variant={tuttiDecisi ? 'primary' : 'secondary'} size="sm"
-                disabled={!tuttiDecisi} onClick={()=>setConfermaChiusura(true)}>
-                Chiudi e firma
-              </AdmButton>
             </div>
           </div>
           )}
