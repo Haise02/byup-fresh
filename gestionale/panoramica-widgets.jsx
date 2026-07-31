@@ -833,6 +833,10 @@ function WidgetAzioni({ size }) {
   const actions = [
     { label: 'Nuova prenotazione', icon: 'time-calendar',       color: '#FB7185', href: 'byup Sala.html?tab=calendar&nuova=1' },
     { label: 'Aggiungi piatto',    icon: 'food-meal',           color: '#F472B6', href: 'byup Impostazioni.html?page=menu-cucina&sub=libreria&add=1' },
+    // Due azioni sul menù e due destinazioni diverse: «Aggiungi piatto» apre la
+    // libreria dei piatti, questa il compositore dei menù — dove si decide
+    // quali piatti stanno in quale menù e in che categoria.
+    { label: 'Modifica menu',      icon: 'pencil',              color: '#FBBF24', href: 'byup Impostazioni.html?page=menu-cucina&sub=menu' },
     { label: 'Apri cassa',         icon: 'commerce-wallet',     color: '#34D399', href: 'byup Contabilita.html?tab=cassa' },
     { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA', href: 'byup Impostazioni.html?page=sala' },
     { label: 'Invita membro del team', icon: 'people-staff-group',  color: '#A78BFA', href: 'byup Impostazioni.html?page=personale&invita=1' },
