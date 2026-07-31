@@ -378,7 +378,7 @@ function WorkflowEmailPane() {
   };
 
   return (
-    <div style={{padding:'24px 28px', minHeight:600, position:'relative'}}>
+    <div style={{...PROMO_SHELL, minHeight:600, position:'relative'}}>
       <style>{WF_ANIMATIONS}</style>
 
       <div className={editing ? 'wf-fade-out' : 'wf-fade-in'} style={{display: editing ? 'none' : 'block'}}>
@@ -419,6 +419,11 @@ function WorkflowEmailPane() {
 // ════════════════════════════════════════════════════════════════════════════
 // LISTA WORKFLOW
 // ════════════════════════════════════════════════════════════════════════════
+// Stessa impalcatura delle altre due tab di Promozioni: una frase e l'azione,
+// la striscia di misure, la tabella. Il titolo «Workflow email» che stava qui
+// dentro è sparito — lo diceva già la tab attiva quaranta pixel più su.
+const WF_COLS = 'minmax(0,2.7fr) 0.7fr 0.75fr 0.6fr 1fr 96px';
+
 function WorkflowList({ workflows, onOpen, onNew, onDuplicate, onToggleState, onRemove }) {
   const tot = workflows.reduce((a, w) => ({
     iscritti: a.iscritti + w.stats.iscritti,
@@ -429,37 +434,34 @@ function WorkflowList({ workflows, onOpen, onNew, onDuplicate, onToggleState, on
   const attivi = workflows.filter(w => w.stato === 'active').length;
 
   return (
-    <div style={{display:'flex', flexDirection:'column', gap:20}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:14}}>
-        <div>
-          <div style={{fontSize:19.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em'}}>Workflow email</div>
-          <div style={{fontSize:14.4, color:ADM.MUTED, marginTop:5, maxWidth:680, lineHeight:1.55}}>
-            Trigger comportamentali, filtri ricchi,
-            sequenze multi-step con diramazioni e guardrails di sicurezza.
-          </div>
-        </div>
-        <AdmButton variant="cta" icon="plus" onClick={onNew}>Nuovo workflow</AdmButton>
-      </div>
+    <div style={{display:'flex', flexDirection:'column', gap:16}}>
+      <PromoHead
+        testo={<>Sequenze che partono da sole a un evento del cliente e proseguono nel tempo: trigger comportamentali, filtri di ingresso, diramazioni e guardrail di frequenza. Apri una riga per modificarne il percorso.</>}
+        azione={<AdmButton variant="cta" icon="plus" style={{whiteSpace:'nowrap', flexShrink:0}} onClick={onNew}>Nuovo workflow</AdmButton>}
+      />
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-        <WfKpi label="Workflow attivi" value={`${attivi}/${workflows.length}`} accent="OK" icon="check"/>
-        <WfKpi label="Iscritti totali" value={fmtNum(tot.iscritti)} accent="PINK"   icon="users"   sub="Clienti in almeno 1 workflow"/>
-        <WfKpi label="Email inviate"   value={fmtNum(tot.inviate)}  accent="INFO"   icon="mail"    sub="Ultimi 30 giorni"/>
-        <WfKpi label="Ordini generati" value={fmtNum(tot.ordini)}   accent="PURPLE" icon="receipt" sub={`${fmtEur(tot.ricavi)} attribuiti`}/>
-      </div>
+      <PromoSummary voci={[
+        { label:'Workflow attivi', valore: `${attivi}/${workflows.length}`, sotto:'Gli altri sono in pausa o in bozza' },
+        { label:'Iscritti totali', valore: fmtNum(tot.iscritti), sotto:'Clienti dentro almeno un workflow' },
+        { label:'Email inviate', valore: fmtNum(tot.inviate), sotto:'Ultimi 30 giorni' },
+        { label:'Ordini generati', valore: fmtNum(tot.ordini), sotto:`${fmtEur(tot.ricavi)} attribuiti` },
+      ]}/>
 
-      <AdmCard padding={0}>
-        <div style={{padding:'14px 18px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.07em', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-          <span>Workflow configurati</span>
-          <span style={{color:ADM.MUTED_SOFT, fontWeight:600, letterSpacing:'0.05em'}}>{workflows.length} totali</span>
-        </div>
+      <PromoTable cols={WF_COLS} teste={[
+        { label:'Workflow' },
+        { label:'Iscritti', num:true },
+        { label:'Inviate', num:true },
+        { label:'Open', num:true },
+        { label:'Ordini', num:true },
+        { label:'' },
+      ]}>
         {workflows.length === 0 && (
-          <div style={{padding:'48px 24px', textAlign:'center'}}>
-            <div style={{width:54, height:54, borderRadius:14, background:ADM.PINK_SOFT, color:ADM.PINK, display:'grid', placeItems:'center', margin:'0 auto 12px'}}>
-              <BuIcons.mail size={27}/>
+          <div style={{padding:'44px 24px', textAlign:'center'}}>
+            <div style={{width:48, height:48, borderRadius:12, background:ADM.NEUTRAL_SOFT, color:ADM.MUTED, display:'grid', placeItems:'center', margin:'0 auto 12px'}}>
+              <BuIcons.mail size={24}/>
             </div>
-            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Ancora nessun workflow</div>
-            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:4, marginBottom:14}}>Parti da un template curato per ristoratori o costruiscine uno da zero.</div>
+            <div style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT}}>Ancora nessun workflow</div>
+            <div style={{fontSize:13.4, color:ADM.MUTED, marginTop:4, marginBottom:14}}>Parti da un template curato per ristoratori o costruiscine uno da zero.</div>
             <AdmButton variant="cta" icon="plus" onClick={onNew}>Crea il primo workflow</AdmButton>
           </div>
         )}
@@ -472,96 +474,54 @@ function WorkflowList({ workflows, onOpen, onNew, onDuplicate, onToggleState, on
             onRemove={()=>onRemove(w)}
           />
         ))}
-      </AdmCard>
+      </PromoTable>
     </div>
   );
 }
 
-function WfKpi({ label, value, sub, accent='PINK', icon='trendUp' }) {
-  const Icon = BuIcons[icon] || BuIcons.trendUp;
-  // Calm: tile neutra (il colore non è decorativo)
-  const c = ADM.NEUTRAL;
-  const cSoft = ADM.NEUTRAL_SOFT;
-  return (
-    <AdmCard padding={14}>
-      <div style={{display:'flex', alignItems:'center', gap:11}}>
-        <div style={{width:36, height:36, borderRadius:9, background:cSoft, color:c, display:'grid', placeItems:'center', flexShrink:0}}>
-          <Icon size={21}/>
-        </div>
-        <div style={{minWidth:0}}>
-          <div style={{fontSize:12, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
-          <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, marginTop:4, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
-          {sub && <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:3}}>{sub}</div>}
-        </div>
-      </div>
-    </AdmCard>
-  );
-}
-
 function WorkflowRow({ wf, last, onOpen, onDuplicate, onToggle, onRemove }) {
-  const [hover, setHover] = useStateWf(false);
   const trig = findTrigger(wf.trigger?.id) || { label:'Trigger non impostato', icon:'plus', color:'MUTED' };
   const TrigIcon = BuIcons[trig.icon || 'mail'];
-  const trigColor = ADM[trig.color || 'PINK'];
   const nEmail = countStepKind(wf.steps, 'email') + countStepKind(wf.steps, 'push') + countStepKind(wf.steps, 'sms');
 
   return (
-    <div
-      onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
-      style={{
-        display:'flex', alignItems:'center', gap:14, flexWrap:'wrap',
-        padding:'14px 18px',
-        borderBottom: last ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-        background: hover ? ADM.ROW_HOVER : 'transparent',
-        cursor:'pointer',
-        transition:'background 0.12s',
-      }}
-      onClick={onOpen}
-    >
-      <div style={{display:'flex', alignItems:'center', gap:11, minWidth:240, flex:'1 1 280px'}}>
-        <div style={{
-          width:36, height:36, borderRadius:9,
-          background: ADM[trig.color + '_SOFT'] || '#F3F4F6',
-          color: trigColor,
-          display:'grid', placeItems:'center', flexShrink:0,
-        }}>
-          <TrigIcon size={21}/>
+    <div className="adm-row-open" onClick={onOpen} style={{
+      display:'grid', gridTemplateColumns:WF_COLS, gap:12, alignItems:'center',
+      padding:'12px 18px', background:'#fff',
+      borderBottom: last ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
+        {/* La tile del trigger resta neutra: il colore, qui, non è un dato —
+            lo stato del workflow lo dice già la pastiglia accanto al nome. */}
+        <div style={{width:32, height:32, borderRadius:8, background:ADM.NEUTRAL_SOFT, color:ADM.MUTED,
+          display:'grid', placeItems:'center', flexShrink:0}}>
+          <TrigIcon size={18}/>
         </div>
-        <div style={{minWidth:0, flex:1}}>
-          <div style={{display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
-            <span style={{fontSize:14.8, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%'}}>{wf.nome}</span>
+        <div style={{minWidth:0}}>
+          <div style={{display:'flex', alignItems:'center', gap:7, minWidth:0}}>
+            <span style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{wf.nome}</span>
             <WfStatoBadge stato={wf.stato}/>
           </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
-            <span>{trig.label}</span>
-            <span style={{color:ADM.MUTED_LIGHT}}>·</span>
-            <span><strong style={{color:ADM.TEXT, fontWeight:700}}>{nEmail}</strong> msg</span>
-            {wf.conditions?.items?.length > 0 && (<>
-              <span style={{color:ADM.MUTED_LIGHT}}>·</span>
-              <span><strong style={{color:ADM.TEXT, fontWeight:700}}>{wf.conditions.items.length}</strong> filtri {wf.conditions.mode}</span>
-            </>)}
+          <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+            {trig.label} · <strong style={{color:ADM.TEXT, fontWeight:700}}>{nEmail}</strong> msg
+            {wf.conditions?.items?.length > 0 && <> · <strong style={{color:ADM.TEXT, fontWeight:700}}>{wf.conditions.items.length}</strong> filtri {wf.conditions.mode}</>}
           </div>
         </div>
       </div>
 
-      <div style={{display:'flex', gap:14, alignItems:'baseline', flexWrap:'wrap', justifyContent:'flex-end', flex:'0 1 auto'}}>
-        <InlineNum label="Iscritti" value={fmtNum(wf.stats.iscritti)}/>
-        <InlineNum label="Inviate"  value={fmtNum(wf.stats.inviate)}/>
-        <InlineNum label="Open"     value={wf.stats.open ? `${Math.round(wf.stats.open*100)}%` : '—'}/>
-        <InlineNum label="Ordini"   value={fmtNum(wf.stats.ordini)} sub={wf.stats.ricavi ? fmtEur(wf.stats.ricavi) : null}/>
-      </div>
+      <PromoNum v={fmtNum(wf.stats.iscritti)}/>
+      <PromoNum v={fmtNum(wf.stats.inviate)}/>
+      <PromoNum v={wf.stats.open ? `${Math.round(wf.stats.open*100)}%` : '—'}/>
+      <PromoNum v={fmtNum(wf.stats.ordini)} sotto={wf.stats.ricavi ? `${fmtEur(wf.stats.ricavi)} attribuiti` : null}/>
 
-      <div style={{display:'flex', gap:5, flexShrink:0}} onClick={e=>e.stopPropagation()}>
-        <AdmIconBtn icon={wf.stato==='active' ? 'pause' : 'check'} label={wf.stato==='active' ? 'Metti in pausa' : 'Attiva'} onClick={onToggle}/>
-        <AdmIconBtn icon="copy" label="Duplica" onClick={onDuplicate}/>
-        <span style={{width:1, alignSelf:'stretch', background:ADM.BORDER_SOFT, margin:'4px 3px'}}/>
-        <button title="Elimina" onClick={() => { if (confirm(`Eliminare il workflow "${wf.nome}"?`)) onRemove(); }}
-          className="adm-iconbtn"
-          style={{width:30, height:30, borderRadius:8, border:'none', background:'transparent', color:ADM.DANGER, cursor:'pointer', display:'grid', placeItems:'center'}}
-          onMouseEnter={e=>e.currentTarget.style.background=ADM.DANGER_SOFT}
-          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-          <BuIcons.x size={17}/>
-        </button>
+      {/* Tre azioni quiete, non una croce rossa che è la cosa più visibile
+          della riga: l'eliminazione resta protetta dalla conferma. */}
+      <div style={{display:'flex', gap:2, justifyContent:'flex-end'}} onClick={e=>e.stopPropagation()}>
+        <AdmIconBtn icon={wf.stato==='active' ? 'pause' : 'check'} size={28}
+          label={wf.stato==='active' ? 'Metti in pausa' : 'Attiva'} onClick={onToggle}/>
+        <AdmIconBtn icon="copy" size={28} label="Duplica" onClick={onDuplicate}/>
+        <AdmIconBtn icon="trash" size={28} label="Elimina"
+          onClick={() => { if (confirm(`Eliminare il workflow "${wf.nome}"?`)) onRemove(); }}/>
       </div>
     </div>
   );
@@ -581,16 +541,6 @@ function countStepKind(steps, kind) {
   return n;
 }
 
-function InlineNum({ label, value, sub, tone }) {
-  return (
-    <div style={{textAlign:'right', whiteSpace:'nowrap'}}>
-      <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em'}}>{label}</div>
-      <div style={{fontSize:14.8, fontWeight:700, color: tone ? ADM[tone] : ADM.TEXT, letterSpacing:'-0.01em', lineHeight:1.1, marginTop:1}}>{value}</div>
-      {sub && <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:1}}>{sub}</div>}
-    </div>
-  );
-}
-
 function WfStatoBadge({ stato }) {
   const map = {
     active: { label:'Attivo',   color: ADM.OK,    bg: ADM.OK_SOFT },
@@ -601,9 +551,9 @@ function WfStatoBadge({ stato }) {
   return (
     <span style={{
       display:'inline-flex', alignItems:'center', gap:5,
-      fontSize:13, fontWeight:800, color:s.color, background:s.bg,
-      padding:'2px 7px', borderRadius:5, textTransform:'uppercase', letterSpacing:'0.05em',
-      whiteSpace:'nowrap',
+      fontSize:11.4, fontWeight:800, color:s.color, background:s.bg,
+      padding:'2px 6px', borderRadius:5, textTransform:'uppercase', letterSpacing:'0.05em',
+      whiteSpace:'nowrap', flexShrink:0,
     }}>
       {stato==='active' && <span className="wf-pulse" style={{width:5, height:5, borderRadius:'50%', background:s.color}}/>}
       {s.label}
