@@ -852,49 +852,6 @@ function CfFormazione() {
 
       </div>
 
-      {/* Uscite dal team: si registra una data e basta, e da li in poi l'elenco
-          accessi sa che quell'account ha una scadenza. Il campo e volutamente
-          povero — nessun motivo, nessuna pratica — perche chi tiene gli accessi
-          deve sapere entro quando revocare, non perche quella persona se ne va. */}
-      <div>
-        <div style={{fontSize:13.4, fontWeight:800, color:ADM.TEXT, textTransform:'uppercase',
-          letterSpacing:'0.08em', marginBottom:4}}>Uscite dal team</div>
-        <div style={{fontSize:12.4, color:ADM.MUTED, marginBottom:12, lineHeight:1.5}}>
-          La data dell’ultimo giorno di lavoro. Da quel giorno l’accesso alla piattaforma
-          va revocato, e chi tiene gli accessi lo vede segnalato in cima al suo elenco.
-        </div>
-        <div style={CF_CARD}>
-          <div style={{...CF_TH, display:'grid', gridTemplateColumns:'minmax(0,2fr) 1.2fr 170px 1fr', gap:12}}>
-            <div>Persona</div><div>Nel team dal</div><div>Ultimo giorno</div><div>Stato</div>
-          </div>
-          {rieTeamAttivo().map((m, i, arr) => {
-            const g = m.uscitaIl ? Math.ceil((m.uscitaIl.getTime() - Date.now()) / 86400000) : null;
-            return (
-              <div key={m.id} style={{display:'grid', gridTemplateColumns:'minmax(0,2fr) 1.2fr 170px 1fr', gap:12,
-                alignItems:'center', padding:'10px 16px',
-                borderBottom: i < arr.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
-                background: m.uscitaIl ? '#FFFBF5' : '#fff'}}>
-                <div style={{minWidth:0}}>
-                  <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{rieNome(m)}</div>
-                  <div style={{fontSize:11.8, color:ADM.MUTED_SOFT}}>{m.email}</div>
-                </div>
-                <div style={{fontSize:12.6, color:ADM.MUTED}}>{cfFmt(m.addedOn)}</div>
-                <div>
-                  <input type="date" value={rieIso(m.uscitaIl)} style={{...CF_INP, padding:'6px 9px'}}
-                    onChange={e=>{ m.uscitaIl = e.target.value ? new Date(e.target.value + 'T12:00:00') : null; forza(); }}/>
-                </div>
-                <div style={{fontSize:12.4, color: g == null ? ADM.MUTED_SOFT : g < 0 ? ADM.DANGER : ADM.WARN,
-                  fontWeight: g == null ? 400 : 700}}>
-                  {g == null ? 'in forza'
-                    : g < 0 ? `uscito da ${-g} ${-g === 1 ? 'giorno' : 'giorni'}`
-                    : `esce fra ${g} ${g === 1 ? 'giorno' : 'giorni'}`}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {nuovo && <RieModaleCorso onChiudi={()=>setNuovo(false)}
         onSalva={(b)=>{ FORMAZIONE.push(daBozza(b)); setNuovo(false); forza(); }}/>}
       {modifica && <RieModaleCorso key={modifica.f.persona + modifica.f.corso} riga={modifica}

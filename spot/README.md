@@ -50,9 +50,9 @@ sistemi ma non decide quanto costa un piano.
 
 Non esiste più un ruolo HR né una sezione Risorse Umane: il registro della
 formazione è un'evidenza ISO (A.6.3) e sta dove stanno le altre, in **Risk
-Management → Formazione**. La data di uscita di una persona (`uscitaIl` su
-`TEAM`) resta, ma la legge il riesame degli accessi: «esce fra 12 giorni» è un
-account da revocare, non una pratica del personale.
+Management → Formazione**, e lì c'è solo quello. Le uscite dal team non si
+registrano da nessuna parte: chi non lavora più qui il riesame degli accessi lo
+intercetta come dormiente.
 
 ---
 

@@ -85,24 +85,16 @@ il CSV è per le carte di lavoro.
 
 ## Scelte di prodotto già prese
 
-**L'ordinamento è per rischio, non alfabetico:** in uscita o già uscito → mai
-acceduto → dormiente (oltre 90 giorni) → permessi aumentati → mai riesaminato →
-invariato. Un riesame si guarda dall'anomalia in giù; ordinato per nome si timbra
-dall'alto senza leggere.
+**L'ordinamento è per rischio, non alfabetico:** mai acceduto → dormiente (oltre
+90 giorni) → permessi aumentati → mai riesaminato → invariato. Un riesame si
+guarda dall'anomalia in giù; ordinato per nome si timbra dall'alto senza leggere.
 
-**La data di uscita batte tutto il resto.** È il rilievo più comune di un
-audit 27001 — «non lavora più qui e ha ancora l'account» — e prima si
-intercettava solo di rimbalzo, quando l'utenza restava ferma novanta giorni. Ma
-*dormiente non vuol dire uscito*: si può essere in congedo senza essere usciti, e
-usciti ieri con l'account usato ancora oggi. Ora si registra la data dell'ultimo giorno di lavoro (campo `uscitaIl` su `TEAM`), e
-quel dato — uno solo, in una direzione sola — compare qui come classificazione a
-priorità massima: *«Esce il 10 ago 2026 · l'accesso va revocato quel giorno»*,
-oppure *«Uscito da N giorni · andava revocato allora»*.
-
-Il campo è deliberatamente povero: **una data, senza motivo né pratica**. Chi
-tiene gli accessi non ha bisogno di sapere perché quella persona se ne va, gli
-basta sapere entro quando chiudere l'account — e tenere fuori il resto è ciò che
-permette di registrare l'uscita senza aprire una sezione del personale.
+**Non si registra la data di uscita di una persona.** C'era, e classificava
+l'utenza come *«Esce il …»* a priorità massima; l'unico posto dove quella data si
+scriveva era una sezione «Uscite dal team» in Risk Management → Formazione, e
+tenere una sezione del personale per alimentare una riga sola non valeva il
+prezzo. Chi non lavora più qui viene intercettato come **dormiente**, dalla
+mancanza di accessi.
 
 **Gli invariati si confermano in blocco** ed è legittimo proprio perché il
 confronto con la campagna precedente è calcolato: si attesta che non è cambiato

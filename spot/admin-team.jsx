@@ -853,19 +853,6 @@ function raUltimoRiesame(soggettoId) {
 // altrimenti si timbra dall'alto senza leggere.
 function raClassifica(m) {
   const prec = raUltimoRiesame(m.id);
-  // L'uscita batte tutto il resto, e non e un dettaglio di ordinamento: «non
-  // lavora piu qui e ha ancora l'account» e il rilievo piu comune di un audit
-  // 27001, e finora lo si intercettava solo di rimbalzo, quando l'utenza restava
-  // ferma 90 giorni. Dormiente non vuol dire uscito: si puo essere in congedo
-  // senza essere usciti, e usciti ieri con l'account usato ancora oggi.
-  if (m.uscitaIl) {
-    const g = Math.ceil((m.uscitaIl.getTime() - Date.now()) / 86400000);
-    return g < 0
-      ? { rank:-1, key:'uscito', tono:'DANGER', label:`Uscito il ${raFmtData(m.uscitaIl)}`,
-          nota:`Ha lasciato il team ${-g} giorni fa: l'accesso andava revocato allora` }
-      : { rank:-1, key:'in-uscita', tono:'WARN', label:`Esce il ${raFmtData(m.uscitaIl)}`,
-          nota:`Ultimo giorno fra ${g} ${g === 1 ? 'giorno' : 'giorni'}: l'accesso va revocato quel giorno` };
-  }
   const gg = raGiorniFa(m.lastActive);
   const permOra = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
   const permPrima = prec ? (RUOLI[prec.esito.ruoloAllora] && RUOLI[prec.esito.ruoloAllora].permessi || []).length : null;
