@@ -100,6 +100,14 @@ che arrivano già in Ticket. Il passaggio che quasi tutti saltano è la
 non chiude la non conformità — e infatti se la verifica è negativa la NC torna
 aperta invece di chiudersi lo stesso.
 
+**Il Cruscotto si legge per stato.** In cima ci sono i quattro stati in cui può
+stare un obbligo con quanti ne stanno dentro — da fare, in scadenza, in regola,
+non applicabili — e sono anche il filtro. Ventidue righe tutte uguali non dicono
+a che punto sei; «dieci da fare» sì. Ogni riga è due righe, non quattro: la nota
+che spiega l'adempimento e la data dell'ultima esecuzione sono passate nel
+dettaglio, e con loro i due bottoni che erano su ogni riga — quarantaquattro in
+una schermata.
+
 **Il Cruscotto è il posto dello storico.** Cliccando un adempimento si aprono le
 sue esecuzioni passate — quando, che cosa, con che esito, chi, con quale
 evidenza — normalizzate da quattro registri che prima si leggevano in quattro
@@ -108,6 +116,14 @@ audit interni e i test di ripristino. È lì che nasce la domanda («questo è
 scaduto») e lì deve stare la risposta («e la volta prima?»). Gli adempimenti
 senza un registro dedicato mostrano la sola data dell'ultima esecuzione, e lo
 dicono: una data sola non dimostra una cadenza, dimostra un episodio.
+
+**E ogni esecuzione si apre a sua volta.** È il terzo livello della stessa
+domanda: «ogni quanto lo fate» → «e la volta prima?» → «fammi vedere quel
+riesame lì». Dentro c'è quello che prima viveva sparso nelle sezioni — le
+decisioni utenza per utenza di una campagna accessi con motivo, autore e ora; le
+decisioni di un riesame di direzione raggruppate per le tre uscite della §9.3.3;
+i rilievi di un audit divisi in maggiori, minori e osservazioni; il tempo di un
+ripristino contro l'obiettivo dichiarato.
 
 **Audit e riesami (§9.2, §9.3).** Il riesame di direzione si porta dietro un
 **pacchetto di input che si compila da solo** leggendo i registri: nessun numero

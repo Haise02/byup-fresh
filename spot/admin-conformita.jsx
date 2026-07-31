@@ -59,7 +59,7 @@ function CfPill({ tono, children }) {
 
 const CF_H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 };
 const CF_GRID_ST = '104px minmax(0,1.5fr) minmax(0,1.7fr) minmax(0,1.2fr) minmax(0,1.3fr)';
-const CF_GRID_AD = 'minmax(0,2.6fr) 0.9fr 0.85fr 1fr 1.25fr 1.15fr 150px';
+const CF_GRID_AD = 'minmax(0,2.7fr) 0.85fr 0.8fr 1.45fr minmax(0,1.15fr) 22px';
 const CF_INP = { width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
   fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box' };
 const CF_LAB = { fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
@@ -103,27 +103,27 @@ function cfStorico(a) {
       const rev = c.esiti.filter(e => e.decisione === 'revocato').length;
       return { data:c.chiusaIl, titolo:c.periodo, rif:c.id, chi:c.revisore,
         esito:`${c.esiti.length} utenze esaminate · ${rev ? `${rev} revocate` : 'nessuna revoca'}`,
-        tono: rev ? 'WARN' : 'OK', evidenza:'attestazione firmata · CSV' };
+        tono: rev ? 'WARN' : 'OK', evidenza:'attestazione firmata · CSV', tipo:'acc', raw:c };
     });
   }
   if (a.id === 'dir') {
     return arr(window.RIESAMI_DIREZIONE).map(r => ({
       data:r.data, titolo:'Riesame di direzione', rif:r.id, chi:r.partecipanti,
       esito:`${(r.decisioni || []).length} ${(r.decisioni || []).length === 1 ? 'decisione presa' : 'decisioni prese'}`,
-      tono:'OK', doc:r.doc }));
+      tono:'OK', doc:r.doc, tipo:'dir', raw:r }));
   }
   if (a.id === 'audit') {
     return arr(window.AUDIT_INTERNI).map(x => ({
       data:x.data, titolo:x.aree, rif:x.id, chi:x.auditor,
       esito:`${x.rilievi} ${x.rilievi === 1 ? 'rilievo' : 'rilievi'} · ${x.maggiori} ${x.maggiori === 1 ? 'maggiore' : 'maggiori'}, ${x.minori} ${x.minori === 1 ? 'minore' : 'minori'}, ${x.osservazioni} oss.`,
-      tono: x.maggiori ? 'DANGER' : 'OK', doc:x.doc }));
+      tono: x.maggiori ? 'DANGER' : 'OK', doc:x.doc, tipo:'audit', raw:x }));
   }
   if (a.id === 'rest') {
     return arr(window.RIPRISTINI).slice().sort((x, y) => y.data - x.data).map(r => ({
       data:r.data, titolo:r.oggetto, rif:null, chi:r.chi,
       esito:`${r.esito} in ${r.tempoMin} minuti`,
       tono: r.esito === 'riuscito' ? 'OK' : r.esito === 'riuscito con osservazioni' ? 'WARN' : 'DANGER',
-      evidenza:'registro dei ripristini', nota:r.note }));
+      evidenza:'registro dei ripristini', nota:r.note, tipo:'rest', raw:r }));
   }
   if (a.ultima) {
     return [{ data:a.ultima, titolo:'Eseguito', rif:null, chi:a.responsabile,
@@ -132,21 +132,199 @@ function cfStorico(a) {
   return [];
 }
 
+// ─── Dettaglio di un singolo esame passato ─────────────────────────────────
+// Lo storico dice CHE l'esame è stato fatto; questo dice che cosa ci è stato
+// deciso dentro, riga per riga. È il secondo livello della stessa domanda: un
+// auditor parte da «ogni quanto lo fate», passa a «e la volta prima?», e finisce
+// su «fammi vedere quel riesame lì». Il contenuto è quello che prima viveva
+// sparso nelle sezioni — le decisioni di una campagna accessi, quelle di un
+// riesame di direzione — e che da lì è stato tolto: qui torna, ma appeso
+// all'adempimento invece che alla schermata che lo produce.
+const CF_GRID_DEC = 'minmax(0,1.25fr) 0.9fr 0.85fr 125px 0.95fr minmax(0,1.9fr)';
+
+function CfEsame({ r }) {
+  const T = { fontSize:11, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em' };
+  const riga = (k, v) => (
+    <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
+      <span style={{color:ADM.MUTED, width:150, flexShrink:0}}>{k}</span>
+      <span style={{color:ADM.TEXT, fontWeight:600, minWidth:0}}>{v}</span>
+    </div>
+  );
+
+  if (r.tipo === 'acc') {
+    const c = r.raw;
+    return (
+      <React.Fragment>
+        <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+          {riga('Campagna', c.id)}
+          {riga('Periodo', c.periodo)}
+          {riga('Chiusa il', cfFmt(c.chiusaIl))}
+          {riga('Revisore', c.revisore)}
+        </div>
+        <div style={{...CF_H, marginBottom:8}}>Decisione per ogni utenza · {c.esiti.length}</div>
+        <div style={CF_CARD}>
+          <div style={{...CF_TH, display:'grid', gridTemplateColumns:CF_GRID_DEC, gap:10}}>
+            <div>Soggetto</div><div>Ruolo allora</div><div>Decisione</div><div>Decisa il</div><div>Da</div><div>Motivo</div>
+          </div>
+          {c.esiti.map((e, i) => {
+            const sog = (typeof TEAM !== 'undefined' ? TEAM : []).find(t => t.id === e.soggettoId);
+            const nome = sog ? (sog.nomeCompleto || sog.nome) : (e.nomeStorico || e.soggettoId);
+            const revocato = e.decisione === 'revocato';
+            return (
+              <div key={e.soggettoId} style={{display:'grid', gridTemplateColumns:CF_GRID_DEC, gap:10,
+                alignItems:'baseline', padding:'9px 16px', fontSize:12.4,
+                borderBottom: i < c.esiti.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
+                background: revocato ? '#FFF7F7' : '#fff'}}>
+                <span style={{fontWeight:700, color:ADM.TEXT}}>{nome}</span>
+                <span style={{color:ADM.MUTED}}>{(RUOLI[e.ruoloAllora] && RUOLI[e.ruoloAllora].label) || e.ruoloAllora}</span>
+                <span style={{fontWeight:700, color: revocato ? ADM.DANGER : ADM.OK}}>
+                  {revocato ? 'Revocato' : 'Confermato'}
+                </span>
+                <span style={{color:ADM.MUTED, whiteSpace:'nowrap'}}>{cfFmt(e.quando)}</span>
+                <span style={{color:ADM.MUTED}}>{e.chi}</span>
+                <span style={{color: e.motivo ? ADM.TEXT : ADM.MUTED_SOFT, lineHeight:1.4}}>{e.motivo || '—'}</span>
+              </div>
+            );
+          })}
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  if (r.tipo === 'dir') {
+    const d = r.raw;
+    const testo = (x) => (typeof x === 'string' ? x : (x && x.testo) || '');
+    const tipoDi = (x) => (typeof x === 'string' ? null : (x && x.tipo) || null);
+    const ETICHETTE = { miglioramento:'Opportunità di miglioramento', modifiche:'Modifiche al sistema di gestione',
+      risorse:'Risorse necessarie', _:'Altre decisioni' };
+    const dec = d.decisioni || [];
+    const gruppi = ['miglioramento','modifiche','risorse','_']
+      .map(k => ({ k, righe: dec.filter(x => (tipoDi(x) || '_') === k) })).filter(g => g.righe.length);
+    return (
+      <React.Fragment>
+        <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+          {riga('Riesame', d.id)}
+          {riga('Svolto il', cfFmt(d.data))}
+          {riga('Partecipanti', d.partecipanti)}
+          {riga('Verbale', d.doc || 'documento mancante')}
+        </div>
+        <div style={{...CF_H, marginBottom:8}}>Decisioni prese · {dec.length}</div>
+        {/* Raggruppate per le tre uscite della §9.3.3, che è come l'auditor le
+            cerca: in un elenco piatto la terza — le risorse — si confonde. */}
+        {gruppi.map((g, gi) => (
+          <div key={g.k} style={{marginTop: gi ? 14 : 0}}>
+            <div style={{...T, marginBottom:5}}>{ETICHETTE[g.k]}</div>
+            {g.righe.map((x, i) => (
+              <div key={i} style={{fontSize:12.8, color:ADM.TEXT, lineHeight:1.5, padding:'6px 0',
+                borderBottom: i < g.righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                {testo(x)}
+              </div>
+            ))}
+          </div>
+        ))}
+      </React.Fragment>
+    );
+  }
+
+  if (r.tipo === 'audit') {
+    const x = r.raw;
+    return (
+      <React.Fragment>
+        <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+          {riga('Audit', x.id)}
+          {riga('Svolto il', cfFmt(x.data))}
+          {riga('Auditor', x.auditor)}
+          {riga('Ambito', <CfNorma norme={x.ambito}/>)}
+          {riga('Aree coperte', x.aree)}
+          {riga('Rapporto', x.doc || 'documento mancante')}
+        </div>
+        <div style={{...CF_H, marginBottom:8}}>Rilievi · {x.rilievi}</div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10}}>
+          {[['Maggiori', x.maggiori, x.maggiori ? 'DANGER' : 'OK'],
+            ['Minori', x.minori, x.minori ? 'WARN' : 'OK'],
+            ['Osservazioni', x.osservazioni, 'NEUTRAL']].map(([k, n, tono]) => (
+            <div key={k} style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, padding:'12px 14px'}}>
+              <div style={{fontSize:22, fontWeight:800, letterSpacing:'-0.02em', color: n ? CF_TONO(tono) : ADM.INK}}>{n}</div>
+              <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:2}}>{k}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:12, lineHeight:1.55}}>
+          Una non conformità maggiore è quella che blocca il certificato finché non è
+          chiusa; una minore va risolta ma non ferma nulla; un'osservazione è un
+          suggerimento. Il dettaglio di ognuna sta nel rapporto dell'auditor.
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  if (r.tipo === 'rest') {
+    const t = r.raw;
+    const oltre = t.tempoMin > 45;
+    return (
+      <React.Fragment>
+        <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+          {riga('Svolto il', cfFmt(t.data))}
+          {riga('Che cosa', t.oggetto)}
+          {riga('Eseguito da', t.chi)}
+          {riga('Esito', t.esito)}
+        </div>
+        <div style={{...CF_H, marginBottom:8}}>Tempo contro l’obiettivo</div>
+        <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+          <span style={{fontSize:28, fontWeight:800, letterSpacing:'-0.02em',
+            color: oltre ? ADM.WARN : ADM.INK}}>{t.tempoMin} min</span>
+          <span style={{fontSize:12.8, color:ADM.MUTED}}>
+            {oltre ? `oltre l’obiettivo dichiarato di 45 minuti` : 'entro l’obiettivo dichiarato di 45 minuti'}
+          </span>
+        </div>
+        {t.note && <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:12, lineHeight:1.55}}>{t.note}</div>}
+        <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:12, lineHeight:1.55}}>
+          «Riuscito» da solo non dice se saresti arrivato in tempo: il numero che conta
+          è il tempo impiegato contro l’obiettivo dichiarato.
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  return (
+    <div style={{fontSize:12.8, color:ADM.MUTED, lineHeight:1.6, padding:'14px 16px',
+      borderRadius:10, background:ADM.NEUTRAL_SOFT}}>
+      Di questa esecuzione è registrata solo la data: non esiste un registro che ne
+      conservi il contenuto. Un adempimento che si dimostra con una data e nient’altro
+      regge finché nessuno chiede che cosa è stato fatto.
+    </div>
+  );
+}
+
 // ─── Cruscotto degli adempimenti ───────────────────────────────────────────
 function CfCruscotto({ onNav }) {
   const [modifica, setModifica] = useStateConf(null);   // adempimento in modifica
   const [bozza, setBozza] = useStateConf(null);
   const [, forzaCf] = useStateConf(0);
   const [storico, setStorico] = useStateConf(null);   // adempimento aperto sullo storico
+  const [esame, setEsame] = useStateConf(null);       // singola esecuzione aperta dentro lo storico
+  const [gruppo, setGruppo] = useStateConf(null);     // filtro per stato
 
   // I non applicabili scendono in fondo: restano a vista come evidenza, ma non
   // devono competere con le scadenze vere per l'attenzione.
-  const righe = ADEMPIMENTI
+  const tutte = ADEMPIMENTI
     .map(a => ({ a, s: cfStatoAdempimento(a) }))
     .sort((x, y) => {
       if ((x.s.stato === 'na') !== (y.s.stato === 'na')) return x.s.stato === 'na' ? 1 : -1;
       return (x.s.giorni == null ? -1e9 : x.s.giorni) - (y.s.giorni == null ? -1e9 : y.s.giorni);
     });
+
+  // Ventidue righe tutte uguali non dicono a che punto sei. I gruppi sono i
+  // quattro stati in cui può stare un obbligo, e il conteggio si vede prima di
+  // cliccare: «dieci scaduti» è la prima cosa da sapere aprendo la pagina.
+  const GRUPPI = [
+    { id:'fuori',  label:'Da fare',      test:(s) => s.stato === 'scaduto' || s.stato === 'mai', tono:'DANGER' },
+    { id:'vicino', label:'In scadenza',  test:(s) => s.stato === 'vicino',  tono:'WARN' },
+    { id:'ok',     label:'In regola',    test:(s) => s.stato === 'ok',      tono:'OK' },
+    { id:'na',     label:'Non applicabili', test:(s) => s.stato === 'na',   tono:'NEUTRAL' },
+  ].map(g => Object.assign({}, g, { n: tutte.filter(r => g.test(r.s)).length }))
+   .filter(g => g.n > 0);
+  const righe = gruppo ? tutte.filter(r => (GRUPPI.find(g => g.id === gruppo) || { test:() => true }).test(r.s)) : tutte;
 
   const apriModifica = (a) => {
     setModifica(a);
@@ -178,28 +356,57 @@ function CfCruscotto({ onNav }) {
 
   return (
     <div style={{padding:'18px 22px 22px', display:'flex', flexDirection:'column', flex:1, minHeight:0}}>
+      {/* Prima della tabella, i quattro stati in cui può stare un obbligo, con
+          quanti ne stanno dentro. È il colpo d'occhio che a ventidue righe tutte
+          uguali mancava, ed è anche il filtro: «da fare» è la vista con cui si
+          apre questa pagina il 90% delle volte. */}
+      <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:12, flexShrink:0}}>
+        {[{ id:null, label:'Tutti', n:tutte.length, tono:null }].concat(GRUPPI).map(g => {
+          const attivo = gruppo === g.id;
+          return (
+            <button key={g.id || 'tutti'} onClick={()=>setGruppo(g.id)}
+              style={{padding:'5px 11px', borderRadius:999, fontFamily:'inherit', fontSize:12.4,
+                fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6,
+                border:`1px solid ${attivo ? ADM.TEXT : ADM.BORDER}`,
+                background: attivo ? ADM.TEXT : '#fff', color: attivo ? '#fff' : ADM.TEXT}}>
+              {g.tono && !attivo && (
+                <span style={{width:6, height:6, borderRadius:'50%', background:CF_TONO(g.tono)}}/>
+              )}
+              {g.label}
+              <span style={{fontSize:11.2, fontWeight:700, opacity: attivo ? 0.75 : 0.5}}>{g.n}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* La tabella riempie la pagina e scorre da dentro: l'intestazione resta
           ferma, così su ventidue righe non si perde di vista quale colonna si
           sta leggendo. */}
       <div style={{...CF_CARD, display:'flex', flexDirection:'column', flex:1, minHeight:0}}>
-        <div style={{...CF_TH, display:'grid', gridTemplateColumns:CF_GRID_AD, gap:10, flexShrink:0}}>
-          <div>Adempimento</div><div>Norma</div><div>Ogni</div><div>Ultima</div><div>Prossima</div><div>Responsabile</div><div/>
+        <div style={{...CF_TH, display:'grid', gridTemplateColumns:CF_GRID_AD, gap:12, flexShrink:0}}>
+          <div>Adempimento</div><div>Norma</div><div>Ogni</div><div>Prossima scadenza</div><div>Responsabile</div><div/>
         </div>
         <div style={{flex:1, minHeight:0, overflowY:'auto'}}>
           {righe.map(({ a, s }, i) => {
             const na = s.stato === 'na';
+            const fuori = s.stato === 'scaduto' || s.stato === 'mai';
             return (
-              <div key={a.id} className="adm-row-open" onClick={()=>setStorico(a)}
-                style={{display:'grid', gridTemplateColumns:CF_GRID_AD, gap:10,
-                  alignItems:'center', padding:'12px 16px', cursor:'pointer',
+              /* Due righe per adempimento, non quattro: la nota che lo spiega e
+                 la data dell'ultima esecuzione sono passate nel dettaglio, dove
+                 c'è lo spazio per leggerle. Su ventidue righe la differenza è fra
+                 una pagina che si scorre e una che si scansiona.
+                 Via anche «Modifica» e «Apri» da ogni riga — quarantaquattro
+                 bottoni in una schermata — che ora stanno nel dettaglio. */
+              <div key={a.id} className="adm-row-open" onClick={()=>{ setEsame(null); setStorico(a); }}
+                style={{display:'grid', gridTemplateColumns:CF_GRID_AD, gap:12,
+                  alignItems:'center', padding:'11px 16px', cursor:'pointer',
                   borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
-                  background: na ? '#FCFCFD' : (s.stato === 'scaduto' || s.stato === 'mai') ? '#FFFBFB' : '#fff',
-                  opacity: na ? 0.72 : 1}}>
+                  background: na ? '#FCFCFD' : fuori ? '#FFFBFB' : '#fff',
+                  opacity: na ? 0.7 : 1}}>
                 <div style={{minWidth:0}}>
-                  <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{a.nome}</div>
+                  <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap',
+                    overflow:'hidden', textOverflow:'ellipsis'}}>{a.nome}</div>
                   <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:2}}>{a.rif}</div>
-                  {na && <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:4, lineHeight:1.4}}>{a.nonApplicabile}</div>}
-                  {!na && a.nota && <div style={{fontSize:11.6, color:ADM.MUTED, marginTop:4, lineHeight:1.4}}>{a.nota}</div>}
                 </div>
                 <div><CfNorma norme={a.norme}/></div>
                 <div style={{fontSize:12.6, color:ADM.MUTED}}>
@@ -207,8 +414,7 @@ function CfCruscotto({ onNav }) {
                     ? <span style={{color:ADM.TEXT, fontWeight:700}}>data imposta</span>
                     : `${a.cadenzaMesi} mesi`}
                 </div>
-                <div style={{fontSize:12.6, color:ADM.TEXT}}>{cfFmt(a.ultima)}</div>
-                <div>
+                <div style={{minWidth:0}}>
                   {na ? <CfPill tono="NEUTRAL">Non applicabile</CfPill> : (
                     <React.Fragment>
                       <CfPill tono={s.tono}>{s.label}</CfPill>
@@ -217,18 +423,13 @@ function CfCruscotto({ onNav }) {
                   )}
                 </div>
                 <div style={{fontSize:12.6, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.responsabile}</div>
-                <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:4}}>
-                  <AdmButton variant="ghost" size="sm" onClick={(e)=>{ e.stopPropagation(); apriModifica(a); }} style={{fontSize:12}}>Modifica</AdmButton>
-                  {a.vaiA && !na && (
-                    <AdmButton variant="ghost" size="sm" onClick={(e)=>{ e.stopPropagation(); onNav && onNav(a.vaiA); }} style={{fontSize:12}}>Apri</AdmButton>
-                  )}
-                  <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
-                </div>
+                <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
               </div>
             );
           })}
         </div>
       </div>
+
 
       {/* Modifica: cambia forma secondo la natura dell'adempimento */}
       {modifica && bozza && (
@@ -313,9 +514,19 @@ function CfCruscotto({ onNav }) {
             display:'flex', flexDirection:'column'}}>
 
             <div style={{padding:'18px 22px 14px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+              {esame && (
+                <div onClick={()=>setEsame(null)} className="adm-textlink"
+                  style={{display:'inline-flex', alignItems:'center', gap:5, cursor:'pointer', marginBottom:8,
+                    fontSize:12.4, fontWeight:700, color:ADM.PINK}}>
+                  <span style={{transform:'rotate(180deg)', display:'inline-flex'}}><BuIcons.chevronRight size={13}/></span>
+                  Torna alle esecuzioni
+                </div>
+              )}
               <div style={{display:'flex', alignItems:'flex-start', gap:12}}>
                 <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>{a.nome}</div>
+                  <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>
+                    {esame ? `${a.nome} · ${cfFmt(esame.data)}` : a.nome}
+                  </div>
                   <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:3, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
                     <CfNorma norme={a.norme}/>{a.rif}
                     <span style={{color:ADM.MUTED_SOFT}}>·</span>
@@ -337,6 +548,8 @@ function CfCruscotto({ onNav }) {
             </div>
 
             <div style={{padding:'16px 22px 20px', overflowY:'auto', flex:1, minHeight:0}}>
+              {esame ? <CfEsame r={esame}/> : (
+              <React.Fragment>
               <div style={{...CF_H, marginBottom:8}}>
                 {righeSt.length ? `Esecuzioni registrate · ${righeSt.length}` : 'Esecuzioni registrate'}
               </div>
@@ -355,8 +568,10 @@ function CfCruscotto({ onNav }) {
                       <div>Quando</div><div>Che cosa</div><div>Esito</div><div>Chi</div><div>Evidenza</div>
                     </div>
                     {righeSt.map((r, i) => (
-                      <div key={i} style={{display:'grid', gridTemplateColumns:CF_GRID_ST, gap:10, alignItems:'baseline',
-                        padding:'11px 16px', borderBottom: i < righeSt.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+                      <div key={i} className="adm-row-open" onClick={()=>setEsame(r)}
+                        style={{display:'grid', gridTemplateColumns:CF_GRID_ST, gap:10, alignItems:'baseline',
+                        padding:'11px 16px', cursor:'pointer',
+                        borderBottom: i < righeSt.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
                         <div style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap'}}>{cfFmt(r.data)}</div>
                         <div style={{minWidth:0}}>
                           <div style={{fontSize:12.6, color:ADM.TEXT, lineHeight:1.35}}>{r.titolo}</div>
@@ -388,16 +603,26 @@ function CfCruscotto({ onNav }) {
                   )}
                 </React.Fragment>
               )}
+              </React.Fragment>
+              )}
             </div>
 
+            {/* I due comandi che erano su ogni riga della tabella — quarantaquattro
+                bottoni in una schermata — vivono qui, sull'adempimento che stai
+                guardando. */}
             <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, display:'flex',
-              alignItems:'center', gap:8, flexShrink:0}}>
-              <span style={{fontSize:12.2, color:ADM.MUTED, flex:1}}>
-                {a.vaiA ? 'Il registro completo vive nella sezione che lo produce.' : ''}
+              alignItems:'center', gap:8, flexShrink:0, flexWrap:'wrap'}}>
+              <span style={{fontSize:12.2, color:ADM.MUTED, flex:1, minWidth:120}}>
+                {a.ultima ? `Ultima esecuzione ${cfFmt(a.ultima)}` : 'Nessuna esecuzione registrata'}
               </span>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setStorico(null)}>Chiudi</AdmButton>
-              {a.vaiA && s.stato !== 'na' && (
-                <AdmButton variant="primary" size="sm" onClick={()=>{ setStorico(null); onNav && onNav(a.vaiA); }}>
+              {!esame && (
+                <AdmButton variant="ghost" size="sm" onClick={()=>{ setStorico(null); apriModifica(a); }}>
+                  Modifica cadenza
+                </AdmButton>
+              )}
+              <AdmButton variant="secondary" size="sm" onClick={()=>{ setEsame(null); setStorico(null); }}>Chiudi</AdmButton>
+              {a.vaiA && s.stato !== 'na' && !esame && (
+                <AdmButton variant="primary" size="sm" onClick={()=>{ setEsame(null); setStorico(null); onNav && onNav(a.vaiA); }}>
                   Apri il registro
                 </AdmButton>
               )}
