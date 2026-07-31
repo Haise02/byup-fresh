@@ -1166,8 +1166,6 @@ function AccessReview({ onNavRoute }) {
 
   const H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 };
   const GRID = 'minmax(0,2.6fr) 1.15fr 1fr 1fr 26px';
-  const tonoCol = { DANGER: ADM.DANGER, WARN: ADM.WARN, INFO: ADM.INFO, NEUTRAL: ADM.MUTED };
-  const tonoBg  = { DANGER: ADM.DANGER_SOFT, WARN: ADM.WARN_SOFT, INFO: ADM.INFO_SOFT || '#E7F0FE', NEUTRAL: ADM.NEUTRAL_SOFT };
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
@@ -1456,7 +1454,6 @@ function AccessReview({ onNavRoute }) {
       {dettaglio && (() => {
         const m = dettaglio.m, cls = dettaglio.cls, prec = dettaglio.prec;
         const dec = esiti[m.id];
-        const nAree = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
         const ggM = raGiorniFa(m.lastActive);
         return (
         <div onClick={()=>setDettaglio(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
@@ -1470,17 +1467,11 @@ function AccessReview({ onNavRoute }) {
                 <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT}}>{m.nomeCompleto || m.nome}</div>
                 <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.email}</div>
               </div>
-              <div style={{display:'inline-flex', alignItems:'center', gap:6, flexShrink:0,
-                padding:'3px 9px', borderRadius:99, background: tonoBg[cls.tono]}}>
-                <span style={{width:6, height:6, borderRadius:'50%', background: tonoCol[cls.tono]}}/>
-                <span style={{fontSize:11.4, fontWeight:700, color: tonoCol[cls.tono], whiteSpace:'nowrap'}}>{cls.label}</span>
-              </div>
             </div>
 
             <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
               {[
                 ['Ruolo', (RUOLI[m.ruolo] && RUOLI[m.ruolo].label) || m.ruolo],
-                ['Aree accessibili', `${nAree} su ${PERMESSI.length}`],
                 ['Nel team dal', raFmtData(m.addedOn)],
                 ['Ultimo accesso', m.lastActive ? (ggM === 0 ? 'oggi' : ggM === 1 ? 'ieri' : `${ggM} giorni fa`) : 'mai'],
                 ['Ultima verifica', prec ? `${raFmtData(prec.campagna.chiusaIl)} · ${prec.campagna.periodo}` : 'mai riesaminato'],
