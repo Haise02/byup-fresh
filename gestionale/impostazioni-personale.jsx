@@ -1546,9 +1546,12 @@ const DEVICE_STEPS = [
 // personale — chi gestisce il locale è il proprietario, che il gestionale ce
 // l'ha già; e «Cucina» non era una persona da invitare ma il Kitchen Monitor,
 // che si collega come dispositivo nella sezione qui sotto.
+// Cameriere per primo, ed è il ruolo da cui parte l'invito: è quello che un
+// locale invita in numero, e la cassa la tiene spesso chi il gestionale ce
+// l'ha già.
 const STEP_ROLES = [
-  { id: 'cassa',     label: 'Cassa',     desc: 'Prende ordini e incassa dalla cassa del locale', icon: 'receipt' },
   { id: 'cameriere', label: 'Cameriere', desc: 'Usa l\'app staff per tavoli, ordini e conto',    icon: 'waiter' },
+  { id: 'cassa',     label: 'Cassa',     desc: 'Prende ordini e incassa dalla cassa del locale', icon: 'receipt' },
 ];
 
 window.PERSONALE_TEAM_INITIAL = [
@@ -1653,7 +1656,7 @@ function DispositivoStep({ setTeam }) {
 }
 
 function PersonaleStep({ team, setTeam }) {
-  const [selRole, setSelRole] = React.useState('cassa');
+  const [selRole, setSelRole] = React.useState('cameriere');
   const [invName, setInvName] = React.useState('');
   const [invEmail, setInvEmail] = React.useState('');
   const [showCreateRole, setShowCreateRole] = React.useState(false);
