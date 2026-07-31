@@ -360,6 +360,104 @@ const anAcquisizione = (locali = AN_LOCALI) => AN_CANALI.map(c => {
 const AN_ACQUISIZIONE = anAcquisizione();
 
 // ════════════════════════════════════════════════════════════════════════════
+// 3b · COME ARRIVANO GLI UTENTI · invito e webapp
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Due strade che non costano acquisizione, e che oggi non erano contate da
+// nessuna parte:
+//
+//   INVITO   qualcuno condivide un codice. Chi lo condivide può essere un
+//            LOCALE — il QR sul tavolo, il messaggio dopo il conto — o un
+//            UTENTE che lo passa a un amico. E chi lo riscatta può essere un
+//            altro utente o un altro locale: un ristoratore che ne porta un
+//            altro è la cosa più preziosa che abbiamo, perché arriva già
+//            convinto.
+//
+//   WEBAPP   chi ordina col QR senza scaricare niente. È un cliente che ha già
+//            fatto tutto tranne registrarsi: la quota che poi scarica l'app è
+//            il rendimento del ponte fra i due mondi, ed è il numero che dice
+//            se la webapp è una porta o un vicolo cieco.
+const AN_INVITI = (() => {
+  const mesi = ['Giu','Lug','Ago','Set','Ott','Nov','Dic','Gen','Feb','Mar','Apr','Mag'];
+  // Chi condivide, e con che frequenza. I locali condividono per mestiere —
+  // il codice è stampato accanto al QR — gli utenti solo quando si trovano bene.
+  const perOrigine = [
+    { id:'locale', label:'Condivisi da un locale', desc:'Codice sul QR del tavolo, o nel messaggio dopo il conto', base: 0.62 },
+    { id:'utente', label:'Condivisi da un utente', desc:'Passaparola vero: qualcuno lo manda a un amico', base: 0.38 },
+  ];
+  const condivisiTot = Math.round(AN_ATTIVI.reduce((s, l) => s + l.ordiniMese, 0) * 0.018);
+  const origini = perOrigine.map((o, i) => {
+    const r = pseudoRand(i * 29 + 3);
+    const n = Math.round(condivisiTot * o.base);
+    // Chi riscatta cosa: da un locale escono soprattutto clienti nuovi; da un
+    // ristoratore che parla con un collega esce un locale.
+    const versoLocale = o.id === 'locale' ? 0.04 + r() * 0.03 : 0.11 + r() * 0.05;
+    const tassoRiscatto = o.id === 'locale' ? 0.18 + r() * 0.05 : 0.31 + r() * 0.08;
+    const riscattati = Math.round(n * tassoRiscatto);
+    const riscattatiLocale = Math.round(riscattati * versoLocale);
+    return {
+      ...o, condivisi: n, riscattati,
+      tassoRiscatto: tassoRiscatto * 100,
+      riscattatiUtente: riscattati - riscattatiLocale,
+      riscattatiLocale,
+    };
+  });
+  const condivisi = origini.reduce((s, o) => s + o.condivisi, 0);
+  const riscattati = origini.reduce((s, o) => s + o.riscattati, 0);
+  const versoLocale = origini.reduce((s, o) => s + o.riscattatiLocale, 0);
+  const serie = mesi.map((nome, t) => {
+    const r = pseudoRand(t * 17 + 11);
+    const crescita = 0.55 + (t / 11) * 0.75;
+    return {
+      nome, t,
+      condivisi: Math.round((condivisi / 12) * crescita * (0.85 + r() * 0.3)),
+      riscattati: Math.round((riscattati / 12) * crescita * (0.85 + r() * 0.3)),
+    };
+  });
+  return {
+    origini, condivisi, riscattati,
+    tassoRiscatto: condivisi ? (riscattati / condivisi) * 100 : 0,
+    versoLocale, versoUtente: riscattati - versoLocale,
+    quotaVersoLocale: riscattati ? (versoLocale / riscattati) * 100 : 0,
+    serie,
+    // Un locale portato da un invito costa zero di acquisizione: è il
+    // confronto che rende il numero interessante.
+    cacRisparmiato: versoLocale * (AN_CANALI.find(c => c.id === 'campagna') || { costo: 0 }).costo,
+  };
+})();
+
+const AN_WEBAPP = (() => {
+  // La webapp guest: ordina col QR senza registrarsi. I numeri di partenza
+  // sono quelli già dichiarati in Utenti App, non una seconda stima.
+  const sessioni = typeof APP_METRICS !== 'undefined' ? APP_METRICS.sessioniGuest30g : 0;
+  const ordini = typeof APP_METRICS !== 'undefined' ? APP_METRICS.ordiniGuest30g : 0;
+  // Chi scarica l'app dopo aver ordinato da guest. La spinta è il pagamento:
+  // dalla webapp non si paga, e chi vuole pagare dal tavolo deve scaricare.
+  //
+  // Il verso del conto conta: il numero di partenza è quanti dei NUOVI ISCRITTI
+  // del mese arrivano da un ordine guest, e da lì si ricava la percentuale di
+  // conversione. Partendo dall'altra parte — «il 12% degli ordini guest scarica»
+  // — usciva che i download da guest erano più delle registrazioni totali, cioè
+  // il 144% di un numero che non può superare il 100.
+  const nuovi = typeof APP_METRICS !== 'undefined' ? APP_METRICS.newRegistrazioni30g : 0;
+  const quotaSuNuovi = 45;                        // % dei nuovi iscritti che nasce da un tavolo
+  const scaricano = Math.round(nuovi * quotaSuNuovi / 100);
+  const tassoDownload = ordini ? (scaricano / ordini) * 100 : 0;
+  // E di quelli, quanti ordinano davvero dall'app dopo averla scaricata.
+  const tassoPrimoOrdine = 58;
+  const primoOrdine = Math.round(scaricano * tassoPrimoOrdine / 100);
+  return {
+    sessioni, ordini,
+    conversioneOrdine: sessioni ? (ordini / sessioni) * 100 : 0,
+    tassoDownload, scaricano, tassoPrimoOrdine, primoOrdine,
+    // Quanto pesa questa strada sulle registrazioni del mese: se è alta, la
+    // webapp è il primo canale di acquisizione consumer che abbiamo.
+    quotaSuNuovi: nuovi ? (scaricano / nuovi) * 100 : null,
+    nuoviTot: nuovi,
+  };
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
 // 6 · MARGINE DI CONTRIBUZIONE · quanto resta di un locale
 // ════════════════════════════════════════════════════════════════════════════
 //
@@ -552,6 +650,8 @@ window.AN_CURVA_ATTIVAZIONE = AN_CURVA_ATTIVAZIONE;
 window.AN_ATTIVAZIONE_DOTAZIONE = AN_ATTIVAZIONE_DOTAZIONE;
 window.AN_RITENZIONE = AN_RITENZIONE;
 window.AN_SECONDO_ORDINE = AN_SECONDO_ORDINE;
+window.AN_INVITI = AN_INVITI;
+window.AN_WEBAPP = AN_WEBAPP;
 window.AN_DEFLECTION = AN_DEFLECTION;
 window.AN_CANALI = AN_CANALI;
 window.AN_ACQUISIZIONE = AN_ACQUISIZIONE;

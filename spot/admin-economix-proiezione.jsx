@@ -25,6 +25,109 @@ function ecoFetta(cx, cy, rEst, rInt, da, a) {
   return `M${x1} ${y1}A${rEst} ${rEst} 0 ${grande} 1 ${x2} ${y2}L${x3} ${y3}A${rInt} ${rInt} 0 ${grande} 0 ${x4} ${y4}Z`;
 }
 
+// ─── Il pareggio ───────────────────────────────────────────────────────────
+// La domanda che un consiglio di amministrazione fa per prima: quanti locali
+// servono perché i conti stiano in piedi da soli. Serve mettere insieme due
+// cose che finora stavano in due sezioni diverse — i costi fissi, che stanno
+// qui, e quanto rende un locale al netto dei costi che genera, che sta in
+// Analisi Dati → Locali. Sono gli stessi numeri, non una terza stima.
+function EcoPareggio() {
+  const C = window.AN_CONTRIBUZIONE;
+  if (!C) return null;
+
+  // Costi fissi mensili: le voci ricorrenti, con gli annuali spalmati sul
+  // dodicesimo. Le una-tantum restano fuori — sono cassa, non struttura.
+  const fissiMese = ECO_FISSI
+    .filter(f => f.periodicita !== 'una-tantum' && !f.a)
+    .reduce((t, f) => t + (f.periodicita === 'annuale' ? f.importo / 12 : f.importo), 0);
+
+  // Margine per locale: quello che resta del canone dopo assistenza,
+  // infrastruttura e commissioni. Si conta sui PAGANTI, perché un Gratuito non
+  // contribuisce a coprire i fissi — li consuma.
+  const paganti = C.righe.filter(l => l.ricavo > 0);
+  const marginePagante = paganti.length
+    ? paganti.reduce((t, l) => t + l.margine, 0) / paganti.length : 0;
+  // I Gratuiti sono un costo di struttura mascherato: il loro margine negativo
+  // va aggiunto ai fissi, altrimenti il pareggio esce più vicino di quanto è.
+  const costoGratuiti = -C.righe.filter(l => l.ricavo === 0).reduce((t, l) => t + l.margine, 0);
+  const daCoprire = fissiMese + costoGratuiti;
+  const servono = marginePagante > 0 ? Math.ceil(daCoprire / marginePagante) : null;
+  const oggi = paganti.length;
+  const mancano = servono != null ? Math.max(0, servono - oggi) : null;
+  const copertura = daCoprire > 0 ? (oggi * marginePagante / daCoprire) * 100 : 0;
+
+  // Il ritmo con cui la rete cresce, per dire il pareggio in mesi e non solo
+  // in locali. Nuovi paganti negli ultimi 12 mesi, sulla data di iscrizione.
+  const annoFa = Date.now() - 365 * 86400000;
+  const nuoviAnno = LOCALI.filter(l => l.piano !== 'free' && l.dataIscrizione.getTime() >= annoFa).length;
+  const ritmo = nuoviAnno / 12;
+  const mesi = (mancano != null && ritmo > 0) ? Math.ceil(mancano / ritmo) : null;
+
+  const riga = (l, v, f, nota, tono) => (
+    <div style={{display:'flex', alignItems:'baseline', gap:12, padding:'10px 0', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+      <div style={{width:230, flexShrink:0}}>
+        <div style={{fontSize:13.4, fontWeight:600, color:ADM.TEXT}}>{l}</div>
+        <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, fontFamily:'ui-monospace, monospace'}}>{f}</div>
+      </div>
+      <div style={{fontSize:16, fontWeight:800, color: tono || ADM.TEXT, width:120, textAlign:'right', ...ECO_NUM}}>{v}</div>
+      <div style={{fontSize:12.6, color:ADM.MUTED, flex:1, lineHeight:1.45}}>{nota}</div>
+    </div>
+  );
+
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:14}}>
+      <div style={ECO_TITOLO}>Il pareggio</div>
+      <div style={{...ECO_CARD, padding:'20px 24px'}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:18}}>
+          <div style={{padding:'16px 18px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:10}}>
+            <div style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Locali paganti al pareggio</div>
+            <div style={{fontSize:34, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', marginTop:5, lineHeight:1, ...ECO_NUM}}>{servono != null ? servono : '—'}</div>
+            <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:6, lineHeight:1.45}}>
+              Oggi ne paga <strong style={{color:ADM.TEXT}}>{oggi}</strong>: ne mancano {mancano}.
+            </div>
+          </div>
+          <div style={{padding:'16px 18px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:10}}>
+            <div style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Quanto è coperto oggi</div>
+            <div style={{fontSize:34, fontWeight:800, letterSpacing:'-0.03em', marginTop:5, lineHeight:1, ...ECO_NUM,
+              color: copertura >= 100 ? ADM.OK : copertura >= 50 ? ADM.WARN : ADM.DANGER}}>
+              {Math.round(copertura)}%
+            </div>
+            <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:6, lineHeight:1.45}}>
+              {copertura >= 100
+                ? 'La struttura si paga da sola: da qui in poi ogni locale è margine.'
+                : `I locali paganti coprono questa quota della struttura. Il resto esce dalla raccolta.`}
+            </div>
+          </div>
+          <div style={{padding:'16px 18px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:10}}>
+            <div style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Al ritmo di oggi</div>
+            <div style={{fontSize:34, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.03em', marginTop:5, lineHeight:1, ...ECO_NUM}}>
+              {mesi != null ? `${mesi} mesi` : '—'}
+            </div>
+            <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:6, lineHeight:1.45}}>
+              Entrano {ritmo.toFixed(1)} paganti al mese: è la media vera degli ultimi dodici, non un obiettivo.
+            </div>
+          </div>
+        </div>
+
+        {riga('Costi fissi mensili', fmtEur(Math.round(fissiMese)), 'ricorrenti + annuali ÷ 12',
+          'Le una-tantum restano fuori: sono cassa, non struttura.')}
+        {riga('Costo dei Gratuiti', fmtEur(Math.round(costoGratuiti)), 'somma dei margini negativi',
+          'Un piano Gratuito non contribuisce a coprire i fissi: li consuma, in assistenza e infrastruttura. È il prezzo della prova, e sta fra i costi.', ADM.DANGER)}
+        {riga('Da coprire ogni mese', fmtEur(Math.round(daCoprire)), 'fissi + costo dei Gratuiti',
+          'È la riga che i locali paganti devono pagare prima che l\'azienda guadagni un euro.')}
+        {riga('Margine per locale pagante', fmtEur(marginePagante, 2), 'canone − assistenza − infrastruttura − commissioni',
+          `Media su ${paganti.length} paganti. Il dettaglio per piano è in Analisi Dati → Locali.`, ADM.OK)}
+
+        <div style={{marginTop:16, padding:'13px 16px', background:ADM.PANEL_SOFT, borderRadius:9, fontSize:12.6, color:ADM.MUTED, lineHeight:1.55}}>
+          Il conto tiene ferme due cose che nella realtà si muovono: il <strong style={{color:ADM.TEXT}}>mix dei piani</strong> — più
+          Business e i locali che servono calano — e il <strong style={{color:ADM.TEXT}}>costo per locale</strong>, che scende quando
+          l\'assistenza si automatizza. Va rifatto quando una delle due cambia, non usato come una costante.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EcoDati({ mix }) {
   const [modo, setModo] = useStateEco('mese');
   const [k, setK] = useStateEco(ECO_STORICO.length - 1);
@@ -88,6 +191,8 @@ function EcoDati({ mix }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:20}}>
+      <EcoPareggio/>
+
       <div style={{display:'flex', alignItems:'center', gap:10}}>
         <div style={ECO_TITOLO}>Composizione dei costi</div>
         <div style={{flex:1}}/>

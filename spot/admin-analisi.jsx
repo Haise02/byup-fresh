@@ -696,6 +696,131 @@ function AnRitenzione() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// UTENTI APP · da dove arrivano: inviti e webapp
+// ═══════════════════════════════════════════════════════════════════════════
+function AnCrescita() {
+  const I = AN_INVITI;
+  const W = AN_WEBAPP;
+  const maxSerie = Math.max(...I.serie.map(s => s.condivisi), 1);
+  return (
+    <>
+      <AnCard
+        titolo="Inviti condivisi e riscattati"
+        sotto="Chi lo passa, chi lo usa · l’unico canale di acquisizione che non costa"
+        piede={<>Un locale che arriva da un invito costa <strong style={{color:ADM.TEXT}}>zero</strong> di acquisizione:
+          i {anNum(I.versoLocale)} di quest’anno valgono {anEur(I.cacRisparmiato)} di campagne non spese
+          (al costo per locale del canale a pagamento, in Locali → Da dove arrivano).</>}
+      >
+        <div style={{padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
+          <AnMetrica label="Inviti condivisi" valore={anNum(I.condivisi)} num={I.condivisi}
+            formula="codici generati e mandati fuori, 12 mesi"
+            fasce={[{ tono:'TEXT', testo:`${anPct(I.origini[0].condivisi / I.condivisi * 100, 0)} li mandano i locali, il resto gli utenti.` }]}/>
+          <AnMetrica label="Riscattati" valore={anNum(I.riscattati)} num={I.tassoRiscatto}
+            formula="inviti usati ÷ inviti condivisi"
+            fasce={[
+              { fino:10, tono:'DANGER', testo:'Quasi nessuno li usa: il codice gira ma non convince.' },
+              { fino:25, tono:'WARN', testo:`${anPct(I.tassoRiscatto, 0)} di riscatto. Normale per un codice stampato, basso per uno mandato a mano.` },
+              { tono:'OK', testo:`${anPct(I.tassoRiscatto, 0)} di riscatto: chi riceve l’invito lo usa.` },
+            ]}/>
+          <AnMetrica label="Diventati utenti" valore={anNum(I.versoUtente)} num={I.versoUtente}
+            formula="riscatti da parte di una persona"
+            fasce={[{ tono:'TEXT', testo:'Clienti nuovi arrivati senza spendere in campagne.' }]}/>
+          <AnMetrica label="Diventati locali" valore={anNum(I.versoLocale)} num={I.versoLocale}
+            formula="riscatti da parte di un ristoratore"
+            fasce={[
+              { fino:1, tono:'WARN', testo:'Nessun ristoratore ne ha portato un altro: il passaparola fra locali non è partito.' },
+              { tono:'OK', testo:`${anPct(I.quotaVersoLocale, 0)} dei riscatti è un locale nuovo, e arriva già convinto.` },
+            ]}/>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'1.4fr 1.2fr 0.9fr 1.1fr 1.1fr', columnGap:14, padding:'11px 22px', fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderTop:`1px solid ${ADM.BORDER}`, borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div>Chi lo condivide</div><div>Condivisi</div>
+          <div style={{textAlign:'right'}}>Riscattati</div><div style={{textAlign:'right'}}>→ nuovi utenti</div><div style={{textAlign:'right'}}>→ nuovi locali</div>
+        </div>
+        {I.origini.map((o, i) => (
+          <div key={o.id} style={{display:'grid', gridTemplateColumns:'1.4fr 1.2fr 0.9fr 1.1fr 1.1fr', columnGap:14, padding:'13px 22px', alignItems:'center', borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:13.8, fontWeight:700, color:ADM.TEXT}}>{o.label}</div>
+              <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{o.desc}</div>
+            </div>
+            <div style={{display:'flex', alignItems:'center', gap:9}}>
+              <div style={{flex:1, height:10, background:ADM.PANEL_SOFT, borderRadius:3, overflow:'hidden'}}>
+                <div style={{width:`${(o.condivisi / I.condivisi) * 100}%`, height:'100%', background:ADM.INK, borderRadius:3}}/>
+              </div>
+              <span style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, width:44, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anNum(o.condivisi)}</span>
+            </div>
+            <div style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>
+              {anNum(o.riscattati)} <span style={{fontSize:11.6, color:ADM.MUTED, fontWeight:600}}>· {anPct(o.tassoRiscatto, 0)}</span>
+            </div>
+            <div style={{fontSize:13.4, color:ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anNum(o.riscattatiUtente)}</div>
+            <div style={{fontSize:13.4, fontWeight:800, color: o.riscattatiLocale > 0 ? ADM.OK : ADM.MUTED_LIGHT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anNum(o.riscattatiLocale)}</div>
+          </div>
+        ))}
+
+        <div style={{padding:'16px 22px 18px', borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+          <div style={{fontSize:12, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10}}>Mese per mese · condivisi e riscattati</div>
+          <div style={{display:'flex', alignItems:'flex-end', gap:6, height:96}}>
+            {I.serie.map(m => (
+              <div key={m.t} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
+                <div style={{width:'100%', height:`${(m.condivisi / maxSerie) * 100}%`, background:ADM.NEUTRAL_SOFT, borderRadius:'4px 4px 0 0', position:'relative', minHeight:4}}>
+                  <div style={{position:'absolute', left:0, right:0, bottom:0, height:`${m.condivisi ? (m.riscattati / m.condivisi) * 100 : 0}%`, background:ADM.OK, borderRadius:'0 0 0 0'}}/>
+                </div>
+                <span style={{fontSize:10.5, color:ADM.MUTED_SOFT, fontWeight:600}}>{m.nome}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex', gap:16, marginTop:10, fontSize:12.4, color:ADM.MUTED}}>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:10, height:10, borderRadius:2, background:ADM.NEUTRAL_SOFT, border:`1px solid ${ADM.BORDER}`}}/>condivisi</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:10, height:10, borderRadius:2, background:ADM.OK}}/>riscattati</span>
+          </div>
+        </div>
+      </AnCard>
+
+      <AnCard
+        titolo="Dalla webapp all’app"
+        sotto="Chi ordina col QR senza scaricare niente, e poi scarica · è il ponte fra i due mondi"
+        piede={<>Dalla webapp <strong style={{color:ADM.TEXT}}>non si paga</strong>: chi vuole chiudere il conto dal tavolo deve scaricare l’app.
+          È la ragione per cui questo numero esiste, ed è anche la leva su cui si può agire — se il momento del pagamento non lo propone bene, si perde lì.</>}
+      >
+        <div style={{padding:'20px 22px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+          {[
+            { l:'Sessioni guest', v: anNum(W.sessioni), s:'ultimi 30 giorni', c: ADM.MUTED },
+            { l:'Ordinano', v: anNum(W.ordini), s:`${anPct(W.conversioneOrdine, 0)} delle sessioni`, c: ADM.TEXT },
+            { l:'Scaricano l’app', v: anNum(W.scaricano), s:`${anPct(W.tassoDownload, 1)} di chi ha ordinato`, c: ADM.OK },
+            { l:'Ordinano dall’app', v: anNum(W.primoOrdine), s:`${anPct(W.tassoPrimoOrdine, 0)} di chi l’ha scaricata`, c: ADM.OK },
+          ].map((p, i, arr) => (
+            <React.Fragment key={p.l}>
+              <div style={{flex:1, minWidth:130, padding:'14px 16px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:10}}>
+                <div style={{fontSize:11.8, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>{p.l}</div>
+                <div style={{fontSize:26, fontWeight:800, color:p.c, letterSpacing:'-0.03em', marginTop:5, lineHeight:1}}>{p.v}</div>
+                <div style={{fontSize:12.2, color:ADM.MUTED, marginTop:5}}>{p.s}</div>
+              </div>
+              {i < arr.length - 1 && <span style={{color:ADM.MUTED_LIGHT, fontSize:18, flexShrink:0}}>→</span>}
+            </React.Fragment>
+          ))}
+        </div>
+        <div style={{padding:'0 22px 18px', display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:12}}>
+          <AnMetrica label="Scaricano dopo aver ordinato" valore={anPct(W.tassoDownload, 1)} num={W.tassoDownload}
+            formula="download dopo un ordine guest ÷ ordini guest"
+            fasce={[
+              { fino:2, tono:'DANGER', testo:'La webapp è un vicolo cieco: ordinano dal tavolo e non li rivediamo più.' },
+              { fino:6, tono:'WARN', testo:'Uno su venticinque passa all’app. È il ponte più economico che abbiamo e sta lavorando a un quarto.' },
+              { tono:'OK', testo:'Il passaggio funziona: la webapp è una porta d’ingresso, non un binario morto.' },
+            ]}/>
+          <AnMetrica label="Peso sulle registrazioni" valore={W.quotaSuNuovi != null ? anPct(W.quotaSuNuovi, 0) : '—'} num={W.quotaSuNuovi ?? 0}
+            formula="scaricano dopo guest ÷ nuove registrazioni del mese"
+            fasce={[
+              { fino:10, tono:'WARN', testo:'Gli iscritti arrivano quasi tutti da altrove: il QR non sta portando gente nell’app.' },
+              { fino:35, tono:'OK', testo:`Su ${anNum(W.nuoviTot)} nuovi iscritti del mese, una fetta importante nasce da un tavolo.` },
+              { tono:'OK', testo:`Quasi metà dei ${anNum(W.nuoviTot)} nuovi iscritti nasce da un ordine al tavolo: il canale consumer sono i locali.` },
+            ]}/>
+        </div>
+      </AnCard>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SERVIZIO CLIENTI · deflection
 // ═══════════════════════════════════════════════════════════════════════════
 function AnDeflection() {
@@ -752,4 +877,5 @@ window.AnAcquisizione = AnAcquisizione;
 window.AnContribuzione = AnContribuzione;
 window.AnDispositivi = AnDispositivi;
 window.AnRitenzione = AnRitenzione;
+window.AnCrescita = AnCrescita;
 window.AnDeflection = AnDeflection;

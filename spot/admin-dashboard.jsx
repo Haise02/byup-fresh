@@ -1412,23 +1412,10 @@ function DashLocali({ onNav, filtri }) {
   const ratioAnno = totScanQRAnno > 0 ? totOrdiniAnno / totScanQRAnno : 0;
   const fmtPct = (r) => `${(r * 100).toFixed(1).replace('.', ',')}%`;
 
-  // ── CHURN locali · mock realistico ──────────────────────────────────────
-  // Annualized churn rate per piano (food-service SaaS benchmark: 5-8% annuo è ottimo, 15%+ è critico)
-  const churnByPlan = [
-    { id:'free',     label:'Gratuito',     rate:18.0, tenureMonths: 8.5, color:'PLAN_FREE',     n:124, bench:22 },
-    { id:'starter',  label:'Starter',  rate: 9.2, tenureMonths:14.2, color:'PLAN_STARTER',  n: 86, bench:12 },
-    { id:'plus',     label:'Plus',     rate: 4.5, tenureMonths:21.0, color:'PLAN_PLUS',     n: 42, bench: 8 },
-    { id:'business', label:'Business', rate: 2.1, tenureMonths:28.4, color:'PLAN_BUSINESS', n: 18, bench: 5 },
-  ];
-  const churnedTot = churnByPlan.reduce((s,p)=>s+p.n, 0);
-  // Mensile ultimi 12 mesi (numero locali churned)
-  const churnMonthly = [
-    { m:'Giu 25', n:18 }, { m:'Lug 25', n:14 }, { m:'Ago 25', n:12 },
-    { m:'Set 25', n:16 }, { m:'Ott 25', n:21 }, { m:'Nov 25', n:24 },
-    { m:'Dic 25', n:32 }, { m:'Gen 26', n:38 }, { m:'Feb 26', n:24 },
-    { m:'Mar 26', n:21 }, { m:'Apr 26', n:19 }, { m:'Mag 26', n:21 },
-  ];
-  const churnMaxMonth = Math.max(...churnMonthly.map(m=>m.n));
+  // Le serie del churn — tasso per piano, tenure, locali persi al mese — sono
+  // state tolte: erano scritte a mano e dichiaravano 270 disdette su una base
+  // di cinquanta locali. Quello che è successo davvero lo calcola AN_CHURN dal
+  // registro, con l'incertezza che ha addosso.
   // Motivi di abbandono (% del totale, exit interview)
   const churnReasons = [
     { n:'Scarse prenotazioni / ordini', pct:34, color:ADM.DANGER, icon:'trendDown' },
@@ -1677,7 +1664,11 @@ function DashLocali({ onNav, filtri }) {
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
           <div>
             <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Funnel di onboarding</div>
-            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Conversione da iscrizione a Go-live</div>
+            <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>
+              Quanti arrivano a ogni passo, su {LOCALI.length} locali iscritti · la barra è
+              <span style={{fontFamily:'ui-monospace, monospace', fontSize:11.5, background:ADM.NEUTRAL_SOFT, padding:'2px 6px', borderRadius:5, margin:'0 4px'}}>locali al passo ÷ iscritti</span>
+              e il collo di bottiglia si accende da solo sopra il 10% di caduta
+            </div>
           </div>
           <div style={{display:'flex', gap:14, fontSize:13, color:ADM.MUTED, alignItems:'center', flexWrap:'wrap'}}>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.INK}}/>Obbligatorio</span>
@@ -2841,27 +2832,6 @@ function DashUtentiApp() {
     { regione:'Isole',      top:[{n:'Pesce alla griglia',pct:26},{n:'Pasta alla Norma',pct:21},{n:'Arancini & street food',pct:18}] },
   ];
 
-  // ───── Ritorno utenti nel tempo (curva + tabella per mese di iscrizione) ─
-  // Media di settore food/lifestyle apps · 1g 25-35%, 1m 8-12%, 3m 3-5%
-  const retentionCurve = [
-    { label:'1 g',    daysX:  1, pct:32, bench:30 },
-    { label:'1 sett', daysX:  7, pct:18, bench:15 },
-    { label:'1 mese', daysX: 30, pct:12, bench: 8 },
-    { label:'2 mesi', daysX: 60, pct: 8, bench: 5 },
-    { label:'3 mesi', daysX: 90, pct: 6, bench: 3.5 },
-    { label:'6 mesi', daysX:180, pct: 4, bench: 2 },
-  ];
-  // Tabella per mese di iscrizione · ultimi 6 mesi · % che torna a 1g/1sett/1m/2m/3m
-  const retentionCohorts = [
-    { coh:'Dic 25', size:480, points:[34, 21, 15, 11,  8] },
-    { coh:'Gen 26', size:520, points:[33, 20, 14, 10,  7] },
-    { coh:'Feb 26', size:560, points:[35, 22, 16, 12,  9] },
-    { coh:'Mar 26', size:610, points:[36, 23, 16, 12, null] },
-    { coh:'Apr 26', size:640, points:[34, 21, 14, null, null] },
-    { coh:'Mag 26', size:580, points:[31, 19, null, null, null] },
-  ];
-  const cohortPointLabels = ['Dopo 1 g', 'Dopo 1 sett', 'Dopo 1 mese', 'Dopo 2 mesi', 'Dopo 3 mesi'];
-
   // ───── Stagionalità × geografia: 12 mesi × N piatti ─────────────────────
   // DISH_CATALOG / SEASONAL_ARC / SEASONAL_BIAS sono definiti a livello modulo
   // (in cima al file) per essere condivisi con la sezione "Posizionamento prezzi"
@@ -2937,6 +2907,10 @@ function DashUtentiApp() {
           restano. Sono due domande diverse. */}
       <SectionLabel title="Quanti restano" desc="Chi torna dopo un giorno, una settimana, un mese · e chi fa un secondo ordine"/>
       {window.AnRitenzione ? <AnRitenzione/> : null}
+
+      {/* Da dove arrivano gli iscritti: le due strade che non costano niente. */}
+      <SectionLabel title="Da dove arrivano" desc="Inviti condivisi e riscattati, e il passaggio dalla webapp all'app"/>
+      {window.AnCrescita ? <AnCrescita/> : null}
 
       {/* ═══════════ La rete ═══════════ */}
       {/* Il campione è di quaranta utenti: la piattaforma ne dichiara 12.480,
@@ -3293,122 +3267,11 @@ function DashUtentiApp() {
         </AdmCard>
       </div>
 
-      {/* ═════ RITORNO UTENTI NEL TEMPO ═════ */}
-      <SectionLabel title="Ritorno degli utenti nel tempo" desc="Quanti continuano a usare l'app dopo il primo ordine"/>
-
-      <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:14}}>
-        <AdmCard padding={22}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
-            <div style={{minWidth:0, flex:'1 1 240px'}}>
-              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Quanti tornano dopo il primo ordine</div>
-              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2, lineHeight:1.45}}>
-                Su 100 utenti che fanno il primo ordine, quanti aprono ancora l'app dopo X giorni · confronto con la media di settore food app
-              </div>
-            </div>
-            <div style={{display:'flex', gap:14, fontSize:13.3, color:ADM.TEXT, fontWeight:600}}>
-              <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
-                <span style={{width:14, height:3, borderRadius:2, background:ADM.PINK}}/>
-                Byup
-              </span>
-              <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
-                <span style={{width:14, height:3, borderRadius:2, background:ADM.MUTED_LIGHT}}/>
-                Media settore
-              </span>
-            </div>
-          </div>
-
-          {/* Curva SVG: 2 linee + area sotto la curva Byup */}
-          {(() => {
-            const W = 720, H = 240, padL = 42, padR = 18, padT = 22, padB = 38;
-            const plotW = W - padL - padR, plotH = H - padT - padB;
-            const allVals = retentionCurve.flatMap(r => [r.pct, r.bench]);
-            const yMax = Math.ceil(Math.max(...allVals) / 5) * 5;
-            const yMin = 0;
-            const xFor = (i) => padL + (i/(retentionCurve.length-1)) * plotW;
-            const yFor = (v) => padT + (1 - (v - yMin)/(yMax - yMin)) * plotH;
-            const yTicks = [0, Math.round(yMax/4), Math.round(yMax/2), Math.round(yMax*3/4), yMax];
-            const byupPath = retentionCurve.map((r,i) => `${i===0?'M':'L'} ${xFor(i)} ${yFor(r.pct)}`).join(' ');
-            const benchPath = retentionCurve.map((r,i) => `${i===0?'M':'L'} ${xFor(i)} ${yFor(r.bench)}`).join(' ');
-            // Area sotto la curva Byup
-            const byupArea = byupPath + ` L ${xFor(retentionCurve.length-1)} ${yFor(0)} L ${xFor(0)} ${yFor(0)} Z`;
-            return (
-              <div style={{overflow:'hidden'}}>
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:260}}>
-                  {/* y grid + label */}
-                  {yTicks.map((t,i) => (
-                    <g key={i}>
-                      <line x1={padL} x2={W-padR} y1={yFor(t)} y2={yFor(t)} stroke={ADM.BORDER_SOFT} strokeDasharray={t===0?'':'3 4'}/>
-                      <text x={padL-8} y={yFor(t)+4} textAnchor="end" fontSize="11" fill={ADM.MUTED_SOFT} fontWeight="600">{t}%</text>
-                    </g>
-                  ))}
-                  {/* Area Byup */}
-                  <path d={byupArea} fill={ADM.PINK} opacity={0.10}/>
-                  {/* Linea benchmark (sotto) */}
-                  <path d={benchPath} fill="none" stroke={ADM.MUTED_LIGHT} strokeWidth="2.4" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round"/>
-                  {/* Linea Byup (sopra) */}
-                  <path d={byupPath} fill="none" stroke={ADM.PINK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                  {/* Markers Byup + label sopra ogni punto */}
-                  {retentionCurve.map((r,i) => (
-                    <g key={`byup-${i}`}>
-                      <circle cx={xFor(i)} cy={yFor(r.pct)} r={5} fill="#fff" stroke={ADM.PINK} strokeWidth="2.5"/>
-                      <text x={xFor(i)} y={yFor(r.pct)-12} textAnchor="middle" fontSize="12" fontWeight="800" fill={ADM.PINK_DARK}>{r.pct}%</text>
-                    </g>
-                  ))}
-                  {/* Markers benchmark (più piccoli) */}
-                  {retentionCurve.map((r,i) => (
-                    <circle key={`b-${i}`} cx={xFor(i)} cy={yFor(r.bench)} r={3} fill="#fff" stroke={ADM.MUTED} strokeWidth="2"/>
-                  ))}
-                  {/* x labels */}
-                  {retentionCurve.map((r,i) => (
-                    <text key={i} x={xFor(i)} y={H-12} textAnchor="middle" fontSize="11.5" fill={ADM.MUTED} fontWeight="700">{r.label}</text>
-                  ))}
-                  <text x={(padL + W - padR)/2} y={H-1} textAnchor="middle" fontSize="10.5" fill={ADM.MUTED_SOFT} fontWeight="600">Tempo dal primo ordine</text>
-                </svg>
-              </div>
-            );
-          })()}
-
-          <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:14, lineHeight:1.55, padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9}}>
-            <strong style={{color:ADM.OK}}>Byup è sopra la media in tutte le fasi.</strong> A 1 mese il 12% degli utenti torna ancora (la media del settore è 8%). A 3 mesi siamo al 6% contro il 3,5% della media: chi resta fino a quel punto è fidelizzato e genera valore alto nel tempo. È la prova che l'app non è solo traffico di passaggio.
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Per mese di iscrizione</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14, lineHeight:1.45}}>
-            Ogni riga è il gruppo di utenti iscritti in quel mese · le colonne mostrano quanti tornavano dopo X tempo
-          </div>
-          <div style={{display:'grid', gridTemplateColumns:'66px 32px repeat(5, minmax(0,1fr))', gap:4, alignItems:'center'}}>
-            <div></div>
-            <div style={{fontSize:11.9, fontWeight:700, color:ADM.MUTED, textAlign:'right', paddingRight:3, letterSpacing:'0.02em', textTransform:'uppercase'}}>utenti</div>
-            {cohortPointLabels.map(d => (
-              <div key={d} style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textAlign:'center', lineHeight:1.2}}>{d}</div>
-            ))}
-            {retentionCohorts.map(row => (
-              <React.Fragment key={row.coh}>
-                <div style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT}}>{row.coh}</div>
-                <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, textAlign:'right', paddingRight:3, fontFamily:'ui-monospace, monospace'}}>{row.size}</div>
-                {row.points.map((v,j) => {
-                  if (v === null) return <div key={j} style={{padding:'9px 2px', textAlign:'center', fontSize:12.2, color:ADM.MUTED_SOFT}}>—</div>;
-                  const intensity = Math.min(1, v/35);
-                  return (
-                    <div key={j} style={{
-                      padding:'9px 2px', borderRadius:5, textAlign:'center',
-                      background:`rgba(49,53,61,${(0.06 + intensity*0.5).toFixed(2)})`,
-                      fontSize:13.3, fontWeight:800,
-                      color: intensity > 0.55 ? '#fff' : ADM.TEXT,
-                      letterSpacing:'-0.01em',
-                    }}>{v}%</div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.55, padding:'12px 14px', background:ADM.PANEL_SOFT, borderRadius:9}}>
-            <strong style={{color:ADM.TEXT}}>I gruppi più recenti (Mar/Apr 26)</strong> mostrano un ritorno a 1 settimana di 2-3 punti più alto del solito — possibile effetto del nuovo onboarding lanciato a febbraio.
-          </div>
-        </AdmCard>
-      </div>
+      {/* Qui stava «Ritorno degli utenti nel tempo»: una curva confrontata con
+          una «media di settore» che nessuno aveva verificato, e una tabella di
+          gruppi con numeri scritti a mano. Rispondeva alla stessa domanda del
+          blocco «Quanti restano» qui sopra, che almeno dichiara da dove
+          vengono i numeri e cosa non si può ancora dire. */}
 
       {/* ═════ SEZIONE: SEGMENTAZIONE COMPORTAMENTO ORDINI ═════ */}
       <SectionLabel title="Comportamento d'ordine per cluster demografico" desc="Cluster = combinazione sesso × fascia d'età · chi spende quanto · quando · cosa"/>
@@ -4456,13 +4319,16 @@ function DashCamerieri({ filtri }) {
         : (squadre[squadre.length / 2 - 1] + squadre[squadre.length / 2]) / 2)
     : 0;
 
-  // ── 2. Retention staff · % attivi ultimi 7gg / totale (media di settore: 60-75%)
+  // ── 2. Quota di staff che lavora in un giorno ───────────────────────────
+  // Non è ritenzione: in sala si fanno i turni, e un part-time che lavora tre
+  // sere su sette non è un dipendente perso. Il riferimento del 30-40% è una
+  // regola di buon senso sui turni, non un dato di mercato verificato: sta
+  // scritto perché serve una soglia, non perché qualcuno l'abbia misurato.
   const activeRate = Math.round(STAFF_METRICS.activeOggi / STAFF_METRICS.totCamerieri * 100);
-  // Benchmark: 33% giornaliero è atteso per staff F&B (turni + part-time)
   const benchTone = activeRate >= 30 ? 'OK' : activeRate >= 20 ? 'WARN' : 'DANGER';
-  const benchText = activeRate >= 30 ? 'In linea con il media di settore (30-40% staff F&B attivi/giorno · part-time)' :
-                    activeRate >= 20 ? 'Lievemente sotto · media di settore 30-40%' :
-                    'Sotto la media · candidato a indagine fidelizzazione staff';
+  const benchText = activeRate >= 30 ? 'Compatibile con i turni di una sala: un terzo dello staff lavora in un giorno qualsiasi' :
+                    activeRate >= 20 ? 'Sotto quello che i turni spiegherebbero: una parte dello staff non entra più' :
+                    'Molto sotto: gran parte degli account staff è ferma, e va capito se sono persone che non lavorano più lì';
 
   // ── 3. Locali con staff inattivo · staff registrato ma non lavora (segnale di abbandono)
   // assunzione data-side: locali inactive con staff configurato + alcuni active con lastLogin alto
