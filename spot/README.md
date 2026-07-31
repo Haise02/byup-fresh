@@ -16,12 +16,12 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 
 | Sezione | Cosa contiene | Documento |
 |---|---|---|
-| **Dashboard** | Quadro generale e analytics | — |
+| **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato | — |
 | **Locali** | Ristoranti registrati e onboarding | — |
 | **Staff** | Camerieri, cassa, proprietari, dispositivi dei locali | — |
 | **Utenti App** | Clienti finali | — |
 | **Assistenza** | Quattro tab: Chiamate (solo Plus e Business, scadenza scelta dal ristoratore), Ticket (tutti i piani), FAQ, Guide | — |
-| **Promozioni** | Campagne e broadcast | — |
+| **Promozioni** | Tre tab: Campagne di acquisizione (link tracciati, CAC, MRR e payback per campagna), Broadcast push & email (invii una tantum, ordinabili per colonna), Workflow email (sequenze automatiche con trigger, filtri e guardrail) | — |
 | **Economix** | Costi, conto economico, cassa, patrimonio di byup | [Economix.md](Economix.md) |
 | **Risk Management** | Rischi, adempimenti ed evidenze ISO 27001 / 9001 | [Risk-Management.md](Risk-Management.md) |
 | **Sicurezza e sistemi** | Accessi, audit log, diagnostica | [Riesame-Accessi.md](Riesame-Accessi.md) |

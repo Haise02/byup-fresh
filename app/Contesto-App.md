@@ -322,8 +322,8 @@ gestionale) quando si passa a Flutter.
 >   commensale, gerarchia utenti app → webapp → "Altro");
 >   **divisione dei soli piatti del tavolo** via popup (`tableSplits`: per te /
 >   parti uguali tra tutti / con alcuni); **saldo a importi parziali**
->   (`order.settled`, helper `seedSettled`/`lineRemaining`/`tableRemaining`/
->   `applyPayments`, persistiti in sessione via `byup_table`); **lock real-time**
+>   (`order.settled`, helper `seedSettled`/`lineRemaining`/`applyPayments`,
+>   persistiti in sessione via `byup_table`); **lock real-time**
 >   (`lockedLineIds`, righe "in pagamento" da altri congelate). Dopo un
 >   pagamento parziale si va a **Successo** e il **residuo** resta visibile in
 >   home (card ordine attivo → "Salda il resto" riapre il conto); la vecchia

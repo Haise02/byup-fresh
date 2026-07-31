@@ -127,7 +127,7 @@ Margini sezione: **40** o **64** (separazione macroscopica).
 | Livello | Radius | Esempio |
 |---|---|---|
 | Frame outer | `16 px` | `.frame` delle pagine gestionale |
-| Modal / pannelli glass | `14 px` | `PnModal`, `GLASS_HOVER` (sheet bottom: `22 px` in cima) |
+| Modal / pannelli glass | `14 px` | `PnModal` (sheet bottom: `22 px` in cima); `GLASS_MENU` porta il suo radius 16 |
 | Card | `10 px` | Card sezione, integration card |
 | Input, button, surface | `8 px` | Input, button, mini surface (`PnButton` usa 9 px) |
 | Tag, chip piccolo | `6 px` | Allergen tag |
@@ -450,7 +450,7 @@ Dropdown notifiche ora usa `...PN.GLASS_MENU` — `blur(24px) saturate(180%)` su
 ### `config-completa-app.jsx`
 - Header bg da `#fff` a `WHITE_OFF` (`#FAFBFC`), border-bottom hairline `BORDER_HAIR`. Headline da weight 800 a 600 con letter-spacing tighter. Eyebrow chip ora coerente coi pattern onboarding (BRAND_TINT con dot).
 - Stepper bg coerente col header (off-white).
-- `FooterBar` riscritto con nuovo componente `ApBtn` (3 varianti: neutral / dark / brand) — l'ImpButton equivalent locale di questa pagina.
+- Il piede della pagina riscritto con `ApBtn` (3 varianti: neutral / dark / brand) — l'ImpButton equivalente locale di questa pagina. *(Il componente `FooterBar` che lo conteneva non esiste più: oggi i bottoni sono composti direttamente nella pagina.)*
 - Pulsante "Salta e vai alla Panoramica" trasformato in Apple neutral: gradient sottile + inset highlight + border alpha. Hover su gradient hover. Niente più border solido `PN.BORDER`.
 
 ## Principi (regole d'uso del sistema 2.0)
@@ -490,19 +490,21 @@ Iterazione di feedback: l'utente non vedeva applicato il glass che avevamo defin
 
 ## Cosa è cambiato rispetto alla 2.0
 
-**Trasparenza ridotta** in tutti i token glass: da 0.78 a 0.86–0.92. Il blur è più "ice/frosted" e meno "vetro liquido" — leggibilità migliore, vibe Sonoma più solido.
+**Blur e saturazione alzati**: il vetro è più "ice/frosted" e meno "vetro liquido" — leggibilità migliore, vibe Sonoma più solido.
 
-**Saturazione alzata** da 160% a 180–200%. Il glass diventa "frosty cold" invece di "neutro semi-trasparente", coerente col vibe macOS.
-
-**Due nuovi token glass**:
+> **Valori aggiornati al 2026-07-31.** I sei token vivono in `panoramica-tokens.jsx` e sono la fonte: sotto ci sono i loro valori reali, non quelli della prima stesura (che parlava di un `GLASS_HOVER` mai entrato in codice e dava il drag a 0.72).
 
 ```js
-GLASS_HOVER → blur(24px) saturate(190%) bg 0.94  — dropdown contestuali, popover hover
-GLASS_DRAG  → blur(16px) saturate(160%) bg 0.72  — card draggata in dashboard edit mode
+GLASS_LIGHT   → blur(40px) saturate(220%) bg 0.62  — pannelli chiari
+GLASS_STRONG  → blur(48px) saturate(240%) bg 0.68  — modali e popover (default di PnModal)
+GLASS_VIBRANT → blur(24px) saturate(180%) gradient  — sidebar (ha già il suo gradient)
+GLASS_BAR     → blur(40px) saturate(220%) bg 0.62  — header sticky sopra il main
+GLASS_MENU    → blur(48px) saturate(240%) bg 0.66  — dropdown e menu contestuali
+GLASS_DRAG    → blur(32px) saturate(200%) bg 0.50  — card draggata in dashboard edit mode
 ```
 
-`GLASS_HOVER` è il più solido (0.94) — un dropdown deve leggersi al volo, non c'è tempo per "decifrare" il bg sotto.
-`GLASS_DRAG` è il più trasparente (0.72) — la card draggata è "ghost", deve far vedere ciò che sta sotto perché lì verrà rilasciata.
+`GLASS_STRONG` e `GLASS_MENU` sono i più solidi — una modale e un dropdown devono leggersi al volo, non c'è tempo per "decifrare" il bg sotto.
+`GLASS_DRAG` è il più trasparente (0.50) — la card draggata è "ghost", deve far vedere ciò che sta sotto perché lì verrà rilasciata.
 
 ## Dove è stato applicato (rollout 2.1)
 
@@ -658,7 +660,7 @@ Giro di rifinitura su quattro tab delle Impostazioni (Vetrina, Sala e tavoli, Pe
 - **Pagina rifatta come elenco unico di chi accede**: tabella Persona · Ruolo · Accesso · Stato · Azioni con **persone e dispositivi insieme** — un monitor cucina entra nel gestionale esattamente come un cameriere; prima erano quattro fisarmoniche per ruolo più una sezione a parte. Rimossi `RoleSection`, `DevicesSection`, `PersonRow`, `DeviceRow`.
 - A sinistra i **ruoli come filtro** con conteggi; matita permessi al passaggio su ogni ruolo non-locked (prima i ruoli standard non avevano NESSUN ingresso ai permessi, solo i custom). **Accessi rapidi** ospita solo ciò che non si fa da altrove: collegare un dispositivo (in testata si aggiungono persone) e gli inviti in attesa **coi nomi**, non col numero.
 - La colonna **Accesso si deriva dalle aree del ruolo** (`accessoDelRuolo`), mai scritta a mano: cambiano i permessi, cambia da sola. Stato = pastiglia Attivo/Disattivato + ultima attività sotto (due domande diverse).
-- **Proprietario**: prima riga della pagina, non espandibile, subhead = nome · email. È uno solo e non cambia: niente chevron, niente conteggio.
+- **Il titolare** (allora «Proprietario», rinominato il 2026-07-31) è la prima riga della pagina, bloccata: è uno solo e non cambia, niente chevron e niente conteggio. Per l'elenco dei ruoli aggiornato vedi § Ruoli del personale.
 
 ## POS e integrazioni (`impostazioni-integrazioni.jsx`)
 
@@ -672,6 +674,45 @@ Giro di rifinitura su quattro tab delle Impostazioni (Vetrina, Sala e tavoli, Pe
 - **Il telefono prende lo spazio della finestra**: banner completamento e sub-tab vivono DENTRO la colonna sinistra di `ImpWithPreview` (non sopra la griglia), così il pannello anteprima parte dalla cima ed è tutto visibile senza scroll; colonna anteprima 320→348px (con l'altezza ritrovata era la larghezza a strozzare il telefono). `ImpSaveBar` simula un `resize` quando compare/sparisce così `adatta()` ricalcola e il telefono non finisce sotto la barra. Nell'onboarding il telefono passa da 300px fissi (taratura del banner rimosso) a 100% della rail.
 - **I chip del completamento accendono dove portano**: `impAccendiSezione(anchor)` + `ImpAtterraggioStyle` (shared, usati da Impostazioni E onboarding) — anello corallo 1.9s sulla sezione d'arrivo, riavviabile ricliccando. Portarci non basta: chi arriva in fondo a uno scorrimento non sa dove si è fermato l'occhio.
 - `ImpField` accetta `style`: la Descrizione si allunga a pareggiare il fondo del pannello servizi (colonna flex + `flex:1` sul campo e sulla textarea).
+
+---
+
+# Ruoli del personale, referral e azioni rapide — 31 lug 2026
+
+## Ruoli del personale (`impostazioni-personale.jsx`)
+
+I ruoli sono **tre**, e sono i due modi in cui si prende un ordine più chi possiede il locale:
+
+| Ruolo | Vede | Note |
+|---|---|---|
+| **Cassa** | Vendita diretta, Sala e prenotazioni | prende ordini e incassa dalla cassa del locale |
+| **Titolare** | tutto (9 sezioni su 9) | uno solo, è chi ha creato il gestionale; riga bloccata |
+| **Cameriere** | App staff | visibilità solo dall'app cameriere |
+
+Oltre a questi, la colonna a sinistra elenca **Dispositivi** e — solo se il locale se li è creati — **Personalizzati**.
+
+- **Via «Manager»**: non era un ruolo del personale. Chi gestisce il locale è il titolare, che il gestionale ha già.
+- **Via il ruolo «Cucina» dagli inviti**: chi guarda le comande è il Kitchen Monitor, che si collega con username e password locali, non con un invito per email. Al suo posto, come ripiego per una persona il cui ruolo non esiste più (un personalizzato cancellato), c'è `RUOLO_IGNOTO` → «Ruolo rimosso», che lo dice invece di mascherarlo da cucina.
+- **`ALL_AREAS` passa da otto a nove**: mancava **Vendita diretta**, che è una sezione vera del gestionale e senza la quale il ruolo Cassa non avrebbe avuto niente da vedere. Compare anche nella creazione dei ruoli personalizzati.
+- **`accessoDelRuolo` ordina le aree come le dichiara il ruolo**, non come stanno nel menu: per la Cassa il titolo legge «Vendita diretta +1», che è il suo mestiere, invece di «Sala e prenotazioni +1» solo perché la sala viene prima.
+- Nella **Configurazione completa** (`PersonaleStep`) le card-ruolo sono due, **Cameriere** (prima e selezionata all'apertura: è quello che si invita in numero) e **Cassa**. La terza card «Cucina» è sparita per lo stesso motivo di sopra: il Kitchen Monitor si collega nella sezione dispositivi lì sotto.
+
+## Porta un ristorante su byup (referral fra locali)
+
+Due mesi gratis a testa, a chi invita e a chi arriva. Vive in **Profilo → Piani e abbonamenti**, fra «Risparmiato questo mese» e «Cambia piano»: è l'unica voce della pagina che fa **scendere** il conto — le due sotto sono due modi di spendere di più — e sta col risparmio, che racconta la stessa storia.
+
+- **In pagina è una fascia bassa**, alta una riga, col fondo aurora che la stacca dal bianco delle card intorno e un bottone bianco che ci risalta sopra senza mettersi in gara con le CTA dei piani. Non è una card: si vede e si clicca, ma non prende lo spazio di una decisione. Tutto il resto sta nel popup.
+- **Il popup mostra il codice, non il link.** Il codice è quello che l'altro digiterà nell'onboarding ed è quello che si detta al telefono; il link viaggia dentro il messaggio di «Condividi», dove serve che sia cliccabile. «Copia codice» porta il gradient aurora, «Condividi» è ghost e usa il Web Share dove c'è, WhatsApp col messaggio già scritto dove non c'è.
+- **Il codice sta sul locale, non sulla persona** (`accCodiceInvito` in `account-data.jsx`): se cambia il titolare, i mesi guadagnati restano al locale che li ha portati. Le due cifre finali non sono un anno ma una firma ricavata dal nome, così due «Da Mario» in due città non si ritrovano con lo stesso codice.
+- **Una riga di stato, non tre numeri**: «1 ristorante ha attivato il piano Starter: hai guadagnato 2 mesi del tuo piano gratuiti». Aperture del link e iscritti sono metriche di campagna e le guarda byup dal suo pannello; se non è ancora arrivato nessuno non si scrive niente.
+- **Il lato che riscatta**: l'onboarding ha un campo **«Codice invito»**, opzionale e in fondo all'anagrafica (step 2 · Informazioni), che conferma i due mesi appena lo compili. Senza, il link condiviso non aveva dove atterrare — e l'app consumer prometteva già che il codice si inserisce «durante l'onboarding di byup gestionale».
+- **Ingressi**: `byup Profilo.html?tab=piani&invita=1` apre direttamente il popup. Ci puntano la voce «Invita un ristorante» delle Azioni rapide e la stessa voce in ⌘K — chi arriva da lì vuole il codice, non trovare la fascia e cliccarla.
+
+## Azioni rapide della Panoramica
+
+Otto azioni, `4×2`. **Le colonne si scelgono per stare sempre in due righe** — tre fino a sei azioni, quattro da sette in poi — perché la settima sarebbe rimasta sola in una terza riga, che è l'orfano che le tre colonne originali erano state scelte per evitare.
+
+Le due nuove: **«Modifica menu»** (matita ambra) porta al compositore dei menù (`?page=menu-cucina&sub=menu`), destinazione diversa da «Aggiungi piatto» che apre la libreria dei piatti; **«Invita un ristorante»** al popup del referral.
 
 ---
 

@@ -303,8 +303,11 @@ Stato di pagamento — **saldo a importi parziali**:
 - `settled` — mappa `lineId → importo già pagato` (può essere una **quota**, non
   l'intero). Helper module-level: `seedSettled(order)` (parte dai `paidLineIds`
   come full), `lineRemaining(order, it)` = `prezzo·qty − pagato`,
-  `tableRemaining(order)` = somma dei residui, `applyPayments(setState, [{lineId,
+  `applyPayments(setState, [{lineId,
   amount}])` (somma le quote, ricalcola `paidLineIds` per le righe ormai coperte).
+  Il residuo del tavolo è la **somma dei `lineRemaining`**, fatta nel punto in cui
+  serve: l'helper `tableRemaining(order)` esisteva ma non lo chiamava più nessuno
+  ed è stato rimosso il 2026-07-31.
 - `lockedLineIds` — mappa `lineId → payerId` di righe **in pagamento adesso** da
   un altro (lock real-time, `isLocked`): congelate e non selezionabili.
 
@@ -371,7 +374,8 @@ tavolo). Sezioni:
 > esiste ancora ed è raggiungibile via hash `#balance`.
 
 Mostra:
-- **"Manca al tavolo €X"** (`tableRemaining`) + n° articoli ancora da saldare.
+- **"Manca al tavolo €X"** (somma dei `lineRemaining` ancora aperti) + n° articoli
+  ancora da saldare.
 - Accordion **"Piatti da saldare"**: **esclude i miei piatti** (già saldati);
   ordine **tavolo → altri commensali**, con i **lockati in fondo**. Ogni riga:
   checkbox, residuo (`lineRemaining`, "rimasti" se parziale), `splitWith` →
@@ -386,10 +390,11 @@ Mostra:
 **Coperti**: il numero di commensali **non si chiede più all'ingresso al
 tavolo** (l'utente non sa ancora se dividerà il conto e lo saltava): il numero
 arriva da `order.covers` e si gestisce dalla sheet **"Al tavolo"** (lista
-commensali, aggiungi/rimuovi ospiti — `covers` segue il totale). La
-`CopertiSheet` con `askCoperti`/`confirmCoperti` esiste ancora in `MenuScreen`
-ma non viene più invocata; il valore confermato persiste in
-`sessionStorage.byup_coperti` (vedi §5, §7).
+commensali, aggiungi/rimuovi ospiti — `covers` segue il totale). La `CopertiSheet`
+con `askCoperti`/`confirmCoperti` è stata **rimossa** da `app/menu.jsx` una volta
+spenta l'invocazione (la versione viva resta in `web/menu.jsx`, che chiede ancora
+i coperti); il valore confermato persiste in `sessionStorage.byup_coperti`
+(vedi §5, §7).
 
 **`fromVenue`** è dedotto da più fonti (in OR): `?from=venue`, il `document
 .referrer` che è la vetrina, oppure `sessionStorage.byup_menu_from === 'venue'`.

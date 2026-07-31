@@ -59,9 +59,13 @@ si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non 
 - `assets/` contiene icone e loghi condivisi (favicon, apple-touch icon, logo completo).
 - `byup_SaldaConto_redesign.html` (in root) è un mockup standalone del redesign della
   schermata "Salda conto".
-- **Il cache-buster `?v=N`** negli HTML di entry va incrementato a ogni modifica di un
-  `.jsx`: senza, il browser serve la versione vecchia e sembra che la modifica non
-  abbia avuto effetto.
+- **Il cache-buster `?v=N`** lo usano `spot/byup-spot.html` e `staff/index.html`, ed
+  è l'unico posto dove va incrementato a ogni modifica di un `.jsx`: senza, il browser
+  serve la versione vecchia e sembra che la modifica non abbia avuto effetto. Gli altri
+  HTML di entry caricano i `.jsx` senza query — lì basta un hard reload.
 - **Prima di un rilascio**: `grep -rn "data-demo-only" spot/` — marca le affordance
-  che esistono solo per la demo e non devono finire in produzione (oggi: il "simula
-  manomissione" del riesame accessi, vedi [spot/Riesame-Accessi.md](spot/Riesame-Accessi.md)).
+  che esistono solo per la demo e non devono finire in produzione. **Oggi non ce n'è
+  nessuna**: l'unica era il "simula manomissione" del riesame accessi, sparito insieme
+  alla catena di impronte che dimostrava (vedi
+  [spot/Riesame-Accessi.md](spot/Riesame-Accessi.md)). Il controllo resta perché la
+  prossima ci sarà.
