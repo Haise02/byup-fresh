@@ -111,16 +111,12 @@ sfacchinata, e le sfacchinate si rimandano.
 L'unica eccezione resta il **Super Admin titolare**, e non è una scorciatoia: non
 c'è niente da decidere, perché l'accesso gli viene dal ruolo.
 
-**Confermare un'anomalia richiede di scrivere perché.** Sulle utenze invariate
-no — il perché l'ha già scritto il confronto con la campagna precedente — ma su
-un'anomalia sì: senza, nel verbale resta «dormiente da 142 giorni, confermata» e
-la domanda successiva dell'auditor è *su quale base*. È anche la risposta al caso
-più probabile, cioè il riesame che **non trova nessuno da revocare**: se le
-revoche si fanno subito quando una persona esce — ed è giusto così — il riesame
-periodico serve a verificare che il processo veloce non abbia lasciato indietro
-niente, e il suo contenuto diventa il perché le anomalie vanno bene. Zero revoche
-è l'esito sano; cinque utenze stantie ogni trimestre vorrebbe dire che
-l'offboarding è rotto.
+**Confermare non chiede di scrivere perché.** C'è stato un campo obbligatorio
+sulle anomalie, tolto per scelta: costava una frase per riga in cambio di un
+verbale più difendibile. Resta il buco da conoscere — con zero revoche
+l'attestazione dirà «dormiente da 142 giorni, confermata» e basta, e la domanda
+successiva di un auditor è *su quale base*. Il motivo resta obbligatorio sulla
+**revoca**, dove senza non è evidenza.
 
 **La revoca multipla esiste ma dichiara il proprio limite.** Un motivo solo per N
 persone regge quando la ragione È una sola — «chiusura del progetto X, tre

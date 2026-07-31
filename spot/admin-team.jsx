@@ -935,15 +935,6 @@ const RA_DORMIENTE_GG = 90;
 const RA_PREAVVISO_GG = 14;   // da quanti giorni prima la scadenza chiama all'azione
 const RA_GRID_STORICO = 'minmax(0,1.3fr) 0.95fr 0.9fr 130px 1fr minmax(0,2.1fr)';
 
-// Un esempio per ogni tipo di anomalia: davanti a una casella vuota si scrive
-// «ok», davanti a un esempio si scrive una frase che vale come evidenza.
-const RA_ESEMPI_MOTIVO = {
-  mai:        'Es. Ha accettato l\'invito ieri, primo accesso previsto lunedì con l\'onboarding',
-  dormiente:  'Es. In congedo parentale fino a ottobre, accesso mantenuto d\'accordo con Operations',
-  escalation: 'Es. Passata a Support a giugno, i permessi in più sono quelli del nuovo ruolo',
-  nuovo:      'Es. Entrata dopo la campagna di aprile, ruolo e permessi verificati all\'ingresso',
-  cambiato:   'Es. Cambio di ruolo approvato a maggio, i permessi corrispondono al nuovo incarico',
-};
 
 // La cadenza del riesame è UNA e vive nell'adempimento `acc` del Cruscotto di
 // Risk Management, insieme agli altri obblighi ricorrenti: è lì che si cambia,
@@ -966,6 +957,7 @@ function raScadenza() {
   return d;
 }
 
+const raFmtGG = (d) => d ? d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
 const raFmtData = (d) => d ? d.toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 const raFmtDataOra = (d) => d ? d.toLocaleString('it-IT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
 const raGiorniFa = (d) => d ? Math.floor((Date.now() - d.getTime()) / 86400000) : null;
@@ -1037,7 +1029,6 @@ function AccessReview({ onNavRoute }) {
   const [confermaChiusura, setConfermaChiusura] = useStateTeam(false);
   const [revoca, setRevoca] = useStateTeam(null);        // { id, nome }
   const [motivo, setMotivo] = useStateTeam('');
-  const [motivoConferma, setMotivoConferma] = useStateTeam('');
   const [dettaglio, setDettaglio] = useStateTeam(null);  // riga aperta: { m, cls, prec }
   const [confermaBlocco, setConfermaBlocco] = useStateTeam(false);
   // Revoca multipla. `selezione` è null quando la modalità è spenta e un array
@@ -1197,23 +1188,19 @@ function AccessReview({ onNavRoute }) {
               {tuttiDecisi
                 ? `Il riesame ${camp.periodo} è pronto da firmare`
                 : scaduta
-                  ? `Il riesame ${camp.periodo} è scaduto da ${-ggScadenza} ${-ggScadenza === 1 ? 'giorno' : 'giorni'}`
-                  : ggScadenza === 0
-                    ? `Il riesame ${camp.periodo} scade oggi`
-                    : `Il riesame ${camp.periodo} scade fra ${ggScadenza} ${ggScadenza === 1 ? 'giorno' : 'giorni'}`}
+                  ? `La data di esame del ${raFmtGG(scadenza)} è stata superata. Fai ora l'esame dei diritti di accesso`
+                  : `L'esame dei diritti di accesso va fatto entro il ${raFmtGG(scadenza)}`}
             </div>
-            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-              {tuttiDecisi
-                ? `${totale} utenze esaminate · ${totale - revocati} confermate, ${revocati} ${revocati === 1 ? 'revocata' : 'revocate'}`
-                : `${totale - decisi} ${totale - decisi === 1 ? 'utenza' : 'utenze'} da confermare o revocare${daGuardare > 0 ? `, di cui ${daGuardare} con un'anomalia` : ''}`}
-              {' · A.5.18, ogni '}{cadenza} mesi
-              {typeof onNavRoute === 'function' && (
-                <React.Fragment>{' · '}
-                  <span onClick={()=>onNavRoute('conformita', 'cruscotto')}
-                    style={{color:ADM.PINK, fontWeight:700, cursor:'pointer'}}>cambia cadenza</span>
-                </React.Fragment>
-              )}
-            </div>
+            {/* Il sottotitolo elencava quante utenze mancano, quante hanno
+                un'anomalia, la norma e la cadenza: quattro dati per un avviso
+                che deve dire una cosa sola, e cioè che è ora di farlo. Quando
+                invece è tutto deciso il conto serve, perché è quello che stai
+                per firmare. */}
+            {tuttiDecisi && (
+              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
+                {totale} utenze esaminate · {totale - revocati} confermate, {revocati} {revocati === 1 ? 'revocata' : 'revocate'}
+              </div>
+            )}
           </div>
           {/* Quando la banda c'è, l'intestazione qui sotto non ripete questi
               comandi: lo stesso bottone due volte nella stessa schermata è un
@@ -1331,7 +1318,7 @@ function AccessReview({ onNavRoute }) {
               const selezionata = !!selezione && selezione.includes(m.id);
               return (
                 <div key={m.id} className={selezione && !selezionabile ? undefined : 'adm-row-open'}
-                  onClick={()=>{ if (selezione) { toggleSel(m); return; } setMotivoConferma(''); setDettaglio({ m, cls, prec }); }}
+                  onClick={()=>{ if (selezione) { toggleSel(m); return; } setDettaglio({ m, cls, prec }); }}
                   style={{
                   display:'grid', gridTemplateColumns:GRID, alignItems:'center', gap:8,
                   padding:'12px 16px', cursor: selezione && !selezionabile ? 'default' : 'pointer',
@@ -1471,7 +1458,6 @@ function AccessReview({ onNavRoute }) {
         const dec = esiti[m.id];
         const nAree = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
         const ggM = raGiorniFa(m.lastActive);
-        const anomalia = cls.rank <= 4;
         return (
         <div onClick={()=>setDettaglio(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
           display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
@@ -1499,7 +1485,6 @@ function AccessReview({ onNavRoute }) {
                 ['Ultimo accesso', m.lastActive ? (ggM === 0 ? 'oggi' : ggM === 1 ? 'ieri' : `${ggM} giorni fa`) : 'mai'],
                 ['Ultima verifica', prec ? `${raFmtData(prec.campagna.chiusaIl)} · ${prec.campagna.periodo}` : 'mai riesaminato'],
                 ['Secondo fattore', m.due_fa ? 'attivo' : 'non attivo'],
-                ['Rilievo', cls.nota],
               ].map(([k, v]) => (
                 <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
                   <span style={{color:ADM.MUTED, width:126, flexShrink:0}}>{k}</span>
@@ -1525,43 +1510,13 @@ function AccessReview({ onNavRoute }) {
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom: anomalia ? 12 : 16}}>
-                  Decidendo attesti che questa persona deve — o non deve — continuare ad avere
-                  questi permessi. La decisione finisce nell'attestazione e nell'audit log con il
-                  tuo nome e l'orario.
-                </div>
-
-                {/* Confermare un'ANOMALIA senza scrivere perché è il punto in
-                    cui un riesame con zero revoche non si difende più: nel
-                    verbale resta «dormiente da 142 giorni — confermata», e la
-                    domanda successiva è «su quale base?». Sulle utenze
-                    invariate non serve: il perché l'ha già scritto il confronto
-                    con la campagna precedente. */}
-                {anomalia && (
-                  <div style={{marginBottom:16}}>
-                    <div style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
-                      letterSpacing:'0.05em', marginBottom:6}}>
-                      Perché l'accesso resta · obbligatorio
-                    </div>
-                    <textarea value={motivoConferma} onChange={e=>setMotivoConferma(e.target.value)} autoFocus
-                      placeholder={RA_ESEMPI_MOTIVO[cls.key] || 'Su quale base questo accesso può restare com\'è'}
-                      style={{width:'100%', minHeight:70, padding:'10px 12px', borderRadius:10,
-                        border:`1px solid ${ADM.BORDER}`, fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT,
-                        resize:'vertical', boxSizing:'border-box', outline:'none'}}/>
-                    <div style={{fontSize:11.6, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.45}}>
-                      È il contenuto del riesame: senza, il verbale dice che l'anomalia
-                      l'hai vista ma non che cosa ne hai concluso.
-                    </div>
-                  </div>
-                )}
-
                 <div style={{display:'flex', alignItems:'center', gap:8}}>
                   <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, borderColor:'rgba(220,38,38,0.28)'}}
                     onClick={()=>{ setRevoca(m); setMotivo(''); setDettaglio(null); }}>Revoca</AdmButton>
                   <div style={{flex:1}}/>
                   <AdmButton variant="secondary" size="sm" onClick={()=>setDettaglio(null)}>Annulla</AdmButton>
-                  <AdmButton variant="primary" size="sm" disabled={anomalia && motivoConferma.trim().length < 8}
-                    onClick={()=>{ registra(m, 'confermato', anomalia ? motivoConferma.trim() : '', IO); setDettaglio(null); }}>
+                  <AdmButton variant="primary" size="sm"
+                    onClick={()=>{ registra(m, 'confermato', '', IO); setDettaglio(null); }}>
                     Conferma
                   </AdmButton>
                 </div>
