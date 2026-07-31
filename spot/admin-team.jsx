@@ -1165,7 +1165,7 @@ function AccessReview({ onNavRoute }) {
   };
 
   const H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 };
-  const GRID = 'minmax(0,2.6fr) 1.15fr 1fr 1fr 26px';
+  const GRID = 'minmax(0,2.6fr) 1.15fr 1fr 26px';
 
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
@@ -1306,7 +1306,7 @@ function AccessReview({ onNavRoute }) {
             <div style={{display:'grid', gridTemplateColumns:GRID, padding:'9px 16px', background:ADM.PANEL_SOFT || '#FAFAFB',
               borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.8, fontWeight:700, color:ADM.MUTED,
               textTransform:'uppercase', letterSpacing:'0.06em'}}>
-              <div>Soggetto</div><div>Ruolo</div><div>Ultimo accesso</div><div>Ultima verifica</div><div/>
+              <div>Soggetto</div><div>Ruolo</div><div>Ultimo accesso</div><div/>
             </div>
 
             {righe.map(({ m, cls, prec }, i) => {
@@ -1360,10 +1360,6 @@ function AccessReview({ onNavRoute }) {
 
                   <div style={{fontSize:12.8, color: cls.key === 'dormiente' || cls.key === 'mai' ? ADM.DANGER : ADM.TEXT, fontWeight: cls.key === 'dormiente' || cls.key === 'mai' ? 700 : 500}}>
                     {m.lastActive ? (gg === 0 ? 'oggi' : gg === 1 ? 'ieri' : `${gg} giorni fa`) : 'mai'}
-                  </div>
-
-                  <div style={{fontSize:12.8, color:ADM.TEXT}}>
-                    {prec ? raFmtData(prec.campagna.chiusaIl) : <span style={{color:ADM.WARN, fontWeight:700}}>mai</span>}
                   </div>
 
                   {/* Lo stato della riga non ha più una colonna: si legge dal
