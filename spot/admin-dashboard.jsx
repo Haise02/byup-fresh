@@ -410,6 +410,11 @@ function onboardingFermi() {
 function AdmDashboard({ onNav }) {
   const [tab, setTab] = useStateDash('generale');
   const [reportSent, setReportSent] = useStateDash(false);
+  // Periodo e segmento valgono per le tab costruite sui locali. Dove i dati
+  // non sono per locale — utenti, servizio, mercato, valore — la barra lo
+  // dichiara invece di far finta di filtrare.
+  const [filtri, setFiltri] = useStateDash(window.AN_FILTRI_VUOTI || { periodo:'365', piano:'tutti', regione:'tutte' });
+  const filtroAttivo = ['generale', 'locali', 'camerieri'].includes(tab);
 
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
@@ -439,12 +444,13 @@ function AdmDashboard({ onNav }) {
           ? <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700, whiteSpace:'nowrap'}}>✓ Report inviato a marco.rinaldi@byup.it</span>
           : <AdmButton variant="ghost" size="sm" icon="download" onClick={()=>{ setReportSent(true); setTimeout(()=>setReportSent(false), 3500); }}>Report mensile</AdmButton>}
       </div>
+      {window.AnBarraFiltri ? <AnBarraFiltri filtri={filtri} onChange={setFiltri} attivo={filtroAttivo}/> : null}
       <div>
-        {tab === 'generale'  && <DashGenerale onNav={onNav}/>}
-        {tab === 'locali'    && <DashLocali onNav={onNav}/>}
+        {tab === 'generale'  && <DashGenerale onNav={onNav} filtri={filtri}/>}
+        {tab === 'locali'    && <DashLocali onNav={onNav} filtri={filtri}/>}
         {tab === 'valore'    && (window.DashValore ? <DashValore/> : null)}
         {tab === 'utentiapp' && <DashUtentiApp/>}
-        {tab === 'camerieri' && <DashCamerieri/>}
+        {tab === 'camerieri' && <DashCamerieri filtri={filtri}/>}
         {tab === 'servizio'  && (window.AdmServizioClientiKPI ? <AdmServizioClientiKPI/> : null)}
         {tab === 'mercato'   && <DashMercato/>}
       </div>
@@ -619,7 +625,7 @@ function DashOrdiniCard({ mese, media, anno, extraMese, extraMedia, extraAnno, s
 }
 
 // ---------- GENERALE ----------
-function DashGenerale({ onNav }) {
+function DashGenerale({ onNav, filtri }) {
   // === LOCALI ===
   // Le categorie arrivano da LOC (admin-data.jsx), che le definisce una volta
   // sola: qui non se ne inventano di nuove, si contano quelle.
@@ -695,8 +701,13 @@ function DashGenerale({ onNav }) {
           certificazioni in Assistenza. */}
 
 
+      {/* La riga di salute apre la sezione: sei numeri con la loro formula e
+          cosa vogliono dire, invece di far dedurre lo stato da otto card. */}
+      <SectionLabel title="In sintesi" desc="Le sei righe che rispondono a «stiamo andando bene?»" first/>
+      {window.AnSalute ? <AnSalute onNav={onNav}/> : null}
+
       {/* ═══════════ Tier 1 · Andamento — il polso della piattaforma ═══════════ */}
-      <SectionLabel title="Andamento" desc="La salute della piattaforma in sintesi" first/>
+      <SectionLabel title="Andamento" desc="Ricavi, ordini e base clienti nel dettaglio"/>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
         <DashHero
@@ -766,6 +777,11 @@ function DashGenerale({ onNav }) {
           <LocaliTotaliTooltip total={totLocali} free={freeCount} freeActive={freeActive} freeInactive={freeInactive} paying={paying} planCount={planCount}/>
         </AdmCard>
       </div>
+
+      {/* Le parole e la loro affidabilità: sta in fondo perché si legge quando
+          serve, ma sta in Generale perché vale per tutte le tab. */}
+      <SectionLabel title="Come si leggono questi numeri" desc="Le definizioni, e quanto è buona l'anagrafica su cui poggiano"/>
+      {window.AnDefinizioni ? <AnDefinizioni/> : null}
 
 
     </div>
@@ -1349,7 +1365,7 @@ function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, tr
 }
 
 // ---------- LOCALI tab ----------
-function DashLocali({ onNav }) {
+function DashLocali({ onNav, filtri }) {
   const onbCompletati = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'churned').length;
   const onbTentati = LOCALI.length - LOCALI.filter(l => l.stato === 'pending').length;
   const convRate = onbTentati > 0 ? Math.round((onbCompletati/onbTentati)*100) : 0;
@@ -1881,111 +1897,32 @@ function DashLocali({ onNav }) {
             è un'altra cosa — dove va il titolare quando apre il gestionale. */}
       </div>
 
+      {/* ═════ ATTIVAZIONE ═════ */}
+      <SectionLabel title="Attivazione" desc="Dall'iscrizione al primo ordine, e da lì alla soglia"/>
+      {window.AnAttivazione ? <AnAttivazione filtri={filtri}/> : null}
+
+      {/* ═════ ACQUISIZIONE E MARGINE ═════ */}
+      <SectionLabel title="Da dove arrivano e quanto rendono" desc="Il canale che li ha portati, e quello che resta dopo i costi che generano"/>
+      {window.AnAcquisizione ? <AnAcquisizione filtri={filtri}/> : null}
+      {window.AnContribuzione ? <AnContribuzione filtri={filtri}/> : null}
+
       {/* ═════ CHURN LOCALI ═════ */}
-      <SectionLabel title="Abbandono locali" desc="Quanti se ne vanno, quando, perché · metrica critica per investor reporting"/>
+      <SectionLabel title="Abbandono locali" desc="Quanti se ne vanno davvero, e quanti sono fermi sulla porta"/>
+      {window.AnChurn ? <AnChurn/> : null}
 
-      {/* Churn rate per piano */}
-      <AdmCard padding={20}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18}}>
-          <div>
-            <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Tasso di abbandono per piano</div>
-            <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Annualizzato · vs media di settore food-service</div>
-            {/* «Tenure» sotto ogni piano non si spiega da sola: detta una
-                volta qui, sopra le card che la usano. */}
-            <div style={{fontSize:13, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.45}}>
-              <b style={{color:ADM.MUTED}}>Tenure</b> = quanti mesi resta un locale prima di disdire, in media.
-              È il moltiplicatore dell'LTV: a parità di canone, un piano che tiene il doppio vale il doppio.
-            </div>
-          </div>
-          <div style={{display:'flex', alignItems:'center', gap:6, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap:5}}>
-              <span style={{width:10, height:10, borderRadius:3, background:ADM.PINK}}/> Byup
-            </span>
-            <span style={{display:'inline-flex', alignItems:'center', gap:5}}>
-              <span style={{width:10, height:10, borderRadius:3, background:ADM.MUTED_LIGHT}}/> Media settore
-            </span>
-          </div>
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
-          {churnByPlan.map(p => {
-            const beats = p.rate < p.bench;
-            const ratio = Math.max(p.rate, p.bench) > 0 ? p.rate / Math.max(p.rate, p.bench) * 100 : 0;
-            return (
-              <div key={p.id} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
-                  <span style={{
-                    padding:'3px 9px', borderRadius:5,
-                    background:ADM[p.color+'_SOFT'], color:ADM[p.color],
-                    fontSize:12.6, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase',
-                  }}>{p.label}</span>
-                  <span style={{fontSize:13, color: beats ? ADM.OK : ADM.DANGER, fontWeight:700, fontFamily:'ui-monospace, monospace'}}>
-                    {beats ? '◀' : '▶'} {Math.abs(p.rate - p.bench).toFixed(1)}pt
-                  </span>
-                </div>
-                <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:8}}>
-                  <div style={{fontSize:26.6, fontWeight:800, color: p.rate > 15 ? ADM.DANGER : p.rate > 8 ? ADM.WARN : ADM.OK, letterSpacing:'-0.03em', lineHeight:1}}>{p.rate.toFixed(1)}%</div>
-                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>/ anno</span>
-                </div>
-                {/* mini compare bar Byup vs bench */}
-                <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:10}}>
-                  <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                    <div style={{width:`${ratio}%`, height:'100%', background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`, borderRadius:99}}/>
-                  </div>
-                  <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                    <div style={{width:`${(p.bench/Math.max(p.rate,p.bench))*100}%`, height:'100%', background:ADM.MUTED_LIGHT, borderRadius:99}}/>
-                  </div>
-                </div>
-                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.4}}>
-                  Tenure media <strong style={{color:ADM.TEXT, fontWeight:700}}>{p.tenureMonths.toFixed(1)} mesi</strong>
-                  <br/>
-                  {p.n} locali persi · media settore {p.bench}%
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:16, lineHeight:1.5}}>
-          <strong style={{color:ADM.TEXT}}>Andamento netto:</strong> l'abbandono è inversamente proporzionale al piano. Free al 18% (4pt sotto la media) è l'imbuto di acquisition, fisiologico. Plus e Business sotto la media di settore = product-market fit confermato sulle fasce paganti.
-        </div>
-      </AdmCard>
-
-      {/* Volume mensile + Motivi */}
-      <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:14}}>
+      {/* Le card «tasso per piano» e «locali persi al mese» stavano qui e sono
+          state tolte: dichiaravano decine di disdette al mese e centinaia in un
+          anno su una base di cinquanta locali. Erano i numeri di un'altra
+          azienda. Quello che è successo davvero sta nella card sopra, con la
+          sua incertezza scritta. I motivi restano, perché quelli sono
+          dichiarati da chi se n'è andato. */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr', gap:14}}>
         <AdmCard padding={20}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
-            <div>
-              <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Locali persi al mese · ultimi 12 mesi</div>
-              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>Numero locali che hanno disdetto · picco a fine anno fiscale</div>
-            </div>
-            <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>
-              Totale <strong style={{color:ADM.TEXT, fontWeight:800}}>{churnedTot}</strong> locali
-            </div>
+          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Motivi dichiarati in uscita</div>
+          <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3, marginBottom:14}}>
+            Raccolti nel modulo di disdetta del gestionale · percentuali su {LOCALI.filter(locChurned).length + LOCALI.filter(locInattivo).length} uscite e fermi,
+            quindi indicano l'ordine, non la misura
           </div>
-          <div style={{display:'flex', alignItems:'flex-end', gap:6, height:160, marginBottom:10}}>
-            {churnMonthly.map((m,i) => {
-              const peak = m.n === churnMaxMonth;
-              return (
-                <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6}}>
-                  <div style={{fontSize:12.6, fontWeight:700, color: peak ? ADM.DANGER : ADM.MUTED}}>{m.n}</div>
-                  <div style={{
-                    width:'100%',
-                    height:`${(m.n/churnMaxMonth)*100}%`,
-                    background: peak ? `linear-gradient(180deg, ${ADM.DANGER}, #B91C1C)` : `linear-gradient(180deg, ${ADM.WARN}, #B45309)`,
-                    borderRadius:'5px 5px 2px 2px',
-                    minHeight:8,
-                  }}/>
-                  <div style={{fontSize:11.9, fontWeight:600, color:ADM.MUTED_SOFT, letterSpacing:'0.02em'}}>{m.m}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:8, lineHeight:1.5}}>
-            <strong style={{color:ADM.TEXT}}>Picco a gennaio</strong> (rinnovi annuali) e a fine anno (chiusure attività stagionali). Anticipa con campagne di fidelizzazione in dicembre.
-          </div>
-        </AdmCard>
-
-        <AdmCard padding={20}>
-          <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Motivi di abbandono</div>
           <div style={{display:'flex', flexDirection:'column', gap:11}}>
             {churnReasons.map((r,i) => {
               const Icon = BuIcons[r.icon];
@@ -2007,7 +1944,8 @@ function DashLocali({ onNav }) {
             })}
           </div>
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:14, lineHeight:1.5}}>
-            <strong style={{color:ADM.TEXT}}>Il 56% degli abbandoni è legato al prodotto</strong> (prenotazioni scarse + prezzo). Funzionalità da spingere: aumentare conversion app → ordine = ridurre l'abbandono alla radice.
+            <strong style={{color:ADM.TEXT}}>«Scarse prenotazioni» è il primo motivo</strong>, e chi lo dice quasi sempre non ha mai superato la soglia di ordini digitali:
+            il legame, con i numeri, sta in Analisi Dati → Valore per il locale.
           </div>
         </AdmCard>
       </div>
@@ -2994,6 +2932,11 @@ function DashUtentiApp() {
           accent="INK" icon="clock"
           trend={+0.6} trendLabel="vs mese prec."/>
       </div>
+
+      {/* Le coorti: DAU e MAU dicono quanto usano l'app quelli rimasti, la
+          coorte dice quanti restano. Sono due domande diverse. */}
+      <SectionLabel title="Quanti restano" desc="Ritenzione per coorte di iscrizione, e il secondo ordine"/>
+      {window.AnCoorti ? <AnCoorti/> : null}
 
       {/* ═══════════ La rete ═══════════ */}
       {/* Il campione è di quaranta utenti: la piattaforma ne dichiara 12.480,
@@ -4469,7 +4412,7 @@ function DashMercato() {
 // CAMERIERI · ristrutturata con la prospettiva da data scientist
 // Coverage, ratio, retention, benchmark, trend per azione, heatmap settimanale.
 // ════════════════════════════════════════════════════════════════════════════
-function DashCamerieri() {
+function DashCamerieri({ filtri }) {
   // ── 1. Coverage · locali che HANNO configurato lo staff vs senza
   const liveLocali = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped');
 
@@ -4573,6 +4516,12 @@ function DashCamerieri() {
 
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
+
+      {/* Come arriva la comanda in cucina: è la scala della digitalizzazione,
+          e sta in cima perché spiega quasi tutti i numeri sotto. */}
+      <SectionLabel first title="Dispositivi e ruoli" desc="Con cosa lavorano davvero: monitor in cucina, comande stampate, o niente"/>
+      {window.AnDispositivi ? <AnDispositivi filtri={filtri}/> : null}
+
 
       {/* ═══════════ Andamento — la rete staff in sintesi ═══════════ */}
       <SectionLabel title="Andamento" desc="La rete staff dei locali in sintesi" first/>

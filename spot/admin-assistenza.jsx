@@ -1916,6 +1916,12 @@ function AdmServizioClientiKPI({ richiamate }) {
           giù, che è la sola forma su cui si può fare qualcosa. */}
       <SrvLocaliCritici locali={s.localiCritici} soglia={s.sogliaCritica}/>
 
+
+      {/* Il ritorno delle guide: quanti ticket non sono mai arrivati perché
+          qualcuno ha trovato la risposta da solo. */}
+      <SectionLabel title="Chi si risolve da solo" desc="Il ritorno di guide e FAQ, in ticket che non sono arrivati"/>
+      {window.AnDeflection ? <AnDeflection/> : null}
+
     </div>
   );
 }
