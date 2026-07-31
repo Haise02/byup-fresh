@@ -9,8 +9,8 @@
 //                    che spiega quasi tutto il resto.
 //   2. ATTIVAZIONE   quanto ci mette un locale ad arrivare alla soglia. È
 //                    l'anello fra onboarding, valore e abbandono.
-//   3. COORTI        la ritenzione degli utenti app per coorte di iscrizione,
-//                    che DAU/WAU/MAU non dicono.
+//   3. RITENZIONE    quanti utenti restano, mese di iscrizione per mese di
+//                    iscrizione: la metà che DAU/WAU/MAU non dicono.
 //   4. DEFLECTION    quanti ticket evita l'assistenza in autonomia.
 //   5. ACQUISIZIONE  da dove arrivano i locali, e quanto costa ciascun canale.
 //   6. CONTRIBUZIONE quanto resta di un locale dopo i costi che genera.
@@ -184,7 +184,7 @@ const AN_ATTIVAZIONE = AN_LOCALI.filter(l => l.stato === 'active').map((l, i) =>
     primoOrdine: Math.min(primoOrdine, giorniIscritto),
     dieciOrdini: Math.min(dieciOrdini, giorniIscritto),
     soglia, arrivato,
-    // Mese di iscrizione, per la coorte
+    // Mese di iscrizione: serve a raggruppare chi è entrato insieme
     coorte: l.dataIscrizione.getFullYear() + '-' + String(l.dataIscrizione.getMonth() + 1).padStart(2, '0'),
   };
 });
@@ -229,49 +229,68 @@ const anAttPerDotazione = (att = AN_ATTIVAZIONE) => Object.keys(AN_DOTAZIONI).ma
 const AN_ATTIVAZIONE_DOTAZIONE = anAttPerDotazione();
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3 · COORTI UTENTI · la ritenzione che DAU/WAU/MAU non dicono
+// 3 · RITENZIONE UTENTI · quanti restano, per mese di iscrizione
 // ════════════════════════════════════════════════════════════════════════════
 //
-// Lo stickiness dice quanto usano l'app quelli che sono rimasti. La coorte dice
+// Lo stickiness dice quanto usano l'app quelli che sono rimasti. Questa dice
 // quanti restano — ed è l'unica delle due che dice se l'app funziona.
-const AN_COORTI = (() => {
+// Attenzione a da dove arrivano i numeri. Il registro utenti contiene la base
+// ATTIVA — chi ha scaricato, ordinato, e in gran parte continua — e su quella
+// il «fa un secondo ordine» esce sopra il novanta per cento, che è vero per
+// quel gruppo e falso per la domanda che stiamo facendo. La ritenzione si
+// chiede su TUTTI gli iscritti, compresi quelli che hanno aperto l'app una
+// volta e non sono più tornati, e quelli nel registro non ci sono.
+// Quindi qui la curva è modellata, con i valori tipici del food fuori casa:
+// si torna quando si esce a cena, non ogni giorno.
+// I tre traguardi sono CUMULATIVI: «entro un giorno», «entro una settimana»,
+// «entro un mese». Per un'app di ristorazione è l'unica lettura che ha senso —
+// nessuno esce a cena tutti i giorni, e una ritenzione «al giorno 30» a due
+// cifre basse direbbe solo che il prodotto non è un social.
+const AN_RITENZIONE_BASE = { d1: 21, d7: 34, d30: 46 };  // % al mese più vecchio
+const AN_RITENZIONE = (() => {
   const mesi = ['Giu','Lug','Ago','Set','Ott','Nov','Dic','Gen','Feb','Mar','Apr','Mag'];
   const oggi = Date.now();
   return mesi.map((nome, t) => {
     const daOggi = 11 - t;                    // 0 = il mese corrente
     const inizio = oggi - (daOggi + 1) * 30 * 86400000;
     const fine = oggi - daOggi * 30 * 86400000;
-    const coorte = UTENTI.filter(u => {
+    // Il registro utenti è un campione di quaranta persone su una base
+    // dichiarata di UTENTI_BASE: gli iscritti del mese si riportano in scala,
+    // altrimenti una riga direbbe «3 iscritti» su una piattaforma da 12.500.
+    const scala = UTENTI.length ? UTENTI_BASE / UTENTI.length : 1;
+    const campione = UTENTI.filter(u => {
       const d = u.dataRegistrazione.getTime();
       return d >= inizio && d < fine;
-    });
-    const n = coorte.length;
-    // D1/D7/D30: quota della coorte che ha riaperto l'app dopo 1, 7, 30 giorni.
-    // Si può calcolare solo se la coorte ha almeno quell'età.
-    const vivi = (giorni) => {
-      if (daOggi * 30 < giorni) return null;   // troppo giovane per saperlo
-      if (!n) return null;
-      const q = coorte.filter(u => u.lastSessionDays <= Math.max(giorni, daOggi * 30 - giorni + 30));
-      // Decadimento realistico: chi ordina più spesso resta di più.
-      const base = coorte.filter(u => u.ordini >= (giorni >= 30 ? 3 : giorni >= 7 ? 2 : 1)).length;
-      return Math.round(((base * 0.72 + q.length * 0.28) / n) * 100);
+    }).length;
+    const n = Math.round(campione * scala);
+    const r = pseudoRand(t * 13 + 5);
+    // Il prodotto migliora: chi si iscrive dopo resta un po' di più. Il
+    // rumore è vero rumore, non decorazione.
+    const spinta = 1 + (t / 11) * 0.22;
+    const conta = (base) => Math.round(base * spinta * (0.9 + r() * 0.2));
+    // Una percentuale a 1, 7, 30 giorni si può dire solo se quel traguardo è
+    // già passato per quel mese di iscritti.
+    return {
+      nome, t, n, eta: daOggi,
+      d1:  daOggi * 30 >= 1  && n ? conta(AN_RITENZIONE_BASE.d1)  : null,
+      d7:  daOggi * 30 >= 7  && n ? conta(AN_RITENZIONE_BASE.d7)  : null,
+      d30: daOggi * 30 >= 30 && n ? conta(AN_RITENZIONE_BASE.d30) : null,
     };
-    return { nome, t, n, d1: vivi(1), d7: vivi(7), d30: vivi(30), eta: daOggi };
   });
 })();
 
-// Tempo al secondo ordine: la distanza fra il primo e il secondo è il momento
-// in cui un utente decide se l'app fa parte della sua vita o no.
+// Il secondo ordine: la distanza fra il primo e il secondo è il momento in cui
+// un utente decide se l'app fa parte della sua vita. Anche questa si misura su
+// tutti gli iscritti, non solo su chi è rimasto.
 const AN_SECONDO_ORDINE = (() => {
-  const conDue = UTENTI.filter(u => u.ordini >= 2);
-  const giorni = conDue.map((u, i) => {
+  const quotaConDue = 38;                     // % degli iscritti che torna a ordinare
+  const giorni = UTENTI.filter(u => u.ordini >= 2).map((u, i) => {
     const r = pseudoRand(i * 7 + 3);
-    // Chi ordina spesso ci mette poco: la distribuzione è molto asimmetrica.
     return Math.max(1, Math.round((3 + r() * 44) / Math.sqrt(Math.max(1, u.ordini / 3))));
   });
   return {
-    n: conDue.length,
-    quotaConDue: UTENTI.length ? (conDue.length / UTENTI.length) * 100 : 0,
+    n: Math.round(UTENTI.length * quotaConDue / 100),
+    quotaConDue,
     mediana: parMediana(giorni),
     entro7: giorni.length ? (giorni.filter(g => g <= 7).length / giorni.length) * 100 : 0,
     entro30: giorni.length ? (giorni.filter(g => g <= 30).length / giorni.length) * 100 : 0,
@@ -531,7 +550,7 @@ window.AN_ATTIVAZIONE = AN_ATTIVAZIONE;
 window.AN_ATTIVAZIONE_TAPPE = AN_ATTIVAZIONE_TAPPE;
 window.AN_CURVA_ATTIVAZIONE = AN_CURVA_ATTIVAZIONE;
 window.AN_ATTIVAZIONE_DOTAZIONE = AN_ATTIVAZIONE_DOTAZIONE;
-window.AN_COORTI = AN_COORTI;
+window.AN_RITENZIONE = AN_RITENZIONE;
 window.AN_SECONDO_ORDINE = AN_SECONDO_ORDINE;
 window.AN_DEFLECTION = AN_DEFLECTION;
 window.AN_CANALI = AN_CANALI;

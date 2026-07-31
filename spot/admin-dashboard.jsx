@@ -2933,10 +2933,10 @@ function DashUtentiApp() {
           trend={+0.6} trendLabel="vs mese prec."/>
       </div>
 
-      {/* Le coorti: DAU e MAU dicono quanto usano l'app quelli rimasti, la
-          coorte dice quanti restano. Sono due domande diverse. */}
-      <SectionLabel title="Quanti restano" desc="Ritenzione per coorte di iscrizione, e il secondo ordine"/>
-      {window.AnCoorti ? <AnCoorti/> : null}
+      {/* DAU e MAU dicono quanto usano l'app quelli rimasti; questa dice quanti
+          restano. Sono due domande diverse. */}
+      <SectionLabel title="Quanti restano" desc="Chi torna dopo un giorno, una settimana, un mese · e chi fa un secondo ordine"/>
+      {window.AnRitenzione ? <AnRitenzione/> : null}
 
       {/* ═══════════ La rete ═══════════ */}
       {/* Il campione è di quaranta utenti: la piattaforma ne dichiara 12.480,

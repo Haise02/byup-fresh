@@ -634,10 +634,10 @@ function AnDispositivi({ filtri }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// UTENTI APP · coorti
+// UTENTI APP · quanti restano
 // ═══════════════════════════════════════════════════════════════════════════
-function AnCoorti() {
-  const coorti = AN_COORTI.filter(c => c.n > 0);
+function AnRitenzione() {
+  const gruppi = AN_RITENZIONE.filter(g => g.n > 0);
   const S = AN_SECONDO_ORDINE;
   const cella = (v) => {
     if (v == null) return { bg:'transparent', fg:ADM.MUTED_LIGHT, txt:'—' };
@@ -647,37 +647,38 @@ function AnCoorti() {
   return (
     <AnCard
       titolo="Quanti restano, per mese di iscrizione"
-      sotto="DAU e MAU dicono quanto usano l’app quelli rimasti · la coorte dice quanti restano, ed è l’altra metà"
-      piede={<>Le celle vuote non sono zeri: sono coorti troppo giovani perché quel traguardo sia già passato.
-        Riempirle con uno zero è il modo più comune di far sembrare la ritenzione peggiore di com’è.</>}
+      sotto="DAU e MAU dicono quanto usano l’app quelli rimasti · questa dice quanti restano, ed è l’altra metà"
+      piede={<>I tre traguardi sono <strong style={{color:ADM.TEXT}}>cumulativi</strong>: chi è tornato almeno una volta entro quel giorno.
+        Per un’app di ristorazione è l’unica lettura sensata — nessuno esce a cena tutti i giorni. Le celle vuote non sono zeri:
+        sono mesi troppo recenti perché quel traguardo sia già passato, e riempirle di zeri è il modo più comune di far sembrare la ritenzione peggiore di com’è.</>}
     >
       <div style={{padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:12}}>
-        <AnMetrica label="Tornano il giorno dopo" valore={coorti.length ? `${coorti[0].d1 ?? '—'}%` : '—'} num={coorti.length ? (coorti[0].d1 ?? 0) : 0}
-          formula="utenti della coorte che riaprono entro 24h ÷ iscritti"
+        <AnMetrica label="Tornano entro un giorno" valore={gruppi.length ? `${gruppi[0].d1 ?? '—'}%` : '—'} num={gruppi.length ? (gruppi[0].d1 ?? 0) : 0}
+          formula="chi riapre entro 24 ore ÷ iscritti del mese"
           fasce={[
             { fino:20, tono:'DANGER', testo:'Scaricano e spariscono: il primo ordine non è diventato un’abitudine.' },
             { fino:40, tono:'WARN', testo:'Normale per un’app di servizio, dove si torna quando si esce a cena.' },
             { tono:'OK', testo:'Alta per la categoria: l’app viene usata anche fuori dal momento dell’ordine.' },
           ]}/>
         <AnMetrica label="Fanno un secondo ordine" valore={anPct(S.quotaConDue, 0)} num={S.quotaConDue}
-          formula="utenti con almeno 2 ordini ÷ registrati"
+          formula="iscritti con un secondo ordine ÷ iscritti"
           fasce={[
             { fino:25, tono:'DANGER', testo:'Tre su quattro provano una volta e basta: il valore non si ripete.' },
-            { fino:50, tono:'WARN', testo:'Metà torna. È il numero da spostare per far crescere la rete senza spendere.' },
+            { fino:50, tono:'WARN', testo:'Meno di metà torna a ordinare: è il numero da spostare per far crescere la rete senza comprare utenti.' },
             { tono:'OK', testo:'La maggioranza torna: l’app è entrata nelle abitudini.' },
           ]}
           sotto={`Mediana ${anNum(S.mediana)} giorni fra primo e secondo ordine · ${anPct(S.entro30, 0)} entro il mese`}/>
-        <AnMetrica label="Coorti osservabili" valore={anNum(coorti.length)} num={coorti.length}
-          formula="mesi con almeno un’iscrizione"
-          fasce={[{ tono:'TEXT', testo:'Ogni riga è un mese di iscritti, seguito nel tempo. Le prime righe sono le più informative: hanno avuto il tempo di decadere.' }]}/>
+        <AnMetrica label="Mesi osservabili" valore={anNum(gruppi.length)} num={gruppi.length}
+          formula="mesi con almeno un’iscrizione · iscritti riportati in scala sulla base dichiarata"
+          fasce={[{ tono:'TEXT', testo:'Ogni riga è chi si è iscritto in quel mese, seguito nel tempo. Le righe in alto sono le più informative: hanno avuto il tempo di perdere gente.' }]}/>
       </div>
 
       <div style={{padding:'0 22px 18px'}}>
         <div style={{display:'grid', gridTemplateColumns:'0.9fr 0.7fr repeat(3, 1fr)', columnGap:10, padding:'0 0 8px', fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
-          <div>Coorte</div><div style={{textAlign:'right'}}>Iscritti</div>
-          <div style={{textAlign:'center'}}>Giorno 1</div><div style={{textAlign:'center'}}>Giorno 7</div><div style={{textAlign:'center'}}>Giorno 30</div>
+          <div>Iscritti a</div><div style={{textAlign:'right'}}>Quanti</div>
+          <div style={{textAlign:'center'}}>Entro 1 giorno</div><div style={{textAlign:'center'}}>Entro 7 giorni</div><div style={{textAlign:'center'}}>Entro 30 giorni</div>
         </div>
-        {coorti.map(c => (
+        {gruppi.map(c => (
           <div key={c.nome} style={{display:'grid', gridTemplateColumns:'0.9fr 0.7fr repeat(3, 1fr)', columnGap:10, padding:'6px 0', alignItems:'center'}}>
             <div style={{fontSize:13, fontWeight:600, color:ADM.TEXT}}>{c.nome}</div>
             <div style={{fontSize:12.8, color:ADM.MUTED, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anNum(c.n)}</div>
@@ -750,5 +751,5 @@ window.AnChurn = AnChurn;
 window.AnAcquisizione = AnAcquisizione;
 window.AnContribuzione = AnContribuzione;
 window.AnDispositivi = AnDispositivi;
-window.AnCoorti = AnCoorti;
+window.AnRitenzione = AnRitenzione;
 window.AnDeflection = AnDeflection;
