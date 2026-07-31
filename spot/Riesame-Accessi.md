@@ -21,38 +21,12 @@ Codice: [admin-team.jsx](admin-team.jsx) (componente `AccessReview` e funzioni
 
 ---
 
-## ⚠️ DA NON PORTARE IN PRODUZIONE
-
-### L'interruttore «Simula manomissione»
-
-Nel blocco *Integrità delle attestazioni* c'è un riquadro tratteggiato con
-etichetta **DEMO** e un bottone «Simula manomissione». **Non deve esistere nel
-prodotto.**
-
-Serve solo a mostrare dal vivo — in una demo commerciale o davanti a un auditor —
-che il controllo di integrità funziona davvero: altera il contenuto di una
-campagna già firmata, così premendo «Verifica integrità» la catena risulta
-spezzata invece di dare sempre verde. Senza, chi guarda deve fidarsi sulla parola.
-
-In produzione un comando che modifica un record firmato è **esattamente ciò che
-il controllo esiste per impedire**: lasciarlo significherebbe consegnare
-all'auditor la prova che i record non sono immutabili.
-
-**Come trovarlo per rimuoverlo:** è marcato con `data-demo-only="simula-manomissione"`,
-più le costanti `RA_MANOMISSIONE` e la funzione `toggleManomissione` in
-`admin-team.jsx`. Un `grep -r "data-demo-only" spot/` prima di ogni rilascio
-li tira fuori tutti.
-
----
-
 ## Cosa è già vero e cosa è mock
 
-**Vero, funziona davvero:** le impronte sono SHA-256 calcolate dal browser con
-`crypto.subtle` sul contenuto reale del record, concatenate a quella precedente.
-«Verifica integrità» ricalcola la catena e la confronta: se un record cambia, il
-controllo fallisce sul serio. Questa parte è stata scritta funzionante di
-proposito — una verifica finta in un modulo di compliance è peggio di nessuna
-verifica.
+**Vero, funziona davvero:** la classificazione delle utenze, che è il cuore del
+riesame — dormiente, permessi aumentati, ruolo cambiato, mai riesaminato — è
+calcolata confrontando lo stato di oggi con l'esito della campagna precedente,
+non dichiarata a mano.
 
 **Mock, da costruire:** tutto il resto. I dati stanno in memoria, le campagne
 non si salvano, le revoche non toccano nessuna utenza.
@@ -61,11 +35,17 @@ non si salvano, le revoche non toccano nessuna utenza.
 
 ## Cosa serve per la produzione
 
-**Archiviazione append-only.** I record di attestazione non devono essere
-modificabili né cancellabili, nemmeno da un DBA. Tabella in sola aggiunta,
-impronta salvata alla firma, e idealmente la catena verificata da un job
-periodico che allerta se si rompe. Oggi il "sigillo" vive in una variabile di
-modulo (`RA_SIGILLO`) calcolata al primo caricamento: va persistito.
+**Archiviazione append-only.** È *il* controllo che protegge il record, e non
+vive in questa pagina: tabella in sola aggiunta, nessun grant di UPDATE o DELETE
+sulle attestazioni, backup e retention. Un tempo qui c'era una catena di impronte
+SHA-256 con una sezione «Integrità delle attestazioni» e un bottone «Verifica
+integrità»: è stata tolta perché il sigillo si calcolava nel browser al
+caricamento, dagli stessi dati che avrebbe dovuto proteggere, e viveva in
+memoria — bastava ricaricare la pagina dopo una modifica perché la verifica
+tornasse verde. Una catena di hash vale qualcosa solo se il capo è ancorato dove
+chi tocca il database non arriva: storage WORM, marca temporale RFC 3161, log
+esterno. Se un giorno servirà, si rifà così; finché non c'è l'ancoraggio, non
+aggiunge niente all'evidenza.
 
 **La revoca deve revocare davvero.** Oggi l'attestazione dichiara che «le
 sessioni sono state terminate», ma è una frase. Il backend ha già l'entità
@@ -96,10 +76,17 @@ tenere una sezione del personale per alimentare una riga sola non valeva il
 prezzo. Chi non lavora più qui viene intercettato come **dormiente**, dalla
 mancanza di accessi.
 
-**Gli invariati si confermano in blocco** ed è legittimo proprio perché il
-confronto con la campagna precedente è calcolato: si attesta che non è cambiato
-nulla, non si timbra alla cieca. Senza questo, un riesame semestrale diventa una
-sfacchinata e le sfacchinate si rimandano.
+**Si decide solo sulle anomalie; il resto parte confermato d'ufficio.** Due
+utenze su tre non hanno niente da decidere, e chiedere un clic anche per quelle
+trasforma il riesame in una sfacchinata — e le sfacchinate si rimandano. Partono
+confermate le invariate, perché «invariata» non è un'opinione ma il confronto con
+la campagna precedente calcolato dal codice, e il Super Admin titolare. Le
+anomalie no: quelle **sono** il riesame, e restano da decidere a mano. Ogni
+conferma d'ufficio porta il proprio motivo scritto ed è marcata come tale
+nell'attestazione: dichiararle è ciò che le rende difendibili, nasconderle
+sarebbe un timbro. Una riga confermata d'ufficio si può comunque revocare — se il
+revisore vede qualcosa che il confronto automatico non poteva vedere, la porta
+deve restare aperta.
 
 **Confermare e revocare non sono bottoni da elenco.** Nessuna riga li espone: la
 riga dice soltanto a che punto è (*Da decidere*, *Confermato*, *Revocato*) e si

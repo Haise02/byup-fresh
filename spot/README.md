@@ -83,5 +83,7 @@ grep -rn "data-demo-only" spot/
 ```
 
 Marca le affordance che esistono solo per la demo e **non devono finire in
-produzione**. Oggi: il «simula manomissione» del riesame accessi, spiegato in
-[Riesame-Accessi.md](Riesame-Accessi.md).
+produzione**. Oggi non ce n'è nessuna: l'unica era il «simula manomissione» del
+riesame accessi, sparito insieme alla catena di impronte che dimostrava — vedi
+[Riesame-Accessi.md](Riesame-Accessi.md). Il controllo resta perché la prossima
+ci sarà.
