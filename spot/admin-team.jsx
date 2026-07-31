@@ -284,7 +284,11 @@ function RuoliMatrix() {
   );
 }
 
+// Contratto di default: sta in alto perché si veda, non perché occupi spazio.
+// L'intestazione da sola dice già tutto quello che serve per decidere se aprirlo
+// — quanti sono, se ce n'è uno scaduto, e i nomi.
 function InvitiPending() {
+  const [aperto, setAperto] = useStateTeam(false);
   const inviti = (typeof INVITI_PENDENTI !== 'undefined' ? INVITI_PENDENTI : []);
   if (!inviti.length) return null;
   const gg = (d) => Math.round((d.getTime() - Date.now()) / 86400000);
@@ -292,22 +296,31 @@ function InvitiPending() {
   return (
     <div style={{border:`1px solid ${fermi ? '#FDE68A' : ADM.BORDER}`, borderRadius:10, overflow:'hidden',
       background: fermi ? '#FFFDF7' : '#fff'}}>
-      <div style={{display:'flex', alignItems:'baseline', gap:9, padding:'10px 16px',
-        borderBottom:`1px solid ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
+      <div className="adm-row-open" onClick={()=>setAperto(a => !a)}
+        style={{display:'flex', alignItems:'center', gap:9, padding:'10px 16px', cursor:'pointer',
+        userSelect:'none', borderBottom: aperto ? `1px solid ${ADM.BORDER_SOFT}` : 'none', flexWrap:'wrap'}}>
         <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase',
           letterSpacing:'0.06em'}}>Inviti in attesa</span>
         <span style={{fontSize:12.2, fontWeight:700, background:'rgba(120,120,128,0.15)', color:ADM.MUTED,
           padding:'1px 7px', borderRadius:999}}>{inviti.length}</span>
+        <span className="adm-row-chev" style={{display:'inline-flex', color:ADM.MUTED_SOFT,
+          transform: aperto ? 'rotate(90deg)' : 'none', transition:'transform 0.15s ease'}}>
+          <BuIcons.chevronRight size={15}/></span>
         <span style={{fontSize:12.4, color: fermi ? ADM.WARN : ADM.MUTED, fontWeight: fermi ? 700 : 400}}>
           {fermi
             ? `${fermi} ${fermi === 1 ? 'invito scaduto' : 'inviti scaduti'}: permessi già assegnati a chi non è mai entrato`
             : 'non hanno ancora accettato, quindi non sono nel riesame degli accessi'}
         </span>
+        {!aperto && (
+          <span style={{fontSize:12.4, color:ADM.MUTED_SOFT}}>
+            · {inviti.map(i => i.nome).join(', ')}
+          </span>
+        )}
       </div>
-      {inviti.map((inv, i) => {
+      {aperto && inviti.map((inv, i) => {
         const g = gg(inv.scade);
         return (
-          <div key={inv.email} style={{display:'grid', gridTemplateColumns:'minmax(0,1.9fr) 1.1fr 1fr 1.2fr 150px',
+          <div key={inv.email} style={{display:'grid', gridTemplateColumns:'minmax(0,1.9fr) 1.1fr 1fr 1.2fr 265px',
             gap:10, padding:'10px 16px', alignItems:'center',
             borderBottom: i === inviti.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
             <div style={{display:'flex', alignItems:'center', gap:10, minWidth:0}}>
@@ -324,7 +337,7 @@ function InvitiPending() {
               {g < 0 ? `Scaduto da ${-g} ${-g === 1 ? 'giorno' : 'giorni'}` : `Scade fra ${Math.max(1, g)} giorni`}
             </div>
             <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
-              <AdmButton variant="ghost" size="sm">Rinvia</AdmButton>
+              <AdmButton variant="ghost" size="sm">Invia di nuovo</AdmButton>
               <AdmButton variant="ghost" size="sm">Revoca</AdmButton>
             </div>
           </div>

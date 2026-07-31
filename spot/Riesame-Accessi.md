@@ -13,7 +13,8 @@ bocciate perché lo gestiscono con un foglio Excel.
 **Chi non ha ancora accettato l'invito non è nel riesame.** Non ha una password,
 non ha una sessione, non ha accesso a niente: sta negli **inviti in attesa**, che
 non sono più una riga da espandere in fondo alla pagina ma un riquadro in alto,
-subito sotto la banda della scadenza. Lì il numero che conta non è il ruolo ma da
+subito sotto la banda della scadenza — contratto, perché l'intestazione da sola
+dice già quanti sono, se ce n'è uno scaduto e chi sono. Lì il numero che conta non è il ruolo ma da
 quanto l'invito è fermo: un invito scaduto con i permessi già assegnati è una
 porta socchiusa che nessuno sta guardando, e in fondo alla pagina non la vedeva
 nessuno. Fonte unica: `INVITI_PENDENTI` in [admin-data.jsx](admin-data.jsx).
