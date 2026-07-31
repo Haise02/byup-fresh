@@ -108,11 +108,14 @@ const ACC_SESSIONI = [
 // ─── Referral fra locali ───────────────────────────────────────────────────
 // Ogni ristorante portato vale due mesi gratis a testa: al locale che invita e
 // a quello che arriva.
+// Delle tre misure che si potrebbero contare — aperture del link, iscritti,
+// abbonamenti attivati — al ristoratore ne serve una sola: quante volte il
+// premio è scattato davvero. Le altre due sono metriche di campagna, e le
+// guarda byup dal suo pannello.
 const ACC_REFERRAL = {
   mesiPerLato: 2,
-  aperture: 12,   // quante volte è stato aperto il link
-  iscritti: 3,    // quanti hanno creato un account
-  attivi: 1,      // quanti hanno attivato un abbonamento → mesi maturati
+  attivi: 1,                 // ristoranti arrivati che hanno attivato un piano
+  pianoAttivato: 'Starter',  // quale piano ha attivato l'ultimo arrivato
 };
 
 // Il codice sta sul LOCALE e non sulla persona: se domani cambia il titolare,

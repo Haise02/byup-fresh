@@ -39,22 +39,12 @@ function AccPianiAbbonamenti() {
     ordiniExtraRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
   };
 
-  // Deep-link ?invita=1 (dalla scorciatoia in Panoramica): porta la card
-  // dell'invito sotto gli occhi e la illumina per un attimo, altrimenti si
-  // atterra su una pagina lunga senza sapere dove guardare.
-  const invitaRef = React.useRef(null);
-  const [evidenziaInvito, setEvidenziaInvito] = React.useState(false);
-  React.useEffect(() => {
-    let chiede = false;
-    try { chiede = new URLSearchParams(window.location.search).get('invita') === '1'; } catch (e) {}
-    if (!chiede) return;
-    const t1 = setTimeout(() => {
-      invitaRef.current?.scrollIntoView({behavior: 'smooth', block: 'center'});
-      setEvidenziaInvito(true);
-    }, 260);
-    const t2 = setTimeout(() => setEvidenziaInvito(false), 2600);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  // Deep-link ?invita=1 (dalla scorciatoia in Panoramica e da ⌘K): apre
+  // direttamente il popup. In pagina l'invito è una riga sola: chi arriva da
+  // fuori vuole il codice, non trovare la riga e cliccarla.
+  const [invitaModal, setInvitaModal] = React.useState(() => {
+    try { return new URLSearchParams(window.location.search).get('invita') === '1'; } catch (e) { return false; }
+  });
 
   const fmtPrice = (n) => {
     if (n === 0) return '0';
@@ -221,15 +211,23 @@ function AccPianiAbbonamenti() {
         />
       </div>
 
-      {/* Riga 2 — Porta un ristorante: sta PRIMA di «Cambia piano» e dei
-          pacchetti perché è l'unica voce della pagina che fa scendere il conto.
-          Le due sotto sono due modi di spendere di più; questa sta col
-          risparmio, che è la stessa storia raccontata sopra. */}
-      <div ref={invitaRef} style={{scrollMarginTop: 12}}>
-        <InvitaRistoranteCard current={current} fmtPrice={fmtPrice} evidenzia={evidenziaInvito}/>
+      {/* Porta un ristorante — una riga sola, nello stesso tono della nota sul
+          piano Gratuito in fondo a «Cambia piano»: è un'occasione, non una
+          decisione da prendere adesso. Tutto il resto — codice, copia,
+          condivisione — sta nel popup. */}
+      <div style={{textAlign: 'center', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
+        Porta un ristorante su byup: quando attiva un abbonamento,{' '}
+        <strong style={{color: PN.TEXT}}>{ACC_REFERRAL.mesiPerLato} mesi gratis a testa</strong>.{' '}
+        <button
+          onClick={() => setInvitaModal(true)}
+          style={{
+            background: 'none', border: 'none', padding: 0,
+            color: PN.PINK_DARK, fontWeight: 600, fontSize: 13.5,
+            cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
+          }}>Invita un ristorante</button>
       </div>
 
-      {/* Riga 3 — Cambia piano: la decisione successiva naturale dopo aver
+      {/* Cambia piano: la decisione successiva naturale dopo aver
           visto risparmio + utilizzo. */}
       <AcCard title="Cambia piano" subtitle="Passa a un piano superiore per avere più ordini, più menù e più membri nel tuo team.">
 
@@ -320,6 +318,10 @@ function AccPianiAbbonamenti() {
           showDemoToast('Il passaggio al piano Gratuito sarà disponibile al lancio');
         }}
       />
+
+      {invitaModal && (
+        <InvitaRistoranteModal current={current} fmtPrice={fmtPrice} onClose={() => setInvitaModal(false)}/>
+      )}
 
       {/* Pacchetti ordini extra — bersaglio del CTA "Voglio più ordini".
           scrollMarginTop tiene il titolo staccato dal bordo alto dopo lo scroll. */}
@@ -751,32 +753,33 @@ const AURORA_TEXT_GRADIENT = {
 // ─────────────────────────────────────────────────────────────────────────
 // PORTA UN RISTORANTE — referral fra locali
 // ─────────────────────────────────────────────────────────────────────────
-// Due mesi gratis a testa: a chi invita e a chi arriva. È un'offerta, quindi
-// aurora; gli stati (quanti sono arrivati) restano in nero neutro.
+// Due mesi gratis a testa: a chi invita e a chi arriva. In pagina è una riga
+// sola — un'occasione, non una decisione da prendere adesso; qui dentro c'è
+// tutto quello che serve per passare il codice a qualcuno.
 //
-// Il link viene prima del codice perché un ristoratore lo manda su WhatsApp,
-// non lo detta. Il codice resta per quando lo dice a voce — ed è quello che
-// l'altro digiterà nell'onboarding.
-function InvitaRistoranteCard({ current, fmtPrice, evidenzia }) {
+// Si mostra il CODICE e non il link: è quello che l'altro digiterà
+// nell'onboarding, ed è quello che si detta al telefono. Il link viaggia
+// dentro il messaggio di «Condividi», dove serve che sia cliccabile.
+function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   const locale = (typeof window.byupReadLocale === 'function' ? window.byupReadLocale() : null) || { nome: 'Byup' };
   const codice = accCodiceInvito(locale.nome);
-  const link = `byup.it/r/${codice}`;
-  const linkPieno = `https://${link}`;
+  const linkPieno = `https://byup.it/r/${codice}`;
   const mesi = ACC_REFERRAL.mesiPerLato;
   const gratuito = !current.prezzo;
   const valore = current.prezzo * mesi;
-  const mesiMaturati = ACC_REFERRAL.attivi * mesi;
+  const attivi = ACC_REFERRAL.attivi;
+  const mesiMaturati = attivi * mesi;
 
-  const [copiato, setCopiato] = React.useState(null); // 'link' | 'codice'
+  const [copiato, setCopiato] = React.useState(false);
   const timer = React.useRef(null);
-  const copia = (che, testo) => {
+  const copia = () => {
     // writeText restituisce una Promise: senza .catch un rifiuto del browser
     // (pagina non a fuoco, permesso negato) finisce in console come errore non
-    // gestito. Il feedback lo diamo comunque — l'utente vedrà il testo o no.
-    try { navigator.clipboard && navigator.clipboard.writeText(testo).catch(() => {}); } catch (e) {}
-    setCopiato(che);
+    // gestito. Il feedback lo diamo comunque.
+    try { navigator.clipboard && navigator.clipboard.writeText(codice).catch(() => {}); } catch (e) {}
+    setCopiato(true);
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopiato(null), 1800);
+    timer.current = setTimeout(() => setCopiato(false), 1800);
   };
   React.useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -791,112 +794,72 @@ function InvitaRistoranteCard({ current, fmtPrice, evidenzia }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(messaggio)}`, '_blank', 'noopener');
   };
 
-  const riquadro = {
-    padding: '10px 13px', borderRadius: 10,
-    background: 'rgba(255,255,255,0.72)',
-    border: '1px solid rgba(190, 175, 220, 0.30)',
-    minWidth: 0,
-  };
-  const etichetta = {
-    fontSize: 12, fontWeight: 700, color: PN.MUTED,
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
-  };
+  // Una riga sola al posto di tre numeri: al ristoratore non serve sapere
+  // quante volte è stato aperto il link, gli serve sapere se il premio è
+  // scattato. Se non è ancora scattato, non si scrive niente.
+  const guadagno = attivi === 0 ? null
+    : attivi === 1
+      ? `1 ristorante ha attivato il piano ${ACC_REFERRAL.pianoAttivato}: hai guadagnato ${mesi} mesi del tuo piano gratuiti.`
+      : `${attivi} ristoranti hanno attivato un piano: hai guadagnato ${mesiMaturati} mesi del tuo piano gratuiti.`;
 
   return (
-    <div style={{
-      borderRadius: 14,
-      transition: 'box-shadow 300ms ease',
-      boxShadow: evidenzia ? '0 0 0 3px rgba(167,139,250,0.45)' : 'none',
-    }}>
-      <AcCard
-        aurora
+    <AcPayModal onClose={onClose} width={480}>
+      {/* Le keyframes del modale vivono nella tab Fatturazione, che qui non è
+          montata: senza queste due la finestra comparirebbe di scatto. */}
+      <style>{`
+        @keyframes acPayFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes acPayPop { 0% { opacity: 0; transform: scale(0.92) translateY(10px); } 100% { opacity: 1; transform: none; } }
+      `}</style>
+
+      <AcPayModalHeader
         title="Porta un ristorante su byup"
         subtitle={gratuito
           ? `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te — validi da quando passi a un piano a pagamento.`
           : `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te: ${fmtPrice(valore)} € sul tuo piano ${current.nome}.`}
-        action={
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 999,
-            border: '1px solid rgba(124, 58, 237, 0.25)',
-            background: 'rgba(255,255,255,0.72)',
-            fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-          }}>
-            <span style={AURORA_TEXT_GRADIENT}>{mesi} mesi gratis a testa</span>
-          </span>
-        }>
+        onClose={onClose}
+      />
 
-        <div style={{display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'stretch'}}>
-          <div style={{...riquadro, flex: '1 1 280px'}}>
-            <div style={etichetta}>Il tuo link</div>
-            <div style={{
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: 15, color: PN.TEXT,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{link}</div>
-          </div>
-          <div style={{...riquadro, flex: '0 1 auto'}}>
-            <div style={etichetta}>Oppure il codice</div>
-            <div style={{
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: 15, fontWeight: 700, letterSpacing: 1.5, color: PN.TEXT, whiteSpace: 'nowrap',
-            }}>{codice}</div>
-          </div>
-        </div>
-
-        <div style={{display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap'}}>
-          <button onClick={() => copia('link', linkPieno)}
-            style={{
-              padding: '9px 16px', borderRadius: 999,
-              fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', gap: 7,
-              ...AURORA_CTA_STYLE,
-            }}>
-            {copiato === 'link' ? <PnI.Check size={14}/> : <IconaCopia/>}
-            {copiato === 'link' ? 'Link copiato' : 'Copia link'}
-          </button>
-          <button onClick={() => copia('codice', codice)} style={AcBtnInvitoGhost}>
-            {copiato === 'codice' ? <PnI.Check size={14}/> : <IconaCopia/>}
-            {copiato === 'codice' ? 'Codice copiato' : 'Copia codice'}
-          </button>
-          <button onClick={condividi} style={AcBtnInvitoGhost}>
-            <IconaCondividi/>
-            Condividi
-          </button>
-        </div>
-
-        {/* Stato: le stesse tre misure con cui byup legge le campagne referral
-            dal suo pannello — aperture, iscritti, chi ha davvero attivato. */}
+      <AcPayModalBody>
         <div style={{
-          marginTop: 14, paddingTop: 12,
-          borderTop: '1px solid rgba(190, 175, 220, 0.25)',
-          display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
-          fontSize: 13.5, color: PN.MUTED,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
+          padding: '13px 16px', borderRadius: 12,
+          border: `1px solid ${PN.BORDER_SOFT}`, background: '#FAFBFC',
         }}>
-          <span><b style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.aperture}</b> aperture</span>
-          <span style={{color: PN.BORDER}}>·</span>
-          <span><b style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.iscritti}</b> iscritti</span>
-          <span style={{color: PN.BORDER}}>·</span>
-          <span>
-            <b style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.attivi}</b>{' '}
-            {ACC_REFERRAL.attivi === 1 ? 'ha attivato' : 'hanno attivato'}
-          </span>
-          <span style={{flex: 1}}/>
-          {mesiMaturati > 0 && (
-            <span style={{fontWeight: 700, ...AURORA_TEXT_GRADIENT}}>
-              {mesiMaturati} mesi già guadagnati
-            </span>
-          )}
+          <span style={{fontSize: 14.5, color: PN.MUTED}}>Il tuo codice</span>
+          <span style={{
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: 18, fontWeight: 700, letterSpacing: 1.5, color: PN.TEXT,
+          }}>{codice}</span>
         </div>
-      </AcCard>
-    </div>
+
+        {guadagno && (
+          <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>{guadagno}</div>
+        )}
+      </AcPayModalBody>
+
+      <AcPayModalFoot>
+        <button onClick={condividi} style={AcBtnInvitoGhost}>
+          <IconaCondividi/>
+          Condividi
+        </button>
+        <button onClick={copia} style={{
+          padding: '10px 18px', borderRadius: 999,
+          fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+          ...AURORA_CTA_STYLE,
+        }}>
+          {copiato ? <PnI.Check size={14}/> : <IconaCopia/>}
+          {copiato ? 'Codice copiato' : 'Copia codice'}
+        </button>
+      </AcPayModalFoot>
+    </AcPayModal>
   );
 }
 
 const AcBtnInvitoGhost = {
-  padding: '9px 16px', borderRadius: 999,
-  background: 'rgba(255,255,255,0.78)', color: PN.TEXT,
-  border: '1px solid rgba(190, 175, 220, 0.40)',
+  padding: '10px 18px', borderRadius: 999,
+  background: PN.WHITE, color: PN.TEXT,
+  border: `1px solid ${PN.BORDER}`,
   fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
   display: 'inline-flex', alignItems: 'center', gap: 7,
 };
