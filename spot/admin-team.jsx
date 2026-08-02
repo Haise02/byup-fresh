@@ -813,10 +813,10 @@ function PlatformDiagnostica() {
   const dot = (stato) => (
     <span style={{width:9, height:9, borderRadius:'50%', background: stato==='ok' ? ADM.OK : ADM.WARN, display:'inline-block', flexShrink:0}}/>
   );
-  // Il registro degli incidenti se n'è andato con Risk Management: qui lo stato
-  // dei servizi è quello scritto sopra, senza nessuna fonte che lo corregga.
-  const STATO_SERVIZI = SERVIZI;
-  const degradati = STATO_SERVIZI.filter(x=>x.stato!=='ok').length;
+  // Lo stato dei servizi è quello scritto sopra e basta: il registro degli
+  // incidenti, che lo correggeva quando ce n'era uno aperto, se n'è andato con
+  // Risk Management.
+  const degradati = SERVIZI.filter(x=>x.stato!=='ok').length;
   const H = {fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10};
 
   return (
@@ -844,7 +844,7 @@ function PlatformDiagnostica() {
       <div>
         <div style={H}>Servizi</div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:10}}>
-          {STATO_SERVIZI.map(sv => (
+          {SERVIZI.map(sv => (
             <div key={sv.nome} style={{border:`1px solid ${sv.stato==='ok' ? ADM.BORDER : '#FDE68A'}`, borderRadius:10, padding:'12px 14px', background: sv.stato==='ok' ? '#fff' : '#FFFBEB'}}>
               <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:8}}>
                 {dot(sv.stato)}
@@ -912,12 +912,11 @@ const RA_PREAVVISO_GG = 14;   // da quanti giorni prima la scadenza chiama all'a
 // Management, che non c'è più: ora vive qui, accanto al codice che la usa, e
 // resta UN numero solo — la scadenza si calcola, non si scrive a mano.
 const RA_CADENZA_MESI = 3;
-const raCadenzaMesi = () => RA_CADENZA_MESI;
 
 // Scadenza della campagna in corso: apertura + cadenza.
 function raScadenza() {
   const d = new Date(RIESAME_CORRENTE.apertaIl);
-  d.setMonth(d.getMonth() + raCadenzaMesi());
+  d.setMonth(d.getMonth() + RA_CADENZA_MESI);
   return d;
 }
 
@@ -1007,7 +1006,7 @@ function AccessReview() {
   const scadenza = raScadenza();
   const ggScadenza = Math.ceil((scadenza.getTime() - Date.now()) / 86400000);
   const scaduta = ggScadenza < 0;
-  const cadenza = raCadenzaMesi();
+  const cadenza = RA_CADENZA_MESI;
   const inScadenza = ggScadenza <= RA_PREAVVISO_GG;   // da qui in poi la banda chiama all'azione
 
   // Chi non ha ancora accettato l'invito non ha accesso: sta negli inviti in

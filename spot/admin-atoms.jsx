@@ -221,25 +221,6 @@ function AdmIconBtn({ icon, onClick, label, color = ADM.MUTED, size = 30 }) {
   );
 }
 
-// Sparkline minimale
-function AdmSparkline({ data = [], color = '#FF5A5F', height = 36, width = 120 }) {
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
-  const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = (i/(data.length-1)) * width;
-    const y = height - ((v - min)/range) * height;
-    return `${x},${y}`;
-  }).join(' ');
-  const area = `0,${height} ${pts} ${width},${height}`;
-  return (
-    <svg width={width} height={height} style={{display:'block'}}>
-      <polygon points={area} fill={color} fillOpacity={0.08}/>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
 // BarChart semplice
 function AdmBarChart({ data = [], labels = [], color, height = 160 }) {
   // Schema "inchiostro + un accento": barre snelle, periodi passati attenuati,
@@ -322,7 +303,6 @@ window.AdmTabBar = AdmTabBar;
 window.AdmEmpty = AdmEmpty;
 window.AdmButton = AdmButton;
 window.AdmIconBtn = AdmIconBtn;
-window.AdmSparkline = AdmSparkline;
 window.AdmBarChart = AdmBarChart;
 window.AdmStackedBar = AdmStackedBar;
 window.AdmSwitch = AdmSwitch;

@@ -356,7 +356,7 @@ function TrendBadge({ delta, label='vs 7gg', size='sm', tone, hideLabel=false })
   );
 }
 
-// Sparkline minimale (riusa AdmSparkline + range/highlight punto finale)
+// Sparkline minimale: range calcolato sui dati e punto finale in evidenza
 function MicroSpark({ data, color, height=22, width=78 }) {
   if (!data || data.length < 2) return null;
   const max = Math.max(...data);
@@ -459,8 +459,9 @@ function AdmDashboard({ onNav }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Primitive del redesign Dashboard (Tier 1-3). Non toccano HoverStat, ancora
-// usato dagli altri tab (Locali/Utenti/Staff).
+// Primitive del redesign Dashboard (Tier 1-3). Nate accanto a HoverStat, la
+// vecchia tile con tooltip al hover: quando anche gli ultimi tab sono passati a
+// queste, HoverStat è rimasta dichiarata e mai renderizzata, e se n'è andata.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Area chart responsive: riempie il contenitore, stroke costante (non-scaling),
@@ -795,106 +796,6 @@ function SectionLabel({ title, desc, muted, first }) {
     <div style={{display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap', marginTop: first ? 6 : 14, marginBottom:2}}>
       <div style={{fontSize:13, fontWeight:700, color: muted ? ADM.MUTED : ADM.TEXT, textTransform:'uppercase', letterSpacing:'0.07em'}}>{title}</div>
       {desc && <div style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:500}}>{desc}</div>}
-    </div>
-  );
-}
-
-// ─── Hoverable stat card con tooltip ricco ───────────────────────────────────
-function HoverStat({ label, value, sub, accent='PINK', icon='trendUp', onClick, tooltip, big, size='md', trend, trendLabel, spark, alert }) {
-  const [hover, setHover] = React.useState(false);
-  // I dettagli extra si aprono al CLICK (popup), non al passaggio del mouse:
-  // niente più informazioni che spariscono appena sposti il cursore.
-  const [open, setOpen] = React.useState(false);
-  const clickable = !!onClick || !!tooltip;
-  const handleCard = () => { if (onClick) onClick(); else if (tooltip) setOpen(o => !o); };
-  const Icon = BuIcons[icon] || BuIcons.trendUp;
-  // Calm: tile neutra, accento di hover = brand (coral); il colore di severità compare solo in stato di alert
-  const c = alert ? ADM.WARN : ADM.PINK;
-  const cSoft = ADM.NEUTRAL_SOFT;
-  const tileC = alert ? ADM.WARN : ADM.NEUTRAL;
-  const isXL = size === 'xl';
-  const valueSize = isXL ? 45 : big ? 35 : 31;
-  const padd = isXL ? 26 : big ? 22 : 20;
-  const iconSize = isXL ? 22 : big ? 19 : 17;
-  const iconBox = isXL ? 50 : big ? 44 : 40;
-  const hasTrend = trend !== undefined && trend !== null;
-
-  return (
-    <div
-      onMouseEnter={()=>setHover(true)}
-      onMouseLeave={()=>setHover(false)}
-      style={{position:'relative'}}
-    >
-      <AdmCard padding={padd} onClick={clickable ? handleCard : undefined} style={{
-        cursor: clickable ? 'pointer' : 'default',
-        borderColor: (hover || open) ? c : ADM.BORDER,
-        transition: 'border-color 0.15s, box-shadow 0.15s',
-        boxShadow: (hover || open) ? `0 6px 20px -8px ${c}66` : 'none',
-      }}>
-        <div style={{display:'flex', alignItems:'center', gap:14}}>
-          <div style={{
-            width:iconBox, height:iconBox, borderRadius:11,
-            background:cSoft, color:tileC,
-            display:'grid', placeItems:'center', flexShrink:0,
-          }}>
-            <Icon size={iconSize}/>
-          </div>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{display:'flex', alignItems:'center', gap:7}}>
-              <div style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>{label}</div>
-              {tooltip && (
-                <button onClick={(e)=>{ e.stopPropagation(); setOpen(o=>!o); }}
-                  title="Mostra dettagli" aria-label="Mostra dettagli"
-                  style={{
-                    width:16, height:16, borderRadius:'50%', border:'none', padding:0, cursor:'pointer',
-                    background: (hover || open) ? c : '#E9EBEF',
-                    color: (hover || open) ? '#fff' : ADM.MUTED,
-                    display:'inline-grid', placeItems:'center',
-                    fontSize:11.5, fontWeight:700, fontFamily:'inherit', lineHeight:1,
-                    transition:'all 0.15s',
-                  }}>i</button>
-              )}
-            </div>
-            <div style={{display:'flex', alignItems:'baseline', gap:10, marginTop:5, flexWrap:'wrap'}}>
-              <div style={{fontSize:valueSize, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.025em', lineHeight:1}}>{value}</div>
-              {hasTrend && <TrendBadge delta={trend} label={trendLabel || 'vs 7gg'} size={isXL ? 'lg' : 'sm'}/>}
-            </div>
-            {(sub || spark || alert) && (
-              <div style={{display:'flex', alignItems:'center', gap:10, marginTop:6, flexWrap:'wrap'}}>
-                {sub && <div style={{fontSize:13.7, color:alert ? ADM.WARN : ADM.MUTED, fontWeight:alert ? 600 : 500, flex:1, minWidth:0}}>
-                  {alert && <span style={{display:'inline-block', width:6, height:6, borderRadius:'50%', background:ADM.WARN, marginRight:6, verticalAlign:'middle'}}/>}
-                  {sub}
-                </div>}
-                {spark && <div style={{flexShrink:0, opacity:0.85}}><MicroSpark data={spark} color={c}/></div>}
-              </div>
-            )}
-          </div>
-        </div>
-      </AdmCard>
-
-      {/* Popup dettagli — si apre al click, si chiude cliccando fuori */}
-      {tooltip && open && (
-        <React.Fragment>
-          <div onClick={()=>setOpen(false)} style={{position:'fixed', inset:0, zIndex:29}}/>
-          <div style={{
-            position:'absolute', top:'calc(100% + 8px)', left:0, right:0, zIndex:30,
-            background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12,
-            boxShadow:'0 16px 40px -8px rgba(15,17,21,0.18), 0 0 0 1px rgba(15,17,21,0.04)',
-            padding:'18px 20px',
-            animation:'hoverstatIn 0.16s ease',
-          }}>
-            {/* Arrow */}
-            <span style={{
-              position:'absolute', top:-6, left:38,
-              width:11, height:11, background:'#fff',
-              borderLeft:`1px solid ${ADM.BORDER}`, borderTop:`1px solid ${ADM.BORDER}`,
-              transform:'rotate(45deg)',
-            }}/>
-            {tooltip}
-          </div>
-        </React.Fragment>
-      )}
-      <style>{`@keyframes hoverstatIn { from { opacity:0; transform: translateY(-4px);} to { opacity:1; transform: translateY(0);} }`}</style>
     </div>
   );
 }
