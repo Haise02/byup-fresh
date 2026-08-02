@@ -54,8 +54,8 @@ const PAR = {
   COSTO_ORA_SUPPORTO: 22.00,  // €/h lordo azienda di chi risponde
   get COSTO_TICKET() { return (this.MINUTI_TICKET / 60) * this.COSTO_ORA_SUPPORTO; },
 
-  // INFRASTRUTTURA · non è una costante inventata: sono i prezzi unitari che
-  // stanno in Economix → Costi, applicati ai driver del singolo locale.
+  // INFRASTRUTTURA · non è una costante inventata: sono i prezzi unitari di
+  // listino dei fornitori, applicati ai driver del singolo locale.
   //   · compute e database seguono i LOCALI ATTIVI (un locale tiene sessioni
   //     aperte anche a sala vuota): Fargate 2,4 vCPU-ora × 0,0445 + RDS 1,85
   //   · la trasmissione fiscale segue i PAGAMENTI che passano da noi: 0,019 a

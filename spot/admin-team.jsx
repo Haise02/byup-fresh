@@ -13,17 +13,16 @@ const { useState: useStateTeam } = React;
 // `sezione` decide quali tab mostrare, non quali esistono.
 const ADM_SEZIONI = {
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'] },
-  // Niente `hr`: Risorse Umane non esiste più come sezione e il registro
-  // della formazione è passato sotto Risk Management, dove il componente
-  // (CfFormazione) già viveva e dove punta l'adempimento della A.6.3.
+  // Niente `hr`: Risorse Umane non esiste più come sezione, e il registro della
+  // formazione se n'è andato con Risk Management.
   impostazioni: { pred:'piattaforma', tabs:['piattaforma'] },
 };
 
-function AdmTeamPage({ search, initialTab, sezione = 'sicurezza', onNavRoute }) {
+function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
   const sez = ADM_SEZIONI[sezione] || ADM_SEZIONI.sicurezza;
   const [tab, setTab] = useStateTeam(initialTab || sez.pred);
-  // Un link da un'altra sezione — «Apri» su un adempimento del cruscotto — deve
-  // poter arrivare sulla tab giusta, non sulla prima.
+  // Un link da un'altra sezione — un avviso, una notifica — deve poter arrivare
+  // sulla tab giusta, non sulla prima.
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
   const [ruoliOpen, setRuoliOpen] = useStateTeam(false);
   const [members, setMembers] = useStateTeam(TEAM);
@@ -79,9 +78,9 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza', onNavRoute }) 
 
         {/* Il riesame rende anche gli inviti in attesa, subito sotto la banda
             della scadenza: sono roba da sbrigare, non una nota a piè di pagina. */}
-        {tab === 'accessi' && <AccessReview onNavRoute={onNavRoute}/>}
+        {tab === 'accessi' && <AccessReview/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
-        {tab === 'diagnostica' && <PlatformDiagnostica onNavRoute={onNavRoute}/>}
+        {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>
 
@@ -783,8 +782,8 @@ function DashAffidabilita({ a }) {
 
 // ─── Diagnostica piattaforma ─────────────────────────────────────────────────
 // Salute tecnica trasversale: uptime dei servizi, errori di pagamento aggregati,
-// code di elaborazione, ultimi incidenti. Dati mock. Colore solo per gli stati.
-function PlatformDiagnostica({ onNavRoute }) {
+// code di elaborazione. Dati mock. Colore solo per gli stati.
+function PlatformDiagnostica() {
   const SERVIZI = [
     { nome:'App cliente',       uptime:'99,98%', latenza:'142 ms', stato:'ok' },
     { nome:'Gestionale',        uptime:'99,95%', latenza:'188 ms', stato:'ok' },
@@ -811,34 +810,12 @@ function PlatformDiagnostica({ onNavRoute }) {
     { nome:'Webhook gestionale',  inCoda:45,  fallite:1 },
     { nome:'Export CSV',          inCoda:2,   fallite:0 },
   ];
-  // Gli incidenti sono UNA lista sola: il registro di Conformità (A.5.24–5.28).
-  // Qui si legge la stessa fonte con l'altra domanda in testa — «la piattaforma
-  // ha retto?» — quindi restano fuori quelli che non hanno toccato un servizio
-  // (durataMin 0) e si mostra la durata del fermo, che nel registro non è la
-  // colonna che conta. Prima gli aperti: se un incidente è ancora in corso,
-  // vederlo sotto a tre «Risolto» è il modo migliore per non accorgersene.
-  const REGISTRO = (typeof INCIDENTI !== 'undefined' ? INCIDENTI : []);
-  const APERTI = REGISTRO.filter(i => i.stato !== 'chiuso');
-  const INC = REGISTRO.filter(i => i.durataMin !== 0)
-    .sort((a,b) => (a.stato === 'chiuso') - (b.stato === 'chiuso') || b.data - a.data)
-    .slice(0, 4);
-  const durata = (m) => m == null ? '—'
-    : m < 60 ? `${m} min` : `${Math.floor(m/60)}h${m % 60 ? ` ${m % 60}m` : ''}`;
-  const daGiorni = (d) => Math.max(0, Math.round((Date.now() - d.getTime()) / 86400000));
-  const dura = (d) => { const g = daGiorni(d); return g === 0 ? 'da oggi' : g === 1 ? 'da ieri' : `da ${g} giorni`; };
-  const fmtData = (d) => typeof cfFmt === 'function' ? cfFmt(d)
-    : d.toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
-
   const dot = (stato) => (
     <span style={{width:9, height:9, borderRadius:'50%', background: stato==='ok' ? ADM.OK : ADM.WARN, display:'inline-block', flexShrink:0}}/>
   );
-  // Un servizio con un incidente aperto è degradato per definizione: lo stato
-  // scritto a mano qui sopra vale finché il registro non dice altro.
-  const STATO_SERVIZI = SERVIZI.map(sv => {
-    const inc = APERTI.find(i => i.servizio === sv.nome);
-    return { ...sv, stato: inc ? 'warn' : sv.stato, inc,
-      nota: inc ? `${inc.titolo} · aperto ${dura(inc.data)}` : sv.nota };
-  });
+  // Il registro degli incidenti se n'è andato con Risk Management: qui lo stato
+  // dei servizi è quello scritto sopra, senza nessuna fonte che lo corregga.
+  const STATO_SERVIZI = SERVIZI;
   const degradati = STATO_SERVIZI.filter(x=>x.stato!=='ok').length;
   const H = {fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10};
 
@@ -916,57 +893,6 @@ function PlatformDiagnostica({ onNavRoute }) {
           ))}
         </div>
       </div>
-
-      {/* Ultimi incidenti — righe del registro, non una copia: si aprono là */}
-      <div>
-        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
-          <div style={{...H, marginBottom:0}}>Ultimi incidenti</div>
-          <span style={{fontSize:12.2, color:ADM.MUTED}}>quelli che hanno fermato o degradato un servizio</span>
-          <span style={{flex:1}}/>
-          {typeof onNavRoute === 'function' && REGISTRO.length > 0 && (
-            <span onClick={()=>onNavRoute('conformita', 'incidenti')}
-              style={{fontSize:12.4, color:ADM.PINK, fontWeight:700, cursor:'pointer'}}>Registro completo</span>
-          )}
-        </div>
-        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
-          {INC.length === 0 && (
-            <div style={{padding:'16px', fontSize:13, color:ADM.MUTED}}>
-              Nessun incidente ha toccato un servizio.
-            </div>
-          )}
-          {INC.map((inc, i) => {
-            const aperto = inc.stato !== 'chiuso';
-            return (
-              <div key={inc.id} className="adm-row-open"
-                onClick={()=> onNavRoute && onNavRoute('conformita', 'incidenti', inc.id)}
-                style={{display:'flex', alignItems:'center', gap:14, padding:'11px 16px',
-                  borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none', flexWrap:'wrap',
-                  background: aperto ? '#FFFBEB' : '#fff',
-                  cursor: onNavRoute ? 'pointer' : 'default'}}>
-                <span style={{fontSize:12.7, color:ADM.MUTED, width:88, flexShrink:0}}>{fmtData(inc.data)}</span>
-                <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, width:170, flexShrink:0}}>{inc.servizio}</span>
-                <span style={{fontSize:12.5, color:ADM.MUTED, flex:1, minWidth:200}}>
-                  {inc.titolo}{inc.azione ? <span style={{color:ADM.MUTED_SOFT}}> — {inc.azione}</span> : null}
-                </span>
-                {/* Su un incidente aperto la durata del fermo non è ancora un
-                    numero: quello che si può dire è da quanto sta durando. */}
-                <span style={{fontSize:12.3, color: aperto ? ADM.WARN : ADM.MUTED, fontWeight:600}}>
-                  {aperto ? dura(inc.data) : durata(inc.durataMin)}
-                </span>
-                <AdmBadge color={aperto ? 'WARN' : 'OK'} size="xs">{aperto ? 'Aperto' : 'Risolto'}</AdmBadge>
-                {onNavRoute && <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Test di ripristino — sta qui e non fra i registri di Conformita: chi
-          apre Diagnostica sta chiedendo se la piattaforma regge, e «l'ultimo
-          restore ha funzionato?» e la stessa domanda degli incidenti qui sopra.
-          Il componente vive nei file di conformita perche li stanno i suoi dati
-          e i suoi stili; l'obbligo A.8.13 resta tracciato dal cruscotto. */}
-      {window.CfTestRipristino ? <CfTestRipristino/> : null}
     </div>
   );
 }
@@ -982,23 +908,14 @@ function PlatformDiagnostica({ onNavRoute }) {
 const RA_DORMIENTE_GG = 90;
 const RA_PREAVVISO_GG = 14;   // da quanti giorni prima la scadenza chiama all'azione
 
+// La cadenza del riesame stava nell'adempimento `acc` del Cruscotto di Risk
+// Management, che non c'è più: ora vive qui, accanto al codice che la usa, e
+// resta UN numero solo — la scadenza si calcola, non si scrive a mano.
+const RA_CADENZA_MESI = 3;
+const raCadenzaMesi = () => RA_CADENZA_MESI;
 
-// La cadenza del riesame è UNA e vive nell'adempimento `acc` del Cruscotto di
-// Risk Management, insieme agli altri obblighi ricorrenti: è lì che si cambia,
-// con lo stesso comando con cui si cambiano gli altri ventidue. Qui si legge e
-// basta. Averla anche in admin-data.jsx voleva dire due numeri da tenere
-// allineati a mano, e infatti si erano già disallineati: la costante non la
-// leggeva nessuno e la scadenza era una data scritta a mano che non si muoveva.
-function raAdempimento() {
-  return (typeof ADEMPIMENTI !== 'undefined' ? ADEMPIMENTI : []).find(a => a.id === 'acc') || null;
-}
-const raCadenzaMesi = () => { const a = raAdempimento(); return (a && a.cadenzaMesi) || 3; };
-
-// Scadenza della campagna in corso: ultima esecuzione + cadenza. Cambiare la
-// cadenza nel Cruscotto sposta davvero questa data, invece di lasciarla ferma.
+// Scadenza della campagna in corso: apertura + cadenza.
 function raScadenza() {
-  const a = raAdempimento();
-  if (a && a.ultima && typeof cfMesi === 'function') return cfMesi(a.ultima, raCadenzaMesi());
   const d = new Date(RIESAME_CORRENTE.apertaIl);
   d.setMonth(d.getMonth() + raCadenzaMesi());
   return d;
@@ -1070,7 +987,7 @@ function raScaricaCSV(campagna, righeEsito) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function AccessReview({ onNavRoute }) {
+function AccessReview() {
   const [esiti, setEsiti] = useStateTeam({});
   const [chiusa, setChiusa] = useStateTeam(null);        // attestazione prodotta
   const [confermaChiusura, setConfermaChiusura] = useStateTeam(false);
@@ -1321,12 +1238,6 @@ function AccessReview({ onNavRoute }) {
                 <React.Fragment>
                   <span>entro il {raFmtData(scadenza)}</span>
                   {' · ogni '}{cadenza} mesi
-                  {typeof onNavRoute === 'function' && (
-                    <React.Fragment>{' · '}
-                      <span onClick={()=>onNavRoute('conformita', 'cruscotto')}
-                        style={{color:ADM.PINK, fontWeight:700, cursor:'pointer'}}>cambia cadenza</span>
-                    </React.Fragment>
-                  )}
                 </React.Fragment>
               )}
             </span>
@@ -1456,13 +1367,11 @@ function AccessReview({ onNavRoute }) {
         </div>
       )}
 
-      {/* Lo storico dei riesami passati non vive più qui. Un auditor che chiede
-          «e la volta prima?» lo chiede su un adempimento, non su una sezione, e
-          se ogni sezione tiene il proprio storico con la propria forma lui deve
-          girare quattro schermate per rispondere a una domanda sola. Ora sta nel
-          Cruscotto di Risk Management, dentro l'adempimento A.5.18: si apre la
-          riga e ci sono tutte le campagne chiuse. Qui resta la campagna in
-          corso, che è l'unica cosa su cui si agisce. */}
+      {/* Le campagne chiuse (RIESAMI_CHIUSI) non hanno più una schermata: si
+          aprivano dal Cruscotto di Risk Management, che non c'è più. Restano nei
+          dati — servono al confronto «cosa è cambiato dalla volta prima» sulla
+          singola riga — ma lo storico per esteso oggi non è visibile da nessuna
+          parte. Qui c'è la campagna in corso, l'unica su cui si agisce. */}
 
       {/* Popup revoca — il motivo è obbligatorio, senza non è evidenza */}
       {revoca && (

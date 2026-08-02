@@ -31,10 +31,10 @@ un certo locale: quello lo sa il titolare.
 
 Codice: [admin-team.jsx](admin-team.jsx) (componente `AccessReview` e funzioni
 `ra*`), dati in [admin-data.jsx](admin-data.jsx) (`RIESAME_CORRENTE`,
-`RIESAMI_CHIUSI`). La **cadenza** vive nell'adempimento `acc` del Cruscotto di
-Risk Management ([admin-conformita-data.jsx](admin-conformita-data.jsx)) ed è lì
-che si cambia: è l'unico posto, e la scadenza della campagna si calcola da
-quella.
+`RIESAMI_CHIUSI`). La **cadenza** è `RA_CADENZA_MESI` in
+[admin-team.jsx](admin-team.jsx): è l'unico posto, e la scadenza della campagna
+si calcola da quella. Stava nell'adempimento `acc` del Cruscotto di Risk
+Management, sezione che non esiste più.
 
 ---
 
@@ -89,9 +89,10 @@ guarda dall'anomalia in giù; ordinato per nome si timbra dall'alto senza legger
 
 **Non si registra la data di uscita di una persona.** C'era, e classificava
 l'utenza come *«Esce il …»* a priorità massima; l'unico posto dove quella data si
-scriveva era una sezione «Uscite dal team» in Risk Management → Formazione, e
-tenere una sezione del personale per alimentare una riga sola non valeva il
-prezzo. Chi non lavora più qui viene intercettato come **dormiente**, dalla
+scriveva era una sezione «Uscite dal team» del registro formazione — sparito
+anche quello con Risk Management — e tenere una sezione del personale per
+alimentare una riga sola non valeva il prezzo. Chi non lavora più qui viene
+intercettato come **dormiente**, dalla
 mancanza di accessi.
 
 **Nessuna utenza si conferma da sola all'apertura della pagina.** Per un giorno
@@ -147,12 +148,12 @@ nell'interfaccia**: va dichiarata e compensata nella valutazione del rischio e
 nella Dichiarazione di Applicabilità dell'ISMS. Quando ci saranno due Super
 Admin potranno verificarsi a vicenda e il punto decade.
 
-**Lo storico delle campagne chiuse non vive più qui.** Un auditor che chiede «e
-la volta prima?» lo chiede su un **adempimento**, non su una sezione: se ogni
-sezione tiene il proprio storico con la propria forma, lui deve girare quattro
-schermate per rispondere a una domanda sola. Le campagne chiuse si aprono dal
-Cruscotto di Risk Management, cliccando la riga dell'adempimento A.5.18. Qui
-resta la campagna in corso, che è l'unica cosa su cui si agisce.
+**Lo storico delle campagne chiuse oggi non si vede da nessuna parte.** Si
+apriva dal Cruscotto di Risk Management, cliccando la riga dell'adempimento
+A.5.18, e con quella sezione se n'è andato. I dati (`RIESAMI_CHIUSI`) restano e
+alimentano il confronto «cosa è cambiato dalla volta prima» sulla singola riga;
+a video c'è la campagna in corso, che è l'unica cosa su cui si agisce. Se
+l'evidenza storica serve all'auditor, va rifatto un posto dove mostrarla.
 
 **Una campagna chiusa non si modifica.** Non esistono comandi di modifica o
 riapertura: una correzione è una campagna nuova. L'assenza del comando è il

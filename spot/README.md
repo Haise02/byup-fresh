@@ -22,8 +22,6 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 | **Utenti App** | Clienti finali | — |
 | **Assistenza** | Quattro tab: Chiamate (solo Plus e Business, scadenza scelta dal ristoratore), Ticket (tutti i piani), FAQ, Guide | — |
 | **Promozioni** | Tre tab: Campagne di acquisizione (link tracciati, CAC, MRR e payback per campagna), Broadcast push & email (invii una tantum, ordinabili per colonna), Workflow email (sequenze automatiche con trigger, filtri e guardrail) | — |
-| **Economix** | Costi, conto economico, cassa, patrimonio di byup | [Economix.md](Economix.md) |
-| **Risk Management** | Rischi, adempimenti ed evidenze ISO 27001 / 9001 | [Risk-Management.md](Risk-Management.md) |
 | **Sicurezza e sistemi** | Accessi, audit log, diagnostica | [Riesame-Accessi.md](Riesame-Accessi.md) |
 | **Piattaforma** | Tre tab: Piani e prezzi, Peso ordini, Discovery nell'app | — |
 
@@ -31,7 +29,7 @@ Il menu è in due gruppi: sopra l'operatività quotidiana, sotto la governance.
 
 ## Ruoli e permessi
 
-Sei ruoli su undici aree. La matrice sta in **Sicurezza e sistemi → Accessi**,
+Cinque ruoli su nove aree. La matrice sta in **Sicurezza e sistemi → Accessi**,
 in fondo alla pagina; i dati in [admin-data.jsx](admin-data.jsx) (`RUOLI`,
 `PERMESSI`).
 
@@ -40,7 +38,6 @@ in fondo alla pagina; i dati in [admin-data.jsx](admin-data.jsx) (`RUOLI`,
 | **Super Admin** | tutto |
 | **Support** | dashboard, locali, utenti, ticket, chiamate e knowledge base, certificazioni |
 | **Marketing** | dashboard, messaggi |
-| **AFC** | dashboard, Economix, Risk Management |
 | **ICT** | dashboard, Sicurezza e sistemi |
 | **Viewer** | dashboard |
 

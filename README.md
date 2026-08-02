@@ -41,7 +41,7 @@ si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non 
 | `web/`         | byup Web          | `index.html`                | Consumer       | [contesto](web/Contesto-WebApp.md) |
 | `staff/`       | byup Staff        | `index.html`                | Staff (incassi)| [contesto](staff/Contesto.md) |
 | `cameriere/`   | byup Cameriere    | `cameriereweb.html`         | Staff (sala)   | — |
-| `spot/`        | byup Spot         | `byup-spot.html`            | Admin          | [README](spot/README.md) · [Economix](spot/Economix.md) · [Risk Management](spot/Risk-Management.md) · [riesame accessi](spot/Riesame-Accessi.md) |
+| `spot/`        | byup Spot         | `byup-spot.html`            | Admin          | [README](spot/README.md) · [riesame accessi](spot/Riesame-Accessi.md) |
 | `backend/`     | API (NestJS)      | servizio Node separato      | —              | [BACKEND.md](backend/BACKEND.md) |
 
 ## Deploy

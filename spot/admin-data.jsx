@@ -600,23 +600,17 @@ const PERMESSI = [
   { id: 'assistenza',     label: 'Chiamate e knowledge base', desc: 'Coda delle chiamate, FAQ e guide pubblicate ai ristoratori' },
   { id: 'certificazioni', label: 'Certificazioni',         desc: 'Revisiona le certificazioni alimentari' },
   { id: 'messaggi',       label: 'Messaggi & Broadcast',   desc: 'Invia comunicazioni agli utenti' },
-  // Economix e Conformita mancavano dalla matrice pur essendo due sezioni intere
-  // dell'applicazione: finche non c'erano, «7 aree su 7» voleva dire accesso a
-  // tutto mentre due sezioni restavano fuori dal conteggio.
-  { id: 'economix',       label: 'Economix',               desc: 'Costi, conto economico, cassa e stato patrimoniale' },
-  { id: 'conformita',     label: 'Risk Management',        desc: 'Rischi, adempimenti, fornitori, incidenti e audit' },
   { id: 'sicurezza',      label: 'Sicurezza e sistemi',    desc: 'Membri del team, riesame degli accessi, audit log e diagnostica' },
   { id: 'team',           label: 'Impostazioni piattaforma', desc: 'Configurazione tecnica e parametri della piattaforma' },
 ];
 
 const RUOLI = {
-  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','assistenza','certificazioni','messaggi','economix','conformita','sicurezza','team'] },
+  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','assistenza','certificazioni','messaggi','sicurezza','team'] },
   support:     { label: 'Support',    desc: 'Segnalazioni, richiamate e certificazioni', color: 'INFO', permessi: ['dashboard','locali','utenti','segnalazioni','assistenza','certificazioni'] },
   marketing:   { label: 'Marketing',  desc: 'Campagne e broadcast', color: 'WARN',                      permessi: ['dashboard','messaggi'] },
-  // AFC: i conti e i controlli, senza toccare l'operativita. Non ha accesso a
-  // locali, utenti e segnalazioni perche non gli servono per il suo lavoro, e
-  // dare piu di quanto serve e esattamente cio che la A.5.15 chiede di evitare.
-  afc:         { label: 'AFC',        desc: 'Amministrazione, finanza e controllo', color: 'TEAL',      permessi: ['dashboard','economix','conformita'] },
+  // AFC non c'è più: il suo perimetro erano Economix e Risk Management, e senza
+  // quelle due sezioni restava un ruolo con la sola dashboard, cioè un Viewer
+  // con un altro nome.
   // ICT tiene account, accessi, tracce e salute dei sistemi: e il perimetro di
   // chi amministra la piattaforma, non di chi la usa.
   // Le impostazioni della piattaforma sono leve commerciali — prezzi, piani,
@@ -667,14 +661,10 @@ const INVITI_PENDENTI = [
 // data una persona ha guardato chi ha accesso a cosa e ha deciso, e che le
 // revoche sono state eseguite. Ambito = solo il team admin di Byup.
 //
-// La CADENZA non sta qui. Sta nell'adempimento `acc` del Cruscotto di Risk
-// Management (admin-conformita-data.jsx), insieme agli altri obblighi
-// ricorrenti, ed è lì che si cambia. Averla anche qui voleva dire due numeri da
-// tenere allineati a mano: c'era una costante `RIESAME_CADENZA_MESI = 3` che
-// nessuno leggeva, e una `scadenza` scritta a mano che non si muoveva se la
-// cadenza cambiava. Ora la scadenza si calcola — vedi raScadenza in
-// admin-team.jsx — da ultima esecuzione + cadenza, come per ogni altro
-// adempimento.
+// La CADENZA non sta qui: sta in `RA_CADENZA_MESI` in admin-team.jsx, accanto
+// al codice che la usa. Viveva nell'adempimento `acc` del Cruscotto di Risk
+// Management, che non esiste più. La `scadenza` non è scritta a mano da
+// nessuna parte — si calcola (vedi raScadenza) da apertura + cadenza.
 const RIESAME_CORRENTE = {
   id: 'RA-2026-Q3',
   periodo: 'Q3 2026',

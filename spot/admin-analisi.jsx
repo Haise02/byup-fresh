@@ -516,7 +516,7 @@ function AnContribuzione({ filtri }) {
           I minuti sono un’<strong style={{color:ADM.WARN}}>ipotesi</strong>: il tempo di lavorazione di un ticket oggi non è cronometrato, e finché non lo è questa riga resta la più debole della pagina.
           <br/>
           <strong style={{color:ADM.TEXT}}>Infrastruttura</strong>: {anEur(PAR.INFRA_PER_LOCALE, 2)} di compute e database per locale attivo — un locale tiene sessioni aperte anche a sala vuota —
-          più {anEur(PAR.COSTO_TRASMISSIONE, 3)} per ogni trasmissione fiscale, che facciamo solo sui pagamenti che passano da noi. Prezzi unitari da Economix → Costi.
+          più {anEur(PAR.COSTO_TRASMISSIONE, 3)} per ogni trasmissione fiscale, che facciamo solo sui pagamenti che passano da noi. Prezzi unitari di listino dei fornitori.
           Immagini dei menu, mappe e notifiche seguono gli utenti app: non sono attribuibili a un locale e restano costi di piattaforma.
           <br/>
           <strong style={{color:ADM.TEXT}}>Le commissioni Stripe non ci sono</strong>: sull’abbonamento sono ribaltate al locale, quindi per noi non sono un costo.
