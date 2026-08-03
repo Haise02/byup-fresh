@@ -381,7 +381,6 @@ function SalaVenditaDiretta() {
         onClose={() => setCoda(null)}
         onConsegna={confermaConsegna}
         onSalda={setSaldaOrdine}
-        onVediTutti={() => setConsegnatiOpen(true)}
       />
 
       {/* Consegnati — l'archivio del servizio */}
@@ -478,7 +477,7 @@ function SaCodaBtn({ label, count, tone, icon, title, onClick }) {
 // Coda del banco — popup centrale, stessa anatomia di card per i due modi:
 //   'salda'    → arrivati da app/webapp, ancora da incassare (CTA Salda ora)
 //   'consegna' → già pagati, pronti da dare via (CTA Segna come consegnato)
-// In fondo, la via d'uscita verso tutti gli ordini del servizio.
+// L'archivio dei consegnati sta nella riga in alto, non qui dentro.
 
 const SA_CODA_MODI = {
   salda: {
@@ -499,7 +498,7 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onVediTutti }) {
+function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
   const [q, setQ] = React.useState('');
   React.useEffect(() => { setQ(''); }, [modo, open]);
@@ -581,7 +580,7 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onVediT
 
         {/* lista ordini — minHeight:0 obbligatorio: senza, il flex item cresce
             quanto il contenuto e la lista non scrolla (card tagliate in basso) */}
-        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '0 22px 18px', display:'flex', flexDirection:'column', gap: 12}}>
+        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '0 22px 22px', display:'flex', flexDirection:'column', gap: 12}}>
           {ritiri.length === 0 && (
             <div style={{textAlign:'center', padding:'48px 20px', display:'flex', flexDirection:'column', alignItems:'center'}}>
               <div style={{
@@ -711,32 +710,6 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onVediT
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Via d'uscita comune alle due code: quello che è già passato non sta
-            in nessuna delle due, ma le domande su un ordine arrivano proprio
-            quando l'ordine è appena uscito di lista. */}
-        <div style={{
-          padding:'12px 22px 18px', flexShrink: 0,
-          borderTop:`1px solid ${PN.BORDER_SOFT}`,
-          // velo sul footer: senza, le card scorrono sotto la CTA e si leggono
-          // in trasparenza attraverso il vetro
-          background:'rgba(255,255,255,0.72)',
-        }}>
-          <button
-            onClick={onVediTutti}
-            title="Gli ordini già consegnati del servizio"
-            style={{
-              width:'100%', padding:'11px 16px', borderRadius: 999,
-              background: PN.BTN_NEUTRAL, color: PN.TEXT,
-              border: `1px solid ${PN.BORDER_LIGHT}`,
-              fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-              display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
-              boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
-            }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            Vedi i consegnati
-          </button>
         </div>
       </div>
     </div>
