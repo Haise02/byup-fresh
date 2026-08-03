@@ -18,21 +18,6 @@ function SalaVenditaDiretta() {
   const [cat, setCat] = React.useState('Tutto');
   const [lines, setLines] = React.useState([]); // [{id, piatto, qty, mods, lineTotal}]
   const [takeaway, setTakeaway] = React.useState(false);
-  // Asporto: acceso il flag, l'ordine acquista due dati che al banco non
-  // esistono — a che ora si presenta chi ritira, e chi è. Si ri-ancorano ogni
-  // volta che si accende: un default calcolato all'apertura della pagina
-  // invecchia (il POS resta aperto tutto il servizio).
-  const [ritiroOra, setRitiroOra] = React.useState('');
-  const [ritiroCliente, setRitiroCliente] = React.useState('');
-  const oraFra = (min) => {
-    const d = new Date(Date.now() + min * 60000);
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
-  const toggleTakeaway = () => {
-    const next = !takeaway;
-    if (next) { setRitiroOra(oraFra(15)); setRitiroCliente(''); }
-    setTakeaway(next);
-  };
   const [incassaOpen, setIncassaOpen] = React.useState(false);
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
@@ -92,10 +77,7 @@ function SalaVenditaDiretta() {
       const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       setRitiri(prev => [...prev, {
         id: `banco-${numero}`, codice: ordine.codice,
-        // Cliente e orario arrivano dalla barra asporto, se compilati: senza,
-        // resta l'anonimo del banco e l'ora dell'ordine.
-        cliente: takeaway ? (ritiroCliente.trim() || null) : null,
-        ritiro: takeaway && ritiroOra ? ritiroOra : hhmm,
+        cliente: null, ritiro: hhmm,
         fonte: 'banco', pagato: true, asporto: takeaway, totale,
         codiceRitiro: ordine.codiceRitiro,
         items: lines.map(l => ({
@@ -104,7 +86,6 @@ function SalaVenditaDiretta() {
       }]);
     }
     setTakeaway(false);
-    setRitiroOra(''); setRitiroCliente('');
     return ordine;
   };
 
@@ -326,11 +307,7 @@ function SalaVenditaDiretta() {
       <SaCartPanel
         lines={lines}
         takeaway={takeaway}
-        onToggleTakeaway={toggleTakeaway}
-        ritiroOra={ritiroOra}
-        setRitiroOra={setRitiroOra}
-        ritiroCliente={ritiroCliente}
-        setRitiroCliente={setRitiroCliente}
+        onToggleTakeaway={() => setTakeaway(v => !v)}
         total={total}
         totQty={totQty}
         onInc={incLine}
@@ -1166,7 +1143,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 // ─────────────────────────────────────────────────────────────────────────────
 // Carrello
 
-function SaCartPanel({ lines, takeaway, onToggleTakeaway, ritiroOra, setRitiroOra, ritiroCliente, setRitiroCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
+function SaCartPanel({ lines, takeaway, onToggleTakeaway, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
   window.SALA_VENDITA_CLEAR = onClear;
   // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
   const [clearConfirm, setClearConfirm] = React.useState(false);
@@ -1234,16 +1211,6 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, ritiroOra, setRitiroOr
           }}>Rimuovi tutto</button>
         )}
       </div>
-
-      {/* Barra ritiro — compare solo in asporto: metodo, orario, cliente sono i
-          tre dati che al banco non servono e nel sacchetto sì. Sta in alto e
-          non nel footer perché si compilano PRIMA di battere l'ordine. */}
-      {takeaway && (
-        <SaAsportoMeta
-          ora={ritiroOra} setOra={setRitiroOra}
-          cliente={ritiroCliente} setCliente={setRitiroCliente}
-        />
-      )}
 
       {/* Popup conferma svuotamento conto */}
       {clearConfirm && (
@@ -1327,7 +1294,6 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, ritiroOra, setRitiroOr
               <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Ordine da asporto vuoto</div>
               <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, maxWidth: 320}}>
                 Tocca <strong style={{color: PN.PINK, fontWeight: 700}}>+ Aggiungi</strong> per inserire prodotti da preparare per il ritiro.
-                Puoi anche assegnare un cliente o un orario di ritiro prima di confermare.
               </div>
               <button
                 onClick={() => { const el = document.getElementById('sa-vd-search'); if (el) { el.focus(); el.select(); } }}
@@ -1362,7 +1328,7 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, ritiroOra, setRitiroOr
           </div>
           )
         ) : (
-          <div style={{display:'flex', flexDirection:'column', gap: 7}}>
+          <div style={{display:'flex', flexDirection:'column', gap: 10}}>
             {lines.map((l, i) => (
               <SaCartLine key={i} line={l}
                 onInc={() => onInc(i)} onDec={() => onDec(i)}
@@ -1430,114 +1396,6 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, ritiroOra, setRitiroOr
   );
 }
 
-// Barra ritiro dell'ordine da asporto: metodo (fisso: si ritira in sede),
-// orario previsto e cliente. Orario e cliente si modificano sul posto — stesso
-// gesto delle righe del conto: clicchi il valore, scrivi, Invio conferma.
-function SaAsportoMeta({ ora, setOra, cliente, setCliente }) {
-  const [editOra, setEditOra] = React.useState(false);
-  const [editCliente, setEditCliente] = React.useState(false);
-  const [nome, setNome] = React.useState(cliente);
-  React.useEffect(() => { if (!editCliente) setNome(cliente); }, [cliente, editCliente]);
-
-  const commitCliente = () => { setEditCliente(false); setCliente(nome.trim()); };
-
-  const cella = {
-    display:'flex', flexDirection:'column', alignItems:'center', gap: 3,
-    padding: '11px 5px', minWidth: 0, textAlign:'center',
-  };
-  const divisore = { borderLeft: `1px solid ${PN.BORDER_SOFT}` };
-  const titolo = { fontSize: 14.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.25, maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' };
-  const sotto  = { fontSize: 13.5, color: PN.MUTED_SOFT, lineHeight: 1.25 };
-
-  return (
-    <div style={{padding: '12px 14px 0'}}>
-      {/* La terza colonna è più larga: "Cliente non assegnato" è l'etichetta
-          più lunga delle tre e in tre colonne uguali si troncava. */}
-      <div style={{
-        display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr)',
-        border: `1px solid ${PN.BORDER}`, borderRadius: 12,
-        background: PN.WHITE,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
-      }}>
-        {/* Metodo — in cassa il ritiro è sempre in sede: informazione, non scelta */}
-        <div style={cella}>
-          <span style={{color: PN.PINK, display:'inline-flex'}}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
-          </span>
-          <span style={titolo}>Ritiro in sede</span>
-          <span style={sotto}>Metodo di ritiro</span>
-        </div>
-
-        {/* Orario previsto */}
-        <div style={{...cella, ...divisore}}>
-          <span style={{color: PN.PINK, display:'inline-flex'}}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          </span>
-          <span style={titolo}>Ritiro previsto</span>
-          {editOra ? (
-            <input
-              type="time" value={ora}
-              onChange={e => setOra(e.target.value)}
-              onBlur={() => setEditOra(false)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditOra(false); }}
-              autoFocus
-              style={{
-                fontFamily:'inherit', fontSize: 14.5, fontWeight: 700,
-                color: PN.PINK_DARK, background: PN.PINK_BG_SOFT,
-                border: `1px solid ${PN.PINK_SOFT}`, borderRadius: 999,
-                padding: '1px 8px', outline:'none', textAlign:'center',
-              }}/>
-          ) : (
-            <button
-              onClick={() => setEditOra(true)}
-              title="Cambia l'orario di ritiro"
-              style={{
-                padding: '2px 10px', borderRadius: 999, border: 'none',
-                background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
-                fontSize: 14.5, fontWeight: 700, fontFamily:'inherit', cursor:'pointer',
-                fontVariantNumeric:'tabular-nums',
-              }}>{ora || 'Imposta'}</button>
-          )}
-        </div>
-
-        {/* Cliente */}
-        <div style={{...cella, ...divisore}}>
-          <span style={{color: cliente ? PN.PINK : PN.MUTED_SOFT, display:'inline-flex'}}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg>
-          </span>
-          {editCliente ? (
-            <input
-              value={nome} onChange={e => setNome(e.target.value)}
-              onBlur={commitCliente}
-              onKeyDown={e => { if (e.key === 'Enter') commitCliente(); if (e.key === 'Escape') { setNome(cliente); setEditCliente(false); } }}
-              placeholder="Nome cliente"
-              autoFocus
-              style={{
-                width:'100%', minWidth: 0, textAlign:'center',
-                fontFamily:'inherit', fontSize: 15, fontWeight: 700, color: PN.TEXT,
-                background:'transparent', border:'none',
-                borderBottom: `1.5px solid ${PN.TEXT}`, outline:'none', padding:'0 1px',
-              }}/>
-          ) : (
-            <span style={titolo}>
-              {cliente || 'Cliente non assegnato'}
-            </span>
-          )}
-          {!editCliente && (
-            <button
-              onClick={() => setEditCliente(true)}
-              title={cliente ? 'Cambia il cliente dell\'ordine' : 'Assegna un cliente all\'ordine'}
-              style={{
-                ...sotto, background:'transparent', border:'none', padding: 0,
-                fontFamily:'inherit', cursor:'pointer', textDecoration:'none',
-              }}>{cliente ? 'Cambia cliente' : 'Assegna cliente'}</button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice }) {
   const { piatto, qty, mods, lineTotal } = line;
   const cat = SALA_VENDITA_CATS[piatto.cat] || { color: PN.MUTED, bg: '#F4F5F7' };
@@ -1570,27 +1428,37 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
   const inlineInputStyle = {
     border:'none', borderBottom:`1.5px solid ${PN.TEXT}`, outline:'none',
     background:'transparent', fontFamily:'inherit',
-    fontSize:17.5, fontWeight:700, color: PN.TEXT, padding:'0 1px',
+    fontSize:18, fontWeight:700, color: PN.TEXT, padding:'0 1px',
   };
+
+  // Mods in riga sotto il nome ("Media · Filetto"): le scelte in grigio, le
+  // rimozioni in rosso, gli extra in verde — il colore È l'informazione, il
+  // separatore è neutro così la riga non diventa una collana di puntini scuri.
+  const modParts = !hasMods ? [] : [
+    ...Object.entries(mods.variants || {}).map(([g, v]) => ({ key: `v-${g}`, text: v, color: PN.MUTED })),
+    ...(mods.removed || []).map(r => ({ key: `r-${r}`, text: `− ${r}`, color: '#B91C1C' })),
+    ...Object.entries(mods.extras || {}).map(([n, q]) => ({ key: `e-${n}`, text: `+ ${q > 1 ? `${q}× ` : ''}${n}`, color: PN.GREEN })),
+  ];
 
   return (
     <div style={{
-      display:'flex', gap: 11,
-      padding: 10, borderRadius: 10,
-      background: '#FAFBFC',
-      border: `1px solid ${PN.BORDER_SOFT}`,
+      display:'flex', gap: 13,
+      padding: 12, borderRadius: 14,
+      background: PN.WHITE,
+      border: `1px solid ${PN.BORDER_HAIR}`,
+      boxShadow: PN.CARD_SHADOW,
     }}>
       <div style={{
-        width: 44, height: 44, borderRadius: 9, flexShrink: 0,
+        width: 96, height: 96, borderRadius: 12, flexShrink: 0,
         background: cat.bg, overflow:'hidden',
-        display:'grid', placeItems:'center',
+        display:'grid', placeItems:'center', alignSelf:'flex-start',
       }}>
         {piatto.img
           ? <img src={piatto.img} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
-          : <span style={{fontSize: 23}}>{piatto.emoji || '🍽'}</span>}
+          : <span style={{fontSize: 40}}>{piatto.emoji || '🍽'}</span>}
       </div>
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{display:'flex', alignItems:'baseline', gap: 6}}>
+      <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column'}}>
+        <div style={{display:'flex', alignItems:'baseline', gap: 8}}>
           {editingName ? (
             <input
               value={nameVal} onChange={e => setNameVal(e.target.value)}
@@ -1603,7 +1471,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
             <span
               onClick={() => isCustomizable ? onEdit() : setEditingName(true)}
               title={isCustomizable ? 'Clicca per personalizzare' : 'Clicca per modificare il nome'}
-              style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none'}}
+              style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none', lineHeight: 1.3}}
             >{displayName}</span>
           )}
           {editingPrice ? (
@@ -1613,55 +1481,66 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
               onKeyDown={e => { if (e.key==='Enter') commitPrice(); if (e.key==='Escape') { setPriceVal(lineTotal.toFixed(2)); setEditingPrice(false); } }}
               autoFocus
               inputMode="decimal"
-              style={{...inlineInputStyle, fontSize: 17, width: 64, textAlign:'right', fontVariantNumeric:'tabular-nums'}}
+              style={{...inlineInputStyle, fontSize: 19, width: 76, textAlign:'right', fontVariantNumeric:'tabular-nums'}}
             />
           ) : (
             <span
               onClick={() => setEditingPrice(true)}
               title="Clicca per modificare il prezzo"
-              style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, cursor:'text', fontVariantNumeric:'tabular-nums'}}
+              style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, cursor:'text', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}
             >€{(lineTotal * qty).toFixed(2)}</span>
           )}
         </div>
-        {hasMods && (
-          <div style={{fontSize: 15.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
-            {Object.entries(mods.variants || {}).map(([g, v]) => (
-              <span key={g} style={{color: PN.TEXT, fontWeight: 600}}>{v} · </span>
-            ))}
-            {(mods.removed || []).map(r => (
-              <span key={r} style={{color: '#B91C1C', fontWeight: 600}}>− {r} · </span>
-            ))}
-            {Object.entries(mods.extras || {}).map(([n, q]) => (
-              <span key={n} style={{color: PN.GREEN, fontWeight: 600}}>+ {q > 1 ? `${q}× ` : ''}{n} · </span>
+        {modParts.length > 0 && (
+          <div style={{fontSize: 15.5, fontWeight: 500, marginTop: 2, lineHeight: 1.4, overflow:'hidden', textOverflow:'ellipsis'}}>
+            {modParts.map((p, i) => (
+              <React.Fragment key={p.key}>
+                {i > 0 && <span style={{color: PN.MUTED_LIGHT}}> · </span>}
+                <span style={{color: p.color}}>{p.text}</span>
+              </React.Fragment>
             ))}
           </div>
         )}
-        <div style={{display:'flex', alignItems:'center', gap: 7, marginTop: 5}}>
-          <button onClick={onDec} style={{
-            width: 24, height: 24, borderRadius:'50%',
-            background: PN.PINK_SOFT, color: PN.PINK_DARK, border:'none',
-            fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            display:'grid', placeItems:'center',
+        <div style={{display:'flex', alignItems:'center', gap: 11, marginTop: 8}}>
+          <button onClick={onDec} title={qty <= 1 ? 'Rimuovi dall\'ordine' : 'Diminuisci quantità'} style={{
+            width: 30, height: 30, borderRadius:'50%',
+            background: PN.PINK_BG_SOFT, color: PN.PINK, border:'none',
+            fontSize: 18, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            display:'grid', placeItems:'center', lineHeight: 1,
           }}>−</button>
-          <span style={{fontSize: 17, fontWeight: 700, minWidth: 15, textAlign:'center'}}>{qty}</span>
-          <button onClick={onInc} style={{
-            width: 24, height: 24, borderRadius:'50%',
-            background: PN.PINK_SOFT, color: PN.PINK_DARK, border:'none',
-            fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            display:'grid', placeItems:'center',
+          <span style={{fontSize: 18, fontWeight: 700, minWidth: 18, textAlign:'center'}}>{qty}</span>
+          <button onClick={onInc} title="Aumenta quantità" style={{
+            width: 30, height: 30, borderRadius:'50%',
+            background: PN.PINK_BG_SOFT, color: PN.PINK, border:'none',
+            fontSize: 18, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            display:'grid', placeItems:'center', lineHeight: 1,
           }}>+</button>
-          <span style={{flex:1}}/>
-          {hasMods !== undefined && (line.piatto.variants?.length || line.piatto.ingredients?.length || line.piatto.extras?.length) ? (
-            <button onClick={onEdit} title="Modifica" style={{
-              padding:'3px 7px', borderRadius: 6, fontSize: 15.5, fontWeight: 600,
-              background:'transparent', color: PN.MUTED,
-              border: `1px solid ${PN.BORDER}`, cursor:'pointer', fontFamily:'inherit',
-            }}>✎</button>
-          ) : null}
-          <button onClick={onRemove} title="Rimuovi" style={{
-            background:'transparent', border:'none', color: PN.MUTED,
-            cursor:'pointer', fontSize: 19, padding: '0 2px', fontFamily:'inherit', lineHeight: 1,
-          }}>×</button>
+        </div>
+        <div style={{display:'flex', alignItems:'flex-end', gap: 8, marginTop: 7}}>
+          {/* Stesso slot per tutti: personalizza se il piatto ha opzioni,
+              rinomina se è una riga semplice — la card non cambia forma. */}
+          <button
+            onClick={() => isCustomizable ? onEdit() : setEditingName(true)}
+            title={isCustomizable ? 'Modifica le opzioni del piatto' : 'Modifica il nome della riga'}
+            style={{
+              display:'inline-flex', alignItems:'center', gap: 7,
+              background:'transparent', border:'none', padding: '4px 0',
+              color: PN.MUTED, fontSize: 15.5, fontWeight: 600,
+              cursor:'pointer', fontFamily:'inherit',
+            }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+            {isCustomizable ? 'Personalizza' : 'Rinomina'}
+          </button>
+          <span style={{flex: 1}}/>
+          <button onClick={onRemove} title="Rimuovi dall'ordine" style={{
+            width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+            background: PN.WHITE_FROST, color: PN.MUTED,
+            border: `1px solid ${PN.BORDER_HAIR}`,
+            cursor:'pointer', fontFamily:'inherit',
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
         </div>
       </div>
     </div>
