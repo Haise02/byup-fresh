@@ -348,7 +348,7 @@ function Row({ label, value }) {
   );
 }
 
-// ─── DRAWER NUOVO COSTO ─────────────────────────────
+// ─── MODAL NUOVO COSTO ──────────────────────────────
 function ContNuovoCosto({ open, onClose }) {
   const [name, setName] = React.useState('');
   const [cat, setCat] = React.useState('affitti');
@@ -370,10 +370,13 @@ function ContNuovoCosto({ open, onClose }) {
 
   if (!open) return null;
   return (
-    <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 60, display:'flex', justifyContent:'flex-end'}}>
+    <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 60, display:'grid', placeItems:'center', padding: 24}}>
+      {/* Finestra centrale come "Invia al commercialista", non un drawer.
+          Superficie bianca piena e non GLASS_STRONG: qui ci sono campi da
+          compilare, e il vetro sopra lo sfondo velato legge grigio. */}
       <div onClick={e => e.stopPropagation()} style={{
-        width: 480, maxWidth:'100%', height:'100%', background: PN.WHITE,
-        boxShadow:'-12px 0 40px rgba(0,0,0,0.18)',
+        width: 720, maxWidth:'100%', maxHeight:'100%', background: PN.WHITE,
+        borderRadius: 20, boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
         display:'flex', flexDirection:'column', overflow:'hidden',
       }}>
         <div style={{padding:'18px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
@@ -388,66 +391,76 @@ function ContNuovoCosto({ open, onClose }) {
             onMouseUp={e => { e.currentTarget.style.transform = ''; }}
             style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6, borderRadius: 8, transition:'background 130ms ease, color 130ms ease, transform 120ms ease'}}><Ic.close size={18}/></button>
         </div>
+        {/* Due colonne: nella finestra larga i campi stanno tutti a vista,
+            senza lo scroll che il drawer da 480 imponeva.
+            A sinistra cos'è il costo, a destra come e quando si paga. */}
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: 22}}>
-          <Field label="Nome del costo">
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Es. Affitto locale" style={inp}/>
-          </Field>
-          <Field label="Categoria">
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
-              {COST_CATEGORIES.map(c => {
-                const m = catMeta[c.id];
-                const I = m.icon;
-                const active = cat===c.id;
-                return (
-                  <button key={c.id} onClick={() => setCat(c.id)} style={{
-                    display:'flex', alignItems:'center', gap: 10,
-                    padding:'10px 12px',
-                    background: active ? m.bg : PN.WHITE,
-                    border:`1px solid ${active ? m.fg : PN.BORDER}`,
-                    borderRadius: C.R_SM, cursor:'pointer', fontFamily:'inherit',
-                    textAlign:'left',
-                  }}>
-                    <span style={{color: m.fg, display:'flex'}}><I size={16}/></span>
-                    <span style={{fontSize: C.T_SM, fontWeight: 600, color: active ? m.fg : PN.TEXT}}>{c.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-            <Field label="Importo (€)">
-              <input value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" type="number" style={inp}/>
-            </Field>
-            <Field label="Fornitore">
-              <input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Es. Enel" style={inp}/>
-            </Field>
-          </div>
-          <Field label="Tipo">
-            <div style={{display:'flex', gap: 8}}>
-              <TypeBtn active={type==='recurring'} onClick={() => setType('recurring')} icon={Ic.recurring} label="Ricorrente" desc="Si ripete ogni…"/>
-              <TypeBtn active={type==='one-off'}   onClick={() => setType('one-off')}   icon={Ic.pin}       label="Pagamento unico" desc="Unico addebito"/>
-            </div>
-          </Field>
-          {type==='recurring' && (
-            <Field label="Frequenza">
-              <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
-                {['Settimanale','Mensile','Bimestrale','Trimestrale','Annuale'].map(f => (
-                  <FilterChip key={f} active={freq===f} onClick={() => setFreq(f)} label={f}/>
-                ))}
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 22px', alignItems:'start'}}>
+            <div>
+              <Field label="Nome del costo">
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Es. Affitto locale" style={inp}/>
+              </Field>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
+                <Field label="Importo (€)">
+                  <input value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" type="number" style={inp}/>
+                </Field>
+                <Field label="Fornitore">
+                  <input value={supplier} onChange={e => setSupplier(e.target.value)} placeholder="Es. Enel" style={inp}/>
+                </Field>
               </div>
-            </Field>
-          )}
-          <Field label={type==='recurring' ? 'Prossima scadenza' : 'Data scadenza'}>
-            <input value={date} onChange={e => setDate(e.target.value)} type="date" style={inp}/>
-          </Field>
-          <Field label="Allegato (opzionale)">
-            <button style={{
-              width:'100%', padding:'14px 16px',
-              background: C.SURF, border:`1.5px dashed ${PN.BORDER}`, borderRadius: C.R_SM,
-              fontSize: C.T_SM, color: PN.MUTED, cursor:'pointer', fontFamily:'inherit',
-              display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
-            }}><Ic.paperclip size={14}/> Trascina un PDF qui, o clicca per sceglierlo</button>
-          </Field>
+              <Field label="Categoria">
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
+                  {COST_CATEGORIES.map(c => {
+                    const m = catMeta[c.id];
+                    const I = m.icon;
+                    const active = cat===c.id;
+                    return (
+                      <button key={c.id} onClick={() => setCat(c.id)} style={{
+                        display:'flex', alignItems:'center', gap: 10,
+                        padding:'10px 12px',
+                        background: active ? m.bg : PN.WHITE,
+                        border:`1px solid ${active ? m.fg : PN.BORDER}`,
+                        borderRadius: C.R_SM, cursor:'pointer', fontFamily:'inherit',
+                        textAlign:'left',
+                      }}>
+                        <span style={{color: m.fg, display:'flex'}}><I size={16}/></span>
+                        <span style={{fontSize: C.T_SM, fontWeight: 600, color: active ? m.fg : PN.TEXT}}>{c.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+
+            <div>
+              <Field label="Tipo">
+                <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+                  <TypeBtn active={type==='recurring'} onClick={() => setType('recurring')} icon={Ic.recurring} label="Ricorrente" desc="Si ripete ogni…"/>
+                  <TypeBtn active={type==='one-off'}   onClick={() => setType('one-off')}   icon={Ic.pin}       label="Pagamento unico" desc="Unico addebito"/>
+                </div>
+              </Field>
+              {type==='recurring' && (
+                <Field label="Frequenza">
+                  <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
+                    {['Settimanale','Mensile','Bimestrale','Trimestrale','Annuale'].map(f => (
+                      <FilterChip key={f} active={freq===f} onClick={() => setFreq(f)} label={f}/>
+                    ))}
+                  </div>
+                </Field>
+              )}
+              <Field label={type==='recurring' ? 'Prossima scadenza' : 'Data scadenza'}>
+                <input value={date} onChange={e => setDate(e.target.value)} type="date" style={inp}/>
+              </Field>
+              <Field label="Allegato (opzionale)">
+                <button style={{
+                  width:'100%', padding:'14px 16px',
+                  background: C.SURF, border:`1.5px dashed ${PN.BORDER}`, borderRadius: C.R_SM,
+                  fontSize: C.T_SM, color: PN.MUTED, cursor:'pointer', fontFamily:'inherit',
+                  display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
+                }}><Ic.paperclip size={14}/> Trascina un PDF qui, o clicca per sceglierlo</button>
+              </Field>
+            </div>
+          </div>
         </div>
         <div style={{padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
           <button onClick={onClose}
