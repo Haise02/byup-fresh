@@ -1,0 +1,406 @@
+// Registro delle restrizioni sugli utenti app (shadowban / ban) + elenco.
+//
+// Prima le restrizioni esistevano solo come due flag sull'utente (u.shadowban,
+// u.bannato) accesi da due posti diversi — il dettaglio utente e la moderazione
+// delle recensioni. Chi era ristretto, da quando e per cosa si poteva scoprire
+// solo aprendo gli utenti uno per uno. Qui vive l'elenco: un record per
+// restrizione, con la recensione che l'ha causata quando arriva dalla
+// moderazione, le note di chi l'ha presa in mano e la revoca.
+
+const RESTRIZIONI = [];
+
+// La restrizione viva di un utente (di un certo tipo, se chiesto).
+function admRestrizioneAttiva(utenteId, tipo) {
+  return RESTRIZIONI.find(r => r.utenteId === utenteId && !r.revocataIl && (!tipo || r.tipo === tipo)) || null;
+}
+
+function admAggiungiRestrizione(utente, tipo, extra = {}) {
+  if (!utente) return null;
+  const esistente = admRestrizioneAttiva(utente.id, tipo);
+  if (esistente) return esistente;
+  const rec = {
+    id: 'RST' + (RESTRIZIONI.length + 1) + '-' + utente.id,
+    utenteId: utente.id,
+    tipo,                                   // 'shadowban' | 'ban'
+    data: new Date(),
+    motivo: extra.motivo || null,
+    recensione: extra.recensione || null,   // { locale, citta, rating, testo, data }
+    note: extra.note || '',
+    operatore: extra.operatore || 'admin0',
+    revocataIl: null,
+    revocataDa: null,
+  };
+  RESTRIZIONI.unshift(rec);
+  return rec;
+}
+
+function admRevocaRestrizione(rec, chi) {
+  if (!rec || rec.revocataIl) return;
+  rec.revocataIl = new Date();
+  rec.revocataDa = chi || 'admin0';
+}
+
+// Revoca la restrizione viva di un utente — usata dalle azioni "Rimuovi ban"
+// che partono dal dettaglio utente, dove si ragiona sull'utente e non sul record.
+function admRevocaPerUtente(utenteId, tipo, chi) {
+  admRevocaRestrizione(admRestrizioneAttiva(utenteId, tipo), chi);
+}
+
+// ─── Seed ───────────────────────────────────────────────────────────────────
+// Casi finti ma plausibili, così l'elenco non nasce vuoto: i flag sull'utente
+// e i record qui restano allineati.
+(function seedRestrizioni() {
+  if (typeof UTENTI === 'undefined' || !UTENTI.length) return;
+  const attivi = (typeof LOCALI !== 'undefined' ? LOCALI.filter(l => l.stato === 'active') : []);
+  const loc = (i) => attivi[i % Math.max(attivi.length, 1)] || { nome: 'Locale', citta: '—' };
+  const g = (n) => new Date(Date.now() - n * 86400000);
+
+  const seed = [
+    { i: 4, tipo:'shadowban', giorni: 6, motivo:'Recensioni a una stella in serie sullo stesso locale',
+      operatore:'support1', rating:1, li:0, giorniRev: 8,
+      testo:'Posto orribile, personale scortese, non tornerò mai più. Da evitare assolutamente.',
+      note:'Terza segnalazione dallo stesso locale in due settimane. Nessun ordine collegato alle recensioni: profilo probabilmente ostile.' },
+    { i: 11, tipo:'ban', giorni: 12, motivo:'Insulti al personale nella recensione segnalata',
+      operatore:'admin1', rating:1, li:2, giorniRev: 13,
+      testo:'Il cameriere è un incompetente, gente così andrebbe licenziata subito.',
+      note:'Rimborso dell\'ultimo ordine già erogato prima del ban. Se scrive all\'assistenza, rimandare a me.' },
+    { i: 19, tipo:'shadowban', giorni: 21, motivo:'Sospetto di recensioni incentivate',
+      operatore:'admin1', rating:5, li:5, giorniRev: 24,
+      testo:'Il migliore della città, cinque stelle meritatissime, andateci tutti!',
+      note:'Quattro recensioni a cinque stelle in due giorni su locali dello stesso gruppo, nessun ordine in app.' },
+    { i: 27, tipo:'shadowban', giorni: 34, motivo:null, operatore:'admin0',
+      note:'Applicata dal dettaglio utente dopo la telefonata del locale. Da rivedere a fine mese.' },
+    { i: 33, tipo:'ban', giorni: 58, motivo:'Account usato per ordini con carte contestate',
+      operatore:'admin2', note:'Segnalazione arrivata da Stripe, tre chargeback in un mese. Non revocare senza passare da Marco.' },
+  ];
+
+  seed.forEach((s, k) => {
+    const u = UTENTI[s.i];
+    if (!u) return;
+    const l = loc(s.li ?? k);
+    RESTRIZIONI.push({
+      id: 'RST-seed-' + k,
+      utenteId: u.id,
+      tipo: s.tipo,
+      data: g(s.giorni),
+      motivo: s.motivo,
+      recensione: s.testo ? {
+        locale: l.nome, citta: l.citta, rating: s.rating,
+        testo: s.testo, data: g(s.giorniRev ?? s.giorni + 2),
+      } : null,
+      note: s.note || '',
+      operatore: s.operatore,
+      revocataIl: null,
+      revocataDa: null,
+    });
+    if (s.tipo === 'ban') u.bannato = true; else u.shadowban = true;
+  });
+
+  // Un caso già chiuso: serve a far vedere che la revoca lascia traccia.
+  const uRev = UTENTI[37];
+  if (uRev) {
+    RESTRIZIONI.push({
+      id: 'RST-seed-rev',
+      utenteId: uRev.id,
+      tipo: 'shadowban',
+      data: g(96),
+      motivo: 'Recensione fuori tema segnalata dal locale',
+      recensione: {
+        locale: loc(7).nome, citta: loc(7).citta, rating: 2,
+        testo: 'Il cibo va bene ma il parcheggio della zona è una vergogna, il Comune dovrebbe vergognarsi.',
+        data: g(99),
+      },
+      note: 'Chiarito al telefono, ha riscritto la recensione senza la parte sul Comune.',
+      operatore: 'support1',
+      revocataIl: g(74),
+      revocataDa: 'admin1',
+    });
+  }
+
+  RESTRIZIONI.sort((a, b) => b.data - a.data);
+})();
+
+// ─── Elenco restrizioni ─────────────────────────────────────────────────────
+const { useState: useStateRst } = React;
+
+function AdmRestrizioniModal({ onClose, onOpenUtente }) {
+  const [filtro, setFiltro] = useStateRst('attive');
+  const [search, setSearch] = useStateRst('');
+  const [revocaRec, setRevocaRec] = useStateRst(null);
+  const [, forceTick] = useStateRst(0);
+  const refresh = () => forceTick(n => n + 1);
+
+  const utenteDi = (r) => (UTENTI.find(u => u.id === r.utenteId) || { id: r.utenteId, nome: 'Utente ' + r.utenteId, email: '—', citta: '—', regione: '' });
+  const nomeOperatore = (id) => {
+    const t = (typeof TEAM !== 'undefined' ? TEAM : []).find(x => x.id === id);
+    return t ? (t.isYou ? 'Tu' : t.nome) : '—';
+  };
+
+  const attive = RESTRIZIONI.filter(r => !r.revocataIl);
+  const conta = {
+    attive: attive.length,
+    shadowban: attive.filter(r => r.tipo === 'shadowban').length,
+    ban: attive.filter(r => r.tipo === 'ban').length,
+    revocate: RESTRIZIONI.filter(r => r.revocataIl).length,
+  };
+
+  const lista = RESTRIZIONI.filter(r => {
+    if (filtro === 'attive' && r.revocataIl) return false;
+    if (filtro === 'shadowban' && (r.revocataIl || r.tipo !== 'shadowban')) return false;
+    if (filtro === 'ban' && (r.revocataIl || r.tipo !== 'ban')) return false;
+    if (filtro === 'revocate' && !r.revocataIl) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const u = utenteDi(r);
+      const dove = [u.nome, u.email, u.id, r.motivo || '', r.note || '', r.recensione?.locale || ''].join(' ').toLowerCase();
+      if (!dove.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const confermaRevoca = () => {
+    const r = revocaRec;
+    if (!r) return;
+    admRevocaRestrizione(r, 'admin0');
+    const u = UTENTI.find(x => x.id === r.utenteId);
+    if (u) { if (r.tipo === 'ban') u.bannato = false; else u.shadowban = false; }
+    setRevocaRec(null);
+    refresh();
+  };
+
+  const FILTRI = [
+    { id:'attive',    label:'Tutte le attive', n: conta.attive },
+    { id:'shadowban', label:'Shadowban',       n: conta.shadowban },
+    { id:'ban',       label:'Ban',             n: conta.ban },
+    { id:'revocate',  label:'Revocate',        n: conta.revocate },
+  ];
+
+  return (
+    <div style={{
+      position:'fixed', inset:0, zIndex:55,
+      display:'grid', placeItems:'center', padding:24,
+      background:'rgba(15,17,21,0.45)',
+      backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
+    }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        width:1020, maxWidth:'96%', maxHeight:'90%', background:'#fff',
+        borderRadius:18, overflow:'hidden',
+        display:'flex', flexDirection:'column',
+        boxShadow:'0 32px 80px rgba(15,17,21,0.30)',
+        animation:'admModalIn 0.22s cubic-bezier(0.22,0.9,0.35,1)',
+      }}>
+        {/* Header */}
+        <div style={{padding:'16px 24px 14px', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
+            <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Utenti app</span>
+            <AdmIconBtn icon="x" onClick={onClose}/>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:12}}>
+            <div style={{
+              width:42, height:42, borderRadius:12, flexShrink:0,
+              background:ADM.WARN_SOFT, color:ADM.WARN, display:'grid', placeItems:'center',
+            }}><BuIcons.shield size={22}/></div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em'}}>Restrizioni</div>
+              <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:1}}>
+                Chi è in shadowban o bannato, da quando e per cosa. La revoca è immediata e resta a registro.
+              </div>
+            </div>
+          </div>
+
+          <div style={{display:'flex', alignItems:'center', gap:8, marginTop:14, flexWrap:'wrap'}}>
+            {FILTRI.map(f => {
+              const on = filtro === f.id;
+              return (
+                <button key={f.id} onClick={()=>setFiltro(f.id)} className="adm-pill" style={{
+                  display:'inline-flex', alignItems:'center', gap:7,
+                  padding:'6px 12px', borderRadius:8,
+                  background: on ? ADM.TEXT : '#fff',
+                  color: on ? '#fff' : ADM.MUTED,
+                  border: on ? '1px solid transparent' : `1px solid ${ADM.BORDER}`,
+                  fontSize:12.8, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                }}>
+                  {f.label}
+                  <span style={{
+                    fontSize:12, fontWeight:700,
+                    background: on ? 'rgba(255,255,255,0.18)' : ADM.PANEL_SOFT,
+                    color: on ? '#fff' : ADM.MUTED_SOFT,
+                    padding:'0 6px', borderRadius:99,
+                  }}>{f.n}</span>
+                </button>
+              );
+            })}
+            <div style={{flex:1}}/>
+            <div style={{position:'relative', flex:'0 0 240px'}}>
+              <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={19}/></span>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca utente, locale o motivo…" style={{
+                width:'100%', padding:'7px 10px 7px 32px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+                fontSize:14, fontFamily:'inherit', outline:'none', background:'#fff', boxSizing:'border-box',
+              }}/>
+            </div>
+          </div>
+        </div>
+
+        {/* Elenco */}
+        <div style={{flex:1, overflow:'auto', padding:'16px 24px 22px', background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:12}}>
+          {lista.length === 0 && (
+            <AdmEmpty icon="shield"
+              title={filtro === 'revocate' ? 'Nessuna restrizione revocata' : 'Nessuna restrizione attiva'}
+              desc={search.trim() ? 'Nessun risultato per questa ricerca' : 'Shadowban e ban compaiono qui appena vengono applicati'}/>
+          )}
+          {lista.map(r => (
+            <RestrizioneCard key={r.id} rec={r} utente={utenteDi(r)}
+              operatore={nomeOperatore(r.operatore)}
+              revocataDa={r.revocataDa ? nomeOperatore(r.revocataDa) : null}
+              onRevoca={()=>setRevocaRec(r)}
+              onApriUtente={onOpenUtente ? ()=>{ onOpenUtente(utenteDi(r)); onClose(); } : null}
+              onNota={refresh}/>
+          ))}
+        </div>
+
+        {/* Popup conferma revoca */}
+        {revocaRec && (
+          <div style={{position:'fixed', inset:0, zIndex:70, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>setRevocaRec(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:430, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>
+                Rimuovere {revocaRec.tipo === 'ban' ? 'il ban' : 'lo shadowban'} a {utenteDi(revocaRec).nome}?
+              </div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+                {revocaRec.tipo === 'ban'
+                  ? 'L\'account torna operativo: accesso all\'app, ordini e recensioni di nuovo attivi.'
+                  : 'Le sue recensioni tornano visibili a tutti sulle schede dei locali.'}
+                {' '}La restrizione resta nel registro come revocata, con le note già scritte.
+              </div>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setRevocaRec(null)}>Annulla</AdmButton>
+                <AdmButton variant="primary" size="md" icon="check" onClick={confermaRevoca}>Rimuovi restrizione</AdmButton>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Riga dell'elenco ───────────────────────────────────────────────────────
+// Testata con chi e quando, e sotto due colonne: a sinistra la recensione che
+// ha fatto scattare la restrizione (se c'è), a fianco le note operative.
+function RestrizioneCard({ rec, utente: u, operatore, revocataDa, onRevoca, onApriUtente, onNota }) {
+  const [nota, setNota] = useStateRst(rec.note || '');
+  const [salvata, setSalvata] = useStateRst(false);
+  const revocata = !!rec.revocataIl;
+  const isBan = rec.tipo === 'ban';
+
+  const salvaNota = () => {
+    rec.note = nota;
+    setSalvata(true);
+    setTimeout(()=>setSalvata(false), 1800);
+    onNota && onNota();
+  };
+
+  return (
+    <AdmCard padding={0} style={{opacity: revocata ? 0.72 : 1}}>
+      {/* Testata */}
+      <div style={{display:'flex', alignItems:'center', gap:12, padding:'14px 18px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
+        <AdmAvatar name={u.nome} size={38} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
+        <div style={{minWidth:0, flex:'1 1 180px'}}>
+          <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, display:'flex', alignItems:'center', gap:7, flexWrap:'wrap'}}>
+            {u.nome}
+            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED_SOFT, fontWeight:500}}>{u.id}</span>
+          </div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{u.email}{u.citta ? ` · ${u.citta}` : ''}</div>
+        </div>
+
+        <div style={{flex:'0 0 auto'}}>
+          {revocata
+            ? <AdmBadge color="PLAN_FREE" size="xs">✓ Revocata</AdmBadge>
+            : isBan
+              ? <AdmBadge color="DANGER" size="xs">⊘ Bannato</AdmBadge>
+              : <AdmBadge color="WARN" size="xs">◐ Shadowban</AdmBadge>}
+        </div>
+
+        <div style={{flex:'0 0 auto', minWidth:150}}>
+          <div style={{fontSize:13.3, color:ADM.TEXT}}>
+            {isBan ? 'Bannato' : 'In shadowban'} dal <strong>{fmtDate(rec.data)}</strong>
+          </div>
+          <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, marginTop:1}}>
+            {fmtRelative(rec.data)} · da {operatore}
+            {revocata && <> · revocata {fmtDate(rec.revocataIl)} da {revocataDa}</>}
+          </div>
+        </div>
+
+        <div style={{flex:1}}/>
+        {onApriUtente && (
+          <button className="adm-textlink" onClick={onApriUtente} style={{
+            background:'transparent', border:'none', color:ADM.MUTED, fontSize:12.7, fontWeight:600,
+            cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+          }}>Apri utente</button>
+        )}
+        {!revocata && (
+          <AdmButton variant="secondary" size="sm" icon="check" onClick={onRevoca}>Rimuovi restrizione</AdmButton>
+        )}
+      </div>
+
+      {/* Motivo */}
+      {rec.motivo && (
+        <div style={{padding:'10px 18px 0', fontSize:13.3, color:ADM.TEXT}}>
+          <span style={{color:ADM.MUTED}}>Motivo · </span>{rec.motivo}
+        </div>
+      )}
+
+      {/* Recensione all'origine + note a fianco */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'minmax(0,1.5fr) minmax(0,1fr)',
+        gap:18, padding:'12px 18px 16px',
+      }}>
+        <div>
+          <div style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:7}}>
+            Recensione all'origine
+          </div>
+          {rec.recensione ? (
+            <div>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap'}}>
+                <span style={{fontSize:13.7, fontWeight:600, color:ADM.TEXT}}>{rec.recensione.locale}</span>
+                <span style={{fontSize:12.6, color:ADM.MUTED}}>{rec.recensione.citta} · {fmtDate(rec.recensione.data)}</span>
+                <div style={{flex:1}}/>
+                <span style={{fontSize:14, letterSpacing:1, color:'#F5A623'}}>
+                  {'★'.repeat(rec.recensione.rating || 0)}<span style={{color:ADM.BORDER}}>{'★'.repeat(5 - (rec.recensione.rating || 0))}</span>
+                </span>
+              </div>
+              <div style={{padding:'10px 13px', background:ADM.PANEL_SOFT, borderLeft:`3px solid ${isBan ? ADM.DANGER : ADM.WARN}`, borderRadius:'0 8px 8px 0', fontSize:13.3, color:ADM.TEXT, lineHeight:1.5, fontStyle:'italic'}}>
+                “{rec.recensione.testo}”
+              </div>
+            </div>
+          ) : (
+            <div style={{padding:'10px 13px', background:ADM.PANEL_SOFT, borderRadius:8, fontSize:13, color:ADM.MUTED_SOFT, lineHeight:1.5}}>
+              Nessuna recensione collegata — restrizione applicata dal dettaglio utente.
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:7}}>
+            <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em'}}>Note</span>
+            {salvata && <span style={{fontSize:12, color:ADM.OK, fontWeight:700}}>✓ salvata</span>}
+          </div>
+          <textarea value={nota} onChange={e=>setNota(e.target.value)} onBlur={salvaNota}
+            placeholder="Note interne — cosa è successo, cosa fare se scrive all'assistenza…"
+            style={{
+              width:'100%', minHeight:78, padding:'9px 12px',
+              border:`1px solid ${ADM.BORDER}`, borderRadius:8,
+              fontSize:13, fontFamily:'inherit', color:ADM.TEXT, lineHeight:1.5,
+              outline:'none', resize:'vertical', boxSizing:'border-box', background:'#fff',
+            }}/>
+        </div>
+      </div>
+    </AdmCard>
+  );
+}
+
+window.RESTRIZIONI = RESTRIZIONI;
+window.admRestrizioneAttiva = admRestrizioneAttiva;
+window.admAggiungiRestrizione = admAggiungiRestrizione;
+window.admRevocaRestrizione = admRevocaRestrizione;
+window.admRevocaPerUtente = admRevocaPerUtente;
+window.AdmRestrizioniModal = AdmRestrizioniModal;

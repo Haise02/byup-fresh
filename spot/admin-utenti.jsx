@@ -9,7 +9,11 @@ function AdmUtentiPage({ search: searchProp, openUtente }) {
   const [regione, setRegione] = useStateUtn('all');
   const [statoFiltro, setStatoFiltro] = useStateUtn('all');
   const [selected, setSelected] = useStateUtn(null);
+  const [restrizioniOpen, setRestrizioniOpen] = useStateUtn(false);
   React.useEffect(() => { if (openUtente) setSelected(openUtente); }, [openUtente && openUtente.id]);
+  // Il conteggio si legge dal registro a ogni render: applicare o togliere una
+  // restrizione dal drawer lo aggiorna senza passarsi stato avanti e indietro.
+  const restrizioniAttive = (window.RESTRIZIONI || []).filter(r => !r.revocataIl).length;
 
   const filtered = useMemoUtn(() => {
     let r = UTENTI;
@@ -54,8 +58,24 @@ function AdmUtentiPage({ search: searchProp, openUtente }) {
             {value:'all', label:'Tutte le regioni'},
             ...REGIONI.map(r => ({value:r, label:r})),
           ]}/>
-          <div style={{flex:1}}/>
-          <span style={{fontSize:13.7, color:ADM.MUTED}}>{filtered.length} di {totUtenti}</span>
+          {/* Conteggio e restrizioni stanno insieme in coda alla barra: con
+              marginLeft:auto restano a destra anche quando i filtri mandano la
+              riga a capo, invece di ricomparire a sinistra sotto la ricerca.
+              Le restrizioni non sono un filtro della lista — sono un registro a
+              parte: chi è ristretto, da quando e per quale recensione. */}
+          <div style={{display:'flex', alignItems:'center', gap:10, marginLeft:'auto'}}>
+            <span style={{fontSize:13.7, color:ADM.MUTED}}>{filtered.length} di {totUtenti}</span>
+            <AdmButton variant="secondary" size="sm" icon="shield" onClick={()=>setRestrizioniOpen(true)}>
+              Restrizioni
+              {restrizioniAttive > 0 && (
+                <span style={{
+                  fontSize:12, fontWeight:700, marginLeft:2,
+                  background:ADM.WARN_SOFT, color:ADM.WARN,
+                  padding:'0 6px', borderRadius:99,
+                }}>{restrizioniAttive}</span>
+              )}
+            </AdmButton>
+          </div>
         </div>
 
         <div style={{
@@ -80,6 +100,11 @@ function AdmUtentiPage({ search: searchProp, openUtente }) {
       </AdmCard>
 
       {selected && <UtenteDrawer utente={selected} onClose={()=>setSelected(null)}/>}
+      {restrizioniOpen && (
+        <AdmRestrizioniModal
+          onClose={()=>setRestrizioniOpen(false)}
+          onOpenUtente={(u)=>setSelected(u)}/>
+      )}
     </div>
   );
 }
@@ -237,8 +262,18 @@ function UtenteDrawer({ utente: u, onClose }) {
   const [shadow, setShadow] = useStateUtn(!!u.shadowban);
   React.useEffect(() => { setBanned(!!u.bannato); setShadow(!!u.shadowban); setBanPopup(null); }, [u.id]);
   const confirmBan = () => {
-    if (banPopup === 'ban' || banPopup === 'unban') { u.bannato = banPopup === 'ban'; setBanned(u.bannato); }
-    if (banPopup === 'shadow' || banPopup === 'unshadow') { u.shadowban = banPopup === 'shadow'; setShadow(u.shadowban); }
+    // Ogni applicazione e ogni revoca passa anche dal registro restrizioni:
+    // è quello che alimenta l'elenco in Utenti app.
+    if (banPopup === 'ban' || banPopup === 'unban') {
+      u.bannato = banPopup === 'ban'; setBanned(u.bannato);
+      if (u.bannato) admAggiungiRestrizione(u, 'ban');
+      else admRevocaPerUtente(u.id, 'ban');
+    }
+    if (banPopup === 'shadow' || banPopup === 'unshadow') {
+      u.shadowban = banPopup === 'shadow'; setShadow(u.shadowban);
+      if (u.shadowban) admAggiungiRestrizione(u, 'shadowban');
+      else admRevocaPerUtente(u.id, 'shadowban');
+    }
     setBanPopup(null);
   };
 

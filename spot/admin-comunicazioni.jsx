@@ -391,8 +391,19 @@ function ModerationCard({ item, locale, onUpdate }) {
 
   const chiudi = (azione, extra) => {
     onUpdate({ stato:'risolta', resolvedBy:MY_ID, resolvedAt:new Date(), modEsito:{ azione, motivo: extra || null, at:new Date() } });
-    if (azione === 'shadowban') autore.shadowban = true;
-    if (azione === 'ban') autore.bannato = true;
+    // La restrizione decisa qui nasce da una recensione precisa: la portiamo
+    // nel registro, altrimenti nell'elenco resterebbe un ban senza causa.
+    if (azione === 'shadowban' || azione === 'ban') {
+      if (azione === 'shadowban') autore.shadowban = true; else autore.bannato = true;
+      admAggiungiRestrizione(autore, azione, {
+        motivo: mod.motivoSegnalazione,
+        operatore: MY_ID,
+        recensione: {
+          locale: locale?.nome || '—', citta: locale?.citta || '',
+          rating: mod.rating, testo: mod.testo, data: mod.dataRecensione,
+        },
+      });
+    }
     setPopup(null); setMotivo('');
   };
 
