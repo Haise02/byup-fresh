@@ -18,6 +18,21 @@ function SalaVenditaDiretta() {
   const [cat, setCat] = React.useState('Tutto');
   const [lines, setLines] = React.useState([]); // [{id, piatto, qty, mods, lineTotal}]
   const [takeaway, setTakeaway] = React.useState(false);
+  // Asporto: acceso il flag, l'ordine acquista due dati che al banco non
+  // esistono — a che ora si presenta chi ritira, e chi è. Si ri-ancorano ogni
+  // volta che si accende: un default calcolato all'apertura della pagina
+  // invecchia (il POS resta aperto tutto il servizio).
+  const [ritiroOra, setRitiroOra] = React.useState('');
+  const [ritiroCliente, setRitiroCliente] = React.useState('');
+  const oraFra = (min) => {
+    const d = new Date(Date.now() + min * 60000);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+  const toggleTakeaway = () => {
+    const next = !takeaway;
+    if (next) { setRitiroOra(oraFra(15)); setRitiroCliente(''); }
+    setTakeaway(next);
+  };
   const [incassaOpen, setIncassaOpen] = React.useState(false);
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
@@ -77,7 +92,10 @@ function SalaVenditaDiretta() {
       const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       setRitiri(prev => [...prev, {
         id: `banco-${numero}`, codice: ordine.codice,
-        cliente: null, ritiro: hhmm,
+        // Cliente e orario arrivano dalla barra asporto, se compilati: senza,
+        // resta l'anonimo del banco e l'ora dell'ordine.
+        cliente: takeaway ? (ritiroCliente.trim() || null) : null,
+        ritiro: takeaway && ritiroOra ? ritiroOra : hhmm,
         fonte: 'banco', pagato: true, asporto: takeaway, totale,
         codiceRitiro: ordine.codiceRitiro,
         items: lines.map(l => ({
@@ -86,6 +104,7 @@ function SalaVenditaDiretta() {
       }]);
     }
     setTakeaway(false);
+    setRitiroOra(''); setRitiroCliente('');
     return ordine;
   };
 
@@ -179,6 +198,7 @@ function SalaVenditaDiretta() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
               </span>
               <input
+                id="sa-vd-search"
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Cerca nel menù…"
                 style={{
@@ -306,7 +326,11 @@ function SalaVenditaDiretta() {
       <SaCartPanel
         lines={lines}
         takeaway={takeaway}
-        setTakeaway={setTakeaway}
+        onToggleTakeaway={toggleTakeaway}
+        ritiroOra={ritiroOra}
+        setRitiroOra={setRitiroOra}
+        ritiroCliente={ritiroCliente}
+        setRitiroCliente={setRitiroCliente}
         total={total}
         totQty={totQty}
         onInc={incLine}
@@ -1142,7 +1166,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 // ─────────────────────────────────────────────────────────────────────────────
 // Carrello
 
-function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
+function SaCartPanel({ lines, takeaway, onToggleTakeaway, ritiroOra, setRitiroOra, ritiroCliente, setRitiroCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
   window.SALA_VENDITA_CLEAR = onClear;
   // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
   const [clearConfirm, setClearConfirm] = React.useState(false);
@@ -1177,28 +1201,30 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
           <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2}}>Ordine</div>
           <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</div>
         </div>
+        {/* Toggle asporto — acceso vira in corallo tenue: è la stessa famiglia
+            dell'icona d'intestazione, così il pannello si legge tutto insieme
+            come "ordine da asporto" invece che come un bottone nero staccato. */}
         <button
-          onClick={() => setTakeaway(v => !v)}
+          onClick={onToggleTakeaway}
           title={takeaway ? 'Da asporto. Tocca per togliere: resta al banco' : 'Segna come da asporto. Se spento resta al banco'}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.14)'; if (!takeaway) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.color = PN.TEXT; } }}
-          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.TEXT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.TEXT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.WHITE : PN.MUTED; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.PINK_BG_SOFT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.PINK_SOFT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.PINK_DARK : PN.MUTED; }}
           onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.94)'; }}
           onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
           style={{
-            display:'inline-flex', alignItems:'center', gap: 5,
-            padding: '5px 10px', borderRadius: 8,
-            border: `1.5px solid ${takeaway ? PN.TEXT : PN.BORDER}`,
-            background: takeaway ? PN.TEXT : 'transparent',
-            color: takeaway ? PN.WHITE : PN.MUTED,
+            display:'inline-flex', alignItems:'center', gap: 6,
+            padding: '6px 12px', borderRadius: 10,
+            border: `1.5px solid ${takeaway ? PN.PINK_SOFT : PN.BORDER}`,
+            background: takeaway ? PN.PINK_BG_SOFT : 'transparent',
+            color: takeaway ? PN.PINK_DARK : PN.MUTED,
             fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            whiteSpace:'nowrap',
             transition:'background .12s, color .12s, border-color .12s, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
           }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <path d="M16 10a4 4 0 0 1-8 0"/>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/>
           </svg>
-          Da asporto
+          {takeaway ? 'Asporto' : 'Da asporto'}
         </button>
         {lines.length > 0 && (
           <button onClick={() => setClearConfirm(true)} title="Rimuovi tutti gli articoli dal conto" style={{
@@ -1208,6 +1234,16 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
           }}>Rimuovi tutto</button>
         )}
       </div>
+
+      {/* Barra ritiro — compare solo in asporto: metodo, orario, cliente sono i
+          tre dati che al banco non servono e nel sacchetto sì. Sta in alto e
+          non nel footer perché si compilano PRIMA di battere l'ordine. */}
+      {takeaway && (
+        <SaAsportoMeta
+          ora={ritiroOra} setOra={setRitiroOra}
+          cliente={ritiroCliente} setCliente={setRitiroCliente}
+        />
+      )}
 
       {/* Popup conferma svuotamento conto */}
       {clearConfirm && (
@@ -1266,6 +1302,50 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
       {/* Lines */}
       <div className="pn-scroll" style={{flex: 1, overflow:'auto', padding: '12px 14px'}}>
         {lines.length === 0 ? (
+          takeaway ? (
+            /* Vuoto in asporto: il vuoto qui non è un errore, è il momento in
+               cui si prende la comanda al telefono o al banco — quindi il testo
+               ricorda anche cliente e orario, che sono già compilabili sopra. */
+            <div style={{
+              textAlign:'center', padding: '32px 22px', minHeight:'100%',
+              display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+              boxSizing:'border-box',
+            }}>
+              <div style={{position:'relative', marginBottom: 16}}>
+                <div style={{
+                  width: 76, height: 76, borderRadius: '50%',
+                  background: PN.PINK_BG_SOFT, color: PN.PINK,
+                  display:'grid', placeItems:'center',
+                }}>
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+                </div>
+                {/* Scintille: l'ordine è nuovo, non è un vuoto rotto */}
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={PN.PINK} strokeWidth="1.8" strokeLinecap="round" style={{position:'absolute', top: -4, right: -8}}>
+                  <path d="M4 9 1.5 10"/><path d="M8 4.5 8.5 2"/><path d="M6.5 6.5 4.5 4.5"/>
+                </svg>
+              </div>
+              <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Ordine da asporto vuoto</div>
+              <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, maxWidth: 320}}>
+                Tocca <strong style={{color: PN.PINK, fontWeight: 700}}>+ Aggiungi</strong> per inserire prodotti da preparare per il ritiro.
+                Puoi anche assegnare un cliente o un orario di ritiro prima di confermare.
+              </div>
+              <button
+                onClick={() => { const el = document.getElementById('sa-vd-search'); if (el) { el.focus(); el.select(); } }}
+                title="Cerca un prodotto nel menù"
+                style={{
+                  marginTop: 20,
+                  display:'inline-flex', alignItems:'center', gap: 8,
+                  padding: '10px 20px', borderRadius: 999,
+                  background: PN.BTN_NEUTRAL, color: PN.TEXT,
+                  border: `1px solid ${PN.BORDER_LIGHT}`,
+                  fontSize: 16, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                  boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+                }}>
+                <span style={{color: PN.PINK, fontSize: 18, fontWeight: 700, lineHeight: 1}}>+</span>
+                Aggiungi articolo
+              </button>
+            </div>
+          ) : (
           <div style={{
             textAlign:'center', padding: '40px 20px',
             color: PN.MUTED,
@@ -1280,6 +1360,7 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             <div style={{fontSize: 17, fontWeight: 600, color: PN.TEXT, marginBottom: 4}}>Conto vuoto</div>
             <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>Tocca <strong>+ Aggiungi</strong> per aggiungere un piatto all'ordine,<br/>o clicca sul piatto per personalizzarlo prima di procedere</div>
           </div>
+          )
         ) : (
           <div style={{display:'flex', flexDirection:'column', gap: 7}}>
             {lines.map((l, i) => (
@@ -1302,10 +1383,19 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
         <div style={{
           display:'flex', justifyContent:'space-between',
           fontSize: 20, fontWeight: 700, color: PN.TEXT,
-          paddingBottom: 12,
+          paddingBottom: takeaway ? 4 : 12,
         }}>
           <span>Totale</span><span>€{total.toFixed(2)}</span>
         </div>
+        {takeaway && (
+          <div style={{
+            display:'flex', alignItems:'center', gap: 6,
+            fontSize: 14.5, color: PN.MUTED, paddingBottom: 8,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9h18l-1.5-4.5A2 2 0 0 0 17.6 3H6.4a2 2 0 0 0-1.9 1.5L3 9Z"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 20v-6h6v6"/></svg>
+            Metodo: ritiro in sede
+          </div>
+        )}
 
         <div style={{display:'flex', gap: 8, marginTop: 12}}>
           <button
@@ -1326,12 +1416,125 @@ function SaCartPanel({ lines, takeaway, setTakeaway, total, totQty, onInc, onDec
             }}
             onMouseEnter={e => { if (lines.length > 0) svSunsetHoverIn(e); }}
             onMouseLeave={svSunsetHoverOut}>
-            <span>Procedi al pagamento</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap: 8}}>
+              {takeaway && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+              )}
+              {takeaway ? 'Conferma asporto' : 'Procedi al pagamento'}
+            </span>
             <span>€{total.toFixed(2)}</span>
           </button>
         </div>
       </div>
     </aside>
+  );
+}
+
+// Barra ritiro dell'ordine da asporto: metodo (fisso: si ritira in sede),
+// orario previsto e cliente. Orario e cliente si modificano sul posto — stesso
+// gesto delle righe del conto: clicchi il valore, scrivi, Invio conferma.
+function SaAsportoMeta({ ora, setOra, cliente, setCliente }) {
+  const [editOra, setEditOra] = React.useState(false);
+  const [editCliente, setEditCliente] = React.useState(false);
+  const [nome, setNome] = React.useState(cliente);
+  React.useEffect(() => { if (!editCliente) setNome(cliente); }, [cliente, editCliente]);
+
+  const commitCliente = () => { setEditCliente(false); setCliente(nome.trim()); };
+
+  const cella = {
+    display:'flex', flexDirection:'column', alignItems:'center', gap: 3,
+    padding: '11px 5px', minWidth: 0, textAlign:'center',
+  };
+  const divisore = { borderLeft: `1px solid ${PN.BORDER_SOFT}` };
+  const titolo = { fontSize: 14.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.25, maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' };
+  const sotto  = { fontSize: 13.5, color: PN.MUTED_SOFT, lineHeight: 1.25 };
+
+  return (
+    <div style={{padding: '12px 14px 0'}}>
+      {/* La terza colonna è più larga: "Cliente non assegnato" è l'etichetta
+          più lunga delle tre e in tre colonne uguali si troncava. */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr)',
+        border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+        background: PN.WHITE,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+      }}>
+        {/* Metodo — in cassa il ritiro è sempre in sede: informazione, non scelta */}
+        <div style={cella}>
+          <span style={{color: PN.PINK, display:'inline-flex'}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+          </span>
+          <span style={titolo}>Ritiro in sede</span>
+          <span style={sotto}>Metodo di ritiro</span>
+        </div>
+
+        {/* Orario previsto */}
+        <div style={{...cella, ...divisore}}>
+          <span style={{color: PN.PINK, display:'inline-flex'}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+          <span style={titolo}>Ritiro previsto</span>
+          {editOra ? (
+            <input
+              type="time" value={ora}
+              onChange={e => setOra(e.target.value)}
+              onBlur={() => setEditOra(false)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditOra(false); }}
+              autoFocus
+              style={{
+                fontFamily:'inherit', fontSize: 14.5, fontWeight: 700,
+                color: PN.PINK_DARK, background: PN.PINK_BG_SOFT,
+                border: `1px solid ${PN.PINK_SOFT}`, borderRadius: 999,
+                padding: '1px 8px', outline:'none', textAlign:'center',
+              }}/>
+          ) : (
+            <button
+              onClick={() => setEditOra(true)}
+              title="Cambia l'orario di ritiro"
+              style={{
+                padding: '2px 10px', borderRadius: 999, border: 'none',
+                background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+                fontSize: 14.5, fontWeight: 700, fontFamily:'inherit', cursor:'pointer',
+                fontVariantNumeric:'tabular-nums',
+              }}>{ora || 'Imposta'}</button>
+          )}
+        </div>
+
+        {/* Cliente */}
+        <div style={{...cella, ...divisore}}>
+          <span style={{color: cliente ? PN.PINK : PN.MUTED_SOFT, display:'inline-flex'}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg>
+          </span>
+          {editCliente ? (
+            <input
+              value={nome} onChange={e => setNome(e.target.value)}
+              onBlur={commitCliente}
+              onKeyDown={e => { if (e.key === 'Enter') commitCliente(); if (e.key === 'Escape') { setNome(cliente); setEditCliente(false); } }}
+              placeholder="Nome cliente"
+              autoFocus
+              style={{
+                width:'100%', minWidth: 0, textAlign:'center',
+                fontFamily:'inherit', fontSize: 15, fontWeight: 700, color: PN.TEXT,
+                background:'transparent', border:'none',
+                borderBottom: `1.5px solid ${PN.TEXT}`, outline:'none', padding:'0 1px',
+              }}/>
+          ) : (
+            <span style={titolo}>
+              {cliente || 'Cliente non assegnato'}
+            </span>
+          )}
+          {!editCliente && (
+            <button
+              onClick={() => setEditCliente(true)}
+              title={cliente ? 'Cambia il cliente dell\'ordine' : 'Assegna un cliente all\'ordine'}
+              style={{
+                ...sotto, background:'transparent', border:'none', padding: 0,
+                fontFamily:'inherit', cursor:'pointer', textDecoration:'none',
+              }}>{cliente ? 'Cambia cliente' : 'Assegna cliente'}</button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
