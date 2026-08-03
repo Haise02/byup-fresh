@@ -71,24 +71,45 @@ const SALA_VENDITA_CATS = {
   'Dolci': { color: '#831843', bg: '#FBCFE8', icon: 'cake' },
 };
 
-// Ritiri asporto — ordini dei clienti in attesa di consegna al banco.
+// Ritiri asporto — ordini dei clienti in attesa al banco.
 // pagato:true = saldato via Byup App; pagato:false = ordinato dalla webapp
 // guest (che non permette il pagamento), da incassare al banco al ritiro.
+// L'identità segue il canale: chi ordina dall'app ha un account e quindi un
+// nome, chi ordina dalla webapp guest è solo il suo codice ordine.
 // Il codiceRitiro è mostrato al cliente in app/webapp: dettarlo al banco
 // è la prova di consegna.
 const SALA_ASPORTO_CONTI = [
   { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', pagato:true, totale:64.50, codiceRitiro:'K4F7',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{nome:'Birra media',qty:2,prezzo:5.50},{nome:'Supplì (4pz)',qty:1,prezzo:7.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:2,prezzo:2.50},{nome:'Patatine fritte',qty:1,prezzo:4.00}] },
-  { id:'asp-4', codice:'#A-1045', cliente:'Paolo Ventura', ritiro:'20:00', fonte:'webapp', pagato:false, totale:37.00, codiceRitiro:'H5W8',
+  { id:'asp-4', codice:'#A-1045', cliente:null, ritiro:'20:00', fonte:'webapp', pagato:false, totale:37.00, codiceRitiro:'H5W8',
     items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Birra media',qty:2,prezzo:5.50}] },
   { id:'asp-2', codice:'#A-1043', cliente:'Elena Greco', ritiro:'20:15', fonte:'byup', pagato:true, totale:31.00, codiceRitiro:'B2N9',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tagliere salumi',qty:1,prezzo:13.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'asp-3', codice:'#A-1044', cliente:'Marta Ferri', ritiro:'20:30', fonte:'byup', pagato:true, totale:22.00, codiceRitiro:'Q7D3',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
-  { id:'asp-5', codice:'#A-1046', cliente:'Giorgia Leone', ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
+  { id:'asp-5', codice:'#A-1046', cliente:null, ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tiramisù',qty:2,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
+];
+
+// Storico del servizio — ordini già chiusi: consegnati al banco o saldati e
+// portati via. Non hanno più azioni, servono a rispondere alle domande che
+// arrivano dopo ("l'ordine di prima quant'era?", "è già passato a ritirare?").
+const SALA_ORDINI_STORICO = [
+  { id:'sto-6', codice:'#A-1041', cliente:'Chiara Neri', ritiro:'19:38', fonte:'byup', pagato:true, totale:27.50, stato:'consegnato',
+    items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Birra media',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
+  { id:'sto-5', codice:'#1245', cliente:null, ritiro:'19:31', fonte:'banco', pagato:true, asporto:true, totale:19.50, stato:'consegnato',
+    items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00}] },
+  { id:'sto-4', codice:'#A-1040', cliente:null, ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato',
+    items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
+  { id:'sto-3', codice:'#1244', cliente:null, ritiro:'19:12', fonte:'banco', pagato:true, asporto:false, totale:9.50, stato:'consegnato',
+    items:[{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
+  { id:'sto-2', codice:'#A-1039', cliente:'Davide Sarti', ritiro:'19:05', fonte:'byup', pagato:true, totale:50.00, stato:'consegnato',
+    items:[{nome:'Tagliere misto',qty:1,prezzo:14.00},{nome:'Bistecca fiorentina',qty:1,prezzo:32.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
+  { id:'sto-1', codice:'#1243', cliente:null, ritiro:'18:54', fonte:'banco', pagato:true, asporto:true, totale:12.00, stato:'consegnato',
+    items:[{nome:'Pasta carbonara',qty:1,prezzo:12.00}] },
 ];
 
 window.SALA_VENDITA_PIATTI = SALA_VENDITA_PIATTI;
 window.SALA_VENDITA_CATS = SALA_VENDITA_CATS;
 window.SALA_ASPORTO_CONTI = SALA_ASPORTO_CONTI;
+window.SALA_ORDINI_STORICO = SALA_ORDINI_STORICO;

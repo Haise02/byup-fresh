@@ -30,7 +30,13 @@ function SalaVenditaDiretta() {
   // di cassa con preparazione, che abbiano o no il sacchetto. Drawer laterale +
   // conferma con codice ritiro; "Salda ora" apre l'incasso al banco.
   const [ritiri, setRitiri] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
-  const [ritiriOpen, setRitiriOpen] = React.useState(false);
+  // Coda aperta nel pannello: 'salda' (ancora da incassare) o 'consegna'
+  // (pagati, pronti da dare via). Sono i due gesti diversi del banco, quindi
+  // due liste diverse — non una sola con dentro due tipi di card.
+  const [coda, setCoda] = React.useState(null);
+  const [tuttiOpen, setTuttiOpen] = React.useState(false);
+  // Storico del servizio: ordini già chiusi. Cresce man mano che si consegna.
+  const [storico, setStorico] = React.useState(() => (window.SALA_ORDINI_STORICO || []));
   const [consegna, setConsegna] = React.useState(null); // ordine in consegna (modale codice)
   const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
   const [toast, setToast] = React.useState(null);
@@ -38,19 +44,28 @@ function SalaVenditaDiretta() {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   };
+  // Consegnato: esce dalla coda ed entra nello storico, in cima (il più
+  // recente sta sopra: le domande arrivano quasi sempre sull'ultimo ordine).
   const confermaConsegna = (ordine) => {
     setRitiri(prev => {
       const next = prev.filter(r => r.id !== ordine.id);
-      if (!next.length) setRitiriOpen(false);
+      if (!next.filter(r => r.pagato).length && coda === 'consegna') setCoda(null);
       return next;
     });
+    setStorico(prev => [{...ordine, stato: 'consegnato'}, ...prev]);
     setConsegna(null);
-    showToast(`✓ Ordine ${ordine.codice} consegnato a ${ordine.cliente}`);
+    showToast(`✓ Ordine ${ordine.codice} consegnato${ordine.cliente ? ` a ${ordine.cliente}` : ''}`);
   };
-  // Incasso confermato: l'ordine diventa pagato e resta in lista per la consegna.
+  // Incasso confermato: l'ordine diventa pagato e passa nella coda di chi va
+  // solo consegnato — lo stesso ordine, l'altro gesto.
   const confermaSaldo = (ordine) => {
     setRitiri(prev => prev.map(r => r.id === ordine.id ? {...r, pagato: true} : r));
+    showToast(`✓ Ordine ${ordine.codice} saldato · ora è da consegnare`);
   };
+
+  // Le due code, dalla stessa lista: il pagamento è ciò che le separa.
+  const daSaldare = ritiri.filter(r => !r.pagato);
+  const daConsegnare = ritiri.filter(r => r.pagato);
 
   // Creazione ordine al banco. Alla conferma dell'incasso l'ordine viene creato
   // e inviato ai monitor: qui NON si decide cosa passa dalla cucina: si manda
@@ -177,9 +192,12 @@ function SalaVenditaDiretta() {
           borderBottom: `1px solid ${PN.BORDER_SOFT}`,
           background: PN.WHITE,
         }}>
-          <div style={{display:'flex', gap: 8, marginBottom: 12}}>
-            <div style={{position:'relative', flex: 1}}>
-              <span style={{position:'absolute', left: 13, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
+          <div style={{display:'flex', gap: 8, marginBottom: 12, alignItems:'stretch'}}>
+            {/* La ricerca non si prende più tutta la riga: accanto ci stanno le
+                due code del banco, che durante il servizio si guardano molto
+                più spesso di quanto si cerchi un piatto per nome. */}
+            <div style={{position:'relative', flex: '0 1 260px', minWidth: 150}}>
+              <span style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
               </span>
               <input
@@ -187,42 +205,34 @@ function SalaVenditaDiretta() {
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Cerca nel menù…"
                 style={{
-                  width:'100%', padding: '10px 14px 10px 36px',
+                  width:'100%', boxSizing:'border-box',
+                  padding: '9px 12px 9px 34px',
                   borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
-                  fontSize: 18, fontFamily:'inherit', outline:'none',
+                  fontSize: 16, fontFamily:'inherit', outline:'none',
                   background: '#FAFBFC',
                   boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
                 }}/>
             </div>
 
-            {/* Ritiri — la coda di chi aspetta al banco: asporto e consumo sul
-                posto senza tavolo hanno lo stesso handoff, quindi stessa lista.
-                Chip di stato (non modalità): apre il drawer. */}
-            {ritiri.length > 0 && (
-              <button
-                onClick={() => setRitiriOpen(true)}
-                title="Ordini in attesa di ritiro al banco"
-                style={{
-                  display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
-                  padding: '0 14px', borderRadius: 10,
-                  background: PN.WHITE, color: PN.TEXT,
-                  border: `1px solid ${PN.BORDER_LIGHT}`,
-                  fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                  boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
-                  transition: 'border-color 150ms, background 150ms',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = '#FAFBFC'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_LIGHT; e.currentTarget.style.background = PN.WHITE; }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                Ritiri al banco
-                <span style={{
-                  minWidth: 22, padding: '2px 7px', borderRadius: 999,
-                  background: PN.PINK, color: '#fff',
-                  fontSize: 14, fontWeight: 800, lineHeight: 1.2, textAlign:'center',
-                }}>{ritiri.length}</span>
-              </button>
-            )}
+            {/* Le due code del banco. Sono stati, non modalità: aprono il
+                pannello degli ordini già filtrato su quello che devi fare —
+                incassare, o consegnare e basta. */}
+            <SaCodaBtn
+              label="Pronti da saldare"
+              count={daSaldare.length}
+              tone="amber"
+              title="Ordini arrivati da app o webapp, ancora da incassare in cassa"
+              onClick={() => setCoda('salda')}
+              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="13" rx="2.5"/><path d="M2 10.5h20"/><path d="M6 15h4"/></svg>}
+            />
+            <SaCodaBtn
+              label="Da consegnare"
+              count={daConsegnare.length}
+              tone="green"
+              title="Ordini pronti e già pagati: vanno solo consegnati"
+              onClick={() => setCoda('consegna')}
+              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>}
+            />
           </div>
           <div style={{display:'flex', gap: 6, paddingBottom: 12, overflowX:'auto'}}>
             {cats.map(c => {
@@ -338,14 +348,25 @@ function SalaVenditaDiretta() {
         }}
       />
 
-      {/* Drawer ritiri + modale consegna con codice */}
+      {/* Pannello coda (saldare o consegnare) + modale consegna con codice */}
       <SaRitiriDrawer
-        open={ritiriOpen}
-        ritiri={ritiri}
-        onClose={() => setRitiriOpen(false)}
+        open={!!coda}
+        modo={coda || 'consegna'}
+        ritiri={coda === 'salda' ? daSaldare : daConsegnare}
+        onClose={() => setCoda(null)}
         onConsegna={setConsegna}
         onSalda={setSaldaOrdine}
+        onVediTutti={() => setTuttiOpen(true)}
       />
+
+      {/* Tutti gli ordini del servizio, storico compreso */}
+      {tuttiOpen && (
+        <SaTuttiOrdiniModal
+          attivi={ritiri}
+          storico={storico}
+          onClose={() => setTuttiOpen(false)}
+        />
+      )}
       {consegna && (
         <SaConsegnaModal
           ordine={consegna}
@@ -394,11 +415,66 @@ function SalaVenditaDiretta() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Ritiri — ordini d'asporto in attesa di consegna: pagati in app (Consegna)
-// o da pagare al banco (solo Salda ora — la Consegna compare dopo l'incasso).
-// Drawer laterale con le card ordine + modale di consegna con codice ritiro.
+// Code del banco — due pulsanti accanto alla ricerca, uno per gesto.
 
-function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
+// Il numero è l'informazione, non la decorazione: a zero il pulsante si spegne
+// (resta cliccabile, da lì si arriva a "tutti gli ordini") e non chiama.
+function SaCodaBtn({ label, count, tone, icon, title, onClick }) {
+  const vuoto = count === 0;
+  const badge = vuoto
+    ? { bg: PN.WHITE_FROST, fg: PN.MUTED_SOFT }
+    : tone === 'amber' ? { bg: PN.AMBER, fg: '#fff' } : { bg: PN.GREEN, fg: '#fff' };
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
+        padding: '0 13px', borderRadius: 10,
+        background: PN.WHITE, color: vuoto ? PN.MUTED : PN.TEXT,
+        border: `1px solid ${PN.BORDER_LIGHT}`,
+        fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        whiteSpace:'nowrap',
+        boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+        transition: 'border-color 150ms, background 150ms',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = '#FAFBFC'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_LIGHT; e.currentTarget.style.background = PN.WHITE; }}>
+      <span style={{color: vuoto ? PN.MUTED_SOFT : (tone === 'amber' ? PN.AMBER : PN.GREEN), display:'inline-flex'}}>{icon}</span>
+      {label}
+      <span style={{
+        minWidth: 22, padding: '2px 7px', borderRadius: 999,
+        background: badge.bg, color: badge.fg,
+        fontSize: 14, fontWeight: 800, lineHeight: 1.2, textAlign:'center',
+        fontVariantNumeric:'tabular-nums',
+      }}>{count}</span>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Coda del banco — stessa anatomia di card per i due modi:
+//   'salda'    → arrivati da app/webapp, ancora da incassare (CTA Salda ora)
+//   'consegna' → già pagati, pronti da dare via (CTA Consegna col codice)
+// In fondo, la via d'uscita verso tutti gli ordini del servizio.
+
+const SA_CODA_MODI = {
+  salda: {
+    titolo: 'Pronti da saldare',
+    sotto: 'Ordini arrivati da app e webapp, ancora da incassare. Saldati, passano nella coda di chi va consegnato.',
+    vuotoTitolo: 'Niente da saldare',
+    vuotoTesto: 'Gli ordini che arrivano già pagati non passano di qui.',
+  },
+  consegna: {
+    titolo: 'Da consegnare',
+    sotto: 'Ordini pronti e già pagati: chiedi il codice ritiro e consegna.',
+    vuotoTitolo: 'Niente da consegnare',
+    vuotoTesto: 'Qui arrivano gli ordini pagati, appena sono pronti al banco.',
+  },
+};
+
+function SaRitiriDrawer({ open, modo, ritiri, onClose, onConsegna, onSalda, onVediTutti }) {
+  const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
   return (
     <>
       {/* scrim — absolute (ancorato al frame, non alla finestra): dentro il
@@ -422,9 +498,9 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
         {/* header */}
         <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
           <div style={{flex: 1}}>
-            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Ritiri al banco</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>{testi.titolo}</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
-              Ordini in attesa. Per i pagati chiedi il codice ritiro; quelli da pagare vanno prima saldati.
+              {testi.sotto}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -437,6 +513,19 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
         {/* lista ordini — minHeight:0 obbligatorio: senza, il flex item cresce
             quanto il contenuto e la lista non scrolla (card tagliate in basso) */}
         <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '14px 16px 20px', display:'flex', flexDirection:'column', gap: 12}}>
+          {ritiri.length === 0 && (
+            <div style={{textAlign:'center', padding:'48px 20px', display:'flex', flexDirection:'column', alignItems:'center'}}>
+              <div style={{
+                width: 60, height: 60, borderRadius:'50%', marginBottom: 14,
+                background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+              </div>
+              <div style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, marginBottom: 5}}>{testi.vuotoTitolo}</div>
+              <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5, maxWidth: 300}}>{testi.vuotoTesto}</div>
+            </div>
+          )}
           {ritiri.map(r => (
             <div key={r.id}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 0 rgba(15,17,21,0.03), 0 12px 28px rgba(15,17,21,0.10)'; }}
@@ -549,8 +638,177 @@ function SaRitiriDrawer({ open, ritiri, onClose, onConsegna, onSalda }) {
             </div>
           ))}
         </div>
+
+        {/* Via d'uscita comune alle due code: quello che è già passato non sta
+            in nessuna delle due, ma le domande su un ordine arrivano proprio
+            quando l'ordine è appena uscito di lista. */}
+        <div style={{padding:'12px 16px 16px', borderTop:`1px solid ${PN.BORDER_SOFT}`, flexShrink: 0, background: PN.WHITE}}>
+          <button
+            onClick={onVediTutti}
+            title="Tutti gli ordini del servizio, anche quelli già chiusi"
+            style={{
+              width:'100%', padding:'11px 16px', borderRadius: 999,
+              background: PN.BTN_NEUTRAL, color: PN.TEXT,
+              border: `1px solid ${PN.BORDER_LIGHT}`,
+              fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+              display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
+              boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+            }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg>
+            Vedi tutti gli ordini
+          </button>
+        </div>
       </div>
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tutti gli ordini — la vista di consultazione: le due code in corso più lo
+// storico del servizio. Non ha azioni: si salda e si consegna dalle code, qui
+// si viene per guardare (quant'era, è già passato, con che canale è arrivato).
+
+function SaTuttiOrdiniModal({ attivi, storico, onClose }) {
+  const [filtro, setFiltro] = React.useState('tutti');
+
+  const righe = [
+    ...attivi.map(o => ({ ...o, gruppo: o.pagato ? 'consegna' : 'salda' })),
+    ...storico.map(o => ({ ...o, gruppo: 'chiuso' })),
+  ];
+  const conta = {
+    tutti: righe.length,
+    salda: righe.filter(r => r.gruppo === 'salda').length,
+    consegna: righe.filter(r => r.gruppo === 'consegna').length,
+    chiuso: righe.filter(r => r.gruppo === 'chiuso').length,
+  };
+  const filtri = [
+    { key:'tutti', label:'Tutti' },
+    { key:'salda', label:'Da saldare' },
+    { key:'consegna', label:'Da consegnare' },
+    { key:'chiuso', label:'Consegnati' },
+  ];
+  const visibili = filtro === 'tutti' ? righe : righe.filter(r => r.gruppo === filtro);
+
+  // Il canale spiega perché quell'ordine ha un nome o un codice al posto suo.
+  const CANALE = {
+    byup:   { label:'Byup App', bg: PN.PINK_BG_SOFT, fg: PN.PINK_DARK },
+    webapp: { label:'Webapp',   bg: PN.BLUE_SOFT,    fg: '#1D4ED8' },
+    banco:  { label:'Cassa',    bg: '#F4F5F7',       fg: PN.MUTED },
+  };
+  const STATO = {
+    salda:    { label:'Da saldare',    bg: PN.AMBER_SOFT, fg:'#92400E' },
+    consegna: { label:'Da consegnare', bg: PN.GREEN_SOFT, fg:'#15803D' },
+    chiuso:   { label:'Consegnato',    bg:'#F4F5F7',      fg: PN.MUTED },
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 110, padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 22, width: 620, maxWidth:'100%', maxHeight:'100%',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+      }}>
+        <div style={{padding:'20px 22px 14px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
+          <div style={{flex: 1}}>
+            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Tutti gli ordini</div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>
+              Il servizio di oggi: in coda al banco e già consegnati.
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
+            cursor:'pointer', display:'grid', placeItems:'center', fontSize: 18, fontFamily:'inherit',
+          }}>×</button>
+        </div>
+
+        <div style={{display:'flex', gap: 6, padding:'0 22px 14px', flexShrink: 0, flexWrap:'wrap'}}>
+          {filtri.map(f => {
+            const on = filtro === f.key;
+            return (
+              <button key={f.key} onClick={() => setFiltro(f.key)} style={{
+                display:'inline-flex', alignItems:'center', gap: 6,
+                padding:'6px 13px', borderRadius: 999,
+                border: `1px solid ${on ? 'transparent' : PN.BORDER_LIGHT}`,
+                background: on ? SV_SUNSET_BG : 'rgba(255,255,255,0.72)',
+                color: on ? SV_SUNSET_TEXT : PN.TEXT,
+                fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                boxShadow: on ? SV_SUNSET_SHADOW : 'none',
+              }}>
+                {f.label}
+                <span style={{
+                  fontSize: 13, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+                  color: on ? 'rgba(255,233,230,0.75)' : PN.MUTED_SOFT,
+                }}>{conta[f.key]}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="pn-scroll" style={{
+          flex: 1, minHeight: 0, overflow:'auto',
+          padding:'0 22px 22px', display:'flex', flexDirection:'column', gap: 8,
+        }}>
+          {visibili.length === 0 && (
+            <div style={{textAlign:'center', padding:'40px 20px', color: PN.MUTED, fontSize: 16}}>
+              Nessun ordine in questo stato.
+            </div>
+          )}
+          {visibili.map(o => {
+            const canale = CANALE[o.fonte] || CANALE.banco;
+            const stato = STATO[o.gruppo];
+            const nItems = o.items.reduce((s, i) => s + i.qty, 0);
+            return (
+              <div key={o.id} style={{
+                display:'flex', alignItems:'center', gap: 12,
+                padding:'11px 14px', borderRadius: 14,
+                background:'rgba(255,255,255,0.78)',
+                border:`1px solid ${PN.BORDER_HAIR}`,
+              }}>
+                <span style={{flex: 1, minWidth: 0}}>
+                  {/* Identità: il nome se l'ordine ha un account dietro, il
+                      codice se è arrivato dalla webapp guest o dalla cassa. */}
+                  <span style={{display:'flex', alignItems:'center', gap: 7, minWidth: 0}}>
+                    <span style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
+                      {o.cliente || o.codice}
+                    </span>
+                    {o.cliente && (
+                      <span style={{
+                        fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
+                        fontVariantNumeric:'tabular-nums', flexShrink: 0,
+                        background:'#F4F5F7', border:`1px solid ${PN.BORDER_SOFT}`,
+                        padding:'1px 7px', borderRadius: 7,
+                      }}>{o.codice}</span>
+                    )}
+                  </span>
+                  <span style={{display:'flex', alignItems:'center', gap: 7, marginTop: 3, flexWrap:'wrap'}}>
+                    <span style={{
+                      fontSize: 12, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
+                      padding:'2px 8px', borderRadius: 999,
+                      background: canale.bg, color: canale.fg,
+                    }}>{canale.label}</span>
+                    <span style={{fontSize: 14, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
+                      {o.ritiro} · {nItems} {nItems === 1 ? 'articolo' : 'articoli'}
+                    </span>
+                  </span>
+                </span>
+                <span style={{
+                  fontSize: 12.5, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
+                  padding:'4px 10px', borderRadius: 999, flexShrink: 0,
+                  background: stato.bg, color: stato.fg,
+                }}>{stato.label}</span>
+                <span style={{fontSize: 17.5, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 72, textAlign:'right'}}>
+                  €{o.totale.toFixed(2)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
