@@ -539,28 +539,41 @@ function CustomizeView({ c, setC, onAdd }) {
   });
   const setVariant = (vid, opt) => setC(s => ({...s, variants: {...s.variants, [vid]: opt}}));
 
-  return (
-    <>
-      {/* Colonna centrata: personalizzare un piatto è una lista di scelte,
-          non merita 1000px di larghezza. */}
-      <div className="pn-scroll" style={{
-        flex:1, overflow:'auto', padding: '18px 24px 22px',
-        maxWidth: 720, width:'100%', margin:'0 auto', minHeight: 0,
-      }}>
-        {/* Riepilogo prezzo base */}
-        <div style={{
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'12px 14px', background: PN.WHITE_OFF,
-          border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 12, marginBottom: 20,
-          boxShadow: PN.INSET_HIGHLIGHT,
-        }}>
-          <span style={{fontSize: 16, color: PN.MUTED, fontWeight: 600}}>Prezzo base</span>
-          <span style={{fontSize: 18, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{it.prezzo.toFixed(2)}</span>
-        </div>
+  // Le scelte vive, nell'ordine in cui si leggono nel riepilogo.
+  const chosenVariants = (it.variants || []).filter(v => c.variants[v.id])
+    .map(v => ({ id: v.id, label: v.label, value: c.variants[v.id] }));
+  const removedList = Object.keys(c.removed).filter(k => c.removed[k]);
+  const chosenExtras = Object.entries(c.extras).filter(([_,q]) => q > 0)
+    .map(([id, qty]) => { const ex = it.extras.find(x => x.id === id); return { id, nome: ex.nome, prezzo: ex.prezzo, qty }; });
+  const hasChoices = chosenVariants.length + removedList.length + chosenExtras.length > 0;
 
+  // Le opzioni vanno su due colonne solo se c'è roba da mettere in
+  // entrambe: scelte del piatto (varianti + ingredienti) da una parte,
+  // extra dall'altra. Con un gruppo solo resta una colonna sola, larga.
+  const hasPiatto = (it.variants?.length || 0) + (it.ingredients?.length || 0) > 0;
+  const hasExtras = (it.extras?.length || 0) > 0;
+  const twoCols = hasPiatto && hasExtras;
+
+  return (
+    <div style={{flex:1, display:'flex', minHeight: 0}}>
+      {/* Opzioni — prendono la larghezza della finestra invece di stare in
+          una colonna centrata con due vuoti ai lati. */}
+      <div className="pn-scroll" style={{
+        flex:1, overflow:'auto', padding: '20px 24px 24px', minWidth: 0, minHeight: 0,
+      }}>
+      <div style={{
+        display:'grid', alignItems:'start',
+        gridTemplateColumns: twoCols ? '1fr 1fr' : '1fr',
+        gap:'0 28px',
+        maxWidth: twoCols ? 'none' : 620,
+      }}>
+        <div>
         {/* Varianti */}
         {(it.variants || []).map(v => (
-          <Section key={v.id} title={v.label} hint={!c.variants[v.id] ? 'Seleziona un\'opzione' : null}>
+          <Section key={v.id} title={v.label}
+            hint={!c.variants[v.id]
+              ? <span style={{color: PN.PINK_DARK, fontWeight: 600}}>Obbligatorio</span>
+              : null}>
             <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
               {v.options.map(opt => {
                 const sel = c.variants[v.id] === opt;
@@ -608,7 +621,9 @@ function CustomizeView({ c, setC, onAdd }) {
             </div>
           </Section>
         )}
+        </div>
 
+        <div>
         {/* Extras */}
         {(it.extras?.length || 0) > 0 && (
           <Section title="Aggiungi extra">
@@ -668,65 +683,127 @@ function CustomizeView({ c, setC, onAdd }) {
         )}
 
         {/* Note cucina removed — solo varianti/extras strutturate */}
+        </div>
+      </div>
       </div>
 
-      {/* Footer: qty + add — barra a tutta larghezza, controlli allineati
-          alla colonna del contenuto. */}
+      {/* Riepilogo — sta dove in browse c'è la comanda: passando da un passo
+          all'altro la finestra non cambia anatomia, e mentre scegli vedi
+          crescere il piatto invece di una barra col solo totale. */}
       <div style={{
-        borderTop:`1px solid ${PN.BORDER_SOFT}`, padding:'16px 24px', background: PN.WHITE_OFF,
-        flexShrink: 0,
+        width: 330, flexShrink: 0, borderLeft:`1px solid ${PN.BORDER_SOFT}`,
+        display:'flex', flexDirection:'column', background: PN.WHITE_OFF, minHeight: 0,
       }}>
-      <div style={{
-        display:'flex', alignItems:'center', gap: 12,
-        maxWidth: 672, width:'100%', margin:'0 auto',
-      }}>
+        <div style={{padding:'16px 18px 12px', flexShrink: 0}}>
+          <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED_SOFT, letterSpacing: 0.7, textTransform:'uppercase'}}>
+            Il piatto
+          </span>
+        </div>
+
+        <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'0 18px 12px', minHeight: 0}}>
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            paddingBottom: 12, borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+          }}>
+            <span style={{fontSize: 16, color: PN.MUTED, fontWeight: 600}}>Prezzo base</span>
+            <span style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{it.prezzo.toFixed(2)}</span>
+          </div>
+
+          {!hasChoices ? (
+            <div style={{padding:'22px 6px', fontSize: 15.5, color: PN.MUTED_SOFT, lineHeight: 1.5}}>
+              Le scelte che fai compaiono qui.
+            </div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap: 9, paddingTop: 12}}>
+              {chosenVariants.map(v => (
+                <div key={v.id} style={{display:'flex', alignItems:'baseline', gap: 8, fontSize: 15.5}}>
+                  <span style={{color: PN.MUTED}}>{v.label}</span>
+                  <span style={{flex:1}}/>
+                  <span style={{color: PN.TEXT, fontWeight: 700}}>{v.value}</span>
+                </div>
+              ))}
+              {removedList.map(ing => (
+                <div key={ing} style={{display:'flex', alignItems:'center', gap: 7, fontSize: 15.5, color: PN.RED}}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="3" strokeLinecap="round" style={{flexShrink:0}}><path d="M5 12h14"/></svg>
+                  <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>senza {ing}</span>
+                </div>
+              ))}
+              {chosenExtras.map(e => (
+                <div key={e.id} style={{display:'flex', alignItems:'center', gap: 7, fontSize: 15.5, color: PN.GREEN}}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="3" strokeLinecap="round" style={{flexShrink:0}}><path d="M12 5v14 M5 12h14"/></svg>
+                  <span style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{e.qty}× {e.nome}</span>
+                  <span style={{fontWeight: 600, fontVariantNumeric:'tabular-nums'}}>
+                    {e.prezzo === 0 ? 'gratis' : `+€${(e.prezzo * e.qty).toFixed(2)}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div style={{
-          display:'inline-flex', alignItems:'center', gap: 6,
-          background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
-          boxShadow: PN.INSET_HIGHLIGHT,
-          borderRadius: 999, padding: 4,
+          borderTop:`1px solid ${PN.BORDER_SOFT}`, padding:'16px 18px',
+          background: PN.WHITE, flexShrink: 0,
         }}>
-          <button onClick={()=>setC(s=>({...s, qty: Math.max(1, s.qty-1)}))} disabled={c.qty<=1} aria-label="Meno" style={{
-            width: 32, height: 32, borderRadius: 999,
-            background: c.qty<=1 ? 'transparent' : PN.WHITE_HUSH, border:'none',
-            color: c.qty<=1 ? PN.MUTED_LIGHT : PN.TEXT,
-            cursor: c.qty<=1 ? 'default' : 'pointer', fontFamily:'inherit',
-            display:'grid', placeItems:'center',
+          <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 12}}>
+            <div style={{
+              display:'inline-flex', alignItems:'center', gap: 4,
+              background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
+              boxShadow: PN.INSET_HIGHLIGHT, borderRadius: 999, padding: 3,
+            }}>
+              <button onClick={()=>setC(s=>({...s, qty: Math.max(1, s.qty-1)}))} disabled={c.qty<=1} aria-label="Meno" style={{
+                width: 30, height: 30, borderRadius: 999,
+                background: c.qty<=1 ? 'transparent' : PN.WHITE_HUSH, border:'none',
+                color: c.qty<=1 ? PN.MUTED_LIGHT : PN.TEXT,
+                cursor: c.qty<=1 ? 'default' : 'pointer', fontFamily:'inherit',
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="3" strokeLinecap="round"><path d="M5 12h14"/></svg>
+              </button>
+              <span style={{fontSize: 17, fontWeight: 800, color: PN.TEXT, minWidth: 20, textAlign:'center', fontVariantNumeric:'tabular-nums'}}>{c.qty}</span>
+              <button onClick={()=>setC(s=>({...s, qty: s.qty+1}))} aria-label="Più" style={{
+                width: 30, height: 30, borderRadius: 999,
+                background: PN.WHITE_HUSH, border:'none',
+                color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="3" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+              </button>
+            </div>
+            <span style={{flex:1}}/>
+            <span style={{fontSize: 25, fontWeight: 800, color: PN.TEXT, letterSpacing:-0.6, lineHeight: 1.1, fontVariantNumeric:'tabular-nums'}}>
+              €{total.toFixed(2)}
+            </span>
+          </div>
+          {!canAdd && (
+            <div style={{fontSize: 14.5, color: PN.PINK_DARK, fontWeight: 600, marginBottom: 8}}>
+              Scegli prima: {variantsRequired.map(v => v.label).join(', ')}
+            </div>
+          )}
+          <button onClick={onAdd} disabled={!canAdd}
+            onMouseEnter={e => { if (canAdd) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+            onMouseLeave={e => { if (canAdd) e.currentTarget.style.background = PN.BTN_DARK; }}
+            style={{
+            width:'100%', padding:'12px 16px',
+            background: canAdd ? PN.BTN_DARK : PN.WHITE_FROST,
+            color: canAdd ? '#fff' : PN.MUTED_SOFT,
+            border:'none', borderRadius: 12,
+            boxShadow: canAdd ? `${PN.INSET_HIGHLIGHT_DARK}, 0 4px 14px rgba(15,17,21,0.20)` : 'none',
+            fontSize: 17.5, fontWeight: 700,
+            cursor: canAdd ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+            display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
+            minHeight: 46, fontVariantNumeric:'tabular-nums',
+            transition:'background 130ms ease, box-shadow 150ms ease',
           }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="3" strokeLinecap="round"><path d="M5 12h14"/></svg>
-          </button>
-          <span style={{fontSize: 18, fontWeight: 800, color: PN.TEXT, minWidth: 20, textAlign:'center', fontVariantNumeric:'tabular-nums'}}>{c.qty}</span>
-          <button onClick={()=>setC(s=>({...s, qty: s.qty+1}))} aria-label="Più" style={{
-            width: 32, height: 32, borderRadius: 999,
-            background: PN.WHITE_HUSH, border:'none',
-            color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
-            display:'grid', placeItems:'center',
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="3" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+            Aggiungi al conto
           </button>
         </div>
-        <button onClick={onAdd} disabled={!canAdd}
-          onMouseEnter={e => { if (canAdd) e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
-          onMouseLeave={e => { if (canAdd) e.currentTarget.style.background = PN.BTN_DARK; }}
-          style={{
-          flex:1, padding:'12px 16px',
-          background: canAdd ? PN.BTN_DARK : PN.WHITE_FROST,
-          color: canAdd ? '#fff' : PN.MUTED_SOFT,
-          border:'none', borderRadius: 12,
-          boxShadow: canAdd ? `${PN.INSET_HIGHLIGHT_DARK}, 0 4px 14px rgba(15,17,21,0.20)` : 'none',
-          fontSize: 17.5, fontWeight: 700,
-          cursor: canAdd ? 'pointer' : 'not-allowed', fontFamily:'inherit',
-          display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
-          minHeight: 46, fontVariantNumeric:'tabular-nums',
-          transition:'background 130ms ease, box-shadow 150ms ease',
-        }}>
-          Aggiungi · €{total.toFixed(2)}
-        </button>
       </div>
-      </div>
-    </>
+    </div>
   );
 }
 
