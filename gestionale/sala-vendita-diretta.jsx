@@ -50,7 +50,6 @@ function SalaVenditaDiretta() {
   };
   // Storico del servizio: ordini già chiusi. Cresce man mano che si consegna.
   const [storico, setStorico] = React.useState(() => (window.SALA_ORDINI_STORICO || []));
-  const [consegna, setConsegna] = React.useState(null); // ordine in consegna (modale codice)
   const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
   const [toast, setToast] = React.useState(null);
   const showToast = (msg) => {
@@ -66,7 +65,6 @@ function SalaVenditaDiretta() {
       return next;
     });
     setStorico(prev => [{...ordine, stato: 'consegnato'}, ...prev]);
-    setConsegna(null);
     showToast(`✓ Ordine ${ordine.codice} consegnato${ordine.cliente ? ` a ${ordine.cliente}` : ''}`);
   };
   // Incasso confermato: l'ordine diventa pagato e passa nella coda di chi va
@@ -386,14 +384,14 @@ function SalaVenditaDiretta() {
         }}
       />
 
-      {/* Popup coda (saldare o consegnare) + modale consegna con codice */}
+      {/* Popup coda: saldare o consegnare */}
       <SaCodaModal
         open={!!coda}
         modo={coda || 'consegna'}
         ritiri={coda === 'salda' ? daSaldare : daConsegnare}
         evidenzia={evidenzia}
         onClose={() => setCoda(null)}
-        onConsegna={setConsegna}
+        onConsegna={confermaConsegna}
         onSalda={setSaldaOrdine}
         onVediTutti={() => setTuttiOpen(true)}
       />
@@ -412,14 +410,6 @@ function SalaVenditaDiretta() {
       {dettaglio && (
         <SaOrdineDettaglioModal ordine={dettaglio} onClose={() => setDettaglio(null)}/>
       )}
-      {consegna && (
-        <SaConsegnaModal
-          ordine={consegna}
-          onClose={() => setConsegna(null)}
-          onConfirm={() => confermaConsegna(consegna)}
-        />
-      )}
-
       {/* Salda ora asporto: stessa modale incasso del banco, sul totale dell'ordine */}
       <SaIncassaModal
         open={!!saldaOrdine}
@@ -500,7 +490,7 @@ function SaCodaBtn({ label, count, tone, icon, title, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Coda del banco — popup centrale, stessa anatomia di card per i due modi:
 //   'salda'    → arrivati da app/webapp, ancora da incassare (CTA Salda ora)
-//   'consegna' → già pagati, pronti da dare via (CTA Consegna col codice)
+//   'consegna' → già pagati, pronti da dare via (CTA Segna come consegnato)
 // In fondo, la via d'uscita verso tutti gli ordini del servizio.
 
 const SA_CODA_MODI = {
@@ -509,10 +499,14 @@ const SA_CODA_MODI = {
     sotto: 'Ordini arrivati da app e webapp, ancora da incassare. Saldati, passano nella coda di chi va consegnato.',
     vuotoTitolo: 'Niente da saldare',
     vuotoTesto: 'Gli ordini che arrivano già pagati non passano di qui.',
+    // Chi si presenta al banco dice un codice o un nome: qui si cerca quello,
+    // non si scorre la coda a occhio.
+    ricerca: true,
+    ricercaPlaceholder: 'Cerca per codice, nome o piatto…',
   },
   consegna: {
     titolo: 'Da consegnare',
-    sotto: 'Ordini pronti e già pagati: chiedi il codice ritiro e consegna.',
+    sotto: 'Ordini pronti e già pagati: consegnato l\'ordine, segnalo e esce dalla coda.',
     vuotoTitolo: 'Niente da consegnare',
     vuotoTesto: 'Qui arrivano gli ordini pagati, appena sono pronti al banco.',
   },
@@ -520,6 +514,14 @@ const SA_CODA_MODI = {
 
 function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSalda, onVediTutti }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
+  const [q, setQ] = React.useState('');
+  React.useEffect(() => { setQ(''); }, [modo, open]);
+  const ql = testi.ricerca ? q.trim().toLowerCase() : '';
+  const visibili = !ql ? ritiri : ritiri.filter(r =>
+    (r.codice || '').toLowerCase().includes(ql) ||
+    (r.cliente || '').toLowerCase().includes(ql) ||
+    (r.items || []).some(i => i.nome.toLowerCase().includes(ql))
+  );
   // L'ordine su cui si è appena "andati" va portato sotto gli occhi.
   React.useEffect(() => {
     if (!open || !evidenzia) return;
@@ -565,6 +567,40 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
           }}>×</button>
         </div>
 
+        {testi.ricerca && ritiri.length > 0 && (
+          <div style={{padding:'0 22px 12px', flexShrink: 0}}>
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </span>
+              <input
+                autoFocus
+                value={q} onChange={e => setQ(e.target.value)}
+                placeholder={testi.ricercaPlaceholder}
+                onKeyDown={e => { if (e.key === 'Escape' && q) { e.stopPropagation(); setQ(''); } }}
+                style={{
+                  width:'100%', boxSizing:'border-box',
+                  padding: '10px 34px 10px 35px',
+                  borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
+                  fontSize: 16, fontFamily:'inherit', outline:'none',
+                  background:'rgba(255,255,255,0.78)',
+                  boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
+                }}/>
+              {q && (
+                <button
+                  onClick={() => setQ('')}
+                  title="Pulisci la ricerca"
+                  style={{
+                    position:'absolute', right: 5, top:'50%', transform:'translateY(-50%)',
+                    width: 24, height: 24, borderRadius:'50%',
+                    background:'transparent', border:'none', color: PN.MUTED,
+                    fontSize: 16, lineHeight: 1, cursor:'pointer', fontFamily:'inherit',
+                  }}>×</button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* lista ordini — minHeight:0 obbligatorio: senza, il flex item cresce
             quanto il contenuto e la lista non scrolla (card tagliate in basso) */}
         <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '0 22px 18px', display:'flex', flexDirection:'column', gap: 12}}>
@@ -581,7 +617,12 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
               <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5, maxWidth: 300}}>{testi.vuotoTesto}</div>
             </div>
           )}
-          {ritiri.map(r => {
+          {ritiri.length > 0 && visibili.length === 0 && (
+            <div style={{textAlign:'center', padding:'40px 20px', color: PN.MUTED, fontSize: 16}}>
+              Nessun ordine in coda corrisponde a "{q.trim()}"
+            </div>
+          )}
+          {visibili.map(r => {
             const acceso = evidenzia === r.id;
             return (
             <div key={r.id} id={`sa-coda-${r.id}`}
@@ -660,8 +701,8 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
                   <span style={{fontSize: 18, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', letterSpacing:-0.3}}>€{r.totale.toFixed(2)}</span>
                 </div>
               </div>
-              {/* CTA: mai Consegna su un ordine da saldare — prima l'incasso,
-                  poi (l'ordine resta in lista come pagato) la consegna */}
+              {/* CTA: mai la consegna su un ordine da saldare — prima l'incasso,
+                  poi (l'ordine passa nell'altra coda) la consegna */}
               <div style={{padding:'0 12px 12px', display:'flex', gap: 8}}>
                 {!r.pagato ? (
                   <button onClick={() => onSalda(r)} style={{
@@ -690,7 +731,7 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
                     onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = SV_SUNSET_SHADOW; }}
                     onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
                     onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}>
-                    Consegna
+                    Segna come consegnato
                   </button>
                 )}
               </div>
@@ -970,118 +1011,6 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// Modale consegna: il cliente detta il codice ritiro mostrato dalla sua app;
-// il codice corretto è la prova di consegna e l'ordine esce dalla lista.
-function SaConsegnaModal({ ordine, onClose, onConfirm }) {
-  const [code, setCode] = React.useState('');
-  const [errore, setErrore] = React.useState(false);
-  const inputRef = React.useRef(null);
-
-  React.useEffect(() => { inputRef.current?.focus(); }, []);
-
-  const tryConfirm = () => {
-    if (code.trim().toUpperCase() === ordine.codiceRitiro.toUpperCase()) {
-      onConfirm();
-    } else {
-      setErrore(true);
-    }
-  };
-  const handleKey = (e) => {
-    if (e.key === 'Enter' && code.length >= 4) tryConfirm();
-    if (e.key === 'Escape') onClose();
-  };
-
-  return (
-    <div onClick={onClose} style={{
-      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
-      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG,
-        borderRadius: 20, width: 400, maxWidth:'100%',
-        padding: '22px 22px 20px',
-        display:'flex', flexDirection:'column', gap: 16,
-      }}>
-        {/* Header */}
-        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
-          <div>
-            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>Consegna ordine</div>
-            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>
-              {ordine.codice} · {ordine.cliente} · {ordine.items.reduce((s, i) => s + i.qty, 0)} articoli
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
-            background:'rgba(255,255,255,0.95)', border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-
-        {/* Codice ritiro */}
-        <div style={{display:'flex', flexDirection:'column', gap: 6}}>
-          <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Codice ritiro del cliente</label>
-          <input
-            ref={inputRef}
-            value={code}
-            onChange={e => { setCode(e.target.value.toUpperCase().slice(0, 4)); setErrore(false); }}
-            onKeyDown={handleKey}
-            placeholder="····"
-            maxLength={4}
-            style={{
-              padding: '14px 12px', borderRadius: 12,
-              border: `2px solid ${errore ? '#DC2626' : 'rgba(15,17,21,0.14)'}`, outline: 'none',
-              background: 'rgba(255,255,255,0.85)',
-              fontSize: 30, fontWeight: 800, fontFamily: 'inherit', color: PN.TEXT,
-              textAlign: 'center', letterSpacing: '0.5em', textIndent: '0.5em',
-              fontVariantNumeric: 'tabular-nums',
-              transition: 'border-color 120ms ease-out',
-            }}
-          />
-          {errore && (
-            <div style={{fontSize: 14.5, fontWeight: 600, color:'#DC2626'}}>
-              Codice non valido — chiedi al cliente di ricontrollarlo nell'app.
-            </div>
-          )}
-        </div>
-
-        {/* Conferma */}
-        <button
-          onClick={tryConfirm}
-          disabled={code.length < 4}
-          style={{
-            padding: '12px 18px', borderRadius: 999,
-            background: code.length >= 4 ? SV_SUNSET_BG : PN.WHITE_FROST,
-            color: code.length >= 4 ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
-            border: `1px solid ${code.length >= 4 ? 'transparent' : PN.BORDER_SOFT_A}`,
-            fontSize: 17.5, fontWeight: 700,
-            cursor: code.length >= 4 ? 'pointer' : 'not-allowed',
-            fontFamily:'inherit',
-            boxShadow: code.length >= 4 ? SV_SUNSET_SHADOW : 'none',
-            transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
-          }}
-          onMouseEnter={e => { if (code.length >= 4) svSunsetHoverIn(e); }}
-          onMouseLeave={svSunsetHoverOut}>
-          Conferma consegna
-        </button>
-
-        {/* Scappatoia: telefono scarico, codice non recuperabile */}
-        <button
-          onClick={onConfirm}
-          title="Da usare solo se il cliente non può mostrare il codice"
-          style={{
-            border:'none', background:'transparent', padding: 0,
-            fontSize: 14.5, fontWeight: 600, color: PN.MUTED,
-            cursor:'pointer', fontFamily:'inherit',
-          }}>
-          Consegna senza codice
-        </button>
       </div>
     </div>
   );
