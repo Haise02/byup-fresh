@@ -1160,25 +1160,6 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
     window.addEventListener('sa-cart-bump', b);
     return () => window.removeEventListener('sa-cart-bump', b);
   }, []);
-  // Strumenti asporto: la ricerca filtra gli articoli DENTRO l'ordine (non il
-  // menù), l'avviso sui tempi si può congedare. Entrambi ripartono puliti
-  // quando il flag asporto cambia stato.
-  const [orderQ, setOrderQ] = React.useState('');
-  const [avvisoOff, setAvvisoOff] = React.useState(false);
-  React.useEffect(() => { setOrderQ(''); setAvvisoOff(false); }, [takeaway]);
-  const oq = orderQ.trim().toLowerCase();
-  // Indici originali preservati: i callback (onInc, onRemove…) parlano per
-  // posizione nella lista vera, non in quella filtrata.
-  const visibili = lines.map((l, i) => ({ l, i })).filter(({ l }) => {
-    if (!takeaway || !oq) return true;
-    const nome = (l.displayName || l.piatto.name).toLowerCase();
-    const modsTxt = !l.mods ? '' : [
-      ...Object.values(l.mods.variants || {}),
-      ...(l.mods.removed || []),
-      ...Object.keys(l.mods.extras || {}),
-    ].join(' ').toLowerCase();
-    return nome.includes(oq) || modsTxt.includes(oq);
-  });
   return (
     <aside id="sa-cart-panel" style={{
       background: PN.WHITE, borderRadius: 14,
@@ -1235,74 +1216,10 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
         )}
       </div>
 
-      {/* Strumenti asporto: avviso tempi (congedabile), cliente con la sua CTA,
-          ricerca tra gli articoli dell'ordine — sempre in vista, non nascosta
-          dentro nessun flusso. */}
+      {/* Cliente dell'asporto — chi ritira, con la sua CTA. Solo col flag acceso. */}
       {takeaway && (
-        <div style={{padding: '12px 14px 0', display:'flex', flexDirection:'column', gap: 8}}>
-          {lines.length > 0 && !avvisoOff && (
-            <div style={{
-              display:'flex', alignItems:'center', gap: 12,
-              padding: '10px 12px', borderRadius: 12,
-              background: PN.PINK_BG_SOFT,
-            }}>
-              <span style={{
-                width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-                background: PN.WHITE, color: PN.PINK,
-                display:'grid', placeItems:'center',
-                boxShadow: '0 1px 2px rgba(15,17,21,0.06)',
-              }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
-              </span>
-              <span style={{flex: 1, minWidth: 0}}>
-                <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Ordine da asporto</span>
-                <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.35, marginTop: 1}}>
-                  I tempi di preparazione possono variare in base al carico del locale.
-                </span>
-              </span>
-              <button
-                onClick={() => setAvvisoOff(true)}
-                title="Nascondi l'avviso"
-                style={{
-                  width: 26, height: 26, borderRadius:'50%', flexShrink: 0,
-                  background:'transparent', border:'none', color: PN.MUTED,
-                  fontSize: 16, lineHeight: 1, cursor:'pointer', fontFamily:'inherit',
-                }}>×</button>
-            </div>
-          )}
-
+        <div style={{padding: '12px 14px 0'}}>
           <SaClienteBar cliente={cliente} onChange={onCliente}/>
-
-          {/* Search bar dell'ordine: cerca tra le righe già battute */}
-          {lines.length > 0 && (
-            <div style={{position:'relative'}}>
-              <span style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              </span>
-              <input
-                value={orderQ} onChange={e => setOrderQ(e.target.value)}
-                placeholder="Cerca nell'ordine…"
-                style={{
-                  width:'100%', boxSizing:'border-box',
-                  padding: '9px 34px 9px 33px',
-                  borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
-                  fontSize: 15.5, fontFamily:'inherit', outline:'none',
-                  background: '#FAFBFC',
-                  boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
-                }}/>
-              {orderQ && (
-                <button
-                  onClick={() => setOrderQ('')}
-                  title="Pulisci la ricerca"
-                  style={{
-                    position:'absolute', right: 5, top:'50%', transform:'translateY(-50%)',
-                    width: 24, height: 24, borderRadius:'50%',
-                    background:'transparent', border:'none', color: PN.MUTED,
-                    fontSize: 16, lineHeight: 1, cursor:'pointer', fontFamily:'inherit',
-                  }}>×</button>
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -1409,18 +1326,13 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           )
         ) : (
           <div style={{display:'flex', flexDirection:'column', gap: 10}}>
-            {visibili.map(({ l, i }) => (
+            {lines.map((l, i) => (
               <SaCartLine key={i} line={l}
                 onInc={() => onInc(i)} onDec={() => onDec(i)}
                 onRemove={() => onRemove(i)} onEdit={() => onEdit(i)}
                 onChangeName={(name) => onChangeName(i, name)}
                 onChangePrice={(price) => onChangePrice(i, price)}/>
             ))}
-            {visibili.length === 0 && (
-              <div style={{textAlign:'center', padding: '26px 16px', color: PN.MUTED, fontSize: 15.5}}>
-                Nessun articolo dell'ordine corrisponde a "{orderQ.trim()}"
-              </div>
-            )}
           </div>
         )}
       </div>
