@@ -1631,13 +1631,6 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
         )}
       </div>
 
-      {/* Cliente dell'asporto — chi ritira, con la sua CTA. Solo col flag acceso. */}
-      {takeaway && (
-        <div style={{padding: '12px 14px 0'}}>
-          <SaClienteBar cliente={cliente} onChange={onCliente}/>
-        </div>
-      )}
-
       {/* Popup conferma svuotamento conto */}
       {clearConfirm && (
         <div onClick={() => setClearConfirm(false)} style={{
@@ -1751,6 +1744,15 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           </div>
         )}
       </div>
+
+      {/* Cliente dell'asporto — chi ritira. Sta in fondo, appoggiato al
+          totale: è l'ultima cosa che si compila prima di confermare, non la
+          prima che si guarda quando si batte l'ordine. */}
+      {takeaway && (
+        <div style={{padding: '0 14px 12px'}}>
+          <SaClienteBar cliente={cliente} onChange={onCliente}/>
+        </div>
+      )}
 
       {/* Totale + pagamento */}
       <div style={{
