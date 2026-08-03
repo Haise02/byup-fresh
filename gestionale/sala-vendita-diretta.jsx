@@ -34,20 +34,9 @@ function SalaVenditaDiretta() {
   // (pagati, pronti da dare via). Sono i due gesti diversi del banco, quindi
   // due liste diverse — non una sola con dentro due tipi di card.
   const [coda, setCoda] = React.useState(null);
-  const [tuttiOpen, setTuttiOpen] = React.useState(false);
-  // "Vai all'ordine" da Tutti gli ordini: se l'ordine è ancora in coda si apre
-  // la coda giusta e la card si accende un istante (altrimenti in una lista
-  // lunga si riparte a cercarlo a occhio); se è già chiuso non c'è una coda
-  // dove andare, quindi si apre il suo dettaglio.
-  const [evidenzia, setEvidenzia] = React.useState(null);
+  const [consegnatiOpen, setConsegnatiOpen] = React.useState(false);
+  // Dettaglio di un ordine già consegnato, aperto dall'archivio.
   const [dettaglio, setDettaglio] = React.useState(null);
-  const vaiAllOrdine = (ordine, gruppo) => {
-    if (gruppo === 'chiuso') { setDettaglio(ordine); return; }
-    setTuttiOpen(false);
-    setCoda(gruppo === 'salda' ? 'salda' : 'consegna');
-    setEvidenzia(ordine.id);
-    setTimeout(() => setEvidenzia(cur => (cur === ordine.id ? null : cur)), 2400);
-  };
   // Storico del servizio: ordini già chiusi. Cresce man mano che si consegna.
   const [storico, setStorico] = React.useState(() => (window.SALA_ORDINI_STORICO || []));
   const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
@@ -250,8 +239,8 @@ function SalaVenditaDiretta() {
                 si lavora. Stessa riga perché la domanda ("l'ordine di prima?")
                 nasce proprio mentre si guardano le code. */}
             <button
-              onClick={() => setTuttiOpen(true)}
-              title="Tutti gli ordini del servizio, anche quelli già consegnati"
+              onClick={() => setConsegnatiOpen(true)}
+              title="Gli ordini già consegnati del servizio"
               style={{
                 display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
                 padding: '0 13px', borderRadius: 10,
@@ -265,9 +254,9 @@ function SalaVenditaDiretta() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = '#FAFBFC'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_LIGHT; e.currentTarget.style.background = PN.WHITE; }}>
               <span style={{color: PN.MUTED, display:'inline-flex'}}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
               </span>
-              Tutti gli ordini
+              Consegnati
             </button>
           </div>
           <div style={{display:'flex', gap: 6, paddingBottom: 12, overflowX:'auto'}}>
@@ -389,20 +378,18 @@ function SalaVenditaDiretta() {
         open={!!coda}
         modo={coda || 'consegna'}
         ritiri={coda === 'salda' ? daSaldare : daConsegnare}
-        evidenzia={evidenzia}
         onClose={() => setCoda(null)}
         onConsegna={confermaConsegna}
         onSalda={setSaldaOrdine}
-        onVediTutti={() => setTuttiOpen(true)}
+        onVediTutti={() => setConsegnatiOpen(true)}
       />
 
-      {/* Tutti gli ordini del servizio, storico compreso */}
-      {tuttiOpen && (
-        <SaTuttiOrdiniModal
-          attivi={ritiri}
-          storico={storico}
-          onClose={() => setTuttiOpen(false)}
-          onVai={vaiAllOrdine}
+      {/* Consegnati — l'archivio del servizio */}
+      {consegnatiOpen && (
+        <SaConsegnatiModal
+          consegnati={storico}
+          onClose={() => setConsegnatiOpen(false)}
+          onVai={setDettaglio}
         />
       )}
 
@@ -512,7 +499,7 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSalda, onVediTutti }) {
+function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onVediTutti }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
   const [q, setQ] = React.useState('');
   React.useEffect(() => { setQ(''); }, [modo, open]);
@@ -522,15 +509,6 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
     (r.cliente || '').toLowerCase().includes(ql) ||
     (r.items || []).some(i => i.nome.toLowerCase().includes(ql))
   );
-  // L'ordine su cui si è appena "andati" va portato sotto gli occhi.
-  React.useEffect(() => {
-    if (!open || !evidenzia) return;
-    const id = setTimeout(() => {
-      const el = document.getElementById(`sa-coda-${evidenzia}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 120);
-    return () => clearTimeout(id);
-  }, [open, evidenzia]);
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -541,8 +519,8 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
 
   return (
     // absolute (ancorato al frame, non alla finestra): dentro il canvas scalato
-    // con zoom i fixed si disallineano. Stessa scatola di "Tutti gli ordini":
-    // le code sono la stessa materia, guardata da più vicino.
+    // con zoom i fixed si disallineano. Stessa scatola dei "Consegnati": le
+    // code sono la stessa materia, guardata da più vicino.
     <div onClick={onClose} style={{
       position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 95, padding: 24,
@@ -622,20 +600,16 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
               Nessun ordine in coda corrisponde a "{q.trim()}"
             </div>
           )}
-          {visibili.map(r => {
-            const acceso = evidenzia === r.id;
-            return (
-            <div key={r.id} id={`sa-coda-${r.id}`}
-              onMouseEnter={e => { if (!acceso) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 0 rgba(15,17,21,0.03), 0 12px 28px rgba(15,17,21,0.10)'; } }}
-              onMouseLeave={e => { if (!acceso) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; } }}
+          {visibili.map(r => (
+            <div key={r.id}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 0 rgba(15,17,21,0.03), 0 12px 28px rgba(15,17,21,0.10)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
               style={{
-              border: `1px solid ${acceso ? PN.PINK : PN.BORDER_HAIR}`, borderRadius: 16,
+              border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 16,
               background: 'rgba(255,255,255,0.82)',
-              boxShadow: acceso
-                ? `0 0 0 3px ${PN.PINK_SOFT}, 0 8px 22px rgba(255,90,95,0.18)`
-                : '0 1px 0 rgba(15,17,21,0.04), 0 6px 16px rgba(15,17,21,0.05)',
+              boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 16px rgba(15,17,21,0.05)',
               overflow:'hidden',
-              transition:'transform 160ms ease, box-shadow 260ms ease, border-color 260ms ease',
+              transition:'transform 160ms ease, box-shadow 180ms ease',
               // flexShrink 0 obbligatorio: senza, la colonna flex COMPRIME le card
               // per farcele stare (niente overflow → niente scroll) e il fondo
               // di ogni card — la CTA Consegna — resta clippato da overflow:hidden.
@@ -736,8 +710,7 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
                 )}
               </div>
             </div>
-            );
-          })}
+          ))}
         </div>
 
         {/* Via d'uscita comune alle due code: quello che è già passato non sta
@@ -752,7 +725,7 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
         }}>
           <button
             onClick={onVediTutti}
-            title="Tutti gli ordini del servizio, anche quelli già chiusi"
+            title="Gli ordini già consegnati del servizio"
             style={{
               width:'100%', padding:'11px 16px', borderRadius: 999,
               background: PN.BTN_NEUTRAL, color: PN.TEXT,
@@ -761,8 +734,8 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
               display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
               boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
             }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg>
-            Vedi tutti gli ordini
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Vedi i consegnati
           </button>
         </div>
       </div>
@@ -771,41 +744,22 @@ function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSal
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tutti gli ordini — la vista di consultazione: le due code in corso più lo
-// storico del servizio. Non ha azioni: si salda e si consegna dalle code, qui
-// si viene per guardare (quant'era, è già passato, con che canale è arrivato).
+// Consegnati — l'archivio del servizio: gli ordini che sono già usciti dalle
+// code. Non ha azioni (non c'è più niente da fare), si viene per guardare:
+// quant'era, a che ora è passato, da che canale era arrivato.
 
-function SaTuttiOrdiniModal({ attivi, storico, onClose, onVai }) {
-  const [filtro, setFiltro] = React.useState('tutti');
-
-  const righe = [
-    ...attivi.map(o => ({ ...o, gruppo: o.pagato ? 'consegna' : 'salda' })),
-    ...storico.map(o => ({ ...o, gruppo: 'chiuso' })),
-  ];
-  const conta = {
-    tutti: righe.length,
-    salda: righe.filter(r => r.gruppo === 'salda').length,
-    consegna: righe.filter(r => r.gruppo === 'consegna').length,
-    chiuso: righe.filter(r => r.gruppo === 'chiuso').length,
-  };
-  const filtri = [
-    { key:'tutti', label:'Tutti' },
-    { key:'salda', label:'Da saldare' },
-    { key:'consegna', label:'Da consegnare' },
-    { key:'chiuso', label:'Consegnati' },
-  ];
-  const visibili = filtro === 'tutti' ? righe : righe.filter(r => r.gruppo === filtro);
+function SaConsegnatiModal({ consegnati, onClose, onVai }) {
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   // Il canale spiega perché quell'ordine ha un nome o un codice al posto suo.
   const CANALE = {
     byup:   { label:'Byup App', bg: PN.PINK_BG_SOFT, fg: PN.PINK_DARK },
     webapp: { label:'Webapp',   bg: PN.BLUE_SOFT,    fg: '#1D4ED8' },
     banco:  { label:'Cassa',    bg: '#F4F5F7',       fg: PN.MUTED },
-  };
-  const STATO = {
-    salda:    { label:'Da saldare',    bg: PN.AMBER_SOFT, fg:'#92400E' },
-    consegna: { label:'Da consegnare', bg: PN.GREEN_SOFT, fg:'#15803D' },
-    chiuso:   { label:'Consegnato',    bg:'#F4F5F7',      fg: PN.MUTED },
   };
 
   return (
@@ -815,16 +769,21 @@ function SaTuttiOrdiniModal({ attivi, storico, onClose, onVai }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG,
-        borderRadius: 22, width: 760, maxWidth:'100%', maxHeight:'100%',
+        borderRadius: 22, width: 700, maxWidth:'100%', maxHeight:'100%',
         display:'flex', flexDirection:'column', overflow:'hidden',
       }}>
-        <div style={{padding:'20px 22px 14px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
+        <div style={{padding:'20px 22px 16px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
           <div style={{flex: 1}}>
-            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Tutti gli ordini</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Consegnati</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>
-              Il servizio di oggi: in coda al banco e già consegnati.
+              Gli ordini già chiusi del servizio, dal più recente.
             </div>
           </div>
+          <span style={{
+            fontSize: 13.5, fontWeight: 800, flexShrink: 0,
+            color: PN.MUTED, background:'rgba(255,255,255,0.75)',
+            padding:'5px 12px', borderRadius: 999, fontVariantNumeric:'tabular-nums',
+          }}>{consegnati.length}</span>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: 8, flexShrink: 0,
             border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
@@ -832,41 +791,17 @@ function SaTuttiOrdiniModal({ attivi, storico, onClose, onVai }) {
           }}>×</button>
         </div>
 
-        <div style={{display:'flex', gap: 6, padding:'0 22px 14px', flexShrink: 0, flexWrap:'wrap'}}>
-          {filtri.map(f => {
-            const on = filtro === f.key;
-            return (
-              <button key={f.key} onClick={() => setFiltro(f.key)} style={{
-                display:'inline-flex', alignItems:'center', gap: 6,
-                padding:'6px 13px', borderRadius: 999,
-                border: `1px solid ${on ? 'transparent' : PN.BORDER_LIGHT}`,
-                background: on ? SV_SUNSET_BG : 'rgba(255,255,255,0.72)',
-                color: on ? SV_SUNSET_TEXT : PN.TEXT,
-                fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                boxShadow: on ? SV_SUNSET_SHADOW : 'none',
-              }}>
-                {f.label}
-                <span style={{
-                  fontSize: 13, fontWeight: 800, fontVariantNumeric:'tabular-nums',
-                  color: on ? 'rgba(255,233,230,0.75)' : PN.MUTED_SOFT,
-                }}>{conta[f.key]}</span>
-              </button>
-            );
-          })}
-        </div>
-
         <div className="pn-scroll" style={{
           flex: 1, minHeight: 0, overflow:'auto',
           padding:'0 22px 22px', display:'flex', flexDirection:'column', gap: 8,
         }}>
-          {visibili.length === 0 && (
-            <div style={{textAlign:'center', padding:'40px 20px', color: PN.MUTED, fontSize: 16}}>
-              Nessun ordine in questo stato.
+          {consegnati.length === 0 && (
+            <div style={{textAlign:'center', padding:'44px 20px', color: PN.MUTED, fontSize: 16}}>
+              Nessun ordine consegnato: il servizio è appena cominciato.
             </div>
           )}
-          {visibili.map(o => {
+          {consegnati.map(o => {
             const canale = CANALE[o.fonte] || CANALE.banco;
-            const stato = STATO[o.gruppo];
             const nItems = o.items.reduce((s, i) => s + i.qty, 0);
             return (
               <div key={o.id} style={{
@@ -902,31 +837,22 @@ function SaTuttiOrdiniModal({ attivi, storico, onClose, onVai }) {
                     </span>
                   </span>
                 </span>
-                <span style={{
-                  fontSize: 12, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
-                  padding:'4px 9px', borderRadius: 999, flexShrink: 0, whiteSpace:'nowrap',
-                  background: stato.bg, color: stato.fg,
-                }}>{stato.label}</span>
                 <span style={{fontSize: 17.5, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 70, textAlign:'right', flexShrink: 0}}>
                   €{o.totale.toFixed(2)}
                 </span>
-                {/* Da qui si torna all'ordine: nella sua coda se c'è ancora
-                    qualcosa da fare, nel suo dettaglio se è già chiuso. */}
+                {/* Qui non si agisce: si apre l'ordine per guardarci dentro */}
                 <button
-                  onClick={() => onVai(o, o.gruppo)}
-                  title={o.gruppo === 'chiuso'
-                    ? 'Apri il dettaglio di questo ordine'
-                    : (o.gruppo === 'salda' ? 'Vai a questo ordine nella coda da saldare' : 'Vai a questo ordine nella coda da consegnare')}
+                  onClick={() => onVai(o)}
+                  title="Apri il dettaglio di questo ordine"
                   style={{
                     display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
                     padding:'7px 13px', borderRadius: 999,
-                    background: o.gruppo === 'chiuso' ? 'rgba(255,255,255,0.85)' : PN.TEXT,
-                    color: o.gruppo === 'chiuso' ? PN.TEXT : PN.WHITE,
-                    border: `1px solid ${o.gruppo === 'chiuso' ? PN.BORDER_LIGHT : 'transparent'}`,
+                    background: 'rgba(255,255,255,0.85)', color: PN.TEXT,
+                    border: `1px solid ${PN.BORDER_LIGHT}`,
                     fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                     whiteSpace:'nowrap',
                   }}>
-                  {o.gruppo === 'chiuso' ? 'Vedi ordine' : 'Vai all\'ordine'}
+                  Vedi ordine
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
                 </button>
               </div>
