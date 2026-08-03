@@ -1160,6 +1160,25 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
     window.addEventListener('sa-cart-bump', b);
     return () => window.removeEventListener('sa-cart-bump', b);
   }, []);
+  // Strumenti asporto: la ricerca filtra gli articoli DENTRO l'ordine (non il
+  // menù), l'avviso sui tempi si può congedare. Entrambi ripartono puliti
+  // quando il flag asporto cambia stato.
+  const [orderQ, setOrderQ] = React.useState('');
+  const [avvisoOff, setAvvisoOff] = React.useState(false);
+  React.useEffect(() => { setOrderQ(''); setAvvisoOff(false); }, [takeaway]);
+  const oq = orderQ.trim().toLowerCase();
+  // Indici originali preservati: i callback (onInc, onRemove…) parlano per
+  // posizione nella lista vera, non in quella filtrata.
+  const visibili = lines.map((l, i) => ({ l, i })).filter(({ l }) => {
+    if (!takeaway || !oq) return true;
+    const nome = (l.displayName || l.piatto.name).toLowerCase();
+    const modsTxt = !l.mods ? '' : [
+      ...Object.values(l.mods.variants || {}),
+      ...(l.mods.removed || []),
+      ...Object.keys(l.mods.extras || {}),
+    ].join(' ').toLowerCase();
+    return nome.includes(oq) || modsTxt.includes(oq);
+  });
   return (
     <aside id="sa-cart-panel" style={{
       background: PN.WHITE, borderRadius: 14,
@@ -1184,22 +1203,20 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2}}>Ordine</div>
           <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</div>
         </div>
-        {/* Toggle asporto — acceso vira in corallo tenue: è la stessa famiglia
-            dell'icona d'intestazione, così il pannello si legge tutto insieme
-            come "ordine da asporto" invece che come un bottone nero staccato. */}
+        {/* Toggle asporto — acceso diventa la pillola nera piena del mockup */}
         <button
           onClick={onToggleTakeaway}
           title={takeaway ? 'Da asporto. Tocca per togliere: resta al banco' : 'Segna come da asporto. Se spento resta al banco'}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.14)'; if (!takeaway) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.color = PN.TEXT; } }}
-          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.PINK_BG_SOFT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.PINK_SOFT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.PINK_DARK : PN.MUTED; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.TEXT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.TEXT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.WHITE : PN.MUTED; }}
           onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.94)'; }}
           onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
           style={{
             display:'inline-flex', alignItems:'center', gap: 6,
             padding: '6px 12px', borderRadius: 10,
-            border: `1.5px solid ${takeaway ? PN.PINK_SOFT : PN.BORDER}`,
-            background: takeaway ? PN.PINK_BG_SOFT : 'transparent',
-            color: takeaway ? PN.PINK_DARK : PN.MUTED,
+            border: `1.5px solid ${takeaway ? PN.TEXT : PN.BORDER}`,
+            background: takeaway ? PN.TEXT : 'transparent',
+            color: takeaway ? PN.WHITE : PN.MUTED,
             fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             whiteSpace:'nowrap',
             transition:'background .12s, color .12s, border-color .12s, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
@@ -1207,7 +1224,7 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/>
           </svg>
-          {takeaway ? 'Asporto' : 'Da asporto'}
+          Da asporto
         </button>
         {lines.length > 0 && (
           <button onClick={() => setClearConfirm(true)} title="Rimuovi tutti gli articoli dal conto" style={{
@@ -1218,8 +1235,76 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
         )}
       </div>
 
-      {/* Cliente dell'asporto — chi ritira. Compare solo col flag acceso. */}
-      {takeaway && <SaClienteBar cliente={cliente} onChange={onCliente}/>}
+      {/* Strumenti asporto: avviso tempi (congedabile), cliente con la sua CTA,
+          ricerca tra gli articoli dell'ordine — sempre in vista, non nascosta
+          dentro nessun flusso. */}
+      {takeaway && (
+        <div style={{padding: '12px 14px 0', display:'flex', flexDirection:'column', gap: 8}}>
+          {lines.length > 0 && !avvisoOff && (
+            <div style={{
+              display:'flex', alignItems:'center', gap: 12,
+              padding: '10px 12px', borderRadius: 12,
+              background: PN.PINK_BG_SOFT,
+            }}>
+              <span style={{
+                width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+                background: PN.WHITE, color: PN.PINK,
+                display:'grid', placeItems:'center',
+                boxShadow: '0 1px 2px rgba(15,17,21,0.06)',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+              </span>
+              <span style={{flex: 1, minWidth: 0}}>
+                <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Ordine da asporto</span>
+                <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.35, marginTop: 1}}>
+                  I tempi di preparazione possono variare in base al carico del locale.
+                </span>
+              </span>
+              <button
+                onClick={() => setAvvisoOff(true)}
+                title="Nascondi l'avviso"
+                style={{
+                  width: 26, height: 26, borderRadius:'50%', flexShrink: 0,
+                  background:'transparent', border:'none', color: PN.MUTED,
+                  fontSize: 16, lineHeight: 1, cursor:'pointer', fontFamily:'inherit',
+                }}>×</button>
+            </div>
+          )}
+
+          <SaClienteBar cliente={cliente} onChange={onCliente}/>
+
+          {/* Search bar dell'ordine: cerca tra le righe già battute */}
+          {lines.length > 0 && (
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </span>
+              <input
+                value={orderQ} onChange={e => setOrderQ(e.target.value)}
+                placeholder="Cerca nell'ordine…"
+                style={{
+                  width:'100%', boxSizing:'border-box',
+                  padding: '9px 34px 9px 33px',
+                  borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
+                  fontSize: 15.5, fontFamily:'inherit', outline:'none',
+                  background: '#FAFBFC',
+                  boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
+                }}/>
+              {orderQ && (
+                <button
+                  onClick={() => setOrderQ('')}
+                  title="Pulisci la ricerca"
+                  style={{
+                    position:'absolute', right: 5, top:'50%', transform:'translateY(-50%)',
+                    width: 24, height: 24, borderRadius:'50%',
+                    background:'transparent', border:'none', color: PN.MUTED,
+                    fontSize: 16, lineHeight: 1, cursor:'pointer', fontFamily:'inherit',
+                  }}>×</button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Popup conferma svuotamento conto */}
       {clearConfirm && (
@@ -1305,21 +1390,6 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
                 Tocca <strong style={{color: PN.PINK, fontWeight: 700}}>+ Aggiungi</strong> per inserire prodotti da preparare per il ritiro.
                 Puoi anche assegnare un cliente prima di confermare.
               </div>
-              <button
-                onClick={() => { const el = document.getElementById('sa-vd-search'); if (el) { el.focus(); el.select(); } }}
-                title="Cerca un prodotto nel menù"
-                style={{
-                  marginTop: 20,
-                  display:'inline-flex', alignItems:'center', gap: 8,
-                  padding: '10px 20px', borderRadius: 999,
-                  background: PN.BTN_NEUTRAL, color: PN.TEXT,
-                  border: `1px solid ${PN.BORDER_LIGHT}`,
-                  fontSize: 16, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                  boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
-                }}>
-                <span style={{color: PN.PINK, fontSize: 18, fontWeight: 700, lineHeight: 1}}>+</span>
-                Aggiungi articolo
-              </button>
             </div>
           ) : (
           <div style={{
@@ -1339,13 +1409,18 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           )
         ) : (
           <div style={{display:'flex', flexDirection:'column', gap: 10}}>
-            {lines.map((l, i) => (
+            {visibili.map(({ l, i }) => (
               <SaCartLine key={i} line={l}
                 onInc={() => onInc(i)} onDec={() => onDec(i)}
                 onRemove={() => onRemove(i)} onEdit={() => onEdit(i)}
                 onChangeName={(name) => onChangeName(i, name)}
                 onChangePrice={(price) => onChangePrice(i, price)}/>
             ))}
+            {visibili.length === 0 && (
+              <div style={{textAlign:'center', padding: '26px 16px', color: PN.MUTED, fontSize: 15.5}}>
+                Nessun articolo dell'ordine corrisponde a "{orderQ.trim()}"
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1356,207 +1431,169 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
         borderTop: `1px solid ${PN.BORDER_SOFT}`,
         background: PN.WHITE,
       }}>
-        <div style={{
-          display:'flex', justifyContent:'space-between',
-          fontSize: 20, fontWeight: 700, color: PN.TEXT,
-          paddingBottom: takeaway ? 4 : 12,
-        }}>
-          <span>Totale</span><span>€{total.toFixed(2)}</span>
-        </div>
-        {takeaway && (
-          <div style={{
-            display:'flex', alignItems:'center', gap: 6,
-            fontSize: 14.5, color: PN.MUTED, paddingBottom: 8,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9h18l-1.5-4.5A2 2 0 0 0 17.6 3H6.4a2 2 0 0 0-1.9 1.5L3 9Z"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 20v-6h6v6"/></svg>
-            Metodo: ritiro in sede
-          </div>
-        )}
+        {takeaway && lines.length > 0 ? (
+          <>
+            {/* Asporto pieno: riepilogo con lo scontrino e CTA rossa brand */}
+            <div style={{display:'flex', alignItems:'center', gap: 12, paddingBottom: 12}}>
+              <span style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: PN.PINK_BG_SOFT, color: PN.PINK,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              </span>
+              <span style={{flex: 1, minWidth: 0}}>
+                <span style={{display:'block', fontSize: 17.5, fontWeight: 700, color: PN.TEXT}}>Totale ordine</span>
+                <span style={{display:'block', fontSize: 14.5, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</span>
+              </span>
+              <span style={{fontSize: 22, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</span>
+            </div>
+            <button
+              onClick={onIncassa}
+              style={{
+                width:'100%', padding: '14px 18px', borderRadius: 14,
+                background: PN.BTN_BRAND, color: '#fff', border: 'none',
+                fontSize: 17.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), 0 8px 20px -8px rgba(255,90,95,0.55)',
+                transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
+              }}>
+              <span>Procedi al pagamento</span>
+              <span style={{fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{
+              display:'flex', justifyContent:'space-between',
+              fontSize: 20, fontWeight: 700, color: PN.TEXT,
+              paddingBottom: takeaway ? 4 : 12,
+            }}>
+              <span>Totale</span><span>€{total.toFixed(2)}</span>
+            </div>
+            {takeaway && (
+              <div style={{
+                display:'flex', alignItems:'center', gap: 6,
+                fontSize: 14.5, color: PN.MUTED, paddingBottom: 8,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9h18l-1.5-4.5A2 2 0 0 0 17.6 3H6.4a2 2 0 0 0-1.9 1.5L3 9Z"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 20v-6h6v6"/></svg>
+                Metodo: ritiro in sede
+              </div>
+            )}
 
-        <div style={{display:'flex', gap: 8, marginTop: 12}}>
-          <button
-            disabled={lines.length === 0}
-            onClick={() => { if (lines.length > 0) onIncassa(); }}
-            style={{
-              flex: 1,
-              padding: '11px 16px', borderRadius: 999,
-              background: lines.length === 0 ? PN.WHITE_FROST : SV_SUNSET_BG,
-              color: lines.length === 0 ? PN.MUTED_SOFT : SV_SUNSET_TEXT,
-              border: `1px solid ${lines.length === 0 ? PN.BORDER_SOFT_A : 'transparent'}`,
-              fontSize: 17.5, fontWeight: 700,
-              cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
-              fontFamily:'inherit',
-              display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
-              boxShadow: lines.length === 0 ? 'none' : SV_SUNSET_SHADOW,
-              transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
-            }}
-            onMouseEnter={e => { if (lines.length > 0) svSunsetHoverIn(e); }}
-            onMouseLeave={svSunsetHoverOut}>
-            <span style={{display:'inline-flex', alignItems:'center', gap: 8}}>
-              {takeaway && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
-              )}
-              {takeaway ? 'Conferma asporto' : 'Procedi al pagamento'}
-            </span>
-            <span>€{total.toFixed(2)}</span>
-          </button>
-        </div>
+            <div style={{display:'flex', gap: 8, marginTop: 12}}>
+              <button
+                disabled={lines.length === 0}
+                onClick={() => { if (lines.length > 0) onIncassa(); }}
+                style={{
+                  flex: 1,
+                  padding: '11px 16px', borderRadius: 999,
+                  background: lines.length === 0 ? PN.WHITE_FROST : SV_SUNSET_BG,
+                  color: lines.length === 0 ? PN.MUTED_SOFT : SV_SUNSET_TEXT,
+                  border: `1px solid ${lines.length === 0 ? PN.BORDER_SOFT_A : 'transparent'}`,
+                  fontSize: 17.5, fontWeight: 700,
+                  cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
+                  fontFamily:'inherit',
+                  display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
+                  boxShadow: lines.length === 0 ? 'none' : SV_SUNSET_SHADOW,
+                  transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
+                }}
+                onMouseEnter={e => { if (lines.length > 0) svSunsetHoverIn(e); }}
+                onMouseLeave={svSunsetHoverOut}>
+                <span style={{display:'inline-flex', alignItems:'center', gap: 8}}>
+                  {takeaway && (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+                  )}
+                  Procedi al pagamento
+                </span>
+                <span>€{total.toFixed(2)}</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </aside>
   );
 }
 
-// Cliente dell'asporto. Riga compatta sotto l'header: "Assegna cliente" apre
-// la ricerca nell'anagrafica Byup App del locale; chi non è registrato si
-// scrive col nome libero (Invio, o la voce «Usa "..."»).
+// Cliente dell'asporto: solo un nome, scritto a mano — chi ritira si annuncia
+// col nome al banco, non serve un'anagrafica. La CTA apre il campo, Invio
+// (o Conferma) assegna, Esc annulla.
 function SaClienteBar({ cliente, onChange }) {
-  const [searching, setSearching] = React.useState(false);
-  const [q, setQ] = React.useState('');
-  const openSearch = () => { setQ(''); setSearching(true); };
-  const pick = (nome) => { onChange(nome); setSearching(false); };
+  const [editing, setEditing] = React.useState(false);
+  const [nome, setNome] = React.useState('');
+  const start = () => { setNome(cliente || ''); setEditing(true); };
+  const commit = () => { setEditing(false); onChange(nome.trim() || null); };
+  const cancel = () => setEditing(false);
 
-  const anagrafica = window.SALA_VENDITA_CLIENTI || [];
-  const ql = q.trim().toLowerCase();
-  const results = (ql
-    ? anagrafica.filter(c => c.nome.toLowerCase().includes(ql))
-    : anagrafica).slice(0, 4);
-  const exact = ql && anagrafica.some(c => c.nome.toLowerCase() === ql);
-  const initials = (nome) => nome.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const ctaStyle = {
+    padding: '8px 16px', borderRadius: 999, flexShrink: 0,
+    background: PN.TEXT, color: PN.WHITE, border: 'none',
+    fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+  };
 
   return (
-    <div style={{padding: '12px 14px 0'}}>
-      <div style={{
-        border: `1px solid ${PN.BORDER}`, borderRadius: 12,
-        background: PN.WHITE,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+    <div style={{
+      border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+      background: PN.WHITE,
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+      padding: '10px 12px',
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <span style={{
+        width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+        background: cliente ? PN.PINK_BG_SOFT : PN.WHITE_FROST,
+        color: cliente ? PN.PINK : PN.MUTED_SOFT,
+        display: 'grid', placeItems: 'center',
       }}>
-        {!searching ? (
-          <div style={{
-            display:'flex', flexDirection:'column', alignItems:'center', gap: 3,
-            padding: '11px 10px', textAlign:'center',
-          }}>
-            <span style={{color: cliente ? PN.PINK : PN.MUTED_SOFT, display:'inline-flex'}}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg>
-            </span>
-            <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.25, maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg>
+      </span>
+      {!editing ? (
+        <>
+          <span style={{flex: 1, minWidth: 0}}>
+            <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
               {cliente || 'Cliente non assegnato'}
             </span>
-            <span style={{display:'inline-flex', alignItems:'center', gap: 6}}>
-              <button
-                onClick={openSearch}
-                title={cliente ? 'Cambia il cliente dell\'ordine' : 'Assegna un cliente all\'ordine'}
-                style={{
-                  fontSize: 13.5, color: PN.MUTED_SOFT, lineHeight: 1.25,
-                  background:'transparent', border:'none', padding: 0,
-                  fontFamily:'inherit', cursor:'pointer',
-                }}>{cliente ? 'Cambia cliente' : 'Assegna cliente'}</button>
-              {cliente && (
-                <>
-                  <span style={{fontSize: 13.5, color: PN.MUTED_LIGHT}}>·</span>
-                  <button
-                    onClick={() => onChange(null)}
-                    title="Togli il cliente dall'ordine"
-                    style={{
-                      fontSize: 13.5, color: PN.MUTED_SOFT, lineHeight: 1.25,
-                      background:'transparent', border:'none', padding: 0,
-                      fontFamily:'inherit', cursor:'pointer',
-                    }}>Rimuovi</button>
-                </>
-              )}
+            <span style={{display:'block', fontSize: 13, color: PN.MUTED_SOFT, marginTop: 1}}>
+              {cliente ? 'Ritira quest\'ordine' : 'Chi viene a ritirare?'}
             </span>
-          </div>
-        ) : (
-          <div style={{padding: 10}}>
-            {/* Search bar clienti — Invio prende il primo risultato, o il nome
-                scritto se l'anagrafica non lo conosce. Esc chiude. */}
-            <div style={{position:'relative'}}>
-              <span style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              </span>
-              <input
-                autoFocus
-                value={q} onChange={e => setQ(e.target.value)}
-                placeholder="Cerca cliente o scrivi un nome…"
-                onKeyDown={e => {
-                  if (e.key === 'Escape') setSearching(false);
-                  if (e.key === 'Enter') {
-                    if (results.length) pick(results[0].nome);
-                    else if (q.trim()) pick(q.trim());
-                  }
-                }}
-                style={{
-                  width:'100%', boxSizing:'border-box',
-                  padding: '9px 34px 9px 33px',
-                  borderRadius: 10, border: `1px solid ${PN.BORDER_LIGHT}`,
-                  fontSize: 15.5, fontFamily:'inherit', outline:'none',
-                  background: '#FAFBFC',
-                  boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
-                }}/>
-              <button
-                onClick={() => setSearching(false)}
-                title="Chiudi la ricerca"
-                style={{
-                  position:'absolute', right: 5, top:'50%', transform:'translateY(-50%)',
-                  width: 24, height: 24, borderRadius:'50%',
-                  background:'transparent', border:'none', color: PN.MUTED,
-                  fontSize: 16, lineHeight: 1, cursor:'pointer', fontFamily:'inherit',
-                }}>×</button>
-            </div>
-            {(results.length > 0 || q.trim()) && (
-              <div style={{display:'flex', flexDirection:'column', gap: 2, marginTop: 8}}>
-                {results.map(c => (
-                  <button key={c.id}
-                    onClick={() => pick(c.nome)}
-                    style={{
-                      display:'flex', alignItems:'center', gap: 10, width:'100%',
-                      padding: '6px 8px', borderRadius: 9, textAlign:'left',
-                      background:'transparent', border:'none',
-                      cursor:'pointer', fontFamily:'inherit',
-                      transition:'background 120ms ease',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                    <span style={{
-                      width: 30, height: 30, borderRadius:'50%', flexShrink: 0,
-                      background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
-                      display:'grid', placeItems:'center',
-                      fontSize: 12.5, fontWeight: 700,
-                    }}>{initials(c.nome)}</span>
-                    <span style={{flex: 1, minWidth: 0}}>
-                      <span style={{display:'block', fontSize: 15, fontWeight: 600, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.nome}</span>
-                      <span style={{display:'block', fontSize: 13, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{c.tel}</span>
-                    </span>
-                  </button>
-                ))}
-                {q.trim() && !exact && (
-                  <button
-                    onClick={() => pick(q.trim())}
-                    title="Assegna questo nome anche se non è in anagrafica"
-                    style={{
-                      display:'flex', alignItems:'center', gap: 10, width:'100%',
-                      padding: '6px 8px', borderRadius: 9, textAlign:'left',
-                      background:'transparent', border:'none',
-                      cursor:'pointer', fontFamily:'inherit',
-                      transition:'background 120ms ease',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                    <span style={{
-                      width: 30, height: 30, borderRadius:'50%', flexShrink: 0,
-                      border: `1.5px dashed ${PN.MUTED_SOFT}`, color: PN.MUTED,
-                      display:'grid', placeItems:'center', boxSizing:'border-box',
-                      fontSize: 16, fontWeight: 700,
-                    }}>+</span>
-                    <span style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>
-                      Usa "{q.trim()}"
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          </span>
+          {cliente && (
+            <button
+              onClick={() => onChange(null)}
+              title="Togli il cliente dall'ordine"
+              style={{
+                padding: '8px 12px', borderRadius: 999, flexShrink: 0,
+                background: 'transparent', color: PN.MUTED,
+                border: `1px solid ${PN.BORDER}`,
+                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}>Rimuovi</button>
+          )}
+          <button
+            onClick={start}
+            title={cliente ? 'Cambia il cliente dell\'ordine' : 'Assegna un cliente all\'ordine'}
+            style={ctaStyle}>{cliente ? 'Cambia' : 'Assegna cliente'}</button>
+        </>
+      ) : (
+        <>
+          <input
+            autoFocus
+            value={nome} onChange={e => setNome(e.target.value)}
+            placeholder="Nome cliente"
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
+            style={{
+              flex: 1, minWidth: 0,
+              fontFamily: 'inherit', fontSize: 15, fontWeight: 600, color: PN.TEXT,
+              background: 'transparent', border: 'none',
+              borderBottom: `1.5px solid ${PN.TEXT}`, outline: 'none', padding: '0 1px',
+            }}/>
+          {/* onMouseDown: la conferma deve battere il blur dell'input */}
+          <button onMouseDown={e => { e.preventDefault(); commit(); }} title="Assegna questo nome" style={ctaStyle}>Conferma</button>
+        </>
+      )}
     </div>
   );
 }

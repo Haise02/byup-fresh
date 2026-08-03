@@ -89,21 +89,6 @@ const SALA_ASPORTO_CONTI = [
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tiramisù',qty:2,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
 ];
 
-// Anagrafica clienti del locale — chi ha un profilo Byup App. È qui che cerca
-// la cassa quando assegna un asporto; chi non è registrato si scrive a mano.
-// Nomi coerenti con i ritiri qui sopra: sono le stesse persone.
-const SALA_VENDITA_CLIENTI = [
-  { id:'cl-1', nome:'Simone De Luca', tel:'347 210 8823' },
-  { id:'cl-2', nome:'Elena Greco', tel:'333 481 9902' },
-  { id:'cl-3', nome:'Marta Ferri', tel:'329 664 1287' },
-  { id:'cl-4', nome:'Paolo Ventura', tel:'340 775 3011' },
-  { id:'cl-5', nome:'Giorgia Leone', tel:'351 902 4466' },
-  { id:'cl-6', nome:'Luca Barone', tel:'338 129 7754' },
-  { id:'cl-7', nome:'Sara Colombo', tel:'345 618 2090' },
-  { id:'cl-8', nome:'Andrea Rinaldi', tel:'320 903 5512' },
-];
-
 window.SALA_VENDITA_PIATTI = SALA_VENDITA_PIATTI;
 window.SALA_VENDITA_CATS = SALA_VENDITA_CATS;
 window.SALA_ASPORTO_CONTI = SALA_ASPORTO_CONTI;
-window.SALA_VENDITA_CLIENTI = SALA_VENDITA_CLIENTI;
