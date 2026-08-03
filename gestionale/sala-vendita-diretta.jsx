@@ -1430,8 +1430,8 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
         </span>
         <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2}}>Ordine</div>
-          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</div>
+          <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2, whiteSpace:'nowrap'}}>Ordine</div>
+          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</div>
         </div>
         {/* Toggle asporto — acceso diventa la pillola nera piena del mockup.
             L'etichetta dice sempre dove ti porta il tocco, non dove sei: acceso
@@ -1439,7 +1439,7 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
             metodo di ritiro), quindi il bottone offre la via di ritorno. */}
         <button
           onClick={onToggleTakeaway}
-          title={takeaway ? 'Ordine da asporto. Tocca per riportarlo a vendita diretta' : 'Segna come da asporto. Se spento resta al banco'}
+          title={takeaway ? 'Ordine da asporto. Tocca per riportarlo a vendita diretta' : 'Segna l\'ordine come da asporto. Se spento resta al banco'}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.14)'; if (!takeaway) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.color = PN.TEXT; } }}
           onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.TEXT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.TEXT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.WHITE : PN.MUTED; }}
           onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.94)'; }}
@@ -1463,14 +1463,17 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
               <path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/>
             </svg>
           )}
-          {takeaway ? 'Vendita diretta' : 'Da asporto'}
+          {takeaway ? 'Vai a vendita diretta' : 'Vai ad asporto'}
         </button>
         {lines.length > 0 && (
           <button onClick={() => setClearConfirm(true)} title="Rimuovi tutti gli articoli dal conto" style={{
-            padding:'5px 10px', borderRadius: 8, fontSize: 15, fontWeight: 600,
+            width: 32, height: 32, borderRadius: 9, flexShrink: 0,
             background:'transparent', color: PN.MUTED, border: `1px solid ${PN.BORDER}`,
-            cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
-          }}>Rimuovi tutto</button>
+            cursor:'pointer', fontFamily:'inherit',
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
         )}
       </div>
 
