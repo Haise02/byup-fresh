@@ -35,6 +35,19 @@ function SalaVenditaDiretta() {
   // due liste diverse — non una sola con dentro due tipi di card.
   const [coda, setCoda] = React.useState(null);
   const [tuttiOpen, setTuttiOpen] = React.useState(false);
+  // "Vai all'ordine" da Tutti gli ordini: se l'ordine è ancora in coda si apre
+  // la coda giusta e la card si accende un istante (altrimenti in una lista
+  // lunga si riparte a cercarlo a occhio); se è già chiuso non c'è una coda
+  // dove andare, quindi si apre il suo dettaglio.
+  const [evidenzia, setEvidenzia] = React.useState(null);
+  const [dettaglio, setDettaglio] = React.useState(null);
+  const vaiAllOrdine = (ordine, gruppo) => {
+    if (gruppo === 'chiuso') { setDettaglio(ordine); return; }
+    setTuttiOpen(false);
+    setCoda(gruppo === 'salda' ? 'salda' : 'consegna');
+    setEvidenzia(ordine.id);
+    setTimeout(() => setEvidenzia(cur => (cur === ordine.id ? null : cur)), 2400);
+  };
   // Storico del servizio: ordini già chiusi. Cresce man mano che si consegna.
   const [storico, setStorico] = React.useState(() => (window.SALA_ORDINI_STORICO || []));
   const [consegna, setConsegna] = React.useState(null); // ordine in consegna (modale codice)
@@ -353,6 +366,7 @@ function SalaVenditaDiretta() {
         open={!!coda}
         modo={coda || 'consegna'}
         ritiri={coda === 'salda' ? daSaldare : daConsegnare}
+        evidenzia={evidenzia}
         onClose={() => setCoda(null)}
         onConsegna={setConsegna}
         onSalda={setSaldaOrdine}
@@ -365,7 +379,13 @@ function SalaVenditaDiretta() {
           attivi={ritiri}
           storico={storico}
           onClose={() => setTuttiOpen(false)}
+          onVai={vaiAllOrdine}
         />
+      )}
+
+      {/* Ordine già chiuso: non ha più una coda dove andare, si apre e basta */}
+      {dettaglio && (
+        <SaOrdineDettaglioModal ordine={dettaglio} onClose={() => setDettaglio(null)}/>
       )}
       {consegna && (
         <SaConsegnaModal
@@ -473,8 +493,18 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaRitiriDrawer({ open, modo, ritiri, onClose, onConsegna, onSalda, onVediTutti }) {
+function SaRitiriDrawer({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSalda, onVediTutti }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
+  // L'ordine su cui si è appena "andati" va portato sotto gli occhi: il
+  // pannello si apre in transizione, quindi si aspetta che sia entrato.
+  React.useEffect(() => {
+    if (!open || !evidenzia) return;
+    const id = setTimeout(() => {
+      const el = document.getElementById(`sa-coda-${evidenzia}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 280);
+    return () => clearTimeout(id);
+  }, [open, evidenzia]);
   return (
     <>
       {/* scrim — absolute (ancorato al frame, non alla finestra): dentro il
@@ -526,16 +556,20 @@ function SaRitiriDrawer({ open, modo, ritiri, onClose, onConsegna, onSalda, onVe
               <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5, maxWidth: 300}}>{testi.vuotoTesto}</div>
             </div>
           )}
-          {ritiri.map(r => (
-            <div key={r.id}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 0 rgba(15,17,21,0.03), 0 12px 28px rgba(15,17,21,0.10)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+          {ritiri.map(r => {
+            const acceso = evidenzia === r.id;
+            return (
+            <div key={r.id} id={`sa-coda-${r.id}`}
+              onMouseEnter={e => { if (!acceso) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 0 rgba(15,17,21,0.03), 0 12px 28px rgba(15,17,21,0.10)'; } }}
+              onMouseLeave={e => { if (!acceso) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; } }}
               style={{
-              border: `1px solid ${PN.BORDER_HAIR}`, borderRadius: 16,
+              border: `1px solid ${acceso ? PN.PINK : PN.BORDER_HAIR}`, borderRadius: 16,
               background: PN.WHITE,
-              boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 6px 16px rgba(15,17,21,0.05)',
+              boxShadow: acceso
+                ? `0 0 0 3px ${PN.PINK_SOFT}, 0 8px 22px rgba(255,90,95,0.18)`
+                : '0 1px 0 rgba(15,17,21,0.04), 0 6px 16px rgba(15,17,21,0.05)',
               overflow:'hidden',
-              transition:'transform 160ms ease, box-shadow 180ms ease',
+              transition:'transform 160ms ease, box-shadow 260ms ease, border-color 260ms ease',
               // flexShrink 0 obbligatorio: senza, la colonna flex COMPRIME le card
               // per farcele stare (niente overflow → niente scroll) e il fondo
               // di ogni card — la CTA Consegna — resta clippato da overflow:hidden.
@@ -636,7 +670,8 @@ function SaRitiriDrawer({ open, modo, ritiri, onClose, onConsegna, onSalda, onVe
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Via d'uscita comune alle due code: quello che è già passato non sta
@@ -668,7 +703,7 @@ function SaRitiriDrawer({ open, modo, ritiri, onClose, onConsegna, onSalda, onVe
 // storico del servizio. Non ha azioni: si salda e si consegna dalle code, qui
 // si viene per guardare (quant'era, è già passato, con che canale è arrivato).
 
-function SaTuttiOrdiniModal({ attivi, storico, onClose }) {
+function SaTuttiOrdiniModal({ attivi, storico, onClose, onVai }) {
   const [filtro, setFiltro] = React.useState('tutti');
 
   const righe = [
@@ -708,7 +743,7 @@ function SaTuttiOrdiniModal({ attivi, storico, onClose }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG,
-        borderRadius: 22, width: 620, maxWidth:'100%', maxHeight:'100%',
+        borderRadius: 22, width: 760, maxWidth:'100%', maxHeight:'100%',
         display:'flex', flexDirection:'column', overflow:'hidden',
       }}>
         <div style={{padding:'20px 22px 14px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
@@ -763,7 +798,7 @@ function SaTuttiOrdiniModal({ attivi, storico, onClose }) {
             const nItems = o.items.reduce((s, i) => s + i.qty, 0);
             return (
               <div key={o.id} style={{
-                display:'flex', alignItems:'center', gap: 12,
+                display:'flex', alignItems:'center', gap: 10,
                 padding:'11px 14px', borderRadius: 14,
                 background:'rgba(255,255,255,0.78)',
                 border:`1px solid ${PN.BORDER_HAIR}`,
@@ -784,7 +819,7 @@ function SaTuttiOrdiniModal({ attivi, storico, onClose }) {
                       }}>{o.codice}</span>
                     )}
                   </span>
-                  <span style={{display:'flex', alignItems:'center', gap: 7, marginTop: 3, flexWrap:'wrap'}}>
+                  <span style={{display:'flex', alignItems:'center', gap: 7, marginTop: 3, minWidth: 0}}>
                     <span style={{
                       fontSize: 12, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
                       padding:'2px 8px', borderRadius: 999,
@@ -796,16 +831,113 @@ function SaTuttiOrdiniModal({ attivi, storico, onClose }) {
                   </span>
                 </span>
                 <span style={{
-                  fontSize: 12.5, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
-                  padding:'4px 10px', borderRadius: 999, flexShrink: 0,
+                  fontSize: 12, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
+                  padding:'4px 9px', borderRadius: 999, flexShrink: 0, whiteSpace:'nowrap',
                   background: stato.bg, color: stato.fg,
                 }}>{stato.label}</span>
-                <span style={{fontSize: 17.5, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 72, textAlign:'right'}}>
+                <span style={{fontSize: 17.5, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 70, textAlign:'right', flexShrink: 0}}>
                   €{o.totale.toFixed(2)}
                 </span>
+                {/* Da qui si torna all'ordine: nella sua coda se c'è ancora
+                    qualcosa da fare, nel suo dettaglio se è già chiuso. */}
+                <button
+                  onClick={() => onVai(o, o.gruppo)}
+                  title={o.gruppo === 'chiuso'
+                    ? 'Apri il dettaglio di questo ordine'
+                    : (o.gruppo === 'salda' ? 'Vai a questo ordine nella coda da saldare' : 'Vai a questo ordine nella coda da consegnare')}
+                  style={{
+                    display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
+                    padding:'7px 13px', borderRadius: 999,
+                    background: o.gruppo === 'chiuso' ? 'rgba(255,255,255,0.85)' : PN.TEXT,
+                    color: o.gruppo === 'chiuso' ? PN.TEXT : PN.WHITE,
+                    border: `1px solid ${o.gruppo === 'chiuso' ? PN.BORDER_LIGHT : 'transparent'}`,
+                    fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                    whiteSpace:'nowrap',
+                  }}>
+                  {o.gruppo === 'chiuso' ? 'Vedi ordine' : 'Vai all\'ordine'}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+                </button>
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Dettaglio di un ordine già chiuso — sola lettura: non c'è più niente da
+// fare, si viene qui per rispondere a una domanda (cosa c'era dentro,
+// quant'era, a che ora è passato).
+function SaOrdineDettaglioModal({ ordine, onClose }) {
+  const CANALE = {
+    byup:   'Byup App',
+    webapp: 'Webapp guest',
+    banco:  'Cassa',
+  };
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 120, padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 22, width: 500, maxWidth:'100%', maxHeight:'100%',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+      }}>
+        <div style={{padding:'20px 22px 14px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              {ordine.cliente || ordine.codice}
+            </div>
+            <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 5, flexWrap:'wrap'}}>
+              {ordine.cliente && (
+                <span style={{
+                  fontSize: 13, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums',
+                  background:'rgba(255,255,255,0.75)', border:`1px solid ${PN.BORDER_SOFT}`,
+                  padding:'1px 8px', borderRadius: 7,
+                }}>{ordine.codice}</span>
+              )}
+              <span style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
+                {CANALE[ordine.fonte] || 'Cassa'} · ritiro {ordine.ritiro}
+              </span>
+            </div>
+          </div>
+          <span style={{
+            display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0,
+            fontSize: 13.5, fontWeight: 700, color: PN.MUTED,
+            background:'rgba(255,255,255,0.75)', padding:'4px 11px', borderRadius: 999,
+          }}>✓ Consegnato</span>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
+            cursor:'pointer', display:'grid', placeItems:'center', fontSize: 18, fontFamily:'inherit',
+          }}>×</button>
+        </div>
+
+        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding:'0 22px 22px'}}>
+          <div style={{
+            background:'rgba(255,255,255,0.72)', border:`1px solid ${PN.BORDER_SOFT}`,
+            borderRadius: 14, padding:'12px 14px', display:'flex', flexDirection:'column', gap: 5,
+          }}>
+            {ordine.items.map((item, i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap: 9, fontSize: 15.5}}>
+                <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 26, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
+                <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
+                <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
+              </div>
+            ))}
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 9, marginTop: 4}}>
+              <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.4}}>Totale · pagato</span>
+              <span style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', letterSpacing:-0.3}}>€{ordine.totale.toFixed(2)}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
