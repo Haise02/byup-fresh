@@ -1712,18 +1712,12 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
               display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
               boxSizing:'border-box',
             }}>
-              <div style={{position:'relative', marginBottom: 16}}>
-                <div style={{
-                  width: 76, height: 76, borderRadius: '50%',
-                  background: PN.PINK_BG_SOFT, color: PN.PINK,
-                  display:'grid', placeItems:'center',
-                }}>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
-                </div>
-                {/* Scintille: l'ordine è nuovo, non è un vuoto rotto */}
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={PN.PINK} strokeWidth="1.8" strokeLinecap="round" style={{position:'absolute', top: -4, right: -8}}>
-                  <path d="M4 9 1.5 10"/><path d="M8 4.5 8.5 2"/><path d="M6.5 6.5 4.5 4.5"/>
-                </svg>
+              <div style={{
+                width: 76, height: 76, borderRadius: '50%', marginBottom: 16,
+                background: PN.PINK_BG_SOFT, color: PN.PINK,
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
               </div>
               <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Ordine da asporto vuoto</div>
               <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, maxWidth: 320}}>
