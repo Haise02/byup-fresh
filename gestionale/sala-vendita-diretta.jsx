@@ -246,6 +246,31 @@ function SalaVenditaDiretta() {
               onClick={() => setCoda('consegna')}
               icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>}
             />
+
+            {/* Terza voce: non è una coda ma l'archivio del servizio, quindi
+                niente contatore che chiama — è dove si va a cercare, non dove
+                si lavora. Stessa riga perché la domanda ("l'ordine di prima?")
+                nasce proprio mentre si guardano le code. */}
+            <button
+              onClick={() => setTuttiOpen(true)}
+              title="Tutti gli ordini del servizio, anche quelli già consegnati"
+              style={{
+                display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
+                padding: '0 13px', borderRadius: 10,
+                background: PN.WHITE, color: PN.TEXT,
+                border: `1px solid ${PN.BORDER_LIGHT}`,
+                fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                whiteSpace:'nowrap',
+                boxShadow: `${PN.INSET_HIGHLIGHT}, 0 1px 2px rgba(15,17,21,0.04)`,
+                transition: 'border-color 150ms, background 150ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = '#FAFBFC'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_LIGHT; e.currentTarget.style.background = PN.WHITE; }}>
+              <span style={{color: PN.MUTED, display:'inline-flex'}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg>
+              </span>
+              Tutti gli ordini
+            </button>
           </div>
           <div style={{display:'flex', gap: 6, paddingBottom: 12, overflowX:'auto'}}>
             {cats.map(c => {
