@@ -386,8 +386,8 @@ function SalaVenditaDiretta() {
         }}
       />
 
-      {/* Pannello coda (saldare o consegnare) + modale consegna con codice */}
-      <SaRitiriDrawer
+      {/* Popup coda (saldare o consegnare) + modale consegna con codice */}
+      <SaCodaModal
         open={!!coda}
         modo={coda || 'consegna'}
         ritiri={coda === 'salda' ? daSaldare : daConsegnare}
@@ -498,7 +498,7 @@ function SaCodaBtn({ label, count, tone, icon, title, onClick }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Coda del banco — stessa anatomia di card per i due modi:
+// Coda del banco — popup centrale, stessa anatomia di card per i due modi:
 //   'salda'    → arrivati da app/webapp, ancora da incassare (CTA Salda ora)
 //   'consegna' → già pagati, pronti da dare via (CTA Consegna col codice)
 // In fondo, la via d'uscita verso tutti gli ordini del servizio.
@@ -518,40 +518,40 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaRitiriDrawer({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSalda, onVediTutti }) {
+function SaCodaModal({ open, modo, ritiri, evidenzia, onClose, onConsegna, onSalda, onVediTutti }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
-  // L'ordine su cui si è appena "andati" va portato sotto gli occhi: il
-  // pannello si apre in transizione, quindi si aspetta che sia entrato.
+  // L'ordine su cui si è appena "andati" va portato sotto gli occhi.
   React.useEffect(() => {
     if (!open || !evidenzia) return;
     const id = setTimeout(() => {
       const el = document.getElementById(`sa-coda-${evidenzia}`);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 280);
+    }, 120);
     return () => clearTimeout(id);
   }, [open, evidenzia]);
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+
   return (
-    <>
-      {/* scrim — absolute (ancorato al frame, non alla finestra): dentro il
-          canvas scalato con zoom i fixed si disallineano; stesso pattern del
-          drawer "Aggiungi widget" in Panoramica. Niente blur: animazione fluida. */}
-      <div onClick={onClose} style={{
-        position:'absolute', inset: 0, background:'rgba(15,17,21,0.30)',
-        opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
-        transition:'opacity 0.2s', zIndex: 80,
-      }}/>
-      {/* drawer */}
-      <div style={{
-        position:'absolute', top: 0, right: 0, bottom: 0,
-        width: 440, maxWidth:'100%', background: PN.WHITE,
-        boxShadow:'-12px 0 32px rgba(15,17,21,0.14)',
-        transform: open ? 'translateX(0)' : 'translateX(100%)',
-        visibility: open ? 'visible' : 'hidden',
-        transition:'transform 0.25s cubic-bezier(.4,.0,.2,1), visibility 0.25s',
-        zIndex: 90, display:'flex', flexDirection:'column',
+    // absolute (ancorato al frame, non alla finestra): dentro il canvas scalato
+    // con zoom i fixed si disallineano. Stessa scatola di "Tutti gli ordini":
+    // le code sono la stessa materia, guardata da più vicino.
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 95, padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 22, width: 560, maxWidth:'100%', maxHeight:'100%',
+        display:'flex', flexDirection:'column', overflow:'hidden',
       }}>
         {/* header */}
-        <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
+        <div style={{padding:'20px 22px 14px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
           <div style={{flex: 1}}>
             <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>{testi.titolo}</div>
             <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
@@ -560,14 +560,14 @@ function SaRitiriDrawer({ open, modo, ritiri, evidenzia, onClose, onConsegna, on
           </div>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-            border:'none', background:'#F4F5F7', color: PN.TEXT,
+            border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
             cursor:'pointer', display:'grid', placeItems:'center', fontSize: 18, fontFamily:'inherit',
           }}>×</button>
         </div>
 
         {/* lista ordini — minHeight:0 obbligatorio: senza, il flex item cresce
             quanto il contenuto e la lista non scrolla (card tagliate in basso) */}
-        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '14px 16px 20px', display:'flex', flexDirection:'column', gap: 12}}>
+        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding: '0 22px 18px', display:'flex', flexDirection:'column', gap: 12}}>
           {ritiri.length === 0 && (
             <div style={{textAlign:'center', padding:'48px 20px', display:'flex', flexDirection:'column', alignItems:'center'}}>
               <div style={{
@@ -589,7 +589,7 @@ function SaRitiriDrawer({ open, modo, ritiri, evidenzia, onClose, onConsegna, on
               onMouseLeave={e => { if (!acceso) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; } }}
               style={{
               border: `1px solid ${acceso ? PN.PINK : PN.BORDER_HAIR}`, borderRadius: 16,
-              background: PN.WHITE,
+              background: 'rgba(255,255,255,0.82)',
               boxShadow: acceso
                 ? `0 0 0 3px ${PN.PINK_SOFT}, 0 8px 22px rgba(255,90,95,0.18)`
                 : '0 1px 0 rgba(15,17,21,0.04), 0 6px 16px rgba(15,17,21,0.05)',
@@ -702,7 +702,13 @@ function SaRitiriDrawer({ open, modo, ritiri, evidenzia, onClose, onConsegna, on
         {/* Via d'uscita comune alle due code: quello che è già passato non sta
             in nessuna delle due, ma le domande su un ordine arrivano proprio
             quando l'ordine è appena uscito di lista. */}
-        <div style={{padding:'12px 16px 16px', borderTop:`1px solid ${PN.BORDER_SOFT}`, flexShrink: 0, background: PN.WHITE}}>
+        <div style={{
+          padding:'12px 22px 18px', flexShrink: 0,
+          borderTop:`1px solid ${PN.BORDER_SOFT}`,
+          // velo sul footer: senza, le card scorrono sotto la CTA e si leggono
+          // in trasparenza attraverso il vetro
+          background:'rgba(255,255,255,0.72)',
+        }}>
           <button
             onClick={onVediTutti}
             title="Tutti gli ordini del servizio, anche quelli già chiusi"
@@ -719,7 +725,7 @@ function SaRitiriDrawer({ open, modo, ritiri, evidenzia, onClose, onConsegna, on
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1599,10 +1605,13 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2}}>Ordine</div>
           <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</div>
         </div>
-        {/* Toggle asporto — acceso diventa la pillola nera piena del mockup */}
+        {/* Toggle asporto — acceso diventa la pillola nera piena del mockup.
+            L'etichetta dice sempre dove ti porta il tocco, non dove sei: acceso
+            è già tutto il pannello a dirlo (vuoto d'asporto, riga cliente,
+            metodo di ritiro), quindi il bottone offre la via di ritorno. */}
         <button
           onClick={onToggleTakeaway}
-          title={takeaway ? 'Da asporto. Tocca per togliere: resta al banco' : 'Segna come da asporto. Se spento resta al banco'}
+          title={takeaway ? 'Ordine da asporto. Tocca per riportarlo a vendita diretta' : 'Segna come da asporto. Se spento resta al banco'}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.14)'; if (!takeaway) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.color = PN.TEXT; } }}
           onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = takeaway ? PN.TEXT : 'transparent'; e.currentTarget.style.borderColor = takeaway ? PN.TEXT : PN.BORDER; e.currentTarget.style.color = takeaway ? PN.WHITE : PN.MUTED; }}
           onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.94)'; }}
@@ -1617,10 +1626,16 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
             whiteSpace:'nowrap',
             transition:'background .12s, color .12s, border-color .12s, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
           }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/>
-          </svg>
-          Da asporto
+          {takeaway ? (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9h18l-1.5-4.5A2 2 0 0 0 17.6 3H6.4a2 2 0 0 0-1.9 1.5L3 9Z"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/>
+            </svg>
+          ) : (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/>
+            </svg>
+          )}
+          {takeaway ? 'Vendita diretta' : 'Da asporto'}
         </button>
         {lines.length > 0 && (
           <button onClick={() => setClearConfirm(true)} title="Rimuovi tutti gli articoli dal conto" style={{
