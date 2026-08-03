@@ -462,8 +462,10 @@ function SalaApp() {
             padding:'12px 22px', borderRadius: 999,
             fontSize: 17, fontWeight: 700, zIndex: 50,
             boxShadow:'0 8px 24px rgba(0,0,0,0.18)',
-            animation:'fadeIn 0.2s ease',
-          }}>{confirmedToast}</div>
+            animation:'salaToastIn 0.2s ease',
+          }}>{confirmedToast}
+            <style>{`@keyframes salaToastIn { from {opacity: 0;} to {opacity: 1;} }`}</style>
+          </div>
         )}
 
         <SalaAperiModal

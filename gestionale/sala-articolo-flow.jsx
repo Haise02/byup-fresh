@@ -1,4 +1,4 @@
-// Sala — Flow "+ Articolo": sheet con browse + customizza (ingredienti, extras, varianti)
+// Sala — Flow "+ Articolo": modale centrale con browse + customizza (ingredienti, extras, varianti)
 
 function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfirm }) {
   const [category, setCategory] = React.useState('Antipasti');
@@ -73,20 +73,28 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
     <>
       {/* Backdrop */}
       <div onClick={handleClose} style={{
-        position:'absolute', inset: 0, background:'rgba(15,17,21,0.32)',
-        zIndex: 40, animation: 'fadeIn 0.18s ease',
+        position:'absolute', inset: 0, background:'rgba(15,17,21,0.55)',
+        zIndex: 60, animation: 'artFadeIn 0.18s ease',
       }}/>
-      {/* Sheet */}
+      {/* Dialog centrale — stessa famiglia della finestra "Salda conto":
+          la comanda si prende il centro della sala, non una colonna a destra.
+          In browse serve larghezza (categorie + griglia articoli + carrello
+          sempre visibile); in personalizza il contenuto si stringe a una
+          colonna leggibile invece di stirarsi su tutta la finestra. */}
       <div style={{
-        position:'absolute', top: 0, right: 0, bottom: 0, width: 460,
-        background:'#fff', boxShadow:'-8px 0 32px rgba(0,0,0,0.12)',
-        zIndex: 41, display:'flex', flexDirection:'column',
-        animation:'slideInRight 0.24s cubic-bezier(0.4, 0, 0.2, 1)',
+        position:'absolute', top:'50%', left:'50%',
+        width: 1040, maxWidth:'92%',
+        height: 660, maxHeight:'88%',
+        background:'#fff', borderRadius: 16,
+        boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
+        zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',
+        transform:'translate(-50%, -50%)',
+        animation:'artPopIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {/* Header */}
         <div style={{
-          padding:'16px 20px', borderBottom:'1px solid #F0F2F5',
-          display:'flex', alignItems:'center', gap: 12,
+          padding:'16px 22px', borderBottom:'1px solid #F0F2F5',
+          display:'flex', alignItems:'center', gap: 12, flexShrink: 0,
         }}>
           {customizing && (
             <button onClick={()=>setCustomizing(null)} style={{
@@ -116,69 +124,26 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
         {customizing ? (
           <CustomizeView c={customizing} setC={setCustomizing} onAdd={commitCustomization}/>
         ) : (
-          <BrowseView
-            search={search} setSearch={setSearch}
-            categories={categories} category={category} setCategory={setCategory}
-            items={items} cart={cart}
-            onItemClick={handleItemClick} onQuickAdd={quickAdd}
-            hasCustomization={hasCustomization}/>
-        )}
-
-        {/* Footer cart summary — solo nel browse */}
-        {!customizing && (
-          <div style={{borderTop:'1px solid #F0F2F5', padding:'14px 20px', background:'#fff'}}>
-            {itemCount === 0 ? (
-              <div style={{textAlign:'center', fontSize: 16, color:'#9CA3AF', padding:'8px 0'}}>
-                Tap su un articolo per aggiungerlo
-              </div>
-            ) : (
-              <>
-                <div className="pn-scroll" style={{
-                  maxHeight: 140, overflow:'auto', marginBottom: 10,
-                  display:'flex', flexDirection:'column', gap: 6,
-                }}>
-                  {cart.items.map((it, idx) => (
-                    <CartLine key={it.lineKey || `${it.id}-${idx}`} it={it} onRemove={()=>{
-                      const items = it.qty > 1
-                        ? cart.items.map((x,i) => i===idx ? {...x, qty: x.qty-1} : x)
-                        : cart.items.filter((_,i) => i!==idx);
-                      onCartChange({...cart, items});
-                    }}/>
-                  ))}
-                </div>
-                <div style={{display:'flex', alignItems:'center', gap: 10}}>
-                  <div>
-                    <div style={{fontSize: 14, color:'#6B7280', fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.4}}>
-                      {itemCount} articol{itemCount === 1 ? 'o' : 'i'}
-                    </div>
-                    <div style={{fontSize: 24, fontWeight: 800, color:'#0F1115', letterSpacing: -0.4, lineHeight: 1.1}}>
-                      €{total.toFixed(2)}
-                    </div>
-                  </div>
-                  <span style={{flex:1}}/>
-                  <button onClick={onConfirm} style={{
-                    padding:'12px 22px',
-                    background:'#0F1115', color:'#fff', border:'none',
-                    borderRadius: 10, fontSize: 17.5, fontWeight: 700,
-                    cursor:'pointer', fontFamily:'inherit',
-                    display:'inline-flex', alignItems:'center', gap: 8, minHeight: 44,
-                  }}>
-                    Invia ordine
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14 M13 6l6 6-6 6"/>
-                    </svg>
-                  </button>
-                </div>
-              </>
-            )}
+          <div style={{flex:1, display:'flex', minHeight: 0}}>
+            <BrowseView
+              search={search} setSearch={setSearch}
+              categories={categories} category={category} setCategory={setCategory}
+              items={items} cart={cart}
+              onItemClick={handleItemClick} onQuickAdd={quickAdd}
+              hasCustomization={hasCustomization}/>
+            {/* Carrello: colonna fissa a destra dentro la finestra — nel
+                formato largo il riepilogo sta accanto agli articoli, non
+                compresso in un footer da 140px. */}
+            <CartPanel
+              cart={cart} itemCount={itemCount} total={total}
+              onCartChange={onCartChange} onConfirm={onConfirm}/>
           </div>
         )}
       </div>
 
       {confirmDiscard && (
         <div style={{
-          position:'absolute', inset: 0, zIndex: 50,
+          position:'absolute', inset: 0, zIndex: 70,
           background:'rgba(15,17,21,0.48)',
           display:'flex', alignItems:'center', justifyContent:'center',
           padding: 24,
@@ -219,8 +184,11 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
       )}
 
       <style>{`
-        @keyframes slideInRight { from {transform: translateX(100%);} to {transform: translateX(0);} }
-        @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
+        @keyframes artFadeIn { from {opacity: 0;} to {opacity: 1;} }
+        @keyframes artPopIn {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+          to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
       `}</style>
     </>
   );
@@ -263,98 +231,191 @@ function CartLine({ it, onRemove }) {
 function BrowseView({ search, setSearch, categories, category, setCategory, items, cart, onItemClick, onQuickAdd, hasCustomization }) {
   return (
     <>
-      {/* Search */}
-      <div style={{padding:'12px 20px', borderBottom:'1px solid #F0F2F5'}}>
-        <div style={{position:'relative'}}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca articolo…"
-            style={{
-              width:'100%', padding:'10px 12px 10px 36px',
-              background:'#F8F9FB', border:'1px solid #F0F2F5',
-              borderRadius: 8, fontSize: 17, color:'#0F1115',
-              outline:'none', fontFamily:'inherit',
-            }}/>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280"
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)'}}>
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </div>
+      {/* Categorie */}
+      <div className="pn-scroll" style={{
+        width: 176, borderRight:'1px solid #F0F2F5', flexShrink: 0,
+        overflow:'auto', padding: '10px 0', background:'#FAFBFC',
+      }}>
+        {categories.map(c => {
+          const on = category === c;
+          return (
+            <button key={c} onClick={()=>setCategory(c)} style={{
+              width:'100%', textAlign:'left',
+              padding:'11px 16px', border:'none',
+              background: on ? '#fff' : 'transparent',
+              color: on ? '#0F1115' : '#6B7280',
+              fontSize: 16.5, fontWeight: on ? 700 : 500,
+              cursor:'pointer', fontFamily:'inherit',
+              borderLeft: on ? '3px solid #E04347' : '3px solid transparent',
+            }}>{c}</button>
+          );
+        })}
       </div>
 
-      {/* Body: categorie + articoli */}
-      <div style={{flex:1, display:'flex', minHeight: 0}}>
-        <div className="pn-scroll" style={{
-          width: 130, borderRight:'1px solid #F0F2F5',
-          overflow:'auto', padding: '8px 0', background:'#FAFBFC',
-        }}>
-          {categories.map(c => {
-            const on = category === c;
-            return (
-              <button key={c} onClick={()=>setCategory(c)} style={{
-                width:'100%', textAlign:'left',
-                padding:'10px 14px', border:'none',
-                background: on ? '#fff' : 'transparent',
-                color: on ? '#0F1115' : '#6B7280',
-                fontSize: 16.5, fontWeight: on ? 700 : 500,
-                cursor:'pointer', fontFamily:'inherit',
-                borderLeft: on ? '3px solid #E04347' : '3px solid transparent',
-              }}>{c}</button>
-            );
-          })}
+      {/* Ricerca + griglia articoli */}
+      <div style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, minHeight: 0}}>
+        <div style={{padding:'12px 18px', borderBottom:'1px solid #F0F2F5', flexShrink: 0}}>
+          <div style={{position:'relative'}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca articolo…"
+              style={{
+                width:'100%', padding:'10px 12px 10px 36px',
+                background:'#F8F9FB', border:'1px solid #F0F2F5',
+                borderRadius: 8, fontSize: 17, color:'#0F1115',
+                outline:'none', fontFamily:'inherit',
+              }}/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)'}}>
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
         </div>
 
-        <div className="pn-scroll" style={{flex:1, overflow:'auto', padding: 12}}>
+        <div className="pn-scroll" style={{flex:1, overflow:'auto', padding: 14, minHeight: 0}}>
           {items.length === 0 ? (
             <div style={{padding: 30, textAlign:'center', color:'#9CA3AF', fontSize: 16.5}}>
               Nessun articolo trovato
             </div>
-          ) : items.map(it => {
-            const inCart = cart?.items.find(x => x.id === it.id && !x.customized);
-            const customizable = hasCustomization(it);
-            return (
-              <div key={it.id} onClick={()=>onItemClick(it)} style={{
-                display:'flex', alignItems:'center', gap: 10,
-                padding:'10px 12px', marginBottom: 6,
-                background:'#fff',
-                border:'1px solid #F0F2F5',
-                borderRadius: 8, cursor:'pointer',
-              }}>
-                <div style={{flex:1, minWidth: 0}}>
-                  <div style={{fontSize: 17, fontWeight: 600, color:'#0F1115',
-                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.nome}</div>
-                  {customizable && (
-                    <div style={{fontSize: 14, color:'#6B7280', marginTop: 2,
-                      display:'inline-flex', alignItems:'center', gap: 4}}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 20h9 M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4z"/>
-                      </svg>
-                      Personalizzabile
+          ) : (
+            <div style={{
+              display:'grid', gap: 8,
+              gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))',
+              alignContent:'start',
+            }}>
+              {items.map(it => {
+                const inCart = cart?.items.find(x => x.id === it.id && !x.customized);
+                const customizable = hasCustomization(it);
+                return (
+                  <div key={it.id} onClick={()=>onItemClick(it)} style={{
+                    display:'flex', alignItems:'center', gap: 10,
+                    padding:'11px 12px',
+                    background:'#fff',
+                    border:'1px solid #F0F2F5',
+                    borderRadius: 10, cursor:'pointer',
+                  }}>
+                    {/* overflow:hidden anche qui: la riga meta è una inline-flex,
+                        non si stringe da sola e senza taglio finirebbe sotto
+                        il badge "×N" quando la cella della griglia è stretta. */}
+                    <div style={{flex:1, minWidth: 0, overflow:'hidden'}}>
+                      <div style={{fontSize: 17, fontWeight: 600, color:'#0F1115',
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.nome}</div>
+                      <div style={{
+                        fontSize: 14, color:'#6B7280', marginTop: 2,
+                        display:'flex', alignItems:'center', gap: 4,
+                        whiteSpace:'nowrap', overflow:'hidden',
+                      }}>
+                        <span style={{fontSize: 15.5, fontWeight: 700, color:'#6B7280', flexShrink: 0}}>
+                          €{it.prezzo.toFixed(2)}
+                        </span>
+                        {customizable && (
+                          <>
+                            <span style={{color:'#D6D9DE', flexShrink: 0}}>·</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0}}>
+                              <path d="M12 20h9 M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4z"/>
+                            </svg>
+                            <span style={{overflow:'hidden', textOverflow:'ellipsis'}}>Personalizzabile</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-                <span style={{fontSize: 16.5, fontWeight: 700, color:'#6B7280', minWidth: 44, textAlign:'right'}}>
-                  €{it.prezzo.toFixed(2)}
-                </span>
-                {inCart && (
-                  <span style={{
-                    fontSize: 15, fontWeight: 700,
-                    color:'#6B7280', background:'#F1F2F5',
-                    padding:'2px 8px', borderRadius: 999,
-                  }}>×{inCart.qty}</span>
-                )}
-                <button onClick={(e)=>{ e.stopPropagation(); onQuickAdd(it); }} style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background:'#F1F2F5', color:'#0F1115',
-                  border:'none', cursor:'pointer', fontFamily:'inherit',
-                  display:'grid', placeItems:'center',
-                  fontSize: 18, fontWeight: 800,
-                }}>+</button>
-              </div>
-            );
-          })}
+                    {inCart && (
+                      <span style={{
+                        fontSize: 15, fontWeight: 700, flexShrink: 0,
+                        color:'#6B7280', background:'#F1F2F5',
+                        padding:'2px 8px', borderRadius: 999,
+                      }}>×{inCart.qty}</span>
+                    )}
+                    <button onClick={(e)=>{ e.stopPropagation(); onQuickAdd(it); }} style={{
+                      width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                      background:'#F1F2F5', color:'#0F1115',
+                      border:'none', cursor:'pointer', fontFamily:'inherit',
+                      display:'grid', placeItems:'center',
+                      fontSize: 18, fontWeight: 800,
+                    }}>+</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </>
+  );
+}
+
+// ─── Carrello: colonna destra del modale ────────────────────
+function CartPanel({ cart, itemCount, total, onCartChange, onConfirm }) {
+  return (
+    <div style={{
+      width: 330, flexShrink: 0, borderLeft:'1px solid #F0F2F5',
+      display:'flex', flexDirection:'column', background:'#FAFBFC', minHeight: 0,
+    }}>
+      <div style={{
+        padding:'14px 18px 10px', flexShrink: 0,
+        display:'flex', alignItems:'baseline', gap: 8,
+      }}>
+        <span style={{fontSize: 15, fontWeight: 800, color:'#0F1115', letterSpacing: 0.4, textTransform:'uppercase'}}>
+          Comanda
+        </span>
+        {itemCount > 0 && (
+          <span style={{fontSize: 15, color:'#6B7280', fontWeight: 600}}>
+            {itemCount} articol{itemCount === 1 ? 'o' : 'i'}
+          </span>
+        )}
+      </div>
+
+      {itemCount === 0 ? (
+        <div style={{
+          flex:1, display:'grid', placeItems:'center', padding:'0 24px',
+          textAlign:'center', fontSize: 16, color:'#9CA3AF', lineHeight: 1.5,
+        }}>
+          Tap su un articolo per aggiungerlo
+        </div>
+      ) : (
+        <div className="pn-scroll" style={{
+          flex:1, overflow:'auto', padding:'0 18px 12px', minHeight: 0,
+          display:'flex', flexDirection:'column', gap: 8,
+        }}>
+          {cart.items.map((it, idx) => (
+            <CartLine key={it.lineKey || `${it.id}-${idx}`} it={it} onRemove={()=>{
+              const items = it.qty > 1
+                ? cart.items.map((x,i) => i===idx ? {...x, qty: x.qty-1} : x)
+                : cart.items.filter((_,i) => i!==idx);
+              onCartChange({...cart, items});
+            }}/>
+          ))}
+        </div>
+      )}
+
+      <div style={{
+        borderTop:'1px solid #F0F2F5', padding:'14px 18px',
+        background:'#fff', flexShrink: 0,
+      }}>
+        <div style={{display:'flex', alignItems:'baseline', gap: 8, marginBottom: 10}}>
+          <span style={{fontSize: 14, color:'#6B7280', fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.4}}>
+            Totale
+          </span>
+          <span style={{flex:1}}/>
+          <span style={{fontSize: 26, fontWeight: 800, color:'#0F1115', letterSpacing: -0.5, lineHeight: 1.1}}>
+            €{total.toFixed(2)}
+          </span>
+        </div>
+        <button onClick={onConfirm} disabled={itemCount === 0} style={{
+          width:'100%', padding:'12px 22px',
+          background: itemCount === 0 ? '#E5E7EB' : '#0F1115',
+          color: itemCount === 0 ? '#9CA3AF' : '#fff',
+          border:'none', borderRadius: 10, fontSize: 17.5, fontWeight: 700,
+          cursor: itemCount === 0 ? 'not-allowed' : 'pointer', fontFamily:'inherit',
+          display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8, minHeight: 46,
+        }}>
+          Invia ordine
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14 M13 6l6 6-6 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -380,7 +441,12 @@ function CustomizeView({ c, setC, onAdd }) {
 
   return (
     <>
-      <div className="pn-scroll" style={{flex:1, overflow:'auto', padding: '14px 20px 20px'}}>
+      {/* Colonna centrata: personalizzare un piatto è una lista di scelte,
+          non merita 1000px di larghezza. */}
+      <div className="pn-scroll" style={{
+        flex:1, overflow:'auto', padding: '18px 24px 22px',
+        maxWidth: 720, width:'100%', margin:'0 auto', minHeight: 0,
+      }}>
         {/* Riepilogo prezzo base */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -493,10 +559,15 @@ function CustomizeView({ c, setC, onAdd }) {
         {/* Note cucina removed — solo varianti/extras strutturate */}
       </div>
 
-      {/* Footer: qty + add */}
+      {/* Footer: qty + add — barra a tutta larghezza, controlli allineati
+          alla colonna del contenuto. */}
       <div style={{
-        borderTop:'1px solid #F0F2F5', padding:'14px 20px', background:'#fff',
+        borderTop:'1px solid #F0F2F5', padding:'14px 24px', background:'#fff',
+        flexShrink: 0,
+      }}>
+      <div style={{
         display:'flex', alignItems:'center', gap: 12,
+        maxWidth: 672, width:'100%', margin:'0 auto',
       }}>
         <div style={{
           display:'inline-flex', alignItems:'center', gap: 6,
@@ -530,6 +601,7 @@ function CustomizeView({ c, setC, onAdd }) {
         }}>
           Aggiungi · €{total.toFixed(2)}
         </button>
+      </div>
       </div>
     </>
   );
