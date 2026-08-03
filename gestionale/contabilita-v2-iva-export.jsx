@@ -370,33 +370,51 @@ function ContNuovoCosto({ open, onClose }) {
 
   if (!open) return null;
   return (
-    <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 60, display:'grid', placeItems:'center', padding: 24}}>
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      zIndex: 60, display:'grid', placeItems:'center', padding: 28,
+      animation:'costoFade 0.16s ease',
+    }}>
       {/* Finestra centrale come "Invia al commercialista", non un drawer.
           Superficie bianca piena e non GLASS_STRONG: qui ci sono campi da
-          compilare, e il vetro sopra lo sfondo velato legge grigio. */}
-      <div onClick={e => e.stopPropagation()} style={{
-        width: 720, maxWidth:'100%', maxHeight:'100%', background: PN.WHITE,
-        borderRadius: 20, boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
+          compilare, e il vetro sopra lo sfondo velato legge grigio.
+          Il resto è finitura: hairline invece del bordo pieno, ombra a due
+          livelli come i pannelli glass, e l'entrata in scala. */}
+      <div className="cont-costo-modal" onClick={e => e.stopPropagation()} style={{
+        width: 880, maxWidth:'100%', maxHeight:'100%', background: PN.WHITE,
+        borderRadius: 22,
+        border: `1px solid ${PN.BORDER_HAIR}`,
+        boxShadow:'0 32px 80px rgba(15,17,21,0.24), 0 2px 6px rgba(15,17,21,0.08)',
         display:'flex', flexDirection:'column', overflow:'hidden',
+        animation:'costoPop 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
-        <div style={{padding:'18px 22px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-          <div>
-            <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Aggiungi costo</div>
-            <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>Registra una spesa ricorrente o un pagamento singolo</div>
+        <div style={{padding:'20px 26px 18px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14}}>
+          <div style={{display:'flex', alignItems:'center', gap: 14}}>
+            <div style={{
+              width: 42, height: 42, borderRadius: C.R_MD, flexShrink: 0,
+              background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+              display:'grid', placeItems:'center',
+              boxShadow: PN.INSET_HIGHLIGHT,
+            }}><Ic.invoice size={19}/></div>
+            <div>
+              <div style={{fontSize: C.T_LG, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Aggiungi costo</div>
+              <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>Registra una spesa ricorrente o un pagamento singolo</div>
+            </div>
           </div>
           <button onClick={onClose}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.color = PN.TEXT; }}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.transform = ''; }}
             onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.88)'; }}
             onMouseUp={e => { e.currentTarget.style.transform = ''; }}
-            style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 6, borderRadius: 8, transition:'background 130ms ease, color 130ms ease, transform 120ms ease'}}><Ic.close size={18}/></button>
+            style={{background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', display:'flex', padding: 8, borderRadius: 10, transition:'background 130ms ease, color 130ms ease, transform 120ms ease'}}><Ic.close size={18}/></button>
         </div>
         {/* Due colonne: nella finestra larga i campi stanno tutti a vista,
             senza lo scroll che il drawer da 480 imponeva.
             A sinistra cos'è il costo, a destra come e quando si paga. */}
-        <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: 22}}>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 22px', alignItems:'start'}}>
+        <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: '24px 26px 26px'}}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1px 1fr', gap:'0 30px', alignItems:'stretch'}}>
             <div>
+              <Overline>Il costo</Overline>
               <Field label="Nome del costo">
                 <input value={name} onChange={e => setName(e.target.value)} placeholder="Es. Affitto locale" style={inp}/>
               </Field>
@@ -417,11 +435,13 @@ function ContNuovoCosto({ open, onClose }) {
                     return (
                       <button key={c.id} onClick={() => setCat(c.id)} style={{
                         display:'flex', alignItems:'center', gap: 10,
-                        padding:'10px 12px',
-                        background: active ? m.bg : PN.WHITE,
-                        border:`1px solid ${active ? m.fg : PN.BORDER}`,
-                        borderRadius: C.R_SM, cursor:'pointer', fontFamily:'inherit',
+                        padding:'11px 13px',
+                        background: active ? m.bg : PN.BTN_NEUTRAL,
+                        border:`1px solid ${active ? m.fg : PN.BORDER_LIGHT}`,
+                        boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,0.55)' : PN.INSET_HIGHLIGHT,
+                        borderRadius: 10, cursor:'pointer', fontFamily:'inherit',
                         textAlign:'left',
+                        transition:'background 130ms ease, border-color 130ms ease',
                       }}>
                         <span style={{color: m.fg, display:'flex'}}><I size={16}/></span>
                         <span style={{fontSize: C.T_SM, fontWeight: 600, color: active ? m.fg : PN.TEXT}}>{c.label}</span>
@@ -432,7 +452,12 @@ function ContNuovoCosto({ open, onClose }) {
               </Field>
             </div>
 
+            {/* Hairline verticale: separa "cos'è" da "quando si paga" senza
+                aggiungere un box. */}
+            <div style={{background: PN.BORDER_SOFT}}/>
+
             <div>
+              <Overline>Pagamento</Overline>
               <Field label="Tipo">
                 <div style={{display:'flex', flexDirection:'column', gap: 8}}>
                   <TypeBtn active={type==='recurring'} onClick={() => setType('recurring')} icon={Ic.recurring} label="Ricorrente" desc="Si ripete ogni…"/>
@@ -452,42 +477,88 @@ function ContNuovoCosto({ open, onClose }) {
                 <input value={date} onChange={e => setDate(e.target.value)} type="date" style={inp}/>
               </Field>
               <Field label="Allegato (opzionale)">
-                <button style={{
-                  width:'100%', padding:'14px 16px',
-                  background: C.SURF, border:`1.5px dashed ${PN.BORDER}`, borderRadius: C.R_SM,
+                <button
+                  onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.borderColor = PN.PINK; e.currentTarget.style.color = PN.PINK_DARK; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = C.SURF; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.color = PN.MUTED; }}
+                  style={{
+                  width:'100%', padding:'16px 16px',
+                  background: C.SURF, border:`1.5px dashed ${PN.BORDER}`, borderRadius: 10,
                   fontSize: C.T_SM, color: PN.MUTED, cursor:'pointer', fontFamily:'inherit',
                   display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
+                  transition:'background 130ms ease, border-color 130ms ease, color 130ms ease',
                 }}><Ic.paperclip size={14}/> Trascina un PDF qui, o clicca per sceglierlo</button>
               </Field>
             </div>
           </div>
         </div>
-        <div style={{padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 10, justifyContent:'flex-end'}}>
+        {/* Footer su superficie off-white: stacca la barra azioni dal form
+            senza una seconda linea di bordo. CTA con i gradient dei token,
+            non due rettangoli piatti. */}
+        <div style={{
+          padding:'16px 26px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
+          background: PN.WHITE_OFF,
+          display:'flex', alignItems:'center', gap: 10,
+        }}>
+          <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT}}>
+            {isValid ? 'Pronto da salvare' : 'Nome e importo sono obbligatori'}
+          </div>
+          <div style={{flex: 1}}/>
           <button onClick={onClose}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_NEUTRAL; e.currentTarget.style.transform = ''; }}
             onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
             onMouseUp={e => { e.currentTarget.style.transform = ''; }}
-            style={{padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit', transition:'background 130ms ease, border-color 130ms ease, transform 120ms ease'}}>Annulla</button>
-          <button onClick={onClose} disabled={!isValid} style={{
-            padding:'10px 20px',
-            background: isValid ? PN.PINK : '#E5E7EB',
-            color: isValid ? '#fff' : PN.MUTED_SOFT,
-            border:'none', borderRadius: C.R_SM,
-            fontSize: C.T_SM, fontWeight: 700, fontFamily:'inherit',
-            cursor: isValid ? 'pointer' : 'not-allowed',
-          }}>Salva costo</button>
+            style={{padding:'11px 20px', background: PN.BTN_NEUTRAL, border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10, boxShadow: PN.INSET_HIGHLIGHT, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit', transition:'background 130ms ease, transform 120ms ease'}}>Annulla</button>
+          <button onClick={onClose} disabled={!isValid}
+            onMouseEnter={e => { if (isValid) { e.currentTarget.style.background = PN.BTN_BRAND_HOVER; e.currentTarget.style.boxShadow = `${PN.INSET_HIGHLIGHT_BRAND}, 0 6px 18px rgba(255,90,95,0.34)`; } }}
+            onMouseLeave={e => { if (isValid) { e.currentTarget.style.background = PN.BTN_BRAND; e.currentTarget.style.boxShadow = `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 8px rgba(255,90,95,0.24)`; } e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{
+              padding:'11px 24px',
+              background: isValid ? PN.BTN_BRAND : PN.WHITE_FROST,
+              color: isValid ? '#fff' : PN.MUTED_SOFT,
+              border:'none', borderRadius: 10,
+              boxShadow: isValid ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 8px rgba(255,90,95,0.24)` : 'none',
+              fontSize: C.T_SM, fontWeight: 700, fontFamily:'inherit',
+              cursor: isValid ? 'pointer' : 'not-allowed',
+              display:'inline-flex', alignItems:'center', gap: 8,
+              transition:'background 130ms ease, box-shadow 150ms ease, transform 120ms ease',
+            }}><Ic.check size={14} stroke={2.6}/> Salva costo</button>
         </div>
+
+        <style>{`
+          @keyframes costoFade { from {opacity: 0;} to {opacity: 1;} }
+          @keyframes costoPop {
+            from { opacity: 0; transform: scale(0.97) translateY(8px); }
+            to   { opacity: 1; transform: none; }
+          }
+          .cont-costo-modal input:focus {
+            border-color: ${PN.PINK};
+            box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.14);
+          }
+        `}</style>
       </div>
     </div>
   );
 }
 
+// Etichetta di sezione: dice cosa stai compilando senza aggiungere un box.
+function Overline({ children }) {
+  return (
+    <div style={{
+      fontSize: C.T_XS, fontWeight: 700, color: PN.MUTED_SOFT,
+      textTransform:'uppercase', letterSpacing: 0.7, marginBottom: 12,
+    }}>{children}</div>
+  );
+}
+
 const inp = {
-  width:'100%', padding:'10px 12px',
-  border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
+  width:'100%', padding:'11px 13px',
+  border:`1px solid ${PN.BORDER}`, borderRadius: 10,
   fontSize: C.T_SM, fontFamily:'inherit', outline:'none',
-  background: PN.WHITE,
+  background: PN.WHITE, color: PN.TEXT,
+  transition:'border-color 130ms ease, box-shadow 150ms ease',
 };
 function Field({ label, children }) {
   return (
@@ -500,11 +571,13 @@ function Field({ label, children }) {
 function TypeBtn({ active, onClick, icon: I, label, desc }) {
   return (
     <button onClick={onClick} style={{
-      flex:1, padding:'12px 14px',
-      background: active ? PN.PINK_BG_SOFT : PN.WHITE,
-      border:`1px solid ${active ? PN.PINK : PN.BORDER}`,
-      borderRadius: C.R_SM, cursor:'pointer', fontFamily:'inherit',
-      textAlign:'left', display:'flex', alignItems:'center', gap: 10,
+      flex:1, padding:'13px 15px',
+      background: active ? PN.PINK_BG_SOFT : PN.BTN_NEUTRAL,
+      border:`1px solid ${active ? PN.PINK : PN.BORDER_LIGHT}`,
+      boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,0.6)' : PN.INSET_HIGHLIGHT,
+      borderRadius: 10, cursor:'pointer', fontFamily:'inherit',
+      textAlign:'left', display:'flex', alignItems:'center', gap: 11,
+      transition:'background 130ms ease, border-color 130ms ease',
     }}>
       <span style={{color: active ? PN.PINK_DARK : PN.MUTED, display:'flex'}}><I size={18}/></span>
       <div>
