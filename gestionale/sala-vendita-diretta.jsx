@@ -1974,6 +1974,25 @@ const svTagli = (residuo) => {
   return out;
 };
 
+// Interruttore da testata: piccolo, in disparte, acceso quando conta.
+function SvPillola({ active, onClick, title, icon, label }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+      padding: '8px 12px', borderRadius: 999,
+      background: active ? SVI_TINT : '#fff',
+      border: `1px solid ${active ? SVI_CORAL : SVI_BORDER}`,
+      color: active ? SVI_CORAL : SVI_MUTED,
+      fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+      whiteSpace: 'nowrap',
+      transition: 'background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out',
+    }}>
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 function SvMetodoCard({ active, onClick, label, icon }) {
   return (
     <button onClick={onClick} style={{
@@ -2252,79 +2271,66 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             onRitira={() => setAttesa(null)}/>
         ) : (
           <>
-            {/* Testata: il nome della cosa che stai facendo, grande, e la via
-                d'uscita. Niente altro: tutto il resto è la vendita. */}
-            <div style={{padding: '26px 28px 0', display: 'flex', alignItems: 'flex-start', gap: 12}}>
+            {/* Testata: il nome della cosa che stai facendo, grande. A destra i
+                due interruttori che NON sono la vendita — correggere l'importo
+                ed emettere fattura invece della ricevuta: si usano di rado,
+                quindi stanno piccoli e in disparte, non in mezzo al flusso. */}
+            <div style={{padding: '24px 28px 0', display: 'flex', alignItems: 'center', gap: 8}}>
               <div style={{
                 flex: 1, fontSize: 34, fontWeight: 800, letterSpacing: -0.8,
                 color: SVI_INK, lineHeight: 1,
               }}>INCASSA</div>
+              <SvPillola
+                active={adjustOpen || !!adjust}
+                onClick={() => setAdjustOpen(o => !o)}
+                title="Applica uno sconto o arrotonda l'importo"
+                icon={<span style={{fontSize: 13, fontWeight: 800, lineHeight: 1}}>%</span>}
+                label={adjust ? svEur(Math.abs(adjustDelta)) : 'Sconto'}/>
+              <SvPillola
+                active={fattura}
+                onClick={() => setFattura(f => !f)}
+                title="Emetti fattura invece della ricevuta"
+                icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>}
+                label="Fattura"/>
               <button onClick={onClose} title="Chiudi" style={{
-                width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+                width: 36, height: 36, borderRadius: 11, flexShrink: 0, marginLeft: 2,
                 background: '#fff', border: `1px solid ${SVI_BORDER}`,
-                color: SVI_INK, fontSize: 20, lineHeight: 1,
+                color: SVI_INK, lineHeight: 1,
                 cursor: 'pointer', fontFamily: 'inherit',
                 display: 'grid', placeItems: 'center',
               }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
               </button>
             </div>
 
             <div className="pn-scroll" style={{overflow: 'auto'}}>
-              {/* Sconto a sinistra, quanto resta da incassare a destra: la
-                  correzione dell'importo sta accanto all'importo, non in un
-                  menù sotto. */}
-              <div style={{
-                display: 'grid', gridTemplateColumns: 'minmax(0,1.05fr) 1px minmax(0,1fr)',
-                gap: 24, alignItems: 'center', padding: '20px 28px 0',
-              }}>
-                <button onClick={() => setAdjustOpen(o => !o)} style={{
-                  display: 'flex', alignItems: 'center', gap: 13, textAlign: 'left',
-                  padding: '15px 16px', borderRadius: 14,
-                  background: SVI_TINT, border: `1px solid ${adjustOpen ? SVI_CORAL : 'rgba(255,90,95,0.18)'}`,
-                  cursor: 'pointer', fontFamily: 'inherit', width: '100%',
-                  transition: 'border-color 150ms ease-out',
+              {/* Quanto resta da incassare: è il numero che l'operatore legge
+                  al cliente, quindi si prende la riga intera. */}
+              <div style={{padding: '18px 28px 0'}}>
+                <div style={{
+                  fontSize: 13.5, fontWeight: 700, color: SVI_MUTED,
+                  letterSpacing: 0.7, textTransform: 'uppercase',
+                }}>Totale residuo</div>
+                <div style={{
+                  display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap',
                 }}>
                   <span style={{
-                    width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                    background: SVI_CORAL, color: '#fff',
-                    display: 'grid', placeItems: 'center',
-                    fontSize: 21, fontWeight: 700, lineHeight: 1,
-                  }}>%</span>
-                  <span style={{flex: 1, minWidth: 0}}>
-                    <span style={{display: 'block', fontSize: 16, fontWeight: 700, color: SVI_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                      {adjust ? adjustLabel.split(' · ')[0] : 'Sconto / arrotonda'}
-                    </span>
-                    <span style={{display: 'block', fontSize: 13.5, color: SVI_MUTED, marginTop: 2, lineHeight: 1.35}}>
-                      {adjust
-                        ? `${adjustDelta >= 0 ? '+' : '−'}${svEur(Math.abs(adjustDelta))} sul totale`
-                        : "Applica sconti o arrotonda l'importo"}
-                    </span>
-                  </span>
-                  <span style={{color: SVI_MUTED, flexShrink: 0, display: 'inline-flex', transform: adjustOpen ? 'rotate(90deg)' : 'none', transition: 'transform 150ms ease-out'}}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m9 5 7 7-7 7"/></svg>
-                  </span>
-                </button>
-
-                <div style={{width: 1, alignSelf: 'stretch', background: SVI_BORDER}}/>
-
-                <div>
-                  <div style={{
-                    fontSize: 13.5, fontWeight: 700, color: SVI_MUTED,
-                    letterSpacing: 0.7, textTransform: 'uppercase',
-                  }}>Totale residuo</div>
-                  <div style={{
                     fontSize: 46, fontWeight: 800, color: SVI_INK,
-                    letterSpacing: -1.6, lineHeight: 1.1, marginTop: 2,
+                    letterSpacing: -1.6, lineHeight: 1.15, marginTop: 2,
                     fontVariantNumeric: 'tabular-nums',
-                  }}>{svEur(residuo)}</div>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 6,
-                    fontSize: 14.5, color: SVI_MUTED,
-                  }}>
-                    <SvIcoMonete/>
-                    Già incassato {svEur(incassato)}
-                  </div>
+                  }}>{svEur(residuo)}</span>
+                  {adjust && (
+                    <span style={{fontSize: 15, color: SVI_MUTED}}>
+                      {adjustLabel.split(' · ')[0]} su {svEur(subtotale)}
+                    </span>
+                  )}
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, marginTop: 4,
+                  fontSize: 14.5, color: SVI_MUTED,
+                }}>
+                  <SvIcoMonete/>
+                  Già incassato {svEur(incassato)}
                 </div>
               </div>
 
@@ -2434,27 +2440,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               </div>
             </div>
 
-            {/* Documento e conferma. La fattura non è un'altra vendita: è la
-                stessa, con un altro pezzo di carta — quindi sta accanto alla
-                conferma e ne cambia le parole. */}
-            <div style={{padding: '18px 28px 24px', display: 'flex', gap: 14}}>
-              <button
-                onClick={() => setFattura(f => !f)}
-                title="Emetti fattura invece della ricevuta"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 9, flexShrink: 0,
-                  padding: '16px 22px', borderRadius: 14,
-                  background: fattura ? SVI_TINT : '#fff',
-                  border: `1px solid ${fattura ? SVI_CORAL : SVI_BORDER}`,
-                  color: fattura ? SVI_CORAL : SVI_INK,
-                  fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/>
-                </svg>
-                Fattura
-              </button>
-
+            {/* Solo la conferma: il documento si sceglie in testata, e qui
+                resta il gesto unico che chiude la vendita. */}
+            <div style={{padding: '18px 28px 24px'}}>
               {(() => {
                 const inviaSuStaff = method === 'carta';
                 const attivo = residuo > 0 && (inviaSuStaff || importo >= Math.min(residuo, 0.01));
@@ -2467,7 +2455,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     }}
                     disabled={!attivo}
                     style={{
-                      flex: 1, padding: '16px 20px', borderRadius: 14,
+                      width: '100%', padding: '16px 20px', borderRadius: 14,
                       background: attivo ? SVI_GREEN : '#EFEFF1',
                       color: attivo ? '#fff' : '#9CA3AF',
                       border: 'none', fontSize: 18, fontWeight: 700,
