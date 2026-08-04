@@ -1133,12 +1133,11 @@ function AccessReview() {
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
 
-      {/* Una banda sola, che cambia mestiere. Finché ci sono utenze da decidere
-          dice che il riesame è dovuto e porta i due comandi che sbrigano il
-          grosso; quando sono tutte decise diventa la firma. «Chiudi e firma»
-          non ha più un posto fisso nell'intestazione, dove stava grigio e
-          inerte per tutto il tempo in cui non si poteva premere: compare qui,
-          acceso, nel momento esatto in cui serve. */}
+      {/* Una banda sola, che cambia mestiere: finché ci sono utenze da decidere
+          dice che il riesame è dovuto, quando sono tutte decise diventa la
+          firma. «Chiudi e firma» non ha un posto fisso nell'intestazione, dove
+          starebbe grigio e inerte per tutto il tempo in cui non si può
+          premere: compare qui, acceso, nel momento esatto in cui serve. */}
       {!chiusa && (inScadenza || tuttiDecisi) && (
         <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
           background: tuttiDecisi ? ADM.OK_SOFT : scaduta ? ADM.DANGER_SOFT : '#FFF7E6',
@@ -1163,19 +1162,6 @@ function AccessReview() {
               </div>
             )}
           </div>
-          {/* Quando la banda c'è, l'intestazione qui sotto non ripete questi
-              comandi: lo stesso bottone due volte nella stessa schermata è un
-              bottone di troppo. */}
-          {!tuttiDecisi && invariatiAperti.length > 1 && (
-            <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
-              Conferma utenze
-            </AdmButton>
-          )}
-          {!tuttiDecisi && aperte.length > 1 && (
-            <AdmButton variant="secondary" size="sm" onClick={()=>{ setSelezione([]); setMotivo(''); }}>
-              Revoca utenze
-            </AdmButton>
-          )}
           {tuttiDecisi && (
             <AdmButton variant="primary" size="sm" onClick={()=>setConfermaChiusura(true)}>
               Chiudi e firma
@@ -1240,22 +1226,8 @@ function AccessReview() {
                 </React.Fragment>
               )}
             </span>
-            {/* I comandi restano insieme: o stanno in riga col titolo, o vanno a
-                capo tutti e tre, mai uno solo spaiato sotto agli altri. */}
-            <div style={{display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
-              {!inScadenza && invariatiAperti.length > 1 && (
-                <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
-                  Conferma utenze
-                </AdmButton>
-              )}
-              {/* Compare solo se c'è più di una riga su cui potrebbe servire:
-                  per revocare una persona sola basta aprirla. */}
-              {!inScadenza && aperte.length > 1 && (
-                <AdmButton variant="quiet" size="sm" onClick={()=>{ setSelezione([]); setMotivo(''); }}>
-                  Revoca utenze
-                </AdmButton>
-              )}
-            </div>
+            {/* Nessun comando in blocco qui: ogni utenza si decide aprendola,
+                dove ci sono la sua storia e il suo motivo. */}
           </div>
           )}
 
