@@ -20,11 +20,13 @@
 // calore senza punti c'è domanda scoperta; dove ci sono punti senza calore c'è
 // rete che non viene usata.
 
+// Tre stati, e solo quelli che stanno ancora in piedi. Il locale attivo porta
+// il corallo di byup: è la rete che funziona, ed è giusto che sia del colore
+// del marchio invece che di un verde da semaforo.
 const MAP_STATI = {
-  active:     { label: 'Attivo',      colore: ADM.OK },
+  active:     { label: 'Attivo',      colore: ADM.PINK },
   onboarding: { label: 'In apertura', colore: ADM.WARN },
   inactive:   { label: 'Fermo',       colore: ADM.MUTED_LIGHT },
-  churned:    { label: 'Uscito',      colore: ADM.DANGER },
 };
 
 // Scala del calore: un solo colore che si satura. Due tinte direbbero "due

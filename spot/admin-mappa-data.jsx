@@ -45,7 +45,10 @@ const GEO_CITTA = {
 // attorno al centro con uno scarto stabile (dipende dall'id, non dal caso), in
 // un raggio di pochi chilometri. Restano nella loro città e restano contabili.
 const GEO_LOCALI = (window.LOCALI || [])
-  .filter(l => GEO_CITTA[l.citta])
+  // Chi se n'è andato non sta più sulla carta: la mappa dice dov'è la rete
+  // adesso, e un pallino per un locale che ha chiuso è un locale che non c'è.
+  // Il churn si legge dove si deve, nella sua card.
+  .filter(l => GEO_CITTA[l.citta] && l.stato !== 'churned')
   .map((l, i) => {
     const c = GEO_CITTA[l.citta];
     const a = (i * 2.399963) % (Math.PI * 2);          // angolo aureo: niente grumi
