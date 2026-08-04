@@ -56,14 +56,17 @@ const ACC_PIANI = [
     ordineExtra: 0.23,
     menu: 'Menu illimitati',
     staff: 'Staff illimitato',
-    supporto: 'Tutto Starter + supporto telefonico 24/7 · richiamata entro 30 min',
+    supporto: 'Tutto Starter + telefono Lun–Ven 12–16 e 18–22 · richiamata entro 2 ore',
     highlight: true,
     menuShort: 'Illimitati', staffShort: 'Illimitati',
+    // Orario e tempo di richiamata sono la differenza vera fra Plus e
+    // Business: nella tabella di confronto vanno scritti, non spuntati.
     supPhone: true, supCallback: true, supPriority: false,
+    supOrariShort: 'Lun–Ven 12–16 / 18–22', supSlaShort: 'entro 2 ore',
     feat: [
       'Menu digitali illimitati',
       'Membri dello staff illimitati',
-      'Supporto telefonico 24/7 con richiamata entro 30 min',
+      'Supporto telefonico Lun–Ven (12–16, 18–22) · richiamata entro 2 ore',
     ],
   },
   {
@@ -72,13 +75,14 @@ const ACC_PIANI = [
     ordineExtra: 0.12,
     menu: 'Menu illimitati',
     staff: 'Staff illimitato',
-    supporto: 'Tutto Plus + canale prioritario',
+    supporto: 'Telefono H24, 7 giorni su 7 · richiamata entro 1 ora · canale prioritario',
     menuShort: 'Illimitati', staffShort: 'Illimitati',
     supPhone: true, supCallback: true, supPriority: true,
+    supOrariShort: 'H24 · 7 su 7', supSlaShort: 'entro 1 ora',
     feat: [
       'Menu digitali illimitati',
       'Membri dello staff illimitati',
-      'Supporto telefonico 24/7 con richiamata entro 30 min · canale prioritario',
+      'Supporto telefonico H24/7 · richiamata entro 1 ora · canale prioritario',
     ],
   },
 ];

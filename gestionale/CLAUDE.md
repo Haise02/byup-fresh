@@ -29,7 +29,7 @@ Il modello di pricing si basa sul volume di ordini effettuati. Per ciascun piano
 | Plus     | 7.500          | 134,99 € + IVA  | 0,23 € + IVA        |
 | Business | 15.000         | 250 € + IVA     | 0,12 € + IVA        |
 
-Il piano Gratuito (in origine "Free") funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus e Business aggiungono supporto telefonico con callback entro 30 minuti, 24/7. Il numero di menu creabili varia da 1 (Gratuito) a 3 (Starter) a illimitati (Plus e Business). I collegamenti tra kitchen monitor e camerieri partono da 1 (Gratuito), 3 (Starter), illimitati per i piani superiori.
+Il piano Gratuito (in origine "Free") funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus aggiunge il supporto telefonico Lun–Ven nelle fasce 12:00–16:00 e 18:00–22:00 con callback entro 2 ore; Business lo estende a H24, 7 giorni su 7, con callback entro 1 ora. Il numero di menu creabili varia da 1 (Gratuito) a 3 (Starter) a illimitati (Plus e Business). I collegamenti tra kitchen monitor e camerieri partono da 1 (Gratuito), 3 (Starter), illimitati per i piani superiori.
 
 Sono previsti anche pacchetti di transazioni acquistabili singolarmente per gestire picchi di attività senza dover passare al piano superiore.
 

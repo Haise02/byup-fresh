@@ -248,7 +248,9 @@ function SupCallScheduler({ open, onClose }) {
     setTimeout(() => { setSent(false); setPhone(''); setTopic(''); onClose(); }, 1800);
   };
   const slots = [
-    { id:'30min', label:'Entro 30 min', desc:'Operatore disponibile ora' },
+    // Le finestre ricalcano le promesse dei piani: 1 ora è la garanzia
+    // Business, 2 ore quella Plus — qui non si promette più di lì.
+    { id:'1h', label:'Entro 1 ora', desc:'Operatore disponibile ora' },
     { id:'2h', label:'Entro 2 ore', desc:'Verrai chiamato il prima possibile' },
     { id:'oggi', label:'Oggi pomeriggio', desc:'Tra le 14:00 e le 18:00' },
     { id:'domani', label:'Domani mattina', desc:'Tra le 9:00 e le 12:00' },

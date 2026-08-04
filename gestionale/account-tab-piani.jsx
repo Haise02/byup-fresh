@@ -1361,8 +1361,8 @@ function ConfrontoTable() {
       ...ACC_PIANI.map(p => p.staffShort),
     ],
     ['Assistenza via chat, tutorial e ticket', ...ACC_PIANI.map(() => '✓')],
-    ['Supporto telefonico 24/7',               ...ACC_PIANI.map(p => p.supPhone ? '✓' : '—')],
-    ['Richiamata entro 30 minuti',             ...ACC_PIANI.map(p => p.supCallback ? '✓' : '—')],
+    ['Supporto telefonico',                    ...ACC_PIANI.map(p => p.supPhone ? p.supOrariShort : '—')],
+    ['Richiamata garantita',                   ...ACC_PIANI.map(p => p.supCallback ? p.supSlaShort : '—')],
     ['Canale riservato prioritario',           ...ACC_PIANI.map(p => p.supPriority ? '✓' : '—')],
   ];
 
