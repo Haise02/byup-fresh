@@ -2406,38 +2406,54 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 )}
               </div>
 
-              {/* Riepilogo: cosa stai per fare e cosa resta dopo. Le due
-                  domande che l'operatore si fa col cliente davanti. */}
-              <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1px 1fr',
-                gap: 18, alignItems: 'center',
-                margin: '16px 28px 0', padding: '14px 18px',
-                borderRadius: 14, background: '#F5F6F8',
-              }}>
-                <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
-                  <SvIcoPortafoglio/>
-                  <span style={{minWidth: 0}}>
-                    <span style={{display: 'block', fontSize: 13.5, color: SVI_MUTED}}>Metodo selezionato</span>
-                    <span style={{display: 'block', fontSize: 16.5, fontWeight: 700, color: SVI_INK}}>
-                      {method === 'carta' ? 'Smart POS' : 'Contanti'}
-                    </span>
-                  </span>
-                </div>
-                <div style={{width: 1, alignSelf: 'stretch', background: 'rgba(15,17,21,0.09)'}}/>
-                <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
+              {/* Riepilogo. Coi contanti coperti resta una domanda sola —
+                  quanto rendo — e allora la striscia diventa quella: ripetere
+                  "metodo selezionato: contanti" mentre la tessera Contanti è
+                  accesa due dita più su non aiuta a contare il resto. */}
+              {method === 'contanti' && !parziale && importo > 0 ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  margin: '16px 28px 0', padding: '14px 18px',
+                  borderRadius: 14, background: '#F5F6F8',
+                }}>
                   <SvIcoMonete size={22}/>
-                  <span style={{minWidth: 0}}>
-                    <span style={{display: 'block', fontSize: 13.5, color: SVI_MUTED}}>
-                      {resto > 0.004 ? 'Resto da dare' : 'Residuo dopo incasso'}
-                    </span>
-                    <span style={{
-                      display: 'block', fontSize: 16.5, fontWeight: 800,
-                      color: resto > 0.004 ? SVI_INK : (residuoDopo <= 0.004 ? SVI_GREEN : SVI_CORAL),
-                      fontVariantNumeric: 'tabular-nums',
-                    }}>{svEur(resto > 0.004 ? resto : residuoDopo)}</span>
-                  </span>
+                  <span style={{fontSize: 16.5, color: SVI_MUTED}}>Resto:</span>
+                  <span style={{
+                    fontSize: 20, fontWeight: 800, letterSpacing: -0.3,
+                    color: resto > 0.004 ? SVI_INK : SVI_GREEN,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>{svEur(resto)}</span>
                 </div>
-              </div>
+              ) : (
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1px 1fr',
+                  gap: 18, alignItems: 'center',
+                  margin: '16px 28px 0', padding: '14px 18px',
+                  borderRadius: 14, background: '#F5F6F8',
+                }}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
+                    <SvIcoPortafoglio/>
+                    <span style={{minWidth: 0}}>
+                      <span style={{display: 'block', fontSize: 13.5, color: SVI_MUTED}}>Metodo selezionato</span>
+                      <span style={{display: 'block', fontSize: 16.5, fontWeight: 700, color: SVI_INK}}>
+                        {method === 'carta' ? 'Smart POS' : 'Contanti'}
+                      </span>
+                    </span>
+                  </div>
+                  <div style={{width: 1, alignSelf: 'stretch', background: 'rgba(15,17,21,0.09)'}}/>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
+                    <SvIcoMonete size={22}/>
+                    <span style={{minWidth: 0}}>
+                      <span style={{display: 'block', fontSize: 13.5, color: SVI_MUTED}}>Residuo dopo incasso</span>
+                      <span style={{
+                        display: 'block', fontSize: 16.5, fontWeight: 800,
+                        color: residuoDopo <= 0.004 ? SVI_GREEN : SVI_CORAL,
+                        fontVariantNumeric: 'tabular-nums',
+                      }}>{svEur(residuoDopo)}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Solo la conferma: il documento si sceglie in testata, e qui
