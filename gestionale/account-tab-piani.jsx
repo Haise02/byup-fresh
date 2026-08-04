@@ -971,17 +971,11 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   const codice = accCodiceInvito(locale.nome);
   const linkPieno = `https://byup.it/r/${codice}`;
   const mesi = ACC_REFERRAL.mesiPerLato;
-  const gratuito = !current.prezzo;
   const attivi = ACC_REFERRAL.attivi;
-  const mesiMaturati = attivi * mesi;
+  const ordiniInvito = ACC_REFERRAL.ordiniPerInvito;
+  const fmtOrdini = (n) => n.toLocaleString('it-IT', {useGrouping: true});
 
   const starter = ACC_PIANI.find(p => p.id === 'starter');
-  const business = ACC_PIANI.find(p => p.id === 'business');
-  // Sul Gratuito i mesi non hanno un prezzo da scontare: la card «tu ricevi»
-  // mostra il massimo raggiungibile (Business, da cui il «fino a»), col
-  // promemoria che i mesi valgono da quando si passa a un piano a pagamento.
-  const pianoTu = gratuito ? business : current;
-  const valoreTu = Math.round(pianoTu.prezzo * mesi);
 
   const [copiato, setCopiato] = React.useState(false);
   const timer = React.useRef(null);
@@ -996,7 +990,7 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   };
   React.useEffect(() => () => clearTimeout(timer.current), []);
 
-  const messaggio = `Ti passo il mio link byup: ${linkPieno} — se attivi un abbonamento, ${mesi} mesi gratis a te e ${mesi} a me. Il codice è ${codice}.`;
+  const messaggio = `Ti passo il mio link byup: ${linkPieno} — se attivi un abbonamento hai ${mesi} mesi di Starter gratis. Il codice è ${codice}.`;
   const condividiWhatsApp = () => {
     // WhatsApp è il canale su cui un ristoratore parla con un altro
     // ristoratore: messaggio già scritto, link dentro.
@@ -1018,8 +1012,8 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   // scattato. Se non è ancora scattato, non si scrive niente.
   const guadagno = attivi === 0 ? null
     : attivi === 1
-      ? `1 ristorante ha attivato il piano ${ACC_REFERRAL.pianoAttivato}: hai guadagnato ${mesi} mesi del tuo piano gratuiti.`
-      : `${attivi} ristoranti hanno attivato un piano: hai guadagnato ${mesiMaturati} mesi del tuo piano gratuiti.`;
+      ? `1 ristorante ha attivato il piano ${ACC_REFERRAL.pianoAttivato}: hai guadagnato ${fmtOrdini(ordiniInvito)} ordini aggiuntivi.`
+      : `${attivi} ristoranti hanno attivato un piano: hai guadagnato ${fmtOrdini(attivi * ordiniInvito)} ordini aggiuntivi.`;
 
   return (
     <AcPayModal onClose={onClose} width={620}>
@@ -1036,10 +1030,10 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
           Invita un ristorante
         </div>
         <div style={{fontSize: 15, color: PN.MUTED, marginTop: 10, lineHeight: 1.45}}>
-          Tu e il ristorante invitato riceverete entrambi
+          Tu e il ristorante invitato riceverete
         </div>
         <div style={{fontSize: 26, fontWeight: 800, letterSpacing: -0.4, marginTop: 2, ...AURORA_TEXT_GRADIENT}}>
-          {mesi} mesi GRATIS!
+          un premio a testa!
         </div>
         <button onClick={onClose} aria-label="Chiudi" style={{
           position: 'absolute', top: 18, right: 18, width: 34, height: 34, borderRadius: '50%',
@@ -1052,13 +1046,13 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
       <div style={{display: 'flex', alignItems: 'stretch', padding: '20px 26px 0'}}>
         <div style={ACC_INVITO_CARD}>
           <AcInvitoChip label="Tu ricevi" fg="#DB2777" bg="#FDEBF3"/>
-          <div style={{display: 'flex', justifyContent: 'center', padding: '2px 0'}}>
-            <AcInvitoRiga piano={pianoTu} caption={gratuito ? 'quando passi a un piano a pagamento' : null}/>
-          </div>
-          <div style={{textAlign: 'center', marginTop: 'auto', paddingBottom: 4}}>
-            <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT}}>Risparmi fino a</div>
+          <div style={{textAlign: 'center', margin: 'auto 0', padding: '6px 0'}}>
             <div style={{fontSize: 40, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, ...AURORA_TEXT_GRADIENT}}>
-              {fmtPrice(valoreTu)}€
+              {fmtOrdini(ordiniInvito)}
+            </div>
+            <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginTop: 2}}>ordini aggiuntivi</div>
+            <div style={{fontSize: 12, color: PN.MUTED, marginTop: 4, lineHeight: 1.4}}>
+              per ogni ristorante che attiva un abbonamento
             </div>
           </div>
         </div>
@@ -1070,17 +1064,9 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
 
         <div style={ACC_INVITO_CARD}>
           <AcInvitoChip label="Il tuo amico riceve" fg="#7C3AED" bg="#EDE7FD"/>
-          <AcInvitoRiga piano={starter} caption="se attiva il piano Gratuito"/>
-          <div style={{display: 'flex', alignItems: 'center', margin: '2px 0'}}>
-            <div style={{flex: 1, borderTop: '1px solid #E4DEF4'}}/>
-            <div style={{
-              background: PN.WHITE, border: '1px solid #EEE9F9', borderRadius: 999,
-              boxShadow: '0 2px 6px rgba(15,17,21,0.06)',
-              padding: '3px 12px', fontSize: 12, fontWeight: 700, color: PN.TEXT,
-            }}>oppure</div>
-            <div style={{flex: 1, borderTop: '1px solid #E4DEF4'}}/>
+          <div style={{display: 'flex', justifyContent: 'center', margin: 'auto 0', padding: '6px 0'}}>
+            <AcInvitoRiga piano={starter} caption="quando attiva un abbonamento"/>
           </div>
-          <AcInvitoRiga piano={business} caption="se attiva un piano a pagamento"/>
         </div>
       </div>
 

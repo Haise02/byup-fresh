@@ -117,7 +117,8 @@ const ACC_SESSIONI = [
 // premio è scattato davvero. Le altre due sono metriche di campagna, e le
 // guarda byup dal suo pannello.
 const ACC_REFERRAL = {
-  mesiPerLato: 2,
+  mesiPerLato: 2,            // mesi gratis per chi ARRIVA (di Starter)
+  ordiniPerInvito: 3500,     // ordini aggiuntivi per chi INVITA
   attivi: 1,                 // ristoranti arrivati che hanno attivato un piano
   pianoAttivato: 'Starter',  // quale piano ha attivato l'ultimo arrivato
 };
