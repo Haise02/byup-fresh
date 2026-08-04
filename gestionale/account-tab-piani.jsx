@@ -423,7 +423,20 @@ function AccPianiAbbonamenti() {
           scrollMarginTop tiene il titolo staccato dal bordo alto dopo lo scroll. */}
       <div ref={ordiniExtraRef} id="ordini-aggiuntivi" style={{scrollMarginTop: 16}}>
       <AcCard
-        title="Più ordini con lo stesso piano"
+        title={
+          <span style={{display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap'}}>
+            Più ordini con lo stesso piano
+            {/* Chip nel linguaggio di IL PIÙ SCELTO: bianco, bordo lavanda,
+                testo in gradient — l'accento aurora cita, non urla. */}
+            <span style={{
+              padding: '3px 10px', borderRadius: 6, letterSpacing: 0.5,
+              background: PN.WHITE, border: '1px solid rgba(167, 139, 250, 0.45)',
+              boxShadow: '0 2px 8px rgba(124, 58, 237, 0.14)',
+            }}>
+              <span style={{fontSize: 12, fontWeight: 700, ...AURORA_TEXT_GRADIENT}}>SENZA SCADENZA</span>
+            </span>
+          </span>
+        }
         subtitle="Aggiungi ordini per gestire i picchi senza cambiare piano: si sommano a quelli già inclusi."
       >
         {/* I pacchetti sono un gradino SOTTO i piani nella gerarchia della
