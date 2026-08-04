@@ -897,10 +897,10 @@ const ACC_INVITO_LETTERA_BG = {
 function AcInvitoLettera({ piano }) {
   return (
     <div aria-hidden="true" style={{
-      width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+      width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
       background: ACC_INVITO_LETTERA_BG[piano.id] || PN.TEXT,
       display: 'grid', placeItems: 'center',
-      color: PN.WHITE, fontSize: 17, fontWeight: 800,
+      color: PN.WHITE, fontSize: 20, fontWeight: 800,
       boxShadow: '0 4px 10px rgba(15,17,21,0.16)',
     }}>{piano.nome.charAt(0)}</div>
   );
@@ -912,15 +912,15 @@ function AcInvitoLettera({ piano }) {
 function AcInvitoRiga({ piano, caption }) {
   const mesi = ACC_REFERRAL.mesiPerLato;
   return (
-    <div style={{display: 'flex', alignItems: 'center', gap: 11}}>
+    <div style={{display: 'flex', alignItems: 'center', gap: 13}}>
       <AcInvitoLettera piano={piano}/>
       <div style={{textAlign: 'left', minWidth: 0}}>
-        <div style={{fontSize: 12.5, fontWeight: 600, color: PN.TEXT}}>{mesi} mesi di</div>
-        <div style={{fontSize: 20, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.15, ...AURORA_TEXT_GRADIENT}}>
+        <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>{mesi} mesi di</div>
+        <div style={{fontSize: 26, fontWeight: 800, letterSpacing: -0.4, lineHeight: 1.15, ...AURORA_TEXT_GRADIENT}}>
           {piano.nome}
         </div>
         {caption && (
-          <div style={{fontSize: 12, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{caption}</div>
+          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{caption}</div>
         )}
       </div>
     </div>
@@ -1074,6 +1074,7 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
             <div style={{fontSize: 40, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, ...AURORA_TEXT_GRADIENT}}>
               {fmtOrdini(valoreOrdini)}€
             </div>
+            <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, marginTop: 4}}>Senza scadenza</div>
             <div style={{fontSize: 12, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
               per ogni ristorante che attiva un abbonamento
             </div>
