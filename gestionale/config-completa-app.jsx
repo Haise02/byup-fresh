@@ -84,6 +84,11 @@ function ConfigCompletaApp() {
   };
 
   const goPanoramica = () => { window.location.href = 'byup Panoramica.html'; };
+  // A configurazione conclusa si atterra su Piani e abbonamenti, non in
+  // Panoramica: finito l'onboarding la prossima decisione è il piano.
+  // «Salta e continua dopo» invece resta sulla Panoramica — chi rimanda la
+  // configurazione non è pronto a scegliere un piano.
+  const goPiani = () => { window.location.href = 'byup Profilo.html?tab=piani'; };
 
   // Feedback loop: toast di conferma alla pubblicazione della vetrina.
   const [toast, setToast] = React.useState(null);
@@ -93,12 +98,12 @@ function ConfigCompletaApp() {
     setTimeout(() => setToast(null), 2400);
   };
   // Peak-End: la chiusura del flusso è un momento positivo, non un redirect
-  // secco — overlay celebrativo breve, poi la Panoramica.
+  // secco — overlay celebrativo breve, poi Piani e abbonamenti.
   const [finishing, setFinishing] = React.useState(false);
   const complete = () => {
     if (finishing) return;
     setFinishing(true);
-    setTimeout(goPanoramica, 1300);
+    setTimeout(goPiani, 1300);
   };
   const donePct = Math.round(completion.filter(c => c.done).length / completion.length * 100);
 
@@ -334,7 +339,7 @@ function ConfigCompletaApp() {
             La tua presenza su byup è pronta.
           </div>
           <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 6}}>
-            Ti portiamo in Panoramica…
+            Ti portiamo su Piani e abbonamenti…
           </div>
         </div>
       )}
