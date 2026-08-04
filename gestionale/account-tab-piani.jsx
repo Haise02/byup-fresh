@@ -976,9 +976,23 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   const fmtOrdini = (n) => n.toLocaleString('it-IT', {useGrouping: true});
 
   const starter = ACC_PIANI.find(p => p.id === 'starter');
-  // Il controvalore dei 3.500 ordini: quanto costerebbero come ordini extra
-  // al prezzo del piano attuale (Starter: 0,34 € → 1.190 €).
-  const valoreOrdini = Math.round(ordiniInvito * current.ordineExtra);
+  // Il controvalore dei 3.500 ordini: quanto costerebbero comprandoli coi
+  // pacchetti di transazioni qui sotto, nella combinazione più conveniente
+  // che li copre (oggi M + 3×S = 236 €). Derivato da ACC_PACCHETTI, non
+  // hardcodato: se i tagli o i prezzi cambiano, il popup si aggiorna da sé.
+  const valoreOrdini = (() => {
+    const massimo = ordiniInvito + Math.max(...ACC_PACCHETTI.map(p => p.ordini));
+    const dp = new Array(massimo + 1).fill(Infinity);
+    dp[0] = 0;
+    for (let q = 1; q <= massimo; q++) {
+      for (const p of ACC_PACCHETTI) {
+        if (q >= p.ordini && dp[q - p.ordini] + p.prezzo < dp[q]) dp[q] = dp[q - p.ordini] + p.prezzo;
+      }
+    }
+    let migliore = Infinity;
+    for (let q = ordiniInvito; q <= massimo; q++) if (dp[q] < migliore) migliore = dp[q];
+    return migliore;
+  })();
 
   const [copiato, setCopiato] = React.useState(false);
   const timer = React.useRef(null);
