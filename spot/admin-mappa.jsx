@@ -156,17 +156,26 @@ function AnMappa() {
     stratoRef.current = gruppo;
   }, [strato, pronta, locali, accessi, totAccessi]);
 
-  const classifica = strato === 'locali'
-    ? perCitta.slice(0, 6).map(c => ({
-        k: c.citta, primo: c.citta,
-        secondo: `${c.n} ${c.n === 1 ? 'locale' : 'locali'} · ${c.attivi} attivi`,
-        valore: admNumIt(c.ordini) + ' ord/mese',
-      }))
-    : accessi.slice(0, 6).map(a => ({
-        k: a.citta, primo: a.citta,
-        secondo: `${a.localiQui} ${a.localiQui === 1 ? 'locale' : 'locali'} · ${a.utenti} ${a.utenti === 1 ? 'utente registrato' : 'utenti registrati'}`,
-        valore: admNumIt(a.accessi) + ' accessi',
-      }));
+  // La classifica ordina per UNA misura, e quella misura sta in cima alla riga
+  // con la sua barra: il resto è contorno e va sotto, piccolo. Prima nome e
+  // valore si contendevano la stessa riga e il numero finiva contro il bordo.
+  const classifica = React.useMemo(() => {
+    const righe = strato === 'locali'
+      ? perCitta.slice(0, 6).map(c => ({
+          k: c.citta,
+          misura: c.n,
+          etichetta: `${c.n} ${c.n === 1 ? 'locale' : 'locali'}`,
+          sotto: `${c.attivi} attivi · ${admNumIt(c.ordini)} ordini/mese`,
+        }))
+      : accessi.slice(0, 6).map(a => ({
+          k: a.citta,
+          misura: a.accessi,
+          etichetta: `${admNumIt(a.accessi)} accessi`,
+          sotto: `${a.localiQui} ${a.localiQui === 1 ? 'locale' : 'locali'} · ${a.utenti} ${a.utenti === 1 ? 'utente' : 'utenti'} registrat${a.utenti === 1 ? 'o' : 'i'}`,
+        }));
+    const max = righe.reduce((m, r) => Math.max(m, r.misura), 0) || 1;
+    return righe.map(r => ({ ...r, quota: r.misura / max }));
+  }, [strato, perCitta, accessi]);
 
   // Click su una città della classifica: la mappa ci va sopra. Leggere un nome
   // e doverlo cercare a mano sulla carta è lavoro inutile.
@@ -200,7 +209,7 @@ function AnMappa() {
         </div>
       }
     >
-      <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 260px', gap:20, alignItems:'start'}}>
+      <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 280px', gap:22, alignItems:'start'}}>
 
         <div>
           <div ref={boxRef} style={{
@@ -239,21 +248,56 @@ function AnMappa() {
         </div>
 
         <div>
-          <div style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10}}>
-            {strato === 'locali' ? 'Città per numero di locali' : 'Città per accessi'}
+          <div style={{
+            display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8,
+            marginBottom:12,
+          }}>
+            <span style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>
+              {strato === 'locali' ? 'Città per locali' : 'Città per accessi'}
+            </span>
+            <span style={{fontSize:11.6, color:ADM.MUTED_SOFT}}>prime 6</span>
           </div>
-          <div style={{display:'flex', flexDirection:'column'}}>
-            {classifica.map((r, i) => (
-              <button key={r.k} onClick={() => vaiA(r.k)} title={`Porta la mappa su ${r.primo}`} style={{
-                display:'flex', alignItems:'center', gap:10, padding:'9px 0', width:'100%',
-                background:'transparent', border:'none', textAlign:'left', cursor:'pointer', fontFamily:'inherit',
-                borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-              }}>
-                <span style={{flex:1, minWidth:0}}>
-                  <span style={{display:'block', fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{r.primo}</span>
-                  <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:1}}>{r.secondo}</span>
+
+          <div style={{display:'flex', flexDirection:'column', gap:4}}>
+            {classifica.map(r => (
+              <button key={r.k} onClick={() => vaiA(r.k)} title={`Porta la mappa su ${r.k}`}
+                onMouseEnter={e => { e.currentTarget.style.background = ADM.NEUTRAL_SOFT; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                style={{
+                  display:'block', width:'100%', textAlign:'left',
+                  padding:'9px 10px', borderRadius:10,
+                  background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
+                  transition:'background 140ms ease-out',
+                }}>
+                {/* nome a sinistra, misura a destra: due colonne che non si
+                    toccano mai, qualunque sia la cifra */}
+                <span style={{display:'flex', alignItems:'baseline', gap:10}}>
+                  <span style={{
+                    flex:1, minWidth:0, fontSize:13.6, fontWeight:700, color:ADM.TEXT,
+                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                  }}>{r.k}</span>
+                  <span style={{
+                    fontSize:13, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap',
+                    fontVariantNumeric:'tabular-nums',
+                  }}>{r.etichetta}</span>
                 </span>
-                <span style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap'}}>{r.valore}</span>
+
+                {/* la barra dice il rapporto fra le città meglio di sei numeri
+                    incolonnati: si legge senza leggere */}
+                <span style={{
+                  display:'block', height:6, borderRadius:999, marginTop:7,
+                  background:'#EDEEF1', overflow:'hidden',
+                }}>
+                  <span style={{
+                    display:'block', height:'100%', width:`${Math.max(4, r.quota * 100)}%`,
+                    borderRadius:999,
+                    background: strato === 'locali' ? ADM.INK : ADM.PINK,
+                  }}/>
+                </span>
+
+                <span style={{display:'block', fontSize:12, color:ADM.MUTED, marginTop:6}}>
+                  {r.sotto}
+                </span>
               </button>
             ))}
           </div>
