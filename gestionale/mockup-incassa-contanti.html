@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Incassa contanti — proposta di ridisegno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#F5F6F8; --white:#fff;
+    --text:#0F1115; --muted:#6B7280; --muted-soft:#9CA3AF; --muted-light:#C5C8CE;
+    --border:#E5E7EB; --border-soft:#F0F2F5;
+    --pink:#FF5A5F; --pink-dark:#E04347; --pink-soft:#FFE0DD; --pink-bg:#FFF4F2;
+    --green:#16A34A; --green-ink:#15803D; --green-soft:#DCFCE7;
+    --amber:#D97706; --amber-ink:#B45309; --amber-soft:#FEF3C7;
+    --red:#DC2626; --red-soft:#FEE2E2;
+    --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px; --r-pill:999px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:36px 24px 80px}
+
+  /* ── intestazione documento ─────────────────────────────── */
+  .doc-h1{font-size:30px; font-weight:800; letter-spacing:-0.8px; margin:0 0 8px}
+  .doc-sub{font-size:16px; color:var(--muted); line-height:1.5; max-width:70ch; margin:0 0 4px}
+  .doc-sub b{color:var(--text); font-weight:700}
+
+  .bar{
+    display:flex; flex-wrap:wrap; gap:20px; align-items:center;
+    background:var(--white); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:14px 18px; margin:26px 0 28px; box-shadow:0 1px 2px rgba(15,17,21,.04);
+  }
+  .bar-grp{display:flex; align-items:center; gap:10px}
+  .bar-lbl{font-size:11px; font-weight:800; letter-spacing:.9px; text-transform:uppercase; color:var(--muted-soft)}
+  .seg{display:inline-flex; background:var(--border-soft); border-radius:var(--r-pill); padding:3px}
+  .seg button{
+    border:none; background:transparent; font:inherit; font-size:13.5px; font-weight:700; color:var(--muted);
+    padding:7px 14px; border-radius:var(--r-pill); cursor:pointer; min-height:34px;
+  }
+  .seg button[aria-pressed="true"]{background:var(--white); color:var(--text); box-shadow:0 1px 3px rgba(15,17,21,.10)}
+
+  /* ── griglia pannelli ───────────────────────────────────── */
+  .cols{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:28px; align-items:start}
+  @media (max-width:940px){ .cols{grid-template-columns:minmax(0,1fr)} }
+
+  .col-h{display:flex; align-items:center; gap:10px; margin:0 0 12px}
+  .col-h h2{font-size:17px; font-weight:800; margin:0; letter-spacing:-0.2px}
+  .tag{font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; padding:4px 9px; border-radius:var(--r-pill)}
+  .tag.now{background:var(--border-soft); color:var(--muted)}
+  .tag.new{background:var(--green-soft); color:var(--green-ink)}
+
+  /* ── il pannello (comune "oggi"/"proposta") ─────────────── */
+  .panel{
+    background:var(--white); border:1px solid var(--border); border-radius:var(--r-xl);
+    padding:20px 20px 18px; box-shadow:0 8px 28px rgba(15,17,21,.07);
+  }
+  .panel.today{opacity:.96}
+  .p-head{display:flex; align-items:center; gap:8px; margin-bottom:16px}
+  .p-title{font-size:26px; font-weight:800; letter-spacing:-0.6px; flex:1}
+  .ghost{
+    display:inline-flex; align-items:center; gap:6px; min-height:38px; padding:8px 13px;
+    border:1px solid var(--border); background:var(--white); border-radius:var(--r-pill);
+    font:inherit; font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer;
+  }
+  .ghost.icon{padding:0; width:38px; justify-content:center}
+
+  .tot-lbl{font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--muted-soft)}
+  .tot-val{font-size:40px; font-weight:800; letter-spacing:-1.4px; margin:2px 0 2px; font-variant-numeric:tabular-nums}
+  .tot-sub{display:flex; align-items:center; gap:7px; font-size:14px; color:var(--muted)}
+  .rule{height:1px; background:var(--border); margin:16px 0}
+
+  .lbl{
+    font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+    color:var(--muted-soft); margin:0 0 9px; display:flex; align-items:baseline; gap:8px;
+  }
+  .lbl .hint{font-size:11.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--muted-light)}
+  section{margin-bottom:18px}
+
+  /* metodi */
+  .methods{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .method{
+    position:relative; display:flex; align-items:center; justify-content:center; gap:10px;
+    min-height:70px; border-radius:var(--r-md); border:1.5px solid var(--border); background:var(--white);
+    font:inherit; font-size:17px; font-weight:700; color:var(--text); cursor:pointer;
+  }
+  .method[aria-pressed="true"]{border-color:var(--pink); background:var(--pink-bg); color:var(--pink-dark)}
+  .method .dot{
+    position:absolute; top:-9px; right:-9px; width:24px; height:24px; border-radius:50%;
+    background:var(--pink-dark); color:#fff; display:none; align-items:center; justify-content:center;
+  }
+  .method[aria-pressed="true"] .dot{display:flex}
+
+  /* chip */
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{
+    flex:1 1 0; min-width:86px; min-height:46px; padding:8px 12px;
+    border-radius:var(--r-md); border:1.5px solid var(--border); background:var(--white);
+    font:inherit; font-size:15px; font-weight:700; color:var(--text); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; line-height:1.15;
+  }
+  .chip .k{font-size:11.5px; font-weight:700; color:var(--muted); letter-spacing:.2px}
+  .chip[aria-pressed="true"]{border-color:var(--pink); background:var(--pink-bg); color:var(--pink-dark)}
+  .chip[aria-pressed="true"] .k{color:var(--pink-dark); opacity:.85}
+  .chip.wide{flex:1 1 100%}
+
+  /* campo importo */
+  .field{
+    display:flex; align-items:center; gap:6px; margin-top:10px;
+    border:1.5px solid var(--border); border-radius:var(--r-md); background:var(--white);
+    padding:0 14px; min-height:64px; cursor:text;
+  }
+  .field .cur{font-size:26px; font-weight:800; letter-spacing:-0.5px}
+  .field input{
+    flex:1; min-width:0; border:none; outline:none; background:transparent; font:inherit;
+    font-size:30px; font-weight:800; letter-spacing:-0.8px; color:inherit; padding:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .field .pen{color:var(--muted-light); flex-shrink:0}
+  .field.primary{border-color:var(--pink); background:var(--pink-bg); color:var(--pink-dark)}
+  .field.primary .pen{color:var(--pink)}
+  .field:focus-within{box-shadow:0 0 0 3px rgba(255,90,95,.20)}
+  .field.secondary{background:var(--white)}
+  .field.secondary .cur, .field.secondary input{font-size:26px}
+
+  /* riga di esito sotto ai campi */
+  .fb{
+    display:flex; align-items:center; gap:9px; margin-top:10px; padding:11px 13px;
+    border-radius:var(--r-md); font-size:14.5px; font-weight:600; line-height:1.35;
+  }
+  .fb b{font-weight:800; font-variant-numeric:tabular-nums}
+  .fb.neutral{background:var(--border-soft); color:var(--muted)}
+  .fb.neutral b{color:var(--text)}
+  .fb.info{background:var(--amber-soft); color:var(--amber-ink)}
+  .fb.good{background:var(--green-soft); color:var(--green-ink)}
+  .fb.warn{background:var(--red-soft); color:var(--red)}
+  .fb .fix{
+    margin-left:auto; flex-shrink:0; border:1.5px solid currentColor; background:transparent;
+    color:inherit; font:inherit; font-size:13px; font-weight:800; padding:7px 11px;
+    border-radius:var(--r-pill); cursor:pointer; min-height:36px;
+  }
+  .fb svg{flex-shrink:0}
+
+  /* CTA */
+  .cta{
+    width:100%; min-height:62px; border:none; border-radius:var(--r-md); background:var(--green); color:#fff;
+    font:inherit; font-size:17px; font-weight:800; cursor:pointer; margin-top:4px;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .cta:disabled{background:#D5D8DE; color:#8A9099; cursor:not-allowed}
+  .cta .badge{width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center}
+  .fb.after-cta{margin-top:10px}
+
+  /* annotazioni sul pannello "oggi" */
+  .note{
+    display:flex; gap:9px; margin-top:10px; padding:11px 13px; border-radius:var(--r-md);
+    background:var(--red-soft); color:#9F1239; font-size:13.5px; font-weight:600; line-height:1.4;
+  }
+  .note b{font-weight:800}
+  .note .n{
+    flex-shrink:0; width:20px; height:20px; border-radius:50%; background:#9F1239; color:#fff;
+    font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px;
+  }
+
+  /* ── note di design ─────────────────────────────────────── */
+  .notes{margin-top:44px}
+  .notes h2{font-size:22px; font-weight:800; letter-spacing:-0.4px; margin:0 0 6px}
+  .notes h3{font-size:15px; font-weight:800; margin:26px 0 10px; letter-spacing:-0.1px}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-top:14px}
+  .card{background:var(--white); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px 18px}
+  .card h4{margin:0 0 6px; font-size:14.5px; font-weight:800}
+  .card p{margin:0; font-size:14px; line-height:1.55; color:var(--muted)}
+  .card p b{color:var(--text); font-weight:700}
+  table{width:100%; border-collapse:collapse; background:var(--white); border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; font-size:14px}
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--border-soft); vertical-align:top; line-height:1.5}
+  th{font-size:11.5px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; color:var(--muted-soft); background:#FCFCFD}
+  tr:last-child td{border-bottom:none}
+  td b{font-weight:700}
+  code{background:var(--border-soft); padding:1px 6px; border-radius:6px; font-size:13px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  ul.q{margin:10px 0 0; padding-left:20px}
+  ul.q li{font-size:14.5px; line-height:1.6; color:var(--muted); margin-bottom:7px}
+  ul.q li b{color:var(--text); font-weight:700}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+  @media (prefers-reduced-motion:no-preference){ .fb,.chip,.field,.cta{transition:background-color .15s, border-color .15s, color .15s} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 class="doc-h1">Incassa contanti — la cifra che incassi e la cifra che ricevi</h1>
+  <p class="doc-sub">Oggi il pannello ha <b>un campo solo</b> ma sotto ci stanno <b>due numeri diversi</b>: quanto stai
+  mettendo sul conto e quanto ti ha materialmente dato il cliente. Finché coincidono non si vede; appena non
+  coincidono — 35 € su un residuo di 100, pagati con una banconota da 50 — il pannello non sa dirlo.</p>
+  <p class="doc-sub">La proposta separa i due numeri in <b>due piani</b>, e mette ogni conseguenza accanto alla
+  sua causa: <b>«Resto»</b> sotto il contante, <b>«Saldo»</b> sotto la CTA.</p>
+
+  <!-- barra scenari -->
+  <div class="bar">
+    <div class="bar-grp">
+      <span class="bar-lbl">Scenario</span>
+      <div class="seg" id="segScen" role="group" aria-label="Scenario di prova">
+        <button data-res="100" aria-pressed="true">Residuo €100,00</button>
+        <button data-res="47.30" aria-pressed="false">€47,30</button>
+        <button data-res="1.50" aria-pressed="false">€1,50</button>
+      </div>
+    </div>
+    <div class="bar-grp">
+      <span class="bar-lbl">Ordine dei blocchi</span>
+      <div class="seg" id="segOrd" role="group" aria-label="Ordine dei blocchi">
+        <button data-ord="a" aria-pressed="true">A · metodo prima</button>
+        <button data-ord="b" aria-pressed="false">B · importo prima</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+
+    <!-- ══════════════ OGGI ══════════════ -->
+    <div>
+      <div class="col-h"><h2>Oggi</h2><span class="tag now">stato attuale</span></div>
+      <div class="panel today">
+        <div class="p-head">
+          <div class="p-title">INCASSA</div>
+          <button class="ghost" tabindex="-1">% Sconto</button>
+          <button class="ghost" tabindex="-1">Fattura</button>
+          <button class="ghost icon" tabindex="-1" aria-label="Chiudi">✕</button>
+        </div>
+        <div class="tot-lbl">Totale residuo</div>
+        <div class="tot-val" id="todayTot">€100,00</div>
+        <div class="tot-sub">Già incassato €0,00</div>
+        <div class="rule"></div>
+
+        <section>
+          <div class="lbl">Metodo di pagamento</div>
+          <div class="methods">
+            <button class="method" aria-pressed="false" tabindex="-1">Smart POS</button>
+            <button class="method" aria-pressed="true" tabindex="-1">Contanti<span class="dot">✓</span></button>
+          </div>
+        </section>
+
+        <section>
+          <div class="lbl">Seleziona importo</div>
+          <div class="chips">
+            <button class="chip" aria-pressed="true" tabindex="-1">Esatto</button>
+            <button class="chip" aria-pressed="false" tabindex="-1">€5</button>
+            <button class="chip" aria-pressed="false" tabindex="-1">€10</button>
+            <button class="chip" aria-pressed="false" tabindex="-1">€20</button>
+          </div>
+          <div class="field primary"><span class="cur">€</span><input value="100,00" readonly tabindex="-1" aria-label="Importo"/><span class="pen">✎</span></div>
+          <div class="note"><span class="n">1</span><div><b>Un campo per due numeri.</b> «Importo» qui è insieme
+            quanto incassi e quanto ricevi: non c'è modo di dire «incasso 35, mi ha dato 50».</div></div>
+          <div class="note"><span class="n">2</span><div><b>Tagli fissi.</b> €5 / €10 / €20 su un residuo di
+            €100 non servono a niente: nessuno paga un conto da 100 con 5 euro.</div></div>
+        </section>
+
+        <div class="fb neutral" style="margin-top:14px">Resto: <b>€0,00</b></div>
+        <button class="cta" style="margin-top:14px" tabindex="-1"><span class="badge">✓</span> Incassa ed emetti ricevuta</button>
+        <div class="note"><span class="n">3</span><div><b>La CTA non dice la cifra.</b> È l'ultimo punto in cui
+          si può accorgersi di un errore, ed è muto.</div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PROPOSTA ══════════════ -->
+    <div>
+      <div class="col-h"><h2>Proposta</h2><span class="tag new">interattivo — provalo</span></div>
+      <div class="panel" id="prop">
+        <div class="p-head">
+          <div class="p-title">INCASSA</div>
+          <button class="ghost">% Sconto</button>
+          <button class="ghost">Fattura</button>
+          <button class="ghost icon" aria-label="Chiudi">✕</button>
+        </div>
+        <div class="tot-lbl">Totale residuo</div>
+        <div class="tot-val" id="pTot">€100,00</div>
+        <div class="tot-sub" id="pGia">Già incassato €0,00</div>
+        <div class="rule"></div>
+
+        <!-- METODO -->
+        <section id="secMetodo">
+          <div class="lbl">Metodo di pagamento</div>
+          <div class="methods" id="methods">
+            <button class="method" data-m="pos" aria-pressed="false">Smart POS<span class="dot">✓</span></button>
+            <button class="method" data-m="cash" aria-pressed="true">Contanti<span class="dot">✓</span></button>
+          </div>
+        </section>
+
+        <!-- ① QUANTO INCASSI ORA -->
+        <section id="secQuota">
+          <div class="lbl">Quanto incassi ora</div>
+          <div class="chips" id="quotaChips" role="group" aria-label="Quanto incassi ora"></div>
+          <label class="field primary" for="inImporto">
+            <span class="cur">€</span>
+            <input id="inImporto" inputmode="decimal" autocomplete="off" aria-label="Importo da incassare"/>
+            <span class="pen">✎</span>
+          </label>
+        </section>
+
+        <!-- ② QUANTO TI DÀ IL CLIENTE -->
+        <section id="secCash">
+          <div class="lbl">Quanto ti dà il cliente</div>
+          <div class="chips" id="cashChips" role="group" aria-label="Contante ricevuto"></div>
+          <label class="field secondary" for="inRicevuto">
+            <span class="cur">€</span>
+            <input id="inRicevuto" inputmode="decimal" autocomplete="off" aria-label="Contante ricevuto"/>
+            <span class="pen">✎</span>
+          </label>
+          <div class="fb neutral" id="fbCash" aria-live="polite"></div>
+        </section>
+
+        <button class="cta" id="cta"><span class="badge">✓</span><span id="ctaTxt">Incassa</span></button>
+        <!-- Cosa succede al conto: una riga sola, allineata a sinistra come
+             tutto il resto del pannello, subito sotto il pulsante che la
+             provoca. Prima stava attaccata all'importo e sotto la CTA c'era
+             una seconda riga centrata che ripeteva la stessa cosa. -->
+        <div class="fb neutral after-cta" id="fbQuota" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ NOTE DI DESIGN ══════════════ -->
+  <div class="notes">
+    <h2>Cosa cambia, e perché</h2>
+
+    <div class="cards">
+      <div class="card">
+        <h4>① Quanto incassi ora</h4>
+        <p>Il piano che manca. Di default è <b>Tutto</b>, quindi per il 90% dei conti non cambia niente e restano
+        due tap. <b>Metà</b> copre il conto diviso in due; <b>Altro</b> apre il campo per una cifra qualsiasi.
+        La conseguenza — il <b>saldo</b> che resta — è scritta sotto la CTA.</p>
+      </div>
+      <div class="card">
+        <h4>② Quanto ti dà il cliente</h4>
+        <p>Non è più «Seleziona importo»: è la banconota in mano al cliente. I tagli sono <b>calcolati
+        sull'importo del piano ①</b>, non fissi — su 35 € escono €40 / €50 / €100, non €5 / €10 / €20. È lo
+        stesso algoritmo già scritto in <code>byup_SaldaConto_redesign.html</code>.</p>
+      </div>
+      <div class="card">
+        <h4>Resto ≠ saldo</h4>
+        <p>Due cifre opposte che non devono somigliarsi. <b>«Resto»</b> in verde attaccato al contante,
+        <b>«Saldo»</b> in ambra sotto la CTA: parole diverse, colori diversi, posti diversi. Il saldo dice
+        sempre la stessa cosa e cambia solo la cifra — a <b>€0,00</b> il conto è chiuso, senza altre parole.</p>
+      </div>
+      <div class="card">
+        <h4>La CTA dice la cifra</h4>
+        <p><b>«Incassa €35,00 ed emetti ricevuta»</b>, e subito sotto — a tutta larghezza, allineata a sinistra
+        come il resto del pannello — <b>«Saldo €65,00»</b>. È l'ultima cosa letta prima di premere, e quando
+        manca l'importo o si sfora il residuo è lì che compare il motivo.</p>
+      </div>
+    </div>
+
+    <h3>Casi limite già gestiti nel mock-up (provali)</h3>
+    <table>
+      <tr><th style="width:38%">Situazione</th><th>Cosa fa il pannello</th></tr>
+      <tr><td><b>Contante minore dell'importo</b><br/>incassi 35, ti dà 30</td>
+          <td>Il resto sparisce e al suo posto «Mancano €5,00», con un pulsante <b>Incassa €30,00</b> che
+              allinea il piano ① in un tap. Un errore diventa una scelta.</td></tr>
+      <tr><td><b>Importo maggiore del residuo</b></td>
+          <td>Si ferma al residuo e lo dice: <b>«Massimo €100,00»</b>.</td></tr>
+      <tr><td><b>Importo a zero o vuoto</b></td>
+          <td>CTA spenta <b>con il motivo scritto sotto</b> («Inserisci l'importo»), mai un pulsante grigio e
+              muto.</td></tr>
+      <tr><td><b>Smart POS</b></td>
+          <td>Il piano ② scompare del tutto — non c'è contante, non c'è resto — ma il piano ① resta: anche un
+              pagamento parziale con carta è legittimo.</td></tr>
+      <tr><td><b>Residuo piccolo</b> (€1,50)</td>
+          <td>La scorciatoia «Metà» sparisce sotto i €5: 0,75 non è un pagamento vero.</td></tr>
+      <tr><td><b>Resto esatto</b></td>
+          <td>«Nessun resto» — con l'icona di spunta, non con il solo colore.</td></tr>
+    </table>
+
+    <h3>Ordine scelto: A — la barra in alto permette comunque il confronto</h3>
+    <p class="doc-sub" style="margin-bottom:0"><b>A</b> (scelto): metodo, poi il piano nuovo, poi il contante —
+    il minor scostamento dal pannello attuale. <b>B</b> resta nella barra solo per confronto: mette l'importo
+    subito sotto il totale, così i numeri si leggono in fila. La cosa che conta — la separazione fra l'importo
+    che incassi e il contante che ricevi — è identica nei due ordini.</p>
+
+    <h3>Da decidere prima di implementare</h3>
+    <ul class="q">
+      <li><b>Tap ripetuti sui tagli.</b> Il cliente che dà 20+20: i chip devono <i>sommare</i> («€20 +€20 = €40»)
+      o <i>sostituire</i>? Qui sostituiscono, ed è la scelta più prevedibile; l'accumulo è più fedele al gesto
+      reale ma va spiegato.</li>
+      <li><b>Le scorciatoie del piano ①.</b> Ho messo <i>Tutto / Metà / Altro</i>. Se il caso vero è «alla romana
+      per N coperti», la scorciatoia giusta è <i>÷ coperti</i> e va presa dal tavolo.</li>
+      <li><b>Tastierino.</b> Su desktop il campo si digita e basta. Su un POS touch serve un tastierino numerico:
+      se il pannello gira anche lì, va disegnato ora, non dopo.</li>
+      <li><b>Verde su bianco.</b> Il verde del resto è <code>#15803D</code>, non <code>#16A34A</code>: il primo
+      passa il 4,5:1 su bianco anche a peso normale, il secondo no.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const eur = v => '€' + v.toFixed(2).replace('.', ',');
+  const num = v => v.toFixed(2).replace('.', ',');
+  const parse = s => { const n = parseFloat(String(s).replace(/\./g,'').replace(',', '.')); return isNaN(n) ? 0 : n; };
+  const ICON = {
+    receipt:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v18l2-1.5L8 21l2-1.5L12 21l2-1.5L16 21l2-1.5L20 21V3l-2 1.5L16 3l-2 1.5L12 3l-2 1.5L8 3 6 4.5z"/><path d="M8 8h8M8 12h8"/></svg>',
+    cash:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>',
+    check:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    alert:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/></svg>'
+  };
+
+  const S = {
+    residuo: 100, gia: 0,
+    metodo: 'cash',
+    quota: 'tutto',            // tutto | meta | altro
+    importo: '100,00',
+    ricevuto: '100,00',
+    cashChip: 'esatto',        // 'esatto' | valore | null
+    ordine: 'a'
+  };
+
+  const inImporto = $('#inImporto'), inRicevuto = $('#inRicevuto');
+
+  /* Tagli: esatto + banconote subito superiori (stesso criterio di byup_SaldaConto_redesign.html) */
+  function tagli(tot){
+    const out = [{ k:'esatto', label:'Esatto', sub:eur(tot), val:tot }];
+    const visti = new Set([Math.round(tot*100)]);
+    for (const s of [5,10,20,50,100]) {
+      const v = Math.ceil(tot/s)*s;
+      if (v <= tot + 0.01) continue;
+      const key = Math.round(v*100);
+      if (visti.has(key)) continue;
+      visti.add(key); out.push({ k:String(v), label:eur(v), sub:'', val:v });
+      if (out.length >= 4) break;
+    }
+    return out;
+  }
+
+  function calc(){
+    const importo = Math.min(Math.max(parse(S.importo), 0), S.residuo);
+    const ricevuto = parse(S.ricevuto);
+    return {
+      importo, ricevuto,
+      dopo: Math.max(0, S.residuo - importo),
+      resto: Math.max(0, ricevuto - importo),
+      manca: Math.max(0, importo - ricevuto),
+      oltre: parse(S.importo) > S.residuo + 0.001
+    };
+  }
+
+  function setImporto(v, mode){
+    S.importo = num(v);
+    S.quota = mode;
+    if (S.cashChip === 'esatto') S.ricevuto = num(v);   // "Esatto" segue sempre l'importo
+    render();
+  }
+
+  /* ── chip del piano ① ─────────────────────────────────── */
+  function renderQuotaChips(){
+    const box = $('#quotaChips'); box.innerHTML = '';
+    const opts = [{ k:'tutto', label:'Tutto', sub:eur(S.residuo), val:S.residuo }];
+    if (S.residuo >= 5) opts.push({ k:'meta', label:'Metà', sub:eur(Math.round(S.residuo*50)/100), val:Math.round(S.residuo*50)/100 });
+    opts.push({ k:'altro', label:'Altro', sub:'', val:null });
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button';
+      b.setAttribute('aria-pressed', String(S.quota === o.k));
+      b.innerHTML = o.sub ? `${o.label}<span class="k">${o.sub}</span>` : o.label;
+      b.onclick = () => {
+        if (o.k === 'altro'){ S.quota = 'altro'; render(); inImporto.focus(); inImporto.select(); }
+        else setImporto(o.val, o.k);
+      };
+      box.appendChild(b);
+    });
+  }
+
+  /* ── chip del piano ② ─────────────────────────────────── */
+  function renderCashChips(c){
+    const box = $('#cashChips'); box.innerHTML = '';
+    tagli(c.importo).forEach(t => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button';
+      b.setAttribute('aria-pressed', String(S.cashChip === t.k));
+      b.innerHTML = t.sub ? `${t.label}<span class="k">${t.sub}</span>` : t.label;
+      b.onclick = () => { S.cashChip = t.k; S.ricevuto = num(t.val); render(); };
+      box.appendChild(b);
+    });
+  }
+
+  function fb(el, tone, icon, html, fix){
+    el.className = 'fb ' + tone;
+    el.innerHTML = icon + '<span>' + html + '</span>';
+    if (fix){
+      const b = document.createElement('button');
+      b.className = 'fix'; b.type = 'button'; b.textContent = fix.label; b.onclick = fix.on;
+      el.appendChild(b);
+    }
+  }
+
+  function render(){
+    const c = calc();
+
+    // ordine dei blocchi
+    const p = $('#prop'), met = $('#secMetodo'), quo = $('#secQuota');
+    if (S.ordine === 'b' && quo.nextElementSibling !== met) p.insertBefore(quo, met);
+    if (S.ordine === 'a' && met.nextElementSibling !== quo) p.insertBefore(met, quo);
+
+    $('#pTot').textContent = eur(S.residuo);
+    $('#todayTot').textContent = eur(S.residuo);
+    $('#pGia').textContent = 'Già incassato ' + eur(S.gia);
+
+    document.querySelectorAll('#methods .method').forEach(b =>
+      b.setAttribute('aria-pressed', String((b.dataset.m === 'cash') === (S.metodo === 'cash'))));
+
+    renderQuotaChips();
+    if (document.activeElement !== inImporto) inImporto.value = S.importo;
+
+    // piano ② solo per i contanti
+    const cash = S.metodo === 'cash';
+    $('#secCash').style.display = cash ? '' : 'none';
+    if (cash){
+      renderCashChips(c);
+      if (document.activeElement !== inRicevuto) inRicevuto.value = S.ricevuto;
+      if (c.importo <= 0.004)
+        fb($('#fbCash'), 'neutral', ICON.cash, 'Scegli l\'importo', null);
+      else if (c.manca > 0.004)
+        fb($('#fbCash'), 'warn', ICON.alert, `Mancano <b>${eur(c.manca)}</b>`,
+           { label:`Incassa ${eur(c.ricevuto)}`, on:() => { S.cashChip = 'esatto'; setImporto(c.ricevuto, 'altro'); } });
+      else if (c.resto > 0.004)
+        fb($('#fbCash'), 'good', ICON.cash, `Resto <b>${eur(c.resto)}</b>`, null);
+      else
+        fb($('#fbCash'), 'neutral', ICON.check, 'Nessun resto', null);
+    }
+
+    // CTA
+    const blocco = c.importo <= 0.004 || c.oltre || (cash && c.manca > 0.004);
+    $('#cta').disabled = blocco;
+    $('#ctaTxt').textContent = blocco
+      ? (cash ? 'Incassa ed emetti ricevuta' : 'Incassa su Smart POS')
+      : cash ? `Incassa ${eur(c.importo)} ed emetti ricevuta`
+             : `Incassa ${eur(c.importo)} su Smart POS`;
+
+    // Sotto la CTA una riga con un mestiere solo: quanto resta sul conto dopo
+    // questo incasso. Stessa parola sempre, cambia solo la cifra — e quando
+    // arriva a zero il conto è chiuso, senza bisogno di dirlo con altre parole.
+    // Il resto non si ripete qui: sta già attaccato al contante, che è la sua
+    // causa. "Saldo" e "Resto" restano due cifre lontane e mai confondibili.
+    if (c.oltre)
+      fb($('#fbQuota'), 'warn', ICON.alert, `Massimo <b>${eur(S.residuo)}</b>`, null);
+    else if (c.importo <= 0.004)
+      fb($('#fbQuota'), 'neutral', ICON.receipt, 'Inserisci l\'importo', null);
+    else if (c.dopo > 0.004)
+      fb($('#fbQuota'), 'info', ICON.receipt, `Saldo <b>${eur(c.dopo)}</b>`, null);
+    else
+      fb($('#fbQuota'), 'good', ICON.check, `Saldo <b>${eur(0)}</b>`, null);
+  }
+
+  /* ── input ─────────────────────────────────────────────── */
+  const clean = s => s.replace(/[^0-9,]/g, '').replace(/,(?=.*,)/g, '');
+  inImporto.addEventListener('input', e => { e.target.value = clean(e.target.value); S.importo = e.target.value; S.quota = 'altro'; if (S.cashChip === 'esatto') S.ricevuto = e.target.value; render(); });
+  inImporto.addEventListener('blur', () => { S.importo = num(Math.min(Math.max(parse(S.importo),0), S.residuo)); render(); });
+  inImporto.addEventListener('focus', e => e.target.select());
+  inRicevuto.addEventListener('input', e => { e.target.value = clean(e.target.value); S.ricevuto = e.target.value; S.cashChip = null; render(); });
+  inRicevuto.addEventListener('blur', () => { S.ricevuto = num(parse(S.ricevuto)); render(); });
+  inRicevuto.addEventListener('focus', e => e.target.select());
+
+  /* Tornando ai contanti il contante ricevuto riparte da "Esatto": quello di
+     prima è di un'altra transazione, e lasciarlo lì fa comparire un resto
+     che nessuno ha chiesto. */
+  document.querySelectorAll('#methods .method').forEach(b => b.onclick = () => {
+    S.metodo = b.dataset.m;
+    if (S.metodo === 'cash') { S.cashChip = 'esatto'; S.ricevuto = num(calc().importo); }
+    render();
+  });
+
+  $('#segScen').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#segScen button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    S.residuo = parseFloat(b.dataset.res);
+    S.cashChip = 'esatto';
+    setImporto(S.residuo, 'tutto');
+  };
+  $('#segOrd').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#segOrd button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    S.ordine = b.dataset.ord; render();
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
