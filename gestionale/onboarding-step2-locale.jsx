@@ -78,6 +78,16 @@ function Step2Locale({
               il blocco di testo, invece che floating su un angolo del frame. */}
           <ProcessingBanner inline/>
 
+          {/* La delega AdE sta in questa colonna e non fra i campi: non è un
+              dato da scrivere, è una cosa da fare altrove mentre si compila.
+              Qui è sotto gli occhi appena si apre lo step — in colonna coi
+              campi finiva sotto il regime fiscale, cioè fuori dal canvas. */}
+          {subStep === 'info' && (
+            <div style={{marginTop: 20, maxWidth: 520}}>
+              <AdeDelegaCard venue={venue} v={v}/>
+            </div>
+          )}
+
         </div>
 
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
@@ -230,8 +240,6 @@ function SubStepInfo({venue, v}) {
         />
         <RegimeRadioGroup value={venue.regime} onChange={(x) => v('regime', x)}/>
       </OnbCard>
-
-      <AdeDelegaCard venue={venue} v={v}/>
     </div>
   );
 }
@@ -330,23 +338,23 @@ function AdeDelegaCard({venue, v}) {
       {/* Il CF è la cosa che deve finire negli appunti: sta per intero, in
           monospazio, con il tasto attaccato. */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-        padding: '12px 14px', borderRadius: 10,
+        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        padding: '11px 13px', borderRadius: 10,
         background: ONB.BG, border: '1px solid rgba(15, 17, 21, 0.06)',
       }}>
-        <div style={{flex: 1, minWidth: 200}}>
+        <div style={{flex: 1, minWidth: 132}}>
           <div style={{fontSize: 13, fontWeight: 600, color: ONB.MUTED, letterSpacing: '0.04em', textTransform: 'uppercase'}}>
             Codice fiscale di Byup
           </div>
           <div style={{
-            fontSize: 20, fontWeight: 600, color: ONB.TEXT, marginTop: 3,
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.06em',
+            fontSize: 18.5, fontWeight: 600, color: ONB.TEXT, marginTop: 2,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.04em',
             userSelect: 'all',
           }}>{ADE_CF_BYUP}</div>
         </div>
         <button onClick={copiaCF} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
-          padding: '9px 15px', borderRadius: 9,
+          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          padding: '8px 13px', borderRadius: 9,
           background: '#fff', color: copiato ? ONB.GREEN : ONB.TEXT,
           border: `1px solid ${copiato ? 'rgba(22, 163, 74, 0.35)' : 'rgba(15, 17, 21, 0.12)'}`,
           fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -364,12 +372,12 @@ function AdeDelegaCard({venue, v}) {
           )}
         </button>
         <a href={ADE_PORTALE} target="_blank" rel="noopener noreferrer" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
-          padding: '9px 15px', borderRadius: 9,
+          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          padding: '8px 13px', borderRadius: 9,
           background: ONB.ACTION_SECONDARY, color: '#fff',
           fontSize: 15, fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit',
         }}>
-          Apri il portale AdE
+          Apri il portale
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/>
           </svg>
@@ -379,7 +387,7 @@ function AdeDelegaCard({venue, v}) {
       {/* Guida contestuale: i tap da fare sul portale, in ordine. Sta aperta
           finché la delega non è attiva — è lì che serve — e si richiude da sé
           quando non c'è più niente da seguire. */}
-      <details open={stato !== 'attivo'} style={{marginTop: 12}}>
+      <details style={{marginTop: 12}}>
         <summary style={{
           fontSize: 15, fontWeight: 600, color: ONB.TEXT,
           cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 8,
@@ -388,8 +396,8 @@ function AdeDelegaCard({venue, v}) {
           Come si fa, in 5 tap
         </summary>
         <ol style={{
-          margin: '10px 0 0', padding: 0, listStyle: 'none',
-          display: 'flex', flexDirection: 'column', gap: 7,
+          margin: '9px 0 0', padding: 0, listStyle: 'none',
+          display: 'flex', flexDirection: 'column', gap: 6,
         }}>
           {ADE_PASSI.map((passo, i) => (
             <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, color: ONB.TEXT, lineHeight: 1.45}}>
@@ -408,7 +416,7 @@ function AdeDelegaCard({venue, v}) {
       {/* Verifica — chiude il giro: la delega o c'è o non c'è, e lo si sa qui
           e ora invece che al primo scontrino di sabato sera. */}
       <div style={{
-        marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(15, 17, 21, 0.08)',
+        marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(15, 17, 21, 0.08)',
         display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
       }}>
         <div style={{flex: 1, minWidth: 220}}>
@@ -443,9 +451,9 @@ function AdeDelegaCard({venue, v}) {
           fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5,
         }}>
           <b style={{fontWeight: 600, color: ONB.RED}}>Delega non trovata.</b>{' '}
-          Il CF delegato dev'essere <b style={{fontWeight: 600}}>{ADE_CF_BYUP}</b> e la spunta va messa su
-          {' '}<b style={{fontWeight: 600}}>«Consultazione dei corrispettivi telematici»</b>: se hai spuntato
-          un altro servizio la delega c'è, ma non su questo. Ricontrolla e premi Riprova.
+          Controlla che il delegato sia <b style={{fontWeight: 600}}>{ADE_CF_BYUP}</b> e che la spunta sia su
+          {' '}<b style={{fontWeight: 600}}>«Consultazione dei corrispettivi telematici»</b>: su un altro
+          servizio la delega c'è, ma non vale qui.
         </div>
       )}
 
