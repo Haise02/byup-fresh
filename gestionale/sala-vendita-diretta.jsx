@@ -14,6 +14,20 @@ const svSunsetHoverIn  = e => { e.currentTarget.style.filter = 'brightness(1.15)
 const svSunsetHoverOut = e => { e.currentTarget.style.filter = 'none'; };
 
 function SalaVenditaDiretta() {
+  // Modulo asporto (Impostazioni → Operazioni, scelto in onboarding). Spento,
+  // spariscono le code del banco e il toggle "Vai ad asporto": senza asporto
+  // non esistono ordini che aspettano di essere ritirati.
+  const [asportoOn, setAsportoOn] = React.useState(
+    () => (window.byupReadModules ? window.byupReadModules().asporto !== false : true));
+  React.useEffect(() => {
+    const update = () => setAsportoOn(window.byupReadModules ? window.byupReadModules().asporto !== false : true);
+    window.addEventListener('byup-modules-change', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('byup-modules-change', update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
   const [search, setSearch] = React.useState('');
   const [cat, setCat] = React.useState('Tutto');
   const [lines, setLines] = React.useState([]); // [{id, piatto, qty, mods, lineTotal}]
@@ -22,6 +36,7 @@ function SalaVenditaDiretta() {
   // acceso — spento l'asporto, l'ordine torna anonimo come ogni scontrino.
   const [taCliente, setTaCliente] = React.useState(null);
   React.useEffect(() => { if (!takeaway) setTaCliente(null); }, [takeaway]);
+  React.useEffect(() => { if (!asportoOn) setTakeaway(false); }, [asportoOn]);
   const [incassaOpen, setIncassaOpen] = React.useState(false);
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
@@ -35,6 +50,9 @@ function SalaVenditaDiretta() {
   // due liste diverse — non una sola con dentro due tipi di card.
   const [coda, setCoda] = React.useState(null);
   const [consegnatiOpen, setConsegnatiOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!asportoOn) { setCoda(null); setConsegnatiOpen(false); }
+  }, [asportoOn]);
   // Dettaglio di un ordine già consegnato, aperto dall'archivio.
   const [dettaglio, setDettaglio] = React.useState(null);
   // Storico del servizio: ordini già chiusi. Cresce man mano che si consegna.
@@ -214,9 +232,11 @@ function SalaVenditaDiretta() {
                 }}/>
             </div>
 
-            {/* Le due code del banco. Sono stati, non modalità: aprono il
-                pannello degli ordini già filtrato su quello che devi fare —
-                incassare, o consegnare e basta. */}
+            {/* Le due code del banco e l'archivio: esistono solo se il locale
+                fa asporto. Sono stati, non modalità: aprono il pannello degli
+                ordini già filtrato su quello che devi fare — incassare, o
+                consegnare e basta. */}
+            {asportoOn && <>
             <SaCodaBtn
               label="Pronti da saldare"
               count={daSaldare.length}
@@ -258,6 +278,7 @@ function SalaVenditaDiretta() {
               </span>
               Consegnati
             </button>
+            </>}
           </div>
           <div style={{display:'flex', gap: 6, paddingBottom: 12, overflowX:'auto'}}>
             {cats.map(c => {
@@ -346,6 +367,7 @@ function SalaVenditaDiretta() {
       <SaCartPanel
         lines={lines}
         takeaway={takeaway}
+        asportoOn={asportoOn}
         onToggleTakeaway={() => setTakeaway(v => !v)}
         cliente={taCliente}
         onCliente={setTaCliente}
@@ -1398,7 +1420,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 // ─────────────────────────────────────────────────────────────────────────────
 // Carrello
 
-function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
+function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, cliente, onCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
   window.SALA_VENDITA_CLEAR = onClear;
   // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
   const [clearConfirm, setClearConfirm] = React.useState(false);
@@ -1433,11 +1455,12 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
           <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, lineHeight: 1.2, whiteSpace:'nowrap'}}>Ordine</div>
           <div style={{fontSize: 15, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</div>
         </div>
-        {/* Toggle asporto — acceso diventa la pillola nera piena del mockup.
+        {/* Toggle asporto — c'è solo se il locale fa asporto. Acceso diventa
+            la pillola nera piena del mockup.
             L'etichetta dice sempre dove ti porta il tocco, non dove sei: acceso
             è già tutto il pannello a dirlo (vuoto d'asporto, riga cliente,
             metodo di ritiro), quindi il bottone offre la via di ritorno. */}
-        <button
+        {asportoOn && <button
           onClick={onToggleTakeaway}
           title={takeaway ? 'Ordine da asporto. Tocca per riportarlo a vendita diretta' : 'Segna l\'ordine come da asporto. Se spento resta al banco'}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 17, 21, 0.14)'; if (!takeaway) { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.color = PN.TEXT; } }}
@@ -1464,7 +1487,7 @@ function SaCartPanel({ lines, takeaway, onToggleTakeaway, cliente, onCliente, to
             </svg>
           )}
           {takeaway ? 'Vai a vendita diretta' : 'Vai ad asporto'}
-        </button>
+        </button>}
         {lines.length > 0 && (
           <button onClick={() => setClearConfirm(true)} title="Rimuovi tutti gli articoli dal conto" style={{
             width: 32, height: 32, borderRadius: 9, flexShrink: 0,

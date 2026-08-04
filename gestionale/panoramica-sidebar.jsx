@@ -13,13 +13,19 @@ const PN_PAGES = {
   profilo: 'byup Profilo.html',
 };
 
-// Moduli abilitati — condivisi via localStorage tra pagine
+// Moduli abilitati — condivisi via localStorage tra pagine.
+// `asporto` decide se il locale prepara ordini da portar via: da spento
+// spariscono le code del banco in Vendita diretta e il conto non può essere
+// segnato da asporto. Si sceglie in onboarding e si cambia da Impostazioni →
+// Operazioni. Default acceso: un locale che non fa asporto lo spegne, uno che
+// lo fa non deve accorgersi di doverlo accendere.
 const BYUP_MODULES_KEY = 'byup_modules_enabled';
+const BYUP_MODULES_DEFAULT = {sala:true, prenotazioni:true, asporto:true};
 window.byupReadModules = function() {
   try {
     const s = localStorage.getItem(BYUP_MODULES_KEY);
-    return s ? Object.assign({sala:true, prenotazioni:true}, JSON.parse(s)) : {sala:true, prenotazioni:true};
-  } catch(e) { return {sala:true, prenotazioni:true}; }
+    return s ? Object.assign({}, BYUP_MODULES_DEFAULT, JSON.parse(s)) : {...BYUP_MODULES_DEFAULT};
+  } catch(e) { return {...BYUP_MODULES_DEFAULT}; }
 };
 window.byupWriteModules = function(m) {
   try {

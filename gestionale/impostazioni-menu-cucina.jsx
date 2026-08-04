@@ -2888,7 +2888,7 @@ function PrenotazioniDurata() {
 }
 
 function MCConfigura() {
-  const [takeaway, setTakeaway] = React.useState(true);
+
   const [tkMenu, setTkMenu] = React.useState('asporto');
   const [tkLeadTime, setTkLeadTime] = React.useState(20);
   const [cucina, setCucina] = React.useState('diretto');
@@ -2906,8 +2906,22 @@ function MCConfigura() {
   const servizioContestabile = servizioTipo === 'fisso' && servizio > 0;
   const [showQr, setShowQr] = React.useState(false);
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
-  const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true});
+  const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true, asporto:true});
   const [modules, setModules] = React.useState(readMods);
+  // Il flag può cambiare da un'altra tab o da un'altra pagina del gestionale
+  React.useEffect(() => {
+    const update = () => setModules(readMods());
+    window.addEventListener('byup-modules-change', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('byup-modules-change', update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
+  // Asporto: stesso giro degli altri moduli, così Vendita diretta si aggiorna
+  // senza ricaricare la pagina.
+  const takeaway = modules.asporto !== false;
+  const setTakeaway = (val) => setModule('asporto', val);
   // Sala e Prenotazioni si accendono insieme: il calendario prenotazioni
   // lavora sui tavoli, quindi attivare la sala senza prenotazioni lascerebbe
   // l'utente a metà. Spegnendo la sala si spengono anche le prenotazioni, che

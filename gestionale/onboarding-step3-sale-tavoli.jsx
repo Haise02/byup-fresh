@@ -14,6 +14,10 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
   // la configurazione resta nascosta e Continua è disabilitato.
   // 'tavoli' → flusso sale/tavoli · 'asporto' → info box, moduli off.
   const [mode, setMode] = React.useState(null);
+  // Asporto — acceso di default per chi ha sale e tavoli: quasi tutti fanno
+  // anche un po' d'asporto, e chi non lo fa lo spegne qui in un tocco. Chi
+  // sceglie "solo asporto" non ha niente da decidere: per lui è tutto.
+  const [asporto, setAsporto] = React.useState(true);
 
   const addRoom = () => {
     setRooms(rs => [...rs, {
@@ -33,8 +37,8 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
   // in questa pagina.
   const handleContinue = () => {
     const flags = mode === 'asporto'
-      ? {sala: false, prenotazioni: false}
-      : {sala: true, prenotazioni: true};
+      ? {sala: false, prenotazioni: false, asporto: true}
+      : {sala: true, prenotazioni: true, asporto};
     try {
       localStorage.setItem('byup_modules_enabled', JSON.stringify(flags));
       window.dispatchEvent(new Event('byup-modules-change'));
@@ -115,6 +119,34 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
             onSelect={() => setMode('asporto')}
           />
         </div>
+
+        {/* Asporto — subito sotto la scelta, perché è la stessa domanda vista
+            da un altro lato: "e oltre ai tavoli, prepari anche da portar via?".
+            Acceso di default; spegnendolo il gestionale non mostra le code del
+            banco e i clienti non vedono l'opzione d'asporto. */}
+        {mode === 'tavoli' && (
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+            padding: '14px 16px', marginBottom: 16, borderRadius: 10,
+            background: asporto ? ONB.BRAND_TINT : '#fff',
+            border: `1px solid ${asporto ? 'rgba(255, 90, 95, 0.28)' : 'rgba(15, 17, 21, 0.10)'}`,
+            cursor: 'pointer',
+            transition: 'background 150ms ease-out, border-color 150ms ease-out',
+          }}>
+            <input type="checkbox" checked={asporto} onChange={() => setAsporto(a => !a)}
+              style={{margin: 0, marginTop: 3, accentColor: ONB.BRAND, width: 17, height: 17, flexShrink: 0}}/>
+            <div style={{flex: 1, minWidth: 0}}>
+              <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT, lineHeight: 1.35}}>
+                Faccio anche asporto
+              </div>
+              <div style={{fontSize: 14.5, color: ONB.MUTED, marginTop: 3, lineHeight: 1.45}}>
+                Lasciandolo acceso i clienti lo vedono sull'app e possono ordinare da remoto e
+                passare a ritirare al banco. <b style={{color: ONB.TEXT, fontWeight: 600}}>Se non fai
+                asporto, toglilo</b>: nessuno potrà ordinare da portar via.
+              </div>
+            </div>
+          </label>
+        )}
 
         {/* Configurazione sale/tavoli — solo per "Ho sale e tavoli" */}
         {mode === 'tavoli' && <>
