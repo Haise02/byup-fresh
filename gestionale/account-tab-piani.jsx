@@ -971,7 +971,6 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   const codice = accCodiceInvito(locale.nome);
   const linkPieno = `https://byup.it/r/${codice}`;
   const mesi = ACC_REFERRAL.mesiPerLato;
-  const attivi = ACC_REFERRAL.attivi;
   const ordiniInvito = ACC_REFERRAL.ordiniPerInvito;
   const fmtOrdini = (n) => n.toLocaleString('it-IT', {useGrouping: true});
 
@@ -1024,14 +1023,6 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
     condividiWhatsApp();
   };
 
-  // Una riga sola al posto di tre numeri: al ristoratore non serve sapere
-  // quante volte è stato aperto il link, gli serve sapere se il premio è
-  // scattato. Se non è ancora scattato, non si scrive niente.
-  const guadagno = attivi === 0 ? null
-    : attivi === 1
-      ? `1 ristorante ha attivato il piano ${ACC_REFERRAL.pianoAttivato}: hai guadagnato ${fmtOrdini(ordiniInvito)} ordini aggiuntivi.`
-      : `${attivi} ristoranti hanno attivato un piano: hai guadagnato ${fmtOrdini(attivi * ordiniInvito)} ordini aggiuntivi.`;
-
   return (
     <AcPayModal onClose={onClose} width={620}>
       {/* Le keyframes del modale vivono nella tab Fatturazione, che qui non è
@@ -1064,15 +1055,15 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
         <div style={ACC_INVITO_CARD}>
           <AcInvitoChip label="Tu ricevi" fg="#DB2777" bg="#FDEBF3"/>
           <div style={{textAlign: 'center', margin: 'auto 0', padding: '6px 0'}}>
-            <div style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, ...AURORA_TEXT_GRADIENT}}>
-              <span style={{fontSize: 22, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.1}}>
-                {fmtOrdini(ordiniInvito)}
-              </span>
-              <span style={{fontSize: 15, fontWeight: 700}}>ordini aggiuntivi</span>
-            </div>
-            <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, marginTop: 10}}>dal valore di:</div>
             <div style={{fontSize: 40, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, ...AURORA_TEXT_GRADIENT}}>
-              {fmtOrdini(valoreOrdini)}€
+              {fmtOrdini(ordiniInvito)}
+            </div>
+            <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginTop: 2}}>ordini aggiuntivi</div>
+            <div style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, marginTop: 10}}>
+              <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT}}>dal valore di:</span>
+              <span style={{fontSize: 22, fontWeight: 800, letterSpacing: -0.3, ...AURORA_TEXT_GRADIENT}}>
+                {fmtOrdini(valoreOrdini)}€
+              </span>
             </div>
             <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, marginTop: 4}}>Senza scadenza</div>
             <div style={{fontSize: 12, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
@@ -1093,12 +1084,6 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
           </div>
         </div>
       </div>
-
-      {guadagno && (
-        <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.5, textAlign: 'center', padding: '12px 30px 0'}}>
-          {guadagno}
-        </div>
-      )}
 
       {/* Il link personale: la cosa da incollare, con «Copia» come gesto pieno */}
       <div style={{
