@@ -102,6 +102,37 @@ const STAT_CLIENTI = {
   ],
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FUORI DA QUI · cosa ordinano i tuoi clienti negli altri locali byup
+//
+// È il dato che un gestionale da solo non può avere: lo sa la rete, perché la
+// stessa persona ordina col suo account anche altrove. Serve a una domanda
+// sola — cosa cercano i miei clienti che da me non trovano — e per questo ogni
+// riga dice se quel prodotto è nel tuo menù o no.
+//
+// Aggregato e anonimo per costruzione: si contano le persone, non si nominano,
+// e le voci sotto la soglia minima non escono (sotto i 5 clienti un dato non è
+// una tendenza, è una persona riconoscibile).
+const STAT_FUORI = {
+  sogliaMinima: 5,
+  clientiTracciati: 486,      // tuoi clienti che ordinano anche in altri locali
+  quotaSulTotale: 39,         // % sui clienti unici del periodo
+  localiZona: 14,             // locali byup entro 3 km che concorrono al dato
+  raggioKm: 3,
+  prodotti: [
+    { nome:'Tagliere di salumi e formaggi', cat:'Antipasti',     clienti: 96, ordini: 143, prezzo: 14.00, tuo: false },
+    { nome:'Tartare di manzo',              cat:'Antipasti',     clienti: 71, ordini:  88, prezzo: 16.00, tuo: false },
+    { nome:'Cacio e pepe',                  cat:'Primi piatti',  clienti: 68, ordini: 121, prezzo: 12.00, tuo: true  },
+    { nome:'Pizza margherita',              cat:'Pizze',         clienti: 64, ordini: 190, prezzo:  8.50, tuo: true  },
+    { nome:'Poke bowl',                     cat:'Piatti unici',  clienti: 58, ordini:  96, prezzo: 13.50, tuo: false },
+    { nome:'Hamburger di chianina',         cat:'Secondi piatti',clienti: 52, ordini:  74, prezzo: 15.00, tuo: false },
+    { nome:'Spritz',                        cat:'Bar',           clienti: 49, ordini: 168, prezzo:  6.50, tuo: true  },
+    { nome:'Tiramisù',                      cat:'Dolci',         clienti: 41, ordini:  59, prezzo:  6.00, tuo: true  },
+    { nome:'Carbonara di mare',             cat:'Primi piatti',  clienti: 33, ordini:  44, prezzo: 16.00, tuo: false },
+    { nome:'Birra artigianale alla spina',  cat:'Bar',           clienti: 29, ordini:  91, prezzo:  6.00, tuo: false },
+  ],
+};
+
 const STAT_ECONOMICI = {
   ricavi: { val: 86420, delta: 12.5 },
   costi:  { val: 52180, delta: -4.2 },
@@ -169,6 +200,7 @@ window.STAT_PRENOTAZIONI = STAT_PRENOTAZIONI;
 window.STAT_ORDINI = STAT_ORDINI;
 window.STAFF = STAFF;
 window.STAT_CLIENTI = STAT_CLIENTI;
+window.STAT_FUORI = STAT_FUORI;
 window.STAT_ECONOMICI = STAT_ECONOMICI;
 window.STAT_VENDITE = STAT_VENDITE;
 window.STAT_APP = STAT_APP;
