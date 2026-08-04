@@ -929,7 +929,7 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
       : `${attivi} ristoranti hanno attivato un piano: hai guadagnato ${mesiMaturati} mesi del tuo piano gratuiti.`;
 
   return (
-    <AcPayModal onClose={onClose} width={480}>
+    <AcPayModal onClose={onClose} width={460}>
       {/* Le keyframes del modale vivono nella tab Fatturazione, che qui non è
           montata: senza queste due la finestra comparirebbe di scatto. */}
       <style>{`
@@ -937,47 +937,81 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
         @keyframes acPayPop { 0% { opacity: 0; transform: scale(0.92) translateY(10px); } 100% { opacity: 1; transform: none; } }
       `}</style>
 
-      <AcPayModalHeader
-        title="Porta un ristorante su byup"
-        subtitle={gratuito
-          ? `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te — validi da quando passi a un piano a pagamento.`
-          : `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te: ${fmtPrice(valore)} € sul tuo piano ${current.nome}.`}
-        onClose={onClose}
-      />
-
-      <AcPayModalBody>
+      {/* Il regalo a tutta larghezza fa da cielo della finestra: l'immagine ha
+          già il suo fondo rosa sfumato, e un velo bianco in basso la raccorda
+          al corpo. La chiusura galleggia sopra. */}
+      <div style={{
+        position: 'relative', height: 195, overflow: 'hidden',
+        borderRadius: '22px 22px 0 0',
+      }}>
+        <img src="referral-regalo.png" alt="" style={{
+          position: 'absolute', width: 560, left: '50%', top: '50%',
+          transform: 'translate(-48.3%, -46%)',
+        }}/>
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
-          padding: '13px 16px', borderRadius: 12,
-          border: `1px solid ${PN.BORDER_SOFT}`, background: '#FAFBFC',
-        }}>
-          <span style={{fontSize: 14.5, color: PN.MUTED}}>Il tuo codice</span>
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: 54,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 100%)',
+        }}/>
+        <button onClick={onClose} aria-label="Chiudi" style={{
+          position: 'absolute', top: 14, right: 14, width: 34, height: 34, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(15,17,21,0.08)',
+          display: 'grid', placeItems: 'center', color: PN.TEXT, cursor: 'pointer',
+          backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        }}><PnI.X size={13}/></button>
+      </div>
+
+      {/* Titolo e promessa, centrati sotto il regalo */}
+      <div style={{padding: '0 30px', textAlign: 'center'}}>
+        <div style={{fontSize: 23, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT, lineHeight: 1.2}}>
+          Porta un ristorante su{' '}
           <span style={{
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            fontSize: 18, fontWeight: 700, letterSpacing: 1.5, color: PN.TEXT,
-          }}>{codice}</span>
+            background: 'linear-gradient(90deg, #FF5A5F 10%, #7C3AED 95%)',
+            WebkitBackgroundClip: 'text', backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent', color: 'transparent',
+          }}>byup</span>
         </div>
+        <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 7, lineHeight: 1.5}}>
+          {gratuito
+            ? `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te — validi da quando passi a un piano a pagamento.`
+            : `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te: ${fmtPrice(valore)} € sul tuo piano ${current.nome}.`}
+        </div>
+      </div>
 
+      {/* Il codice: è la cosa da dettare o incollare, quindi grande e al centro */}
+      <div style={{padding: '16px 30px 0'}}>
+        <div style={{
+          borderRadius: 14, border: '1.5px dashed rgba(219, 39, 119, 0.35)',
+          background: '#FFF7FA', padding: '12px 16px', textAlign: 'center',
+        }}>
+          <div style={{fontSize: 11.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.8, textTransform: 'uppercase'}}>
+            Il tuo codice
+          </div>
+          <div style={{
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: 25, fontWeight: 800, letterSpacing: 3, color: PN.TEXT, marginTop: 3,
+          }}>{codice}</div>
+        </div>
         {guadagno && (
-          <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>{guadagno}</div>
+          <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 10, textAlign: 'center'}}>{guadagno}</div>
         )}
-      </AcPayModalBody>
+      </div>
 
-      <AcPayModalFoot>
-        <button onClick={condividi} style={AcBtnInvitoGhost}>
+      {/* Le due uscite, piene e appaiate: copiare è il gesto principale */}
+      <div style={{display: 'flex', gap: 10, padding: '16px 30px 26px'}}>
+        <button onClick={condividi} style={{...AcBtnInvitoGhost, flex: 1, justifyContent: 'center'}}>
           <IconaCondividi/>
           Condividi
         </button>
         <button onClick={copia} style={{
-          padding: '10px 18px', borderRadius: 999,
+          flex: 1, padding: '11px 18px', borderRadius: 999,
           fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          display: 'inline-flex', alignItems: 'center', gap: 7,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
           ...AURORA_CTA_STYLE,
         }}>
           {copiato ? <PnI.Check size={14}/> : <IconaCopia/>}
           {copiato ? 'Codice copiato' : 'Copia codice'}
         </button>
-      </AcPayModalFoot>
+      </div>
     </AcPayModal>
   );
 }
