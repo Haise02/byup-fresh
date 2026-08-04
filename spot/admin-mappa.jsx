@@ -1,45 +1,56 @@
 // ════════════════════════════════════════════════════════════════════════════
-// MAPPA DELLA RETE · una carta, due strati
+// MAPPA DELLA RETE · una mappa vera, con due strati
 // ════════════════════════════════════════════════════════════════════════════
 //
 // Le tabelle dicono quanti locali ci sono a Milano. Non dicono che la Puglia è
-// un buco, che la dorsale adriatica è vuota, che due città vicine si coprono a
-// vicenda. Quella è una domanda di forma, e la forma si guarda.
+// un buco, che la dorsale adriatica è vuota, che due locali si fanno
+// concorrenza a quattrocento metri. Quella è una domanda di forma, e la forma
+// si guarda — potendo avvicinarsi fino alla via.
+//
+// Sotto c'è una mappa vera (Leaflet, tile CARTO su dati OpenStreetMap): si
+// zooma, si trascina, e il mondo continua oltre l'Italia. Non è un vezzo: il
+// giorno in cui apre il primo locale a Barcellona la mappa non va rifatta, si
+// sposta la vista.
 //
 // Lo switch cambia strato, non filtro:
 //   Locali   → dov'è la rete (un punto per locale, grande quanto il suo volume)
-//   Accessi  → dove la usano (aree calde per intensità di sessioni)
+//   Accessi  → dove la usano (calore per intensità di sessioni)
 //
 // Le due mappe non coincidono, ed è il motivo per cui stanno insieme: dove c'è
 // calore senza punti c'è domanda scoperta; dove ci sono punti senza calore c'è
 // rete che non viene usata.
 
 const MAP_STATI = {
-  active:     { label: 'Attivo',     colore: ADM.OK },
+  active:     { label: 'Attivo',      colore: ADM.OK },
   onboarding: { label: 'In apertura', colore: ADM.WARN },
-  inactive:   { label: 'Fermo',      colore: ADM.MUTED_LIGHT },
-  churned:    { label: 'Uscito',     colore: ADM.DANGER },
+  inactive:   { label: 'Fermo',       colore: ADM.MUTED_LIGHT },
+  churned:    { label: 'Uscito',      colore: ADM.DANGER },
 };
 
-// Scala del calore: dal corallo tenue al corallo pieno. Un solo colore che si
-// satura — due tinte diverse direbbero "due cose diverse", e qui la cosa è una
-// sola misurata di più o di meno.
-const mapCalore = (t) => {
-  const a = 0.12 + Math.pow(t, 0.65) * 0.62;
-  return `rgba(255, 90, 95, ${a.toFixed(3)})`;
+// Scala del calore: un solo colore che si satura. Due tinte direbbero "due
+// cose diverse", e qui la cosa è una sola misurata di più o di meno.
+const MAP_GRADIENTE = {
+  0.15: 'rgba(255,90,95,0.20)',
+  0.40: 'rgba(255,90,95,0.45)',
+  0.70: 'rgba(224,67,71,0.75)',
+  1.00: 'rgba(181,51,56,0.92)',
 };
+
+const admNumIt = (v, dec = 0) =>
+  Number(v || 0).toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+const admPctIt = (v, dec = 0) => admNumIt(v, dec) + '%';
 
 function AnMappa() {
   const [strato, setStrato] = React.useState('locali');
-  const [hover, setHover] = React.useState(null);   // {x, y, titolo, righe[]}
+  const [pronta, setPronta] = React.useState(!!window.L);
+
+  const boxRef = React.useRef(null);
+  const mapRef = React.useRef(null);
+  const stratoRef = React.useRef(null);   // il layer attualmente a video
 
   const locali = window.GEO_LOCALI || [];
   const accessi = window.GEO_ACCESSI || [];
-  const W = window.GEO_W || 85;
-  const H = window.GEO_H || 100;
-  const regioni = window.GEO_PATHS_REGIONI || [];
   const perRegione = window.GEO_PER_REGIONE || {};
-  const normReg = window.geoNormRegione || (r => (r || '').toLowerCase());
 
   const perCitta = React.useMemo(() => {
     const m = {};
@@ -53,11 +64,97 @@ function AnMappa() {
   }, [locali]);
 
   const totAccessi = accessi.reduce((s, a) => s + a.accessi, 0);
-  // Le città toccate da qualcosa: dove c'è un locale o dove qualcuno apre l'app
   const cittaTot = new Set([...perCitta.map(c => c.citta), ...accessi.map(a => a.citta)]).size;
   const regioniConRete = new Set(Object.values(perRegione).filter(r => r.locali > 0).map(r => r.chiave)).size;
-  // Città con accessi e nessun locale: la riga che giustifica la mappa.
-  const scoperte = accessi.filter(a => a.localiQui === 0);
+
+  // Leaflet arriva da CDN: se tarda, si aspetta invece di rinunciare.
+  React.useEffect(() => {
+    if (window.L) { setPronta(true); return; }
+    const id = setInterval(() => { if (window.L) { setPronta(true); clearInterval(id); } }, 120);
+    return () => clearInterval(id);
+  }, []);
+
+  // La mappa si crea una volta sola e resta: ricrearla a ogni switch di strato
+  // butterebbe via la vista che l'operatore si è scelto.
+  React.useEffect(() => {
+    if (!pronta || !boxRef.current || mapRef.current) return;
+    const L = window.L;
+    const map = L.map(boxRef.current, {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      worldCopyJump: true,
+      minZoom: 2,
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Vista d'apertura: tutti i locali dentro lo schermo. Da lì si allarga fino
+    // al mondo o si scende fino alla via.
+    if (locali.length) {
+      map.fitBounds(L.latLngBounds(locali.map(l => [l.lat, l.lon])), { padding: [30, 30] });
+    } else {
+      map.setView([42.5, 12.5], 5);
+    }
+    mapRef.current = map;
+    // La card può nascere mentre la tab è ancora in transizione: senza questo
+    // la mappa misura zero e resta grigia.
+    setTimeout(() => map.invalidateSize(), 60);
+    setTimeout(() => map.invalidateSize(), 400);
+  }, [pronta, locali]);
+
+  // Lo strato: si smonta il precedente e si monta il nuovo, sulla stessa vista.
+  React.useEffect(() => {
+    const L = window.L;
+    const map = mapRef.current;
+    if (!L || !map) return;
+    if (stratoRef.current) { map.removeLayer(stratoRef.current); stratoRef.current = null; }
+
+    if (strato === 'locali') {
+      const gruppo = L.layerGroup();
+      locali.forEach(l => {
+        const s = MAP_STATI[l.stato] || MAP_STATI.inactive;
+        const r = 5 + Math.min(1, (l.ordiniMese || 0) / 900) * 8;
+        L.circleMarker([l.lat, l.lon], {
+          radius: r,
+          color: '#fff', weight: 1.5,
+          fillColor: s.colore, fillOpacity: 0.85,
+        }).bindTooltip(
+          `<b>${l.nome}</b><br>${l.tipo} · ${l.citta}<br>${s.label} · piano ${l.piano}<br>${admNumIt(l.ordiniMese)} ordini nel mese`,
+          { direction: 'top', offset: [0, -4] },
+        ).addTo(gruppo);
+      });
+      gruppo.addTo(map);
+      stratoRef.current = gruppo;
+      return;
+    }
+
+    // Calore: il plugin disegna la densità, i pallini restano per poterci
+    // leggere sopra i numeri della città.
+    const gruppo = L.layerGroup();
+    const max = accessi.reduce((m, a) => Math.max(m, a.accessi), 0) || 1;
+    if (L.heatLayer) {
+      L.heatLayer(accessi.map(a => [a.lat, a.lon, a.accessi / max]), {
+        radius: 34, blur: 26, minOpacity: 0.25, max: 1, gradient: MAP_GRADIENTE,
+      }).addTo(gruppo);
+    }
+    accessi.forEach(a => {
+      L.circleMarker([a.lat, a.lon], {
+        radius: 4 + a.intensita * 7,
+        color: '#fff', weight: 1.2,
+        fillColor: ADM.PINK_DARK, fillOpacity: 0.55 + a.intensita * 0.4,
+      }).bindTooltip(
+        `<b>${a.citta}</b><br>${admNumIt(a.accessi)} accessi · ${admPctIt(a.accessi / (totAccessi || 1) * 100)} del totale<br>` +
+        `${a.utenti} utenti registrati qui, ${a.attivi} attivi<br>` +
+        (a.localiQui === 0 ? 'Nessun locale in città' : `${a.localiQui} ${a.localiQui === 1 ? 'locale' : 'locali'} in città`),
+        { direction: 'top', offset: [0, -4] },
+      ).addTo(gruppo);
+    });
+    gruppo.addTo(map);
+    stratoRef.current = gruppo;
+  }, [strato, pronta, locali, accessi, totAccessi]);
 
   const classifica = strato === 'locali'
     ? perCitta.slice(0, 6).map(c => ({
@@ -71,18 +168,26 @@ function AnMappa() {
         valore: admNumIt(a.accessi) + ' accessi',
       }));
 
+  // Click su una città della classifica: la mappa ci va sopra. Leggere un nome
+  // e doverlo cercare a mano sulla carta è lavoro inutile.
+  const vaiA = (citta) => {
+    const map = mapRef.current;
+    const c = (window.GEO_CITTA || {})[citta];
+    if (map && c) map.flyTo([c[0], c[1]], 11, { duration: 0.6 });
+  };
+
   return (
     <AnCard
       titolo="Mappa della rete"
       sotto={strato === 'locali'
         ? 'Un punto per locale, dove si trova. Il diametro è il volume di ordini del mese.'
-        : 'Dove gli utenti aprono l’app: più l’area è satura, più sessioni ci sono state.'}
+        : 'Dove gli utenti aprono l’app: più l’area è calda, più sessioni ci sono state.'}
       destra={
         <div style={{display:'flex', gap:6, background:ADM.NEUTRAL_SOFT, padding:3, borderRadius:9}}>
           {[['locali', 'Locali'], ['accessi', 'Accessi utenti']].map(([id, label]) => {
             const on = strato === id;
             return (
-              <button key={id} onClick={() => { setStrato(id); setHover(null); }} style={{
+              <button key={id} onClick={() => setStrato(id)} style={{
                 padding:'6px 13px', borderRadius:7, border:'none',
                 background: on ? ADM.WHITE : 'transparent',
                 color: on ? ADM.TEXT : ADM.MUTED,
@@ -97,99 +202,18 @@ function AnMappa() {
     >
       <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 260px', gap:20, alignItems:'start'}}>
 
-        {/* ─── La carta ─────────────────────────────────────────────── */}
-        <div style={{position:'relative'}}>
-          <svg viewBox={`-4 -3 ${W + 8} ${H + 6}`} style={{width:'100%', maxHeight:430, display:'block'}}>
-            <defs>
-              <radialGradient id="mapHeat">
-                <stop offset="0%" stopColor="#FF5A5F" stopOpacity="0.85"/>
-                <stop offset="45%" stopColor="#FF5A5F" stopOpacity="0.35"/>
-                <stop offset="100%" stopColor="#FF5A5F" stopOpacity="0"/>
-              </radialGradient>
-            </defs>
+        <div>
+          <div ref={boxRef} style={{
+            height:440, borderRadius:12, overflow:'hidden',
+            border:`1px solid ${ADM.BORDER}`, background:ADM.NEUTRAL_SOFT,
+          }}>
+            {!pronta && (
+              <div style={{height:'100%', display:'grid', placeItems:'center', fontSize:13, color:ADM.MUTED}}>
+                Carico la mappa…
+              </div>
+            )}
+          </div>
 
-            {/* I confini veri delle regioni. Sui locali sono un fondo quieto;
-                sugli accessi diventano l'informazione: l'area si tinge di
-                quanto la si usa, ed è lì che si legge "questa zona è calda". */}
-            {regioni.map(reg => {
-              const dati = perRegione[normReg(reg.nome)];
-              const acceso = strato === 'accessi' && dati && dati.accessi > 0;
-              return (
-                <path key={reg.nome} d={reg.d}
-                  fill={acceso ? mapCalore(dati.intensita) : ADM.NEUTRAL_SOFT}
-                  stroke={acceso ? 'rgba(224,67,71,0.35)' : ADM.BORDER}
-                  strokeWidth="0.28"
-                  strokeLinejoin="round"
-                  style={{cursor: acceso ? 'pointer' : 'default', transition:'fill 200ms ease-out'}}
-                  onMouseEnter={acceso ? () => setHover({
-                    x: reg.x, y: reg.y, titolo: reg.nome,
-                    righe: [
-                      `${admNumIt(dati.accessi)} accessi · ${admPctIt(dati.accessi / (totAccessi || 1) * 100)} del totale`,
-                      `${dati.locali} ${dati.locali === 1 ? 'locale' : 'locali'} in ${dati.citta.length} ${dati.citta.length === 1 ? 'città' : 'città'}`,
-                      dati.citta.join(', '),
-                    ],
-                  }) : undefined}
-                  onMouseLeave={acceso ? () => setHover(null) : undefined}/>
-              );
-            })}
-
-            {strato === 'accessi' && accessi.map(a => (
-              <g key={a.citta}
-                onMouseEnter={() => setHover({
-                  x: a.x, y: a.y, titolo: a.citta,
-                  righe: [
-                    `${admNumIt(a.accessi)} accessi · ${admPctIt(a.accessi / (totAccessi || 1) * 100)} del totale`,
-                    `${a.utenti} utenti registrati qui, ${a.attivi} attivi`,
-                    a.localiQui === 0 ? 'Nessun locale in città' : `${a.localiQui} ${a.localiQui === 1 ? 'locale' : 'locali'} in città`,
-                  ],
-                })}
-                onMouseLeave={() => setHover(null)}>
-                {/* L'alone dice l'intensità, il cerchietto dice dov'è il centro */}
-                <circle cx={a.x} cy={a.y} r={3.5 + a.intensita * 9} fill="url(#mapHeat)"
-                  opacity={0.35 + a.intensita * 0.65} style={{cursor:'pointer'}}/>
-                <circle cx={a.x} cy={a.y} r={0.9 + a.intensita * 1.0}
-                  fill={mapCalore(a.intensita)} stroke={ADM.WHITE} strokeWidth="0.3"/>
-              </g>
-            ))}
-
-            {strato === 'locali' && locali.map(l => {
-              const s = MAP_STATI[l.stato] || MAP_STATI.inactive;
-              const r = 0.55 + Math.min(1, (l.ordiniMese || 0) / 900) * 1.05;
-              return (
-                <circle key={l.id} cx={l.x} cy={l.y} r={r}
-                  fill={s.colore} fillOpacity="0.85"
-                  stroke={ADM.WHITE} strokeWidth="0.28"
-                  style={{cursor:'pointer'}}
-                  onMouseEnter={() => setHover({
-                    x: l.x, y: l.y, titolo: l.nome,
-                    righe: [
-                      `${l.tipo} · ${l.citta}`,
-                      `${s.label} · piano ${l.piano}`,
-                      `${admNumIt(l.ordiniMese)} ordini nel mese`,
-                    ],
-                  })}
-                  onMouseLeave={() => setHover(null)}/>
-              );
-            })}
-          </svg>
-
-          {/* Etichetta al passaggio: ancorata al punto, in coordinate carta */}
-          {hover && (
-            <div style={{
-              position:'absolute', left:`${(hover.x + 4) / (W + 8) * 100}%`, top:`${(hover.y + 3) / (H + 6) * 100}%`,
-              transform:'translate(-50%, calc(-100% - 10px))',
-              background:ADM.TEXT, color:ADM.WHITE,
-              padding:'8px 11px', borderRadius:9, pointerEvents:'none',
-              boxShadow:'0 8px 22px rgba(15,17,21,0.28)', whiteSpace:'nowrap', zIndex:2,
-            }}>
-              <div style={{fontSize:13, fontWeight:700}}>{hover.titolo}</div>
-              {hover.righe.map((r, i) => (
-                <div key={i} style={{fontSize:12, opacity:0.75, marginTop:2}}>{r}</div>
-              ))}
-            </div>
-          )}
-
-          {/* Legenda: cosa vuol dire quello che si vede */}
           <div style={{display:'flex', alignItems:'center', gap:16, flexWrap:'wrap', marginTop:10}}>
             {strato === 'locali' ? (
               Object.keys(MAP_STATI).map(k => (
@@ -203,23 +227,26 @@ function AnMappa() {
                 Pochi accessi
                 <span style={{
                   width:96, height:9, borderRadius:999,
-                  background:`linear-gradient(90deg, ${mapCalore(0.05)}, ${mapCalore(0.45)}, ${mapCalore(1)})`,
+                  background:'linear-gradient(90deg, rgba(255,90,95,0.20), rgba(255,90,95,0.55), rgba(181,51,56,0.92))',
                 }}/>
                 Molti
               </span>
             )}
+            <span style={{fontSize:12.4, color:ADM.MUTED_SOFT, marginLeft:'auto'}}>
+              Trascina per spostarti, rotella per zoomare
+            </span>
           </div>
         </div>
 
-        {/* ─── La colonna dei numeri ────────────────────────────────── */}
         <div>
           <div style={{fontSize:11.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10}}>
             {strato === 'locali' ? 'Città per numero di locali' : 'Città per accessi'}
           </div>
           <div style={{display:'flex', flexDirection:'column'}}>
             {classifica.map((r, i) => (
-              <div key={r.k} style={{
-                display:'flex', alignItems:'center', gap:10, padding:'9px 0',
+              <button key={r.k} onClick={() => vaiA(r.k)} title={`Porta la mappa su ${r.primo}`} style={{
+                display:'flex', alignItems:'center', gap:10, padding:'9px 0', width:'100%',
+                background:'transparent', border:'none', textAlign:'left', cursor:'pointer', fontFamily:'inherit',
                 borderTop: i === 0 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
               }}>
                 <span style={{flex:1, minWidth:0}}>
@@ -227,34 +254,22 @@ function AnMappa() {
                   <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:1}}>{r.secondo}</span>
                 </span>
                 <span style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap'}}>{r.valore}</span>
-              </div>
+              </button>
             ))}
           </div>
 
-          {/* La lettura: quello che la mappa dice e la tabella no */}
           <div style={{
             marginTop:14, padding:'11px 13px', borderRadius:10,
-            background: scoperte.length ? ADM.WARN_SOFT : ADM.NEUTRAL_SOFT,
-            fontSize:12.6, color:ADM.TEXT, lineHeight:1.5,
+            background:ADM.NEUTRAL_SOFT, fontSize:12.6, color:ADM.TEXT, lineHeight:1.5,
           }}>
             {strato === 'locali'
               ? <>{perCitta.length} città con almeno un locale su {cittaTot} in cui c’è vita, in {regioniConRete} regioni su 20: la rete è un arcipelago di piazze, non una copertura.</>
-              : scoperte.length
-                ? <><b>{scoperte.map(s => s.citta).join(', ')}</b>: utenti che aprono l’app dove non c’è ancora un locale. È domanda già in casa, e non ha dove atterrare.</>
-                : <>Il calore cade dove la rete c’è già: gran parte degli accessi arriva dal QR al tavolo, quindi una piazza si scalda quando i suoi locali lavorano — non quando ci abitano utenti registrati.</>}
+              : <>Il calore cade dove la rete c’è già: gran parte degli accessi arriva dal QR al tavolo, quindi una piazza si scalda quando i suoi locali lavorano — non quando ci abitano utenti registrati.</>}
           </div>
         </div>
       </div>
     </AnCard>
   );
-}
-
-// Numeri all'italiana: la pagina Analisi li scrive così ovunque.
-function admNumIt(v, dec = 0) {
-  return Number(v || 0).toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-}
-function admPctIt(v, dec = 0) {
-  return admNumIt(v, dec) + '%';
 }
 
 window.AnMappa = AnMappa;

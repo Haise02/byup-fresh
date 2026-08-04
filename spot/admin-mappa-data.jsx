@@ -10,10 +10,9 @@
 //            la stessa mappa — un'area può avere pochi locali e molti accessi
 //            (domanda scoperta) o il contrario (rete che non viene usata).
 //
-// Le coordinate sono quelle vere delle città; il contorno è una silhouette
-// semplificata in lat/lon, proiettata con la stessa formula dei punti. Non è
-// una carta geografica: è un fondo su cui leggere delle posizioni, e siccome
-// contorno e punti passano per la stessa proiezione, cadono dove devono.
+// Le coordinate sono quelle vere delle città: qui si producono solo punti in
+// lat/lon, il disegno lo fa la mappa (admin-mappa.jsx) su tile vere. Niente
+// contorni fatti in casa — si zooma, si trascina, e sotto c'è il mondo.
 
 // Città → [lat, lon]. Solo quelle che compaiono nei dati.
 const GEO_CITTA = {
@@ -41,36 +40,6 @@ const GEO_CITTA = {
   'Cagliari': [39.224, 9.122],
 };
 
-// Proiezione: equirettangolare centrata sull'Italia. Le longitudini si
-// accorciano di cos(42°), altrimenti lo stivale viene grasso. Il riquadro è
-// quello dei confini veri (admin-mappa-regioni.jsx) con mezzo grado di
-// margine: contorni e punti passano di qui, quindi cadono insieme.
-const GEO_BOX = { lat0: 47.35, lat1: 36.35, lon0: 6.30, lon1: 18.85, k: Math.cos(42 * Math.PI / 180) };
-const GEO_H = 100;
-const GEO_W = +(((GEO_BOX.lon1 - GEO_BOX.lon0) * GEO_BOX.k) / (GEO_BOX.lat0 - GEO_BOX.lat1) * GEO_H).toFixed(2);
-const geoXY = (lat, lon) => ({
-  x: (lon - GEO_BOX.lon0) / (GEO_BOX.lon1 - GEO_BOX.lon0) * GEO_W,
-  y: (GEO_BOX.lat0 - lat) / (GEO_BOX.lat0 - GEO_BOX.lat1) * GEO_H,
-});
-
-// Ogni regione diventa un tracciato: la terraferma e le sue isole in un solo
-// path, così si colora e si illumina come un pezzo unico.
-const GEO_PATHS_REGIONI = (window.GEO_REGIONI || []).map(reg => {
-  const principale = reg.p.reduce((a, b) => (b.length > a.length ? b : a), reg.p[0]);
-  // Baricentro dell'anello più grande: serve solo ad ancorare l'etichetta, non
-  // dev'essere il centroide esatto — basta che cada dentro la regione.
-  const cLat = principale.reduce((t, q) => t + q[0], 0) / principale.length;
-  const cLon = principale.reduce((t, q) => t + q[1], 0) / principale.length;
-  return {
-    nome: reg.n.split('/')[0].trim(),
-    ...geoXY(cLat, cLon),
-    d: reg.p.map(anello => anello.map((pt, i) => {
-      const { x, y } = geoXY(pt[0], pt[1]);
-      return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
-    }).join(' ') + ' Z').join(' '),
-  };
-});
-
 // ─── I punti: un locale, una posizione ──────────────────────────────────────
 // Più locali nella stessa città finirebbero sullo stesso pixel: si sparpagliano
 // attorno al centro con uno scarto stabile (dipende dall'id, non dal caso), in
@@ -85,7 +54,8 @@ const GEO_LOCALI = (window.LOCALI || [])
       id: l.id, nome: l.nome, citta: l.citta, tipo: l.tipo,
       stato: l.stato, piano: l.piano,
       ordiniMese: l.ordiniMese || 0,
-      ...geoXY(c[0] + r * Math.sin(a) * 0.75, c[1] + r * Math.cos(a)),
+      lat: c[0] + r * Math.sin(a) * 0.75,
+      lon: c[1] + r * Math.cos(a),
     };
   });
 
@@ -120,7 +90,7 @@ const GEO_ACCESSI = (() => {
   const righe = Object.values(per).map(a => {
     const c = GEO_CITTA[a.citta];
     const localiQui = GEO_LOCALI.filter(l => l.citta === a.citta).length;
-    return { ...a, localiQui, ...geoXY(c[0], c[1]) };
+    return { ...a, localiQui, lat: c[0], lon: c[1] };
   });
   const max = righe.reduce((m, a) => Math.max(m, a.accessi), 0) || 1;
   return righe
@@ -170,10 +140,7 @@ const GEO_PER_REGIONE = (() => {
 })();
 
 window.GEO_CITTA = GEO_CITTA;
-window.GEO_PATHS_REGIONI = GEO_PATHS_REGIONI;
 window.GEO_PER_REGIONE = GEO_PER_REGIONE;
 window.geoNormRegione = geoNormRegione;
-window.GEO_W = GEO_W;
-window.GEO_H = GEO_H;
 window.GEO_LOCALI = GEO_LOCALI;
 window.GEO_ACCESSI = GEO_ACCESSI;
