@@ -110,42 +110,21 @@ function StatClienti() {
 // FUORI DA QUI · cosa ordinano i tuoi clienti negli altri locali byup
 //
 // Il dato che un gestionale da solo non può avere, e che la rete sì: la stessa
-// persona ordina col suo account anche altrove. La domanda a cui risponde è
-// una — cosa cercano i miei clienti che da me non trovano — quindi la riga più
-// importante non è quella col numero più alto, è quella marcata "non ce l'hai".
+// persona ordina col suo account anche altrove. Una classifica e basta —
+// leggerla e capire cosa farne è mestiere di chi ha il locale, non nostro.
 function StatFuori() {
   const d = window.STAT_FUORI;
   if (!d) return null;
-  const [soloMancanti, setSoloMancanti] = React.useState(false);
 
-  const righe = soloMancanti ? d.prodotti.filter(p => !p.tuo) : d.prodotti;
   const max = d.prodotti.reduce((m, p) => Math.max(m, p.clienti), 0) || 1;
-  const mancanti = d.prodotti.filter(p => !p.tuo);
-  const primoMancante = mancanti[0];
 
   return (
     <StatCard
       title="I tuoi clienti fuori da qui"
       sub={`Cosa ordinano più spesso negli altri locali byup entro ${d.raggioKm} km`}
-      action={
-        <div style={{display:'flex', gap: 6, background: PN.WHITE_FROST, padding: 3, borderRadius: 9}}>
-          {[[false, 'Tutti'], [true, 'Non nel tuo menù']].map(([val, label]) => {
-            const on = soloMancanti === val;
-            return (
-              <button key={label} onClick={() => setSoloMancanti(val)} style={{
-                padding:'6px 12px', borderRadius: 7, border:'none',
-                background: on ? PN.WHITE : 'transparent',
-                color: on ? PN.TEXT : PN.MUTED,
-                fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                boxShadow: on ? '0 1px 2px rgba(15,17,21,0.10)' : 'none',
-              }}>{label}</button>
-            );
-          })}
-        </div>
-      }
     >
-      {/* La lettura prima della tabella: senza, sono dieci righe di piatti che
-          non si capisce cosa c'entrino col proprio locale. */}
+      {/* La lettura prima della classifica: senza, sono dieci righe di piatti
+          che non si capisce cosa c'entrino col proprio locale. */}
       <div style={{
         display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap',
         padding:'12px 14px', borderRadius: 12, marginBottom: 14,
@@ -163,13 +142,12 @@ function StatFuori() {
         <span style={{flex: 1, minWidth: 240, fontSize: 15, color: PN.TEXT, lineHeight: 1.5}}>
           <b>{d.clientiTracciati} dei tuoi clienti</b> ({d.quotaSulTotale}% del totale) ordinano anche in altri
           {' '}{d.localiZona} locali byup qui intorno.
-          {primoMancante && <> Il piatto che cercano di più e da te non trovano è <b>{primoMancante.nome}</b>.</>}
         </span>
       </div>
 
       <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
         <div style={{
-          display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 92px minmax(0,1.5fr) 104px',
+          display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 92px minmax(0,1.5fr)',
           columnGap: 14, padding:'10px 16px', background:'#FAFAFB',
           fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
           textTransform:'uppercase', letterSpacing: 0.5,
@@ -179,49 +157,27 @@ function StatFuori() {
           <span>Prodotto</span>
           <span style={{textAlign:'right'}}>Tuoi clienti</span>
           <span>Quota</span>
-          <span style={{textAlign:'right'}}>Nel tuo menù</span>
         </div>
 
-        {righe.map((p, i) => (
+        {d.prodotti.map((p, i) => (
           <div key={p.nome} style={{
-            display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 92px minmax(0,1.5fr) 104px',
+            display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 92px minmax(0,1.5fr)',
             columnGap: 14, padding:'11px 16px', alignItems:'center',
             fontSize: 15, color: PN.TEXT,
             background: i % 2 === 1 ? '#FAFAFB' : PN.WHITE,
             borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
           }}>
             <span style={{fontSize: 14, fontWeight: 700, color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>
-              {d.prodotti.indexOf(p) + 1}
+              {i + 1}
             </span>
             <span style={{minWidth: 0}}>
               <span style={{display:'block', fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.nome}</span>
               <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>
-                {p.cat} · {p.ordini} ordini · prezzo medio €{p.prezzo.toFixed(2).replace('.', ',')}
+                {p.cat} · {p.ordini} ordini
               </span>
             </span>
             <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>{p.clienti}</span>
-            <div style={{display:'flex', alignItems:'center', gap: 10}}>
-              <div style={{flex: 1}}>
-                <StatBar pct={(p.clienti / max) * 100} height={8} color={p.tuo ? PN.MUTED_LIGHT : PN.PINK}/>
-              </div>
-            </div>
-            <span style={{textAlign:'right'}}>
-              {p.tuo ? (
-                <span style={{
-                  display:'inline-flex', alignItems:'center', gap: 5,
-                  padding:'3px 10px', borderRadius: 999,
-                  background: PN.GREEN_SOFT, color: PN.GREEN,
-                  fontSize: 13.5, fontWeight: 700,
-                }}>✓ Sì</span>
-              ) : (
-                <span style={{
-                  display:'inline-flex', alignItems:'center', gap: 5,
-                  padding:'3px 10px', borderRadius: 999,
-                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                  fontSize: 13.5, fontWeight: 700,
-                }}>Manca</span>
-              )}
-            </span>
+            <div><StatBar pct={(p.clienti / max) * 100} height={8}/></div>
           </div>
         ))}
       </div>
