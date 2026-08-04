@@ -457,7 +457,10 @@ function ImpSaveBar({ dirty, onCancel, onSave }) {
 // Il contenuto (390px di design, zoom scalato) scorre con la rotella
 // passandoci sopra col mouse; `focusSection` ('info' | 'gallery' | 'faq')
 // lo porta alla sezione corrispondente.
-function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante', focusSection = null }) {
+// `cta` spegne la barra «Vedi menù / Prenota un tavolo»: nella Configurazione
+// completa il telefono serve a controllare i propri contenuti, non a simulare
+// le azioni del cliente — in Impostazioni → Vetrina la barra resta.
+function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante', focusSection = null, cta = true }) {
   const A = { PINK:'#E32459', TEXT:'#1c0f15', MUTED:'#6d5a61', BG:'#FBF4F1', TINT:'#f6f1ea', SURF:'#fff', BORDER:'#eddfda' };
   const ref = React.useRef(null);
   const scrollRef = React.useRef(null);
@@ -903,16 +906,18 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
           <div style={{position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: Math.round(74 * k), height: Math.round(20 * k), borderRadius: 999, background: '#0B0C0E', zIndex: 7, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 7}}>
             <span style={{width: Math.round(8 * k), height: Math.round(8 * k), borderRadius: 999, background: 'radial-gradient(circle at 32% 30%, #3A4150 0%, #0E1013 70%)', boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.20)'}}/>
           </div>
-          <div style={{
-            position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 6,
-            padding: `${Math.round(30 * k)}px ${Math.round(16 * k)}px ${Math.round(20 * k)}px`,
-            display: 'flex', gap: Math.round(10 * k),
-            background: 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,0.96) 45%)',
-            pointerEvents: 'none',
-          }}>
-            <span style={{flex: 1, padding: `${Math.round(12 * k)}px 0`, borderRadius: 999, background: '#fff', border: '1.5px solid #eddfda', fontSize: Math.max(10, Math.round(14.5 * k)), fontWeight: 700, color: A.TEXT, textAlign: 'center'}}>Vedi menù</span>
-            <span style={{flex: 1.5, padding: `${Math.round(12 * k)}px 0`, borderRadius: 999, background: A.PINK, fontSize: Math.max(10, Math.round(14.5 * k)), fontWeight: 700, color: '#fff', textAlign: 'center', boxShadow: '0 6px 16px rgba(227,36,89,0.35)'}}>Prenota un tavolo</span>
-          </div>
+          {cta && (
+            <div style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 6,
+              padding: `${Math.round(30 * k)}px ${Math.round(16 * k)}px ${Math.round(20 * k)}px`,
+              display: 'flex', gap: Math.round(10 * k),
+              background: 'linear-gradient(180deg, rgba(251,244,241,0) 0%, rgba(251,244,241,0.96) 45%)',
+              pointerEvents: 'none',
+            }}>
+              <span style={{flex: 1, padding: `${Math.round(12 * k)}px 0`, borderRadius: 999, background: '#fff', border: '1.5px solid #eddfda', fontSize: Math.max(10, Math.round(14.5 * k)), fontWeight: 700, color: A.TEXT, textAlign: 'center'}}>Vedi menù</span>
+              <span style={{flex: 1.5, padding: `${Math.round(12 * k)}px 0`, borderRadius: 999, background: A.PINK, fontSize: Math.max(10, Math.round(14.5 * k)), fontWeight: 700, color: '#fff', textAlign: 'center', boxShadow: '0 6px 16px rgba(227,36,89,0.35)'}}>Prenota un tavolo</span>
+            </div>
+          )}
           <div aria-hidden="true" style={{position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)', width: Math.round(92 * k), height: 4, borderRadius: 999, background: 'rgba(15, 17, 21, 0.30)', zIndex: 7}}/>
         </div>
       </div>
