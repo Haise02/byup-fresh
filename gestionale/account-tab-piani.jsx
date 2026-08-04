@@ -1071,16 +1071,14 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
             <div style={{fontSize: 40, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, ...AURORA_TEXT_GRADIENT}}>
               {fmtOrdini(ordiniInvito)}
             </div>
-            <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginTop: 2}}>ordini aggiuntivi</div>
-            <div style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, marginTop: 10}}>
+            <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginTop: 2, lineHeight: 1.35}}>
+              ordini aggiuntivi senza scadenza
+            </div>
+            <div style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, marginTop: 8}}>
               <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT}}>dal valore di:</span>
               <span style={{fontSize: 22, fontWeight: 800, letterSpacing: -0.3, ...AURORA_TEXT_GRADIENT}}>
                 {fmtOrdini(valoreOrdini)}€
               </span>
-            </div>
-            <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, marginTop: 4}}>Senza scadenza</div>
-            <div style={{fontSize: 12, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
-              per ogni ristorante che attiva un abbonamento
             </div>
           </div>
         </div>
