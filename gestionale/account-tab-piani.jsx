@@ -819,66 +819,33 @@ const fmtTotaleAnnuo = (n) => new Intl.NumberFormat('it-IT', {
 // Mesh aurora delle card upgrade — stesso wash di AcCard aurora
 // (account-tab-dati.jsx), ma piu' tenue: qui il fondo deve reggere una lista di
 // testo, non fare da superficie decorativa.
-// Il regalo della fascia invito, ricalcato sull'immagine di riferimento:
-// scatola rosa→viola con la luce da sinistra, nastro e fiocco bianchi,
-// coriandoli attorno (cuori, scintille, punti) e la freccia che ci porta
-// dentro. Disegnato in SVG: regge lo zoom del canvas e non carica asset.
+// Il regalo della fascia invito: l'illustrazione vera (referral-regalo.png),
+// non più il disegno SVG. L'immagine ha il suo fondo rosa, quindi si ritaglia
+// stretta sul pacco e si sfuma ai bordi con una maschera radiale: sul fondo
+// aurora della fascia si fonde senza mostrare il rettangolo. La freccia viola
+// del riferimento resta disegnata, sopra l'immagine.
 function AcRegaloIllustrazione() {
+  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 55%, transparent 78%)';
   return (
-    <svg width="178" height="134" viewBox="0 0 196 148" fill="none" style={{display: 'block', flexShrink: 0}}>
-      <defs>
-        <linearGradient id="acRegBox" x1="60" y1="60" x2="164" y2="146" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FF9AA6"/><stop offset="0.45" stopColor="#E080C8"/><stop offset="1" stopColor="#8B5CF6"/>
-        </linearGradient>
-        <linearGradient id="acRegLid" x1="54" y1="46" x2="170" y2="84" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FFB3BC"/><stop offset="0.5" stopColor="#EC93D4"/><stop offset="1" stopColor="#9F75F8"/>
-        </linearGradient>
-        <linearGradient id="acRegNastro" x1="0" y1="0" x2="0" y2="1">
-          <stop stopColor="#FFFFFF"/><stop offset="1" stopColor="#EFEAF9"/>
-        </linearGradient>
-      </defs>
-
-      {/* freccia d'invito, come nell'immagine: parte dal testo e scende sul regalo */}
-      <path d="M10 92 C 12 112, 26 124, 44 126" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
-      <path d="M38 121 L 45 127 L 37 130" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-
-      {/* ombra morbida sotto la scatola */}
-      <ellipse cx="112" cy="142" rx="52" ry="6" fill="#8B5CF6" opacity="0.14"/>
-
-      {/* scatola */}
-      <rect x="64" y="74" width="96" height="66" rx="9" fill="url(#acRegBox)"/>
-      {/* luce sul fianco sinistro */}
-      <path d="M64 83a9 9 0 0 1 9-9h18v66H73a9 9 0 0 1-9-9z" fill="#FFFFFF" opacity="0.22"/>
-      {/* coperchio, più largo della scatola */}
-      <rect x="56" y="54" width="112" height="26" rx="8" fill="url(#acRegLid)"/>
-      <rect x="56" y="54" width="112" height="10" rx="5" fill="#FFFFFF" opacity="0.18"/>
-
-      {/* nastro verticale */}
-      <rect x="102" y="54" width="20" height="86" fill="url(#acRegNastro)"/>
-      <rect x="102" y="54" width="20" height="26" fill="#FFFFFF"/>
-
-      {/* fiocco: due asole, il nodo, le codine */}
-      <path d="M112 52 C 96 50, 86 42, 88 32 C 89 25, 97 22, 103 26 C 110 31, 112 42, 112 52 Z"
-        fill="#FFFFFF" stroke="#E9E2F7" strokeWidth="2"/>
-      <path d="M112 52 C 128 50, 138 42, 136 32 C 135 25, 127 22, 121 26 C 114 31, 112 42, 112 52 Z"
-        fill="#FFFFFF" stroke="#E9E2F7" strokeWidth="2"/>
-      <path d="M104 54 L 96 66 L 106 62 Z" fill="#F1ECFA"/>
-      <path d="M120 54 L 128 66 L 118 62 Z" fill="#F1ECFA"/>
-      <circle cx="112" cy="51" r="7" fill="#FFFFFF" stroke="#E9E2F7" strokeWidth="2"/>
-
-      {/* coriandoli: cuori, scintille, punti — rosa e viola alternati */}
-      <path d="M52 24 c -1.6 -2.6 -5.4 -2 -5.8 .8 c -.3 2 1.7 3.8 5.8 6.6 c 4.1 -2.8 6.1 -4.6 5.8 -6.6 c -.4 -2.8 -4.2 -3.4 -5.8 -.8 Z" fill="#FF8FA0"/>
-      <path d="M170 30 c -1.3 -2.1 -4.3 -1.6 -4.6 .6 c -.2 1.6 1.3 3 4.6 5.2 c 3.3 -2.2 4.8 -3.6 4.6 -5.2 c -.3 -2.2 -3.3 -2.7 -4.6 -.6 Z" fill="#C7B2FF"/>
-      <path d="M182 104 c -1.1 -1.8 -3.7 -1.4 -4 .5 c -.2 1.4 1.2 2.6 4 4.5 c 2.8 -1.9 4.2 -3.1 4 -4.5 c -.3 -1.9 -2.9 -2.3 -4 -.5 Z" fill="#FFB4BC"/>
-      <path d="M66 12 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6 Z" fill="#B9A2FF"/>
-      <path d="M148 8 l1.3 3.2 3.2 1.3 -3.2 1.3 -1.3 3.2 -1.3 -3.2 -3.2 -1.3 3.2 -1.3 Z" fill="#FF9AA6"/>
-      <path d="M186 62 h7 M189.5 58.5 v7" stroke="#C7B2FF" strokeWidth="2.4" strokeLinecap="round"/>
-      <path d="M34 48 h6 M37 45 v6" stroke="#FFB4BC" strokeWidth="2.2" strokeLinecap="round"/>
-      <circle cx="88" cy="14" r="2.6" fill="#FFC9CE"/>
-      <circle cx="128" cy="18" r="2.2" fill="#C7B2FF"/>
-      <circle cx="178" cy="46" r="2.4" fill="#E080C8"/>
-      <circle cx="44" cy="72" r="2.2" fill="#B9A2FF"/>
-    </svg>
+    <div style={{position: 'relative', width: 172, height: 148, flexShrink: 0}}>
+      <div style={{
+        position: 'absolute', inset: 0, overflow: 'hidden',
+        WebkitMaskImage: maschera, maskImage: maschera,
+      }}>
+        {/* Il pacco nell'originale sta a ~48% / 45%: l'immagine è ancorata lì
+            e scalata perché il regalo riempia la finestrella. */}
+        <img src="referral-regalo.png" alt="" style={{
+          position: 'absolute', width: 450,
+          left: '50%', top: '50%',
+          transform: 'translate(-48.3%, -45%)',
+        }}/>
+      </div>
+      {/* freccia d'invito, come nel riferimento: dal testo scende sul regalo */}
+      <svg width="52" height="62" viewBox="0 0 52 62" fill="none" style={{position: 'absolute', left: -16, bottom: 2}}>
+        <path d="M8 8 C 10 30, 22 46, 42 49" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+        <path d="M36 44 L 43 50 L 35 53" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+    </div>
   );
 }
 
