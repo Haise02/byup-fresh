@@ -49,6 +49,10 @@ function OnboardingApp() {
     phone: '',
     regime: 'ordinario',
     codiceInvito: '',
+    // Delega AdE: si dà sul portale dell'Agenzia, quindi qui se ne segue solo
+    // l'esito. attesa → verifica → errore | attivo.
+    adeStato: 'attesa',
+    adeTentativi: 0,
   });
   const [payments, setPayments] = React.useState({
     stripeStatus: 'disconnected',

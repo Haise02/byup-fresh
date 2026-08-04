@@ -230,7 +230,236 @@ function SubStepInfo({venue, v}) {
         />
         <RegimeRadioGroup value={venue.regime} onChange={(x) => v('regime', x)}/>
       </OnbCard>
+
+      <AdeDelegaCard venue={venue} v={v}/>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Delega AdE — l'unico pezzo dell'onboarding che si fa fuori da qui.
+//
+// Byup trasmette i corrispettivi al posto del locale, e per farlo serve una
+// delega che solo il titolare può dare, sul portale dell'Agenzia, con la sua
+// identità. Non possiamo prendere la delega noi: possiamo solo rendere
+// indolori i due minuti in cui la dà — il codice fiscale pronto da incollare,
+// il portale a un click, i tap da fare scritti in ordine, e un modo per
+// sapere se ha funzionato senza aspettare il primo scontrino vero.
+// ─────────────────────────────────────────────────────────────────────────
+
+const ADE_CF_BYUP = '15927340015';
+const ADE_PORTALE = 'https://www.agenziaentrate.gov.it/portale/area-riservata';
+
+// I tap sul portale, in ordine. Scritti come li vede lui sullo schermo:
+// se l'etichetta qui non è la stessa che legge lì, la guida non serve.
+const ADE_PASSI = [
+  'Accedi con SPID',
+  'Vai su Profilo → Deleghe',
+  'Apri Delega unica → Aggiungi delegato',
+  'Incolla il CF di Byup e spunta «Consultazione dei corrispettivi telematici»',
+  'Conferma',
+];
+
+function AdeDelegaCard({venue, v}) {
+  const stato = venue.adeStato || 'attesa';   // attesa | verifica | errore | attivo
+  const [copiato, setCopiato] = React.useState(false);
+
+  const copiaCF = () => {
+    const scrivi = navigator.clipboard && navigator.clipboard.writeText
+      ? navigator.clipboard.writeText(ADE_CF_BYUP)
+      : Promise.reject();
+    scrivi.catch(() => {
+      // Clipboard negata (http, permessi): il codice resta selezionabile a mano
+    }).then(() => {
+      setCopiato(true);
+      setTimeout(() => setCopiato(false), 2000);
+    });
+  };
+
+  // "Fatto" non si fida sulla parola: prova a trasmettere davvero. Il primo
+  // giro finisce in errore — è il caso vero, chi torna qui dopo trenta secondi
+  // la delega non ce l'ha ancora — e la diagnosi dice cosa ricontrollare
+  // invece di ripetere "non ha funzionato".
+  const verifica = () => {
+    v('adeStato', 'verifica');
+    const tentativo = (venue.adeTentativi || 0) + 1;
+    v('adeTentativi', tentativo);
+    setTimeout(() => v('adeStato', tentativo === 1 ? 'errore' : 'attivo'), 1600);
+  };
+
+  const BADGE = {
+    attesa:   {label: 'In attesa di delega', bg: 'rgba(217, 119, 6, 0.10)',  fg: ONB.AMBER},
+    verifica: {label: 'Verifica in corso…',  bg: 'rgba(15, 17, 21, 0.05)',   fg: ONB.MUTED},
+    errore:   {label: 'Errore',              bg: 'rgba(220, 38, 38, 0.10)',  fg: ONB.RED},
+    attivo:   {label: 'Attivo',              bg: ONB.GREEN_SOFT,             fg: ONB.GREEN},
+  }[stato];
+
+  return (
+    <OnbCard>
+      {/* proc-spin vive dentro l'overlay di elaborazione, che qui non c'è:
+          il giro del verificatore se lo porta da sé. */}
+      <style>{`@keyframes ade-spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16}}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 18, fontWeight: 600, color: ONB.TEXT, letterSpacing: '-0.01em', lineHeight: 1.4}}>
+            Autorizza Byup presso l'Agenzia delle Entrate
+          </div>
+          <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 4, lineHeight: 1.45}}>
+            Serve perché Byup trasmetta i corrispettivi per te.
+            {' '}<b style={{color: ONB.TEXT, fontWeight: 600}}>Circa 2 minuti</b>, serve solo l'accesso con SPID.
+          </div>
+        </div>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          padding: '5px 11px', borderRadius: 999,
+          background: BADGE.bg, color: BADGE.fg,
+          fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap',
+        }}>
+          {stato === 'attivo' && <OnbIcon.Check size={11} color={ONB.GREEN}/>}
+          {stato === 'verifica' && (
+            <span style={{
+              width: 11, height: 11, borderRadius: 999, flexShrink: 0,
+              border: `1.5px solid rgba(15,17,21,0.18)`, borderTopColor: ONB.MUTED,
+              animation: 'ade-spin 0.7s linear infinite',
+            }}/>
+          )}
+          {BADGE.label}
+        </span>
+      </div>
+
+      {/* Il CF è la cosa che deve finire negli appunti: sta per intero, in
+          monospazio, con il tasto attaccato. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+        padding: '12px 14px', borderRadius: 10,
+        background: ONB.BG, border: '1px solid rgba(15, 17, 21, 0.06)',
+      }}>
+        <div style={{flex: 1, minWidth: 200}}>
+          <div style={{fontSize: 13, fontWeight: 600, color: ONB.MUTED, letterSpacing: '0.04em', textTransform: 'uppercase'}}>
+            Codice fiscale di Byup
+          </div>
+          <div style={{
+            fontSize: 20, fontWeight: 600, color: ONB.TEXT, marginTop: 3,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.06em',
+            userSelect: 'all',
+          }}>{ADE_CF_BYUP}</div>
+        </div>
+        <button onClick={copiaCF} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
+          padding: '9px 15px', borderRadius: 9,
+          background: '#fff', color: copiato ? ONB.GREEN : ONB.TEXT,
+          border: `1px solid ${copiato ? 'rgba(22, 163, 74, 0.35)' : 'rgba(15, 17, 21, 0.12)'}`,
+          fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          transition: 'color 150ms ease-out, border-color 150ms ease-out',
+        }}>
+          {copiato ? (
+            <React.Fragment><OnbIcon.Check size={12} color={ONB.GREEN}/>Copiato</React.Fragment>
+          ) : (
+            <React.Fragment>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copia
+            </React.Fragment>
+          )}
+        </button>
+        <a href={ADE_PORTALE} target="_blank" rel="noopener noreferrer" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
+          padding: '9px 15px', borderRadius: 9,
+          background: ONB.ACTION_SECONDARY, color: '#fff',
+          fontSize: 15, fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit',
+        }}>
+          Apri il portale AdE
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/>
+          </svg>
+        </a>
+      </div>
+
+      {/* Guida contestuale: i tap da fare sul portale, in ordine. Sta aperta
+          finché la delega non è attiva — è lì che serve — e si richiude da sé
+          quando non c'è più niente da seguire. */}
+      <details open={stato !== 'attivo'} style={{marginTop: 12}}>
+        <summary style={{
+          fontSize: 15, fontWeight: 600, color: ONB.TEXT,
+          cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <OnbIcon.ChevronDown size={12} color={ONB.MUTED}/>
+          Come si fa, in 5 tap
+        </summary>
+        <ol style={{
+          margin: '10px 0 0', padding: 0, listStyle: 'none',
+          display: 'flex', flexDirection: 'column', gap: 7,
+        }}>
+          {ADE_PASSI.map((passo, i) => (
+            <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, color: ONB.TEXT, lineHeight: 1.45}}>
+              <span style={{
+                width: 21, height: 21, borderRadius: 999, flexShrink: 0, marginTop: 1,
+                background: ONB.BRAND_TINT, color: ONB.BRAND_DARK,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 600,
+              }}>{i + 1}</span>
+              <span>{passo}</span>
+            </li>
+          ))}
+        </ol>
+      </details>
+
+      {/* Verifica — chiude il giro: la delega o c'è o non c'è, e lo si sa qui
+          e ora invece che al primo scontrino di sabato sera. */}
+      <div style={{
+        marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(15, 17, 21, 0.08)',
+        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      }}>
+        <div style={{flex: 1, minWidth: 220}}>
+          <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT}}>Verifica</div>
+          <div style={{fontSize: 14.5, color: ONB.MUTED, marginTop: 2, lineHeight: 1.45}}>
+            {stato === 'attivo'
+              ? 'Delega trovata: la trasmissione di prova è andata a buon fine.'
+              : stato === 'verifica'
+                ? 'Sto inviando una trasmissione di prova all\'Agenzia…'
+                : 'Quando hai confermato sul portale, premi Fatto: proviamo una trasmissione.'}
+          </div>
+        </div>
+        {stato !== 'attivo' && (
+          <button onClick={verifica} disabled={stato === 'verifica'} style={{
+            padding: '10px 20px', borderRadius: 9, flexShrink: 0,
+            background: stato === 'verifica' ? 'rgba(15, 17, 21, 0.06)' : ONB.ACTION_PRIMARY,
+            color: stato === 'verifica' ? ONB.MUTED : '#fff',
+            border: 'none', fontSize: 15, fontWeight: 600,
+            cursor: stato === 'verifica' ? 'default' : 'pointer', fontFamily: 'inherit',
+          }}>
+            {stato === 'errore' ? 'Riprova' : 'Fatto'}
+          </button>
+        )}
+      </div>
+
+      {/* La diagnosi dice dove guardare: "non ha funzionato" da solo rimanda
+          al portale senza sapere cosa cercare. */}
+      {stato === 'errore' && (
+        <div style={{
+          marginTop: 10, padding: '11px 13px', borderRadius: 10,
+          background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.22)',
+          fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5,
+        }}>
+          <b style={{fontWeight: 600, color: ONB.RED}}>Delega non trovata.</b>{' '}
+          Il CF delegato dev'essere <b style={{fontWeight: 600}}>{ADE_CF_BYUP}</b> e la spunta va messa su
+          {' '}<b style={{fontWeight: 600}}>«Consultazione dei corrispettivi telematici»</b>: se hai spuntato
+          un altro servizio la delega c'è, ma non su questo. Ricontrolla e premi Riprova.
+        </div>
+      )}
+
+      {stato === 'attivo' && (
+        <div style={{
+          marginTop: 10, padding: '11px 13px', borderRadius: 10,
+          background: 'rgba(22, 163, 74, 0.07)', border: '1px solid rgba(22, 163, 74, 0.25)',
+          fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5,
+        }}>
+          Byup può trasmettere i corrispettivi per te. Puoi revocare la delega dal portale
+          dell'Agenzia quando vuoi.
+        </div>
+      )}
+    </OnbCard>
   );
 }
 
