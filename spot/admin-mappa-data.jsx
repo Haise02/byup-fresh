@@ -41,49 +41,35 @@ const GEO_CITTA = {
   'Cagliari': [39.224, 9.122],
 };
 
-// Silhouette dell'Italia in lat/lon: penisola, Sicilia, Sardegna. Grossolana
-// per scelta — deve dire "Italia" a colpo d'occhio e non rubare attenzione ai
-// punti che ci stanno sopra.
-const GEO_SAGOME = [
-  // penisola — arco alpino, adriatico, tacco, ionio, tirreno, riviera
-  [[45.83,6.75],[45.92,7.45],[46.00,8.00],[46.15,8.55],[46.10,9.00],[46.35,9.30],
-   [46.50,10.10],[46.62,10.45],[46.75,11.20],[47.00,11.75],[46.85,12.20],[46.65,12.40],
-   [46.55,13.10],[46.45,13.65],[46.20,13.60],[45.98,13.50],[45.78,13.60],[45.70,13.75],
-   [45.55,13.20],[45.45,12.60],[45.25,12.35],[44.95,12.45],[44.60,12.30],[44.10,12.60],
-   [43.90,13.10],[43.62,13.52],[43.15,13.75],[42.65,14.20],[42.20,14.60],[42.05,14.75],
-   [41.92,15.20],[41.90,15.70],[41.83,16.18],[41.55,15.90],[41.30,16.30],[41.13,16.87],
-   [40.90,17.30],[40.65,17.95],[40.35,18.17],[39.95,18.35],[39.80,18.35],[40.05,17.95],
-   [40.40,17.20],[40.30,16.90],[40.15,16.75],[39.90,16.65],[39.60,16.55],[38.95,16.60],
-   [38.72,16.55],[38.45,16.10],[38.20,15.95],[37.92,15.65],[38.10,15.55],[38.45,15.75],
-   [38.90,16.10],[39.40,16.20],[39.75,15.85],[40.00,15.65],[40.10,15.30],[40.35,14.95],
-   [40.60,14.45],[40.75,14.05],[41.05,13.90],[41.25,13.55],[41.42,12.95],[41.60,12.60],
-   [41.75,12.25],[42.05,11.80],[42.35,11.50],[42.55,11.15],[42.75,10.85],[43.05,10.55],
-   [43.40,10.30],[43.85,10.25],[44.05,9.95],[44.25,9.40],[44.40,8.95],[44.15,8.30],
-   [43.90,7.85],[43.78,7.55],[44.15,7.15],[44.45,6.90],[44.85,6.95],[45.20,6.65],[45.50,6.85]],
-  // Sicilia
-  [[38.12,13.35],[38.20,14.00],[38.10,14.70],[38.25,15.25],[37.95,15.30],[37.50,15.10],
-   [37.10,15.30],[36.70,15.10],[36.65,14.65],[36.80,14.05],[37.00,13.20],[37.55,12.65],[38.02,12.55]],
-  // Sardegna
-  [[41.25,9.25],[41.05,9.55],[40.90,9.65],[40.50,9.75],[40.05,9.70],[39.55,9.65],
-   [39.20,9.55],[38.90,8.85],[39.20,8.45],[39.90,8.45],[40.35,8.30],[40.60,8.15],
-   [40.90,8.20],[41.10,8.65]],
-];
-
 // Proiezione: equirettangolare centrata sull'Italia. Le longitudini si
-// accorciano di cos(42°), altrimenti lo stivale viene grasso.
-const GEO_BOX = { lat0: 47.3, lat1: 36.4, lon0: 6.3, lon1: 18.8, k: Math.cos(42 * Math.PI / 180) };
+// accorciano di cos(42°), altrimenti lo stivale viene grasso. Il riquadro è
+// quello dei confini veri (admin-mappa-regioni.jsx) con mezzo grado di
+// margine: contorni e punti passano di qui, quindi cadono insieme.
+const GEO_BOX = { lat0: 47.35, lat1: 36.35, lon0: 6.30, lon1: 18.85, k: Math.cos(42 * Math.PI / 180) };
 const GEO_H = 100;
 const GEO_W = +(((GEO_BOX.lon1 - GEO_BOX.lon0) * GEO_BOX.k) / (GEO_BOX.lat0 - GEO_BOX.lat1) * GEO_H).toFixed(2);
 const geoXY = (lat, lon) => ({
-  x: ((lon - GEO_BOX.lon0) * GEO_BOX.k) / ((GEO_BOX.lon1 - GEO_BOX.lon0) * GEO_BOX.k) * GEO_W,
+  x: (lon - GEO_BOX.lon0) / (GEO_BOX.lon1 - GEO_BOX.lon0) * GEO_W,
   y: (GEO_BOX.lat0 - lat) / (GEO_BOX.lat0 - GEO_BOX.lat1) * GEO_H,
 });
-const GEO_PATHS = GEO_SAGOME.map(poly =>
-  poly.map((p, i) => {
-    const { x, y } = geoXY(p[0], p[1]);
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(' ') + ' Z'
-);
+
+// Ogni regione diventa un tracciato: la terraferma e le sue isole in un solo
+// path, così si colora e si illumina come un pezzo unico.
+const GEO_PATHS_REGIONI = (window.GEO_REGIONI || []).map(reg => {
+  const principale = reg.p.reduce((a, b) => (b.length > a.length ? b : a), reg.p[0]);
+  // Baricentro dell'anello più grande: serve solo ad ancorare l'etichetta, non
+  // dev'essere il centroide esatto — basta che cada dentro la regione.
+  const cLat = principale.reduce((t, q) => t + q[0], 0) / principale.length;
+  const cLon = principale.reduce((t, q) => t + q[1], 0) / principale.length;
+  return {
+    nome: reg.n.split('/')[0].trim(),
+    ...geoXY(cLat, cLon),
+    d: reg.p.map(anello => anello.map((pt, i) => {
+      const { x, y } = geoXY(pt[0], pt[1]);
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(' ') + ' Z').join(' '),
+  };
+});
 
 // ─── I punti: un locale, una posizione ──────────────────────────────────────
 // Più locali nella stessa città finirebbero sullo stesso pixel: si sparpagliano
@@ -142,8 +128,51 @@ const GEO_ACCESSI = (() => {
     .sort((a, b) => b.accessi - a.accessi);
 })();
 
+// ─── Le regioni, sommate ────────────────────────────────────────────────────
+// Il colore dell'area è la somma di quello che succede nelle sue città. Il
+// nome arriva dai dati dei locali/utenti ('Emilia-Romagna', 'Sicilia'…) e va
+// fatto combaciare con quello dei confini, che è amministrativo e a volte
+// bilingue.
+const geoNormRegione = (r) => (r || '')
+  .split('/')[0].trim().toLowerCase()
+  .replace(/[’']/g, "'").replace(/[-\s]+/g, ' ');
+
+const GEO_REGIONE_DI_CITTA = (() => {
+  const m = {};
+  (window.LOCALI || []).forEach(l => { if (l.citta && l.regione) m[l.citta] = l.regione; });
+  (window.UTENTI || []).forEach(u => { if (u.citta && u.regione && !m[u.citta]) m[u.citta] = u.regione; });
+  return m;
+})();
+
+const GEO_PER_REGIONE = (() => {
+  const per = {};
+  const tocca = (reg) => {
+    const k = geoNormRegione(reg);
+    if (!k) return null;
+    if (!per[k]) per[k] = { chiave: k, nome: reg, locali: 0, accessi: 0, utenti: 0, citta: new Set() };
+    return per[k];
+  };
+  GEO_LOCALI.forEach(l => {
+    const reg = GEO_REGIONE_DI_CITTA[l.citta];
+    const a = tocca(reg);
+    if (a) { a.locali += 1; a.citta.add(l.citta); }
+  });
+  GEO_ACCESSI.forEach(c => {
+    const reg = GEO_REGIONE_DI_CITTA[c.citta];
+    const a = tocca(reg);
+    if (a) { a.accessi += c.accessi; a.utenti += c.utenti; a.citta.add(c.citta); }
+  });
+  const righe = Object.values(per).map(a => ({ ...a, citta: Array.from(a.citta) }));
+  const maxAcc = righe.reduce((m, a) => Math.max(m, a.accessi), 0) || 1;
+  const out = {};
+  righe.forEach(a => { out[a.chiave] = { ...a, intensita: a.accessi / maxAcc }; });
+  return out;
+})();
+
 window.GEO_CITTA = GEO_CITTA;
-window.GEO_PATHS = GEO_PATHS;
+window.GEO_PATHS_REGIONI = GEO_PATHS_REGIONI;
+window.GEO_PER_REGIONE = GEO_PER_REGIONE;
+window.geoNormRegione = geoNormRegione;
 window.GEO_W = GEO_W;
 window.GEO_H = GEO_H;
 window.GEO_LOCALI = GEO_LOCALI;

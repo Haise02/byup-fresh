@@ -37,7 +37,9 @@ function AnMappa() {
   const accessi = window.GEO_ACCESSI || [];
   const W = window.GEO_W || 85;
   const H = window.GEO_H || 100;
-  const paths = window.GEO_PATHS || [];
+  const regioni = window.GEO_PATHS_REGIONI || [];
+  const perRegione = window.GEO_PER_REGIONE || {};
+  const normReg = window.geoNormRegione || (r => (r || '').toLowerCase());
 
   const perCitta = React.useMemo(() => {
     const m = {};
@@ -51,6 +53,9 @@ function AnMappa() {
   }, [locali]);
 
   const totAccessi = accessi.reduce((s, a) => s + a.accessi, 0);
+  // Le città toccate da qualcosa: dove c'è un locale o dove qualcuno apre l'app
+  const cittaTot = new Set([...perCitta.map(c => c.citta), ...accessi.map(a => a.citta)]).size;
+  const regioniConRete = new Set(Object.values(perRegione).filter(r => r.locali > 0).map(r => r.chiave)).size;
   // Città con accessi e nessun locale: la riga che giustifica la mappa.
   const scoperte = accessi.filter(a => a.localiQui === 0);
 
@@ -103,14 +108,30 @@ function AnMappa() {
               </radialGradient>
             </defs>
 
-            {/* Il paese: fondo quieto, mai protagonista */}
-            {paths.map((d, i) => (
-              <path key={i} d={d}
-                fill={ADM.NEUTRAL_SOFT}
-                stroke={ADM.BORDER}
-                strokeWidth="0.35"
-                strokeLinejoin="round"/>
-            ))}
+            {/* I confini veri delle regioni. Sui locali sono un fondo quieto;
+                sugli accessi diventano l'informazione: l'area si tinge di
+                quanto la si usa, ed è lì che si legge "questa zona è calda". */}
+            {regioni.map(reg => {
+              const dati = perRegione[normReg(reg.nome)];
+              const acceso = strato === 'accessi' && dati && dati.accessi > 0;
+              return (
+                <path key={reg.nome} d={reg.d}
+                  fill={acceso ? mapCalore(dati.intensita) : ADM.NEUTRAL_SOFT}
+                  stroke={acceso ? 'rgba(224,67,71,0.35)' : ADM.BORDER}
+                  strokeWidth="0.28"
+                  strokeLinejoin="round"
+                  style={{cursor: acceso ? 'pointer' : 'default', transition:'fill 200ms ease-out'}}
+                  onMouseEnter={acceso ? () => setHover({
+                    x: reg.x, y: reg.y, titolo: reg.nome,
+                    righe: [
+                      `${admNumIt(dati.accessi)} accessi · ${admPctIt(dati.accessi / (totAccessi || 1) * 100)} del totale`,
+                      `${dati.locali} ${dati.locali === 1 ? 'locale' : 'locali'} in ${dati.citta.length} ${dati.citta.length === 1 ? 'città' : 'città'}`,
+                      dati.citta.join(', '),
+                    ],
+                  }) : undefined}
+                  onMouseLeave={acceso ? () => setHover(null) : undefined}/>
+              );
+            })}
 
             {strato === 'accessi' && accessi.map(a => (
               <g key={a.citta}
@@ -217,7 +238,7 @@ function AnMappa() {
             fontSize:12.6, color:ADM.TEXT, lineHeight:1.5,
           }}>
             {strato === 'locali'
-              ? <>La rete è concentrata al nord e su Roma. {perCitta.length} città coperte su {(window.GEO_ACCESSI || []).length + perCitta.length} in cui ci sono utenti o locali: il resto della penisola è bianco.</>
+              ? <>{perCitta.length} città con almeno un locale su {cittaTot} in cui c’è vita, in {regioniConRete} regioni su 20: la rete è un arcipelago di piazze, non una copertura.</>
               : scoperte.length
                 ? <><b>{scoperte.map(s => s.citta).join(', ')}</b>: utenti che aprono l’app dove non c’è ancora un locale. È domanda già in casa, e non ha dove atterrare.</>
                 : <>Il calore cade dove la rete c’è già: gran parte degli accessi arriva dal QR al tavolo, quindi una piazza si scalda quando i suoi locali lavorano — non quando ci abitano utenti registrati.</>}
