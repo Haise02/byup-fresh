@@ -78,16 +78,6 @@ function Step2Locale({
               il blocco di testo, invece che floating su un angolo del frame. */}
           <ProcessingBanner inline/>
 
-          {/* La delega AdE sta in questa colonna e non fra i campi: non è un
-              dato da scrivere, è una cosa da fare altrove mentre si compila.
-              Qui è sotto gli occhi appena si apre lo step — in colonna coi
-              campi finiva sotto il regime fiscale, cioè fuori dal canvas. */}
-          {subStep === 'info' && (
-            <div style={{marginTop: 20, maxWidth: 520}}>
-              <AdeDelegaCard venue={venue} v={v}/>
-            </div>
-          )}
-
         </div>
 
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
@@ -220,6 +210,17 @@ function SubStepInfo({venue, v}) {
               placeholder="es. DAMARIO07"/>
           </div>
         </div>
+        {/* Il regime sta dentro la stessa card e non in una sua: è un attributo
+            dell'anagrafica come la P.IVA, non un capitolo a parte. Una riga di
+            opzioni, senza le descrizioni che spiegavano l'IVA — chi compila il
+            proprio regime lo sa già, e quel testo costava tre righe di canvas. */}
+        <div style={{marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(15, 17, 21, 0.07)'}}>
+          <div style={{fontSize: 15, fontWeight: 600, color: ONB.TEXT, marginBottom: 9}}>
+            Seleziona regime fiscale
+          </div>
+          <RegimeRadioGroup value={venue.regime} onChange={(x) => v('regime', x)}/>
+        </div>
+
         {venue.codiceInvito && venue.codiceInvito.length >= 4 && (
           <div style={{
             marginTop: 12, padding: '10px 13px', borderRadius: 10,
@@ -233,13 +234,7 @@ function SubStepInfo({venue, v}) {
         )}
       </OnbCard>
 
-      <OnbCard>
-        <OnbSectionHeader
-          title="Regime fiscale"
-          subtitle="Per applicare correttamente IVA ed esenzioni in fattura."
-        />
-        <RegimeRadioGroup value={venue.regime} onChange={(x) => v('regime', x)}/>
-      </OnbCard>
+      <AdeDelegaCard venue={venue} v={v}/>
     </div>
   );
 }
@@ -471,54 +466,40 @@ function AdeDelegaCard({venue, v}) {
   );
 }
 
-// Regime fiscale — 3 radio card affiancate. Tre opzioni semanticamente diverse
-// (ordinario / forfettario / agricolo) → radio card con descrizione spiega la
-// scelta meglio di un dropdown muto.
-// Affiancate e non impilate: in colonna costavano ~100px di altezza in più ed
-// erano l'unico blocco che mandava il sub-step "info" fuori dal canvas.
+// Regime fiscale — tre opzioni in riga, etichetta e basta. Le descrizioni
+// ("IVA al 10% sui pasti…") spiegavano una cosa che chi ha un locale conosce
+// già, e costavano più spazio della scelta stessa.
 function RegimeRadioGroup({value, onChange}) {
   const options = [
-    {id: 'ordinario',   label: 'Ordinario',          desc: 'IVA al 10% sui pasti, 22% sulle bevande alcoliche.'},
-    {id: 'forfettario', label: 'Forfettario',        desc: 'No IVA in fattura, coefficiente di redditività dedicato.'},
-    {id: 'agricolo',    label: 'Agricolo / Speciale', desc: 'Per agriturismo o attività agricole connesse.'},
+    {id: 'ordinario',   label: 'Ordinario'},
+    {id: 'forfettario', label: 'Forfettario'},
+    {id: 'agricolo',    label: 'Agricolo / Speciale'},
   ];
   return (
-    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10}}>
+    <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
       {options.map((o) => {
         const selected = value === o.id;
         return (
-          <label key={o.id}
-            className={selected ? 'aurora-soft-bg' : ''}
-            style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10,
-            padding: '14px 14px',
-            ...(selected ? {} : {background: '#fff'}),
-            border: `1px solid ${selected ? 'rgba(255, 90, 95, 0.30)' : 'rgba(15, 17, 21, 0.08)'}`,
-            borderRadius: 10,
-            cursor: 'pointer',
-            transition: 'all 150ms ease-out',
+          <label key={o.id} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
+            background: selected ? ONB.BRAND_TINT : '#fff',
+            border: `1px solid ${selected ? 'rgba(255, 90, 95, 0.35)' : 'rgba(15, 17, 21, 0.10)'}`,
+            transition: 'background 150ms ease-out, border-color 150ms ease-out',
           }}>
             <input type="radio" name="regime"
               checked={selected} onChange={() => onChange(o.id)}
-              style={{margin: 0, marginTop: 3, accentColor: ONB.BRAND}}/>
-            <div style={{flex: 1}}>
-              <div style={{fontSize: 16, fontWeight: 500, color: ONB.TEXT, lineHeight: 1.35}}>
-                {o.label}
-              </div>
-              <div style={{fontSize: 14, color: ONB.MUTED, marginTop: 3, lineHeight: 1.4}}>
-                {o.desc}
-              </div>
-            </div>
+              style={{margin: 0, accentColor: ONB.BRAND}}/>
+            <span style={{
+              fontSize: 15, fontWeight: selected ? 600 : 500,
+              color: selected ? ONB.TEXT : ONB.MUTED, lineHeight: 1.2,
+            }}>{o.label}</span>
           </label>
         );
       })}
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// 2b PAGAMENTI
-// ─────────────────────────────────────────────────────────────────────────
 
 function SubStepPagamenti({payments, p}) {
   // Solo metodi alternativi a Stripe: il POS Stripe da solo copre carte + Apple/Google Pay
