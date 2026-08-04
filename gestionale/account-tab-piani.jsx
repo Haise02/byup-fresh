@@ -823,12 +823,11 @@ const fmtTotaleAnnuo = (n) => new Intl.NumberFormat('it-IT', {
 // mostrato INTERO — niente ritaglio stretto sul pacco. L'immagine ha un fondo
 // grigio a vignetta: la maschera radiale è tarata perché il pacco e il suo
 // alone restino pienamente opachi e a sfumare siano solo i bordi grigi, così
-// sul fondo aurora della fascia non compare il rettangolo. La freccia viola
-// del riferimento resta disegnata, sopra l'immagine.
+// sul fondo aurora della fascia non compare il rettangolo.
 function AcRegaloIllustrazione() {
-  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 72%, transparent 96%)';
+  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 74%, transparent 98%)';
   return (
-    <div style={{position: 'relative', width: 190, height: 164, flexShrink: 0}}>
+    <div style={{position: 'relative', width: 190, height: 184, flexShrink: 0}}>
       <div style={{
         position: 'absolute', inset: 0, overflow: 'hidden',
         WebkitMaskImage: maschera, maskImage: maschera,
@@ -837,16 +836,11 @@ function AcRegaloIllustrazione() {
             scalata quel tanto che il regalo intero, alone compreso, stia
             dentro la zona opaca della maschera. */}
         <img src="referral-regalo-neon.png" alt="" style={{
-          position: 'absolute', width: 360,
+          position: 'absolute', width: 420,
           left: '50%', top: '50%',
           transform: 'translate(-50.8%, -49.3%)',
         }}/>
       </div>
-      {/* freccia d'invito, come nel riferimento: dal testo scende sul regalo */}
-      <svg width="52" height="62" viewBox="0 0 52 62" fill="none" style={{position: 'absolute', left: -16, bottom: 2}}>
-        <path d="M8 8 C 10 30, 22 46, 42 49" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
-        <path d="M36 44 L 43 50 L 35 53" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      </svg>
     </div>
   );
 }
