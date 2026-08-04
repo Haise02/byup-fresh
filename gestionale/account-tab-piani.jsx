@@ -819,25 +819,27 @@ const fmtTotaleAnnuo = (n) => new Intl.NumberFormat('it-IT', {
 // Mesh aurora delle card upgrade — stesso wash di AcCard aurora
 // (account-tab-dati.jsx), ma piu' tenue: qui il fondo deve reggere una lista di
 // testo, non fare da superficie decorativa.
-// Il regalo della fascia invito: l'illustrazione vera (referral-regalo.png),
-// non più il disegno SVG. L'immagine ha il suo fondo rosa, quindi si ritaglia
-// stretta sul pacco e si sfuma ai bordi con una maschera radiale: sul fondo
-// aurora della fascia si fonde senza mostrare il rettangolo. La freccia viola
+// Il regalo della fascia invito: il pacco neon (referral-regalo-neon.png),
+// mostrato INTERO — niente ritaglio stretto sul pacco. L'immagine ha un fondo
+// grigio a vignetta: la maschera radiale è tarata perché il pacco e il suo
+// alone restino pienamente opachi e a sfumare siano solo i bordi grigi, così
+// sul fondo aurora della fascia non compare il rettangolo. La freccia viola
 // del riferimento resta disegnata, sopra l'immagine.
 function AcRegaloIllustrazione() {
-  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 55%, transparent 78%)';
+  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 72%, transparent 96%)';
   return (
-    <div style={{position: 'relative', width: 172, height: 148, flexShrink: 0}}>
+    <div style={{position: 'relative', width: 190, height: 164, flexShrink: 0}}>
       <div style={{
         position: 'absolute', inset: 0, overflow: 'hidden',
         WebkitMaskImage: maschera, maskImage: maschera,
       }}>
-        {/* Il pacco nell'originale sta a ~48% / 45%: l'immagine è ancorata lì
-            e scalata perché il regalo riempia la finestrella. */}
-        <img src="referral-regalo.png" alt="" style={{
-          position: 'absolute', width: 450,
+        {/* Il pacco nel file sta a ~51% / 49%: l'immagine è ancorata lì e
+            scalata quel tanto che il regalo intero, alone compreso, stia
+            dentro la zona opaca della maschera. */}
+        <img src="referral-regalo-neon.png" alt="" style={{
+          position: 'absolute', width: 360,
           left: '50%', top: '50%',
-          transform: 'translate(-48.3%, -45%)',
+          transform: 'translate(-50.8%, -49.3%)',
         }}/>
       </div>
       {/* freccia d'invito, come nel riferimento: dal testo scende sul regalo */}
