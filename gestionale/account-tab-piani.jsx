@@ -211,96 +211,114 @@ function AccPianiAbbonamenti() {
         />
       </div>
 
-      {/* Porta un ristorante — il pezzo di marketing della pagina, e come tale
-          si comporta: promessa a sinistra con le tre ragioni per cui è facile
-          dire di sì, il regalo in mezzo, e a destra il premio scritto grande
-          con la sua CTA. Sta su un fondo aurora perché è l'unico blocco che
-          vende qualcosa fra card che informano e basta. */}
+      {/* Porta un ristorante — il pezzo di marketing della pagina, costruito
+          sull'immagine di riferimento: promessa e tre ragioni a sinistra, il
+          regalo coi coriandoli in mezzo (SVG, niente asset), e a destra la
+          carta bianca del premio con la CTA in gradiente. Il premio è il piano
+          più alto del listino: è la carta "il più conveniente". */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto 264px',
-        alignItems: 'center', gap: 18,
-        padding: '20px 22px', borderRadius: 18,
-        background: AURORA_CARD_BG,
-        border: '1px solid rgba(190, 175, 220, 0.22)',
+        display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto 258px',
+        alignItems: 'center', gap: 16,
+        padding: '18px 22px', borderRadius: 20,
+        background:
+          'radial-gradient(circle at 8% 0%, rgba(255, 200, 210, 0.55) 0%, transparent 55%), ' +
+          'linear-gradient(100deg, #FFE9EC 0%, #FBEFF3 40%, #F7F1FB 74%, #F4F0FC 100%)',
+        border: '1px solid rgba(190, 175, 220, 0.28)',
       }}>
         {/* ─── Promessa e ragioni ───────────────────────────────────────── */}
         <div style={{minWidth: 0}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 15}}>
             <span style={{
-              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-              background: PN.PINK, color: PN.WHITE,
+              width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
+              background: PN.PINK_DARK, color: PN.WHITE,
               display: 'grid', placeItems: 'center',
+              boxShadow: '0 4px 10px rgba(224, 67, 71, 0.30)',
             }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.4 6.5-5.4s6.5 2 6.5 5.4"/>
-                <circle cx="17.5" cy="9" r="2.4"/><path d="M17.5 14c2.6 0 4.5 1.5 4.5 3.8"/>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="8.2" r="3.4"/>
+                <path d="M2.6 19.4c0-3.5 2.9-5.5 6.4-5.5s6.4 2 6.4 5.5z"/>
+                <circle cx="17.2" cy="9.2" r="2.6"/>
+                <path d="M16 14.2c3 .1 5.4 1.7 5.4 4.4h-4.6"/>
               </svg>
             </span>
             <div style={{minWidth: 0}}>
-              <div style={{fontSize: 25, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.6, lineHeight: 1.15}}>
-                Porta un ristorante su <span style={{color: PN.PINK}}>byup</span>
+              <div style={{fontSize: 26, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.7, lineHeight: 1.12, whiteSpace: 'nowrap'}}>
+                Porta un ristorante su{' '}
+                <span style={{
+                  background: 'linear-gradient(90deg, #FF5A5F 10%, #7C3AED 95%)',
+                  WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent', color: 'transparent',
+                }}>byup</span>
               </div>
-              <div style={{fontSize: 15, color: PN.MUTED, marginTop: 3}}>
-                Quando attiva un abbonamento, {ACC_REFERRAL.mesiPerLato} mesi gratis a testa.
+              <div style={{fontSize: 14.5, fontWeight: 600, color: '#3F4350', marginTop: 3, whiteSpace: 'nowrap'}}>
+                Quando attiva un abbonamento, 2 mesi gratis a testa.
               </div>
             </div>
           </div>
 
           {/* Le tre obiezioni che uno si fa prima di invitare qualcuno: è
               complicato? ci guadagno? quante volte posso? */}
-          <div style={{display: 'flex', gap: 26, flexWrap: 'wrap', marginTop: 18}}>
+          <div style={{display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 18}}>
             {[
               ['È semplice',    'Invita con un link'],
-              ['È vantaggioso', 'Risparmiate in due'],
+              ['È vantaggioso', 'Voi 2 risparmiate'],
               ['È illimitato',  'Invita quanti vuoi'],
             ].map(([titolo, sotto]) => (
-              <div key={titolo} style={{display: 'flex', alignItems: 'center', gap: 9}}>
+              <div key={titolo} style={{display: 'flex', alignItems: 'flex-start', gap: 9}}>
                 <span style={{
-                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                  background: PN.WHITE, color: PN.PINK,
-                  border: '1px solid rgba(255, 90, 95, 0.35)',
+                  width: 23, height: 23, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                  background: PN.WHITE, color: '#DB2777',
+                  border: '1.5px solid rgba(219, 39, 119, 0.40)',
+                  boxShadow: '0 1px 3px rgba(219, 39, 119, 0.12)',
                   display: 'grid', placeItems: 'center',
                 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                 </span>
                 <span>
-                  <span style={{display: 'block', fontSize: 14.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.25}}>{titolo}</span>
-                  <span style={{display: 'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>{sotto}</span>
+                  <span style={{display: 'block', fontSize: 14, fontWeight: 800, color: PN.TEXT, lineHeight: 1.25, whiteSpace: 'nowrap'}}>{titolo}</span>
+                  <span style={{display: 'block', fontSize: 13, color: PN.MUTED, marginTop: 1, whiteSpace: 'nowrap'}}>{sotto}</span>
                 </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ─── Il regalo ────────────────────────────────────────────────── */}
+        {/* ─── Freccia e regalo ─────────────────────────────────────────── */}
         <AcRegaloIllustrazione/>
 
-        {/* ─── Il premio, e come prenderselo ────────────────────────────── */}
+        {/* ─── La carta del premio ──────────────────────────────────────── */}
         <div style={{
-          background: PN.WHITE, borderRadius: 16,
+          background: PN.WHITE, borderRadius: 18,
           border: '1px solid rgba(190, 175, 220, 0.30)',
-          boxShadow: '0 1px 2px rgba(15,17,21,0.05)',
+          boxShadow: '0 8px 24px rgba(124, 58, 237, 0.10), 0 1px 2px rgba(15,17,21,0.05)',
           padding: '16px 18px',
         }}>
           <div style={{
-            fontSize: 11.5, fontWeight: 800, color: PN.MUTED,
-            letterSpacing: 0.7, textTransform: 'uppercase',
+            fontSize: 11, fontWeight: 800, color: PN.TEXT,
+            letterSpacing: 0.9, textTransform: 'uppercase',
           }}>Il più conveniente</div>
-          <div style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.3, marginTop: 8, lineHeight: 1.2}}>
+          <div style={{fontSize: 20, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.4, marginTop: 8, lineHeight: 1.22}}>
             Ottieni gratuitamente
           </div>
-          <div style={{fontSize: 19, fontWeight: 800, color: PN.PINK, letterSpacing: -0.3, lineHeight: 1.2}}>
-            {ACC_REFERRAL.mesiPerLato} mesi di {current.nome}
+          <div style={{
+            fontSize: 20, fontWeight: 800, letterSpacing: -0.4, lineHeight: 1.22,
+            background: 'linear-gradient(90deg, #DB2777 5%, #7C3AED 90%)',
+            WebkitBackgroundClip: 'text', backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent', color: 'transparent',
+          }}>
+            2 mesi di {(ACC_PIANI[ACC_PIANI.length - 1] || current).nome}
           </div>
           <button onClick={() => setInvitaModal(true)} style={{
-            width: '100%', marginTop: 14,
-            padding: '11px 16px', borderRadius: 999,
-            fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            width: '100%', marginTop: 16,
+            padding: '12px 16px', borderRadius: 999,
+            fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            ...AURORA_CTA_STYLE,
+            background: 'linear-gradient(100deg, #FF5A5F 0%, #A78BFA 100%)',
+            color: PN.WHITE, border: '1px solid rgba(124, 58, 237, 0.30)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 16px rgba(167,139,250,0.45)',
           }}>
-            Ottieni gratuitamente
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+            Ottieni Gratuitamente
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
           </button>
         </div>
       </div>
@@ -801,34 +819,65 @@ const fmtTotaleAnnuo = (n) => new Intl.NumberFormat('it-IT', {
 // Mesh aurora delle card upgrade — stesso wash di AcCard aurora
 // (account-tab-dati.jsx), ma piu' tenue: qui il fondo deve reggere una lista di
 // testo, non fare da superficie decorativa.
-// Il regalo della fascia invito. Disegnato, non un file: deve reggere lo zoom
-// del canvas e restare nella palette aurora della pagina senza portarsi dietro
-// un asset da caricare.
+// Il regalo della fascia invito, ricalcato sull'immagine di riferimento:
+// scatola rosa→viola con la luce da sinistra, nastro e fiocco bianchi,
+// coriandoli attorno (cuori, scintille, punti) e la freccia che ci porta
+// dentro. Disegnato in SVG: regge lo zoom del canvas e non carica asset.
 function AcRegaloIllustrazione() {
   return (
-    <svg width="132" height="118" viewBox="0 0 132 118" fill="none" style={{display: 'block', flexShrink: 0}}>
+    <svg width="178" height="134" viewBox="0 0 196 148" fill="none" style={{display: 'block', flexShrink: 0}}>
       <defs>
-        <linearGradient id="acRegaloBox" x1="20" y1="118" x2="120" y2="40" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FF5A5F"/><stop offset="1" stopColor="#A78BFA"/>
+        <linearGradient id="acRegBox" x1="60" y1="60" x2="164" y2="146" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FF9AA6"/><stop offset="0.45" stopColor="#E080C8"/><stop offset="1" stopColor="#8B5CF6"/>
         </linearGradient>
-        <linearGradient id="acRegaloCop" x1="18" y1="60" x2="118" y2="30" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FF7A7E"/><stop offset="1" stopColor="#B9A2FF"/>
+        <linearGradient id="acRegLid" x1="54" y1="46" x2="170" y2="84" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FFB3BC"/><stop offset="0.5" stopColor="#EC93D4"/><stop offset="1" stopColor="#9F75F8"/>
+        </linearGradient>
+        <linearGradient id="acRegNastro" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor="#FFFFFF"/><stop offset="1" stopColor="#EFEAF9"/>
         </linearGradient>
       </defs>
-      {/* coriandoli: il contorno che dice "premio" senza scriverlo */}
-      <circle cx="16" cy="30" r="3" fill="#FFB4B7"/>
-      <circle cx="120" cy="26" r="2.4" fill="#C7B2FF"/>
-      <circle cx="112" cy="96" r="2.6" fill="#FFC9CB"/>
-      <path d="M9 62h7M12.5 58.5v7" stroke="#C7B2FF" strokeWidth="2.2" strokeLinecap="round"/>
-      <path d="M104 14h6M107 11v6" stroke="#FFB4B7" strokeWidth="2.2" strokeLinecap="round"/>
+
+      {/* freccia d'invito, come nell'immagine: parte dal testo e scende sul regalo */}
+      <path d="M10 92 C 12 112, 26 124, 44 126" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+      <path d="M38 121 L 45 127 L 37 130" stroke="#8B5CF6" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+
+      {/* ombra morbida sotto la scatola */}
+      <ellipse cx="112" cy="142" rx="52" ry="6" fill="#8B5CF6" opacity="0.14"/>
+
       {/* scatola */}
-      <rect x="26" y="58" width="80" height="50" rx="7" fill="url(#acRegaloBox)"/>
-      <rect x="20" y="44" width="92" height="20" rx="6" fill="url(#acRegaloCop)"/>
-      <rect x="60" y="44" width="12" height="64" fill="#FFFFFF" fillOpacity="0.92"/>
-      {/* fiocco */}
-      <path d="M66 44c-8-2-16-8-16-16 0-5 4-8 8-8 6 0 8 8 8 24Z" fill="#FF8B8E"/>
-      <path d="M66 44c8-2 16-8 16-16 0-5-4-8-8-8-6 0-8 8-8 24Z" fill="#FFA6A8"/>
-      <circle cx="66" cy="42" r="5" fill="#FFFFFF"/>
+      <rect x="64" y="74" width="96" height="66" rx="9" fill="url(#acRegBox)"/>
+      {/* luce sul fianco sinistro */}
+      <path d="M64 83a9 9 0 0 1 9-9h18v66H73a9 9 0 0 1-9-9z" fill="#FFFFFF" opacity="0.22"/>
+      {/* coperchio, più largo della scatola */}
+      <rect x="56" y="54" width="112" height="26" rx="8" fill="url(#acRegLid)"/>
+      <rect x="56" y="54" width="112" height="10" rx="5" fill="#FFFFFF" opacity="0.18"/>
+
+      {/* nastro verticale */}
+      <rect x="102" y="54" width="20" height="86" fill="url(#acRegNastro)"/>
+      <rect x="102" y="54" width="20" height="26" fill="#FFFFFF"/>
+
+      {/* fiocco: due asole, il nodo, le codine */}
+      <path d="M112 52 C 96 50, 86 42, 88 32 C 89 25, 97 22, 103 26 C 110 31, 112 42, 112 52 Z"
+        fill="#FFFFFF" stroke="#E9E2F7" strokeWidth="2"/>
+      <path d="M112 52 C 128 50, 138 42, 136 32 C 135 25, 127 22, 121 26 C 114 31, 112 42, 112 52 Z"
+        fill="#FFFFFF" stroke="#E9E2F7" strokeWidth="2"/>
+      <path d="M104 54 L 96 66 L 106 62 Z" fill="#F1ECFA"/>
+      <path d="M120 54 L 128 66 L 118 62 Z" fill="#F1ECFA"/>
+      <circle cx="112" cy="51" r="7" fill="#FFFFFF" stroke="#E9E2F7" strokeWidth="2"/>
+
+      {/* coriandoli: cuori, scintille, punti — rosa e viola alternati */}
+      <path d="M52 24 c -1.6 -2.6 -5.4 -2 -5.8 .8 c -.3 2 1.7 3.8 5.8 6.6 c 4.1 -2.8 6.1 -4.6 5.8 -6.6 c -.4 -2.8 -4.2 -3.4 -5.8 -.8 Z" fill="#FF8FA0"/>
+      <path d="M170 30 c -1.3 -2.1 -4.3 -1.6 -4.6 .6 c -.2 1.6 1.3 3 4.6 5.2 c 3.3 -2.2 4.8 -3.6 4.6 -5.2 c -.3 -2.2 -3.3 -2.7 -4.6 -.6 Z" fill="#C7B2FF"/>
+      <path d="M182 104 c -1.1 -1.8 -3.7 -1.4 -4 .5 c -.2 1.4 1.2 2.6 4 4.5 c 2.8 -1.9 4.2 -3.1 4 -4.5 c -.3 -1.9 -2.9 -2.3 -4 -.5 Z" fill="#FFB4BC"/>
+      <path d="M66 12 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6 Z" fill="#B9A2FF"/>
+      <path d="M148 8 l1.3 3.2 3.2 1.3 -3.2 1.3 -1.3 3.2 -1.3 -3.2 -3.2 -1.3 3.2 -1.3 Z" fill="#FF9AA6"/>
+      <path d="M186 62 h7 M189.5 58.5 v7" stroke="#C7B2FF" strokeWidth="2.4" strokeLinecap="round"/>
+      <path d="M34 48 h6 M37 45 v6" stroke="#FFB4BC" strokeWidth="2.2" strokeLinecap="round"/>
+      <circle cx="88" cy="14" r="2.6" fill="#FFC9CE"/>
+      <circle cx="128" cy="18" r="2.2" fill="#C7B2FF"/>
+      <circle cx="178" cy="46" r="2.4" fill="#E080C8"/>
+      <circle cx="44" cy="72" r="2.2" fill="#B9A2FF"/>
     </svg>
   );
 }
