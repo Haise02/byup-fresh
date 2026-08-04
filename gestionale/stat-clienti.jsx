@@ -147,37 +147,56 @@ function StatFuori() {
         </span>
       </div>
 
-      <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
-        <div style={{
-          display:'grid', gridTemplateColumns:'26px minmax(0,1fr) 124px',
-          columnGap: 14, padding:'10px 16px', background:'#FAFAFB',
-          fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
-          textTransform:'uppercase', letterSpacing: 0.5,
-          borderBottom:`1px solid ${PN.BORDER_SOFT}`,
-        }}>
-          <span/>
-          <span>Prodotto</span>
-          <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Numero ordini</span>
-        </div>
+      {/* Dieci righe di due dati soli, su una tabella larga mille pixel, sono
+          un elenco perso nel bianco: due colonne da cinque riempiono la
+          larghezza e accorciano la strada fra il nome e il suo numero. */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', columnGap: 36}}>
+        {[0, 1].map(col => (
+          <div key={col}>
+            <div style={{
+              display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10,
+              padding:'0 4px 8px', borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+              fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
+              textTransform:'uppercase', letterSpacing: 0.5,
+            }}>
+              <span>Prodotto</span>
+              <span>Ordini</span>
+            </div>
 
-        {righe.map((p, i) => (
-          <div key={p.nome} style={{
-            display:'grid', gridTemplateColumns:'26px minmax(0,1fr) 124px',
-            columnGap: 14, padding:'11px 16px', alignItems:'center',
-            fontSize: 15, color: PN.TEXT,
-            background: i % 2 === 1 ? '#FAFAFB' : PN.WHITE,
-            borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-          }}>
-            <span style={{fontSize: 14, fontWeight: 700, color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>
-              {i + 1}
-            </span>
-            <span style={{minWidth: 0}}>
-              <span style={{display:'block', fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.nome}</span>
-              <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>
-                {p.cat}
-              </span>
-            </span>
-            <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>{p.ordini}</span>
+            {righe.slice(col * 5, col * 5 + 5).map((p, i) => {
+              const pos = col * 5 + i + 1;
+              const podio = pos <= 3;
+              return (
+                <div key={p.nome} style={{
+                  display:'flex', alignItems:'center', gap: 12,
+                  padding:'12px 4px',
+                  borderBottom: i === 4 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+                }}>
+                  {/* La posizione è una pastiglia, non una colonna: i primi tre
+                      si accendono, gli altri restano quieti. */}
+                  <span style={{
+                    width: 24, height: 24, borderRadius:'50%', flexShrink: 0,
+                    display:'grid', placeItems:'center',
+                    background: podio ? PN.PINK_SOFT : PN.WHITE_FROST,
+                    color: podio ? PN.PINK_DARK : PN.MUTED,
+                    fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+                  }}>{pos}</span>
+
+                  <span style={{flex: 1, minWidth: 0}}>
+                    <span style={{
+                      display:'block', fontSize: 15.5, fontWeight: 600, color: PN.TEXT,
+                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', lineHeight: 1.3,
+                    }}>{p.nome}</span>
+                    <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>{p.cat}</span>
+                  </span>
+
+                  <span style={{
+                    fontSize: 19, fontWeight: 700, color: PN.TEXT,
+                    fontVariantNumeric:'tabular-nums', letterSpacing:-0.3,
+                  }}>{p.ordini}</span>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
