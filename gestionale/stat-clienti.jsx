@@ -119,7 +119,6 @@ function StatFuori() {
   // La classifica è sugli ordini, quindi l'ordine delle righe pure: una lista
   // ordinata su un numero che non si vede si legge come un errore.
   const righe = [...d.prodotti].sort((a, b) => b.ordini - a.ordini);
-  const max = righe.reduce((m, p) => Math.max(m, p.ordini), 0) || 1;
 
   return (
     <StatCard
@@ -150,7 +149,7 @@ function StatFuori() {
 
       <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
         <div style={{
-          display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 124px minmax(0,1.5fr)',
+          display:'grid', gridTemplateColumns:'26px minmax(0,1fr) 124px',
           columnGap: 14, padding:'10px 16px', background:'#FAFAFB',
           fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
           textTransform:'uppercase', letterSpacing: 0.5,
@@ -159,12 +158,11 @@ function StatFuori() {
           <span/>
           <span>Prodotto</span>
           <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Numero ordini</span>
-          <span>Quota</span>
         </div>
 
         {righe.map((p, i) => (
           <div key={p.nome} style={{
-            display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 124px minmax(0,1.5fr)',
+            display:'grid', gridTemplateColumns:'26px minmax(0,1fr) 124px',
             columnGap: 14, padding:'11px 16px', alignItems:'center',
             fontSize: 15, color: PN.TEXT,
             background: i % 2 === 1 ? '#FAFAFB' : PN.WHITE,
@@ -176,11 +174,10 @@ function StatFuori() {
             <span style={{minWidth: 0}}>
               <span style={{display:'block', fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.nome}</span>
               <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>
-                {p.cat} · {p.clienti} clienti
+                {p.cat}
               </span>
             </span>
             <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>{p.ordini}</span>
-            <div><StatBar pct={(p.ordini / max) * 100} height={8}/></div>
           </div>
         ))}
       </div>
