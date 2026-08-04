@@ -211,33 +211,98 @@ function AccPianiAbbonamenti() {
         />
       </div>
 
-      {/* Porta un ristorante — una fascia bassa, non una card: l'offerta si vede
-          e si clicca, ma non prende l'altezza di una decisione. Il fondo aurora
-          la stacca dal bianco delle card intorno (da testo nudo in mezzo alla
-          pagina non si leggeva né si trovava) e il bottone bianco ci risalta
-          sopra senza mettersi in gara con le CTA dei piani qui sotto.
-          Tutto il resto — codice, copia, condivisione — sta nel popup. */}
+      {/* Porta un ristorante — il pezzo di marketing della pagina, e come tale
+          si comporta: promessa a sinistra con le tre ragioni per cui è facile
+          dire di sì, il regalo in mezzo, e a destra il premio scritto grande
+          con la sua CTA. Sta su un fondo aurora perché è l'unico blocco che
+          vende qualcosa fra card che informano e basta. */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 14, flexWrap: 'wrap',
-        padding: '13px 18px', borderRadius: 14,
+        display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto 264px',
+        alignItems: 'center', gap: 18,
+        padding: '20px 22px', borderRadius: 18,
         background: AURORA_CARD_BG,
         border: '1px solid rgba(190, 175, 220, 0.22)',
       }}>
-        <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45, minWidth: 220, flex: 1}}>
-          <strong style={{color: PN.TEXT, fontWeight: 700}}>Porta un ristorante su byup</strong>
-          {' '}— quando attiva un abbonamento,{' '}
-          <strong style={{color: PN.TEXT, fontWeight: 700}}>{ACC_REFERRAL.mesiPerLato} mesi gratis a testa</strong>.
+        {/* ─── Promessa e ragioni ───────────────────────────────────────── */}
+        <div style={{minWidth: 0}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+            <span style={{
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              background: PN.PINK, color: PN.WHITE,
+              display: 'grid', placeItems: 'center',
+            }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.4 6.5-5.4s6.5 2 6.5 5.4"/>
+                <circle cx="17.5" cy="9" r="2.4"/><path d="M17.5 14c2.6 0 4.5 1.5 4.5 3.8"/>
+              </svg>
+            </span>
+            <div style={{minWidth: 0}}>
+              <div style={{fontSize: 25, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.6, lineHeight: 1.15}}>
+                Porta un ristorante su <span style={{color: PN.PINK}}>byup</span>
+              </div>
+              <div style={{fontSize: 15, color: PN.MUTED, marginTop: 3}}>
+                Quando attiva un abbonamento, {ACC_REFERRAL.mesiPerLato} mesi gratis a testa.
+              </div>
+            </div>
+          </div>
+
+          {/* Le tre obiezioni che uno si fa prima di invitare qualcuno: è
+              complicato? ci guadagno? quante volte posso? */}
+          <div style={{display: 'flex', gap: 26, flexWrap: 'wrap', marginTop: 18}}>
+            {[
+              ['È semplice',    'Invita con un link'],
+              ['È vantaggioso', 'Risparmiate in due'],
+              ['È illimitato',  'Invita quanti vuoi'],
+            ].map(([titolo, sotto]) => (
+              <div key={titolo} style={{display: 'flex', alignItems: 'center', gap: 9}}>
+                <span style={{
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                  background: PN.WHITE, color: PN.PINK,
+                  border: '1px solid rgba(255, 90, 95, 0.35)',
+                  display: 'grid', placeItems: 'center',
+                }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                </span>
+                <span>
+                  <span style={{display: 'block', fontSize: 14.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.25}}>{titolo}</span>
+                  <span style={{display: 'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>{sotto}</span>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <button onClick={() => setInvitaModal(true)} style={{
-          flexShrink: 0,
-          padding: '9px 17px', borderRadius: 999,
-          background: PN.WHITE, color: PN.TEXT,
-          border: '1px solid rgba(190, 175, 220, 0.55)',
+
+        {/* ─── Il regalo ────────────────────────────────────────────────── */}
+        <AcRegaloIllustrazione/>
+
+        {/* ─── Il premio, e come prenderselo ────────────────────────────── */}
+        <div style={{
+          background: PN.WHITE, borderRadius: 16,
+          border: '1px solid rgba(190, 175, 220, 0.30)',
           boxShadow: '0 1px 2px rgba(15,17,21,0.05)',
-          fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          whiteSpace: 'nowrap',
-        }}>Invita un ristorante</button>
+          padding: '16px 18px',
+        }}>
+          <div style={{
+            fontSize: 11.5, fontWeight: 800, color: PN.MUTED,
+            letterSpacing: 0.7, textTransform: 'uppercase',
+          }}>Il più conveniente</div>
+          <div style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.3, marginTop: 8, lineHeight: 1.2}}>
+            Ottieni gratuitamente
+          </div>
+          <div style={{fontSize: 19, fontWeight: 800, color: PN.PINK, letterSpacing: -0.3, lineHeight: 1.2}}>
+            {ACC_REFERRAL.mesiPerLato} mesi di {current.nome}
+          </div>
+          <button onClick={() => setInvitaModal(true)} style={{
+            width: '100%', marginTop: 14,
+            padding: '11px 16px', borderRadius: 999,
+            fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            ...AURORA_CTA_STYLE,
+          }}>
+            Ottieni gratuitamente
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          </button>
+        </div>
       </div>
 
       {/* Cambia piano: la decisione successiva naturale dopo aver
@@ -736,6 +801,38 @@ const fmtTotaleAnnuo = (n) => new Intl.NumberFormat('it-IT', {
 // Mesh aurora delle card upgrade — stesso wash di AcCard aurora
 // (account-tab-dati.jsx), ma piu' tenue: qui il fondo deve reggere una lista di
 // testo, non fare da superficie decorativa.
+// Il regalo della fascia invito. Disegnato, non un file: deve reggere lo zoom
+// del canvas e restare nella palette aurora della pagina senza portarsi dietro
+// un asset da caricare.
+function AcRegaloIllustrazione() {
+  return (
+    <svg width="132" height="118" viewBox="0 0 132 118" fill="none" style={{display: 'block', flexShrink: 0}}>
+      <defs>
+        <linearGradient id="acRegaloBox" x1="20" y1="118" x2="120" y2="40" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FF5A5F"/><stop offset="1" stopColor="#A78BFA"/>
+        </linearGradient>
+        <linearGradient id="acRegaloCop" x1="18" y1="60" x2="118" y2="30" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FF7A7E"/><stop offset="1" stopColor="#B9A2FF"/>
+        </linearGradient>
+      </defs>
+      {/* coriandoli: il contorno che dice "premio" senza scriverlo */}
+      <circle cx="16" cy="30" r="3" fill="#FFB4B7"/>
+      <circle cx="120" cy="26" r="2.4" fill="#C7B2FF"/>
+      <circle cx="112" cy="96" r="2.6" fill="#FFC9CB"/>
+      <path d="M9 62h7M12.5 58.5v7" stroke="#C7B2FF" strokeWidth="2.2" strokeLinecap="round"/>
+      <path d="M104 14h6M107 11v6" stroke="#FFB4B7" strokeWidth="2.2" strokeLinecap="round"/>
+      {/* scatola */}
+      <rect x="26" y="58" width="80" height="50" rx="7" fill="url(#acRegaloBox)"/>
+      <rect x="20" y="44" width="92" height="20" rx="6" fill="url(#acRegaloCop)"/>
+      <rect x="60" y="44" width="12" height="64" fill="#FFFFFF" fillOpacity="0.92"/>
+      {/* fiocco */}
+      <path d="M66 44c-8-2-16-8-16-16 0-5 4-8 8-8 6 0 8 8 8 24Z" fill="#FF8B8E"/>
+      <path d="M66 44c8-2 16-8 16-16 0-5-4-8-8-8-6 0-8 8-8 24Z" fill="#FFA6A8"/>
+      <circle cx="66" cy="42" r="5" fill="#FFFFFF"/>
+    </svg>
+  );
+}
+
 const AURORA_CARD_BG =
   'radial-gradient(circle at 18% 12%, rgba(255, 217, 231, 0.60) 0%, transparent 62%), ' +
   'radial-gradient(circle at 88% 22%, rgba(226, 217, 255, 0.55) 0%, transparent 60%), ' +
