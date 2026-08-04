@@ -2147,14 +2147,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const resto = method === 'carta' ? 0 : Math.max(0, importo - residuo);
   const residuoDopo = Math.max(0, residuo - preso);
   const parziale = preso > 0 && preso < residuo - 0.004;
-  // Le scelte rapide sotto "Seleziona importo": col contante sono banconote
-  // (sopra il residuo, il resto lo fa la cassa), col POS frazioni del conto
-  // (sulla carta non si addebita più del dovuto).
+  // Le scelte rapide sotto "Seleziona importo" sono le banconote che il
+  // cliente può porgere: esistono solo per il contante. Sulla carta la cifra
+  // si addebita e basta — se è una parte, si scrive.
   const scelte = method === 'carta'
-    ? [
-        { label: 'Intero', val: residuo },
-        { label: 'Metà',   val: Math.round(residuo * 50) / 100 },
-      ]
+    ? []
     : [
         { label: 'Esatto', val: residuo },
         ...svTagli(residuo).map(v => ({ label: svEur(v, true), val: v })),
@@ -2436,10 +2433,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               <div style={{padding: '18px 28px 0'}}>
                 <div style={SVI_LABEL}>Seleziona importo</div>
 
-                {/* Contanti: le banconote che il cliente può porgere, quindi
-                    sopra il residuo. POS: sulla carta non si addebita più del
-                    dovuto, quindi l'intero e la metà — due carte che dividono
-                    il conto sono la cosa che succede davvero al banco. */}
+                {/* Le banconote che il cliente può porgere: col POS non c'è
+                    niente da scegliere, la cifra si scrive. */}
+                {scelte.length > 0 && (
                 <div style={{
                   display: 'grid', gap: 10, marginBottom: 12,
                   gridTemplateColumns: `repeat(${scelte.length}, 1fr)`,
@@ -2460,6 +2456,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     );
                   })}
                 </div>
+                )}
 
                 {/* Tutto il riquadro porta al campo: al banco si tocca la
                     cifra, non il cursore alto due millimetri. */}
