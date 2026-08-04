@@ -2056,7 +2056,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   // Incasso a più riprese: il residuo è quello che manca, non il totale. Chi
   // paga metà in contanti e metà col POS non sceglie un metodo "misto" — fa
   // due incassi, e la finestra tiene il conto.
-  const [incassato, setIncassato] = React.useState(0);
+  // Gli acconti già presi su questo conto, in ordine di arrivo: non un totale
+  // ma le righe, perché la domanda al banco è "cosa mi ha già dato?".
+  const [pagamenti, setPagamenti] = React.useState([]);
+  const [pagamentiOpen, setPagamentiOpen] = React.useState(false);
   const [importoTxt, setImporto] = React.useState('');
   const importoRef = React.useRef(null);
   const [fattura, setFattura] = React.useState(false);
@@ -2081,7 +2084,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   React.useEffect(() => {
     if (open) {
       setMethod('contanti');
-      setIncassato(0);
+      setPagamenti([]);
+      setPagamentiOpen(false);
       setImporto('');
       setFattura(false);
       setPay({ contanti: '', carta: '' });
@@ -2099,7 +2103,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   React.useEffect(() => {
     if (!attesa) return;
     const id = setInterval(() => {
-      if (Date.now() - attesa.inviato >= PAY_FINE) chiudiPagamento();
+      if (Date.now() - attesa.inviato >= PAY_FINE) registraIncasso(attesa.importo, 'carta');
       else setAttesaTick(t => t + 1);
     }, 400);
     return () => clearInterval(id);
@@ -2130,23 +2134,38 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   }
   const finalTotal = Math.max(0, naturalTotal);
 
+  const incassato = pagamenti.reduce((t, p) => t + p.importo, 0);
+  const incassatoCarta = pagamenti.reduce((t, p) => t + (p.come === 'carta' ? p.importo : 0), 0);
   const residuo = Math.max(0, finalTotal - incassato);
   // Il campo parte sul residuo: il caso normale è che paghi tutto, e chi paga
-  // con un taglio più grande lo scrive o tocca un pulsante.
-  const importo = method === 'carta'
-    ? residuo
-    : (parseFloat((importoTxt || '').replace(',', '.')) || 0);
-  const resto = Math.max(0, importo - residuo);
-  const residuoDopo = Math.max(0, residuo - importo);
-  const parziale = importo > 0 && importo < residuo - 0.004;
-  const contanti = incassato + (method === 'carta' ? 0 : Math.min(importo, residuo));
-  const carta = method === 'carta' ? residuo : 0;
+  // con un taglio più grande (o addebita solo una parte sulla carta) lo scrive
+  // o tocca un pulsante.
+  const importo = parseFloat((importoTxt || '').replace(',', '.')) || 0;
+  // Quello che entra davvero in cassa: sopra il residuo non si incassa, si
+  // rende. Sulla carta l'eccedenza non esiste — si addebita e basta.
+  const preso = Math.min(importo, residuo);
+  const resto = method === 'carta' ? 0 : Math.max(0, importo - residuo);
+  const residuoDopo = Math.max(0, residuo - preso);
+  const parziale = preso > 0 && preso < residuo - 0.004;
+  // Le scelte rapide sotto "Seleziona importo": col contante sono banconote
+  // (sopra il residuo, il resto lo fa la cassa), col POS frazioni del conto
+  // (sulla carta non si addebita più del dovuto).
+  const scelte = method === 'carta'
+    ? [
+        { label: 'Intero', val: residuo },
+        { label: 'Metà',   val: Math.round(residuo * 50) / 100 },
+      ]
+    : [
+        { label: 'Esatto', val: residuo },
+        ...svTagli(residuo).map(v => ({ label: svEur(v, true), val: v })),
+      ];
+
   // Il campo si riallinea al residuo quando cambia la partita: apertura,
   // metodo, acconto incassato, sconto applicato.
   React.useEffect(() => {
     if (!open) return;
     setImporto(residuo > 0 ? residuo.toFixed(2).replace('.', ',') : '');
-  }, [open, method, incassato, finalTotal]);
+  }, [open, method, pagamenti.length, finalTotal]);
 
   // Tutti gli hook sono passati: solo ora si può uscire senza disegnare nulla.
   if (!open) return null;
@@ -2157,21 +2176,27 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   // resta aperta e il residuo scende — l'acconto è una riga, non un'altra
   // finestra.
   function registraIncasso(val, come) {
-    const preso = Math.min(val, residuo);
-    if (preso < residuo - 0.004) {
-      setIncassato(i => i + preso);
+    const quota = Math.min(val, residuo);
+    if (quota < residuo - 0.004) {
+      const now = new Date();
+      setPagamenti(ps => [...ps, {
+        id: `p${ps.length + 1}`, come, importo: quota,
+        ora: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      }]);
       return;
     }
-    chiudiPagamento(come);
+    chiudiPagamento(come, quota);
   }
 
   // Unico punto in cui l'incasso si chiude e l'ordine nasce: ci passano sia la
   // conferma diretta (contanti, misto) sia il ritorno del pagamento con carta.
-  function chiudiPagamento(come) {
+  function chiudiPagamento(come, quota) {
+    const ultima = quota != null ? quota : residuo;
     setConfirmedTotal(finalTotal);
-    setConfirmedPay(come === 'carta' || method === 'carta'
-      ? { contanti: incassato, carta: residuo }
-      : { contanti: finalTotal, carta: 0 });
+    setConfirmedPay({
+      contanti: (incassato - incassatoCarta) + (come === 'carta' ? 0 : ultima),
+      carta: incassatoCarta + (come === 'carta' ? ultima : 0),
+    });
     setOrdine(onConfirm ? onConfirm(finalTotal) : null);
     setAttesa(null);
     setDone(true);
@@ -2260,7 +2285,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
           </div>
         ) : attesa ? (
           <SvAttesaPagamento
-            total={finalTotal}
+            total={attesa.importo != null ? attesa.importo : finalTotal}
             elapsed={Date.now() - attesa.inviato}
             onRitira={() => setAttesa(null)}/>
         ) : (
@@ -2319,13 +2344,58 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     </span>
                   )}
                 </div>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, marginTop: 4,
-                  fontSize: 14.5, color: SVI_MUTED,
-                }}>
+                {/* Già incassato: da chiuso è un totale, da aperto sono le
+                    righe. Quando il cliente chiede "quanto ho già dato?" la
+                    risposta non è un numero solo, è cosa ha dato e con cosa. */}
+                <button
+                  onClick={() => { if (pagamenti.length) setPagamentiOpen(o => !o); }}
+                  title={pagamenti.length ? 'Vedi i pagamenti già ricevuti' : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 4,
+                    padding: 0, background: 'transparent', border: 'none',
+                    fontSize: 14.5, color: SVI_MUTED, fontFamily: 'inherit',
+                    cursor: pagamenti.length ? 'pointer' : 'default',
+                  }}>
                   <SvIcoMonete/>
                   Già incassato {svEur(incassato)}
-                </div>
+                  {pagamenti.length > 0 && (
+                    <span style={{
+                      display: 'inline-flex', color: SVI_MUTED,
+                      transform: pagamentiOpen ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 150ms ease-out',
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </span>
+                  )}
+                </button>
+
+                {pagamentiOpen && pagamenti.length > 0 && (
+                  <div style={{
+                    marginTop: 10, borderRadius: 12,
+                    background: '#F5F6F8', padding: '6px 14px',
+                  }}>
+                    {pagamenti.map((p, i) => (
+                      <div key={p.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '9px 0',
+                        borderTop: i === 0 ? 'none' : `1px solid ${SVI_BORDER}`,
+                      }}>
+                        <span style={{color: SVI_CORAL, display: 'inline-flex', flexShrink: 0}}>
+                          {p.come === 'carta'
+                            ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>
+                            : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg>}
+                        </span>
+                        <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: SVI_INK}}>
+                          {p.come === 'carta' ? 'Smart POS' : 'Contanti'}
+                        </span>
+                        <span style={{fontSize: 14, color: SVI_MUTED, fontVariantNumeric: 'tabular-nums'}}>{p.ora}</span>
+                        <span style={{fontSize: 15.5, fontWeight: 800, color: SVI_INK, fontVariantNumeric: 'tabular-nums', minWidth: 62, textAlign: 'right'}}>
+                          {svEur(p.importo)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {adjustOpen && (
@@ -2366,41 +2436,40 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               <div style={{padding: '18px 28px 0'}}>
                 <div style={SVI_LABEL}>Seleziona importo</div>
 
-                {method === 'contanti' && (
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12}}>
-                    <button
-                      onClick={() => { setImporto(residuo.toFixed(2).replace('.', ',')); importoRef.current?.focus(); }}
-                      style={{
-                        padding: '13px 8px', borderRadius: 12,
-                        background: importo >= residuo - 0.004 && resto <= 0.004 ? SVI_TINT : '#fff',
-                        border: `1px solid ${importo >= residuo - 0.004 && resto <= 0.004 ? SVI_CORAL : SVI_BORDER}`,
-                        color: importo >= residuo - 0.004 && resto <= 0.004 ? SVI_CORAL : SVI_INK,
-                        fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                      }}>Esatto</button>
-                    {svTagli(residuo).map(v => (
-                      <button key={v}
-                        onClick={() => { setImporto(v.toFixed(2).replace('.', ',')); importoRef.current?.focus(); }}
+                {/* Contanti: le banconote che il cliente può porgere, quindi
+                    sopra il residuo. POS: sulla carta non si addebita più del
+                    dovuto, quindi l'intero e la metà — due carte che dividono
+                    il conto sono la cosa che succede davvero al banco. */}
+                <div style={{
+                  display: 'grid', gap: 10, marginBottom: 12,
+                  gridTemplateColumns: `repeat(${scelte.length}, 1fr)`,
+                }}>
+                  {scelte.map(sc => {
+                    const on = Math.abs(importo - sc.val) < 0.004;
+                    return (
+                      <button key={sc.label}
+                        onClick={() => { setImporto(sc.val.toFixed(2).replace('.', ',')); importoRef.current?.focus(); }}
                         style={{
                           padding: '13px 8px', borderRadius: 12,
-                          background: Math.abs(importo - v) < 0.004 ? SVI_TINT : '#fff',
-                          border: `1px solid ${Math.abs(importo - v) < 0.004 ? SVI_CORAL : SVI_BORDER}`,
-                          color: Math.abs(importo - v) < 0.004 ? SVI_CORAL : SVI_INK,
+                          background: on ? SVI_TINT : '#fff',
+                          border: `1px solid ${on ? SVI_CORAL : SVI_BORDER}`,
+                          color: on ? SVI_CORAL : SVI_INK,
                           fontSize: 16.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                           fontVariantNumeric: 'tabular-nums',
-                        }}>{svEur(v, true)}</button>
-                    ))}
-                  </div>
-                )}
+                        }}>{sc.label}</button>
+                    );
+                  })}
+                </div>
 
                 {/* Tutto il riquadro porta al campo: al banco si tocca la
                     cifra, non il cursore alto due millimetri. */}
                 <div
-                  onClick={() => { if (method !== 'carta') { importoRef.current?.focus(); importoRef.current?.select(); } }}
+                  onClick={() => { importoRef.current?.focus(); importoRef.current?.select(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '14px 18px', borderRadius: 14,
                     background: SVI_TINT, border: `1.5px solid ${SVI_CORAL}`,
-                    cursor: method === 'carta' ? 'default' : 'text',
+                    cursor: 'text',
                   }}>
                   <span style={{fontSize: 32, fontWeight: 800, color: SVI_INK, letterSpacing: -0.8}}>€</span>
                   <input
@@ -2409,7 +2478,6 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     onChange={e => setImporto(e.target.value.replace(/[^0-9.,]/g, ''))}
                     onFocus={e => e.target.select()}
                     inputMode="decimal"
-                    disabled={method === 'carta'}
                     style={{
                       flex: 1, minWidth: 0, border: 'none', outline: 'none',
                       background: 'transparent', fontFamily: 'inherit',
@@ -2417,15 +2485,15 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       letterSpacing: -0.8, padding: 0,
                       fontVariantNumeric: 'tabular-nums',
                     }}/>
-                  <span style={{color: method === 'carta' ? SVI_BORDER : SVI_MUTED, flexShrink: 0, display: 'inline-flex'}}>
+                  <span style={{color: SVI_MUTED, flexShrink: 0, display: 'inline-flex'}}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                   </span>
                 </div>
               </div>
 
-              {/* Una riga sola: quanto rendo. Il metodo è la tessera accesa
-                  qui sopra e il residuo è la cifra grande in testa — ripeterli
-                  in una striscia non aggiungeva niente da fare. */}
+              {/* Quanto rendo: domanda che esiste solo coi contanti. Sulla
+                  carta si addebita la cifra esatta, non c'è resto da dare. */}
+              {method === 'contanti' && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 margin: '16px 28px 0', padding: '14px 18px',
@@ -2439,6 +2507,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   fontVariantNumeric: 'tabular-nums',
                 }}>{svEur(resto)}</span>
               </div>
+              )}
             </div>
 
             {/* Solo la conferma: il documento si sceglie in testata, e qui
@@ -2446,12 +2515,12 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             <div style={{padding: '18px 28px 24px'}}>
               {(() => {
                 const inviaSuStaff = method === 'carta';
-                const attivo = residuo > 0 && (inviaSuStaff || importo >= Math.min(residuo, 0.01));
+                const attivo = residuo > 0 && preso >= Math.min(residuo, 0.01);
                 return (
                   <button
                     onClick={() => {
                       if (!attivo) return;
-                      if (inviaSuStaff) setAttesa({ inviato: Date.now() });
+                      if (inviaSuStaff) setAttesa({ inviato: Date.now(), importo: preso });
                       else registraIncasso(importo, 'contanti');
                     }}
                     disabled={!attivo}
@@ -2479,9 +2548,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     {!attivo
                       ? (residuo <= 0 ? 'Nessun articolo nel conto' : 'Inserisci un importo')
                       : inviaSuStaff
-                        ? `Addebita ${svEur(residuo)} sul POS`
+                        ? `Addebita ${svEur(preso)} sul POS`
                         : parziale
-                          ? `Incassa ${svEur(importo)} in acconto`
+                          ? `Incassa ${svEur(preso)} in acconto`
                           : `Incassa ed emetti ${fattura ? 'fattura' : 'ricevuta'}`}
                   </button>
                 );
