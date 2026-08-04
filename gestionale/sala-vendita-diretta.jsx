@@ -2048,13 +2048,6 @@ const SvIcoMonete = ({ size = 18 }) => (
   </svg>
 );
 
-const SvIcoPortafoglio = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={SVI_CORAL} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="6" width="18" height="13" rx="2.5"/>
-    <path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.1" fill="currentColor" stroke="none"/>
-  </svg>
-);
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Modale incasso semplificato (solo totale + pagamento)
 
@@ -2406,54 +2399,22 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 )}
               </div>
 
-              {/* Riepilogo. Coi contanti coperti resta una domanda sola —
-                  quanto rendo — e allora la striscia diventa quella: ripetere
-                  "metodo selezionato: contanti" mentre la tessera Contanti è
-                  accesa due dita più su non aiuta a contare il resto. */}
-              {method === 'contanti' && !parziale && importo > 0 ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  margin: '16px 28px 0', padding: '14px 18px',
-                  borderRadius: 14, background: '#F5F6F8',
-                }}>
-                  <SvIcoMonete size={22}/>
-                  <span style={{fontSize: 16.5, color: SVI_MUTED}}>Resto:</span>
-                  <span style={{
-                    fontSize: 20, fontWeight: 800, letterSpacing: -0.3,
-                    color: resto > 0.004 ? SVI_INK : SVI_GREEN,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>{svEur(resto)}</span>
-                </div>
-              ) : (
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1px 1fr',
-                  gap: 18, alignItems: 'center',
-                  margin: '16px 28px 0', padding: '14px 18px',
-                  borderRadius: 14, background: '#F5F6F8',
-                }}>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
-                    <SvIcoPortafoglio/>
-                    <span style={{minWidth: 0}}>
-                      <span style={{display: 'block', fontSize: 13.5, color: SVI_MUTED}}>Metodo selezionato</span>
-                      <span style={{display: 'block', fontSize: 16.5, fontWeight: 700, color: SVI_INK}}>
-                        {method === 'carta' ? 'Smart POS' : 'Contanti'}
-                      </span>
-                    </span>
-                  </div>
-                  <div style={{width: 1, alignSelf: 'stretch', background: 'rgba(15,17,21,0.09)'}}/>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
-                    <SvIcoMonete size={22}/>
-                    <span style={{minWidth: 0}}>
-                      <span style={{display: 'block', fontSize: 13.5, color: SVI_MUTED}}>Residuo dopo incasso</span>
-                      <span style={{
-                        display: 'block', fontSize: 16.5, fontWeight: 800,
-                        color: residuoDopo <= 0.004 ? SVI_GREEN : SVI_CORAL,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}>{svEur(residuoDopo)}</span>
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Una riga sola: quanto rendo. Il metodo è la tessera accesa
+                  qui sopra e il residuo è la cifra grande in testa — ripeterli
+                  in una striscia non aggiungeva niente da fare. */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                margin: '16px 28px 0', padding: '14px 18px',
+                borderRadius: 14, background: '#F5F6F8',
+              }}>
+                <SvIcoMonete size={22}/>
+                <span style={{fontSize: 16.5, color: SVI_MUTED}}>Resto:</span>
+                <span style={{
+                  fontSize: 20, fontWeight: 800, letterSpacing: -0.3,
+                  color: resto > 0.004 ? SVI_INK : SVI_GREEN,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>{svEur(resto)}</span>
+              </div>
             </div>
 
             {/* Solo la conferma: il documento si sceglie in testata, e qui
