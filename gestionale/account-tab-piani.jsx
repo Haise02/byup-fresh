@@ -976,6 +976,9 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   const fmtOrdini = (n) => n.toLocaleString('it-IT', {useGrouping: true});
 
   const starter = ACC_PIANI.find(p => p.id === 'starter');
+  // Il controvalore dei 3.500 ordini: quanto costerebbero come ordini extra
+  // al prezzo del piano attuale (Starter: 0,34 € → 1.190 €).
+  const valoreOrdini = Math.round(ordiniInvito * current.ordineExtra);
 
   const [copiato, setCopiato] = React.useState(false);
   const timer = React.useRef(null);
@@ -1047,11 +1050,17 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
         <div style={ACC_INVITO_CARD}>
           <AcInvitoChip label="Tu ricevi" fg="#DB2777" bg="#FDEBF3"/>
           <div style={{textAlign: 'center', margin: 'auto 0', padding: '6px 0'}}>
-            <div style={{fontSize: 40, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, ...AURORA_TEXT_GRADIENT}}>
-              {fmtOrdini(ordiniInvito)}
+            <div style={{display: 'inline-flex', alignItems: 'baseline', gap: 6, ...AURORA_TEXT_GRADIENT}}>
+              <span style={{fontSize: 22, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.1}}>
+                {fmtOrdini(ordiniInvito)}
+              </span>
+              <span style={{fontSize: 15, fontWeight: 700}}>ordini aggiuntivi</span>
             </div>
-            <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginTop: 2}}>ordini aggiuntivi</div>
-            <div style={{fontSize: 12, color: PN.MUTED, marginTop: 4, lineHeight: 1.4}}>
+            <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, marginTop: 10}}>dal valore di:</div>
+            <div style={{fontSize: 40, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, ...AURORA_TEXT_GRADIENT}}>
+              {fmtOrdini(valoreOrdini)}€
+            </div>
+            <div style={{fontSize: 12, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
               per ogni ristorante che attiva un abbonamento
             </div>
           </div>
@@ -1065,7 +1074,7 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
         <div style={ACC_INVITO_CARD}>
           <AcInvitoChip label="Il tuo amico riceve" fg="#7C3AED" bg="#EDE7FD"/>
           <div style={{display: 'flex', justifyContent: 'center', margin: 'auto 0', padding: '6px 0'}}>
-            <AcInvitoRiga piano={starter} caption="quando attiva un abbonamento"/>
+            <AcInvitoRiga piano={starter} caption="gratuiti"/>
           </div>
         </div>
       </div>
