@@ -116,7 +116,10 @@ function StatFuori() {
   const d = window.STAT_FUORI;
   if (!d) return null;
 
-  const max = d.prodotti.reduce((m, p) => Math.max(m, p.clienti), 0) || 1;
+  // La classifica è sugli ordini, quindi l'ordine delle righe pure: una lista
+  // ordinata su un numero che non si vede si legge come un errore.
+  const righe = [...d.prodotti].sort((a, b) => b.ordini - a.ordini);
+  const max = righe.reduce((m, p) => Math.max(m, p.ordini), 0) || 1;
 
   return (
     <StatCard
@@ -147,7 +150,7 @@ function StatFuori() {
 
       <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
         <div style={{
-          display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 92px minmax(0,1.5fr)',
+          display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 124px minmax(0,1.5fr)',
           columnGap: 14, padding:'10px 16px', background:'#FAFAFB',
           fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
           textTransform:'uppercase', letterSpacing: 0.5,
@@ -155,13 +158,13 @@ function StatFuori() {
         }}>
           <span/>
           <span>Prodotto</span>
-          <span style={{textAlign:'right'}}>Tuoi clienti</span>
+          <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Numero ordini</span>
           <span>Quota</span>
         </div>
 
-        {d.prodotti.map((p, i) => (
+        {righe.map((p, i) => (
           <div key={p.nome} style={{
-            display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 92px minmax(0,1.5fr)',
+            display:'grid', gridTemplateColumns:'26px minmax(0,2.4fr) 124px minmax(0,1.5fr)',
             columnGap: 14, padding:'11px 16px', alignItems:'center',
             fontSize: 15, color: PN.TEXT,
             background: i % 2 === 1 ? '#FAFAFB' : PN.WHITE,
@@ -173,22 +176,15 @@ function StatFuori() {
             <span style={{minWidth: 0}}>
               <span style={{display:'block', fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.nome}</span>
               <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>
-                {p.cat} · {p.ordini} ordini
+                {p.cat} · {p.clienti} clienti
               </span>
             </span>
-            <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>{p.clienti}</span>
-            <div><StatBar pct={(p.clienti / max) * 100} height={8}/></div>
+            <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>{p.ordini}</span>
+            <div><StatBar pct={(p.ordini / max) * 100} height={8}/></div>
           </div>
         ))}
       </div>
 
-      {/* Come è fatto il dato: chi lo legge deve sapere che non sta guardando
-          le persone, e chi ci finisce dentro deve sapere di non essere
-          riconoscibile. */}
-      <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 12, lineHeight: 1.5}}>
-        Dati aggregati e anonimi della rete byup: si contano le persone, non i loro nomi, e un prodotto
-        compare solo sopra i {d.sogliaMinima} clienti. Nessun altro locale vede i tuoi.
-      </div>
     </StatCard>
   );
 }
