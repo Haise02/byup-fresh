@@ -1007,6 +1007,10 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   })();
 
   const [copiato, setCopiato] = React.useState(false);
+  // L'avviso sotto il link compare al primo «Copia» e RESTA: è un'istruzione
+  // («passa proprio questo link»), non un feedback — sparire dopo un lampo
+  // come il bottone lo ridurrebbe a rumore.
+  const [avviso, setAvviso] = React.useState(false);
   const timer = React.useRef(null);
   const copia = () => {
     // writeText restituisce una Promise: senza .catch un rifiuto del browser
@@ -1014,6 +1018,7 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
     // gestito. Il feedback lo diamo comunque.
     try { navigator.clipboard && navigator.clipboard.writeText(linkPieno).catch(() => {}); } catch (e) {}
     setCopiato(true);
+    setAvviso(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopiato(false), 1800);
   };
@@ -1117,6 +1122,15 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
           {copiato ? 'Copiato' : 'Copia'}
         </button>
       </div>
+
+      {avviso && (
+        <div style={{
+          fontSize: 13, fontWeight: 600, color: PN.TEXT, textAlign: 'center',
+          padding: '10px 30px 0', animation: 'acPayFade 220ms ease both',
+        }}>
+          Assicurati che il tuo amico acceda a byup da questo link.
+        </div>
+      )}
 
       {/* I canali di condivisione: WhatsApp e mail piene, link e «altro» chiare */}
       <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '18px 26px 24px'}}>
