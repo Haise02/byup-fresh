@@ -943,12 +943,12 @@ function AcInvitoChip({ label, fg, bg }) {
   );
 }
 
-// Il regalo fra le due card: la stessa illustrazione della fascia in pagina
-// (referral-regalo.png) col medesimo trucco della maschera radiale — l'immagine
-// ha un suo fondo rosa, e senza maschera qui in mezzo comparirebbe un
-// rettangolo.
-function AcInvitoRegalo({ size = 112 }) {
-  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 52%, transparent 76%)';
+// Il regalo fra le due card: lo stesso pacco neon della fascia in pagina
+// (referral-regalo-neon.png), intero, col medesimo trucco della maschera
+// radiale — sfuma solo la vignetta grigia del file, non il pacco, così qui
+// in mezzo non compare il rettangolo.
+function AcInvitoRegalo({ size = 118 }) {
+  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 72%, transparent 96%)';
   return (
     <div style={{
       position: 'absolute', left: '50%', top: '50%',
@@ -956,9 +956,11 @@ function AcInvitoRegalo({ size = 112 }) {
       width: size, height: size, overflow: 'hidden',
       WebkitMaskImage: maschera, maskImage: maschera,
     }}>
-      <img src="referral-regalo.png" alt="" style={{
-        position: 'absolute', width: size * 2.7, left: '50%', top: '50%',
-        transform: 'translate(-48.3%, -45%)',
+      {/* Il pacco nel file sta a ~51% / 49%; a width ≈ 2·size il regalo
+          intero, alone compreso, resta nella zona opaca della maschera. */}
+      <img src="referral-regalo-neon.png" alt="" style={{
+        position: 'absolute', width: size * 2.05, left: '50%', top: '50%',
+        transform: 'translate(-50.8%, -49.3%)',
       }}/>
     </div>
   );
