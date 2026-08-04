@@ -2092,8 +2092,6 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
     return () => clearInterval(id);
   }, [attesa]);
 
-  if (!open) return null;
-
   // Calcolo aggiustamento
   let naturalTotal = subtotale;
   let adjustLabel = null;
@@ -2130,10 +2128,15 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const parziale = importo > 0 && importo < residuo - 0.004;
   const contanti = incassato + (method === 'carta' ? 0 : Math.min(importo, residuo));
   const carta = method === 'carta' ? residuo : 0;
+  // Il campo si riallinea al residuo quando cambia la partita: apertura,
+  // metodo, acconto incassato, sconto applicato.
   React.useEffect(() => {
     if (!open) return;
     setImporto(residuo > 0 ? residuo.toFixed(2).replace('.', ',') : '');
   }, [open, method, incassato, finalTotal]);
+
+  // Tutti gli hook sono passati: solo ora si può uscire senza disegnare nulla.
+  if (!open) return null;
 
   function chooseMethod(m) { setMethod(m); }
 
