@@ -1480,8 +1480,12 @@ function DashLocali({ onNav, filtri }) {
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
 
+      {/* ═══════════ Dove sta la rete ═══════════ */}
+      <SectionLabel title="Dove sta la rete" desc="I locali sulla carta, e dove gli utenti aprono l'app" first/>
+      {window.AnMappa ? <AnMappa/> : null}
+
       {/* ═══════════ Andamento — KPI commerciali e ricavi ═══════════ */}
-      <SectionLabel title="Andamento" desc="KPI commerciali e ricavi della rete locali" first/>
+      <SectionLabel title="Andamento" desc="KPI commerciali e ricavi della rete locali"/>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
         <DashStatCard
