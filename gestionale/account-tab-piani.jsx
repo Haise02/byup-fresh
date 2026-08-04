@@ -877,24 +877,113 @@ const AURORA_TEXT_GRADIENT = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────
-// PORTA UN RISTORANTE — referral fra locali
+// INVITA UN RISTORANTE — referral fra locali
 // ─────────────────────────────────────────────────────────────────────────
 // Due mesi gratis a testa: a chi invita e a chi arriva. In pagina è una riga
 // sola — un'occasione, non una decisione da prendere adesso; qui dentro c'è
-// tutto quello che serve per passare il codice a qualcuno.
+// tutto quello che serve per passare l'invito a qualcuno.
 //
-// Si mostra il CODICE e non il link: è quello che l'altro digiterà
-// nell'onboarding, ed è quello che si detta al telefono. Il link viaggia
-// dentro il messaggio di «Condividi», dove serve che sia cliccabile.
+// Layout dal riferimento grafico: promessa in alto («2 mesi GRATIS!»), le due
+// facce dello scambio affiancate — cosa ricevi tu, cosa riceve l'amico — col
+// regalo sulla linea tratteggiata che le unisce, e in basso il LINK personale
+// con «Copia» e i canali di condivisione. Il gesto principale è il link (che
+// contiene il codice): si incolla in chat; il codice da dettare al telefono
+// viaggia dentro il messaggio condiviso.
+
+// Tondo-lettera dei piani nelle card: un colore per piano, iniziale bianca.
+const ACC_INVITO_LETTERA_BG = {
+  free: '#9AA1AB',
+  starter: 'linear-gradient(135deg, #F59E0B, #F97316)',
+  plus: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+  business: 'linear-gradient(135deg, #DB2777, #7C3AED)',
+};
+
+function AcInvitoLettera({ piano }) {
+  return (
+    <div aria-hidden="true" style={{
+      width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+      background: ACC_INVITO_LETTERA_BG[piano.id] || PN.TEXT,
+      display: 'grid', placeItems: 'center',
+      color: PN.WHITE, fontSize: 17, fontWeight: 800,
+      boxShadow: '0 4px 10px rgba(15,17,21,0.16)',
+    }}>{piano.nome.charAt(0)}</div>
+  );
+}
+
+// «2 mesi di <Piano>» + eventuale condizione sotto: la riga base di entrambe
+// le card. Il nome del piano è in gradient aurora, come i dati chiave della
+// pagina.
+function AcInvitoRiga({ piano, caption }) {
+  const mesi = ACC_REFERRAL.mesiPerLato;
+  return (
+    <div style={{display: 'flex', alignItems: 'center', gap: 11}}>
+      <AcInvitoLettera piano={piano}/>
+      <div style={{textAlign: 'left', minWidth: 0}}>
+        <div style={{fontSize: 12.5, fontWeight: 600, color: PN.TEXT}}>{mesi} mesi di</div>
+        <div style={{fontSize: 20, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.15, ...AURORA_TEXT_GRADIENT}}>
+          {piano.nome}
+        </div>
+        {caption && (
+          <div style={{fontSize: 12, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{caption}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AcInvitoChip({ label, fg, bg }) {
+  return (
+    <div style={{
+      alignSelf: 'center', background: bg, color: fg,
+      fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+      padding: '5px 12px', borderRadius: 999, whiteSpace: 'nowrap',
+    }}>{label}</div>
+  );
+}
+
+// Il regalo fra le due card: la stessa illustrazione della fascia in pagina
+// (referral-regalo.png) col medesimo trucco della maschera radiale — l'immagine
+// ha un suo fondo rosa, e senza maschera qui in mezzo comparirebbe un
+// rettangolo.
+function AcInvitoRegalo({ size = 112 }) {
+  const maschera = 'radial-gradient(ellipse 50% 50% at 50% 50%, black 52%, transparent 76%)';
+  return (
+    <div style={{
+      position: 'absolute', left: '50%', top: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: size, height: size, overflow: 'hidden',
+      WebkitMaskImage: maschera, maskImage: maschera,
+    }}>
+      <img src="referral-regalo.png" alt="" style={{
+        position: 'absolute', width: size * 2.7, left: '50%', top: '50%',
+        transform: 'translate(-48.3%, -45%)',
+      }}/>
+    </div>
+  );
+}
+
+const ACC_INVITO_CARD = {
+  flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14,
+  background: '#FBFAFE', border: '1px solid #ECE7F8', borderRadius: 18,
+  padding: '16px 14px 18px',
+};
+
 function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
   const locale = (typeof window.byupReadLocale === 'function' ? window.byupReadLocale() : null) || { nome: 'Byup' };
   const codice = accCodiceInvito(locale.nome);
   const linkPieno = `https://byup.it/r/${codice}`;
   const mesi = ACC_REFERRAL.mesiPerLato;
   const gratuito = !current.prezzo;
-  const valore = current.prezzo * mesi;
   const attivi = ACC_REFERRAL.attivi;
   const mesiMaturati = attivi * mesi;
+
+  const starter = ACC_PIANI.find(p => p.id === 'starter');
+  const business = ACC_PIANI.find(p => p.id === 'business');
+  // Sul Gratuito i mesi non hanno un prezzo da scontare: la card «tu ricevi»
+  // mostra il massimo raggiungibile (Business, da cui il «fino a»), col
+  // promemoria che i mesi valgono da quando si passa a un piano a pagamento.
+  const pianoTu = gratuito ? business : current;
+  const valoreTu = Math.round(pianoTu.prezzo * mesi);
 
   const [copiato, setCopiato] = React.useState(false);
   const timer = React.useRef(null);
@@ -902,22 +991,28 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
     // writeText restituisce una Promise: senza .catch un rifiuto del browser
     // (pagina non a fuoco, permesso negato) finisce in console come errore non
     // gestito. Il feedback lo diamo comunque.
-    try { navigator.clipboard && navigator.clipboard.writeText(codice).catch(() => {}); } catch (e) {}
+    try { navigator.clipboard && navigator.clipboard.writeText(linkPieno).catch(() => {}); } catch (e) {}
     setCopiato(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopiato(false), 1800);
   };
   React.useEffect(() => () => clearTimeout(timer.current), []);
 
-  const messaggio = `Ti passo il mio codice byup: ${codice}. Se attivi un abbonamento, ${mesi} mesi gratis a te e ${mesi} a me. ${linkPieno}`;
-  const condividi = () => {
+  const messaggio = `Ti passo il mio link byup: ${linkPieno} — se attivi un abbonamento, ${mesi} mesi gratis a te e ${mesi} a me. Il codice è ${codice}.`;
+  const condividiWhatsApp = () => {
+    // WhatsApp è il canale su cui un ristoratore parla con un altro
+    // ristoratore: messaggio già scritto, link dentro.
+    window.open(`https://wa.me/?text=${encodeURIComponent(messaggio)}`, '_blank', 'noopener');
+  };
+  const condividiEmail = () => {
+    window.location.href = `mailto:?subject=${encodeURIComponent(`${mesi} mesi di byup gratis`)}&body=${encodeURIComponent(messaggio)}`;
+  };
+  const condividiAltro = () => {
     if (navigator.share) {
       navigator.share({ title: 'byup', text: messaggio, url: linkPieno }).catch(() => {});
       return;
     }
-    // Senza Web Share (desktop) si apre WhatsApp col messaggio già scritto:
-    // è il canale su cui un ristoratore parla con un altro ristoratore.
-    window.open(`https://wa.me/?text=${encodeURIComponent(messaggio)}`, '_blank', 'noopener');
+    condividiWhatsApp();
   };
 
   // Una riga sola al posto di tre numeri: al ristoratore non serve sapere
@@ -929,7 +1024,7 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
       : `${attivi} ristoranti hanno attivato un piano: hai guadagnato ${mesiMaturati} mesi del tuo piano gratuiti.`;
 
   return (
-    <AcPayModal onClose={onClose} width={460}>
+    <AcPayModal onClose={onClose} width={620}>
       {/* Le keyframes del modale vivono nella tab Fatturazione, che qui non è
           montata: senza queste due la finestra comparirebbe di scatto. */}
       <style>{`
@@ -937,112 +1032,138 @@ function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
         @keyframes acPayPop { 0% { opacity: 0; transform: scale(0.92) translateY(10px); } 100% { opacity: 1; transform: none; } }
       `}</style>
 
-      {/* Il regalo a tutta larghezza fa da cielo della finestra: l'immagine ha
-          già il suo fondo rosa sfumato, e un velo bianco in basso la raccorda
-          al corpo. La chiusura galleggia sopra. */}
-      <div style={{
-        position: 'relative', height: 195, overflow: 'hidden',
-        borderRadius: '22px 22px 0 0',
-      }}>
-        <img src="referral-regalo.png" alt="" style={{
-          position: 'absolute', width: 560, left: '50%', top: '50%',
-          transform: 'translate(-48.3%, -46%)',
-        }}/>
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: 54,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 100%)',
-        }}/>
+      {/* Testata centrata: titolo e promessa. La chiusura galleggia a destra. */}
+      <div style={{position: 'relative', padding: '26px 56px 0', textAlign: 'center'}}>
+        <div style={{fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT}}>
+          Invita un ristorante
+        </div>
+        <div style={{fontSize: 15, color: PN.MUTED, marginTop: 10, lineHeight: 1.45}}>
+          Tu e il ristorante invitato riceverete entrambi
+        </div>
+        <div style={{fontSize: 26, fontWeight: 800, letterSpacing: -0.4, marginTop: 2, ...AURORA_TEXT_GRADIENT}}>
+          {mesi} mesi GRATIS!
+        </div>
         <button onClick={onClose} aria-label="Chiudi" style={{
-          position: 'absolute', top: 14, right: 14, width: 34, height: 34, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(15,17,21,0.08)',
+          position: 'absolute', top: 18, right: 18, width: 34, height: 34, borderRadius: '50%',
+          background: PN.WHITE, border: '1px solid rgba(15,17,21,0.10)',
           display: 'grid', placeItems: 'center', color: PN.TEXT, cursor: 'pointer',
-          backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
         }}><PnI.X size={13}/></button>
       </div>
 
-      {/* Titolo e promessa, centrati sotto il regalo */}
-      <div style={{padding: '0 30px', textAlign: 'center'}}>
-        <div style={{fontSize: 23, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT, lineHeight: 1.2}}>
-          Porta un ristorante su{' '}
-          <span style={{
-            background: 'linear-gradient(90deg, #FF5A5F 10%, #7C3AED 95%)',
-            WebkitBackgroundClip: 'text', backgroundClip: 'text',
-            WebkitTextFillColor: 'transparent', color: 'transparent',
-          }}>byup</span>
-        </div>
-        <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 7, lineHeight: 1.5}}>
-          {gratuito
-            ? `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te — validi da quando passi a un piano a pagamento.`
-            : `Se attiva un abbonamento col tuo codice, ${mesi} mesi gratis a lui e ${mesi} a te: ${fmtPrice(valore)} € sul tuo piano ${current.nome}.`}
-        </div>
-      </div>
-
-      {/* Il codice: è la cosa da dettare o incollare, quindi grande e al centro */}
-      <div style={{padding: '16px 30px 0'}}>
-        <div style={{
-          borderRadius: 14, border: '1.5px dashed rgba(219, 39, 119, 0.35)',
-          background: '#FFF7FA', padding: '12px 16px', textAlign: 'center',
-        }}>
-          <div style={{fontSize: 11.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.8, textTransform: 'uppercase'}}>
-            Il tuo codice
+      {/* Le due facce dello scambio, col regalo sulla tratteggiata in mezzo */}
+      <div style={{display: 'flex', alignItems: 'stretch', padding: '20px 26px 0'}}>
+        <div style={ACC_INVITO_CARD}>
+          <AcInvitoChip label="Tu ricevi" fg="#DB2777" bg="#FDEBF3"/>
+          <div style={{display: 'flex', justifyContent: 'center', padding: '2px 0'}}>
+            <AcInvitoRiga piano={pianoTu} caption={gratuito ? 'quando passi a un piano a pagamento' : null}/>
           </div>
-          <div style={{
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            fontSize: 25, fontWeight: 800, letterSpacing: 3, color: PN.TEXT, marginTop: 3,
-          }}>{codice}</div>
+          <div style={{textAlign: 'center', marginTop: 'auto', paddingBottom: 4}}>
+            <div style={{fontSize: 13, fontWeight: 600, color: PN.TEXT}}>Risparmi fino a</div>
+            <div style={{fontSize: 40, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, ...AURORA_TEXT_GRADIENT}}>
+              {fmtPrice(valoreTu)}€
+            </div>
+          </div>
         </div>
-        {guadagno && (
-          <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 10, textAlign: 'center'}}>{guadagno}</div>
-        )}
+
+        <div style={{position: 'relative', width: 104, flexShrink: 0}}>
+          <div aria-hidden="true" style={{position: 'absolute', left: -10, right: -10, top: '50%', borderTop: '2px dashed #D9D2EE'}}/>
+          <AcInvitoRegalo/>
+        </div>
+
+        <div style={ACC_INVITO_CARD}>
+          <AcInvitoChip label="Il tuo amico riceve" fg="#7C3AED" bg="#EDE7FD"/>
+          <AcInvitoRiga piano={starter} caption="se attiva il piano Gratuito"/>
+          <div style={{display: 'flex', alignItems: 'center', margin: '2px 0'}}>
+            <div style={{flex: 1, borderTop: '1px solid #E4DEF4'}}/>
+            <div style={{
+              background: PN.WHITE, border: '1px solid #EEE9F9', borderRadius: 999,
+              boxShadow: '0 2px 6px rgba(15,17,21,0.06)',
+              padding: '3px 12px', fontSize: 12, fontWeight: 700, color: PN.TEXT,
+            }}>oppure</div>
+            <div style={{flex: 1, borderTop: '1px solid #E4DEF4'}}/>
+          </div>
+          <AcInvitoRiga piano={business} caption="se attiva un piano a pagamento"/>
+        </div>
       </div>
 
-      {/* Le due uscite, piene e appaiate: copiare è il gesto principale */}
-      <div style={{display: 'flex', gap: 10, padding: '16px 30px 26px'}}>
-        <button onClick={condividi} style={{...AcBtnInvitoGhost, flex: 1, justifyContent: 'center'}}>
-          <IconaCondividi/>
-          Condividi
-        </button>
+      {guadagno && (
+        <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.5, textAlign: 'center', padding: '12px 30px 0'}}>
+          {guadagno}
+        </div>
+      )}
+
+      {/* Il link personale: la cosa da incollare, con «Copia» come gesto pieno */}
+      <div style={{
+        margin: '18px 26px 0', background: '#F6F6F9', borderRadius: 16,
+        padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14,
+      }}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 13.5, fontWeight: 800, color: PN.TEXT}}>Il tuo link personale</div>
+          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+            {linkPieno}
+          </div>
+        </div>
         <button onClick={copia} style={{
-          flex: 1, padding: '11px 18px', borderRadius: 999,
-          fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          padding: '12px 26px', borderRadius: 13, fontSize: 15.5, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 7,
           ...AURORA_CTA_STYLE,
         }}>
-          {copiato ? <PnI.Check size={14}/> : <IconaCopia/>}
-          {copiato ? 'Codice copiato' : 'Copia codice'}
+          {copiato && <PnI.Check size={14}/>}
+          {copiato ? 'Copiato' : 'Copia'}
+        </button>
+      </div>
+
+      {/* I canali di condivisione: WhatsApp e mail piene, link e «altro» chiare */}
+      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '18px 26px 24px'}}>
+        <div style={{fontSize: 13.5, color: PN.MUTED, marginRight: 4}}>Condividi via</div>
+        <button onClick={condividiWhatsApp} aria-label="Condividi su WhatsApp" style={{...AcInvitoTondo, background: '#25D366', color: PN.WHITE}}>
+          <IconaWhatsApp/>
+        </button>
+        <button onClick={condividiEmail} aria-label="Condividi via email" style={{...AcInvitoTondo, background: '#EF4444', color: PN.WHITE}}>
+          <IconaMail/>
+        </button>
+        <button onClick={copia} aria-label="Copia il link" style={{...AcInvitoTondo, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, color: PN.TEXT}}>
+          <IconaLink/>
+        </button>
+        <button onClick={condividiAltro} aria-label="Altri modi per condividere" style={{...AcInvitoTondo, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, color: PN.TEXT, fontSize: 17, fontWeight: 700, letterSpacing: 1}}>
+          ···
         </button>
       </div>
     </AcPayModal>
   );
 }
 
-const AcBtnInvitoGhost = {
-  padding: '10px 18px', borderRadius: 999,
-  background: PN.WHITE, color: PN.TEXT,
-  border: `1px solid ${PN.BORDER}`,
-  fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-  display: 'inline-flex', alignItems: 'center', gap: 7,
+const AcInvitoTondo = {
+  width: 42, height: 42, borderRadius: '50%', border: 'none', flexShrink: 0,
+  display: 'grid', placeItems: 'center', cursor: 'pointer', fontFamily: 'inherit',
 };
 
-// PnI non ha «copia» né «condividi»: due glifi inline, stessa gabbia 24×24 e
-// stesso tratto degli altri, invece di aggiungere due icone al set per due usi.
-function IconaCopia() {
+// PnI non ha questi glifi: tre icone inline solo per la fila di condivisione.
+function IconaWhatsApp() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
-      <rect x="9" y="9" width="12" height="12" rx="2.5"/>
-      <path d="M15 5.5A2.5 2.5 0 0 0 12.5 3h-7A2.5 2.5 0 0 0 3 5.5v7A2.5 2.5 0 0 0 5.5 15"/>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" style={{display: 'block'}}>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/>
     </svg>
   );
 }
 
-function IconaCondividi() {
+function IconaMail() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
-      <path d="M12 15V3.5"/>
-      <path d="M7.5 8 12 3.5 16.5 8"/>
-      <path d="M5 13v6.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V13"/>
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/>
+      <path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>
+    </svg>
+  );
+}
+
+function IconaLink() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
     </svg>
   );
 }
