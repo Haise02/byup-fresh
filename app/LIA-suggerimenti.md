@@ -8,8 +8,9 @@
 
 Ordinare e comporre i contenuti suggeriti in-app (sezione "per te" della home,
 ordinamento delle proposte) in base all'affinità con l'utente. Nessun invio di
-comunicazioni: le promo, generiche o profilate, restano su base consenso
-(A6, PROMOP, A18 — vedi regola di composizione in `byup-app-kit.jsx`).
+comunicazioni: le promo restano su base consenso — A6 (generiche e su misura
+sullo storico ordini) e A18 (preferenze alimentari) — vedi regola di
+composizione in `byup-app-kit.jsx`.
 
 ## 2. Dati usati (e dati esclusi)
 

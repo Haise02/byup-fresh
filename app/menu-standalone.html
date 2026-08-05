@@ -651,12 +651,13 @@
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing, PROMOP promo profilate) e per l'opt-out SUGG
-// (suggerimenti personalizzati, legittimo interesse: stato assente = ATTIVO).
+// preferenze, A6 marketing) e per l'opt-out SUGG (suggerimenti
+// personalizzati, legittimo interesse: stato assente = ATTIVO).
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
-//   promo generiche        → basta A6
-//   promo profilate        → A6 && PROMOP
+//   promo generiche E su misura sullo storico ordini → basta A6 (che le
+//     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
+//     non reintrodurlo; il consenso unico NON copre i dati alimentari)
 //   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
 //   suggerimenti in-app    → SUGG non disattivato (niente consenso: LI con
 //                            opt-out; la città viene dal contesto d'uso
@@ -4466,7 +4467,7 @@ function ProfileScreen({
       p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.'
     }, {
       h: 'Finalità e base giuridica',
-      p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).'
+      p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).'
     }, {
       h: 'Conservazione',
       p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.'
@@ -7231,16 +7232,15 @@ const CONSENSI_DEF = [{
   label: 'Offerte sulle preferenze',
   desc: 'Promozioni costruite su diete e allergeni',
   dove: 'impostando le preferenze alimentari'
-}, {
+},
+// A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
+// il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
+// registrazione. Le offerte su dati alimentari restano A18 (art. 9).
+{
   id: 'A6',
   label: 'Marketing byup',
-  desc: 'Novità e promozioni via email e notifica',
+  desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica',
   dove: 'alla registrazione'
-}, {
-  id: 'PROMOP',
-  label: 'Offerte sui tuoi ordini',
-  desc: 'Promozioni costruite sul tuo storico ordini',
-  dove: 'dopo un ordine'
 },
 // Opt-out, non consenso: legittimo interesse, attivo salvo disattivazione.
 {
@@ -32832,28 +32832,6 @@ function SuccessScreen({
 }) {
   const isTakeaway = ctx?.mode === 'takeaway';
   const [rating, setRating] = useState(0);
-
-  // ─── PROMOP, just-in-time al terzo ordine ────────────────────────────
-  // Il consenso alle promo profilate si chiede quando il valore è
-  // dimostrato, non a freddo alla registrazione. Compare UNA volta:
-  // qualunque risposta viene registrata e non si ripropone. Il toggle
-  // resta in Profilo → I miei dati.
-  const [promoSheet, setPromoSheet] = useState(false);
-  useEffect(() => {
-    let n = 0;
-    try {
-      n = (parseInt(localStorage.getItem('byup_ordini_count'), 10) || 0) + 1;
-      localStorage.setItem('byup_ordini_count', String(n));
-    } catch (e) {}
-    if (n >= 3 && !ByupConsensi.stato('PROMOP')) {
-      const t = setTimeout(() => setPromoSheet(true), 1600);
-      return () => clearTimeout(t);
-    }
-  }, []);
-  const decidiPromo = ok => {
-    ByupConsensi.set('PROMOP', ok);
-    setPromoSheet(false);
-  };
   const [hoverStar, setHoverStar] = useState(0);
   const [aspects, setAspects] = useState([]); // ids selezionati
   const [comment, setComment] = useState('');
@@ -33100,83 +33078,7 @@ function SuccessScreen({
       flexDirection: 'column',
       overflow: 'hidden'
     }
-  }, promoSheet && /*#__PURE__*/React.createElement("div", {
-    onClick: e => {
-      if (e.target === e.currentTarget) decidiPromo(false);
-    },
-    style: {
-      position: 'absolute',
-      inset: 0,
-      zIndex: 90,
-      background: 'rgba(15,8,12,.5)',
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      animation: 'fade .2s ease'
-    }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: '100%',
-      background: '#fff',
-      borderRadius: '24px 24px 0 0',
-      padding: '14px 20px 28px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'center',
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 38,
-      height: 4,
-      borderRadius: 999,
-      background: '#e0d8db'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 800,
-      color: '#1c0f15',
-      marginBottom: 6
-    }
-  }, "\uD83C\uDFAF Offerte sui tuoi gusti?"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: '#7a7176',
-      lineHeight: 1.5,
-      marginBottom: 14
-    }
-  }, "Acconsento all'uso del mio storico ordini per ricevere offerte e promozioni costruite su quello che ordino davvero. Niente spam: disattivabile quando voglio da \xABI miei dati\xBB."), /*#__PURE__*/React.createElement("button", {
-    onClick: () => decidiPromo(true),
-    style: {
-      width: '100%',
-      padding: '14px 16px',
-      borderRadius: 999,
-      background: '#E32459',
-      color: '#fff',
-      border: 'none',
-      fontSize: 15,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, "Attiva le offerte su misura"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => decidiPromo(false),
-    style: {
-      width: '100%',
-      padding: '11px 16px',
-      marginTop: 4,
-      background: 'transparent',
-      color: '#7a7176',
-      border: 'none',
-      fontSize: 13.5,
-      fontWeight: 600,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, "No, solo offerte generiche"))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       overflowY: 'auto',
