@@ -4714,6 +4714,25 @@ function BalanceScreen({ state, setState, goTo }) {
 function SuccessScreen({ state, setState, goTo, ctx }) {
   const isTakeaway = ctx?.mode === 'takeaway';
   const [rating, setRating] = useState(0);
+
+  // ─── PROMOP, just-in-time al terzo ordine ────────────────────────────
+  // Il consenso alle promo profilate si chiede quando il valore è
+  // dimostrato, non a freddo alla registrazione. Compare UNA volta:
+  // qualunque risposta viene registrata e non si ripropone. Il toggle
+  // resta in Profilo → I miei dati.
+  const [promoSheet, setPromoSheet] = useState(false);
+  useEffect(() => {
+    let n = 0;
+    try {
+      n = (parseInt(localStorage.getItem('byup_ordini_count'), 10) || 0) + 1;
+      localStorage.setItem('byup_ordini_count', String(n));
+    } catch (e) {}
+    if (n >= 3 && !ByupConsensi.stato('PROMOP')) {
+      const t = setTimeout(() => setPromoSheet(true), 1600);
+      return () => clearTimeout(t);
+    }
+  }, []);
+  const decidiPromo = (ok) => { ByupConsensi.set('PROMOP', ok); setPromoSheet(false); };
   const [hoverStar, setHoverStar] = useState(0);
   const [aspects, setAspects] = useState([]); // ids selezionati
   const [comment, setComment] = useState('');
@@ -4837,6 +4856,39 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
       width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
+      {promoSheet && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) decidiPromo(false); }} style={{
+          position: 'absolute', inset: 0, zIndex: 90, background: 'rgba(15,8,12,.5)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease',
+        }}>
+          <div style={{
+            width: '100%', background: '#fff', borderRadius: '24px 24px 0 0',
+            padding: '14px 20px 28px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 38, height: 4, borderRadius: 999, background: '#e0d8db' }}/>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#1c0f15', marginBottom: 6 }}>
+              🎯 Offerte sui tuoi gusti?
+            </div>
+            <div style={{ fontSize: 13, color: '#7a7176', lineHeight: 1.5, marginBottom: 14 }}>
+              Acconsento all'uso del mio storico ordini per ricevere offerte e
+              promozioni costruite su quello che ordino davvero. Niente spam:
+              disattivabile quando voglio da «I miei dati».
+            </div>
+            <button onClick={() => decidiPromo(true)} style={{
+              width: '100%', padding: '14px 16px', borderRadius: 999,
+              background: '#E32459', color: '#fff', border: 'none',
+              fontSize: 15, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+            }}>Attiva le offerte su misura</button>
+            <button onClick={() => decidiPromo(false)} style={{
+              width: '100%', padding: '11px 16px', marginTop: 4,
+              background: 'transparent', color: '#7a7176', border: 'none',
+              fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+            }}>No, solo offerte generiche</button>
+          </div>
+        </div>
+      )}
       <div style={{ flex: 1, overflowY: 'auto', padding: '84px 22px 176px' }}>
 
         {/* Hero: success + importo come momento */}

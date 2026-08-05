@@ -651,7 +651,16 @@
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing).
+// preferenze, A6 marketing, PROMOP promo profilate) e per l'opt-out SUGG
+// (suggerimenti personalizzati, legittimo interesse: stato assente = ATTIVO).
+//
+// REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
+//   promo generiche        → basta A6
+//   promo profilate        → A6 && PROMOP
+//   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
+//   suggerimenti in-app    → SUGG non disattivato (niente consenso: LI con
+//                            opt-out; la città viene dal contesto d'uso
+//                            corrente, MAI dai log di accesso/sicurezza)
 // Due strutture: lo STATO corrente per consenso e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
@@ -4465,6 +4474,9 @@ function ProfileScreen({
       h: 'I tuoi diritti',
       p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).'
     }, {
+      h: 'Suggerimenti personalizzati',
+      p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.'
+    }, {
       h: 'Sicurezza dell\'account (accessi)',
       p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.'
     }, {
@@ -7222,6 +7234,18 @@ const CONSENSI_DEF = [{
   label: 'Marketing byup',
   desc: 'Novità e promozioni via email e notifica',
   sez: 'Finalità e base giuridica'
+}, {
+  id: 'PROMOP',
+  label: 'Offerte sui tuoi ordini',
+  desc: 'Promozioni costruite sul tuo storico ordini',
+  sez: 'Finalità e base giuridica'
+},
+// Opt-out, non consenso: legittimo interesse, attivo salvo disattivazione.
+{
+  id: 'SUGG',
+  label: 'Suggerimenti personalizzati',
+  desc: 'Consigli basati sui tuoi gusti e ordini · attivo, puoi disattivarlo',
+  optout: true
 }];
 function ConsensiPanel({
   onOpenPrivacy,
@@ -7250,7 +7274,10 @@ function ConsensiPanel({
     const d = new Date(st.quando);
     return `${d.toLocaleDateString('it-IT')}`;
   };
+  // Il conteggio in testata conta solo i CONSENSI dati, non l'opt-out
+  // (che è attivo di default e non è un consenso).
   const attivi = CONSENSI_DEF.filter(c => {
+    if (c.optout) return false;
     const st = ByupConsensi.stato(c.id);
     return st && st.ok;
   }).length;
@@ -7316,6 +7343,8 @@ function ConsensiPanel({
   }))), aperto && CONSENSI_DEF.map((c, i) => {
     const st = ByupConsensi.stato(c.id);
     const data = quando(st);
+    // Opt-out (SUGG): stato assente = ATTIVO — legittimo interesse.
+    const acceso = c.optout ? st ? st.ok : true : !!(st && st.ok);
     return /*#__PURE__*/React.createElement("div", {
       key: c.id,
       style: {
@@ -7342,8 +7371,8 @@ function ConsensiPanel({
         marginTop: 2,
         lineHeight: 1.4
       }
-    }, c.desc, data ? ` · dal ${data}` : '')), /*#__PURE__*/React.createElement(ProfileToggle, {
-      value: !!(st && st.ok),
+    }, c.desc, data && !c.optout ? ` · dal ${data}` : '')), /*#__PURE__*/React.createElement(ProfileToggle, {
+      value: acceso,
       onChange: v => cambia(c.id, v)
     }));
   }), aperto && /*#__PURE__*/React.createElement("div", {
@@ -11925,6 +11954,9 @@ const A_PRIVACY = [{
 }, {
   h: 'I tuoi diritti',
   p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).'
+}, {
+  h: 'Suggerimenti personalizzati',
+  p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.'
 }, {
   h: 'Sicurezza dell\'account (accessi)',
   p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.'
@@ -16978,7 +17010,7 @@ function DisponibiliScreen({
       gap: 14,
       padding: '18px 18px 0'
     }
-  }, venues.map((v, i) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(HintSuggerimenti, null), venues.map((v, i) => /*#__PURE__*/React.createElement("div", {
     key: `${moment}-${i}`,
     style: {
       animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`
@@ -24062,6 +24094,69 @@ Object.assign(window, {
 /* sync */
 const __byupRoot = document.getElementById('root');
 if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(/*#__PURE__*/React.createElement(Root, null));
+
+// ─── HintSuggerimenti — trasparenza proattiva one-shot ──────────────────────
+// La riga compare UNA volta al primo avvio della sezione suggeriti e dice
+// due cose: che i consigli sono personalizzati, e dove si spengono. È la
+// trasparenza che regge il legittimo interesse (LIA-suggerimenti.md).
+function HintSuggerimenti() {
+  const [visto, setVisto] = useState(() => {
+    try {
+      return localStorage.getItem('byup_hint_sugg') === '1';
+    } catch (e) {
+      return false;
+    }
+  });
+  if (visto) return null;
+  const chiudi = () => {
+    try {
+      localStorage.setItem('byup_hint_sugg', '1');
+    } catch (e) {}
+    setVisto(true);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 9,
+      background: '#fff',
+      borderRadius: 12,
+      padding: '9px 12px',
+      border: '1px solid #F0EAEC'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      flexShrink: 0
+    }
+  }, "\u2728"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 11.5,
+      color: '#7a7176',
+      lineHeight: 1.45
+    }
+  }, "I suggerimenti sono personalizzati sui tuoi gusti e ordini. Li gestisci da Profilo \u2192 I miei dati."), /*#__PURE__*/React.createElement("button", {
+    onClick: chiudi,
+    "aria-label": "Chiudi",
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 999,
+      flexShrink: 0,
+      border: 'none',
+      background: '#F6F1F2',
+      color: '#7a7176',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      fontSize: 12,
+      fontFamily: 'inherit'
+    }
+  }, "\u2715"));
+}
 })();
 </script>
 <script>/* dish-art.jsx */
@@ -34616,6 +34711,28 @@ function SuccessScreen({
 }) {
   const isTakeaway = ctx?.mode === 'takeaway';
   const [rating, setRating] = useState(0);
+
+  // ─── PROMOP, just-in-time al terzo ordine ────────────────────────────
+  // Il consenso alle promo profilate si chiede quando il valore è
+  // dimostrato, non a freddo alla registrazione. Compare UNA volta:
+  // qualunque risposta viene registrata e non si ripropone. Il toggle
+  // resta in Profilo → I miei dati.
+  const [promoSheet, setPromoSheet] = useState(false);
+  useEffect(() => {
+    let n = 0;
+    try {
+      n = (parseInt(localStorage.getItem('byup_ordini_count'), 10) || 0) + 1;
+      localStorage.setItem('byup_ordini_count', String(n));
+    } catch (e) {}
+    if (n >= 3 && !ByupConsensi.stato('PROMOP')) {
+      const t = setTimeout(() => setPromoSheet(true), 1600);
+      return () => clearTimeout(t);
+    }
+  }, []);
+  const decidiPromo = ok => {
+    ByupConsensi.set('PROMOP', ok);
+    setPromoSheet(false);
+  };
   const [hoverStar, setHoverStar] = useState(0);
   const [aspects, setAspects] = useState([]); // ids selezionati
   const [comment, setComment] = useState('');
@@ -34862,7 +34979,83 @@ function SuccessScreen({
       flexDirection: 'column',
       overflow: 'hidden'
     }
+  }, promoSheet && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) decidiPromo(false);
+    },
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 90,
+      background: 'rgba(15,8,12,.5)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      animation: 'fade .2s ease'
+    }
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      background: '#fff',
+      borderRadius: '24px 24px 0 0',
+      padding: '14px 20px 28px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: '#e0d8db'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 800,
+      color: '#1c0f15',
+      marginBottom: 6
+    }
+  }, "\uD83C\uDFAF Offerte sui tuoi gusti?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: '#7a7176',
+      lineHeight: 1.5,
+      marginBottom: 14
+    }
+  }, "Acconsento all'uso del mio storico ordini per ricevere offerte e promozioni costruite su quello che ordino davvero. Niente spam: disattivabile quando voglio da \xABI miei dati\xBB."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => decidiPromo(true),
+    style: {
+      width: '100%',
+      padding: '14px 16px',
+      borderRadius: 999,
+      background: '#E32459',
+      color: '#fff',
+      border: 'none',
+      fontSize: 15,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Attiva le offerte su misura"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => decidiPromo(false),
+    style: {
+      width: '100%',
+      padding: '11px 16px',
+      marginTop: 4,
+      background: 'transparent',
+      color: '#7a7176',
+      border: 'none',
+      fontSize: 13.5,
+      fontWeight: 600,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "No, solo offerte generiche"))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       overflowY: 'auto',

@@ -1723,6 +1723,11 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
 
         {/* Venue cards with stagger animation */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 18px 0' }}>
+          {/* Trasparenza proattiva del legittimo interesse (paletto di
+              Fabio): un hint ONE-SHOT al primo avvio della sezione — i
+              suggerimenti sono personalizzati e si gestiscono da I miei
+              dati. Costa un tooltip, vale metà del balancing test. */}
+          <HintSuggerimenti/>
           {venues.map((v, i) => (
             <div key={`${moment}-${i}`} style={{
               animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`,
@@ -5019,3 +5024,35 @@ Object.assign(window, { HomeSections, Icon, PINK, PINK_DARK, TEXT, MUTED, BORDER
 const __byupRoot = document.getElementById('root');
 if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(<Root/>);
 
+
+
+// ─── HintSuggerimenti — trasparenza proattiva one-shot ──────────────────────
+// La riga compare UNA volta al primo avvio della sezione suggeriti e dice
+// due cose: che i consigli sono personalizzati, e dove si spengono. È la
+// trasparenza che regge il legittimo interesse (LIA-suggerimenti.md).
+function HintSuggerimenti() {
+  const [visto, setVisto] = useState(() => {
+    try { return localStorage.getItem('byup_hint_sugg') === '1'; } catch (e) { return false; }
+  });
+  if (visto) return null;
+  const chiudi = () => { try { localStorage.setItem('byup_hint_sugg', '1'); } catch (e) {} setVisto(true); };
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 9,
+      background: '#fff', borderRadius: 12, padding: '9px 12px',
+      border: '1px solid #F0EAEC',
+    }}>
+      <span style={{ fontSize: 13, flexShrink: 0 }}>✨</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: '#7a7176', lineHeight: 1.45 }}>
+        I suggerimenti sono personalizzati sui tuoi gusti e ordini.
+        Li gestisci da Profilo → I miei dati.
+      </span>
+      <button onClick={chiudi} aria-label="Chiudi" style={{
+        width: 24, height: 24, borderRadius: 999, flexShrink: 0,
+        border: 'none', background: '#F6F1F2', color: '#7a7176',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+      }}>✕</button>
+    </div>
+  );
+}

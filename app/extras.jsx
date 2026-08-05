@@ -1384,6 +1384,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).' },
             { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
             { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
+            { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.' },
             { h: 'Sicurezza dell\'account (accessi)', p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.' },
             { h: 'Cookie e tecnologie simili', p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.' },
             { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
@@ -2652,6 +2653,9 @@ const CONSENSI_DEF = [
   { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', sez: 'Dati raccolti' },
   { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  sez: 'Finalità e base giuridica' },
   { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e promozioni via email e notifica',   sez: 'Finalità e base giuridica' },
+  { id: 'PROMOP', label: 'Offerte sui tuoi ordini',          desc: 'Promozioni costruite sul tuo storico ordini', sez: 'Finalità e base giuridica' },
+  // Opt-out, non consenso: legittimo interesse, attivo salvo disattivazione.
+  { id: 'SUGG', label: 'Suggerimenti personalizzati',        desc: 'Consigli basati sui tuoi gusti e ordini · attivo, puoi disattivarlo', optout: true },
 ];
 
 function ConsensiPanel({ onOpenPrivacy, sep }) {
@@ -2673,7 +2677,9 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
     const d = new Date(st.quando);
     return `${d.toLocaleDateString('it-IT')}`;
   };
-  const attivi = CONSENSI_DEF.filter(c => { const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
+  // Il conteggio in testata conta solo i CONSENSI dati, non l'opt-out
+  // (che è attivo di default e non è un consenso).
+  const attivi = CONSENSI_DEF.filter(c => { if (c.optout) return false; const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ background: SURF_X, borderRadius: 14, overflow: 'hidden', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` }}>
@@ -2698,6 +2704,8 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
         {aperto && CONSENSI_DEF.map((c, i) => {
           const st = ByupConsensi.stato(c.id);
           const data = quando(st);
+          // Opt-out (SUGG): stato assente = ATTIVO — legittimo interesse.
+          const acceso = c.optout ? (st ? st.ok : true) : !!(st && st.ok);
           return (
             <div key={c.id} style={{
               display: 'flex', alignItems: 'center', gap: 12,
@@ -2706,10 +2714,10 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
                 <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>
-                  {c.desc}{data ? ` · dal ${data}` : ''}
+                  {c.desc}{data && !c.optout ? ` · dal ${data}` : ''}
                 </div>
               </div>
-              <ProfileToggle value={!!(st && st.ok)} onChange={(v) => cambia(c.id, v)}/>
+              <ProfileToggle value={acceso} onChange={(v) => cambia(c.id, v)}/>
             </div>
           );
         })}

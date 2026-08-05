@@ -370,7 +370,16 @@ window.ByupKit = {
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing).
+// preferenze, A6 marketing, PROMOP promo profilate) e per l'opt-out SUGG
+// (suggerimenti personalizzati, legittimo interesse: stato assente = ATTIVO).
+//
+// REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
+//   promo generiche        → basta A6
+//   promo profilate        → A6 && PROMOP
+//   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
+//   suggerimenti in-app    → SUGG non disattivato (niente consenso: LI con
+//                            opt-out; la città viene dal contesto d'uso
+//                            corrente, MAI dai log di accesso/sicurezza)
 // Due strutture: lo STATO corrente per consenso e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
