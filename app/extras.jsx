@@ -801,17 +801,6 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
       <ConsensiPanel onOpenPrivacy={onOpenPrivacy} sep={sep}/>
 
 
-      {/* La copia dei dati non si scarica al click: si RICHIEDE — la via
-          è spiegata nella privacy policy, e questa riga ci porta. */}
-      <div style={{ textAlign: 'center', marginTop: 6 }}>
-        <button onClick={onOpenPrivacy} style={{
-          padding: 0, border: 'none', background: 'transparent',
-          fontSize: 11.5, color: MUTED_X, fontFamily: 'inherit', cursor: 'pointer',
-          textDecoration: 'underline', textUnderlineOffset: 2, lineHeight: 1.5,
-        }}>
-          Per richiedere una copia dei tuoi dati consulta la privacy policy
-        </button>
-      </div>
     </div>
   );
 }
@@ -2726,9 +2715,7 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
         })}
         {aperto && (
           <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, padding: '10px 14px 13px' }}>
-            Ogni modifica è registrata con data e versione dell'informativa
-            (v{ByupConsensi.VERSIONE_INFORMATIVA}). Il dettaglio dei trattamenti è
-            nell'<span onClick={onOpenPrivacy} style={{ color: PINK_X, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>informativa privacy</span>.
+            Per richiedere una copia dei tuoi dati consulta l'<span onClick={onOpenPrivacy} style={{ color: PINK_X, fontWeight: 600, cursor: 'pointer' }}>informativa sulla privacy</span>.
           </div>
         )}
       </div>

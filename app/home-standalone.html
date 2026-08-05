@@ -3007,26 +3007,7 @@ function MieiDatiView({
   }, saved ? 'Salvato ✓' : 'Salva modifiche'), /*#__PURE__*/React.createElement(ConsensiPanel, {
     onOpenPrivacy: onOpenPrivacy,
     sep: sep
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: 'center',
-      marginTop: 6
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: onOpenPrivacy,
-    style: {
-      padding: 0,
-      border: 'none',
-      background: 'transparent',
-      fontSize: 11.5,
-      color: MUTED_X,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      textDecoration: 'underline',
-      textUnderlineOffset: 2,
-      lineHeight: 1.5
-    }
-  }, "Per richiedere una copia dei tuoi dati consulta la privacy policy")));
+  }));
 }
 function AccountFormView({
   title,
@@ -7372,16 +7353,14 @@ function ConsensiPanel({
       lineHeight: 1.5,
       padding: '10px 14px 13px'
     }
-  }, "Ogni modifica \xE8 registrata con data e versione dell'informativa (v", ByupConsensi.VERSIONE_INFORMATIVA, "). Il dettaglio dei trattamenti \xE8 nell'", /*#__PURE__*/React.createElement("span", {
+  }, "Per richiedere una copia dei tuoi dati consulta l'", /*#__PURE__*/React.createElement("span", {
     onClick: onOpenPrivacy,
     style: {
       color: PINK_X,
       fontWeight: 600,
-      cursor: 'pointer',
-      textDecoration: 'underline',
-      textUnderlineOffset: 2
+      cursor: 'pointer'
     }
-  }, "informativa privacy"), ".")));
+  }, "informativa sulla privacy"), ".")));
 }
 })();
 </script>
