@@ -167,7 +167,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const adjustLabel = adjustResult?.label ?? null;
   const total = Math.max(0, naturalTotal);
 
-  const contanti = parseFloat(pay.contanti) || 0;
+  // Contanti col campo vuoto = ESATTO: segue il totale senza che nessuno
+  // scriva niente. Prima la CTA partiva spenta («Manca €65») finché non si
+  // toccava un chip — un tocco obbligato per il caso più comune alla cassa.
+  const contantiEsatto = method === 'contanti' && pay.contanti === '';
+  const contanti = contantiEsatto ? total : parseFloat(pay.contanti) || 0;
   const carta = parseFloat(pay.carta) || 0;
   const paid = contanti + carta;
   const resto = paid - total;
@@ -460,7 +464,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
                   {/* RIEPILOGO TOTALE */}
                   <div style={{marginBottom: 18}}>
-                    {/* breakdown lines */}
+                    {/* Il dettaglio (subtotale, sconto) compare SOLO quando
+                        racconta qualcosa che il Totale da solo non dice:
+                        selezione parziale o aggiustamento. Nel caso normale
+                        il primo numero che leggi è l'unico. */}
+                    {(adjust || selectedOrdini.length < allOrdini.length) && (
                     <div style={{display:'flex', flexDirection:'column', gap: 5, marginBottom: 12}}>
                       <ReceiptRow
                         label={`Subtotale${selectedOrdini.length < allOrdini.length ? ` · ${selectedOrdini.length} di ${allOrdini.length}` : ''}`}
@@ -473,10 +481,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           onRemove={() => setAdjust(null)}/>
                       )}
                     </div>
+                    )}
 
                     {/* HERO TOTAL */}
                     <div style={{
-                      paddingTop: 14, borderTop:'1px solid #E5E7EB',
+                      paddingTop: (adjust || selectedOrdini.length < allOrdini.length) ? 14 : 0,
+                      borderTop: (adjust || selectedOrdini.length < allOrdini.length) ? '1px solid #E5E7EB' : 'none',
                       display:'flex', alignItems:'baseline', gap: 8,
                     }}>
                       <span style={{
@@ -1017,40 +1027,32 @@ function MethodTab({ active, onClick, icon, label }) {
   );
 }
 
+// Contante ricevuto — stesso disegno dell'INCASSA di Vendita diretta: una
+// fila sola (Esatto, i tagli, la casella «Altro»), campo vuoto = Esatto, e
+// il resto compare SOLO quando esiste. Prima c'era un campo grande che
+// duplicava il totale e una striscia che diceva «Pagamento esatto» — cioè
+// il caso normale — con una cifra in più da ignorare.
 function CashTendered({ total, value, onChange, chips }) {
-  const tendered = parseFloat(value) || 0;
+  const esatto = value === '';
+  const tendered = esatto ? total : parseFloat(value) || 0;
   const enough = tendered >= total - 0.01 && tendered > 0;
   const resto = tendered - total;
+  const custom = !esatto && !chips.some(c => parseFloat(c.val) === tendered);
   return (
     <div>
       <div style={{
         fontSize: 15, fontWeight: 700, color:'#6B7280',
         marginBottom: 6,
-      }}>Importo ricevuto</div>
-      <div style={{
-        display:'flex', alignItems:'baseline', gap: 4,
-        background:'#fff', border:'1.5px solid #E5E7EB',
-        borderRadius: 10, padding:'12px 14px',
-        marginBottom: 8,
-      }}>
-        <span style={{fontSize: 22, fontWeight: 700, color:'#9CA3AF'}}>€</span>
-        <input type="number" value={value} onChange={e => onChange(e.target.value)}
-          placeholder={total.toFixed(2)}
-          style={{
-            border:'none', outline:'none',
-            fontSize: 26, fontWeight: 800, color:'#0F1115',
-            width:'100%', padding: 0, fontFamily:'inherit',
-            background:'transparent',
-            fontVariantNumeric:'tabular-nums',
-          }}/>
-      </div>
+      }}>Contante ricevuto</div>
 
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6, marginBottom: 12}}>
-        {chips.map(c => {
-          const sel = parseFloat(c.val) === tendered;
+      <div style={{display:'grid', gridTemplateColumns:`repeat(${chips.length + 1}, 1fr)`, gap: 6}}>
+        {chips.map((c, i) => {
+          // Il primo chip è «Esatto»: torna a SEGUIRE il totale (campo
+          // vuoto), così resta giusto anche se il totale cambia dopo.
+          const sel = i === 0 ? esatto : (!esatto && parseFloat(c.val) === tendered);
           return (
-            <button key={c.label} onClick={() => onChange(c.val)} style={{
-              padding:'8px 4px', borderRadius: 8,
+            <button key={c.label} onClick={() => onChange(i === 0 ? '' : c.val)} style={{
+              padding:'9px 4px', borderRadius: 8,
               background: sel ? '#0F1115' : '#fff',
               color: sel ? '#fff' : '#0F1115',
               border: sel ? '1px solid #0F1115' : '1px solid #E5E7EB',
@@ -1059,17 +1061,41 @@ function CashTendered({ total, value, onChange, chips }) {
             }}>{c.label}</button>
           );
         })}
+        {/* La cifra libera è l'ultimo posto della fila, non un campo a
+            parte: vuota finché non serve. */}
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'center', gap: 3,
+          padding:'9px 4px', borderRadius: 8,
+          background: custom ? '#0F1115' : '#fff',
+          border: custom ? '1px solid #0F1115' : '1px solid #E5E7EB',
+          cursor:'text',
+        }}>
+          {custom && <span style={{fontSize: 16, fontWeight: 700, color:'#fff'}}>€</span>}
+          <input
+            value={esatto ? '' : value}
+            onChange={e => onChange(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+            inputMode="decimal"
+            placeholder="Altro"
+            aria-label="Contante ricevuto"
+            style={{
+              width:'100%', minWidth: 0, border:'none', outline:'none',
+              background:'transparent', fontFamily:'inherit', textAlign:'center',
+              fontSize: 16, fontWeight: 700,
+              color: custom ? '#fff' : '#0F1115',
+              padding: 0, fontVariantNumeric:'tabular-nums',
+            }}/>
+        </div>
       </div>
 
-      {tendered > 0 && (
+      {!esatto && (resto > 0.01 || !enough) && tendered > 0 && (
         <div style={{
-          padding:'10px 14px', borderRadius: 10,
+          marginTop: 10, padding:'10px 14px', borderRadius: 10,
           background: enough ? '#DCFCE7' : '#FEF3C7',
           color: enough ? '#166534' : '#92400E',
           display:'flex', justifyContent:'space-between', alignItems:'center',
         }}>
           <span style={{fontSize: 16, fontWeight: 700}}>
-            {enough ? (resto > 0.01 ? 'Resto da dare' : 'Pagamento esatto') : 'Manca ancora'}
+            {enough ? 'Resto da dare' : 'Manca ancora'}
           </span>
           <span style={{fontSize: 22, fontWeight: 800, fontVariantNumeric:'tabular-nums'}}>
             €{Math.abs(enough ? resto : total - tendered).toFixed(2)}
