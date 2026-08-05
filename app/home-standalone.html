@@ -12131,6 +12131,7 @@ function AuthRegister({
   const [nome, setNome] = useStateA('');
   const [cognome, setCognome] = useStateA('');
   const [dob, setDob] = useStateA(''); // data di nascita (YYYY-MM-DD)
+  const [genere, setGenere] = useStateA(''); // scelta libera, non blocca lo step
   const [email, setEmail] = useStateA('');
   const [pw, setPw] = useStateA('');
   const [pw2, setPw2] = useStateA('');
@@ -12333,7 +12334,45 @@ function AuthRegister({
       marginTop: -8,
       paddingLeft: 2
     }
-  }, "Devi avere almeno 18 anni per registrarti.")), step === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LightField, {
+  }, "Devi avere almeno 18 anni per registrarti."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: A_MUTED,
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      marginBottom: 6,
+      paddingLeft: 2
+    }
+  }, "Genere"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap'
+    }
+  }, ['Uomo', 'Donna', 'Altro', 'Preferisco non dirlo'].map(g => {
+    const on = genere === g;
+    return /*#__PURE__*/React.createElement("button", {
+      key: g,
+      onClick: () => setGenere(on ? '' : g),
+      style: {
+        padding: '8px 14px',
+        borderRadius: 999,
+        border: `1.5px solid ${on ? A_PINK : '#E4DDE0'}`,
+        background: on ? A_FIELD : 'transparent',
+        color: on ? A_PINK : A_MUTED,
+        fontSize: 13,
+        fontWeight: on ? 700 : 500,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        transition: 'all .15s'
+      }
+    }, g);
+  })))), step === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LightField, {
     label: "Email",
     value: email,
     onChange: setEmail,
@@ -12672,6 +12711,7 @@ function AuthRegister({
       nome,
       cognome,
       dob,
+      genere,
       email,
       prefs,
       terms

@@ -406,6 +406,7 @@ function AuthRegister({ onBack, onDone }) {
   const [nome, setNome] = useStateA('');
   const [cognome, setCognome] = useStateA('');
   const [dob, setDob] = useStateA(''); // data di nascita (YYYY-MM-DD)
+  const [genere, setGenere] = useStateA(''); // scelta libera, non blocca lo step
   const [email, setEmail] = useStateA('');
   const [pw, setPw] = useStateA('');
   const [pw2, setPw2] = useStateA('');
@@ -531,6 +532,24 @@ function AuthRegister({ onBack, onDone }) {
                 Devi avere almeno 18 anni per registrarti.
               </div>
             )}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: A_MUTED, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Genere</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['Uomo', 'Donna', 'Altro', 'Preferisco non dirlo'].map(g => {
+                  const on = genere === g;
+                  return (
+                    <button key={g} onClick={() => setGenere(on ? '' : g)} style={{
+                      padding: '8px 14px', borderRadius: 999,
+                      border: `1.5px solid ${on ? A_PINK : '#E4DDE0'}`,
+                      background: on ? A_FIELD : 'transparent',
+                      color: on ? A_PINK : A_MUTED,
+                      fontSize: 13, fontWeight: on ? 700 : 500,
+                      fontFamily: 'inherit', cursor: 'pointer', transition: 'all .15s',
+                    }}>{g}</button>
+                  );
+                })}
+              </div>
+            </div>
           </>
         )}
 
@@ -670,7 +689,7 @@ function AuthRegister({ onBack, onDone }) {
 
       {/* CTA */}
       <div style={{ padding: '12px 24px 34px' }}>
-        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({ nome, cognome, dob, email, prefs, terms })) : next())} style={{
+        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({ nome, cognome, dob, genere, email, prefs, terms })) : next())} style={{
           width: '100%', padding: '16px', border: 'none', borderRadius: 16,
           background: stepValid ? A_PINK : '#EDE7E9', color: stepValid ? '#fff' : A_MUTED,
           fontSize: 16, fontWeight: 700, cursor: stepValid ? 'pointer' : 'default', fontFamily: 'inherit',
