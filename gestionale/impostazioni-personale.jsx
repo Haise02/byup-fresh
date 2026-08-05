@@ -280,7 +280,9 @@ function ImpPersonale() {
         </div>
       </section>
 
-      <div style={{display:'grid', gridTemplateColumns:'248px minmax(0, 1fr)', gap: 14, alignItems:'start'}}>
+      {/* Tre colonne: ruoli a sinistra, elenco al centro (più stretto),
+          e a destra gli accessi rapidi col ruolo su misura sotto. */}
+      <div style={{display:'grid', gridTemplateColumns:'248px minmax(0, 1fr) 248px', gap: 14, alignItems:'start'}}>
         <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
           <section style={PANNELLO}>
             <div style={{padding:'16px 18px 12px'}}>
@@ -351,34 +353,6 @@ function ImpPersonale() {
             </div>
           </section>
 
-          {/* Accessi rapidi: le due cose che da qui non si possono fare in
-              nessun altro modo. Collegare un dispositivo non ha un bottone in
-              testata — lassù si aggiungono persone — e gli inviti in sospeso
-              qui non ripetono il bottone, dicono chi sta aspettando. */}
-          <section style={PANNELLO}>
-            <div style={{padding:'16px 18px 12px'}}>
-              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Accessi rapidi</div>
-            </div>
-            <div style={{padding:'0 12px 14px', display:'flex', flexDirection:'column', gap: 8}}>
-              <ScorciatoiaAccesso
-                icona={(BuIcons.monitor||BuIcons.phone)({size: 17, color:'currentColor'})}
-                colore={DEVICE_ROLE.color} sfondo={DEVICE_ROLE.bg}
-                titolo="Collega un dispositivo"
-                sotto="Monitor cucina, cassa o stampante"
-                onClick={() => setInvite({ roleId: null, kind: 'device' })}
-              />
-              <ScorciatoiaAccesso
-                icona={(BuIcons.mail||BuIcons.doc)({size: 17, color:'currentColor'})}
-                colore={PENDING.length ? '#B45309' : PN.MUTED}
-                sfondo={PENDING.length ? PN.AMBER_SOFT : '#F4F5F7'}
-                titolo={PENDING.length ? `${PENDING.length} inviti in attesa` : 'Nessun invito in sospeso'}
-                sotto={PENDING.length
-                  ? `${PENDING.map(p => p.email.split('@')[0]).join(', ')} non hanno ancora accettato`
-                  : 'Chi inviti comparirà qui finché non accetta'}
-                onClick={PENDING.length ? () => setShowPending(true) : undefined}
-              />
-            </div>
-          </section>
         </aside>
 
         <section style={PANNELLO}>
@@ -434,26 +408,61 @@ function ImpPersonale() {
             />
           ))}
         </section>
-      </div>
 
-      {/* Chiusura della pagina: il ruolo su misura è la cosa che quasi nessuno
-          scopre da solo, ed è l'unica risposta a «questa persona non deve
-          vedere la contabilità». */}
-      <section style={{
-        ...PANNELLO, marginTop: 14, padding:'14px 18px',
-        display:'flex', alignItems:'center', gap: 12,
-      }}>
-        <span style={{
-          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-          background: PN.AMBER_SOFT, color: '#B45309',
-          display:'grid', placeItems:'center',
-        }}>{BuIcons.bulb ? BuIcons.bulb({size: 15, color:'currentColor'}) : '💡'}</span>
-        <span style={{flex: 1, minWidth: 0, fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45}}>
-          <strong style={{color: PN.TEXT, fontWeight: 700}}>Suggerimento:</strong> con un ruolo su misura dai
-          a ciascuno solo le sezioni che gli servono — un cameriere non deve vedere la contabilità.
-        </span>
-        <ImpButton variant="ghost" icon={<PnI.Plus size={13}/>} onClick={() => setShowCreateRole(true)}>Crea ruolo</ImpButton>
-      </section>
+        <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
+          {/* Accessi rapidi: le due cose che da qui non si possono fare in
+              nessun altro modo. Collegare un dispositivo non ha un bottone in
+              testata — lassù si aggiungono persone — e gli inviti in sospeso
+              qui non ripetono il bottone, dicono chi sta aspettando. */}
+          <section style={PANNELLO}>
+            <div style={{padding:'16px 18px 12px'}}>
+              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Accessi rapidi</div>
+            </div>
+            <div style={{padding:'0 12px 14px', display:'flex', flexDirection:'column', gap: 8}}>
+              <ScorciatoiaAccesso
+                icona={(BuIcons.monitor||BuIcons.phone)({size: 17, color:'currentColor'})}
+                colore={DEVICE_ROLE.color} sfondo={DEVICE_ROLE.bg}
+                titolo="Collega un dispositivo"
+                sotto="Monitor cucina, cassa o stampante"
+                onClick={() => setInvite({ roleId: null, kind: 'device' })}
+              />
+              <ScorciatoiaAccesso
+                icona={(BuIcons.mail||BuIcons.doc)({size: 17, color:'currentColor'})}
+                colore={PENDING.length ? '#B45309' : PN.MUTED}
+                sfondo={PENDING.length ? PN.AMBER_SOFT : '#F4F5F7'}
+                titolo={PENDING.length ? `${PENDING.length} inviti in attesa` : 'Nessun invito in sospeso'}
+                sotto={PENDING.length
+                  ? `${PENDING.map(p => p.email.split('@')[0]).join(', ')} non hanno ancora accettato`
+                  : 'Chi inviti comparirà qui finché non accetta'}
+                onClick={PENDING.length ? () => setShowPending(true) : undefined}
+              />
+            </div>
+          </section>
+
+          {/* Il ruolo su misura: quasi nessuno lo scopre da solo, ed è l'unica
+              risposta a «questa persona non deve vedere la contabilità».
+              Sta subito sotto gli accessi rapidi, col suo bottone. */}
+          <section style={{...PANNELLO, padding:'14px 16px', display:'flex', flexDirection:'column', gap: 11}}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 10}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{BuIcons.bulb ? BuIcons.bulb({size: 15, color:'currentColor'}) : '💡'}</span>
+              <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
+                <strong style={{color: PN.TEXT, fontWeight: 700}}>Suggerimento:</strong> con un ruolo su misura
+                dai a ciascuno solo le sezioni che gli servono.
+              </span>
+            </div>
+            <ImpButton
+              variant="ghost"
+              icon={<PnI.Plus size={13}/>}
+              onClick={() => setShowCreateRole(true)}
+              style={{width:'100%', justifyContent:'center'}}
+            >Crea ruolo</ImpButton>
+          </section>
+        </aside>
+      </div>
 
       {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
       {editRole && <CreateRoleModal role={editRole} onClose={() => setEditRole(null)}/>}
