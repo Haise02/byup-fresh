@@ -2352,51 +2352,103 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             </div>
 
             <div className="pn-scroll" style={{overflow: 'auto'}}>
-              {/* Quanto resta da incassare: è il numero che l'operatore legge
-                  al cliente, quindi si prende la riga intera. */}
-              <div style={{padding: '12px 28px 0'}}>
-                <div style={{
-                  fontSize: 13.5, fontWeight: 700, color: SVI_MUTED,
-                  letterSpacing: 0.7, textTransform: 'uppercase',
-                }}>Totale residuo</div>
-                <div style={{
-                  display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap',
-                }}>
-                  <span style={{
-                    fontSize: 36, fontWeight: 800, color: SVI_INK,
-                    letterSpacing: -1.2, lineHeight: 1.15, marginTop: 2,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>{svEur(residuo)}</span>
-                  {adjust && (
-                    <span style={{fontSize: 15, color: SVI_MUTED}}>
-                      {adjustLabel.split(' · ')[0]} su {svEur(subtotale)}
-                    </span>
-                  )}
-                </div>
-                {/* Già incassato: da chiuso è un totale, da aperto sono le
-                    righe. Quando il cliente chiede "quanto ho già dato?" la
-                    risposta non è un numero solo, è cosa ha dato e con cosa. */}
-                <button
-                  onClick={() => { if (pagamenti.length) setPagamentiOpen(o => !o); }}
-                  title={pagamenti.length ? 'Vedi i pagamenti già ricevuti' : undefined}
+              {/* ── HERO: l'UNICO numero da guardare — quello che incassi
+                  ORA. Alla cassa piena non c'è tempo di confrontare cifre:
+                  il residuo, il già incassato e lo sconto compaiono in una
+                  riga sotto SOLO quando divergono dal caso normale (paghi
+                  tutto, nessun acconto). Il numero È il campo: un tocco lo
+                  azzera e la cifra diventa tua (Tutto/Metà si spengono). */}
+              <div style={{padding: '10px 28px 0', textAlign: 'center'}}>
+                <div
+                  onClick={() => { importoRef.current?.focus(); }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 4,
-                    padding: 0, background: 'transparent', border: 'none',
-                    fontSize: 14.5, color: SVI_MUTED, fontFamily: 'inherit',
-                    cursor: pagamenti.length ? 'pointer' : 'default',
+                    display: 'inline-flex', alignItems: 'baseline', gap: 7,
+                    cursor: 'text', padding: '2px 6px',
                   }}>
-                  <SvIcoMonete/>
-                  Già incassato {svEur(incassato)}
-                  {pagamenti.length > 0 && (
-                    <span style={{
-                      display: 'inline-flex', color: SVI_MUTED,
-                      transform: pagamentiOpen ? 'rotate(180deg)' : 'none',
-                      transition: 'transform 150ms ease-out',
+                  <span style={{fontSize: 24, fontWeight: 800, color: SVI_MUTED, letterSpacing: -0.5}}>€</span>
+                  <input
+                    ref={importoRef}
+                    value={importoTxt}
+                    onChange={e => {
+                      setImporto(e.target.value.replace(/[^0-9.,]/g, ''));
+                      setRicevuto(null);
+                      setQuota('altro');
+                    }}
+                    onFocus={() => {
+                      // Il valore mostrato era di Tutto/Metà: al tocco si
+                      // azzera e la scelta passa al campo. Se la cifra è
+                      // già tua, il focus non te la butta via.
+                      if (quota !== 'altro') {
+                        setQuota('altro');
+                        setImporto('');
+                        setRicevuto(null);
+                      }
+                    }}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    aria-label="Importo da incassare"
+                    size={Math.max((importoTxt || '').length, 4)}
+                    style={{
+                      width: `${Math.max((importoTxt || '').length, 4)}ch`,
+                      border: 'none', outline: 'none',
+                      background: 'transparent', fontFamily: 'inherit',
+                      fontSize: 46, fontWeight: 800, color: SVI_INK,
+                      letterSpacing: -1.4, padding: 0, lineHeight: 1.1,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}/>
+                  <span style={{color: quota === 'altro' ? SVI_CORAL : SVI_MUTED, display: 'inline-flex', alignSelf: 'center'}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </span>
+                </div>
+
+                {/* Il contesto, solo quando esiste: acconti presi, sconto
+                    applicato o incasso parziale. Su riga propria sotto il
+                    numero (il wrapper è block), cliccabile per la lista. */}
+                {(incassato > 0.004 || Math.abs(adjustDelta) > 0.004 || preso < residuo - 0.004) && (
+                  <div style={{marginTop: 2}}>
+                  <button
+                    onClick={() => { if (pagamenti.length) setPagamentiOpen(o => !o); }}
+                    title={pagamenti.length ? 'Vedi i pagamenti già ricevuti' : undefined}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 2,
+                      padding: 0, background: 'transparent', border: 'none',
+                      fontSize: 14, color: SVI_MUTED, fontFamily: 'inherit',
+                      cursor: pagamenti.length ? 'pointer' : 'default',
                     }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                    </span>
-                  )}
-                </button>
+                    su {svEur(residuo)} da incassare
+                    {incassato > 0.004 && <> · già dato {svEur(incassato)}</>}
+                    {adjust && <> · {adjustLabel.split(' · ')[0].toLowerCase()}</>}
+                    {pagamenti.length > 0 && (
+                      <span style={{
+                        display: 'inline-flex', color: SVI_MUTED,
+                        transform: pagamentiOpen ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 150ms ease-out',
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </span>
+                    )}
+                  </button>
+                  </div>
+                )}
+
+                {/* Tutto / Metà: due gesti, senza cifre — il risultato lo
+                    scrive il numero qui sopra, non serve leggerlo due volte. */}
+                <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8}}>
+                  {quote.map(q => {
+                    const on = quota === q.k;
+                    return (
+                      <button key={q.k}
+                        onClick={() => { setQuota(q.k); setImporto(q.val.toFixed(2).replace('.', ',')); setRicevuto(null); }}
+                        style={{
+                          padding: '7px 24px', borderRadius: 999,
+                          background: on ? SVI_TINT : '#fff',
+                          border: `1px solid ${on ? SVI_CORAL : SVI_BORDER}`,
+                          color: on ? SVI_CORAL : SVI_INK,
+                          fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                        }}>{q.label}</button>
+                    );
+                  })}
+                </div>
 
                 {pagamentiOpen && pagamenti.length > 0 && (
                   <div style={{
@@ -2439,10 +2491,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
 
               <div style={{height: 1, background: SVI_BORDER, margin: '14px 28px 0'}}/>
 
-              {/* Metodo: due modi di prendere i soldi, due tessere grandi.
-                  Al banco si tocca, non si sceglie da una lista. */}
+              {/* Metodo: due tessere parlanti — icona e nome bastano,
+                  l'etichetta di sezione era rumore. */}
               <div style={{padding: '14px 28px 0'}}>
-                <div style={SVI_LABEL}>Metodo di pagamento</div>
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14}}>
                   <SvMetodoCard
                     active={method === 'carta'}
@@ -2457,111 +2508,25 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 </div>
               </div>
 
-              {/* Prima i tagli, poi la cifra: al banco si guarda la banconota
-                  che il cliente porge e si tocca quella — il campo sotto è
-                  dove il numero atterra, e resta scrivibile per gli importi
-                  che un pulsante non può indovinare. Col POS non c'è niente
-                  da scegliere: si addebita il residuo. */}
-              <div style={{padding: '14px 28px 0'}}>
-                <div style={SVI_LABEL}>Quanto incassi ora</div>
-
-                {/* Tutto / Metà: quanto togli dal conto. "Tutto" è già
-                    scritto nel campo all'apertura, quindi il caso normale non
-                    chiede nemmeno un tocco; la cifra personalizzata è il
-                    campo qui sotto. */}
-                <div style={{
-                  display: 'grid', gap: 10, marginBottom: 12,
-                  gridTemplateColumns: `repeat(${quote.length}, 1fr)`,
-                }}>
-                  {quote.map(q => {
-                    const on = quota === q.k;
-                    return (
-                      <button key={q.k}
-                        onClick={() => { setQuota(q.k); setImporto(q.val.toFixed(2).replace('.', ',')); setRicevuto(null); }}
-                        style={{
-                          padding: '8px 8px', borderRadius: 12,
-                          background: on ? SVI_TINT : '#fff',
-                          border: `1px solid ${on ? SVI_CORAL : SVI_BORDER}`,
-                          color: on ? SVI_CORAL : SVI_INK,
-                          fontSize: 16.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                          lineHeight: 1.2,
-                        }}>
-                        {q.label}
-                        <div style={{
-                          fontSize: 12.5, fontWeight: 700, marginTop: 2,
-                          opacity: 0.7, fontVariantNumeric: 'tabular-nums',
-                        }}>{svEur(q.val)}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* La cifra personalizzata È questo campo, non un pulsante:
-                    al primo tocco si svuota (il valore che mostrava era
-                    quello di Tutto/Metà), i pulsanti sopra si spengono e
-                    resta attivo solo lui. Da lì in poi i click posizionano
-                    il cursore: quello che scrivi resta modificabile. */}
-                <div
-                  onClick={() => { importoRef.current?.focus(); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '10px 16px', borderRadius: 14,
-                    background: SVI_TINT, border: `1.5px solid ${SVI_CORAL}`,
-                    cursor: 'text',
-                  }}>
-                  <span style={{fontSize: 26, fontWeight: 800, color: SVI_INK, letterSpacing: -0.7}}>€</span>
-                  <input
-                    ref={importoRef}
-                    value={importoTxt}
-                    onChange={e => {
-                      setImporto(e.target.value.replace(/[^0-9.,]/g, ''));
-                      setRicevuto(null);
-                      // Scrivere a mano È scegliere la cifra: Tutto e Metà
-                      // si spengono da soli, qualunque valore ci sia.
-                      setQuota('altro');
-                    }}
-                    onFocus={() => {
-                      // Il valore mostrato era di Tutto/Metà: al tocco si
-                      // azzera e la scelta passa al campo. Se la cifra è già
-                      // tua, il focus non te la butta via.
-                      if (quota !== 'altro') {
-                        setQuota('altro');
-                        setImporto('');
-                        setRicevuto(null);
-                      }
-                    }}
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    style={{
-                      flex: 1, minWidth: 0, border: 'none', outline: 'none',
-                      background: 'transparent', fontFamily: 'inherit',
-                      fontSize: 26, fontWeight: 800, color: SVI_INK,
-                      letterSpacing: -0.7, padding: 0,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}/>
-                  <span style={{color: SVI_MUTED, flexShrink: 0, display: 'inline-flex'}}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                  </span>
-                </div>
-              </div>
-
-              {/* La banconota in mano al cliente: esiste solo coi contanti,
-                  sulla carta si addebita la cifra esatta. È un campo suo, non
-                  una variante di quello sopra — e il resto sta qui attaccato,
-                  sotto la cifra che lo produce. */}
+              {/* La banconota in mano al cliente: solo contanti. Una riga
+                  sola — Esatto, i tagli e la casella «Altro» per le cifre
+                  che un pulsante non indovina. Niente secondo campo grande:
+                  duplicava l'hero. Il resto compare SOLO quando esiste. */}
               {method === 'contanti' && preso > 0 && (
               <div style={{padding: '14px 28px 0'}}>
-                <div style={SVI_LABEL}>Quanto ti dà il cliente</div>
+                <div style={SVI_LABEL}>Contante ricevuto</div>
 
                 <div style={{
-                  display: 'grid', gap: 10, marginBottom: 12,
-                  gridTemplateColumns: `repeat(${tagli.length}, 1fr)`,
+                  display: 'grid', gap: 10,
+                  gridTemplateColumns: `repeat(${tagli.length + 1}, 1fr)`,
                 }}>
-                  {tagli.map(t => {
-                    const on = Math.abs(ricevuto - t.val) < 0.004;
+                  {tagli.map((t, i) => {
+                    // «Esatto» torna a seguire l'importo (ricevuto nullo):
+                    // così resta giusto anche se l'importo cambia dopo.
+                    const on = ricevutoTxt === null ? i === 0 : Math.abs(ricevuto - t.val) < 0.004;
                     return (
                       <button key={t.label}
-                        onClick={() => setRicevuto(t.val.toFixed(2).replace('.', ','))}
+                        onClick={() => setRicevuto(i === 0 ? null : t.val.toFixed(2).replace('.', ','))}
                         style={{
                           padding: '9px 8px', borderRadius: 12,
                           background: on ? SVI_TINT : '#fff',
@@ -2572,52 +2537,58 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                         }}>{t.label}</button>
                     );
                   })}
+                  {/* La casella è l'ultimo elemento della fila, non un campo
+                      a parte: vuota finché non serve. */}
+                  {(() => {
+                    const custom = ricevutoTxt !== null && !tagli.some(t => Math.abs(ricevuto - t.val) < 0.004);
+                    return (
+                      <div
+                        onClick={() => { ricevutoRef.current?.focus(); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+                          padding: '9px 8px', borderRadius: 12,
+                          background: custom ? SVI_TINT : '#fff',
+                          border: `1px solid ${custom ? SVI_CORAL : SVI_BORDER}`,
+                          cursor: 'text',
+                        }}>
+                        {custom && <span style={{fontSize: 16.5, fontWeight: 700, color: SVI_CORAL}}>€</span>}
+                        <input
+                          ref={ricevutoRef}
+                          value={ricevutoTxt === null ? '' : ricevutoTxt}
+                          onChange={e => setRicevuto(e.target.value.replace(/[^0-9.,]/g, ''))}
+                          inputMode="decimal"
+                          placeholder="Altro"
+                          aria-label="Contante ricevuto"
+                          style={{
+                            width: '100%', minWidth: 0, border: 'none', outline: 'none',
+                            background: 'transparent', fontFamily: 'inherit', textAlign: 'center',
+                            fontSize: 16.5, fontWeight: 700,
+                            color: custom ? SVI_CORAL : SVI_INK,
+                            padding: 0, fontVariantNumeric: 'tabular-nums',
+                          }}/>
+                      </div>
+                    );
+                  })()}
                 </div>
 
-                {/* Come per l'importo: select solo al primo focus, i click
-                    successivi posizionano il cursore — il contante ricevuto
-                    si deve poter correggere, non solo riscrivere. */}
-                <div
-                  onClick={() => { ricevutoRef.current?.focus(); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '9px 16px', borderRadius: 14,
-                    background: '#fff', border: `1.5px solid ${SVI_BORDER}`,
-                    cursor: 'text',
+                {(resto > 0.004 || manca > 0.004) && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    marginTop: 10, padding: '10px 16px',
+                    borderRadius: 14,
+                    background: manca > 0.004 ? '#FEF3C7' : '#F5F6F8',
                   }}>
-                  <span style={{fontSize: 22, fontWeight: 800, color: SVI_INK, letterSpacing: -0.6}}>€</span>
-                  <input
-                    ref={ricevutoRef}
-                    value={ricevutoTxt === null ? preso.toFixed(2).replace('.', ',') : ricevutoTxt}
-                    onChange={e => setRicevuto(e.target.value.replace(/[^0-9.,]/g, ''))}
-                    onFocus={e => e.target.select()}
-                    inputMode="decimal"
-                    aria-label="Contante ricevuto"
-                    style={{
-                      flex: 1, minWidth: 0, border: 'none', outline: 'none',
-                      background: 'transparent', fontFamily: 'inherit',
-                      fontSize: 22, fontWeight: 800, color: SVI_INK,
-                      letterSpacing: -0.6, padding: 0,
+                    <SvIcoMonete size={22}/>
+                    <span style={{fontSize: 16.5, color: manca > 0.004 ? '#B45309' : SVI_MUTED}}>
+                      {manca > 0.004 ? 'Mancano' : 'Resto da dare'}
+                    </span>
+                    <span style={{
+                      fontSize: 18, fontWeight: 800, letterSpacing: -0.3,
+                      color: manca > 0.004 ? '#B45309' : SVI_INK,
                       fontVariantNumeric: 'tabular-nums',
-                    }}/>
-                </div>
-
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  marginTop: 10, padding: '10px 16px',
-                  borderRadius: 14,
-                  background: manca > 0.004 ? '#FEF3C7' : '#F5F6F8',
-                }}>
-                  <SvIcoMonete size={22}/>
-                  <span style={{fontSize: 16.5, color: manca > 0.004 ? '#B45309' : SVI_MUTED}}>
-                    {manca > 0.004 ? 'Mancano' : 'Resto'}
-                  </span>
-                  <span style={{
-                    fontSize: 18, fontWeight: 800, letterSpacing: -0.3,
-                    color: manca > 0.004 ? '#B45309' : resto > 0.004 ? SVI_INK : SVI_GREEN,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>{svEur(manca > 0.004 ? manca : resto)}</span>
-                </div>
+                    }}>{svEur(manca > 0.004 ? manca : resto)}</span>
+                  </div>
+                )}
               </div>
               )}
             </div>
@@ -2666,16 +2637,15 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                         ? `Addebita ${svEur(preso)} sul POS`
                         : parziale
                           ? `Incassa ${svEur(preso)} in acconto`
-                          : `Incassa ed emetti ${fattura ? 'fattura' : 'ricevuta'}`}
+                          : `Incassa ${svEur(preso)} · ${fattura ? 'fattura' : 'ricevuta'}`}
                   </button>
 
-                  {/* Cosa resta sul conto dopo questo incasso. Una riga sola,
-                      allineata come tutto il resto e subito sotto il pulsante
-                      che la provoca: è l'ultima cosa che si legge prima di
-                      premere. "Saldo" e non "residuo" perché accanto c'è già
-                      un "Resto" — due parole simili per due cifre opposte
-                      erano l'errore più facile da fare. */}
-                  {residuo > 0 && (
+                  {/* Cosa resta sul conto dopo questo incasso. Compare SOLO
+                      quando resta davvero qualcosa: il «Saldo €0,00» del caso
+                      normale era una cifra in più da ignorare. "Saldo" e non
+                      "residuo" perché sopra c'è già un "Resto" — due parole
+                      simili per due cifre opposte erano l'errore più facile. */}
+                  {residuo > 0 && residuoDopo > 0.004 && (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       marginTop: 12, padding: '12px 16px', borderRadius: 12,
