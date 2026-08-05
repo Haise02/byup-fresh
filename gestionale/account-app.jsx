@@ -22,7 +22,7 @@ function AccountApp() {
       <PnSidebar active="account"/>
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
-        <PnUnderlineTabs tabs={tabs} active={tab} onChange={setTab}/>
+        <PnSectionTabs tabs={tabs} active={tab} onChange={setTab}/>
 
         <div className="pn-scroll" style={{
           flex: 1, overflow: 'auto',

@@ -1,42 +1,9 @@
 // Shared page header for top-level operative pages (Sala, Cucina, Account)
 // Design system 2.0: WHITE_OFF bg, hairline border, weight 600, letter-spacing tighter.
 
-// Underline tab bar — pillola attiva con gradient sottile + inset highlight (Apple).
-// Sostituisce il border-bottom 2px solid con un'underline più morbida + tonalità.
-// Ogni tab può opzionalmente avere `icon` (nome registry SfIcons). Quando
-// definita, viene resa a sinistra del label a 14px. Coerente con la regola
-// "1 icona per tab nelle filter chips di categoria" (vedi dashboard-icon-mapping).
-function PnUnderlineTabs({ tabs, active, onChange }) {
-  return (
-    <div style={{
-      display: 'flex', gap: 28,
-      padding: '0 32px',
-      borderBottom: `1px solid ${PN.BORDER_HAIR}`,
-      background: PN.WHITE_OFF,
-    }}>
-      {tabs.map(t => {
-        const on = active === t.id;
-        return (
-          <button key={t.id} onClick={() => onChange(t.id)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '14px 0',
-            background: 'transparent', border: 'none',
-            borderBottom: `2px solid ${on ? PN.TEXT : 'transparent'}`,
-            color: on ? PN.TEXT : PN.MUTED,
-            fontSize: 15.5, fontWeight: on ? 600 : 500,
-            letterSpacing: on ? '-0.01em' : 0,
-            cursor: 'pointer', fontFamily: 'inherit',
-            marginBottom: -1,
-            transition: 'color 150ms ease-out, border-color 150ms ease-out',
-          }}>
-            {t.icon && <Icon name={t.icon} size={14}/>}
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+// La tab bar di pagina è PnSectionTabs (panoramica-tokens.jsx): un solo
+// linguaggio per tutte le sezioni. La vecchia PnUnderlineTabs (underline
+// nera su fondo off-white) viveva qui ed è stata assorbita lì.
 
 // Modal shell — backdrop con blur + container glass strong (Apple Sonoma).
 // sheet=true: FOGLIO che sale dal fondo (ancorato in basso, angoli 22px in
@@ -168,6 +135,5 @@ function PnButton({ variant = 'primary', icon, children, onClick, style, disable
   );
 }
 
-window.PnUnderlineTabs = PnUnderlineTabs;
 window.PnModal = PnModal;
 window.PnButton = PnButton;

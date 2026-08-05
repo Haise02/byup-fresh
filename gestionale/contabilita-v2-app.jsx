@@ -57,6 +57,8 @@ function ContabilitaApp() {
             display:'flex', gap: 4, marginBottom: 22,
             borderBottom: `1px solid ${PN.BORDER}`,
           }}>
+            {/* PnSectionTab: il linguaggio unico delle tab di sezione — la
+                ricetta è nata qui e ora vive nei token, condivisa. */}
             {[
               {id:'cassa', label:'Cassa', icon:'commerce-coins'},
               {id:'conti', label:'Conti', icon:'commerce-wallet'},
@@ -64,28 +66,7 @@ function ContabilitaApp() {
               {id:'iva',   label:'IVA',   icon:'commerce-receipt'},
               {id:'export', label:'Export', icon:'download'},
             ].map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                onMouseEnter={e => { if (tab !== t.id) { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.background = '#F4F5F7'; } }}
-                onMouseLeave={e => { e.currentTarget.style.color = tab === t.id ? PN.TEXT : PN.MUTED; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = ''; }}
-                onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
-                onMouseUp={e => { e.currentTarget.style.transform = ''; }}
-                style={{
-                position:'relative',
-                display:'inline-flex', alignItems:'center', gap: 7,
-                padding:'10px 18px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '9px 9px 0 0',
-                color: tab===t.id ? PN.TEXT : PN.MUTED,
-                fontSize: C.T_SM, fontWeight: tab===t.id ? 700 : 500,
-                cursor:'pointer', fontFamily:'inherit',
-                marginBottom: -1,
-                borderBottom: `2px solid ${tab===t.id ? PN.PINK : 'transparent'}`,
-                transition: 'color 140ms ease, background 140ms ease, transform 130ms ease',
-              }}>
-                <Icon name={t.icon} size={14}/>
-                {t.label}
-              </button>
+              <PnSectionTab key={t.id} id={t.id} active={tab === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
             ))}
           </div>
 

@@ -28,6 +28,9 @@ function ImpAtterraggioStyle() {
   );
 }
 
+// Le tab di sezione sono il componente unico PnSectionTabs (underline rosa,
+// panoramica-tokens.jsx): le pillole che vivevano qui erano l'unica sezione
+// a non usare l'underline, e le pillole restano ai filtri.
 function ImpTabs({ active, onChange }) {
   const tabs = [
     { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant' },
@@ -38,33 +41,7 @@ function ImpTabs({ active, onChange }) {
     { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
     { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
   ];
-
-  return (
-    <div style={{
-      display:'flex', gap: 8, padding: '14px 32px',
-      borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-      background: PN.WHITE,
-    }}>
-      {tabs.map(t => {
-        const isActive = active === t.id;
-        return (
-          <button key={t.id} onClick={() => onChange(t.id)} style={{
-            display:'inline-flex', alignItems:'center', gap: 7,
-            padding: '8px 16px',
-            borderRadius: 999,
-            border: `1px solid ${isActive ? PN.PINK : PN.BORDER}`,
-            background: isActive ? PN.PINK_SOFT : PN.WHITE,
-            color: isActive ? PN.PINK_DARK : PN.TEXT,
-            fontSize: 15.5, fontWeight: 600,
-            cursor:'pointer', fontFamily:'inherit',
-          }}>
-            <Icon name={t.icon} size={14}/>
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+  return <PnSectionTabs tabs={tabs} active={active} onChange={onChange}/>;
 }
 
 function ImpSubTabs({ tabs, active, onChange }) {
@@ -78,7 +55,7 @@ function ImpSubTabs({ tabs, active, onChange }) {
         const isActive = active === t.id;
         return (
           <button key={t.id} onClick={() => onChange(t.id)} style={{
-            padding: '12px 2px',
+            padding: '10px 4px',
             background:'transparent', border:'none',
             borderBottom: `2px solid ${isActive ? PN.TEXT : 'transparent'}`,
             marginBottom: -1,

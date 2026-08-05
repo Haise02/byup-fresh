@@ -265,3 +265,57 @@ const MODAL_INPUT = {
   fontSize: 16, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT,
 };
 Object.assign(window, { MODAL_PANEL, MODAL_HEAD, MODAL_TITLE, MODAL_SUB, MODAL_BODY, MODAL_FOOT, MODAL_X, MODAL_LABEL, MODAL_INPUT });
+
+// ─── Tab di sezione — linguaggio unico del gestionale ────────────────────────
+// Un solo disegno per «spostati tra le viste di questa sezione»: underline
+// rosa 2px, icona 14, attivo in peso 700, hover col velo grigio e
+// micro-pressione. Nato in Contabilità, esteso a Statistiche, Profilo e
+// Impostazioni — prima ogni sezione aveva il suo (underline nera, pillole,
+// underline rosa). Le pillole restano ai FILTRI (ruoli, Mensile/Annuale):
+// sono un linguaggio da scelta, non da navigazione.
+// Vive qui nei token perché è l'unico file caricato da tutte le pagine.
+function PnSectionTab({ id, active, onClick, label, icon, hint }) {
+  return (
+    <button onClick={() => onClick(id)}
+      onMouseEnter={e => { if (!active) { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.background = '#F4F5F7'; } }}
+      onMouseLeave={e => { e.currentTarget.style.color = active ? PN.TEXT : PN.MUTED; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = ''; }}
+      onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+      onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+      style={{
+        position: 'relative',
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        padding: '11px 18px',
+        background: 'transparent', border: 'none',
+        borderRadius: '9px 9px 0 0',
+        color: active ? PN.TEXT : PN.MUTED,
+        fontSize: 15.5, fontWeight: active ? 700 : 500,
+        cursor: 'pointer', fontFamily: 'inherit',
+        marginBottom: -1,
+        borderBottom: `2px solid ${active ? PN.PINK : 'transparent'}`,
+        whiteSpace: 'nowrap',
+        transition: 'color 140ms ease, background 140ms ease, transform 130ms ease',
+      }}>
+      {icon && <Icon name={icon} size={14}/>}
+      {label}
+      {hint && <span style={{fontSize: 13, fontWeight: 500, opacity: 0.6}}>{hint}</span>}
+    </button>
+  );
+}
+
+// La barra piena, per le pagine dove le tab stanno da sole sotto la testata
+// (Profilo, Impostazioni). Contabilità e Statistiche montano PnSectionTab
+// dentro le loro barre, che affiancano KPI e period picker.
+function PnSectionTabs({ tabs, active, onChange }) {
+  return (
+    <div style={{
+      display: 'flex', gap: 4, padding: '4px 32px 0',
+      borderBottom: `1px solid ${PN.BORDER}`,
+      background: PN.WHITE,
+    }}>
+      {tabs.map(t => (
+        <PnSectionTab key={t.id} id={t.id} active={active === t.id} onClick={onChange} label={t.label} icon={t.icon}/>
+      ))}
+    </div>
+  );
+}
+Object.assign(window, { PnSectionTab, PnSectionTabs });

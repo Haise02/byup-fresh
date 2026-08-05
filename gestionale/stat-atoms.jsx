@@ -269,29 +269,11 @@ function StatPeriodPicker({ period, setPeriod }) {
   );
 }
 
-// ─── Macro tab — underline pattern come Contabilità/Account ────
+// ─── Macro tab — delega al linguaggio unico delle tab di sezione ────
 // La barra contenitore (in stat-app-main) ha borderBottom 1px PN.BORDER;
 // il tab attivo la sovrascrive con l'underline pink (marginBottom -1).
-function StatTab({ id, active, onClick, label, hint, icon }) {
-  return (
-    <button onClick={() => onClick(id)} style={{
-      position:'relative',
-      display:'inline-flex', alignItems:'center', gap: 7,
-      padding:'10px 18px',
-      background:'transparent', border:'none',
-      color: active ? PN.TEXT : PN.MUTED,
-      fontSize: 15.5, fontWeight: active ? 700 : 500,
-      cursor:'pointer', fontFamily:'inherit',
-      marginBottom: -1,
-      borderBottom: `2px solid ${active ? PN.PINK : 'transparent'}`,
-      whiteSpace:'nowrap',
-      transition:'color 150ms ease-out, border-color 150ms ease-out',
-    }}>
-      {icon && <Icon name={icon} size={14}/>}
-      {label}
-      {hint && <span style={{fontSize: 13, fontWeight: 500, opacity: 0.6}}>{hint}</span>}
-    </button>
-  );
+function StatTab(props) {
+  return <PnSectionTab {...props}/>;
 }
 
 // ─── Sub-tab — underline neutro ────────────────────────────────
