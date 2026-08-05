@@ -257,17 +257,9 @@ function ImpPersonale() {
             Vedi chi accede al gestionale e con quali permessi, e gestisci persone e dispositivi
           </div>
         </div>
+        {/* Una sola azione in testata: aggiungere una persona. Inviti in
+            sospeso e Crea ruolo vivono già nella colonna destra. */}
         <div style={{display:'flex', gap: 8, alignItems:'center', flexShrink: 0}}>
-          <ImpButton
-            variant="ghost"
-            icon={(BuIcons.mail||BuIcons.doc)({size: 13, color:'currentColor'})}
-            onClick={() => setShowPending(true)}
-          >Inviti in sospeso ({PENDING.length})</ImpButton>
-          <ImpButton
-            variant="ghost"
-            icon={<PnI.Plus size={13}/>}
-            onClick={() => setShowCreateRole(true)}
-          >Crea ruolo</ImpButton>
           <ImpButton
             variant="primary"
             icon={<PnI.Plus size={13}/>}
