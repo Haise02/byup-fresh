@@ -16,6 +16,7 @@ function StatStaff() {
   const totOrdini = STAFF.reduce((s, x) => s + x.ordini, 0);
   const totTip = STAFF.reduce((s, x) => s + x.tip, 0);
   const top = [...STAFF].sort((a, b) => b.scontrino - a.scontrino)[0];
+  const maxOrdini = Math.max(...STAFF.map(x => x.ordini));
 
   const handleSort = (col) => {
     if (sortBy === col) setOrder(order === 'asc' ? 'desc' : 'asc');
@@ -112,7 +113,7 @@ function StatStaff() {
                 <div>
                   <div style={{fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{s.ordini.toLocaleString('it-IT', {useGrouping: true})}</div>
                   <div style={{height: 4, background: PN.BORDER_SOFT, borderRadius: 999, marginTop: 4, overflow:'hidden'}}>
-                    <div style={{height:'100%', width: `${(s.ordini / 320) * 100}%`, background: PN.PINK, borderRadius: 999}}/>
+                    <div style={{height:'100%', width: `${(s.ordini / maxOrdini) * 100}%`, background: PN.PINK, borderRadius: 999}}/>
                   </div>
                 </div>
                 <span style={{fontVariantNumeric:'tabular-nums'}}>{s.tavoli}</span>

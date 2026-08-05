@@ -27,7 +27,7 @@ function StatClienti() {
                 return (
                   <div key={stars} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 14.5}}>
                     <span style={{width: 36, color: PN.MUTED, fontWeight: 600}}>{stars} ★</span>
-                    <div style={{flex: 1}}><StatBar pct={pct} color={stars >= 4 ? PN.AMBER : stars === 3 ? '#F59E0B' : PN.RED} height={10}/></div>
+                    <div style={{flex: 1}}><StatBar pct={pct} color={PN.AMBER} height={8}/></div>
                     <span style={{width: 60, textAlign:'right', color: PN.TEXT, fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{row.count}</span>
                   </div>
                 );
@@ -37,26 +37,34 @@ function StatClienti() {
         </StatCard>
 
         <StatCard title="Trend valutazione" sub="Andamento ultimi 12 mesi">
-          <svg viewBox="0 0 280 140" style={{width:'100%', height: 140}}>
-            {[3.5, 4.0, 4.5, 5.0].map((v, i) => {
-              const y = 130 - ((v - 3.5) / 1.5) * 110;
-              return <g key={i}><line x1={20} y1={y} x2={280} y2={y} stroke={PN.BORDER_SOFT}/><text x={4} y={y+3} fontSize="9" fill={PN.MUTED}>{v}</text></g>;
-            })}
-            <path d={d.ratingTrend.map((v, i) => {
-              const x = 20 + (i / (d.ratingTrend.length - 1)) * 250;
-              const y = 130 - ((v - 3.5) / 1.5) * 110;
-              return `${i===0?'M':'L'}${x},${y}`;
-            }).join(' ')} fill="none" stroke={PN.PINK} strokeWidth={2.4}/>
-            {d.ratingTrend.map((v, i) => {
-              const x = 20 + (i / (d.ratingTrend.length - 1)) * 250;
-              const y = 130 - ((v - 3.5) / 1.5) * 110;
-              return <circle key={i} cx={x} cy={y} r={3} fill={PN.PINK}/>;
-            })}
-            {months.map((m, i) => {
-              const x = 20 + (i / (months.length - 1)) * 250;
-              return <text key={i} x={x} y={140} fontSize="9" fill={PN.MUTED} textAnchor="middle">{m}</text>;
-            })}
-          </svg>
+          {(() => {
+            // Serie unica: linea 2.4 con wash sotto, punto solo alla fine
+            // col valore corrente; assi hairline, etichette 11px.
+            const tW = 460, tH = 190, tP = { l: 30, r: 44, t: 14, b: 24 };
+            const tx = (i) => tP.l + (i / (d.ratingTrend.length - 1)) * (tW - tP.l - tP.r);
+            const ty = (v) => tH - tP.b - ((v - 3.5) / 1.5) * (tH - tP.t - tP.b);
+            const line = d.ratingTrend.map((v, i) => `${i===0?'M':'L'}${tx(i)},${ty(v)}`).join(' ');
+            const area = `${line} L ${tx(d.ratingTrend.length - 1)},${tH - tP.b} L ${tP.l},${tH - tP.b} Z`;
+            const last = d.ratingTrend[d.ratingTrend.length - 1];
+            return (
+              <svg viewBox={`0 0 ${tW} ${tH}`} style={{width:'100%', display:'block'}}>
+                {[3.5, 4.0, 4.5, 5.0].map((v, i) => (
+                  <g key={i}>
+                    <line x1={tP.l} y1={ty(v)} x2={tW - tP.r + 16} y2={ty(v)} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
+                    <text x={tP.l - 8} y={ty(v) + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">{v.toFixed(1)}</text>
+                  </g>
+                ))}
+                <path d={area} fill={PN.PINK} opacity={0.08}/>
+                <path d={line} fill="none" stroke={PN.WHITE} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round"/>
+                <path d={line} fill="none" stroke={PN.PINK} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx={tx(d.ratingTrend.length - 1)} cy={ty(last)} r={4.5} fill={PN.PINK} stroke={PN.WHITE} strokeWidth={2}/>
+                <text x={tx(d.ratingTrend.length - 1) + 11} y={ty(last) + 4} fontSize="12.5" fontWeight="700" fill={PN.TEXT}>{last.toLocaleString('it-IT')}</text>
+                {months.map((m, i) => i % 2 === 0 && (
+                  <text key={i} x={tx(i)} y={tH - 6} fontSize="11" fill={PN.MUTED} textAnchor="middle">{m}</text>
+                ))}
+              </svg>
+            );
+          })()}
         </StatCard>
       </div>
 

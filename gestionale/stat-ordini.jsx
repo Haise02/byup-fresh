@@ -2,7 +2,7 @@
 
 function StatOrdini() {
   const d = STAT_ORDINI;
-  const W = 740, H = 240, P = { l: 50, r: 16, t: 16, b: 28 };
+  const W = 740, H = 240, P = { l: 50, r: 76, t: 16, b: 28 };
   const all = [...d.scontrinoTrend.direta, ...d.scontrinoTrend.asporto, ...d.scontrinoTrend.delivery];
   const maxV = Math.ceil(Math.max(...all) / 10000) * 10000;
   const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
@@ -14,15 +14,17 @@ function StatOrdini() {
   // Heatmap max
   const allHeat = d.heatmap.flatMap(r => r.val);
   const maxHeat = Math.max(...allHeat);
+  // Rampa sequenziale a tinta unica: dal rosa chiarissimo al wine, chiaro→scuro
+  const HEAT_RAMP = ['#FFF3F1', '#FFD9D7', '#FFACAF', '#FF5A5F', '#B53338'];
   const heatBg = (v) => {
     const t = v / maxHeat;
-    if (t < 0.18) return '#FFF1EF';
-    if (t < 0.35) return '#FFC2C0';
-    if (t < 0.55) return '#FF8E92';
-    if (t < 0.75) return '#ff5a5f';
-    return '#B53338';
+    if (t < 0.18) return HEAT_RAMP[0];
+    if (t < 0.35) return HEAT_RAMP[1];
+    if (t < 0.55) return HEAT_RAMP[2];
+    if (t < 0.75) return HEAT_RAMP[3];
+    return HEAT_RAMP[4];
   };
-  const heatColor = (v) => v / maxHeat > 0.45 ? '#fff' : PN.TEXT;
+  const heatColor = (v) => v / maxHeat >= 0.55 ? '#fff' : PN.TEXT;
   const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
   const [channel, setChannel] = React.useState('Sala');
 
@@ -54,18 +56,27 @@ function StatOrdini() {
             return (
               <g key={i}>
                 <line x1={P.l} y1={y} x2={W - P.r} y2={y} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
-                <text x={P.l - 8} y={y + 4} fontSize="10" fill={PN.MUTED} textAnchor="end">€{v >= 1000 ? (v/1000)+'k' : v}</text>
+                <text x={P.l - 8} y={y + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">€{v >= 1000 ? (v/1000)+'k' : v}</text>
               </g>
             );
           })}
-          {/* Lines */}
-          <path d={path(d.scontrinoTrend.delivery)} fill="none" stroke={PN.BLUE} strokeWidth={2}/>
-          <path d={path(d.scontrinoTrend.asporto)} fill="none" stroke={PN.GREEN} strokeWidth={2}/>
-          <path d={path(d.scontrinoTrend.direta)} fill="none" stroke={PN.PINK} strokeWidth={2.4}/>
-          {/* Points */}
-          {d.scontrinoTrend.direta.map((v, i) => <circle key={'a'+i} cx={xAt(i)} cy={yScale(v)} r={3.5} fill={PN.PINK}/>)}
-          {d.scontrinoTrend.asporto.map((v, i) => <circle key={'b'+i} cx={xAt(i)} cy={yScale(v)} r={3} fill={PN.GREEN}/>)}
-          {d.scontrinoTrend.delivery.map((v, i) => <circle key={'c'+i} cx={xAt(i)} cy={yScale(v)} r={3} fill={PN.BLUE}/>)}
+          {/* Linee — alone bianco sotto ciascuna per gli incroci */}
+          {[
+            { key:'delivery', arr: d.scontrinoTrend.delivery, col: PN.BLUE, w: 2, label:'Delivery' },
+            { key:'asporto', arr: d.scontrinoTrend.asporto, col: PN.GREEN, w: 2, label:'Asporto' },
+            { key:'sala', arr: d.scontrinoTrend.direta, col: PN.PINK, w: 2.4, label:'Sala' },
+          ].map(s => {
+            const last = s.arr[s.arr.length - 1];
+            return (
+              <g key={s.key}>
+                <path d={path(s.arr)} fill="none" stroke={PN.WHITE} strokeWidth={s.w + 3} strokeLinecap="round" strokeLinejoin="round"/>
+                <path d={path(s.arr)} fill="none" stroke={s.col} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round"/>
+                {/* Solo il punto finale, con anello bianco 2px */}
+                <circle cx={xAt(s.arr.length - 1)} cy={yScale(last)} r={4.5} fill={s.col} stroke={PN.WHITE} strokeWidth={2}/>
+                <text x={xAt(s.arr.length - 1) + 11} y={yScale(last) + 4} fontSize="12" fontWeight="600" fill={PN.TEXT}>{s.label}</text>
+              </g>
+            );
+          })}
           {/* Months */}
           {months.map((m, i) => <text key={i} x={xAt(i)} y={H - 6} fontSize="11" fill={PN.MUTED} textAnchor="middle">{m}</text>)}
         </svg>
@@ -88,39 +99,39 @@ function StatOrdini() {
       }>
         <div style={{
           display:'grid',
-          gridTemplateColumns:`80px repeat(7, 1fr)`,
-          gap: 4,
+          gridTemplateColumns:`64px repeat(7, 1fr)`,
+          gap: 3,
         }}>
           <div></div>
           {days.map(day => (
             <div key={day} style={{
-              padding:'8px 0', fontSize: 13, fontWeight: 700, color: PN.MUTED,
+              padding:'6px 0', fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
               textAlign:'center', textTransform:'uppercase', letterSpacing: 0.4,
             }}>{day}</div>
           ))}
           {d.heatmap.map((row, ri) => (
             <React.Fragment key={ri}>
               <div style={{
-                padding:'10px 8px', fontSize: 14.5, fontWeight: 600, color: PN.MUTED,
-                fontVariantNumeric:'tabular-nums',
+                padding:'0 10px 0 0', fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                fontVariantNumeric:'tabular-nums', textAlign:'right', alignSelf:'center',
               }}>{row.ora}</div>
               {row.val.map((v, i) => (
                 <div key={i} style={{
-                  height: 40, borderRadius: 6,
+                  height: 40, borderRadius: 5,
                   background: heatBg(v), color: heatColor(v),
                   display:'grid', placeItems:'center',
-                  fontSize: 14.5, fontWeight: 700, fontVariantNumeric:'tabular-nums',
+                  fontSize: 13, fontWeight: 600, fontVariantNumeric:'tabular-nums',
                 }}>{v}</div>
               ))}
             </React.Fragment>
           ))}
         </div>
-        <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 16, fontSize: 14, color: PN.MUTED}}>
-          <span>Bassa attività</span>
-          {['#FFF1EF','#FFC2C0','#FF8E92','#ff5a5f','#B53338'].map(c => (
-            <span key={c} style={{width: 16, height: 16, background: c, borderRadius: 3}}/>
+        <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 16, fontSize: 14, color: PN.MUTED}}>
+          <span style={{marginRight: 4}}>Bassa attività</span>
+          {HEAT_RAMP.map(c => (
+            <span key={c} style={{width: 22, height: 10, background: c, borderRadius: 3}}/>
           ))}
-          <span>Alta attività</span>
+          <span style={{marginLeft: 4}}>Alta attività</span>
         </div>
       </StatCard>
     </div>
