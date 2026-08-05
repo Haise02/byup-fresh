@@ -278,6 +278,25 @@ function ImpDatiFiscali() {
               <b>Lo scontrino è 100% digitale</b>: byup emette e trasmette i corrispettivi all'Agenzia delle Entrate per te. Il collegamento al POS e gli strumenti di pagamento si configurano nella pagina <b style={{cursor:'pointer'}}>POS e integrazioni</b>.
             </div>
           </div>
+
+          {/* Sicurezza della delega AdE — stessa nota dell'onboarding: le
+              credenziali non passano mai da byup, la delega si dà sul portale. */}
+          <div style={{
+            padding: '12px 16px',
+            background: 'rgba(22, 163, 74, 0.07)', border: '1px solid rgba(22, 163, 74, 0.18)',
+            borderRadius: 12,
+            display:'flex', gap: 10, alignItems:'flex-start',
+            fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PN.GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+              <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+            </svg>
+            <span>
+              <b style={{color: PN.TEXT, fontWeight: 600}}>byup non chiede e non conserva le tue credenziali dell'Agenzia delle Entrate.</b>{' '}
+              La trasmissione avviene tramite la delega che concedi sul portale AdE; i dati di
+              collegamento sono conservati cifrati.
+            </span>
+          </div>
         </div>
 
         {/* Anteprima scontrino */}

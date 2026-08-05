@@ -42,6 +42,37 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
   // modificano qui. MENU_INIZIALE resta il seed dell'import AI.
   const [menu, setMenu] = React.useState(MENU_INIZIALE);
 
+  // ─── Contratto ─────────────────────────────────────────────────────────
+  // L'attivazione È la conclusione del contratto: senza accettazione qui il
+  // servizio non parte. Due firme distinte perché lo chiede la legge, non il
+  // design: l'accettazione integrale e la SECONDA approvazione specifica
+  // delle clausole vessatorie (artt. 1341-1342 c.c.), che è valida solo se
+  // le clausole sono elencate, non citate in blocco.
+  const [accTerms, setAccTerms] = React.useState(false);
+  const [accVessatorie, setAccVessatorie] = React.useState(false);
+  const contrattoOk = accTerms && accVessatorie;
+  const completa = (dest) => {
+    if (!contrattoOk || !onComplete) return;
+    // La prova dell'accettazione: versione e momento. In demo resta locale;
+    // in produzione è un campo del backend accanto all'account.
+    try {
+      localStorage.setItem('byup_contratto_accettato', JSON.stringify({
+        versione: CONTRATTO_VERSIONE, quando: new Date().toISOString(),
+      }));
+    } catch (e) {}
+    onComplete(dest);
+  };
+  // Copia su supporto durevole: il testo versionato scaricato com'è, non un
+  // link a una pagina che domani può cambiare.
+  const scaricaContratto = () => {
+    const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Termini e Condizioni Byup Fresh · v${CONTRATTO_VERSIONE}</title></head><body style="font-family:Georgia,serif;max-width:720px;margin:40px auto;line-height:1.6"><h1>Termini e Condizioni di Byup Fresh</h1><p><i>Versione ${CONTRATTO_VERSIONE} · scaricata il ${new Date().toLocaleDateString('it-IT')}</i></p>${CONTRATTO_TESTO.map(c => `<h3>${c.n}. ${c.h}</h3><p>${c.p}</p>`).join('')}</body></html>`;
+    const url = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = `Byup-Fresh-Termini-v${CONTRATTO_VERSIONE}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+
   const totalDishes = menu.reduce((s, c) => s + c.dishes.length, 0);
   const totalTables = rooms.reduce((s, r) => s + r.tables, 0);
 
@@ -199,6 +230,68 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
           </div>
         </div>
 
+        {/* ─── Contratto — il punto di firma, sopra le CTA che attivano ─── */}
+        <div style={{
+          marginTop: 22, padding: '18px 20px',
+          background: '#fff', borderRadius: 14,
+          border: '1px solid rgba(15, 17, 21, 0.08)',
+          boxShadow: '0 1px 3px rgba(15, 17, 21, 0.04)',
+          position: 'relative', zIndex: 1,
+        }}>
+          <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10}}>
+            <div style={{fontSize: 17, fontWeight: 600, color: ONB.TEXT, letterSpacing: '-0.01em'}}>
+              Contratto di servizio
+            </div>
+            <button onClick={scaricaContratto} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: 0, background: 'transparent', border: 'none',
+              fontSize: 13.5, fontWeight: 600, color: ONB.MUTED,
+              cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
+              textUnderlineOffset: 2,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+              Scarica copia (v{CONTRATTO_VERSIONE})
+            </button>
+          </div>
+
+          {/* Il testo integrale, scorrevole: si firma quello che si può
+              leggere qui, non un link. */}
+          <div className="pn-scroll" style={{
+            maxHeight: 148, overflowY: 'auto',
+            padding: '12px 14px', borderRadius: 10,
+            background: ONB.BG_SOFT, border: '1px solid rgba(15, 17, 21, 0.06)',
+            fontSize: 13, lineHeight: 1.55, color: ONB.MUTED,
+          }}>
+            {CONTRATTO_TESTO.map(c => (
+              <div key={c.n} style={{marginBottom: 10}}>
+                <div style={{fontWeight: 700, color: ONB.TEXT, marginBottom: 2}}>{c.n}. {c.h}</div>
+                <div>{c.p}</div>
+              </div>
+            ))}
+          </div>
+
+          <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, cursor: 'pointer'}}>
+            <input type="checkbox" checked={accTerms} onChange={e => setAccTerms(e.target.checked)}
+              style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
+            <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
+              Ho letto e accetto integralmente i <b>Termini e Condizioni di Byup Fresh</b> (v{CONTRATTO_VERSIONE}) e ho preso visione dell'informativa privacy.
+            </span>
+          </label>
+
+          {/* La seconda firma: valida solo se le clausole sono ELENCATE. */}
+          <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 8, cursor: 'pointer'}}>
+            <input type="checkbox" checked={accVessatorie} onChange={e => setAccVessatorie(e.target.checked)}
+              style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
+            <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
+              Ai sensi degli <b>artt. 1341 e 1342 c.c.</b> approvo specificamente le clausole:{' '}
+              {CLAUSOLE_VESSATORIE.map((n, i) => {
+                const c = CONTRATTO_TESTO.find(x => x.n === n);
+                return <span key={n}><b>{n}</b> ({c.h}){i < CLAUSOLE_VESSATORIE.length - 1 ? ', ' : '.'}</span>;
+              })}
+            </span>
+          </label>
+        </div>
+
         {/* Footer CTAs — full width sotto le due colonne, sticky perché
             l'editor del menù può far crescere la colonna oltre il canvas. */}
         <div style={{
@@ -213,22 +306,36 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             Indietro
           </SecondaryCta>
           <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-            {/* Gerarchia: l'azione consigliata è chiudere il setup ("Completa la
-                configurazione") — rossa e a pillola. Entrare subito nel prodotto
-                resta possibile ma anonimo, separato da un "oppure" discreto per
-                chiarire che è un bivio, non una sequenza. */}
-            <SecondaryCta onClick={() => onComplete && onComplete('panoramica')}>
-              Inizia a gestire il locale
-            </SecondaryCta>
-            <span style={{
-              fontSize: 14, fontWeight: 500, color: ONB.MUTED_LIGHT,
-              letterSpacing: '0.04em',
+            {/* Le due uscite attivano il servizio: senza le due firme del
+                contratto restano spente, e il perché è scritto accanto. */}
+            {!contrattoOk && (
+              <span style={{fontSize: 13.5, fontWeight: 600, color: ONB.MUTED, marginRight: 2}}>
+                Accetta il contratto per attivare
+              </span>
+            )}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              opacity: contrattoOk ? 1 : 0.45,
+              pointerEvents: contrattoOk ? 'auto' : 'none',
+              transition: 'opacity 160ms ease',
             }}>
-              oppure
-            </span>
-            <PrimaryCtaArrow onClick={() => onComplete && onComplete('config')}>
-              Completa la configurazione
-            </PrimaryCtaArrow>
+              {/* Gerarchia: l'azione consigliata è chiudere il setup ("Completa la
+                  configurazione") — rossa e a pillola. Entrare subito nel prodotto
+                  resta possibile ma anonimo, separato da un "oppure" discreto per
+                  chiarire che è un bivio, non una sequenza. */}
+              <SecondaryCta onClick={() => completa('panoramica')}>
+                Inizia a gestire il locale
+              </SecondaryCta>
+              <span style={{
+                fontSize: 14, fontWeight: 500, color: ONB.MUTED_LIGHT,
+                letterSpacing: '0.04em',
+              }}>
+                oppure
+              </span>
+              <PrimaryCtaArrow onClick={() => completa('config')}>
+                Completa la configurazione
+              </PrimaryCtaArrow>
+            </div>
           </div>
         </div>
       </div>
@@ -980,3 +1087,23 @@ function PrimaryCtaArrow({onClick, disabled, children}) {
 }
 
 window.Step4Verifica = Step4Verifica;
+
+// ─── Contratto di servizio Byup Fresh ───────────────────────────────────────
+// BOZZA v1.0 — struttura e clausole pensate per il B2B di Fresh; il testo va
+// validato da un legale prima del lancio. CLAUSOLE_VESSATORIE elenca i numeri
+// delle clausole che richiedono la seconda approvazione ex artt. 1341-1342
+// c.c.: se una clausola cambia numero, va aggiornato anche qui.
+const CONTRATTO_VERSIONE = '1.0';
+const CONTRATTO_TESTO = [
+  { n: 1, h: 'Oggetto del servizio', p: 'Byup S.r.l. concede in licenza d\'uso, in modalità cloud (SaaS), il gestionale Byup Fresh: cassa, ordinazione al tavolo, menù digitali, vetrina, statistiche e trasmissione dei corrispettivi. Il servizio è riservato a operatori professionali del settore Food & Beverage.' },
+  { n: 2, h: 'Attivazione e account', p: 'L\'account è riferito al locale e gestito dal titolare o da un suo delegato. Le credenziali sono personali; il titolare risponde dell\'uso fatto dagli utenti che autorizza (staff, dispositivi).' },
+  { n: 3, h: 'Corrispettivi e fatturazione', p: 'Il servizio è offerto in abbonamento con soglie di ordini incluse e costo per ordine extra secondo il piano scelto. I corrispettivi sono fatturati elettronicamente e i pagamenti gestiti tramite il fornitore Stripe.' },
+  { n: 4, h: 'Sospensione del servizio', p: 'Byup può sospendere il servizio in caso di mancato pagamento, uso illecito o rischio per la sicurezza della piattaforma, dandone comunicazione. La sospensione non estingue i corrispettivi maturati.' },
+  { n: 5, h: 'Obblighi del ristoratore', p: 'Il ristoratore garantisce la correttezza dei dati inseriti (menù, prezzi, allergeni, dati fiscali) e il rispetto delle norme applicabili alla propria attività, incluse quelle igienico-sanitarie e di informazione al consumatore.' },
+  { n: 6, h: 'Limitazione di responsabilità', p: 'Nei limiti consentiti dalla legge, Byup non risponde dei danni indiretti o del lucro cessante derivanti da interruzioni del servizio, e la responsabilità complessiva è limitata ai corrispettivi versati nei 12 mesi precedenti l\'evento. Restano ferme le responsabilità inderogabili di legge.' },
+  { n: 7, h: 'Modifica delle condizioni', p: 'Byup può modificare i presenti Termini e i listini con preavviso di almeno 30 giorni tramite il gestionale o email. In caso di disaccordo il ristoratore può recedere prima dell\'efficacia delle modifiche, senza penali.' },
+  { n: 8, h: 'Recesso e chiusura dell\'account', p: 'Il ristoratore può recedere in ogni momento con effetto dalla fine del periodo di fatturazione in corso. Byup può recedere con preavviso di 30 giorni, o chiudere l\'account senza preavviso nei casi gravi di cui alla clausola 4. I dati sono esportabili prima della chiusura.' },
+  { n: 9, h: 'Trattamento dei dati personali', p: 'Byup tratta i dati secondo l\'informativa privacy disponibile nel gestionale. Per i dati dei clienti finali trattati per conto del locale, Byup opera quale responsabile del trattamento ai sensi dell\'art. 28 GDPR.' },
+  { n: 10, h: 'Legge applicabile e foro esclusivo', p: 'I presenti Termini sono regolati dalla legge italiana. Per ogni controversia è competente in via esclusiva il Foro di Roma.' },
+];
+const CLAUSOLE_VESSATORIE = [4, 6, 7, 8, 10];
